@@ -72,10 +72,16 @@ class per request shape (`putClass`, `deleteClass`, `rangeClass`, `txnClass`), a
 specs say a passed check establishes it of the principal it checked (`notes/decisions.md`, "A1 of
 the auth plan"):
 
-- `Put`: `checkPutAuth` (the key's write, with `PrevKv` its read; the lease's keys are checked but
-  not stated: the lessor has no key model);
+- `Put`: `checkPutAuth` (the key's write, with `PrevKv` its read; and, since the lease-keys plan
+  (`notes/lease-keys-plan.md`, 2026-10-31), the lease's keys over the lessor's item map:
+  `leaseKeysClass`, admin or the write of every key the lease holds when the check runs);
 - `Txn`: `checkTxnReqsPermission` (each op of both branches, nested transactions recursively),
-  `checkTxnPermission`/`CheckTxnAuth` (the comparisons' reads, then both branches);
+  `checkTxnPermission`/`CheckTxnAuth` (the comparisons' reads, then both branches; the puts' leases'
+  keys, `txnLeaseClass`, but not of a `putKeep` or lease-keeping `putIgnVal`, whose wire `Lease`
+  `TxnOp` forgets);
+- the apply chain's `chain_put`/`chain_txn` (`apply/Results.lean`) state the lease class
+  (`reqLeaseClass`) beside `reqClass` for an outcome that passed the auth layer; the dispatch
+  (`uberApplier.dispatch`, `Apply`) does not carry it yet;
 - `Range`, serializable: `doSerialize`'s `chk`, and `EtcdServer.Range`'s success post gives the
   class of some auth info (the token's principal, or the empty one);
 - `Watch`: `serverWatchStream.isWatchPermitted` (the read of `[Key, RangeEnd)`).
@@ -147,7 +153,8 @@ resources, and the KV methods' posts state the row's class for it through the wh
   itself (`userGetClass`; at the method level: the generic triple does not carry it).
 
 Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
-`LeaseRevoke`'s keys (the lessor's key model), the server-level statement over the decoded
+`LeaseRevoke`'s keys (the spec of `checkLeasePuts` states them, but no chain result reaches a
+revocation: `rqOk` excludes it), the server-level statement over the decoded
 entry (`applyEntryNormal`: E).
 
 ## What is proved of the table (A4, the watch shapes, 2026-10-24)
@@ -186,7 +193,7 @@ the request unconditionally (the row above is right).
 Stated at the API layer so far: A2's twelve (`Compact`, the eight maintenance wrappers,
 `MemberRemove`, `MemberList`, the lease rows' guard) and these seventeen. Remaining: `Lock`,
 `Unlock`, the five `Election` rows (the client's `concurrency` package over the in-process client),
-the lease rows' key checks (a lessor with a key model), `MemberAdd`/`MemberUpdate`/`MemberPromote`
+the lease rows' key checks (the API layer's, Part B of `notes/lease-keys-plan.md`), `MemberAdd`/`MemberUpdate`/`MemberPromote`
 (`encoding/json`).
 
 ## What is proved of the table (S4, the store's admin side, 2026-10-24)

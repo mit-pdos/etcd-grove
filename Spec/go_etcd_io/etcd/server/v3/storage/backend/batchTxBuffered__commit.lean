@@ -25,15 +25,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `t.commit(stop)` under the batch lock: `unsafeCommit` under `readTx.mu`. -/
 abbrev backend.batchTxBuffered.commit.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t rt : Loc) (st : BSess) (win stop : Bool) (m u : Nat)
-    (X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ batchLockedW γ P b st win ∗ Pk ∗ ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = []) ∧ (win = false → vData P (st.C, st.R) = sData P st.S)⌝ ∗ payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}
+    (X Y : IProp GF) (L' : VData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ batchLockedW γ P b st win ∗ Pk ∗ ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = [])⌝ ∗
+      (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
+      payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"commit")) (Val #stop))
   {{ RET #(); Y ∗ Pk ∗ payOut γ stop m ∗
       (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ)
        else iprop(∃ (st' : BSess) (db : Loc), sync.ownMutex (muOf t) ∗ batchPhys γ b t db st' ∗
          batchGhostAt γ P st' true ∗
          ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0⌝ ∗
-         (if win then bView γ 1 (vData P (st'.C, st'.R)) else iprop(True)))) }}
+         (if win then bView γ 1 L' else iprop(True)))) }}
 
 end spec
 

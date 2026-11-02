@@ -41,7 +41,7 @@ abbrev auth.authStore.Recover.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authOwnF M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
       authBackendOk be R M ∗ authWBackendOkR be M P f T ∗
-      □ (∀ s : AuthState, authSnap M s -∗ ⌜permsFit s⌝) }}
+      □ (∀ s : AuthState, authSnap M s -∗ ⌜permsFit s⌝) ∗ □ (∀ s : AuthState, capNext M hs s) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Recover")) (Val #be))
   {{ RET #(); tpAdmin st M ∗ authWR st M P f T ∗ R ∗ ∃ sta : AuthState, authSnap M sta ∗ authOwnF M (hs ++ [sta]) }}
 

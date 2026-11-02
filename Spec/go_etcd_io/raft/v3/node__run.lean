@@ -4,8 +4,15 @@
 
 The node's goroutine, forked by `RestartNode`: it owns the `RawNode` (`ownRawNode`, idle:
 no `Ready` outstanding), `run`'s half of `dlv` at the committed log handed out so far,
-the whole of `rof` (no `Ready` handed out), and the budget's bound on its term. It never
-returns (`stop` is never sent on).
+the whole of `rof` (no `Ready` handed out), and the budget's bound on its term; (2026-10-29,
+stage U9a) the closing side of `done` (`ownBroadcastChan … .Pending`) and its half of `live`
+(`nodeLiveRaw γ 1`). It returns when it receives the client's half on `stop`: it closes `done`
+with the node stopped (`nodeStoppedRaw`). (2026-11-01, durability stage I-2/I-3) With its share of
+the generation of its id's slot (in `nodeLiveRaw`), its halves of `dur`/`bw` and the generation's
+free queue, from which it cuts each `Ready`'s batch (`readyCut`); (2026-11-01, stage II (n), the stop's
+option (c)) at the stop it answers on `stop` with its share of the generation and its protocol state
+(`stopAns`), from which `Stop` gives the id's slot back itself (`raftIdSlot`, the API's `nodeVacant`,
+`raft_stop`).
 -/
 module
 
@@ -41,7 +48,15 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     -- (2026-10-17; until then at the term) the term ceiling within the budget
     termLB γ.bud rs.tc ∗
     -- (2026-10-15, stage N) `run`'s side of the configuration shared with the driver
-    runCfg γ rs)
+    runCfg γ rs ∗
+    -- (2026-10-29, stage U9a) `run` closes `done` when stopped, and holds its half of `live`
+    -- ((2026-11-01, durability stage I-3) with its share of the generation)
+    ownBroadcastChan nv.done' γ.done (nodeStoppedRaw γ) .Pending ∗ nodeLiveRaw γ 1 ∗
+    -- (2026-11-01, durability stage I-3/I-8) its half of the durable state and role the driver
+    -- recorded, both halves of the last batch's maps (no `Ready` out), the generation's queue free
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+    (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+    slotFree γ.raft id γ.gen)
 
 /-- See the file header. -/
 abbrev node.run.spec : Prop :=

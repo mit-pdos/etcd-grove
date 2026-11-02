@@ -35,18 +35,26 @@ four new rules:
   `StepRInv.lean`, "I1 needs the commit index").
 * `higherTerm`, `stepDown` clear `pci` (`reset`); the other rules that make a follower leave it
   (a non-leader's is `0` in Go, and nothing reads it).
-* `snapRestore` takes the snapshot's configuration (`restore`'s `ConfState`) as the node's, at
-  the snapshot's index, with the snapshot pending; the node's full prefix becomes `fp'`, ghost.
+* `snapRestore` restores the log to the snapshot, with the snapshot pending; the node's full
+  prefix becomes `fp'`, ghost, which extends the node's full log up to its commit index (both
+  committed: 2026-10-28, stage U3, when the configuration index stopped moving to the snapshot's
+  index, so that the conf entries of a `Ready` handed out before the restore can still be applied
+  and acknowledged, `applyConf`, `advance`). The configuration stays (2026-10-28, stage U0: the configuration switches to the snapshot's only
+  when it is applied, the fix of `issues/raft-snapshot-during-apply-stale-confchange.md`; until
+  then `snapRestore` took the snapshot's `cs'` as the node's); the rule still names the
+  snapshot's configuration state `cs'`, admissible after `fp'` and naming the node.
 * new: `advance` (`applied` moves up to at most `commit`, past no conf entry the configuration
-  has not taken: A1, `ApplyConfChange` before `Advance`), `applySnap` (`appliedSnap`: the
-  pending snapshot applied), `applyConf` (the configuration takes the next conf entry, in
+  has not taken: A1, `ApplyConfChange` before `Advance`), `applySnap` (`appliedSnap`: a
+  snapshot at or below the boundary applied, the configuration now the snapshot's, a `cs'`
+  admissible after the full prefix up to its index, the configuration index there),
+  `applyConf` (the configuration takes the next conf entry, in
   order, once per entry, decoded by `dec` from the entry and its prefix: the review's A1 gap),
   `stepDown` (a leader outside its configuration's voters becomes a follower at its term:
   `switchToConfig` with `StepDownOnRemoval`; without it the leader stays, which the model
   allows by not taking the rule).
 
 `Adm l cs`: the configurations a node may take on after the full-log prefix `l` (by
-`applyConf`, or as a snapshot's by `snapRestore`). The dynamic model takes the fold of the
+`applyConf`, or as a snapshot's by `applySnap`; a restore's `snapRestore` checks its snapshot's). The dynamic model takes the fold of the
 prefix (`AdmFold`: A3, a snapshot's `ConfState` is its prefix's configuration; for `applyConf`
 it is implied by the decoder); the static one (`StaticAdm V`) the voters `V` unchanged. (Until
 D19p, 2026-10-18, `StepR` projected to `StepC (CfgM.simple V ∅)` there, `stepR_static`, and so
@@ -99,6 +107,17 @@ def RState.full (r : RState) : List EntryM := r.fp ++ r.p.log
 /-- No conf-change entry at the positions `[lo, hi)` of `l` (log indices `(lo, hi]`). -/
 def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
+
+/-- (2026-10-28, stage U6m) **No undecided conf entry** at the positions `[lo, hi)` of `l`: every
+conf-change entry there is rejected by the decoder (`CCDecision.reject`, at its prefix), so that the
+configuration passes it unchanged. A log with no conf entry there has none (`NoConfIn.noUndec`). -/
+def NoUndecConfIn (dec : CCDec) (l : List EntryM) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → IsConfEnt e →
+    dec (l.take k) e = some .reject
+
+theorem NoConfIn.noUndec {dec : CCDec} {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi) :
+    NoUndecConfIn dec l lo hi :=
+  fun k e h1 h2 he hc => absurd hc (h k e h1 h2 he)
 
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
 def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
@@ -264,6 +283,8 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role = .leader →
       CCTypesOk m.entries cs →
       plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) ≤ B →
+      -- (2026-10-29, stage U5) the batch's empty `ConfChangeV2`s decode to leaves
+      CCLeaveOk m.entries cs →
       StepR r [m] { r with
         p := psendMsgs
           (pappend r.p ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))
@@ -293,6 +314,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       uint.Z r.p.commit < uint.Z m.index →
       ¬ PlogMatches r.p.base r.p.log (entryID.mk m.logterm m.index) →
       FullOk (entryID.mk m.logterm m.index) fp' →
+      r.full.take (uint.nat r.p.commit) <+: fp' →
       id ∈ cs'.cfg.ids →
       Adm fp' cs' →
       StepR r [m] { r with
@@ -301,8 +323,6 @@ inductive StepR : RState → List Msg → RState → Prop where
               base := entryID.mk m.logterm m.index, log := [], commit := m.index }
           [Msg.mk .appResp id m.src r.p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
-        cidx := uint.nat m.index
-        cfg := cs'
         fp := fp' }
   | snapFastfwd (m : Msg) (r : RState) :
       m.ty = .snap →
@@ -386,28 +406,43 @@ inductive StepR : RState → List Msg → RState → Prop where
       (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ r.p.matched !! v = some i) →
       StepR r [] { r with p := { r.p with matched := mt } }
   /-- `Advance`'s `appliedTo`: `applied` moves up to `a ≤ commit`, the configuration having
-  taken every conf entry up to `a` (A1); the configuration index moves along when it was
-  below. -/
+  taken every conf entry up to `a` (A1): each one applied (`applyConf`) or, since stage U6m
+  (2026-10-28), rejected by the decoder (`NoUndecConfIn`); the configuration index moves along when
+  it was below. -/
   | advance (r : RState) (a : w64) :
-      r.snap = false →
       uint.Z r.applied ≤ uint.Z a →
       uint.Z a ≤ uint.Z r.p.commit →
-      NoConfIn r.full r.cidx (uint.nat a) →
+      NoUndecConfIn dec r.full r.cidx (uint.nat a) →
       StepR r [] { r with applied := a, cidx := max r.cidx (uint.nat a) }
-  /-- `appliedSnap`: the pending snapshot applied. -/
-  | applySnap (r : RState) :
-      r.snap = true →
-      StepR r [] { r with applied := r.p.base.index', snap := false }
+  /-- `appliedSnap`: a snapshot at index `j` applied, the configuration switched to the
+  snapshot's (2026-10-28, stage U0: until then `snapRestore` switched it), the configuration of
+  the full prefix up to `j`. (2026-10-28, stage U3: until then only the pending snapshot, `j` the
+  boundary.) The snapshot is at or below the boundary: the pending one, or an older one a `Ready`
+  handed out before a second restore, which leaves the newer one pending (`sn`; with none
+  pending, `j` is the boundary); `applied` is below it, and the node a follower
+  (`appliedSnap`'s rebuild). -/
+  | applySnap (r : RState) (j : w64) (sn : Bool) (cs' : CCState) :
+      r.p.role = .follower →
+      uint.Z r.applied ≤ uint.Z j →
+      uint.Z j ≤ uint.Z r.p.base.index' →
+      (sn = false → j = r.p.base.index') →
+      Adm (r.fp.take (uint.nat j)) cs' →
+      StepR r [] { r with
+        applied := j
+        snap := sn
+        cidx := uint.nat j
+        cfg := cs' }
   /-- `ApplyConfChange` of the next conf entry (at position `k`, log index `k + 1`), committed,
-  in order: the configuration takes its change, decoded from the entry and its prefix. -/
+  in order: the configuration takes its change, decoded from the entry and its prefix (the
+  decoder's `apply`); the conf entries before it since the configuration index rejected (stage
+  U6m). -/
   | applyConf (r : RState) (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState) :
-      r.snap = false →
       r.cidx ≤ k →
       k < uint.nat r.p.commit →
       r.full[k]? = some e →
       IsConfEnt e →
-      NoConfIn r.full r.cidx k →
-      dec (r.full.take k) e = some op →
+      NoUndecConfIn dec r.full r.cidx k →
+      dec (r.full.take k) e = some (.apply op) →
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
       StepR r [] { r with cidx := k + 1, cfg := cs' }
@@ -432,10 +467,11 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
   induction h with
   | refl r => exact .refl r
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
-    exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 (hA _ _ h10)
-  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 =>
-    exact .applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9)
+  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10 =>
+    exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 (hA _ _ h10)
+  | applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 h9 =>
+    exact .applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9)
+  | applySnap r j sn cs' h1 h2 h3 h4 h5 => exact .applySnap r j sn cs' h1 h2 h3 h4 (hA _ _ h5)
   | _ =>
     first
     | (apply StepR.higherTerm <;> assumption)
@@ -473,7 +509,62 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
     | (apply StepR.zeroAck <;> assumption)
     | (apply StepR.reMatch <;> assumption)
     | (apply StepR.advance <;> assumption)
-    | (apply StepR.applySnap <;> assumption)
+    | (apply StepR.stepDown <;> assumption)
+
+theorem NoUndecConfIn.mono_dec {d1 d2 : CCDec} (h : DecLe d1 d2) {l : List EntryM} {lo hi : Nat}
+    (hn : NoUndecConfIn d1 l lo hi) : NoUndecConfIn d2 l lo hi :=
+  fun k e h1 h2 he hc => h _ _ _ (hn k e h1 h2 he hc)
+
+/-- (2026-10-28, the decision switch) **Monotonicity in the decoder**: a step under some
+decisions is one under more. -/
+theorem StepR.mono_dec {Adm : List EntryM → CCState → Prop} {dec dec' : CCDec} {id : w64}
+    {B : Int} (hd : DecLe dec dec') {r : RState} {ms : List Msg} {r' : RState}
+    (h : StepR Adm dec id B r ms r') : StepR Adm dec' id B r ms r' := by
+  induction h with
+  | refl r => exact .refl r
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
+  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10 =>
+    exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10
+  | applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 h9 =>
+    exact .applyConf r k e op cs' h2 h3 h4 h5 (h6.mono_dec hd) (hd _ _ _ h7) h8 h9
+  | advance r a h1 h2 h3 => exact .advance r a h1 h2 (h3.mono_dec hd)
+  | applySnap r j sn cs' h1 h2 h3 h4 h5 => exact .applySnap r j sn cs' h1 h2 h3 h4 h5
+  | _ =>
+    first
+    | (apply StepR.higherTerm <;> assumption)
+    | (apply StepR.campaign <;> assumption)
+    | (apply StepR.grantVote <;> assumption)
+    | (apply StepR.rejectVote <;> assumption)
+    | (apply StepR.recordVote <;> assumption)
+    | (apply StepR.win <;> assumption)
+    | (apply StepR.lose <;> assumption)
+    | (apply StepR.drain <;> assumption)
+    | (apply StepR.appAccept <;> assumption)
+    | (apply StepR.appStale <;> assumption)
+    | (apply StepR.appReject <;> assumption)
+    | (apply StepR.heartbeat <;> assumption)
+    | (apply StepR.beat <;> assumption)
+    | (apply StepR.appResp <;> assumption)
+    | (apply StepR.commit <;> assumption)
+    | (apply StepR.sendApps <;> assumption)
+    | (apply StepR.propose <;> assumption)
+    | (apply StepR.propDrop <;> assumption)
+    | (apply StepR.propForward <;> assumption)
+    | (apply StepR.snapFastfwd <;> assumption)
+    | (apply StepR.snapStale <;> assumption)
+    | (apply StepR.takeReads <;> assumption)
+    | (apply StepR.readFwd <;> assumption)
+    | (apply StepR.readPend <;> assumption)
+    | (apply StepR.readArrive <;> assumption)
+    | (apply StepR.readRelease <;> assumption)
+    | (apply StepR.readAck <;> assumption)
+    | (apply StepR.readSingle <;> assumption)
+    | (apply StepR.readReleaseSingle <;> assumption)
+    | (apply StepR.readState <;> assumption)
+    | (apply StepR.sendFree <;> assumption)
+    | (apply StepR.abandon <;> assumption)
+    | (apply StepR.zeroAck <;> assumption)
+    | (apply StepR.reMatch <;> assumption)
     | (apply StepR.stepDown <;> assumption)
 
 end mono

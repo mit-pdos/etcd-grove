@@ -32,6 +32,7 @@ type, `UnsafeNoFsync`, `Mlock`, the feature gate's `NonBlockingDefrag` and the h
 `backend.New`, whose spec (proved, `Spec/.../storage/backend/New.lean`) gives `newPostK` or a panic
 (bbolt's `Open` failed); under `dbOpensOk` and `openMmapOk cfg` it does not panic (2026-10-29: the
 quota's mmap size, which the `axiom` skill found unconstrained, `notes/axiom-review/openbackend.md`,
+then bounded by the address space, not bbolt's limit, 2026-10-30, `openbackend-post.md`,
 `issues/etcd-quota-backend-bytes-mmap-panic.md`). (D22 receiver epochs, S8a, 2026-10-24:
 the statement generalized with `New`'s, the creator's `K` for the fresh backend's payment rights;
 the same argument, `New`'s proof allocates them in the batch lock's ghost step.) Why an axiom and not a proof: the

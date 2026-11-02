@@ -15,11 +15,16 @@ uses the `enabledMu` slot, `auth.enabledRd st`), so that one resource serves bot
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__CheckPassword
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__GenTokenPrefix
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
 
 @[expose] public section
 
@@ -37,6 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The auth store's auth info is the request path's. -/
 theorem authInfoRO_authInfoOpt (a : Loc) : auth.authInfoRO (GF := GF) a ⊢ authInfoOpt a := by
@@ -57,6 +63,28 @@ def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthE
 instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
   unfold srvTLSId; infer_instance
 
+/-- **An auth info is the caller's** (persistent; `infoBoundM`'s over the token: E3zb): its user
+the empty one or the one the caller's token `tok` was issued to, or the server's TLS fallback is
+on. (Moved from `v3rpc/ServerKVOn.lean` in G2, 2026-10-30, for the watch stream's vocabulary.) -/
+def v3rpc.infoBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
+    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s))
+
+instance v3rpc.infoBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (v3rpc.infoBoundT (GF := GF) s M tok info) := by
+  unfold v3rpc.infoBoundT; infer_instance
+
+open Iris.ProofMode in
+/-- The TLS fallback is off at a server whose config says so (a law for clients of `hdrBoundM`). -/
+theorem srvTLSId_false (s : Loc) :
+    srvTLSId (GF := GF) s ∗ srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ false ⊢ False := by
+  unfold srvTLSId
+  iintro ⟨#H1, #H2⟩
+  icombine H1 H2 gives %h
+  cases h
+
 /-- **The server's auth info `a` for the request context `ctx` is bound** in the mode `M`
 (persistent): bound to the context's own token (`auth.ctxBound`, which includes `nil`; the auth
 plan's E2c), or the server's TLS fallback is on. -/
@@ -74,6 +102,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The server's `isReqAuth`, of the real store** at `st` (`auth.authInv st R`), with the
@@ -191,6 +220,47 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     iframe HRD Hai Herr
     iintro !> -
     iexact Hbd
+
+/-- **The store's `Authenticate` side, of the real store** at `st` (`auth.authInv st R M`; C1's
+A4): `CheckPassword` over the reader resource (its error one of the package's, `authErrOf`),
+`GenTokenPrefix` (the provider's), `Revision`. -/
+theorem authnStoreOk_of_authInv
+    (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
+    (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
+    (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      authnStoreOk (auth.authIface st) (auth.authRd st R M) := by
+  iintro ⟨#Hpkg, #Hinv⟩
+  iunfold authnStoreOk
+  iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %name %pw %Φ !> Hrd HΦ
+    iunfold auth.authRd at Hrd
+    icases Hrd with ⟨Hen, Hca, Hbe, HR⟩
+    iapply (hCP st R M name pw) $$ [Hen Hbe HR]
+    · iframe; iframe #
+    iintro !> %rev %err ⟨Hen, Hbe, HR, Hck⟩
+    iapply HΦ
+    isplitl [Hen Hca Hbe HR]
+    · iunfold auth.authRd; iframe
+    iunfold auth.passwordChecked at Hck
+    icases Hck with (⟨-, %e, #He⟩ | ⟨%He, -⟩)
+    · iapply EtcdGrove.apply.authErrOf_applyErrIs e err $$ [$Hpkg $He]
+    · subst He; iapply applyErrIs_nil
+  isplitr
+  · iintro !> %Φ !> - HΦ
+    iapply (hGT st R M) $$ []
+    · iframe #
+    iintro !> %s %err %H
+    iapply HΦ; ipureintro; exact H
+  · iintro !> %Φ !> - HΦ
+    iapply (hRev st R M none) $$ []
+    · iframe #; simp only [auth.authOwnOpt_none]; itrivial
+    iintro !> %x -
+    iapply HΦ; itrivial
 
 end proof
 

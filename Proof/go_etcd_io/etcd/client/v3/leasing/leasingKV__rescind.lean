@@ -38,11 +38,11 @@ theorem leasingKV.rescind.wp_proof
     (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG)) :
     leasingKV.rescind.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key rev
-  wp_start as ⟨#Hlkv, #Hctx⟩
+  wp_start as ⟨#Hlkv, #Hctx, %Hkl⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, %Hbound⟩
+    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   ihave #Hpeek := leasingX_peek (GF := GF) lkv γ
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -145,7 +145,11 @@ theorem leasingKV.rescind.wp_proof
     iintro HB
     (try wp_auto)
     wp_apply HCommit $$ %_ %(W64 0) [$HB $Hlo] as %resp %err Hres
-    · ipureintro; exact TxnModel.under_nil _
+    · ipureintro
+      refine ⟨TxnModel.under_nil _, ?_⟩
+      simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, TxnBuild.empty,
+        TxnModel.empty, compareM, cmpKeyM, op_simps]
+      word
     (try wp_auto)
     cases err with
     | nil =>

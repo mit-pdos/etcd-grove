@@ -55,7 +55,7 @@ theorem raft.tickElection.wp_proof
     iapply HΦ $$ %s
     iframe Hphys Hghost
     ipureintro
-    exact ⟨Hwf, Int.le_refl _, TickStep.refl s⟩
+    exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, TickStep.refl s⟩
   wp_apply wp_pastElectionTimeout c r id s $$ [$Hphys] as %b2 Hphys
   wp_if_destruct
   · -- the timeout has not passed: nothing changed
@@ -63,7 +63,7 @@ theorem raft.tickElection.wp_proof
     iapply HΦ $$ %s
     iframe Hphys Hghost
     ipureintro
-    exact ⟨Hwf, Int.le_refl _, TickStep.refl s⟩
+    exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, TickStep.refl s⟩
   -- the campaign: `r.electionElapsed = 0`, `r.Step(&pb.Message{From: new(r.id), Type:
   -- pb.MsgHup.Enum()})`
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
@@ -109,13 +109,15 @@ theorem raft.tickElection.wp_proof
       (fun _ => ⟨rfl, Hterm, Htc, Hfla⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+      (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
       (fun h => absurd h (by msg_ne))
     $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
   · simp only [hP, ↓reduceIte, named]
     ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+    isplitr
+    · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
     isplitl [Hmsg]
     · iframe Hmsg
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -128,9 +130,9 @@ theorem raft.tickElection.wp_proof
     imodintro
     iintro %Hc
     simp [MsgSnap] at Hc
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, %Htm, -, -, -, Herr⟩
-  have Hcm := Href.commit_mono
-  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, -, %Htm, -, -, -, Herr⟩
+  have Hcm := And.intro Href.commit_mono Href.voteLe
+  have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hc' (by msg_ne); subst c'
   icases Herr with (%Herr | ⟨%Hc'', -⟩)
   · subst Herr
@@ -140,8 +142,8 @@ theorem raft.tickElection.wp_proof
     ipureintro
     have Htm' := Htm (by msg_ne)
     obtain ⟨Ht1, Ht2, -, Hi, -, Hpc'⟩ := Htm (by msg_ne)
-    exact ⟨Hwf', Hcm, Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
-      fun h => (Hpc' h).1, fun _ hg => PreGuardF.step Htm' hg⟩
+    exact ⟨Hwf', Hcm, Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
+      fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step Htm' hg, Hpc'.2⟩
   · exfalso; revert Hc''; msg_ne
 
 end proof

@@ -55,7 +55,7 @@ abbrev auth.authStore.RoleGrantPermission.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
       authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
-      ⌜stepOk M hs (roleGrantPermissionR name w)⌝ }}
+      ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
       respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗

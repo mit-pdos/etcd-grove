@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.ReportUnreachable.wp_proof :
     EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG) := by
-  intro γn s id x
+  intro γn γd s id x
   wp_start as #Hok
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
-    #Hsi, #Hcok, %HN⟩
+    #Hsi, #Hcok, %HN, -⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, #HRU, -⟩
   have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=

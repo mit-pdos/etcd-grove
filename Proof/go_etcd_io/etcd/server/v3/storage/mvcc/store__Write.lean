@@ -26,8 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te clb Z
-  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, HhookC, Hpre, #Htriple, Htrc⟩
+  intro s γ trace P Pre Q f te clb Z logP
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, HhookC, HpinP, Hpre, #Htriple, Htrc⟩
+  -- the writer's pin: its quarter of the view, joined below with `writerRes`'s, and its loan
+  iunfold mvcc.writerPin at HpinP
+  icases HpinP with ⟨HbvP, Hloan⟩
   -- the caller's hook: its facts and the writer's fragment (D22 receiver epochs, S5b: the caller's
   -- names are the current ones)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
@@ -107,8 +110,10 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     ipureintro; rfl
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -, #HbtB⟩
+  ihave #Hbt := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbt
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
-      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ) $$ []
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
+      (mvcc.kbMW γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
@@ -127,6 +132,9 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
+  icases mvcc.bucketView_join_quarters γ (mvcc.bucketMap ilog) (mvcc.bucketMap logP)
+    $$ [Hbv HbvP] with ⟨-, Hbv⟩
+  · iframe Hbv HbvP
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)
   iunfold mvcc.crevSafe at HclM0
@@ -145,7 +153,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   rotate_left
   · iunfold mvcc.hookIs; iframe HhookC; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   iexists ilog, cm
-  iframe Hlbc
+  iframe Hlbc HpM
   isplitl
   rotate_left
   · ipureintro; exact Hclbc
@@ -159,7 +167,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ow.ti, bt, Locked, chs, [], ntok, Ph, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

@@ -116,7 +116,7 @@ def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) : IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.dyn = false ∧
+      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧
         γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
@@ -186,12 +186,13 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    isGrpcRpc client go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E ρ.rd cid mid) ∗
     -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
     -- served at the client address
     (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
-        (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝)
 
@@ -229,14 +230,15 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
   · iapply Hf $$ %name %mh %srv %ics %S Hs
   · iexact Hm
 
-/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`. -/
+/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`
+(metadata-indexed, G2). -/
 theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
-    forwards (GF := GF) a b ∗ isGrpcStream b name Up Spec ⊢ isGrpcStream a name Up Spec := by
+    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
+    forwards (GF := GF) a b ∗ isGrpcStreamMd b name Up Spec ⊢ isGrpcStreamMd a name Up Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
   icases Hf with ⟨-, -, #Hf⟩
-  unfold isGrpcStream
+  unfold isGrpcStreamMd
   icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   iexists mh, srv, ics, S
   isplitl
@@ -269,7 +271,7 @@ choice (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     EtcdGrove.client.WEnv GF :=
   ⟨R₁, bridgeAddr₁, [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
-    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3, γr.kv.st⟩
+    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3, γr.kv⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
 `memberServed` and its bridge's start): its bridge's address serving
@@ -285,12 +287,15 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
     isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    isGrpcRpc c go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E ρ.rd cid mid) ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
-    isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
-      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
-      (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn) ∗
+    isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+      (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
     ⌜(∃ reg : GName, ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) ∧ ρ.rd.kv.c0 = W64 0 ∧
-      ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []]⌝)
+      ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
+      -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server off
+      E.γ.cm = false⌝)
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
     (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) :
@@ -319,7 +324,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) ∗
-    ⌜ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st⌝)
+    ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv⌝)
 
 end cluster
 

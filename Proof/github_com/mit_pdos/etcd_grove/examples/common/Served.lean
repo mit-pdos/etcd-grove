@@ -48,7 +48,8 @@ def etcdKVAt (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
-    isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid))
+    isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
+    isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid))
 
 instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (cid mid : w64) : Persistent (etcdKVAt (GF := GF) addr E ρ γr cid mid) := by
@@ -76,39 +77,46 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
       grpcUp s E ρ γr gs lis addr cid mid R ∗ ⌜noRefusalAt addr⌝ := by
   iintro ⟨#Hreq, Hup⟩
   iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, Hwpi, HWRs,
-    Hlis⟩
+  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, HWRs,
+    Hlis, #Hlu⟩
   ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
       [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
   · iframe Hgsn Hlis; iframe #
   isplitl
   · iunfold grpcUp
-    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs, d'
+    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro; exact HC
   ipureintro; exact Hnr
 
-/-- **etcd's KV calls registered at the address** (see the file header). -/
+/-- **The reader slots a started member leaves for its gRPC runs** (`memberUp`'s stocks, written
+once for `kv_served` and `kv_lease_served`): of `s.leadTimeMu`, `s.lgMu` (two spent on `Start`),
+the apply environment's reader resource, the store's, the read loop's and `s.bemu`'s, from which
+`client.etcdGrpcSlots_of_started` makes the one gRPC slot. -/
+abbrev kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
+
+/-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
+(`grpc.start`'s). -/
 theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
-    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) :
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗
-        ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-        ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-        ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-        ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          srvReadReader s γr) ∗
-        ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> grpcServeTok gs lis ∗ etcdKVAt addr E ρ γr cid mid := by
-  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms, Hup⟩
+  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hup⟩
   iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, -, Hlis⟩
+  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis, -⟩
   obtain ⟨HCA, -, Hregs, -⟩ := HC
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
@@ -120,7 +128,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs 1 Hregs) $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
+      sregs 1 Hregs Hrf hρ) $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro

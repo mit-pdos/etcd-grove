@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -25,11 +25,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.newHeader()`: a fresh `*pb.ResponseHeader` (owned) with the member's id `mid` and the
 KV's revision (`store.Rev`: the last revision of a certified log), the cluster's id `cid`
 (`c.cid`, read-only: `membership.clusterCid`, unit P1b), some term and leader; a reader's slots
-of the store. -/
+of the store; in either auth mode `on` (the lease-read plan, 2026-10-31: `isServerReadM`, until
+then `isServerRead`, the mode off's). -/
 abbrev EtcdServer.newHeader.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cl : Loc) (mid cid : w64),
+  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cl : Loc) (mid cid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRead s E γr ∗ srvClusterAddr s ↦□ cl ∗ membership.clusterCid cl cid ∗
+      isServerReadM on s E γr ∗ srvClusterAddr s ↦□ cl ∗ membership.clusterCid cl cid ∗
       srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗
       mvcc.storeReader E.s E.γ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"newHeader")) (Val #()))

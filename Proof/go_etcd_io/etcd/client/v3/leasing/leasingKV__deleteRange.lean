@@ -41,7 +41,8 @@ theorem leasingKV.deleteRange.wp_proof
     (hCA : closeAll.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, #Hop, #Hlo⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, #Hop, #Hlo, %Hsh⟩
+  obtain ⟨Hsk, Hse, -⟩ := Hsh
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, -, -, -, -, -, -, -,
@@ -86,6 +87,7 @@ theorem leasingKV.deleteRange.wp_proof
   (try wp_auto)
   wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlkv $Hrd $Hsr $Hctx $Hcc]
     as %maxRev %err1 Hrd
+  · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)
   rcases err1 with e1 | _
   · (try wp_auto)
@@ -100,6 +102,7 @@ theorem leasingKV.deleteRange.wp_proof
   (try wp_auto)
   wp_apply (hRPC lkv γ pfx ctx cs maxRev o.key o.base.rangeEnd lo) $$ [$Hlkv $Hctx $Hlo]
     as %dr %err2 Hres
+  · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)
   wp_apply hCA $$ [$Hwsl $Hwcs] as -
   (try wp_auto)

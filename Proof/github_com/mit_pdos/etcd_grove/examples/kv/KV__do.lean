@@ -105,8 +105,9 @@ theorem KV.do.wp_proof
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  ihave Hpau' := kv_propAu_dup γr d γo Hdne $$ Hinv Hop
   wp_apply wp_node_Propose n γr.cluster kvRaftN id b d context.backgroundCtxVal bgCd
-    $$ [$Hraftinit $HisNode $Hbg $Hb $Hpau] as %err -
+    $$ [$Hraftinit $HisNode $Hbg $Hb $Hpau'] as %err -
   cases err with
   | ok i =>
     -- dropped: propose again

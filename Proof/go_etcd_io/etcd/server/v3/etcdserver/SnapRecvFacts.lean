@@ -279,6 +279,16 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
       ⌜ccLogOk γ.raft B⌝ := by
   iintro #Hinv #Hr #HB
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HBc : isCommittedLogLb γ.raft.cl (srvLE γ B) $$ []
+  · iunfold srvRLogLb at HB; icases HB with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 γ (srvLE γ B) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HBc
+  have hnv : ∀ m ∈ B, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
@@ -286,19 +296,22 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
-  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2
+  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
   -- (2026-10-27) `B`'s entries are the server's log's or fillers
-  exact srv_entry_transfer γ.ai0 B L (fun m => m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
-    (fun m m' he h => by
+  have := srv_entry_transfer γ.ai0 B L
+    (fun m => ¬ (m.typ = W32 2 ∧ m.data = []) → m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
+    (fun m m' he h hn => by
       have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
-      rw [h1, h2]; exact h)
-    (fun m ht _ h => absurd ht h) HBi Hp.2.2 Hcc
+      rw [h1, h2]; rw [h1, h2] at hn; exact h hn)
+    (fun m ht _ _ h => absurd ht h) (fun m ht hd hn => absurd ⟨ht, hd⟩ hn) HBi Hp.2.2
+    (fun m hm _ => Hcc m hm)
+  exact fun m hm => this m hm (hnv m hm)
 
 /-- **The image facts, from the image's certificate** (see the file header): for the receiver at
 the fresh cluster's start (`γr.raft = ⟨γ, [], 0⟩`, the start values of `NewServer.spec`), its
@@ -312,9 +325,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H)
-    -- (merge of D43 M5, 2026-10-27) a static cluster (the image axiom's `ccBootOk` log)
-    (hstat : γ.dyn = false) :
+    (hRO : E.RO = srvRestOwnH d.γB cl H) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -326,7 +337,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hrr : γr.raft.raft = γ := by rw [hraft]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
   ihave #Hdb : dbImage γr.raft γr.kv i D $$ []
   · rw [hraft]; iapply (dbImage_of_srvImage hc0 hch hlog0); iexact Himg
   iunfold dbImage at Hdb
@@ -353,7 +364,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hmem⟩
+  icases Hro with ⟨Hrb, Hrn, Hmem, %Hmi⟩
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
@@ -362,7 +373,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
-    exact ccPolOk_static _ _ (by rw [hrr]; exact hstat) (Hcc m hm ht)
+    exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
@@ -372,13 +383,14 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     iunfold kvAppliedL
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
-  isplitl [Hrb Hmem HH]
+  isplitl [Hrb Hrn Hmem HH]
   · iunfold srvRest
     rw [hRO]
     iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
-    iframe Hrb Hmem
+    iframe Hrb Hrn Hmem
+    ipureintro; exact Hmi
   iexists A', (kvModel γr.kv A').drop 2
   iframe HA'
   ipureintro
@@ -417,7 +429,7 @@ theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List Entr
       kvAppliedL γr.raft γr.kv A' (kvModel γr.kv A') := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #HcI, -, %Hcok⟩
+  icases Hinvs with ⟨-, #HcI, -, %Hcok, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_cert_jump γr.raft γr.kv ⊤ (fun _ _ => CoPset.mem_full) A A' x.log hA hlen
@@ -444,6 +456,97 @@ theorem kvApplied_of_jump (γ : ServerRaftNames) (γk : KVNames) (A' : List Entr
   rw [hlog]
   iframe H
   ipureintro; exact hch
+
+/-- (2026-11-01, J8a-5) **`ep.confState` after a snapshot reports the voters**: the snapshot's
+conf state (`srvSnapApplied`'s `csOptA`), certified (`rnApSnap`'s `snapshotCert`, valid by
+`snapshotCert_valid`), is the membership after its committed prefix, the voters' simple one at every
+index (`srv_confAt_simple`); not `nil`, since the voters hold the local member `lid`. -/
+theorem epCsVoters_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (cs : Loc) (lid : w64)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hlid : lid ∈ γ.raft.cfg) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      csOptA cs DFrac.discard sv.Metadata'.ConfState' ={⊤}=∗ epCsVoters γ cs := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #Hcs
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  have hci : confStateIs sv.Metadata'.ConfState' (Membership.simple γ.raft.cfg) := Hf.2.2.2.1
+  imodintro
+  iunfold epCsVoters
+  iunfold csOptA at Hcs
+  icases Hcs with (%Hn | #H | #H)
+  · exfalso
+    have hv := hci.1
+    rw [Hn.2] at hv
+    exact List.not_mem_nil (hv.mem_iff.2 ((GMap.elem_of_elements _ lid).2 hlid))
+  · iexists sv.Metadata'.ConfState'
+    iframe H
+    ipureintro; exact hci
+  · iexists sv.Metadata'.ConfState'
+    isplitl
+    · iunfold csPts at H
+      icases H with ⟨%a1, %a2, %a3, %a4, %pa, H⟩
+      iNamed H
+      iunfold csPts
+      iexists a1, a2, a3, a4, pa
+      simp only [named]
+      iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+      ipureintro; exact ⟨Hnn, fun h => by cases h⟩
+    ipureintro; exact hci
+
+/-- (2026-11-01, J8a-5) **The image's log ends at the snapshot's term**: the certified snapshot's
+committed prefix (`snapshotValid`'s, of length its index, its last entry of its term) and the
+image's committed log `A'` of the same length (from an empty prefix) agree. -/
+theorem lastTermIs_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (A' : List EntryModel)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hpre : γ.pre = []) (hlen : uint.Z sv.Metadata'.Index' = A'.length) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      srvRLogLb γ A' -∗ ⌜lastTermIs A' sv.Metadata'.Term'⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #HA
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, -, -, %Hf⟩
+  iunfold srvRLogLb at HA
+  icases HA with ⟨#HA, -⟩
+  icases isCommittedLogLb_agree γ.raft.cl l (srvLE γ A') $$ [Hlb HA] with %H
+  · iframe Hlb HA
+  ipureintro
+  have hl : (srvLE γ A').length = l.length := by
+    rw [srvLE_length, hpre, Hf.1]; simp only [List.length_nil, Nat.zero_add]
+    have := uint_nat_eq sv.Metadata'.Index'; omega
+  have heq : srvLE γ A' = l := by
+    rcases H with h | h
+    · exact (h.eq_of_length hl.symm).symm
+    · exact h.eq_of_length hl
+  have ht := Hf.2.2.1
+  rw [← heq] at ht
+  unfold srvLE at ht
+  rw [hpre, List.nil_append, List.getLast?_map, Option.map_map] at ht
+  unfold lastTermIs
+  right
+  exact ht
 
 end lemmas
 

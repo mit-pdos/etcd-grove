@@ -32,7 +32,7 @@ theorem raft.bcastHeartbeat.wp_proof
     (wp_readOnly_heartbeatCtx : readOnly.heartbeatCtx.spec (GF := GF) (hG := hG))
     (wp_raft_bcastHeartbeatWithCtx : raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead
+  intro c r id s Hlead Htz
   wp_start as Hphys
   iNamed Hphys
   icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
@@ -42,7 +42,7 @@ theorem raft.bcastHeartbeat.wp_proof
   ihave Hphys := ownRaftPhysC_eq c r id _ s rfl $$ Hphys
   icases Hsl with (⟨%Hpend, %Hsl⟩ | ⟨%Hne, Hsl, -⟩)
   · subst Hsl
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] Hlead $$ [$Hphys]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] Hlead Htz $$ [$Hphys]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
     · iapply ownSlice_nil
     iapply HΦ
@@ -51,7 +51,7 @@ theorem raft.bcastHeartbeat.wp_proof
     refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_⟩, Hmm⟩
     rw [(Hms m Hm).2, hbCtx, ite_eq_left Hpend]
   · imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ Hlead $$ [$Hphys $Hsl]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ Hlead Htz $$ [$Hphys $Hsl]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
     iapply HΦ
     iframe Hphys

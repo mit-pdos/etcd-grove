@@ -3,6 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__RoleGrantPermiss
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGrantPermission
 
 @[expose] public section
@@ -102,14 +103,15 @@ theorem EtcdServer.RoleGrantPermission.wp_proof : EtcdServer.RoleGrantPermission
 theorem EtcdServer.RoleGrantPermission.wp_proofOn
     (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
     EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r name w F
+  intro s E ρ ctx cd Qa r name w F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrRoleGrantPermission name w) Qa
   wp_start_folded as ⟨#Hreq, %Hn, HP⟩
-  ihave #Hc : authRaftOk s ctx (irrRoleGrantPermission name w) etcdserverpb.AuthRoleGrantPermissionResponse.ty (adminPreOn s E ρ ctx cd F)
-      (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w)) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx cd (irrRoleGrantPermission name w) F _ _ rfl rfl (adminPropOk_roleGrantPermission name w Hn)
-      (irrNoZeroEnd_admin _ rfl rfl rfl) (fun _ _ => .rfl)
-  wp_apply EtcdServer.RoleGrantPermission.wp_proof s ctx r name w (adminPreOn s E ρ ctx cd F)
-      (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w)) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ [HP] as %resp %err H
+  ihave #Hc : authRaftOk s ctx (irrRoleGrantPermission name w) etcdserverpb.AuthRoleGrantPermissionResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrRoleGrantPermission name w) F _ _ Qa _ rfl rfl (adminPropOk_roleGrantPermission name w Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply EtcdServer.RoleGrantPermission.wp_proof s ctx r name w (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ [HP] as %resp %err H
   · iframe # HP
   iapply HΦ
   iexact H

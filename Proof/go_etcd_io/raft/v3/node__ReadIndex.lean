@@ -18,9 +18,11 @@ public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.ReceiptTactics
 import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -60,10 +62,13 @@ private abbrev node.ReadIndex.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8) (Lc : List EntryM)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
-      nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗ rdCred γ.raft 1 }}
+      nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗
+      -- (raft-final, the design's §2.7, §2.9) the read credit for a time receipt, which `ReadIndex`
+      -- takes from a Go step of its own (`rdPool_mint`; until then `rdCred γ.raft 1`)
+      (⧗ 1 ={⊤}=∗ rdCred γ.raft 1) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok ctx))) (Val #rctx))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrRaw γ cd err }}
 
 end spec
 
@@ -86,10 +91,16 @@ private theorem node.ReadIndex.wp_raw
     node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
   intro γ id n rctx c Lc ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, Hcred⟩
-  wp_auto
   rw [show raftpb.MsgReadIndex = #((W32 15 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  wp_apply wp_MessageType_Enum (W32 15) as %pty Hpty
+  -- (raft-final) the read credit, from a time receipt of a Go step of its own (`MsgReadIndex.Enum()`'s
+  -- resolution)
+  wp_take_receipt as Hr
+  ihave Hcred := Hcred $$ Hr
+  imod Hcred
+  wp_apply wp_MessageType_Enum (W32 15)
+  iintro %pty Hpty
+  wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
   wp_alloc l0 as Hl0
   wp_auto
@@ -132,14 +143,16 @@ private theorem node.ReadIndex.wp_raw
     unfold stepP
     ileft
     unfold netP
+    ileft
     iexists ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩
     isplitl [Hm]
     · simp only [msgIn, show needsCap { (zero_val MessageM) with Type' := W32 15 } = false from rfl]
       iexact Hm
     isplitr
     · ipureintro
-      refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ => rfl,
-        fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, rfl⟩
+      refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ _ => rfl,
+        fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, rfl⟩
+      · exfalso; simp [MsgTransferLeader] at h
       · exfalso
         rcases h with h | h | h | h | h <;>
           simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h
@@ -147,9 +160,9 @@ private theorem node.ReadIndex.wp_raw
       · exfalso; simp [MsgTransferLeader] at h
       · exfalso; simp [MsgPreVote] at h
     isplitr
-    · ipureintro
-      exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h,
-        fun h => by exfalso; simp [MsgSnap] at h⟩
+    · imodintro
+      iintro %h
+      exfalso; simp [MsgTransferLeader] at h
     isplitr
     · imodintro
       iintro %ty %Hty %_Hne
@@ -195,22 +208,24 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ReadIndex_impl
     (hR : EtcdGrove.node.ReadIndex.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx EtcdGrove.readCredit
+  unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx
   intro n γ N id rctx c Q ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, Hcred⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
-  obtain ⟨Hγr, -⟩ := Hf
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, #Hpool, -⟩
+  have Hγr := Hf.1
   imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
-  iapply (hR γn id n rctx c Lc ctx cd) $$ [Hcred]
+  iapply (hR γn id n rctx c Lc ctx cd) $$ []
   · iframe Hinit Hrn Hctx Hrctx
     rw [Hγr]
     iframe Hrq
-    unfold readCredit readCredits
-    iexact Hcred
+    iintro Hr
+    iapply rdPool_mint γ N ⊤ CoPset.subseteq_top $$ Hpool Hr
   iintro !> %err #Herr
   iapply HΦ
-  iexact Herr
+  unfold EtcdGrove.nodeErrS EtcdGrove.nodeStopped
+  iapply nodeErrRaw_nodeErrS n γ N id γn cd err Hf
+  iframe Hrn Htab Herr
 
 end wrap
 

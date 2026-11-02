@@ -14,54 +14,55 @@ theorem raft.switchToConfig.wp_proof [package_sem : Assumptions] (wp_traceConfCh
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker) (cfgv : tracker.Config) (prsm : Loc)
     (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
     (s.role = PRole.leader → id ∈ c.voters → MatchKept s.prvals pvs) →
-      (s.role = PRole.candidate ∨ s.role = PRole.preCandidate → id ∈ c.voters) →
-        (s.role = PRole.leader → ∀ (v : w64) (p : Progress), pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                  "Htrkf" ∷ typedPointsto (structFieldRef raft go!"trk" r) tv0 (DFrac.own 1) ∗
-                    ("Hback" ∷
-                        ∀ tv' prs' pvs',
-                          typedPointsto (structFieldRef raft go!"trk" r) tv' (DFrac.own 1) -∗
-                            ownTrackerC c tv' { votes := s.votes, prs := prs', peers := pvs' } -∗
-                              ⌜PrvalsOk
+      (s.role = PRole.leader → s.term ≠ W64 0) →
+        (s.role = PRole.candidate ∨ s.role = PRole.preCandidate → id ∈ c.voters) →
+          (s.role = PRole.leader → ∀ (v : w64) (p : Progress), pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    "Htrkf" ∷ typedPointsto (structFieldRef raft go!"trk" r) tv0 (DFrac.own 1) ∗
+                      ("Hback" ∷
+                          ∀ tv' prs' pvs',
+                            typedPointsto (structFieldRef raft go!"trk" r) tv' (DFrac.own 1) -∗
+                              ownTrackerC c tv' { votes := s.votes, prs := prs', peers := pvs' } -∗
+                                ⌜PrvalsOk
+                                      { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
+                                        outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := prs',
+                                        log := s.log, logst := s.logst, prvals := pvs', prevote := s.prevote, gh := s.gh,
+                                        rd := s.rd, lt := s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr,
+                                        cq := s.cq }⌝ -∗
+                                  ownRaftPhysCV c (c.voters ∪ {id}) r id
                                     { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
                                       outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := prs',
                                       log := s.log, logst := s.logst, prvals := pvs', prevote := s.prevote, gh := s.gh,
                                       rd := s.rd, lt := s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr,
-                                      cq := s.cq }⌝ -∗
-                                ownRaftPhysCV c (c.voters ∪ {id}) r id
-                                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
-                                    outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := prs',
-                                    log := s.log, logst := s.logst, prvals := pvs', prevote := s.prevote, gh := s.gh,
-                                    rd := s.rd, lt := s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr,
-                                    cq := s.cq }) ∗
-                      "Hvotes" ∷ ownMap tv0.Votes' (DFrac.own 1) s.votes ∗
-                        "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
-                          "Hnew" ∷ ownConfigC c cfgv prsm prs pvs -∗
-                (▷
-                    ∀ cs xs os ls lns s',
-                      ownRaftPhysCV c c.voters r id s' ∗
-                          csPts cs (DFrac.own 1)
-                              { Voters' := xs, Learners' := ls, VotersOutgoing' := os, LearnersNext' := lns,
-                                AutoLeave' := c.autoLeave }
-                              true ∗
-                            ⌜xs.Perm (elements c.incoming) ∧
-                                  os.Perm (elements c.outgoing) ∧
-                                    ls.Perm (elements c.learners) ∧ lns.Perm (elements c.learnersNext)⌝ ∗
-                              ⌜SwitchOkC c id
-                                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
-                                    outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := prs,
-                                    log := s.log, logst := s.logst, prvals := pvs, prevote := s.prevote, gh := s.gh,
-                                    rd := s.rd, lt := s.lt, pci := s.pci, isLearner := learnerOfC c id, sdr := s.sdr,
-                                    cq := s.cq }
-                                  s'⌝ -∗
-                        Φ (intoVal cs)) -∗
-                  WP
-                    (((intoVal
-                          (methods raft.ty.PointerType
-                            go!"switchToConfig"
-                            (intoVal r)))
-                        (intoVal cfgv))
-                      (intoVal prsm))
-                    {{ Φ }}
+                                      cq := s.cq }) ∗
+                        "Hvotes" ∷ ownMap tv0.Votes' (DFrac.own 1) s.votes ∗
+                          "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
+                            "Hnew" ∷ ownConfigC c cfgv prsm prs pvs -∗
+                  (▷
+                      ∀ cs xs os ls lns s',
+                        ownRaftPhysCV c c.voters r id s' ∗
+                            csPts cs (DFrac.own 1)
+                                { Voters' := xs, Learners' := ls, VotersOutgoing' := os, LearnersNext' := lns,
+                                  AutoLeave' := c.autoLeave }
+                                true ∗
+                              ⌜xs.Perm (elements c.incoming) ∧
+                                    os.Perm (elements c.outgoing) ∧
+                                      ls.Perm (elements c.learners) ∧ lns.Perm (elements c.learnersNext)⌝ ∗
+                                ⌜SwitchOkC c id
+                                    { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
+                                      outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := prs,
+                                      log := s.log, logst := s.logst, prvals := pvs, prevote := s.prevote, gh := s.gh,
+                                      rd := s.rd, lt := s.lt, pci := s.pci, isLearner := learnerOfC c id, sdr := s.sdr,
+                                      cq := s.cq }
+                                    s'⌝ -∗
+                          Φ (intoVal cs)) -∗
+                    WP
+                      (((intoVal
+                            (methods raft.ty.PointerType
+                              go!"switchToConfig"
+                              (intoVal r)))
+                          (intoVal cfgv))
+                        (intoVal prsm))
+                      {{ Φ }}

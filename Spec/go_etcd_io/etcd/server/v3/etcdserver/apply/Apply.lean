@@ -27,56 +27,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The applier's contract, with what an entry does to the KV.** `apply.Apply(lg, e, ua, w, v3)`
+/-- **`apply.Apply(lg, e, uberApply, w, shouldApplyV3)`, over the uber-applier's contract** (step 6
+of the auth-mode merge, 2026-10-30; `notes/decisions.md`, "Step 6: one `apply.Apply.spec`"). It
 decodes the entry `e`'s request `rq` (the premise: its data decode, `irrDecode`), computes its id
-(`irrId rq = some id`: an id, or a header's) and, if it must (a waiter, `w.IsRegistered(id)`, with
-the reader's resource `RD` of the wait, `waitOk`, given back; or
-side effects, `noSideEffect`); an outcome waived for want of a waiter (`ApplyOut.waived`: not
-applied, or a transaction's ranges not run) comes with what `IsRegistered`'s `false` told the
-caller about the id (`G ot id`: to one that knew the id registered, that the registration is
-gone; the request path's unit 4d), applies it through the `UberApplier` `ua` (`applierFor ua E`), whose
-backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
-* **The server's protocol** (as before unit 2): for `v3` (`ApplyBoth`) the entry's writes to the
-  backend happen in **one** critical section of the batch lock (`LockInsideApply` ... `Unlock`),
-  or not at all: in the first case the applier takes the lock (`E.P`), runs the hook (its triple,
-  from the caller: `{E.P ∗ Pre} E.f() {Q}`), writes (the caller's update `Q ={⊤}=∗ E.P ∗ Post`,
-  which models the writes) and unlocks; in the second it writes nothing, and the caller keeps
-  `Pre`. Without `v3` (`ApplyV2storeOnly`: an entry already in the backend, replayed) it writes
-  nothing to the backend. The result is `nil` or has a readable `Err` (`resultErrOk`), the id is
-  `rq`'s.
-* **The KV** (unit 2): the apply thread's applier state `applyKV E ua x` (the uber-applier's
-  current chain, the KV's committed log), with the request's premises at `x.log` (`rqOk`: the txn
-  package's for a KV request; `dispatchOk`: not a compaction, not empty), goes to `x'` by
-  `applyStep rq v3 x x' out`: skipped or rejected by the admin check (`x' = x`), or dispatched
-  (`dispatchStep`: a KV request as the chain's `chainStep backendStep`, the txn package's results;
-  without `v3`, nothing), the result `applyResultIs`. It spends one write token of the store
-  (`mvcc.storeWT E.γ`: a KV write or a revocation opens one store write transaction, whose
-  `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). The caller certifies
-  the logs the request may commit (`certPre`: the store's `txnEndPre` asks it of every commit;
-  2026-10-14, unit T1). -/
+(`irrId rq = some id`: an id, or a header's), asks the waiter (`w.IsRegistered(id)`, with the
+reader's resource `RD` of the wait, `waitOk`, given back) and then either calls the
+`UberApplier` interface's `Apply` method on a wrapper of `rq` (`irrWrapperIs`) whose skip flag `sk`
+is `!registered && rq.Txn != nil` (so `sk` implies a transaction), or, for an unregistered request
+with no side effects (`noSideEffect`), returns `nil` without calling it.
+The method's contract is the caller's: a triple from `P` to `Q sk ar` at every wrapper of `rq`
+(the uber-applier's own specs give it: `uberApplier.Apply.spec`, `kvSpecL`, `adminSpecL`; the
+corollaries in `ApplyRec.lean`). The result is the method's `ar` with `Q sk ar`, and, for a
+skipping wrapper (`sk = true`), what `IsRegistered`'s `false` told the caller about the id
+(`G ot id`); or `nil` with `G ot id` and `P` back. The id is `rq`'s. -/
 abbrev apply.Apply.spec : Prop :=
-  ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
-    (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
-    (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM),
+  ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (rq : IRRModel) (id : w64)
+    (RD : IProp GF) (K G : Option GName → w64 → IProp GF) (ot : Option GName)
+    (P : IProp GF) (Q : Bool → Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
-      (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-          (Q ={⊤}=∗ E.P ∗ Post))
-       else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOk E.authOn rq⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
+      waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗
+      (∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
+        □ ∀ (r : Loc) (sk : Bool),
+          {{ apply.irrWrapperIs r rq sk ∗ ⌜sk = true → rq.txn.isSome = true⌝ ∗ P }}
+            (App (App (Val #(methods ui.ty go!"Apply" ui.v)) (Val #r)) (Val #v3))
+          {{ (ar : Loc), RET #ar; Q sk ar }}) ∗ P }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
-      ⌜id' = id⌝ ∗
-      ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
-        E.RO (apply.restOut rq v3 out rs) ∗
-        ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
-        apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
-        (⌜out.waived = false⌝ ∨ G ot id) }}
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ ⌜id' = id⌝ ∗
+      ((∃ sk : Bool, Q sk ar ∗ (⌜sk = false⌝ ∨ G ot id)) ∨
+       (⌜ar = null ∧ apply.noSideEffect rq = true⌝ ∗ G ot id ∗ P)) }}
 
 end spec
 

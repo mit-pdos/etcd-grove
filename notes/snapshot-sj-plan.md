@@ -472,7 +472,7 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
 - **J5** also decouples the write counter (item 4): the specs of `apply`, `applyEntries`,
   `applyAll`, `snapshotIfNeededAndCompactRaftLog`.
 - **J7**: +1 axiom (item 9).
-- **J8a**: `os.Rename` restated (item 5); `srvSnapApplied` with the counted stocks.
+- **J8a**: `os.Rename` restated (item 5; done 2026-10-31 on `snap-sorries`); `srvSnapApplied` with the counted stocks.
 - **J8b and L3 are gated on the Perennial reader-slot change** (item 5) or the fallback premise.
 - New issue: `issues/etcd-applied-index-stale-after-snapshot.md`.
 - Axioms, revised: −2 (`snapshot`, `compactRaftLog`), +1 (`clusterImageOk_restModel`); restated:

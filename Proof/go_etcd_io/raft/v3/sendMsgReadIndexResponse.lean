@@ -76,7 +76,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hlead Hne
+  intro c r id s ml m ents sn ctx rs Hlead Htz Hne
   wp_start as ⟨Hphys, #Hm⟩
   wp_auto
   -- `_, isVoter := r.trk.Voters[0][r.id]`
@@ -146,7 +146,7 @@ theorem sendMsgReadIndexResponse.wp_proof
               (e :: es) []]
             (Or.inl rfl)
             (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,
-              fun h => Hloc (Or.inr h), rfl⟩))
+              fun h => Hloc (Or.inr h), Htz, rfl⟩))
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
             (fun h => by simp [readIndexRespMsg, MsgApp] at h)
           rfl $$ [$Hphys $Hresp]
@@ -200,7 +200,7 @@ theorem sendMsgReadIndexResponse.wp_proof
       ihave Hphys := ownRaftPhysC_eq c r id _ (arriveState id s m ents)
         (by simp only [arriveState, readonlyArrive, arriveReq, hbCtx_add]) $$ Hphys
       -- `bcastHeartbeat()`
-      wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead $$ [$Hphys]
+      wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ
       iframe Hphys
@@ -248,7 +248,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     ihave Hphys := ownRaftPhysC_eq c r id _ (arriveState id s m ents)
       (by simp only [arriveState, readonlyArrive, arriveReq, hbCtx_add]) $$ Hphys
     -- `bcastHeartbeat()`
-    wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead $$ [$Hphys]
+    wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
     iapply HΦ
     iframe Hphys

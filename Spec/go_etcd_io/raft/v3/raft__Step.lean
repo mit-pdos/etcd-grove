@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 public import Spec.go_etcd_io.raft.v3.raft__restore
 -- (2026-10-14, stage B7) the ghost modes
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.SnapRoleBack
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 -- `MsgBeat`
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
@@ -84,8 +85,11 @@ follower with a leader -- the leader it was sent to stays leader for the term, o
 `checkQuorum` on) steps down at it to a follower with no leader, and no other node leads it -- since a follower would
 forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carries no
 entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it); and
-(2026-10-19, D21 M2r) only at a node with leader transfer on (`NGhost.xf = false`): with it
-off no transferee is recorded, so no `MsgTimeoutNow` is sent.
+(raft-final, 2026-10-29, U7: the design's §2.3) The stamped request's refutation (a follower of
+its term with a leader) is no longer a premise: `raft.Step.spec` takes the request's witness that
+its receiver leads its term (`"#Hxfer"`, from `isRaftMsg`), and the arm derives it
+(`ownStepGhost_xferRefute`). (From 2026-10-19, D21 M2r, until then also only at a node with leader
+transfer on, `NGhost.xf = false`.)
 These are transport premises, like the others: no message fact carries them
 (`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
 def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
@@ -95,11 +99,7 @@ def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
   -- (D19i part 1) and with the floor at most `applied` (`hup`'s)
   (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64 ∧
      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
-  (m.Type' = MsgTransferLeader →
-     ents = [] ∧ ctx = [] ∧
-     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) ∧
-     -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
-     s.gh.xf = false)
+  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [])
 
 /-- `RestMsgOk` of a message of none of those types. -/
 theorem RestMsgOk.of_ne [GooseExts] {s : NState} {m : MessageM} {ents : List EntryM}
@@ -159,7 +159,8 @@ def LocalFrame [GooseExts] (s s' : NState) : Prop :=
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored ∧
+  -- (2026-10-28, stage U4a) with the record of the storage's terms (`logStoreRec`)
+  logStoreRec s'.logst = logStoreRec s.logst ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
   s'.gh = s.gh ∧
@@ -184,7 +185,10 @@ def LocalStepOk [GooseExts] (m : MessageM) (ents : List EntryM)
    s'.logst.applying = s.logst.applying) ∧
   -- (D19i part 1) an apply acknowledgement moves `applied` up to its last entry
   (m.Type' = MsgStorageApplyResp →
-      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied)
+      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied) ∧
+  -- (2026-10-28, stage U3) an append acknowledgement (of no snapshot) does not move it (what tells
+  -- it from a snapshot's, whose `appliedSnap` moves the dynamic mode's ghost part, `GMove`)
+  (m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)
 
 /-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
 state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
@@ -204,7 +208,8 @@ def NetFrame [GooseExts] (s s' : NState) : Prop :=
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored ∧
+  -- (2026-10-28, stage U4a) with the record of the storage's terms (`logStoreRec`)
+  logStoreRec s'.logst = logStoreRec s.logst ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
   s'.gh = s.gh ∧
@@ -271,17 +276,11 @@ snapshot (`PreKeep`: nothing of its term reached it, which would have made it a 
 one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
 from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). -/
 def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
-  s'.role = .preCandidate → s'.term = s.term ∧
-    ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))
+  (s'.role = .preCandidate → s'.term = s.term ∧
+    ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))) ∧
+  SnapRoleBack s s'
 
-/-- `PreCandStep` for a concrete end state: the role, term and log kept, or a role that is no
-pre-candidate's (2026-10-17). -/
-macro "pc_tac" : tactic => `(tactic| first
-  | (intro h; exact ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
-  | (intro h; cases h)
-  | (intro h; exact absurd h (by decide))
-  | (intro h; simp_all)
-  | (intro h; exact ⟨rfl, .inl ⟨h, by simp_all [PreKeep]⟩⟩))
+macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_⟩; pc1_tac; srb_tac))
 
 def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -303,7 +302,8 @@ theorem TermStep.of_term [GooseExts] {m : MessageM} {s s' : NState}
     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 theorem TermStep.refl [GooseExts] (m : MessageM) (s : NState) : TermStep m s s :=
-  TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
+  TermStep.of_term rfl (fun _ => Int.le_refl _)
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
@@ -320,9 +320,10 @@ theorem TermStep.of_le [GooseExts] {m : MessageM} {s s' : NState}
 T-M M2b) at a pre-candidate it keeps the log and the commit index (`PreKeep`). -/
 theorem TermStep.of_local [GooseExts] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') (hk : s.role = .preCandidate → PreKeep s s') : TermStep m s s' :=
-  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp =>
+  TermStep.of_term h.1 (fun _ => h.2.1) ⟨fun hp =>
     have hr : s.role = .preCandidate := h.2.2.2.2.2.2.2.2.2.1 ▸ hp
-    ⟨h.1, .inl ⟨hr, hk hr⟩⟩)
+    ⟨h.1, .inl ⟨hr, hk hr⟩⟩,
+    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩⟩
 
 /-- (2026-10-25, T-M M2b) **A step keeps a pre-candidate's campaign guard** (`PreGuardF`: over a
 full prefix of the log's boundary's length): a pre-candidate that stays one kept its boundary, log,
@@ -332,7 +333,7 @@ theorem PreGuardF.pc [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] {m : M
     {s s' : NState} (h : PreCandStep m s s') {fp : List EntryM} (hg : PreGuardF fp s) :
     PreGuardF fp s' := by
   intro hl hp
-  obtain ⟨-, ⟨hr, hpr, hlog, hc, hsn, ha⟩ | ⟨-, hls, hsn, hno, h1, h2, h3⟩⟩ := h hp
+  obtain ⟨-, ⟨hr, hpr, hlog, hc, hsn, ha⟩ | ⟨-, hls, hsn, hno, h1, h2, h3⟩⟩ := h.1 hp
   · obtain ⟨hsn0, hno0⟩ := hg (by rw [← hpr]; exact hl) hr
     refine ⟨hsn hsn0, ?_⟩
     rw [hlog, hc]
@@ -415,7 +416,7 @@ theorem AppTrunc.of_ip [GooseExts] {m : MessageM} {ents : List EntryM} {s s' : N
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [GooseExts] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
-    fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩⟩
 
 /-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
 log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
@@ -426,22 +427,22 @@ a `Ready` the restore came between (`ackBaseW`, `InvRawnode.lean`). -/
 def SnapLogStep [GooseExts] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Prop :=
   (s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
    s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
-   s'.logst.inprogress = s.logst.inprogress) ∨
+   s'.logst.inprogress = s.logst.inprogress ∧
+   -- (2026-10-28, stage U4a) the record of the storage's terms kept
+   s'.logst.stb = s.logst.stb ∧ s'.logst.sdt = s.logst.sdt ∧
+   -- (U8 v2 step 4) a `MsgSnap`'s step certifies no term
+   s'.logst.dtk = s.logst.dtk) ∨
   (s'.term = m.Term' ∧ s'.logst.prev = snapId sv ∧ s'.logst.snap = some (snapId sv) ∧
    s'.logst.sents ++ s'.logst.uents = [] ∧
    uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
-   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv))
+   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv) ∧
+   -- (2026-10-28, stage U4a) the record of the storage's terms the restore made (`restoreSdt`)
+   s'.logst.stb = (restoreSdt s.logst).1 ∧ s'.logst.sdt = (restoreSdt s.logst).2 ∧
+   s'.logst.dtk = s.logst.dtk)
 
 theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState) :
     SnapLogStep sv m s s :=
-  .inl ⟨rfl, rfl, rfl, rfl⟩
-
-/-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
-one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
-def SnapCfgOut [GooseExts] (id : w64) (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
-  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
-    -- (D22 S-b′4) its `ConfState` naming the node
-    sv.Metadata'.ConfState'.lists.Has id
+  .inl ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -579,13 +580,17 @@ abbrev raft.Step.spec : Prop :=
   -- (D22 S-d2, 2026-10-21) It may carry a snapshot (until then `sn = none`), the one the
   -- storage is at if it is the pending one (`sat`; the application's receipt absorbed before
   -- the step), at or below the log's boundary (the pending one, or older after a second restore),
-  -- in the static mode (the dynamic mode takes no snapshot), with `appliedTo`'s auto-leave
+  -- (until stage U3, 2026-10-28, in the static mode only), with `appliedTo`'s auto-leave
   -- premise; the `StableOk` is of the log in the window the arm opens (`ackLog`).
   (m.Type' = MsgStorageAppendResp →
      (∀ sv, sn = some sv →
         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
         uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+        -- (2026-10-28, stage U0; until then `appliedTo`'s auto-leave premise, `c.autoLeave = true →
+        -- s.role ≠ .leader`) `appliedSnap`'s rebuild: a follower, the snapshot as `SnapAckOk` in
+        -- the static mode, and (stage U3; until then the static mode only) as `SnapAckDyn` in the
+        -- dynamic one
+        s.role = .follower ∧ ((md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv) ∧
         -- (D22 S-d4 item 3) with a snapshot pending and the storage back, the storage holds the
         -- log up to the acknowledged snapshot (`LogState.sxt`; `appliedSnap` moves `applying` there)
         (s.logst.snap ≠ none → s.logst.lent = false →
@@ -605,9 +610,9 @@ abbrev raft.Step.spec : Prop :=
   -- immediate answer: in scope since the pinned raft has the fix of
   -- `issues/raft-readindex-singleton-stale.md`.)
   (m.Type' = MsgReadIndex → m.Term' = W64 0) →
-  -- (2026-10-14, stage B7) `appliedTo`'s auto-leave proposal is out of scope: no `AutoLeave`
-  -- at a leader (`raft.appliedTo.spec`)
-  (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
+  -- (2026-10-14, stage B7, to 2026-10-29, stage U5: `appliedTo`'s automatic leave, proved since,
+  -- was excluded here by a premise `m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠
+  -- .leader`)
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
@@ -628,6 +633,11 @@ abbrev raft.Step.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
+      -- (raft-final, 2026-10-29, U7: the design's §2.3) a stamped transfer request's witness that
+      -- the node leads its term (`isRaftMsg`'s transfer clause, from the forwarder's `xfW`):
+      -- `ownStepGhost_xferRefute` refutes a follower of that term with a leader, which would forward
+      -- it again (`send` panics on a stamped `MsgTransferLeader`); until then `RestMsgOk`'s premise
+      "#Hxfer" ∷ □ (⌜m.Type' = MsgTransferLeader ∧ m.Term' ≠ W64 0⌝ -∗ isLeader γ id m.Term') ∗
       -- The message's `Entries` slice, holding `ents` (`[]` for a message without
       -- entries, `Entries = nil`):
       -- - a proposal is a local message whose batch the caller owns outright --
@@ -682,7 +692,7 @@ abbrev raft.Step.spec : Prop :=
       -- `m.Snapshot` points to, read-only, and the four lists `scfg` its `ConfState`'s
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
       -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
-      -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
+      -- snapshot becomes the `Storage`'s boundary, which `isStorageD`'s `Hbounded` bounds the
       -- same way) (since D22 S-b, D22j, naming the node or not: `restore`'s `!found` exit refuses
       -- it, `Step.snapStale`; until then a premise `CSLists.Has`); what the mode asks of it
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
@@ -691,7 +701,9 @@ abbrev raft.Step.spec : Prop :=
       -- legitimately sent. Transport/client assumptions like the rest. (Since D22 S-b′4,
       -- 2026-10-20, the scope and the static mode's need are the message certificate's, under
       -- the lists' naming the node, `SnapScopeIf`/`GMode.SnapOkIf`: only the index bound and,
-      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) are left.)
+      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) were left; since 2026-10-28, stage U3c,
+      -- dynamically the certificate's dynamic clause too, under the lists' naming the node: only
+      -- the index bound.)
       -- (stage R4) the snapshot the message holds (`sn = some sv`, owned in `"Hm"`) and the
       -- lists of its `ConfState` (until the retarget the read-only slices, `ownCSL`)
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
@@ -700,7 +712,6 @@ abbrev raft.Step.spec : Prop :=
            -- the mode asks come from the message's certificate (under its naming the node)
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
-           md.SnapDyn γ sv scfg ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
            -- certificate, which the step registers in the storage (`certLink`) before the restore
            isMessageC γ (absSnap m sv scfg) ∗
@@ -715,26 +726,40 @@ abbrev raft.Step.spec : Prop :=
       -- (2026-10-14, stage B7 part 2) and in the dynamic mode the configuration index moves only
       -- by a `MsgStorageApplyResp` (`CidxMove`)
       "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
-      -- the configuration afterwards: `c`, or the snapshot's after a `MsgSnap`
-      "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
+      -- the configuration afterwards: `c`, but the snapshot's after its acknowledgement (2026-10-28,
+      -- stage U0; until then after a `MsgSnap` that restored it)
+      "%Hcfg'" ∷ ⌜(m.Type' = MsgStorageAppendResp → sn = none) → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
       -- (D22 S-d2) but for a snapshot's acknowledgement, which moves the log as `ackSnapLog` says
       -- and nothing else
       "%Hlocal" ∷ ⌜((m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s') ∧
                    (m.Type' = MsgStorageAppendResp → ∀ sv, sn = some sv →
-                      s' = { s with logst := ackSnapLog s.logst m s.term sv })⌝ ∗
+                      -- (U0) at the snapshot's configuration, the tracker rebuilt
+                      c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
+                      (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),
+                        s' = { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
+                                      prvals := pvs, isLearner := il }) ∧
+                      -- (2026-10-28, stage U3c) dynamically the configuration index at the
+                      -- snapshot's, the full prefix kept (`StepR.applySnap`)
+                      (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
+                        ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
       -- for every other message but a snapshot (and its acknowledgement), what is kept of the
       -- log (2026-10-09)
-      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →
+      -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
+      -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
                    (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
+      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
+      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
-      -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
-      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+      -- (`SnapStep`) (until stage U0 also the configuration afterwards, `SnapCfgOut`)
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧
                      -- (D22 S-d3b) and what it did to the log (`SnapLogStep`)
                      ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
       -- (D22 S-d3b, 2026-10-21) a `MsgApp`'s truncation's mark (`AppTrunc`)

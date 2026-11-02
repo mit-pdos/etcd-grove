@@ -35,7 +35,8 @@ abbrev auth.authStore.UserRevokeRole.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
       authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
-      ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ }}
+      ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
+      (□ ∀ en : Bool, capNextM M hs (stepOf (userRevokeRoleF en name role))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserRevokeRole")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
       respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗ ∃ en : Bool, enabledVerdict M en ∗

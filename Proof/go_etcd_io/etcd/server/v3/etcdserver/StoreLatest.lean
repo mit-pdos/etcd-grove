@@ -32,6 +32,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthStepsX
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthLeaseLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 
@@ -51,6 +52,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The store's checks at the latest state, in the mode `M`** (the auth plan's E3l, 2026-10-27;
 persistent): in the mode `on γa`, the store `st` (`auth.authIface stl`) meets `apply.isAuthStoreL`
@@ -65,12 +67,14 @@ def authStoreLatestM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) (stl
 /-- **The store's range check no older than a reader's lower bound, in the mode `M`** (the auth
 plan's E3s, 2026-10-27; persistent): in the mode `on γa`, for every lower bound `n` of the published
 index (`auth.authPubLbM`), the store's `IsRangePermitted` with its verdict at states no older than `n`
-(`apply.isAuthStoreRangeLb`, of the store's invariant through E3j's `IsRangePermitted.specLb`);
-`True` in the other modes. What a reader with auth on needs of the store (`Range.specOn`). -/
+(`apply.isAuthStoreRangeLb`, of the store's invariant through E3j's `IsRangePermitted.specLb`) and
+(the lease-src plan, 2026-11-02) the lease checks' methods at such states (`isAuthStoreLeaseLb`,
+through the five `specLb`s, `isAuthStoreLeaseLb_of_authInv`); `True` in the other modes. What a
+reader with auth on needs of the store (`Range.specOn`, the lease checks' `srvAuthLeaseLb`). -/
 def authStoreLbM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
-      apply.isAuthStoreRangeLb st RD (.on γa) n)
+      apply.isAuthStoreRangeLb st RD (.on γa) n ∗ isAuthStoreLeaseLb st RD (.on γa) n)
   | _ => iprop(True)
 
 instance authStoreLbM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) :
@@ -80,6 +84,26 @@ instance authStoreLbM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IP
 instance authStoreLatestM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF)
     (stl : Loc) : Persistent (authStoreLatestM (GF := GF) M st RD stl) := by
   cases M <;> unfold authStoreLatestM <;> infer_instance
+
+open Iris.ProofMode in
+/-- `authStoreLbM`'s range check, with auth on. -/
+theorem authStoreLbM_range (γa : auth.AuthNames) (st : GoInterface) (RD : IProp GF) :
+    authStoreLbM (GF := GF) (.on γa) st RD ⊢
+      □ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLb st RD (.on γa) n := by
+  unfold authStoreLbM
+  iintro #H !> %n #Hn
+  ihave ⟨#HR, -⟩ := H $$ Hn
+  iexact HR
+
+open Iris.ProofMode in
+/-- `authStoreLbM`'s lease checks, with auth on (the lease-src plan). -/
+theorem authStoreLbM_lease (γa : auth.AuthNames) (st : GoInterface) (RD : IProp GF) :
+    authStoreLbM (GF := GF) (.on γa) st RD ⊢
+      □ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗ isAuthStoreLeaseLb st RD (.on γa) n := by
+  unfold authStoreLbM
+  iintro #H !> %n #Hn
+  ihave ⟨-, #HL⟩ := H $$ Hn
+  iexact HL
 
 /-- **The backend's write contract at every schema auth backend on the backend `bel`**
 (persistent; E3l): any `*authBackend` `abl` whose `be` field is `bel` (and some logger) has the
@@ -232,6 +256,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 open Iris.ProofMode
@@ -341,6 +366,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 open Iris.ProofMode
 

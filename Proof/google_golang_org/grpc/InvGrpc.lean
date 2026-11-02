@@ -66,6 +66,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The size below which grpc's codec sends a message** (`2 ^ 32` bytes; 64-bit Go, the model's
+platform; `notes/decisions.md`, "The encoded-size bound at grpc's send side";
+`issues/grpc-codec-alloc-before-size-check.md`). grpc-go v1.84's `codecV2.Marshal` allocates
+`proto.Size(m)` bytes (rounded up to 4 KiB) before any size check, and `make` panics above Go's
+`maxAlloc` (`2 ^ 48` on linux/amd64); at `2 ^ 32` bytes and above, grpc refuses the message
+(`encode`'s `MaxUint32` check, an error), so no message at or above the bound is ever delivered. -/
+def grpcMsgMax : Nat := 2 ^ 32
+
 /-- **A protobuf message type** (see the file header). -/
 structure ProtoMsg (GF : BundledGFunctors) where
   /-- The message's Go type `T` (the message is passed as `*T`). -/
@@ -74,6 +82,16 @@ structure ProtoMsg (GF : BundledGFunctors) where
   M : Type
   /-- The sender's `*T` holding `m` (what marshaling needs; it comes back). -/
   send : Loc → M → IProp GF
+  /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
+  holds at `m`, counting a submessage at each reference (as protobuf-go's `Size` does). Read it
+  against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
+  messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
+  `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  translated; requests are struct literals), so the bound is claimed for messages without them
+  (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
+  bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),
+  so the message cannot be sent (`grpcInvokerOk`). Part of the instance's trusted wire model. -/
+  wireLen : M → Nat := fun _ => grpcMsgMax
   /-- A decoded `*T` holding `m` (read-only). -/
   recv : Loc → M → IProp GF
   recv_persistent : ∀ l m, Persistent (recv l m)
@@ -217,6 +235,27 @@ theorem grpcHandlerOk_own {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
   iunfold grpcHandlerOk at Hh
   iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec] HΨ
   iframe; iframe #
+
+/-- An owning service method's plain spec is its spec at every metadata (the client's
+`kv.Compact`, 2026-11-01; as `grpcHandlerOk_md`). -/
+theorem grpcHandlerOwnOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
+    (Spec : GrpcSpec Req Rep) :
+    grpcHandlerOwnOk h S Spec ⊣⊢ grpcHandlerOwnOkMd h S (GrpcSpec.md Spec) :=
+  .rfl
+
+/-- An owning service method meeting `Spec` with `S` meets it with more (as `grpcHandlerOk_frame`). -/
+theorem grpcHandlerOwnOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
+    (Spec : GrpcSpec Req Rep) :
+    grpcHandlerOwnOk h S Spec ⊢ grpcHandlerOwnOk h iprop(S ∗ R) Spec := by
+  iintro #Hh
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, Hown, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %ci %cd %r [HS Hown HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hres⟩
+  iapply HΨ
+  iframe
 
 /-- A service method meeting `Spec` with `S` meets it with more (`S ∗ R`, `R` given back). -/
 theorem grpcHandlerOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
@@ -511,8 +550,9 @@ end defs
 
 /-- **The gRPC server listening at `addr`, built with the unary interceptor chain `ics`, its
 services' methods `regs` registered** (exclusive; an axiomatized predicate, unit P3b; it was
-`grpcListener addr`): one registration per address (urpc's `host c↦ ∅`); `ics` the interceptors
-`grpc.NewServer`'s options chain (`UnaryInterceptor`'s, then `ChainUnaryInterceptor`'s, in
+`grpcListener addr`). Exists only in a run satisfying `grpcRepliesFit`: made only by
+`grpc.start`, which takes it. One registration per address (urpc's `host c↦ ∅`); `ics` the
+interceptors `grpc.NewServer`'s options chain (`UnaryInterceptor`'s, then `ChainUnaryInterceptor`'s, in
 order), `regs` the `(full method name, MethodDesc.Handler, service value)` of every unary method
 of the `ServiceDesc`s registered with `RegisterService`. Established by the server's unverified
 construction (etcd's `v3rpc.Server`, `grpc.NewServer`, the `Register*Server` calls, `Serve`): a
@@ -737,7 +777,12 @@ methods `ms` (distinct names), each meeting its spec with the per-run resource `
 it (`grpcMethodOk`: its `MethodDesc.Handler` on the registered service value, the call's context
 (`isContext`, and `grpcRunCtx`: no value under etcd's keys), grpc's `dec` for the request, the
 interceptor for `ics`), and that hands the runtime `n` copies of `S`, is served at `addr`: a run
-holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time). -/
+holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time).
+
+Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
+codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
+`grpcStreamServerAt`, `grpcServeTok`) comes only from `grpc.start`, under `grpcRepliesFit`, so no
+reply exceeds it. A reply in `(2 ^ 31 - 1, 2 ^ 48]` fails with `ResourceExhausted`. -/
 axiom grpc.serve (addr : GoString) (ics : List GoFunc) (regs : List (GoString × val × GoInterface))
     (ms : List (GrpcMethod GF)) (S : IProp GF) (n : Nat) :
   (ms.map GrpcMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
@@ -856,14 +901,37 @@ empty name with `"etcdserver: user name is empty"` even with authentication off
 (`authStore.UserAdd`). -/
 opaque noRefusalAt : GoString → Prop
 
+/-- **The non-auth refusals** (F-S2, 2026-10-29): the learner's (`isSafeRetry`) and the old
+balancer's two (`isSafeRetryMutableRPC`), the members of `refusalDescs` that do not depend on
+authentication. -/
+def otherRefusalDescs : List GoString :=
+  [go!"etcdserver: rpc not supported for learner",
+    go!"there is no address available", go!"there is no connection available"]
+
+theorem otherRefusalDescs_sub (d : GoString) (h : d ∈ otherRefusalDescs) :
+    d ∈ go_etcd_io.etcd.cache.v3.refusalDescs := by
+  simp [otherRefusalDescs] at h; rcases h with rfl | rfl | rfl <;>
+    simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+
+/-- **The server at `addr` never answers a unary call of etcd's KV service with a non-auth
+refusal** (opaque; F-S2, 2026-10-29): no status it sends in answer to a `kvMethod` call has a
+description among `otherRefusalDescs`. Established in either auth mode by the trust-boundary axiom
+`etcd_noOtherRefusal`; `noRefusalAt`'s half that does not depend on authentication. Not read yet:
+the attempt contract (`grpcInvokerOk`) is to read it with the auth refusals' identity proved in the
+server's error branches (`notes/auth-mode-merge-plan.md`, F-S2 part 2). -/
+opaque noOtherRefusalAt : GoString → Prop
+
 /-- **Metadata's values at the key `k`** (`none` metadata: none). -/
 def mdGet (md : GrpcMd) (k : GoString) : Option (List GoString) := md.bind fun m => m k
 
 /-- **A key grpc sets itself** (the auth plan's C1): a pseudo-header (`:authority`, ...), a
-`grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`. What an attempt
-delivers at such a key is not stated. -/
+`grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`, and `host`, which
+grpc's server deletes whenever `:authority` is present (gRFC A41; `http2_server.go:518-522`), as it
+always is from grpc's client (`http2_client.go:595`): found by G2's axiom reviews,
+`notes/axiom-review/g2-newstream.md`. What an attempt delivers at such a key is not stated. -/
 def grpcReservedKey (k : GoString) : Prop :=
-  go!":" <+: k ∨ go!"grpc-" <+: k ∨ k = go!"content-type" ∨ k = go!"user-agent" ∨ k = go!"te"
+  go!":" <+: k ∨ go!"grpc-" <+: k ∨ k = go!"content-type" ∨ k = go!"user-agent" ∨ k = go!"te" ∨
+    k = go!"host"
 
 /-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
 (opaque; the auth plan's C1, 2026-10-28): `none` if it has none or they returned none; what is
@@ -894,7 +962,7 @@ attempt's handler may see (`grpcAttemptMd`; since 2026-10-28, the auth plan's E3
 metadata-indexed, `GrpcSpecMd`: a plain spec is `GrpcSpec.md`), returns
 * `nil`: a run of the handler served for the method at one of `addrs` on a copy of the request
   answered, and `out` holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
-* an error: a client error (`clientErr`: a leaf error, not an `EtcdError`; a gRPC status error)
+* an error: a client error (`clientErr`: a leaf error, possibly an `EtcdError`; a gRPC status error)
   that grpc's `status` accepts (`statusErrOk`), and `out` back (`Rep.own`); nothing about whether
   the handler ran.
 
@@ -920,14 +988,18 @@ Since 2026-10-23 (D37) the error is no caller's `errors.New` value (`errCellOk`:
 (`rpc_util.go`), which passes `nil` and `io.EOF` (io's `errors.New("EOF")`) through and turns
 every other error into a status error (`*status.Error`), except one `status.FromError` already
 accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` has no
-`GRPCStatus` method and no `Unwrap`); its own errors are status errors (`status.Error`). -/
+`GRPCStatus` method and no `Unwrap`); its own errors are status errors (`status.Error`).
+
+Since 2026-10-30 (the axiom review `txn-nested-wire`) the request's encoding is below `grpcMsgMax`
+(`Req.wireLen`): grpc marshals before it checks a size, and the codec's allocation panics above
+Go's `maxAlloc`. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
     {{ isGrpcRpcsMd addrs method Spec ∗
         ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ) ∗
-        ctxOk ctx cd ∗ Req.send inp m ∗
+        ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)

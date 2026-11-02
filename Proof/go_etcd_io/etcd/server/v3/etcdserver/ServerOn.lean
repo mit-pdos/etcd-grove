@@ -33,6 +33,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 
 @[expose] public section
 
@@ -66,6 +68,10 @@ theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
+theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+
+theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+
 theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
     logShapeM on A := by
   cases on
@@ -92,6 +98,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The KV log `L` applied through the index `i` is the mode's KV model of a committed raft
 log** (persistent; `kvLogAt` at `false`). -/
@@ -291,7 +298,8 @@ def srvReqBuiltM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : 
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+      v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (v : ReqFields) : Persistent (srvReqBuiltM (GF := GF) on s E ρ v) := by
@@ -299,22 +307,6 @@ instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ :
 
 theorem srvReqBuiltM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqBuiltM (GF := GF) false s E ρ v = srvReqBuilt s E ρ v := rfl
-
-/-- **The apply thread's KV invariants in the auth mode `on`** (`srvKVInvs` with the mode's KV
-and certificates' invariants, from `srvAuthSt0`; at `on = true` `srvKVInvsOn`'s rows). -/
-def srvKVInvsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(kvInvM on γr.raft γr.kv srvAuthSt0 ∗ kvCertInvM on γr.raft γr.kv srvAuthSt0 ∗
-    srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝)
-
-instance srvKVInvsM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
-    Persistent (srvKVInvsM (GF := GF) on E γr) := by
-  unfold srvKVInvsM; infer_instance
-
-theorem srvKVInvsM_false (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) false E γr = srvKVInvs E γr := rfl
-
-theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
 
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
 resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
@@ -357,6 +349,88 @@ instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
     Persistent (srvUberBase s ua E) := by
   unfold srvUberBase; infer_instance
 
+/-- **The server's lessor finds no lease** (persistent; a named premise, see `UberOn.lean`). -/
+def srvLessorNil (s : Loc) : IProp GF :=
+  iprop(∃ le : GoInterface, srvLessorAddr s ↦□ le ∗ apply.lookupNil le)
+
+instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
+  unfold srvLessorNil; infer_instance
+
+/-- (step 6 of the auth-mode merge, 2026-10-30) **The server's uber-applier's latest-state `Apply`
+contracts, with auth on** (persistent): for every environment with auth on and every uber-applier
+the server holds (`applySnapshot` replaces it) with its base applier's auth layer (`srvUberBase`),
+its KV contract (`apply.uberKVC`) given that the lessor finds no lease, and its admin contract
+(`apply.uberAdmC`) at every admin row's store, backend and write token. Whoever constructs the
+uber-applier establishes its contract: `NewServer` with auth on (`uberKitM`); `applyEntryNormal`
+reads it (`srvKVInvsM_uberOn`). -/
+def srvUberOn (s : Loc) : IProp GF :=
+  iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
+    srvUberBase s ua E -∗
+    (srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa))) ∗
+    (∀ (stl bel : Loc) (T : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
+        apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
+          (adminW stl bel (.on γa) E.P E.f T) E.RD -∗
+        apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+          (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+          (auth.latestRes stl (.on γa))))
+
+instance srvUberOn_persistent (s : Loc) : Persistent (srvUberOn (GF := GF) s) := by
+  unfold srvUberOn; infer_instance
+
+/-- **The apply thread's KV invariants in the auth mode `on`**: `srvKVInvs`, or at `on = true`
+`srvKVInvsOn` from `srvAuthSt0` (the mode's KV and certificates' invariants, and the auth history's
+tie to the log, `authHistTie`) with (step 6 of the auth-mode merge, 2026-10-30) the server's
+uber-applier contracts (`srvUberOn s`). -/
+def srvKVInvsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  match on with
+  | false => srvKVInvs E γr
+  | true => iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s)
+
+instance srvKVInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvKVInvsM (GF := GF) on s E γr) := by
+  cases on <;> unfold srvKVInvsM <;> infer_instance
+
+theorem srvKVInvsM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) false s E γr = srvKVInvs E γr := rfl
+
+/-- `srvKVInvsM true`'s KV invariants. -/
+theorem srvKVInvsM_true (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ srvKVInvsOn E γr srvAuthSt0 := by
+  unfold srvKVInvsM; iintro ⟨#H, -⟩; iexact H
+
+/-- `srvKVInvsM true`'s uber-applier contracts. -/
+theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ srvUberOn s := by
+  unfold srvKVInvsM; iintro ⟨-, #H⟩; iexact H
+
+/-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
+lessor finds no lease. -/
+theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
+    (hM : E.authMode = .on γa) :
+    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
+      ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#H, #Hb, #Hln⟩
+  iunfold srvUberOn at H
+  ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
+  iapply Hkv $$ Hln
+
+/-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
+row's store, backend and write token. -/
+theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
+    (stl bel : Loc) (T : IProp GF) (hM : E.authMode = .on γa) :
+    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+      apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
+      apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+        (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+        (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
+  iunfold srvUberOn at H
+  ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb
+  iapply Had $$ %stl %bel %T Hf Hsteps
+
 /-- **The built part's uber-applier row in the auth mode `on`** (E3k): `srvBuilt`'s at `false`
 (by definition), with the base applier's auth layer (`srvUberBase`) at `true`. -/
 def srvUberRowM (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) : IProp GF :=
@@ -377,16 +451,27 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInvM on s E γr ∗
-    "#Hkvi" ∷ srvKVInvsM on E γr ∗
+    "#Hkvi" ∷ srvKVInvsM on s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM on ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
@@ -400,8 +485,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
-      ⌜receiptBound GF ≤ uint.Z (if n = W64 0 then W64 5000 else n) + 1⌝) ∗
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
@@ -419,7 +503,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
+    -- until then `2 ^ 31`, `GoAttach`'s)
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
     "Hua" ∷ srvUberRowM on s E x₀ ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
@@ -438,6 +524,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`applyBuiltNAM` from the mode-`on` row** (E3c): the mode-`on` row is the mode-off one with
 the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyResAt_of_B`, `srvAuthApplyRes_of_At`). -/
@@ -562,7 +649,7 @@ open Iris.ProofMode in
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (h : envAgree E E') :
     srvCM on ρ E ai₀ c₀ x₀ = srvCM on ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr⟩ := h
+  obtain ⟨hi, hc, hr, -, -⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x
     unfold resultΨ resultIsW revMinted revTok mvcc.certOk
@@ -598,7 +685,7 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     · iintro %rq %id %hrq
       obtain ⟨hd, hdec, hid⟩ := hrq
       iunfold entryClaim at Hc
-      icases Hc with (%hc | ⟨%rq', %id', %γf, %hrq', #Hcl', #Hreg⟩)
+      icases Hc with (%hc | ⟨%rq', %id', %γf, %k, %hrq', #Hcl', #Hreg⟩)
       · exfalso; rcases hc with hc | hc
         · exact hc ht
         · exact hd hc
@@ -607,9 +694,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
         cases hdec'
         rw [hid] at hid'
         cases hid'
-        iframe Hreg
-        iexists γf
-        iexact Hcl'
+        iexists γf, k
+        iframe Hcl' Hreg
     · iexists L
       iframe HL
       ipureintro; exact hm
@@ -622,7 +708,26 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     iintro !> %Ψ HR
     iunfold reqWaitR at HR
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
-    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
+    ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
+    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
+
+/-- `srv_entry_transfer` for a committed log `A` with no empty `ConfChangeV2` (`srv_committed_noV2`):
+`P` need not hold of one. -/
+private theorem srv_entry_transfer_nv (ai₀ : w64) (A L : List EntryModel) (P : EntryModel → Prop)
+    (hP : ∀ m m', m.toLE = m'.toLE → P m' → P m)
+    (hfill : ∀ m : EntryModel, m.typ = W32 0 → m.data = [] → P m)
+    (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE)
+    (hL : ∀ m ∈ L, P m) (hnv : ∀ m ∈ A, ¬ (m.typ = W32 2 ∧ m.data = [])) :
+    ∀ m ∈ A, P m := by
+  have := srv_entry_transfer ai₀ A L (fun m => ¬ (m.typ = W32 2 ∧ m.data = []) → P m)
+    (fun m m' he h' hn => by
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      exact hP m m' he (h' (by rw [← h1, ← h2]; exact hn)))
+    (fun m ht hd _ => hfill m ht hd) (fun m ht hd hn => absurd ⟨ht, hd⟩ hn) hA h
+    (fun m hm _ => hL m hm)
+  exact fun m hm => this m hm (hnv m hm)
 
 /-- **The workload clause in the mode `on`** (`clusterWorkloadOk_of`'s, from `kvInvOn`). -/
 theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth.AuthState) :
@@ -631,33 +736,43 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOkM
   iintro !> %L #HL
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
+  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HLc
+  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
   iunfold kvInvOn at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, Hh, %Hok, #Hw⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ Hh] with -
+  · inext; iexists L'; iframe HL' Hσ Hh Hw; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
-  have HshL : logShapeOn L := srv_entry_transfer _ L L' entryShapeOn
+  have HshL : logShapeOn L := srv_entry_transfer_nv _ L L' entryShapeOn
     (fun m m' he h => by
       have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       unfold entryShapeOn at h ⊢; rw [h1, h2]; exact h)
-    (fun m ht hd => ⟨fun _ => .inl hd, fun h => absurd ht h⟩) HLi Hp.2.2 Hsh
-  have HcclL : ccLogOk ρ.raft.raft L := srv_entry_transfer _ L L'
+    (fun m ht hd => ⟨fun _ => .inl hd, fun h => absurd ht h⟩) HLi Hp.2.2 Hsh hnv
+  have HcclL : ccLogOk ρ.raft.raft L := srv_entry_transfer_nv _ L L'
     (fun m => m.typ ≠ W32 0 → ccPolOk ρ.raft.raft m.data)
     (fun m m' he h => by
       have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       rw [h1, h2]; exact h)
-    (fun m ht _ h => absurd ht h) HLi Hp.2.2 Hccl
+    (fun m ht _ h => absurd ht h) HLi Hp.2.2 Hccl hnv
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
@@ -678,8 +793,9 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (x₀ : apply.ApplyKV) (γw : RNNames) (st₀ : auth.AuthState)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
+    -- cluster, its decoder; and the storage's cap)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvOn (GF := GF) ρ.raft ρ.kv st₀ ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOkM true ρ E ⊢
       rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ id S) γw := by
@@ -693,16 +809,10 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
   isplitr
   · ipureintro; exact hdec
   isplitr
-  · ipureintro; exact hcap
-  isplitr
   · iexact Hr
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc⟩
-    ihave #Hcl : srvClusterOk ρ.raft $$ []
-    · iunfold srvRaftLogInv at Hr; icases Hr with ⟨-, #H, -⟩; iexact H
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
     rw [hraft, hid] at *
-    ihave %Hns := srv_sentMsg_notSnap ρ.raft id st $$ [Hcl Hrm]
-    · iframe Hcl Hrm
     isplitl [Hc]
     · iunfold srvMsgNet
       iexists st
@@ -738,15 +848,16 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     (x₀ : apply.ApplyKV) (γw : RNNames)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
+    -- cluster, its decoder; and the storage's cap)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvM (GF := GF) on ρ.raft ρ.kv srvAuthSt0 ∗ srvRaftLogInv ρ.raft ∗
         clusterWorkloadOkM on ρ E ⊢
       rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ id S) γw := by
   cases on
-  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec hcap id S hid
-  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec hcap id S hid
+  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec id S hid
+  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec id S hid
 
 /-- **The certificates' invariant in the mode `on`** (`kvCertInv_alloc`'s). -/
 theorem kvCertInvOn_alloc (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
@@ -794,14 +905,17 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
-      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ={E}=∗
+      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
+      monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
       kvInvOn γs γk st₀ ∗
-        etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) := by
+        etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ∗
+        authHistView γk [st₀] := by
   generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
-  iintro HL Hv
+  iintro HL Hv Hh
   icases onGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
+  icases authHist_split γk [st₀] $$ Hh with ⟨Hhv, Hh⟩
   have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
       uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
         ccIdOf m.data = W64 0 := by
@@ -865,22 +979,26 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
   iunfold kvInvOn
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
+      monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
-    $$ [HL Hv1] with #Hinv
+    $$ [HL Hv1 Hh] with #Hinv
   · inext
     iexists bootEntries bootLog
     iframe Hv1
+    rw [admStates_conf γk st₀ _ (fun m hm h0 => by rw [hty m hm] at h0; exact absurd h0 (by decide))]
+    iframe Hh
     isplitl [HL]
     · iexact HL
     isplitr
     · ipureintro; exact hok
     iunfold kvWorkOn
     iframe Hcl
-    ipureintro; exact ⟨hshape, hccl⟩
+    ipureintro
+    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk⟩
   imodintro
-  iframe Hinv
+  iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2
 
 end lemmas

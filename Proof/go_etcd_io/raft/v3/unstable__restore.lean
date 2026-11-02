@@ -30,7 +30,7 @@ theorem unstable.restore.wp_proof
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     unstable.restore.spec (GF := GF) (hG := hG) := by
-  intro u us sp dq sv
+  intro u us sp dq sv Hhas
   wp_start as ⟨Hun, Hsp⟩
   iunfold ownUnstable at Hun
   icases Hun with ⟨%uv, Hun⟩
@@ -40,7 +40,7 @@ theorem unstable.restore.wp_proof
   wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ihave Hsp := Hmback $$ Hm
   iapply wp_fupd
-  wp_apply wp_proto_CloneSnapshot.2.2.2 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
+  wp_apply wp_proto_CloneSnapshot.2.2.2.1 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
   imod ownSnapS_persist _ _ _ $$ Hc with #Hc
   ihave #HcM := ownSnapS_M _ _ _ $$ Hc
   imodintro
@@ -59,7 +59,7 @@ theorem unstable.restore.wp_proof
     iexists sv
     iframe Hc
     ipureintro
-    exact ⟨by cases Hsid; rfl, List.mem_append_right _ (List.mem_singleton_self _)⟩
+    exact ⟨by cases Hsid; rfl, List.mem_append_right _ (List.mem_singleton_self _), Hhas⟩
   · iexact Hlogger
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
 

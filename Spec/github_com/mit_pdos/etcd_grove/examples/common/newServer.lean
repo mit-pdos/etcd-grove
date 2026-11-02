@@ -1,5 +1,5 @@
 /-
-`newServer(name, peer, client, cluster, token, retention, lg)` (`examples/common/common.go`; 2026-10-22, D33):
+`newServer(name, peer, client, cluster, token, retention, snapCount, catchUp, lg)` (`examples/common/common.go`; 2026-10-22, D33):
 member `name` of a new cluster with token `token` built -- its configuration (as putget's, putget3's
 and their followers' were) and `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 
@@ -9,6 +9,8 @@ each member's peer URL slice, its initial URLs by name `iu`), `bootstrap`'s cont
 (`bootPremise`, whose URLs predicate `Uok` the configuration's URLs meet) and the premises the
 members share: an error, or the server built (`memberBuilt`).
 
+The snapshot settings (`snapCount`, `catchUp`) are any: `NewServer`'s spec has no premise on
+them since 2026-10-30 (snapshots allowed).
 **The pure premises:** the logic's thread bound and the time-receipt
 bounds; the server's raft names of the cluster (its peers `ps`, static, its bootstrap log), the log
 shorter than `2 ^ 60`, the network's payload the server's and its directory `dir`; the logger not
@@ -43,18 +45,23 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 /-- See the file header. -/
 abbrev newServer.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
-    (retention : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
+    (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  γ.vs = ps → γ.dyn = false → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → retention = W64 0 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
@@ -62,41 +69,52 @@ abbrev newServer.spec : Prop :=
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}
-    (App (App (App (App (App (App (App
+    (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
-      (Val #lg))
+      (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
 
 /-- See the file header (`specCompact`). -/
 abbrev newServer.specCompact : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
-    (retention : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
+    (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  γ.vs = ps → γ.dyn = false → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → 0 < sint.Z retention →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  -- (C3's server stage, 2026-11-02) the cluster's retention at most the compactor's
+  (ρ.rd.kv.cret : Int) ≤ sint.Z retention →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
+      bootPremise (N + N) ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      -- (M2, the storage side, N1) the member's boot bundle in compaction mode
+      memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}
-    (App (App (App (App (App (App (App
+    (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
-      (Val #lg))
+      (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
 
 end spec
 

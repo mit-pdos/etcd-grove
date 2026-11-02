@@ -65,7 +65,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- **`cli.Put(ctx, key, val)` through a client of the members `ms`** (see the file header). -/
 theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF)
     (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
-    (sl : GoSlice) (Q : KVState → IProp GF) :
+    (sl : GoSlice) (Q : KVState → IProp GF) (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map client.SrvAt.addr) V ∗
         client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
@@ -97,7 +97,7 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
       iexact Hk)
   ihave Hau := hau $$ [Hau Hms]
   · iframe Hau; iframe #
-  wp_apply (client.client_Put_rep cl ms V ci cd key val sl Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client.client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [Hau] as %resp %err Hout
   · iframe #; iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
@@ -105,7 +105,7 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
     isplitl []
     · ipureintro; exact Herr
     iunfold client.putReplied at Hr
-    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, hrev, -, -, -, -, hlen, hb⟩ := Hp
     iexists m, kvStateOf y.log
     iframe Hm HQ

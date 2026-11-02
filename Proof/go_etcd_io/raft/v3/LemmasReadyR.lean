@@ -219,27 +219,62 @@ theorem readStatesPts_nil : ⊢ readStatesPts (GF := GF) slice.nil [] := by
       iprop(⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx' : IProp GF))).2
     iempintro
 
+/-- (raft-final, 2026-10-29) The transfer records' witnesses (`xfW`), read out of `ghostRest`: what a
+`Ready`'s messages' `isRaftMsg` takes (`outboxRelP_isRaftMsgs`). -/
+theorem ghostRest_xfW (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ghostRest (GF := GF) γ md c id s ⊢ xfW γ s ∗ ghostRest γ md c id s := by
+  unfold ghostRest
+  iintro ⟨%Hn, H, #Hl, #Hw, #Hx⟩
+  iframe Hl H Hw Hx
+  ipureintro; exact Hn
+
 /-- The queued messages' contributions are in the outbox, so each one handed out was
 legitimately sent (`outboxRelP_isRaftMsg`, over a list). -/
-theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2 : List QMsg)
+theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List Msg)
+    (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) the queues' messages `SentMsgOk` in the no-transfer mode (`XfOk`;
-    -- D22 S-a to S-c: and the no-snapshot one)
-    (Hsent : γ.reNoXfer = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st)
-    (Hrs : ∀ q ∈ ms1 ++ ms2, q.st.resps = [] ∧ AppFrom id q.st) :
-    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗
+    -- (raft-final, 2026-10-29: the design's §2.6) the queues' facts (`ownRaftPhys`'s `Hxf`), with
+    -- the transfer records' witnesses (`xfW`)
+    (Hxf : XfOk id s (ms1 ++ ms2)) :
+    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗ xfW γ s -∗
       [∗list] q ∈ l, isRaftMsg γ id q.st := by
   induction l with
-  | nil => iintro _ _; iempintro
+  | nil => iintro _ _ _; iempintro
   | cons q l ih =>
-    iintro #Ho #Hqc
+    iintro #Ho #Hqc #Hxw
+    have Hq0 := Hsub q List.mem_cons_self
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · ihave #Hq := qCerts_mem γ _ q (Hsub q List.mem_cons_self) $$ Hqc
-      iapply outboxRelP_isRaftMsg γ id o ms1 ms2 q Hp (Hsub q List.mem_cons_self) Hns (fun h => Hsent h q (Hsub q List.mem_cons_self))
-        (Hrs q (Hsub q List.mem_cons_self)) $$ Ho Hq
-    · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc
+    · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
+      iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0) (Hxf.2.1 q Hq0)
+        (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
+    · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
+
+/-- (2026-11-01, durability stage II (k), fix C) `outboxRelP_isRaftMsgs` of messages to others, from
+the outbox's messages to others' facts (a leader's, R9). -/
+theorem outboxRelP_isRaftMsgs_ns (γ : RaftNames) (id : w64) (s : NState) (o : List Msg)
+    (ms1 ms2 : List QMsg)
+    (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
+    (Hto : ∀ q ∈ l, q.st.msg.To' ≠ id)
+    (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
+    (Hxf : XfOk id s (ms1 ++ ms2)) :
+    ([∗list] x ∈ o, ⌜x.dst ≠ id⌝ -∗ isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗ xfW γ s -∗
+      [∗list] q ∈ l, isRaftMsg γ id q.st := by
+  induction l with
+  | nil => iintro _ _ _; iempintro
+  | cons q l ih =>
+    iintro #Ho #Hqc #Hxw
+    have Hq0 := Hsub q List.mem_cons_self
+    have Hq1 := Hto q List.mem_cons_self
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
+      iapply outboxRelP_isRaftMsg_gen γ id s o ms1 ms2 q (fun x => iprop(⌜x.dst ≠ id⌝ -∗ isMessage γ x))
+        (fun x hx => by iintro #H; iapply H; ipureintro; rw [hx]; exact Hq1) Hp Hq0 Hns
+        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
+    · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
+        (fun q' hq' => Hto q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
 /-- A hard state that may be `nil` and is not empty is a read-only one. -/
 theorem hsRO_of_hsOpt (p : Loc) (h : HardStateM)
@@ -256,24 +291,27 @@ queues (2026-10-16, stage R5): each owned (`selfOwn`) becomes a `msgIn` (a respo
 `MsgApp`, `msgOwn_to_msgIn`), `SelfMsgOk` (`AAMsgOk.selfMsgOk`), and its abstraction, at no
 entries and no context, was legitimately sent (its contribution is in the outbox,
 `outboxRelP_isRaftMsg`). -/
-theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : List QMsg)
+theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
+    (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
     (Hok : ∀ q ∈ l, AAMsgOk id t q.st) (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    (Hsent : γ.reNoXfer = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st)
-    (Hrs : ∀ q ∈ ms1 ++ ms2, q.st.resps = [] ∧ AppFrom id q.st) :
-    ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗ qCerts γ (ms1 ++ ms2) -∗
+    -- (raft-final, 2026-10-29: the design's §2.6) the queues' facts, with the transfer records'
+    -- witnesses (`xfW`)
+    (Hxf : XfOk id s (ms1 ++ ms2)) (W : DurMaps) :
+    ⊢ ([∗list] x ∈ o, □ (durFrags (GF := GF) γ id W -∗ isMessage γ x)) -∗ qCerts γ (ms1 ++ ms2) -∗
+      xfW γ s -∗
       ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
-      pendList γ id ((selfmsgs id l).map QMsg.loc)
+      pendList γ id W ((selfmsgs id l).map QMsg.loc)
         ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by
   induction l with
   | nil =>
-    iintro _ _ _
+    iintro _ _ _ _
     simp only [selfmsgs, List.filter_nil, List.map_nil]
     iapply pendList_nil
   | cons q l ih =>
     have Hsub' : ∀ q' ∈ l, q' ∈ ms1 ++ ms2 := fun q' h => Hsub q' (List.mem_cons_of_mem _ h)
     have Hok' : ∀ q' ∈ l, AAMsgOk id t q'.st := fun q' h => Hok q' (List.mem_cons_of_mem _ h)
-    iintro #Ho #Hqc H
+    iintro #Ho #Hqc #Hxw H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
     by_cases h : isSelfQ id q = true
     · simp only [selfmsgs, List.filter_cons, h, ↓reduceIte, List.map_cons]
@@ -281,27 +319,29 @@ theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : Lis
       have Hsm := (Hok q List.mem_cons_self).selfMsgOk hto
       have Hresp : RespType q.st.msg.Type' := Hsm.1
       iapply (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).2
+        pendingRel γ id W st p))).2
       isplitl [Hq]
       · iexists q.st
         isplitl [Hq]
         · iapply msgOwn_to_msgIn q.loc q.st (resp_ne_MsgApp _ Hresp)
           unfold selfOwn; simp only [h, ↓reduceIte]; iexact Hq
         · ihave #Hqq := qCerts_mem γ _ q (Hsub q List.mem_cons_self) $$ Hqc
-          ihave #Hr := outboxRelP_isRaftMsg γ id o ms1 ms2 q Hp (Hsub q List.mem_cons_self) Hns (fun h => Hsent h q (Hsub q List.mem_cons_self))
-            (Hrs q (Hsub q List.mem_cons_self)) $$ Ho Hqq
+          have Hq0 := Hsub q List.mem_cons_self
           unfold pendingRel selfPending
           isplitr
           · ipureintro; exact ⟨Hsm, rfl, rfl⟩
           · imodintro
-            iintro %ty %Hty
+            iintro #Hfr %ty %Hty
+            ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
+            ihave #Hr := outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
+              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho' Hqq Hxw
             ihave H := isRaftMsg_isMessage γ id q.st ty Hty
               (fun hs => mtypeOf_resp_ne_snap _ Hresp (hs ▸ Hty)) $$ Hr
             rw [Hsm.2.2.2.2.1, Hsm.2.2.2.2.2.1]
             iexact H
-      · iapply ih Hsub' Hok' $$ Ho Hqc H
+      · iapply ih Hsub' Hok' $$ Ho Hqc Hxw H
     · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
-      iapply ih Hsub' Hok' $$ Ho Hqc H
+      iapply ih Hsub' Hok' $$ Ho Hqc Hxw H
 
 end sep
 

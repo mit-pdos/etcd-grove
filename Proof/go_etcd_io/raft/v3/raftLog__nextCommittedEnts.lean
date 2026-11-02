@@ -57,7 +57,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
   ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
   · reseal_raftLog
   clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
-    Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
+    Hpapplied Hcommitted Hipb Hpersist Happlying Hpaused Hstor Hpend
   iclear HisStorage Husnap Hl_logger Hu_logger
   wp_auto
   wp_apply wp_raftLog_hasNextOrInProgressSnapshot l _ $$ [Hlog] as %b ⟨Hlog, %Hb⟩
@@ -84,7 +84,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
-      Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
+      Hpapplied Hcommitted Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi0 ⟨Hlog, %Hhi0⟩
     · iexact Hlog
@@ -105,7 +105,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     · reseal_raftLog
     rw [Hasz, Hamx]
     clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
-      Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
+      Hpapplied Hcommitted Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
     -- (D19i part 1) from `applying + 1`, above the floor: no `ErrCompacted`
     icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩

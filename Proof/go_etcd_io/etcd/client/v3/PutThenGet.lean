@@ -66,6 +66,20 @@ theorem kvOpStep_putKey (key val : GoString) (σ : KVState) (hs : σ.kvs.Pairwis
   rw [hnv, ← hv]
   rfl
 
+/-- **A put of another key leaves `key`'s entry** (pure; 2026-11-02, the restart plan's R2: the
+put `restart3` makes before its stop): from a state sorted by key, the put of `key' ↦ val'`, with
+`key' ≠ key`, gives a sorted state with `key`'s entry unchanged. -/
+theorem kvOpStep_putOther (key key' val' : GoString) (hne : key' ≠ key) (σ : KVState)
+    (hs : σ.kvs.Pairwise etcdKvLess) :
+    (kvOpStep (.put (putKeyOp key' val')) σ).kvs.Pairwise etcdKvLess ∧
+      findKey key (kvOpStep (.put (putKeyOp key' val')) σ).kvs = findKey key σ.kvs := by
+  have hk : (kvOpStep (.put (putKeyOp key' val')) σ).kvs =
+      putKv (W64 ((σ.rev + 1 : Nat) : Int)) key' val' (W64 0) σ.kvs := by
+    simp [kvOpStep, KVState.commit_kvs, KVState.leaseMissing, txn.needsPrev, applyChanges, applyChange, txn.putChangeOf,
+      txn.putValOf, txn.putLeaseOf, putKeyOp, txn.putOpOf]
+  rw [hk]
+  exact ⟨putKv_sorted hs _ key' val' _, findKey_putKv_other hs _ key key' val' _ hne⟩
+
 end pure
 
 /-! ## The client's invariant and its two updates -/
@@ -129,6 +143,45 @@ theorem putAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
     imodintro
     iintro !>
     iapply monoNatLbOwn_le 1 (Nat.le_max_right n 1) $$ Hlb
+
+/-- **A put of another key's update** (persistent; 2026-11-02, the restart plan's R2): each firing
+writes `key' ↦ val'`, `key' ≠ key`, which leaves `key`'s entry and the flag as they were; no
+result. -/
+theorem putOtherAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val key' val' : GoString)
+    (hne : key' ≠ key) :
+    putGetInv γ γf key val ⊢
+      kvOpAu (GF := GF) γ.kv (.put (putKeyOp key' val')) (fun _ => iprop(True)) := by
+  have Hm := kvClientN_mask
+  iintro #Hinv
+  iunfold kvOpAu
+  iunfold putGetInv at Hinv
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %n, Hσ, Hmn, %Hok⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists σ, n; iframe Hσ Hmn; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    have Hstep := kvOpStep_putOther key key' val' hne σ Hok.1
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists (kvOpStep (.put (putKeyOp key' val')) σ), n; iframe Hσ Hmn
+      ipureintro; exact ⟨Hstep.1, fun h => by rw [Hstep.2]; exact Hok.2 h⟩
+    imodintro
+    iintro !>
+    itrivial
 
 /-- **A get's update after the put fired** (persistent): a read update whose result is that the
 state's value of `key` is `val`. -/

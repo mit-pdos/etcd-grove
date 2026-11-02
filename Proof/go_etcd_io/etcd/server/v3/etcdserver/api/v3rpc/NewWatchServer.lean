@@ -42,7 +42,7 @@ theorem v3rpc.NewWatchServer.wp_proof
     (hSet : v3rpc.SetProgressReportInterval.spec (GF := GF) (hG := hG)) :
     v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) := by
   intro s E γ wsl lg0 m d
-  wp_start as ⟨#Hok, #Hkv, #Hids, #Hlg, #Hm, Hd, %Hdb⟩
+  wp_start as ⟨#Hok, #Hkv, #Hids, #Hlg, #Hm, #Hd, %Hdb⟩
   iunfold v3rpc.srvIdsOk at Hids
   icases Hids with ⟨#HCl, #HMid⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -89,48 +89,54 @@ theorem v3rpc.NewWatchServer.wp_proof
     ipureintro; exact Hif
   ipersist lgf
   (try wp_auto)
-  wp_join iprop(s_ptr ↦ s ∗ srv_ptr ↦ «$r0_ptr» ∗
-      ∃ d' : w64, srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d') with [Hd s srv]
-    as ⟨s, srv, %d', Hd⟩
+  -- (J8a-3) the adjusted interval is local: `s.Cfg` is only read
+  wp_if_destruct
   · (try wp_auto)
-    wp_if_destruct
+    wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗
+        ∃ iv : w64, interval_ptr ↦ iv ∗ ⌜10 ≤ sint.Z iv ∧ sint.Z iv ≤ 2 ^ 62⌝)
+      with [interval srv] as ⟨srv, %iv, interval, %Hiv⟩
     · (try wp_auto)
-      wp_apply (hDur _ _) as %fld _
-      (try wp_auto)
-      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) (l := [fld])
-      isplitr
-      · ipureintro; rfl
-      iintro %zsl ⟨-, -⟩
-      (try wp_auto)
-      wp_apply (hWarn lg _ _)
-      · ipureintro; exact Hlg
-      simp only [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.minWatchProgressInterval]
-      (try wp_auto)
-      wp_apply (hSet _)
-      · iframe #
+      -- `wp_auto` splits on `interval < minWatchProgressInterval`
+      · wp_apply (hDur _ _) as %fld _
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) (l := [fld])
+        isplitr
+        · ipureintro; rfl
+        iintro %zsl ⟨-, -⟩
+        (try wp_auto)
+        wp_apply (hWarn lg _ _)
+        · ipureintro; exact Hlg
+        simp only [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.minWatchProgressInterval]
+        (try wp_auto)
+        wp_join_done
+        iframe
         ipureintro
         constructor <;> word
-      (try wp_auto)
-      wp_join_done
-      (try iframe)
-    · (try wp_auto)
-      wp_apply (hSet d)
-      · iframe #
-        ipureintro
-        rename_i h0 h1
-        constructor <;> word
-      (try wp_auto)
-      wp_join_done
-      (try iframe)
-  (try wp_auto)
-  iapply HΦ
-  iexists «$r0_ptr», lg, cid, mid, d'
-  iframe Hd
-  isplitr
-  · ipureintro; rfl
-  iunfold v3rpc.isWatchServer
-  iframe #
-  ipureintro; exact ⟨Hpn, Hlg⟩
+    -- the other branch (`interval` at least the minimum), which `wp_auto` finished but for the join
+    · iframe
+      ipureintro
+      rename_i h0 h1
+      constructor <;> word
+    (try wp_auto)
+    wp_apply (hSet iv)
+    · iframe #
+      ipureintro; exact Hiv
+    (try wp_auto)
+    iapply HΦ
+    iexists «$r0_ptr», lg, cid, mid
+    isplitr
+    · ipureintro; rfl
+    iunfold v3rpc.isWatchServer
+    iframe #
+    ipureintro; exact ⟨Hpn, Hlg⟩
+  · (try wp_auto)
+    iapply HΦ
+    iexists «$r0_ptr», lg, cid, mid
+    isplitr
+    · ipureintro; rfl
+    iunfold v3rpc.isWatchServer
+    iframe #
+    ipureintro; exact ⟨Hpn, Hlg⟩
 
 end proof
 

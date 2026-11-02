@@ -26,12 +26,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`aa.Apply(r, shouldApplyV3, applyFunc)`**: under `aa.mu` (whose resource is `aa.authInfo`), `authInfo` set from the request's header, if any; for a request that needs it (`needAdminPermission`), the auth store's `IsAdminPermitted`, whose error is the result (`&Result{Err: err}`, `applyFunc` not called); else the inner applier's `Apply`, whose `applyFunc` gets the chain's resources (`authInfo` among them); `authInfo` reset. -/
+/-- **`aa.Apply(r, shouldApplyV3, applyFunc)`**: under `aa.mu` (whose resource is `aa.authInfo`), `authInfo` set from the request's header, if any; for a request that needs it (`needAdminPermission`), the auth store's `IsAdminPermitted` (with the auth store's reader resource borrowed from `A`, `rdLend`; 2026-11-01, J8a: until then the mutex's), whose error is the result (`&Result{Err: err}`, `applyFunc` not called); else the inner applier's `Apply`, whose `applyFunc` gets the chain's resources (`authInfo` among them); `authInfo` reset. -/
 abbrev apply.authApplierV3.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel)
     (skip v3 : Bool) (af : GoFunc) (A : IProp GF) (B : Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.irrWrapperIs r rq skip ∗ A ∗
+      apply.irrWrapperIs r rq skip ∗ A ∗ apply.rdLend E A ∗
       ({{ apply.chainRes (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) (apply.principalOf rq) ∗ A }}
           (App (App (Val #af) (Val #r)) (Val #v3))
         {{ (ar : Loc), RET #ar; apply.chainResAny (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) ∗ B ar }}) }}

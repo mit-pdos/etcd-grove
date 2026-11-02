@@ -9,8 +9,10 @@ The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and 
 `md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
 (`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`, with `openMmapOk cfg` since 2026-10-29) for the hooks `hooks` as a
-`backend.Hooks`. The post: on success the backend over `D` (`newPost`, and its no-compaction token
-if `D` records none, as `OpenBackend`'s; D22 S-g) and the
+`backend.Hooks`. The post: on success the backend over `D` (`newPostK`, whose `backend.fkCl γ P D`
+gives the no-compaction token if `D` records none, `mvcc.bkNoCmp_of_fkCl`, and the bit `backend.fkV`
+at `true` if `D`'s compaction keys are well formed, `mvcc.fkCl_wf`; until
+the backend-compaction stage, 2026-10-29, a separate wand `⌜noCmpData D⌝ -∗ bkNoCmp γ`) and the
 snapshot's entry the program's; on an error (the file not found, the rename failed), with `nil`
 for the backend, the file and the path back.
 -/
@@ -37,7 +39,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenSnapshotBackend(cfg, ss, snapshot, hooks)`: the snapshot's database file renamed onto the
-backend's path and opened, or an error with nothing moved, the environment having failed the
+backend's path and opened (2026-10-31: the program keeping its right to the backend's path,
+`os.Rename`'s restated post; until then the snapshot file's), or an error with nothing moved, the environment having failed the
 snapshot directory's read or the rename (D22 receiver epochs, S8d, 2026-10-24). (D22 receiver epochs, S8a, 2026-10-24:
 the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
@@ -54,8 +57,9 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : BNames),
           ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
-          newPostK γ P W Pk K b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) ∗
-          pathOwn (snap.snapDBPath ss md.Index')) ∨
+          newPostK γ P W Pk K b D ∗
+          hooksAt b (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk) ∗
+          pathOwn (config.backendPathOf cfg.DataDir')) ∨
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil ∧
           ¬ (snap.dirReadOk ss ∧
             renameOk (snap.snapDBPath ss md.Index') (config.backendPathOf cfg.DataDir'))⌝ ∗

@@ -1,0 +1,27 @@
+panic: runtime error: makeslice: cap out of range
+
+goroutine 259 [running]:
+google.golang.org/protobuf/proto.MarshalOptions.marshal({{}, 0x38?, 0x55?, 0xa1?}, {0x0, 0x0, 0x0}, {0x1845168, 0x2f2818ba61e0})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/proto/encode.go:190 +0x3cb
+google.golang.org/protobuf/proto.MarshalOptions.MarshalAppend({{}, 0x68?, 0x20?, 0x61?}, {0x0, 0x0, 0x0}, {0x1835be0?, 0x2f2818ba61e0?})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/proto/encode.go:159 +0x73
+github.com/golang/protobuf/proto.marshalAppend({0x0, 0x0, 0x0}, {0x72ef14f30160?, 0x2f2818ba61e0?}, 0x0)
+	/root/go/pkg/mod/github.com/golang/protobuf@v1.5.4/proto/wire.go:40 +0x92
+github.com/golang/protobuf/proto.Marshal(...)
+	/root/go/pkg/mod/github.com/golang/protobuf@v1.5.4/proto/wire.go:23
+go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.(*codec).Marshal(0xd617d5?, {0x1612068?, 0x2f2818ba61e0?})
+	/root/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261028111014-249d76bea78d/etcdserver/api/v3rpc/codec.go:22 +0x85
+google.golang.org/grpc.codecV0Bridge.Marshal({{0x72f2345b7a00?, 0x18fabc0?}}, {0x1612068?, 0x2f2818ba61e0?})
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/codec.go:70 +0x35
+google.golang.org/grpc.encode({0x183b1f8?, 0x2f2818f82430?}, {0x1612068?, 0x2f2818ba61e0?})
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/rpc_util.go:818 +0x4a
+google.golang.org/grpc.prepareMsg({0x1612068?, 0x2f2818ba61e0?}, {0x183b1f8?, 0x2f2818f82430?}, {0x0, 0x0}, {0x0, 0x0}, {0x183c238, 0x2f2818c322a0})
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/stream.go:1990 +0xe5
+google.golang.org/grpc.(*serverStream).SendMsg(0x2f2818c9e000, {0x1612068, 0x2f2818ba61e0})
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/stream.go:1842 +0x1ae
+google.golang.org/grpc.(*Server).wrapUnaryHandler.func1({0x166b600, 0x2f2818d93a40}, {0x18410c8, 0x2f2818c9e000})
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/server.go:1288 +0xea
+google.golang.org/grpc.(*Server).processRPC(0x2f2818d7a488, {0x183f380, 0x2f2818d3d1a0}, 0x2f2818be7500, 0x2f2818d93aa0, 0x2f2818b128a0, 0x0)
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/server.go:1450 +0x1230
+google.golang.org/grpc.(*Server).handleStream(0x2f2818d7a488, {0x183fc08, 0x2f2818ba11e0}, 0x2f2818be7500)
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/server.go:1595 +0xa94

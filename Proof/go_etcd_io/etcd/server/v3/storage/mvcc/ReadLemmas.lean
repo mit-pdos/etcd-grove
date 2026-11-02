@@ -35,15 +35,14 @@ theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (atRev : w64) (e : GoInterface) (cs 
   | none => exact ⟨_, _, _, _, rfl⟩
   | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, rfl⟩
 
-/-- Every key index of the tree (compacted, `IdxCRep`) has a revision. -/
+/-- Every key index of the tree (cut at a full revision, `IdxCRepN`) has a revision. -/
 theorem entries_not_emptyC (L : List mvcc.IdxEntry) (evs : List mvcc.Ev) (cmax : Int)
-    (h : mvcc.IdxCRep cmax evs (mvcc.idxOfEntries L)) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by
+    (h : mvcc.IdxCRepN cmax evs (mvcc.idxOfEntries L)) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by
   intro z hz
   have hmem : (z.2.1, z.2.2) ∈ mvcc.idxOfEntries L := by
     unfold mvcc.idxOfEntries; exact List.mem_map_of_mem hz
   have hg := mvcc.idxGet_of_mem _ h.1 _ hmem
-  obtain ⟨c, -, -, -, hne⟩ := mvcc.IdxCRep.get_some h hg
-  exact hne
+  exact (mvcc.IdxCRepN.get_facts h hg).1
 
 /-- `limit > 0 && len(revs) >= limit`, as Goose compiles it (the first conjunct already a value):
 `reached`. -/

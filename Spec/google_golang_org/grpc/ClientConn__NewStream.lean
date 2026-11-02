@@ -50,14 +50,21 @@ fail, `filterCallOptions` taking the retry options out and applying them to a co
 interceptor's options; with no retry (`max` `0`), then grpc's streamer; with retries asked of a
 client stream (`ClientStreams`), an `Unimplemented` error); grpc's own stream (`newClientStream`,
 its retries of the stream's creation). The stream's context (`cd'`) is grpc's child of `ctx`: done
-when `ctx` is (with a quiet `ctx`, only when the stream ends). -/
+when `ctx` is (with a quiet `ctx`, only when the stream ends). Since G2 (2026-10-30): the
+registration is metadata-indexed (`isGrpcStreamsMd`; a plain one is the instance at a spec
+ignoring it), and the stream is opened with some metadata `md` an attempt of the call delivers
+(`clientAttemptMd`: the interceptor's `withVersion(ctx)` (`retry_interceptor.go:120`), the
+credentials' data, then the outgoing metadata and `added`, reserved keys skipped:
+`internal/transport/http2_client.go:579-655`), once for the stream's life (grpc sends the headers
+once), and the stream specification is the registration's at `md`. True of a connection whose
+stream interceptor is etcd's (`dialOk`). -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (method : GoString)
     (Req Rep : StreamMsg GF) (Up : GoString → Nat → Req.M → IProp GF)
-    (Spec : GoString → StreamSpec Rep) (ctx : GoInterfaceOk)
+    (Spec : GoString → GrpcMd → StreamSpec Rep) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] ∗
-      isGrpcStreams addrs method Up Spec ∗ ctxOk ctx cd ∗
+      isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (App (App
@@ -65,9 +72,10 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #desc)) (Val #method)) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)),
-        ⌜a ∈ addrs⌝ ∗ cliStreamIs cs γ Req Rep (Up a) Dn cd' ∗ cliSendTok (Req := Req) γ [] ∗
-        cliRecvTok (Rep := Rep) γ [] ∗ Spec a γ Dn) ∨
+          (cd' : context.ContextDesc (IProp GF)) (md : GrpcMd),
+        ⌜a ∈ addrs ∧ clientAttemptMd conn (GoInterface.ok ctx) md⌝ ∗
+        cliStreamIs cs γ Req Rep (Up a) Dn cd' ∗ cliSendTok (Req := Req) γ [] ∗
+        cliRecvTok (Rep := Rep) γ [] ∗ Spec a md γ Dn) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec

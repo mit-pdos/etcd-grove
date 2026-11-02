@@ -5,23 +5,28 @@
 theorem rqLb_persistent (γ : RaftNames) (L T : w64) (recs : List RqRec) : Persistent (rqLb γ L T
     recs)
 
+theorem promsJust_snoc [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (π : List
+    Prom) (p : Prom) : ⊢ promsJust γ id W π -∗ promJust γ id (virt W π) p -∗ promsJust γ id W (π ++
+    [p])
+
 def ownRaftGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (md : Bool :=
     false) : IProp GF :=
-  iprop(∃ γv voted kl,
-      "%Hname" ∷ ⌜γ.reVotes !! id = some γv⌝ ∗
-        "%Hidnz" ∷ ⌜id ≠ W64 0⌝ ∗
-          "Hvoted" ∷ ghostMapAuth γv (Qp.half 1) voted ∗
-            "%Hhist" ∷ ⌜VoteHistOk voted s⌝ ∗
-              ("#Hfrags" ∷ [∗map] t ↦ c ∈ voted, isVote γ id t c) ∗
-                ("#Hout" ∷ [∗list] m ∈ s.outbox, isMessage γ m) ∗
-                  ("#Htally" ∷ [∗map] v ↦ _u ∈ toMap (granted s.votes), isVote γ v s.term id) ∗
-                    "#Hlead" ∷ leaderWit γ id s ∗
-                      "Hlg" ∷ ownLogGhost γ id s kl ∗
-                        "%Hlead_ok" ∷ ⌜LeadOk id s⌝ ∗
-                          "%Hfollower_votes" ∷ ⌜FollowerVotesOk s⌝ ∗
-                            ("#Hvrecs" ∷ [∗map] t ↦ c ∈ voted, voteJust γ id t c) ∗
-                              "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
-                                "Hlcm" ∷ lcmOwn γ id s ∗ "Hrd" ∷ rdOwn γ id s ∗ "%Hmode" ∷ ⌜γ.reDyn.isSome = md⌝)
+  iprop(∃ γs V πc kl,
+      "%Hsname" ∷ ⌜γ.reSlot !! id = some γs⌝ ∗
+        "#Hslot" ∷ slotInv γ id ∗
+          "Hvirt" ∷ ghostVar γs.fst (Qp.half 1) V ∗
+            "#Hpend" ∷ promsJust γ id V πc ∗
+              "%Hfresh" ∷ ⌜PromsFresh V πc⌝ ∗
+                "%Hidnz" ∷ ⌜id ≠ W64 0⌝ ∗
+                  "%Hhist" ∷ ⌜VoteHistOk (virt V πc).voted s⌝ ∗
+                    ("#Hout" ∷ [∗list] m ∈ s.outbox, outMsgOk γ id s πc (virt V πc) m) ∗
+                      ("#Htally" ∷ [∗map] v ↦ _u ∈ toMap (granted s.votes), isVote γ v s.term id) ∗
+                        "#Hlead" ∷ leaderWit γ id s ∗
+                          "Hlg" ∷ ownLogGhost γ id s kl (virt V πc) ∗
+                            "%Hlead_ok" ∷ ⌜LeadOk id s⌝ ∗
+                              "%Hfollower_votes" ∷ ⌜FollowerVotesOk s⌝ ∗
+                                "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
+                                  "Hlcm" ∷ lcmOwn γ id s ∗ "Hrd" ∷ rdOwn γ id s ∗ "%Hmode" ∷ ⌜γ.reDyn.isSome = md⌝)
 
 def propAu1 [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
     IProp GF :=
@@ -40,46 +45,42 @@ theorem dynEnv_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (c : CfgM) 
 theorem pbecomeFollower_vote_ne (s : PState) (term lead : w64) : term ≠ s.term → (pbecomeFollower s
     term lead).vote = W64 0
 
+def DurMaps_countable : Pos.Countable DurMaps :=
+  Pos.Countable.ofInjective (fun W => Pos.Countable.encode (W.voted, W.acks, W.camps, W.vlogs, W.evs)) ⋯
+
 theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount b
 
 def ownLogGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
-    : IProp GF :=
-  iprop(∃ γm terms γa acks fp γc camps γl vlogs γw wins,
+    (W : DurMaps) : IProp GF :=
+  iprop(∃ γm terms fp γw wins,
       "%Htname" ∷ ⌜γ.reTerms !! id = some γm⌝ ∗
         "Hterms" ∷ ghostMapAuth γm 1 terms ∗
-          ("#Htfrags" ∷ [∗map] t ↦ γt ∈ terms, t ↪[γm]□ γt) ∗
+          ("#Htfrags" ∷ [∗map] t ↦ γt ∈ terms, iprop(t ↪[γm]□ γt ∗ campKey γ id t)) ∗
             "%Hterms_ok" ∷ ⌜TermsOk terms s⌝ ∗
               "Htlog" ∷ leadLogOwn γ s terms ∗
-                "%Haname" ∷ ⌜γ.reAcks !! id = some γa⌝ ∗
-                  "Hacks" ∷ ghostMapAuth γa 1 acks ∗
-                    ("#Hafrags" ∷ [∗map] k ↦ u ∈ acks, k ↪[γa]□ u) ∗
-                      "%Hacks_term" ∷ ⌜AcksTerm s acks⌝ ∗
-                        "#Hacks_ok" ∷ acksOk γ s acks ∗
-                          "%Hlog_ok" ∷ ⌜LogOk s⌝ ∗
-                            "#Hrecs" ∷ logRecs γ s.base s.log ∗
-                              "#Hmatched" ∷ matchedOk γ s ∗
-                                "#Hcommit" ∷ commitIn γ (fp ++ s.log) s.commit s.term ∗
-                                  "#Hbase" ∷ baseOk γ s.base ∗
-                                    "%Hfull" ∷ ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧ TermsLe s (fp ++ s.log)⌝ ∗
-                                      "#Hfrecs" ∷ logRecs γ base0 fp ∗
-                                        "%Hcname" ∷ ⌜γ.reCamp !! id = some γc⌝ ∗
-                                          "Hcamps" ∷ ghostMapAuth γc 1 camps ∗
-                                            "%Hcamps_ok" ∷
-                                                ⌜∀ (T : w64), (camps !! T).isSome = true → uint.Z T ≤ uint.Z s.term⌝ ∗
-                                              "#Hcown" ∷ campOwn γ id s (fp ++ s.log) ∗
-                                                "%Hlname" ∷ ⌜γ.reVlogs !! id = some γl⌝ ∗
-                                                  "Hvlogs" ∷ ghostMapAuth γl 1 vlogs ∗
-                                                    "#Hvlogs_ok" ∷ vlogsOk γ s acks vlogs ∗
-                                                      "#Hhists" ∷ histsOk γ s kl (fp ++ s.log) acks ∗
-                                                        "%Hwname" ∷ ⌜γ.reWins !! id = some γw⌝ ∗
-                                                          "Hwins" ∷ ghostMapAuth γw 1 wins ∗
-                                                            "%Hwins_ok" ∷ ⌜WinsOk wins s⌝ ∗
-                                                              "#Hkl" ∷ klOk γ id s kl ∗
-                                                                "Hevs" ∷ ownEvs γ id s.term acks ∗
-                                                                  "#Hinv" ∷ raftCommitInv γ ∗
-                                                                    "#Hcmt" ∷ isCommitted γ (cprefix fp s) ∗
-                                                                      "%Hlacks" ∷ ⌜LeadAcksOk s acks⌝ ∗
-                                                                        "%Hboot" ∷ ⌜↑γ.reBoot.length ≤ uint.Z s.commit⌝)
+                "%Hacks_term" ∷ ⌜AcksTerm s W.acks⌝ ∗
+                  "#Hacks_ok" ∷ acksOk γ s W.acks ∗
+                    "%Hlog_ok" ∷ ⌜LogOk s⌝ ∗
+                      "#Hrecs" ∷ logRecs γ s.base s.log ∗
+                        "#Hmatched" ∷ matchedOk γ id s fp ∗
+                          "#Hcommit" ∷ commitIn γ (fp ++ s.log) s.commit s.term ∗
+                            "#Hbase" ∷ baseOk γ s.base ∗
+                              "%Hfull" ∷ ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧ TermsLe s (fp ++ s.log)⌝ ∗
+                                "#Hfrecs" ∷ logRecs γ base0 fp ∗
+                                  "%Hcamps_ok" ∷ ⌜∀ (T : w64), (W.camps !! T).isSome = true → uint.Z T ≤ uint.Z s.term⌝ ∗
+                                    "#Hcown" ∷ campOwn γ id W.camps s (fp ++ s.log) ∗
+                                      "#Hvlogs_ok" ∷ vlogsOk γ s W.acks W.vlogs ∗
+                                        "#Hhists" ∷ histsOk γ s kl (fp ++ s.log) W.acks ∗
+                                          "%Hwname" ∷ ⌜γ.reWins !! id = some γw⌝ ∗
+                                            "Hwins" ∷ ghostMapAuth γw 1 wins ∗
+                                              ("#Hwfrags" ∷ [∗map] t ↦ q ∈ wins, iprop(t ↪[γw]□ q ∗ campKey γ id t)) ∗
+                                                "%Hwins_ok" ∷ ⌜WinsOk wins s⌝ ∗
+                                                  "#Hkl" ∷ klOk γ id s kl ∗
+                                                    "%Hevs" ∷ ⌜EvsOk s.term W⌝ ∗
+                                                      "#Hinv" ∷ raftCommitInv γ ∗
+                                                        "#Hcmt" ∷ isCommitted γ (cprefix fp s) ∗
+                                                          "%Hlacks" ∷ ⌜LeadAcksOk s W.acks⌝ ∗
+                                                            "%Hboot" ∷ ⌜↑γ.reBoot.length ≤ uint.Z s.commit⌝)
 
 def readAu [InvGS GF] (γ : RaftNames) (Qr : List EntryM → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ L, rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅ <{ rLog γ L, COMM □ Qr L }>)
@@ -100,6 +101,10 @@ theorem raftN_open_sub {γ : RaftNames} : ⊤ \ ↑(raftN γ) ⊆ (⊤ \ ↑(raf
 theorem votesTbl_just [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : ⊢ votesTbl γ -∗ isVote γ v T c
     -∗ voteJust γ v T c
 
+theorem ackInF_intro_le [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp
+    : List EntryM) (i : w64) : uint.Z i ≤ plogLastIndexZ bL l → ⊢ leadPrefix γ ldr t bL l -∗ lpfull
+    γ ldr t bL l fp -∗ ackInF γ t i
+
 theorem rLog_timeless (γ : RaftNames) (L : List EntryM) : Timeless (rLog γ L)
 
 theorem rdOwn_rdFacts [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role
@@ -111,7 +116,7 @@ def rdOwn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) : I
   iprop(∃ γl rqm,
       ⌜γ.reRdq !! id = some γl⌝ ∗
         ghostMapAuth γl 1 rqm ∗
-          ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
+          ([∗map] t ↦ γq ∈ rqm, iprop(t ↪[γl]□ γq ∗ campKey γ id t)) ∗
             ⌜LcmOk rqm s⌝ ∗
               rdLead γ s rqm ∗
                 ([∗list] st ∈ s.rd.states, readStateRaw γ st) ∗
@@ -131,6 +136,9 @@ def raftCommitInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
 def propFresh (γ : RaftNames) (d : List w8) : IProp GF :=
   d ↪[γ.reFresh] ()
 
+def RaftBatch : Type :=
+  RaftState × DurMaps × DurMaps
+
 def raftLogInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (raftLogN γ) (raftLogInvBody γ)
 
@@ -143,6 +151,9 @@ def LogOk (s : PState) : Prop :=
 theorem ownEvs_vote [ReceiptGS GF] (γ : RaftNames) (id T T' : w64) (acks : GMap (w64 × w64) Unit) (d
     : Bool) (F : List EntryM) : uint.Z T ≤ uint.Z T' → ⊢ ownEvs γ id T acks -∗ ([∗map] k ↦ _u ∈
     acks, iprop(∀ x, hist γ F k.fst k.snd (vbnd T' d))) ==∗ ownEvs γ id T' acks ∗ voteEv γ id T' d F
+
+theorem promFrag_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (p : Prom) : Persistent
+    (promFrag γ id p)
 
 def rdCred (γ : RaftNames) (n : Nat) : IProp GF :=
   own γ.reRdCred (◯ n)
@@ -163,6 +174,8 @@ theorem raftRegN_sub {γ : RaftNames} : ↑(raftRegN γ) ⊆ ⊤ \ ↑(raftLogN 
 def regsAt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(∃ R RR, propsOwn γ l R ∗ readsReg γ l RR ∗ noopAu γ)
 
+theorem virt_append (W : DurMaps) (π1 π2 : List Prom) : virt W (π1 ++ π2) = virt (virt W π1) π2
+
 def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
   q ≤ recs.length ∧ ∀ (r : RqRec), r ∈ List.take q recs → ∀ (t' : w64) (qq : GSet w64), r.snd = some (t', qq) → ¬v ∈ qq
 
@@ -174,6 +187,12 @@ def leaderWit (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   | Role.leader => isLeader γ id s.term
   | x => iprop(True)
 
+theorem durPers_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (S : RaftState) (E :
+    DurMaps) : Persistent (durPers γ id S E)
+
+theorem virt_camps_isSome (W : DurMaps) (π : List Prom) (t : w64) : (W.camps !! t).isSome = true →
+    ((virt W π).camps !! t).isSome = true
+
 theorem logRest_timeless (γ : RaftNames) (l : List EntryM) : Timeless (logRest γ l)
 
 theorem pbecomeFollower_vote_same (s : PState) (lead : w64) : (pbecomeFollower s s.term lead).vote =
@@ -182,10 +201,13 @@ theorem pbecomeFollower_vote_same (s : PState) (lead : w64) : (pbecomeFollower s
 theorem ev_pair [ReceiptGS GF] (γ : RaftNames) (v t i T : w64) (d : Bool) (F : List EntryM) : uint.Z
     t < uint.Z T → ⊢ ackEv γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d)
 
+def ackInF [ReceiptGS GF] (γ : RaftNames) (t i : w64) : IProp GF :=
+  iprop(⌜uint.Z i = 0⌝ ∨ ∃ X, leadFull γ t X ∗ ⌜uint.Z i ≤ plogLastIndexZ base0 X⌝)
+
 theorem noopAu_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (e : EntryM) (Hidx :
     uint.Z e.Index' = ↑l.length + 1) (Hrb : uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length)
-    : ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗
-    ghostVar γ.reRLog (Qp.half 1) (l ++ [e])
+    : ⊢ noopAu γ -∗ entDataIs γ e none -∗ ev2At γ l e -∗ ghostVar γ.reRLog (Qp.half 1) l ={⊤ \
+    ↑(raftN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e])
 
 theorem isMessage_grant [ReceiptGS GF] (γ : RaftNames) (src dst term : w64) : isVote γ src term dst
     ⊢ isMessage γ (Msg.plain MsgType.voteResp src dst term false)
@@ -196,12 +218,47 @@ def TermRec : Type :=
 def readOk (γ : RaftNames) (c : List w8) (i : w64) : IProp GF :=
   iprop(∃ Lc, readReq γ c Lc ∗ ⌜↑Lc.length ≤ uint.Z i⌝)
 
+def raftIdSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) : IProp GF :=
+  iprop(∃ γs V g,
+      ⌜γ.reSlot !! id = some γs⌝ ∗
+        ⌜id ≠ W64 0⌝ ∗
+          ghostVar γs.fst (Qp.half 1) V ∗
+            slotLive γ id 1 g ∗
+              slotFree γ id g ∗
+                slotInv γ id ∗
+                  raftCommitInv γ ∗
+                    rdCredInv γ ∗
+                      (∃ γm terms,
+                          ⌜γ.reTerms !! id = some γm⌝ ∗
+                            ghostMapAuth γm 1 terms ∗ [∗map] t ↦ x ∈ terms, iprop(t ↪[γm]□ x ∗ campKey γ id t)) ∗
+                        (∃ γw wins,
+                            ⌜γ.reWins !! id = some γw⌝ ∗
+                              ghostMapAuth γw 1 wins ∗ [∗map] t ↦ q ∈ wins, iprop(t ↪[γw]□ q ∗ campKey γ id t)) ∗
+                          (∃ γl lcm,
+                              ⌜γ.reLcm !! id = some γl⌝ ∗
+                                ghostMapAuth γl 1 lcm ∗ [∗map] t ↦ γc ∈ lcm, iprop(t ↪[γl]□ γc ∗ campKey γ id t)) ∗
+                            ∃ γl rqm,
+                              ⌜γ.reRdq !! id = some γl⌝ ∗
+                                ghostMapAuth γl 1 rqm ∗ [∗map] t ↦ γq ∈ rqm, iprop(t ↪[γl]□ γq ∗ campKey γ id t))
+
 def committedJust [ReceiptGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
-  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot⌝ ∨
+  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot ∧ ∀ (e : EntryM), e ∈ γ.reBoot → e.Term' = W64 1⌝ ∨
       ∃ t n G ldr, cq γ t n G ∗ ⌜l = List.take (uint.Z n).toNat G⌝ ∗ isLeader γ ldr t ∗ cmtLb γ ldr t n)
+
+def Prom_countable : Pos.Countable Prom :=
+  Pos.Countable.ofInjective
+    (fun x =>
+      match x with
+      | Prom.vote T c d Fv => Pos.Countable.encode (Sum.inl (T, c, d, Fv))
+      | Prom.ack T i => Pos.Countable.encode (Sum.inr (Sum.inl (T, i)))
+      | Prom.camp T F k => Pos.Countable.encode (Sum.inr (Sum.inr (T, F, k))))
+    ⋯
 
 def respFacts (γ : RaftNames) (q : ReadReq) : IProp GF :=
   iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c q.index)
+
+def slotInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) : IProp GF :=
+  inv (slotN γ id) (slotBody γ id)
 
 def histsOk [ReceiptGS GF] (γ : RaftNames) (s : PState) (kl : Option w64) (F : List EntryM) (acks :
     GMap (w64 × w64) Unit) : IProp GF :=
@@ -212,6 +269,9 @@ theorem raftCommitInv_reg [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : raftCommi
 theorem vote_hist_fresh (voted : GMap w64 w64) (s : PState) (t : w64) : VoteHistOk voted s → uint.Z
     s.term < uint.Z t → voted !! t = none
 
+theorem promJust_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) :
+    Persistent (promJust γ id W p)
+
 theorem ackOk_persistent [ReceiptGS GF] (γ : RaftNames) (s : PState) (k : w64 × w64) : Persistent
     (ackOk γ s k)
 
@@ -219,6 +279,9 @@ def raftLogN (γ : RaftNames) : Namespace :=
   raftN γ.@"log"
 
 theorem rdCredInv_persistent [InvGS GF] (γ : RaftNames) : Persistent (rdCredInv γ)
+
+def promJust [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) : IProp GF :=
+  iprop(□ (durFrags γ id W -∗ promNeed γ id W p))
 
 theorem HbAckOk_zero (v : w64) (recs : List RqRec) : HbAckOk v 0 recs
 
@@ -229,12 +292,43 @@ theorem rdOwn_regLb [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : P
     Role.leader) : ⊢ rdOwn γ id s -∗ ∃ recs, ⌜recs.length = uint.nat s.rd.ro.confirmed +
     s.rd.ro.pending.length⌝ ∗ rqLb γ id s.term recs ∗ [∗list] r ∈ recs, rqRecOk γ s.term r
 
+def durPers [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) :
+    IProp GF :=
+  iprop(∃ kd fp,
+      ⌜VoteHistOkD E.voted S ∧
+            (∀ (k : w64 × w64), (E.acks !! k).isSome = true → uint.Z k.fst ≤ uint.Z S.term) ∧
+              (∀ (T : w64), (E.camps !! T).isSome = true → uint.Z T ≤ uint.Z S.term) ∧
+                EvsOk S.term E ∧
+                  FullOk S.base fp ∧
+                    PlogWf S.base S.ents ∧
+                      (∀ (j x : w64), plogTermAt base0 (fp ++ S.ents) j = some x → uint.Z x ≤ uint.Z S.term) ∧
+                        uint.Z S.base.index' ≤ uint.Z S.commit ∧ uint.Z S.commit ≤ plogLastIndexZ S.base S.ents⌝ ∗
+        logRecs γ S.base S.ents ∗
+          baseOk γ S.base ∗
+            logRecs γ base0 fp ∗
+              ([∗map] x ∈ E.vlogs,
+                  iprop(⌜uint.Z x.fst.fst ≤ uint.Z S.term⌝ ∗
+                      [∗map] k ↦ _u ∈ E.acks, iprop(∀ x_1, hist γ x.snd k.fst k.snd (vbnd x.fst.fst x.fst.snd)))) ∗
+                ([∗map] k ↦ _u ∈ E.acks, hist γ (fp ++ S.ents) k.fst k.snd (bndD S kd)) ∗
+                  klOkD γ id S kd ∗
+                    ([∗map] k ↦ _u ∈ E.acks, iprop(∀ x, ackAgree γ S.base S.ents k.fst k.snd)) ∗
+                      commitIn γ (fp ++ S.ents) S.commit S.term ∗
+                        isCommitted γ (List.take (uint.Z S.commit).toNat (fp ++ S.ents)) ∗
+                          raftCommitInv γ ∗ □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.fst k.snd))
+
+theorem virt_acks_isSome (W : DurMaps) (π : List Prom) (k : w64 × w64) : (W.acks !! k).isSome = true
+    → ((virt W π).acks !! k).isSome = true
+
 theorem lcmLead_leader [ReceiptGS GF] [InvGS GF] (s : PState) (lcm : GMap w64 GName) (h : s.role =
     Role.leader) : lcmLead s lcm = iprop(∃ γc c, ⌜lcm !! s.term = some γc⌝ ∗ monoNatAuthOwn γc 1 c ∗
     ⌜c ≤ uint.nat s.commit⌝)
 
 def cprefix (fp : List EntryM) (s : PState) : List EntryM :=
   List.take (uint.Z s.commit).toNat (fp ++ s.log)
+
+def outMsgOk [ReceiptGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) : IProp GF :=
+  iprop(isMessage γ m ∨ □ (durFrags γ id W -∗ isMessage γ m) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝)
 
 theorem propIs_deposited [ReceiptGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
     ⊢ propIs γ d Q -∗ deposited γ d
@@ -254,25 +348,71 @@ def MsgFree (ty : MsgType) : Bool :=
   | MsgType.preVoteResp => true
   | x => false
 
+def vlogKey {V : Type} (m : GMap Nat V) : Nat :=
+  List.foldr max 0 m.domList + 1
+
+theorem outMsgOk_leader [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (m : Msg) (Hrole : s.role = Role.leader) : outMsgOk γ id s πc W m ⊢ ⌜m.dst ≠
+    id⌝ -∗ isMessage γ m
+
 theorem ownRaftGhost_isLeader [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s :
     PState) : s.role = Role.leader → ⊢ ownRaftGhost γ id s md -∗ isLeader γ id s.term
+
+def promNeed [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) : Prom → IProp GF :=
+  match x✝ with
+  | Prom.vote T c d Fv =>
+    iprop(∃ Fc,
+        isCamp γ c T Fc ∗
+          logRecs γ base0 Fv ∗
+            ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
+              (⌜d = false⌝ ∨ ∃ ldr q, isWin γ ldr T q ∗ ⌜¬id ∈ q⌝) ∗
+                dynOn γ (campDyn γ c T Fc) ∗ [∗map] k ↦ _u ∈ W.acks, iprop(∀ x, hist γ Fv k.fst k.snd (vbnd T d)))
+  | Prom.ack T i => ackInF γ T i
+  | Prom.camp T F k =>
+    iprop(⌜CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F ∧ γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ ∗
+        isCommitted γ (List.take (uint.Z k).toNat F))
+
+theorem durFrags_persistent (γ : RaftNames) (id : w64) (W : DurMaps) : Persistent (durFrags γ id W)
 
 theorem lcmLead_nl [ReceiptGS GF] [InvGS GF] (s : PState) (lcm : GMap w64 GName) (h : s.role ≠
     Role.leader) : lcmLead s lcm = iprop(True)
 
-theorem matchedOk_eq [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (s1 s2 : PState) : s2.role = s1.role
-    → s2.term = s1.term → s2.matched = s1.matched → ⊢ matchedOk γ s1 -∗ matchedOk γ s2
+theorem matchedOk_eq [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s1 s2 : PState) (fp :
+    List EntryM) : s2.role = s1.role → s2.term = s1.term → s2.matched = s1.matched → s2.log = s1.log
+    → ⊢ matchedOk γ id s1 fp -∗ matchedOk γ id s2 fp
 
 theorem committedJust_timeless [ReceiptGS GF] (γ : RaftNames) (l : List EntryM) : Timeless
     (committedJust γ l)
 
+theorem outMsgOk_intro [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (m : Msg) : isMessage γ m ⊢ outMsgOk γ id s πc W m
+
+def slotN (γ : RaftNames) (id : w64) : Namespace :=
+  (raftN γ.@"slot").@id
+
 theorem rdCred_split [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (a b : Nat) : rdCred γ (a + b) ⊣⊢
     rdCred γ a ∗ rdCred γ b
 
+def ev2At (γ : RaftNames) (L : List EntryM) (e : EntryM) : IProp GF :=
+  iprop(∀ x, ∃ M c, decLb γ M ∗ ⌜CfgAt γ M L c ∧ c.joint = true⌝)
+
 theorem rlq_add : rlq + rlq = Qp.half 1
 
-theorem campOwn_persistent (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) : Persistent
-    (campOwn γ id s F)
+theorem campOwn_persistent (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s :
+    PState) (F : List EntryM) : Persistent (campOwn γ id camps s F)
+
+def promFrag [ReceiptGS GF] (γ : RaftNames) (id : w64) : Prom → IProp GF :=
+  match x✝ with
+  | Prom.vote T c d Fv => iprop(isVote γ id T c ∗ (∃ n, isVlog γ id n T d Fv) ∗ voteEv γ id T d Fv)
+  | Prom.ack T i => isAcked γ id T i
+  | Prom.camp T F k => isCampK γ id T F k
+
+theorem outMsgOk_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
+    (W : DurMaps) (m : Msg) : Persistent (outMsgOk γ id s πc W m)
+
+def VoteHistOkD (voted : GMap w64 w64) (S : RaftState) : Prop :=
+  (∀ (t : w64), (voted !! t).isSome = true → uint.Z t ≤ uint.Z S.term) ∧
+    voted !! S.term = if S.vote = W64 0 then none else some S.vote
 
 theorem raftLogN_sub {γ : RaftNames} : ↑(raftLogN γ) ⊆ ⊤ \ ↑(raftRegN γ)
 
@@ -283,6 +423,9 @@ theorem isMessage_persistent [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Persist
 
 theorem propSlotRes_persistent (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) :
     Persistent (propSlotRes γ d p l)
+
+def SlotNames : Type :=
+  GName × GName × GName
 
 def readSlot [InvGS GF] (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM) : IProp GF :=
   iprop(∃ Qr,
@@ -295,11 +438,24 @@ def logRest (γ : RaftNames) (l : List EntryM) : IProp GF :=
 def qRes (γq : GName) (L : List EntryM) : IProp GF :=
   iprop(∃ Q, savedPredOwn γq DFrac.discard Q ∗ □ Q L)
 
+theorem ackInF_timeless [ReceiptGS GF] (γ : RaftNames) (t i : w64) : Timeless (ackInF γ t i)
+
 def raftLogInvBody [ReceiptGS GF] (γ : RaftNames) : IProp GF :=
   iprop(∃ l, ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ winTbl γ ∗ logRest γ l)
 
 theorem committedJust_persistent [ReceiptGS GF] (γ : RaftNames) (l : List EntryM) : Persistent
     (committedJust γ l)
+
+def DurMaps.add (W : DurMaps) : Prom → DurMaps :=
+  match x✝ with
+  | Prom.vote T c d Fv =>
+    { voted := <[T := c]>W.voted, acks := W.acks, camps := W.camps, vlogs := <[vlogKey W.vlogs := ((T, d), Fv)]>W.vlogs,
+      evs := W.evs ++ [Aev.vote T d Fv] }
+  | Prom.ack T i =>
+    { voted := W.voted, acks := <[(T, i) := ()]>W.acks, camps := W.camps, vlogs := W.vlogs,
+      evs := W.evs ++ [Aev.ack T i] }
+  | Prom.camp T F k =>
+    { voted := W.voted, acks := W.acks, camps := <[T := (F, k)]>W.camps, vlogs := W.vlogs, evs := W.evs }
 
 theorem ownRaftGhost_mode [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s :
     PState) : ⊢ ownRaftGhost γ id s md -∗ ⌜γ.reDyn.isSome = md⌝
@@ -309,6 +465,13 @@ theorem isMessage_grant_inv [ReceiptGS GF] (γ : RaftNames) (m : Msg) : m.ty = M
 
 theorem uint_nat_le_of_Z_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.nat b
 
+theorem outbox_mono [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' :
+    List Prom) (W W' : DurMaps) (o : List Msg) : DurLe W W' → (OutPend id s πc → OutPend id s' πc')
+    → ([∗list] m ∈ o, outMsgOk γ id s πc W m) ⊢ [∗list] m ∈ o, outMsgOk γ id s' πc' W' m
+
+def slotLive (γ : RaftNames) (id : w64) (q : Qp) (g : Nat) : IProp GF :=
+  iprop(∃ γs, ⌜γ.reSlot !! id = some γs⌝ ∗ ghostVar γs.snd.snd q.half g)
+
 theorem readAu_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Qr : List EntryM → IProp GF) (l :
     List EntryM) : ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗ ghostVar
     γ.reRLog (Qp.half 1) l ∗ □ Qr l
@@ -316,12 +479,23 @@ theorem readAu_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Qr : List EntryM
 theorem HbAckOk_app (v : w64) (q : Nat) (recs more : List RqRec) : HbAckOk v q recs → HbAckOk v q
     (recs ++ more)
 
+def batchOk [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (b : RaftBatch) : IProp GF :=
+  iprop(∃ π,
+      ⌜b.snd.fst = virt b.snd.snd π ∧ PromsFresh b.snd.snd π⌝ ∗
+        promsJust γ id b.snd.snd π ∗ durPers γ id b.fst b.snd.fst ∗ durI1 γ b.fst b.fst.commit)
+
 theorem msgCert_persistent [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Persistent (msgCert γ m)
 
 theorem rdOwn_hbResp_pos [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (Hr :
     s.role = Role.leader) (recs0 : List RqRec) (q : w64) (Hq : uint.nat q ≤ recs0.length) : ⊢ rdOwn
     γ id s -∗ rqLb γ id s.term recs0 -∗ ⌜uint.nat q ≤ uint.nat s.rd.ro.confirmed +
     s.rd.ro.pending.length⌝
+
+theorem slotInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) : Persistent
+    (slotInv γ id)
+
+theorem promNeed_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) :
+    Persistent (promNeed γ id W p)
 
 theorem raftCommitInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent
     (raftCommitInv γ)
@@ -349,6 +523,9 @@ def RoleOk (id : w64) (s : PState) : Prop :=
   (s.role ≠ Role.follower → s.vote = id) ∧ (s.role = Role.candidate → s.lead = W64 0)
 
 theorem votesTbl_timeless [ReceiptGS GF] (γ : RaftNames) : Timeless (votesTbl γ)
+
+def ownDurGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (S : RaftState) : IProp GF :=
+  iprop(∃ E, durShares γ id (Qp.half 1) E ∗ durPers γ id S E ∗ slotInv γ id ∗ durI1 γ S S.wcommit)
 
 def isMessage [ReceiptGS GF] (γ : RaftNames) (m : Msg) : IProp GF :=
   match m.ty with
@@ -400,7 +577,8 @@ def isMessage [ReceiptGS GF] (γ : RaftNames) (m : Msg) : IProp GF :=
   | MsgType.readIndexResp => iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c m.index)
   | x => iprop(True)
 
-theorem matchedOk_persistent (γ : RaftNames) (s : PState) : Persistent (matchedOk γ s)
+theorem matchedOk_persistent (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) : Persistent
+    (matchedOk γ id s fp)
 
 theorem lcmOwn_mono' [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) : (s'.role
     = Role.leader → s.role = Role.leader ∧ s'.term = s.term) → uint.Z s.term ≤ uint.Z s'.term →
@@ -418,10 +596,19 @@ theorem winTbl_timeless (γ : RaftNames) : Timeless (winTbl γ)
 theorem readWit_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) (i : w64) :
     Persistent (readWit γ c Qr i)
 
+def PromFresh (W : DurMaps) : Prom → Prop :=
+  match x✝ with
+  | Prom.vote T c d Fv => W.voted !! T = none
+  | Prom.ack T i => True
+  | Prom.camp T F k => W.camps !! T = none
+
 theorem msgCert_timeless [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Timeless (msgCert γ m)
 
 def votesTbl [ReceiptGS GF] (γ : RaftNames) : IProp GF :=
   [∗map] v ↦ γv ∈ γ.reVotes, iprop(∃ voted, ghostMapAuth γv (Qp.half 1) voted ∗ [∗map] T ↦ c ∈ voted, voteJust γ v T c)
+
+def virt (W : DurMaps) (π : List Prom) : DurMaps :=
+  List.foldl DurMaps.add W π
 
 def voteJust [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : IProp GF :=
   iprop(∃ k d Fv Fc,
@@ -432,9 +619,16 @@ def voteJust [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : IProp GF :=
               (if d = true then ∃ ldr q, isWin γ ldr T q ∗ ⌜¬v ∈ q⌝ else True) ∗
                 voteEv γ v T d Fv ∗ dynOn γ (campDyn γ c T Fc))
 
+theorem outMsgOk_self [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (m : Msg) (Hd : m.dst = id) : □ (durFrags γ id W -∗ isMessage γ m) ⊢
+    outMsgOk γ id s πc W m
+
 def propsOwn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (R : GMap (List w8)
     PropRec) : IProp GF :=
   iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ p ∈ R, iprop(propSlot γ d p l ∗ propFresh γ d))
+
+theorem slotN_sub_reg_log {γ : RaftNames} {id : w64} : ↑(slotN γ id) ⊆ (⊤ \ ↑(raftRegN γ)) \
+    ↑(raftLogN γ)
 
 def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
   match s.role with
@@ -445,7 +639,7 @@ theorem raftLogN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : �
 
 def depSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List
     EntryM) : IProp GF :=
-  iprop((∃ Q, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
+  iprop((∃ Q, savedPredOwn γq DFrac.discard Q ∗ □?γ.dup propAu1 γ d Q) ∨
       ∃ i, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ ↑l.length⌝)
 
 theorem raftRegInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent (raftRegInv γ)
@@ -455,12 +649,19 @@ def rqRecOk [ReceiptGS GF] (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
   | none => readOk γ r.fst.fst r.fst.snd
   | some p => doomed γ T p.fst p.snd
 
+theorem durFrags_mono [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (W W' : DurMaps) : DurLe
+    W W' → durFrags γ id W' ⊢ durFrags γ id W
+
 theorem lcmOwn_commit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (n : w64)
     : s.role = Role.leader → s'.role = Role.leader → s'.term = s.term → s'.commit = n → uint.Z
     s.commit ≤ uint.Z n → lcmOwn γ id s ⊢ |==> (lcmOwn γ id s' ∗ cmtLb γ id s.term n)
 
 theorem isMessageC_intro [ReceiptGS GF] (γ : RaftNames) (m : Msg) : ⊢ isMessage γ m -∗ msgCert γ m
     -∗ isMessageC γ m
+
+theorem outMsgOk_pend [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) : □ (durFrags γ id W -∗
+    isMessage γ m) ⊢ outMsgOk γ id s πc W m
 
 def winTbl (γ : RaftNames) : IProp GF :=
   iprop(∃ W,
@@ -486,18 +687,39 @@ def isRead (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : IPro
 
 theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = MsgType.readIndex then 1 else 0
 
+theorem ackInF_intro [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp :
+    List EntryM) (i : w64) : (plogTermAt bL l i).isSome = true → ⊢ leadPrefix γ ldr t bL l -∗ lpfull
+    γ ldr t bL l fp -∗ ackInF γ t i
+
+def bndD (S : RaftState) (kd : Option w64) : Int :=
+  match kd with
+  | some val => uint.Z S.term + 1
+  | none => uint.Z S.term
+
 def ackOk [ReceiptGS GF] (γ : RaftNames) (s : PState) (k : w64 × w64) : IProp GF :=
   iprop(∀ x, ackAgree γ s.base s.log k.fst k.snd)
 
 theorem lcmOwn_win [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) : s.role =
     Role.candidate → s'.role = Role.leader → s'.term = s.term → uint.Z s.commit ≤ uint.Z s'.commit →
-    lcmOwn γ id s ⊢ |==> lcmOwn γ id s'
+    campKey γ id s.term ∗ lcmOwn γ id s ⊢ |==> lcmOwn γ id s'
+
+def durShares (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) : IProp GF :=
+  iprop(∃ γv γa γc γl γe,
+      ⌜γ.reVotes !! id = some γv ∧
+            γ.reAcks !! id = some γa ∧ γ.reCamp !! id = some γc ∧ γ.reVlogs !! id = some γl ∧ γ.reEvs !! id = some γe⌝ ∗
+        ghostMapAuth γv q.half E.voted ∗
+          ghostMapAuth γa q E.acks ∗ ghostMapAuth γc q E.camps ∗ ghostMapAuth γl q E.vlogs ∗ monoListAuthOwn γe q E.evs)
 
 def vlogsOk [ReceiptGS GF] (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) (vlogs : GMap
     Nat ((w64 × Bool) × List EntryM)) : IProp GF :=
   [∗map] x ∈ vlogs,
     iprop(⌜uint.Z x.fst.fst ≤ uint.Z s.term⌝ ∗
         [∗map] k ↦ _u ∈ acks, iprop(∀ x_1, hist γ x.snd k.fst k.snd (vbnd x.fst.fst x.fst.snd)))
+
+def virtQ (E : DurMaps) : Option (Option RaftBatch) → DurMaps :=
+  match x✝ with
+  | some (some b) => b.snd.fst
+  | x => E
 
 theorem raftLogN_of_diff {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : ↑(raftLogN γ) ⊆ E \
     ↑(raftRegN γ)
@@ -517,6 +739,14 @@ def rdLead [ReceiptGS GF] (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) :
                   ⌜∀ (v a : w64), s.rd.ro.acks !! v = some a → HbAckOk v (uint.nat a) recs⌝ ∗ rdCred γ recs.length)
   | x => iprop(⌜s.rd.ro = { pending := [], acks := ∅, confirmed := W64 0 }⌝)
 
+def PromsFresh (W : DurMaps) (π : List Prom) : Prop :=
+  ∀ (k : Nat) (p : Prom), π[k]? = some p → PromFresh (virt W (List.take k π)) p
+
+theorem EvsOk_add_vote (T T' c : w64) (d : Bool) (F : List EntryM) (W : DurMaps) : uint.Z T ≤ uint.Z
+    T' → EvsOk T W → EvsOk T' (W.add (Prom.vote T' c d F))
+
+theorem slotN_sub_reg {γ : RaftNames} {id : w64} : ↑(slotN γ id) ⊆ ⊤ \ ↑(raftRegN γ)
+
 theorem votesTbl_insert [ReceiptGS GF] (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64
     w64) (T c : w64) : γ.reVotes !! id = some γv → voted !! T = none → ⊢ voteJust γ id T c -∗
     votesTbl γ -∗ ghostMapAuth γv (Qp.half 1) voted ==∗ votesTbl γ ∗ ghostMapAuth γv (Qp.half 1) <[T
@@ -528,11 +758,21 @@ theorem rdLead_nl [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (s : PState) (rqm :
     s.role ≠ Role.leader) : rdLead γ s rqm = iprop(⌜s.rd.ro = { pending := [], acks := ∅, confirmed
     := W64 0 }⌝)
 
+structure DurMaps : Type where
+  voted : GMap w64 w64
+  acks : GMap (w64 × w64) Unit
+  camps : GMap w64 (List EntryM × w64)
+  vlogs : GMap Nat ((w64 × Bool) × List EntryM)
+  evs : List Aev
+
 theorem ownRaftGhost_lead_ok [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s :
     PState) : ⊢ ownRaftGhost γ id s md -∗ ⌜LeadOk id s⌝
 
 theorem voteEv_timeless [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) :
     Timeless (voteEv γ v T d F)
+
+theorem durI1_init [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : ⊢ durI1 γ RaftState.init
+    RaftState.init.wcommit
 
 def rdCredN (γ : RaftNames) : Namespace :=
   raftN γ.@"read_credits"
@@ -540,15 +780,25 @@ def rdCredN (γ : RaftNames) : Namespace :=
 def rdCount (ms : List Msg) : Nat :=
   List.countP (fun m => decide (m.ty = MsgType.readIndex)) ms
 
+theorem batchOk_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (b : RaftBatch) :
+    Persistent (batchOk γ id b)
+
 theorem ownEvs_ack [ReceiptGS GF] (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit) (i :
     w64) : ⊢ ownEvs γ id T acks ==∗ ownEvs γ id T <[(T, i) := ()]>acks ∗ ackEv γ id T i
+
+theorem ev2At_persistent (γ : RaftNames) (L : List EntryM) (e : EntryM) : Persistent (ev2At γ L e)
 
 def propSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
     : IProp GF :=
   iprop(propSlotRes γ d p l ∗ ∃ K, ghostMapAuth p.snd 1 K ∗ [∗map] γt ∈ K, depSlot γ d p.fst γt l)
 
+theorem durI1_persistent [ReceiptGS GF] (γ : RaftNames) (S : RaftState) (c : w64) : Persistent
+    (durI1 γ S c)
+
 def RqRec : Type :=
   (List w8 × w64) × Option (w64 × GSet w64)
+
+theorem DurLe_add (W : DurMaps) (p : Prom) : PromFresh W p → DurLe W (W.add p)
 
 theorem rdOwn_drain [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (o' out : List
     Msg) (Hp : (o' ++ out).Perm s.outbox) : rdOwn γ id s ⊢ rdOwn γ id { term := s.term, vote :=
@@ -556,22 +806,40 @@ theorem rdOwn_drain [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : P
     s.log, commit := s.commit, matched := s.matched, rd := s.rd } ∗ rdCred γ (rdCount s.outbox -
     rdCount o') ∗ msgsTks γ out
 
+def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
+  iprop(∃ γs, ⌜γ.reSlot !! id = some γs⌝ ∗ g ↪[γs.snd.fst] none)
+
+theorem EvsOk_mono (T T' : w64) (W : DurMaps) : uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W
+
 theorem vlogsOk_persistent [ReceiptGS GF] (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64)
     Unit) (vlogs : GMap Nat ((w64 × Bool) × List EntryM)) : Persistent (vlogsOk γ s acks vlogs)
 
 theorem rdFresh_timeless (γ : RaftNames) (c : List w8) : Timeless (rdFresh γ c)
 
-def matchedOk (γ : RaftNames) (s : PState) : IProp GF :=
+def matchedOk (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) : IProp GF :=
   match s.role with
-  | Role.leader => [∗map] v ↦ i ∈ s.matched, isAcked γ v s.term i
+  | Role.leader =>
+    [∗map] v ↦ i ∈ s.matched,
+      iprop(isAcked γ v s.term i ∨
+          ⌜v = id ∧
+              uint.Z i ≤ plogLastIndexZ base0 (fp ++ s.log) ∧
+                ∀ (j : BitVec 64) (x : w64),
+                  uint.Z j ≤ uint.Z i → plogTermAt base0 (fp ++ s.log) j = some x → uint.Z x < uint.Z s.term⌝)
   | x => iprop(True)
 
 def entsData (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(∃ ods, [∗list] e;o ∈ l;ods, entDataIs γ e o)
 
-def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) : IProp GF :=
+def OutPend (id : w64) (s : PState) (πc : List Prom) : Prop :=
+  s.role ≠ Role.leader ∧ (s.role = Role.candidate → ∃ F k, Prom.camp s.term F k ∈ πc)
+
+theorem outMsgOk_wand [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (m : Msg) : outMsgOk γ id s πc W m ⊢ □ (durFrags γ id W -∗ isMessage γ m)
+
+def campOwn (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState) (F : List
+    EntryM) : IProp GF :=
   match s.role with
-  | Role.candidate => isCamp γ id s.term F
+  | Role.candidate => iprop(⌜camps !! s.term = some (F, s.commit)⌝)
   | Role.leader =>
     iprop(∃ F0,
         isCamp γ id s.term F0 ∗
@@ -594,6 +862,19 @@ theorem hbCtx_isMessage [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id T : w64) 
     recs, ⌜ctx = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ id T recs ∗ [∗list] x ∈ recs, rqRecOk
     γ T x
 
+def slotBody [ReceiptGS GF] (γ : RaftNames) (id : w64) : IProp GF :=
+  iprop(∃ γs E g Mq,
+      ⌜γ.reSlot !! id = some γs⌝ ∗
+        durShares γ id (Qp.half 1) E ∗
+          durFrags γ id E ∗
+            ([∗map] k ↦ _u ∈ E.acks, ackInF γ k.fst k.snd) ∗
+              ghostVar γs.fst (Qp.half 1) (virtQ E (Mq !! g)) ∗
+                ghostVar γs.snd.snd (Qp.half 1) g ∗
+                  ghostMapAuth γs.snd.fst 1 Mq ∗
+                    ⌜∀ (k : Nat), (Mq !! k).isSome = true → k ≤ g⌝ ∗
+                      ⌜(Mq !! g).isSome = true⌝ ∗
+                        ⌜∀ (b : RaftBatch), Mq !! g = some (some b) → b.snd.snd = E ∧ DurLe E b.snd.fst⌝)
+
 def rdCredInv [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (rdCredN γ) iprop(∃ B, own γ.reRdCred (● B) ∗ ⌜B < 2 ^ 64 - 1⌝)
 
@@ -615,22 +896,34 @@ theorem rdOwn_update [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s'
     ⌜p.snd = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)) -∗ rdCred γ (ps.length + rdCount ms) -∗ rdOwn γ
     id s'
 
+inductive Prom : Type
+  | Prom.vote (T c : w64) (d : Bool) (Fv : List EntryM) : Prom
+  | Prom.ack (T i : w64) : Prom
+  | Prom.camp (T : w64) (F : List EntryM) (k : w64) : Prom
+
+theorem virt_voted_isSome (W : DurMaps) (π : List Prom) (t : w64) : (W.voted !! t).isSome = true →
+    ((virt W π).voted !! t).isSome = true
+
+theorem virt_snoc (W : DurMaps) (π : List Prom) (p : Prom) : virt W (π ++ [p]) = (virt W π).add p
+
 theorem isMessage_reject [ReceiptGS GF] (γ : RaftNames) (src dst term : w64) : ⊢ isMessage γ
     (Msg.plain MsgType.voteResp src dst term true)
 
 def raftRegN (γ : RaftNames) : Namespace :=
   raftN γ.@"reg"
 
-theorem ownRaftGhost_intro [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (γv :
-    GName) (voted : GMap w64 w64) (kl : Option w64) {md : Bool} : γ.reVotes !! id = some γv → id ≠
-    W64 0 → γ.reDyn.isSome = md → ⊢ ghostMapAuth γv (Qp.half 1) voted -∗ ⌜VoteHistOk voted s⌝ -∗
-    ([∗map] t ↦ c ∈ voted, isVote γ id t c) -∗ ([∗list] m ∈ s.outbox, isMessage γ m) -∗ ([∗map] v ↦
-    _u ∈ toMap (granted s.votes), isVote γ v s.term id) -∗ leaderWit γ id s -∗ ownLogGhost γ id s kl
-    -∗ ⌜LeadOk id s⌝ -∗ ⌜FollowerVotesOk s⌝ -∗ ([∗map] t ↦ c ∈ voted, voteJust γ id t c) -∗ ⌜RoleOk
-    id s⌝ -∗ lcmOwn γ id s -∗ rdOwn γ id s -∗ ownRaftGhost γ id s md
+theorem ownRaftGhost_intro [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (γs :
+    SlotNames) (V : DurMaps) (πc : List Prom) (kl : Option w64) {md : Bool} : γ.reSlot !! id = some
+    γs → id ≠ W64 0 → γ.reDyn.isSome = md → PromsFresh V πc → ⊢ slotInv γ id -∗ ghostVar γs.fst
+    (Qp.half 1) V -∗ promsJust γ id V πc -∗ ⌜VoteHistOk (virt V πc).voted s⌝ -∗ ([∗list] m ∈
+    s.outbox, outMsgOk γ id s πc (virt V πc) m) -∗ ([∗map] v ↦ _u ∈ toMap (granted s.votes), isVote
+    γ v s.term id) -∗ leaderWit γ id s -∗ ownLogGhost γ id s kl (virt V πc) -∗ ⌜LeadOk id s⌝ -∗
+    ⌜FollowerVotesOk s⌝ -∗ ⌜RoleOk id s⌝ -∗ lcmOwn γ id s -∗ rdOwn γ id s -∗ ownRaftGhost γ id s md
 
 theorem elem_of_granted_recordVote (votes : GMap w64 Bool) (src : w64) (b : Bool) (v : w64) : v ∈
     granted (recordVote votes src b) → v ∈ granted votes ∨ v = src ∧ b = true
+
+theorem DurLe_refl (W : DurMaps) : DurLe W W
 
 theorem readSlot_persistent [InvGS GF] (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM) :
     Persistent (readSlot γ r l)
@@ -658,20 +951,33 @@ def rlq : Qp :=
 theorem isMessageC_snap_cert [ReceiptGS GF] (γ : RaftNames) (m : Msg) (h : m.ty = MsgType.snap) :
     isMessageC γ m ⊢ raftSnapCert γ (msgSnapTrip m)
 
+theorem EvsOk_add_ack (T i : w64) (W : DurMaps) : EvsOk T W → EvsOk T (W.add (Prom.ack T i))
+
+theorem ownRaftGhost_leader_outbox [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64)
+    (s : PState) : s.role = Role.leader → ⊢ ownRaftGhost γ id s md -∗ [∗list] m ∈ s.outbox,
+    iprop(⌜m.dst ≠ id⌝ -∗ isMessage γ m)
+
+def durI1 [ReceiptGS GF] (γ : RaftNames) (S : RaftState) (c : w64) : IProp GF :=
+  iprop(□ ∀ fp, ⌜FullOk S.base fp⌝ -∗ logRecs γ base0 fp -∗ ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.ents) (uint.nat c)⌝)
+
 def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
   iprop(∃ γl γq, ⌜γ.reRdq !! L = some γl⌝ ∗ T ↪[γl]□ γq ∗ monoListLbOwn γq recs)
+
+theorem vlogKey_fresh {V : Type} (m : GMap Nat V) : m !! vlogKey m = none
+
+theorem campKey_persistent (γ : RaftNames) (id t : w64) : Persistent (campKey γ id t)
 
 def dynEnv [ReceiptGS GF] (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
   iprop(⌜CfgStatic γ c⌝ ∨
       ⌜γ.reDyn ≠ none⌝ ∗
-        ∃ fpR a,
+        ∃ fpR a M,
           ⌜FullOk s.base fpR ∧
                 ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
                   uint.Z a ≤ uint.Z s.commit ∧
-                    CfgAt γ (List.take (uint.Z a).toNat (fpR ++ s.log)) c ∧
+                    CfgAt γ M (List.take (uint.Z a).toNat (fpR ++ s.log)) c ∧
                       (s.role = Role.leader → confCount (List.drop (uint.Z a).toNat (fpR ++ s.log)) ≤ 1) ∧
                         (s.role = Role.candidate → a = s.commit)⌝ ∗
-            logRecs γ base0 fpR ∗ ∀ x, isCampK γ id s.term (fpR ++ s.log) s.commit)
+            logRecs γ base0 fpR ∗ decLb γ M)
 
 theorem voteEv_persistent [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) :
     Persistent (voteEv γ v T d F)
@@ -679,8 +985,12 @@ theorem voteEv_persistent [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool)
 def voteEv [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) : IProp GF :=
   iprop(∃ γe L0, ⌜γ.reEvs !! v = some γe⌝ ∗ monoListLbOwn γe (L0 ++ [Aev.vote T d F]) ∗ ∀ t i x, hist γ F t i (vbnd T d))
 
+theorem DurLe_trans (W1 W2 W3 : DurMaps) : DurLe W1 W2 → DurLe W2 W3 → DurLe W1 W3
+
 theorem rdOwn_send [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (ms : List Msg)
     (h : rdCount ms = 0) : ⊢ rdOwn γ id s -∗ msgsTks γ ms -∗ rdOwn γ id (psendMsgs s ms)
+
+theorem ackInF_persistent [ReceiptGS GF] (γ : RaftNames) (t i : w64) : Persistent (ackInF γ t i)
 
 theorem raftCommitInv_log [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : raftCommitInv γ ⊢ raftLogInv γ
 
@@ -734,6 +1044,9 @@ theorem rdCred_bound [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (n : Nat) (E : C
 def raftN (γ : RaftNames) : Namespace :=
   γ.reNs
 
+theorem PromsFresh_cons (W : DurMaps) (p : Prom) (π : List Prom) : PromsFresh W (p :: π) ↔ PromFresh
+    W p ∧ PromsFresh (W.add p) π
+
 theorem granted_empty : granted ∅ = ∅
 
 theorem rdCred_zero_upd [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : ⊢ |==> rdCred γ 0
@@ -746,15 +1059,24 @@ theorem elem_of_granted (votes : GMap w64 Bool) (v : w64) : v ∈ granted votes 
 theorem voteJust_persistent [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : Persistent (voteJust γ v
     T c)
 
+def EvsOk (T : w64) (W : DurMaps) : Prop :=
+  EvSorted W.evs ∧
+    (∀ (e : Aev), e ∈ W.evs → uint.Z (aevTerm e) ≤ uint.Z T) ∧
+      ∀ (t i : w64), Aev.ack t i ∈ W.evs → (W.acks !! (t, i)).isSome = true
+
 def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl lcm,
       ⌜γ.reLcm !! id = some γl⌝ ∗
-        ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc) ∗ ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
+        ghostMapAuth γl 1 lcm ∗
+          ([∗map] t ↦ γc ∈ lcm, iprop(t ↪[γl]□ γc ∗ campKey γ id t)) ∗ ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
+
+theorem promsJust_persistent [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (π : List Prom)
+    : Persistent (promsJust γ id W π)
 
 theorem rdOwn_win [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) : s.role =
     Role.candidate → s'.role = Role.leader → s'.term = s.term → s'.rd = rdNL s.rd → rdCount
-    s'.outbox ≤ rdCount s.outbox → (propsOf s'.outbox).Subperm (propsOf s.outbox) → rdOwn γ id s ⊢
-    |==> rdOwn γ id s'
+    s'.outbox ≤ rdCount s.outbox → (propsOf s'.outbox).Subperm (propsOf s.outbox) → campKey γ id
+    s.term ∗ rdOwn γ id s ⊢ |==> rdOwn γ id s'
 
 theorem propAu1_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM →
     IProp GF) (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = ↑l.length + 1) (Hrb : uint.Z
@@ -768,15 +1090,36 @@ def isVlog (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool) (F : List E
 def TermsOk (terms : GMap w64 TermRec) (s : PState) : Prop :=
   ∀ (t : w64), (terms !! t).isSome = true → uint.Z t < uint.Z s.term ∨ t = s.term ∧ s.role ≠ Role.candidate
 
+theorem virt_nil (W : DurMaps) : virt W [] = W
+
+theorem PromsFresh_snoc (W : DurMaps) (π : List Prom) (p : Prom) : PromsFresh W π → PromFresh (virt
+    W π) p → PromsFresh W (π ++ [p])
+
+theorem ev2At_nonfiller [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (L : List EntryM) (e : EntryM) (h
+    : ¬Filler e.Type' e.Data') : ⊢ ev2At γ L e
+
 theorem raftRegN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : ↑(raftRegN γ) ⊆ E
 
+def durFrags (γ : RaftNames) (id : w64) (W : DurMaps) : IProp GF :=
+  iprop(([∗map] t ↦ c ∈ W.voted, isVote γ id t c) ∗
+      ([∗map] k ↦ _u ∈ W.acks, isAcked γ id k.fst k.snd) ∗
+        ([∗map] t ↦ x ∈ W.camps, isCampK γ id t x.fst x.snd) ∗
+          ([∗map] n ↦ x ∈ W.vlogs, isVlog γ id n x.fst.fst x.fst.snd x.snd) ∗
+            ∃ γe, ⌜γ.reEvs !! id = some γe⌝ ∗ monoListLbOwn γe W.evs)
+
 theorem raftLogInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent (raftLogInv γ)
+
+def klOkD (γ : RaftNames) (id : w64) (S : RaftState) (kd : Option w64) : IProp GF :=
+  match kd with
+  | none => iprop(True)
+  | some ldr => iprop(∃ q, isWin γ ldr S.term q ∗ ⌜S.vote = W64 0 → ¬id ∈ q⌝)
 
 theorem rqRecOk_persistent [ReceiptGS GF] (γ : RaftNames) (T : w64) (r : RqRec) : Persistent
     (rqRecOk γ T r)
 
 theorem ownRaftGhost_outbox [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s :
-    PState) : ⊢ ownRaftGhost γ id s md -∗ [∗list] m ∈ s.outbox, isMessage γ m
+    PState) : ⊢ ownRaftGhost γ id s md -∗ ∃ W, [∗list] m ∈ s.outbox, iprop(□ (durFrags γ id W -∗
+    isMessage γ m))
 
 def rLog (γ : RaftNames) (L : List EntryM) : IProp GF :=
   ghostVar γ.reRLog (Qp.half 1) L
@@ -791,6 +1134,8 @@ def klOk (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :
 theorem propSlot_res [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (p : PropRec) (l : List
     EntryM) : propSlot γ d p l ⊢ propSlot γ d p l ∗ propSlotRes γ d p l
 
+theorem DurLe_virt (W : DurMaps) (π : List Prom) : PromsFresh W π → DurLe W (virt W π)
+
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ (t : w64), (wins !! t).isSome = true → uint.Z t < uint.Z s.term ∨ t = s.term ∧ s.role ≠ Role.candidate
 
@@ -803,6 +1148,14 @@ def campDyn [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F : List EntryM) : IPro
   iprop(∃ k tm,
       ⌜uint.Z tm < uint.Z T ∧ ConfI1 F (uint.Z k).toNat ∧ PlogWf base0 F⌝ ∗
         isCampK γ c T F k ∗ logRecs γ base0 F ∗ commitIn γ F k tm)
+
+def campKey (γ : RaftNames) (id t : w64) : IProp GF :=
+  iprop(∃ F k, isCampK γ id t F k)
+
+def RaftState_countable : Pos.Countable RaftState :=
+  Pos.Countable.ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit, S.wcommit)) ⋯
+
+theorem virt_cons (W : DurMaps) (p : Prom) (π : List Prom) : virt W (p :: π) = virt (W.add p) π
 
 def VoteHistOk (voted : GMap w64 w64) (s : PState) : Prop :=
   (∀ (t : w64), (voted !! t).isSome = true → uint.Z t ≤ uint.Z s.term) ∧
@@ -823,14 +1176,22 @@ theorem acksOk_persistent [ReceiptGS GF] (γ : RaftNames) (s : PState) (acks : G
 theorem isMessage_appResp_ackIn [ReceiptGS GF] (γ : RaftNames) (m : Msg) : m.ty = MsgType.appResp →
     m.reject = false → ⊢ isMessage γ m -∗ ackIn γ m.term m.index
 
+theorem klOkD_persistent (γ : RaftNames) (id : w64) (S : RaftState) (kd : Option w64) : Persistent
+    (klOkD γ id S kd)
+
 def propSlotRes (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
   iprop(□ ∀ m e, ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗ qRes p.fst (List.take m l))
+
+theorem PromsFresh_nil (W : DurMaps) : PromsFresh W []
 
 def raftRegInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (raftRegN γ) (regsOwn γ)
 
 theorem isRead_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : Persistent
     (isRead γ c Qr)
+
+def DurMaps.empty : DurMaps :=
+  { voted := ∅, acks := ∅, camps := ∅, vlogs := ∅, evs := [] }
 
 theorem isMessage_free [ReceiptGS GF] (γ : RaftNames) (m : Msg) : MsgFree m.ty = true → ⊢ isMessage
     γ m
@@ -846,6 +1207,9 @@ theorem histsOk_persistent [ReceiptGS GF] (γ : RaftNames) (s : PState) (kl : Op
 def AcksTerm (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
   ∀ (k : w64 × w64), (acks !! k).isSome = true → uint.Z k.fst ≤ uint.Z s.term
 
+theorem EvsOk_add_camp (T T' : w64) (F : List EntryM) (k : w64) (W : DurMaps) : EvsOk T W → EvsOk T
+    (W.add (Prom.camp T' F k))
+
 theorem isVlog_persistent (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool) (F : List EntryM)
     : Persistent (isVlog γ v k T d F)
 
@@ -854,14 +1218,33 @@ def noopAu [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
       AU <{ ∃∃ L, rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅ <{ ∀∀ e,
           rLog γ (L ++ [e]) ∗
             entDataIs γ e none ∗
-              ⌜uint.Z e.Index' = ↑L.length + 1 ∧ uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length⌝,
+              ev2At γ L e ∗ ⌜uint.Z e.Index' = ↑L.length + 1 ∧ uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length⌝,
           COMM True }>)
+
+def DurLe (W W' : DurMaps) : Prop :=
+  (∀ (t c : w64), W.voted !! t = some c → W'.voted !! t = some c) ∧
+    (∀ (k : w64 × w64), (W.acks !! k).isSome = true → (W'.acks !! k).isSome = true) ∧
+      (∀ (t : w64) (x : List EntryM × w64), W.camps !! t = some x → W'.camps !! t = some x) ∧
+        (∀ (n : Nat) (x : (w64 × Bool) × List EntryM), W.vlogs !! n = some x → W'.vlogs !! n = some x) ∧ W.evs <+: W'.evs
 
 def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
   (s.role = Role.candidate → ∀ (i : w64), acks !! (s.term, i) = none) ∧
     (s.role = Role.leader → ∀ (i : w64), (acks !! (s.term, i)).isSome = true → uint.Z i ≤ plogLastIndexZ s.base s.log)
 
+def promsJust [ReceiptGS GF] (γ : RaftNames) (id : w64) (W : DurMaps) (π : List Prom) : IProp GF :=
+  [∗list] k ↦ p ∈ π, promJust γ id (virt W (List.take k π)) p
+
+def pendBatch [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (g : Nat) (S' : RaftState) (W :
+    DurMaps) : IProp GF :=
+  iprop(∃ γs E, ⌜γ.reSlot !! id = some γs⌝ ∗ g ↪[γs.snd.fst] some (S', W, E) ∗ batchOk γ id (S', W, E))
+
+theorem outMsgOk_mono [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' :
+    List Prom) (W W' : DurMaps) (m : Msg) : DurLe W W' → (OutPend id s πc → OutPend id s' πc') →
+    outMsgOk γ id s πc W m ⊢ outMsgOk γ id s' πc' W' m
+
 def propIs (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(∃ p, d ↪[γ.reProps]□ p ∗ savedPredOwn p.fst DFrac.discard Q)
+
+theorem ev2At_timeless (γ : RaftNames) (L : List EntryM) (e : EntryM) : Timeless (ev2At γ L e)
 
 theorem voteJust_timeless [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : Timeless (voteJust γ v T c)

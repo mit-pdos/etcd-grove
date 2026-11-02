@@ -103,18 +103,17 @@ local macro "msa_fetch" : tactic => `(tactic| (
       -- past `1`
       cases Hns : s.gh.ns
       case true =>
+        -- (U8 v2) the mode is off at raft's level (`NsCap`)
         iexfalso
-        have H2 := (Hpok0.2 Hns).1
         iunfold NsCap at Hnscap
-        ihave #Hcap := Hnscap $$ %rfl
-        icases storPast_cap _ _ _ $$ Hcut_e Hcap with %H
-        ipureintro; omega
+        icases Hnscap with %Hf
+        cases Hf
       ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
           storPast (GF := GF) s.logst.storage 1) $$ []
       · iright
         iapply storPast_mono _ (uint.Z p.next) 1 (by have := (word.unsigned_range s.logst.prev.index').1; omega)
         iexact Hcut_e
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns $$ [Hphys]
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
@@ -190,7 +189,7 @@ local macro "msa_send" : tactic => `(tactic| (
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
-      (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, rfl⟩))
+      (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, Htz, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
       rfl $$ [Hphys Hm] as Hphys
   · iframe
@@ -304,7 +303,7 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty Hto Hcfg Hlead
+  intro c r id s to sendIfEmpty Hto Hcfg Hlead Htz
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
@@ -372,21 +371,11 @@ theorem raft.maybeSendAppend.wp_proof
     -- and the storage is never compacted past `1`, so `term(Next - 1)` does not fail
     cases Hns : s.gh.ns
     case true =>
+      -- (U8 v2) the mode is off at raft's level (`NsCap`)
       iexfalso
-      have H2 := (Hpok.2 Hns).1
-      have Hp1 := (Hnsl Hns).2
-      obtain ⟨h1, h2, -, -⟩ := Hpok.1
-      have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
-      icases Hcut with (%Hc | #Hc)
-      · ipureintro
-        rcases Hc with Hc | Hnot
-        · cases Hc
-        apply Hnot
-        constructor <;> word
-      · iunfold NsCap at Hnscap
-        ihave #Hcap := Hnscap $$ %rfl
-        icases storPast_cap _ _ _ $$ Hc Hcap with %H
-        ipureintro; word
+      iunfold NsCap at Hnscap
+      icases Hnscap with %Hf
+      cases Hf
     -- (D19i part 1) or the application compacted past it (`storPast`)
     ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
         storPast (GF := GF) s.logst.storage 1) $$ []
@@ -404,7 +393,7 @@ theorem raft.maybeSendAppend.wp_proof
         iapply storPast_one
         iexact Hc
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns $$ [$Hphys $Hcompact]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe

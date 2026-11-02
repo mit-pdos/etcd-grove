@@ -37,6 +37,7 @@ abbrev callTxn.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
     (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
+    minBytesLe inMax (.txn cs t e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
@@ -52,7 +53,7 @@ abbrev callTxn.spec : Prop :=
               (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).1)
             (((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (linkv.txnOf cs t e)).2.2.map linkv.resOf).map encRes) ∧
-          σ.rev + 3 < 2 ^ 63⌝ }}
+          kvRevFits σ.rev⌝ }}
 
 end spec
 

@@ -59,7 +59,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pre : List EntryModel)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
   -- `newRaftNode`'s premises: a logger, a heartbeat
   bv.lg' ≠ null →
@@ -82,35 +82,25 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   (ps.length : Int) ≤ 2 ^ 62 →
   cv.ID' ∈ ps →
   γr.vs = ps →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+  storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
-      -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,
-      -- `memStorage_isStorage`, over the registry the composition holds)
-      "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
-      "Hsto" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
-      -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
-      -- cluster's certificates the cluster's
-      "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
-        else storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
-      -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
-      "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
-           ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-           memSnapTok bv.storage' γs memStorEmpty -∗
-           (∀ (hp cs : Loc) (al : Bool),
-            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-            memSnapTok bv.storage' γs memStorEmpty -∗
-            hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
-             (Val #())) {{ Φ }}) ∗
-      -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
-      "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
+      -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
+      -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the
+      -- empty conf state, with the frame `Q` its `InitialState`'s continuation gives: for the
+      -- server `srvMem_bootStorage`'s)
+      "Hbs" ∷ restartStorage γr.cl (memStorIface bv.storage')
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-      -- this node's boot token (the cluster's allocation's)
-      "Hboot" ∷ (if γr.dyn then nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
-        else nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
+      -- this node's boot token (the cluster's allocation's, persistent), and (2026-11-01,
+      -- durability layer 4: `StartNode`'s new premises) its id vacant and its durable state at
+      -- `RaftState.init` (allocation's), over which `StartNode`'s update fires at once
+      "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
+      "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗
+      "Hrst" ∷ raftState γr.cl cv.ID' RaftState.init ∗
       -- the contracts (`InvNodeStart.lean`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -121,23 +111,31 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs⌝ ∗
-        -- the node API's node
+        -- the node API's node, its driver at the storage's key (the wrapper's, `γw.key`: raft
+        -- names it at the attach), and (2026-11-01, durability layer 4) the node's durable state,
+        -- unchanged by the update
         isNode n γr.cl srvClusterN cv.ID' ∗
-        nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage')) ∗
-        (if γr.dyn then nodeConfig n γr.cl srvClusterN
-          ⟨0, Membership.simple (GMap.listToSet ps)⟩ else iprop(True)) ∗
+        nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') γw.key) ∗
+        raftState γr.cl cv.ID' RaftState.init ∗
+        nodeConfig n γr.cl srvClusterN ⟨0, Membership.simple (GMap.listToSet ps)⟩ ∗
+        -- (2026-10-30, the repair) the node's whole running token (`StartNode`'s)
+        nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
-        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
-        ⌜rnStorageOf st ss⌝ ∗
+        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
+        -- over the WAL `wal`
+        ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗
         -- (2026-10-27) the peers' slice not back: the node API's `StartNode` keeps it (proposed:
         -- give it back, it only reads it)
         b ↦{dq} bv ∗
-        -- (D17d) the snapshot token back (`InitialState` ran before the node's goroutine)
-        memSnapTok bv.storage' γs memStorEmpty }}
+        -- (2026-10-30, the repair) the storage's frame (`InitialState` ran before the node's
+        -- goroutine), at the storage's key (2026-11-01, durability stage II (l): the frame depends
+        -- on the key, as `restartStorage`'s, so that the storage's invariant allocated at the key
+        -- comes back at the wrapper's `γw.key`)
+        Q γw.key }}
 
 end spec
 

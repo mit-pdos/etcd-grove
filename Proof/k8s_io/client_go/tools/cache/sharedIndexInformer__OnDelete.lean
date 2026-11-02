@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.OnDelete.wp_proof
     (wp_dist : sharedProcessor.distribute.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.OnDelete.spec (GF := GF) (hG := hG) := by
-  intro s p γp γe evs o Hbound
+  intro _ s p γp γe evs o
   wp_start as ⟨#Hs, HH⟩
   iunfold isSII at Hs
   icases Hs with ⟨#Hp, -, #Hproc⟩
@@ -43,7 +43,7 @@ theorem sharedIndexInformer.OnDelete.wp_proof
       (notifOf (Ev.delete o)) (by simp)) $$ Hlb
   rw [show interface.mkOk deleteNotification.ty #(deleteNotification.mk o) = notifOf (Ev.delete o)
     from rfl]
-  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.delete o) false Hbound)
+  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.delete o) false)
     $$ [$Hpkg $Hproc $Hrd $Hsend $HQ] as ⟨Hrd, Hsend⟩
   iapply HΦ
   iunfold infH

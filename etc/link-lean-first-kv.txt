@@ -64,9 +64,10 @@ KV__Get: KV__do
 KV__Append: KV__do
 KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
-KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
 KV__install: decode
+# (2026-10-30, stage F of the client repair) the node's methods' plain specs (the `unifiedSpec`
+# variants of 2026-10-28, stage U4a, linked in raft's `Linked.lean`, are gone)
 KV__run: fits KV__apply KV__answer KV__install encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
 kv_New: KV__run
 # the cluster driver (examples/kv/cluster.go)

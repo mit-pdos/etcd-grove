@@ -4,6 +4,7 @@ counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
@@ -201,12 +202,18 @@ local macro "txn_tail" : tactic => `(tactic| (
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE0, -, #Hcl⟩
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t none) $$ [Ha Hard]
+        as %cerr ⟨Ha, Hard, -, #HcE0, -, #Hcl⟩
       · iframe # Ha Hard
+        isplitr
+        · simp only [apply.lessorView_none]; ipureintro; trivial
+        ipureintro; intro _; exact hro
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
       iframe Ha Hard HcE
-      iexact Hcl
+      iintro %Hn
+      ihave ⟨#Hc, -⟩ := Hcl $$ %Hn
+      iexact Hc
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
@@ -646,8 +653,10 @@ theorem EtcdServer.Txn.wp_proof
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
+  have hDS := EtcdServer.doSerialize.spec_off hDS
+  have hRR := EtcdServer.raftRequest.spec_off hRR
   intro s E ρ γr c ctx cd r t Q Qr ot te F
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF, Hnp⟩
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, %Hdpt, #HF, Hnp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
@@ -658,12 +667,12 @@ theorem EtcdServer.Txn.wp_proof
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2), as `Range`'s
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
-  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerReq at Hsrv'
-  icases Hsrv' with ⟨%v, #Hv⟩
+  icases Hsrv' with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, #Hfgf, #Hfg, -⟩
   iunfold isFeatureGate at Hfg
@@ -841,7 +850,7 @@ theorem EtcdServer.Txn.wp_proof
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
-        F rfl
+        F rfl (apply.irrDepthOk_irrTxn (Hdpt hro))
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]
@@ -1068,7 +1077,7 @@ theorem EtcdServer.Txn.wp_proofOnR
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2), as `Range`'s
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
-  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
@@ -1203,10 +1212,8 @@ theorem EtcdServer.Txn.wp_proofOnR
     subst Hau2
     ihave #HLb' : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
         apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) $$ []
-    · have hLb : authStoreLbM (GF := GF) E.authMode w.auth E.RD = iprop(□ ∀ n : Nat,
-          auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) := by
-        rw [hM]; rfl
-      rw [← hLb]; iexact HLb
+    · iapply authStoreLbM_range γa w.auth E.RD
+      rw [← hM]; iexact HLb
     ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
     · rw [← hM]; iexact Hpub
     ipersist s
@@ -1351,15 +1358,15 @@ theorem EtcdServer.Txn.wp_proofOn
     (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
     EtcdServer.Txn.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r t Q ot te F lg
-  wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %Hro, #HF, Hnp⟩
+  wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %HroD, #HF, Hnp⟩
+  obtain ⟨Hro, Hdpt⟩ := HroD
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
   iunfold txnPermitOn at Hnp
-  iunfold txnPermit at Hnp
-  icases Hnp with ⟨⟨%Ht, Hau⟩, %Ha⟩
+  icases Hnp with ⟨%Ht, %Ha, Hau⟩
   ihave #Hrt' := Hrt
   iunfold txn.txnRequestIs at Hrt'
   icases Hrt' with ⟨%Hrn, #Hf⟩
@@ -1520,15 +1527,18 @@ theorem EtcdServer.Txn.wp_proofOn
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
-        F rfl
+        F rfl (apply.irrDepthOk_irrTxn Hdpt)
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hau]
-      · iapply txnPermitOn_reqPropOk ρ.kv tw Q γc
+      · iapply txnPermitOn_reqPropOk ρ.raft ρ.kv _ _ tw Q γc
+          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc)
         iunfold txnPermitOn
-        iunfold txnPermit
-        iframe Hau
-        ipureintro; exact ⟨Ht, Ha⟩
+        isplitr
+        · ipureintro; exact Ht
+        isplitr
+        · ipureintro; exact Ha
+        iexact Hau
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)

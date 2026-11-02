@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 abbrev NewSTMRepeatable.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (c : Loc) (pfx : GoString)
     (apply : GoFunc) (Q : STMSt → Prop) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ context.isContext ctx cs ∗ isEtcdSTMClient c pfx ∗ applySpec pfx apply Q ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ context.isContext ctx cs ∗ isEtcdSTMClient c pfx ∗ applySpec pfx 0 apply Q ∗
       etcdReached lo }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSTMRepeatable)) (Val #(GoInterface.ok ctx)))
       (Val #c)) (Val #apply))

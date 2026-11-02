@@ -29,8 +29,8 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
   intro γ tr
   wp_start as #Htr
   unfold isTransfers
-  -- the transfer's tick credit (D19b): the receipt of the resolution of `Lock`
-  wp_take_receipt as Hc1
+  -- the resolution of `Lock`'s receipt (until 2026-10-30 the transfer's tick credit; unused now)
+  wp_take_receipt as _Hc1
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Htr] as ⟨Hlocked, HR⟩
   iunfold transfersInv at HR
   icases HR with ⟨%n, Hleft⟩
@@ -44,7 +44,6 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
       iframe Hleft
     try wp_auto
     iapply HΦ
-    simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
   · have Hn' : uint.nat n = uint.nat (n - W64 1) + 1 := by
       have : uint.Z n ≠ 0 := fun h => Hn (by word)
@@ -60,8 +59,7 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
       iframe Hleft
     try wp_auto
     iapply HΦ
-    simp only [↓reduceIte]
-    iapply tickCredit_intro γ 1 $$ Hc1
+    itrivial
 
 end proof
 

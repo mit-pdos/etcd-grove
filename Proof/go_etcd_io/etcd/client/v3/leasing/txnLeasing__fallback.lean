@@ -64,7 +64,8 @@ theorem txnLeasing.fallback.wp_proof
       "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ opv ∗ "fb" ∷ fbOps_ptr ↦ fsl ∗ "#Hfsl" ∷ fsl ↦*□ fvs ∗
       "Hcap" ∷ ownSliceCap go_etcd_io.etcd.client.v3.Op fsl (DFrac.own 1) ∗
       "#Hrelf" ∷ listRel opFullAt fvs fos ∗
-      "%Hfos" ∷ ⌜∀ o ∈ fos, txnOpOf o = some (.get o)⌝ ∗
+      "%Hfos" ∷ ⌜(∀ o ∈ fos, txnOpOf o = some (.get o)) ∧ fos.length ≤ sint.nat n ∧
+        ∀ f ∈ fos, guardOf pfx os f.key f.base.rangeEnd f.val⌝ ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝) $$ [i op fbOps]
   · iexists W64 0, _, slice.nil, [], []
     simp only [named]
@@ -76,7 +77,7 @@ theorem txnLeasing.fallback.wp_proof
     isplitl []
     · iapply listRel_nil
     ipureintro; constructor
-    · intro o ho; simp at ho
+    · simp
     · constructor <;> word
   wp_for IH
   wp_if_destruct
@@ -97,7 +98,7 @@ theorem txnLeasing.fallback.wp_proof
       simp only [named]
       iframe
       iframe #
-      ipureintro; exact ⟨Hfos, by constructor <;> word⟩
+      ipureintro; exact ⟨⟨Hfos.1, by have := Hfos.2.1; word, Hfos.2.2⟩, by constructor <;> word⟩
     · wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       ihave #Hat' := Hat
@@ -106,13 +107,16 @@ theorem txnLeasing.fallback.wp_proof
       wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
       ihave %Hel := ownSlice_len _ _ _ $$ He
       wp_join iprop(∃ lend : GoString, lend_ptr ↦ lend ∗ op_ptr ↦ v ∗ txn_ptr ↦ txn ∗
-          structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv) with [op lend txn Hlkvf]
-        as ⟨%lend, lend, op, txn, Hlkvf⟩
+          structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+          ⌜lend.length ≤ pfx.length + o.base.rangeEnd.length⌝) with [op lend txn Hlkvf]
+        as ⟨%lend, lend, op, txn, Hlkvf, %Hlend⟩
       · (try wp_auto)
         wp_apply hRange $$ [$op $Hbase] as %esl2 ⟨op, #He2⟩
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
         wp_join_done
+        iexists _; iframe; ipureintro; simp
+      · iexists _; iframe; ipureintro; simp
       (try wp_auto)
       wp_apply hWR $$ [$Hcv] as %f #Hf
       wp_apply wp_slice_literal (l := [f])
@@ -153,11 +157,18 @@ theorem txnLeasing.fallback.wp_proof
         iapply listRel_single
         iexact Hgop
       ipureintro
-      refine ⟨?_, by constructor <;> word⟩
-      intro o' ho'
-      rcases List.mem_append.1 ho' with h | h
-      · exact Hfos o' h
-      · simp only [List.mem_singleton] at h; subst h; exact (fallback_getOp _ lend).1
+      refine ⟨⟨?_, ?_, ?_⟩, by constructor <;> word⟩
+      · intro o' ho'
+        rcases List.mem_append.1 ho' with h | h
+        · exact Hfos.1 o' h
+        · simp only [List.mem_singleton] at h; subst h; exact (fallback_getOp _ lend).1
+      · simp only [List.length_append, List.length_singleton]; have := Hfos.2.1; word
+      · intro f hf
+        rcases List.mem_append.1 hf with h | h
+        · exact Hfos.2.2 f h
+        · simp only [List.mem_singleton] at h; subst h
+          exact ⟨o, List.mem_of_getElem? Hoi, by simp [op_simps], by simpa [op_simps] using Hlend,
+            by simp [op_simps]⟩
   · (try wp_auto)
     iapply HΦ
     iframe
@@ -166,7 +177,11 @@ theorem txnLeasing.fallback.wp_proof
     · iapply (opsAt_listRel _ _).2
       iexists fvs
       iframe #
-    ipureintro; exact Hfos
+    ipureintro
+    refine ⟨Hfos.1, ?_, Hfos.2.2⟩
+    have := Hfos.2.1
+    rw [← Hlen]
+    word
 
 end proof
 

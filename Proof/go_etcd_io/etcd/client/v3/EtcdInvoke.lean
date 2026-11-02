@@ -46,7 +46,8 @@ interceptor's attempts; urpc's `wp_Client__Call_pred`). What it returns:
   about whether, or how often, the handler ran, nor about `out`.
 
 The request comes back (`Req.send inp m`), and the options (`callOptsOk`: none writes the caller's
-memory) stay read-only. (Unit C1's axiom, with `isGrpcConn` for `isEtcdConn` and without
+memory) stay read-only. The request's encoding is below `grpcMsgMax` (`Req.wireLen`, since
+2026-10-30: the attempt contract's premise, `grpcInvokerOk`). (Unit C1's axiom, with `isGrpcConn` for `isEtcdConn` and without
 `statusErrOk`; now `etcdConn_Invoke`, a theorem.) -/
 abbrev etcdConn.Invoke.spec : Prop :=
   ∀ (conn : Loc) (addr : List GoString) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
@@ -54,7 +55,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
       isGrpcRpcs addr method Spec ∗ reqPre conn method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
-      Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
       (Val #(GoInterface.ok ctx))) (Val #method))
@@ -78,7 +79,7 @@ abbrev etcdConn.InvokeMd.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
       isGrpcRpcsMd addr method Spec ∗
       reqPre conn method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
-      Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
       (Val #(GoInterface.ok ctx))) (Val #method))
@@ -96,7 +97,7 @@ meets the attempt contract (`grpcInvokerOk_of_wp`); the interceptor's contract d
 theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.InvokeMd.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
-  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   iunfold reqPre at Hpre
   icases Hpre with (#Hpre | ⟨%Hw, Hpre⟩)
   · -- any number of attempts
@@ -142,7 +143,7 @@ plain spec's metadata-indexed form (`GrpcSpec.md`, `isGrpcRpcs_md`, `attemptPre_
 theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
-  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   iapply (etcdConn_InvokeMd wp_Invoke conn addr method Req Rep (GrpcSpec.md Spec) m Φ ctx cd inp out
     opts vs) $$ [Hpre Hsend Hblank] HΨ
   iframe #

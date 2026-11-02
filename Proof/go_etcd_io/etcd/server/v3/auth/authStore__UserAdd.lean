@@ -39,7 +39,7 @@ theorem auth.authStore.UserAdd.wp_tie
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserAdd.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name b0 sc0
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userEmpty $$ Hpkg with ⟨%eUE, #HeUE⟩
   icases authErrVar_of_init .userAlreadyExist $$ Hpkg with ⟨%eUAE, #HeUAE⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
@@ -237,8 +237,10 @@ theorem auth.authStore.UserAdd.wp_tie
         simp [userAddF, hname, Hnone]
       obtain ⟨Hrevfit, Hfit⟩ := Hstep
       have Hfit' := Hfit _ _ rfl hstep
+      ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
+        (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
-        $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+        $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
@@ -331,8 +333,10 @@ theorem auth.authStore.UserAdd.wp_tie
       simp [userAddF, hname, Hnone]
     obtain ⟨Hrevfit, Hfit⟩ := Hstep
     have Hfit' := Hfit _ _ rfl hstep
+    ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
+      (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
-      $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+      $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
     · ipureintro
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
       intro hM; subst hM; exact Hl0

@@ -57,12 +57,14 @@ instance storeWTs_timeless (γ : mvcc.StoreNames) (n : Nat) :
 lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's
 lock) returns `nil` exactly when `id` is not live (`id ∉ L`; 2026-10-13, unit 8 of the backend:
 derived from the lessor's proof, `lease.isTxnLessor_of_lessorInv`; unit T3, L3b, 2026-10-26: until
-then `nil` or a live lease). -/
+then `nil` or a live lease), and a lease is the owner's lease of `id`: the owner's resource comes
+back opened at it (`lease.lessorUserOpen`, whose `Keys()` reads the item set; the lease-keys plan,
+item 4, 2026-10-31). -/
 def isTxnLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(mvcc.isLessor le γl ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
       {{ lease.lessorUser γl L I }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; lease.lessorUser γl L I ∗ ⌜l = null ↔ id ∉ L⌝ }}))
+      {{ (l : Loc), RET #l; lease.lessorUserOpen γl L I id l ∗ ⌜l = null ↔ id ∉ L⌝ }}))
 
 instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
     Persistent (isTxnLessor (GF := GF) le γl) := by
@@ -97,20 +99,30 @@ def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
 of a watchable store (`γ.watchQ`), a watchable store over `s` with `γw.st = γ`, the sole writer's
 half of its notified log `L` (`γw.wlog`, `mvcc.watchWriter`'s) and the certificate of `L`; nothing
 for a plain store. -/
-def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+def wlogOwnW (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
   if γ.watchQ then
     iprop(∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗ mvcc.isWatchableStore ws s γw ∗
       monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L)
   else iprop(True)
 
+/-- **The writer's own parts at its log `L`** (unit N4, D14a; M2's item 37, 2026-11-02): for a
+watchable store, its part of the notified log (`wlogOwnW`), and for either store the store's
+writer's pin at `L` (`mvcc.writerPin`: its quarter of the bucket's view, and the loan of a store
+that does not compact). -/
+def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+  iprop(wlogOwnW s γ L ∗ mvcc.writerPin γ L)
+
 instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
     Persistent (isKV (GF := GF) kv s γ) := by
   unfold isKV; infer_instance
 
-/-- A plain store has no notified log. -/
+/-- A plain store has no notified log: the writer's own parts are its pin. -/
 theorem wlogOwn_plain (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) (h : γ.watchQ = false) :
-    ⊢ wlogOwn (GF := GF) s γ L := by
-  unfold wlogOwn; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+    wlogOwn (GF := GF) s γ L ⊣⊢ mvcc.writerPin γ L := by
+  unfold wlogOwn wlogOwnW; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]
+  constructor
+  · iintro ⟨-, H⟩; iexact H
+  · iintro H; iframe H
 
 end kvdefs
 

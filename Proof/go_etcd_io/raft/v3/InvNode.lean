@@ -37,7 +37,7 @@ cluster (`isStaticCluster`, `cluster_alloc_static`, `RestartNode`), the rest of 
 (`readyRest`, `readySnap`), `Advance`, `Step` (`sentMsg`, `msgCredits`, `stepIn`), `Tick`
 (`tickCredit`), `TransferLeadership` (`leaderTransferOn`) and the snapshots' certificates
 (`snapshotCert`, `storageCertInv`, `storageCertLink`). The storage contract itself (`StorageModel`,
-`isStorage`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`) and `MemoryStorage`'s specs and
+`isStorageD`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`) and `MemoryStorage`'s specs and
 predicates are raft's storage API, carried over unchanged (not redesigned here).
 -/
 module
@@ -48,7 +48,8 @@ public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
 -- the implementation (`InvApi.lean`, `InvApiDyn.lean`), not exported
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
+import Proof.go_etcd_io.raft.v3.InvStatus
 
 @[expose] public section
 
@@ -70,6 +71,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A cluster's ghost names (opaque to clients). -/
 @[no_expose] def Cluster : Type 1 := ApiImpl.Cluster
+
+/-- **The cluster's network may duplicate a `MsgProp`** (2026-10-29, S1): chosen by the client at
+allocation (`cluster_alloc`; `false` for the other allocations). In such a cluster a proposal's
+update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s credits
+(`msgCredits_copy`). -/
+@[no_expose] def Cluster.dup (γ : Cluster) : Bool := γ.raft.dup
 
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
@@ -161,23 +168,6 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := by
   unfold ownReadCtxs isReadCtx ownCommittedOps; exact ApiImpl.readCtx_commit_impl γ N U c Q
 
-/-- (open) **Read requests' credits**: raft counts read requests in a 64-bit counter (today's
-`rdCred`); carried over until the read path's bounds are redesigned. A new cluster gives
-`2 ^ 64 - 2` of them (`cluster_alloc`). -/
-@[no_expose] def readCredits (γ : Cluster) (n : Nat) : IProp GF := ApiImpl.readCredits γ n
-
-omit [StorageModel GF] sem package_sem in
-theorem readCredits_split (γ : Cluster) (a b : Nat) :
-    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
-  unfold readCredits; exact ApiImpl.readCredits_split γ a b
-
-/-- (open) **A read request's credit**: one of `readCredits`. -/
-@[no_expose] def readCredit (γ : Cluster) : IProp GF := ApiImpl.readCredit γ
-
-omit [StorageModel GF] sem package_sem in
-theorem readCredit_eq (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
-  unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
-
 /-- **A read state** (persistent): a `Ready`'s `ReadState{Index: idx, RequestCtx: c}`. -/
 @[no_expose] def readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF :=
   ApiImpl.readStateOk γ N c idx
@@ -210,51 +200,8 @@ theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64
     readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
   unfold readStateOk ownReadCtxs; exact ApiImpl.readStateOk_used_impl γ N c idx U
 
-/-! ## A static cluster
-
-A cluster whose voters are fixed: raft's static mode (no joint configuration ever exists). A client
-may still propose conf changes (they commit as requested entries); it applies only those that keep
-the voters (`node.ApplyConfChange`, `CCShrink`). It takes snapshots whose data the client vouches
-for (`snapOk`, a relation of a committed log and the data, fixed at allocation), and has leader
-transfer on. Both allocations make one: `cluster_alloc` (bootstrapped, for `StartNode`) and
-`cluster_alloc_static` (empty, for `RestartNode`). -/
-
-/-- **The cluster is static** (persistent): of the voters `vs` (non-empty, distinct, non-zero, at
-most `2 ^ 62`), taking snapshots whose data `d` at index `i` satisfy `snapOk l d` of the committed
-log `l` of length `i`. -/
-@[no_expose] def isStaticCluster (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) : IProp GF :=
-  ApiImpl.isStaticCluster γ N vs snapOk
-
-instance isStaticCluster_persistent (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) :
-    Persistent (isStaticCluster (GF := GF) γ N vs snapOk) := by
-  unfold isStaticCluster; exact ApiImpl.isStaticCluster_persistent γ N vs snapOk
-
-/-- **Leader transfer is on** in the cluster (persistent; today `RaftNames.reNoXfer = false`): what
-`node.TransferLeadership` takes. -/
-@[no_expose] def leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF :=
-  ApiImpl.leaderTransferOn γ N
-
-instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOn (GF := GF) γ N) := by
-  unfold leaderTransferOn; exact ApiImpl.leaderTransferOn_persistent γ N
-
-/-- (open) **Leader transfer is off** in the cluster (persistent; today `RaftNames.reNoXfer =
-true`): `node.TransferLeadership` is not called, and the messages raft sends are what a receiver's
-`Step` takes without a tick credit (`sentMsg_transferOff`). (2026-10-27, for etcd's server.) -/
-@[no_expose] def leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF :=
-  ApiImpl.leaderTransferOff γ N
-
-instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOff (GF := GF) γ N) := by
-  unfold leaderTransferOff; exact ApiImpl.leaderTransferOff_persistent γ N
-
-/-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`, for node
-`id`'s `StartNode` (exclusive). -/
-@[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (id : w64) : IProp GF :=
-  ApiImpl.nodeBoot γ N ps ctxs id
+/-! ## The bootstrap log's length (2026-10-29, U9: the static cluster's section, `isStaticCluster`,
+`cluster_alloc`, `cluster_alloc_static`, deleted; one cluster, `isCluster`, `InvNodeRule.lean`) -/
 
 /-- The length of the bootstrap log the cluster was started from (sealed). -/
 @[no_expose] def Cluster.bootLen (γ : Cluster) : Nat := γ.raft.reBoot.length
@@ -263,9 +210,9 @@ instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
 server port's addition): the receipts' bound past the bootstrap log is at most `2 ^ 61`. Every
 index raft hands out is within its log, whose last index has a record keeping a time receipt
 (`lastRec_receipt`), so below the receipts' bound past the bootstrap log; so is every committed log
-(`isCommittedLogLb_length`, `readyRest_fits`). What `cluster_alloc` and `dynamicCluster_alloc` give
-under that premise; what etcd's raft loop needs to call `MemoryStorage.Append` (which checks no
-bound, unlike the key-value example's `fits`). -/
+(`isCommittedLogLb_length`, `readyRest_fits`). What etcd's raft loop needs to call
+`MemoryStorage.Append` (which checks no bound, unlike the key-value example's `fits`); (2026-10-30,
+stage R2) `readyFits_intro`, from `cluster_alloc`'s `γ.bootLen`. -/
 @[no_expose] def readyFits (γ : Cluster) (_N : Namespace) : IProp GF :=
   iprop(⌜receiptBound GF + γ.bootLen ≤ 2 ^ 61⌝)
 
@@ -273,64 +220,13 @@ instance readyFits_persistent (γ : Cluster) (N : Namespace) :
     Persistent (readyFits (GF := GF) γ N) := by
   unfold readyFits; infer_instance
 
-/-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
-requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
-none is a filler), the read contexts with none used, the cluster's read credits, the cluster static
-(of the peers, taking snapshots whose data satisfy `snapOk`), leader transfer on, and one boot token
-per peer, for its `StartNode`. The term budget, backed by time receipts (`receiptBound`), is the
-cluster's. `bootMarshal` is what `StartNode` needs of `proto.Marshal` at the peers' conf changes.
-Replaces the allocation variants (`ownRaftGhost_alloc_*`, `raft_dyn_alloc*`, `allocClient*`).
-(2026-10-27: changed from the first draft: a fancy update at any mask, the receipts' bound, the
-peers non-empty and non-zero, `bootMarshal`, the read credits; `nodeBoot` names the peers and their
-contexts; the cluster takes snapshots, `snapOk`. A client that takes none chooses
-`snapOk := fun _ _ => False`, and refutes a snapshot `Ready` by `snapshotCert_data`.) (2026-10-27,
-for etcd's server: leader transfer on or off, `transfer`, as `dynamicCluster_alloc`. Not so for
-`cluster_alloc_static`: raft's no-transfer mode needs a bootstrap log, whose term-`1` entries stamp
-every message's term past `0`, `ownRaftGhost_alloc_core`'s `Hnx`.) (2026-10-27, for etcd's
-server: `readyFits`, under its premise that the receipts' bound past the bootstrap log is at most
-`2 ^ 61`; until then the placeholder `readyFits_alloc`.) -/
-theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
-    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
-    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N ps snapOk ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
-        [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
-  intro Hrb Hrb2 HB Hnd Hne Hnz
-  iintro Hm
-  imod ApiImpl.cluster_alloc_impl N ps ctxs boot snapOk transfer E Hrb HB Hnd Hne Hnz $$ Hm
-    with ⟨%γ, %Hbl, Ho, Hc, Hr, Hs, Hx, Hb⟩
-  imodintro
-  iexists γ
-  unfold ownCommittedOps ownReadCtxs readCredits nodeBoot isStaticCluster leaderTransferOn
-    leaderTransferOff readyFits Cluster.bootLen
-  iframe Ho Hc Hr Hs Hx Hb
-  ipureintro; rw [Hbl]; exact Hrb2
-
-/-- **A static cluster's boot token** for node `id` (exclusive): what its `RestartNode` takes. -/
-@[no_expose] def nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
-  ApiImpl.nodeRestartBoot γ N vs id
-
-/-- **A new static cluster** of the voters `vs`, in the caller's namespace `N`: nothing committed
-(the client's committed requested entries empty), the read contexts with none used, the cluster's
-read credits, its parameters, and one boot token per voter. The term budget, backed by time
-receipts (`receiptBound`), is the cluster's. Replaces `ownRaftGhost_alloc_snap` and
-`budget_alloc`. (2026-10-27: the read credits added.) -/
-theorem cluster_alloc_static (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
-        [∗list] id ∈ vs, nodeRestartBoot γ N vs id := by
-  intro Hrb Hne Hnd Hnz Hlen
-  unfold ownCommittedOps ownReadCtxs readCredits isStaticCluster leaderTransferOn nodeRestartBoot
-  exact ApiImpl.cluster_alloc_static_impl N vs snapOk E Hrb Hne Hnd Hnz Hlen
-
-/- The node's predicates take the node `n` first (there is one per node, many per cluster), then
-the cluster and namespace, and the state that changes as one record, so that a new field does not
-change their arity. -/
+/-- (2026-10-30, stage R2) **A cluster whose receipts' bound past its bootstrap log is at most
+`2 ^ 61` fits**: `cluster_alloc` tells the bootstrap log's length (`Cluster.bootLen`). -/
+theorem readyFits_intro (γ : Cluster) (N : Namespace) :
+    receiptBound GF + γ.bootLen ≤ 2 ^ 61 → ⊢ readyFits (GF := GF) γ N := by
+  intro h
+  unfold readyFits
+  ipureintro; exact h
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
 @[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
@@ -352,6 +248,84 @@ instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : L
 @[no_expose] def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   ApiImpl.nodeDriver n γ N st
 
+/-- (2026-10-29, stage U9a) **The node runs** (fractional; the whole, `q = 1`, is what `node.Stop`
+takes): the client's share of the node's liveness, from `RestartNode` (`RestartNode.spec`). It
+excludes `nodeStopped` (`nodeRunning_stopped`): its holder refutes the stopped answers. -/
+@[no_expose] def nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF :=
+  ApiImpl.nodeRunning n γ N q
+
+instance nodeRunning_fractional (n : Loc) (γ : Cluster) (N : Namespace) :
+    Fractional (nodeRunning (GF := GF) n γ N) where
+  fractional p q := by unfold nodeRunning; exact ApiImpl.nodeRunning_split_impl n γ N p q
+
+instance nodeRunning_as_fractional (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+    AsFractional (nodeRunning (GF := GF) n γ N q) ioΦ (nodeRunning n γ N) ioq q where
+  as_fractional := .rfl
+  as_fractional_fractional := nodeRunning_fractional n γ N
+
+/-- (2026-10-29, stage U9a) **The node stopped** (persistent): its `run` returned, its `done`
+closed (`node.Stop`'s post; (raft-final, K5) the stopped answer of every `node` method that returns
+an error: `nodeErrS`, `propErrS`, `node.Advance`, `node.ApplyConfChange`). It excludes `nodeRunning`
+(`nodeRunning_stopped`). -/
+@[no_expose] def nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF :=
+  ApiImpl.nodeStopped n γ N
+
+instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
+    Persistent (nodeStopped (GF := GF) n γ N) := by
+  unfold nodeStopped; exact ApiImpl.nodeStopped_persistent n γ N
+
+/-- (raft-final, 2026-10-29, K5: the user's decision overriding the design's A9) **The error of a
+`node` call that hands a message to `run`, the stopped answer carrying `nodeStopped`** (persistent):
+`nil`, `ErrStopped` with the node stopped, or the context's. A holder of `nodeRunning` refutes the
+second (`nodeRunning_stopped`). `nodeErrS_nodeErr` forgets the stop (until then the posts' plain
+`nodeErr`). -/
+def nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : IProp GF :=
+  iprop(⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ ctxErr cd err)
+
+instance nodeErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    Persistent (nodeErrS (GF := GF) n γ N cd err) := by
+  unfold nodeErrS; infer_instance
+
+theorem nodeErrS_nodeErr (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    nodeErrS (GF := GF) n γ N cd err ⊢ nodeErr cd err := by
+  unfold nodeErrS nodeErr
+  iintro (%H | ⟨#H, -⟩ | #H)
+  · ileft; ipureintro; exact H
+  · iright; ileft; iexact H
+  · iright; iright; iexact H
+
+/-- (raft-final, 2026-10-29, K5) **A proposal's error, the stopped answer carrying `nodeStopped`**:
+`nodeErrS`, or the proposal's result from `run` (`stepErr`). -/
+def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : IProp GF :=
+  iprop(nodeErrS n γ N cd err ∨ stepErr err)
+
+instance propErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    Persistent (propErrS (GF := GF) n γ N cd err) := by
+  unfold propErrS; infer_instance
+
+theorem propErrS_propErr (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    propErrS (GF := GF) n γ N cd err ⊢ propErr cd err := by
+  unfold propErrS propErr
+  iintro (H | #H)
+  · ileft; iapply nodeErrS_nodeErr $$ H
+  · iright; iexact H
+
+/-- (2026-10-29, stage U7) **A `Status` value's memory is the caller's** (`node.Status`'s post):
+heap ownership only, of its `*pb.HardState` (read-only), its configuration's maps and a leader's
+progress copy (each progress with its own `Inflights`), or the zero `Status{}` of a stopped node.
+No fact ties the values to the cluster. (`AutoLeave` of the copy is always `false`: `Config.Clone`
+drops it, `issues/raft-config-clone-autoleave.md`.) Laws to read it come with a client that needs
+them. -/
+@[no_expose] def statusOwn (st : Status) : IProp GF :=
+  statusOwnRaw st
+
+
 /-! ## Snapshots' certificates -/
 
 /-- **The snapshot `k` is certified** for the cluster (persistent; today `raftSnapCertD`): its
@@ -363,84 +337,6 @@ up to it. -/
 instance snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) :
     Persistent (snapshotCert (GF := GF) γ N k) := by
   unfold snapshotCert; exact ApiImpl.snapshotCert_persistent γ N k
-
-/-- **What a certified snapshot's data is**, in a static cluster: `snapOk` of the committed log up
-to its index. -/
-theorem snapshotCert_data (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (k : SnapTrip) :
-    isStaticCluster (GF := GF) γ N vs snapOk ∗ snapshotCert γ N k ⊢
-      ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat k.sid.index' ∧ snapOk l k.dat⌝ := by
-  unfold isStaticCluster snapshotCert isCommittedLogLb
-  exact ApiImpl.snapshotCert_data_impl γ N vs snapOk k
-
-/-- **Certifying a snapshot** of a static cluster, at any term: its configuration the voters (no
-learners, not joint, well formed: `SnapListsOk`), its data what the client vouches for of a
-committed log as long as its index. -/
-theorem snapshotCert_static (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (l : List LogEntry) (i : w64) (d : List w8) :
-    (∀ t : w64, SnapListsOk ⟨⟨t, i⟩, ⟨vs, [], [], []⟩, false, d⟩) →
-    l.length = uint.nat i → snapOk l d →
-    isStaticCluster (GF := GF) γ N vs snapOk ∗ isCommittedLogLb γ l ⊢
-      □ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, ⟨vs, [], [], []⟩, false, d⟩ := by
-  intro Hok Hl Hso
-  unfold isStaticCluster snapshotCert isCommittedLogLb
-  exact ApiImpl.snapshotCert_static_impl γ N vs snapOk l i d Hok Hl Hso
-
-/-- **A `MemoryStorage`'s certificate registry tied to the cluster** (persistent; today
-`memCertInv`): its entries are certified snapshots. The client allocates it from
-`NewMemoryStorage`'s `memCertAuth`. -/
-@[no_expose] def storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF :=
-  ApiImpl.storageCertInv γ N γs
-
-instance storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) :
-    Persistent (storageCertInv (GF := GF) γ N γs) := by
-  unfold storageCertInv; exact ApiImpl.storageCertInv_persistent γ N γs
-
-theorem storageCertInv_alloc (γ : Cluster) (N : Namespace) (γs : MemStorNames) (E : CoPset) :
-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ storageCertInv γ N γs := by
-  unfold storageCertInv; exact ApiImpl.storageCertInv_alloc_impl γ N γs E
-
-/-- A registered snapshot is certified. -/
-theorem storageCert_read (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ memStorCert γs k ={E}=∗ snapshotCert γ N k := by
-  intro hE
-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_read_impl γ N γs k E hE
-
-/-- A certified snapshot can be registered. -/
-theorem storageCert_register (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ snapshotCert γ N k ={E}=∗ memStorCert γs k := by
-  intro hE
-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_register_impl γ N γs k E hE
-
-/-- ... at any term (what `MemoryStorage.CreateSnapshot` asks). -/
-theorem storageCert_registerAny (γ : Cluster) (N : Namespace) (γs : MemStorNames) (i : w64)
-    (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ (□ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
-  intro hE
-  unfold storageCertInv snapshotCert
-  exact ApiImpl.storageCert_registerAny_impl γ N γs i cl al d E hE
-
-/-- **The storage's certificates are the cluster's** (persistent; today `certLink`, `storCertOk`):
-what `StartNode` and `RestartNode` take of their storage. -/
-@[no_expose] def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
-  ApiImpl.storageCertLink γ N st
-
-instance storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) :
-    Persistent (storageCertLink (GF := GF) γ N st) := by
-  unfold storageCertLink; exact ApiImpl.storageCertLink_persistent γ N st
-
-theorem storageCertLink_intro (γ : Cluster) (N : Namespace) (st : Storage) :
-    (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗
-        snapshotCert (GF := GF) γ N k) ∗
-      (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢
-      storageCertLink γ N st := by
-  unfold storageCertLink snapshotCert; exact ApiImpl.storageCertLink_intro_impl γ N st
 
 /-! ## Messages and the term budget (open: carried over) -/
 
@@ -465,62 +361,226 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
 @[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
   ApiImpl.msgCredits γ N st
 
-/-- (open) **Tick credits** (today `tickCred`: time receipts): one per `Tick`, and one per
-`MsgTimeoutNow` stepped. -/
-@[no_expose] def tickCredit (γ : Cluster) (n : Nat) : IProp GF := ApiImpl.tickCredit γ n
+/-- **The snapshot directory the client chose for the node `id`** (2026-11-01, J8a; `cluster_alloc`'s
+`sl`): `some γd`, a ghost map `γd` of the indices of the snapshots saved there, or none. -/
+@[no_expose] def Cluster.snapLoc (γ : Cluster) : w64 → Option GName := γ.raft.reSnapLoc
 
-theorem tickCredit_intro (γ : Cluster) (n : Nat) : ⧗ n ⊢ tickCredit (GF := GF) γ n := by
-  unfold tickCredit; exact ApiImpl.tickCredit_intro_impl γ n
+/-- (open) **A snapshot of index `i` local to the node `id`** (2026-11-01, J8a; raft's `snapLocal`):
+with a directory (`Cluster.snapLoc γ id = some γd`) the index saved there (`nodeSnapLocal_of_elem`,
+`nodeSnapLocal_elem`), and nothing otherwise (`nodeSnapLocal_none`). What `node.Step` takes of a
+message's snapshot (`snapLocalMsg`) and a snapshot `Ready` gives back (`readySnap`): raft installs only
+a snapshot it was stepped. -/
+@[no_expose] def nodeSnapLocal (γ : Cluster) (id i : w64) : IProp GF := snapLocal γ.raft id i
 
-theorem tickCredit_zero (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := by
-  unfold tickCredit; exact ApiImpl.tickCredit_zero_impl γ
+instance nodeSnapLocal_persistent (γ : Cluster) (id i : w64) :
+    Persistent (nodeSnapLocal (GF := GF) γ id i) := by
+  unfold nodeSnapLocal; infer_instance
+
+/-- Without a directory for `id`, every snapshot is local. -/
+theorem nodeSnapLocal_none (γ : Cluster) (id : w64) (h : γ.snapLoc id = none) (i : w64) :
+    ⊢ nodeSnapLocal (GF := GF) γ id i := by
+  unfold nodeSnapLocal; exact snapLocal_none h i
+
+/-- With the directory `γd` for `id`, its saved index's element gives the fact. -/
+theorem nodeSnapLocal_of_elem (γ : Cluster) (id : w64) (γd : GName) (h : γ.snapLoc id = some γd)
+    (i : w64) :
+    ghostMapElem (GF := GF) (K := w64) (V := Unit) γd i DFrac.discard () ⊢ nodeSnapLocal γ id i := by
+  unfold nodeSnapLocal; exact snapLocal_of_elem h i
+
+/-- With the directory `γd` for `id`, the fact is its saved index's element. -/
+theorem nodeSnapLocal_elem (γ : Cluster) (id : w64) (γd : GName) (h : γ.snapLoc id = some γd)
+    (i : w64) :
+    nodeSnapLocal (GF := GF) γ id i ⊢ ghostMapElem (K := w64) (V := Unit) γd i DFrac.discard () := by
+  unfold nodeSnapLocal snapLocal
+  unfold Cluster.snapLoc at h
+  rw [h]
+
+/-- (open) **A `MsgSnap`'s snapshot local to the node `id`** (2026-11-01, J8a): what `node.Step` takes of
+a message beside its certificates (`stepIn_intro`; nothing of another type, `snapLocalMsg_notSnap`). -/
+@[no_expose] def snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
+  ApiImpl.snapLocalMsg γ id st
+
+instance snapLocalMsg_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
+    Persistent (snapLocalMsg (GF := GF) γ id st) := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg; infer_instance
+
+/-- A `MsgSnap`'s snapshot local, the message's fact. -/
+theorem snapLocalMsg_intro (γ : Cluster) (id : w64) (st : MsgSt) :
+    (□ ∀ sv : SnapshotM, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗
+        nodeSnapLocal γ id sv.Metadata'.Index') ⊢
+      snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg nodeSnapLocal; exact .rfl
+
+/-- A message of another type has the fact. -/
+theorem snapLocalMsg_notSnap (γ : Cluster) (id : w64) (st : MsgSt) (h : st.msg.Type' ≠ MsgSnap) :
+    ⊢ snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg
+  iintro !> %sv %Hs
+  exact absurd Hs.1 h
+
+/-- Without a directory for `id`, every message has the fact. -/
+theorem snapLocalMsg_noDir (γ : Cluster) (id : w64) (h : γ.snapLoc id = none) (st : MsgSt) :
+    ⊢ snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg
+  iintro !> %sv %-
+  have H := nodeSnapLocal_none (GF := GF) γ id h sv.Metadata'.Index'
+  unfold nodeSnapLocal at H
+  iapply H
 
 /-- (open) **A message `node.Step` takes** at the node `id` (today `stepP`): the message at `ml`. -/
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
 
-/-- **The cluster was started from a bootstrap log** (persistent; raft's `RaftNames.reBoot ≠ []`):
-what `cluster_alloc` and `dynamicCluster_alloc` allocate (`nodeBoot_booted`,
-`nodeDynamicBoot_booted`), and `cluster_alloc_static` does not. Its nodes are past term `0`, so
-they step a pre-vote request (`stepIn_intro`). (2026-10-27, the server port's addition.) -/
-@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
-
-instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
-  unfold bootedCluster; infer_instance
-
-/-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
-responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
-`MsgTimeoutNow`, a tick credit: a forwarded proposal (of any context: its abstraction ignores it),
-or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`); a
-pre-vote request only in a cluster started from a bootstrap log (`bootedCluster`: raft's `netP`
-takes one only there). (Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes
-run with `PreVote`: the pre-vote premise `bootedCluster` in place of excluding it, and no premise on a
-forwarded proposal's context; until then `stepIn_intro_booted` beside it.) -/
+/-- **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
+responses), owned with its entries slice fresh, addressed to `id`, with its credits (`msgCredits`:
+a forwarded proposal's tickets; nothing for another type, `msgCredits_intro`) and (2026-11-01, J8a)
+its snapshot, if any, local to `id` (`snapLocalMsg`). Any sent message, of
+any type: (raft-final, 2026-10-29, U7: candidate 12's form) no `NetMsgOk`, no leader-transfer
+exclusion (a stamped `MsgTransferLeader` carries its destination's leadership, `isRaftMsg`) and no
+`MsgSnap` index premise (`sentMsg` bounds it, `sentMsg_shape`); until then those three premises.
+(2026-10-27, for etcd's server: no premise on a forwarded proposal's context. 2026-10-29, stage U4:
+no pre-vote premise: a node at term `0` has an empty log and grants a pre-vote request. 2026-10-29,
+stage U7: `node.Step` takes its own time receipt, no tick credit for a `MsgTimeoutNow`.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg (GF := GF) γ N src st ∗
+    sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
+      msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro H1 H2 H3
-  unfold bootedCluster sentMsg msgCredits tickCredit stepIn
-  iintro ⟨Hpv, Hrest⟩
-  icases Hpv with (%Hpv | %Hpv)
-  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inl Hpv) $$ Hrest
-  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inr Hpv) $$ Hrest
+  intro H3
+  unfold sentMsg msgCredits stepIn snapLocalMsg
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
+
+/-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
+shape raft sends** (`SentMsgShape`: its type, a nonzero sender, stamped or not by type, from another
+node but for the listed types, a `MsgApp` of raft's shape, the transfer messages with no entries and
+no context, no responses), and a `MsgSnap` holds a snapshot of index below `2^61` (the storage's
+snapshots are `snapshotValid`, which bounds it: the design's A10). What a transport needs to marshal
+it and a receiver to step it. -/
+theorem sentMsg_shape (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢
+      ⌜SentMsgShape st ∧
+        (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝ := by
+  unfold sentMsg
+  have H1 : ApiImpl.sentMsg (GF := GF) γ N src st ⊢ ⌜SentMsgShape st⌝ := by
+    iintro Hs
+    iunfold ApiImpl.sentMsg at Hs
+    icases Hs with ⟨-, Hr, -⟩
+    iunfold isRaftMsg at Hr
+    icases Hr with ⟨%Hsh, -⟩
+    ipureintro; exact Hsh
+  have H2 : ApiImpl.sentMsg (GF := GF) γ N src st ⊢ ⌜st.msg.Type' = MsgSnap →
+      ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ := by
+    by_cases Hty : st.msg.Type' = MsgSnap
+    · iintro Hs
+      ihave %H := ApiImpl.sentMsg_snap_bound γ N src st Hty $$ Hs
+      ipureintro; exact fun _ => H
+    · iintro -
+      ipureintro; exact fun h => absurd h Hty
+  iintro Hs
+  icases (persistent_entails_left H1) $$ Hs with ⟨Hs, %A⟩
+  ihave %B := H2 $$ Hs
+  ipureintro; exact ⟨A, B⟩
+
+/-- (raft-final, 2026-10-29, U7: S1's `msgCredits_intro`, the design's §2.9) **A delivered copy of a
+message other than a proposal needs nothing**: its credits are a forwarded proposal's tickets only
+(a `MsgReadIndex`'s read credit is minted by its receiver, `rdPool`). -/
+theorem msgCredits_intro (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits (GF := GF) γ N st := by
+  intro Hp
+  unfold msgCredits ApiImpl.msgCredits stTks
+  rw [if_neg Hp]
+  iintro
+  imodintro
+  iempintro
+
+/-! ## A node's durable state and its id's slot (2026-11-01, durability stage I-2)
+
+`notes/raft-durability-proof-plan.md`; candidate 12 (`raftState`, `nodeVacant`). -/
+
+/-- **Node `id`'s durable state is `S`** (exclusive; the client's): the state its storage must
+hold for a restart (`RestartNode`'s update reads it), which only the client's *enter* of a
+`Ready`'s batch moves (`readyEnter`). Allocation gives it at `RaftState.init` (`cluster_alloc`,
+`joinAuth_join`). -/
+@[no_expose] def raftState (γ : Cluster) (id : w64) (S : RaftState) : IProp GF :=
+  ApiImpl.raftStateU γ id S
+
+/-- **No node of `id` runs** (exclusive): what `RestartNode`/`StartNode` take and `node.Stop`
+gives back, so that at most one node of an id runs at a time. Allocation gives it. -/
+@[no_expose] def nodeVacant (γ : Cluster) (id : w64) : IProp GF :=
+  ApiImpl.nodeVacantU γ id
+
+/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
+2026-11-01, durability stage I-4: keyed by the storage key `K`) -/
+
+/-- **Compacting the storage of key `K` up to `k` is safe** (persistent, timeless; raft-issued): the
+node on it applied at least `k` (`node.Advance`'s post), or handed out a snapshot at `k` or later
+(a snapshot `Ready`, `readySnap`), or `k` is at most the applied index it was started at (the
+attach, `restartStorage`). (2026-11-01, durability stage I-4: keyed by the storage, not the node's
+id; `snapGiven` merged into it, raft's own reading `raftBnd` being that disjunction.) -/
+@[no_expose] def nodeAppliedLb (γ : Cluster) (K : GName) (k : Nat) : IProp GF :=
+  ApiImpl.nodeAppliedLbU γ K k
+
+/-- **The node on the storage of key `K` has committed at least `i`** (persistent, timeless;
+raft-issued; until 2026-11-01 the open `storDL γ id i`, "delivered to some node of `id`"): the
+committed log's terms up to `i` are certified for the storage. Given at the attach (at the stored
+commit), by the `Ready` loop (`nodeDriver_nodeCommitLb`) and at a snapshot `Ready`
+(`readySnap`). -/
+@[no_expose] def nodeCommitLb (γ : Cluster) (K : GName) (i : Nat) : IProp GF :=
+  ApiImpl.nodeCommitLbU γ K i
+
+instance nodeAppliedLb_persistent (γ : Cluster) (K : GName) (k : Nat) :
+    Persistent (nodeAppliedLb (GF := GF) γ K k) := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_persistent γ K k
+
+instance nodeAppliedLb_timeless (γ : Cluster) (K : GName) (k : Nat) :
+    Timeless (nodeAppliedLb (GF := GF) γ K k) := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_timeless γ K k
+
+instance nodeCommitLb_persistent (γ : Cluster) (K : GName) (i : Nat) :
+    Persistent (nodeCommitLb (GF := GF) γ K i) := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_persistent γ K i
+
+instance nodeCommitLb_timeless (γ : Cluster) (K : GName) (i : Nat) :
+    Timeless (nodeCommitLb (GF := GF) γ K i) := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_timeless γ K i
+
+theorem nodeAppliedLb_zero (γ : Cluster) (K : GName) : ⊢ nodeAppliedLb (GF := GF) γ K 0 := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ K
+
+theorem nodeAppliedLb_mono (γ : Cluster) (K : GName) (k k' : Nat) :
+    k' ≤ k → nodeAppliedLb (GF := GF) γ K k ⊢ nodeAppliedLb γ K k' := by
+  intro h; unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_mono γ K k k' h
+
+theorem nodeCommitLb_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLb (GF := GF) γ K 0 := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_zero γ K
+
+theorem nodeCommitLb_mono (γ : Cluster) (K : GName) (i i' : Nat) :
+    i' ≤ i → nodeCommitLb (GF := GF) γ K i ⊢ nodeCommitLb γ K i' := by
+  intro h; unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_mono γ K i i' h
 
 /-! ## The rest of a `Ready` -/
 
-/-- (open) A `Ready`'s storage part, by its snapshot's loan: none -- the right to append the entries
-`es` -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`, its
-entries at their positions), past what was delivered, half of the snapshot, its certificate, and the
-storage itself (`readyOut`). (Today `readyDataL`'s snapshot part.) -/
-def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+/-- (open) A `Ready`'s storage part, by its snapshot's loan (U8 v2, 2026-10-29: the frozen design's
+§3): none -- the right to write the entries `es` (`appendRight`: the log from their first index on,
+with the end; nothing for no entries) and the committed entries `ce` below them frozen
+(`ceFrozen`) -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`,
+its entries at their positions), past what was delivered, half of the snapshot, its certificate
+(`snapshotCert`; its validity, `snapshotCert_valid`), every range of the storage from an index at
+most the snapshot's on, with the end, compacting up to it safe and the node committed up to it (`nodeAppliedLb`, `nodeCommitLb`), and (2026-11-01, J8a)
+the snapshot local to the node (`nodeSnapLocal`: one it was stepped, `snapLocalMsg`). (Until U8 v2 the
+old contract's `readyOut`: the storage itself.) -/
+def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
+  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
+      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es ∗
+      -- (raft-final phase 2, for kvreconf) the batch's indices consecutive, and the committed
+      -- entries at or past its first index the batch's (`readyRest_indices`, `readyRest_ceInBatch`)
+      ⌜∀ e0, es.head? = some e0 →
+        (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+        (∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+          uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+          (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e)⌝)
   | some l => iprop(
       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
@@ -529,33 +589,279 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
         LogIndicesOk (snapId l.snap) es⌝ ∗
       ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommittedLogLb γ (strip l.dlv) ∗
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
-      readyOut st.storage es (some l))
+      (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+        storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
+      -- (2026-11-01, durability stage I-4; until then `snapGiven γ id`) compacting up to the
+      -- snapshot is safe, and the node committed up to it
+      nodeAppliedLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
+      nodeCommitLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
+      -- (2026-11-01, J8a) the snapshot local to the node: one it was stepped (`snapLocalMsg`)
+      nodeSnapLocal γ id l.snap.Metadata'.Index' ∗
+      -- (2026-11-01, J8b) past the bootstrap log (`Cluster.bootLen`): `restore` takes only an index
+      -- above the commit index, which starts at the bootstrap log's length
+      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
-vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages (each owned as
-`Ready` hands it out, `readyDq`, sent, with its credits), the hard state `h` (`nil` or not:
-`hsOpt`) and the soft state, the indices' bound, and the storage's part (`readySnap`, by the
-snapshot's loan `L`). (2026-10-27, for etcd's server: the messages are the node `id`'s, `sentMsg`.) -/
+vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned
+as `Ready` hands it out, `readyDq`, with its credits; (2026-11-01, durability stage I-3) their
+`sentMsg` no longer here: `readyEnter` gives it, and at role leader `readyLeaderMsgs`), the hard
+state `h` (`nil` or not: `hsOpt`) and the soft state `ss` (`softStateIs`; until 2026-11-01
+`softStateRO`, which `softStateIs_RO` gives), the indices' bound, and the storage's part
+(`readySnap`, by the snapshot's loan `L`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
-  iprop(∃ ms : List QMsg,
-    entsRO rd.Entries' es ∗
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+    (ms : List QMsg) (ss : Option (w64 × StateType)) : IProp GF :=
+  iprop(entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
-      msgCredits γ N q.st) ∗
-    hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
-    readySnap γ N rd st ce es L)
+    readySnap γ N id rd st ce es L ∗
+    -- (2026-11-01, durability stage II (m)) what it is past, and within (`ReadyRestFacts`; the
+    -- laws `readyRest_commit_mono` ... below)
+    ⌜ReadyRestFacts st ce es h L⌝)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
 private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) :
-    ApiImpl.readyRest (GF := GF) γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L := by
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    ApiImpl.readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss := by
   cases L <;> exact .rfl
+
+/-- (2026-11-01, durability stage I-3) **The messages `ms` of a `Ready` of node `id`, sent**
+(persistent): each one's `sentMsg`. -/
+def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp GF :=
+  iprop([∗list] q ∈ ms, sentMsg γ N id q.st)
+
+instance readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    Persistent (readyMsgs (GF := GF) γ N id ms) := by
+  unfold readyMsgs; infer_instance
+
+/-- (2026-11-01, durability stage II (i); until then a copy in each client: kvreconf `RunInv`, kv
+`KvRunInv`, the server's `rn_readyMsgs_sent`) **A `Ready`'s messages with their `sentMsg`**: the
+messages as `readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport
+takes. -/
+theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
+
+/-- (2026-11-01, durability stage I-3; candidate 12 §3) **Entering a `Ready`'s batch** (the
+receive's update): when the client enters the batch's durable state `st'.durable` (a durable client:
+in the write that makes it durable; any other: at once), with a share of the node's liveness (so a
+stopped node's batch is dead), its durable state moves to it, and it gets the loop's token at the
+state after the `Ready` (`st'`, busy) and the right to send the messages (`readyMsgs`). A
+commit-only batch leaves the durable state but its commit index, so even a durable client
+applies it at once. -/
+def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+    raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
+      raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      readyMsgs γ N id ms)
+
+/-- (2026-11-01, durability stage I-3; candidate 12's deletion of *check*) **At role leader a
+`Ready`'s messages may be sent first** (before the batch is entered): a leader's messages carry no
+pending promise (raft's leader-outbox invariant). -/
+def readyLeaderMsgs (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) : IProp GF :=
+  iprop(⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms)
+
+/-- (raft-final, 2026-10-29, the design's A2, review 1's H2) **A `Ready`'s committed entries inside
+its batch are the batch's** (pure): after a `Ready` without a snapshot whose entries `es` start at
+index `k`, the committed entry at log index `|delivered| + 1 + j` (position `j` of `ce`), if at or past
+`k`, is `es`'s at that index (both lists are read from raft's log in the same step). So a snapshot
+the client creates at an in-batch index has the committed term (`snapshotValid`), and `ce` ends within
+the batch. -/
+theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h none ms ss ⊢
+      ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+        uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+        (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e⌝ ∗
+      readyRest γ N id rd st ce es h none ms ss := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest readySnap
+  iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+  ipureintro
+  intro e0 he
+  exact (Hb e0 he).2
+
+/-- (2026-11-01, J8b) **A `Ready`'s snapshot is past the bootstrap log** (pure): its index is above
+the bootstrap log's length (`Cluster.bootLen`, which `cluster_alloc` tells). -/
+theorem readySnap_bootLen (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) :
+    readySnap (GF := GF) γ N id rd st ce es (some l) ⊢
+      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗ readySnap γ N id rd st ce es (some l) := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readySnap
+  iintro ⟨-, -, -, -, -, -, -, -, %H⟩
+  ipureintro
+  exact H
+
+/-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
+from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/
+theorem readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢
+      ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
+        uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
+      readyRest γ N id rd st ce es h L ms ss := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest
+  cases L with
+  | none =>
+    unfold readySnap
+    iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+    ipureintro
+    intro e0 he
+    exact (Hb e0 he).1
+  | some l =>
+    unfold readySnap
+    iintro ⟨-, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
+    ipureintro
+    intro e0 he j e hj
+    have HI := Hf.2.2.2.2.2.2.2.2.2
+    have h0 : es[0]? = some e0 := by
+      cases es with
+      | nil => simp at he
+      | cons x xs => simpa using he
+    have a0 := HI 0 e0 h0
+    have aj := HI j e hj
+    have u1 := uint_nat_eq e.Index'
+    have u2 := uint_nat_eq e0.Index'
+    push_cast at a0 aj
+    omega
+
+/-! ### What a `Ready` is past, and within (2026-11-01, durability stage II (m))
+
+`ReadyRestFacts`, law by law, as kvdurable's `Replica.run` uses them (its G4, G7–G10, G14, G17, G20). -/
+
+theorem readyRest_facts (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜ReadyRestFacts st ce es h L⌝ := by
+  refine (persistent_entails_left ?_).trans .rfl
+  unfold readyRest
+  iintro ⟨-, -, -, -, -, -, -, %H⟩
+  ipureintro; exact H
+
+/-- (G4) **The hard state's commit index does not move back.** -/
+theorem readyRest_commit_mono (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.1
+  | some l => exact Hf.1
+
+/-- (G7) **A snapshot is past the hard state's commit index last handed out, and within the
+`Ready`'s.** (kvdurable's statement had the durable state's commit index, `st.durable.commit`, in
+place of `st.hardState.Commit'`: not raft's to give, since a restart may enter a durable commit index
+above the stored hard state's, `StorageHolds`; the image's snapshot is below the stored hard state's
+commit index, which is `st.hardState`'s.) -/
+theorem readyRest_snap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (l : SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h (some l) ms ss ⊢
+      readyRest γ N id rd st ce es h (some l) ms ss ∗
+      ⌜uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
+        uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h (some l) ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact ⟨Hf.2.2.1, Hf.2.2.2.1⟩
+
+/-- (G8) **The commit index is within the durable log after the batch.** -/
+theorem readyRest_commit_le_last (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜uint.nat (phsNext st.hardState h).Commit' ≤
+        (readyDurable st.durable (phsNext st.hardState h) L es).last⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.1
+  | some l => exact Hf.2.1
+
+/-- (G9) **Without a snapshot, the entries start at most one past the durable log's end.** -/
+theorem readyRest_ents_start (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗
+      ⌜∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ st.durable.last + 1⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.1
+
+/-- (G10) **Without a snapshot, the committed log delivered is within the commit index.** -/
+theorem readyRest_delivered_le_commit (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗
+      ⌜(st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.1
+
+/-- (G14) **Without a snapshot, the committed entries delivered above the durable base are the
+durable log's after the batch.** -/
+theorem readyRest_durable_has_delivered (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗
+      ⌜∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+        uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
+          st.delivered.length + 1 + j →
+        (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
+          uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
+          some (e.toEntryM (W64 (st.delivered.length + 1 + j)))⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.2.1
+
+/-- (G17) **Without a snapshot, the entries start past the hard state's commit index last handed
+out.** -/
+theorem readyRest_ents_above_commit (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗
+      ⌜∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index'⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.2.2.1
+
+/-- (G20; 2026-11-02, durability stage II (q)) **Every entry is of a type of raft's**:
+`EntryNormal`, `EntryConfChange` or `EntryConfChangeV2`. (Raft itself appends an entry of any
+type it is given; every entry here was built by `Propose`, `ProposeConfChange`, raft's own fillers
+or the bootstrap log.) -/
+theorem readyRest_ents_type (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜∀ e ∈ es, uint.Z e.Type' ≤ 2⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.2.2.2.2.2
+  | some l => exact Hf.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -620,90 +926,9 @@ theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) :
     Membership.applyChange (.v1 cm) (Membership.simple vs) = some (Membership.simple vs) :=
   ApiImpl.memApply_removeAbsent vs cm
 
-/-! ### A dynamic cluster -/
+/-! ### A node's configuration view (2026-10-29, U9: the dynamic cluster `isDynamicCluster` deleted) -/
 
-/-- (open) **The cluster is dynamic** (persistent): raft's dynamic mode, from the membership `c0`,
-its conf-change entries meaning what `decode` says; and raft's no-snapshot mode (raft's dynamic mode
-does not take snapshots: its storages are never compacted past index `1`, `storCap`). -/
-@[no_expose] def isDynamicCluster (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) : IProp GF := ApiImpl.isDynamicCluster γ N c0 decode
-
-instance isDynamicCluster_persistent (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) : Persistent (isDynamicCluster (GF := GF) γ N c0 decode) := by
-  unfold isDynamicCluster; exact ApiImpl.isDynamicCluster_persistent γ N c0 decode
-
-/-- (open) **A message sent in a cluster with leader transfer off** has the shape `SentMsgOk` (no
-`MsgTimeoutNow`, no `MsgTransferLeader`, a `MsgApp` of raft's shape `AppShape`, ...): what a
-receiver's `NetMsgOk` needs (`NetMsgOk.of_sent`) and what rafthttp's msgappv2 codec carries
-whole. -/
-theorem sentMsg_transferOff (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
-    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝ := by
-  unfold leaderTransferOff sentMsg; exact ApiImpl.sentMsg_transferOff_impl γ N src st
-
-/-- **A dynamic cluster sends no snapshot** (raft's no-snapshot mode; today `isRaftMsg_not_snap`). -/
-theorem sentMsg_dynamic_notSnapshot (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) (src : w64) (st : MsgSt) :
-    isDynamicCluster (GF := GF) γ N c0 decode ∗ sentMsg γ N src st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
-  unfold isDynamicCluster sentMsg
-  exact ApiImpl.sentMsg_dynamic_notSnapshot_impl γ N c0 decode src st
-
-/-- **A dynamic cluster's `Ready`s carry no snapshot** (today `readySnapData`'s clause
-`reNoSnap = false`). -/
-theorem readySnap_dynamic (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry)
-    (es : List EntryM) (l : SnapLoan) :
-    isDynamicCluster (GF := GF) γ N c0 decode ∗ readySnap γ N rd st ce es (some l) ⊢ False := by
-  unfold isDynamicCluster
-  exact ApiImpl.readySnap_dynamic_impl γ N c0 decode rd st ce es l
-
-/-- **A node's boot token** of a new dynamic cluster of the peers `ps` with the contexts `ctxs`,
-for node `id`'s `StartNode` (exclusive). -/
-@[no_expose] def nodeDynamicBoot (γ : Cluster) (N : Namespace) (ps : List w64)
-    (ctxs : List (List w8)) (id : w64) : IProp GF := ApiImpl.nodeDynamicBoot γ N ps ctxs id
-
-/-- **A new dynamic cluster** of the peers `ps`, in the caller's namespace `N`, as `cluster_alloc`
-(the client's committed requested entries at the bootstrap entries, the read contexts with none
-used, the read credits, the term budget the cluster's, one boot token per peer), dynamic from the
-peers' membership with the caller's decoder `decode`, and leader transfer on or off as the caller
-chooses (`transfer`). The bootstrap entries are committed but not applied: each node applies them
-again (`node.ApplyConfChange.dynamicSpec`, at the configuration index `0`), so `decode` should give
-them a change that leaves the peers' membership as it is (`Membership.applyChange_addVoter`).
-(Today `raft_dyn_alloc_boot` and `budget_alloc_boot`, with `allocClientGen`'s continuation.) -/
-theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
-    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
-    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
-        [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := by
-  intro Hrb Hrb2 HB Hnd Hne Hnz Hlen
-  iintro Hm
-  imod ApiImpl.dynamicCluster_alloc_impl N ps ctxs boot decode transfer E Hrb HB Hnd Hne Hnz Hlen
-    $$ Hm with ⟨%γ, %Hbl, Ho, Hc, Hr, Hs, Hx, Hb⟩
-  imodintro
-  iexists γ
-  unfold ownCommittedOps ownReadCtxs readCredits nodeDynamicBoot isDynamicCluster leaderTransferOn
-    leaderTransferOff readyFits Cluster.bootLen
-  iframe Ho Hc Hr Hs Hx Hb
-  ipureintro; rw [Hbl]; exact Hrb2
-
-/- (2026-10-27) No empty dynamic cluster (the draft's `dynamicCluster_alloc_empty`,
-`nodeDynamicRestartBoot`, `RestartNode.dynamicSpec`): a dynamic cluster is in raft's no-snapshot
-mode (`isDynamicCluster`), which raft allocates only with a bootstrap log
-(`ownRaftGhost_alloc_core`'s `Hns`: the storage is never compacted past the bootstrap entries), as
-its no-transfer mode (`Hnx`). Without it a dynamic node could be sent a `MsgSnap` it does not take
-(raft's dynamic mode takes none, `NodeNames.snapIn`). etcd's server starts its nodes with
-`StartNode`. -/
-
-/-- (open) **A node's configuration view** (exclusive, one per node; today `nodeCfg`): what
-`node.ApplyConfChange.dynamicSpec` moves and `node.Advance.dynamicSpec` checks. Separate from the
-`Ready` loop's token (`nodeDriver`): an application may apply the conf changes on another goroutine
-than its `Ready` loop (etcd's server applies them on its apply goroutine, and hands the view back
-before `Advance`). -/
-@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
-  ApiImpl.nodeConfig n γ N v
+-- (2026-10-30, stage R3) `nodeConfig` moved to `InvNodeRule.lean`: it holds `confAt`.
 
 /-- (open) **The committed log delivered to node `n` extends `l`** (persistent; today `dlvLb`): what
 `node.ApplyConfChange.dynamicSpec` takes of the entry it applies. -/
@@ -718,6 +943,23 @@ instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l :
 theorem nodeDriver_deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver deliveredLogLb; exact ApiImpl.nodeDriver_deliveredLogLb_impl n γ N st
+
+/-- (2026-11-01, durability stage I-4; candidate 12's `nodeDriver_storDL`) **The `Ready` loop's
+storage holds the committed log it was delivered**: the node on it committed at least that far. -/
+theorem nodeDriver_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢
+      nodeDriver n γ N st ∗ nodeCommitLb γ st.key st.delivered.length := by
+  unfold nodeDriver nodeCommitLb; exact ApiImpl.nodeDriver_nodeCommitLb_impl n γ N st
+
+/-- (2026-11-01, durability stage I-4; the user's `deliveredLogLb ⊢ nodeCommitLb`) **What was
+delivered to the node is committed for its storage**: with its `Ready` loop's token, which names
+the storage's key. -/
+theorem deliveredLogLb_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) (l : List LogEntry) :
+    nodeDriver (GF := GF) n γ N st ∗ deliveredLogLb n γ N l ⊢
+      nodeDriver n γ N st ∗ nodeCommitLb γ st.key l.length := by
+  unfold nodeDriver deliveredLogLb nodeCommitLb
+  exact ApiImpl.deliveredLogLb_nodeCommitLb_impl n γ N st l
 
 theorem deliveredLogLb_mono (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
@@ -745,20 +987,17 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := by
   unfold committedAtTerm isCommittedLogLb; exact ApiImpl.committedAtTerm_committed_impl γ N t c
 
-/-- (open) **The hard state last handed out is a commit witness** (today `hsWit` of `prevHardSt`,
-handed out with each `Ready`), in a dynamic cluster: the zero record, or its term and commit index
-are a `committedAtTerm`, the commit index at least the committed log delivered. (2026-10-27: in a
-dynamic cluster, which takes no snapshot, in place of the draft's "but while a snapshot's loan is
-out": after a snapshot `Ready`, raft's witness bounds the log before the snapshot, and `Advance`
-then hands over the log up to it, which the witness does not bound.) -/
-theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) (st : NodeDriverState) :
-    isDynamicCluster (GF := GF) γ N c0 decode ∗ nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗
-      (⌜st.hardState = hsZero⌝ ∨
-        committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
-          ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := by
-  unfold isDynamicCluster nodeDriver committedAtTerm
-  exact ApiImpl.nodeDriver_hardStateCommitted_impl n γ N c0 decode st
+/-- (2026-10-31) **The `Ready` loop's hard state is committed**: the last non-empty hard state
+handed out (`st.hardState`, what etcd's raft loop records as `raftTerm`) is zero, or a leader of its
+term committed the log through its commit index (`committedAtTerm`), which bounds the committed log
+delivered, after a snapshot `Ready` the log up to the snapshot. -/
+theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
+        ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := by
+  unfold nodeDriver committedAtTerm
+  exact ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st
 
 /-! ### A snapshot the client builds (the snapshot track; open) -/
 
@@ -783,10 +1022,22 @@ theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (src : w64) (st :
   unfold sentMsg committedAtTerm isCommittedLogLb snapshotCert
   exact ApiImpl.sentMsg_replaceSnapshot_impl γ N src st sv sv' c l E
 
-/-- (open) A `MsgSnap` carries no read credit and no forwarded proposal's tickets. -/
-theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    st.msg.Type' = MsgSnap → ⊢ |==> msgCredits (GF := GF) γ N st := by
-  unfold msgCredits; exact ApiImpl.msgCredits_snapshot_impl γ N st
+/-- **In a cluster allocated with `dup`, a `MsgProp`'s credits are persistent** (2026-10-29, S1):
+what `Ready` returns with it, and what `stepIn_intro` takes; a network may step any number of copies
+of it. Every other message's credits come from `msgCredits_none` and `msgCredits_snapshot`. -/
+theorem msgCredits_copy (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    γ.dup = true → msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
+  -- (raft-final, 2026-10-29: of any message, S1's F1; until then of a `MsgProp`, whose credits had
+  -- no read credit)
+  intro Hd
+  by_cases Hp : st.msg.Type' = MsgProp
+  · unfold msgCredits Cluster.dup at *
+    exact ApiImpl.msgCredits_copy_impl γ N st Hd Hp
+  · unfold msgCredits ApiImpl.msgCredits stTks
+    rw [if_neg Hp]
+    iintro -
+    imodintro
+    iempintro
 
 /-! ### The server port's additions (2026-10-27, branch `server-port`; proved the same day, branch
 `raft-api`)
@@ -804,7 +1055,7 @@ draft: `readyFits` taken; the receipts' bound alone, `≤ 2 ^ 64 - 2` past a boo
 theorem isCommittedLogLb_length (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     readyFits (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ ⌜(l.length : Int) + 1 < 2 ^ 64⌝ := by
   unfold readyFits Cluster.bootLen isCommittedLogLb ApiImpl.isCommittedLogLb
-  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb⟩)⟩
+  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb, -⟩)⟩
   · ipureintro; subst Hnil; simp
   · ipureintro; omega
 
@@ -848,6 +1099,26 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   simp only [Prod.mk.injEq] at Hag
   rw [← Hag.2]; exact Hl1
 
+/-- (2026-11-01, durability stage I-3; candidate 12 §3) **What receiving a `Ready` gives** (the
+receive's postcondition; until then spelled out in it, with the loop's token in place of *enter*):
+its committed entries `ce`, the committed log's next entries after those delivered so far, which
+it extends (ungated facts: one node per id runs); its read states, each a `readStateOk`; the rest
+of the `Ready` (`readyRest`: the entries `es` to persist, the messages `ms`, the hard state `h`, the
+soft state `ss`, the snapshot's loan `L`); at role leader the messages sent (`readyLeaderMsgs`);
+and *enter* (`readyEnter`), which gives the loop's token at the state after the `Ready`
+(`NodeDriverState.afterReady`) and the messages sent. -/
+def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) : IProp GF :=
+  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+      (ms : List QMsg) (ss : Option (w64 × StateType)),
+    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+    isCommittedLogLb γ (st.delivered ++ ce) ∗
+    (∃ rs, readStatesPts rd.ReadStates' rs ∗
+      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+    readyRest γ N id rd st ce es h L ms ss ∗
+    readyLeaderMsgs γ N id st ms ss ∗
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's
 token at rest, the node's `Ready` channel is a channel of `Ready`s whose receive gives
@@ -859,66 +1130,10 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
         (£ 1 ∗ £ 1 -∗
-          ▷ (∀ rd : Ready, (∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-              (L : Option SnapLoan),
-              committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-              isCommittedLogLb γ (st.delivered ++ ce) ∗
-              (∃ rs, readStatesPts rd.ReadStates' rs ∗
-                [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-              readyRest γ N id rd st ce es h L ∗
-              nodeDriver n γ N (match L with
-                | none => { st with
-                    delivered := st.delivered ++ ce
-                    hardState := phsNext st.hardState h
-                    handling := some (es, none) }
-                | some l => { st with
-                    delivered := strip l.dlv
-                    hardState := phsNext st.hardState h
-                    handling := some (es, some l) })) -∗ Φ rd true) -∗
+          ▷ (∀ rd : Ready, readyGot n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
   intro Hh
-  unfold isReadyChan isNode nodeDriver
-  iintro Hrc Hn Hdrv
-  icases ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh $$ Hrc Hn Hdrv
-    with ⟨%γc, #Hch, Hau⟩
-  iexists γc
-  iframe Hch
-  iintro Hlc HΦ
-  iapply Hau $$ Hlc
-  inext
-  iintro %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
-  iapply HΦ
-  iexists ce, es, h, L
-  unfold isCommittedLogLb readStateOk
-  iframe Hce Hlb Hrs Hdrv
-  iapply readyRest_of_impl $$ Hrest
-
-/-- (the server port's addition) A boot token of `cluster_alloc` (of peers `ps`, not empty) is of
-a cluster started from a bootstrap log. -/
-theorem nodeBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (id : w64) : ps ≠ [] →
-    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := by
-  intro Hne
-  unfold nodeBoot bootedCluster ApiImpl.nodeBoot
-  iintro ⟨Hs, %Hb, Hrest⟩
-  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
-  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.symm)
-  iframe Hs Hrest
-  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
-
-/-- (the server port's addition) A boot token of `dynamicCluster_alloc` (of peers `ps`, not empty)
-is of a cluster started from a bootstrap log. -/
-theorem nodeDynamicBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64)
-    (ctxs : List (List w8)) (id : w64) : ps ≠ [] →
-    nodeDynamicBoot (GF := GF) γ N ps ctxs id ⊢
-      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := by
-  intro Hne
-  unfold nodeDynamicBoot bootedCluster ApiImpl.nodeDynamicBoot
-  iintro ⟨Hs, %Hb, Hrest⟩
-  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
-  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.1.symm)
-  iframe Hs Hrest
-  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
+  exact ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh
 
 end api
 
@@ -929,44 +1144,6 @@ server, whose committed-log predicates are used across hundreds of its modules).
 that do not use them omit them, `omit ... in`; until 2026-10-27 the server used primed copies of
 them here.) -/
 
-section lawsPure
-variable [GooseExts] [GooseInterp]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-/-- (2026-10-27, the server port's addition; proved: the server's `ccShrink_of_raftOk`, moved
-here) **An `AddNode` of a voter, or of the node `0`, keeps a static cluster's voters**
-(`CCShrink`, `node.ApplyConfChange.spec`'s premise): what etcd's server hands raft in a static
-cluster (the bootstrap entries again, or a refused change with `NodeId` `0`). -/
-theorem ccShrink_addVoter (cfg : GSet w64) (cm : ConfChangeM) (ht : cm.type = W32 0)
-    (hk' : ∃ k, k ∈ cfg ∧ (cm.nodeId = k ∨ cm.nodeId = W64 0)) :
-    CCShrink cfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
-  obtain ⟨k, hk, hid⟩ := hk'
-  have hne : cfg ≠ ∅ := by
-    intro he
-    rw [he] at hk
-    have := (GMap.elem_of_gset _ _).1 hk
-    simp at this
-  rcases hid with hid | hid0
-  · by_cases h0 : cm.nodeId = W64 0
-    · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm h0 hne)
-    · intro lrn Hd
-      refine ⟨lrn, GMap.subseteq_refl _, ?_⟩
-      have hin : cm.nodeId ∈ cfg := by rw [hid]; exact hk
-      have hL : cm.nodeId ∉ lrn := fun h' => Hd _ h' hin
-      have hc : ({ Type' := cm.type, NodeId' := cm.nodeId } : ConfChangeSingleM) =
-          addNodeCC cm.nodeId := by rw [ht]
-      show ccApplyM (W32 0) [{ Type' := cm.type, NodeId' := cm.nodeId }] (cfgState cfg lrn) =
-        some (cfgState cfg lrn)
-      apply ccApplyM_single
-      rw [hc]
-      have := simpleM_cfgState_addNode cfg lrn cm.nodeId h0 hL Hd
-      rw [GMap.insert_id _ _ _ ((GMap.elem_of_gset _ _).1 hin)] at this
-      exact this
-  · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm hid0 hne)
-
-
-end lawsPure
-
 section lawsPure2
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -976,26 +1153,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 bound** (`readyFits`). -/
 theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) :
-    readyFits (GF := GF) γ N ∗ readyRest γ N id rd st ce es h L ⊢
-      readyRest γ N id rd st ce es h L ∗
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyFits (GF := GF) γ N ∗ readyRest γ N id rd st ce es h L ms ss ⊢
+      readyRest γ N id rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
   unfold readyFits readyRest
-  iintro ⟨%Hf, %ms, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn⟩
+  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn, %Hrf⟩
   obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
   isplitl
-  · iexists ms
-    iframe Hes Hm Hms Hh Hss Hsn
-    ipureintro; exact ⟨Lx, H1, Hhd, H3, HLx⟩
+  · iframe Hes Hm Hms Hh Hss Hsn
+    ipureintro; exact ⟨⟨Lx, H1, Hhd, H3, HLx⟩, Hrf⟩
   · ipureintro
     intro e0 he0
     have := Hhd e0 he0
     omega
-
-/-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
-keeps its share in an invariant, opened without a later credit. -/
-instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by
-  unfold readCredits ApiImpl.readCredits rdCred; infer_instance
 
 /-- (2026-10-27, the server port's addition) **A sent `MsgSnap` carries a certified snapshot**
 (raft's `msgCert`: a `MsgSnap`'s snapshot is one of its storage's, whose certificates are the
@@ -1008,20 +1179,6 @@ theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt)
   intro Hty
   unfold sentMsg snapshotCert
   exact ApiImpl.sentMsg_snapshot_impl γ N src st Hty
-
-/-- (2026-10-27, the server port's addition; proved) **A message that carries no credit**: one
-neither a `MsgReadIndex` (a read credit) nor a `MsgProp` (a forwarded proposal's tickets) carries
-none, so its credits can be made anew (`msgCredits_snapshot`'s, for every such type): what a
-network that may deliver such a message twice needs (rafthttp's `NetPayload.dup`). -/
-theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits (GF := GF) γ N st := by
-  intro h1 h2
-  unfold msgCredits ApiImpl.msgCredits stTks
-  rw [ite_eq_right h1, ite_eq_right h2]
-  iintro
-  imod rdCred_zero_upd γ.raft with H
-  imodintro
-  iframe H
 
 end lawsPure2
 
@@ -1044,39 +1201,17 @@ loan `L`, if any. The loop's new state, by whether the `Ready` carries a snapsho
 committed log delivered grows by `ce`; with one, it is the committed log up to the snapshot
 (`strip l.dlv`); either way the hard state after `h` (`phsNext`), busy with `es` and the loan.
 (2026-10-27: the new state stated, not an existential. For etcd's server: the node's `isNode` taken,
-so that its messages are the node `id`'s, `readyRest`.) -/
+so that its messages are the node `id`'s, `readyRest`.) (2026-11-01, durability stage I-3: the post
+is `readyGot`; the loop's token and the messages' `sentMsg` behind *enter*, `readyEnter`.) -/
 theorem node.wp_readyRecv :
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
   {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
-  {{ (rd : Ready), RET (PairV #rd #true);
-      ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan),
-        committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-        isCommittedLogLb γ (st.delivered ++ ce) ∗
-        (∃ rs, readStatesPts rd.ReadStates' rs ∗
-          [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-        readyRest γ N id rd st ce es h L ∗
-        nodeDriver n γ N (match L with
-          | none => { st with
-              delivered := st.delivered ++ ce
-              hardState := phsNext st.hardState h
-              handling := some (es, none) }
-          | some l => { st with
-              delivered := strip l.dlv
-              hardState := phsNext st.hardState h
-              handling := some (es, some l) }) }}
+  {{ (rd : Ready), RET (PairV #rd #true); readyGot n γ N id st rd }}
   := by
   intro n ch γ N id st Hh
-  iintro %Φ Hpre HΦ
-  unfold isReadyChan isNode nodeDriver
-  iapply (ApiImpl.node.wp_readyRecv_impl n ch γ N id st Hh) $$ Hpre
-  iintro !> %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
-  iapply HΦ
-  iexists ce, es, h, L
-  unfold isCommittedLogLb readStateOk
-  iframe Hce Hlb Hrs Hdrv
-  iapply readyRest_of_impl $$ Hrest
+  exact ApiImpl.node.wp_readyRecv_impl n ch γ N id st Hh
 
 end readyRecv
 

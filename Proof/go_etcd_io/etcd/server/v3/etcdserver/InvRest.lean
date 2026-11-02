@@ -12,7 +12,8 @@ environment's `AEnv.RO` (`srvRestOwn`):
 * `restBoot bootLog`: what `bootstrap` and `NewServer`'s constructors leave on a fresh data
   directory: every rest bucket empty but `auth`, which holds the revision `1` (`authBoot`,
   `NewAuthStore`'s `commitRevision`); the in-memory members the boot log's (`memBoot`: the
-  members whose JSON the bootstrap entries' contexts are);
+  members whose JSON the bootstrap entries' contexts are, each keyed by and with its entry's node
+  as its id, `ccMemberAt`; 2026-11-02, the backend-auth-split stage);
 * `restEntry c0 m`: a normal entry's request through `dispatch` (`apply.restAfter`: the cluster
   version and the member attributes), with `v3` iff above `c0`; a conf change through
   `applyConfChange` (`ccRest`: with `v3`, a validated `AddNode` saves the context's member, a
@@ -83,6 +84,99 @@ tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
 def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : ConfChangeM) : Bool :=
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
+/-- **Buckets with no records decode to no members** (2026-10-31, the user's decision; a trust-boundary
+axiom on the opaque `membersOfBk`, `notes/axiom-review/members-empty.md`: survives). `readMembersFromBackend`
+(`server/storage/schema/membership.go:91-123`) makes both maps and writes them only in the
+`UnsafeForEach` callbacks over the `members` and `members_removed` buckets, so over buckets with no
+keys (or absent ones, which read empty) it returns two empty maps and no error. What makes a fresh
+backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
+axiom membership.membersOfBk_empty [GooseExts] (bk : GMap GoString backend.BktData)
+    (hm : (bk.lookup go!"members").getD ∅ = ∅) (hr : (bk.lookup go!"members_removed").getD ∅ = ∅) :
+    membership.membersOfBk bk = (∅, ∅)
+
+/-- The membership buckets `MustReadMembersFromBackend` reads: `members`, `members_removed`. -/
+def membership.memberBkts [GooseExts] (n : GoString) : Prop :=
+  n = go!"members" ∨ n = go!"members_removed"
+/-- The buckets `RaftCluster.Recover` reads (`UnsafeLoad`): the members' and `cluster`. -/
+def membership.clusterBkts [GooseExts] (n : GoString) : Prop :=
+  membership.memberBkts n ∨ n = go!"cluster"
+/-- The auth buckets (`auth`, `authUsers`, `authRoles`: schema's `Auth`, `AuthUsers`, `AuthRoles`),
+which `NewAuthStore` creates and the auth store's `Recover` reads (2026-11-02, the
+backend-auth-split stage). -/
+def auth.authBkts [GooseExts] (n : GoString) : Prop :=
+  n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
+
+/-- **The membership buckets of `bk` are as the apply thread writes them** (defined, 2026-11-01:
+the backend-auth-split stage's review, in place of an opaque decoding premise): every entry of
+`members` is a member's key and encoding (`memberKey id ↦ memberEnc mm`: `BackendMemberKey`'s
+canonical hex, `json.Marshal` of a non-nil `*Member`, never `null`), every key of
+`members_removed` a member's key. What `MustReadMembersFromBackend` needs to return a record per
+key and not panic. -/
+def membership.membersDecode [GooseExts] (bk : GMap GoString backend.BktData) : Prop :=
+  (∀ k v, ((bk.lookup go!"members").getD ∅).lookup k = some v →
+    ∃ mm : apply.MemberM, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm) ∧
+  (∀ k v, ((bk.lookup go!"members_removed").getD ∅).lookup k = some v → ∃ id, k = apply.memberKey id)
+
+/-- Empty membership buckets decode (no entry; 2026-11-02, the backend-auth-split stage). -/
+theorem membership.membersDecode_empty [GooseExts] (bk : GMap GoString backend.BktData)
+    (hm : (bk.lookup go!"members").getD ∅ = ∅) (hr : (bk.lookup go!"members_removed").getD ∅ = ∅) :
+    membership.membersDecode bk := by
+  refine ⟨fun k v h => ?_, fun k v h => ?_⟩
+  · rw [hm] at h; simp at h
+  · rw [hr] at h; simp at h
+
+/-- A put in another bucket keeps the decoding (`restSetVersion`'s `cluster` put). -/
+theorem membership.membersDecode_other [GooseExts] (bk : GMap GoString backend.BktData)
+    (n k v : GoString) (h : ¬ membership.memberBkts n) (hd : membership.membersDecode bk) :
+    membership.membersDecode (apply.bkPut bk n k v) := by
+  unfold membership.memberBkts at h
+  have h1 : n ≠ go!"members" := fun e => h (Or.inl e)
+  have h2 : n ≠ go!"members_removed" := fun e => h (Or.inr e)
+  unfold apply.bkPut
+  rw [membership.membersDecode, GMap.lookup_insert_ne _ _ h1, GMap.lookup_insert_ne _ _ h2]
+  exact hd
+
+/-- A member's record saved under its own id's key keeps the decoding (`restUpdateAttrs`,
+`ccRest`'s `AddNode`). -/
+theorem membership.membersDecode_putMember [GooseExts] (bk : GMap GoString backend.BktData)
+    (mm : apply.MemberM) (hd : membership.membersDecode bk) :
+    membership.membersDecode
+      (apply.bkPut bk go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) := by
+  have hne : go!"members" ≠ go!"members_removed" := by decide
+  unfold apply.bkPut
+  rw [membership.membersDecode, GMap.lookup_insert_ne _ _ hne, GMap.lookup_insert]
+  refine ⟨fun k v h => ?_, hd.2⟩
+  simp only [Option.getD_some, GMap.lookup_insert_eq_iff] at h
+  split at h
+  next e => cases h; exact ⟨mm, e.symm, rfl⟩
+  next => exact hd.1 k v h
+
+/-- A delete from `members` keeps the decoding (`ccRest`'s `RemoveNode`). -/
+theorem membership.membersDecode_delMember [GooseExts] (bk : GMap GoString backend.BktData)
+    (k : GoString) (hd : membership.membersDecode bk) :
+    membership.membersDecode (apply.bkDel bk go!"members" k) := by
+  have hne : go!"members" ≠ go!"members_removed" := by decide
+  unfold apply.bkDel
+  rw [membership.membersDecode, GMap.lookup_insert_ne _ _ hne, GMap.lookup_insert]
+  refine ⟨fun k' v h => ?_, hd.2⟩
+  simp only [Option.getD_some, GMap.lookup_delete_iff] at h
+  split at h
+  · cases h
+  · exact hd.1 k' v h
+
+/-- A removed member's key recorded keeps the decoding (`ccRest`'s `RemoveNode`). -/
+theorem membership.membersDecode_putRemoved [GooseExts] (bk : GMap GoString backend.BktData)
+    (id : w64) (v : GoString) (hd : membership.membersDecode bk) :
+    membership.membersDecode (apply.bkPut bk go!"members_removed" (apply.memberKey id) v) := by
+  have hne : go!"members_removed" ≠ go!"members" := by decide
+  unfold apply.bkPut
+  rw [membership.membersDecode, GMap.lookup_insert_ne _ _ hne, GMap.lookup_insert]
+  refine ⟨hd.1, fun k v' h => ?_⟩
+  simp only [Option.getD_some, GMap.lookup_insert_eq_iff] at h
+  split at h
+  next e => exact ⟨id, e.symm⟩
+  next => exact hd.2 k v' h
+
 /-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
 (`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
 `applyConfChange` checks against the change's `NodeId`). -/
@@ -131,10 +225,15 @@ def restBootBk [GooseExts] : GMap GoString backend.BktData :=
     go!"members_removed" ∅).insert go!"cluster" ∅
 
 /-- **The in-memory members `bootstrap` makes** for the boot log `bootLog`: each bootstrap
-entry's change's node, the member its context (the member's JSON) unmarshals to. -/
+entry's change's node, the member its context (the member's JSON) unmarshals to, with the node as
+its id (`ccMemberAt`; 2026-11-02, the backend-auth-split stage: until then `ccMemberOf cc.context`,
+whose id the model left open). True of Go: `bootstrapRaftFromCluster` builds each peer's context as
+`json.Marshal(cl.Member(id))` with `Peer{ID: uint64(id)}`, and the cluster's map is keyed by the
+member's own `ID` (`membership.NewClusterFromURLsMap`, `cl.members[m.ID] = m`), so the member in
+memory under `nodeId` has id `nodeId`. -/
 def memBoot [GooseExts] (bootLog : List EntryM) : GMap w64 apply.MemberM :=
   bootLog.foldl (fun mem e => match ccDecodeV1 e.Data' with
-    | some cc => mem.insert cc.nodeId (membership.ccMemberOf cc.context)
+    | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
     | none => mem) ∅
 
 /-- **The rest buckets and members at the start** (see the file header). -/
@@ -217,6 +316,18 @@ theorem restModel_keep [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List 
 theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
     restModel c0 bootLog [] = restBoot bootLog := rfl
 
+/-- (2026-10-31, S5) **A fresh backend validates an `AddNode`**: its members buckets are empty
+(`membersOfBk_empty`), so no member, no removed one, no peer URL taken. -/
+theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0) :
+    membership.ccValidOn restBootBk m = true := by
+  unfold membership.ccValidOn
+  rw [membership.membersOfBk_empty restBootBk (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
+    (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])]
+  simp only [decide_eq_true_eq]
+  refine ⟨by simp, ?_⟩
+  rw [if_pos ht]
+  refine ⟨by simp, fun u _ ⟨k, pus, hk, _⟩ => by simp at hk⟩
+
 theorem restModel_append [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (m : EntryModel) :
     restModel c0 bootLog (L ++ [m]) = restEntry c0 m (restModel c0 bootLog L) := by
@@ -293,19 +404,38 @@ theorem restBootBk_of_fresh [GooseExts] (d : mvcc.KBReal) (D : backend.Data)
     simp [Ne.symm h1, Ne.symm h2, Ne.symm h3, Ne.symm h4, Ne.symm h5, Ne.symm h6, Ne.symm h7,
       Ne.symm h8]
 
+/-- **Every member the model keeps has its key as its id** (moved here from `RestMemId.lean`
+2026-11-02, the backend-auth-split stage: `srvRestOwn` holds it). -/
+def memIdOk (mem : GMap w64 apply.MemberM) : Prop :=
+  ∀ id m, mem.lookup id = some m → m.id = id
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /- `membership.clusterMem` (the cluster's in-memory members) is defined in the membership
 package's `Defs.lean` since D43 M5b (2026-10-26; opaque here until then). -/
 
-/-- **The server's `AEnv.RO`**: the backend `γB`'s tracked buckets' client half and the cluster
-`c`'s in-memory members, at `r`. -/
+/-- **The server's `AEnv.RO`** (restated 2026-11-01, the backend-auth-split stage): the backend
+`γB`'s tracked buckets at `r.bk` — **the cluster's buckets idle** (`rbOwnIn γB
+membership.clusterBkts`: `members`, `members_removed`, `cluster`, which the apply thread's readers
+`MustReadMembersFromBackend` and `RaftCluster.Recover` read through read transactions) and the
+others as a part (`rbPart γB (¬ clusterBkts ·)`: the lessor's, the auth store's, the alarm store's;
+the alarm and auth stores write them through `RW`, only the lessor's revocation through this part,
+inside sessions whose contracts give back a part) — and the cluster `c`'s in-memory members
+at `r.mem`, each member under its own id (`memIdOk r.mem`, 2026-11-02, round 5: Go saves a member
+under `BackendMemberKey(m.ID)`, the model's `restUpdateAttrs` under `memberKey a.memberID`; they
+agree because the member under `a.memberID` has that id; true of Go: `c.members` is keyed by each
+member's `ID`). Until 2026-11-01 the whole writer's half
+`rbOwn γB r.bk`. -/
 def srvRestOwn (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
-  iprop(backend.rbOwn γB r.bk ∗ membership.clusterMem c r.mem)
+  iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
+    backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMem c r.mem ∗
+    ⌜memIdOk r.mem⌝)
+
 
 /-- **The server's `AEnv.RW`**: the backend's tracked buckets' client half at some value (what
 the stores' writers the workload does not reach would need; the apply thread holds it at its
@@ -366,8 +496,12 @@ def clusterBeOn (c be : Loc) : IProp GF :=
 
 /-- **The membership buckets of an image good for the cluster `c`** (opaque, a premise about the
 images a member applies; D22 receiver epochs, S8d, W6, 2026-10-25): the `members`,
-`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) decode (`MustReadMembersFromBackend`'s
-keys and JSON values, the cluster version, the downgrade record), the members include `c`'s local
+`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) are as the apply thread writes them:
+every `members` entry a member's key and encoding under its own id (`memberKey mm.id ↦ memberEnc
+mm`, a JSON object, as `membersDecode`; so `mem'` keeps each member under its id, `json.Unmarshal`
+setting `ID` from the JSON: so `UnsafeLoad`'s `MustReadMembersFromBackend` gives a non-nil member
+per key, which `Recover`'s loop dereferences), every `members_removed` key a member's key,
+`cluster` the version `semverNorm` writes and no downgrade record; the members include `c`'s local
 member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
 peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
 server (no downgrade); (2026-10-25, the user's decision) the members it decodes to are `ms`

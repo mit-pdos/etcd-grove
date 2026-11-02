@@ -514,18 +514,19 @@ configuration index just after the winner's, so its quorum meets the winning one
 adjacent case (`lc_adj`) puts its log, up to the entry, into the campaign log: two conf entries
 past the campaign's commit index, against I1 at the campaign. -/
 theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
-    (c : w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64)
+    (c : w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64) (MW : DecMap)
     (IH : LcIH (GF := GF) γ T) :
     uint.Z t < uint.Z T → CampOk T F0 →
     ConfI1 F0 (uint.Z kw).toNat →
-    CfgAt γ (F0.take (uint.Z kw).toNat) cW → JQuorum cW V →
+    CfgAt γ MW (F0.take (uint.Z kw).toNat) cW → JQuorum cW V →
     confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat) →
     -- (2026-10-25, T-M M2a) the commit fact's log starts with the boot log (`cq_boot`)
     γ.reBoot <+: F →
     ⊢ votesTbl (GF := GF) γ -∗ cqDyn γ t F a -∗ isWin γ c T V -∗ isCamp γ c T F0 -∗
-      logRecs γ base0 F0 -∗ isCommitted γ (F0.take (uint.Z kw).toNat) -∗ ⌜False⌝ := by
+      logRecs γ base0 F0 -∗ isCommitted γ (F0.take (uint.Z kw).toNat) -∗ decLb γ MW -∗
+      ⌜False⌝ := by
   intro HtT Hcok HI1 HcfgW HjW Hcc HbF
-  iintro HS #Hd #Hwin #Hc #HrF0 #HcF0
+  iintro HS #Hd #Hwin #Hc #HrF0 #HcF0 #HMW
   have HwF0 := Hcok.1
   iunfold cqDyn at Hd
   icases Hd with ⟨-, #Hwit⟩
@@ -539,12 +540,15 @@ theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
       hp2 hc2
   ihave Hw := Hwit $$ %k2 %(And.intro hp2 hk2) %Hb
   icases Hw with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
-  icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
+  icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, %Hpw, #HMHcqw, -, #HcGw, #Hackw, -⟩
   icases isCommitted_agree γ _ _ $$ HcGw HcF0 with %Hpre
   obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
   have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0.take (uint.Z kw).toNat) + 1 := by
     rw [Hcw, hc2]
-  have Hov := CfgAt.overlap_adj Hpre (by omega) (by omega) Hpw.2.2.1 HcfgW
+  icases decLb_compat γ MHcqw MW $$ [HMHcqw HMW] with %Hcm
+  · iframe HMHcqw HMW
+  have Hov := CfgAt.overlap_adj Hcm Hpre (by omega) (by omega) Hpw.2.2.1 HcfgW
+
   have Hmeet := Hov qw V Hpw.2.2.2 HjW
   ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
   icases lc_adj γ T tw nw Gw c F0 F0 qw V IH (by omega) HwF0 (camp_last T F0 Hcok) Hmeet
@@ -589,13 +593,13 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   iintro HS #Hcq #Hl #Hc #HrG
   -- the commit quorum and its configuration
   icases cq_cqAt γ t n F $$ Hcq with ⟨%a, %cQ, %q, #Hcqa⟩
-  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨%Hq, -, -, #Hacks, -⟩
+  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨%MHcqa, %Hq, #HMHcqa, -, -, #Hacks, -⟩
   -- the winning quorum and its configuration
   iunfold isLeader at Hl
   icases Hl with ⟨%V, #Hwin⟩
   icases isWin_core γ c T V $$ Hwin with ⟨%cW, #Hcore⟩
   iunfold isWinCore at Hcore
-  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, #HcK, -, #Hvs⟩
+  icases Hcore with ⟨%γw, %F0w, %kw, %MW, %Hw, #HcK, -, #Hvs, #HMW⟩
   -- Static, the two recorded configurations overlap. Dynamic (2026-10-14, stage B5), the case
   -- split on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
   cases HD : γ.dyn with
@@ -604,7 +608,7 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
   | some D =>
   have Hdyn : γ.reDyn ≠ none := fun h => by rw [RaftNames.dyn_none h] at HD; cases HD
-  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨-, -, #HcF, -, #HdF⟩
+  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨%MHcqa2, -, -, -, #HcF, -, #HdF⟩
   ihave #HdF' := dynOn_elim γ _ Hdyn $$ HdF
   ihave #HdF2 := HdF'
   iunfold cqDyn at HdF2
@@ -630,7 +634,9 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   icases isCommitted_agree γ _ _ $$ HcF HcF0 with %Hpre
   by_cases Hadj : confCount (F.take (uint.Z a).toNat) ≤ confCount (F0.take (uint.Z kw).toNat) + 1 ∧
       confCount (F0.take (uint.Z kw).toNat) ≤ confCount (F.take (uint.Z a).toNat) + 1
-  · have Hmeet := CfgAt.overlap_adj Hpre Hadj.2 Hadj.1 Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
+  · icases decLb_compat γ MHcqa MW $$ [HMHcqa HMW] with %Hcm
+    · iframe HMHcqa HMW
+    have Hmeet := CfgAt.overlap_adj Hcm Hpre Hadj.2 Hadj.1 Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
     iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
   · rcases (by omega : confCount (F.take (uint.Z a).toNat) + 2 ≤ confCount (F0.take (uint.Z kw).toNat) ∨
         confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat))
@@ -638,8 +644,9 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     · iapply lc_far_newer γ T t n F a F0 G kw tmc IH HtT Hcp.1 HwG HGl Hcok Hkle HI1F Hfar
         $$ HS Hcq HrF0c HcmF0 HrG
     · icases cq_boot γ t n F $$ Hcq with %HbF
-      icases lc_far_older γ T t F a c F0 kw cW V IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar HbF.1
-        $$ HS HdF' Hwin Hc HrF0c HcF0 with %Hf
+      icases lc_far_older γ T t F a c F0 kw cW V MW IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar HbF.1
+        $$ HS HdF' Hwin Hc HrF0c HcF0 HMW with %Hf
+
       exact Hf.elim
 
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
@@ -914,7 +921,11 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       [∗map] d ↦ p ∈ R, propSlot γ d p (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
     | none =>
-      imod noopAu_fire γ (G.take m) e Hidx Hrb $$ Hnoop Ho Hv with Hv
+      ihave #Hev : ev2At γ (G.take m) e $$ []
+      · unfold ev2At
+        iintro %Hc
+        iapply logRecs_ev2 γ G m e Hwf He Hc.1 Hc.2.1 Hc.2.2 $$ Hr
+      imod noopAu_fire γ (G.take m) e Hidx Hrb $$ Hnoop Ho Hev Hv with Hv
       imodintro
       iframe Hv Hra
       iapply BigSepM.bigSepM_impl $$ Hs
@@ -927,6 +938,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       ihave #Hi := entDataIs_idx γ e d $$ Ho
       iunfold propIdx at Hi
       icases Hi with ⟨%p, %k, %γt, #Hdq, #Hkf, #Hv0⟩
+      -- (2026-10-29, S1) `Hv0`: the ticket spent at the entry's index, or (in a `dup` cluster) kept
       icases ghost_map_lookup $$ Hra Hdq with %HRd
       icases (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
@@ -940,31 +952,52 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       -- not fired before: a fired deposit's index is within the log, the entry's is past it
       icases Hdk with (⟨%Qk, #Hspk, Hau⟩ | ⟨%i, #Hvi, %Hi⟩)
       rotate_left
-      · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (some e.Index')
-          DFrac.discard $$ Hvi Hv0
-        cases Hii
-        exfalso; omega
+      · icases Hv0 with (#Hv0 | ⟨-, #Hv0⟩)
+        · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (some e.Index')
+            DFrac.discard $$ Hvi Hv0
+          cases Hii
+          exfalso; omega
+        · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (none : Option w64)
+            DFrac.discard $$ Hvi Hv0
+          cases Hii
+      -- (2026-10-29, S1) the update to fire, and the deposit after: fired at the entry's index, or
+      -- (in a `dup` cluster) left in place
+      ihave ⟨Hau, Hdk'⟩ : propAu1 γ d Qk ∗ depSlot γ d p.1 γt (G.take m ++ [e]) $$ [Hau]
+      · unfold depSlot
+        cases hd : γ.dup
+        · simp only [intuitionisticallyIf_false', Bool.false_eq_true]
+          iframe Hau
+          iright
+          iexists e.Index'
+          icases Hv0 with (#Hv0 | ⟨%Hf, -⟩)
+          · iframe Hv0
+            ipureintro
+            simp only [List.length_append, List.length_singleton]
+            push_cast; omega
+          · exact absurd Hf (by decide)
+        · simp only [intuitionisticallyIf_true]
+          icases Hau with #Hau
+          isplitr
+          · iexact Hau
+          ileft
+          iexists Qk
+          iframe Hspk
+          imodintro
+          iexact Hau
       imod propAu1_fire γ d Qk (G.take m) e Hidx Hrb $$ Hau Ho Hv with ⟨Hv, #HQ⟩
       imodintro
       iframe Hv Hra
       iapply (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
-      isplitl [Hfr HKa Hdeps]
+      isplitl [Hfr HKa Hdeps Hdk']
       · iframe Hfr
-        iapply propSlot_fire γ d p (G.take m) e $$ [] Hres [HKa Hdeps]
+        iapply propSlot_fire γ d p (G.take m) e $$ [] Hres [HKa Hdeps Hdk']
         · unfold qRes; iexists Qk; iframe Hspk HQ
         iexists K
         iframe HKa
         iapply (BigSepM.bigSepM_delete (Φ := fun (_k : Nat) (γt : GName) =>
           depSlot (GF := GF) γ d p.1 γt (G.take m ++ [e])) HKk).2
-        isplitr
-        · unfold depSlot
-          iright
-          iexists e.Index'
-          iframe Hv0
-          ipureintro
-          simp only [List.length_append, List.length_singleton]
-          push_cast; omega
+        iframe Hdk'
         iapply BigSepM.bigSepM_impl $$ Hdeps
         imodintro
         iintro %k' %γt' %_ Hd
@@ -1201,8 +1234,8 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
   ihave #Hl' : isLeader γ id' T $$ []
   · unfold isLeader; iexists q'; iexact Hwin'
   iunfold isWinCore at H H'
-  icases H with ⟨%γw, %F0, %k, %Hw, #HcK, -, #Hvs⟩
-  icases H' with ⟨%γw', %F0', %k', %Hw', #HcK', -, #Hvs'⟩
+  icases H with ⟨%γw, %F0, %k, %MW, %Hw, #HcK, -, #Hvs, #HMW⟩
+  icases H' with ⟨%γw', %F0', %k', %MW', %Hw', #HcK', -, #Hvs', #HMW'⟩
   cases HD : γ.dyn with
   | none =>
     ipureintro
@@ -1228,8 +1261,10 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
   icases isCommitted_agree γ _ _ $$ HcF0 HcF0' with %Hpre
   by_cases Hadj : confCount (F0.take (uint.Z k).toNat) ≤ confCount (F0'.take (uint.Z k').toNat) + 1 ∧
       confCount (F0'.take (uint.Z k').toNat) ≤ confCount (F0.take (uint.Z k).toNat) + 1
-  · ipureintro
-    exact CfgAt.overlap_adj Hpre Hadj.2 Hadj.1 Hw.2.2 Hw'.2.2 V q' Hw.2.1 Hw'.2.1
+  · icases decLb_compat γ MW MW' $$ [HMW HMW'] with %Hcm
+    · iframe HMW HMW'
+    ipureintro
+    exact CfgAt.overlap_adj Hcm Hpre Hadj.2 Hadj.1 Hw.2.2 Hw'.2.2 V q' Hw.2.1 Hw'.2.1
   rcases (by omega : confCount (F0'.take (uint.Z k').toNat) + 2 ≤ confCount (F0.take (uint.Z k).toNat) ∨
       confCount (F0.take (uint.Z k).toNat) + 2 ≤ confCount (F0'.take (uint.Z k').toNat)) with Hfar | Hfar
   · -- the table's winner is older: the new winner's campaign witness, adjacent to it
@@ -1246,12 +1281,14 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
         (by rw [take_of_prefix HbF0'.1 (by omega), take_of_prefix HbF0.1 (by omega)]) hp2 hc2
     ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
-    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
+    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, %Hpw, #HMHcqw, -, #HcGw, #Hackw, -⟩
     icases isCommitted_agree γ _ _ $$ HcGw HcF0' with %Hpre2
     obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
     have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0'.take (uint.Z k').toNat) + 1 := by
       rw [Hcw, hc2]
-    have Hmeet := CfgAt.overlap_adj Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw'.2.2 qw q'
+    icases decLb_compat γ MHcqw MW' $$ [HMHcqw HMW'] with %Hcm
+    · iframe HMHcqw HMW'
+    have Hmeet := CfgAt.overlap_adj Hcm Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw'.2.2 qw q'
       Hpw.2.2.2 Hw'.2.1
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases lc_adj γ T tw nw Gw id' F0' F0' qw q' IH (by omega) Hcok'.1 (camp_last T F0' Hcok') Hmeet
@@ -1280,13 +1317,16 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
         (by rw [take_of_prefix HbF0.1 (by omega), take_of_prefix HbF0'.1 (by omega)]) hp2 hc2
     ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
-    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
+    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, %Hpw, #HMHcqw, -, #HcGw, #Hackw, -⟩
     icases isCommitted_agree γ _ _ $$ HcGw HcF0 with %Hpre2
     obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
     have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0.take (uint.Z k).toNat) + 1 := by
       rw [Hcw, hc2]
-    have Hmeet := CfgAt.overlap_adj Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw.2.2 qw V
+    icases decLb_compat γ MHcqw MW $$ [HMHcqw HMW] with %Hcm
+    · iframe HMHcqw HMW
+    have Hmeet := CfgAt.overlap_adj Hcm Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw.2.2 qw V
       Hpw.2.2.2 Hw.2.1
+
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
     icases lc_adj_gen γ T tw nw Gw id F0 F0 qw V IH (by omega) Hcok.1 (camp_last T F0 Hcok) Hmeet
@@ -1346,11 +1386,11 @@ theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
     -- the voter voted once in `T`: the entry's winner is `id`
     ihave #Hvotes : iprop([∗map] v ↦ _u ∈ toMap V, isVote (GF := GF) γ v T id) $$ []
     · iunfold isWinCore at Hw
-      icases Hw with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      icases Hw with ⟨%γw, %F0, %k, %M, -, -, -, #Hv, -⟩
       iexact Hv
     ihave #Hvotes' : iprop([∗map] v ↦ _u ∈ toMap q', isVote (GF := GF) γ v T id') $$ []
     · iunfold isWinCore at Hr
-      icases Hr with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      icases Hr with ⟨%γw, %F0, %k, %M, -, -, -, #Hv, -⟩
       iexact Hv
     ihave #Hvs := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T id)
       ((GMap.elem_of_gset _ _).mp HvV) $$ Hvotes
@@ -1361,8 +1401,8 @@ theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
     -- and its quorum is the one frozen in `id`'s `reWins`
     ihave %Hq : ⌜V = q'⌝ $$ []
     · iunfold isWinCore at Hw Hr
-      icases Hw with ⟨%γw, %F0, %k, %Hw1, -, #Hf1, -⟩
-      icases Hr with ⟨%γw', %F0', %k', %Hw2, -, #Hf2, -⟩
+      icases Hw with ⟨%γw, %F0, %k, %M, %Hw1, -, #Hf1, -⟩
+      icases Hr with ⟨%γw', %F0', %k', %M', %Hw2, -, #Hf2, -⟩
       rw [Hw1.1] at Hw2
       obtain ⟨Hw2, -⟩ := Hw2
       cases Hw2

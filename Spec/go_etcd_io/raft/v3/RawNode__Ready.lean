@@ -52,7 +52,8 @@ The `Ready` it returns:
   (`appendRight`, 2026-10-10: the storage's hand-out law, `InvStorage.lean`), which an
   implementation's `Append` turns into the receipt `ownRawNode_appended` takes back --
   on the application's goroutine, while the node keeps reading the storage;
-- `Messages`: the application's slice, to send; each message is `isRaftMsg`, and
+- `Messages`: the application's slice, to send; each message is `isRaftMsg` once the batch is
+  entered (*enter*, below; at role leader at once: since 2026-11-01, until then outright), and
   (2026-10-13) comes with its read credit (`rdCred`: one for a `MsgReadIndex`, none
   otherwise), which the transport passes to the receiver's `Step`;
 - `Snapshot` empty (no snapshot pending);
@@ -74,20 +75,49 @@ the node's way back and is dropped with the queues: the application gets respons
 `readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
 `ReadState`s' contexts are bytes (D6), `readStateRaw` over `ReadStateM`. (D22 S-d3a, 2026-10-21) With
 a snapshot pending (until then a premise `rs.psnap = false`): handed out with the storage itself,
-the loan `L` recorded (`RawNode.readyWithoutAccept.spec`, `RawNode.acceptReady.spec`). -/
+the loan `L` recorded (`RawNode.readyWithoutAccept.spec`, `RawNode.acceptReady.spec`).
+
+(2026-11-01, durability stage II (k); the user's decision) **Restated like the node API's
+receive** (`readyGot`): `RawNode` has no `run` goroutine, so the batch is cut inside `Ready` itself
+(`ownRawNodeReady_handout`), in the node's generation `g` (a share of it, `slotLive`, and its free
+queue, `slotFree`); the messages' facts come with *enter* (`Henter`, moving the application's
+durable half `ownDurGhost` from `rs.dur` to the batch's state, which also gives back the free queue
+and the batch's fragments `durFrags γ id W`, what `Advance` takes) and at role leader at once
+(`Hlead`); the read states as before. -/
 abbrev RawNode.Ready.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (q : Qp) (g : Nat),
   rs.steps = [] →
   rs.unpersisted = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNode γ rn id rs }}
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
+      -- (2026-11-01, durability stage II (k)) the node's generation `g` of its id's slot: a share
+      -- (the node being live), and its free queue, in which the `Ready` cuts its batch
+      "Hlive" ∷ slotLive γ id q g ∗ "Hfree" ∷ slotFree γ id g }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
-      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan), RET #rd;
+      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan)
+      (ss : Option (w64 × StateType)) (W : DurMaps), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
-                  slent := L } ∗
+                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  role := roleAfter rs.role ss, bw := W } ∗
+      "Hlive" ∷ slotLive γ id q g ∗
+      -- (2026-11-01, durability stage II (k)) **enter** (the node API's `readyEnter`): when the
+      -- application enters the batch's durable state (`readyDurable`; a durable application: in the
+      -- write that makes it durable), with a share of the generation (a stopped node's batch is
+      -- dead), the durable half moves to it, and it gets the generation's free queue (for the next
+      -- `Ready`), the batch's fragments (`durFrags`, what `Advance` takes: `RawNode.Advance.spec`)
+      -- and the messages' `isRaftMsg` (until then given here outright)
+      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗
+        ownDurGhost γ id rs.dur ∗ slotLive γ id q' g ={E}=∗
+          ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ slotLive γ id q' g ∗
+          slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (2026-11-01, durability stage II (k)) at role leader (after the `Ready`'s soft state) the
+      -- messages may be sent first (the node API's `readyLeaderMsgs`)
+      "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (2026-11-01, durability stage I fix G2) the soft state the node records
+      "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -95,7 +125,6 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- each message's read credit (2026-10-13)
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
@@ -112,10 +141,16 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`
       -- after the `Ready` (`phsNext`)
-      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length ∗
       -- the right to append `es` to the node's storage (2026-10-10); (D22 S-d3a) with a snapshot,
-      -- the storage itself (`readyOut`)
-      "Happ" ∷ readyOut rs.storage es L }}
+      -- the storage itself (`readyOut`); (U8 v2, raft-final phase 1) over the ranges: the log from
+      -- the batch on, or after a snapshot from an index at most it with the snapshot handed out
+      "Happ" ∷ readyOut rs.storage rs.sn es L ∗
+      -- (U8 v2) the committed entries below the batch, frozen, and raft's certified terms of the
+      -- committed log handed out (`ownRawNodeReady_handout`)
+      "#Hfrz" ∷ (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
+      "#Hdk" ∷ dlvKeysAt rs.sn rs.delivered.length
+        ((dlvAfter rs.delivered ce L).drop rs.delivered.length) }}
 
 end spec
 

@@ -31,7 +31,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseKeepAlive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseTimeToLive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__leaseKeepAlive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewClusterServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
@@ -49,16 +53,20 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterWatchServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SetProgressReportInterval
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_AuthEnable_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_Authenticate_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleAdd_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleGrantPermission_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserAdd_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserGrantRole_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseGrant_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseRevoke_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
@@ -166,6 +174,7 @@ public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -216,6 +225,22 @@ theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem zap.wp_Error :
+    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Error.wp_proof
+
+theorem prometheus.CounterVec.wp_WithLabelValues :
+    EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.prometheus.CounterVec.WithLabelValues.wp_proof
+
 theorem wp_newHeader :
     EtcdGrove.v3rpc.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newHeader.wp_proof
@@ -228,10 +253,6 @@ theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
 
-theorem zap.Logger.wp_Warn :
-    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
-
 theorem zap.wp_Duration :
     EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Duration.wp_proof
@@ -239,10 +260,6 @@ theorem zap.wp_Duration :
 theorem config.ServerConfig.wp_MaxRequestBytesWithOverhead :
     EtcdGrove.config.ServerConfig.MaxRequestBytesWithOverhead.spec (GF := GF) (hG := hG) :=
   EtcdGrove.config.ServerConfig.MaxRequestBytesWithOverhead.wp_proof
-
-theorem zap.wp_Error :
-    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Error.wp_proof
 
 theorem api.wp_IsCapabilityEnabled :
     EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
@@ -263,10 +280,6 @@ theorem utf8.wp_word :
 theorem utf8.wp_ValidString :
     EtcdGrove.utf8.ValidString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.utf8.ValidString.wp_proof utf8.wp_word
-
-theorem prometheus.CounterVec.wp_WithLabelValues :
-    EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.CounterVec.WithLabelValues.wp_proof
 
 theorem zap.wp_String :
     EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
@@ -359,10 +372,6 @@ theorem time.Duration.wp_Seconds :
 theorem time.Duration.wp_Seconds_ptr :
     EtcdGrove.time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Duration.Seconds_ptr.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
 
 end links
 
@@ -467,9 +476,29 @@ theorem LeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseGrant.wp_proof wp_togRPCError header.wp_fill
 
+theorem wp_isClientCtxErr :
+    EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
+
+theorem LeaseServer.wp_leaseKeepAlive :
+    EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.wp_proof errors.wp_Is wp_togRPCError header.wp_fill wp_isClientCtxErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+
+theorem LeaseServer.wp_LeaseKeepAlive :
+    EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.wp_proof LeaseServer.wp_leaseKeepAlive
+
+theorem LeaseServer.wp_LeaseLeases :
+    EtcdGrove.v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseLeases.wp_proof _root_.Perennial.errors.wp_Is wp_togRPCError header.wp_fill
+
 theorem LeaseServer.wp_LeaseRevoke :
     EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.wp_proof wp_togRPCError header.wp_fill
+
+theorem LeaseServer.wp_LeaseTimeToLive :
+    EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.wp_proof _root_.Perennial.errors.wp_Is wp_togRPCError header.wp_fill
 
 theorem wp_NewAuthServer :
     EtcdGrove.v3rpc.NewAuthServer.spec (GF := GF) (hG := hG) :=
@@ -651,6 +680,10 @@ theorem etcdserverpb.wp__Auth_AuthEnable_Handler :
     EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.wp_proof
 
+theorem etcdserverpb.wp__Auth_Authenticate_Handler :
+    EtcdGrove.etcdserverpb._Auth_Authenticate_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_Authenticate_Handler.wp_proof
+
 theorem etcdserverpb.wp__Auth_RoleAdd_Handler :
     EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.wp_proof
@@ -666,6 +699,10 @@ theorem etcdserverpb.wp__Auth_UserAdd_Handler :
 theorem etcdserverpb.wp__Auth_UserGrantRole_Handler :
     EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.wp_proof
+
+theorem etcdserverpb.wp__KV_Compact_Handler :
+    EtcdGrove.etcdserverpb._KV_Compact_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_Compact_Handler.wp_proof
 
 theorem etcdserverpb.wp__KV_DeleteRange_Handler :
     EtcdGrove.etcdserverpb._KV_DeleteRange_Handler.spec (GF := GF) (hG := hG) :=
@@ -687,9 +724,17 @@ theorem etcdserverpb.wp__Lease_LeaseGrant_Handler :
     EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.wp_proof
 
+theorem etcdserverpb.wp__Lease_LeaseLeases_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseLeases_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseLeases_Handler.wp_proof
+
 theorem etcdserverpb.wp__Lease_LeaseRevoke_Handler :
     EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.wp_proof
+
+theorem etcdserverpb.wp__Lease_LeaseTimeToLive_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseTimeToLive_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseTimeToLive_Handler.wp_proof
 
 theorem grpc.GenericServerStream.wp_Recv :
     EtcdGrove.grpc.GenericServerStream.Recv.spec (GF := GF) (hG := hG) :=
@@ -758,10 +803,6 @@ theorem wp_filterNoDelete :
 theorem wp_filterNoPut :
     EtcdGrove.v3rpc.filterNoPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.filterNoPut.wp_proof
-
-theorem wp_isClientCtxErr :
-    EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
 
 theorem kvServer.wp_Compact :
     EtcdGrove.v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) :=

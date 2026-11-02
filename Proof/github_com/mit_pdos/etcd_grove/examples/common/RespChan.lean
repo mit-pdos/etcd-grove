@@ -141,21 +141,47 @@ instance stateOk_persistent (o : OpFull) (Q : KVState → IProp GF) (c c' : w64)
     Persistent (stateOk (GF := GF) o Q c c' v r) := by
   unfold stateOk; infer_instance
 
-/-- The client's Watch spec's channel is one (`watchStateElem`, at `stateOk`). -/
-theorem isRespChan_of_state (ch : Loc) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) :
-    isSpsc (GF := GF) γ.spsc ch (watchStateElem γ o Q) (fun _ => iprop(True)) ⊢
+/-- The client's Watch spec's channel is one (`watchStateElem`, at `stateOk`), whatever its
+authorization row `Au` (G2). -/
+theorem isRespChan_of_state (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) :
+    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
       isRespChan ch γ (stateOk o Q) := by
   iintro #Hsp
   unfold isRespChan
-  iexists watchStateElem γ o Q
+  iexists watchStateElem γk γ o Q Au
   iframe Hsp
   iintro !> %i %v HP
   unfold watchStateElem
-  icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok⟩
+  icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok, -⟩
   imodintro
   unfold respElemOk stateOk
   iexists r, c, c'
   iframe Hr Hc Hc'
+  iexists σ
+  iframe HQ Hok
+
+/-- **What a read of the KV state says, with its compaction revision's permit** (C3's watch side,
+2026-11-02): `stateOk`, and the response's compaction revision the permit of the KV names `γk`. -/
+def stateCmpOk (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) : RespOk GF :=
+  fun c c' v r => iprop(stateOk o Q c c' v r ∗ cmpOkOf γk v.CompactRevision')
+
+/-- The client's Watch spec's channel is one at `stateCmpOk` (C3's watch side). -/
+theorem isRespChan_of_state_cmp (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) :
+    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
+      isRespChan ch γ (stateCmpOk γk o Q) := by
+  iintro #Hsp
+  unfold isRespChan
+  iexists watchStateElem γk γ o Q Au
+  iframe Hsp
+  iintro !> %i %v HP
+  unfold watchStateElem
+  icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok, -, #Hcmp⟩
+  imodintro
+  unfold respElemOk stateCmpOk stateOk
+  iexists r, c, c'
+  iframe Hr Hc Hc' Hcmp
   iexists σ
   iframe HQ Hok
 

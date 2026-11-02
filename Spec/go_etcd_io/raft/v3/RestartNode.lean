@@ -9,6 +9,7 @@ internals, now the proof's private `RestartNode.specRaw`.)
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -26,15 +27,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`RestartNode(c)`**: starts node `cv.ID'` of a static cluster of voters `vs`
-(`cluster_alloc_static`) from its boot token, on a fresh storage whose `InitialState` gives the
-voters' conf state, and whose certificates are the cluster's (`storageCertLink`). Today's premises,
-with the ghost ones (`rnInit`, `isCommitted γ []`, the term budget, `certLink`, the mode and
-`snapIn`) replaced by `nodeRestartBoot` and `storageCertLink`. -/
+/-- **`RestartNode(c)` in a cluster with snapshots and reconfiguration** (2026-11-01, durability
+stage I; candidate 12 §4; until then from a founder's or a newcomer's token on an empty storage):
+starts node `cv.ID'` of the cluster (`isCluster`), whose id is vacant (`nodeVacant`: no node of it
+runs), from a storage holding the contents `σ` (`restartStorage`), at the configuration `m` after
+the first `a` committed entries (`confAt`), which the storage's `ConfState` reports, `a` between the
+applied index the node starts at (`max σ.b Applied`) and the stored commit; `Applied` is `0` or
+within the stored log's committed part.
+
+The client's update (`AU`) fires inside `RestartNode`, when it reads the storage (its
+`InitialState`, before any step), and leaves the client's durable state `S` (`raftState`)
+unchanged: it checks that the storage holds `S` (`StorageHolds`), so that a stale storage fails it.
+
+Raft names the storage by a fresh key `K` at the attach (`restartStorage`'s continuation). The post:
+the node, its `Ready` loop's token at the committed log of the applied index it starts at
+(`max σ.b A`), the stored hard state, the durable state `S`, the follower's role, the storage's key;
+its view of the configuration at `(a, m)`; its running token whole; the update's `COMM`; and the
+storage's frame.
+
+Raft hands the committed log out again from `max σ.b Applied`, so the entries in
+`(max σ.b Applied, a]`, conf entries among them, come again; the view at `(a, m)` already reflects
+them, and `node.ApplyConfChange` applies only a conf entry at or past the view's index (its
+`v.applied ≤ k`): the client skips them, as a storage whose `ConfState` is its snapshot's does (its
+`Applied` below the snapshot's index, after a compaction short of it).
+
+(2026-11-02, stage II (u)) The configuration point `a` is back (candidate 12's form). From stage II
+(r) to II (u) it was the applied index `max σ.b Applied` only (`confAt γ (max σ.b Applied) m`,
+`nodeConfig ⟨max σ.b Applied, m⟩`), on the argument that a client re-applies the conf changes in
+`(max σ.b Applied, a]`, which the view's index excludes; and from stage II (p) to II (u) the conf
+state's four lists had at most `2^62` ids together, a premise raft now derives from the
+membership's validity (`newRaft` needs fewer than `2^62` ids tracked).
+
+Scope (to file when adopted): a cluster with a bootstrap log restarts a node only once its stored commit covers
+the bootstrap log (`γ.bootLen ≤ σ.commit`, review 3's A2); a `MemoryStorage` is attached once.
+(2026-11-01: `isCluster` taken, which until then the founder's or newcomer's token held: `nodeVacant`
+names no namespace.) -/
 abbrev RestartNode.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
-  -- `NewRawNode`'s premises (unchanged)
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership)
+    (Q : RaftState → IProp GF) (F : GName → IProp GF),
+  -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
@@ -44,26 +76,40 @@ abbrev RestartNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage, the voters' conf state (unchanged)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  cv.ID' ∈ vs →
-  σ.fl = W64 0 →
+  -- `Applied` (raft's `appliedTo` panics otherwise; `0`: from the base)
+  (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
+  -- the configuration point, from the applied index the node starts at to the stored commit
+  max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
+  -- the bootstrap log within the stored commit [scope]
+  γ.bootLen ≤ σ.commit →
+  confStateIs csm m →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      nodeRestartBoot γ N vs cv.ID' ∗ storageCertLink γ N (interface.ok si) }}
+      isCluster γ N ∗ nodeVacant γ cv.ID' ∗
+      -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`
+      -- (`readyFits`): the stored log's last index has a time receipt, so it fits a word with room
+      -- for one more (`newRaft`'s premise) [scope]
+      readyFits γ N ∗
+      -- the client's durable state at `RestartNode`'s linearization point (its `InitialState`
+      -- read, before any step): the storage holds it
+      -- ((2026-11-01, durability stage II (k)) under a later: `raftState` holds an invariant, so
+      -- it is not timeless, and a client keeping it in an invariant opens it later-ed)
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+         <{ raftState γ cv.ID' S, COMM Q S }> ∗
+      confAt γ a m ∗
+      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
+      ∃ (n : Loc) (S : RaftState) (l : List LogEntry) (K : GName),
+        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗
+        isCommittedLogLb γ l ∗ ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
+        -- (2026-11-01, durability stage II (k), addendum S1b) the delivered log is the stored
+        -- entries up to its length (raft read them from the storage)
+        ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
+        nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
+        nodeConfig n γ N ⟨a, m⟩ ∗
+        nodeRunning n γ N 1 ∗
+        Q S ∗ F K }}
 
 end spec
 

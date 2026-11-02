@@ -14,8 +14,8 @@ report exactly the writes).
 watchkv's at `cachekv`'s configuration), `Main(nw, nops)` does not panic and returns `Ok` (`0`:
 the check ran and passed), `Failed` (`1`: a step of the start failed) or `WatchEnded` (`2`: the
 watch ended before it reported every successful Put). The premises are watchkv's: the cache needs
-none of its own (its thread bound, `threadBound GF + 3 ≤ 2 ^ 31`, follows from the watchable
-store's `2 ^ 29`).
+none of its own (its thread bound, `threadBound GF + 3 ≤ 2 ^ 31`, follows from the server's
+`2 ^ 28`).
 -/
 module
 
@@ -46,9 +46,9 @@ abbrev Main.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
   putget.BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  storage.dbOpensOk → v3rpc.ServerMethodSets →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →

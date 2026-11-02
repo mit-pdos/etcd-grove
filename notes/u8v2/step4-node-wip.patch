@@ -1,0 +1,1790 @@
+diff --git a/Proof/go_etcd_io/raft/v3/InvAdvance.lean b/Proof/go_etcd_io/raft/v3/InvAdvance.lean
+index d75d346d4f..fe04f03da0 100644
+--- a/Proof/go_etcd_io/raft/v3/InvAdvance.lean
++++ b/Proof/go_etcd_io/raft/v3/InvAdvance.lean
+@@ -53,8 +53,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
+   -- the driver's lower bound, against `run`'s authority
+   iunfold runCfg at Hcfg
+-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
++  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+   iunfold dlvLb at Hlb
++  icases Hlb with ⟨#Hlb, -⟩
+   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
+   ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
+   obtain ⟨Hmd, Hcap, Hflw, Hsn, Hsi, Hpre⟩ := Hm0
+@@ -63,7 +64,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+     have Hsl : rs.slent = none := HL
+     ihave Hcfg : runCfg γ rs $$ [Hdlm Hcap_r Hcam]
+     · iunfold runCfg
+-      iframe Hdlm
++      iframe Hdlm Hdk
+       isplitr
+       · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hsn, Hsi, Hpre⟩
+       iexists ca_r
+@@ -73,13 +74,15 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+     rw [Hsl]
+     simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_none, capAns]
+     -- the receipt: the `Ready`'s entries are appended
+-    ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
+-    · rw [Hstor]; iexact Hrcpt
+-    imod ownRawNode_appended γ.raft rn id rs Hsl $$ Hrn Hrcpt' with Hrn
+-    imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl ds Hpfx.2
+-      $$ Hrn with ⟨Hrn, %x, %Hx, #Hfw, #Hts⟩
++    icases Hrcpt with ⟨%a, Hrcpt, %Ha⟩
++    ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted a $$ [Hrcpt]
++    · rw [Hstor.1]; iexact Hrcpt
++    imod ownRawNode_appended γ.raft rn id rs Hsl a (fun hne e0 he => by
++        have := Ha hne e0 he; rw [Hdel]; simpa [dlvAfter] using this) $$ Hrn Hrcpt' with Hrn
++    imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl
++      $$ Hrn with ⟨Hrn, %x, %Hx, #Hfw⟩
+     imodintro
+-    isplitr [Hfw Hts]
++    isplitr [Hfw]
+     · iunfold advRet
+       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
+       iframe Hrn Htlb Hcamlb
+@@ -97,18 +100,16 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+       isplitr
+       · simp only [loanRet, Hsl]; iempintro
+       isplitr
+-      · ipureintro; exact ⟨Hstor, Hunst, fun _ => rfl⟩
++      · ipureintro; exact ⟨Hstor.1, Hunst, fun _ => rfl⟩
+       simp only; rw [Hdel]; iexact HA
+     isplitr
+     · iexists x
+-      isplitr [Hts]
+-      · simp only; rw [← Hstor]; iexact Hfw
+-      isplitr [Hts]
+-      · ipureintro
+-        have := Hpfx.2.length_le
+-        simp only at Hx
+-        omega
+-      simp only; rw [← Hstor]; iexact Hts
++      isplitr
++      · simp only; rw [← Hstor.2]; iexact Hfw
++      ipureintro
++      have := Hpfx.2.length_le
++      simp only at Hx
++      omega
+     itrivial
+   | some l =>
+     have Hsl : rs.slent = some l := HL
+@@ -135,7 +136,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+       ihave Hcfg : runCfg γ rs $$ [Hdlm Hcap_r Hcam]
+       · iunfold runCfg
+         simp only [rsDlv, Hsl]
+-        iframe Hdlm
++        iframe Hdlm Hdk
+         isplitr
+         · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hsn, Hsi, by rw [← Hsl]; exact Hpre⟩
+         iexists ca_r
+@@ -157,10 +158,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+         · iexists _
+           iframe Hrof Hrof'
+         isplitl [Hrcpt]
+-        · simp only [loanRet, Hsl]; rw [Hstor]; iexact Hrcpt
++        · simp only [loanRet, Hsl]; rw [Hstor.1]; iexact Hrcpt
+         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
+         iframe HA'
+-        ipureintro; exact ⟨Hstor, Hunst, H1⟩
++        ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+       isplitr
+       · itrivial
+       iframe Hpay Hcl
+@@ -184,7 +185,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
+           iunfold runCfgLoan
+           try rw [show rsDlv rs = l.dlv by simp only [rsDlv, Hsl]]
+-          iframe Hdlm Hcap_r Hcam
++          iframe Hdlm Hdk Hcap_r Hcam
+           isplitr
+           · ipureintro; exact ⟨Hmd, Hsin, Hns, Hdp⟩
+           rw [Hmd]
+@@ -196,10 +197,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
+         · iexists _
+           iframe Hrof Hrof'
+         isplitl [Hrcpt]
+-        · simp only [loanRet, Hsl]; rw [Hstor]; iexact Hrcpt
++        · simp only [loanRet, Hsl]; rw [Hstor.1]; iexact Hrcpt
+         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
+         iframe HA'
+-        ipureintro; exact ⟨Hstor, Hunst, H1⟩
++        ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+       isplitr
+       · itrivial
+       iframe Hpay Hcl
+diff --git a/Proof/go_etcd_io/raft/v3/InvApi.lean b/Proof/go_etcd_io/raft/v3/InvApi.lean
+index 8e9f6e0b51..f9ca3fbafb 100644
+--- a/Proof/go_etcd_io/raft/v3/InvApi.lean
++++ b/Proof/go_etcd_io/raft/v3/InvApi.lean
+@@ -1615,169 +1615,9 @@ theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : 
+   iframe HDc Hreg
+   ipureintro; exact ⟨HL.2.1, HL.2.2.1⟩
+ 
+-/-- **The storage's certificates are the cluster's** (the draft's `storageCertLink`). -/
+-def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
+-  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗ snapshotCert γ N k) ∗
+-    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k))
+-
+-instance storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) :
+-    Persistent (storageCertLink (GF := GF) γ N st) := by
+-  unfold storageCertLink; infer_instance
+-
+-/-- Raft's certificate link (`storCertOk`), at the cluster's certificate namespace `N`. -/
+-theorem storCertOk_of_link (γ : Cluster) (N : Namespace) (st : Storage)
+-    (HN : γ.raft.reCertNs = N) (Hns : γ.raft.reNoSnap = false) :
+-    ⊢ clusterInv (GF := GF) γ N -∗ storageCertLink γ N st -∗ storCertOk γ.raft st := by
+-  iintro #Hci #Hl
+-  iunfold storageCertLink at Hl
+-  icases Hl with ⟨#H1, #H2⟩
+-  unfold storCertOk raftCertN
+-  rw [HN]
+-  isplitl []
+-  · imodintro
+-    iintro %k %E %HE #Hs
+-    imod H1 $$ %k %E %HE Hs with #Hc
+-    iapply raft_of_snapshotCert γ N E HE k $$ Hci Hc
+-  · imodintro
+-    iintro %k %E %HE #Hr
+-    imod snapshotCert_of_raft γ N E HE Hns k $$ Hci Hr with #Hc
+-    iapply H2 $$ %k %E %HE Hc
+-
+-/-- What a registry entry of a `MemoryStorage` carries: the client's certificates of its snapshot,
+-at every term for an any-term entry. -/
+-def certElemApi (γ : Cluster) (N : Namespace) (e : CertKey) : IProp GF :=
+-  if e.2 then iprop(∀ t : w64, snapshotCert γ N ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩)
+-  else snapshotCert γ N e.1
+-
+-instance certElemApi_persistent (γ : Cluster) (N : Namespace) (e : CertKey) :
+-    Persistent (certElemApi (GF := GF) γ N e) := by
+-  unfold certElemApi; split <;> infer_instance
+-
+-instance certElemApi_timeless (γ : Cluster) (N : Namespace) (e : CertKey) :
+-    Timeless (certElemApi (GF := GF) γ N e) := by
+-  unfold certElemApi; split <;> infer_instance
+-
+-theorem certElemApi_covers (γ : Cluster) (N : Namespace) (e : CertKey) (k : SnapTrip)
+-    (h : certCovers e k) : certElemApi (GF := GF) γ N e ⊢ snapshotCert γ N k := by
+-  unfold certElemApi
+-  unfold certCovers at h
+-  split
+-  · rename_i he
+-    rw [if_pos he] at h
+-    obtain ⟨h1, h2, h3, h4⟩ := h
+-    iintro H
+-    ihave H := H $$ %k.sid.term'
+-    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩ : SnapTrip) = k := by
+-      cases k with | mk sid cl al dat => cases sid; simp only at h1 h2 h3 h4; subst h1 h2 h3 h4; rfl
+-    rw [this]; iexact H
+-  · rename_i he
+-    rw [if_neg he] at h
+-    subst h
+-    exact .rfl
+-
+-/-- The registry invariant's namespace. -/
+-def certN (N : Namespace) : Namespace := N .@ "cert"
+-
+-theorem certN_sub (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) : (↑(certN N) : CoPset) ⊆ E :=
+-  fun p hp => HE p (nclose_subseteq N "cert" p hp)
+-
+-/-- **A `MemoryStorage`'s certificate registry tied to the cluster** (the draft's
+-`storageCertInv`). -/
+-def storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF :=
+-  inv (certN N) iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗
+-    [∗list] e ∈ L, certElemApi γ N e)
+-
+-instance storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) :
+-    Persistent (storageCertInv (GF := GF) γ N γs) := by
+-  unfold storageCertInv; infer_instance
+-
+-theorem storageCertInv_alloc_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (E : CoPset) :
+-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ storageCertInv γ N γs := by
+-  iintro Ha
+-  unfold storageCertInv
+-  iapply inv_alloc
+-  inext
+-  iexists ([] : List CertKey)
+-  iunfold memCertAuth at Ha
+-  isplitl [Ha]
+-  · iexact Ha
+-  iapply (BigSepL.bigSepL_nil (Φ := fun _ e => certElemApi (GF := GF) γ N e)).2
+-  iempintro
+-
+-theorem storageCert_read_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
+-    (E : CoPset) (hE : ↑N ⊆ E) :
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ memStorCert γs k ={E}=∗ snapshotCert γ N k := by
+-  iintro #Hinv #Hc
+-  iunfold memStorCert at Hc
+-  icases Hc with ⟨%L0, #Hlb, %Hin⟩
+-  obtain ⟨e, he, hc⟩ := Hin
+-  unfold storageCertInv
+-  have hE' := certN_sub N hE
+-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+-  icases mono_list_auth_lb_valid _ _ _ _ $$ Ha Hlb with %Hv
+-  obtain ⟨-, Hpre⟩ := Hv
+-  have he' : e ∈ L := Hpre.subset he
+-  ihave ⟨#He, -⟩ := BigSepL.bigSepL_mem_acc he' $$ Hall
+-  ihave #Hk := certElemApi_covers γ N e k hc $$ He
+-  imod Hclose $$ [Ha] with -
+-  · inext
+-    iexists L
+-    iframe Ha Hall
+-  imodintro
+-  iexact Hk
+-
+-theorem storageCert_register_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
+-    (E : CoPset) (hE : ↑N ⊆ E) :
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ snapshotCert γ N k ={E}=∗ memStorCert γs k := by
+-  iintro #Hinv #Hk
+-  unfold storageCertInv
+-  have hE' := certN_sub N hE
+-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+-  imod monoListAuthOwn_update_app [((k, false) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
+-  ihave #He : certElemApi (GF := GF) γ N ((k, false) : CertKey) $$ []
+-  · simp only [certElemApi, Bool.false_eq_true, ↓reduceIte]
+-    iexact Hk
+-  imod Hclose $$ [Ha] with -
+-  · inext
+-    iexists L ++ [((k, false) : CertKey)]
+-    iframe Ha
+-    iapply BigSepL.bigSepL_snoc.2
+-    iframe Hall He
+-  imodintro
+-  iapply memStorCert_of_lb γs (L ++ [((k, false) : CertKey)]) (k, false) k (by simp)
+-    (by simp [certCovers]) $$ Hlb
+-
+-theorem storageCert_registerAny_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (i : w64)
+-    (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) (hE : ↑N ⊆ E) :
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ (□ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
+-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
+-  iintro #Hinv #Hk
+-  unfold storageCertInv
+-  have hE' := certN_sub N hE
+-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+-  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)] $$ Ha
+-    with ⟨Ha, #Hlb⟩
+-  ihave #He : certElemApi (GF := GF) γ N ((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey) $$ []
+-  · simp only [certElemApi, ↓reduceIte]
+-    iexact Hk
+-  imod Hclose $$ [Ha] with -
+-  · inext
+-    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)]
+-    iframe Ha
+-    iapply BigSepL.bigSepL_snoc.2
+-    iframe Hall He
+-  imodintro
+-  imodintro
+-  iintro %t
+-  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)])
+-    (⟨⟨W64 0, i⟩, cl, al, d⟩, true) ⟨⟨t, i⟩, cl, al, d⟩ (by simp) (by simp [certCovers]) $$ Hlb
+-
+-theorem storageCertLink_intro_impl (γ : Cluster) (N : Namespace) (st : Storage) :
+-    (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗
+-        snapshotCert (GF := GF) γ N k) ∗
+-      (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢
+-      storageCertLink γ N st := by
+-  unfold storageCertLink; exact .rfl
++-- (U8 v2, 2026-10-29) `storageCertLink`, `storCertOk_of_link`, `certElemApi`, `storageCertInv` and
++-- their laws (the old contract's certificate registry) removed: raft's certificate link is over its
++-- storage names' pins (`storCertOk γ sn`), made at `RestartNode`.
+ 
+ /-- What a certified snapshot's data is, in a static cluster. -/
+ theorem snapshotCert_data_impl (γ : Cluster) (N : Namespace) (vs : List w64)
+@@ -1915,9 +1755,13 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
+ 
+ /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
+ `live` name, by which `nodeLive` and `nodeStopped` agree. -/
+-abbrev CfgNames := GName × GName × GName × GName × GName
++abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat
+ 
+-def cfgNamesOf (γn : NodeNames) : CfgNames := (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live)
++/-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
++`nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
++bounds of the node's log (`nodeStorNames`). -/
++def cfgNamesOf (γn : NodeNames) : CfgNames :=
++  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk)
+ 
+ /-- **Node `id`'s configuration names are `γn`'s** (persistent): the entry of its table. -/
+ def nodeTabOk (γ : Cluster) (id : w64) (γn : NodeNames) : IProp GF :=
+@@ -1934,6 +1778,88 @@ theorem nodeTabOk_agree (γ : Cluster) (id : w64) (γ1 γ2 : NodeNames) :
+   rw [H1] at H2; cases H2
+   iapply ghostMapElem_agree $$ E1 E2
+ 
++/-- (U8 v2, 2026-10-29) **Node `id`'s storage names are `sn`** (persistent): its table's entry
++names them (`cfgNamesOf`'s last five). By this the API's `nodeAppliedLb γ id`/`snapGiven γ id`
++are of the node's log, whichever node structure reaches them (one node per id: the start tokens). -/
++def nodeStorNames (γ : Cluster) (id : w64) (sn : StorNames) : IProp GF :=
++  iprop(∃ (g : GName) (x : CfgNames), ⌜γ.nodeTab !! id = some g ∧
++    x.2.2.2.2.2 = (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk)⌝ ∗ id ↪[g]□ x)
++
++instance nodeStorNames_persistent (γ : Cluster) (id : w64) (sn : StorNames) :
++    Persistent (nodeStorNames (GF := GF) γ id sn) := by
++  unfold nodeStorNames; infer_instance
++
++instance nodeStorNames_timeless (γ : Cluster) (id : w64) (sn : StorNames) :
++    Timeless (nodeStorNames (GF := GF) γ id sn) := by
++  unfold nodeStorNames; infer_instance
++
++theorem nodeStorNames_agree (γ : Cluster) (id : w64) (sn1 sn2 : StorNames) :
++    ⊢ nodeStorNames (GF := GF) γ id sn1 -∗ nodeStorNames γ id sn2 -∗ ⌜sn1 = sn2⌝ := by
++  unfold nodeStorNames
++  iintro ⟨%g1, %x1, %H1, #E1⟩ ⟨%g2, %x2, %H2, #E2⟩
++  rw [H1.1] at H2; cases H2.1
++  ihave %Hx := ghostMapElem_agree $$ E1 E2
++  subst Hx
++  ipureintro
++  have h := H1.2.symm.trans H2.2
++  simp only [Prod.mk.injEq] at h
++  obtain ⟨h1, h2, h3, h4, h5⟩ := h
++  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5; subst h1 h2 h3 h4 h5; rfl
++
++/-- A node's table entry names its storage names. -/
++theorem nodeTabOk_storNames (γ : Cluster) (id : w64) (γn : NodeNames) :
++    nodeTabOk (GF := GF) γ id γn ⊢ nodeStorNames γ id γn.sn := by
++  unfold nodeTabOk nodeStorNames
++  iintro ⟨%g, %Hg, #E⟩
++  iexists g, cfgNamesOf γn
++  iframe E
++  ipureintro; exact ⟨Hg, rfl⟩
++
++/-- (U8 v2, 2026-10-29) **Raft's applied index of node `id` has reached `k`** (the API's
++`nodeAppliedLb`): `k = 0`, or a lower bound of the floor its log published (`storFloor`), or of a
++snapshot it handed out (which `Advance` applies: `appliedSnap`). -/
++def nodeAppliedLbU (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
++  iprop(⌜k = 0⌝ ∨ ∃ sn : StorNames, nodeStorNames γ id sn ∗
++    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
++
++/-- (U8 v2, 2026-10-29) **Node `id` handed out a snapshot at index `k` or later** (the API's
++`snapGiven`). -/
++def snapGivenU (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
++  iprop(∃ sn : StorNames, nodeStorNames γ id sn ∗ monoNatLbOwn sn.gg k)
++
++instance nodeAppliedLbU_persistent (γ : Cluster) (id : w64) (k : Nat) :
++    Persistent (nodeAppliedLbU (GF := GF) γ id k) := by
++  unfold nodeAppliedLbU; infer_instance
++
++instance nodeAppliedLbU_timeless (γ : Cluster) (id : w64) (k : Nat) :
++    Timeless (nodeAppliedLbU (GF := GF) γ id k) := by
++  unfold nodeAppliedLbU; infer_instance
++
++instance snapGivenU_persistent (γ : Cluster) (id : w64) (k : Nat) :
++    Persistent (snapGivenU (GF := GF) γ id k) := by
++  unfold snapGivenU; infer_instance
++
++instance snapGivenU_timeless (γ : Cluster) (id : w64) (k : Nat) :
++    Timeless (snapGivenU (GF := GF) γ id k) := by
++  unfold snapGivenU; infer_instance
++
++theorem nodeAppliedLbU_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLbU (GF := GF) γ id 0 := by
++  unfold nodeAppliedLbU; iintro; ileft; ipureintro; rfl
++
++theorem nodeAppliedLbU_mono (γ : Cluster) (id : w64) (k k' : Nat) (h : k' ≤ k) :
++    nodeAppliedLbU (GF := GF) γ id k ⊢ nodeAppliedLbU γ id k' := by
++  unfold nodeAppliedLbU
++  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl)⟩)
++  · ileft; ipureintro; omega
++  · iright; iexists sn; iframe Hs; ileft; iapply monoNatLbOwn_le k' h $$ Hl
++  · iright; iexists sn; iframe Hs; iright; iapply monoNatLbOwn_le k' h $$ Hl
++
++theorem snapGivenU_applied (γ : Cluster) (id : w64) (k : Nat) :
++    snapGivenU (GF := GF) γ id k ⊢ nodeAppliedLbU γ id k := by
++  unfold snapGivenU nodeAppliedLbU
++  iintro ⟨%sn, #Hs, #Hl⟩
++  iright; iexists sn; iframe Hs; iright; iexact Hl
++
+ /-- The driver's view of the configuration depends on the configuration names only. -/
+ theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ca : Nat)
+     (cfg : CCState) : nodeCfg (GF := GF) γ1 ca cfg ⊢ nodeCfg γ2 ca cfg := by
+@@ -1944,7 +1870,7 @@ theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf
+ theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ds : List EntryM) :
+     dlvLb (GF := GF) γ1 ds ⊢ dlvLb γ2 ds := by
+   simp only [cfgNamesOf, Prod.mk.injEq] at H
+-  unfold dlvLb; rw [H.1]
++  unfold dlvLb dlvKeys; rw [H.1, H.2.2.2.2.2.2.2.2.1]
+ 
+ /-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
+ theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
+@@ -2001,7 +1927,7 @@ theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (id1 id2 : w64
+   subst Hid
+   ihave %Hn := nodeTabOk_agree γ id1 γ1 γ2 $$ T1 T2
+   simp only [cfgNamesOf, Prod.mk.injEq] at Hn
+-  ipureintro; exact Hn.2.2.2.2
++  ipureintro; exact Hn.2.2.2.2.1
+ 
+ theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
+@@ -2057,14 +1983,17 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
+     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
+     isCommittedLogLb γ st.delivered ∗
+-    (⌜γn.mode.isDyn = true⌝ ∨
+-      storageCertLink γ N st.storage ∗ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
++    (⌜γn.mode.isDyn = true⌝ ∨ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
+     (⌜γn.mode.isDyn = false⌝ ∨
+-      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length ∗
+-      (⌜γ.raft.reNoSnap = true⌝ ∨ storageCertLink γ N st.storage)) ∗
++      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length) ∗
+     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState) ∨
+      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
+-       nodeDriverBusy γn id n ds es st.hardState L)))
++       nodeDriverBusy γn id n ds es st.hardState L ∗
++       -- (U8 v2, 2026-10-29) after a snapshot `Ready`, the snapshot handed out (what `Advance`'s
++       -- post, `nodeAppliedLb`, is then)
++       (match L with
++        | none => iprop(True)
++        | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index'))))
+ 
+ /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
+ def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
+diff --git a/Proof/go_etcd_io/raft/v3/InvNode.lean b/Proof/go_etcd_io/raft/v3/InvNode.lean
+index 6b24cf020f..b6b43f70d1 100644
+--- a/Proof/go_etcd_io/raft/v3/InvNode.lean
++++ b/Proof/go_etcd_io/raft/v3/InvNode.lean
+@@ -423,61 +423,8 @@ theorem snapshotCert_static (γ : Cluster) (N : Namespace) (vs : List w64)
+   unfold isStaticCluster snapshotCert isCommittedLogLb
+   exact ApiImpl.snapshotCert_static_impl γ N vs snapOk l i d Hok Hl Hso
+ 
+-/-- **A `MemoryStorage`'s certificate registry tied to the cluster** (persistent; today
+-`memCertInv`): its entries are certified snapshots. The client allocates it from
+-`NewMemoryStorage`'s `memCertAuth`. -/
+-@[no_expose] def storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF :=
+-  ApiImpl.storageCertInv γ N γs
+-
+-instance storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) :
+-    Persistent (storageCertInv (GF := GF) γ N γs) := by
+-  unfold storageCertInv; exact ApiImpl.storageCertInv_persistent γ N γs
+-
+-theorem storageCertInv_alloc (γ : Cluster) (N : Namespace) (γs : MemStorNames) (E : CoPset) :
+-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ storageCertInv γ N γs := by
+-  unfold storageCertInv; exact ApiImpl.storageCertInv_alloc_impl γ N γs E
+-
+-/-- A registered snapshot is certified. -/
+-theorem storageCert_read (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
+-    (E : CoPset) :
+-    ↑N ⊆ E →
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ memStorCert γs k ={E}=∗ snapshotCert γ N k := by
+-  intro hE
+-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_read_impl γ N γs k E hE
+-
+-/-- A certified snapshot can be registered. -/
+-theorem storageCert_register (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
+-    (E : CoPset) :
+-    ↑N ⊆ E →
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ snapshotCert γ N k ={E}=∗ memStorCert γs k := by
+-  intro hE
+-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_register_impl γ N γs k E hE
+-
+-/-- ... at any term (what `MemoryStorage.CreateSnapshot` asks). -/
+-theorem storageCert_registerAny (γ : Cluster) (N : Namespace) (γs : MemStorNames) (i : w64)
+-    (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) :
+-    ↑N ⊆ E →
+-    ⊢ storageCertInv (GF := GF) γ N γs -∗ (□ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
+-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
+-  intro hE
+-  unfold storageCertInv snapshotCert
+-  exact ApiImpl.storageCert_registerAny_impl γ N γs i cl al d E hE
+-
+-/-- **The storage's certificates are the cluster's** (persistent; today `certLink`, `storCertOk`):
+-what `StartNode` and `RestartNode` take of their storage. -/
+-@[no_expose] def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
+-  ApiImpl.storageCertLink γ N st
+-
+-instance storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) :
+-    Persistent (storageCertLink (GF := GF) γ N st) := by
+-  unfold storageCertLink; exact ApiImpl.storageCertLink_persistent γ N st
+-
+-theorem storageCertLink_intro (γ : Cluster) (N : Namespace) (st : Storage) :
+-    (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗
+-        snapshotCert (GF := GF) γ N k) ∗
+-      (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢
+-      storageCertLink γ N st := by
+-  unfold storageCertLink snapshotCert; exact ApiImpl.storageCertLink_intro_impl γ N st
++-- (U8 v2, 2026-10-29) `storageCertInv`, `storageCertLink` (the old contract's certificate registry
++-- and its link) removed: a stored snapshot is valid (`snapshotValid`, `isStorage`).
+ 
+ /-! ## Messages and the term budget (open: carried over) -/
+ 
+@@ -548,15 +495,55 @@ theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src :
+   unfold sentMsg msgCredits stepIn
+   exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3
+ 
++/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
++
++/-- **Raft's applied index of node `id` has reached `k`** (persistent, timeless; raft-issued: by
++`Advance`, `node.Advance`'s post). -/
++@[no_expose] def nodeAppliedLb (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
++  ApiImpl.nodeAppliedLbU γ id k
++
++/-- **Node `id` handed out a snapshot at index `k`** to install (persistent, timeless; raft-issued:
++by a snapshot `Ready`). -/
++@[no_expose] def snapGiven (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
++  ApiImpl.snapGivenU γ id k
++
++instance nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) :
++    Persistent (nodeAppliedLb (GF := GF) γ id k) := by
++  unfold nodeAppliedLb; infer_instance
++
++instance nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) :
++    Timeless (nodeAppliedLb (GF := GF) γ id k) := by
++  unfold nodeAppliedLb; infer_instance
++
++instance snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) :
++    Persistent (snapGiven (GF := GF) γ id k) := by
++  unfold snapGiven; infer_instance
++
++instance snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) :
++    Timeless (snapGiven (GF := GF) γ id k) := by
++  unfold snapGiven; infer_instance
++
++theorem nodeAppliedLb_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb (GF := GF) γ id 0 := by
++  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ id
++
++theorem nodeAppliedLb_mono (γ : Cluster) (id : w64) (k k' : Nat) :
++    k' ≤ k → nodeAppliedLb (GF := GF) γ id k ⊢ nodeAppliedLb γ id k' := by
++  intro h; unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_mono γ id k k' h
++
+ /-! ## The rest of a `Ready` -/
+ 
+-/-- (open) A `Ready`'s storage part, by its snapshot's loan: none -- the right to append the entries
+-`es` -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`, its
+-entries at their positions), past what was delivered, half of the snapshot, its certificate, and the
+-storage itself (`readyOut`). (Today `readyDataL`'s snapshot part.) -/
+-def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
++/-- (open) A `Ready`'s storage part, by its snapshot's loan (U8 v2, 2026-10-29: the frozen design's
++§3): none -- the right to write the entries `es` (`appendRight`: the log from their first index on,
++with the end; nothing for no entries) and the committed entries `ce` below them frozen
++(`ceFrozen`) -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`,
++its entries at their positions), past what was delivered, half of the snapshot, its certificate
++(`snapshotCert`; its validity, `snapshotCert_valid`), every range of the storage from an index at
++most the snapshot's on, with the end, and the right to install it (`snapGiven`). (Until U8 v2 the
++old contract's `readyOut`: the storage itself.) -/
++def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
+-  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
++  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
++      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
+   | some l => iprop(
+       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
+         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
+@@ -565,7 +552,9 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+         LogIndicesOk (snapId l.snap) es⌝ ∗
+       ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommittedLogLb γ (strip l.dlv) ∗
+       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
+-      readyOut st.storage es (some l))
++      (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
++        storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
++      snapGiven γ id (uint.nat l.snap.Metadata'.Index'))
+ 
+ /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
+ state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
+@@ -584,7 +573,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
+     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
+       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
+       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
+-    readySnap γ N rd st ce es L)
++    readySnap γ N id rd st ce es L)
+ 
+ /-- The implementation's rest of a `Ready` is the draft's. -/
+ private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+diff --git a/Proof/go_etcd_io/raft/v3/InvNodeChan.lean b/Proof/go_etcd_io/raft/v3/InvNodeChan.lean
+index bc1d9a52ae..13c8f5e1d2 100644
+--- a/Proof/go_etcd_io/raft/v3/InvNodeChan.lean
++++ b/Proof/go_etcd_io/raft/v3/InvNodeChan.lean
+@@ -373,6 +373,9 @@ structure NodeNames [GooseExts] where
+   bud : BudgetNames
+   /-- the node's `Storage` (`RNState.storage`), for the append right and its receipt -/
+   stor : Storage
++  /-- (U8 v2, 2026-10-29) raft's ghost names for its storage (`RNState.sn`): the floor's and the
++  certified terms' -/
++  sn : StorNames := {}
+   propc : ChanNames
+   recvc : ChanNames
+   confc : ChanNames
+@@ -594,7 +597,9 @@ read-only, which the server reads.) -/
+ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
+     (ms : List QMsg) (p p' : HardStateM) : IProp GF :=
+   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
+-    entsRO rd.Entries' es ∗ appendRight γ.stor es ∗
++    entsRO rd.Entries' es ∗ readyOut γ.stor γ.sn es none ∗
++    -- (U8 v2) the committed entries below the batch, frozen
++    ceFrozen γ.stor d.length ce es ∗
+     rd.Messages' ↦* ms.map QMsg.loc ∗
+     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
+       termLB γ.bud q.st.msg.Term') ∗
+@@ -615,12 +620,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
+     -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
+     readyIdx γ.raft d ce es)
+ 
+-/-- (D22 S-d4, 2026-10-21) The committed log handed out after a `Ready` that came after `d` with
+-the committed entries `ce`: `d ++ ce`, or, with a snapshot (the loan `l`), the committed log up to
+-the snapshot (`SnapLoan.dlv`; a snapshot `Ready` hands out no committed entries). -/
+-def dlvAfter (d ce : List EntryM) : Option SnapLoan → List EntryM
+-  | none => d ++ ce
+-  | some l => l.dlv
++-- (U8 v2) `dlvAfter` (the committed log handed out after a `Ready`) moved to `InvRawnodeReady.lean`.
+ 
+ /-- (D22 S-d4) What `run` has handed the driver of the committed log: `RNState.delivered`, or while
+ a snapshot `Ready` is lent (`RNState.slent`) the committed log up to its snapshot, which `Advance`
+@@ -676,7 +676,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
+       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
+       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
+       uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗
+-    readyOut γ.stor es (some l))
++    readyOut γ.stor γ.sn es (some l))
+ 
+ /-- (D22 S-d4) A `Ready`'s data, with or without a snapshot (`L`). -/
+ def readyDataL (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
+@@ -718,6 +718,8 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
+     readyDataL γ rd d ce es ms p p' L ∗
+     -- (2026-10-15, stage N) the committed log handed out, a lower bound
+     monoListLbOwn γ.dlm (dlvAfter d ce L) ∗
++    -- (U8 v2) with raft's certified terms (`dlvLb`)
++    dlvKeys γ.sn (dlvAfter d ce L) ∗
+     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
+     loanDecO γ.raft L)
+ 
+@@ -768,7 +770,7 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
+ @[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
+   iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
+     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
+-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor es L ∗
++    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor (dlvAfter d ce L).length es L ∗
+     -- (2026-10-28, stage U3d) after a snapshot `Ready`, the driver's view of the configuration
+     -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`) (until
+     -- 2026-10-29, stage U5, also dynamically the snapshot's `ConfState` no auto-leave one)
+@@ -792,9 +794,7 @@ post): for `some k` the floor's witness at `k` (D22 S-d4 item 3: also when a sna
+ since the `Ready`, `StorExtOk`), for `none` nothing. -/
+ def reqWit (γ : NodeNames) : Option (List EntryM) → IProp GF
+   | none => iprop(True)
+-  | some ds => iprop(∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
+-      -- (2026-10-28, stage U4a) and the storage's terms of the log (`ownRawNode_raise_floor`)
+-      storTermsAt γ.stor (ds.map (·.Term')))
++  | some ds => iprop(∃ x : w64, storFloor γ.sn x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝)
+ 
+ instance reqWit_persistent (γ : NodeNames) (q : Option (List EntryM)) :
+     Persistent (reqWit (GF := GF) γ q) := by
+@@ -805,8 +805,7 @@ needed a client that cannot be handed a snapshot, `H`, now unused.) -/
+ theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
+     (_H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
+     reqWit (GF := GF) γ (reqOf none ds) ⊢
+-      ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
+-        storTermsAt γ.stor (ds.map (·.Term')) := by
++      ∃ x : w64, storFloor γ.sn x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ := by
+   iintro Hw
+   unfold reqOf reqWit
+   iexact Hw
+@@ -818,7 +817,9 @@ theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
+ /-- The committed log handed out so far is at least `ds` (2026-10-15, stage N; persistent): what
+ the driver knows of `run`'s, for a conf change's entry. -/
+ @[no_expose] def dlvLb (γ : NodeNames) (ds : List EntryM) : IProp GF :=
+-  monoListLbOwn γ.dlm ds
++  iprop(monoListLbOwn γ.dlm ds ∗
++    -- (U8 v2, 2026-10-29) with raft's certified terms of it (the storage contract's `DL`)
++    dlvKeys γ.sn ds)
+ 
+ instance dlvLb_persistent (γ : NodeNames) (ds : List EntryM) :
+     Persistent (dlvLb (GF := GF) γ ds) := by
+@@ -851,8 +852,12 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
+       -- takes none (until then, from D22 S-c, at any node)
+       (γ.snapIn = false → rs.psnap = false ∧ rs.slent = none) ∧
+       (γ.snapIn = true → γ.raft.reNoSnap = false) ∧
+-      (∀ l, rs.slent = some l → rs.delivered <+: l.dlv)⌝ ∗
++      (∀ l, rs.slent = some l → rs.delivered <+: l.dlv) ∧
++      -- (U8 v2, 2026-10-29) the storage's names, the node's
++      rs.sn = γ.sn⌝ ∗
+     monoListAuthOwn γ.dlm 1 (rsDlv rs) ∗
++    -- (U8 v2, 2026-10-29) raft's certified terms of it, for the driver's lower bounds (`dlvLb`)
++    dlvKeys γ.sn (rsDlv rs) ∗
+     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
+       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied⌝ ∗
+       -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
+@@ -864,9 +869,10 @@ snapshot's (its index and the fold of its committed log, `loanCfg`), which `RawN
+ installs (`advRS`), the committed log handed out the loan's; A1 at the `RawNode` (from the
+ driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s premises). -/
+ @[no_expose] def runCfgLoan (γ : NodeNames) (rs : RNState) (l : SnapLoan) : IProp GF :=
+-  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv⌝ ∗
++  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv ∧
++      rs.sn = γ.sn⌝ ∗
+     undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
+-    monoListAuthOwn γ.dlm 1 l.dlv ∗
++    monoListAuthOwn γ.dlm 1 l.dlv ∗ dlvKeys γ.sn l.dlv ∗
+     dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) ∗
+     monoNatAuthOwn γ.cam 1 l.dlv.length)
+ 
+@@ -895,10 +901,11 @@ theorem runCfgR_loan (γ : NodeNames) (rs : RNState) (l : SnapLoan) (hl : rs.sle
+ /-- (D22 S-d4) `runCfg` reads only these fields of the node's state. -/
+ theorem runCfg_congr (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode = rs.mode)
+     (hc : rs'.capplied = rs.capplied) (hd : rs'.delivered = rs.delivered) (hf : rs'.flw = rs.flw)
+-    (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg) :
++    (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg)
++    (hsn : rs'.sn = rs.sn := by rfl) :
+     runCfg (GF := GF) γ rs ⊢ runCfg γ rs' := by
+   unfold runCfg rsDlv
+-  rw [hm, hc, hd, hf, hp, hs, hcfg]
++  rw [hm, hc, hd, hf, hp, hs, hcfg, hsn]
+ 
+ /-! ### `advancec` (D19i part 1): the floor raised at the rendezvous
+ 
+@@ -934,7 +941,7 @@ taken back by a `select` that fires another case. -/
+   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
+     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
+     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
+-    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
++    ⌜(rs.storage = γ.stor ∧ rs.sn = γ.sn) ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
+ 
+ /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
+ (`flw`), the driver's payload in (its `dlv` half, `rof` back whole, A1's lower bound).
+diff --git a/Proof/go_etcd_io/raft/v3/InvNodeRule.lean b/Proof/go_etcd_io/raft/v3/InvNodeRule.lean
+index f23d4b26ad..38dbea35ba 100644
+--- a/Proof/go_etcd_io/raft/v3/InvNodeRule.lean
++++ b/Proof/go_etcd_io/raft/v3/InvNodeRule.lean
+@@ -329,12 +329,58 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
+     snapMade γ ⟨l.length, m, sv.Data'⟩ ∗
+     ⌜l.length = uint.nat sv.Metadata'.Index' ∧ 0 < l.length ∧
+       Option.map LogEntry.term l.getLast? = some sv.Metadata'.Term' ∧
+-      confStateIs sv.Metadata'.ConfState' m⌝)
++      confStateIs sv.Metadata'.ConfState' m ∧
++      -- (U8 v2, 2026-10-29) the bounds raft's certificate needs (`SnapListsOk`), which nothing
++      -- above gives (a joint configuration may list `2^62 + 2` ids)
++      l.length < 2 ^ 61 ∧
++      (sv.Metadata'.ConfState'.Voters'.length + sv.Metadata'.ConfState'.Learners'.length +
++        sv.Metadata'.ConfState'.VotersOutgoing'.length +
++        sv.Metadata'.ConfState'.LearnersNext'.length : Int) ≤ 2 ^ 62⌝)
+ 
+ instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
+     Persistent (snapshotValid (GF := GF) γ sv) := by
+   unfold snapshotValid; infer_instance
+ 
++/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
++
++/-- The compaction's justification (`isStorageP`'s `Bnd`): an applied lower bound or a snapshot
++handed out at or past `c`. -/
++def storBnd (γ : Cluster) (id : w64) (c : Nat) : IProp GF :=
++  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k ∨ snapGiven γ id k))
++
++/-- A stored snapshot's bound (`isStorageP`'s `DL`): the committed log delivered to the node `id`
++reaches its index. -/
++def storDL (γ : Cluster) (id : w64) (i : Nat) : IProp GF :=
++  iprop(∃ (n : Loc) (N : Namespace) (l : List LogEntry), isNode n γ N id ∗ deliveredLogLb n γ N l ∗
++    ⌜i ≤ l.length⌝)
++
++/-- **The storage contract of node `id`'s storage `st`** (persistent; the frozen design's §2,
++`isStorageP` at the cluster's pieces). -/
++def isStorage (γ : Cluster) (id : w64) (st : Storage) : IProp GF :=
++  isStorageP (snapshotValid γ) (storBnd γ id) (storDL γ id) st
++
++/-- (U8 v2, 2026-10-29) **A fresh storage `st` to boot node `id` from** (the boot bundle; approved
++as decision (B)): a frame `R` of the client's, with `FirstIndex` answering `1` and `LastIndex` `0`
++over it, and `InitialState` answering the hard state `hs` and the conf state `csm`, after which the
++client makes the storage contract (`isStorage`) with index `0` a frozen entry of term `0`, the last
++index `0`. `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`,
++and a `MemoryStorage`'s `InitialState` reads its snapshot without the lock
++(`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
++made once `InitialState` returned: the contract comes in `InitialState`'s post. A `MemoryStorage`'s
++bundle is a law (`memStorage_bootStorage`). -/
++def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM) :
++    IProp GF :=
++  iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
++    (□ {{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
++       {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
++    (□ {{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
++       {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
++    (□ {{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
++       {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
++          hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
++          |={⊤}=> isStorage γ id st ∗ ∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗
++            storLog st 0 DFrac.discard [e0] ∗ storEnd st 1 }}))
++
+ end api
+ 
+ end EtcdGrove
+diff --git a/Proof/go_etcd_io/raft/v3/InvNodeRun.lean b/Proof/go_etcd_io/raft/v3/InvNodeRun.lean
+index 546487567f..34bd092617 100644
+--- a/Proof/go_etcd_io/raft/v3/InvNodeRun.lean
++++ b/Proof/go_etcd_io/raft/v3/InvNodeRun.lean
+@@ -1027,7 +1027,7 @@ theorem wp_applyConf_dyn
+     (Hunp : rs.unpersisted = s.logst.unpersisted)
+     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
+     (Hstok : StepsOk s rs.steps)
+-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
++    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
+     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
+     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
+@@ -1208,7 +1208,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
+     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
+     (Hunp : rs.unpersisted = s.logst.unpersisted)
+     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
+-    (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
++    (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
+     {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
+     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
+@@ -2066,13 +2066,17 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L
+     (Hca : rs'.capplied = rs.capplied) (Hfw : rs'.flw = rs.flw)
+     (Hps : rs'.psnap = false) (Hsl : rs'.slent = L)
+     (HL : ∀ l, L = some l → ce = [] ∧ rs.delivered <+: l.dlv)
+-    (HpL : rs.psnap = false → L = none) :
+-    ⊢ runCfg (GF := GF) γ rs ==∗
+-      runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) := by
+-  iintro Hcfg
++    (HpL : rs.psnap = false → L = none)
++    -- (U8 v2) the storage's names kept, and raft's certified terms of what is handed out
++    (Hsn' : rs'.sn = rs.sn) (X : List EntryM) (HX : dlvAfter rs.delivered ce L = rs.delivered ++ X) :
++    ⊢ dlvKeysAt (GF := GF) γ.sn rs.delivered.length X -∗ runCfg γ rs ==∗
++      runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) ∗
++      dlvKeys γ.sn (dlvAfter rs.delivered ce L) := by
++  iintro #HX' Hcfg
+   iunfold runCfg at Hcfg
+-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+-  obtain ⟨Hmd, Hcp, Hflw, Hsn, Hsi, -⟩ := Hm0
++  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
++  obtain ⟨Hmd, Hcp, Hflw, Hsn, Hsi, -, Hsnm⟩ := Hm0
++  rw [rsDlv_none Hsl0] at Hdk
+   rw [rsDlv_none Hsl0]
+   rw [rsDlv_none Hsl0] at Hcp
+   have Hext : rs.delivered <+: dlvAfter rs.delivered ce L := by
+@@ -2080,8 +2084,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L
+     | none => exact List.prefix_append _ _
+     | some l => exact (HL l rfl).2
+   imod monoListAuthOwn_update (dlvAfter rs.delivered ce L) Hext $$ Hdlm with ⟨Hdlm, #Hlb⟩
++  ihave #Hdk' : dlvKeys γ.sn (dlvAfter rs.delivered ce L) $$ []
++  · rw [HX]; iapply (dlvKeysAt_app γ.sn 0 rs.delivered X).2
++    rw [Nat.zero_add]; iframe Hdk HX'
+   imodintro
+-  iframe Hlb
++  iframe Hlb Hdk'
+   have Hrs' : rsDlv rs' = dlvAfter rs.delivered ce L := by
+     unfold rsDlv
+     rw [Hsl]
+@@ -2090,10 +2097,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L
+     | some l => rfl
+   iunfold runCfg
+   rw [Hrs', Hd, Hm, Hc, Hca, Hps, Hsl]
+-  iframe Hdlm
++  iframe Hdlm Hdk'
+   isplitr
+   · ipureintro
+-    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, fun h => ⟨rfl, HpL (Hsn h).1⟩, Hsi, ?_⟩
++    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, fun h => ⟨rfl, HpL (Hsn h).1⟩, Hsi, ?_,
++      by rw [Hsn']; exact Hsnm⟩
+     · exact Nat.le_trans Hcp Hext.length_le
+     · intro l hl
+       obtain ⟨rfl, Hp⟩ := HL l hl
+diff --git a/Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean b/Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean
+index 95c00e17ef..72b170c85d 100644
+--- a/Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean
++++ b/Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean
+@@ -75,6 +75,7 @@ module
+ 
+ public import Proof.go_etcd_io.raft.v3.ApiVocab
+ public import Proof.go_etcd_io.raft.v3.InvRawnode
++public import Proof.go_etcd_io.raft.v3.LemmasCeFrozen
+ -- `ownRaftGhost_drain` (2026-10-13)
+ public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+ -- (D22 S-b) the hard state's witness, `hsWit`
+@@ -308,9 +309,16 @@ def isSelfQ (id : w64) (q : QMsg) : Bool := decide (q.st.msg.To' = id)
+ 
+ /-- (D22 S-d3a, 2026-10-21) The log of a computed `Ready`: as it was, or once handed out (`h`) the
+ batch recorded as the application's (`logHanded`) and, with a snapshot (`lt`), the storage lent
+-(`ownRaftLog_lend`). -/
+-def rdyLog (h lt : Bool) (ls : LogState) : LogState :=
+-  if h then (if lt then logHanded { ls with lent := true, sat := false } else logHanded ls) else ls
++(`ownRaftLog_lend`); (U8 v2) and the terms of the committed log handed out certified up to `dk`
++(`ownRaftLog_certify`). -/
++def rdyLog (h lt : Bool) (ls : LogState) (dk : Nat := ls.dtk) : LogState :=
++  if h then logHanded (if lt then lendLog { ls with dtk := dk } else { ls with dtk := dk }) else ls
++
++/-- (D22 S-d4; here since U8 v2) The committed log handed out after a `Ready` of the committed
++entries `ce` and the loan `L`: `d ++ ce`, or with a snapshot the committed log up to it. -/
++def dlvAfter (d ce : List EntryM) : Option SnapLoan → List EntryM
++  | none => d ++ ce
++  | some l => l.dlv
+ 
+ /-- (D22 S-d3a) What a snapshot `Ready` records of its loan (`SnapLoan`) at the node's state `s`:
+ the snapshot pending and not in progress, a snapshot the node may send, past index `0`; the
+@@ -575,38 +583,41 @@ theorem qCerts_mem (γ : RaftNames) (l : List QMsg) (q : QMsg) (h : q ∈ l) :
+ theorem qCerts_nil (γ : RaftNames) : ⊢ qCerts (GF := GF) γ [] := by
+   unfold qCerts; iapply (BigSepL.bigSepL_nil (Φ := fun _ q => qCert (GF := GF) γ q)).2; iempintro
+ 
+-/-- A queued message's certificate's source, through the certificate link. -/
+-theorem qCert_of_src (γ : RaftNames) (st : Storage) (q : QMsg)
++/-- A queued message's certificate's source, through the certificate link (U8 v2: over the
++storage's names, `svCert`/`ksnCert`). -/
++theorem qCert_of_src (γ : RaftNames) (sn : StorNames) (q : QMsg)
+     (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+-    ⊢ certLink (GF := GF) γ st -∗ qSrc st q ={E}=∗ qCert γ q := by
+-  iintro #Hl #Hs
++    ⊢ certLink (GF := GF) γ sn -∗ qSrc sn q ={E}=∗ qCert γ q := by
++  iintro #Hok #Hs
+   unfold qCert
+-  iunfold certLink at Hl
+-  icases Hl with (%Hns | #Hok)
+-  · imodintro; ileft; ipureintro; exact Hns
++  iunfold certLink at Hok
+   iunfold qSrc at Hs
+   iunfold tsSrc at Hs
+   icases Hs with (%Hn | ⟨%sv, %Hsv, #Hc⟩)
+   · imodintro; iright; ileft; ipureintro; exact Hn
+   iunfold storCertOk at Hok
+-  icases Hok with ⟨#Hrd, -⟩
+-  imod Hrd $$ %_ %E %hE Hc with #Hc'
++  icases Hok with ⟨#Hsv', #Hks, -⟩
++  ihave Hc' : |={E}=> raftSnapCertD γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ [Hc]
++  · icases Hc with (#Hc | #Hc)
++    · iapply Hsv' $$ %_ %E %hE Hc
++    · iapply Hks $$ %_ %E %hE Hc
++  imod Hc' with #Hc'
+   imodintro
+   iright; iright
+   iexists sv
+   iframe Hc'
+   ipureintro; exact Hsv
+ 
+-theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
++theorem qCerts_of_srcs (γ : RaftNames) (sn : StorNames) (l : List QMsg)
+     (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+-    ⊢ certLink (GF := GF) γ st -∗ qSrcs st l ={E}=∗ qCerts γ l := by
++    ⊢ certLink (GF := GF) γ sn -∗ qSrcs sn l ={E}=∗ qCerts γ l := by
+   induction l with
+   | nil => iintro _ _; imodintro; iapply qCerts_nil
+   | cons q l ih =>
+     iintro #Hl #Hs
+     iunfold qSrcs at Hs
+     icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨#Hq, #Hs⟩
+-    imod qCert_of_src γ st q E hE $$ Hl Hq with #Hq'
++    imod qCert_of_src γ sn q E hE $$ Hl Hq with #Hq'
+     imod ih $$ Hl [Hs] with #Hl'
+     · unfold qSrcs; iexact Hs
+     imodintro
+@@ -616,11 +627,12 @@ theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
+     iexact Hl'
+ 
+ /-- (2026-10-28, the conf-change decision switch) The certificates of the snapshots the log knows
+-(`LogState.ksn`, `ownRaftLog_kcert`), raft's, through the storage's link: what a `Ready` handing out
+-a pending snapshot reads its decisions from (`raftSnapCert_decs`). Nothing in the no-snapshot mode. -/
+-theorem ksnCerts_of_ok (γ : RaftNames) (st : Storage) (ks : List SnapTrip)
++(`LogState.ksn`, `ownRaftLog`'s `Hkcert`), raft's, through the certificate link: what a `Ready`
++handing out a pending snapshot reads its decisions from (`raftSnapCert_decs`). (U8 v2: over the
++pins, `ksnCerts`.) -/
++theorem ksnCerts_of_ok (γ : RaftNames) (sn : StorNames) (ks : List SnapTrip)
+     (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+-    ⊢ storCertOk (GF := GF) γ st -∗ ([∗list] k ∈ ks, storCert st k) ={E}=∗
++    ⊢ storCertOk (GF := GF) γ sn -∗ ksnCerts sn ks ={E}=∗
+       [∗list] k ∈ ks, raftSnapCert γ k := by
+   induction ks with
+   | nil => iintro _ _; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+@@ -628,25 +640,25 @@ theorem ksnCerts_of_ok (γ : RaftNames) (st : Storage) (ks : List SnapTrip)
+     iintro #Hok #Hs
+     ihave #Hok' := Hok
+     iunfold storCertOk at Hok'
+-    icases Hok' with ⟨#Hreg, -⟩
++    icases Hok' with ⟨-, #Hreg, -⟩
++    iunfold ksnCerts at Hs
+     icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨#Hk, #Hs⟩
+     imod Hreg $$ %k %E %hE Hk with #Hc
+     iunfold raftSnapCertD at Hc
+     icases Hc with ⟨#Hc, -⟩
+-    imod ih $$ Hok Hs with #Hr
++    imod ih $$ Hok [Hs] with #Hr
++    · unfold ksnCerts; iexact Hs
+     imodintro
+     iapply BigSepL.bigSepL_cons.2
+     iframe Hc Hr
+ 
+-theorem ksnCerts_of_link (γ : RaftNames) (st : Storage) (ks : List SnapTrip)
++theorem ksnCerts_of_link (γ : RaftNames) (sn : StorNames) (ks : List SnapTrip)
+     (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+-    ⊢ certLink (GF := GF) γ st -∗ ([∗list] k ∈ ks, storCert st k) ={E}=∗
++    ⊢ certLink (GF := GF) γ sn -∗ ksnCerts sn ks ={E}=∗
+       ⌜γ.reNoSnap = true⌝ ∨ [∗list] k ∈ ks, raftSnapCert γ k := by
+   iintro #Hl #Hs
+   iunfold certLink at Hl
+-  icases Hl with (%Hns | #Hok)
+-  · imodintro; ileft; ipureintro; exact Hns
+-  imod ksnCerts_of_ok γ st ks E hE $$ Hok Hs with #Hr
++  imod ksnCerts_of_ok γ sn ks E hE $$ Hl Hs with #Hr
+   imodintro; iright; iexact Hr
+ 
+ /-- A queued message's contribution is in the outbox, so it was legitimately sent
+@@ -776,7 +788,7 @@ others (`Hother`); `Hundo` takes the handed-out messages back (at `readyDq`) and
+ slice and messages and the others' halves; the read states `readStatesPts`; `Hclose` as
+ `ownRaftPhysC_view`'s, the outbox owned.) -/
+ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice)
+-    (ms : List QMsg) (h : Bool) (lt : Bool := false) : IProp GF :=
++    (ms : List QMsg) (h : Bool) (lt : Bool := false) (dk : Nat := 0) : IProp GF :=
+   iprop(∃ (rsl sl1 sl2 : GoSlice) (ms1 ms2 : List QMsg),
+     "#Hf_id" ∷ r.[raft, go!"id"] ↦□ id ∗
+     "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
+@@ -801,7 +813,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
+     -- (2026-10-19, D21 M2r) the modes' facts of the queues
+     "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
+     -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
+-    "#Hscert" ∷ qSrcs s.logst.storage (ms1 ++ ms2) ∗
++    "#Hscert" ∷ qSrcs s.gh.sn (ms1 ++ ms2) ∗
+     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
+     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
+                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+@@ -811,7 +823,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
+                  msgOwn q.loc (DFrac.own (1 : Qp).half) q.st)) ∗
+     -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`); (D22 S-d3a)
+     -- with a snapshot (`lt`), the storage itself lent (`ownRaftLog_lend`)
+-    "Hlog" ∷ ownRaftLog s.log (rdyLog h lt s.logst) ∗
++    "Hlog" ∷ ownRaftLog s.log (rdyLog h lt s.logst dk) ∗
+     "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List QMsg) (o : List Msg)
+                   (ls' : LogState) (g : NGhost) (rs' : GoSlice) (rd' : RdState),
+         r.[raft, go!"Term"] ↦ s.term -∗
+@@ -834,14 +846,16 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
+         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
+         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
+         ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
+-        qSrcs ls'.storage (ms1' ++ ms2') -∗
++        qSrcs g.sn (ms1' ++ ms2') -∗
+         ownRaftLog s.log ls' -∗
+         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
+ 
+ /-- (D22 S-d3a) Before the hand-out, the lent flag is idle (`rdyLog false`). -/
+ theorem ownRaftPhysReady_lt0 (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice)
+     (ms : List QMsg) (lt lt' : Bool) :
+-    ownRaftPhysReady (GF := GF) c r id s msl ms false lt ⊢ ownRaftPhysReady c r id s msl ms false lt' := by
++    (dk dk' : Nat) :
++    ownRaftPhysReady (GF := GF) c r id s msl ms false lt dk ⊢
++      ownRaftPhysReady c r id s msl ms false lt' dk' := by
+   unfold ownRaftPhysReady rdyLog; exact .rfl
+ 
+ /-! ### Read credits (see the file header) -/
+@@ -1161,7 +1175,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd :
+   iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
+       (hprev : HardStateM),
+   "Hrn" ∷ rawNodeOwn rn rnv ∗
+-  "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome ∗
++  "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome
++    (dlvAfter rs.delivered ce L).length ∗
+   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id
+     (if h then { s with outbox := [] } else s) ∗
+   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
+@@ -1182,7 +1197,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd :
+   "%Hsnap" ∷ ⌜rs.psnap = false ∧ rs.slent = none → s.logst.snap = none⌝ ∗
+   "%Hloan" ∷ ⌜LoanOk rs s ∧ rs.slent = none⌝ ∗
+   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
+-  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
++  "%Hstor" ∷ ⌜rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn⌝ ∗
+   "%Hpvoff" ∷ ⌜RNPv rs fp s⌝ ∗
+   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
+   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
+@@ -1400,56 +1415,115 @@ theorem readyIdx_pure (ls : LogState) (d ce : List EntryM)
+       push_cast
+       rw [Int.toNat_of_nonneg Hapz]; omega
+ 
+-/-- (D22 S-d4, 2026-10-21) The certificates of the snapshots the log may send (`Hkcert`), read
+-out without consuming the log: each certified in the storage's own registry (`storCert`). What a
+-snapshot `Ready` hands the application with the snapshot (`readyOut`), for `ApplySnapshot`. -/
+-theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
++/-- (U8 v2) `applying` is below `offsetInProgress` (`FlOk`), read out. -/
++theorem ownRaftLog_applying_lt (l : Loc) (ls : LogState) :
+     ⊢ ownRaftLog (GF := GF) l ls -∗
+-      ([∗list] k ∈ ls.ksn, storCert ls.storage k) ∗ ownRaftLog l ls := by
++      ⌜uint.nat ls.applying < uint.nat ls.inprogress⌝ ∗ ownRaftLog l ls := by
+   iintro H0
+   iNamed H0
+-  ihave #Hkc : ([∗list] k ∈ ls.ksn, storCert ls.storage k) $$ []
+-  · rw [← Hstor]; iexact Hkcert
+-  iframe Hkc
+-  iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+-    Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+-    Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl
+-    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+-
+-/-- (D22 S-d3a) The log's part of a `Ready`'s hand-out: the right to append the batch
+-(`ownRaftLog_handout`), or with a snapshot the storage itself (`ownRaftLog_lend`). -/
++  isplitr
++  · ipureintro
++    have := Hfl.2.2.1
++    have h1 := uint_nat_eq ls.applying; have h2 := uint_nat_eq ls.inprogress
++    omega
++  · iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore
++      Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
++      Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
++      HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
++
++/-- (U8 v2, 2026-10-29) **Certifying the terms of the entries `L`** at the indices `n + 1, …` past
++the certified height `n` (`ownRaftLog_certify`, one by one): each at most `committed`, of the log's
++term there once at or past the boundary. -/
++theorem ownRaftLog_certify_list (l : Loc) (L : List EntryM) :
++    ∀ (ls : LogState) (n : Nat), ls.dtk = n →
++      ((n + L.length : Nat) : Int) ≤ uint.Z ls.committed →
++      (∀ (k : Nat) (e : EntryM), L[k]? = some e →
++        uint.Z ls.prev.index' ≤ ((n + k + 1 : Nat) : Int) →
++        plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 ((n + k + 1 : Nat) : Int)) = some e.Term') →
++      ⊢ ownRaftLog (GF := GF) l ls ==∗
++        ownRaftLog l { ls with dtk := n + L.length } ∗ dlvKeysAt ls.sn n L := by
++  induction L with
++  | nil =>
++    intro ls n Hn _ _
++    iintro H
++    imodintro
++    have : ({ ls with dtk := n + 0 } : LogState) = ls := by
++      cases ls; simp only at Hn ⊢; rw [Hn]; rfl
++    rw [this]
++    iframe H
++    iapply dlvKeysAt_nil
++  | cons e L ih =>
++    intro ls n Hn Hc Ht
++    iintro H
++    have Hc1 : ((n + 1 : Nat) : Int) ≤ uint.Z ls.committed := by
++      simp only [List.length_cons] at Hc; omega
++    imod ownRaftLog_certify l ls (n + 1) e.Term' (by omega) Hc1
++      (fun hp => by have := Ht 0 e rfl (by simpa using hp); simpa using this) $$ H
++      with ⟨H, #Hk⟩
++    imod ih { ls with dtk := n + 1 } (n + 1) rfl
++      (by simp only [List.length_cons] at Hc ⊢; omega)
++      (fun k e' hk hp => by
++        have := Ht (k + 1) e' (by simpa using hk) (by simp only at hp ⊢; omega)
++        simp only at this ⊢
++        rw [show n + 1 + k + 1 = n + (k + 1) + 1 by omega]; exact this) $$ H
++      with ⟨H, #Hks⟩
++    imodintro
++    have : ({ ({ ls with dtk := n + 1 } : LogState) with dtk := n + 1 + L.length } : LogState) =
++        { ls with dtk := n + (e :: L).length } := by
++      simp only [List.length_cons]; congr 1; omega
++    rw [this]
++    iframe H
++    unfold dlvKeysAt
++    iapply BigSepL.bigSepL_cons.2
++    isplitr
++    · rw [show n + 0 + 1 = n + 1 by omega]; iexact Hk
++    iunfold dlvKeysAt at Hks
++    have hf : (fun j (x : EntryM) => iprop((n + 1 + j + 1) ↪[ls.sn.gd]□ x.Term' : IProp GF)) =
++        (fun j (x : EntryM) => iprop((n + (j + 1) + 1) ↪[ls.sn.gd]□ x.Term' : IProp GF)) := by
++      funext j x; rw [show n + 1 + j + 1 = n + (j + 1) + 1 by omega]
++    rw [← hf]
++    iexact Hks
++
++/-- (D22 S-d3a; U8 v2) The log's part of a `Ready`'s hand-out (`readyOut`): the right to write the
++batch, with the committed entries below it frozen (`ownRaftLog_handout`), or with a snapshot the
++ranges above raft's frozen prefix and the snapshot handed out (`ownRaftLog_lend`). -/
+ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Option SnapLoan)
+     (st : Storage) (Hunp : ls.unpersisted = []) (Hes : es = nextUnstable ls)
+     (Hst : st = ls.storage) (Hn : L = none → ls.snap = none)
+-    (Hs : ∀ l, L = some l → ls.snap ≠ none ∧ l.fl = ls.fl)
+-    (Hlt : ∀ l, L = some l → ls.lent = false)
+-    -- (D22 S-d4) the snapshot one the log may send, so certified (`ownRaftLog_kcert`)
+-    (Hk : ∀ l, L = some l → snapTrip l.snap l.snap.Metadata'.ConfState'.lists ∈ ls.ksn) :
+-    ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l (rdyLog true L.isSome ls) ∗ readyOut st es L := by
++    (Hs : ∀ l, L = some l → ls.snap = some (snapId l.snap) ∧ ls.sip = false)
++    (Hlt : ∀ l, L = some l → ls.lent = false) :
++    ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l (rdyLog true L.isSome ls) ∗
++      readyOut st ls.sn es L ∗
++      (⌜L ≠ none⌝ ∨ storLog st (uint.nat ls.applying + 1) DFrac.discard (frozenRdy ls)) := by
+   iintro Hlog
+   cases L with
+   | none =>
+-    imod ownRaftLog_handout _ _ Hunp (Hn rfl) $$ Hlog with ⟨Hlog, Happ⟩
++    imod ownRaftLog_handout _ _ Hunp (Hn rfl) $$ Hlog with ⟨Hlog, Happ, #Hfr⟩
+     imodintro
+     isplitl [Hlog]
+     · iExactEq Hlog; rfl
+     unfold readyOut
+-    rw [Hes, Hst]; iexact Happ
++    rw [Hes, Hst]
++    iframe Happ
++    iright; iexact Hfr
+   | some lo =>
+-    obtain ⟨Hsn, Hfl⟩ := Hs lo rfl
+-    icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, Hlog⟩
+-    ihave #Hc := BigSepL.bigSepL_mem (Hk lo rfl) $$ Hkc
+-    icases ownRaftLog_lend _ _ Hunp Hsn (Hlt lo rfl) $$ Hlog with ⟨Hlog, %σ, HSt, %Hσ⟩
++    obtain ⟨Hsn, Hsip⟩ := Hs lo rfl
++    icases ownRaftLog_snap_facts _ _ $$ Hlog with ⟨%Hf, Hlog⟩
++    have Hpv : ls.prev = snapId lo.snap := (Hf.2.2.2 _ Hsn).1
++    imod ownRaftLog_lend _ _ Hunp (by rw [Hsn]; simp) (Hlt lo rfl) Hsip $$ Hlog
++      with ⟨Hlog, ⟨%k, %old, HO, Hend, %Hk⟩, #Hg⟩
+     imodintro
+     isplitl [Hlog]
+     · iExactEq Hlog; rfl
+-    simp only [readyOut]
+-    rw [Hst]
+-    isplitl [HSt]
+-    · iexists σ
+-      iframe HSt
+-      ipureintro; exact ⟨Hσ.1, Hσ.2.1.trans Hfl.symm⟩
+-    iexact Hc
++    isplitl [HO Hend]
++    · simp only [readyOut]
++      rw [Hst]
++      rw [Hpv] at Hk Hg
++      iframe Hg
++      iexists k, old
++      iframe HO Hend
++      ipureintro; exact Hk
++    ileft; ipureintro; simp
+ 
+ /-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
+ theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
+@@ -1472,6 +1546,69 @@ theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List
+     iframe Hs Hc Hd
+     ipureintro; exact H
+ 
++/-- (2026-10-26, D22 J6a; J7b's raft part) **A lent snapshot's id is the last of its committed
++log**: the committed log up to the snapshot a `Ready` hands out (`l.dlv`) ends at the snapshot's id
++(`plogLast base0 l.dlv = snapId l.snap`, so its last entry has the snapshot's term). The node's log
++is at the pending snapshot (`LogStoreOk`: its base is the snapshot's id), its full prefix ends at
++its base (`FullOk`) and is committed up to the commit index, at least the base's; the loan's
++committed log has the snapshot's length, so it is that full prefix (`isCommitted_agree`). -/
++theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
++    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
++    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
++      ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
++  iintro H
++  ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
++  · iunfold ownRawNodeReady at H
++    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
++    iNamed H
++    unfold rdSnapRel
++    icases Hrdz with ⟨-, #Hcl, -, %Hr⟩
++    obtain ⟨-, hsr⟩ := Hr
++    have hsn : s.logst.snap = some (snapId l.snap) := hsr.1
++    have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
++    iunfold ownRaftPhysReady at Hphys
++    iNamed Hphys
++    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst)
++      (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
++      (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
++        have e1 : (rdyLog h (some l).isSome s.logst).snap = s.logst.snap := by
++          unfold rdyLog logHanded; split <;> simp
++        have e2 : (rdyLog h (some l).isSome s.logst).prev = s.logst.prev := by
++          unfold rdyLog logHanded; split <;> simp
++        have e3 : (rdyLog h (some l).isSome s.logst).committed = s.logst.committed := by
++          unfold rdyLog logHanded; split <;> simp
++        rw [e1, hsn, e2] at Hst
++        rw [e2, e3] at Happ
++        exact ⟨Hst.1, Happ.1⟩) $$ Hlog with ⟨%Hpv, -⟩
++    iunfold ownStepGhost at Hghost
++    icases Hghost with ⟨Hg, -⟩
++    icases ownRaftGhost_cmt γ id _ $$ Hg with ⟨%fp', %Hf', -, #Hc⟩
++    have hb : (toPState (if h then { s with outbox := [] } else s)).base = snapId l.snap := by
++      rw [← Hpv.1]; cases h <;> rfl
++    have hcm : (toPState (if h then { s with outbox := [] } else s)).commit = s.logst.committed := by
++      cases h <;> rfl
++    rw [hb] at Hf'
++    icases isCommitted_agree γ _ _ $$ Hcl Hc with %Hag
++    ipureintro
++    obtain ⟨Hfl, -, Hfl2⟩ := Hf'
++    have hlen : (fp'.length : Int) = (l.dlv.length : Int) := by
++      rw [Hfl, hdl]; simp only [snapId]
++      have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
++    have hfp : fp' <+: cprefix fp' (toPState (if h then { s with outbox := [] } else s)) := by
++      unfold cprefix
++      rw [hcm, List.take_append, List.take_of_length_le]
++      · exact List.prefix_append _ _
++      · have := Hpv.2; rw [Hpv.1] at this
++        simp only [snapId] at Hfl this
++        omega
++    have heq : fp' = l.dlv := by
++      rcases Hag with h1 | h1
++      · exact (List.prefix_of_prefix_length_le hfp h1 (by omega)).eq_of_length (by omega)
++      · exact (hfp.trans h1).eq_of_length (by omega)
++    rw [← heq]; exact Hfl2
++  iframe H
++  ipureintro; exact Hx
++
+ /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
+ right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
+ the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
+@@ -1482,13 +1619,24 @@ outbox (`Step.drain`, `ownRaftGhost_drain`), handing out with each message its r
+ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) :
+     ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ==∗
+-      ownRawNodeReady γ rn id rs rd ce es ms true L ∗ readyOut rs.storage es L ∗
++      ownRawNodeReady γ rn id rs rd ce es ms true L ∗ readyOut rs.storage rs.sn es L ∗
++      -- (U8 v2) the committed entries below the batch, frozen; raft's certified terms of the
++      -- committed log handed out
++      (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
++      dlvKeysAt rs.sn rs.delivered.length ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
+       ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+       -- (2026-10-19, D21 M6) and each proposal's tickets
+       ([∗list] q ∈ ms, stTks γ q.st) ∗
+       -- (2026-10-18, D19b stage 5) the indices handed out are within the log
+       readyIdx γ rs.delivered ce es := by
+   iintro H
++  -- (U8 v2) a lent snapshot's committed log ends at it
++  ihave %Hllast : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
++  · cases L with
++    | none => ipureintro; intro l h; cases h
++    | some l0 =>
++      icases ownRawNodeReady_loanLast γ rn id rs rd ce es ms false l0 $$ H with ⟨%Hx, -⟩
++      ipureintro; intro l h; cases h; exact Hx
+   iunfold ownRawNodeReady at H
+   icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
+   iNamed H
+@@ -1503,22 +1651,138 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
+       uint.Z s.logst.prev.index' + (s.logst.sents.length : Int) + 1 ≤ uint.Z s.logst.inprogress ∧
+       uint.Z s.logst.applying ≤ uint.Z s.logst.committed ∧
+       uint.Z s.logst.committed ≤ uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
+-        + (s.logst.uents.length : Int))
+-    (fun _ _ Hidx _ _ Hoff _ _ Hcm Hipb Happ => ⟨Hidx, by omega, Happ.2, Hcm⟩) $$ Hlog
++        + (s.logst.uents.length : Int) ∧
++      (logOffset s.logst ≤ uint.Z s.logst.inprogress ∧
++        uint.Z s.logst.inprogress ≤ logOffset s.logst + (s.logst.uents.length : Int)) ∧
++      uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed ∧
++      (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
++      uint.Z s.logst.applied ≤ uint.Z s.logst.applying)
++    (fun _ _ Hidx _ _ Hoff Hpc Hpa Hcm Hipb Happ =>
++      ⟨Hidx, by omega, Happ.2, Hcm, by unfold logOffset; omega, Hpc.1, Hpa, Happ.1⟩) $$ Hlog
+     with ⟨%Hlf, Hlog⟩
+-  have Hri := readyIdx_pure s.logst rs.delivered ce Hlf.1 (by unfold logOffset; omega) Hlf.2.2.1
+-    Hlf.2.2.2 Hdlen Hceok
++  obtain ⟨Hidx, Hoff, Hapc, Hcm, Hip, Hpc, Hpa0, Hapa⟩ := Hlf
++  have Hri := readyIdx_pure s.logst rs.delivered ce Hidx (by unfold logOffset; omega) Hapc
++    Hcm Hdlen Hceok
++  icases ownRaftLog_applying_lt _ _ $$ Hlog with ⟨%Hai, Hlog⟩
++  icases ownRaftLog_snap_facts _ _ $$ Hlog with ⟨%Hsf, Hlog⟩
+   -- the storage: the right to append the batch, or (a snapshot) the storage itself
+   icases rdSnapRel_facts γ rs rd ce L s $$ Hrdz with ⟨%Hrdp, Hrdz⟩
+   have Hlt0 : ∀ l, L = some l → s.logst.lent = false := by
+     intro l _
+-    have h1 := Hgh_unst.1.2.1
++    have h1 := Hgh_unst.1.2.1.1
+     rw [h1, Hloan.1.1, Hloan.2]; rfl
+-  imod ownRaftLog_rdy_out s.log s.logst es L rs.storage Hunp Hes Hstor
++  have hA := uint_nat_eq s.logst.applying
++  have hC := uint_nat_eq s.logst.committed
++  have hP := uint_nat_eq s.logst.prev.index'
++  have hI := uint_nat_eq s.logst.inprogress
++  have Hdl : rs.delivered.length = uint.nat s.logst.applying := by rw [Hdlen]; rfl
++  have Hpv : ∀ l, L = some l → s.logst.prev = snapId l.snap := fun l hl =>
++    (Hsf.2.2.2 _ (Hrdp.2 l hl).2.1).1
++  -- (U8 v2) the committed log handed out agrees with the log (`ownStepGhost_cmt_ents`)
++  have Hcel : L = none → uint.nat s.logst.applying + ce.length ≤ uint.nat s.logst.committed := by
++    intro _
++    cases hc : ce.getLast? with
++    | none => rw [List.getLast?_eq_none_iff.mp hc]; simp only [List.length_nil]; omega
++    | some e => have := Hceok e hc; omega
++  have Hpa : L = none → uint.nat s.logst.prev.index' ≤ uint.nat s.logst.applying := by
++    intro h
++    have := Hpa0 (Hrdp.1 h).2
++    omega
++  ihave %Hag : ⌜L = none → ∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
++      uint.nat s.logst.prev.index' + k < (rs.delivered ++ ce).length →
++      (rs.delivered ++ ce)[uint.nat s.logst.prev.index' + k]? = some e⌝ $$ [Hghost]
++  · cases L with
++    | some _ => ipureintro; intro h; cases h
++    | none =>
++      icases ownStepGhost_cmt_ents γ _ c id s (rs.delivered ++ ce)
++        (by rw [List.length_append, Hdl]; have := Hcel rfl; omega) $$ Hcommitted Hghost
++        with ⟨%Hx, -⟩
++      ipureintro; intro _; exact Hx
++  -- (U8 v2) raft certifies the terms of the committed log handed out
++  have HKlen : rs.delivered.length +
++      ((dlvAfter rs.delivered ce L).drop rs.delivered.length).length =
++      (dlvAfter rs.delivered ce L).length := by
++    rw [List.length_drop]
++    cases L with
++    | none => simp only [dlvAfter, List.length_append]; omega
++    | some l =>
++      have := (Hrdp.2 l rfl).2.2.2.2.2.2.1.length_le
++      simp only [dlvAfter]; omega
++  have HKc : ((rs.delivered.length +
++      ((dlvAfter rs.delivered ce L).drop rs.delivered.length).length : Nat) : Int) ≤
++      uint.Z s.logst.committed := by
++    rw [HKlen]
++    cases L with
++    | none => simp only [dlvAfter, List.length_append]; have := Hcel rfl; omega
++    | some l =>
++      have hsr := (Hrdp.2 l rfl).2
++      have h1 : (l.dlv.length : Int) = uint.Z l.snap.Metadata'.Index' := by
++        rw [hsr.2.2.2.2.2.2.2.1]; have := hsr.2.2.2.1; omega
++      have h2 : uint.Z s.logst.prev.index' = uint.Z l.snap.Metadata'.Index' := by
++        rw [Hpv l rfl]; rfl
++      simp only [dlvAfter]; omega
++  have HKt : ∀ (k : Nat) (e : EntryM),
++      ((dlvAfter rs.delivered ce L).drop rs.delivered.length)[k]? = some e →
++      uint.Z s.logst.prev.index' ≤ ((rs.delivered.length + k + 1 : Nat) : Int) →
++      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents)
++        (W64 ((rs.delivered.length + k + 1 : Nat) : Int)) = some e.Term' := by
++    intro k e hk hp
++    cases L with
++    | none =>
++      simp only [dlvAfter, List.drop_left] at hk
++      rw [Hdl]
++      exact cmt_termAt s.logst rs.delivered ce Hdl (Hpa rfl) Hcm (Hcel rfl) (Hag rfl) k e hk
++    | some l =>
++      have hsr := (Hrdp.2 l rfl).2
++      simp only [dlvAfter] at hk
++      have hkl := (List.getElem?_eq_some_iff.1 hk).1
++      rw [List.length_drop] at hkl
++      have hdl' : (l.dlv.length : Int) = uint.Z l.snap.Metadata'.Index' := by
++        rw [hsr.2.2.2.2.2.2.2.1]; have := hsr.2.2.2.1; omega
++      have h2 : uint.Z s.logst.prev.index' = uint.Z l.snap.Metadata'.Index' := by
++        rw [Hpv l rfl]; rfl
++      -- the only index at or past the boundary is the snapshot's, the loan's last entry
++      have hlast : rs.delivered.length + k + 1 = l.dlv.length := by omega
++      have he : l.dlv.getLast? = some e := by
++        rw [List.getElem?_drop] at hk
++        rw [List.getLast?_eq_getElem?, show l.dlv.length - 1 = rs.delivered.length + k by omega]
++        exact hk
++      have hl := Hllast l rfl
++      unfold plogLast at hl
++      rw [he] at hl
++      have ht : e.Term' = l.snap.Metadata'.Term' := by
++        have := congrArg entryID.term' hl; simpa [entId, snapId] using this
++      have hw : W64 ((rs.delivered.length + k + 1 : Nat) : Int) = s.logst.prev.index' := by
++        rw [Hpv l rfl, hlast]; apply BitVec.eq_of_toNat_eq
++        simp only [snapId]; word
++      rw [hw, plogTermAt_base, Hpv l rfl, ht]; rfl
++  imod ownRaftLog_certify_list s.log ((dlvAfter rs.delivered ce L).drop rs.delivered.length)
++    s.logst rs.delivered.length Hsdt HKc HKt $$ Hlog with ⟨Hlog, #Hkeys⟩
++  rw [HKlen]
++  imod ownRaftLog_rdy_out s.log { s.logst with dtk := (dlvAfter rs.delivered ce L).length } es L
++    rs.storage Hunp Hes Hstor.1
+     (fun h => (Hrdp.1 h).2)
+-    (fun l h => ⟨by rw [(Hrdp.2 l h).2.1]; simp, (Hrdp.2 l h).2.2.2.2.2.1⟩) Hlt0
+-    (fun l h => (Hrdp.2 l h).2.2.2.1) $$ Hlog
+-    with ⟨Hlog, Hout⟩
++    (fun l h => ⟨(Hrdp.2 l h).2.1, (Hrdp.2 l h).2.2.1⟩) Hlt0 $$ Hlog
++    with ⟨Hlog, Hout, #Hfrz⟩
++  -- (U8 v2) the committed entries below the batch, frozen (`ceFrozen_pure`)
++  ihave #Hcef : iprop(⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) $$ []
++  · cases L with
++    | some _ => ileft; ipureintro; simp
++    | none =>
++      iright
++      icases Hfrz with (%Hn | #Hfrz)
++      · exact absurd rfl Hn
++      obtain ⟨Hte, Hdisj⟩ := ceFrozen_pure s.logst rs.delivered ce Hdl (Hpa rfl) Hidx Hcm Hip
++        (by omega) (Hcel rfl) (Hag rfl)
++      unfold ceFrozen
++      iexists min ce.length (frozenEnd s.logst - uint.nat s.logst.applying)
++      isplitl
++      · iapply storLog_sub _ _ 0 (min ce.length (frozenEnd s.logst - uint.nat s.logst.applying))
++          _ _ _ (by rw [Hdl]; rfl) (by rw [List.drop_zero]; exact Hte) $$ Hfrz
++      ipureintro
++      rcases Hdisj with h | ⟨e0, he0, h⟩
++      · left; exact h
++      · right; refine ⟨e0, by rw [Hes]; exact he0, by rw [Hdl]; exact h⟩
+   iunfold ownStepGhost at Hghost
+   icases Hghost with ⟨Hghost, Hrest⟩
+   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+@@ -1564,7 +1828,10 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
+     exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+       Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
+   isplitl [Hout]
+-  · iexact Hout
++  · rw [Hstor.2]; iexact Hout
++  iframe Hcef
++  isplitr
++  · rw [Hstor.2]; iexact Hkeys
+   isplitl [Hcr]
+   · iapply rdCred_msgs γ ms $$ Hcr
+   isplitl [Htk]
+@@ -1619,7 +1886,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
+   "%Hsnap" ∷ ⌜rs.psnap = false ∧ rs.slent = none → s.logst.snap = none⌝ ∗
+   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
+   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
+-  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
++  "%Hstor" ∷ ⌜rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn⌝ ∗
+   "%Hpvoff" ∷ ⌜RNPv rs fp s⌝ ∗
+   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
+   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
+@@ -1644,7 +1911,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
+     (Hunp : rs.unpersisted = s.logst.unpersisted)
+     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
+     (Hstok : StepsOk s rs.steps)
+-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
++    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
+     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
+     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
+@@ -1827,69 +2094,6 @@ theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) {md :
+ theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by
+   by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
+ 
+-/-- (2026-10-26, D22 J6a; J7b's raft part) **A lent snapshot's id is the last of its committed
+-log**: the committed log up to the snapshot a `Ready` hands out (`l.dlv`) ends at the snapshot's id
+-(`plogLast base0 l.dlv = snapId l.snap`, so its last entry has the snapshot's term). The node's log
+-is at the pending snapshot (`LogStoreOk`: its base is the snapshot's id), its full prefix ends at
+-its base (`FullOk`) and is committed up to the commit index, at least the base's; the loan's
+-committed log has the snapshot's length, so it is that full prefix (`isCommitted_agree`). -/
+-theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
+-    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
+-      ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
+-  iintro H
+-  ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
+-  · iunfold ownRawNodeReady at H
+-    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
+-    iNamed H
+-    unfold rdSnapRel
+-    icases Hrdz with ⟨-, #Hcl, -, %Hr⟩
+-    obtain ⟨-, hsr⟩ := Hr
+-    have hsn : s.logst.snap = some (snapId l.snap) := hsr.1
+-    have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
+-    iunfold ownRaftPhysReady at Hphys
+-    iNamed Hphys
+-    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst)
+-      (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
+-      (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
+-        have e1 : (rdyLog h (some l).isSome s.logst).snap = s.logst.snap := by
+-          unfold rdyLog logHanded; split <;> simp
+-        have e2 : (rdyLog h (some l).isSome s.logst).prev = s.logst.prev := by
+-          unfold rdyLog logHanded; split <;> simp
+-        have e3 : (rdyLog h (some l).isSome s.logst).committed = s.logst.committed := by
+-          unfold rdyLog logHanded; split <;> simp
+-        rw [e1, hsn, e2] at Hst
+-        rw [e2, e3] at Happ
+-        exact ⟨Hst.1, Happ.1⟩) $$ Hlog with ⟨%Hpv, -⟩
+-    iunfold ownStepGhost at Hghost
+-    icases Hghost with ⟨Hg, -⟩
+-    icases ownRaftGhost_cmt γ id _ $$ Hg with ⟨%fp', %Hf', -, #Hc⟩
+-    have hb : (toPState (if h then { s with outbox := [] } else s)).base = snapId l.snap := by
+-      rw [← Hpv.1]; cases h <;> rfl
+-    have hcm : (toPState (if h then { s with outbox := [] } else s)).commit = s.logst.committed := by
+-      cases h <;> rfl
+-    rw [hb] at Hf'
+-    icases isCommitted_agree γ _ _ $$ Hcl Hc with %Hag
+-    ipureintro
+-    obtain ⟨Hfl, -, Hfl2⟩ := Hf'
+-    have hlen : (fp'.length : Int) = (l.dlv.length : Int) := by
+-      rw [Hfl, hdl]; simp only [snapId]
+-      have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
+-    have hfp : fp' <+: cprefix fp' (toPState (if h then { s with outbox := [] } else s)) := by
+-      unfold cprefix
+-      rw [hcm, List.take_append, List.take_of_length_le]
+-      · exact List.prefix_append _ _
+-      · have := Hpv.2; rw [Hpv.1] at this
+-        simp only [snapId] at Hfl this
+-        omega
+-    have heq : fp' = l.dlv := by
+-      rcases Hag with h1 | h1
+-      · exact (List.prefix_of_prefix_length_le hfp h1 (by omega)).eq_of_length (by omega)
+-      · exact (hfp.trans h1).eq_of_length (by omega)
+-    rw [← heq]; exact Hfl2
+-  iframe H
+-  ipureintro; exact Hx
+-
+ end rawnodeReady
+ 
+ end EtcdGrove
+diff --git a/Spec/go_etcd_io/raft/v3/RestartNode.lean b/Spec/go_etcd_io/raft/v3/RestartNode.lean
+index 944057803b..d252fb9b3d 100644
+--- a/Spec/go_etcd_io/raft/v3/RestartNode.lean
++++ b/Spec/go_etcd_io/raft/v3/RestartNode.lean
+@@ -27,59 +27,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+ variable [sem : go.Semantics]
+ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+ 
+-/-- **`RestartNode(c)`**: starts node `cv.ID'` of a static cluster of voters `vs`
+-(`cluster_alloc_static`) from its boot token, on a fresh storage whose `InitialState` gives the
+-voters' conf state, and whose certificates are the cluster's (`storageCertLink`). Today's premises,
+-with the ghost ones (`rnInit`, `isCommitted γ []`, the term budget, `certLink`, the mode and
+-`snapIn`) replaced by `nodeRestartBoot` and `storageCertLink`. -/
+-abbrev RestartNode.spec : Prop :=
+-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
+-  -- `NewRawNode`'s premises (unchanged)
+-  ConfigValid cv →
+-  cv.Logger' = interface.ok lok →
+-  cv.Storage' = interface.ok si →
+-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+-  cv.DisableProposalForwarding' = false →
+-  cv.ReadOnlyOption' = W64 0 →
+-  cv.DisableConfChangeValidation' = false →
+-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+-  cv.AsyncStorageWrites' = false →
+-  cv.Applied' = W64 0 →
+-  -- an empty storage, the voters' conf state (unchanged)
+-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+-  σ.pend = [] → HsEmpty hs →
+-  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+-  csm.AutoLeave' = false →
+-  cv.ID' ∈ vs →
+-  σ.fl = W64 0 →
+-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+-      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+-      nodeRestartBoot γ N vs cv.ID' ∗ storageCertLink γ N (interface.ok si) }}
+-    (App (Val #(functions RestartNode [])) (Val #c))
+-  {{ (nd : GoInterface), RET #nd;
+-      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
+-
+ /-- **`RestartNode(c)` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
+-`cluster_alloc_dec`, `InvNodeRule.lean`; until the conf-change decision switch `cluster_alloc_rule`): as `RestartNode.spec`, from a founder's token of the
+-cluster of the voters `vs` (`nodeFounder`) in place of `nodeRestartBoot`, **or** (2026-10-29, stage
+-U4) a newcomer's (`nodeJoin`, `joinAuth_join`), told that `vs` are the initial membership's voters
+-(`confAt` at `0`); the storage's `ConfState` the initial membership's either way, so a newcomer
+-starts at `c0` without being one of its voters (until U4 `cv.ID' ∈ vs`, which no founder needs
+-either); and the node's view of its configuration at the voters' membership, with nothing applied
+-(`nodeConfig`, as `StartNode.dynamicSpec`'s post). (A known exception to one spec per function, as
+-the dynamic variants, until stage U9 makes this cluster the only one.) Scope: a newcomer starts at
+-`c0`, not on an empty `ConfState` as etcd's joining member does (the frozen design's F5). -/
+-abbrev RestartNode.unifiedSpec : Prop :=
++`cluster_alloc_dec`, `InvNodeRule.lean`): starts node `cv.ID'` from a founder's token of the
++cluster of the voters `vs` (`nodeFounder`) **or** (2026-10-29, stage U4) a newcomer's (`nodeJoin`,
++`joinAuth_join`), told that `vs` are the initial membership's voters (`confAt` at `0`); the
++storage's `ConfState` the initial membership's either way; and the node's view of its
++configuration at the voters' membership, with nothing applied (`nodeConfig`).
++
++(U8 v2, 2026-10-29) The storage is a fresh one to boot from (`bootStorage`, the frozen design's
++§3: its contract `isStorage γ cv.ID' st`, index `0` a frozen entry of term `0`, the last index `0`,
++`InitialState` answering the empty hard state and the voters' conf state), the contract made by the
++client once `InitialState` returned (`newRaft` reads `FirstIndex`/`LastIndex` first; a
++`MemoryStorage`'s bundle is `memStorage_bootStorage`). (Until U8 v2 the storage's state `σ`,
++`ownStorage`, its `InitialState` closure and `storageCertLink`; until then also the static
++cluster's `RestartNode.spec`, dropped in U8 v2 ahead of U9.) Scope: a newcomer starts at `c0`, not
++on an empty `ConfState` as etcd's joining member does (the frozen design's F5). -/
++abbrev RestartNode.spec : Prop :=
+   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
+-  -- `NewRawNode`'s premises (as `RestartNode.spec`'s)
++    (hs : HardStateM) (csm : ConfStateM),
++  -- `NewRawNode`'s premises
+   ConfigValid cv →
+   cv.Logger' = interface.ok lok →
+   cv.Storage' = interface.ok si →
+@@ -90,27 +56,19 @@ abbrev RestartNode.unifiedSpec : Prop :=
+   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+   cv.AsyncStorageWrites' = false →
+   cv.Applied' = W64 0 →
+-  -- an empty storage, the voters' conf state
+-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+-  σ.pend = [] → HsEmpty hs →
++  -- the empty hard state, the voters' conf state
++  HsEmpty hs →
+   csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+   csm.AutoLeave' = false →
+-  σ.fl = W64 0 →
+   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+-      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
++      bootStorage γ cv.ID' (interface.ok si) hs csm ∗
+       (nodeFounder γ N vs cv.ID' ∨
+-        (nodeJoin γ N cv.ID' ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ⌜vs.Nodup⌝)) ∗
+-      storageCertLink γ N (interface.ok si) }}
++        (nodeJoin γ N cv.ID' ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ⌜vs.Nodup⌝)) }}
+     (App (Val #(functions RestartNode [])) (Val #c))
+   {{ (nd : GoInterface), RET #nd;
+       ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
+-        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩∗
++        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
+         -- (2026-10-29, stage U9a) the node runs (`node.Stop` takes it whole)
+         nodeRunning n γ N 1 }}
+ 
+diff --git a/Spec/go_etcd_io/raft/v3/node__Advance.lean b/Spec/go_etcd_io/raft/v3/node__Advance.lean
+index bb9e82a368..1e5e811155 100644
+--- a/Spec/go_etcd_io/raft/v3/node__Advance.lean
++++ b/Spec/go_etcd_io/raft/v3/node__Advance.lean
+@@ -27,84 +27,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+ variable [sem : go.Semantics]
+ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+ 
+-/-- (open) **`node.Advance()`**: the driver, done with a `Ready` (its entries `es` appended, or its
+-snapshot installed: the storage contract's receipt, `advReceipt`), hands it back; the loop is idle
++/-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
++`isCluster`, `InvNodeRule.lean`): the driver, done with a `Ready`, hands it back; the loop is idle
+ again; (2026-10-29, stage U9a) or the node stopped first (`nodeStopped`), the loop idle as well,
+-nothing else promised. After a `Ready` without a snapshot, the storage's floor is at least the committed log
+-delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
+-delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
+-applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
+-`isStaticCluster`; a dynamic cluster's is `node.Advance.dynamicSpec`.) -/
+-abbrev node.Advance.spec : Prop :=
+-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+-    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
+-    (L : Option SnapLoan),
+-  st.handling = some (es, L) →
+-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
+-      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
+-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+-  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
+-      match L with
+-      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+-      | some _ => True) ∨
+-    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+-    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
+-
+-/-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
+-of the committed log delivered is applied (none past the view's configuration index:
+-`issues/raft-advance-before-applyconfchange.md`, today's A1). After a `Ready` without a snapshot the
+-view is unchanged; (2026-10-28, stage U3d, the frozen design's `node.Advance`) after one with a
+-snapshot (its loan `l`) the view is at the snapshot's index and a membership its `ConfState` reports.
+-(A dynamic cluster is in raft's no-snapshot mode, so the second case does not arise yet.) -/
+-abbrev node.Advance.dynamicSpec : Prop :=
+-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
+-    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
+-  st.handling = some (es, L) →
+-  NoConfChangeIn st.delivered v.applied st.delivered.length →
+-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
+-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
+-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+-  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
+-      match L with
+-      | none => nodeConfig n γ N v ∗
+-          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+-      | some l => ∃ m : Membership,
+-          nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
+-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+-    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+-    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
++nothing else promised. Premises of the snapshot path, all of what the client has from the `Ready`
++(`readySnap`): the snapshot's certificate and its index the length of its committed log. Every conf
++entry of the committed log delivered is applied (the loop's A1 at `run`'s `RawNode.Advance`; the
++conf-change decision switch: or decided `.skip`, `skippedIn`).
+ 
+-/-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
+-`isCluster`, `InvNodeRule.lean`): as `node.Advance.dynamicSpec`, with the snapshot path reachable.
+-After a `Ready` with a snapshot (its loan `l`), the view is at the snapshot's index and the membership
+-`m` after the committed log up to it (`confAt`), which its `ConfState` reports; after one without,
+-the storage's floor and (2026-10-28) its terms of the committed log delivered (`storTermsAt`), also
+-when a snapshot was restored since. Premises of the
+-snapshot path, all of what the client has from the `Ready` (`readySnap`): the snapshot's
+-certificate and its index the length of its committed log (until 2026-10-29, stage U5, also its
+-`ConfState` no auto-leave one, as `RawNode.Advance`'s). (As `node.Advance.dynamicSpec`, every conf entry of the
+-committed log delivered is applied, after a snapshot `Ready` too: the loop's A1 at `run`'s
+-`RawNode.Advance`, over the snapshot's committed log; 2026-10-28, the conf-change decision switch,
+-§4: or decided `.skip`, `skippedIn`, until then `NoConfChangeIn`.) -/
+-abbrev node.Advance.unifiedSpec : Prop :=
+-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
++(U8 v2, 2026-10-29, the frozen design's §3) The storage part: the `Ready`'s batch back
++(`advReceipt`: a frozen prefix within the committed log delivered and an owned rest, with the end;
++nothing for no entries), or after a snapshot `Ready` the storage compacted at the snapshot with its
++dummy and the batch after it (`snapReceipt`); the post: raft's applied index has reached the
++committed log delivered (`nodeAppliedLb`, the snapshot's index after a snapshot `Ready`). (Until U8
++v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also the static cluster's
++`node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.) -/
++abbrev node.Advance.spec : Prop :=
++  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
+     (L : Option SnapLoan) (v : ConfigView),
+   st.handling = some (es, L) →
+   (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
+-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗
+-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v ∗
++  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
++      nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
+       skippedIn γ st.delivered v.applied st.delivered.length ∗
+       (match L with
+        | none => True
+        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
+     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
++      nodeAppliedLb γ id st.delivered.length ∗
+       match L with
+-      | none => nodeConfig n γ N v ∗
+-          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝ ∗
+-            -- (2026-10-28, stage U4a) and the storage's terms of the committed log delivered
+-            -- (what `MemoryStorage.CreateSnapshot.unifiedSpec` takes, `memTermsAt`)
+-            storTermsAt st.storage (st.delivered.map LogEntry.term)
++      | none => nodeConfig n γ N v
+       | some l => ∃ m : Membership,
+           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
+           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗

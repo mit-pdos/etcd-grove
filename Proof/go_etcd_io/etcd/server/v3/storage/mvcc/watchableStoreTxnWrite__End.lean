@@ -163,6 +163,7 @@ theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
   imod mvcc.wlog_update_halves γ σ.Lmu L hpre $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
   imodintro
   iframe Hwl
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ { σ with Lmu := L } (fun h => h) $$ Hwfz
   iunfold mvcc.watchStoreBody
   simp only [named]
   iframe Hσ
@@ -219,12 +220,12 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
       itrivial
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
-    icases Hpost with ⟨#Hc, Htok, -, Hfrag⟩
+    icases Hpost with ⟨#Hc, Htok, -, Hfrag, Hpin⟩
     (try wp_auto)
     iapply HΦ
     iframe Hrd Hc Htrc Hfrag
     iunfold mvcc.watchWriter
-    iframe Hc Hwlog
+    iframe Hc Hwlog Hpin
     iapply mvcc.ownToks_join_pred γ.st.revs (mvcc.wBudget ilog) (by unfold mvcc.wBudget; omega)
     unfold mvcc.revToken
     iframe Htok Htoks
@@ -525,7 +526,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
   simp only [mvcc.txnEndPost, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
-  icases Hpost with ⟨#Hc, -, Hq, Hfrag⟩
+  icases Hpost with ⟨#Hc, -, Hq, Hfrag, Hpin⟩
   rw [← hLmu'] at *
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩
@@ -558,7 +559,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   iapply HΦ
   iframe Hrd Hc Htrc Hfrag
   iunfold mvcc.watchWriter
-  iframe Hc Hwlog
+  iframe Hc Hwlog Hpin
   have hb : mvcc.wBudget (σ'.Lmu ++ [pend]) = mvcc.wBudget σ'.Lmu - 1 := by
     unfold mvcc.wBudget; simp only [List.length_append, List.length_singleton]; omega
   rw [hb]

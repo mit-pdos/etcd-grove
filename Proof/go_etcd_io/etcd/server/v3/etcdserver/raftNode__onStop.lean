@@ -25,12 +25,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
-  intro E γ r
-  wp_start as ⟨#Hr, Hdone, HST⟩
+  intro E γ r Hwco
+  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
+  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HStop, -⟩
   subst Hnieq
   iunfold isRNTicker at Htki
   icases Htki with ⟨%c, #Hc, #Hcc, #HtkStop⟩
@@ -39,6 +39,11 @@ theorem raftNode.onStop.wp_proof :
   subst Htieq
   iunfold isRNWal at Hsti
   icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
+  iunfold rnWalTok at Hwt
+  icases Hwt with ⟨%st', #Hst', Hwo⟩
+  icombine Hst Hst' gives %Hsteq
+  have Hsteq' : st' = st := by first | exact Hsteq.symm | exact Hsteq.2.symm
+  subst Hsteq'
   subst Hsieq
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩
@@ -51,10 +56,16 @@ theorem raftNode.onStop.wp_proof :
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Stop")]
   wp_auto
-  wp_apply HStop
+  wp_apply HStop $$ [$Hrun] as -
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
-  wp_apply HClose
+  wp_apply HClose $$ [$Hwo] as %cerr %Hcerr
+  have hcerr : cerr = GoInterface.nil := by
+    rcases Hcerr with h | h
+    · exact h
+    · exact absurd Hwco h
+  subst hcerr
+  (try wp_auto)
   wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
   · imodintro; itrivial
   iintro -

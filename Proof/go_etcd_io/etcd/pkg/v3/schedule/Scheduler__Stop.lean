@@ -29,7 +29,7 @@ theorem schedule.Scheduler.Stop.wp_proof
     (wp_fifo_Stop : schedule.fifo.Stop.spec (GF := GF) (hG := hG)) :
     schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) := by
   intro fi γ Ps
-  iintro %Φ ⟨#Hpkg, #Hf, Htok, Hq⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hf, Htok, Hq, #Hpay⟩ HΦ
   iunfold isFifo at Hf
   icases Hf with ⟨-, -, #Hof⟩
   iunfold isFifoOf at Hof
@@ -38,10 +38,10 @@ theorem schedule.Scheduler.Stop.wp_proof
   cases fi
   simp only [interface.mkOk, GoInterface.ok.injEq] at Hfi
   obtain ⟨rfl, rfl⟩ := Hfi
-  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq]
+  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq] as HP
   · iframe; iframe #
   iapply HΦ
-  itrivial
+  iexact HP
 
 end proof
 

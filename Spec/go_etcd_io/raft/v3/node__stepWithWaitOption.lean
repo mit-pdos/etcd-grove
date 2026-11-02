@@ -53,7 +53,7 @@ def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
     -- a proposal forwarded by a peer (2026-10-10)
     (⌜wait = false⌝ ∗ fwdP γ ml))
 
-/-- See the file header. -/
+/-- See the file header. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStoppedRaw`.) -/
 abbrev node.stepWithWaitOption.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -62,7 +62,7 @@ abbrev node.stepWithWaitOption.spec : Prop :=
       stepArg γ id ml wait }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWithWaitOption"))
       (Val #(interface.ok ctx))) (Val #ml)) (Val #wait))
-  {{ (err : GoInterface), RET #err; if wait then propErr cd err else nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; if wait then propErrRaw γ cd err else nodeErrRaw γ cd err }}
 
 end spec
 

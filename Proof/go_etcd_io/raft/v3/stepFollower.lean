@@ -73,7 +73,7 @@ theorem stepFollower.wp_proof
     (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap Hnors
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -146,7 +146,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid Hty Hnl $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -163,7 +163,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs
-        Hcommit Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+        Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -190,22 +190,22 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
-    ihave #Hcs : storCert (GF := GF) s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
-    · iunfold tsSrc at Hcert
+    ihave #Hcs : ksnCert (GF := GF) s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · iunfold rcvSrc at Hcert
       icases Hcert with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
       · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
-        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm $Hcs]
-      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
-    iapply HΦ $$ %GoInterface.nil %s' %false %c'
+        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm $Hcs]
+      as %s' ⟨Hphys, %Hres⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
-    exact ⟨Hc', Hres⟩
+    exact Hres
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     simp only [Hty, MsgPreVoteResp]
     wp_auto
@@ -414,7 +414,8 @@ theorem stepFollower.wp_proof
       imod msgIn_to_msgOwn $$ Hm with Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs []
           (Or.inr (Or.inr (Or.inr Hty)))
-          (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl, Hxo⟩))))
+          (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
+            rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys

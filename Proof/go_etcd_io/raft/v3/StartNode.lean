@@ -10,287 +10,31 @@ import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
-public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
-public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
+import Proof.go_etcd_io.raft.v3.InvApiDec
+import Proof.go_etcd_io.raft.v3.InvApiJoin
+import Proof.go_etcd_io.raft.v3.InvApiBoot
+import all Proof.go_etcd_io.raft.v3.InvNodeRule
+import Proof.go_etcd_io.raft.v3.SnapValidCert
+import Proof.go_etcd_io.raft.v3.StepGhostMode
+import Proof.go_etcd_io.raft.v3.InvStorageRead
+import Proof.go_etcd_io.raft.v3.ConfchangeApiImpl
+import Proof.go_etcd_io.raft.v3.ConfchangeApi
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
 noncomputable section
-
 
 namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-! ## The raw triple (internal: private to this file)
-
-What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
--/
-
-/-! Lean-first (no Rocq counterpart).
-
-## `StartNode(c, peers)` (node.go:271): the start of a new cluster
-
-`setupNode(c, peers)` -- `NewRawNode(c)` on the empty storage of a new cluster (whose conf state
-is **empty**: `NewRawNode.spec_empty`), then `rn.Bootstrap(peers)` (`RawNode.Bootstrap.spec`):
-`becomeFollower(1, None)`, one `EntryConfChange` per peer at term `1` and indices `1..n`
-appended to the log and committed (`raftLog.committed = n`), each applied to the tracker
-(`applyConfChange`), nothing applied to the application -- in a `node` whose goroutine `run` it
-starts, for the cluster's term budget `bud`. It returns the node (`isNodeChan`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriverChan`), at the empty
-delivered log, and the driver's view of the configuration (`nodeCfg`, at index `0` and the
-peers' configuration), as `RestartNode.spec` does (2026-10-16, stage R8b, D12).
-
-**Why the driver starts at `[]`.** `Bootstrap` leaves `applied = 0`: the application sees the
-conf changes through the first `Ready`, whose `CommittedEntries` are the boot entries beside
-`Entries 1..n` and the hard state `{Term: 1, Commit: n}` (`prevHardSt = emptyState`). So the
-delivered log is empty although the committed log is `bootLog` (`isCommitted γ bootLog`, the
-allocation's): the driver's `Advance` delivers it.
-
-**The ghost state.** The cluster's ghost state is allocated before the call, in the mode `md`
-(statically `ownRaftGhost_alloc_boot`, `Protocol/Facts.lean`: every member at `bootPState
-bootLog`, the committed log `bootLog` from the start, `RaftNames.reBoot = bootLog`, `γ.reCfg` the
-peers; dynamically, since 2026-10-25, T-M M2a, `raft_dyn_alloc_boot`, `Protocol/ResultsDyn.lean`:
-every member at `rboot c0 bootLog`, `c0` the peers' configuration, at the configuration index `0`,
-so that the application's re-application of the boot entries through the first `Ready` is the
-dynamic mode's ordinary `ApplyConfChange`). This node takes its `bootInit γ md cv.ID' V bootLog`
-and `isCommitted γ bootLog`, and the log's description `BootLogOk ps bootLog` (entry `k`: type
-`1`, term `1`, index `k + 1`, bytes decoding to `AddNode ps[k]`; until 2026-10-27 also admitted by
-the cluster's conf-change policy, now each a tracked proposal the allocation registered).
-
-**The bytes** (`bootMarshal`, `InvBoot.lean`): `proto.Marshal` of the `k`-th peer's conf change
-returns `bootLog[k]`'s bytes -- protobuf's determinism at these inputs, a trust-boundary fact
-taken as a premise in the style of `RestartNode.spec`'s `InitialState` closure, discharged where
-the node is composed.
-
-**The peers**: a `[]Peer` slice at `dq` holding `pv`, their ids `ps` (distinct, non-zero, at most
-`2^62`, this node among them, the ghost configuration) and their `Context` bytes `ctxs`
-(read-only, `peersCtx`). The `Config` premises are `NewRawNode`'s (static mode only: no
-`StepDownOnRemoval` requirement). **The term budget** is at least at term `1`, the bootstrap
-term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster; `run` starts
-with `termLB bud term`). -/
-
-open Iris Iris.BI go_etcd_io.raft.v3
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- See the file header. -/
-private abbrev StartNode.specRaw : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
-    (bootLog : List EntryM) (sn : Bool),
-  -- `NewRawNode`'s premises
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage: no entries, no `HardState`, no snapshot
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
-  HsEmpty hs →
-  -- the conf state empty: a new cluster's
-  csm.Voters' = [] →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
-  ps = pv.map Peer.ID' →
-  ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-  (ps.length : Int) ≤ 2 ^ 62 →
-  cv.ID' ∈ ps →
-  γ.reCfg = GMap.listToSet ps →
-  -- the bootstrap log, the ghost state's
-  γ.reBoot = bootLog →
-  BootLogOk ps bootLog →
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
-  σ.fl = W64 0 →
-  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode and (2026-10-25, T-M M2a) in the static mode
-  (sn = true → γ.reNoSnap = false ∧ md = .static) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
-      -- until then static), and the committed boot log
-      bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      -- the cluster's term budget, at least at the bootstrap term `1` (`budget_alloc_boot`)
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
-      -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode (`RaftNames.reNoSnap`), a storage
-      -- never compacted past index `1` (`Bootstrap`'s)
-      NsCap γ.reNoSnap (interface.ok si) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
-      -- no-snapshot mode)
-      certLink γ (interface.ok si) }}
-    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
-  {{ (nd : GoInterface), RET #nd;
-      -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before
-      -- the node's goroutine starts
-      R ∗ ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        -- (D43 M3, 2026-10-25) the mode is static exactly when the names are (`ownRawNode_mode`)
-        ⌜md = .static ↔ γ.reDyn = none⌝ ∗
-        isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
-        -- the driver's view of the configuration: the peers'
-        nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
-        -- the peers' slice, read only
-        peers ↦*{dq} pv }}
-
-end spec
-
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `setupNode`, then as `RestartNode.wp_proof` from `newNode` on: the node's ghost state (the
-channels' hand-shakes, the tick channel's invariant, `dlv` and `rof`, the configuration shared
-with the driver at the peers), `go n.run()` with `runPre` at the delivered log `[]` (D12: the
-boot entries reach the application through the first `Ready`). -/
-private theorem StartNode.wp_raw
-    (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
-    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
-    StartNode.specRaw (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si σ hs csm R peers dq pv ps ctxs bootLog sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
-    P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0 Hsn0
-  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
-    #Hbud, #Hlb1, #Hnscap, #Hcl⟩
-  ihave #Hcinv : raftCommitInv γ $$ [Hghost]
-  · iapply bootInit_inv γ md cv.ID' _ bootLog $$ Hghost
-  wp_auto
-  wp_apply wp_setupNode γ md c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
-    P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hnscap $Hcl]
-    as %np ⟨HR, %nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
-  ipersist Hn
-  try wp_auto
-  -- the node's ghost state
-  imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
-  icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], [], hsZero, none) : List EntryM × List EntryM ×
-    List EntryM × HardStateM × Option SnapLoan) with ⟨%γrof, Hrof⟩
-  icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
-  -- the configuration shared with the driver: the peers'
-  imod mono_list_own_alloc ([] : List EntryM) with ⟨%γdlm, Hdlm, #Hdlb⟩
-  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet ps) ∅) with ⟨%γcap, Hcap⟩
-  icases dghostVar_halves _ _ $$ Hcap with ⟨Hcap1, Hcap2⟩
-  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet ps) ∅) with ⟨%γccq, Hccq⟩
-  icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcam, Hcam, #Hcamlb⟩
-  -- (D19i part 1) the driver's request on `advancec`
-  imod dghostVar_alloc (none : Option Nat) with ⟨%γreq, Hreq⟩
-  icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
-  unfold newNodeChans
-  icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
-    #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
-  let γn : NodeNames := { raft := γ, id := cv.ID', bud := bud, stor := interface.ok si, propc := γp,
-                          recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
-                          done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
-                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
-                          snapIn := sn }
-  imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
-  imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
-  imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
-  imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
-  imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
-  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
-  imod start_handshake nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) γd $$ Hcd Hod
-    with #Hhd
-  imod start_handshake nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) γs $$ Hcs Hos
-    with #Hhs
-  imod start_handshake nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) γst
-    $$ Hcst Host with #Hhst
-  imod tickCred_zero bud with Hcr0
-  imod inv_alloc tickN ⊤ (tickInv γn) $$ [Hot Hcr0] with #Htickinv
-  · inext
-    unfold tickInv
-    iexists []
-    iframe
-  icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
-  icases ownRawNode_mode γ rn cv.ID' _ $$ Hrn with ⟨%Hmd, Hrn⟩
-  ihave #Hnode : isNodeChan γn cv.ID' np $$ []
-  · unfold isNodeChan
-    iexists nv, r, lok'
-    simp only [named]
-    rw [Hnvrn]
-    iframe #
-    ipureintro; rfl
-  -- `go n.run()`
-  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
-  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
-    · iframe Hnode
-      unfold runPre
-      iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
-        HardStateM × Option SnapLoan)
-      rw [Hnvrn]
-      iframe Hn Hrn Hrof1 Hrof2
-      isplitr
-      · ipureintro; exact ⟨rfl, rfl, rfl⟩
-      iframe Hdlv1 Hlb1
-      unfold runCfg
-      isplitr
-      · ipureintro
-        exact ⟨rfl, Nat.le_refl _, rfl, fun _ => ⟨rfl, rfl⟩, Hsn0, fun _ h => by cases h⟩
-      isplitl [Hdlm]
-      · iExactEq Hdlm; rfl
-      iexists 0
-      iframe Hcap1 Hcam
-      ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩
-    itrivial
-  iapply HΦ
-  iframe HR
-  iexists γn, np
-  isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-  isplitr
-  · ipureintro; exact Hmd
-  iframe Hnode Hpeers
-  isplitl [Hdlv2 Hreq1 Hreq2]
-  · unfold nodeDriverChan dlvLb
-    iframe Hnode Hdlv2 Hdlb
-    iexists _
-    iframe Hreq1 Hreq2
-  unfold nodeCfg
-  iframe Hcap2 Hcamlb
-  iexists _
-  iframe Hccq1 Hccq2
-
-end proof
-
-/-! ## The spec, from the raw triple -/
+/-! ## The spec -/
 
 namespace ApiImpl
 
@@ -301,126 +45,644 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `StartNode.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+/-- Raft's log namespace is in the cluster's. -/
+private theorem raftLogN_sub (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (HNs : γ.raft.reNs = N .@ "raft") : (↑(raftLogN γ.raft) : CoPset) ⊆ E := by
+  intro p hp
+  unfold raftLogN raftN at hp; rw [HNs] at hp
+  exact HE p (nclose_subseteq N "raft" p (nclose_subseteq (N .@ "raft") "log" p hp))
+
+/-- **A valid snapshot's certificates** (the API's `snapshotValid` read back at raft's level). -/
+private theorem snapValid_raftCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (_HU : UniNames γ N) (sv : SnapshotM) :
+    ⊢ clusterInv (GF := GF) γ N -∗ EtcdGrove.snapshotValid (GF := GF) γ sv ={E}=∗
+      raftSnapCertD γ.raft (snapTrip sv sv.Metadata'.ConfState'.lists) := by
+  iintro #Hci Hv
+  unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.confAt EtcdGrove.snapMade
+  icases Hv with ⟨%l, %m, #Hlb, #Ha, #Hm, %Hp⟩
+  obtain ⟨Hlen, -, Hlast, Hcs, H61, Hsz⟩ := Hp
+  ihave %Hval := confAt_valid_impl γ l.length m $$ Ha
+  ihave %Hres := confAtU_restorable γ l.length m $$ Ha
+  iunfold confAtU at Ha
+  icases Ha with ⟨%l2, %M, #Hlb2, #HM, %P2⟩
+  obtain ⟨hk, c0, g, hm, hf⟩ := P2
+  icases isCommittedLogLb_agree_impl γ l l2 $$ [Hlb Hlb2] with %Hcm
+  · iframe Hlb Hlb2
+  have Hfold : decFold M c0 l = some m := by
+    rw [← List.take_length (l := l), take_eq_of_cmp l l2 l.length Hcm (Nat.le_refl _) hk]
+    exact hf
+  iunfold snapMadeU at Hm
+  icases Hm with ⟨%gr, %K, %key, %Hk, #HK, -⟩
+  obtain ⟨Hreg, HkK, Hmat⟩ := Hk
+  have hm' := hm
+  obtain ⟨⟨h0, -, hd, -, Hsok, -, -⟩, -⟩ := hm'
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
+  imod api_lb_committed γ N E HE l $$ Hci Hlb with ⟨%L, %HL, #HLc⟩
+  have HD : (DynCfg.ofFold noDec (stOf c0) h0).fold M L = some (cfgOf m) := by
+    rw [hm.fold _ hd M L, HL, Hfold]; rfl
+  have HLlen : L.length = uint.nat sv.Metadata'.Index' := by rw [← Hlen, ← HL, strip_length]
+  have HLlast : L.getLast?.map EntryM.Term' = some sv.Metadata'.Term' := by
+    rw [← Hlast, ← HL]; unfold strip; rw [List.getLast?_map, Option.map_map]; rfl
+  obtain ⟨hcv, hco, hcl, hcn, hal⟩ := Hcs
+  unfold EtcdGrove.Membership.Valid memValid at Hval
+  obtain ⟨Hz, Hni⟩ := Hres
+  iapply raftSnapCertD_snapTrip γ.raft E L sv (cfgOf m) _ M gr K key
+    (raftLogN_sub γ N E HE HNs) hd Hreg Hsok HLlen (by rw [HLlen, ← Hlen]; exact H61) HLlast
+    hcv hco hcl hcn hal Hval.1
+    (fun x hx h0x => Hz (by
+      subst h0x
+      simp only [Membership.ids, GMap.elem_of_union]
+      rcases hx with h | h | h | h
+      · exact .inl (.inl (.inl h))
+      · exact .inl (.inl (.inr h))
+      · exact .inl (.inr h)
+      · exact .inr h))
+    (fun x hx => Hni x hx) Hsz HD HkK (by rw [HLlen, ← Hlen]; exact Hmat.1) Hmat.2
+    $$ Hcinv HLc HM HK
+
+/-- Raft's reading of the contract's `Bnd`: compacting up to it is safe, of the storage's key's
+names. (2026-11-01, durability stage I-4: keyed by the storage's key.) -/
+private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c : Nat) :
+    ⊢ storKeyNames (GF := GF) K sn -∗ monoNatLbOwn sn.ga 0 -∗ EtcdGrove.storBnd γ K c -∗
+      raftBnd sn c := by
+  iintro #Hsn #H0 Hb
+  unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
+  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
+  · ileft
+    iexists 0
+    isplitr; · ipureintro; omega
+    ileft; iexact H0
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    ileft; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    iright; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    iright
+    ipureintro; omega
+
+/-- Raft's reading of the contract's `DL` for a valid snapshot: the node on the storage committed
+up to its index, so raft certified the term there (or handed out a snapshot past it, or the attach
+recorded it). (2026-11-01, durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
+private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : SnapshotM) :
+    ⊢ storKeyNames (GF := GF) K sn -∗ EtcdGrove.snapshotValid γ sv -∗
+      EtcdGrove.nodeCommitLb γ K (uint.nat sv.Metadata'.Index') -∗
+      raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term' := by
+  iintro #Hsn Hv Hdl
+  unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.nodeCommitLb nodeCommitLbU
+  icases Hv with ⟨%l1, %m, #Hlb1, -, -, %Hp⟩
+  obtain ⟨Hlen, Hpos, Hlast, -⟩ := Hp
+  icases Hdl with (%H0 | ⟨%sn', %l, #Hsn', #Hlb, %Hi, #Hdk⟩)
+  · exfalso; omega
+  ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+  subst He
+  icases isCommittedLogLb_agree_impl γ l1 l $$ [Hlb1 Hlb] with %Hcm
+  · iframe Hlb1 Hlb
+  have Hpre : l1 <+: l := by
+    rcases Hcm with h | h
+    · exact h
+    · have e := h.eq_of_length (by have := h.length_le; omega)
+      rw [e]
+      exact ⟨[], List.append_nil _⟩
+  obtain ⟨t, Ht⟩ := Hpre
+  have Hj : l1.length - 1 < l1.length := by omega
+  have Hl1j : l1[l1.length - 1]?.map LogEntry.term = some sv.Metadata'.Term' := by
+    rw [← List.getLast?_eq_getElem?]; exact Hlast
+  have Hlj : l[l1.length - 1]? = l1[l1.length - 1]? := by
+    rw [← Ht, List.getElem?_append_left Hj]
+  rw [← Hlj] at Hl1j
+  cases hde : l[l1.length - 1]? with
+  | none => rw [hde] at Hl1j; cases Hl1j
+  | some e =>
+    rw [hde] at Hl1j
+    simp only [Option.map_some, Option.some.injEq] at Hl1j
+    have hte : (LogEntry.toEntries l 0)[l1.length - 1]? =
+        some (e.toEntryM (W64 ((0 + (l1.length - 1) + 1 : Nat) : Int))) := by
+      rw [toEntries_getElem?, hde]; rfl
+    ihave #Hke := (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+      raftDL (GF := GF) sn' (j + 1) e.Term') hte) $$ Hdk
+    rw [show uint.nat sv.Metadata'.Index' = l1.length - 1 + 1 by omega, ← Hl1j]
+    iExactEq Hke; rfl
+
+/-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
+`snapshotValid`, their snapshot pin raft's certificate. -/
+private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames) :
+    ⊢ clusterInv (GF := GF) γ N -∗
+      savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
+      savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
+      ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
+  iintro #Hci #Hsv #Hgk #Hct
+  have HcN : raftCertN γ.raft = N := HU.2.1
+  unfold certLink
+  iframe Hct
+  unfold storCertOk
+  isplitr
+  · iintro !> %sv %E %HE Hc
+    rw [HcN] at HE
+    unfold svCert
+    icases Hc with ⟨%SV, #Hp, #HSV⟩
+    ihave #Heq := saved_pred_agree sn.gsv DFrac.discard DFrac.discard SV
+      (EtcdGrove.snapshotValid (GF := GF) γ) sv $$ Hp Hsv
+    ihave Hv : ▷ EtcdGrove.snapshotValid (GF := GF) γ sv $$ []
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨Hiff, -⟩
+      iapply Hiff $$ HSV
+    have : Timeless (EtcdGrove.snapshotValid (GF := GF) γ sv) := by
+      have : ∀ s, Timeless (snapMadeU (GF := GF) γ s) := fun s => by
+        unfold snapMadeU; infer_instance
+      have : ∀ l, Timeless (isCommittedLogLb (GF := GF) γ l) := fun l => by
+        unfold isCommittedLogLb; infer_instance
+      unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.confAt EtcdGrove.snapMade
+      infer_instance
+    icases Hv with >Hv
+    iapply snapValid_raftCert γ N E HE HU sv $$ Hci Hv
+  isplitr
+  · iintro !> %k %E %HE Hc
+    unfold ksnCert
+    icases Hc with ⟨%P, #Hp, #HP⟩
+    ihave #Heq := saved_pred_agree sn.gk DFrac.discard DFrac.discard P
+      (raftSnapCertD (GF := GF) γ.raft) k $$ Hp Hgk
+    ihave Hv : ▷ raftSnapCertD (GF := GF) γ.raft k $$ []
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨Hiff, -⟩
+      iapply Hiff $$ HP
+    icases Hv with >#Hv
+    imodintro; iexact Hv
+  · iintro !> %k %E %HE #Hc
+    unfold ksnCert
+    imodintro
+    iexists raftSnapCertD γ.raft
+    iframe Hgk
+    imodintro; iexact Hc
+
+/-- (2026-11-02, stage II (o)) A location owned whole is not also held read-only. -/
+private theorem loc_pts_excl (l a b : Loc) :
+    ⊢ (l ↦ a : IProp GF) -∗ l ↦□ b -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq l a, typedPointsto_unseal_eq l b]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  ihave H1 := (show typedPointstoDef (GF := GF) l a (DFrac.own 1) ⊢ heapPointsto l (DFrac.own 1) #a
+    from .rfl) $$ H1
+  ihave H2 := (show typedPointstoDef (GF := GF) l b DFrac.discard ⊢ heapPointsto l DFrac.discard #b
+    from .rfl) $$ H2
+  icombine H1 H2 gives %Hv
+  obtain ⟨Hv, -⟩ := Hv
+  exfalso
+  have := DFrac.valid_own_op_discard.1 Hv
+  simp at this
+
+/-- (2026-11-02, stage II (o)) A node struct owned whole is not also held read-only (its `rn`
+field). -/
+private theorem node_pts_excl (n : Loc) (nv nv' : node) :
+    ⊢ (n ↦ nv : IProp GF) -∗ n ↦□ nv' -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq n nv, typedPointsto_unseal_eq n nv']
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed H1
+  icases H2 with ⟨-, -, -, -, -, -, -, -, -, -, ⟨H2, -⟩⟩
+  iapply loc_pts_excl _ nv.rn' nv'.rn' $$ rn H2
+
+/-- (2026-11-02, stage II (o)) **Registering a node in the cluster's table**, while its struct is
+owned whole (so it is not in the table yet): its entry, and the struct read-only from then on. -/
+private theorem nodeTab_insert (γ : Cluster) (N : Namespace) (n : Loc) (nv : node) (x : CfgNames) :
+    ⊢ nodeTabInv (GF := GF) γ N -∗ n ↦ nv ={⊤}=∗ n ↦□ nv ∗ n ↪[γ.nodeTab]□ x := by
+  iintro #Hinv Hn
+  unfold nodeTabInv
+  iinv Hinv with ⟨%M, >Hauth, >Hm⟩ Hclose
+  cases hM : M !! n with
+  | some y =>
+    ihave Hy := (BigSepM.bigSepM_lookup (Φ := fun (k : Loc) (_ : CfgNames) =>
+      iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM) $$ Hm
+    icases Hy with ⟨%nv', Hy⟩
+    iexfalso
+    iapply node_pts_excl n nv nv' $$ Hn Hy
+  | none =>
+    imod ghost_map_insert_persist n x hM $$ Hauth with ⟨Hauth, #He⟩
+    ipersist Hn
+    imod Hclose $$ [Hauth Hm] with -
+    · inext
+      iexists (<[n := x]> M)
+      iframe Hauth
+      iapply (BigSepM.bigSepM_insert (Φ := fun (k : Loc) (_ : CfgNames) =>
+        iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM).2
+      iframe Hm
+      iexists nv; iexact Hn
+    imodintro
+    iframe Hn He
+
+/-- **`StartNode`** (2026-11-02, stage II (o); until then a raw triple over raft's internals, the
+wrapper `sorry`): the client's update fires at the call's start (a ghost step: nothing physical is
+read before `setupNode`), inside the id's slot (`raft_start_boot`, through its accessor), which
+gives the bootstrap state's volatile half and the slot's whole generation with its free queue;
+raft names the storage at the attach (`restartStorage`'s continuation, inside `InitialState`'s
+post: fresh storage names, an empty view, the key `K` recording them); `setupNode` builds the
+node; its table entry is inserted while the struct is still owned whole; then `run`'s ghost state
+and `go n.run()`, as before. -/
 private theorem wp_StartNode_impl
-    (hS : EtcdGrove.StartNode.specRaw (GF := GF) (hG := hG)) :
+    (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
+    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.StartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeBoot EtcdGrove.nodeDriver EtcdGrove.storageCertLink
-  intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
-    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
-  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hlink⟩ HΦ
-  iunfold nodeBoot at Hboot
-  icases Hboot with ⟨⟨%so, #Hst⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb⟩
-  iunfold isStaticCluster at Hst
-  icases Hst with ⟨%Hsn, #Hci⟩
-  obtain ⟨Hcfg, Hdyn, Hns, -, Hγm, Hsl, Hcert, -⟩ := Hsn
-  ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
-  iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs γ.raft.reBoot true
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun _ => ⟨Hns, rfl⟩)) $$ [Hc Hown Hinst Hpeers Hg]
-  · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb
-    isplitl [Hg]
-    · unfold bootInit; iexact Hg
+  unfold EtcdGrove.StartNode.spec
+  intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Hv Hvo Hl Hln
+    Hal Hvs
+  wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx⟩
+  iunfold EtcdGrove.nodeBoot at Hboot
+  iunfold nodeBootU at Hboot
+  icases Hboot with ⟨#Hcl, %Hbp, #Hmarsh, #Hcb, #Hbinv, #Htlb1⟩
+  obtain ⟨Hid, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hbl⟩ := Hbp
+  ihave #Hcl' := Hcl
+  iunfold isClusterU at Hcl'
+  icases Hcl' with ⟨%HU, #Hci, #Hpool, #Htab⟩
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
+  obtain ⟨h0, h1, Hmd⟩ := Hmr.mode
+  have HD : γ.raft.dyn = some (DynCfg.ofFold noDec (stOf (Membership.simple (GMap.listToSet vs))) h0) :=
+    Hmr.1.2.2.1
+  have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
+    rw [h.2.2, Hmd]; rfl
+  have Hmdb : γ.raft.reDyn.isSome = true := by
+    have := reDyn_of HD
+    cases h : γ.raft.reDyn with
+    | none => exact absurd h this
+    | some _ => rfl
+  -- the client's update, inside the id's slot: the bootstrap state's volatile half
+  have HsN : (↑(slotN γ.raft cv.ID') : CoPset) ⊆ ↑N := by
+    intro p hp
+    have := slotN_raftN γ.raft cv.ID' p hp
+    unfold raftN at this; rw [HNs] at this
+    exact nclose_subseteq N "raft" p this
+  iunfold EtcdGrove.nodeVacant at Hvac
+  iunfold nodeVacantU at Hvac
+  imod raft_start_boot ⊤ γ.raft cv.ID' (md := true) Q CoPset.subseteq_top Hmdb $$ Hvac [HAU]
+    with ⟨HQ, Hg, %gen, Hgen, Hfree⟩
+  · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
+      exact ⟨hp.1, fun h => hp.2 (HsN p h)⟩
+    ihave HAU := atomic_update_mask_weaken HEo $$ HAU
+    ihave HAU := aupd_aacc $$ HAU
+    iunfold atomic_acc at HAU
+    imod HAU with ⟨%S, HS, HC⟩
+    rcases S with ⟨S, ⟨⟩⟩
+    irevert HS
+    dsimp only [Std.Tele.app]
+    iintro HS
+    icases HS with ⟨HS, %HSi⟩
+    subst HSi
+    icases HC with ⟨-, Hcomm⟩
+    ihave Hcomm := Hcomm $$ %PUnit.unit
+    iunfold EtcdGrove.raftState at HS
+    iunfold raftStateU at HS
+    icases HS with ⟨Hdur, #Htlb0, #Hbi0⟩
+    imodintro
+    iframe Hdur
+    iintro Hdur
+    iapply Hcomm
+    iunfold EtcdGrove.raftState
+    unfold raftStateU
+    iframe Hdur Htlb0 Hbi0
+  -- the storage's frame and reads (`restartStorage` of the empty contents, freeze point `0`)
+  iunfold restartStorage at Hrs
+  icases Hrs with ⟨%i, %Rb, %f, %Hi, %Hf, HRb, #HFI, #HLI, #HIS⟩
+  cases Hi
+  have Hf0 : f = 0 := by
+    have h0 : uint.nat (W64 0) = 0 := rfl
+    simp only [StorContents.b, StorContents.commit, h0] at Hf; omega
+  subst Hf0
+  -- raft's storage names, fresh: the floor, the snapshot handed out, the certified terms, the
+  -- contract's `SV` and the received snapshots' certificate (no attach record: nothing stored)
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%ga, Hga, #Hga0⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gg, Hgg, -⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := w64) with ⟨%gdd, Hgd⟩
+  imod saved_pred_alloc (EtcdGrove.snapshotValid (GF := GF) γ) DFrac.discard trivial
+    with ⟨%gsv, #Hsv⟩
+  imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
+  let sn : StorNames := { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk }
+  let σv : StorState := { prev := entryID.mk (W64 0) (W64 0), ents := [], pend := [] }
+  -- (2026-11-02, stage II (p)) no attach record: its terms are vacuously the committed log's
+  icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ.raft cv.ID' _))) $$ Hg
+    with ⟨Hg, %fpc, -, -, #Hcmt⟩
+  ihave #Hct : ctCommitted (GF := GF) γ.raft sn $$ []
+  · unfold ctCommitted
+    iexists []
     isplitr
-    · unfold NsCap; imodintro; iintro %h; rw [Hns] at h; cases h
-    · unfold certLink; iright; iexact Hok'
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcfg, -⟩
-  obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
-  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, by rw [Hmd, Hγm, RNMode.all_self], .inl Hsn⟩
+    · iapply isCommitted_mono γ.raft [] _ (List.nil_prefix) $$ Hcmt
+    ipureintro; intro i t h; simp [sn] at h
+  ihave #Hlink := certLink_make γ N HU sn $$ Hci Hsv Hgk Hct
+  ihave HA : storAuths (GF := GF) sn σv $$ [Hga Hgg Hgd]
+  · unfold storAuths storCaught
+    iframe Hgg
+    isplitl [Hga]
+    · iExactEq Hga; rfl
+    isplitl [Hgd]
+    · iExactEq Hgd; rfl
+    isplitr
+    · iExactEq Hga0; rfl
+    iintro !> %i' %t %H
+    exact absurd H.2 List.not_mem_nil
+  -- the node's configuration names, `live`, the durable state and role, the last batch's maps
+  imod mono_list_own_alloc (GF := GF) ([] : List EntryM) with ⟨%gdlm, Hdlm, #Hdlb⟩
+  imod dghostVar_alloc (GF := GF) ((0 : Nat), cfgState (GMap.listToSet vs) ∅) with ⟨%gcap, Hcap⟩
+  imod dghostVar_alloc (GF := GF) ((0 : Nat), cfgState (GMap.listToSet vs) ∅) with ⟨%gccq, Hccq⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gcam, Hcam, #Hcamlb⟩
+  imod dghostVar_alloc (GF := GF) false with ⟨%glive, Hlive⟩
+  imod dghostVar_alloc (GF := GF) ((RaftState.init, W64 0) : RaftState × StateType)
+    with ⟨%gdur, Hdur⟩
+  imod dghostVar_alloc (GF := GF)
+    ((DurMaps.empty, (RaftState.init, W64 0)) : DurMaps × (RaftState × StateType)) with ⟨%gbw, Hbw⟩
+  have Hne : vs ≠ [] := by intro h; rw [h] at Hid; cases Hid
+  have Hns : γ.raft.reNoSnap = false := Hmr.1.2.2.2.1
+  -- `setupNode`: `NewRawNode` (its storage the empty view at the fresh names), `Bootstrap`,
+  -- `newNode`
+  wp_auto
+  wp_apply wp_setupNode γ.raft (γ.mode inferInstance) c cv lok si sn σv hsZero csm
+    iprop(Rb ∗ storAuths sn σv) iprop(∃ K, storKeyNames K sn ∗ F K) peers dq pv vs ctxs
+    γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
+    Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl Hns
+    $$ [Hc HRb HA Hpeers Hg]
+    as %np ⟨⟨%K, #HKn, HF⟩, %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers⟩
+  · iframe Hc Hlg Hpeers Hctx Hmarsh Hcb Hlink
+    isplitl [HRb HA]
+    · iframe HRb HA
+    isplitr
+    · iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+      iapply HFI $$ HRb [HA HΦ']
+      inext; iintro HRb
+      ihave H := HΦ' $$ [HRb HA]
+      · iframe HRb HA
+      iExactEq H; rfl
+    isplitr
+    · iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+      iapply HLI $$ HRb [HA HΦ']
+      inext; iintro HRb
+      ihave H := HΦ' $$ [HRb HA]
+      · iframe HRb HA
+      iExactEq H; rfl
+    isplitr
+    · iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+      iapply HIS $$ HRb [HA HΦ']
+      inext
+      iintro %hp %cs %al ⟨Hhs, Hcs, Hk⟩
+      iapply HΦ'
+      iframe Hhs Hcs
+      -- the attach: a fresh key recording raft's storage names
+      imod dghostVar_alloc (GF := GF)
+        ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct) :
+          Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64)) with ⟨%K, HK⟩
+      imod dghostVar_persist K 1 _ $$ HK with #HK
+      ihave #HKn : storKeyNames (GF := GF) K sn $$ []
+      · unfold storKeyNames; iexact HK
+      imod Hk $$ %K [] [] with ⟨Hst, Hsh, HF⟩
+      · iunfold EtcdGrove.nodeAppliedLb
+        ihave H := nodeAppliedLbU_zero (GF := GF) γ K
+        iExactEq H; rfl
+      · iunfold EtcdGrove.nodeCommitLb
+        ihave H := nodeCommitLbU_zero (GF := GF) γ K
+        iExactEq H; rfl
+      imodintro
+      isplitl [Hst]
+      · iapply isStorage_of_V
+        unfold isStorageV
+        iexists EtcdGrove.snapshotValid (GF := GF) γ, EtcdGrove.storBnd (GF := GF) γ K,
+          EtcdGrove.nodeCommitLb (GF := GF) γ K
+        isplitl [Hst]
+        · iunfold EtcdGrove.isStorage at Hst
+          iexact Hst
+        isplitr; · iexact Hsv
+        isplitr
+        · iintro !> %sv #H
+          imodintro; iexact H
+        isplitr
+        · iintro !> %c' Hb
+          iapply storBnd_raftBnd γ K sn c' $$ HKn Hga0 Hb
+        · iintro !> %sv Hv Hd
+          imodintro
+          iapply storDL_raftDL γ K sn sv $$ HKn Hv Hd
+      isplitl [Hsh HA]
+      · iunfold storHolds at Hsh
+        icases Hsh with ⟨%e0, %He0, #Hc0, #Hl0, -, Hown, Hend⟩
+        unfold ownStorage
+        iexists e0
+        isplitr
+        · iExactEq Hc0; rfl
+        isplitr
+        · iExactEq Hl0; rfl
+        isplitl [Hown]
+        · iExactEq Hown; rfl
+        isplitl [Hend]
+        · iright; iExactEq Hend; rfl
+        iframe HA
+        ipureintro
+        exact ⟨He0, Nat.le_refl _, by simp [StorState.kOut, σv], by simp [StorState.kOut, σv],
+          Nat.le_refl _⟩
+      iexists K
+      iframe HKn HF
+    -- the bootstrap state's volatile half, in the cluster's dynamic mode
+    rw [Hmd]
+    unfold bootInit
+    isplitr
+    · ipureintro; exact ⟨HD, stOf_simple _⟩
+    unfold ownRaftGhostR
+    rw [show (rboot (stOf (Membership.simple (GMap.listToSet vs))) γ.raft.reBoot).p =
+      bootPState γ.raft.reBoot from rfl]
+    iframe Hg
+    isplitr
+    · ipureintro
+      exact RInv_rboot _ _ _ (by have := Hbl.2.1; omega)
+    unfold logRecs rboot
+    iapply (BigSepL.bigSepL_nil).2; iempintro
+  -- the node's ghost state
+  imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
+  icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
+  imod dghostVar_alloc (([], [], [], hsZero, none) : List EntryM × List EntryM ×
+    List EntryM × HardStateM × Option SnapLoan) with ⟨%γrof, Hrof⟩
+  icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
+  icases dghostVar_halves _ _ $$ Hcap with ⟨Hcap1, Hcap2⟩
+  icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
+  imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
+  icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
+  icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
+  icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
+  ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
+  · rw [Qp.half_add_half]; iexact Hgen
+  icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
+    (1 : Qp).half).1 $$ Hgen with ⟨Hgen1, Hgen2⟩
+  unfold newNodeChans
+  icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
+    #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
+  let γn : NodeNames := {
+                          raft := γ.raft
+                          id := cv.ID'
+                          bud := γ.bud
+                          stor := interface.ok si
+                          propc := γp
+                          recvc := γr
+                          confc := γc
+                          confstatec := γcs
+                          readyc := γrd
+                          advancec := γa
+                          tick := γt
+                          done := γd
+                          stop := γs
+                          status := γst
+                          dlv := γdlv
+                          rof := γrof
+                          mode := γ.mode inferInstance
+                          dlm := gdlm
+                          cap := gcap
+                          ccq := gccq
+                          cam := gcam
+                          req := γreq
+                          sn := sn
+                          live := glive
+                          gen := gen
+                          dur := gdur
+                          bw := gbw }
+  have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
+  have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
+  -- the node's table entry, while its struct is owned whole
+  imod nodeTab_insert γ N np nv (cfgNamesOf γn) $$ Htab Hnp with ⟨#Hnp, #Hte⟩
+  haveI := nodeTabOk_persistent (GF := GF) γ np γn
+  ihave #Htb : nodeTabOk (GF := GF) γ np γn $$ []
+  · unfold nodeTabOk; iexact Hte
+  ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
+  · unfold nodeLiveRaw; iframe Hlive1 Hgen1
+  ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
+  · unfold nodeLiveRaw; iframe Hlive2 Hgen2
+  imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
+  imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
+  imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
+  imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
+  imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
+  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
+  imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
+  icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
+  imod start_handshake nv.stop' (fun (_ : Unit) => dghostVar γn.live (DFrac.own (1 : Qp).half) false)
+    (stopAns γn cv.ID') γs $$ Hcs Hos with #Hhs
+  imod start_handshake nv.status' statusChP iprop(True) γst $$ Hcst Host with #Hhst
+  imod tickCred_zero γ.bud with Hcr0
+  imod inv_alloc tickN ⊤ (tickInv γn) $$ [Hot Hcr0] with #Htickinv
+  · inext
+    unfold tickInv
+    iexists []
+    iframe
+  icases ownRawNode_shared γ.raft rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
+  ihave #Hnode : isNodeChan γn cv.ID' np $$ []
+  · unfold isNodeChan
+    iexists nv, r, lok'
+    simp only [named]
+    rw [Hnvrn]
+    iframe #
+    ipureintro; rfl
+  ipersist n
+  -- `go n.run()`
+  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
+  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1
+      Hbw Hfree]
+    · iframe Hnode
+      unfold runPre
+      iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
+        HardStateM × Option SnapLoan)
+      rw [Hnvrn]
+      iframe Hnp Hrn Hrof1 Hrof2
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl, rfl⟩
+      iframe Hdlv1 Htlb1
+      iframe Hpend Hlive1 Hdur1 Hfree
+      isplitr [Hbw]
+      · unfold runCfg
+        isplitr
+        · ipureintro
+          exact ⟨rfl, rfl, fun _ h => by simp at h, rfl⟩
+        isplitl [Hdlm]
+        · iExactEq Hdlm; rfl
+        isplitr
+        · simp only [rsDlv]
+          iapply dlvKeysAt_nil
+        iexists 0
+        iframe Hcap1 Hcam
+        isplitr
+        · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
+        iapply undecFree_empty
+      iexists _; iexact Hbw
+    itrivial
   iapply HΦ
-  iframe HR
-  iexists n
-  isplitr
-  · ipureintro; exact Hnd'
-  isplitr
-  · unfold isNode
-    iexists γn
-    iframe Hnode Hci
-    ipureintro; exact Hnok
-  unfold nodeDriver NodeDriverState.init
-  iexists γn, cv.ID', []
-  isplitr
-  · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
-  iframe Hci
-  isplitr
-  · iapply isCommittedLogLb_nil_impl
-  isplitl [Hcfg]
-  · iright; iframe Hlink; iexists 0, cfgState (GMap.listToSet ps) ∅; iexact Hcfg
-  isplitr
-  · ileft; ipureintro; rw [Hmd]; rfl
-  ileft
+  iexists np, K
   isplitr
   · ipureintro; rfl
-  iexact Hdrv
-
-/-- `StartNode.dynamicSpec` from the raw triple (`node`'s names hidden behind the API's). -/
-private theorem wp_StartNode_dynamic_impl
-    (hS : EtcdGrove.StartNode.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.StartNode.dynamicSpec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.StartNode.dynamicSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeConfig EtcdGrove.nodeDriver EtcdGrove.nodeDynamicBoot
-  intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
-    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
-  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hcap⟩ HΦ
-  iunfold nodeDynamicBoot at Hboot
-  icases Hboot with ⟨⟨%c0, %decode, #Hdc⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
-  obtain ⟨Hok, Hcfg⟩ := Hok
-  ihave #Hdc' := Hdc
-  iunfold isDynamicCluster at Hdc'
-  icases Hdc' with ⟨%Hdn, #Hci⟩
-  have Hns := Hdn.noSnap
-  have Hsl : γ.raft.reSnapLoc = (fun _ => none) := by obtain ⟨-, -, -, -, h⟩ := Hdn; exact h
-  iapply wp_fupd
-  iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs
-    γ.raft.reBoot false
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
-    Hcfg rfl Hok Hfl (fun h => by cases h)) $$ [Hc Hown Hinst Hpeers Hg]
-  · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb Hg
-    isplitr
-    · unfold NsCap; imodintro; iintro -; iexact Hcap
-    · unfold certLink; ileft; ipureintro; exact Hns
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcf, -⟩
-  obtain ⟨Hγr, Hγb, Hγs, Hmd, -, Hnd'⟩ := Hf
-  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd, .inr Hns⟩
-  have Hdy := Hdn.isDyn Hnok
-  imod ghost_map_insert_persist cv.ID' (cfgNamesOf γn) (GMap.lookup_empty _) $$ Ha with ⟨-, #He⟩
-  ihave #Htb : nodeTabOk (GF := GF) γ cv.ID' γn $$ []
-  · unfold nodeTabOk; iexists g; iframe He; ipureintro; exact Hg0
-  imodintro
-  iapply HΦ
-  iframe HR
-  iexists n
+  iframe HQ HF Hpeers
   isplitr
-  · ipureintro; exact Hnd'
-  isplitr
-  · unfold isNode
+  · iunfold EtcdGrove.isNode
+    unfold isNode
     iexists γn
-    iframe Hnode Hci
-    ipureintro; exact Hnok
-  isplitl [Hdrv]
-  · unfold nodeDriver NodeDriverState.init
+    iframe Hnode Htb Hci Hpool
+    ipureintro; exact ⟨Hnok, HU⟩
+  isplitl [Hdlv2 Hreq1 Hreq2 Hdur2]
+  · iunfold EtcdGrove.nodeDriver
+    unfold nodeDriver NodeDriverState.init
     iexists γn, cv.ID', []
     isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
-    iframe Hci
+    · ipureintro; exact ⟨Hnok, rfl, rfl⟩
+    isplitr; · iexact Hci
+    isplitr; · ihave H := isCommittedLogLb_nil_impl (GF := GF) γ; iExactEq H; rfl
+    isplitr; · ipureintro; exact Hdy
+    isplitr; · iexact Htb
     isplitr
-    · iapply isCommittedLogLb_nil_impl
-    isplitr
-    · ileft; ipureintro; exact Hdy
-    isplitr
-    · iright; iframe Htb; unfold hsCommitted; ileft; ipureintro; rfl
+    · unfold hsCommitted; ileft; ipureintro; rfl
+    isplitr; · iexact HKn
     ileft
     isplitr
     · ipureintro; rfl
-    iexact Hdrv
-  unfold nodeConfig
+    iframe Hdur2
+    unfold nodeDriverChan dlvLb
+    iframe Hnode Hdlv2 Hdlb
+    isplitr
+    · iapply dlvKeysAt_nil
+    iexists _
+    iframe Hreq1 Hreq2
+  isplitl [Hcap2 Hccq1 Hccq2]
+  · iunfold EtcdGrove.nodeConfig
+    isplitl [Hcap2 Hccq1 Hccq2]
+    · unfold nodeConfig
+      iexists γn, cv.ID'
+      iframe Hnode Htb
+      isplitr
+      · ipureintro
+        refine ⟨Hnok, Hdy, ?_⟩
+        show CCGood (stOf (Membership.simple (GMap.listToSet vs)))
+        rw [stOf_simple]; exact ccGood_cfgState _
+      rw [stOf_simple]
+      unfold nodeCfg
+      iframe Hcap2 Hcamlb
+      iexists _
+      iframe Hccq1 Hccq2
+    unfold confAtU
+    iexists [], ∅
+    isplitr; · ihave H := isCommittedLogLb_nil_impl (GF := GF) γ; iExactEq H; rfl
+    isplitr; · iapply decLb_empty
+    ipureintro
+    exact ⟨Nat.le_refl _, _, gd, Hmr, rfl⟩
+  iunfold EtcdGrove.nodeRunning
+  unfold nodeRunning
   iexists γn, cv.ID'
-  iframe Hnode Htb
-  isplitr
-  · ipureintro
-    refine ⟨Hnok, Hdy, ?_⟩
-    show CCGood (stOf (Membership.simple (GMap.listToSet ps)))
-    rw [stOf_simple]; exact ccGood_cfgState _
-  rw [stOf_simple]; iexact Hcf
+  iframe Hnode Htb Hlive2
+  ipureintro; exact ⟨Hnok, Hdy⟩
 
 end wrap
 
@@ -437,13 +699,7 @@ theorem StartNode.wp_proof
     (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) :=
-  ApiImpl.wp_StartNode_impl (StartNode.wp_raw wp_setupNode wp_node_run)
-
-theorem StartNode.wp_proof_dynamic
-    (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
-    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
-    StartNode.dynamicSpec (GF := GF) (hG := hG) :=
-  ApiImpl.wp_StartNode_dynamic_impl (StartNode.wp_raw wp_setupNode wp_node_run)
+  ApiImpl.wp_StartNode_impl wp_setupNode wp_node_run
 
 end proof
 

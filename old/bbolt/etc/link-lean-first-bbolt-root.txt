@@ -1,0 +1,298 @@
+# bbolt's root package (go.etcd.io/bbolt, Lean-first), read by `etc/gen-link.py --bbolt-root`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The functions of os, syscall
+# and golang.org/x/sys/unix are the file model's axioms (`Proof/os/FileModel.lean`).
+os_OpenFile:
+os_File__Close:
+os_File__Fd:
+os_File__Name:
+os_File__Stat:
+fs_FileInfo__Size:
+os_File__ReadAt:
+os_File__WriteAt:
+os_File__Truncate:
+os_File__Sync:
+syscall_Fdatasync:
+syscall_Flock:
+unix_Mmap:
+unix_Munmap:
+unix_Madvise:
+bbolt_mmap: os_File__Fd unix_Mmap unix_Madvise
+bbolt_munmap: unix_Munmap
+DB__page:
+DB__pageInBuffer:
+Page__FastCheck: @
+Tx__page: DB__page Page__FastCheck
+Page__IsLeafPage: @
+Page__Count: @
+InBucket__RootPage: @
+Bucket__pageNode: InBucket__RootPage Tx__page
+elemRef__isLeaf: Page__IsLeafPage
+elemRef__count: Page__Count
+Page__LeafPageElement: @
+leafPageElement__Key: @
+leafPageElement__Value: @
+leafPageElement__Flags: @
+Cursor__keyValue: elemRef__count Page__LeafPageElement leafPageElement__Key leafPageElement__Value leafPageElement__Flags
+common_Assert: @
+Meta__Txid: @
+Meta__Pgid: @
+Meta__Validate: @
+DB__meta: Meta__Txid Meta__Validate
+Meta__Copy: @
+Meta__RootBucket: @
+Meta__IncTxid: @
+newBucket:
+Tx__init: DB__meta Meta__Copy newBucket Meta__RootBucket Meta__IncTxid
+Page__LeafPageElements: @
+Cursor__nsearch: Page__LeafPageElements Page__Count leafPageElement__Key
+bbolt_atomicLoadDuration:
+bbolt_atomicAddDuration:
+TxStats__GetPageCount:
+TxStats__GetPageAlloc:
+TxStats__GetCursorCount:
+TxStats__GetNodeCount:
+TxStats__GetNodeDeref:
+TxStats__GetRebalance:
+TxStats__GetRebalanceTime: bbolt_atomicLoadDuration
+TxStats__GetSplit:
+TxStats__GetSpill:
+TxStats__GetSpillTime: bbolt_atomicLoadDuration
+TxStats__GetWrite:
+TxStats__GetWriteTime: bbolt_atomicLoadDuration
+TxStats__IncPageCount:
+TxStats__IncPageAlloc:
+TxStats__IncCursorCount:
+TxStats__IncNodeCount:
+TxStats__IncNodeDeref:
+TxStats__IncRebalance:
+TxStats__IncRebalanceTime: bbolt_atomicAddDuration
+TxStats__IncSplit:
+TxStats__IncSpill:
+TxStats__IncSpillTime: bbolt_atomicAddDuration
+TxStats__IncWrite:
+TxStats__IncWriteTime: bbolt_atomicAddDuration
+TxStats__add: TxStats__GetPageCount TxStats__IncPageCount TxStats__GetPageAlloc TxStats__IncPageAlloc TxStats__GetCursorCount TxStats__IncCursorCount TxStats__GetNodeCount TxStats__IncNodeCount TxStats__GetNodeDeref TxStats__IncNodeDeref TxStats__GetRebalance TxStats__IncRebalance TxStats__GetRebalanceTime TxStats__IncRebalanceTime TxStats__GetSplit TxStats__IncSplit TxStats__GetSpill TxStats__IncSpill TxStats__GetSpillTime TxStats__IncSpillTime TxStats__GetWrite TxStats__IncWrite TxStats__GetWriteTime TxStats__IncWriteTime
+TxStats__Sub: TxStats__GetPageCount TxStats__GetPageAlloc TxStats__GetCursorCount TxStats__GetNodeCount TxStats__GetNodeDeref TxStats__GetRebalance TxStats__GetRebalanceTime TxStats__GetSplit TxStats__GetSpill TxStats__GetSpillTime TxStats__GetWrite TxStats__GetWriteTime
+Stats__Sub: TxStats__Sub
+BucketStats__Add:
+DB__mmapSize:
+DB__growSize:
+DB__invalidate:
+DB__munmap: bbolt_munmap DB__invalidate
+DB__Path:
+DB__IsReadOnly:
+DB__GoString:
+DB__String:
+DB__Info: common_Assert
+Tx__ID: Meta__Txid
+Tx__DB:
+Tx__Writable:
+Tx__Stats:
+Tx__Size: Meta__Pgid
+Tx__OnCommit:
+bbolt_cloneBytes:
+bbolt_compareKeys:
+Options__String:
+nodes__Len:
+nodes__Swap:
+Page__IsBranchPage: @
+Page__BranchPageElements: @
+Page__BranchPageElement: @
+branchPageElement__Key: @
+branchPageElement__Pgid: @
+Cursor__Bucket:
+Cursor__search: Bucket__pageNode Page__IsBranchPage Page__IsLeafPage elemRef__isLeaf Cursor__nsearch Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid
+Cursor__searchPage: Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Cursor__search
+Cursor__goToFirstElementOnTheStack: Bucket__pageNode elemRef__isLeaf Page__BranchPageElement branchPageElement__Pgid
+Cursor__last: Bucket__pageNode elemRef__isLeaf elemRef__count Page__BranchPageElement branchPageElement__Pgid
+Cursor__next: elemRef__count Cursor__goToFirstElementOnTheStack Cursor__keyValue
+Cursor__first: InBucket__RootPage Bucket__pageNode elemRef__count Cursor__goToFirstElementOnTheStack Cursor__next Cursor__keyValue
+Cursor__prev: Cursor__first Cursor__last Cursor__keyValue
+Cursor__seek: InBucket__RootPage Cursor__search Cursor__keyValue
+Cursor__First: common_Assert Cursor__first
+Cursor__Next: common_Assert Cursor__next
+Cursor__Prev: common_Assert Cursor__prev
+Cursor__Last: common_Assert InBucket__RootPage Bucket__pageNode elemRef__count Cursor__last Cursor__prev Cursor__keyValue
+Cursor__Seek: common_Assert Cursor__seek elemRef__count Cursor__next
+DB__beginTx: Tx__init Meta__Txid
+DB__removeTx: Meta__Txid TxStats__add
+Inode__Key: @
+Inode__Value: @
+Inode__SetKey: @
+Inode__SetValue: @
+Inode__SetFlags: @
+Inode__SetPgid: @
+Page__Id: @
+Page__Flags: @
+Page__SetFlags: @
+Page__SetCount: @
+common_ReadInodeFromPage: @
+common_WriteInodeToPage: @
+node__minKeys:
+node__pageElementSize:
+node__numChildren:
+node__size: node__pageElementSize Inode__Key Inode__Value
+node__sizeLessThan: node__pageElementSize Inode__Key Inode__Value
+node__splitIndex: node__pageElementSize Inode__Key Inode__Value
+node__read: Page__Id Page__IsLeafPage common_ReadInodeFromPage Inode__Key common_Assert
+node__write: common_Assert Page__Count Page__Flags Page__SetFlags Page__SetCount common_WriteInodeToPage
+node__childIndex: Inode__Key
+node__del: Inode__Key
+node__put: Meta__Pgid Inode__Key Inode__SetFlags Inode__SetKey Inode__SetValue Inode__SetPgid common_Assert
+node__removeChild:
+node__root:
+node__dereference: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_Assert TxStats__IncNodeDeref
+nodes__Less: Inode__Key
+getDiscardLogger:
+DB__Logger: getDiscardLogger
+Tx__close: DB__removeTx
+Tx__nonPhysicalRollback: Tx__close
+Tx__Rollback: common_Assert Tx__nonPhysicalRollback
+DB__fileSize: os_File__Stat fs_FileInfo__Size
+log_Logger__Output:
+header:
+DefaultLogger__Errorf: header log_Logger__Output
+DB__grow: DB__Logger DB__fileSize DefaultLogger__Errorf DB__growSize os_File__Truncate os_File__Sync
+Page__Meta: @
+DB__mmap: DB__Logger DB__fileSize DB__mmapSize DB__munmap bbolt_mmap DB__page Page__Meta Meta__Validate DefaultLogger__Errorf
+InBucket__InSequence: @
+Bucket__Cursor: TxStats__IncCursorCount
+Tx__Cursor: Bucket__Cursor
+Bucket__Get: Bucket__Cursor Cursor__seek
+Bucket__Tx:
+Bucket__Root: InBucket__RootPage
+Bucket__Writable:
+Bucket__Sequence: InBucket__InSequence
+Bucket__ForEach: Bucket__Cursor Cursor__First Cursor__Next
+Bucket__ForEachBucket: Bucket__Cursor Cursor__first Cursor__next
+Bucket__openBucket: newBucket bbolt_cloneBytes InBucket__RootPage
+Bucket__Bucket: Bucket__Cursor Cursor__seek Bucket__openBucket
+Tx__Bucket: Bucket__Bucket
+Tx__ForEach: Bucket__ForEach Bucket__Bucket
+DB__beginRWTx: Tx__init
+DB__Begin: DB__Logger DB__beginRWTx DB__beginTx
+DB__View: DB__Begin Tx__Rollback
+fdatasync: os_File__Fd syscall_Fdatasync
+funlock: os_File__Fd syscall_Flock
+flock: os_File__Fd syscall_Flock
+Meta__Freelist: @
+DB__hasSyncedFreelist: DB__meta Meta__Freelist
+sync_Pool__Get:
+Page__SetOverflow: @
+Page__SetId: @
+Meta__SetPgid: @
+DB__allocate: sync_Pool__Get Page__SetOverflow Page__SetId Page__Id Meta__Pgid Meta__SetPgid DB__mmapSize DB__growSize DB__Logger DefaultLogger__Errorf DB__mmap
+Meta__PageSize: @
+DB__getPageSizeFromFirstMeta: os_File__ReadAt DB__pageInBuffer Page__Meta Meta__Validate Meta__PageSize
+Meta__SetMagic: @
+Meta__SetVersion: @
+Meta__SetPageSize: @
+Meta__SetFreelist: @
+Meta__SetRootBucket: @
+Meta__SetTxid: @
+Meta__SetChecksum: @
+Meta__Sum64: @
+common_NewInBucket: @
+DB__init: DB__pageInBuffer Page__SetId Page__SetFlags Page__SetCount Page__Meta Meta__SetMagic Meta__SetVersion Meta__SetPageSize Meta__SetFreelist Meta__SetRootBucket Meta__SetPgid Meta__SetTxid Meta__SetChecksum Meta__Sum64 common_NewInBucket os_File__WriteAt fdatasync DB__Logger DefaultLogger__Errorf
+DB__close: DB__munmap funlock os_File__Close
+DB__Close: DB__close
+common_Verify: @
+Inode__Pgid: @
+Inode__Flags: @
+Tx__page_w: DB__page Page__FastCheck
+elemRef__count_w: Page__Count
+elemRef__isLeaf_w: Page__IsLeafPage
+Bucket__pageNode_w: InBucket__RootPage Tx__page_w
+Bucket__node: common_Assert common_Verify Tx__page_w node__read TxStats__IncNodeCount
+node__childAt: Inode__Pgid Bucket__node
+node__nextSibling: node__childIndex node__numChildren node__childAt
+node__prevSibling: node__childIndex node__childAt
+Bucket__Cursor_w: TxStats__IncCursorCount
+Cursor__nsearch_w: Page__LeafPageElements Page__Count leafPageElement__Key Inode__Key
+Cursor__search_w: Bucket__pageNode_w Page__IsBranchPage Page__IsLeafPage elemRef__isLeaf_w Cursor__nsearch_w Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Inode__Key Inode__Pgid
+Cursor__searchPage_w: Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Cursor__search_w
+Cursor__searchNode: Inode__Key Inode__Pgid Cursor__search_w
+Cursor__keyValue_w: elemRef__count_w Page__LeafPageElement leafPageElement__Key leafPageElement__Value leafPageElement__Flags Inode__Key Inode__Value Inode__Flags
+Cursor__seek_w: InBucket__RootPage Cursor__search_w Cursor__keyValue_w
+Cursor__node: common_Assert elemRef__isLeaf_w Page__Id Bucket__node node__childAt
+Bucket__Writable_w:
+Bucket__Put: DB__Logger Bucket__Writable_w bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_w Cursor__node node__put
+Bucket__Delete: DB__Logger Bucket__Writable_w Bucket__Cursor_w Cursor__seek_w Cursor__node node__del
+InBucket__SetInSequence: @
+InBucket__IncSequence: @
+Bucket__SetSequence: Bucket__Writable_w InBucket__RootPage Bucket__node InBucket__SetInSequence
+Bucket__NextSequence: Bucket__Writable_w InBucket__RootPage Bucket__node InBucket__IncSequence InBucket__InSequence
+Bucket__openBucket_w: newBucket bbolt_cloneBytes InBucket__RootPage
+Bucket__Bucket_w: Bucket__Cursor_w Cursor__seek_w Bucket__openBucket_w
+Bucket__write: node__size node__write
+Bucket__CreateBucket: DB__Logger bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_w Bucket__write Cursor__node node__put Bucket__Bucket_w
+Bucket__CreateBucketIfNotExists: DB__Logger bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_w Bucket__write Cursor__node node__put Bucket__Bucket_w Bucket__openBucket_w
+node__dereference_w: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_Assert TxStats__IncNodeDeref
+Bucket__dereference: node__root node__dereference_w
+Tx__allocate: DB__Logger Meta__Txid DB__allocate Bucket__dereference DefaultLogger__Errorf Page__Id TxStats__IncPageCount TxStats__IncPageAlloc
+node__splitTwo: node__sizeLessThan node__splitIndex TxStats__IncSplit
+DB__getPageSizeFromSecondMeta: os_File__Stat fs_FileInfo__Size os_File__ReadAt DB__pageInBuffer Page__Meta Meta__Validate Meta__PageSize
+DB__getPageSize: DB__getPageSizeFromFirstMeta DB__getPageSizeFromSecondMeta
+Tx__close_w: TxStats__add
+Tx__nonPhysicalRollback_w: Meta__Txid Tx__close_w
+Tx__Rollback_w: common_Assert Tx__nonPhysicalRollback_w
+newFreelist: freelist_NewArrayFreelist
+DB__loadFreelist: newFreelist DB__hasSyncedFreelist DB__meta Meta__Freelist DB__page
+freelist_NewArrayFreelist: @
+Open: getDiscardLogger DB__Logger os_OpenFile os_File__Name flock os_File__Stat fs_FileInfo__Size DB__getPageSize DB__init DB__mmap DB__loadFreelist DB__hasSyncedFreelist DB__close DefaultLogger__Errorf
+Tx__CreateBucket: Bucket__CreateBucket
+Tx__CreateBucketIfNotExists: Bucket__CreateBucketIfNotExists
+Bucket__maxInlineBucketSize:
+Bucket__inlineable: Inode__Key Inode__Value Inode__Flags Bucket__maxInlineBucketSize
+fmt_Sprint:
+os_Exit:
+log_Logger__Flags:
+log_Logger__SetFlags:
+DefaultLogger__Info: fmt_Sprint header log_Logger__Output
+DefaultLogger__Error: fmt_Sprint header log_Logger__Output
+DefaultLogger__Warning: fmt_Sprint header log_Logger__Output
+DefaultLogger__Infof: header log_Logger__Output
+DefaultLogger__Warningf: header log_Logger__Output
+DefaultLogger__Fatal: fmt_Sprint header log_Logger__Output os_Exit
+DefaultLogger__Fatalf: header log_Logger__Output os_Exit
+DefaultLogger__Debug: fmt_Sprint header log_Logger__Output
+DefaultLogger__Debugf: header log_Logger__Output
+DefaultLogger__Panic:
+DefaultLogger__Panicf:
+DefaultLogger__EnableTimestamps: log_Logger__Flags log_Logger__SetFlags
+DefaultLogger__EnableDebug:
+DB__Stats:
+DB__Sync: DB__Logger fdatasync
+panicked__Error:
+Cursor__seek_s: InBucket__RootPage Cursor__search_s Cursor__keyValue_w
+Cursor__search_s: Bucket__pageNode_w Page__IsBranchPage Page__IsLeafPage elemRef__isLeaf_w Cursor__nsearch_s Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Inode__Key Inode__Pgid
+Cursor__searchPage_s: Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Cursor__search_s
+Cursor__searchNode_s: Inode__Key Inode__Pgid Cursor__search_s
+Cursor__nsearch_s: Page__LeafPageElements Page__Count leafPageElement__Key Inode__Key
+Bucket__node_s: Bucket__node
+Cursor__node_s: common_Assert elemRef__isLeaf_w Page__Id Bucket__node node__childAt
+Bucket__Put_s: DB__Logger Bucket__Writable_w bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_s Cursor__node_s node__put
+Bucket__Delete_s: DB__Logger Bucket__Writable_w Bucket__Cursor_w Cursor__seek_s Cursor__node_s node__del
+Bucket__Bucket_s: Bucket__Cursor_w Cursor__seek_s Bucket__openBucket_w
+Bucket__CreateBucket_s: DB__Logger bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_s Bucket__write Cursor__node_s node__put Bucket__Bucket_s
+Bucket__CreateBucketIfNotExists_s: DB__Logger bbolt_cloneBytes Bucket__Cursor_w Cursor__seek_s Bucket__write Cursor__node_s node__put Bucket__Bucket_s Bucket__openBucket_w
+Bucket__SetSequence_s: Bucket__Writable_w InBucket__RootPage Bucket__node_s InBucket__SetInSequence
+Bucket__NextSequence_s: Bucket__Writable_w InBucket__RootPage Bucket__node_s InBucket__IncSequence InBucket__InSequence
+Tx__CreateBucket_s: Bucket__CreateBucket_s
+Tx__CreateBucketIfNotExists_s: Bucket__CreateBucketIfNotExists_s
+Meta__Write: @
+Page__Overflow: @
+common_UnsafeByteSlice: @
+sync_Pool__Put:
+sort_Sort_w:
+Tx__write: DB__Logger DefaultLogger__Errorf sort_Sort_w Page__Overflow Page__Id common_UnsafeByteSlice os_File__WriteAt TxStats__IncWrite fdatasync sync_Pool__Put
+Tx__writeMeta: DB__Logger DB__pageInBuffer Meta__Write Page__Id os_File__WriteAt fdatasync TxStats__IncWrite DefaultLogger__Errorf
+Tx__rollback_w: Meta__Txid DB__hasSyncedFreelist DB__meta Meta__Freelist DB__page Tx__close_w
+Tx__close_l: TxStats__add
+Tx__rollback_l: Meta__Txid Tx__close_l
+Tx__commitFreelist: Tx__allocate Page__Id Meta__SetFreelist Tx__rollback_w Tx__rollback_l
+Bucket__rebalance_s: node__rebalance_s
+node__rebalance_s: TxStats__IncRebalance node__size node__minKeys Inode__Pgid Bucket__node node__free_s node__numChildren node__del node__removeChild common_Assert node__childIndex node__nextSibling_s node__prevSibling_s
+node__free_s: Meta__Txid Tx__page_w
+node__nextSibling_s: node__childIndex node__numChildren node__childAt
+node__prevSibling_s: node__childIndex node__childAt

@@ -84,6 +84,12 @@ attribute [irreducible] Step.ty
 @[reducible] noncomputable def ClientDrop [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
+@[reducible] noncomputable def SnapCount [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1)
+
+@[reducible] noncomputable def SnapCatchUp [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1)
+
 @[reducible] noncomputable def wprefix [GooseExts] [GoGlobalContext] : val :=
   #(go!"wk/")
 
@@ -134,7 +140,7 @@ noncomputable def MainWatch [GooseExts] [GoGlobalContext] : GoString :=
     examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
     server served on a listener at client.
 
-    go: linkv3p.go:99:6 -/
+    go: linkv3p.go:108:6 -/
 noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -157,8 +163,10 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
   (Let "$a5" (Val #(go!"linkv3p"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (Val SnapCount)
+  (Let "$a7" (Val SnapCatchUp)
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -249,7 +257,7 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startBridge starts a bridge at addr to the member's client address client: the listener, then
     the bridge's accept loop (bridge.New).
 
-    go: linkv3p.go:123:6 -/
+    go: linkv3p.go:134:6 -/
 noncomputable def startBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "client"
@@ -305,7 +313,7 @@ noncomputable def startBridge.impl [GooseExts] [GoGlobalContext] : val :=
     b in both directions (etcd's CutPeer/MendPeer, as its integration tests'
     InjectPartition/RecoverPartition).
 
-    go: linkv3p.go:134:6 -/
+    go: linkv3p.go:145:6 -/
 noncomputable def peerStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "kind"
@@ -356,7 +364,7 @@ noncomputable def peerStep.impl [GooseExts] [GoGlobalContext] : val :=
     blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
     unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 
-    go: linkv3p.go:153:6 -/
+    go: linkv3p.go:164:6 -/
 noncomputable def clientStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "brs"
   (Lam "holed"
@@ -403,7 +411,7 @@ noncomputable def clientStep.impl [GooseExts] [GoGlobalContext] : val :=
 /-- partitioner applies the schedule sched to the members srvs and their bridges brs: each step,
     after its delay.
 
-    go: linkv3p.go:173:6 -/
+    go: linkv3p.go:184:6 -/
 noncomputable def partitioner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "brs"
@@ -453,7 +461,7 @@ noncomputable def partitioner.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Apply runs one operation through a client of clis picked at random (linkvtxn.Apply).
 
-    go: linkv3p.go:186:6 -/
+    go: linkv3p.go:197:6 -/
 noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "input"
@@ -481,7 +489,7 @@ noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
     clients clis (one per member, each operation's picked at random), and returns porcupine's
     verdict against linkvtxn's model.
 
-    go: linkv3p.go:194:6 -/
+    go: linkv3p.go:205:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "clients"
@@ -529,7 +537,7 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
     address, and three clients, each of every bridge (failover). It returns the members, the
     bridges and the clients, and false if a step failed (the specs allow every step to fail).
 
-    go: linkv3p.go:203:6 -/
+    go: linkv3p.go:214:6 -/
 noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val #())))
@@ -963,7 +971,7 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
     every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
     history illegal. A failed start ends Main without a check.
 
-    go: linkv3p.go:263:6 -/
+    go: linkv3p.go:274:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -1044,7 +1052,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
     logging in w each that returned no error, with its reply's revision.
 
-    go: linkv3p.go:295:6 -/
+    go: linkv3p.go:306:6 -/
 noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "w"
@@ -1137,7 +1145,7 @@ noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
     prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
     writers of nops puts each, then reads the watch and checks it against the writes.
 
-    go: linkv3p.go:314:6 -/
+    go: linkv3p.go:325:6 -/
 noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"

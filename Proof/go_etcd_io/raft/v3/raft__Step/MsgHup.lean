@@ -112,10 +112,16 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     -- (2026-10-25, T-M M2b) a pre-candidate afterwards: one before, unchanged, or made one by
     -- the pre-campaign, with `hup`'s check (`HupFact`)
-    have Hpcs : PreCandStep m s s' := fun h => ⟨Hpc h, by
+    -- (2026-10-28, stage U0) and a node no follower afterwards with a snapshot pending was
+    -- one before: a campaign checked that none is pending (`promotable`)
+    have Hsrb : SnapRoleBack s s' := fun h1 h2 => by
+      rcases Hhg with rfl | ⟨-, -, Hsn, -⟩
+      · exact ⟨h1, h2⟩
+      · exact absurd (by rw [Hl]; exact Hsn) h2
+    have Hpcs : PreCandStep m s s' := ⟨fun h => ⟨Hpc h, by
       rcases Hhg with rfl | ⟨-, -, Hsn, Hno, -⟩
       · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
-      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩
+      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb⟩
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro

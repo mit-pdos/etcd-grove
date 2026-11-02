@@ -104,10 +104,10 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hsf : ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn =
       functions stepFollower [] := rfl
   rw [Hsf]
-  ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
-  · iapply tsSrc_ne; notsnap_tac
+  ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
+  · iapply rcvSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' m.From' with prvals := pvs } ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
-      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, fun h => by simp [becomeFollower] at h⟩)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

@@ -12,7 +12,7 @@
   argument (`memCsArg`: `ep.confState` may be `nil`): the entry registered at the linearization
   point, for the snapshot the storage's state then gives.
 * `srvSnapDisk s γr`: the raft wrapper's `storage` (a `*storage.storage` over the snapshotter
-  `ss`), its `SaveSnap` (the WAL's and the snapshotter's write, names-only: `saveSnapOk`) and the
+  `ss`), its `SaveSnap` (the WAL's and the snapshotter's write, the WAL contract's, `isRNWal`) and the
   snapshot directory's invariant at a removal fact `Rm` that the applied index past `j` gives
   (J1a's `srvSnapRm`'s second disjunct): what `snapshot(toDisk)`'s `SaveSnap` and `Release` take.
 -/
@@ -39,7 +39,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+/- (2026-10-30, the repair, Stage F) The free certificate registry (`memCertReg`, `srvCertN`) is
+gone with the old storage contract (raft's `memCertAuth`); what replaces it for `CreateSnapshot`'s
+`J.SV` is PENDING the coordinator's answer on D2. -/
+/- REPAIR-OLD
 /-- The registry's namespace. -/
 def srvCertN : Namespace := nroot .@ "etcdserver_cert_reg"
 
@@ -69,28 +74,17 @@ theorem memCertReg_alloc (γs : MemStorNames) (Ec : CoPset) :
   iexists ([] : List CertKey)
   iexact Ha
 
-/-- **The raft wrapper's `SaveSnap`** (persistent; the trust boundary, names-only: the WAL's
-`SaveSnapshot` and the snapshotter's `SaveSnap` write the snapshot's `.snap` file and its WAL
-record, outside what the model tracks; `bootOk`'s storage contract, J1a): for a read-only
-snapshot, it returns `nil` (an I/O failure is the environment's, as `storage.releaseOk`). -/
-def saveSnapOk (stp : Loc) : IProp GF :=
-  iprop(□ ∀ (sn : Loc) (sv : SnapshotM),
-    {{ ownSnapM sn DFrac.discard sv }}
-      (App (Val (stp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!
-        go!"SaveSnap")) (Val #sn))
-    {{ RET #interface.nil; True }})
-
-instance saveSnapOk_persistent (stp : Loc) : Persistent (saveSnapOk (GF := GF) stp) := by
-  unfold saveSnapOk; infer_instance
-
+-/
 /-- **The disk snapshot's storage** (persistent; see the file header) of the server `s` with the
-read names `γr`. -/
+read names `γr`: the raft wrapper's storage (its `SaveSnap` the WAL contract's, `isRNWal`; 2026-10-31,
+`notes/axiom-review/savesnap.md`: until then `saveSnapOk`, `nil` for any snapshot, false of a nil
+metadata), over the snapshotter `ss`. -/
 def srvSnapDisk (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (stp ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
     ⌜storage.storageSnap stp ss⌝ ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    saveSnapOk stp ∗
+    isRNWal (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) ∗
     inv snapDirN (snapDirInv ss γd img Rm) ∗
     □ (∀ j : w64, monoNatLbOwn γr.applied (uint.nat j + 1) -∗ Rm j))
 
@@ -105,6 +99,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A Texan triple's later continuation used across the call's step (`MemstorageAU.lean`'s). -/
 theorem wp_later_frame_srv {e : Expr} {Φ : val → IProp GF} {R : IProp GF}
@@ -117,6 +112,11 @@ theorem wp_later_frame_srv {e : Expr} {Φ : val → IProp GF} {R : IProp GF}
   · iintro %v ⟨HR, H⟩
     iapply H $$ HR
 
+/- (2026-10-30, the repair, Stage F) `certCovers_created` and `MemoryStorage.CreateSnapshot.wp_reg`
+(`CreateSnapshot` over the old shared token and the free certificate registry) are gone with the
+old storage contract; `CreateSnapshot`'s new premise (`J.SV`, a registered snapshot) is PENDING the
+coordinator's answer on D2 (see `srvSnapState`). -/
+/- REPAIR-OLD
 /-- An any-term entry for the snapshot `CreateSnapshot(i, cs, data)` makes from the state `σ`
 covers it at every term. -/
 theorem certCovers_created (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : List w8) :
@@ -219,6 +219,7 @@ theorem MemoryStorage.CreateSnapshot.wp_reg
     iexists σt, t
     iexact Hsnap
 
+-/
 end proof
 
 end EtcdGrove

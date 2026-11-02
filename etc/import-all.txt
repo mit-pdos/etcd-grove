@@ -1,0 +1,10 @@
+# Who may `import all` a module whose sealed definitions or private laws are part of the trust base
+# (`etc/import-all-check.py`; the backend-auth-split stage's Q6, 2026-11-02).
+
+# The backend's tracked buckets: the batch lock's side `rbSide` (sealed) and the flag-clearing and
+# raw update laws (private); only the allocation and `Unlock`'s proof reach them.
+sealed Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+sealed Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock

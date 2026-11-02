@@ -30,7 +30,7 @@ theorem etcdserverpb.authClient.UserAdd.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdserverpb.authClient.UserAdd.spec (GF := GF) (hG := hG) := by
   intro ac conn addr Spec Q ctx cd inp m opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hsend, #Hopts, #Hok⟩
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hsend, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -48,15 +48,16 @@ theorem etcdserverpb.authClient.UserAdd.wp_proof
   ihave Hblank : pbAuthUserAddResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthUserAddResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/UserAdd" pbAuthUserAddRequest pbAuthUserAddResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/UserAdd" pbAuthUserAddRequest pbAuthUserAddResponse Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbAuthUserAddRequest (GF := GF)).ty = etcdserverpb.AuthUserAddRequest.ty from rfl,
     show (pbAuthUserAddResponse (GF := GF)).ty = etcdserverpb.AuthUserAddResponse.ty from rfl] at hI
-  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/UserAdd" addr ([sm] ++ vs) (Spec m Q) $$ []
+  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/UserAdd" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []
   · iapply reqPre_box; iexact Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hres with (⟨%Herr, %m', -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto

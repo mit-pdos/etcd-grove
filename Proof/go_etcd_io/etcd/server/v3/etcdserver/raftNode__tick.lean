@@ -31,20 +31,19 @@ theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
+  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, #HTick, -⟩
   subst Hnieq
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
-  -- the tick's credit (D19b): the receipt of the resolution of `Lock`
-  wp_take_receipt as HT
+  wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard mu (rnTickInv r) $$ [$Hsync $Hmug] as ⟨Hl, HP⟩
   rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Tick")]
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Tick")]
   wp_auto
-  wp_apply HTick $$ [$HT]
+  wp_apply HTick $$ []
   wp_apply time.wp_Now as %t -
   iunfold rnTickInv at HP
   icases HP with ⟨%t0, Hts⟩

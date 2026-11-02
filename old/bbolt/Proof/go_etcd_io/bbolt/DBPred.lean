@@ -1,0 +1,437 @@
+/-
+The database and its read transactions (sequential use: one goroutine at a time uses the
+database, with any number of read transactions open and at most one writer).
+
+**The state.** `DBState`: the file (`fd`, its bytes `bs`) and its mapping (`data`, `sz`), the
+page size, the freelist's state, and the open readers (a map from a ghost key to each
+reader's `Reader`: its txid, its tree's root and high-water mark, the pages it sees and its
+fraction `q` of them).
+
+**The mapping's cells.** The caller's half of each mapped slot (`FilePages.lean`) is shared:
+the database holds `rem s` of slot `s` and every reader that sees `s` holds its `q` (the
+pages it sees, `pagesView`): `slotsOK`. The fields `data` and `pageSize` are shared the same
+way (`fieldsOK`). A reader's pages are the file's (`pagesOf`): the database never changes a
+slot a reader sees, which is bbolt's MVCC rule (`mvccOK`: such a slot is no meta page, not
+free, and pending only from a transaction newer than the reader).
+
+**The logger** is the default one (`discardLogger`, nil standing for it): a logger contract
+is later work, so `Begin` and the others never log.
+
+**The locks.** `mmaplock` (an RWMutex) protects the mapping against a remap: its invariant is
+a ghost token (`mmapTok`); each open reader holds a read lock, and its `mmapTok γ rfrac` is
+kept here (`Htoks`), so a writer holding the write lock (`mmapTok γ 1`) knows that no reader
+is open. `metalock` (a Mutex) protects nothing more in sequential use. `statlock` (an RWMutex)
+protects the statistics, which in sequential use are simply the database's (`statsInv` is
+`True`). The database holds the unused read handles of
+`mmaplock` (`ownRWMutex`, one per reader that can still begin, `rwmutex.actualMaxReaders` in
+all) and one of `statlock`.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.DBSplit
+public import Proof.go_etcd_io.bbolt.DBModel
+public import Proof.go_etcd_io.bbolt.FilePages
+public import Proof.go_etcd_io.bbolt.TreeStrict
+public import Proof.go_etcd_io.bbolt.FLPage
+public import Proof.go_etcd_io.bbolt.Tx__init
+public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
+public import Proof.os.FileModel
+public import Proof.go_etcd_io.bbolt.internal.freelist.Iface
+public import Perennial.Proof.sync_proof.mutex
+public import Perennial.Proof.sync_proof.rwmutex_guard
+public import Perennial.Ghost.GhostMap
+public import Proof.sync.PoolModel
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt sync
+
+section defs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+
+/-- An open read transaction, as the database accounts for it. -/
+structure Reader where
+  txid : w64
+  root : Nat
+  hwm : Nat
+  pages : GMap Nat (List w8)
+  q : Qp
+
+noncomputable instance countableRat : Pos.Countable Rat :=
+  .ofInjective (fun r => Pos.Countable.encode (r.num, r.den)) (fun a b h => by
+    have h' := Pos.encode_inj h
+    exact Rat.ext (congrArg Prod.fst h') (congrArg Prod.snd h'))
+
+noncomputable instance countableQp : Pos.Countable Qp :=
+  .ofInjective (fun q => Pos.Countable.encode q.val) (fun a b h => Qp.ext_iff.2 (Pos.encode_inj h))
+
+noncomputable instance countableReader : Pos.Countable Reader :=
+  .ofInjective (fun r => Pos.Countable.encode (r.txid, r.root, r.hwm, r.pages, r.q)) (fun a b h => by
+    have h' := Pos.encode_inj h
+    cases a; cases b; simp only [Prod.mk.injEq] at h'
+    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+
+/-- The database's state. -/
+structure DBState where
+  file : Loc
+  fd : w64
+  bs : List w8
+  data : Loc
+  sz : Nat
+  ps : Nat
+  fl : FLState
+  readers : GMap Nat Reader
+  /-- The database's fraction of each slot. -/
+  rem : Nat → Qp
+  /-- The database's fraction of the fields `data`, `pageSize`. -/
+  frem : Qp
+  /-- The open writer (`db.rwtx`, null if none) and its view of the current tree: accounted
+  for as a reader is (it reads the pages it does not rewrite), but no read-only transaction
+  of the freelist and no holder of a read lock. -/
+  rwtx : Loc
+  wr : Option Reader
+  /-- The file's path (`Close` gives the file back to the file system under it). -/
+  path : GoString
+
+/-- The number of whole slots the mapping holds of the file. -/
+def DBState.nslots (σ : DBState) : Nat := min σ.sz σ.bs.length / σ.ps
+
+/-- Adding fractions, `none` being none. -/
+def optAdd (a : Qp) : Option Qp → Option Qp
+  | none => some a
+  | some b => some (a + b)
+
+/-- The sum of the fractions `q` of the readers `rs` that `sees` (`none`: no reader). -/
+def readersQ (rs : GMap Nat Reader) (sees : Reader → Bool) : Option Qp :=
+  GMap.mapFold (fun _ r acc => if sees r then optAdd r.q acc else acc) none rs
+
+open Classical in
+/-- Reader `r` sees slot `s`. -/
+def Reader.sees (r : Reader) (s : Nat) : Bool := decide (coversSlot r.pages s)
+
+/-- `a` and the fractions `o` make up `whole`. -/
+def fracSum (a : Qp) (o : Option Qp) (whole : Qp) : Prop :=
+  match o with
+  | none => a = whole
+  | some s => a + s = whole
+
+/-- The writer's fraction added to `o` where it `sees`. -/
+def wQ (wr : Option Reader) (sees : Reader → Bool) (o : Option Qp) : Option Qp :=
+  match wr with
+  | none => o
+  | some w => if sees w then optAdd w.q o else o
+
+/-- The slots: the database's part and the readers' (and the writer's) make up the caller's
+half. -/
+def slotsOK (σ : DBState) : Prop :=
+  ∀ s < σ.nslots,
+    fracSum (σ.rem s) (wQ σ.wr (fun r => r.sees s) (readersQ σ.readers (fun r => r.sees s))) halfQ
+
+/-- The shared fields: the database's part and every reader's (and the writer's) make up the
+whole. -/
+def fieldsOK (σ : DBState) : Prop :=
+  fracSum σ.frem (wQ σ.wr (fun _ => true) (readersQ σ.readers (fun _ => true))) 1
+
+/-- A reader's pages are the file's, inside the mapping and below its high-water mark, and
+form its well-formed tree. -/
+def readerOK (σ : DBState) (r : Reader) : Prop :=
+  treeWF r.pages r.hwm r.root ∧ pagesDisjoint r.pages ∧
+  (∀ id pg, r.pages !! id = some pg →
+    pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ min σ.nslots r.hwm)
+
+/-- bbolt's MVCC rule, for a view of transaction `txid` (a reader's, or the writer's) of the
+pages `pages`: they were allocated by `txid` or before (`allocs`); a slot they cover is no meta
+page, not free, and pending only from a transaction newer than `txid` that freed a page
+allocated by `txid` or before. So a page allocated and freed between two views is seen by
+neither (`releaseRange` frees it), and one freed before every view is seen by none
+(`release`). -/
+def mvccView (σ : DBState) (txid : w64) (pages : GMap Nat (List w8)) : Prop :=
+  (∀ id pg, pages !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a → uint.Z a ≤ uint.Z txid) ∧
+  ∀ s, coversSlot pages s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
+      uint.Z a ≤ uint.Z txid ∧ uint.Z txid < uint.Z t
+
+/-- Every reader's view keeps the MVCC rule. -/
+def mvccOK (σ : DBState) : Prop :=
+  ∀ k r, σ.readers !! k = some r → mvccView σ r.txid r.pages
+
+/-- The writer: its view is a reader's (`readerOK`, MVCC: the pages it frees go pending for
+its own transaction, newer than its view), and it exists exactly when `rwtx` is set. -/
+def writerOK (σ : DBState) : Prop :=
+  (σ.wr = none ↔ σ.rwtx = null) ∧
+  ∀ w, σ.wr = some w → readerOK σ w ∧ mvccView σ w.txid w.pages
+
+/-- The meta in slot `s`'s bytes after the page header. -/
+def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
+  ((slotAt σ.bs σ.ps s).drop 16).take 64 = metaBytes v
+
+/-- The freelist's ids are below the high-water mark of the current meta `m`: the free ones,
+and the pending ones of committed transactions (`m`'s and before; the open writer's own, newer,
+may have been allocated above it). Without a writer every pending transaction is committed;
+the writer's view is of `m`; every pending transaction is committed or the open writer's (its
+meta's txid, one past `m`'s, which does not wrap; its pages allocated before its view, so its
+`Rollback` does not panic); the free and pending ids are below `2^62`
+(`canFree`'s bound on their number). (bbolt never writes a freelist breaking this, but reads
+one from the file: `node.spill` panics on a page id at the high-water mark or above.) -/
+def flBelow (σ : DBState) (m : internal.common.Meta) : Prop :=
+  (∀ x ∈ σ.fl.free, uint.Z x < uint.Z m.pgid') ∧
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z t ≤ uint.Z m.txid' →
+    uint.Z p.1 < uint.Z m.pgid') ∧
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs →
+    uint.Z t ≤ uint.Z m.txid' ∨ ∃ w, σ.wr = some w ∧ t = w.txid + W64 1 ∧ uint.Z p.2 ≤ uint.Z w.txid) ∧
+  (∀ w, σ.wr = some w → w.hwm = uint.nat m.pgid' ∧ w.txid = m.txid') ∧
+  uint.Z m.txid' + 1 < 2 ^ 64 ∧ (∀ x ∈ σ.fl.free, uint.Z x < 2 ^ 62) ∧
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z p.1 < 2 ^ 62)
+
+/-- Two views covering a slot see the same page there (bbolt writes only slots no view sees,
+so views agree where they overlap). -/
+def pagesAgree (P Q : GMap Nat (List w8)) : Prop :=
+  ∀ i pi j pj s, P !! i = some pi → Q !! j = some pj →
+    i ≤ s → s < i + (1 + pageOverflow pi) → j ≤ s → s < j + (1 + pageOverflow pj) → i = j
+
+/-- The current tree, the writer's view and the readers' views agree pairwise where it
+matters (`dbOK_free`: a page the writer frees has the allocation any reader seeing it saw);
+no reader is newer than the current tree's transaction `txid`. -/
+def viewsAgree (σ : DBState) (txid : w64) (cur : GMap Nat (List w8)) : Prop :=
+  (∀ k r, σ.readers !! k = some r → uint.Z r.txid ≤ uint.Z txid ∧ pagesAgree cur r.pages) ∧
+  ∀ w, σ.wr = some w → pagesAgree cur w.pages ∧
+    ∀ k r, σ.readers !! k = some r → pagesAgree w.pages r.pages
+
+/-- No view of the database covers slot `s`: no reader's, not the writer's, not the current
+tree `cur`. -/
+def unseenBy (σ : DBState) (cur : GMap Nat (List w8)) (s : Nat) : Prop :=
+  (∀ k r, σ.readers !! k = some r → ¬ coversSlot r.pages s) ∧
+  (∀ w, σ.wr = some w → ¬ coversSlot w.pages s) ∧ ¬ coversSlot cur s
+
+/-- `x` is pending for a committed transaction (`m`'s or before). -/
+def committedPending (σ : DBState) (m : internal.common.Meta) (x : w64) : Prop :=
+  ∃ t pd a, σ.fl.pending !! t = some pd ∧ (x, a) ∈ pd.pairs ∧ uint.Z t ≤ uint.Z m.txid'
+
+/-- The current meta `m`'s freelist page `fid` (`cur` the current tree): `m` names one, its
+slots are inside the mapping and below the high-water mark, seen by no view, neither free nor
+pending; it is a freelist page `Reload` can read (its ids distinct, none on its own slots); it
+records every free id and every id pending for a committed transaction; and each of its ids
+is pending for a committed transaction or could be free (seen by no view, below the
+high-water mark): the ids the open writer allocated from the free ones, since the commit
+that wrote the page. So the writer's `rollback` can reload the free ids from it
+(`dbOK_reload`). -/
+def flCurOK (σ : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8)) : Prop :=
+  m.freelist' ≠ W64 18446744073709551615 ∧ 2 ≤ uint.nat m.freelist' ∧
+  uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist') ≤ min σ.nslots (uint.nat m.pgid') ∧
+  (∀ s, uint.nat m.freelist' ≤ s → s < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist') →
+    unseenBy σ cur s ∧ W64 s ∉ σ.fl.free ∧ ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs) ∧
+  pageFlags (pageAt σ.bs σ.ps (uint.nat m.freelist')) = 16 ∧
+  flOff (pageAt σ.bs σ.ps (uint.nat m.freelist')) + 8 * flN (pageAt σ.bs σ.ps (uint.nat m.freelist')) ≤
+    (pageAt σ.bs σ.ps (uint.nat m.freelist')).length ∧
+  (fpOverflow (pageOf (pageAt σ.bs σ.ps (uint.nat m.freelist'))) →
+    0 ≤ sint.Z (flPageCount (pageAt σ.bs σ.ps (uint.nat m.freelist')))) ∧
+  (flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))).Nodup ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), 2 ≤ uint.Z x) ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), ¬ (uint.nat m.freelist' ≤ uint.nat x ∧
+    uint.nat x < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x ∈ σ.fl.free, x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x, committedPending σ m x → x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), committedPending σ m x ∨
+    (2 ≤ uint.Z x ∧ uint.Z x < uint.Z m.pgid' ∧ uint.Z x < 2 ^ 62 ∧ unseenBy σ cur (uint.nat x)))
+
+/-- The current tree (of the meta `db.meta()` picks): well-formed and strict (`treeStrict`: what a
+writer needs of it), its pages disjoint, inside
+the mapping and below the high-water mark, allocated by its transaction or before, and none
+free, and pending only for the open writer (which frees them; a new reader sees it, `mvccOK`);
+the freelist below its high-water mark; the views agree with it and among themselves. -/
+def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
+  let m := if metaPick v0 v1 then v1 else v0
+  let hwm := uint.nat m.pgid'
+  let root := uint.nat m.root'.root'
+  let ps := treePages (filePages σ.bs σ.ps hwm) root
+  treeStrict ps hwm root ∧ pagesDisjoint ps ∧
+  (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ min σ.nslots hwm) ∧
+  (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
+    uint.Z a ≤ uint.Z m.txid') ∧
+  (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
+      (∃ w, σ.wr = some w ∧ t = w.txid + W64 1) ∧ uint.Z a ≤ uint.Z m.txid') ∧
+  flBelow σ m ∧ viewsAgree σ m.txid' ps ∧
+  (∀ k r, σ.readers !! k = some r → r.hwm ≤ hwm) ∧ flCurOK σ m ps
+
+/-- The database's facts: the mapping, the two metas (one valid), the current tree, the
+readers, the accounting. -/
+def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
+  80 ≤ σ.ps ∧ σ.ps < 2 ^ 32 ∧ 2 ≤ σ.nslots ∧ (σ.sz ≤ 281474976710655 ∧ σ.bs.length < 2 ^ 62) ∧ σ.data.locCar ≠ 0 ∧
+  metaIn σ 0 v0 ∧ metaIn σ 1 v1 ∧ (metaValid v0 ∨ metaValid v1) ∧ currentOK σ v0 v1 ∧
+  (∀ k r, σ.readers !! k = some r → readerOK σ r) ∧ mvccOK σ ∧ slotsOK σ ∧ fieldsOK σ ∧
+  σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧
+  σ.readers.size < Int.toNat rwmutex.actualMaxReaders ∧ writerOK σ
+
+/-- The database's part of its `freelist` field: all of it, or half if a writer is open (which
+holds the other half: it frees and allocates pages through it). -/
+def flfQ (rwtx : Loc) : Qp := if rwtx = null then 1 else halfQ
+
+theorem flfQ_null : flfQ null = halfQ + halfQ := by
+  simp [flfQ, halfQ, Qp.half_add_half]
+
+/-- The caller's half of the mapped cells after the whole slots (inside the file): no reader
+sees them, and a remap gives them back with the slots (`munmap` takes the whole mapping). -/
+def mapTail (data : Loc) (bs : List w8) (sz ps : Nat) : IProp GF :=
+  bytesPointsto (data +ₗ (((min sz bs.length / ps) * ps : Nat) : Int)) (DFrac.own halfQ)
+    ((bs.take sz).drop ((min sz bs.length / ps) * ps))
+
+/-- What the page pool holds: zeroed byte slices of a page (`Tx.write` zeroes a page before
+putting it back; `New` makes one). -/
+def pageBuf (ps : Nat) (v : GoInterface) : IProp GF :=
+  iprop(∃ (s : GoSlice), ⌜v = interface.mkOk (go.GoType.SliceType go.byte) #s⌝ ∗
+    s ↦* List.replicate ps (W8 0))
+
+/-- `mmaplock`'s invariant: a ghost token. -/
+def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
+
+/-- `statlock`'s invariant: nothing (in sequential use the statistics are the database's). -/
+def statsInv (_q : Qp) : IProp GF := iprop(True)
+
+/-- The ghost names of a database. -/
+structure DBNames where
+  mmap : GName
+  readers : GName
+
+/-- The database at `dbl` (sequential use), its freelist an implementation `I`
+of the freelist interface. -/
+def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IProp GF :=
+  iprop(∃ (dv : DB) (fls : Loc) (v0 v1 : internal.common.Meta) (dl : Loc),
+    "%Hdv" ∷ ⌜dv.data' = σ.data ∧ dv.pageSize' = W64 σ.ps ∧ dv.datasz' = W64 σ.sz ∧
+      dv.meta0' = σ.data +ₗ 16 ∧ dv.meta1' = σ.data +ₗ ((σ.ps + 16 : Nat) : Int) ∧
+      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = σ.rwtx ∧
+      dbl ≠ null⌝ ∗
+    "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
+    "%Hdr" ∷ ⌜dv.dataref' = slice.mk σ.data (W64 σ.sz) (W64 σ.sz)⌝ ∗
+    "%Hops" ∷ ⌜dv.ops'.writeAt' =
+      methods _root_.Perennial.os.File.ty.PointerType go!"WriteAt" #σ.file⌝ ∗
+    "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+    "#Hdlok" ∷ defaultLoggerOK dl ∗
+    "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨
+      dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
+    "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
+    "#Hlogger" ∷ structFieldRef DB go!"logger" dbl ↦□ dv.logger' ∗
+    "#HMlock" ∷ structFieldRef DB go!"Mlock" dbl ↦□ false ∗
+    "Hflf" ∷ structFieldRef DB go!"freelist" dbl ↦{DFrac.own (flfQ σ.rwtx)} dv.freelist' ∗
+    "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
+    "#Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 σ.ps ∗
+    "#Hpool" ∷ isPool (structFieldRef DB go!"pagePool" dbl) (pageBuf σ.ps) ∗
+    "#Hfile" ∷ osFile σ.file σ.fd ∗
+    "Hfp" ∷ filePath σ.fd σ.path ∗
+    "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
+    "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
+    "Hslots" ∷ slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
+    "Htail" ∷ mapTail σ.data σ.bs σ.sz σ.ps ∗
+    "Hfl" ∷ ownFL I fls σ.fl ∗
+    "#Hmetalock" ∷ isMutex (structFieldRef DB go!"metalock" dbl) iprop(True) ∗
+    "#Hrwlock" ∷ isMutex (structFieldRef DB go!"rwlock" dbl) iprop(True) ∗
+    "Hrwl" ∷ (if decide (σ.rwtx = null) then emp else ownMutex (structFieldRef DB go!"rwlock" dbl)) ∗
+    "Hmmaph" ∷ ([∗list] _x ∈ List.replicate (Int.toNat rwmutex.actualMaxReaders - σ.readers.size) (),
+      ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap)) ∗
+    "Htoks" ∷ ([∗map] _k ↦ _r ∈ σ.readers, mmapTok γ.mmap rfrac) ∗
+    "Hstath" ∷ ownRWMutex (structFieldRef DB go!"statlock" dbl) statsInv ∗
+    "Hstats" ∷ (⌜dv.stats' = null⌝ ∨ ∃ (sv : Stats), dv.stats' ↦ sv) ∗
+    "Hrauth" ∷ ghostMapAuth γ.readers 1 σ.readers)
+
+/-- The read transaction at `txl` of the database at `dbl`, which accounts for it as `r` under
+the key `k` (`managed`: inside `View`, where `Rollback` panics). -/
+def ownReadTx (dbl : Loc) (γ : DBNames) (txl : Loc) (k : Nat) (r : Reader) (data : Loc)
+    (ps : Nat) (managed : Bool) : IProp GF :=
+  iprop(∃ (t : Tx) (mv : internal.common.Meta),
+    "Htx" ∷ txl ↦ t ∗
+    "%Ht" ∷ ⌜t.db' = dbl ∧ t.writable' = false ∧ t.pages' = map.nil ∧ t.managed' = managed ∧
+      t.root'.tx' = txl ∧ t.root'.buckets' = map.nil ∧ t.root'.nodes' = map.nil ∧
+      t.root'.page' = null ∧ t.root'.rootNode' = null ∧
+      mv.txid' = r.txid ∧ uint.nat mv.root'.root' = r.root ∧ uint.nat mv.pgid' = r.hwm⌝ ∗
+    "Hmeta" ∷ t.meta' ↦ mv ∗
+    "Hroot" ∷ t.root'.InBucket' ↦ mv.root' ∗
+    "Hrdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own r.q} data ∗
+    "#Hrps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 ps ∗
+    "Hpages" ∷ pagesView data ps r.q r.pages ∗
+    "Hrl" ∷ ownRWMutexRLocked (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap) ∗
+    "Hkey" ∷ k ↪[γ.readers] r)
+
+theorem dbp_uint_nat_W64 (s : Nat) (h : s < 2 ^ 64) : uint.nat (W64 (s : Int)) = s := by
+  unfold uint.nat; word
+
+theorem dbp_uint_nat_lt (x : w64) : uint.nat x < 2 ^ 64 := by unfold uint.nat; word
+
+theorem dbp_W64_uint_nat (x : w64) : W64 ((uint.nat x : Nat) : Int) = x := by unfold uint.nat; word
+
+/-! ### The current freelist page's facts through the database's changes -/
+
+/-- With the same file, page size, views and freelist, more slots mapped: the facts kept. -/
+theorem flCurOK_congr (σ σ' : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8))
+    (h : flCurOK σ m cur) (hbs : σ'.bs = σ.bs) (hps : σ'.ps = σ.ps) (hns : σ.nslots ≤ σ'.nslots)
+    (hfree : σ'.fl.free = σ.fl.free) (hpend : σ'.fl.pending = σ.fl.pending)
+    (hun : ∀ s, unseenBy σ cur s → unseenBy σ' cur s) : flCurOK σ' m cur := by
+  unfold flCurOK committedPending at *
+  rw [hbs, hps, hfree, hpend]
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := h
+  refine ⟨a1, a2, ?_, fun s h1 h2 => ⟨hun s (a4 s h1 h2).1, (a4 s h1 h2).2⟩, a5, a6, a7, a8, a8b,
+    a9, a10, a11, fun x hx => (a12 x hx).imp id (fun b => ⟨b.1, b.2.1, b.2.2.1, hun _ b.2.2.2⟩)⟩
+  have := Nat.le_min.1 a3
+  exact Nat.le_min.2 ⟨by omega, this.2⟩
+
+/-- With the same file, page size, mapping and views, a freelist that frees only free ids or
+committed pending ones, pends only ids that were pending or are of a newer transaction (not the
+page's slots), and keeps each committed pending id pending or makes it seen by no view: the facts
+kept (the committed pending ids below the high-water mark: `hb2`, `hb7`). -/
+theorem flCurOK_fl (σ σ' : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8))
+    (h : flCurOK σ m cur) (hbs : σ'.bs = σ.bs) (hps : σ'.ps = σ.ps) (hns : σ'.nslots = σ.nslots)
+    (hrd : σ'.readers = σ.readers) (hwr : σ'.wr = σ.wr)
+    (hF1 : ∀ x ∈ σ'.fl.free, x ∈ σ.fl.free ∨ committedPending σ m x)
+    (hF2 : ∀ t pd x a, σ'.fl.pending !! t = some pd → (x, a) ∈ pd.pairs →
+      (∃ pd0, σ.fl.pending !! t = some pd0 ∧ (x, a) ∈ pd0.pairs) ∨
+      (uint.Z m.txid' < uint.Z t ∧ ¬ (uint.nat m.freelist' ≤ uint.nat x ∧
+        uint.nat x < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist'))))
+    (hF3 : ∀ x, committedPending σ m x → committedPending σ' m x ∨ unseenBy σ cur (uint.nat x))
+    (hb : ∀ x, committedPending σ m x → uint.Z x < uint.Z m.pgid' ∧ uint.Z x < 2 ^ 62) :
+    flCurOK σ' m cur := by
+  have hun : ∀ s, unseenBy σ cur s → unseenBy σ' cur s := by
+    intro s ⟨u1, u2, u3⟩
+    exact ⟨fun k r hk => u1 k r (by rw [← hrd]; exact hk), fun w hw => u2 w (by rw [← hwr]; exact hw), u3⟩
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := h
+  unfold flCurOK
+  rw [hbs, hps, hns]
+  refine ⟨a1, a2, a3, fun s h1 h2 => ⟨hun s (a4 s h1 h2).1, fun hf => ?_, fun t pd a ht hx => ?_⟩, a5, a6,
+    a7, a8, a8b, a9, fun x hx => ?_, fun x hx => ?_, fun x hx => ?_⟩
+  · rcases hF1 _ hf with hf | hc
+    · exact (a4 s h1 h2).2.1 hf
+    · apply a9 _ (a11 _ hc)
+      rw [dbp_uint_nat_W64 s (by have := Nat.le_min.1 a3; have := dbp_uint_nat_lt m.pgid'; omega)]
+      exact ⟨h1, h2⟩
+  · rcases hF2 t pd _ a ht hx with ⟨pd0, ht0, hx0⟩ | ⟨-, hno⟩
+    · exact (a4 s h1 h2).2.2 t pd0 a ht0 hx0
+    · apply hno
+      rw [dbp_uint_nat_W64 s (by have := Nat.le_min.1 a3; have := dbp_uint_nat_lt m.pgid'; omega)]
+      exact ⟨h1, h2⟩
+  · rcases hF1 x hx with hf | hc
+    · exact a10 x hf
+    · exact a11 x hc
+  · obtain ⟨t, pd, a, ht, hxi, htx⟩ := hx
+    rcases hF2 t pd x a ht hxi with ⟨pd0, ht0, hx0⟩ | ⟨hlt, -⟩
+    · exact a11 x ⟨t, pd0, a, ht0, hx0, htx⟩
+    · omega
+  · rcases a12 x hx with hc | ⟨b1, b2, b3, b4⟩
+    · rcases hF3 x hc with hc' | hu
+      · exact Or.inl hc'
+      · exact Or.inr ⟨a8b x hx, (hb x hc).1, (hb x hc).2, hun _ hu⟩
+    · exact Or.inr ⟨b1, b2, b3, hun _ b4⟩
+
+end defs
+
+end bbolt
+end EtcdGrove
+end Perennial

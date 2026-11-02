@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.setRevision.wp_proof :
     auth.authStore.setRevision.spec (GF := GF) (hG := hG) := by
   intro st R M rev hs opt stl
-  wp_start as ⟨#Hinv, Hown, %Hp⟩
+  wp_start as ⟨#Hinv, Hown, #Hcap, %Hp⟩
   obtain ⟨Hlast, Hrev, Hoptlen, Hopt⟩ := Hp
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
@@ -66,7 +66,8 @@ theorem auth.authStore.setRevision.wp_proof :
         | off => cases h1
         | any => exact absurd rfl h2
       obtain ⟨hk, hoff⟩ := Hopt x (List.mem_singleton.2 rfl)
-      iapply (authOwnF_revCur_append M hs x r rev hk hoff hxr) $$ Hown Hc
+      iapply (authOwnF_revCur_append M hs x r rev hk hoff hxr) $$ Hown Hc [Hcap]
+      iapply Hcap; ipureintro; exact List.mem_singleton.2 rfl
   imod Hg with ⟨Hown, Hc, #Hv⟩
   imod (authOwnF_revFresh M (hs ++ opt) stl r rev (fun γa h => by subst h; exact Hlast)
     (fun _ _ => Hrev)) $$ Hown Hf with ⟨Hown, Hf⟩

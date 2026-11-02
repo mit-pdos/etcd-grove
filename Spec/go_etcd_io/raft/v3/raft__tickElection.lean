@@ -31,10 +31,13 @@ def TickStep [GooseExts] (s s' : NState) : Prop :=
   -- (2026-10-17) a pre-candidate afterwards is at the term before (a pre-campaign keeps it)
   (s'.role = .preCandidate → s'.term = s.term) ∧
   -- (2026-10-25, T-M M2b) and its campaign guard kept (`PreGuardF.step`)
-  (∀ fp : List EntryM, PreGuardF fp s → PreGuardF fp s')
+  (∀ fp : List EntryM, PreGuardF fp s → PreGuardF fp s') ∧
+  -- (2026-10-28, stage U0) a campaign only with no snapshot pending (`SnapRoleBack`)
+  SnapRoleBack s s'
 
 theorem TickStep.refl [GooseExts] (s : NState) : TickStep s s :=
-  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl, fun _ h => h⟩
+  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl, fun _ h => h,
+    fun h1 h2 => ⟨h1, h2⟩⟩
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -65,7 +68,9 @@ abbrev raft.tickElection.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed⌝ ∗
+      -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
+      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+        PVoteLe (toPState s) (toPState s')⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ }}
 
 end spec

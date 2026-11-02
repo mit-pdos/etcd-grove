@@ -55,6 +55,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.io
@@ -94,6 +95,10 @@ structure CreateReqM where
   client's): the server no longer reads it (W2 of `notes/watch-cut-plan.md`: a progress
   notification is above every watcher's first revision, by `progressIfSync`'s guard). -/
   sr : Bool := false
+  /-- (ghost, not on the wire; G2, 2026-10-30) the client's bound on the auth store's published
+  index when it sent the create (`watchUp`: `authPubLbM` of it comes with the request), at which
+  the server's check is fresh (`watchAuthed`). A plain create's is `0`. -/
+  bound : Nat := 0
 
 /-- **A `*pb.WatchRequest`** as the server reads it: its oneof. `other` is a request the server
 ignores (an empty oneof, or a wrapper whose request is `nil`). -/
@@ -118,7 +123,7 @@ structure WatchRespM where
 
 instance CreateReqM.countable : Pos.Countable CreateReqM :=
   .ofInjective (fun c => Pos.Countable.encode (c.key, c.rangeEnd, c.startRev, c.progressNotify,
-      c.filters, c.prevKv, c.watchId, c.fragment, c.sr))
+      c.filters, c.prevKv, c.watchId, c.fragment, c.sr, c.bound))
     (fun a b h => by
       have := Pos.encode_inj h
       cases a; cases b; simp_all)
@@ -180,22 +185,22 @@ def ctrlAnswers (req : WatchReqM) (m : WatchRespM) : Prop :=
 
 /-- **The range `r` a create request `c` registers** with the watch id `id` (`recvLoop`'s
 normalization): an empty key is `"\x00"` (the smallest key); an empty range end is a single key
-(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, the end
-`some []`), or, in the model only, a single key: Perennial's `wp_slice_literal` does not say that
-the empty literal `[]byte{}` is not `nil` (in Go it is not; `notes/STATUS.md`, "W-M"); any other
-range end is kept. -/
+(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, not
+`nil`: the end `some []`); any other range end is kept. -/
 def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
   r.key = (if c.key = [] then [W8 0] else c.key) ∧ r.startRev = c.startRev ∧ r.id = id ∧
   (if c.rangeEnd = [] then r.end? = none
-   else if c.rangeEnd = [W8 0] then r.end? = some [] ∨ r.end? = none
+   else if c.rangeEnd = [W8 0] then r.end? = some []
    else r.end? = some c.rangeEnd)
 
 /-- **The response the send loop makes of the mvcc response `r`** with the header `h` (its
-revision `r.rev`): `r`'s watch id and events, not created, not canceled (mvcc's responses never
-carry a compaction: `respIs`), no reason, not fragmented, `r` as its ghost source. -/
+revision `r.rev`): `r`'s watch id, events and compaction revision, canceled if that is set (a
+watch behind the compaction revision: `chooseAll`'s response; watches across a compaction, D6,
+2026-11-01; until then never), not created, no reason, not fragmented, `r` as its ghost source. -/
 def mvccResp (r : mvcc.RespM) (h : HdrM) : WatchRespM :=
-  { hdr := h, watchId := r.id, created := false, canceled := false, compactRev := W64 0,
-    cancelReason := [], fragment := false, evs := r.evs, src := some r }
+  { hdr := h, watchId := r.id, created := false, canceled := decide (r.compactRev ≠ W64 0),
+    compactRev := r.compactRev, cancelReason := [], fragment := false, evs := r.evs,
+    src := some r }
 
 /-- **The watch id `X` is live after the responses `L`** (pure; the watch slice's unit W-C): the
 last control response for `X` among `L` is a created, not canceled, one. The send loop sends an
@@ -429,6 +434,13 @@ def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
     | .other => ⌜u = GoInterface.nil⌝ ∨ oneofCreate u null ∨ oneofCancel u null ∨
         oneofProgress u null)
 
+/-- **A bound on a `*pb.WatchRequest`'s encoding** (`pbWatchRequest.wireLen`; 2026-10-30): a
+create's key and range end, its filters (a packed enum, at most 10 bytes each), and the fixed part
+(`wireSlack`); a cancel's or a progress request's fixed part. -/
+def watchReqWireLen : WatchReqM → Nat
+  | .create c => c.key.length + c.rangeEnd.length + 10 * c.filters.length + wireSlack
+  | _ => wireSlack
+
 /-- **The watch requests on the wire** (a trusted wire model, as the unary ones): the client's
 message `watchReqSend`, the server's decoded copy `watchReqRecv` (owned), a message the receiver
 owns at any content (`own`: a fresh `new(WatchRequest)` is one). -/
@@ -437,6 +449,7 @@ abbrev pbWatchRequest : StreamMsg GF where
   M := WatchReqM
   cnt := inferInstance
   send := watchReqSend
+  wireLen := watchReqWireLen
   recv := watchReqRecv
   own l := iprop(∃ v : etcdserverpb.WatchRequest, l ↦ v)
 
@@ -468,22 +481,41 @@ instance downLbW_persistent (γ : StreamNames) (L : List WatchRespM) :
     Persistent (downLbW (GF := GF) γ L) := by
   unfold downLbW; infer_instance
 
-/-- **A registered watcher's authorization** (the auth plan's A4, 2026-10-24; persistent): in the
-mode some tag of the store's owner tag names (`auth.modeTag γ.tag M`: the server's,
-`watchSrvOk`), the class of the create request's read (`apply.watchClass`: the request's key,
-normalized, and its range end as the check saw it) for some principal (the stream's context's
-auth info, or the empty one), and the request's shape (`auth.reqShape`: a non-empty key, a range
-that is a point, open-ended or proper -- mvcc's `Watch` refused the rest), so that in `on γa`
-every key the watcher covers was readable by that principal at a recorded state
-(`WatchClass.lean`, `ctrlWatcher_authorized`). -/
-def watchAuthed (γ : mvcc.WsNames) (c : CreateReqM) : IProp GF :=
+/-- **A registered watcher's authorization** (the auth plan's A4, 2026-10-24; persistent;
+strengthened in G2, 2026-10-30): in the mode some tag of the store's owner tag names
+(`auth.modeTag γ.tag M`: the server's, `watchSrvOk`), the class of the create request's read
+(`apply.watchClassFrom`: the request's key, normalized, and its range end as the check saw it) for
+the auth info `info` at auth states recorded at indices at least the create's bound `n` (the
+client's `CreateReqM.bound`); with auth on, `info` bound to the stream's token `tok`
+(`infoBoundT`: the empty user, a token issued to `info`'s user, or the server's TLS identity; gated
+on the mode, the margin of `NewAuthStore`'s axiom, as in `isWatchPermitted.spec`); and the
+request's shape (`auth.reqShape`: a non-empty key, a range that is a point, open-ended or proper --
+mvcc's `Watch` refused the rest), so that in `on γa` every key the watcher covers was readable by
+that principal at a recorded state no older than `n` (`WatchClass.lean`, `ctrlWatcher_authorized`). -/
+def watchAuthed (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (n : Nat)
+    (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-    auth.modeTag γ.tag M ∗ apply.watchClass M info c.key c.rangeEnd ∗
-    ⌜auth.reqShape (apply.watchKey c.key) c.rangeEnd⌝)
+    auth.modeTag γ.tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
+    □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+    ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝)
 
-instance watchAuthed_persistent (γ : mvcc.WsNames) (c : CreateReqM) :
-    Persistent (watchAuthed (GF := GF) γ c) := by
+instance watchAuthed_persistent (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (n : Nat)
+    (key rangeEnd : GoString) :
+    Persistent (watchAuthed (GF := GF) γ s tok n key rangeEnd) := by
   unfold watchAuthed; infer_instance
+
+/-- **What a passed check gives** (G2's freeze, 2026-10-30): the mode `M` and the auth info `info`
+the check classed, the mode's tag, the class at the bound `n`, with auth on `info` bound to the
+token, and the request's shape (for a client of `watchAuthed`, e.g. `client.watchCheckOk_tok`, in
+place of unfolding it). -/
+theorem watchAuthed_elim (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (n : Nat)
+    (key rangeEnd : GoString) :
+    watchAuthed (GF := GF) γ s tok n key rangeEnd ⊢
+      ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        auth.modeTag γ.tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
+        □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+        ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
+  unfold watchAuthed; iintro H; iexact H
 
 /-- **The watcher a created response names** (the watch slice's units W-M and W-C): for a
 create request `c` answered by a registered (not canceled) response `m`, the mvcc watcher `w`
@@ -497,7 +529,8 @@ snapshot of the stream's channel's sent list taken after the registration (`stre
 point of the channel's order the response is sent after, so `sendLoop` sends every response of
 id `-1` queued before it first), at least as long as the watcher's registration index
 (`streamRegAt`, K1b); nothing for any other answer. -/
-def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM) (m : WatchRespM) :
+def ctrlWatcher (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (γo : mvcc.WsStreamNames)
+    (req : WatchReqM) (m : WatchRespM) :
     IProp GF :=
   match req with
   | .create c => if m.canceled then iprop(True) else
@@ -505,7 +538,8 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
         (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw) ∗
-        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗ watchAuthed γ c ∗
+        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
+        watchAuthed γ s tok c.bound c.key c.rangeEnd ∗
         ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
           ⌜n ≤ l.length⌝)
   | _ => iprop(True)
@@ -515,10 +549,11 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
 answered twice); a created response names the mvcc watcher registered for the request
 (`ctrlWatcher`, over the store's names `γ` and the run's mvcc stream's `γo`); the run's names are
 the stream's auxiliary name (`streamAuxIs`, the watch slice's unit W-C). -/
-def ctrlOk (γs : StreamNames) (γ : mvcc.WsNames) (m : WatchRespM) : IProp GF :=
+def ctrlOk (γs : StreamNames) (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (m : WatchRespM) : IProp GF :=
   iprop(∃ (i : Nat) (req : WatchReqM) (γo : mvcc.WsStreamNames) (γa : GName),
     streamAuxIs γs (auxOf γo γa) ∗ upAtW γs i req ∗ ⌜ctrlAnswers req m⌝ ∗
-    ctrlWatcher γ γo req m ∗ ansTok γa i)
+    ctrlWatcher γ s tok γo req m ∗ ansTok γa i)
 
 /-- **The stream's progress fact** (unit W-M2): the client sent a progress request (at some
 position of the up queue). The handler saves it as the mvcc stream's progress fact
@@ -596,6 +631,26 @@ instance mvccOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m 
     Persistent (mvccOk (GF := GF) γs γ j m) := by
   unfold mvccOk; infer_instance
 
+open Iris.ProofMode in
+/-- **An mvcc response's compaction revision is its mvcc response's, permitted** (C3's watch side,
+2026-11-02): the store's `cmpPermOf` of the response it came from. -/
+theorem mvccOk_cmpPerm [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) :
+    mvccOk (GF := GF) γs γ j m ⊢ ∃ r : mvcc.RespM, ⌜m.src = some r ∧ m.compactRev = r.compactRev⌝ ∗
+      mvcc.cmpPermOf γ r := by
+  iintro #H
+  iunfold mvccOk at H
+  icases H with ⟨%r, %rs, %L, %Hm, -, -, -, -, #Hcov, -⟩
+  iunfold mvccCov at Hcov
+  icases Hcov with ⟨%γc, %pre, %γo, %γa, -, -, -, -, #Hrc, -⟩
+  iexists r
+  isplitr
+  · ipureintro
+    obtain ⟨hm, -⟩ := Hm
+    constructor
+    · rw [hm]; rfl
+    · rw [hm]; rfl
+  iapply mvcc.respCov_cmpPerm γ γc pre r $$ Hrc
+
 /-- **A created response sent at down position `j` follows the responses of id `-1` queued before
 it** (persistent; the watch slice's unit W-K, `issues/etcd-watch-progress-before-created.md`): for
 a registered (created, not canceled) control response `m`, its watcher `w` (`idAssigned`, as its
@@ -623,17 +678,18 @@ instance createdAfter_persistent (γs : StreamNames) (j : Nat) (m : WatchRespM) 
 server's (cluster `cid`, member `mid`), and it is a control response (`ctrlOk`; a created one
 follows the progress responses queued before it, `createdAfter`, unit W-K) or one of the mvcc
 watch stream's (`mvccOk`, over the store's names `γ`). -/
-def watchDn (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64) (j : Nat) (m : WatchRespM) :
-    IProp GF :=
+def watchDn (γs : StreamNames) (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (cid mid : w64) (j : Nat) (m : WatchRespM) : IProp GF :=
   iprop(⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ ∗
-    ((⌜m.src = none⌝ ∗ ctrlOk γs γ m ∗ createdAfter γs j m) ∨ mvccOk γs γ j m))
+    ((⌜m.src = none⌝ ∗ ctrlOk γs γ s tok m ∗ createdAfter γs j m) ∨ mvccOk γs γ j m))
 
 open Iris.ProofMode in
 /-- The created response's snapshot (`ctrlWatcher`'s), kept. -/
-theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : CreateReqM)
+theorem ctrlWatcher_snap (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (γo : mvcc.WsStreamNames) (c : CreateReqM)
     (m : WatchRespM) (h : m.canceled = false) :
-    ctrlWatcher (GF := GF) γ γo (.create c) m ⊢
-      ctrlWatcher γ γo (.create c) m ∗
+    ctrlWatcher (GF := GF) γ s tok γo (.create c) m ⊢
+      ctrlWatcher γ s tok γo (.create c) m ∗
         ∃ (w : Loc) (l : List mvcc.RespM) (n : Nat), mvcc.idAssigned γo m.watchId w ∗
           mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗ ⌜n ≤ l.length⌝ := by
   unfold ctrlWatcher
@@ -651,12 +707,13 @@ theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : Cre
 /-- **The watch stream's specification** (the note's §4; persistent): the handler's content of
 every response sent down is exactly `watchDn`. The handler produces `Dn j m` from `watchDn`; the
 client reads `watchDn` from the `Dn j m` it receives. -/
-def watchStreamSpec (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64)
-    (Dn : Nat → WatchRespM → IProp GF) : IProp GF :=
-  iprop(□ ∀ (j : Nat) (m : WatchRespM), Dn j m ∗-∗ watchDn γs γ cid mid j m)
+def watchStreamSpec (γs : StreamNames) (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (cid mid : w64) (Dn : Nat → WatchRespM → IProp GF) : IProp GF :=
+  iprop(□ ∀ (j : Nat) (m : WatchRespM), Dn j m ∗-∗ watchDn γs γ s tok cid mid j m)
 
-instance watchStreamSpec_persistent (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64)
-    (Dn : Nat → WatchRespM → IProp GF) : Persistent (watchStreamSpec γs γ cid mid Dn) := by
+instance watchStreamSpec_persistent (γs : StreamNames) (γ : mvcc.WsNames) (s : Loc)
+    (tok : Option GoString) (cid mid : w64)
+    (Dn : Nat → WatchRespM → IProp GF) : Persistent (watchStreamSpec γs γ s tok cid mid Dn) := by
   unfold watchStreamSpec; infer_instance
 
 /-! ## The client's end of the watch stream (unit W-W) -/
@@ -670,6 +727,17 @@ def watchStubAt (wc conn : Loc) : IProp GF :=
 
 instance watchStubAt_persistent (wc conn : Loc) : Persistent (watchStubAt (GF := GF) wc conn) := by
   unfold watchStubAt; infer_instance
+
+/-- **A watch stub's connection is determined** (G2's proofs, 2026-10-30): two `watchStubAt` facts of
+one stub name the same connection (its `cc` field is read-only). -/
+theorem watchStubAt_agree (wc conn conn' : Loc) :
+    watchStubAt (GF := GF) wc conn ∗ watchStubAt wc conn' ⊢ ⌜conn = conn'⌝ := by
+  iintro ⟨#Hs, #Hs'⟩
+  unfold watchStubAt
+  icombine Hs Hs' gives %Heq
+  simp at Heq
+  ipureintro
+  exact go.intoVal_inj Heq
 
 /-- **The `Watch` service's descriptor** (persistent; a fact of `etcdserverpb`'s initialization,
 as `watchVars`: `Watch_ServiceDesc` is the generated literal and nothing writes it): its

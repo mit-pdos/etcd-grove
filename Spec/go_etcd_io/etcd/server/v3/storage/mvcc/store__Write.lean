@@ -33,19 +33,24 @@ compaction revision `crev` (fixed until `End`), at or above the caller's lower b
 revision of the committed log (or `-1`); its reads answer `rangeOutcomeC` at it. The reader's tag
 `Z` is carried to `End`. The caller's hook (`hookIs`, with the writer's fragment: the caller's
 names are the store's current ones; D22 receiver epochs, S5b) is given back. The readers' statement (`storeReader`, `crev = -1`) is `specR`
-(`spec_R`, `ReaderSpecs.lean`). -/
+(`spec_R`, `ReaderSpecs.lean`). 
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02).
+The writer's pin (`writerPin`, M2's item 37, 2026-11-02) goes into the transaction, which holds
+the writer's half of the bucket's view; `End` gives it back at the new log. -/
 abbrev mvcc.store.Write.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
-    (c : Int) (Z : IProp GF),
+    (c : Int) (Z : IProp GF) (log : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗
+      Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
+        mvcc.crevPermAt γ crev ∗
         ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookIs γ P f }}
 
 end spec

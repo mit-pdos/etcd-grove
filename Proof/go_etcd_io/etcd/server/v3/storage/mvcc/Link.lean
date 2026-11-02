@@ -217,6 +217,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem binary.bigEndian.wp_PutUint64 :
@@ -491,13 +492,17 @@ theorem mvcc.watcherGroup.wp_add :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Insert
 
-theorem mvcc.watcherGroup.wp_chooseAll :
-    mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.chooseAll.wp_proof
+theorem mvcc.watcherSet.wp_delete :
+    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.delete.wp_proof
 
-theorem mvcc.watcherGroup.wp_choose :
-    mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_chooseAll
+theorem mvcc.watcherSetByKey.wp_delete :
+    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSetByKey.delete.wp_proof
+
+theorem mvcc.watcherGroup.wp_delete :
+    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
 
 theorem mvcc.watcherSet.wp_union :
     mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
@@ -514,18 +519,6 @@ theorem mvcc.watcherBatch.wp_add :
 theorem mvcc.wp_newWatcherBatch :
     mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherBatch.wp_proof mvcc.watcherGroup.wp_watcherSetByKey mvcc.watcherBatch.wp_add
-
-theorem mvcc.watcherSet.wp_delete :
-    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.delete.wp_proof
-
-theorem mvcc.watcherSetByKey.wp_delete :
-    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSetByKey.delete.wp_proof
-
-theorem mvcc.watcherGroup.wp_delete :
-    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
 
 theorem mvcc.wp_newKVHasher :
     mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=
@@ -576,6 +569,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.wp_ChanBufLen :
@@ -616,7 +610,7 @@ theorem mvcc.wp_restoreChunk :
 
 theorem mvcc.store.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info
+  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
@@ -749,6 +743,14 @@ theorem time.wp_NewTicker :
 theorem time.Ticker.wp_Stop :
     time.Ticker.Stop.spec (GF := GF) (hG := hG) :=
   time.Ticker.Stop.wp_proof
+
+theorem mvcc.watcherGroup.wp_chooseAll :
+    mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.chooseAll.wp_proof mvcc.watcherGroup.wp_delete
+
+theorem mvcc.watcherGroup.wp_choose :
+    mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_chooseAll
 
 theorem mvcc.wp_rangeEvents :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) :=

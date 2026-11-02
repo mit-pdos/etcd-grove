@@ -29,7 +29,9 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `w.openWatchClient()` on a stream whose context is a model one (`isContext`), with the
 watcher's stub and call options: the client end of a fresh gRPC watch stream (both tokens at
 `[]`, the stream's specification `watchSpec`), or a `nil` stream and an error grpc's `status`
-accepts (the stream's context's, or `rpctypes.Error` of a halting one). -/
+accepts (the stream's context's, or `rpctypes.Error` of a halting one). Since G2 (2026-10-30), the
+stream was opened with metadata `md` an attempt on the connection delivered for the stream's
+context (`clientAttemptMd`), and its specification is at `md`'s token (`auth.mdTokenOf`). -/
 abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (wgs : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (callSl : GoSlice) (vs : List GoInterface),
@@ -41,11 +43,14 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
   {{ (ws err : GoInterface), RET (PairV #ws #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
-          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF)),
+          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
+          (md : GrpcMd),
         -- (W3b) the stream at some member `i` of the connection's (D32)
-        ⌜i < V.nm⌝ ∗ v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
+        ⌜i < V.nm ∧ clientAttemptMd V.conn (GoInterface.ok ci) md⌝ ∗
+        v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
-        cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.watchSpec (V.mem i).2 γs Dn) ∨
+        cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
+        v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs Dn) ∨
       (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err) }}
 
 end spec

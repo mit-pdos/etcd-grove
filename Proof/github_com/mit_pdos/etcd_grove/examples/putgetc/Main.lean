@@ -1,6 +1,7 @@
 /-
 **`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
-auto-compactor on (`common.StartCompactingServer`, revision mode, retention 1); putget's history
+auto-compactor on (`common.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `common.StartCompactingServer`, revision mode, retention 1); putget's history
 below is the original's.
 
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean` (item 9, stage 2,
@@ -8,7 +9,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean` (item 
 counterpart).
 
 The steps: `Main`'s premises in the shared start's form (`common.bootPremise_of`,
-`commonPremises`); the ghost state `NewServer` takes (`common.alloc1`); `common.StartCompactingServer` (the member's configuration with the auto-compactor on, `NewServer`, `Start`);
+`commonPremises`); the ghost state `NewServer` takes (`common.alloc1`); `common.StartPeriodicServer` (the member's configuration with the auto-compactor on in periodic mode, `NewServer`, `Start`);
 `common.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
 `common.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
 `common.NewClient` (`clientv3.New`); each call's context with the request timeout
@@ -23,7 +24,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.putgetc.Main
 public import Spec.go_uber_org.zap.NewNop
-public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Perennial.Spec.context.Background
@@ -57,19 +58,19 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putgetc.Assumpti
 set_option maxHeartbeats 800000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartCompactingServer : common.StartCompactingServer.spec (GF := GF) (hG := hG))
+    (wp_StartPeriodicServer : common.StartPeriodicServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
+  ihave #Hb := common.bootPremise_of (N + N) [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
       go!"putgetc" go!"putgetc"
       (common.urls1 go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
@@ -100,20 +101,21 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh
+      (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
-  -- `StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)`
+  -- `StartPeriodicServer("putgetc", "127.0.0.1:23801", clientAddr, period, lg)` (periodic mode,
+  -- 2026-11-02: the cluster's retention `0`, `alloc1`'s default)
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (putgetcDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartCompactingServer N go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791"
-      (W64 1) lg
+  wp_apply (wp_StartPeriodicServer N go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791"
+      (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
-      hdyn hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      hrule hboot hblen hγn1 hγn2 Hdirok
+      (by simp [putgetcDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -125,19 +127,20 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
   wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => common.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid)
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
-      R Hrb48)
+      R Hrb48 Hrf rfl)
+    unfold common.kvServeStocks
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
@@ -152,8 +155,8 @@ theorem Main.wp_proof
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23791" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23791" [] null null [] null default) Hlg
-      (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -186,7 +189,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23791" _ E ρ.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -210,7 +215,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23791" _ E ρ.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

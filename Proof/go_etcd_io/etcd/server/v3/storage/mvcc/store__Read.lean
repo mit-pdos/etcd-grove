@@ -140,6 +140,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       withPhys_simp
       rw [Hbi]
       iframe #
+      ipureintro; simpa using Hcmt
     ihave Hmul : sync.ownRWMutexRLocked (mvcc.muAddr s) (mvcc.muInv s (γ.withPhys p)) $$ [Hmul]
     · rw [mvcc.muInv_withPhys]; iexact Hmul
     ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM Hfs]
@@ -162,6 +163,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     isplitr [Hmine HoA]
     rotate_left
     · iframe Hmine Hlbc Hok HoA
+      isplitr
+      · iexact HpM
       ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
     iunfold mvcc.isTxnRead
     iexists p, trw, tr, o.ti, rt, (W64 0)

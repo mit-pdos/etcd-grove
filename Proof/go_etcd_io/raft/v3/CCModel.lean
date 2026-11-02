@@ -69,15 +69,25 @@ instance (e : EntryM) : Decidable (IsConfEnt e) := by
 
 /-- The bytes of an entry of type `ty` decode as the conf change its type says
 (2026-10-13): `stepLeader` `Unmarshal`s a proposed conf-change entry's data and panics if
-that fails. -/
+that fails. (2026-11-02, durability stage II (q), kvdurable's G20) And the type is one of
+raft's, `EntryNormal`, `EntryConfChange` or `EntryConfChangeV2`: raft itself appends any type
+(`stepLeader` only looks for the two conf-change types), but every entry it is given is built by
+`Propose` (`0`), `ProposeConfChange` (`1`, `2`), its own fillers (`0`, `2`) or a bootstrap log
+(`BootWf`), since `node.Step` takes only messages raft sent. -/
 def CCDecodes (ty : w32) (bs : List w8) : Prop :=
-  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m)
+  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m) ∧
+    uint.Z ty ≤ 2
 
 /-- `len(cc.AsV2().Changes) == 0`, `stepLeader`'s `wantsLeaveJoint`: a `ConfChange`'s
 `AsV2` has its one change, a `ConfChangeV2` is its own. -/
 def ccWantsLeave : ConfChangeIM → Bool
   | .v1 _ => false
   | .v2 m => m.changes.isEmpty
+
+/-- (2026-10-29, stage U5) An empty `EntryConfChangeV2` of a batch decodes to a change that wants to
+leave a joint configuration (`ccDecodeV2_nil`: the empty change), as `stepLeader`'s loop decodes it. -/
+def CCLeaveOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Prop :=
+  ∀ x ∈ ents.zip cs, x.1.Data' = [] → x.1.Type' = W32 2 → ∀ c, x.2 = some c → ccWantsLeave c = true
 
 /-- A proposal's batch `es'` after `stepLeader`'s conf-change loop, from the proposed `es`
 (2026-10-13): each entry kept, or a conf-change entry replaced by the empty normal entry

@@ -21,7 +21,10 @@ is specific to the Lean port.
   because an entry chose it; supersede the entry instead (its header says how).
 - `notes/status-history.md` — STATUS.md's superseded sections, append-only (move a section there when it stops describing the current state).
 
-Before you finish, update `notes/STATUS.md` if anything moved.
+Before you finish, update `notes/STATUS.md` if anything moved. Its "Last updated" line keeps the
+ten newest dated entries: add yours at the front and move the oldest to the list at the end of
+`notes/status-history.md`. In a merge conflict on that line, keep one copy of each entry (never
+both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
@@ -109,6 +112,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
+  reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
 ## Modules
 
@@ -178,6 +183,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 (yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
+
+## Bounds
+
+Thread counts, `RWMutex` reader slots, lifetime counters and sizes are reasoned about where they
+are owned (`notes/bounds-plan.md`): the adequacy theorem fixes the constants, the owner of a lock,
+wait group or counter turns them into a protocol inside its invariant (a thread pool of reader
+slots, a wait group backed by thread tokens, receipts), and a spec in between takes only its
+`threadTok` and the owner's handle. `etc/bounds-check.py` counts what does
+not yet follow this, per kind and package (`--kind KIND` lists the places); `--check` (in
+`etc/gates.sh` and CI) refuses a count above `etc/bounds-baseline.txt`, and `--check --update`
+records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
 
 ## Trust base
 
@@ -254,10 +270,12 @@ generated: never edit the `.lean` files by hand.
 
 - `{Code,GeneratedProof}/go_etcd_io/raft/`: raft v3.7.0 (etcd-io/raft `b867cf13`, the raft
   etcd's `go.mod` pins; protobuf-go v2 raftpb: messages, entries and snapshots are pointers
-  read through getters) plus two fixes, the single-voter read-index shortcut
-  (`issues/raft-readindex-singleton-stale.md`) and the probe-to-replicate shortcut only at
-  `pr.Next == pr.Match+1` (`issues/raft-stale-term-appresp-index-zero-ack.md`): branch
-  `raft37-goose-lean-a1` of the fork `upamanyus/etcd` (commit `c8217eb9`), project `raft` of
+  read through getters) plus three fixes, the single-voter read-index shortcut
+  (`issues/raft-readindex-singleton-stale.md`), the probe-to-replicate shortcut only at
+  `pr.Next == pr.Match+1` (`issues/raft-stale-term-appresp-index-zero-ack.md`), and the
+  configuration switched to a snapshot's when it is applied, not restored
+  (`issues/raft-snapshot-during-apply-stale-confchange.md`): branch `raft37-goose-lean-a2` of the
+  fork `upamanyus/etcd` (commit `565c2bd`, on `raft37-goose-lean-a1`), project `raft` of
   `etc/goose.py`; the same packages
   as before (`.`, `confchange`, `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf
   plumbing (`ProtoReflect`, `Descriptor`, the file descriptor, ...); modules

@@ -33,7 +33,7 @@ abbrev callPut.spec : Prop :=
     (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  ∀ (key val : GoString) (Q : KVState → IProp GF),
+  ∀ (key val : GoString) (Q : KVState → IProp GF), key.length ≤ inMax → val.length ≤ inMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
@@ -43,7 +43,7 @@ abbrev callPut.spec : Prop :=
       (Val #key)) (Val #val))
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, Q σ ∗
-        ⌜y = { zOut with Rev' := W64 ((σ.rev + 1 : Nat) : Int) } ∧ σ.rev + 4 < 2 ^ 63⌝ }}
+        ⌜y = { zOut with Rev' := W64 ((σ.rev + 1 : Nat) : Int) } ∧ kvRevFits (σ.rev + 1)⌝ }}
 
 end spec
 

@@ -6,9 +6,10 @@ on authkv's ports, with the simple token provider and etcd's default token TTL, 
 
 **The triple:** `common.StartServer.spec`'s, with auth on: given the member's ghost state with auth
 on (`memberBootOn`: the start chain with the auth layer enabled, the KV invariant in the mode `on`),
-the network's HTTP side, a thread token, `bootstrap`'s contract for it (`bootPremise` at the
-one-member cluster `[id]`, the token `authkv` and the URLs `urls1`) and the premises the members
-share: an error with the thread token, or the member started with auth on (`memberUpOn`, at the auth
+the network's HTTP side, a thread token, `bootstrap`'s contract for it (at the one-member cluster `[id]`, for
+the configurations and URLs `startServer` builds: `cfgOk`, `urlsOk`, the first of `Main`'s
+`premises`; 2026-10-30, until then `common.bootPremise`, whose `common.cfgOk` leaves out the
+simple token provider) and the premises the members share: an error with the thread token, or the member started with auth on (`memberUpOn`, at the auth
 names `γa` of the store `NewServer` built).
 
 **The pure premises:** `common.StartServer.spec`'s, at authkv's addresses.
@@ -17,6 +18,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Defs
 
 @[expose] public section
 
@@ -41,15 +43,17 @@ abbrev startServer.spec : Prop :=
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  γ.vs = [id] → γ.dyn = false → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://127.0.0.1:23926" ∈ dir id →
   lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       threadTok ∗
-      common.bootPremise N [id] bootLog ctxs dir go!"authkv" go!"authkv"
-        (common.urls1 go!"authkv" go!"127.0.0.1:23926" go!"127.0.0.1:23916") id ∗
+      (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ' : SrvRaft),
+        ⌜cfgOk cfg ∧ urlsOk U ∧ γ'.vs = [id] ∧ γ'.rule = srvRule (W64 0) bootLog ∧
+          γ'.boot = bootLog⌝ -∗
+        letI : MemStorReg GF := ⟨γ'.reg⟩; bootstrapContract cfg U γ' id ctxs N dir) ∗
       common.commonPremises ∗ context.isClosedchanInit ∗
       common.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id }}

@@ -16,6 +16,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.String
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -69,12 +70,12 @@ theorem postErr_errorString (st : w64) (x xR : Loc) (m mR : GoString) (hm : m �
 set_option hygiene false in
 /-- A log call (`lg.Error(...)`): its fields' strings, the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hIDStringPtr _ (DFrac.own 1) _ $$ [«to»] as %_ ⟨«to», -⟩; iframe; iframe #)
-    | (wp_apply hZString as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ (DFrac.own 1) _ $$ [«to»] as %_ ⟨«to», -⟩; iframe; iframe #)
+    | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hError lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Error" => (wp_apply hError lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option maxRecDepth 8000 in

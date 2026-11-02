@@ -1,0 +1,1 @@
+This repo contains proofs for etcd using the Grove framework ([paper](https://people.csail.mit.edu/upamanyu/sharma-grove-extended.pdf), [repo](https://github.com/mit-pdos/perennial/)). This is experimental research code and constantly changing. An AI agent can help you understand and navigate the repo.

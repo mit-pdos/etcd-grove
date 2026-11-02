@@ -5,14 +5,11 @@
 theorem MemoryStorage.LastIndex.wp_proof [package_sem : Assumptions] (wp_MemoryStorage_lastIndex :
     MemoryStorage.lastIndex.spec) : MemoryStorage.LastIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.LastIndex.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
+  ∀ (ms : Loc) (γs : MemStorNames) (e : Nat),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hms" ∷ ownMemoryStorage ms γs σ ∗ ⌜σ.pend = []⌝ -∗
-          (▷
-              ∀ li,
-                ⌜uint.Z li = uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗ ownMemoryStorage ms γs σ -∗
-                  Φ (intoVal li, intoVal GoInterface.nil)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗ memEnd γs e -∗
+          (▷ ∀ li, memEnd γs e ∗ ⌜uint.nat li + 1 = e⌝ -∗ Φ (intoVal li, intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods MemoryStorage.ty.PointerType go!"LastIndex"

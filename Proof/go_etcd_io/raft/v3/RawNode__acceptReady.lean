@@ -59,12 +59,14 @@ open RawNodeOwnAccess
 section helpers
 variable [GooseExts]
 
-/-- (D22 S-d3a) The log a `Ready` accepts: with a snapshot, the storage lent (`ownRaftLog_lend`). -/
-def rdyLs (L : Option SnapLoan) (ls : LogState) : LogState :=
-  if L.isSome then { ls with lent := true, sat := false } else ls
+/-- (D22 S-d3a) The log a `Ready` accepts: with a snapshot, the storage lent (`ownRaftLog_lend`);
+(U8 v2, raft-final) the terms of the committed log handed out certified up to `dk`
+(`ownRaftLog_certify`), as `rdyLog`. -/
+def rdyLs (L : Option SnapLoan) (ls : LogState) (dk : Nat := ls.dtk) : LogState :=
+  if L.isSome then lendLog { ls with dtk := dk } else { ls with dtk := dk }
 
-theorem rdyLog_true (L : Option SnapLoan) (ls : LogState) :
-    rdyLog true L.isSome ls = logHanded (rdyLs L ls) := by
+theorem rdyLog_true (L : Option SnapLoan) (ls : LogState) (dk : Nat := ls.dtk) :
+    rdyLog true L.isSome ls dk = logHanded (rdyLs L ls dk) := by
   unfold rdyLog rdyLs; cases L <;> rfl
 
 /-- (D22 S-d3a) The trip of a loan's snapshot (`NGhost.snp`). -/
@@ -75,23 +77,24 @@ def loanTrip (L : Option SnapLoan) : Option SnapTrip :=
 in progress and the handed-out ones the application's to persist (`logAcceptUnstable`),
 `applying` at the last committed entry handed out (`logAcceptApplying`; `sz` is
 `entsSize` of them), and (2026-10-13) the `ReadState`s handed out (`r.readStates = nil`). -/
-def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) : NState :=
+def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
+    (dk : Nat := s.logst.dtk) : NState :=
   { s with outbox := [],
-           logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst)) ce sz,
+           logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst dk)) ce sz,
            gh := { s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L },
            rd := { s.rd with states := [] } }
 
 /-- (2026-10-25, T-M M2b) A `Ready` keeps what a pre-candidate's campaign guard reads: the log's
 boundary, entries, commit index, `applied`, pending snapshot and the role (`PreGuardF`). -/
 theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} {ce : List EntryM}
-    {sz : w64} (h : PreGuardF fp s) : PreGuardF fp (readyNstate s L ce sz) := by
-  have e : (readyNstate s L ce sz).logst.prev = s.logst.prev ∧
-      (readyNstate s L ce sz).logst.sents = s.logst.sents ∧
-      (readyNstate s L ce sz).logst.uents = s.logst.uents ∧
-      (readyNstate s L ce sz).logst.committed = s.logst.committed ∧
-      (readyNstate s L ce sz).logst.applied = s.logst.applied ∧
-      (readyNstate s L ce sz).logst.snap = s.logst.snap := by
-    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs
+    {sz : w64} {dk : Nat} (h : PreGuardF fp s) : PreGuardF fp (readyNstate s L ce sz dk) := by
+  have e : (readyNstate s L ce sz dk).logst.prev = s.logst.prev ∧
+      (readyNstate s L ce sz dk).logst.sents = s.logst.sents ∧
+      (readyNstate s L ce sz dk).logst.uents = s.logst.uents ∧
+      (readyNstate s L ce sz dk).logst.committed = s.logst.committed ∧
+      (readyNstate s L ce sz dk).logst.applied = s.logst.applied ∧
+      (readyNstate s L ce sz dk).logst.snap = s.logst.snap := by
+    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs lendLog
     split <;> split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := e
   intro hl hp
@@ -99,6 +102,15 @@ theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} 
   obtain ⟨hs, hn⟩ := h hl hp
   refine ⟨by rw [h6]; exact hs, ?_⟩
   rw [h2, h3, h4, h5]; exact hn
+
+/-- (2026-10-28, stage U0) A `Ready` keeps the role and the pending snapshot (`SnapFol`). -/
+private theorem readyNstate_snapFol {s : NState} {L : Option SnapLoan} {ce : List EntryM}
+    {sz : w64} {dk : Nat} (h : SnapFol s) : SnapFol (readyNstate s L ce sz dk) := by
+  have e : (readyNstate s L ce sz dk).logst.snap = s.logst.snap := by
+    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs lendLog
+    split <;> split <;> rfl
+  intro hs
+  exact h (e ▸ hs)
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
 from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
@@ -112,14 +124,6 @@ def readySteps (s : NState) (L : Option SnapLoan) (selfs : List Pending) (ce : L
      (if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
       else none) (L.map SnapLoan.snap)]) ++
   (if ce = [] then [] else [Pending.applyAck ce])
-
-/-- `Ready` changes nothing the protocol sees but the outbox and (2026-10-13) the
-`ReadState`s. -/
-theorem toPState_ready (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    toPState (readyNstate s L ce sz) =
-      { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } := by
-  unfold readyNstate logAcceptApplying logAcceptUnstable toPState rdyLs
-  by_cases h : s.role = .leader <;> cases ce.getLast? <;> cases L <;> simp [h, rdNL]
 
 /-- `StepsOk` of the acknowledgements `Ready` queues after the self-addressed
 responses. -/
@@ -174,6 +178,25 @@ theorem accept_fields (ls : LogState) (ce : List EntryM) (sz : w64) :
   unfold logAcceptApplying logAcceptUnstable
   split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- `Ready` changes nothing the protocol sees but the outbox and (2026-10-13) the
+`ReadState`s. -/
+theorem toPState_ready (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
+    {dk : Nat} :
+    toPState (readyNstate s L ce sz dk) =
+      { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } := by
+  have e := accept_fields (rdyLs L s.logst dk) ce sz
+  have hr : (rdyLs L s.logst dk).prev = s.logst.prev ∧ (rdyLs L s.logst dk).sents = s.logst.sents ∧
+      (rdyLs L s.logst dk).uents = s.logst.uents ∧
+      (rdyLs L s.logst dk).committed = s.logst.committed := by
+    unfold rdyLs lendLog; split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+  have h1 : (readyNstate s L ce sz dk).logst.prev = s.logst.prev := e.1.trans hr.1
+  have h2 : (readyNstate s L ce sz dk).logst.sents = s.logst.sents := e.2.2.2.2.2.2.2.2.2.2.2.2.2.trans hr.2.1
+  have h3 : (readyNstate s L ce sz dk).logst.uents = s.logst.uents := e.2.2.2.2.2.2.2.2.2.2.2.2.1.trans hr.2.2.1
+  have h4 : (readyNstate s L ce sz dk).logst.committed = s.logst.committed := e.2.2.2.1.trans hr.2.2.2
+  unfold toPState
+  rw [h1, h2, h3, h4]
+  by_cases h : s.role = .leader <;> simp [readyNstate, h, rdNL] <;> exact ⟨rfl, rfl⟩
+
 end helpers
 
 section proof
@@ -199,12 +222,20 @@ theorem RawNode.acceptReady.wp_proof
   intro γ rn id rs rd ce es ms h L
   wp_start as H
   iNamed H
+  -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
+  ihave ⟨%HlastL, Hrn⟩ : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ ∗
+      ownRawNodeReady γ rn id rs rd ce es ms true L $$ [Hrn]
+  · cases L with
+    | none => iframe Hrn; ipureintro; intro l hl; cases hl
+    | some l0 =>
+      icases ownRawNodeReady_loanLast γ rn id rs rd ce es ms true l0 $$ Hrn with ⟨%Hx, Hrn⟩
+      iframe Hrn; ipureintro; intro l hl; cases hl; exact Hx
   iNamed Hrn
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   -- (D22 S-d3a) the log as the hand-out left it: with a snapshot, the storage lent
-  generalize Hls0 : rdyLs L s.logst = ls0
+  generalize Hls0 : rdyLs L s.logst (max s.logst.dtk (dlvAfter rs.delivered ce L).length) = ls0
   have Hls0f : ls0.prev = s.logst.prev ∧ ls0.sents = s.logst.sents ∧ ls0.uents = s.logst.uents ∧
       ls0.committed = s.logst.committed ∧ ls0.applying = s.logst.applying ∧
       ls0.applied = s.logst.applied ∧ ls0.snap = s.logst.snap ∧ ls0.fl = s.logst.fl ∧
@@ -216,14 +247,14 @@ theorem RawNode.acceptReady.wp_proof
     | none =>
       refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
       show s.logst.lent = false
-      have h1 := Hgh_unst.1.2.1
+      have h1 := Hgh_unst.1.2.1.1
       have h2 := Hloan.1.1
       rw [Hloan.2] at h2
       rw [h1, h2]; rfl
     | some _ => exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave Hlog : ownRaftLog s.log (logHanded ls0) $$ [Hlog]
   · iExactEq Hlog
-    rw [rdyLog_true, Hls0]
+    rw [rdyLog_true L s.logst (max s.logst.dtk (dlvAfter rs.delivered ce L).length), Hls0]
   subst Hes
   -- ghost facts, read before anything moves; the ghost state is at the drained outbox
   -- (`ownRawNodeReady_handout`, 2026-10-13), the outbox's messages' facts in `Hout`
@@ -233,6 +264,8 @@ theorem RawNode.acceptReady.wp_proof
   icases ghostRest_nsLink γ _ cf id _ $$ Hrest with ⟨%Hnl, Hrest⟩
   -- (D22 S-b′3) the queued messages' certificates, through the storage's link
   icases ghostRest_certLink γ _ cf id _ $$ Hrest with ⟨#Hlink, Hrest⟩
+  -- (raft-final) the transfer records' witnesses, for the self-addressed responses' `isRaftMsg`
+  icases ghostRest_xfW γ _ cf id _ $$ Hrest with ⟨#Hxw, Hrest⟩
   imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftGhost_terms_le _ _ _ $$ Hghost with ⟨%Htle, Hghost⟩
@@ -268,7 +301,7 @@ theorem RawNode.acceptReady.wp_proof
       exact h1 (uint_Z_inj.mp (by rw [h0]; rfl))
   icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
   ihave %Hstl := readStatesPts_len _ _ $$ Hrdsts
-  icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw⟩
+  icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw, %Hhseq⟩
   -- (D22l) the caller's hard state is the `Ready`'s
   ihave %Hhh := hsOpt_agree rd.HardState' hrd h $$ [Hrdhard Hh]
   · isplitl [] <;> iassumption
@@ -288,9 +321,10 @@ theorem RawNode.acceptReady.wp_proof
       ipureintro; trivial
     | some l =>
       simp only [rdSnapRel, snapOpt, Option.map_some, loanCom]
-      icases Hrdz with ⟨Hs, #Hc, %Hz⟩
+      icases Hrdz with ⟨Hs, #Hc, #Hd, %Hz⟩
       rw [← Hz.1]
-      iframe Hs Hc
+      iframe Hs Hc Hd
+      ipureintro; exact ⟨Hz.2.2.2.2.2.2.2.2.2.2.2, HlastL l rfl⟩
   icases Hsno with ⟨Hsno, #Hloanc⟩
   have Hsnne : ∀ sv, L.map SnapLoan.snap = some sv → sv.Metadata'.Index' ≠ W64 0 := by
     intro sv hsv
@@ -303,19 +337,34 @@ theorem RawNode.acceptReady.wp_proof
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
+  -- (durability stage II, G2) and the `Ready`'s soft state as `softStateIs`, at the role `prevSoftSt`
+  -- then has
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      ∃ (psp : Loc) (v : SoftState), rawNodeOwn rn { rnv with prevSoftSt' := psp } ∗ psp ↦□ v)
-    with [Hrn rn rd] as ⟨rn, rd, %psp, %v, Hrn, #Hpsp⟩
+      ∃ (psp : Loc) (v : SoftState), rawNodeOwn rn { rnv with prevSoftSt' := psp } ∗ psp ↦□ v ∗
+        ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
+          ⌜roleAfter rs.role ss = v.RaftState' ∧ (rd.SoftState' = null → ss = none)⌝)
+    with [Hrn rn rd] as ⟨rn, rd, %psp, %v, Hrn, #Hpsp, Hss0⟩
   · iframe rn rd
     iexists rnv.prevSoftSt', sv
     iframe Hsoft
-    iexact Hrn
+    iframe Hrn
+    iexists none
+    unfold softStateIs
+    ipureintro
+    exact ⟨Hif, Hrole, fun _ => rfl⟩
   · icases Hrdsoft with (%Hn | ⟨%v, #Hv⟩)
     · exact absurd Hn Hif
     iframe rn rd
     iexists rd.SoftState', v
     iframe Hv
-    iexact Hrn
+    iframe Hrn
+    iexists some (v.Lead', v.RaftState')
+    unfold softStateIs
+    icases typedPointsto_split _ _ _ $$ Hv with Hv'
+    simp only [TypedPointsto.typedPointstoDef]
+    iNamed Hv'
+    iframe Lead RaftState
+    ipureintro; exact ⟨Hif, rfl, fun h => absurd h Hif⟩
   -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: either way
   -- `prevHardSt` points to a read-only hard state
   wp_apply wp_IsEmptyHardState $$ [$Hrdhard]
@@ -497,7 +546,7 @@ theorem RawNode.acceptReady.wp_proof
         stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks) ∗
         ownSliceCap Loc stl' (DFrac.own 1) ∗
         (snapOpt rd.Snapshot' (DFrac.own 1) (L.map SnapLoan.snap) -∗
-          pendList γ id acks (if s.logst.uents = [] ∧ L = none then []
+          pendList γ id rs.bw acks (if s.logst.uents = [] ∧ L = none then []
             else [Pending.appendAck s.term s.logst.prev
               (if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
                else none) (L.map SnapLoan.snap)])))
@@ -523,7 +572,7 @@ theorem RawNode.acceptReady.wp_proof
     iintro Hs1
     ihave Hml := Hml $$ Hs1
     iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).2
+        pendingRel γ id rs.bw st p))).2
     iexists _
     iframe Hml
     unfold pendingRel
@@ -550,7 +599,7 @@ theorem RawNode.acceptReady.wp_proof
         rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
         stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks) ∗
         ownSliceCap Loc stl' (DFrac.own 1) ∗
-        pendList γ id acks (if ce = [] then [] else [Pending.applyAck ce]))
+        pendList γ id rs.bw acks (if ce = [] then [] else [Pending.applyAck ce]))
     with [rn rd Hrn Hsteps Hsteps_cap]
     as ⟨rn, rd, %stl4, %acks2, Hrn, Hsteps, Hsteps_cap, Hpc⟩
   · -- committed entries: `newStorageApplyRespMsg(r, rd.CommittedEntries)`
@@ -570,7 +619,7 @@ theorem RawNode.acceptReady.wp_proof
     rw [ite_neg' Hce0]
     iframe Hrn Hsteps Hsteps_cap
     iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).2
+        pendingRel γ id rs.bw st p))).2
     iexists _
     iframe Hml
     unfold pendingRel
@@ -600,8 +649,6 @@ theorem RawNode.acceptReady.wp_proof
       cases hl : L with
       | none => rfl
       | some l => exact absurd (Hce0' l hl) Hce0
-    have Hl0 : ls0 = s.logst := by rw [← Hls0, HL]; rfl
-    subst Hl0
     obtain ⟨e, He⟩ : ∃ e, ce.getLast? = some e := by
       cases h : ce.getLast? with
       | none => exact absurd (List.getLast?_eq_none_iff.1 h) Hce0
@@ -623,19 +670,21 @@ theorem RawNode.acceptReady.wp_proof
     wp_call
     wp_auto
     rw [Hasync]
-    have Hlast := Hceok e He
+    have Hlast0 := Hceok e He
+    have Hlast := Hlast0
+    rw [← Hf_apg, ← Hf_cm] at Hlast
     icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb2, Hlog⟩
     icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw2, Hlog⟩
-    have Hend : uint.Z e.Index' < uint.Z (logEnd s.logst) := by
-      have := (show LogNoWrap s.logst from Hnw2).logLast_Z
+    have Hend : uint.Z e.Index' < uint.Z (logEnd ls0) := by
+      have := (show LogNoWrap ls0 from Hnw2).logLast_Z
       unfold logEnd
       have := Hcb2.1.2.2
       simp only [logAcceptUnstable] at this Hnw2
       word
-    wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
-      ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega,
-        by show uint.Z s.logst.applying ≤ _; omega, Hend⟩
-      (fun h => absurd (show s.logst.snap = none from (Hrdp.1 HL).2) h)
+    wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable ls0) e.Index' sz' true
+      ⟨by show uint.Z ls0.applied ≤ _; omega, by show _ ≤ uint.Z ls0.committed; omega,
+        by show uint.Z ls0.applying ≤ _; omega, Hend⟩
+      (fun h => absurd (show ls0.snap = none by rw [Hf_snap]; exact (Hrdp.1 HL).2) h)
       $$ [Hlog] as Hlog
     · iframe Hlog
     isplitr
@@ -667,14 +716,14 @@ theorem RawNode.acceptReady.wp_proof
   -- the self-addressed responses, as the queue's first pending steps (before the raft struct
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
-  ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    (fun h => (Hxf.2.1 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) Hxf.2.2 $$ Hout Hqc Hself
+  ihave Hps := self_pending γ id s.term { s with outbox := [] } s.outbox ms1 ms2 Houtbox ms2 Hsub2
+    HmsgsAA_ok.1 Hnsout (Hxf.of_fields rfl rfl rfl) rs.bw $$ Hout Hqc Hxw Hself
   -- (D22 S-d3a) the log after the `Ready`: what it keeps of `ls0` and `s.logst`
   have Haf := accept_fields ls0 ce sz
   have Hsip00 : s.logst.sip = false := by
     cases h : s.logst.sip
     · rfl
-    · exact absurd (Hloan.1.none_noack Hloan.2).1 (Hgh_unst.1.2.2.2.1 (.inl h))
+    · exact absurd (Hloan.1.none_noack Hloan.2).1 (Hgh_unst.1.2.1.2.2.1 (.inl h))
   have HlL : logLast ls0 = logLast s.logst := by
     rw [← Hls0]; unfold rdyLs; split <;> rfl
   have Hnu0 : nextUnstable ls0 = nextUnstable s.logst := by
@@ -683,7 +732,21 @@ theorem RawNode.acceptReady.wp_proof
   have HsnpN : SnpOk { s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L }
       (logAcceptApplying (logAcceptUnstable ls0) ce sz) := by
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, -⟩ := Haf
-    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_, fun k hk hlt => ?_⟩
+    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_, fun k hk hlt => ?_,
+      fun _ k hk => ?sg⟩
+    case sg =>
+      -- (raft-final phase 2) the snapshot handed out is the lent one (`lendLog`'s `sg`): `SnpSg`
+      cases hL : L with
+      | none => rw [hL] at hk; cases hk
+      | some l =>
+        rw [hL] at hk; simp only [loanTrip, Option.map_some, Option.some.injEq] at hk; subst hk
+        obtain ⟨-, Hs1, -⟩ := Hrdp.2 l hL
+        have hp : ls0.prev = snapId l.snap :=
+          (Hsfa.2.2.2 _ (show ls0.snap = _ by rw [Hf_snap]; exact Hs1)).1
+        have hsg0 : ls0.sg = uint.nat ls0.prev.index' := by rw [← Hls0, hL]; rfl
+        have hsgA : (logAcceptApplying (logAcceptUnstable ls0) ce sz).sg = ls0.sg := by
+          unfold logAcceptApplying; split <;> rfl
+        rw [hsgA, hsg0, hp]; exact Nat.le_refl _
     rotate_right
     · -- (D22 S-d4 item 3) a snapshot handed out lends the storage
       exfalso
@@ -743,26 +806,31 @@ theorem RawNode.acceptReady.wp_proof
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply outboxRel_nil
-  · ipureintro; intro _ h; cases h
+  · ipureintro; exact ⟨fun _ h => (by cases h), fun _ h => (by cases h)⟩
   · ipureintro; intro _ h; cases h
   · ipureintro; exact Nat.zero_le _
-  · ipureintro; exact ⟨(fun h => by cases h), HsnpN⟩
+  · ipureintro
+    have hsn1 : (logAcceptApplying (logAcceptUnstable ls0) ce sz).sn = ls0.sn := by
+      unfold logAcceptApplying logAcceptUnstable; split <;> rfl
+    have hsn2 : ls0.sn = s.logst.sn := by
+      rw [← Hls0]; unfold rdyLs lendLog; split <;> rfl
+    exact ⟨(fun h => by cases h), HsnpN, hsn1.trans (hsn2.trans Hgh_unst.1.2.2)⟩
   · ipureintro
     obtain ⟨a1, a2, a3, a4, -⟩ := Haf
     exact ⟨rfl, fun _ => ⟨by rw [a1, Hf_prev], by rw [a2, Hf_snap], by rw [a3, Hf_st],
       by rw [a4, Hf_cm]; exact Int.le_refl _⟩, fun _ h => by cases h⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable, HlL]; exact Int.le_refl _
   · ipureintro
-    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => (Hxf.2.1 h).1)
+    exact XfOk.nil (fun h => Hxf.2.2.2 h)
   · rw [List.append_nil]; iapply qSrcs_nil
   -- the node after `Ready`
-  have Hlogst : (readyNstate s L ce sz).logst = logAcceptApplying (logAcceptUnstable ls0) ce sz := by
+  have Hlogst : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst = logAcceptApplying (logAcceptUnstable ls0) ce sz := by
     rw [← Hls0]; rfl
   obtain ⟨Haf1, Haf2, Haf3, Haf4, Haf5, Haf6, Haf7, Haf8, Haf9, Haf10, Haf11, Haf12, Haf13, Haf14⟩ :=
     Haf
   -- (D22 S-d3b) all of the log in progress after the `Ready`
   have Hip_last : plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) <
-      uint.Z (readyNstate s L ce sz).logst.inprogress := by
+      uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress := by
     rw [Hlogst]
     have Hip : (logAcceptApplying (logAcceptUnstable ls0) ce sz).inprogress = logEnd ls0 := by
       unfold logAcceptApplying logAcceptUnstable; split <;> rfl
@@ -773,19 +841,19 @@ theorem RawNode.acceptReady.wp_proof
     simp only [List.length_append]
     word
   have Hce_ok : ∀ e, ce.getLast? = some e →
-      uint.Z e.Index' ≤ uint.Z (readyNstate s L ce sz).logst.committed ∧
-      uint.Z e.Index' ≤ uint.Z (readyNstate s L ce sz).logst.applying ∧
-      (readyNstate s L ce sz).logst.applying = e.Index' ∧
+      uint.Z e.Index' ≤ uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed ∧
+      uint.Z e.Index' ≤ uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applying ∧
+      (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applying = e.Index' ∧
       uint.Z e.Index' = uint.Z s.logst.applying + (ce.length : Int) := by
     intro e He
     have Hlast := Hceok e He
     have Ha := logAcceptApplying_applying (logAcceptUnstable ls0) ce sz e He
     rw [Hlogst, Haf4, Ha, Hf_cm]
     exact ⟨Hlast.2.1, Int.le_refl _, rfl, Hlast.2.2⟩
-  have Hap0 : ce = [] → (readyNstate s L ce sz).logst.applying = s.logst.applying := by
+  have Hap0 : ce = [] → (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applying = s.logst.applying := by
     intro h; subst h; rw [Hlogst]; show ls0.applying = _; exact Hf_apg
   have Hdlen' : (rs.delivered ++ ce).length =
-      (uint.Z (readyNstate s L ce sz).logst.applying).toNat := by
+      (uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applying).toNat := by
     cases He : ce.getLast? with
     | none =>
       have He' := List.getLast?_eq_none_iff.1 He
@@ -794,7 +862,7 @@ theorem RawNode.acceptReady.wp_proof
       obtain ⟨-, -, Ha, Hi⟩ := Hce_ok e He
       rw [Ha, List.length_append, Hdlen]
       word
-  have Hstok' : StepsOk (readyNstate s L ce sz)
+  have Hstok' : StepsOk (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
       (readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce) := by
     unfold readySteps
     rw [List.append_assoc]
@@ -802,7 +870,7 @@ theorem RawNode.acceptReady.wp_proof
     · -- each self-addressed response's term, as `ownRaftPhys` bounds it (`AAMsgOk`)
       obtain ⟨m, Hm, rfl⟩ := List.mem_map.1 Hp
       have Hm' := List.mem_filter.1 Hm
-      obtain ⟨-, -, Hself⟩ := HmsgsAA_ok m Hm'.1
+      obtain ⟨-, -, Hself⟩ := HmsgsAA_ok.1 m Hm'.1
       have Hb := (Hself (of_decide_eq_true Hm'.2)).2.2.2.2
       refine ⟨⟨_, _, rfl⟩, ?_⟩
       simp only [PendingOk, selfPending, decide_eq_true_eq]
@@ -824,31 +892,30 @@ theorem RawNode.acceptReady.wp_proof
     · intro e He
       obtain ⟨H1, H2, -, -⟩ := Hce_ok e He
       exact ⟨H1, H2⟩
-  ihave Hphys : ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s L ce sz) $$ [Hphys]
+  ihave Hphys : ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) $$ [Hphys]
   · unfold readyNstate
     rw [Hls0]
     iexact Hphys
-  have Hrapp : (readyNstate s L ce sz).logst.applied = s.logst.applied := by
+  have Hrapp : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applied = s.logst.applied := by
     rw [Hlogst, Haf10, Hf_ap]
   ihave Hrest := ghostRest_keep γ _ cf id (s := { s with outbox := [] })
-    (s' := readyNstate s L ce sz) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
+    (s' := readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
     (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
-    Hrapp (by rw [Hlogst, Haf2, Hf_snap]) rfl
-    (hst := by rw [Hlogst, Haf3, Hf_st]) $$ Hrest
-  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
-      (readyNstate s L ce sz) $$ [Hghost Hrest]
+    Hrapp (by rw [Hlogst, Haf2, Hf_snap]) rfl $$ Hrest
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id
+      (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) $$ [Hghost Hrest]
   · iunfold ownStepGhost
     iframe Hrest
-    rw [show toPState (readyNstate s L ce sz) = { toPState { s with outbox := [] } with
+    rw [show toPState (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) = { toPState { s with outbox := [] } with
         rd := { (toPState { s with outbox := [] }).rd with states := [] } } by
       rw [toPState_ready]; rfl]
     iexact Hghost
   ihave #Hstrecs0 := storedRecs_eq γ _ s.logst.prev _
-    (readyNstate s L ce sz).logst.stored (by rfl)
+    (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.stored (by rfl)
     (by rw [Hlogst, Haf11, Hf_sents, Hf_uents]; rfl) $$ Hlr
   -- the queue: the self-addressed responses, then the acknowledgements; (D22 S-d3a) with a
   -- snapshot, its acknowledgement whole once the application gives its half back (`lentPend`)
-  ihave Hpend : lentPend L (pendList γ id ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
+  ihave Hpend : lentPend L (pendList γ id rs.bw ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
       (readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce))
     $$ [Hps Hpa Hpc Hsno]
   · unfold readySteps
@@ -858,9 +925,9 @@ theorem RawNode.acceptReady.wp_proof
       icases Hsno with %Hn
       ihave Hpa := Hpa $$ %Hn
       iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ [Hps Hpa] [Hpc]
+          pendingRel γ id rs.bw st p))) $$ [Hps Hpa] [Hpc]
       · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ Hps Hpa
+          pendingRel γ id rs.bw st p))) $$ Hps Hpa
       · iexact Hpc
     | some l =>
       simp only [lentPend, snapOpt, Option.map_some]
@@ -870,18 +937,23 @@ theorem RawNode.acceptReady.wp_proof
       iintro Hs1
       ihave Hpa := Hpa $$ Hs1
       iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ [Hps Hpa] [Hpc]
+          pendingRel γ id rs.bw st p))) $$ [Hps Hpa] [Hpc]
       · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ Hps Hpa
+          pendingRel γ id rs.bw st p))) $$ Hps Hpa
       · iexact Hpc
   -- (D19i part 1) the floor and `applied` unmoved; `applying` moved to the last committed entry
   -- handed out, whose acknowledgement is queued
+  -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
+  icases Hss0 with ⟨%ss, #Hss, %HroleN'⟩
+  obtain ⟨HroleN, Hssn⟩ := HroleN'
   let rsN : RNState :=
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
-              outlb := 0, unst := false, phs := phsNext rs.phs hrd, psnap := false, slent := L }
-  have HrnflN : RNFl rsN (readyNstate s L ce sz) := by
-    have Hfl0 : (readyNstate s L ce sz).logst.fl = s.logst.fl := by
+              outlb := 0, unst := false, phs := phsNext rs.phs hrd, psnap := false, slent := L,
+              dur := readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst),
+              role := roleAfter rs.role ss }
+  have HrnflN : RNFl rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) := by
+    have Hfl0 : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.fl = s.logst.fl := by
       rw [Hlogst, Haf9, Hf_fl]
     refine ⟨fun hw => by rw [Hfl0, Hrapp]; exact Hrnfl.1 hw, fun hlt => ?_⟩
     cases hce : ce.getLast? with
@@ -897,8 +969,27 @@ theorem RawNode.acceptReady.wp_proof
       show Pending.applyAck ce ∈ readySteps s L _ ce
       simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, _root_.or_true]
   -- (D22 S-d3a) the loan, as the node keeps it (`LoanOk`)
-  have HloanN : LoanOk rsN (readyNstate s L ce sz) := by
-    refine ⟨rfl, fun hl => ⟨?_, ?_⟩, fun l hl => ?_⟩
+  have HloanN : LoanOk rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) := by
+    refine ⟨rfl, fun hl => ⟨?_, ?_⟩, fun l hl => ?_, ?_⟩
+    rotate_right
+    · -- (2026-11-02, stage II (u)) the configuration index below the lent snapshot (`CapOk`)
+      have H4 := Hloan.1.2.2.2
+      refine ⟨?_, fun l hl => ?_, fun hl p hp => ?_⟩
+      · show (rs.capplied : Int) ≤ uint.Z
+          (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed
+        rw [Hlogst, Haf4, Hf_cm]; exact H4.1
+      · have hl' : L = some l := hl
+        subst hl'
+        obtain ⟨Hs1, -, -, -, -, -, -, Hdl1, -⟩ := (Hrdp.2 l rfl).2
+        have h3 := (H4.2.2 Hloan.2 _ Hs1).1
+        simp only [snapId] at h3
+        show rs.capplied ≤ l.dlv.length
+        rw [Hdl1]; omega
+      · have hl' : L = none := hl
+        change (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap
+          = some p at hp
+        rw [Hlogst, Haf2, Hf_snap, (Hrdp.1 hl').2] at hp
+        cases hp
     · have hl' : L = none := hl
       show loanTrip L = none
       rw [hl']; rfl
@@ -912,7 +1003,7 @@ theorem RawNode.acceptReady.wp_proof
       · split at hm <;> simp at hm
     · have hl' : L = some l := hl
       subst hl'
-      obtain ⟨Hs1, -, -, -, Hfl1, Hce1, Hdp1, Hdl1, Hap1, Hnx1⟩ := (Hrdp.2 l rfl).2
+      obtain ⟨Hs1, -, -, -, Hfl1, Hce1, Hdp1, Hdl1, Hap1, Hnx1, -⟩ := (Hrdp.2 l rfl).2
       subst Hce1
       have Hpl : s.logst.prev = snapId l.snap := by
         have hp : ls0.prev = snapId l.snap :=
@@ -927,7 +1018,7 @@ theorem RawNode.acceptReady.wp_proof
         exact this
       · rw [Hlogst, Haf9, Hf_fl, Hfl1]
       · rw [Hlogst, Haf11, Haf12, Hnu0, Hnx1, Hf_sents, Hf_uents]
-      · rw [Hap0 rfl]; exact Int.le_of_lt Hap1
+      · rw [Hap0 rfl]; exact Hap1
       · show rs.delivered ++ [] <+: l.dlv; rw [List.append_nil]; exact Hdp1
       · refine ⟨(selfmsgs id ms2).map (fun q => selfPending q.st.msg), s.term,
           if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
@@ -939,7 +1030,7 @@ theorem RawNode.acceptReady.wp_proof
           exact ⟨_, _, rfl⟩
   -- (D22 S-d3b) the acknowledgement's facts (`ackInv`): the records of what the storage will hold,
   -- after the log's boundary; no restore since, nothing cut (all of it in progress)
-  ihave #Hstrecs' : ackInv γ rsN (readyNstate s L ce sz) $$ []
+  ihave #Hstrecs' : ackInv γ rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) $$ []
   · unfold ackInv
     iintro %t %b %e %sn %hm
     have Hm2 : t = s.term ∧ b = s.logst.prev ∧ sn = L.map SnapLoan.snap := by
@@ -966,29 +1057,132 @@ theorem RawNode.acceptReady.wp_proof
     unfold ackLostW
     ileft
     ipureintro
-    rw [show (readyNstate s L ce sz).logst.stored = s.logst.sents ++ s.logst.uents by
+    rw [show (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.stored = s.logst.sents ++ s.logst.uents by
       rw [Hlogst, Haf11, Hf_sents, Hf_uents]]
     exact Hip_last
-  iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
+  iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce) %ss
   simp only [named]
-  ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz).logst.snap)
+  iframe Hss
+  isplitr
+  · ipureintro; exact Hssn
+  ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
+  -- (U8 v2) the certified height after the `Ready`: the committed log handed out
+  have HsdtN : SdtTie rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) := by
+    have hdk : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.dtk =
+        max s.logst.dtk (dlvAfter rs.delivered ce L).length := by
+      rw [Hlogst, ← Hls0]; unfold logAcceptApplying logAcceptUnstable rdyLs lendLog
+      repeat' split
+      all_goals rfl
+    have hsl : sdtLen rsN = (dlvAfter rs.delivered ce L).length := by
+      unfold sdtLen
+      show (match L with | some l => l.dlv.length | none => (rs.delivered ++ ce).length) = _
+      cases L <;> rfl
+    -- (2026-11-02, stage II (p)) the certified height raised to the committed log handed out, if
+    -- below; above it, the attach record's terms that were above before
+    have hold : sdtLen rs = rs.delivered.length := by unfold sdtLen; rw [Hloan.2]
+    have hle : rs.delivered.length ≤ (dlvAfter rs.delivered ce L).length := by
+      cases hL : L with
+      | none => simp only [dlvAfter, List.length_append]; omega
+      | some l =>
+        have := (Hrdp.2 l hL).2.2.2.2.2.2.2.1.length_le
+        simp only [dlvAfter]; omega
+    obtain ⟨H1, H2⟩ := Hsdt
+    rw [hold] at H1 H2
+    refine ⟨by rw [hdk, hsl]; omega, fun i hi1 hi2 => ?_⟩
+    rw [hsl] at hi1
+    rw [hdk] at hi2
+    exact H2 i (by omega) (by omega)
+  -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the node's hard state, below the
+  -- unstable entries (all in progress) and a pending snapshot not lent out (none, or this one)
+  have HphsN : PhsOk rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) := by
+    have Hcm' : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed =
+        s.logst.committed := by rw [Hlogst, Haf4, Hf_cm]
+    have Hhs' : hsOf (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) = hsOf s := by
+      unfold hsOf; rw [Hcm']; rfl
+    have Hpn : rsN.phs = hsOf s := Hhseq
+    refine ⟨by rw [Hhs', Hpn]; exact HsLe.refl _, by rw [Hhs']; exact Hphs.2.1, fun _ => ?_,
+      fun sid hs hn => ?_⟩
+    · rw [Hpn]
+      show uint.Z s.logst.committed < _
+      have h1 := Hwf2.1.2.2
+      have h2 := Hip_last
+      simp only [plogLastIndexZ, List.length_append] at h2
+      push_cast at h2
+      omega
+    · exfalso
+      have hs' : s.logst.snap = some sid := by
+        have : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap = s.logst.snap := by
+          rw [Hlogst, Haf2, Hf_snap]
+        rw [← this]; exact hs
+      cases hl : L with
+      | none => rw [(Hrdp.1 hl).2] at hs'; cases hs'
+      | some l =>
+        rw [(Hrdp.2 l hl).2.1] at hs'
+        obtain rfl := Option.some.inj hs'
+        exact hn l hl rfl
   iapply ownRawNode_intro γ rn id rsN
-    (readyNstate s L ce sz) cf fp
+    (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
-    Hwf Hin Hal Hasync Hdlen'
+    Hwf Hin Hasync Hdlen'
     (by show nextUnstable s.logst = _; rw [Hlogst, Haf12, Hnu0])
     (fun h => by
       rw [Hlogst, Haf2, Hf_snap]
-      rcases h with ⟨-, h⟩ | h
-      · exact (Hrdp.1 h).2
-      · exact Hsnap (.inr h))
+      exact (Hrdp.1 h.2).2)
     Hstok' Htrm
-    (by rw [Hlogst, Haf3, Hf_st]; exact Hstor)
-    ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2⟩ rfl rfl
+    (by
+      have hsn1 : (logAcceptApplying (logAcceptUnstable ls0) ce sz).sn = ls0.sn := by
+        unfold logAcceptApplying logAcceptUnstable; split <;> rfl
+      have hsn2 : ls0.sn = s.logst.sn := by
+        rw [← Hls0]; unfold rdyLs lendLog; split <;> rfl
+      rw [Hlogst, Haf3, Hf_st, hsn1, hsn2]; exact Hstor)
+    ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
+      readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
+    HsdtN HroleN HphsN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' []
+  · -- (durability stage II, G2; (i)) the `Ready` keeps the durable state's tie: the batch handed out
+    -- (`readyDurable`) is what the storage holds once it is appended, the whole log (`durFull_cut`)
+    have Hp' : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.prev = s.logst.prev := by
+      rw [Hlogst, Haf1, Hf_prev]
+    have Hst' : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.stored =
+        s.logst.sents ++ s.logst.uents := by
+      rw [Hlogst, Haf11, Hf_sents, Hf_uents]
+    unfold durTie
+    rw [Hp', Hst']
+    iintro !> %_ %fp %Hfp #Hrec
+    rw [← List.append_assoc]
+    cases hl : L with
+    | none =>
+      have Hsn : s.logst.snap = none := (Hrdp.1 hl).2
+      ihave %H := Hdur $$ %(.inl Hsn) %fp %Hfp Hrec
+      ipureintro
+      obtain ⟨H1, H2⟩ := H
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _ ∧
+        uint.Z (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)).base.index' ≤ _
+      rw [hl]
+      unfold readyDurable
+      simp only [Option.map_none]
+      exact ⟨durFull_cut _ _ _ _ _ _ Hpst Hsn Hfp H1 H2, H2⟩
+    | some l =>
+      obtain ⟨-, Hrd⟩ := Hrdp.2 l hl
+      obtain ⟨Hsn, -, -, -, -, -, -, -, -, Hnul, -⟩ := Hrd
+      have Hh := Hsfa.2.2.2 (snapId l.snap) (by
+        show ls0.snap = _; rw [Hf_snap]; exact Hsn)
+      rw [Hhp, Hhs] at Hh
+      obtain ⟨Hprev, Hsents, -⟩ := Hh
+      ipureintro
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _ ∧
+        uint.Z (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)).base.index' ≤ _
+      rw [hl]
+      unfold readyDurable
+      simp only [Option.map_some]
+      refine ⟨?_, by rw [Hprev]; exact Int.le_refl _⟩
+      rw [Hnul, Hsents, List.nil_append, List.append_nil]
+      rw [Hprev] at Hfp
+      have Hidx' := Hidx
+      rw [Hprev, Hsents, List.nil_append] at Hidx'
+      exact DurFull_next_snap _ _ _ _ _ _ _ Hfp Hidx'
 
 end proof
 

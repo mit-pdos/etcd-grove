@@ -75,7 +75,7 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
   · iframe Hctx' Hopts
     ipureintro
-    refine ⟨Hw1, Hw2, Hp.2.2, ?_⟩
+    refine ⟨Hw1, Hw2, Hp.2.2.1, ?_, keyWatchOp_size rev Hp.2.2.2⟩
     rw [Hw3, Hw4]; exact concurrency.keyRangeUnder_key pfx key Hp.2.1
   ihave %Hnn : ⌜wch ≠ null⌝ $$ [Hwch]
   · iunfold isSpsc at Hwch

@@ -38,7 +38,7 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hto Hcfg
+  intro c r id s to ctx cl Hto Hcfg Htz
   wp_start as H
   iNamed H
   icases ownRaftPhysC_tracker_same $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
@@ -83,7 +83,7 @@ theorem raft.sendHeartbeat.wp_proof
     msg_nulls
   have Hok : SendOk id s ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ [] cl
       [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
-    Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, rfl⟩)
+    Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, Htz, rfl⟩)
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys

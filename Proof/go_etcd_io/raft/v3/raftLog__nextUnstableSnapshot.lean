@@ -43,9 +43,9 @@ theorem raftLog.nextUnstableSnapshot.wp_proof
   iexists sid, sv
   iframe Hsv
   ipureintro
-  obtain ⟨H1, H2, H3, H4⟩ := Hs
+  obtain ⟨H1, H2, H3, H4, H5⟩ := Hs
   have Hst : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := H1 ▸ Hstore
-  exact ⟨H1, H2, H3, H4, Hst.2.2.1⟩
+  exact ⟨H1, H2, H3, H4, Hst.2.2.1, H5⟩
 
 end proof
 

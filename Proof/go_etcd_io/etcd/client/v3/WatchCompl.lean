@@ -108,6 +108,54 @@ theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
     simp [hlt]
   · simp [hk0, hkey, h0]
 
+/-- **A point watch is registered exactly** (G2, 2026-10-30). -/
+theorem rangeExact_point (key : GoString) : rangeExact key [] := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck] at hk
+  rw [hce, if_pos rfl] at he
+  unfold WatchRange.covers inRange
+  rw [he, hk]
+  simp
+
+/-- **A proper range of a non-empty key is registered exactly** (G2, 2026-10-30): its range end
+neither empty nor `[0]` (a prefix watch's, `prefixRangeEnd`, of a key not all `0xff`, included). -/
+theorem rangeExact_proper (key ed : GoString) (hkey : key ≠ []) (h0 : ed ≠ [])
+    (h1 : ed ≠ [W8 0]) : rangeExact key ed := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck] at hk
+  rw [hce, if_neg h0, if_neg h1] at he
+  unfold WatchRange.covers inRange
+  rw [he, if_neg h0, if_neg h1, hk]
+  simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+    decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
+  by_cases hk0 : k = go!""
+  · subst hk0
+    have hlt : go.GoStringLt [] key := by
+      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hkey
+      rw [ht]; exact go.goStringLt_nil_cons a t
+    simp [hlt]
+  · simp [hk0, hkey, h0]
+
+/-- **A from-key range of a non-empty key is registered exactly** (G2, 2026-10-30): the range end
+`[0]` is registered open-ended (`createRangeOk`'s `some []`). -/
+theorem rangeExact_fromKey (key : GoString) (hkey : key ≠ []) : rangeExact key [W8 0] := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck] at hk
+  rw [hce, if_neg (by simp), if_pos rfl] at he
+  rw [mvcc.covers_from r k he (by rw [hk]; exact hkey), hk, inRange_from]
+
+/-- **Every range of a non-empty key is registered exactly** (G2, 2026-10-30): a point, a from-key
+range or a proper range. -/
+theorem rangeExact_of_ne (key ed : GoString) (hkey : key ≠ []) : rangeExact key ed := by
+  by_cases h0 : ed = []
+  · subst h0; exact rangeExact_point key
+  by_cases h1 : ed = [W8 0]
+  · subst h1; exact rangeExact_fromKey key hkey
+  exact rangeExact_proper key ed hkey h0 h1
+
 /-! ## The second cursor's steps (pure) -/
 
 /-- A registered range covering exactly the watch's range: its watch events are the watch's
@@ -258,8 +306,6 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
   ihave %Hsmall : ⌜LogSmall L⌝ $$ []
   · iunfold srvLogsSmall at Hsm
     iapply Hsm; rw [hst]; iexact Hs
-  ihave #Hsl : v3rpc.srvLog V.R.E L $$ []
-  · unfold v3rpc.srvLog; iframe Hs; ipureintro; exact Hsmall
   ihave %Hw := v3rpc.sealed_pure _ L $$ Hs
   have hlen : L.length < 2 ^ 63 := Hw.2
   have hnone' : ∀ x : Nat, p < x → x < b → mvcc.watchEvents L rg x (x + 1) = [] := by
@@ -718,6 +764,7 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName)
     (Lc : mvcc.Log) (p : Nat) (hγ : γo.sentl = γc.sentl) (hidx : x.idx = pre.length)
     (hfi : v3rpc.fwdIdx Dm x) (hxid : x.id = W64 (-1) ∨ x.id = X) (hxe : x.evs = [])
+    (hxc : x.compactRev = W64 0)
     (hEc : evsOf Dm w = mvcc.watchEvents Lc rg lo (p + 1)) (hlop : lo ≤ p + 1)
     (hlo : lo = (sint.Z rr).toNat) (hrev : 1 ≤ sint.Z rr) (hpx : x.rev = W64 (p : Int))
     (hp63 : p < 2 ^ 63) :
@@ -763,8 +810,10 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     ihave %Hcmp := mono_list_lb_valid γc.sentl (pre' ++ [y]) (pre ++ [x]) $$ Hlb' Hlb
     have hy : y ∈ pre := lb_snoc_mem Hcmp (by omega)
     iunfold mvcc.respRev at Hrr
-    icases Hrr with (%hne | ⟨%Ln, -, %Hn⟩)
+    icases Hrr with ⟨(%hne | ⟨%Ln, -, %Hn⟩ | %hcr), -⟩
     · exact absurd hxe hne
+    rotate_left
+    · exact absurd hxc hcr.1
     have hle := Hn.2 y hy hye
     ipureintro
     refine ⟨q, Hq.1, ?_⟩

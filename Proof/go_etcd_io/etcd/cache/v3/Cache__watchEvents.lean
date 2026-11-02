@@ -420,7 +420,8 @@ theorem Cache.watchEvents.wp_proof
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
   · iframe Hctxi Hopts Hrd0
     ipureintro
-    exact ⟨(watchEvents_opts cf.pfx rev).1, (watchEvents_opts cf.pfx rev).2, Hrev⟩
+    exact ⟨(watchEvents_opts cf.pfx rev).1, (watchEvents_opts cf.pfx rev).2, Hrev,
+      cacheWatch_size rev Hpfx⟩
   try ipersist c
   try ipersist readyOnce
   try ipersist applyErr

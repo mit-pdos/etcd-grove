@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds check, the packages' imports. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -90,6 +90,31 @@ if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
   echo "issues: ok"
 else
   echo "issues: FAILED"; tail -10 "$tmp/issues.log"; fail=1
+fi
+
+# 7. the bound reasoning stays with its owners (notes/bounds-plan.md, B0; reads the sources only)
+if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
+  echo "$(tail -1 "$tmp/bounds.log")"
+  grep "down from" "$tmp/bounds.log" | head -5
+else
+  echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
+fi
+
+# 8. each package's clients import only its importable modules (etc/api/<pkg>.txt; CLAUDE.md,
+# "Package APIs"), and only the listed modules `import all` a sealed one (etc/import-all.txt; the
+# backend-auth-split stage's Q6, 2026-11-02); both read the sources only
+api=ok
+for c in etc/api/*.txt; do
+  case "$c" in *-layout.txt) continue ;; esac
+  if ! python3 etc/api-check.py "$c" --check > "$tmp/api.log" 2>&1; then
+    echo "api $c: FAILED"; grep -v "^warning" "$tmp/api.log" | tail -10; api=FAILED
+  fi
+done
+echo "api: $api"; [ "$api" = ok ] || fail=1
+if python3 etc/import-all-check.py --check > "$tmp/ia.log" 2>&1; then
+  echo "$(tail -1 "$tmp/ia.log")"
+else
+  echo "import-all: FAILED"; head -20 "$tmp/ia.log"; fail=1
 fi
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"

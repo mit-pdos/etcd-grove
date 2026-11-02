@@ -41,11 +41,32 @@ const (
 	KeepAliveTimeout = 6 * time.Second
 )
 
+// The snapshot settings of the examples that do not exercise snapshots: etcd's default snapshot
+// count, and more catch-up entries than any run applies, so that raft's log is compacted at index
+// 1 only and a leader never has to send a follower a snapshot (NewServer's spec allows any values
+// since 2026-10-30; examples/linkv3p takes snapshots often, SnapCount and SnapCatchUp there).
+const (
+	NoSnapCount   uint64 = etcdserver.DefaultSnapshotCount
+	NoSnapCatchUp uint64 = 1 << 48
+)
+
 // newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
 // whose token is token: the member's peer URLs are peer, its one client URL http://client; the
-// auto-compactor in revision mode keeping retention revisions, or off if retention is zero.
+// auto-compactor in revision mode keeping retention revisions, or off if retention is zero; a disk
+// snapshot every snapCount applied entries, the log compacted to catchUp entries below a
+// snapshot's index (etcd's --snapshot-count and --experimental-snapshot-catchup-entries; etcd also
+// takes an in-memory snapshot, and compacts, every 100 applied entries).
 func newServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
-	retention int64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	retention int64, snapCount uint64, catchUp uint64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	return newServerMode(name, peer, client, cluster, token, "revision", retention, snapCount,
+		catchUp, lg)
+}
+
+// newServerMode is newServer with the auto-compactor in mode (v3compactor.ModeRevision, retention
+// revisions, or v3compactor.ModePeriodic, retention nanoseconds), or off if retention is zero.
+func newServerMode(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+	mode string, retention int64, snapCount uint64, catchUp uint64,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:    name,
 		DataDir: name + ".etcd",
@@ -58,17 +79,15 @@ func newServer(name string, peer types.URLs, client string, cluster types.URLsMa
 		// raft's clock (a positive tick: the raft node's ticker)
 		TickMs:        100,
 		ElectionTicks: 10,
-		// etcd's default snapshot count; the catch-up entries past the theorems' step bound
-		// (NewServer's run bound, D21 M3: receiptBound <= SnapshotCatchUpEntries + 1, so raft's
-		// log is compacted at index 1 only and its leader sends no snapshot), etcd's default
-		// request limits
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
+		// the snapshot settings; etcd's default request limits
+		SnapshotCount:          snapCount,
+		SnapshotCatchUpEntries: catchUp,
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
-		// the auto-compactor (v3compactor.ModeRevision): in revision mode, the retention is a
-		// number of revisions, as a time.Duration (etcd's --auto-compaction-retention)
-		AutoCompactionMode:      "revision",
+		// the auto-compactor: in revision mode the retention is a number of revisions, as a
+		// time.Duration, in periodic mode a period (etcd's --auto-compaction-mode and
+		// --auto-compaction-retention)
+		AutoCompactionMode:      mode,
 		AutoCompactionRetention: time.Duration(retention),
 		// NewServer's premises: a logger, pre-vote off (PreVote false, its zero value), a
 		// non-negative compaction batch limit (zero), the server's feature gate (a
@@ -85,7 +104,8 @@ func newServer(name string, peer types.URLs, client string, cluster types.URLsMa
 func StartServer(name string, peerAddr string, clientAddr string,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
-	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, 0, lg)
+	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, 0, NoSnapCount,
+		NoSnapCatchUp, lg)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +118,8 @@ func StartServer(name string, peerAddr string, clientAddr string,
 func StartCompactingServer(name string, peerAddr string, clientAddr string, retention int64,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
-	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, retention, lg)
+	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, retention,
+		NoSnapCount, NoSnapCatchUp, lg)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +127,38 @@ func StartCompactingServer(name string, peerAddr string, clientAddr string, rete
 	return s, nil
 }
 
+// StartPeriodicServer is StartServer with the auto-compactor on, in periodic mode, keeping the
+// revisions of the last period (period at least 10ns: a shorter one busy-loops).
+func StartPeriodicServer(name string, peerAddr string, clientAddr string, period time.Duration,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s, err := newServerMode(name, peer, clientAddr, types.URLsMap{name: peer}, name, "periodic",
+		int64(period), NoSnapCount, NoSnapCatchUp, lg)
+	if err != nil {
+		return nil, err
+	}
+	s.Start()
+	return s, nil
+}
+
+// BuildServer builds member name of a new cluster whose initial members' peer URLs are cluster and
+// whose token is token, its peer URLs peer and its one client URL http://client, with the
+// snapshot settings snapCount and catchUp (newServer, the auto-compactor off), and serves nothing:
+// for an example that keeps its listeners, to close them when it stops the member
+// (examples/restart3).
+func BuildServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+	snapCount uint64, catchUp uint64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	return newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)
+}
+
 // NewMember builds member name of a new cluster whose initial members' peer URLs are cluster and
 // whose token is token, its peer URLs peer (the one URL http://peerAddr) and its one client URL
-// http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
+// http://client, with the snapshot settings snapCount and catchUp (newServer), and serves its raft
+// handler on a listener at peerAddr; it does not start it.
 func NewMember(name string, peer types.URLs, peerAddr string, client string,
-	cluster types.URLsMap, token string, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	s, err := newServer(name, peer, client, cluster, token, 0, lg)
+	cluster types.URLsMap, token string, snapCount uint64, catchUp uint64,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	s, err := newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +174,7 @@ func NewMember(name string, peer types.URLs, peerAddr string, client string,
 // StartMember starts member name of a new cluster: NewMember, then the server started.
 func StartMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, token string, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	s, err := NewMember(name, peer, peerAddr, client, cluster, token, lg)
+	s, err := NewMember(name, peer, peerAddr, client, cluster, token, NoSnapCount, NoSnapCatchUp, lg)
 	if err != nil {
 		return nil, err
 	}

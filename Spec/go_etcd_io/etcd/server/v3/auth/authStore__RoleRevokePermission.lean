@@ -33,7 +33,7 @@ abbrev auth.authStore.RoleRevokePermission.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
       authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
-      ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ }}
+      ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
       respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗

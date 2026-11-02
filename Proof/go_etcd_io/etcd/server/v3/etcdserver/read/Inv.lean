@@ -79,6 +79,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The notifiers -/
 
@@ -248,9 +249,9 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
   package's `closec`, closed with nothing, when `d` was already triggered);
 * `NextRequestID()`: an id, for a resource `NR` (the id generator's credit: the id budget, the
   server's premise; the loop asks for one per `ReadIndex` request, unboundedly), with (2026-10-16,
-  stage R7b) the fresh token of the id's context (raft's `rdFresh`, `srvRdFresh`) and one of
-  raft's read credits (`srvRdCred`): the server mints both from the id (`srvRdFresh_mint`), so
-  raft's read budget is paid by the id budget, one `ReadIndex` per id;
+  stage R7b) the fresh token of the id's context (raft's `rdFresh`, `srvRdFresh`), which the
+  server mints from the id (`srvRdFresh_mint`; 2026-10-30, the repair: no read credit with it,
+  raft's `ReadIndex` takes none);
 * `RequestTimeout()`: some duration. -/
 def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IProp GF :=
   iprop(srvDoneOk srv ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
@@ -263,7 +264,7 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))
       {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastOrClosed ch Q ∗ □ (Q -∗ appliedAtLeast γr d) }}) ∗
     □ ({{ NR }} (App (Val #(methods si.ty go!"NextRequestID" si.v)) (Val #()))
-      {{ (id : w64), RET #id; srvRdFresh γr.raft (beBytes id) ∗ srvRdCred γr.raft }}) ∗
+      {{ (id : w64), RET #id; srvRdFresh γr.raft (beBytes id) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"RequestTimeout" si.v)) (Val #()))
       {{ (d : _root_.Perennial.time.Duration), RET #d; True }}))
 
@@ -320,8 +321,9 @@ def isReadRaft (rf : GoInterface) (γr : ReadNames)
         (id n : w64) (Qr : List EntryModel → IProp GF),
       {{ context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast γr n ∗
           srvReadAu γr.raft Qr ∗
-          -- (2026-10-16, stage R7b) raft's read credit and the context's fresh token
-          srvRdCred γr.raft ∗ srvRdFresh γr.raft (beBytes id) }}
+          -- (2026-10-16, stage R7b) the context's fresh token (2026-10-30, the repair: no read
+          -- credit, raft's `ReadIndex` takes none)
+          srvRdFresh γr.raft (beBytes id) }}
         (App (App (Val #(methods ri.ty go!"ReadIndex" ri.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
       {{ (err : GoInterface), RET #err; applyErrIs err ∗
@@ -412,6 +414,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The lock's resource is fractional (for `sync.init_RWMutex`): the points-to and the ghost
 variable split, two parts agree on the notifier and its need. -/

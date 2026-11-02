@@ -2,16 +2,16 @@
 The apply loop's step `applyAll` (`server.go`: a batch from raft applied, the applied index's
 waiters triggered, the snapshot trigger): the shared vocabulary of the specs of `applyAll`,
 `applySnapshot`, `Backend`, `snapshotIfNeededAndCompactRaftLog`, `shouldSnapshotToDisk`,
-`shouldSnapshotToMemory` and the trust-boundary contracts `snapshot`, `compactRaftLog` (until
-D19p, 2026-10-18, also `createMergedSnapshotMessage`, `sendMergedSnap`). Lean-first (no Rocq counterpart); the request
+`shouldSnapshotToMemory` and the trust-boundary contracts `snapshot`, `compactRaftLog`, and the
+merge's network payload `srvNet` (moved here from `InvBuild` in S1, 2026-10-31). Lean-first (no Rocq counterpart); the request
 path's unit 4b (2026-10-13).
 
 **The server, as `applyAll` sees it** (`isServerApplyAll s γr`, persistent, beside the apply
 thread's `isServer`): the applied index's waiters (`applyWait`, a `WaitTime` for
-`appliedAtLeast γr`, `isWaitTime`), the raft wrapper's `msgSnapC` (a bag channel of messages,
-which never delivers since D19p, 2026-10-18: raft sends no `MsgSnap` (since D21 M3 in its
-no-snapshot mode, until then of a one-member cluster); until
-then `applyAll` passed a received one to the merged-snapshot contract), the configuration's
+`appliedAtLeast γr`, `isWaitTime`), the raft wrapper's `msgSnapC` (a bag of the raft node's
+`MsgSnap`s, `rnSnapMsg`: since S1, 2026-10-31, `applyAll` merges a received one, behind the fork's
+index guard; from D19p, 2026-10-18, until then it never delivered), the transport (`netTransport`
+at `srvNet`, for `sendMergedSnap`), the KV's start values, the configuration's
 `SnapshotCount`.
 
 **The apply thread's own snapshot state** (`srvSnapState s ep`): `ep.diskSnapshotIndex`,
@@ -23,8 +23,11 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
 @[expose] public section
 
@@ -45,6 +48,7 @@ abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSn
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
 abbrev taSnapshotAddr (ta : Loc) : Loc := structFieldRef toApply go!"snapshot" ta
 abbrev taNotifycAddr (ta : Loc) : Loc := structFieldRef toApply go!"notifyc" ta
+abbrev taRaftTermAddr (ta : Loc) : Loc := structFieldRef toApply go!"raftTerm" ta
 abbrev srvInflightAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"inflightSnapshots" s
 
 end addrs
@@ -54,6 +58,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
 backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and
@@ -65,6 +70,24 @@ other half of `s.be` was `↦□`, `NewServer`'s, so the backend was known for g
 def bemuP (s : Loc) (γbe : GName) (q : Qp) : IProp GF :=
   iprop(∃ d : mvcc.KBReal, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
     dghostVar γbe (DFrac.own q.half) d ∗ srvBeRO d)
+
+/-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
+payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
+(`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
+once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
+`MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
+D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
+the server's clusters send no snapshot). (2026-10-31, S1: moved here from `InvBuild`, for
+`isServerApplyAll`'s transport.) -/
+def srvNet (γ : SrvRaft) : NetPayload GF :=
+  letI := srvStor (GF := GF) γ
+  { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
+    O := fun st => msgCredits γ.cl srvClusterN st
+    once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
+    P_pers := fun st => by infer_instance
+    dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
+    img := fun i D => srvImage γ i D
+    img_pers := fun i D => by infer_instance }
 
 /-- The namespace of `s.inflightSnapshots`'s invariant. -/
 def srvInflightN : Namespace := nroot .@ "etcdserver_inflight_snapshots"
@@ -95,22 +118,30 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (wt : GoInterface) (msc : Loc) (sc : w64),
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      -- (D19p, 2026-10-18) it never delivers: raft sends no `MsgSnap` (D21 M3: in its
-      -- no-snapshot mode; until then of a one-member cluster)
-      □ (∀ m : Loc, P m -∗ False)) ∗
+    -- (2026-10-30, the repair: snapshots allowed) a bag of raft's `MsgSnap`s (`rnSnapMsg`, the
+    -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`);
+    -- (2026-10-31, S1) the raft node's, of the server's raft names (until then any `P`)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗
-    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads, past the
-    -- receipts' bound (`NewServer.spec`'s run bound): every compaction is at index `1`
-    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
-      ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
+    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads (2026-10-30, the
+    -- repair: no bound; until then past the receipts' bound, `NewServer.spec`'s run bound, so
+    -- that every compaction was at index `1`)
+    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
     srvInflight s ∗
     -- (2026-10-26) the logger, which `compactRaftLog` logs with
-    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝))
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗
+    -- (2026-10-31, S1) the raft wrapper's started transport, of the server's network
+    -- (`srvNet`), which `sendMergedSnap` sends the merged snapshot through
+    (∃ (tr : GoInterface) (γn : NetNames GF) (lid : w64) (S TS : IProp GF),
+      rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S TS ∗
+      ⌜γn.N = srvNet γr.raft.raft⌝) ∗
+    -- (2026-10-31, S1) the KV's start values (`NewServer.spec`'s), which the merged snapshot's
+    -- image (`srvImage`'s) is of
+    ⌜γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]⌝)
 
 set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 400000 in
@@ -118,75 +149,81 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
-/-- (D22 J4) The namespace of the storage's shared snapshot token (`srvSnapState`), disjoint from
-the storage's own (`memSnapN`). -/
-def srvStorTokN : Namespace := nroot .@ "etcdserver_stor_tok"
-
-theorem srvStorTokN_disj : (↑srvStorTokN : CoPset) ## ↑memSnapN := by
-  intro p ⟨hp, h⟩
-  exact ndot_ne_disjoint nroot (by decide : "etcdserver_stor_tok" ≠ "raft_memsnap") p ⟨hp, h⟩
+/-- (2026-10-30, the repair) **What `CreateSnapshot` at the applied index `ai` of term
+`at'` takes of the cluster and the storage** (persistent): the storage's invariant at the node
+of key `nk` (the node's storage key)'s justifications, the node's delivered log past `ai` (`J.DL`), raft's committed log at the
+server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` whose last term is
+`at'` (`snapshotCert_make`'s). -/
+def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nk : GName) (ai at' : w64) :
+    IProp GF :=
+  letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
+  iprop(memStorInv ms γs γr.raft.raft.cl nk ∗ nodeCommitLb γr.raft.raft.cl nk (uint.nat ai) ∗
+    srvRaftLogInv γr.raft ∗
+    ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
 
 /-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
-snapshot indices at most `ai`; and (D19i part 1, 2026-10-18) the raft wrapper's `MemoryStorage`
-`ms` and the application's snapshot token, its snapshot index at least `sl` (`snapshot` raises it
-to `ai`, which `compactRaftLog` then compacts below).
+snapshot indices at most `ai`, the raft wrapper's `MemoryStorage` `ms`, and (2026-10-30, the
+repair: raft's two-writer `MemoryStorage` specs, R1) the storage's stored snapshot index at least
+`sl` (`memSnapLb`, persistent: `CreateSnapshot` gives it at `ai`, which `compactRaftLog` then
+compacts below). Until the repair: the application's shared snapshot token (`memSnapRO`,
+`memKey`, the counter `γss` in `srvStorTokN`'s invariant, D22 J4).
 
-(D22 J4, 2026-10-26; decided by the orchestrator while the user was away (J5/J4), J0's item 2) **The
-token shared**: the token's ghost part (`memSnapTokG`, the storage's snapshot and boundary) is in
-an invariant (`srvStorTokN`, `memTokShared`: with the storage's snapshot index counted by `γss`,
-the boundary at or below the snapshot), which raft's goroutine shares for its `ApplySnapshot`
-(J6b) while the apply job runs `CreateSnapshot`/`Compact` (the FIFO scheduler does not wait,
-`notes/j3-overlap-test/`); the apply thread keeps the storage's persistent part (`memSnapRO`),
-the application's key (`memKey γs.ak`, `CreateSnapshot`'s for its critical section) and a lower
-bound `sl` of the snapshot counter. Until J4 the whole token (`memSnapTok`) was the apply
-thread's, with its boundary at most `ai` (false once raft's goroutine installs a snapshot past
-`ai`; `CreateSnapshot`'s `prev ≤ i` now comes from `prev ≤ ss < i`). J0's ceiling `γsc` (the
-storage's snapshot index at most raft's delivered log, which refutes `ApplySnapshot`'s out-of-date
-branch) is J6b's, which calls `ApplySnapshot`: it adds the ceiling's lower bound to the invariant. -/
+(2026-10-30, the repair: snapshots allowed) The in-memory snapshot (every `memorySnapshotCount =
+100` entries) and the disk one reach `CreateSnapshot`, its `snapshotValid` from the cluster's
+registry (`srvSnapStor`, `srvClusterOk`); the frozen entry at the applied index is
+`srvSnapFrozen`'s (P8: its own predicate). -/
 def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
     srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
-    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-    memSnapRO ms γs ∗ memKey γs.ak ∗
-    ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss (uint.nat sl))
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl))
 
-/-- (D22 J4) **The shared token, allocated** (`run`, right after its `Snapshot()`, the token's last
-user in hand): from the whole token with its boundary at or below its snapshot, the invariant and
-a lower bound of the counter at the snapshot's index. -/
-theorem srvStorTok_alloc (ms : Loc) (γs : MemStorNames) (σ : StorState) (Ec : CoPset)
-    (h : uint.Z σ.prev.index' ≤ uint.Z σ.ss.index') :
-    ⊢ memSnapTok (GF := GF) ms γs σ ={Ec}=∗ memSnapRO ms γs ∗ memKey γs.ak ∗
-      ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗
-        monoNatLbOwn γss (uint.nat σ.ss.index') := by
-  iintro Htok
-  icases (memSnapTok_split ms γs σ).1 $$ Htok with ⟨#Hro, Hak, Htg⟩
-  imod mono_nat_own_alloc (GF := GF) (uint.nat σ.ss.index') with ⟨%γss, Ha, #Hlb⟩
-  imod inv_alloc srvStorTokN Ec (memTokShared γs γss) $$ [Htg Ha] with #Hinv
-  · inext
-    iunfold memTokShared
-    iexists σ
-    iframe Htg Ha
-    ipureintro; exact h
-  imodintro
-  iframe Hro Hak
-  iexists γss
-  iframe Hinv Hlb
+/-- (2026-10-30, stage P's P8) **The storage's entries frozen through the applied index `ai`**
+(persistent): the entry at `ai` frozen (`CreateSnapshot`'s), every entry below it frozen or
+compacted (`Compact`'s). Taken by the snapshot-only statements (`snapshot.spec`,
+`snapshotIfNeededAndCompactRaftLog.spec`); until P8 a part of `srvSnapState`. -/
+def srvSnapFrozen (γs : MemStorNames) (ai : Nat) : IProp GF :=
+  iprop(srvFrozenAt γs ai ∗ srvFrozenBelow γs ai)
 
-/-- A lower bound of the counter is one of every smaller index. -/
+instance srvSnapFrozen_persistent (γs : MemStorNames) (ai : Nat) :
+    Persistent (srvSnapFrozen (GF := GF) γs ai) := by
+  unfold srvSnapFrozen srvFrozenAt srvFrozenBelow; infer_instance
+
+/-- (2026-10-31, the snapshot track) **`ep.confState` reports the voters** (persistent): a
+read-only conf state of the cluster's simple membership (D3: the membership at every index,
+`srv_confAt_simple`), what `CreateSnapshot` takes non-`nil` and `snapshotCert_make` at the
+membership. In Go `ep.confState` is raft's answer to the last validated conf change
+(`server.go:2052`), or the stored snapshot's (`:808`) or an applied one's (`:1174`).
+`notes/snapshot-sorries-plan.md`, #9. -/
+def epCsCfg (γr : ReadNames) (cs : Loc) : IProp GF := epCsVoters γr.raft cs
+
+instance epCsCfg_persistent (γr : ReadNames) (cs : Loc) : Persistent (epCsCfg (GF := GF) γr cs) := by
+  unfold epCsCfg; infer_instance
+
+/-- (2026-10-31, the snapshot track) **The storage's entry at the applied index `ai`, frozen, of
+the applied term `at'`** (persistent): `CreateSnapshot` names the snapshot's term the storage
+entry's (`storage.go:257`), which `snapshotCert_make` needs to be the committed log's last
+(`srvSnapStor`'s `A`); or nothing applied (`ai = 0`, where no snapshot is taken).
+`notes/snapshot-sorries-plan.md`, #9. -/
+def srvFrozenTerm (γs : MemStorNames) (ai at' : w64) : IProp GF :=
+  iprop(⌜uint.nat ai = 0⌝ ∨ ∃ e : EntryM, memLog γs (uint.nat ai) DFrac.discard [e] ∗ ⌜e.Term' = at'⌝)
+
+instance srvFrozenTerm_persistent (γs : MemStorNames) (ai at' : w64) :
+    Persistent (srvFrozenTerm (GF := GF) γs ai at') := by
+  unfold srvFrozenTerm; infer_instance
+
+/-- A lower bound of the stored snapshot index is one of every smaller index. -/
 theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
     (h : uint.Z sl' ≤ uint.Z sl) :
     srvSnapState (GF := GF) s ep ms γs ai sl ⊢ srvSnapState s ep ms γs ai sl' := by
   iintro H
   iunfold srvSnapState at H
-  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hro, Hak, %γss, #Hinv, #Hlb⟩
+  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hlb⟩
   iunfold srvSnapState
   iexists d, m, f
-  iframe Hd Hm Hf Hms Hro Hak
+  iframe Hd Hm Hf Hms
   isplitr
   · ipureintro; exact Hdm
-  iexists γss
-  iframe Hinv
-  iapply monoNatLbOwn_le (uint.nat sl') (by word) $$ Hlb
+  iapply memSnapLb_mono γs (uint.nat sl) (uint.nat sl') (by word) $$ Hlb
 
 /-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
 

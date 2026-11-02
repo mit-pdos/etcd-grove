@@ -108,7 +108,8 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
-    (hlog : γk.log0 ≠ []) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
+    (hrl : γk.rlog = γs.raft.log) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
       kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot)) := by
@@ -177,8 +178,10 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft γk L))
+      ⌜plainLogM γk.cmp L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+        γk.rlog = γs.raft.log⌝ ∗
+        kvWork γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
@@ -186,10 +189,16 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     isplitl [HL]
     · iexact HL
     isplitr
-    · ipureintro; exact hok
+    · ipureintro
+      exact ⟨plainLogM_of _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
+        cmpLogOk_plain _ _ _ hok.1, hrl⟩
     iunfold kvWork
     iframe Hcl
-    ipureintro; exact ⟨hshape, hccl⟩
+    ipureintro
+    refine ⟨hshape, hccl, fun m hm => entryPutsOk_conf m ?_, hlk⟩
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    obtain ⟨-, ht, -, -⟩ := hent' n m hn
+    rw [ht]; decide
   imodintro
   iframe Hinv
   iunfold etcdKV; iexact Hv2
@@ -306,14 +315,14 @@ theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
   itrivial
 
 /-- **The mints** (`srvMintInv`): the cluster's proposals' mint and read contexts (stage M4,
-2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`), and the member's share of
-the cluster's read credits (`2 ^ 48`, the node API's `readCredits`). (Until M4 from raft's fresh-data and fresh read-context
-authorities and its whole read budget.) -/
+2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`). (2026-10-30, the repair: no
+read credits; until then also the member's share of the cluster's, `2 ^ 48`. Until M4 from raft's
+fresh-data and fresh read-context authorities and its whole read budget.) -/
 theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
-    ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued -∗
-      readCredits ρ.raft.raft.cl (2 ^ 48) ={E}=∗ srvMintInv ρ := by
-  iintro #HP #HR Hc
-  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
+    ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued ={E}=∗
+      srvMintInv ρ := by
+  iintro #HP #HR
+  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR with #Hrd
   iunfold srvMintInv
   iframe HP Hrd
 

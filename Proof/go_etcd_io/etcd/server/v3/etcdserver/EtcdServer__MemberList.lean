@@ -41,7 +41,7 @@ theorem EtcdServer.MemberList.wp_proof
   icases Hr' with ⟨#Hrd, #HRN, -⟩
   ihave #Hq' := Hq
   iunfold isServerReq at Hq'
-  icases Hq' with ⟨%vq, Hq'⟩
+  icases Hq' with ⟨⟨%vq, Hq'⟩, -⟩
   iunfold srvReqFieldsAt at Hq'
   icases Hq' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hpeers, -⟩
   iunfold srvPeersOk at Hpeers

@@ -36,6 +36,7 @@ abbrev auth.authStore.RoleDelete.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleDeleteReqIs r role ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (roleDeleteF en role))⌝ ∗
+      (□ ∀ en : Bool, capNextM M hs (stepOf (roleDeleteF en role))) ∗
       ⌜∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
         n.length ≤ backend.maxKeySize⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleDelete")) (Val #r))

@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem backend.readTx.UnsafeRange.wp_proof
     (hbase : backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
     backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b rt rtx rv p qo bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
-  wp_start as ⟨#Hb, #Hrt, Hh, Hopen, #Hbk, Hk, He⟩
+  intro γ P W Pk b rt rtx rv p bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
+  wp_start as ⟨#Hb, #Hrt, Hh, #Hbk, Hk, He⟩
   unfold rtHeldF
-  icases Hh with ⟨%rt', %rd, %H, #Hrt', Hrl, HR, %Hrtx, Hcr⟩
+  icases Hh with ⟨%rt', %rd, %H, %L, #Hrt', Hrl, HR, %Hrtx, Hcr⟩
   icombine Hrt Hrt' gives %Heq
   subst Heq
+  obtain ⟨Hrtx, Hnn⟩ := Hrtx
   subst Hrtx
   unfold isBackend
   icases Hb with ⟨%t, %rt2, %tm, %db, %lg, %h, -, #Hrt2, -, -, -, -, -, #Htm, -, -, -, #Hg, -, -, -,
@@ -49,12 +50,11 @@ theorem backend.readTx.UnsafeRange.wp_proof
   subst Heq
   unfold rtResAt rtRest rtCore rtIntv
   icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwg, %Hfacts,
-    #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+    #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hiv with ⟨-, #Hst⟩
-    iexfalso
-    iapply bOpen_stopped γ qo $$ [$Hopen $Hst]
+    icases Hiv with ⟨%Hnull, -⟩
+    exact absurd Hnull Hnn
   simp only [↓reduceIte]
   icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo⟩
   wp_apply hbase γ P W Pk b (baseOf rt) (DFrac.own sync.rfrac) rd.rtx rv p bk bi key
@@ -79,7 +79,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   rw [hl]
   simp only [↓reduceIte]
   iframe; iframe #
-  ipureintro; exact ⟨Hok', Hfacts⟩
+  ipureintro; exact ⟨⟨Hok', Hfacts⟩, trivial, Hnn⟩
 
 
 end proof

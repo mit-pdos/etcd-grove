@@ -71,7 +71,7 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
     isplitr; · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', #Hrok, %Hp, -, -⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -⟩
   iapply HΦ
   iexists log, rev, crev
   iframe Htx Hm Hrok Hlb'
@@ -81,10 +81,11 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
 
 /-- The readers' statement: the write transaction at the compaction revision it observed. -/
 abbrev mvcc.store.Write.specR : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (log : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
@@ -96,12 +97,12 @@ open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (the tag `True`, the lower bound `-1`). -/
 theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specR (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, Hh, Hpre, #Htr, Htrc⟩ HΦ
+  intro s γ trace P Pre Q f te log
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, Hh, Hpin, Hpre, #Htr, Htrc⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h s γ trace P Pre Q f te (-1) iprop(True)) $$ %Φ [Hrd Htok Hwt Hpre Htrc Hh]
-  · iframe Hrd Htok Hwt Hpre Htrc Hh; iframe #
+  iapply (h s γ trace P Pre Q f te (-1) iprop(True) log) $$ %Φ [Hrd Htok Hwt Hpre Htrc Hh Hpin]
+  · iframe Hrd Htok Hwt Hpre Htrc Hh Hpin; iframe #
     isplitr; · imodintro; itrivial
     ipureintro; exact Ht
   inext
@@ -137,10 +138,14 @@ theorem mvcc.store.Rev.spec_R (h : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
   iapply (h s rv γ m log₀) $$ %Φ [Hrd Htoks]
   · iframe Hrd Htoks; iframe #
   inext
-  iintro %v ⟨Hrd, Hpost⟩
+  iintro %v ⟨Hrd, Htoks, %log, #Hc, -, %Hp⟩
   iapply HΦ
-  iframe Hpost
-  iapply mvcc.storeReader_of $$ Hrd
+  iframe Htoks
+  isplitl [Hrd]
+  · iapply mvcc.storeReader_of $$ Hrd
+  iexists log
+  iframe Hc
+  ipureintro; exact Hp
 
 /-! ### `storeTxnCommon__Range` -/
 
@@ -231,7 +236,7 @@ abbrev mvcc.storeTxnWrite.End.specR : Prop :=
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ }}
+      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
@@ -368,10 +373,12 @@ theorem mvcc.readView.Range.spec_R (h : mvcc.readView.Range.spec (GF := GF) (hG 
   iintro %Φ ⟨#Hpkg, #Hrv, Hrd, #Hctx, #Hkey, #Hend⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h rv s γ ctx cd key endk k e ro (-1)) $$ %Φ [Hrd]
+  ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
+  · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+  iapply (h rv s γ ctx cd false key endk k e ro (-1)) $$ %Φ [Hrd]
   · iframe Hrd; iframe #
   inext
-  iintro %r %err ⟨Hrd, %log, %rev, %crev, #Hc, #Hlb', %Hp, Hout⟩
+  iintro %r %err ⟨-, Hrd, %log, %rev, %crev, #Hc, #Hlb', -, %Hp, Hout⟩
   iapply HΦ
   isplitl [Hrd]
   · iapply mvcc.storeReader_of $$ Hrd

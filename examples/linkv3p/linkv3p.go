@@ -92,14 +92,25 @@ type Step struct {
 	B     int
 }
 
+// The members' snapshot settings (common.NewMember): a disk snapshot every SnapCount applied
+// entries, raft's log then compacted to SnapCatchUp entries below it, so that a member a cut kept
+// behind is caught up, once mended, by a snapshot (MsgSnap) rather than by entries; TestMainRun
+// reports how often each happened.
+const (
+	SnapCount   uint64 = 1
+	SnapCatchUp uint64 = 1
+)
+
 // startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
 // URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
 // examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
 // server served on a listener at client.
 func startMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	// the server (configured as putget3's, with linkv3p's cluster token) and its raft handler
-	s, err := common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)
+	// the server (configured as putget3's, with linkv3p's cluster token and snapshot settings) and
+	// its raft handler
+	s, err := common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", SnapCount,
+		SnapCatchUp, lg)
 	if err != nil {
 		return nil, err
 	}

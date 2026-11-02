@@ -134,52 +134,59 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- In the mode `on γa` (the server's, by the store's tag), a registered watcher's authorization
-names a recorded state that permitted the request's read to some principal. -/
-theorem watchAuthed_on (γ : mvcc.WsNames) (γa : auth.AuthNames) (c : CreateReqM) :
-    ⊢ auth.modeTag (GF := GF) γ.tag (.on γa) -∗ watchAuthed γ c -∗
+names a recorded state, at an index at least the create's bound `n`, that permitted the request's
+read to some principal, bound to the stream's token `tok` (`infoBoundT`). -/
+theorem watchAuthed_on (γ : mvcc.WsNames) (γa : auth.AuthNames) (s : Loc) (tok : Option GoString)
+    (n : Nat) (key rangeEnd : GoString) :
+    ⊢ auth.modeTag (GF := GF) γ.tag (.on γa) -∗ watchAuthed γ s tok n key rangeEnd -∗
       ∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
-        auth.authStateAt γa i st ∗
-        ⌜auth.permitted st (auth.authInfoM info) (apply.watchKey c.key) c.rangeEnd .read ∧
-          auth.reqShape (apply.watchKey c.key) c.rangeEnd⌝ := by
+        auth.authStateAt γa i st ∗ infoBoundT s (.on γa) tok info ∗
+        ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) (apply.watchKey key) rangeEnd .read ∧
+          auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
   iintro #Htag H
   iunfold watchAuthed at H
-  icases H with ⟨%M, %info, #Htag', #Hcl, %Hs⟩
+  icases H with ⟨%M, %info, #Htag', #Hcl, #Hb, %Hs⟩
   ihave %HM := auth.modeTag_agree γ.tag (.on γa) M $$ Htag Htag'
   subst HM
-  ihave ⟨%i, %st, #Hst, %Hp⟩ := apply.watchClass_on γa info c.key c.rangeEnd $$ Hcl
+  ihave ⟨%i, %st, #Hst, %Hp⟩ := apply.watchClassFrom_on γa n info key rangeEnd $$ Hcl
+  ihave #Hb' := Hb $$ %rfl
   iexists info, i, st
   iframe #
   ipureintro
-  exact ⟨Hp, Hs⟩
+  exact ⟨Hp.1, Hp.2, Hs⟩
 
 /-- **A created response's watcher was authorized** (the auth plan's A4, the `Watch` row of
-`notes/auth-matrix.md`): in the mode `on γa`, for the mvcc watcher `w` of range `r` a created,
-not canceled, response `m` to the create request `c` names (`ctrlWatcher`), some principal
-`info` (the stream's context's auth info, or the empty one) and a recorded state `st` at which
-auth was disabled, or `info` named a user with the root role, or one whose READ permissions
-covered every key `r` covers. -/
-theorem ctrlWatcher_authorized (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames)
+`notes/auth-matrix.md`; strengthened in G2, 2026-10-30): in the mode `on γa`, for the mvcc watcher
+`w` of range `r` a created, not canceled, response `m` to the create request `c` names
+(`ctrlWatcher`), some principal `info`, bound to the stream's token `tok` (`infoBoundT`: the
+empty user, a token issued to `info`'s user, or the server's TLS identity), and a recorded state
+`st`, at an index at least the create's bound `c.bound`, at which auth was disabled, or `info`
+named a user with the root role, or one whose READ permissions covered every key `r` covers. -/
+theorem ctrlWatcher_authorized (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (γo : mvcc.WsStreamNames)
     (γa : auth.AuthNames) (c : CreateReqM) (m : WatchRespM) (h : m.canceled = false) :
-    auth.modeTag (GF := GF) γ.tag (.on γa) ∗ ctrlWatcher γ γo (.create c) m ⊢
+    auth.modeTag (GF := GF) γ.tag (.on γa) ∗ ctrlWatcher γ s tok γo (.create c) m ⊢
       ∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         mvcc.idAssigned γo m.watchId w ∗ auth.authStateAt γa i st ∗
-        ⌜st.enabled = false ∨
+        infoBoundT s (.on γa) tok info ∗
+        ⌜c.bound ≤ i ∧ (st.enabled = false ∨
           ((auth.authInfoM info).rev ≠ 0 ∧
             ∃ u, st.users !! (auth.authInfoM info).user = some u ∧
               (auth.isRoot u ∨ ∀ x, r.covers x = true →
-                ∃ p ∈ auth.userPerms st u, p.covers .read x))⌝ := by
+                ∃ p ∈ auth.userPerms st u, p.covers .read x)))⌝ := by
   iintro ⟨#Htag, H⟩
   unfold ctrlWatcher
   rw [h]
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases H with ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, -, -, #Hia, -, #Hau, -⟩
-  ihave ⟨%info, %i, %st, #Hst, %Hp, %Hs⟩ := watchAuthed_on γ γa c $$ Htag Hau
+  ihave ⟨%info, %i, %st, #Hst, #Hb, %Hn, %Hp, %Hs⟩ :=
+    watchAuthed_on γ γa s tok c.bound c.key c.rangeEnd $$ Htag Hau
   iexists w, rg, fcs, lo, info, i, st
   iframe #
   ipureintro
-  exact ⟨Hrg, watch_permitted_covers st (auth.authInfoM info) c m.watchId rg Hp Hs Hrg⟩
+  exact ⟨Hrg, Hn, watch_permitted_covers st (auth.authInfoM info) c m.watchId rg Hp Hs Hrg⟩
 
 end iris
 

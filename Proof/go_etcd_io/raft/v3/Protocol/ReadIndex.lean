@@ -231,8 +231,8 @@ static instance has them overlap (`CfgAt.overlap`). B5: the paper's section 8, b
 reader's and the doom fact's configuration indices (the far cases through the doom fact's
 witness and at-most-one, `lc_core` at the doom term, I3 at the reader). -/
 theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM)
-    (c : CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) :
-    CfgAt γ P c → JQuorum c Q →
+    (c : CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) (M : DecMap) :
+    CfgAt γ M P c → JQuorum c Q →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ rqRecOk (GF := GF) γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ Hw
@@ -240,7 +240,7 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM)
   · iintro H; iexact H
   · unfold doomed
     iintro ⟨%n, %G, %a, %c', %q, %HqU, #Hcqa, -, -⟩
-    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%Hpq, -⟩
+    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%MHcqa, %Hpq, #HMHcqa, -⟩
     obtain ⟨-, -, Hc', Hq'⟩ := Hpq
     obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap Hst HcQ Hc' Q q HQ Hq'
     exact absurd (HqU.2.2 x Hx2) (Hw x Hx1 t' U h)
@@ -278,7 +278,7 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
     by_cases hp : IsConfPos G m ∧ γ.reBoot.length ≤ m
     · ihave Hwm := H $$ %m %(⟨hp.1, by omega⟩ : IsConfPos G m ∧ m < m + 1) %hp.2
       icases Hwm with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
-      icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨-, -, -, #Hackw, -⟩
+      icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, -, #HMHcqw, -, -, #Hackw, -⟩
       iexists (if uint.Z T < uint.Z tw then U0 ∪ qw else U0)
       isplitr
       · iintro %u %hu
@@ -330,7 +330,7 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
     ⊢ cqAt (GF := GF) γ t n G a c q -∗ ∃ U, doomed γ T t U := by
   intro HT Hn
   iintro #Hc
-  icases cqAt_parts γ t n G a c q $$ Hc with ⟨%Hp, -, -, #Hacks, #Hd⟩
+  icases cqAt_parts γ t n G a c q $$ Hc with ⟨%MHc, %Hp, #HMHc, -, -, #Hacks, #Hd⟩
   ihave #Hq : (∀ (u : w64), ∀ (_ : u ∈ q), ∃ (t'' i'' : w64),
       ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked (GF := GF) γ u t'' i'') $$ []
   · iintro %u %hu
@@ -410,16 +410,16 @@ the leader's own term log (`isTermLog` against `leadLogOwn`'s entry), whose frag
 the leader's term-log authority `M`, and nothing in `M` is past the leader's last index. Bounded
 at `2 ^ 64 - 1` because `leadPrefix` has only `PlogWfR` (the entries' indices in range). The ghost
 state is handed back. -/
-theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
+theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (ldr : w64) (bL : entryID) (l : List EntryM) :
     s.role = .leader →
-    ⊢ isLeader (GF := GF) γ id s.term -∗ leadPrefix γ ldr s.term bL l -∗ ownLogGhost γ id s kl -∗
+    ⊢ isLeader (GF := GF) γ id s.term -∗ leadPrefix γ ldr s.term bL l -∗ ownLogGhost γ id s kl W -∗
       ⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗
-      ownLogGhost γ id s kl := by
+      ownLogGhost γ id s kl W := by
   intro Hr
   unfold ownLogGhost
   iintro #Hl #Hp H
-  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   ihave Hres : iprop(⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗
       leadLogOwn γ s terms ∗ ghostMapAuth γm 1 terms) $$ [Hterms Htlog]
@@ -457,16 +457,16 @@ theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl :
   icases Hres with ⟨%Hle, Htlog, Hterms⟩
   isplitr
   · ipureintro; exact Hle
-  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iexists γm, terms, fp, γw, wins
   iframe % # ∗
 
 /-- A leader's current log is at least as long as every log of its term (`leadFull`): the
 entries it created are in its term log, whose indices are within its log
 (`leadLogOwn`). -/
-theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
+theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (G : List EntryM) :
     s.role = .leader →
-    ⊢ isLeader (GF := GF) γ id s.term -∗ leadFull γ s.term G -∗ ownLogGhost γ id s kl -∗
+    ⊢ isLeader (GF := GF) γ id s.term -∗ leadFull γ s.term G -∗ ownLogGhost γ id s kl W -∗
       ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ s.base s.log⌝ := by
   intro Hr
   iintro #Hl #HG H
@@ -476,7 +476,7 @@ theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option
   unfold lpfull
   icases Hpf with ⟨%F0, -, -, %HfG⟩
   obtain ⟨HfG, -, HwG, -⟩ := HfG
-  icases ownLogGhost_prefix_within γ id s kl ldr bL l Hr $$ Hl Hp H with ⟨%Hle, -⟩
+  icases ownLogGhost_prefix_within γ id s kl W ldr bL l Hr $$ Hl Hp H with ⟨%Hle, -⟩
   ipureintro
   rw [full_last_index _ _ _ HfG]
   -- the log's last index is in range (`PlogWf`: its last entry's index is a `w64`)
@@ -505,13 +505,13 @@ theorem node_leader (γ : RaftNames) (id2 : w64) (ps2 : PState) :
         leadFull γ ps2.term (fp2 ++ ps2.log) := by
   intro Hr2
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   have Hw : leaderWit (GF := GF) γ id2 ps2 = isLeader γ id2 ps2.term := by
     unfold leaderWit; rw [Hr2]
   rw [Hw]
-  icases ownLogGhost_lead_full γ id2 ps2 kl Hr2 $$ Hlead Hlg with ⟨⟨%fp, #Hp, #Hpf, -⟩, Hlg⟩
-  icases ownLogGhost_recs γ id2 ps2 kl $$ Hlg with ⟨-, #Hr⟩
+  icases ownLogGhost_lead_full γ id2 ps2 kl (virt V πc) Hr2 $$ Hlead Hlg with ⟨⟨%fp, #Hp, #Hpf, -⟩, Hlg⟩
+  icases ownLogGhost_recs γ id2 ps2 kl (virt V πc) $$ Hlg with ⟨-, #Hr⟩
   ihave #HLF := leadFull_intro γ id2 ps2.term ps2.base ps2.log fp $$ Hp Hpf
   unfold lpfull
   icases Hpf with ⟨%F0, #Hc0, #Hfr, %Hf⟩
@@ -532,22 +532,23 @@ above `T`, `Q` meets its quorum (recorded in the doom set); at most `T`, its log
 configuration index, against I3 at the reader. -/
 theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : List EntryM)
     (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) (Y : IProp GF)
-    (HLw : ∀ G, ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝) :
-    CfgAt γ (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
+    (HLw : ∀ G, ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝)
+    (ML : DecMap) :
+    CfgAt γ ML (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
     confCount (FL.drop (uint.Z aL).toNat) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf base0 FL →
     CampOk T F0L → F0L <+: FL →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ votesTbl (GF := GF) γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0 FL -∗
       isCommitted γ (FL.take (uint.Z aL).toNat) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗
-      Y -∗ rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
+      Y -∗ decLb γ ML -∗ rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ HI3 HaL HwFL Hcok Hpre Hw
-  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL HY
+  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL HY #HML
   rcases h : r.2 with _ | ⟨tD, U⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
   unfold doomed
   iintro ⟨%nD, %GD, %aD, %cD, %qD, %HD, #HcqD, -, #HdW⟩
   iexfalso
-  icases cqAt_parts γ tD nD GD aD cD qD $$ HcqD with ⟨%Hp, #HflD, #HcGD, -, #HdD⟩
+  icases cqAt_parts γ tD nD GD aD cD qD $$ HcqD with ⟨%MHcqD, %Hp, #HMHcqD, #HflD, #HcGD, -, #HdD⟩
   ihave #HdD' := dynOn_elim γ _ Hdyn $$ HdD
   iunfold cqDyn at HdD'
   icases HdD' with ⟨%HI1D, -⟩
@@ -557,7 +558,9 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
   icases isCommitted_agree γ _ _ $$ HcGD HcFL with %Hpre2
   by_cases Hadj : confCount (GD.take (uint.Z aD).toNat) ≤ confCount (FL.take (uint.Z aL).toNat) + 1 ∧
       confCount (FL.take (uint.Z aL).toNat) ≤ confCount (GD.take (uint.Z aD).toNat) + 1
-  · obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre2 Hadj.2 Hadj.1 Hp.2.2.1 HcQ qD Q Hp.2.2.2 HQ
+  · icases decLb_compat γ MHcqD ML $$ [HMHcqD HML] with %Hcm
+    · iframe HMHcqD HML
+    obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hcm Hpre2 Hadj.2 Hadj.1 Hp.2.2.1 HcQ qD Q Hp.2.2.2 HQ
     ipureintro
     exact absurd (HD.2.2 x hx1) (Hw x hx2 tD U h)
   rcases (by omega : confCount (GD.take (uint.Z aD).toNat) + 2 ≤ confCount (FL.take (uint.Z aL).toNat) ∨
@@ -602,14 +605,17 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
     ihave Hw2 := HdW' $$ %p %(⟨hpc, hp⟩ : IsConfPos GD p ∧ p < (uint.Z aD).toNat) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     obtain ⟨Hwo1, HwU⟩ := Hwo
-    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, #HflW, #HcGw, -, -⟩
+    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, %Hpw, #HMHcqw, #HflW, #HcGw, -, -⟩
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
     have Hcw : confCount (Gw.take (uint.Z aw).toNat) = confCount (FL.take (uint.Z aL).toNat) + 1 := by
       rw [Hwo1.2.2.2.2, hpcc]
     by_cases HtwT : uint.Z T < uint.Z tw
     · icases isCommitted_agree γ _ _ $$ HcGw HcFL with %Hpre3
-      obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre3 (by omega) (by omega) Hpw.2.2.1 HcQ qw Q
+      icases decLb_compat γ MHcqw ML $$ [HMHcqw HML] with %Hcm
+      · iframe HMHcqw HML
+      obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hcm Hpre3 (by omega) (by omega) Hpw.2.2.1 HcQ qw Q
+
         Hpw.2.2.2 HQ
       ipureintro
       exact absurd (HwU HtwT x hx1) (Hw x hx2 tD U h)
@@ -654,17 +660,18 @@ theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜s.term ≠ W64 0⌝ := by
   intro Hr
   unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   unfold campOwn at *
   cases Hrole : s.role with
   | follower => exact absurd Hrole Hr
   | candidate =>
-    rw [Hrole] at *
-    ihave %Hc := isCamp_ok γ id s.term _ $$ Hcown
-    ipureintro; exact Hc.term_nz
+    -- a candidate's full log has no entry of its term, not even the initial boundary's (term 0)
+    have H0 := (Hfull.2.2 base0.index' base0.term' (plogTermAt_base base0 _)).2 Hrole
+    ipureintro
+    intro h; rw [h] at H0; exact absurd H0 (by simp [base0])
   | leader =>
     rw [Hrole] at *
     icases Hcown with ⟨%F0, #Hc0, -⟩
@@ -676,12 +683,12 @@ theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
 /-! ### Arrival at the leader -/
 
 /-- The persistent facts of a node's log state the arrival needs. -/
-theorem ownLogGhost_commitIn (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
+theorem ownLogGhost_commitIn (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
       ∃ fp, ⌜FullOk s.base fp ∧ LogOk s⌝ ∗ logRecs γ base0 fp ∗ logRecs γ s.base s.log ∗
         commitIn γ (fp ++ s.log) s.commit s.term := by
   unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iintro ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   iexists fp
   isplitr; · ipureintro; exact ⟨Hfull.1, Hlog_ok⟩
@@ -703,10 +710,10 @@ private theorem plogTermAt_ones (L : List EntryM) (c : w64) :
 
 /-- The commit index is past the bootstrap log (`ownLogGhost`'s conjunct, 2026-10-16). -/
 private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
-    (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
+    (kl : Option w64) (W : DurMaps) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
   unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iintro ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   ipureintro; exact Hboot
 
@@ -829,12 +836,12 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
     (wand_entails (ownRaftGhost_term_nz (GF := GF) γ id s (by rw [Hr]; decide))) $$ Hown
     with ⟨%Htnz, Hown⟩
   iunfold ownRaftGhost at Hown
-  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ihave #Hl : isLeader γ id s.term $$ []
   · rw [← leaderWit_leader γ id s Hr]; iexact Hlead
-  ihave ⟨%fp, %Hfl, #Hfr, #Hrecs, #Hcmt⟩ := ownLogGhost_commitIn γ id s kl $$ Hlg
-  ihave %Hboot := ownLogGhost_boot_commit γ id s kl $$ Hlg
+  ihave ⟨%fp, %Hfl, #Hfr, #Hrecs, #Hcmt⟩ := ownLogGhost_commitIn γ id s kl (virt V πc) $$ Hlg
+  ihave %Hboot := ownLogGhost_boot_commit γ id s kl (virt V πc) $$ Hlg
   ihave #Hinv := ownLogGhost_inv $$ Hlg
   ihave #Hrq' := Hrq
   ieval (unfold readReq) at Hrq'
@@ -853,7 +860,7 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   imodintro
   iframe Hres
   unfold ownRaftGhost
-  iexists γv, voted, kl
+  iexists γs, V, πc, kl
   iframe % # ∗
 
 end inv

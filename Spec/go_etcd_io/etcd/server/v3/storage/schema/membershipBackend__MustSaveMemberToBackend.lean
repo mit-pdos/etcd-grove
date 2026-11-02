@@ -6,6 +6,7 @@ tracked buckets, not proved through the batch lock's hook). Lean-first (no Rocq 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 
 @[expose] public section
 
@@ -32,33 +33,44 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`mb.MustSaveMemberToBackend(m)`** (the trust boundary; D43 M5b′, 2026-10-26, the user's
 decision): on the membership backend `mb` over the real backend `d` of the store's names `γ`
-(`mb.be`, `mb.lg` read-only), under the caller's critical-section contract at the store's batch lock
-`P` and post-lock hook `f` (`mvcc.hookOk`: `P` and `f` are the backend's; `csContract`, as the
-cluster's other writers', `apply.isCluster`), a write session's token (spent: the `Unlock`'s
-write-back) and the reader's token (lent), it puts the member `m` (owned, read: `json.Marshal`) as
-`members/<id> := json(m)` (`memberKey`, `memberEnc` of its value `mm`) into the tracked buckets
-(`rbOwn`, the writer's half: `bk` to `bkPut bk …`) and returns `Post`. The `members` bucket exists
-(`UnsafePut` into a missing bucket is fatal). -/
+(`mb.be`, `mb.lg` read-only; `isBackend d.γB …`, persistent, pins the ghost names to that backend,
+2026-11-02, round 3: until then a caller could pick names with made-up contents), under the
+caller's critical-section contract at the store's batch lock `P` and post-lock hook `f`
+(`mvcc.hookOk`: `P` and `f` are the backend's; `csContract`, as the cluster's other writers',
+`apply.isCluster`), a write session's token (spent: the `Unlock`'s write-back) and the reader's
+token (lent), it puts the member `m` (owned, read: `json.Marshal`) as `members/<id> := json(m)`
+(`memberKey`, `memberEnc` of its value `mm`) into a part of any bucket set `S` containing `members`
+(`rbPart d.γB S`, the writer's contents: `bk` to `bkPut bk …`), which comes back **idle**
+(`rbOwnIn d.γB S`: `LockInsideApply`, `UnsafePut`, then its `Unlock`, which writes the put back into
+the read buffer, the file header's Go basis: a read transaction right after sees it,
+`TestBksSaveThenRead`, and every other bucket as the writer has it, `TestBks2WriterAnySIdle`;
+2026-11-01, the backend-auth-split stage: until then the whole writer's half `rbOwn`), and returns
+`Post`. The `members` bucket exists (`UnsafePut` into a missing bucket is fatal). -/
 abbrev schema.membershipBackend.MustSaveMemberToBackend.spec : Prop :=
   ∀ (mb lg : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF) (bk : GMap GoString backend.BktData) (m : Loc) (mm : apply.MemberM),
-  γ.kb = some d → (bk.lookup go!"members").isSome →
+    (Pre Q Post : IProp GF) (S : GoString → Prop) (bk : GMap GoString backend.BktData) (m : Loc)
+    (mm : apply.MemberM) (W Pk : IProp GF),
+  γ.kb = some d → S go!"members" → (bk.lookup go!"members").isSome →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       schema.mbF go!"be" mb ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #d.be : GoInterface) ∗
       schema.mbF go!"lg" mb ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
       mvcc.hookOk γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
-      backend.rbOwn d.γB bk ∗ membership.memberAt m 1 mm }}
+      backend.isBackend d.γB d.P W Pk d.be ∗
+      backend.rbPart d.γB S bk ∗ membership.memberAt m 1 mm }}
     (App (Val (mb @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!!
       go!"MustSaveMemberToBackend")) (Val #m))
   {{ RET #(); Post ∗ mvcc.storeRT γ ∗
-      backend.rbOwn d.γB (apply.bkPut bk go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) ∗
+      backend.rbOwnIn d.γB S
+        (apply.bkPut bk go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) ∗
       membership.memberAt m 1 mm }}
+
 
 end spec
 

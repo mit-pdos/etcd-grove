@@ -54,7 +54,13 @@ theorem WsState.restoreSt_E (w : Loc) : (σ.restoreSt Lr).E !! w =
 
 theorem WsState.restoreSt_live (w : Loc) : (σ.restoreSt Lr).live w ↔ σ.live w := by
   unfold WsState.live
-  rw [WsState.restoreSt_Wu, WsState.restoreSt_victimOf]
+  have hany : ((σ.restoreSt Lr).ST !! w).any (fun st => st.compacted && st.ch != null) =
+      (σ.ST !! w).any (fun st => st.compacted && st.ch != null) := by
+    rw [WsState.restoreSt_ST]
+    cases σ.ST !! w with
+    | none => rfl
+    | some st => simp only [Option.map_some]; split <;> rfl
+  rw [WsState.restoreSt_Wu, WsState.restoreSt_victimOf, hany]
   show ((∅ : GMap Loc WatchRange) !! w).isSome = true ∨ _ ↔ _
   cases (σ.Ws !! w) <;> cases (σ.Wu !! w) <;> simp
 
@@ -91,7 +97,8 @@ theorem WsOk.restoreSt {σ : WsState} (h : WsOk σ) (Lr : Log) : WsOk (σ.restor
       have e1 : st.compacted = st0.compacted := by rw [← hs]; split <;> rfl
       have e2 : st.victim = st0.victim := by rw [← hs]; split <;> rfl
       have e3 : st.ch = st0.ch := by rw [← hs]; split <;> rfl
-      refine ⟨by rw [e1]; exact f1, fun hlv => ?_, by rw [e3, hl]; exact f3⟩
+      refine ⟨fun hc => ⟨rfl, by rw [WsState.restoreSt_victimOf]; rw [e1] at hc; exact (f1 hc).2⟩,
+        fun hlv => ?_, by rw [e3, hl]; exact f3⟩
       rw [e2, WsState.restoreSt_victimOf]; exact f2 ((hl w).1 hlv)
   · simp [WsState.restoreSt] at hw
 
@@ -158,7 +165,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `minRev` (its events up to there are its delivered ones, the synced `popFacts`: no event is
 delivered or dropped; its `minRev` at most its first revision or the notified log's length, under
 whose certificate), the others unchanged. -/
-theorem mvcc.memberRes_restoreSt (γ : mvcc.WsNames) (σ : mvcc.WsState) (hset : σ.settled)
+theorem mvcc.memberRes_restoreSt (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.WsOk σ)
+    (hset : σ.settled)
     (Lr : mvcc.Log) (w : Loc) (st : mvcc.WatcherSt) (hst : σ.ST !! w = some st) :
     mvcc.memberRes (GF := GF) γ 1 σ w st ∗ mvcc.idxCert γ.st.idx σ.Lmu ⊢
       mvcc.memberRes γ 1 (σ.restoreSt Lr) w
@@ -175,6 +183,11 @@ theorem mvcc.memberRes_restoreSt (γ : mvcc.WsNames) (σ : mvcc.WsState) (hset :
       intro e he; rw [mvcc.WsState.restoreSt_E, he, hst]; simp [hws]
     have hch : (mvcc.setRestore st).ch = st.ch := rfl
     have hmr : (mvcc.setRestore st).minRev = st.minRev := rfl
+    have hcp : (mvcc.setRestore st).compacted = false := by
+      show st.compacted = false
+      cases hc : st.compacted
+      · rfl
+      · have := ((hok.st_flags w st hst).1 hc).1; rw [this] at hws; cases hws
     unfold mvcc.memberRes mvcc.popFacts
     simp only [hl, hl', hws, hws', hwu', ↓reduceIte, Bool.false_eq_true, hch, hmr]
     iintro ⟨⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl,
@@ -189,13 +202,15 @@ theorem mvcc.memberRes_restoreSt (γ : mvcc.WsNames) (σ : mvcc.WsState) (hset :
     · ipureintro; exact hE' _ hE
     isplitr
     · ipureintro; exact ⟨Hp.1, rfl⟩
-    iexists σ.Lmu
-    iframe Hcert
-    ipureintro
-    have hb := hset.1 w γw (evsw, d) hws hM hE
-    simp only at hb
-    show (sint.Z st.minRev).toNat ≤ _
-    omega
+    isplitr
+    · iexists σ.Lmu
+      iframe Hcert
+      ipureintro
+      have hb := hset.1 w γw (evsw, d) hws hM hE
+      simp only at hb
+      show (sint.Z st.minRev).toNat ≤ _
+      omega
+    iintro %hc; rw [hcp] at hc; cases hc
   · have hws0 : σ.Ws !! w = none := by
       cases h : σ.Ws !! w with
       | none => rfl
@@ -206,6 +221,7 @@ theorem mvcc.memberRes_restoreSt (γ : mvcc.WsNames) (σ : mvcc.WsState) (hset :
       (by show ((∅ : GMap Loc mvcc.WatchRange) !! w).isSome = _; rw [hws0]; rfl)
       (by rw [mvcc.WsState.restoreSt_Wu, hws0]; cases σ.Wu !! w <;> rfl) rfl
       (by rw [mvcc.WsState.restoreSt_E]; cases σ.E !! w <;> simp [hws])
+      (by rw [mvcc.WsState.restoreSt_ST]; cases σ.ST !! w <;> simp [hws])
     iexact H
 
 /-- The unsynced group with the first `n` synced watchers of `keys` added. -/
@@ -228,7 +244,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hws, %Hkb, Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
+  wp_start as ⟨#Hws, %Hkb, %Hcm', Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, #Hnd, Hrr,
+    Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -249,7 +266,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
   -- the sole writer's notified log is the lock's
   iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#HcL, Htoks, HwlW⟩
+  icases Hww with ⟨#HcL, Htoks, HwlW, Hpin⟩
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨HwlL, HlogQ⟩
   ihave %HLL := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ HwlW HwlL
@@ -264,19 +281,23 @@ theorem mvcc.watchableStore.Restore.wp_proof
   -- `s.store.Restore(b)`
   (try wp_auto)
   wp_apply (hRestore st γ.st b' d' γb' P' L R hLR hR) $$ [Hcl Hfs Hwsd Hfrag Hown Htoks HlogQ
-      Hview Hnc Hrr Hrts]
-    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
+      Hview Hnc Hrr Hrts Hpin]
+    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
   · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
-    iframe Hcl Hfs Hfrag Hown Htoks Hview Hnc Hrr Hrts
+    iframe Hcl Hfs Hfrag Hown Htoks Hview Hnc Hrr Hrts Hpin
     iframe #
     isplitr
     · ipureintro; exact Hkb
+    isplitr
+    · ipureintro; exact Hcm'
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ
     rw [HLL]; iexact HlogQ
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
+  ihave Hpin : mvcc.writerPin (GF := GF) (γ.st.withPhys p') ([[], []] ++ R : mvcc.Log) $$ [Hpin]
+  · iexact Hpin
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
   have hLL' : σ.Lmu.length ≤ L'.length := by rw [← HLL]; exact hLR.length_le
   (try wp_auto)
@@ -424,7 +445,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
     iapply (mvcc.bigSepM_gmapMapK _ _ _).2
     iapply (BigSepM.bigSepM_impl (m := σ.ST)) $$ Hmem
     iintro !> %k %x %hk H
-    iapply mvcc.memberRes_restoreSt γ σ Hset L' k x hk
+    iapply mvcc.memberRes_restoreSt γ σ Hok Hset L' k x hk
     iframe H Hcert
   have e1 : (σ.restoreSt L').Lmu = L' := rfl
   have e2 : (σ.restoreSt L').Ws = ∅ := rfl
@@ -436,10 +457,12 @@ theorem mvcc.watchableStore.Restore.wp_proof
   have e8 : (σ.restoreSt L').VB = σ.VB := rfl
   have eo : ∀ w x, mvcc.outRes (GF := GF) γ (σ.restoreSt L') w x = mvcc.outRes γ σ w x :=
     fun _ _ => rfl
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ (σ.restoreSt L') (fun h => by rw [e5]; exact h) $$ Hwfz
   ihave HPf : mvcc.watchStoreBody s γ 1 (σ.restoreSt L') $$ [Hσ HwlL HlogQ Hsy Hun Hvf Hvs Hvcap Hvbs
       Hst Hwo Hmeta Hwt Hmem']
   · iunfold mvcc.watchStoreBody
     simp only [named, e1, e2, e3, e4, e5, e6, e7, e8, eo]
+    iframe Hwfz2
     iframe Hσ Hsy Hun Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmfix Hmem' HcL'
     isplitl [HwlL HlogQ]
     · iunfold mvcc.wlogQ; iunfold mvcc.logQ at HlogQ; iframe HwlL HlogQ
@@ -461,8 +484,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
   isplitr
   · ipureintro; exact ⟨hbk', hkb'⟩
   iunfold mvcc.watchWriter
-  simp only [mvcc.wBudget]
-  iframe HcL' Htoks HwlW
+  simp only [mvcc.wBudget, mvcc.idxCert_withPhys, mvcc.StoreNames.withPhys_revs]
+  iframe HcL' Htoks HwlW Hpin
 
 end proof
 

@@ -25,7 +25,9 @@ module
 
 public import Proof.runtime.PkgInit
 public import RaftWitness.Code.go_etcd_io.raft.v3
+public import RaftWitness.Code.go_etcd_io.raft.v3.confchange
 public import RaftWitness.Code.go_etcd_io.raft.v3.raftpb
+public import RaftWitness.Code.go_etcd_io.raft.v3.tracker
 public import Code.google_golang_org.protobuf.proto
 public import Code.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.Code.bytes
@@ -69,7 +71,9 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
   | github_com_goose_lang_primitive : ExternalInit pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
   | go_etcd_io_raft_v3 : ExternalInit pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
+  | go_etcd_io_raft_v3_confchange : ExternalInit pkg_id.go_etcd_io.raft.v3.confchange _root_.Perennial.go_etcd_io.raft.v3.confchange.initialize'
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
+  | go_etcd_io_raft_v3_tracker : ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'

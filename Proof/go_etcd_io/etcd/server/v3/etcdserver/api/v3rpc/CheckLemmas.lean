@@ -12,6 +12,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnReques
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.IrrDepth
 
 @[expose] public section
 
@@ -78,6 +80,137 @@ theorem v3rpc.txnCheck_eq (n : Int) (cs : List CmpModel) (ts es : List v3rpc.Req
   unfold v3rpc.txnCheck
   rw [v3rpc.opCheck]
   cases v3rpc.opsCheck (n - v3rpc.txnWidth cs ts es) ts <;> rfl
+
+/-! ## The depth of a checked transaction (2026-10-31, `notes/irr-depth.md`) -/
+
+theorem v3rpc.msgDepth_putTxnOp (o : OpFull) : (txn.putTxnOp o).msgDepth = 2 := by
+  unfold txn.putTxnOp; split <;> (try split) <;> simp [TxnOp.msgDepth]
+
+mutual
+/-- A checked operation at budget `m ≥ 0` is at most `2m + 2` messages deep (its `RequestOp`
+counted). -/
+theorem v3rpc.opCheck_msgDepth : ∀ (m : Int) (u : v3rpc.ReqOp) (o : TxnOp), 0 ≤ m →
+    v3rpc.opCheck m u = none → u.toTxnOp = some o → (o.msgDepth : Int) ≤ 2 * m + 2
+  | _, .range _, o, hm, _, ho => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ho; subst ho
+    simp only [TxnOp.msgDepth]; omega
+  | _, .put _, o, hm, _, ho => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ho; subst ho
+    rw [v3rpc.msgDepth_putTxnOp]; omega
+  | _, .delete _, o, hm, _, ho => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ho; subst ho
+    simp only [TxnOp.msgDepth]; omega
+  | m, .txn cs ts es, o, hm, h, ho => by
+    simp only [v3rpc.opCheck] at h
+    split at h
+    · simp at h
+    rename_i hw
+    split at h
+    · simp at h
+    rename_i hc
+    split at h
+    · simp at h
+    rename_i hts
+    simp only [v3rpc.ReqOp.toTxnOp] at ho
+    split at ho
+    · rename_i ts' es' h1 h2
+      simp only [Option.some.injEq] at ho; subst ho
+      by_cases hw0 : v3rpc.txnWidth cs ts es = 0
+      · have hcs : cs = [] := by
+          unfold v3rpc.txnWidth at hw0; exact List.eq_nil_of_length_eq_zero (by omega)
+        have hts0 : ts = [] := by
+          unfold v3rpc.txnWidth at hw0; exact List.eq_nil_of_length_eq_zero (by omega)
+        have hes0 : es = [] := by
+          unfold v3rpc.txnWidth at hw0; exact List.eq_nil_of_length_eq_zero (by omega)
+        subst hcs hts0 hes0
+        simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at h1 h2
+        subst h1 h2
+        simp [TxnOp.msgDepth, apply.depthMax]; omega
+      · have hm' : 0 ≤ m - v3rpc.txnWidth cs ts es := by omega
+        have hb : ∀ (os : List TxnOp),
+            (∀ o ∈ os, (o.msgDepth : Int) ≤ 2 * (m - v3rpc.txnWidth cs ts es) + 2) →
+            apply.depthMax (os.map TxnOp.msgDepth) ≤ (2 * m).toNat := by
+          intro os hos
+          apply apply.depthMax_le
+          intro d hd
+          obtain ⟨o', ho'm, rfl⟩ := List.mem_map.1 hd
+          have := hos o' ho'm
+          omega
+        have hT := hb ts' (v3rpc.opsCheck_msgDepth _ ts ts' hm' hts h1)
+        have hE := hb es' (v3rpc.opsCheck_msgDepth _ es es' hm' h h2)
+        have hC : (if cs = [] then 0 else 1) ≤ (2 * m).toNat := by
+          split
+          · omega
+          · rename_i hne
+            have : cs.length ≠ 0 := fun h0 => hne (List.eq_nil_of_length_eq_zero h0)
+            unfold v3rpc.txnWidth at hw; omega
+        have hmax := Nat.max_le.2 ⟨hC, Nat.max_le.2 ⟨hT, hE⟩⟩
+        simp only [TxnOp.msgDepth]
+        omega
+    · cases ho
+  | _, .empty, _, _, h, _ => by simp [v3rpc.opCheck] at h
+
+/-- Every operation of checked operations at budget `m ≥ 0` is at most `2m + 2` deep. -/
+theorem v3rpc.opsCheck_msgDepth : ∀ (m : Int) (us : List v3rpc.ReqOp) (os : List TxnOp), 0 ≤ m →
+    v3rpc.opsCheck m us = none → v3rpc.ReqOp.toTxnOps us = some os →
+    ∀ o ∈ os, (o.msgDepth : Int) ≤ 2 * m + 2
+  | _, [], os, _, _, ho => by
+    simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at ho; subst ho; simp
+  | m, u :: us, os, hm, h, ho => by
+    simp only [v3rpc.opsCheck] at h
+    split at h
+    · simp at h
+    rename_i hu
+    simp only [v3rpc.ReqOp.toTxnOps] at ho
+    split at ho
+    · rename_i t ts h1 h2
+      simp only [Option.some.injEq] at ho; subst ho
+      intro o' ho'
+      rcases List.mem_cons.1 ho' with he | he
+      · subst he; exact v3rpc.opCheck_msgDepth m u o' hm hu h1
+      · exact v3rpc.opsCheck_msgDepth m us ts hm h h2 o' he
+    · cases ho
+end
+
+/-- **A transaction `checkTxnRequest` accepts at budget `n` is at most `2n + 1` messages deep.** -/
+theorem v3rpc.txnCheck_msgDepth {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp}
+    {ts' es' : List TxnOp} (h : v3rpc.txnCheck n cs ts es = none)
+    (hts : v3rpc.ReqOp.toTxnOps ts = some ts') (hes : v3rpc.ReqOp.toTxnOps es = some es') :
+    (TxnModel.msgDepth { cmps := cs, thenOps := ts', elseOps := es' } : Int) ≤ 2 * n + 1 := by
+  have hn : 0 ≤ n := by
+    unfold v3rpc.txnCheck v3rpc.opCheck at h
+    split at h
+    · simp at h
+    · omega
+  have hop := v3rpc.opCheck_msgDepth n (.txn cs ts es) (.txn cs ts' es') hn h
+    (by simp [v3rpc.ReqOp.toTxnOp, hts, hes])
+  simp only [TxnOp.msgDepth] at hop
+  simp only [TxnModel.msgDepth]
+  omega
+
+/-- **A transaction checked at a budget within `maxTxnOpsOk` fits protobuf's recursion limit**
+(its `InternalRaftRequest` decodes at apply). -/
+theorem v3rpc.txnDepthOk_of_check {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp}
+    {ts' es' : List TxnOp} (h : v3rpc.txnCheck n cs ts es = none) (hn : v3rpc.maxTxnOpsOk n)
+    (hts : v3rpc.ReqOp.toTxnOps ts = some ts') (hes : v3rpc.ReqOp.toTxnOps es = some es') :
+    apply.txnDepthOk { cmps := cs, thenOps := ts', elseOps := es' } := by
+  have := v3rpc.txnCheck_msgDepth h hts hes
+  unfold v3rpc.maxTxnOpsOk at hn
+  unfold apply.txnDepthOk apply.protoRecursionLimit
+  omega
+
+/-- The model of a transaction checked at a budget within `maxTxnOpsOk` fits protobuf's recursion
+limit (`kvTxnOk`'s depth conjunct). -/
+theorem v3rpc.txnModelDepthOk_of_check {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp}
+    (h : v3rpc.txnCheck n cs ts es = none) (hn : v3rpc.maxTxnOpsOk n) :
+    ∀ t, v3rpc.txnModelOf cs ts es = some t → apply.txnDepthOk t := by
+  intro t ht
+  unfold v3rpc.txnModelOf at ht
+  split at ht
+  · rename_i ts' es' h1 h2
+    simp only [Option.some.injEq] at ht; subst ht
+    exact v3rpc.txnDepthOk_of_check h hn h1 h2
+  · cases ht
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

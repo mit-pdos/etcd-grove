@@ -134,9 +134,6 @@ theorem raftLog.stableTo.wp_proof
       word
     · simp only [List.length_append, List.length_take, List.length_drop]
       omega
-    · intro _
-      rw [List.append_assoc, List.take_append_drop]
-      exact Hssnap Hsn
     · simp only [Huoff, w64Max_spec, List.length_drop]
       word
     · intro _
@@ -165,6 +162,10 @@ theorem raftLog.stableTo.wp_proof
         rcases Hsn0 with h | h
         · exact Hs h
         · rw [(Hsappi h).2.1] at Hsp; cases Hsp
+    · -- the log's terms: the same entries, split elsewhere
+      exact FrOk.of_le Hfr rfl rfl (Int.le_refl _)
+        (by have := w64Max_spec ls.inprogress (id.index' + W64 1); simp only; omega)
+        (DtOk.of_eq Hfr.2.2 rfl (by simp only; rw [List.append_assoc, List.take_append_drop]) rfl)
     · simp only [Hk]
   · -- a miss: nothing changes
     rw [ite_eq_right Hh]

@@ -352,7 +352,7 @@ theorem seqNext_order (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp :
     exact seqKey_lt kp mw (mv + 1) hmw (by omega)
 
 section sprintf
-variable [GooseExts] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Sprintf("%s/%016d", x, n)` for a string `x` and an `int` `n` (of any sign) is `x/` then
 `decimalPad 16 n` (`SprintfOut.str_slash_016d_int` for `n ≥ 0`). -/
@@ -394,6 +394,32 @@ theorem seqTxn_under (pfx kp key val : GoString) (g : w64) (hb : pfx <+: baseKey
     · exact hk
   · intro op hop
     simp [seqTxn] at hop
+
+/-- `newSequentialKV`'s get fits (2026-10-30, `notes/invoke-size-b.md`). -/
+theorem lastKeyOp_size {kp : GoString} (hk : kp.length ≤ 2 ^ 28) : opSizeOk (lastKeyOp kp) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withSortM_keep _ _)
+        (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))) hk (by decide)
+
+/-- `newSequentialKV`'s key `kp/%016d` is within `2 ^ 28` (the number at most 20 bytes). -/
+theorem seqKey_length_le {kp key : GoString} (n : w64) (hkp : kp.length ≤ 2 ^ 27 + 2 ^ 10)
+    (hkey : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimalPad 16 (sint.Z n)) :
+    key.length ≤ 2 ^ 28 := by
+  have h1 : -(2 ^ 63) ≤ sint.Z n ∧ sint.Z n < 2 ^ 63 := by word
+  have h : (sint.Z n).natAbs < 10 ^ 19 := by omega
+  have := _root_.Perennial.fmt.length_decimalNat_le _ 19 (by omega) h
+  subst hkey
+  unfold _root_.Perennial.fmt.decimalPad _root_.Perennial.fmt.padZeros
+  split <;> simp <;> omega
+
+/-- `newSequentialKV`'s transaction fits. -/
+theorem seqTxn_size {kp key val : GoString} (g : w64) (hkp : kp.length ≤ 2 ^ 27 + 2 ^ 10)
+    (hkey : key.length ≤ 2 ^ 28) (hv : val.length ≤ 2 ^ 28) :
+    txnSizeOk (seqTxn kp key val g) := by
+  unfold txnSizeOk txnWireLen seqTxn baseKey
+  simp [cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
+  omega
 
 /-- A comparison `ModRevision(k) < c` that holds: every key-value of `k` has a mod revision below
 `c`. -/

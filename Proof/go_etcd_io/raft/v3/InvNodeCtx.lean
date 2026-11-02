@@ -181,6 +181,25 @@ theorem nodeErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
   iright; iright
   iexact H
 
+/-- (2026-10-29, stage U9a) The node stopped: `ErrStopped`. -/
+theorem nodeErr_stopped (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    errStopped (GF := GF) err ⊢ nodeErr cd err := by
+  unfold nodeErr
+  iintro H
+  iright; ileft
+  iexact H
+
+/-- (2026-10-29, stage U9a) `stepWithWaitOption`'s error: `ErrStopped`. -/
+theorem waitErr_stopped (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (wait : Bool) :
+    errStopped (GF := GF) err ⊢ (if wait then propErr cd err else nodeErr cd err) := by
+  iintro H
+  cases wait
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iapply nodeErr_stopped $$ H
+  · simp only [↓reduceIte]
+    iapply propErr_of_nodeErr
+    iapply nodeErr_stopped $$ H
+
 /-- `stepWithWaitOption`'s error (`propErr` with `wait`, `nodeErr` otherwise): `nil`. -/
 theorem waitErr_nil (cd : context.ContextDesc (IProp GF)) (wait : Bool) :
     ⊢ (if wait then propErr (GF := GF) cd interface.nil else nodeErr cd interface.nil) := by

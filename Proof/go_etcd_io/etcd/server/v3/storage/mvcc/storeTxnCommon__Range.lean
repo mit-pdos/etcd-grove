@@ -41,7 +41,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- what `rangeKeys` uses: the snapshot as a reader, the certificate as the index's knowledge
-  ihave #Hrdr := mvcc.keyReadLocked_readerD (mvcc.storeRT γ) false rt m m' Rd Tok (mvcc.delKey γ)
+  ihave #Hrdr := mvcc.keyReadLocked_readerD (mvcc.storeRT γ) _ false rt m m' Rd Tok (mvcc.delKey γ)
     $$ [Hsnap Hthin]
   · iframe #
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []

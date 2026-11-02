@@ -47,6 +47,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactNoDup
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
@@ -174,10 +175,14 @@ structure RespM where
   regs : List Loc
   /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
   idx : Nat
+  /-- (watches across a compaction, 2026-11-01) its `CompactRevision`: `0`, or the store's
+  compaction revision when the watcher's next revision was compacted (`chooseAll`'s response) -/
+  compactRev : w64 := W64 0
 
 instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx))
-    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
+  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx,
+      r.compactRev))
+    (by rintro ⟨a, b, c, d, e, f, g, i⟩ ⟨a', b', c', d', e', f', g', i'⟩ h; have h := Pos.encode_inj h;
         simp_all)
 
 instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
@@ -316,9 +321,13 @@ instance WsState.countable : Pos.Countable WsState :=
 /-- The victim batch of `w`, if any. -/
 def WsState.victimOf (σ : WsState) (w : Loc) : Option EventBatch := σ.VB.findSome? (· !! w)
 
-/-- `w` is a live watcher under the lock: synced, unsynced or a victim. -/
+/-- `w` is a live watcher under the lock: synced, unsynced or a victim, or (watches across a
+compaction, 2026-11-01) compacted with its channel open (`chooseAll` sent it its compaction
+response and deleted it from the unsynced group; it waits for its cancel, `cancelWatcher`'s
+`compacted` arm). -/
 def WsState.live (σ : WsState) (w : Loc) : Prop :=
-  (σ.Ws !! w).isSome ∨ (σ.Wu !! w).isSome ∨ (σ.victimOf w).isSome
+  (σ.Ws !! w).isSome ∨ (σ.Wu !! w).isSome ∨ (σ.victimOf w).isSome ∨
+    (σ.ST !! w).any (fun st => st.compacted && st.ch != null)
 
 instance (σ : WsState) (w : Loc) : Decidable (σ.live w) := by unfold WsState.live; infer_instance
 
@@ -341,7 +350,7 @@ structure WsOk (σ : WsState) : Prop where
   wo_st : ∀ w, (σ.Wo !! w).isSome → σ.ST !! w = none
   wo_live : ∀ w, (σ.Wo !! w).isSome → ¬ σ.live w
   st_flags : ∀ w st, σ.ST !! w = some st →
-    st.compacted = false ∧
+    (st.compacted = true → (σ.Ws !! w) = none ∧ σ.victimOf w = none) ∧
     (σ.live w → (st.victim = true ↔ (σ.victimOf w).isSome)) ∧ (st.ch = null ↔ ¬ σ.live w)
   wo_flags : ∀ w st, σ.Wo !! w = some st →
     st.compacted = false ∧ st.victim = true ∧ st.ch ≠ null
@@ -450,10 +459,10 @@ instance filtersOk_persistent (fcs : GoSlice) : Persistent (filtersOk (GF := GF)
 
 /-! ## Responses -/
 
-/-- The `WatchResponse` value `v` is the response `r`: its id and revision, no compaction, its
-events a read-only slice of `r`'s events (`evIs` each). -/
+/-- The `WatchResponse` value `v` is the response `r`: its id, revision and compaction revision,
+its events a read-only slice of `r`'s events (`evIs` each). -/
 def respIs (v : WatchResponse) (r : RespM) : IProp GF :=
-  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = W64 0⌝ ∗
+  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
     ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
       [∗list] x ∈ ps.zip r.evs, evIs x.1 x.2)
 
@@ -470,12 +479,16 @@ instance respsIs_persistent (vs : List WatchResponse) (rs : List RespM) :
     Persistent (respsIs (GF := GF) vs rs) := by
   unfold respsIs; infer_instance
 
-/-- What a response says, for good: its revision is at or above its events', and a response
-with events carries its watcher's id. -/
+/-- What a response says, for good: its revision is at or above its events', a response with
+events carries its watcher's id, and (watches across a compaction, 2026-11-01) a compaction
+response (`compactRev ≠ 0`, `chooseAll`'s) has no events, carries its watcher's own id (never
+`-1`) and no revision (Go leaves `Revision` unset). Margin: the code also gives
+`minRev < compactRev ≤ curRev` for the watcher's `minRev` at the choice; no client needs it. -/
 def respOk (r : RespM) : IProp GF :=
   iprop(⌜∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev⌝ ∗
     ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗
-      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1))⌝)
+      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1)) ∧
+        (r.compactRev ≠ W64 0 → r.evs = [] ∧ r.id = rr.id ∧ r.id ≠ W64 (-1) ∧ r.rev = W64 0)⌝)
 
 instance respOk_persistent (r : RespM) : Persistent (respOk (GF := GF) r) := by
   unfold respOk; infer_instance
@@ -512,6 +525,26 @@ def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗
 
 instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
   unfold evLog; infer_instance
+
+/-- **No revision of the logs a watch reads writes a key twice** (persistent; watches across a
+compaction, 2026-11-01): every watched log (`evLog`) changes each key at most once per revision.
+Compaction at a revision that writes a key twice keeps only the later change
+(`issues/etcd-compaction-delete-then-put.md`, `issues/etcd-txn-check-intervals-sibling.md`), so a
+watch from that revision would miss the earlier one. -/
+def noDupKeys (γ : StoreNames) : IProp GF :=
+  iprop(□ ∀ log : Log, evLog γ log ={⊤}=∗ ⌜oneChangePerKey log⌝)
+
+instance noDupKeys_persistent (γ : StoreNames) : Persistent (noDupKeys (GF := GF) γ) := by
+  unfold noDupKeys; infer_instance
+
+/-- **What a watcher's registration needs of the store** (the create token's; watches across a
+compaction, 2026-11-01, `notes/watch-compaction-plan.md`): the store never compacts
+(`noCompactor`), or no revision of the logs a watch reads writes a key twice (`noDupKeys`). Until
+then the first alone (M2's F1, no watchers in compaction mode). -/
+def watchNoDup (γ : StoreNames) : IProp GF := iprop(noCompactor γ ∨ noDupKeys γ)
+
+instance watchNoDup_persistent (γ : StoreNames) : Persistent (watchNoDup (GF := GF) γ) := by
+  unfold watchNoDup; infer_instance
 
 theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idxSealed γ.idx L := by
   unfold evLog; iintro ⟨#H, -⟩; iexact H
@@ -646,29 +679,47 @@ def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
 instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
   unfold notifiedLb; infer_instance
 
-/-- A fraction of the notified log's authority, at `L`, lent (`watcher.send` for a progress
+/-- A fraction of the notified log's authority, at `L` (not empty: the store's log has its first
+revisions; a compaction response's revision `0` is below it), lent (`watcher.send` for a progress
 response, K2e-5), or nothing. -/
 def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
-  | some (q, L) => monoListAuthOwn γ.wlog q L
+  | some (q, L) => iprop(monoListAuthOwn γ.wlog q L ∗ ⌜L ≠ []⌝)
   | none => iprop(True)
 
 theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
   unfold notifiedLent; itrivial
 
+/-- **A compaction response's revision is permitted** (C3's store law, 2026-11-02): none, or a
+positive revision the store's compaction permit holds of (`crevPermAt`; `syncWatchers` reads it
+with the revision under `s.revMu`). -/
+def cmpPermOf (γ : WsNames) (x : RespM) : IProp GF :=
+  iprop(⌜x.compactRev = W64 0⌝ ∨
+    (⌜0 < sint.Z x.compactRev⌝ ∗ crevPermAt γ.st (sint.Z x.compactRev)))
+
+instance cmpPermOf_persistent (γ : WsNames) (x : RespM) :
+    Persistent (cmpPermOf (GF := GF) γ x) := by
+  unfold cmpPermOf; infer_instance
+
 /-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
 at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
-one: a victim's batch has events.) -/
+one: a victim's batch has events.) A compaction response (watches across a compaction,
+2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. Every response's
+compaction revision is permitted (`cmpPermOf`, C3's store law: outside the disjunction, which a
+compaction response may satisfy by its second disjunct). -/
 def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
-  iprop(⌜x.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗
-    ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝)
+  iprop((⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
+    ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝) ∨
+    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x)
 
 instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
     Persistent (respRev (GF := GF) γ pre x) := by
   unfold respRev; infer_instance
 
-/-- An event-less response's revision is the last of a log the store had notified. -/
+/-- An event-less response's revision is the last of a log the store had notified, or (a
+compaction response) `0`. -/
 def revLbOf (γ : WsNames) (y : RespM) : IProp GF :=
-  iprop(⌜y.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗ ⌜sint.Z y.rev + 1 = (L.length : Int)⌝)
+  iprop(⌜y.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗ ⌜sint.Z y.rev + 1 = (L.length : Int)⌝) ∨
+    ⌜y.compactRev ≠ W64 0 ∧ y.rev = W64 0⌝)
 
 instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF := GF) γ y) := by
   unfold revLbOf; infer_instance
@@ -676,22 +727,29 @@ instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF
 theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
     respRev (GF := GF) γ pre y ⊢ revLbOf γ y := by
   unfold respRev revLbOf
-  iintro (%h | ⟨%L, #Hl, %h⟩)
+  iintro ⟨(%h | ⟨%L, #Hl, %h⟩ | %h), -⟩
   · ileft; ipureintro; exact h
-  · iright; iexists L; iframe Hl; ipureintro; exact h.1
+  · iright; ileft; iexists L; iframe Hl; ipureintro; exact h.1
+  · iright; iright; ipureintro; exact h
+
+/-- **A watch response's compaction revision is permitted** (C3's store law). -/
+theorem respRev_cmpPerm (γ : WsNames) (pre : List RespM) (y : RespM) :
+    respRev (GF := GF) γ pre y ⊢ cmpPermOf γ y := by
+  unfold respRev
+  iintro ⟨-, $⟩
 
 /-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
 response whose revision is the last of a notified log is at most `Lx`'s last. -/
-theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) :
+theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) (hLx : Lx ≠ []) :
     ∀ l : List RespM, monoListAuthOwn (GF := GF) γ.wlog q Lx ∗ □ ([∗list] y ∈ l, revLbOf γ y) ⊢
       ⌜∀ y ∈ l, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝
   | [] => by iintro -; ipureintro; intro y hy; cases hy
   | y :: l => by
     iintro ⟨Ha, #H⟩
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Hy, #Hl⟩
-    icases persistent_entails_right (revLbs_le γ q Lx l) $$ [$Ha $Hl] with ⟨%ih, ⟨Ha, -⟩⟩
+    icases persistent_entails_right (revLbs_le γ q Lx hLx l) $$ [$Ha $Hl] with ⟨%ih, ⟨Ha, -⟩⟩
     iunfold revLbOf at Hy
-    icases Hy with (%hne | ⟨%Ly, #Hlb, %hy⟩)
+    icases Hy with (%hne | ⟨%Ly, #Hlb, %hy⟩ | %hc)
     · ipureintro
       intro y' hy' he
       rcases List.mem_cons.1 hy' with rfl | h
@@ -704,16 +762,37 @@ theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) :
       rcases List.mem_cons.1 hy' with rfl | h
       · have := hp.2.length_le; omega
       · exact ih y' h he
+    · -- a compaction response: revision `0`, below a non-empty log's length
+      ipureintro
+      intro y' hy' he
+      rcases List.mem_cons.1 hy' with rfl | h
+      · rw [hc.2]
+        have : 0 < Lx.length := List.length_pos_iff.2 hLx
+        have : sint.Z (W64 0) = 0 := rfl
+        omega
+      · exact ih y' h he
 
+/-- **What a response sent covers** (K1b): the watchers it covers (`covFact`), its completeness
+for an id `-1` (`respCompl`), that an event-less one covers its watcher, and its revision
+(`respRev`). A compaction response (watches across a compaction, 2026-11-01: `chooseAll`'s, no
+events, revision `0`) covers nothing: it is exempt from covering its watcher, and its
+`respRev` is the compaction arm. -/
 def respCov (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) : IProp GF :=
   iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x ∗
-    ⌜x.evs = [] → x.w ∈ x.cov⌝ ∗ respRev γ pre x)
+    ⌜x.evs = [] → x.compactRev = W64 0 → x.w ∈ x.cov⌝ ∗ respRev γ pre x)
 
 theorem respCov_rev (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     respCov (GF := GF) γ γc pre x ⊢ revLbOf γ x := by
   unfold respCov
   iintro ⟨-, -, -, #Hr⟩
   iapply revLbOf_of γ pre x $$ Hr
+
+/-- **A covered response's compaction revision is permitted** (C3's watch side, 2026-11-02). -/
+theorem respCov_cmpPerm (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
+    respCov (GF := GF) γ γc pre x ⊢ cmpPermOf γ x := by
+  unfold respCov
+  iintro ⟨-, -, -, #Hr⟩
+  iapply respRev_cmpPerm γ pre x $$ Hr
 
 instance respCov_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     Persistent (respCov (GF := GF) γ γc pre x) := by
@@ -1126,7 +1205,7 @@ theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM)
   iframe Hc Hr
   isplitr
   rotate_left
-  · ipureintro; exact hown
+  · ipureintro; exact fun h _ => hown h
   iintro !> %w' %hw'
   rw [hcov] at hw'
   obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hw'
@@ -1136,7 +1215,7 @@ theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM)
 /-- **The sent responses' revisions, below the notified log** (K2e-5): with a fraction of the
 notified log's authority at `Lx`, every event-less response sent is at most `Lx`'s last. -/
 theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
-    (q : Qp) (Lx : Log) :
+    (q : Qp) (Lx : Log) (hLx : Lx ≠ []) :
     sentAuth (GF := GF) γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ⊢
       sentAuth γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ∗
         ⌜∀ y ∈ sent, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝ := by
@@ -1144,7 +1223,7 @@ theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
   iintro ⟨⟨Ha0, %RI, Hr, %HRI, #Hc⟩, Ha⟩
   ihave #Hl : [∗list] y ∈ sent, revLbOf (GF := GF) γ y $$ []
   · iapply (BigSepL.bigSepL_mono (fun {k y} _ => respCov_rev γ γc (sent.take k) y)) $$ Hc
-  icases persistent_entails_right (revLbs_le γ q Lx sent) $$ [$Ha $Hl] with ⟨%H, ⟨Ha, -⟩⟩
+  icases persistent_entails_right (revLbs_le γ q Lx hLx sent) $$ [$Ha $Hl] with ⟨%H, ⟨Ha, -⟩⟩
   iframe Ha
   isplitl
   · iframe Ha0
@@ -1157,27 +1236,38 @@ theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
 notified log's authority at a log whose last is its revision. -/
 theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
     (nl : Option (Qp × Log)) (x : RespM)
-    (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int)) :
+    (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int))
+    (hc : x.compactRev = W64 0) :
     sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ⊢
       sentAuth γ γc sent L ∗ notifiedLent γ nl ∗ respRev γ sent x := by
   by_cases he : x.evs = []
   · obtain ⟨q, Lx, rfl, hx⟩ := hnl he
     unfold notifiedLent
-    iintro ⟨Hs, Ha⟩
-    icases sentAuth_revs γ γc sent L q Lx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
+    iintro ⟨Hs, Ha, %hLx⟩
+    icases sentAuth_revs γ γc sent L q Lx hLx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
     ihave #Hlb := monoListLbOwn_get _ _ _ $$ Ha
-    iframe Hs Ha
+    isplitl [Hs]
+    · iexact Hs
+    isplitl [Ha]
+    · isplitl [Ha]
+      · iexact Ha
+      ipureintro; exact hLx
     iunfold respRev
-    iright
-    iexists Lx
-    iunfold notifiedLb
-    iframe Hlb
-    ipureintro
-    exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
+    isplitl []
+    · iright
+      ileft
+      iexists Lx
+      iunfold notifiedLb
+      iframe Hlb
+      ipureintro
+      exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
+    iunfold cmpPermOf; ileft; ipureintro; exact hc
   · iintro ⟨Hs, Ha⟩
     iframe Hs Ha
     iunfold respRev
-    ileft; ipureintro; exact he
+    isplitl []
+    · ileft; ipureintro; exact he
+    iunfold cmpPermOf; ileft; ipureintro; exact hc
 
 /-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
 theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
@@ -1249,7 +1339,11 @@ def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat)
       evsWf γ r lo evsw (sint.nat st.minRev))
   else if (σ.Wu !! w).isSome then
     iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
-      ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝)
+      (∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝) ∗
+      -- (watches across a compaction, 2026-11-01) a compacted watcher left unsynced (`choose`'s
+      -- copy branch) is behind a compaction revision, so behind every later one: `syncWatchers`
+      -- never syncs it
+      (⌜st.compacted = true⌝ → ∃ c0 : Int, crevLb γ.st.idx c0 ∗ ⌜sint.Z st.minRev < c0⌝))
   else match σ.victimOf w with
     | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
           victimBatchOk lo st B ∧ B.evs ≠ []⌝ ∗
@@ -1297,9 +1391,9 @@ theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange)
 theorem memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
     (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
     (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
-    (hE : σ'.E !! w = σ.E !! w) :
+    (hE : σ'.E !! w = σ.E !! w) (hST : σ'.ST !! w = σ.ST !! w) :
     memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
-  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
+  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV, hST]
   unfold memberRes popFacts
   simp only [hM, hl, hWs, hWu, hV, hE]
   exact .rfl
@@ -1442,11 +1536,73 @@ theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
   ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ Hc Ha
   ipureintro; exact H.2
 
+/-- **No watcher, or no compactor** (M2, the storage side, 2026-10-30: review round 1's F1, the
+user's: no watchers in compaction mode; a conjunct of the lock's body, `watchStoreBody`): no
+watcher is registered, or the inner store is frozen or (watches across a compaction, 2026-11-01)
+without duplicate keys (`watchNoDup`). `watch` (registration) has the fact from the create token
+(`storeWatchParams`'s `T`); `syncWatchers`' non-empty
+branch (`Wu ≠ ∅`, so `M ≠ ∅`: `wsOk_M_ne_of_Wu`) takes it here; every other step keeps `M` empty or
+the fact. -/
+def wsWatchFrozen (γ : WsNames) (σ : WsState) : IProp GF :=
+  iprop(⌜σ.M = ∅⌝ ∨ watchNoDup γ.st)
+
+instance wsWatchFrozen_persistent (γ : WsNames) (σ : WsState) :
+    Persistent (wsWatchFrozen (GF := GF) γ σ) := by
+  unfold wsWatchFrozen; infer_instance
+
+omit package_sem in
+/-- With the frozen fact, any state. -/
+theorem wsWatchFrozen_of_frozen (γ : WsNames) (σ : WsState) :
+    crevFrozen (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
+  iintro #H; iunfold wsWatchFrozen; iright; iunfold watchNoDup; ileft
+  iapply noCompactor_of_frozen $$ H
+
+omit package_sem in
+/-- With the registration's fact, any state. -/
+theorem wsWatchFrozen_of_noDup (γ : WsNames) (σ : WsState) :
+    watchNoDup (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
+  iintro #H; iunfold wsWatchFrozen; iright; iexact H
+
+omit package_sem in
+/-- A step that registers no watcher keeps it (the new names empty if the old ones were). -/
+theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (h : σ.M = ∅ → σ'.M = ∅) :
+    wsWatchFrozen (GF := GF) γ σ ⊢ wsWatchFrozen γ σ' := by
+  iunfold wsWatchFrozen
+  iintro (%Hm | #H)
+  · ileft; ipureintro; exact h Hm
+  · iright; iexact H
+
+omit package_sem in
+/-- **An unsynced watcher has names** (review round 1's open check, `WsOk`): `Wu ≠ ∅` gives `M ≠ ∅`
+(an unsynced watcher is live, so it has a state, so names), which is why `wsWatchFrozen`'s
+`crevFrozen` is there in `syncWatchers`' non-empty branch. -/
+theorem wsOk_M_ne_of_Wu (σ : WsState) (h : WsOk σ) (w : Loc)
+    (hw : (σ.Wu !! w).isSome) : σ.M ≠ ∅ := by
+  intro hM
+  have hl : σ.live w := Or.inr (Or.inl hw)
+  have := h.st_m w (h.live_st w hl)
+  rw [hM] at this
+  simp at this
+
+omit package_sem in
+/-- **`syncWatchers`' frozen fact** (M2, the storage side): with an unsynced watcher, the store is
+frozen (`wsWatchFrozen`'s second arm: the first, no watcher, is excluded by `wsOk_M_ne_of_Wu`). -/
+theorem wsWatchFrozen_of_Wu (γ : WsNames) (σ : WsState) (h : WsOk σ) (hsz : GMap.size σ.Wu ≠ 0) :
+    wsWatchFrozen (GF := GF) γ σ ⊢ watchNoDup γ.st := by
+  obtain ⟨w, v, hw⟩ := (GMap.map_size_ne_0_lookup σ.Wu).mp hsz
+  have hM := wsOk_M_ne_of_Wu σ h w (by rw [hw]; rfl)
+  iintro H
+  iunfold wsWatchFrozen at H
+  icases H with (%Hm | #H)
+  · exact absurd Hm hM
+  · iexact H
+
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗
     "Hwlog" ∷ wlogQ γ q σ.Lmu ∗
     "#Hcert" ∷ idxCert γ.st.idx σ.Lmu ∗
+    "#Hwfz" ∷ wsWatchFrozen γ σ ∗
     "Hsynced" ∷ ownWatcherGroup (syncedAddr s) σ.Ws q ∗
     "Hunsynced" ∷ ownWatcherGroup (unsyncedAddr s) σ.Wu q ∗
     "Hvf" ∷ typedPointsto (victimsAddr s) σ.vs (DFrac.own q) ∗
@@ -1539,8 +1695,9 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hstop" ∷ isStopChan stc ∗
     -- (M2, `notes/m2-plan.md`, S1) the inner store never compacted, as `newWatchableStore` makes
     -- it (`crevFrozen_alloc`): what `syncWatchers`' snapshot (`rangeEvents`) needs, which until M2
-    -- the store's reader carried
-    "#Hfrz" ∷ crevFrozen γ.st ∗
+    -- the store's reader carried; (M2, the storage side, P3) by the mode: in compaction mode not
+    -- (`wsFrozenM`), and `syncWatchers` finds it with a watcher instead (`wsWatchFrozen`)
+    "#Hfrz" ∷ wsFrozenM γ.st ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 /-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
@@ -1576,6 +1733,68 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by
   unfold isWatchableStore; simp only [named]; infer_instance
 
+omit package_sem in
+/-- **The frozen fact of an off store** (persistent; internal: clients use
+`isWatchableStore_noCompactor`). -/
+theorem isWatchableStore_frozen (s st : Loc) (γ : WsNames) (h : γ.st.cm = false) :
+    isWatchableStore (GF := GF) s st γ ⊢ crevFrozen γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iapply (wsFrozenM_off γ.st h).1 $$ Hfrz
+
+omit package_sem in
+/-- **The watchable store's inner store** (a law, so the server's glue does not unfold the
+predicate). -/
+theorem isWatchableStore_isStore (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢ isStore st γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iexact Hs
+
+omit package_sem in
+/-- **The inner store's read view, over the watchable store** (a law, so the server's glue does not
+unfold the predicate). -/
+theorem isWatchableStore_readView (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢
+      ∃ rv : Loc, st.[store, go!"ReadView"] ↦□
+          (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+        isReadView rv st γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iexists rv
+  iframe Hrv
+  iunfold isReadView
+  iexists _
+  iframe Hrvkv Hs
+  iunfold kvOver; iright; iexists s; iframe Hst; ipureintro; rfl
+
+omit package_sem in
+/-- **An off store has no compactor** (persistent; the law the watch server's exports, v3rpc's
+`isWatchServer_noCompactor`). -/
+theorem isWatchableStore_noCompactor (s st : Loc) (γ : WsNames) (h : γ.st.cm = false) :
+    isWatchableStore (GF := GF) s st γ ⊢ noCompactor γ.st :=
+  (isWatchableStore_frozen s st γ h).trans (noCompactor_of_frozen γ.st)
+
+/-- **A creator that will not compact freezes the store** (M2, the storage side, review round 1's
+S5; any mode): with the authority's half it was handed (`crevRightM`, in compaction mode, mvcc's
+assumed backend's included) or the frozen fact the store already has (off), the "no compactor"
+fact, so that it can watch (the create token's). In compaction mode it spends the half: such a
+creator gives up compacting. -/
+theorem noCompactor_of_new (s st : Loc) (γ : WsNames) (E : CoPset) :
+    isWatchableStore (GF := GF) s st γ ∗ crevRightM γ.st ={E}=∗ noCompactor γ.st := by
+  iintro ⟨#Hws, Hcr⟩
+  by_cases h : γ.st.cm = true
+  · unfold crevRightM
+    simp only [h, ↓reduceIte]
+    imod crevFrozen_alloc γ.st E $$ Hcr with #Hf
+    imodintro
+    iapply noCompactor_of_frozen $$ Hf
+  · imodintro
+    iapply isWatchableStore_noCompactor s st γ (by simpa using h) $$ Hws
+
 /-- **What a registration says of the watcher `w`** (persistent; the store's `IWF`): its
 names (`watcherMeta`), its fixed fields (range `r`, filters `fcs`), and its first revision `lo`:
 the start revision, or, for a start revision `0`, the length of a committed log `C` at the
@@ -1594,7 +1813,9 @@ instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : G
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
 stream's half of the registered watchers), the reader slots (`R`) and a watch token (`T`: a
-registration's cost, `watchTok`), and what a registration says of its watcher (`IWF`:
+registration's cost, `watchTok`; and, M2's storage side, review round 1's F1, the user's: the "no
+compactor" fact, `noCompactor`, so that a watcher is registered only by a caller that shows the
+store frozen: no watchers in compaction mode), and what a registration says of its watcher (`IWF`:
 `watcherIs`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
@@ -1606,7 +1827,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
-  T := watchTok γ
+  T := iprop(watchTok γ ∗ watchNoDup γ.st)
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)
@@ -1624,9 +1845,11 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
 def wBudget (L : Log) : Nat := 2 ^ 63 - 3 - L.length
 
 /-- **The sole writer** of the watchable store at the committed (and notified) log `L`: its
-certificate, every revision token not spent, and its half of the notified log. -/
+certificate, every revision token not spent, its half of the notified log, and the inner store's
+writer's pin at `L` (`writerPin`, M2's item 37, 2026-11-02). -/
 def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
-  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L)
+  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L ∗
+    writerPin γ.st L)
 
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
 inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the

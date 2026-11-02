@@ -39,7 +39,11 @@ theorem schedule.fifo.executeJob.wp_proof : schedule.fifo.executeJob.spec (GF :=
   iunfold jobDoSpec at Hdo
   wp_apply Hdo $$ [Hrun HPre HPrev] as ⟨Hrun, HPost⟩
   · iframe
-    iexact Hisctx
+    iframe Hisctx
+    iintro !> Hpd
+    simp only [fifoCtxDesc]
+    icases Hpd with ⟨-, #Hp⟩
+    iexact Hp
   (try wp_auto)
   rw [sync.isCond_unseal] at *
   iunfold sync.isCondDef at Hcnd

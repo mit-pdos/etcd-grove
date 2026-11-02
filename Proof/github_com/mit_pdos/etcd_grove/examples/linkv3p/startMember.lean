@@ -64,7 +64,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
+    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown⟩
   -- the premises in the shared start's form
@@ -76,7 +76,7 @@ theorem startMember.wp_proof
   · iunfold common.commonPremises; iunfold putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, -, -, #Hnrl⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂
       (GMap.insert name₁ sl₁ ∅)), sl ↦*□ initURLs3 k $$ []
   · iapply (BigSepM.bigSepM_insert (by
@@ -100,15 +100,18 @@ theorem startMember.wp_proof
   · iapply v3rpc.eofVar_of_init
     iPkgInit
   (try wp_auto)
-  -- `common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)`
-  wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
+  -- `common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", SnapCount, SnapCatchUp,
+  -- lg)`: frequent snapshots
+  wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" (W64 1) (W64 1) peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
-      (by omega) Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
+      (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
-  icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr
@@ -134,8 +137,8 @@ theorem startMember.wp_proof
   · iframe
   (try wp_auto)
   iunfold memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
@@ -155,10 +158,11 @@ theorem startMember.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
-  wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwpi]
-    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
-      Hwpi2⟩
+  ihave #Hwpi := srvServeFacts_interval srv E cfg $$ Hsf
+  wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+      %lcid, %lmid, %R,
+      Hgsn, %Hregs, -, -, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
@@ -197,8 +201,8 @@ theorem startMember.wp_proof
     [Hgsn Hclis]
   · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
-    $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn⟩
+      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1 Hrf rfl)
+    $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe Hgsn Hclis Hslots
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu
     iintro !>
@@ -221,7 +225,7 @@ theorem startMember.wp_proof
   isplitr; · ipureintro; rfl
   iunfold memberServed
   iexists E, γw, cid, mid
-  iframe Hgo2 HPut HRange HDel HTxn Hctl
+  iframe Hgo2 HPut HRange HDel HTxn HCmp Hctl
   iframe #
   isplitl []
   · ipureintro

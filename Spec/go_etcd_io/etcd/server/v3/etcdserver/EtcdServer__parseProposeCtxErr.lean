@@ -29,25 +29,18 @@ error, the value of `context.Canceled` or of `context.DeadlineExceeded`: Go's co
 (`applyErrIs`): `ErrCanceled`, `ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` or
 `ErrTimeout` (the `default` branch, returning `err` itself, is not reached: `errors.Is` of an
 error at itself is `true`, `errors.IsCtxErr`; 2026-10-12, unit 3a). It read-locks
-`s.leadTimeMu`: the caller's reader slot. -/
+`s.leadTimeMu`: the caller's reader slot.
+
+**In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
+the mode `E.authOn`; the instances at a mode, `specM`, and the mode-off form, `specOff`, are
+corollaries in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26): the server as a proposer sees
+it in the auth mode `on` (`isServerReqM`; the function reads none of the mode's rows). At
+`on = false` it is `spec` (by definition). -/
 abbrev EtcdServer.parseProposeCtxErr.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (err : GoInterface) (start : time.Time),
   context.isTypedErr err →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗
-      (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err) }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"parseProposeCtxErr"))
-      (Val #err)) (Val #start))
-  {{ (e : GoInterface), RET #e; srvLeadTimeReader s ∗ ⌜e ≠ GoInterface.nil⌝ ∗ applyErrIs e }}
-
-/-- **`spec` in either auth mode** (the auth plan's E3b, 2026-10-26): the server as a proposer sees
-it in the auth mode `on` (`isServerReqM`; the function reads none of the mode's rows). At
-`on = false` it is `spec` (by definition). -/
-abbrev EtcdServer.parseProposeCtxErr.specM (on : Bool) : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (err : GoInterface) (start : time.Time),
-  context.isTypedErr err →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗
       (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"parseProposeCtxErr"))
       (Val #err)) (Val #start))

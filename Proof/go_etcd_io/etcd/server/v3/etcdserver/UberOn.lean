@@ -45,6 +45,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's auth store's checks at the latest state** for the family `L` (persistent). -/
 def srvStoreLatest (s : Loc) (E : apply.AEnv GF) (L : List auth.AuthState → IProp GF) : IProp GF :=
@@ -53,13 +54,6 @@ def srvStoreLatest (s : Loc) (E : apply.AEnv GF) (L : List auth.AuthState → IP
 instance srvStoreLatest_persistent (s : Loc) (E : apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) : Persistent (srvStoreLatest s E L) := by
   unfold srvStoreLatest; infer_instance
-
-/-- **The server's lessor finds no lease** (persistent; a named premise, see the file header). -/
-def srvLessorNil (s : Loc) : IProp GF :=
-  iprop(∃ le : GoInterface, srvLessorAddr s ↦□ le ∗ apply.lookupNil le)
-
-instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
-  unfold srvLessorNil; infer_instance
 
 /-- **The lessor finds no lease, in the mode `on` only** (the auth-mode merge's step 1,
 2026-10-29): `True` off. -/
@@ -123,6 +117,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The server's uber-applier's KV triples at the latest state** (see the file header). -/

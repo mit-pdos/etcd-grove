@@ -1,11 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
 `StartCluster(voters)` (cluster.go), on the voters `1, 2, 3`: a replica of the store on a raft
-node of each (raft's `RestartNode`, in its dynamic mode: the cluster's only configuration
-change is `RemoveMember(3)`'s, `KVCC`), with its storage, the transport between them
-(`deliver`) and each node's ticks (`tick`). Everything the cluster needs is allocated here,
-from nothing but the storage registry (`kvStorInv`, for the storages): raft's ghost state, the
-term budget and its tick credits, the store's invariant. It returns the replicas (a fresh
+node of each (raft's `RestartNode`; the store proposes no configuration change), with its
+storage, the transport between them (`deliver`) and each node's ticks (`tick`). Everything the
+cluster needs is allocated here, from nothing but the storage registry (`kvStorInv`, for the
+storages): raft's ghost state, the store's invariant. It returns the replicas (a fresh
 slice of three, of one store, `isKV γr`) and the client's half of the store's state, the empty
 store (`rkvVal γr kvEmpty`).
 -/
@@ -36,7 +35,9 @@ variable [KVStor GF]
 abbrev StartCluster.spec : Prop :=
   ∀ (vsl : GoSlice),
   -- the time receipts' bound (D19b, 2026-10-18): raft's term budget is backed by receipts
-  receiptBound GF ≤ 2 ^ 64 - 2 →
+  -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`,
+  -- the receipts' bound within `2^61`; until then `2^64 - 2`)
+  receiptBound GF ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ kvStorInv (GF := GF) ∗
       vsl ↦*□ [W64 1, W64 2, W64 3] }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.StartCluster)) (Val #vsl))

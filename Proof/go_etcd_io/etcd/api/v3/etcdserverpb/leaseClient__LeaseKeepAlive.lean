@@ -38,7 +38,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   iunfold isEtcdConn at Hconn
   icases Hconn with ⟨%ic, #Hgc, -⟩
   iunfold leaseKAStreamOk at Hstr0
-  icases Hstr0 with ⟨%Spec, #Hstr⟩
+  icases Hstr0 with ⟨%Up, %Spec, #Hstr, #Hz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -83,7 +83,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   -- (D32) the one-address case
   iapply (wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
-    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ _ _ => iprop(True)) (fun _ => Spec)
+    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ => Up) (fun _ _ => Spec)
     ctx cd _ copts ([sm] ++ vs))
   · iframe #
     iexists _
@@ -93,7 +93,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto
@@ -101,7 +101,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := pbLeaseKeepAliveRequest)
       (Rep := pbLeaseKeepAliveResponse) etcdserverpb.LeaseKeepAliveRequest etcdserverpb.LeaseKeepAliveResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (fun _ _ => iprop(True)) Dn cd' $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up Dn cd' $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
@@ -111,9 +111,9 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γ, Dn, cd'
+    iexists γ, Up, Dn, cd'
+    iframe #
     iframe
-    iexact Hw
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, -, -⟩

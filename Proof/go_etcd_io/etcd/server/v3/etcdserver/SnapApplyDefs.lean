@@ -63,10 +63,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).P = d.P := rfl
 theorem kbgx_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).gx = g := rfl
 
 theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
@@ -81,17 +81,18 @@ theorem kbRT_some (d : mvcc.KBReal) : mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx
 
 /-- **What `applySnapshot`'s code leaves** (S8d's walk, `applySnapshot_walk`): the server's
 resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Metadata'.Index'`),
-from which `applySnapshot.spec`'s postcondition is assembled. -/
+from which `applySnapshot.spec`'s postcondition is assembled. (Question 5's core stage, part (1),
+review round 16's M1) The new backend's instance does not compact (`d'.cm = false`). -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A : List EntryModel)
-    (x : apply.ApplyKV) (R : mvcc.Log) (ss hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
+    (x : apply.ApplyKV) (R : mvcc.Log) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
     (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) (memI : GMap w64 apply.MemberM)
-    (quota : w64) (wad : time.Duration) (Tal : IProp GF) (zal : Bool) : IProp GF :=
+    (quota : w64) (wad : time.Duration) : IProp GF :=
   iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
       (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
-    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
+    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ d'.cm = false ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
       opts'.Logger' = lg ∧
@@ -105,6 +106,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- the snapshot's backend and what reads and writes it (persistent)
     backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
+    -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
+    backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     backend.isStopChans γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
     backend.hooksOk d.P (fun _ => mvcc.lateW gx)
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
@@ -113,7 +116,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
         (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))) ∗
     (∀ γ1, ⌜γ1.bucket = E.γ.bucket ∧ γ1.kb = some d'⌝ →
       mvcc.keyCleanRead (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
-        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1)) ∗
+        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1) (mvcc.kbNoCmp γ1.kb γ1.bucket)) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 γB))) ∗
     isServerCI s (γ.withPh (futPhys π0 γB)) ci ∗
@@ -134,22 +137,29 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗ srvBemuReaderAt s E.γbe ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
+    authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
     lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
-    backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+    -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
+    backend.rbOwnIn d'.γB membership.clusterBkts
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+    backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n)
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
+    backend.bkRPool d'.γB d'.P d'.be ∗
     mvcc.storeCloser E.s (γw.st.withPhys p') ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
-    mvcc.watchWriter γw ([[], []] ++ R) ∗
+    mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
     (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
     mvcc.storeReader E.s E.γ ∗ trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
-    backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗ Tal ∗
-    (∀ E1 : apply.AEnv GF, ⌜E1.RD = E.RD⌝ -∗ apply.backendOptsOk E1 opts' -∗
-      apply.uberIs E1 up' opts' ∗ ∃ ns cr, ⌜zal = true → ns = false ∧ cr = false⌝ ∗
-        apply.uberOwn E1 up' (apply.alarmChain E1.authOn ns cr)) ∗
+    backend.pathOwn bp ∗ alarmBeOn al d'.be ∗
+    -- (2026-11-01, J8a) the old KV's reader resource of the auth store (`NewUberApplier` takes none)
+    E.RD ∗
+    (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
+      apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false)) ∗
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
     -- what is left of the old backend's and the old applier's
     backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
@@ -166,29 +176,38 @@ part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: th
 resources with the applied index at the snapshot's `sv.Metadata'.Index'` and the KV at the restored
 log `[[], []] ++ R`, the rest buckets at the snapshot's entries `A'`), and what the next snapshot
 takes again at the new backend: its stop channels and the constructors' half of its open token
-(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the snapshot file's path
-(now the backend's), the transport's live state (W8: with every other member re-added, `L`) and the
-alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). -/
+(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the backend's path `bp` (2026-10-31, `os.Rename`
+restated: until then the snapshot file's) and the transport's live state (W8: with every other member re-added, `L`).
+(Until 2026-11-01, J8a-5, also the alarm store's resource `Tal`.) The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). The new
+backend's instance does not compact (`d'.cm = false`: question 5's core stage, part (1), review round
+16's M1), as the next snapshot's `store.Restore` needs. (2026-11-01, J8a-1, item 5) Also: the new
+applier's chain, with no alarm (2026-11-01, J8a-5: `Recover` empties the store; until then only
+under `zal`) the start's (`alarmChain E.authOn false false`, what
+`kvApplied_of_jump` takes), and the KV at `E'` (`txn.isKV`, `applyRes`'s), the watchable store at
+the new physical names; (2026-11-01, J8a-5) `ep.confState` the snapshot's (`csOptA`, what
+`applyAll.specSnap` reads the voters off). -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
-    (ss : Loc) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64)
-    (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
+    (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
+    (idm : w64) (lp al ast cl : Loc) : IProp GF :=
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
-    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.P = d.P ∧
+    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = false ∧ d'.P = d.P ∧
       E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
       loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
-      x'.log = [[], []] ++ R ∧ (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
+      x'.log = [[], []] ++ R ∧ x'.chain = apply.alarmChain E.authOn false false ∧
+      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
     isServer s γ' ci TM' E' ρ γr ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
-    epConfState ep cs' ∗
+    epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloser s E' ∗
     backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗
-    trLive γn t c L ∗ Tal)
+    backend.pathOwn bp ∗
+    trLive γn t c L ∗
+    (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
 
 end proof
 end EtcdGrove

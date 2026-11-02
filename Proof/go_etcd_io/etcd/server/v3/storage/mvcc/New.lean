@@ -43,15 +43,15 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
+  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Perm Hcfg0)
+    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
-    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, Hwg⟩
+    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hcr, Hfrag, Hret, #HcpIs, Hwg⟩
   (try wp_auto)
   imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   wp_apply mvcc.wp_wsWg_Add2_init s γwg $$ [$Hctr $Hwaiters] as ⟨Hctr, Hwaiters⟩
@@ -65,8 +65,10 @@ theorem mvcc.New.wp_proof
     iexists W32 2, 0 + 2
     iframe Hctr Hauth
     ipureintro; decide
-  have hN : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  have hN : 2 ≤ backend.rdStockN - mvcc.nJobRd kb := by
+    have := backend.rdStockN_val
+    have := mvcc.nJobRd_le kb
+    omega
   icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
   (try wp_auto)
   wp_apply wp_fork $$ [Hr1 Hd1]
@@ -85,7 +87,7 @@ theorem mvcc.New.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists st, γ
-  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hfrag Hret
+  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hcr Hfrag Hret HcpIs
   isplitr
   · ipureintro; exact Hγ
   iunfold mvcc.wsCloser

@@ -66,6 +66,11 @@ structure SchedNames where
   name (`schedStopName`), then the saved propositions' names of the tracked jobs'
   postconditions, the initial `True` first -/
   jobs : GName
+  /-- (M2, the storage side, 2026-10-30: review round 3's F2, the user's Q6) the payload: the name
+  of a saved proposition the creator fixes (`schedPayIs`, `NewFIFOScheduler`'s `Pay`), which
+  `Stop` presents (it cancels the scheduler's context, done with it) and a job finding the
+  context cancelled learns (`schedPay_elim`) -/
+  pay : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -117,6 +122,73 @@ theorem savedProp_alloc (P : IProp GF) : ⊢ |==> ∃ p : GName, savedProp (GF :
   unfold savedProp
   iapply saved_prop_alloc P DFrac.discard (by exact DFrac.valid_discard)
 
+/-- **The scheduler's payload is `P`** (persistent; M2, the storage side, review round 3's F2):
+what a job that finds the scheduler's context cancelled learns (`schedPay_elim`), fixed when the
+scheduler is made (`NewFIFOScheduler.spec`'s `Pay`). -/
+def schedPayIs (γ : SchedNames) (P : IProp GF) : IProp GF := savedProp γ.pay P
+
+instance schedPayIs_persistent (γ : SchedNames) (P : IProp GF) :
+    Persistent (schedPayIs (GF := GF) γ P) := by
+  unfold schedPayIs; infer_instance
+
+/-- **The payload holds** (persistent): what `Stop` takes (it cancels the scheduler's context,
+whose `PDone` it is part of), and what a job finding the context cancelled learns. -/
+def schedPay (γ : SchedNames) : IProp GF :=
+  iprop(∃ P : IProp GF, savedProp γ.pay P ∗ □ P)
+
+instance schedPay_persistent (γ : SchedNames) : Persistent (schedPay (GF := GF) γ) := by
+  unfold schedPay; infer_instance
+
+/-- The payload, given. -/
+theorem schedPay_of (γ : SchedNames) (P : IProp GF) :
+    schedPayIs (GF := GF) γ P ∗ □ P ⊢ schedPay γ := by
+  iintro ⟨#Hp, #HP⟩
+  iunfold schedPay
+  iexists P
+  iunfold schedPayIs at Hp
+  iframe Hp HP
+
+/-- A scheduler whose payload is `True` (the server's `run`): `Stop`'s premise is free. -/
+theorem schedPay_true (γ : SchedNames) :
+    schedPayIs (GF := GF) γ iprop(True) ⊢ schedPay γ := by
+  iintro #Hp
+  iapply schedPay_of γ iprop(True)
+  iframe Hp
+  imodintro
+  itrivial
+
+/-- **A job's use of the payload**: the payload holds, a step later. -/
+theorem schedPay_elim (γ : SchedNames) (P : IProp GF) :
+    schedPayIs (GF := GF) γ P ∗ schedPay γ ⊢ ▷ □ P := by
+  iintro ⟨#Hp, #Hq⟩
+  iunfold schedPay at Hq
+  icases Hq with ⟨%Q, #HQs, #HQ⟩
+  iunfold schedPayIs at Hp
+  iunfold savedProp at Hp HQs
+  ihave #Heq := saved_prop_agree γ.pay DFrac.discard DFrac.discard Q P $$ HQs Hp
+  inext
+  ihave #Hiff := internalEq_iff _ _ $$ Heq
+  icases Hiff with ⟨#H1, -⟩
+  imodintro
+  iapply H1
+  iexact HQ
+
+/-- **The worker has exited** (exclusive; M2, the storage side, review round 3's F2): the run
+token's ghost part (`schedRunning`'s `dghostVar γ.run 1 ()`, without the worker's thread token).
+`Scheduler.Stop.spec`'s post gives it (`<-f.donec` returns after `run`'s deferred
+`close(f.donec)`, once no job runs or will run: `schedule.go:150-184`; the worker gives it up
+there, `donecCarry`). -/
+def schedDone (γ : SchedNames) : IProp GF := dghostVar γ.run (DFrac.own 1) ()
+
+/-- Two run tokens are one too many. -/
+theorem schedDone_excl (γ : SchedNames) :
+    schedDone (GF := GF) γ ∗ schedDone γ ⊢ False := by
+  iintro ⟨H1, H2⟩
+  iunfold schedDone at H1 H2
+  icombine H1 H2 gives %Hv
+  obtain ⟨Hv, -⟩ := Hv
+  exact absurd (DFrac.valid_own.1 Hv) (Qp_one_add_not_le 1)
+
 /-- **What a `Schedule` takes besides the job and its `Pre`**: untracked (`none`): `Prev` and
 `Post` are `True` and the scheduler is never stopped; tracked (`some (Ps, prev, post)`): the
 queue, whose last name `prev` saves `Prev` (the previous tracked job's `Post`, or the initial
@@ -146,10 +218,13 @@ variable [context_sem : _root_.Perennial.context.Assumptions]
 
 /-- `jt`'s `Do(ctx)`, with the run token, `Pre` and `Prev`, for any context (possibly cancelled:
 the job reads it, `ctx.Err()`; `Stop` runs the pending jobs with a cancelled one), returns the
-token and `Post`. -/
+token and `Post`; and (M2, the storage side, review round 3's F2) the context's cancellation
+gives the scheduler's payload (`□ (cd.PDone -∗ schedPay γ)`: the worker gives the scheduler's
+context, done with it), so a job finding its context cancelled learns it. -/
 def jobDoSpec (γ : SchedNames) (jt : GoInterfaceOk) (Pre Prev Post : IProp GF) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cd : _root_.Perennial.context.ContextDesc (IProp GF)),
-    {{ schedRunning γ ∗ Pre ∗ Prev ∗ _root_.Perennial.context.isContext ctx cd }}
+    {{ schedRunning γ ∗ Pre ∗ Prev ∗ _root_.Perennial.context.isContext ctx cd ∗
+        □ (cd.PDone -∗ schedPay γ) }}
       (App (Val #(methods jt.ty go!"Do" jt.v)) (Val #(GoInterface.ok ctx)))
     {{ RET #(); schedRunning γ ∗ Post }})
 
@@ -167,11 +242,13 @@ instance jobIs_persistent (γ : SchedNames) (j : GoInterface) (Pre Prev Post : I
     Persistent (jobIs γ j Pre Prev Post) := by
   unfold jobIs; infer_instance
 
-/-- The closure `do`'s triple: with the run token, `Pre` and `Prev`, for any context, it returns
-with the token and `Post` (what `NewJob` makes a job of). -/
+/-- The closure `do`'s triple: with the run token, `Pre` and `Prev`, for any context (whose
+cancellation gives the payload, as `jobDoSpec`), it returns with the token and `Post` (what
+`NewJob` makes a job of). -/
 def jobFnSpec (γ : SchedNames) (f : GoFunc) (Pre Prev Post : IProp GF) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cd : _root_.Perennial.context.ContextDesc (IProp GF)),
-    {{ schedRunning γ ∗ Pre ∗ Prev ∗ _root_.Perennial.context.isContext ctx cd }}
+    {{ schedRunning γ ∗ Pre ∗ Prev ∗ _root_.Perennial.context.isContext ctx cd ∗
+        □ (cd.PDone -∗ schedPay γ) }}
       (App (Val #f) (Val #(GoInterface.ok ctx)))
     {{ RET #(); schedRunning γ ∗ Post }})
 
@@ -202,13 +279,17 @@ seen, the pending jobs taken). `chainOk L b items`: the tracked pending jobs' na
 from index `b` on, consecutively. Until `Stop`, `cancel` is the context's cancel function and the
 `stopped` flag is `false` (fully owned); after it, `cancel` is `nil`, the flag is `true`
 (persistent: `stopped`, the context's `PDone`) and the invariant holds `Stop`'s stop token and
-queue half, which every later `Schedule` contradicts (tracked: the queue's third half; untracked:
-`schedLive`, the stop token's discarded name).
+a fraction of the queue's authority (`Stop` keeps a quarter, the worker takes part of the rest when
+it drains), which every later `Schedule` contradicts (tracked: the queue's half beyond the whole;
+untracked: `schedLive`, the stop token's discarded name).
 
 **The channels' invariants**: `f.resume` is buffered until the worker closes it, which it does only
 once the scheduler is stopped (its close right `rc` goes into the invariant), so `Schedule`, which
 sends to it only while not stopped, never sends on a closed channel; `f.donec` is empty until the
-worker closes it (its close right `dc`).
+worker closes it (its close right `dc`), and then holds `donecCarry`: the worker's fraction of
+the final queue with the last tracked job's `Post`, which `Stop` takes (its quarter of the queue
+agreeing on the list; `Stop` persists only half of the `stopped` flag and leaves the other half in
+the baton's place).
 -/
 
 section fifoFields
@@ -299,9 +380,10 @@ def stopped (F : FifoNames) : IProp GF := dghostVar F.st DFrac.discard true
 instance stopped_persistent (F : FifoNames) : Persistent (stopped (GF := GF) F) := by
   unfold stopped; infer_instance
 
-/-- The context of the scheduler: no values, no deadline, done once stopped. -/
-def fifoCtxDesc (F : FifoNames) : _root_.Perennial.context.ContextDesc (IProp GF) :=
-  { Values := ∅, Deadline := none, Done_gn := F.γc, PDone := stopped F }
+/-- The context of the scheduler: no values, no deadline, done once stopped, with the payload
+(M2, the storage side: `Stop` presents it, a job finding the context cancelled learns it). -/
+def fifoCtxDesc (γ : SchedNames) (F : FifoNames) : _root_.Perennial.context.ContextDesc (IProp GF) :=
+  { Values := ∅, Deadline := none, Done_gn := F.γc, PDone := iprop(stopped F ∗ schedPay γ) }
 
 /-- A pending job, as the lock invariant keeps it: the job, its `Pre`, `Prev` and `Post`, and
 its tracking (`some (prev, post)`: the names of its saved `Prev` and `Post`). -/
@@ -363,17 +445,27 @@ def fifoLockInv (l : Loc) (γ : SchedNames) (F : FifoNames) : IProp GF :=
     "Hitems" ∷ ([∗list] it ∈ items, itemOk γ it) ∗
     "Hbaton" ∷ batonAt F L b rs ∗
     "Hst" ∷ ((⌜cf = F.cf⌝ ∗ dghostVar F.st (DFrac.own 1) false) ∨
-      (⌜cf = func.nil⌝ ∗ stopped F ∗ schedStopTok γ ∗ monoListAuthOwn γ.jobs (1 : Qp).half L)))
+      (⌜cf = func.nil⌝ ∗ stopped F ∗ schedStopTok γ ∗ ∃ q : Qp, monoListAuthOwn γ.jobs q L)))
 
 /-- `f.resume`'s invariant: buffered until the worker closes it, once stopped. -/
 def resumeInv (F : FifoNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan F.γr Unit (.Buffered l) ∨
     (ownChan F.γr Unit (.Closed l) ∗ dghostVar F.rc (DFrac.own 1) () ∗ stopped F))
 
-/-- `f.donec`'s invariant: empty until the worker closes it. -/
-def donecInv (F : FifoNames) : IProp GF :=
+/-- **What the worker hands `Stop` through `f.donec`** (2026-10-30, the repair, P11): a fraction
+of the queue's authority at the final queue `L` (once stopped, frozen), with the last tracked
+job's `Post` (the baton at `L`'s last index) and (M2, the storage side) the run token's ghost part
+(`schedDone`: the worker has run its last job), or, once `Stop` took them, half of the `stopped`
+flag in their place (`Stop` keeps the other half, which with the discarded rest excludes a second
+taker). -/
+def donecCarry (γ : SchedNames) (F : FifoNames) : IProp GF :=
+  iprop(∃ (L : List GName) (q : Qp), monoListAuthOwn γ.jobs q L ∗
+    ((baton L (L.length - 1) ∗ schedDone γ) ∨ dghostVar F.st (DFrac.own (1 : Qp).half) true))
+
+/-- `f.donec`'s invariant: empty until the worker closes it, with `donecCarry`. -/
+def donecInv (γ : SchedNames) (F : FifoNames) : IProp GF :=
   iprop(ownChan F.γd Unit (.Buffered []) ∨
-    (ownChan F.γd Unit (.Closed []) ∗ dghostVar F.dc (DFrac.own 1) ()))
+    (ownChan F.γd Unit (.Closed []) ∗ dghostVar F.dc (DFrac.own 1) () ∗ donecCarry γ F))
 
 def resumeN : Namespace := nroot .@ "schedule.fifo.resume"
 def donecN : Namespace := nroot .@ "schedule.fifo.donec"
@@ -393,9 +485,9 @@ def fifoIs (l : Loc) (γ : SchedNames) (F : FifoNames) : IProp GF :=
     "#Hrch" ∷ isChan F.rch F.γr Unit ∗
     "#Hdch" ∷ isChan F.dch F.γd Unit ∗
     "#Hrinv" ∷ inv resumeN (resumeInv F) ∗
-    "#Hdinv" ∷ inv donecN (donecInv F) ∗
-    "#Hisctx" ∷ _root_.Perennial.context.isContext F.ctx (fifoCtxDesc F) ∗
-    "#Hcancel" ∷ _root_.Perennial.context.cancelSpec F.cf F.γc (stopped F) ∗
+    "#Hdinv" ∷ inv donecN (donecInv γ F) ∗
+    "#Hisctx" ∷ _root_.Perennial.context.isContext F.ctx (fifoCtxDesc γ F) ∗
+    "#Hcancel" ∷ _root_.Perennial.context.cancelSpec F.cf F.γc iprop(stopped F ∗ schedPay γ) ∗
     "%Hcfnn" ∷ ⌜F.cf ≠ func.nil⌝)
 
 instance fifoIs_persistent (l : Loc) (γ : SchedNames) (F : FifoNames) :

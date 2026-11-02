@@ -48,15 +48,16 @@ theorem etcdserverpb.authClient.AuthEnable.wp_proof
   ihave Hblank : pbAuthEnableResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthEnableResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/AuthEnable" pbAuthEnableRequest pbAuthEnableResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/AuthEnable" pbAuthEnableRequest pbAuthEnableResponse Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbAuthEnableRequest (GF := GF)).ty = etcdserverpb.AuthEnableRequest.ty from rfl,
     show (pbAuthEnableResponse (GF := GF)).ty = etcdserverpb.AuthEnableResponse.ty from rfl] at hI
-  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/AuthEnable" addr ([sm] ++ vs) (Spec m Q) $$ []
+  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/AuthEnable" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []
   · iapply reqPre_box; iexact Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hres with (⟨%Herr, %m', -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto

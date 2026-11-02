@@ -43,8 +43,8 @@ theorem apply.newAuthApplierV3.wp_proof
     (hUG : apply.authApplierV3.UserGet.spec (GF := GF) (hG := hG))
     (hRG : apply.authApplierV3.RoleGet.spec (GF := GF) (hG := hG)) :
     apply.newAuthApplierV3.spec (GF := GF) (hG := hG) := by
-  intro st base le RD
-  wp_start as Hard
+  intro st base le
+  wp_start as -
   iapply wp_fupd
   wp_auto
   irename «$r0» => Hp
@@ -53,34 +53,32 @@ theorem apply.newAuthApplierV3.wp_proof
   ipersist applierV3
   ipersist as'
   ipersist lessor
-  imod sync.init_Mutex iprop(apply.authInfoIdle (GF := GF) p ∗ RD) ⊤
-      (structFieldRef authApplierV3 go!"mu" p) $$ [mu] [authInfo Hard] with #Hmu
+  imod sync.init_Mutex (apply.authInfoIdle (GF := GF) p) ⊤
+      (structFieldRef authApplierV3 go!"mu" p) $$ [mu] [authInfo] with #Hmu
   · iexact mu
-  · inext; iframe Hard; iunfold apply.authInfoIdle
+  · inext; iunfold apply.authInfoIdle
     first | iexact authInfo | (iExactEq authInfo; rfl)
   imodintro
   iapply HΦ
   iframe applierV3 as' lessor
   isplitr
   · -- (E3k) its structure
-    iintro !> %E %hRD #Hst #Hle
+    iintro !> %E #Hst #Hle
     iunfold apply.authIs
-    rw [hRD]
     iframe applierV3 Hmu
     isplitl
     · iexists st; iframe #
     · iexists le; iframe #
-  iintro !> %E %c %hRD #Hst #Hle #Hbase
+  iintro !> %E %c #Hst #Hle #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+    #HApply, #HCmp⟩
   ihave #Hauth : apply.authIs E p (.ok bi) $$ []
   · iunfold apply.authIs
-    rw [hRD]
     iframe applierV3 Hmu
     isplitl
     · iexists st; iframe #
@@ -129,10 +127,10 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- LeaseRevoke: the auth applier's
     imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
@@ -269,6 +267,7 @@ theorem apply.newAuthApplierV3.wp_proof
       iframe Hkv HPP
       ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
       iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
+  isplitr
   · -- `Apply`: the auth applier's
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
@@ -277,6 +276,35 @@ theorem apply.newAuthApplierV3.wp_proof
     iapply (hApply E c (.ok bi) p r rq skip v3 af A B) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
+  · -- `Compaction`: the inner applier's (promoted; the auth layer checks nothing)
+    iunfold apply.cmpTriple
+    iunfold apply.cmpTriple at HCmp
+    imodintro
+    iintro %cr %rev %log %crev %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨#Hcr, %Hadm, #Hperm, Hm, Hc⟩ HΦ'
+    rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"Compaction")]
+    wp_call
+    wp_auto
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
+    iunfold apply.chainResAny at Hres
+    icases Hres with ⟨%info', Hres⟩
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info' [Hkv Hres Hcs Hc]
+    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    inext
+    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iapply HΦ'
+    rw [apply.chainCompacts_auth E.authOn c, apply.cmpAnswerIs_congr (.auth E.authOn c) c (apply.chainCompacts_auth E.authOn c)]
+    iframe Hkv HPP
+    isplitr [Hc Hans]
+    rotate_left
+    · isplitl [Hc]
+      · iexact Hc
+      · iexact Hans
+    ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
+    iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
 
 end proof
 

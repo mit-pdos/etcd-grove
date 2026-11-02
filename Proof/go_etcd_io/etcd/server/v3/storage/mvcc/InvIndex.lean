@@ -32,6 +32,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexCut
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 
@@ -770,14 +771,14 @@ theorem reader_answerC (log₀ ilog : Log) (pend : List Change) (L : List IdxEnt
     (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
     (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
     (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (HLL : IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
     (k : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
     kiGet ((idxGet (idxOfEntries L) k).getD kiEmpty) (W64 r) =
       kiGet (kiOfKey (evsOf log₀) k) (W64 r) := by
   have hz : cmax ≤ sint.Z (W64 r) := by
     have : sint.Z (W64 r) = r := by word
     omega
-  have := IdxCRep.kiAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz k
+  have := IdxCRepN.kiAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz k
   unfold kiAt at this
   rw [this]
   exact reader_answer log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k r hr
@@ -788,7 +789,7 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
     (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
     (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
     (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (HLL : IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
     (k e : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
     rangeAnswers log₀ false k e (W64 r) = entryAnswers (rangeEntries L k e) (W64 r) := by
   have hz : cmax ≤ sint.Z (W64 r) := by
@@ -797,12 +798,14 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
   unfold rangeAnswers
   simp only [Bool.false_eq_true, ↓reduceIte]
   rw [← reader_range log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k e r hr,
-    ← IdxCRep.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
+    ← IdxCRepN.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
 
 /-- The `RWMutex`'s resource at fraction `q` (see the module docstring): the tree holds the
-events of `ilog ++ [pend]`, each key's index compacted at a level of its own, at most `cmax`, a
-lower bound of the compaction revision (`IdxCRep`, `Compact.lean`; the compaction job compacts
-key by key under the lock), below the length of a lower bound of the committed log (so below
+events of `ilog ++ [pend]`, each key's index cut at a full revision of its own, at or before what
+compaction at a level at most `cmax` keeps, up to the unread header of a tombstone-only generation
+(`IdxCRepN`, `InvIndexCut.lean`: the compaction job compacts key by key under the lock, and
+`restore()` over a bucket a job thinned rebuilds each key from its first surviving revision), `cmax` a
+lower bound of the compaction revision, below the length of a lower bound of the committed log (so below
 every writer's next revision). -/
 def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
   iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int),
@@ -811,7 +814,7 @@ def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
     "Htree" ∷ ownTree t L q ∗
     "#Hcrev" ∷ crevLb γ cmax ∗
     "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
-    "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
+    "%HL" ∷ ⌜IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
     "%Hwf" ∷ ⌜IdxWf ilog pend⌝ ∗
     "Hcmp" ∷ idxCmpOwn γ q L cmax)
 
@@ -915,13 +918,16 @@ instance idxNevLb_persistent (γ : IdxNames) (log : Log) : Persistent (idxNevLb 
 
 /-- The writer's handle: the history's authority (`ilog` committed, `pend` put so far), a
 lower bound of the event count at its last write, and half the committed log's authority; and
-(D19b, 2026-10-18) a time receipt per change of the log and the pending revision (`⧗`: each
-change is put by a Go call of the index, `treeIndex.Put`/`Tombstone`, which takes the receipt of
-one of its steps), so that a sealed log has fewer changes than the receipts' bound. -/
+(D19b, 2026-10-18) a time receipt per change of the log and the pending revision, so that a sealed
+log has fewer changes than the receipts' bound: since M2's B2 (2026-11-01) a **persistent** one
+(`⧖`, a lower bound of the one global step counter), which each change raises by a Go step of the
+call that puts it (`treeIndex.Put`/`Tombstone`, `wp_raise_receipt`). Persistent, so that it can
+travel with a snapshot image to the member that restores it (`notes/m2-storage-plan.md`, "B2 by
+sealed logs"): an exclusive one cannot. -/
 def idxWriter (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(monoListAuthOwn γ.hist 1 (histShape ilog pend) ∗
     monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend⌝ ∗
-    idxLogAuth γ (1 : Qp).half ilog ∗ ⧗ (logCh ilog + pend.length))
+    idxLogAuth γ (1 : Qp).half ilog ∗ ⧖ (logCh ilog + pend.length))
 
 /-- **The writer's handle without its receipts** (the restore plan's R5c: a restored index's
 handle, whose receipts come from the rebuild's steps, `revProt`). -/
@@ -932,7 +938,7 @@ def idxWriterNR (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
 
 theorem idxWriter_split (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊣⊢
-      idxWriterNR γ ilog pend ∗ ⧗ (logCh ilog + pend.length) := by
+      idxWriterNR γ ilog pend ∗ ⧖ (logCh ilog + pend.length) := by
   unfold idxWriter idxWriterNR
   constructor
   · iintro ⟨H1, H2, %H3, H4, H5⟩; iframe; ipureintro; exact H3
@@ -971,7 +977,7 @@ theorem idxWriter_lt (γ : IdxNames) (ilog : Log) (pend : List Change) :
       ⌜logCh ilog + pend.length < receiptBound GF⌝ ∗ idxWriter γ ilog pend := by
   unfold idxWriter
   iintro ⟨Ha, Hb, %H, Hc, Hr⟩
-  icases persistent_entails_left (receipt_lt _) $$ Hr with ⟨Hr, %h⟩
+  icases persistent_entails_left (preceipt_lt _) $$ Hr with ⟨Hr, %h⟩
   iframe Ha Hb Hc Hr
   ipureintro; exact ⟨h, H⟩
 
@@ -1003,7 +1009,7 @@ watchable store seals before it notifies the watchers of the revision. -/
 def idxWriterSealed (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(monoListAuthOwn γ.hist 1 (histOf (ilog ++ [pend])) ∗
     monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend ∧ pend ≠ []⌝ ∗
-    idxLogAuth γ (1 : Qp).half ilog ∗ ⧗ (logCh ilog + pend.length))
+    idxLogAuth γ (1 : Qp).half ilog ∗ ⧖ (logCh ilog + pend.length))
 
 /-- The writer's handle, sealed or not. -/
 def idxWriterB (γ : IdxNames) (ilog : Log) (pend : List Change) (sealed : Bool) : IProp GF :=
@@ -1020,17 +1026,24 @@ formed and bounded (`idxCert` without the committed log's lower bound and the ev
 revision is sealed before it is committed, `idxWriter_seal`, so this is what the watchers'
 deliveries certify). Two sealed logs are in prefix order (`idxSealed_prefix`). Not a floor for
 reads: a sealed log need not be committed yet (`idxCert` is). Its changes are fewer than the
-time receipts' bound (D19b: the writer held a receipt per change when it sealed it). -/
+time receipts' bound (D19b: the writer held a receipt per change when it sealed it): since M2's B2
+(2026-11-01) the persistent receipt `⧖ (logCh log)` itself, which implies it (`idxSealed_small`). -/
 def idxSealed (γ : IdxNames) (log : Log) : IProp GF :=
   iprop(monoListLbOwn γ.hist (histOf log) ∗
     ⌜LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ ∗
-    ⌜logCh log < receiptBound GF⌝)
+    ⧖ (logCh log))
 
 /-- A sealed log has fewer changes than the time receipts' bound (D19b). -/
 theorem idxSealed_small (γ : IdxNames) (log : Log) :
     idxSealed (GF := GF) γ log ⊢ ⌜logCh log < receiptBound GF⌝ := by
   unfold idxSealed
-  iintro ⟨-, -, %h⟩; ipureintro; exact h
+  iintro ⟨-, -, Hp⟩; iapply preceipt_lt _ $$ Hp
+
+/-- A sealed log's persistent receipt (M2's B2): what travels with a snapshot image. -/
+theorem idxSealed_rcpt (γ : IdxNames) (log : Log) :
+    idxSealed (GF := GF) γ log ⊢ ⧖ (logCh log) := by
+  unfold idxSealed
+  iintro ⟨-, -, Hp⟩; iexact Hp
 
 instance idxSealed_persistent (γ : IdxNames) (log : Log) :
     Persistent (idxSealed (GF := GF) γ log) := by
@@ -1064,6 +1077,7 @@ theorem idxSealed_pure (γ : IdxNames) (log : Log) :
 theorem idxSealed_nil (γ : IdxNames) : ⊢ |==> idxSealed (GF := GF) γ [] := by
   unfold idxSealed
   imod monoListLbOwn_nil (GF := GF) (A := HistItem) γ.hist with #H1
+  imod preceipt_zero (GF := GF) with #Hp
   imodintro
   have h1 : histOf [] = ([] : List HistItem) := rfl
   rw [h1]
@@ -1071,9 +1085,8 @@ theorem idxSealed_nil (γ : IdxNames) : ⊢ |==> idxSealed (GF := GF) γ [] := b
   isplitl
   · ipureintro
     exact ⟨⟨fun h => absurd rfl h, fun r cs i k hr _ => by simp at hr⟩, by simp, by simp⟩
-  ipureintro
-  have := receiptBound_pos (GF := GF)
-  simp [logCh]; omega
+  have h0 : logCh ([] : Log) = 0 := by simp [logCh]
+  rw [h0]; iexact Hp
 
 /-- The writer's log with its pending revision committed is well formed and bounded. -/
 theorem IdxWf.sealed {ilog : Log} {pend : List Change} (h : IdxWf ilog pend) :
@@ -1092,10 +1105,8 @@ theorem idxWriter_seal (γ : IdxNames) (ilog : Log) (pend : List Change) (hne : 
     idxWriter (GF := GF) γ ilog pend ==∗
       idxWriterSealed γ ilog pend ∗ idxSealed γ (ilog ++ [pend]) := by
   unfold idxWriter idxWriterSealed idxSealed
-  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth, Hr⟩
+  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth, #Hr⟩
   imod monoListAuthOwn_update_app [HistItem.commit] $$ Hauth with ⟨Hauth, #Hlb⟩
-  imod receipt_snapshot _ $$ Hr with ⟨Hr, #Hp⟩
-  ihave %Hsm := preceipt_lt _ $$ Hp
   imodintro
   rw [histShape_seal]
   iframe Hauth Hlauth Hlb Hnev Hr
@@ -1103,7 +1114,7 @@ theorem idxWriter_seal (γ : IdxNames) (ilog : Log) (pend : List Change) (hne : 
   · ipureintro; exact ⟨Hwf, hne⟩
   isplitl
   · ipureintro; exact Hwf.sealed
-  ipureintro; rw [logCh_snoc]; exact Hsm
+  rw [logCh_snoc]; iexact Hr
 
 /-- An empty pending revision is never sealed. -/
 theorem idxWriterB_nil (γ : IdxNames) (ilog : Log) (b : Bool) :
@@ -1133,7 +1144,7 @@ reader learns under the lock that pins the current index, `idxKnows`). -/
 def idxCert (γ : IdxNames) (log : Log) : IProp GF :=
   iprop(monoListLbOwn γ.hist (histOf log) ∗
     ⌜LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ ∗
-    monoListLbOwn γ.log log ∗ ⌜logCh log < receiptBound GF⌝)
+    monoListLbOwn γ.log log ∗ ⧖ (logCh log))
 
 instance idxCert_persistent (γ : IdxNames) (log : Log) : Persistent (idxCert (GF := GF) γ log) := by
   unfold idxCert; infer_instance
@@ -1142,11 +1153,16 @@ instance idxCert_persistent (γ : IdxNames) (log : Log) : Persistent (idxCert (G
 theorem idxCert_sealed (γ : IdxNames) (log : Log) :
     idxCert (GF := GF) γ log ⊢ idxSealed γ log := by
   unfold idxCert idxSealed
-  iintro ⟨Hl, %h, -, %h'⟩
-  iframe Hl
-  isplitl
-  · ipureintro; exact h
-  ipureintro; exact h'
+  iintro ⟨Hl, %h, -, Hp⟩
+  iframe Hl Hp
+  ipureintro; exact h
+
+/-- A certified log's persistent receipt (M2's B2): what the sender of a snapshot image puts in
+the image's certificate. -/
+theorem idxCert_rcpt (γ : IdxNames) (log : Log) :
+    idxCert (GF := GF) γ log ⊢ ⧖ (logCh log) := by
+  unfold idxCert
+  iintro ⟨-, -, -, Hp⟩; iexact Hp
 
 /-- **Two certificates are of logs in prefix order.** -/
 theorem idxCert_prefix (γ : IdxNames) (log log' : Log) :
@@ -1175,6 +1191,7 @@ theorem idxCert_nil (γ : IdxNames) : ⊢ |==> idxCert (GF := GF) γ [] := by
   unfold idxCert
   imod monoListLbOwn_nil (GF := GF) (A := HistItem) γ.hist with #H1
   imod monoListLbOwn_nil (GF := GF) (A := List Change) γ.log with #H3
+  imod preceipt_zero (GF := GF) with #Hp
   imodintro
   have h1 : histOf [] = ([] : List HistItem) := rfl
   rw [h1]
@@ -1182,9 +1199,8 @@ theorem idxCert_nil (γ : IdxNames) : ⊢ |==> idxCert (GF := GF) γ [] := by
   isplitl
   · ipureintro
     exact ⟨⟨fun h => absurd rfl h, fun r cs i k hr _ => by simp at hr⟩, by simp, by simp⟩
-  ipureintro
-  have := receiptBound_pos (GF := GF)
-  simp [logCh]; omega
+  have h0 : logCh ([] : Log) = 0 := by simp [logCh]
+  rw [h0]; iexact Hp
 
 theorem LogWf'.append_nil {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogWf' (log ++ [[]]) := by
   refine ⟨fun _ => ?_, fun r cs i k hr hi => ?_⟩
@@ -1216,11 +1232,9 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
   unfold idxWriter idxCert idxLogAuth
   iintro ⟨Hauth, #Hnev, %Hwf, Hlauth, Hr⟩ Hlother
   obtain ⟨hwf, hl, hp, hcs⟩ := Hwf
-  imod receipt_snapshot _ $$ Hr with ⟨Hr, #Hp⟩
-  ihave %Hsm := preceipt_lt _ $$ Hp
-  rw [← logCh_snoc] at Hsm
-  ihave Hr : iprop(⧗ (logCh (ilog ++ [pend]) + ([] : List Change).length)) $$ [Hr]
-  · rw [logCh_snoc]; simp only [List.length_nil, Nat.add_zero]; iexact Hr
+  icases Hr with #Hp
+  ihave Hr : iprop(⧖ (logCh (ilog ++ [pend]) + ([] : List Change).length)) $$ []
+  · rw [logCh_snoc]; simp only [List.length_nil, Nat.add_zero]; iexact Hp
   ihave Hlauth : monoListAuthOwn γ.log 1 ilog $$ [Hlauth Hlother]
   · iapply (hhalves ilog).2; iframe Hlauth Hlother
   imod monoListAuthOwn_update_app [HistItem.commit] $$ Hauth with ⟨Hauth, #Hlb⟩
@@ -1253,7 +1267,7 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     isplitl
     · ipureintro
       exact ⟨hwf, by simp; omega, hcs'⟩
-    ipureintro; exact Hsm
+    rw [logCh_snoc]; iexact Hp
 
 /-- **Commit** of a sealed writer: the committed log's authority catches up with the history. -/
 theorem idxWriterSealed_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
@@ -1267,11 +1281,9 @@ theorem idxWriterSealed_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
   unfold idxWriterSealed idxWriter idxCert idxLogAuth
   iintro ⟨Hauth, #Hnev, %Hwf, Hlauth, Hr⟩ Hlother
   obtain ⟨⟨hwf, hl, hp, hcs⟩, -⟩ := Hwf
-  imod receipt_snapshot _ $$ Hr with ⟨Hr, #Hp⟩
-  ihave %Hsm := preceipt_lt _ $$ Hp
-  rw [← logCh_snoc] at Hsm
-  ihave Hr : iprop(⧗ (logCh (ilog ++ [pend]) + ([] : List Change).length)) $$ [Hr]
-  · rw [logCh_snoc]; simp only [List.length_nil, Nat.add_zero]; iexact Hr
+  icases Hr with #Hp
+  ihave Hr : iprop(⧖ (logCh (ilog ++ [pend]) + ([] : List Change).length)) $$ []
+  · rw [logCh_snoc]; simp only [List.length_nil, Nat.add_zero]; iexact Hp
   ihave Hlauth : monoListAuthOwn γ.log 1 ilog $$ [Hlauth Hlother]
   · iapply (hhalves ilog).2; iframe Hlauth Hlother
   ihave #Hlb := monoListLbOwn_get γ.hist 1 _ $$ Hauth
@@ -1302,7 +1314,7 @@ theorem idxWriterSealed_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     isplitl
     · ipureintro
       exact ⟨hwf, by simp; omega, hcs'⟩
-    ipureintro; exact Hsm
+    rw [logCh_snoc]; iexact Hp
 
 /-- **Commit** of a writer, sealed or not. -/
 theorem idxWriterB_commit (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool)

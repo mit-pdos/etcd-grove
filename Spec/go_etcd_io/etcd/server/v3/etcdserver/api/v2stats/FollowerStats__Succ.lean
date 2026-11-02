@@ -22,6 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `fs.Succ(d)` of a non-nil `*FollowerStats` returns. -/
 abbrev v2stats.FollowerStats.Succ.spec : Prop :=

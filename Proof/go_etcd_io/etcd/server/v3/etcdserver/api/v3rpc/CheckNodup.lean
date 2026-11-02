@@ -109,6 +109,77 @@ theorem hits_of_inRange (o : OpFull) (k : GoString) (hk : k ≠ []) (ho : goodDe
       · exact h1 h
     simp [this]
 
+/-- A key below a string's successor is not above the string. -/
+theorem lt_append_zero_le : ∀ (a b : GoString), go.GoStringLt a (b ++ [W8 0]) →
+    go.GoStringLt a b ∨ a = b
+  | [], [], _ => Or.inr rfl
+  | x :: xs, [], h => by
+    exfalso
+    rcases (go.goStringLt_cons_iff x (W8 0) xs []).1 h with h | ⟨-, h⟩
+    · first | omega | (simp [uint.Z] at h; omega) | (simp [uint.Z] at h)
+    · exact go.goStringLt_not_nil _ h
+  | [], y :: ys, _ => Or.inl (go.goStringLt_nil_cons y ys)
+  | x :: xs, y :: ys, h => by
+    rcases (go.goStringLt_cons_iff x y xs (ys ++ [W8 0])).1 h with h' | ⟨rfl, h'⟩
+    · exact Or.inl ((go.goStringLt_cons_iff x y xs ys).2 (Or.inl h'))
+    · rcases lt_append_zero_le xs ys h' with h'' | rfl
+      · exact Or.inl ((go.goStringLt_cons_iff x x xs ys).2 (Or.inr ⟨rfl, h''⟩))
+      · exact Or.inr rfl
+
+/-- The begin of an interval a point's interval overlaps is not above the point. -/
+theorem not_lt_of_overlap (k b : GoString) (hk : k ≠ [])
+    (h : ¬ (adt.affCmp k b < 0 ∧ adt.affCmp (k ++ [W8 0]) b ≤ 0)) : ¬ go.GoStringLt k b := by
+  intro hlt
+  apply h
+  have hb : b ≠ [] := by rintro rfl; exact go.goStringLt_not_nil _ hlt
+  refine ⟨by rw [affCmp_lt _ _ hk hb hlt]; omega, ?_⟩
+  unfold adt.affCmp
+  have h1 : (k ++ [W8 0]) ≠ go!"" := by simp
+  have h2 : b ≠ go!"" := hb
+  simp only [h1, h2, ↓reduceIte]
+  by_cases h3 : go.GoStringLt (k ++ [W8 0]) b
+  · rw [if_pos h3]; omega
+  · have h4 : ¬ go.GoStringLt b (k ++ [W8 0]) := by
+      intro h4
+      rcases lt_append_zero_le b k h4 with h5 | rfl
+      · exact go.goStringLt_asymm hlt h5
+      · exact go.goStringLt_irrefl _ hlt
+    rw [if_neg h3, if_neg h4]; omega
+
+/-- **A key a delete's interval hits is in the delete's range** (`notes/txn-nested.md`, L7; the
+converse of `hits_of_inRange`, for every key and range end: at an empty `k` or key there is never a
+hit). -/
+theorem inRange_of_hits (o : OpFull) (k : GoString) (h : hits [delIvl o] k = true) :
+    inRange o.key o.base.rangeEnd k = true := by
+  unfold hits pointIvl at h
+  simp only [List.any_cons, List.any_nil, Bool.or_false, decide_eq_true_eq] at h
+  unfold adt.ivlCmp at h
+  by_cases h1 : adt.affCmp k (delIvl o).1 < 0 ∧ adt.affCmp (k ++ [W8 0]) (delIvl o).1 ≤ 0
+  · simp only [h1, and_self, ↓reduceIte] at h; cases h
+  · simp only [h1, ↓reduceIte] at h
+    by_cases h2 : adt.affCmp k (delIvl o).2 ≥ 0
+    · simp only [h2, ↓reduceIte] at h; cases h
+    · have h2' : adt.affLt k (delIvl o).2 := (adt.affCmp_neg_iff _ _).1 (by omega)
+      have hk : k ≠ [] := h2'.1
+      have h1' := not_lt_of_overlap k _ hk h1
+      unfold inRange
+      unfold delIvl pointIvl at h1' h2'
+      by_cases he : o.base.rangeEnd = []
+      · simp only [he, ↓reduceIte] at h1' h2' ⊢
+        rcases h2'.2 with h3 | h3
+        · simp at h3
+        · rcases lt_append_zero_le k o.key h3 with h4 | h4
+          · exact absurd h4 h1'
+          · simp [h4]
+      · by_cases hz : o.base.rangeEnd = [W8 0]
+        · simp only [hz, ↓reduceIte] at h1' h2' ⊢
+          simp only [show ([W8 0] : GoString) ≠ [] by simp, ↓reduceIte] at h1'
+          simpa using h1'
+        · simp only [he, hz, ↓reduceIte] at h1' h2' ⊢
+          rcases h2'.2 with h3 | h3
+          · exact absurd h3 he
+          · simp [h1', h3]
+
 /-- `Union`'s filter keeps a good delete's interval. -/
 theorem unionSel_mem (o : OpFull) (ds : List adt.IvlS) (ho : goodDel o) (h : delIvl o ∈ ds) :
     delIvl o ∈ unionSel ds := by

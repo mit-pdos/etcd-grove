@@ -12,7 +12,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ What the proof over raft's internals shows, from which the wrapper (below) deriv
 
 From any goroutine: `pb.Message{Type: MsgUnreachable, From: id}` onto `recvc`
 (`netP_local`), which `run` steps as `RawNode.ReportUnreachable` does: a leader's
-`Progress` of `id` only. `n.done` never fires.
+`Progress` of `id` only. (2026-10-29, stage U9a) If `n.done` fires, nothing is done.
 -/
 
 open Iris Iris.BI go_etcd_io.raft.v3
@@ -65,7 +65,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires. (Raft v3.7, stage R5:
+/-- `recvc <- m` (a local message, `netP_local`); (2026-10-29, stage U9a) If `n.done` fires, nothing is done. (Raft v3.7, stage R5:
 the message is `&pb.Message{Type: pb.MsgUnreachable.Enum(), From: new(id)}`, built into `msgIn`
 by `msgIn_of_scalar_struct`; `MsgUnreachable.Enum()` is a new callee.) -/
 private theorem node.ReportUnreachable.wp_raw
@@ -105,7 +105,7 @@ private theorem node.ReportUnreachable.wp_raw
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
     · iapply netP_local γ id _ _ (.inr (.inr (.inl rfl))) rfl rfl rfl rfl
-        (by intro h; exfalso; revert h; first | decide | simp [MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]) $$ Hmsg Hlb Hcr Htc
+        $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
     wp_auto
@@ -119,8 +119,13 @@ private theorem node.ReportUnreachable.wp_raw
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hdone
-    iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: nothing done
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro -
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

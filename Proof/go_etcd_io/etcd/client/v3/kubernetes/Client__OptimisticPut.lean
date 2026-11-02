@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.client.v3.ModRevision
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -46,7 +47,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (wp_Compare : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (wp_kvFromTxnResponse : kvFromTxnResponse.spec (GF := GF) (hG := hG)) :
     Client.OptimisticPut.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key vsl val rev opts Q hlease
+  intro _ _ kc ms V ci cd key vsl val rev opts Q hlease hk hv
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hv, Hau⟩
   wp_auto
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [Hv] as -
@@ -135,7 +136,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opPutModel key val [withLeaseM (W64 0)]] [.put key val (W64 0)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -150,14 +151,15 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.put key val] [], true, true, false⟩
-        Q [.mod key rev] [.put key val] [] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.put key val] [] rfl (by simp)
+        (clientTxn_size rev rfl (Or.inl rfl) (Or.inl rfl) hk hv)) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
       done
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, -, hrev, hb⟩ := Hσ
+      obtain ⟨hok, -, hrev, hb, hvals⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -175,7 +177,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
         simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
       isplitl []
       · ipureintro
-        exact ⟨hok, hrev, hb⟩
+        exact ⟨hok, hrev, hb, hvals⟩
       simp only [Bool.false_and, Bool.false_eq_true, ↓reduceIte]
       ipureintro; first | rfl | trivial
     · cases err with
@@ -215,7 +217,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       rcases i with _ | i
       · cases Ho; cases Hm; iexact Hop2
       · simp at Ho
-    wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) ci cd _ esl
+    wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
         [opGetModel key []] [.get (opGetModel key [])]) $$ [Hobj] as Hobj
     · iframe #
       iframe Hobj
@@ -228,13 +230,14 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.put key val] [.get key], true, true, true⟩
-        Q [.mod key rev] [.put key val] [.get key] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.put key val] [.get key] rfl (by simp)
+        (clientTxn_size rev rfl (Or.inl rfl) (Or.inr rfl) hk hv)) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+      obtain ⟨hok, hrel, hrev, hb, hvals⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -279,7 +282,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
             simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
           isplitl []
           · ipureintro
-            exact ⟨hok, hrev, hb⟩
+            exact ⟨hok, hrev, hb, hvals⟩
           simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
           iexact Hkv
       · -- the comparison held: no `KV`
@@ -294,7 +297,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
           simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
         isplitl []
         · ipureintro
-          exact ⟨(hok.symm.trans hs).symm, hrev, hb⟩
+          exact ⟨(hok.symm.trans hs).symm, hrev, hb, hvals⟩
         simp only [Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
         ipureintro; first | rfl | trivial
     · cases err with

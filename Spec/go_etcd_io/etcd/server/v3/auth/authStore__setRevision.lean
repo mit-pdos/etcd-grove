@@ -32,7 +32,7 @@ again. -/
 abbrev auth.authStore.setRevision.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (rev : w64) (hs opt : List AuthState) (stl : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwnF M hs ∗
+      authOwnF M hs ∗ (□ ∀ x, ⌜x ∈ opt⌝ -∗ capNext M hs x) ∗
       ⌜histLast M (hs ++ opt) stl ∧ uint.nat rev = stl.revision ∧ opt.length ≤ 1 ∧
         (∀ x ∈ opt, (M.isOn = true → M ≠ .any → permKeysOk x) ∧ (M = .off → x.enabled = false))⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"setRevision")) (Val #rev))

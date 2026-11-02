@@ -4,6 +4,7 @@ Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
@@ -156,20 +157,8 @@ theorem EtcdServer.doSerialize.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q C t e
-  iintro %Φ Hpre HΦ
-  iapply (EtcdServer.doSerialize.wp_proofM false hGet hAI hStep
-    s E ρ γr ctx cd chk get G Q C t e) $$ %Φ [Hpre]
-  · rw [isServerReqM_false, isServerReadM_false]; iexact Hpre
-  inext
-  iintro %err ⟨Hrd, Hres⟩
-  iapply HΦ
-  iframe Hrd
-  icases Hres with (⟨%He, ⟨%info, HC, -⟩, HQ⟩ | Hr)
-  · ileft; iframe HQ; isplitr
-    · ipureintro; exact He
-    · iexists info; iexact HC
-  · iright; iexact Hr
+  intro s E ρ
+  exact EtcdServer.doSerialize.wp_proofM E.authOn hGet hAI hStep s E ρ
 
 end proof
 

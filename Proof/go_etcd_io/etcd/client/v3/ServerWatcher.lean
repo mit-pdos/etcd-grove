@@ -101,16 +101,23 @@ theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)
     (h : R.γ.st = R.E.γ) :
     isServerRead (GF := GF) s R.E γr ⊢ srvLogsSmall R := by
   iintro #Hsrd
-  ihave #Hsm : storeSmall R.E.γ $$ [Hsrd]
-  · iunfold isServerRead at Hsrd
-    icases Hsrd with ⟨%v, Hsrd⟩
-    iunfold srvReadFieldsAt at Hsrd
-    icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
-    iexact Hsm
+  ihave #Hsm := storeSmall_of_read s R.E γr $$ Hsrd
+  ihave #Hs := storeSmall_small R.E.γ $$ Hsm
   unfold srvLogsSmall
-  iunfold storeSmall at Hsm
   rw [h]
-  iexact Hsm
+  iexact Hs
+
+/-- **The server's sealed logs are small, from the receipts' bound** (G2's follow-up, 2026-10-30:
+in any auth mode, with no read view; `storeSmall_of_receipts`). -/
+theorem srvLogsSmall_of_receipts [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (R : v3rpc.WSrv GF) (h : R.γ.st = R.E.γ) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    ⊢ srvLogsSmall R := by
+  iintro
+  ihave #Hsm := storeSmall_of_receipts R.E.γ hrb
+  ihave #Hs := storeSmall_small R.E.γ $$ Hsm
+  unfold srvLogsSmall
+  rw [h]
+  iexact Hs
 
 /-- The watch server's watch-token pool (`watchSrvOk`; D19b's method, 2026-10-18). -/
 theorem watchTokPool_of_server (p : Loc) (R : v3rpc.WSrv GF) :

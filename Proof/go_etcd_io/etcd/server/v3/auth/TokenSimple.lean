@@ -442,7 +442,7 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
             (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }} := by
   wp_start as ⟨#Hok, Hctx⟩
   iunfold authnCtx at Hctx
-  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HVi, #HVp, Hfr⟩
+  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HVi, #HVp, Hfr, %Hpre⟩
   subst Hci
   (try wp_auto)
   wp_apply HVi as %v1 %Hv1
@@ -468,7 +468,7 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
   have htok := sprintfOut_simpleTok pre idx tok Htok
   subst htok
   (try wp_auto)
-  wp_apply (tokenSimple_assignToUser p γt γf γa hγt hγf user (simpleTok pre idx) ⟨pre, idx, rfl⟩)
+  wp_apply (tokenSimple_assignToUser p γt γf γa hγt hγf user (simpleTok pre idx) ⟨pre, idx, rfl, Hpre⟩)
     $$ [Hfr] as #Hiss
   · iframe #; iunfold freshOk at Hfr; iexact Hfr
   (try wp_auto)

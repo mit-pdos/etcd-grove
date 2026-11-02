@@ -23,12 +23,12 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 theorem schedule.job.Do.wp_proof : schedule.job.Do.spec (GF := GF) (hG := hG) := by
   intro γ jv ctx cd Pre Prev Post
-  wp_start as ⟨#Hf, Hrun, HPre, HPrev, Hctx⟩
+  wp_start as ⟨#Hf, Hrun, HPre, HPrev, Hctx, #Hpd⟩
   wp_auto
   iunfold jobFnSpec at Hf
   wp_bind (App (Val #jv.do') (Val #(GoInterface.ok ctx)))
   iapply Hf $$ %ctx %cd [Hrun HPre HPrev Hctx]
-  · iframe
+  · iframe; iframe #
   inext
   iintro Hpost
   wp_auto

@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (open) **`node.Step(ctx, m)`**: a message from the network (`stepIn`), from any goroutine. -/
+/-- (open) **`node.Step(ctx, m)`**: a message from the network (`stepIn`), from any goroutine. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.Step.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -34,7 +35,7 @@ abbrev node.Step.spec : Prop :=
       stepIn γ N id ml }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
       (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
 

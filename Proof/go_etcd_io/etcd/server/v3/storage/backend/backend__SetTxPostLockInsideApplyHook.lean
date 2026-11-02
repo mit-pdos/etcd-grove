@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__lock
@@ -53,7 +54,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
   unfold plHook plHookAt
   imod dghostVar_update_halves hook γ.hook f hk $$ Hpl Hhk with ⟨Hpl, Hhk⟩
   wp_auto
-  wp_apply (hUnlock γ P W Pk b t st iprop(True) Hfo.1.2.2.2.2 (room_of_freeOk HP Hfo.1)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWv HWR]
+  wp_apply ((backend.batchTxBuffered.Unlock.bare hUnlock) γ P W Pk b t st iprop(True) Hfo.1.2.2.2.2 (room_of_freeOk HP Hfo.1)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWv HWR]
   · iframe #
     unfold batchLocked batchLockedAt batchPhys
     iframe Htok
@@ -68,8 +69,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
         exact Hwf
     · ileft
       iframe HWv HWR
-      ipureintro
-      exact viewSame_of_freeOk Hfo.1
+      iapply viewSame_thin γ P st (viewSame_of_freeOk Hfo.1)
   iapply HΦ
   iframe
 

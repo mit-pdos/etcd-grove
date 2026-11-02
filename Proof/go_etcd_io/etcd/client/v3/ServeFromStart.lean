@@ -64,6 +64,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
@@ -79,9 +80,9 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold srvWatchBuilt at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReq at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm, #Hauth, #HisReq, -, -,
     #Hmid, #Hlead, #Hcl, -, #Hpeers, -, -, -, -⟩
@@ -114,6 +115,8 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     isplitr
     · ipureintro; exact Hlgn
     isplitr
+    · ipureintro; exact Hmto
+    isplitr
     · iunfold srvLeadInv
       iunfold srvAtomicU64 at Hlead
       iexact Hlead
@@ -137,6 +140,7 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
         [∗list] _x ∈ List.replicate K (), mvcc.watchReader C.wsl E.s C.γ := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
@@ -152,9 +156,9 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   iunfold srvWatchReaders at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReq at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm, #Hauth, #HisReq, -, -,
     #Hmid, #Hlead, #Hcl, -, #Hpeers, -, -, -, -⟩
@@ -186,6 +190,8 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     · ipureintro; exact hlg
     isplitr
     · ipureintro; exact Hlgn
+    isplitr
+    · ipureintro; exact Hmto
     isplitr
     · iunfold srvLeadInv
       iunfold srvAtomicU64 at Hlead

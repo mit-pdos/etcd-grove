@@ -17,6 +17,98 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
+
+- **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
+  `extsGlobalStart`/`extsLocalStart`; this repository's `init_adequate`
+  (`examples/common/Adequacy.lean`), the proposed generic closed theorem, dropped them.
+- **Here.** `init_adequate_start` (`examples/common/AdequacyStart.lean`), any extension list, the
+  body's WP taking both start resources; `durable_init_adequate` (`examples/common/DurableExt.lean`)
+  for `[durableExt]`.
+- **Proposal.** Land it in Perennial with `init_adequate` (one theorem, `init_adequate` its
+  corollary for resources dropped).
+
+### Slices: an empty slice literal is not nil (2026-10-29, authkv G2)
+
+- **Limitation.** `wp_slice_literal` gives an arbitrary pointer for an empty literal, so a proof
+  cannot show that `[]byte{}` is not `nil` (in Go it is not; `testCompareSliceToNil` shows it at the
+  semantics level). etcd's watch server sends a from-key watch's range end as `[]byte{}`
+  (`recvLoop`), so `createRangeOk` has two readings for the end `"\x00"`: "from the key on" or "the
+  key alone" (`v3rpc/InvWatchStream.lean`; `notes/status-history.md`, the watch slice).
+- **Needed by.** `watcher.Watch.spec`'s from-key watches (its premise `rangeEnd ≠ [W8 0]` excludes
+  them today): authkv's root watch of every key (`Watch("", WithPrefix())`, G2,
+  `notes/authkv-main-plan.md`).
+- **Workaround here.** None; the user chose to wait for the general fix (2026-10-29).
+- **Proposed.** `wp_slice_literal_nonnull` (`Perennial/Golang/Theory/Slice.lean`): the literal's
+  pointer is non-null, from the backing array's typed points-to (`typedPointsto_not_null`, which
+  holds at length zero too); `wp_slice_literal` unchanged, its corollary. A proof, not a semantics
+  change: no trusted-base delta.
+- **Status.** Landed on Perennial `lean` 2026-10-30 (`6da88b280`), in the pin with this bump
+  (branch `pin-6da88b2`, `notes/STATUS.md`, "Perennial pin `6da88b280`"). `#print axioms`: Lean's
+  three only.
+
+### Context model: `WithCancel` keeps its parent's values (2026-10-30, authkv G2)
+
+- **Limitation.** Perennial's `WithCancel` specs say nothing of the new context's `Value`: a
+  `*cancelCtx` answers every key but its own `&cancelCtxKey` with its parent's value
+  (`context.go`, `cancelCtx.Value`), so grpc's outgoing metadata (key `mdOutgoingKey{}`) is the
+  parent's. The model cannot state it (`isContext`'s `Values` are unused, the entry below).
+- **Needed by.** G2's watch (`notes/g2-watch-auth.md`, row (h)): the watcher's stream runs on
+  `WithCancel(&valCtx{inctx})`, and the stream's metadata must be `inctx`'s.
+- **Workaround here.** The local trust-boundary axiom `context.WithCancelValCtx.wp_proof`, strengthened
+  in place with `⌜metadata.outgoingOf ctx' = metadata.outgoingOf inctx⌝` (the user's choice,
+  2026-10-30).
+- **Proposed.** A `Value` contract for `WithCancel`/`WithTimeout`/`WithDeadline` (delegation to the
+  parent at every key but the context's own), on a Perennial branch by its own workflow, together
+  with the `Values` clause below. (h) is retired when it lands.
+- **Status.** Open.
+
+### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
+
+- **Limitation.** `isContext c d` never reads `d.Values` (its docstring: "unused"), so
+  `isContext c d ⊢ isContext c { d with Values := ∅ }` and a spec's "no values" says nothing of what
+  `c.Value(k)` returns. A law "a context with no values has no value at grpc's metadata key" is then
+  false of every context; it was inconsistent with `AppendToOutgoingContext`'s axiom
+  (`notes/axiom-review/outgoingOf-noValues.md`, branch `axiom/outgoingOf-noValues`).
+- **Needed by.** authkv's `reqCtx` (its `anon` principal sends no token: `WithTimeout(Background())`
+  has no outgoing grpc metadata); the same gap as the `WithCancel` entry below (the trace key).
+- **Workaround here.** The trust-boundary axiom `context.WithTimeoutBackgroundMd.wp_proof`
+  (`WithTimeoutBackground`'s post with `metadata.outgoingOf (ok ctx') = none`), for authkv's callers
+  only; `WithTimeoutBackground.wp_proof` stays proved.
+- **Proposed.** `isContext`'s `Value` clause at every key: `c.Value(k)` returns `d.Values !! k` (or
+  nil), with the derived contexts' specs saying their `Values` (a `cancelCtx`/`timerCtx` the
+  parent's, a `valueCtx` the parent's with one more). Then "no values" is meaningful, the `Md`
+  spec is proved, and the outgoing-metadata fact a law over grpc's key.
+- **Status.** Open.
+
+### Sync: locking a fresh mutex at any invariant (2026-10-30, kvreconf-final)
+
+`sync.init_Mutex` takes `▷ R`, the lock invariant, when the mutex is made. A goroutine that allocates
+a mutex and locks it before the invariant holds cannot use it: kvreconf's `StartCluster` locks
+`c.mu` and then inserts the founders, and `clusterLockInv` holds only at the `Unlock`. The lock is
+needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
+workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/MutexFresh.lean`.
+It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
+`Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
+first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
+`Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
+
+### Tactics: `wp_auto` and `iunfold` unfold a `token` hypothesis to its model (2026-11-01, kvdurable)
+
+- **Limitation.** In `Cluster.Crash`'s proof, a spatial hypothesis `crasher γ` (kvdurable's
+  `def crasher γ := token γ.crt`) came out of `try wp_auto` unfolded past `token` and `own`, down to
+  the `UPred` structure (`{ holds := fun n x => iSingleton … ≼{n} x.val, … }`). After that no spec
+  can frame it and `iexact` cannot unify it with `crasher γ`. `iunfold isClusterC at Hc'` did the
+  same to it, although it unfolds another hypothesis. A `curRep` hypothesis (`ghostMapElem`) in
+  `Cluster.restart`'s proof went through `wp_auto` unchanged. Unconfirmed guess: something reduces
+  the hypotheses' types to weak head normal form, and `token`/`own` unfold all the way there.
+- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__Crash.lean`.
+- **Workaround here.** `attribute [local irreducible] crasher in` on the theorem. The package
+  init comes from `isClusterC` in a subgoal with only that hypothesis.
+- **Proposed.** First a minimal reproduction (a `token` hypothesis through `wp_auto`), then keep
+  the tactics from changing hypotheses they do not use.
+- **Status.** Open.
+
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
@@ -151,6 +243,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
   above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
   branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
+- **Seen again** (2026-11-01, kvdurable's `openStorage`): `word` in a `prev = 0` branch of a
+  `wp_if_destruct` (hypothesis `¬ 0 < prev`) gave a proof the kernel rejected, built over the
+  sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
+  free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
+  `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
@@ -760,6 +857,34 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### The thread and receipt bounds as instances (2026-11-01, bounds plan B1; landed `6e3ca6ca3`)
+
+- **Limitation.** A proof needing `threadBound GF` or `receiptBound GF` small took the bound as a
+  premise, restated by every spec up to the adequacy theorem (46 Spec files for the thread bound,
+  the `threadBound`/`receiptBound` chain in 20; `notes/bounds-plan.md`).
+- **Change.** `Perennial/ProgramLogic/Bounds.lean`: the `Prop`-valued classes `ThreadBoundLe GF k`
+  and `ReceiptBoundLe GF k`, with `le`/`le_of`/`lt_of`/`weaken` and `of_eq` for the adequacy
+  theorem (an example in `ThreadTokensTest.lean`; the proof reference's thread-token section).
+  Nothing trusted. Landed as Perennial `6e3ca6ca3`; the pin moved to it on 2026-11-01.
+- **Follow-up, `pow_succ`** (branch `bound-classes-pow`): an instance at `2 ^ e` gives one at
+  `2 ^ (e + 1)` by instance search, so each spec states its own power of two.
+- **Use here.** B1: each spec's section takes the instance at the bound its proof needs, the specs
+  drop the premises, and each closed result builds its instances from its adequacy choice.
+
+### `fmt.Sprintf`: `%x` of an integer, and named integer types (2026-10-31)
+
+- **Missing (at the pin `6da88b280`).** `fmt.wp_Sprintf` admitted arguments of predeclared basic
+  types only (`fmt.ArgsWf`), and its `SprintfOut` left `%x` arbitrary: concurrency's
+  `Sprintf("%s%x", pfx, s.Lease())` (a `LeaseID`, `type LeaseID int64` without methods) needed a
+  trust-boundary axiom here, `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), whose
+  output was arbitrary from the `%x` on.
+- **Landed** (2026-10-31) in the pin `d62b13ac1`: `21b7311b5` (`%x` of an integer,
+  `SprintfOut.hex`), `a4e2fb9e6` and `d62b13ac1` (a named integer type without formatting methods
+  formatted as its underlying integer, through `TypeAssertUnderlying2`: `fmt.IsIntArgType`,
+  `fmt.NoFmtMethods`, `SprintfOut.str_x_named_int64`). The axiom stays (still true, now with a
+  determined output); dropping it needs `fmt.NoFmtMethods` of `LeaseID`'s type, from a
+  `go.MethodSetIs` fact (`notes/STATUS.md`, "Perennial pin `d62b13ac1`").
+
 ### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
 
 - **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
@@ -1210,6 +1335,43 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
 
+### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
+
+- **Found** (2026-10-29, U8 v2 step 4, `newLogWithSize` over the boot bundle,
+  `notes/u8v2/step4-boot-newLogWithSize.patch`): `wp_apply H $$ [$HR]`, with `H` a hypothesis
+  triple whose postcondition binds nothing (`{{ P }} e {{ RET v; Q }}`), silently loses the
+  continuation: the goal after it is not the rest of the program.
+- **Workaround here.** `wp_apply_raw H $$ [$HR]; inext; iintro HR`.
+- **Proposed change.** `wp_apply` handles a post with no binders like one with binders
+  (investigate where the continuation is dropped; a regression test with such a hypothesis).
+
+### `word` on fully concrete goals fails the kernel's check
+
+- **Found** (2026-10-29, same proof): `word` closes a goal with no variables (concrete `w64`
+  arithmetic) at elaboration, but the proof term fails the kernel's check.
+- **Workaround here.** `rfl` or `simp` on those goals.
+- **Proposed change.** Find which `word` step produces the ill-typed term on closed goals (or
+  have `word` try `decide`/`rfl` first on them); add a test.
+
+### gokv's `trusted_proph` has a trusted model but no spec, and no translation in Perennial
+
+- **Found** (2026-10-30, kvreconf-final, the atomic `Cluster.Read`): Perennial has the trusted
+  model of `github.com/mit-pdos/gokv/trusted_proph`
+  (`Perennial/TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean`: `NewProph`,
+  `ResolveBytes := ResolveProph p (Convert []byte→string b)`), but no Goose translation of the
+  package and no spec of `ResolveBytes`.
+- **Workaround here.** The kvreconf project translates the package (`etc/goose.py`,
+  `Code/github_com/mit_pdos/gokv/trusted_proph.toml`, both functions trusted;
+  `TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean` re-exports Perennial's model), and the
+  spec is proved here from `wp_bytes_to_string` and `wp_resolve_proph`
+  (`Spec/github_com/mit_pdos/gokv/trusted_proph/ResolveBytes.lean`,
+  `Proof/.../trusted_proph/ResolveBytes.lean`):
+  `{proph p pvs ∗ sl ↦*{dq} s} ResolveBytes(p, sl) {∃ pvs', ⌜pvs = #s :: pvs'⌝ ∗ proph p pvs' ∗ sl ↦*{dq} s}`.
+- **Proposed change.** Translate `trusted_proph` in Perennial (as `primitive`, a `.toml` with the
+  two trusted functions), and add this spec and its proof (`Perennial/Spec/.../trusted_proph/`,
+  `Perennial/Proof/.../trusted_proph/`, with a `Link`), as for `primitive`'s
+  `ProphId.ResolveU64`. Then this repository drops its translation and its copy of the spec.
+
 ## `WithCancel`'s `Value` delegates to its parent (2026-10-28, M2)
 
 Perennial's `context.WithCancel` spec gives `isContext` of the child, whose `Value` is specified only
@@ -1219,3 +1381,113 @@ key other than `cancelCtxKey`, the child's `Value(k)` is the parent's (Go's `can
 `value(c.Context, key)`). General (every derived context: `WithCancel`, `WithTimeout`,
 `WithDeadline`). Meanwhile: a local lemma over Perennial's context, justified in
 `notes/m2-plan.md` (the compactor's freeze repair).
+
+## `aupd_post_mono`: an atomic update is antitone in its atomic postcondition (2026-10-29)
+
+`atomic_update Eo Ei α β Φ ⊢ atomic_update Eo Ei α β' Φ` when `β' x y ⊢ β x y`: the committer
+supplies more. It is a fact of Iris's atomic updates (the Rocq `atomic_update_mono` family), proved
+here by `greatest_fixpoint_coiter` and `aupd_aacc` (`Proof/.../etcdserver/InvRequest.lean`, step 5
+of the auth-mode merge). Proposed change: the lemma in Perennial's/Iris's atomic-update library,
+next to `aupd_aacc`.
+
+## A bag channel's non-blocking send (2026-10-30, kvreconf-snapshot-thread)
+
+Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic update
+(`bag_send_au`) but not the non-blocking one a `select` with a `default` needs. kvreconf's `request`
+sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : £ 1 -∗ isChanBag γ ch
+P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
+(`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
+the lemma in `Bag.lean`, next to `bag_send_au`.
+
+
+## A bag channel's non-blocking receive (2026-10-31, S1)
+
+The receive counterpart of the previous entry: `applyAll`'s `select` on `msgSnapC` (with a
+`default`) needs a non-blocking receive's atomic update from a bag. Proved locally as
+`chanBag_nbRecv : isChanBag γ ch P ⊢ (∀ v, P v -∗ Φ v true) -∗ nonblockingRecvAuInner γ Loc Φ`
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapSendBranch.lean`, generic). Proposed change: the
+lemma in `Bag.lean`, next to `bag_send_au` (with `bag_nb_send_au`).
+
+## A typed points-to's fraction validity (2026-10-31, lease-keys Part B)
+
+`typedPointsto l v dq` has value agreement (`typedPointsto_combine_sep_gives`, `⌜v1 = v2⌝`) but
+not the fractions' validity that the heap points-to's `CombineSepGives` gives
+(`⌜✓ (dq1 • dq2) ∧ v1 = v2⌝`): so a points-to owned whole and a read-only one of the same field
+cannot be shown to exclude each other. The lessor's `Grant` needs it: a fresh `*Lease` (its `ID`
+owned whole) is not one the item sets' map already has (each with `ID ↦□`). Worked around locally
+for a `w64` field (`w64_own_discard_false`, `Proof/.../lease/InvLessor.lean`: through the first
+byte's heap points-to). Proposed change: `TypedPointsto` gains (or derives, for the byte and heap
+instances) `typedPointstoDef l v1 dq1 ∗ typedPointstoDef l v2 dq2 ⊢ ⌜✓ (dq1 • dq2)⌝` for a
+non-empty representation, and `typedPointsto`'s `CombineSepGives` returns it with the agreement.
+
+## Strictly sorted lists with the same members are equal (2026-10-31, lease-revoke)
+
+`go.GoStringLt` (Perennial's order on Go strings, which `sort.StringSlice.Sort`'s model sorts by)
+has no law that two lists strictly increasing for it, with the same members, are equal. The
+lessor's `Revoke` needs it: the sorted item set it deletes is the lease's keys in key order
+(`mvcc.leaseDelKeys_eq`). Worked around locally (`eq_of_lt_sorted_mem`,
+`Proof/.../storage/mvcc/LeaseItems.lean`, from irreflexivity and transitivity). Proposed change: a
+general `List.eq_of_pairwise_lt_mem` for a strict order (in Perennial's list lemmas, or the
+`GoStringLt` instance of one), so that the local copy goes.
+
+## `sort.Sort` for a `Less` that answers anything (2026-10-31, lease-read)
+
+Perennial proves `sort.Sort` (`sort.wp_Sort`, over `sort.isSorter x own R`) only for a `Less` that
+agrees with a strict weak order `R`. The lessor's `Leases()` sorts with `leasesByExpiry`, whose
+`Less` compares `Remaining()`, read off the clock (and moved by `Renew`): it agrees with no fixed
+order, and the caller needs only the permutation. Go's `pdqsort` (`zsortinterface.go`) bounds every
+index it passes to `Less` and `Swap` by the slice's bounds, never by `Less`'s answers, so the
+permutation holds for any `Less`. Worked around locally by a trust-boundary axiom,
+`sort.Sort.wp_anyLess` (`Spec/sort/SortAnyLess.lean`: `sorterAnySpec`, a `Less` triple returning
+some boolean; the result a permutation), the user's choice (the lease-read plan's S2). Proposed
+change: a spec of `sort.Sort` (and of `pdqsort` and its helpers) for a sorter whose `Less` returns
+any boolean, the result a permutation of the whole slice; `wp_Sort` then adds sortedness for a
+strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
+`partialInsertionSort`'s left shift runs down to index 1, not to the segment's start
+(`zsortinterface.go:218`, `j >= 1`), so it moves elements below the segment and the per-segment
+"outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
+`[0, n)`, the list a permutation). The local axiom goes when it lands.
+
+## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
+
+`threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token
+and holds the token, but says nothing a client can use about the loans outstanding. A goroutine
+started on a wait group whose counter is bounded by thread tokens (`Add(1)` deposits the caller's
+token) has no token of its own, so it cannot borrow; if instead the wait group's running slots hold
+the pool's loan receipts (`ownThreadLoan`), the counter's bound needs "`k` loans are fewer than
+`threadBound GF`". Worked around locally (`Proof/go_etcd_io/etcd/client/v3/leasing/PoolLoans.lean`):
+`threadPool.loans_lt` (`isThreadPool N γ R ∗ ownToks γ k ⊢ |={E}=> ⌜k < threadBound GF⌝ ∗ ownToks γ k`,
+`↑N ⊆ E`: the invariant's `ownTokAuth γ b` bounds `k ≤ b`, its `threadToks b` gives
+`b < threadBound GF`) and `threadPool.init_named` (`init` under a name allocated beforehand,
+`ownTokAuth γ 0`, so that the name can be among the ghost names the pooled resource is defined
+over). Proposed change: both in `ThreadPool.lean` as they are.
+
+## `errors.Is` answers the same twice (2026-11-01, the lease rows at the gRPC level)
+
+`errors.Is.spec` (`Perennial/Proof/errors/Base.lean`, `errorIsTree S M target`) says only `err =
+target → true` and `true → some error of the tree is the target or an `Is` method said so`
+(`M`); the tree is an over-approximation (`S`, closed under `Unwrap`), and its nodes' `Is` and
+`Unwrap` specs return some answer. So two calls with the same error and target may answer
+differently, though Go's `errors.Is` is a function of the tree (the errors reachable by `Unwrap`
+from `err`, each compared with `target` and asked `Is(target)`), and Go's error methods are
+deterministic. etcd's `v3rpc/lease.go` calls `errors.Is(err, lease.ErrLeaseNotFound)` twice
+(`LeaseTimeToLive`, `LeaseLeases`): a `true` then a `false` would reach `ls.hdr.fill(resp.Header)`
+with `resp == nil`, so the handlers cannot be proved; `watch.go`'s `recvLoop` calls
+`errors.Is(err, context.Canceled)` twice too. The errors here are `applyErrIs` errors (any tree),
+so a local leaf fact would have to be threaded from the auth store up through about ten frozen
+specs (asked, 2026-11-01: the user chose this Perennial change instead). **Workaround here**: none (a `sorry`
+in each handler); the lease gRPC stage (`notes/lease-grpc-plan.md`) waits. **The change**
+(landed: Perennial `c4a24e323`, 2026-11-01; the pin): the
+tree's method specs as relations (`errorWalkTree S I U target`), `errors.Is`'s answer one of Go's
+walk over them (`IsWalk`), a function of the tree for exact relations (`isWalk_det`);
+`errorIsTree S M` the over-approximating instance (unchanged in meaning), `errors.wp_Is_tree` the old
+postcondition, `errorIsTree_of_walk`, `errorWalkTree_leaf`. It generalizes the first proposal: an error tree with
+exact node specs (`Unwrap() error` returns a fixed `u ii`, `Unwrap() []error` a fixed list, `Is`
+returns a fixed `f ii target`), and a spec of `errors.Is` over it whose answer is
+`decide (∃ e ∈ reach u err, e = target ∨ f e target)` (partial correctness: a cyclic chain does not
+return); `errorIsTree`'s current form follows from it. Every Go error type whose methods are
+deterministic (all of the standard library's and etcd's) has such a tree; `applyErrIs` would then
+carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructors), etcd-grove's
+`errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
+(small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
+`errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.

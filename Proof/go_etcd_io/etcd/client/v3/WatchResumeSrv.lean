@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **An event-less mvcc response's revision is a notified log's last** (`mvcc.respRev`, kept by
 the stream's facts `mvccOk`). -/
 theorem mvccOk_revLb (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : v3rpc.WatchRespM)
-    (ρ : mvcc.RespM) (hsrc : m.src = some ρ) (hev : ρ.evs = []) :
+    (ρ : mvcc.RespM) (hsrc : m.src = some ρ) (hev : ρ.evs = []) (hmc : m.compactRev = W64 0) :
     v3rpc.mvccOk (GF := GF) γs γ j m ⊢
       ∃ L : mvcc.Log, mvcc.notifiedLb γ L ∗ ⌜sint.Z m.hdr.revision + 1 = (L.length : Int)⌝ := by
   iunfold v3rpc.mvccOk
@@ -43,12 +43,17 @@ theorem mvccOk_revLb (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : v3rp
     simp only [v3rpc.mvccResp] at this
     rw [hsrc] at this; exact (Option.some.inj this).symm
   subst hr
+  have hcr : r.compactRev = W64 0 := by
+    have := congrArg v3rpc.WatchRespM.compactRev Hm.1
+    simp only [v3rpc.mvccResp] at this; rw [← this]; exact hmc
   iunfold v3rpc.mvccCov at Hcov
   icases Hcov with ⟨%γc, %pre, %γo, %γa, -, -, -, -, #Hrc, -⟩
   ihave #Hlb := mvcc.respCov_rev _ _ _ _ $$ Hrc
   iunfold mvcc.revLbOf at Hlb
-  icases Hlb with (%H | ⟨%L', #HL', %HL'⟩)
+  icases Hlb with (%H | ⟨%L', #HL', %HL'⟩ | %H)
   · exact absurd hev H
+  rotate_left
+  · exact absurd hcr H.1
   iexists L'
   iframe HL'
   ipureintro; rw [Hm.2.1]; exact HL'

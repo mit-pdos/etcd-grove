@@ -38,8 +38,19 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Review** | phase 1b | fresh reviewers, rounds until nothing first-tier is left |
 | **Test** | phase 2 | the spec-guided tester runs the specs against the Go code |
 | **Probe** | phase 3 | an easy and a hard proof; the list of cross-package unfolds |
-| **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified |
+| **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
+
+**Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
+`axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
+the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
+to build a Go program that panics yet is proved safe from the axioms. Its report goes with the
+Freeze list. Review checks an axiom against the Go code, and Test against runs, so neither sees an
+axiom that is unsound in the logic: one that gives out a counted resource (a `threadTok`, a receipt)
+it did not take. (lease-ex's D1: the restated `grpc.serve` gave each gRPC run a thread token out of
+nothing; the review rated it true of grpc-go and left the accounting "uncertain";
+`.claude/skills/spec/PRINCIPLES.md`, "A trusted statement never gives out a counted resource it did
+not take".)
 
 **Scope (was phase 0): the configuration and the top-level statement first.** Before any spec of a slice, fix the
 configuration the result covers (features on or off, message types, membership changes,
@@ -193,6 +204,37 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
+
+**The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
+statement goes in the stage's change log (old → new, why), as raft-unified's did
+(`notes/raft-unified-plan.md`), and is tagged there **when it is made**, with one category and how it
+was found. A raw count misleads: of raft-unified's 162 logged entries, 22 were status notes or
+duplicates, and of the other 140 only 59 were the review's misses. The categories:
+- **F, fix**: the frozen statement is false of the code or unprovable (a premise added, a post
+  weakened, a statement restated). A review miss.
+- **R, redesign**: the frozen design of an abstraction is replaced (raft-unified's storage contract,
+  candidate 17). A review miss, and the costliest kind.
+- **W, weakening**: a premise turns out unnecessary and is dropped.
+- **E, extension**: a spec, law or vocabulary the frozen design does not have (a new method's spec, a
+  law a client asks for).
+- **D, decision**: the user or the coordinator changes the scope or the design, not forced by a proof.
+- **A, adaptation**: a client restated over a changed API (what the freeze exists to allow).
+- **C, conformance**: the design built as stated, renames, moves, visibility, deletions, the
+  follow-through of another change.
+
+How it was found: *proof* (a proof or glue failed), *Go* (reading the code showed the statement false:
+the change then often comes with an `issues/` file), *test*, *user*, *check* (a final `tcb-report`
+or API check). Also mark whether the change touches a public or trusted statement or only an
+internal one, and whether the user approved it or it awaits review. The tag is one line ahead of the
+entry, e.g. `[F, Go, trusted, awaits user]`.
+
+The metric is the review's misses (F and R) after the freeze, by category, against the spec's
+size; the tags also show where the misses cluster. raft-unified's (classified after the fact,
+2026-10-30, one reader): F 41, R 18, W 12, E 8, D 13, A 12, C 36; the misses concentrated in the
+storage contract, the newest abstraction, which had the fewest review rounds before the freeze; 28
+fixes touched public or trusted statements, 8 were facts of the Go code or the protocol, and 7 trusted
+changes (Stage P's P2, P4-P6, P8-P10) were approved by the coordinator while the user was away.
+Lesson: review depth should match how new the abstraction is.
 
 **Agents in Draft and Review** (M2, 2026-10-28): a long agent drifts toward proving. Its brief says
 skeleton only from the start (statements; the glue; a marked `sorry` on the failing step of anything
@@ -431,6 +473,35 @@ resource parts show. Next libraries by the paper replay's yield: etcd's own name
 The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
 a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).
 
+**`Bucket.Delete_kv` widened (backend-cmp F3, 2026-10-30).** The tester now records every slice a
+cursor move hands out (`curAt`'s `txBytes tx k e.1`, `txBytes tx v e.2`) and checks, at a step
+`(read txBytes)` (`txBytes_acc` with a fraction of `txLive`), that each slice of a live transaction
+still reads its bytes; `Seek` may take such a slice as its key; and `Delete`'s key is a fresh slice
+or another live transaction's slice (`own = true`, through `txBytes_acc`), or, with the widened
+statement, the write transaction's own slice (`own = false`), given back holding the same bytes
+(`-old-delete`: owned keys only). A write cursor goes back (the wand) before the `Delete`, which
+needs `ownWTxG`, so the specs allow iteration after a `Delete` on a new cursor only; reads of the
+deleted key's own slice after the `Delete`, after more `Put`s and `Delete`s, are allowed and
+checked. `-focus delete` weights the steps toward that path (no `Close`, mostly writers);
+`-nkeys 12 -vmax 1500` makes buckets large enough to leave inline storage, so that a write
+transaction's cursor keys point into the memory map (instrumented). Runs of 60 calls:
+
+| statements | runs | refuted | how |
+|---|---|---|---|
+| current, uniform steps | 10 000 | **0** | 280 blocked (as before); 143 Deletes by the tx's own slice, 55 of a present key |
+| current, `-focus delete` | 10 000 | **0** | 1108 blocked (11%, from the weighting: commits remapping under readers; `-old-delete` 11% too); 5922 Deletes by the tx's own slice (2102 of a present key), 6340 reads of a deleted key's slice |
+| current, `-focus delete -nkeys 12 -vmax 1500` | 10 000 | **0** | 1593 blocked; 2073 Deletes of a present key by the tx's own slice, 72 of them a slice into the memory map |
+| `-old-delete`, `-focus delete` | 3000 | 0 | no Delete by the tx's own slice (the generator respects the old pre) |
+| mutant: a Delete by the tx's own slice keeps the key (`delete-tx-noop`) | 3000 | 117 (3.9%) | a later cursor sees the key; uniform steps: 2 (0.07%) |
+| mutant: a Delete by the tx's own slice changes what the slice reads (`delete-clears-txbytes`) | 3000 | 562 (19%) | `(read txBytes)`, or the slice given back, reads the old bytes; uniform steps: 15 (0.5%) |
+| mutant: `Delete` a no-op, `-focus delete` | 3000 | 903 (30%) | (1.7% with uniform steps) |
+
+So the widened statement survives at bbolt v1.5.0 (etcd's pin), including the uncertain point
+(`txBytes` after `Delete`: the deleted key's slice and the others still read their bytes, the
+inode array is shifted, the key bytes are not touched; `node.go:145-159`). The uniform generator
+reaches the new path rarely (55 Deletes of a present key in 10 000 runs): a widened precondition
+needs a weighting toward it, as here, or the tester's verdict on it is weak.
+
 ## Checkpoint: the compactor pilot and M2 to review round 1 (2026-10-28)
 
 **What works.**
@@ -463,3 +534,47 @@ a generation"); the tester now runs the new statements by default (`-old-wbkt` f
 **The comparison** (step 3's main metric): spec revisions after the freeze, 1 for the compactor (by
 M2's glue), against about 5 for the read-index baseline over two weeks; not yet fair (hours against
 weeks, and M2 not finished).
+
+## To revisit: the snapshot track as a data point (2026-11-02)
+
+The snapshot track was done proof-first on 2026-10-31 and 2026-11-01 (`snap-sorries`, `snap-j8a`), then spec-first
+(the auth-on install, `notes/snapshot-auth-on-plan.md` on `snap-auth-on-draft`; the backend auth
+split, `notes/backend-auth-split-plan.md` on `backend-auth-split`). A first pass, not strong evidence
+(the proof-first half finished an older bottom-up design; the install is not proved yet): the
+proof-first half had 30 commits in 35 hours, 29 restating an existing statement (10 trusted or exported),
+`applySnapshot`'s spec restated 8 times, CALLER 17 / false 7 / SCOPE 3; the backend split's
+post-freeze log had R 1, F 0. Write-up and table: branch `spec-first-snapshot-data`
+(`notes/spec-first-study/snapshot-proof-first.md`), not merged. To recompute: the track's commits in
+the window touching `Spec/` or `Proof/` (`git log --no-merges --since=2026-10-31 --until=2026-11-01T14:40
+-- Spec Proof`, the other tracks dropped), each classified with step 1's rubric, `git show --numstat`
+for the lines. **Revisit when the auth-on install is frozen and proved**: compare its
+"Change log after the freeze" (F and R per frozen statement, and their `Proof/` lines) with
+that table.
+
+## Spec churn from the git log (2026-11-02)
+
+`etc/spec-churn.py` (`python3 -I etc/spec-churn.py`, about a minute) measures, from the git log
+alone, how often a statement changes after a stage froze it. The unit is a public declaration
+of the statement surface (`Spec/` and the shared `Proof/` modules: `Inv*`, `Api*`, `Defs`, ...):
+a theorem's type, a definition's whole text. Stages and their freeze commits are listed in
+its `STAGES`: add a stage there when it freezes. The script's docstring defines the cohorts.
+
+First run (2026-11-02), within two days:
+- 17% of the stages' frozen definitions changed, and 7% of their theorem statements.
+- Proof-first declarations of the etcd packages changed less: 9-13% of definitions, 4-5% of
+  theorems. The proof-first point is a write that then stayed unchanged for 12 hours.
+- Only 15 of about 1200 frozen declarations (1.3%) were changed by their own stage. The
+  rest were changed by stages working in parallel or after on the same high-fan-in specs:
+  backend-cmp's repairs changed M2's mvcc contract, and M2's approved change-log items
+  changed backend-cmp's and G2's. C3, J8a and lease-src extended `NewServer.spec` and the
+  lease vocabulary.
+
+So the git log shows that the stage's own proof rarely revises what it froze. It does not show
+that spec-first lowers churn against proof-first: there is no proof-first point that matches a
+freeze, and the baseline is diluted by leaf declarations. Three stages froze a design in notes
+before writing Lean (raft unified, the decision switch, txn-nested) and are invisible to it.
+
+The cross-stage churn suggests ordering stages that share specs instead of running them in
+parallel, as M2 and backend-cmp did. **Revisit** when the lease stages' windows are complete
+(after 2026-11-04): rerun the script and compare the own-stage counts with the stages' "Change
+log after the freeze".

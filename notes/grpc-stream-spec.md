@@ -166,7 +166,7 @@ stream method, WP form), `srvStreamChainWP` (grpc's `chainStreamServerIntercepto
 server end of the same stream, possibly with another context, or fails), `srvStreamChainWP_of_ok`,
 `grpcStreamMethodOk mh srv ics S Up Spec` (`streamSpecOk Spec` ∗ the run through the chain on a
 fresh raw end, both tokens at `[]`, `Spec γ Dn`, `S`; nothing returned), `isGrpcStream`,
-`isGrpcStream_intro`, `grpc_serveStream_rpcs`.
+`isGrpcStream_intro` (since G2, `isGrpcStreamMd_intro`), `grpc_serveStream_rpcs`.
 
 **Axioms** (12, all at the boundary):
 - `grpcStreamServerAt addr ics sregs` (opaque, exclusive): the server built with the stream chain

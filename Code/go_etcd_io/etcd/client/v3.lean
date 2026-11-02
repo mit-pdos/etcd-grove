@@ -134,6 +134,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
   ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
   canceledByCaller_unfold : FuncUnfold canceledByCaller [] canceledByCaller.impl
+  OpCompact_unfold : FuncUnfold OpCompact [] OpCompact.impl
   Compare_unfold : FuncUnfold Compare [] Compare.impl
   Value_unfold : FuncUnfold Value [] Value.impl
   Version_unfold : FuncUnfold Version [] Version.impl
@@ -177,6 +178,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
   WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
   WithIgnoreLease_unfold : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
+  toLeaseTimeToLiveRequest_unfold : FuncUnfold toLeaseTimeToLiveRequest [] toLeaseTimeToLiveRequest.impl
   IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
   IsOptsWithFromKey_unfold : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
   isSafeRetryImmutableRPC_unfold : FuncUnfold isSafeRetryImmutableRPC [] isSafeRetryImmutableRPC.impl
@@ -337,6 +339,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.isUnavailableErr_unfold
   Assumptions.ContextError_unfold
   Assumptions.canceledByCaller_unfold
+  Assumptions.OpCompact_unfold
   Assumptions.Compare_unfold
   Assumptions.Value_unfold
   Assumptions.Version_unfold
@@ -380,6 +383,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.WithProgressNotify_unfold
   Assumptions.WithCreatedNotify_unfold
   Assumptions.WithIgnoreLease_unfold
+  Assumptions.toLeaseTimeToLiveRequest_unfold
   Assumptions.IsOptsWithPrefix_unfold
   Assumptions.IsOptsWithFromKey_unfold
   Assumptions.isSafeRetryImmutableRPC_unfold

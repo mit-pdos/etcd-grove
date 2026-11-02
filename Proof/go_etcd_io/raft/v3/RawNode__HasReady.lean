@@ -57,9 +57,9 @@ local macro "finish0" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur))
 
 set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
@@ -69,9 +69,9 @@ local macro "finish" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur))
 
 set_option hygiene false in
 /-- The one path that returns `false`: no queue is non-empty, no unstable entry is
@@ -99,10 +99,10 @@ local macro "finish_false" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   -- (D22 S-d3a) no snapshot to hand out: none pending, or the pending one in progress
-  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt
     ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
+    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur))
 
 set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
@@ -171,11 +171,23 @@ theorem RawNode.HasReady.wp_proof
   ihave #Hhard' := prevHS_hsRO γ _ _ _ $$ Hhard
   ihave #Hhard' := hsRO_to_hsOpt _ _ $$ Hhard'
   wp_apply wp_IsEmptyHardState hp _ $$ [$Hhp']
+  ihave %Hpe := prevHS_eq γ _ _ _ $$ Hhard
   wp_if_destruct
-  · rest
+  · -- (2026-11-01, durability stage II (m)) the hard state empty
+    have Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs := by
+      left
+      obtain ⟨h1, h2, h3⟩ := Hif
+      simp only [hsOf, h1, h2, h3]
+    rest
   · wp_apply wp_isHardStateEqual hp rnv.prevHardSt' _ _ $$ [$Hhp' $Hhard']
     wp_if_destruct
-    · rest
+    · -- (2026-11-01, durability stage II (m)) the hard state `prevHardSt`'s
+      have Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs := by
+        right
+        obtain ⟨h1, h2, h3⟩ := Hif
+        rw [← Hpe]
+        cases hprev; simp only at h1 h2 h3; simp only [hsOf, h1, h2, h3]
+      rest
     · finish0
 end proof
 

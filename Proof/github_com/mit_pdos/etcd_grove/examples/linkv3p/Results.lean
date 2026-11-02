@@ -24,9 +24,10 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
   under linkv3's hypotheses (`linkv3_safe`) at linkv3p's configuration, v3rpc's method sets as
   an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
-  and the schedule's length below `2^63`; executions of `n + 2 ≤ 2^29` steps (watchkv's bound,
-  since 2026-10-21: a member's watch run slot needs the thread bound below Go's `RWMutex`
-  reader bound; until then `2^31`).
+  and the schedule's length below `2^63`; executions of `n + 2 ≤ 2^28` steps (the server's bound,
+  since J8a-6, 2026-11-01: the transport's thread pool; from 2026-10-21 `2^29`, watchkv's: a
+  member's watch run slot needs the thread bound below Go's `RWMutex` reader bound; until then
+  `2^31`).
 
 * **`linkv3p_MainWatch`** (`Link.lean`'s `linkv3p.wp_MainWatch`; W4 of
   `notes/watch-cut-plan.md`, 2026-10-22): `MainWatch(nw, nops, sched)` -- watchkv's workload over
@@ -38,7 +39,7 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
 * **`linkv3p_watch_safe`** (`AdequacyWatch.lean`'s `linkv3p_watch_adequate`): its closed theorem,
   under `linkv3p_safe`'s hypotheses but `Run`'s bounds, the client watcher's (watchkv's
   `watch_safe`: its class premises and `ContextErrsClient`) and watchkv's bounds on `nw` and
-  `nops`; executions of `n + 2 ≤ 2^29` steps. The watch's events are the cluster's committed
+  `nops`; executions of `n + 2 ≤ 2^28` steps. The watch's events are the cluster's committed
   history's (`etcdModelOfHistory`), the watch resumed at any member after a cut (D32): no gap, no
   repeat, every successful put reported at its revision, whatever the schedule.
 
@@ -114,7 +115,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -129,12 +130,12 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3p_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn Hwb
+  linkv3p_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
+    Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
 (`linkv3p_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
@@ -152,7 +153,7 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -167,12 +168,12 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pWatchProgram nw nops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3p_watch_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn Hwb
+  linkv3p_watch_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31
+    Hops Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

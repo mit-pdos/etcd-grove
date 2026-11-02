@@ -179,6 +179,19 @@ instance cmpsAt_persistent (sl : GoSlice) (ms : List CmpModel) :
     Persistent (cmpsAt (GF := GF) sl ms) := by
   unfold cmpsAt; infer_instance
 
+open Iris.ProofMode in
+/-- No comparisons: the nil slice. -/
+theorem cmpsAt_nil : ⊢ cmpsAt (GF := GF) slice.nil [] := by
+  unfold cmpsAt
+  iexists ([] : List go_etcd_io.etcd.client.v3.Cmp)
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · ipureintro; rfl
+  imodintro
+  iintro %i %c %m %Hc %Hm
+  simp at Hc
+
 /-- The `[]Op` slice `sl` (read-only) holds operations modelled by `os`, in order. -/
 def opsAt (sl : GoSlice) (os : List OpFull) : IProp GF :=
   iprop(∃ vs : List go_etcd_io.etcd.client.v3.Op, sl ↦*□ vs ∗ ⌜vs.length = os.length⌝ ∗

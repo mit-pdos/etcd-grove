@@ -70,7 +70,7 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
           -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
           γ.reNoXfer = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0)) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         -- (2026-10-15, stage N) as `ownRaftGhost_alloc`: the empty committed log, every read
         -- credit
         isCommitted γ [] ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
@@ -79,26 +79,13 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
   imod ownRaftGhost_alloc_gen (GF := GF) E c0.cfg.incoming ids
     (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk C h0.2.1 Hnz $$ Hcl
     with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
-  simp only [Option.isSome_some]
   imodintro
   iexists γ
   isplitr
   · ipureintro
     refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2⟩
     unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
-  iframe Hinv HC Hc0 Hcr Hcri
-  iapply BigSepM.bigSepM_impl $$ Hn
-  imodintro
-  iintro %id %u %_ Hg
-  unfold ownRaftGhostR
-  rw [show (rinit c0).p = initPState from rfl]
-  iframe Hg
-  isplitr; · ipureintro; exact RInv_rinit dec c0
-  isplitr
-  · unfold logRecs rinit
-    iapply (BigSepL.bigSepL_nil).2; iempintro
-  iintro %h
-  exfalso; exact absurd h (by simp [initPState])
+  iframe Hinv HC Hc0 Hcr Hcri Hn
 
 /-- (2026-10-25, T-M M2a) A member of a new cluster after `RawNode.Bootstrap`, in the dynamic
 model: the bootstrap state (`bootPState bootLog`: term `1`, the boot log committed), configuration
@@ -121,13 +108,12 @@ theorem RInv_rboot (dec : CCDec) (c0 : CCState) (bootLog : List EntryM)
   have hfull : (rboot c0 bootLog).full = bootLog := by
     show [] ++ bootLog = bootLog; rfl
   have h0 := base0_index
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact FullOk_base0
   · show uint.Z base0.index' ≤ _; rw [h0, hc]; omega
   · show _ ≤ plogLastIndexZ base0 bootLog; unfold plogLastIndexZ; rw [h0, hc]; omega
   · show uint.nat (W64 0) ≤ 0; decide
   · show 0 ≤ _; omega
-  · intro h; cases h
   · intro _; show uint.Z base0.index' ≤ uint.Z (W64 0); rw [h0]; decide
   · intro h; cases h
   · show cfgFold dec c0 (([] ++ bootLog).take 0) = some c0; rfl
@@ -151,10 +137,9 @@ theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgO
         ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧
           γ.reBoot = bootLog ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rboot c0 bootLog)) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         isCommitted γ bootLog ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
   intro Hnz Hbne Hok
-  have Hlen : (bootLog.length : Int) < 2 ^ 64 := by have := Hok.1; omega
   iintro Hcl
   imod ownRaftGhost_alloc_core (GF := GF) E c0.cfg.incoming ids
     (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog (W64 1) C none
@@ -162,26 +147,13 @@ theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgO
     (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") h0.2.1 Hnz Hok
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
-  simp only [Option.isSome_some]
   imodintro
   iexists γ
   isplitr
   · ipureintro
     refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2.1, Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.1⟩
     unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
-  iframe Hinv HC Hc0 Hcr Hcri
-  iapply BigSepM.bigSepM_impl $$ Hn
-  imodintro
-  iintro %id %u %_ Hg
-  unfold ownRaftGhostR
-  rw [show (rboot c0 bootLog).p = initPStateAt (W64 1) bootLog from rfl]
-  iframe Hg
-  isplitr; · ipureintro; exact RInv_rboot dec c0 bootLog Hlen
-  isplitr
-  · unfold logRecs rboot
-    iapply (BigSepL.bigSepL_nil).2; iempintro
-  iintro %h
-  exfalso; exact absurd h (by simp [initPStateAt, initPState])
+  iframe Hinv HC Hc0 Hcr Hcri Hn
 
 end ghost
 

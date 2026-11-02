@@ -54,7 +54,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id₁ id₂ id₃ ctxs boot clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
-    Hdbo Hms hAs H0 H31 Hops Hmul
+    Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
@@ -68,7 +68,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the cluster, its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg [] Hbf
-      Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
+      Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -84,10 +84,10 @@ theorem Main.wp_proof
     #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
   obtain ⟨hst₂, hst₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
-  obtain ⟨-, -, -, hlog₁⟩ := Hp₁
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, common.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons
@@ -132,9 +132,9 @@ theorem Main.wp_proof
       (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂.1]; iexact Hlinv
   ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃.1]; iexact Hlinv
   -- every client's members: the three, at their bridges' addresses
   let ms : List (EtcdGrove.client.SrvAt GF) :=
     [⟨bridgeAddr₁, E₁', ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂', ρ₂.rd, cid₂, mid₂⟩,
@@ -150,7 +150,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₁ HCmp₁]; iframe #
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
@@ -160,7 +162,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
@@ -170,7 +174,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave #Hinvs : ([∗list] sv ∈ ms, linkvtxn.linkvInv γl sv.γr.kv) $$ []

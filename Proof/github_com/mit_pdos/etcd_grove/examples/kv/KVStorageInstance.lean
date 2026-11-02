@@ -1,46 +1,42 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# `*kv.Storage` meets raft's `Storage` contract (2026-10-10; raft v3.7, 2026-10-16, stage R6b)
+# `*kv.Storage` at raft's node API (2026-10-30, stage F of the client repair: from kvreconf's
+`KvrStorageApi.lean`, kv's names; until then `ownStorage`'s contract over `StorState`)
 
-A registered store storage (`kvStorRec s ms γs`) is a raft `Storage` under the
-store's storage model (`kvStorageModel`, `Defs.lean`): `isStorage (kvStorIface s)`,
-the contract `RestartNode` takes (`kvStorage_isStorage`), and its `InitialState` is what
-`newRaft` reads of it (`kvStorage_initialState`). The methods raft calls are the
-embedded `MemoryStorage`'s (promoted: the field read, then `MemoryStorage`'s method),
-but for `Snapshot` (`Storage.Snapshot`), which says `ErrSnapshotTemporarilyUnavailable`
-for the empty snapshot of a new storage: the contract's `Snapshot` clause asked a non-empty
-snapshot or that error, which a bare new `MemoryStorage` did not meet until 2026-10-16 (raft
-v3.7 stage R8a, D11: the clause now promises a non-empty snapshot only once the storage is
-compacted, `prev.index ≠ 0 → Index ≠ 0`, which the store's stronger answer meets
-outright). The two laws are `MemoryStorage`'s (`memStorage_handout`, `memStorage_absorb`),
-its tokens being of the registered names.
+What the rest of kv uses of `*kv.Storage` (`KvStorage.lean`'s vocabulary):
 
-Raft v3.7: the contract's `Entries` hands out read-only entry pointers (`entsRO`) and its
-`Snapshot` a fresh owned clone (`ownSnapM`), both `MemoryStorage`'s own results; `InitialState`
-returns two fresh pointers, the hard state `hsOpt hp ⟨0, 0, 0⟩` and the conf state of the voters
-frozen read-only (`csPts cs □ (kvConfState voters) false`: its `AutoLeave` is `nil`, which
-`RestartNode.spec` admits since stage R6b, `al`).
+- **the promoted methods** (`kvStorage.wp_X`): `MemoryStorage.X.spec` restated at the wrapper (the
+  method resolved on `*Storage`, which loads the embedded `MemoryStorage` and calls its method), with
+  the wrapper's record `kvStorRec s ms γs` added to the precondition, for the methods raft and the
+  replica call: `FirstIndex`, `LastIndex`, `Term`, `Entries`, `Append`, `ApplySnapshot`,
+  `SetHardState`, `CreateSnapshot`, `Compact`;
+- **the contract** (`kvStorage_isStorage`): a registered wrapper whose `MemoryStorage` has its
+  invariant at `kvJ γ K` is the storage of key `K` (`isStorage`), as raft's `memStorage_isStorageP`
+  is proved (`Snapshot` is the wrapper's own, `kv.Storage.Snapshot.spec`);
+- **the boot premise** (`kvStorage_bootStorage`): what `RestartNode` asks of a fresh storage
+  (`restartStorage` at the empty contents), from what `NewMemoryStorage` gives. kv's `InitialState`
+  (`kv.go`) never calls `MemoryStorage.InitialState` (it answers `HardState{}` and the wrapper's
+  voters), so the storage's invariant is allocated inside `restartStorage`'s continuation, at the key
+  raft names, from `memStorLock ∗ memStorFresh` (the frame).
 
-Raft's own instance for a bare `*MemoryStorage` (`memStorageModel`, `memStorage_isStorage`,
-`Proof/go_etcd_io/raft/v3/MemstorageInstance.lean`, 2026-10-16, stage R7a: a registry from the
-storage's pointer to its names, the snapshot premise `prev.index ≠ 0 → ss.index ≠ 0` in
-`ownStorage`) does not serve the store: its `Storage` is its own struct (another interface
-value, the promoted methods behind a field read), and its registry is keyed by that struct (its
-`MemoryStorage` field holds the registration's exclusivity). (Its `Snapshot` override, which let
-it start with no snapshot under the clause before R8a, is no longer needed for that; the
-store's Go code is unchanged.) Everything here is store-specific; the method clauses are
-proved as raft's are (`is_Storage_MemoryStorage`), one `wp_apply` of `MemoryStorage`'s
-collection each.
+The contract and the boot premise need the package's `isPkgInit` (the wrapper's `Snapshot` and
+`InitialState` specs take it).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KvStorage
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 
 @[expose] public section
 
@@ -52,10 +48,9 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-section inst
+section promoted
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -63,308 +58,430 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
-include sem in
-theorem kvStorIface_inj (s1 s2 : Loc) : kvStorIface s1 = kvStorIface s2 → s1 = s2 := by
-  intro h
-  simp only [kvStorIface, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
-    true_and] at h
-  exact go.intoVal_inj h
+theorem kvStorage.wp_FirstIndex (wp : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (c : Nat) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memCompacted γs c) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"FirstIndex")) (Val #()))
+  {{ (fi : w64), RET (PairV #fi #interface.nil);
+      ⌜c + 1 ≤ uint.nat fi⌝ ∗ memCompacted γs (uint.nat fi - 1) }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs c $$ [HP] as %fi HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-/-- The storage's owner, at a known storage. -/
-theorem kvOwnStorage_at (s ms : Loc) (γs : MemStorNames) (σ : StorState) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ ownStorage (kvStorIface s) σ -∗ ownMemoryStorage ms γs σ := by
-  iintro #Hrec Hown
-  ihave Hown : kvOwnStorage (kvStorIface s) σ $$ [Hown]
-  · iexact Hown
-  unfold kvOwnStorage
-  icases Hown with ⟨%s', %ms', %γs', %Hst, #Hrec', Hown⟩
-  have := kvStorIface_inj (GF := GF) _ _ Hst
-  subst this
-  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
-  subst H1 H2
-  iexact Hown
+theorem kvStorage.wp_LastIndex (wp : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (e : Nat) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗ memEnd γs e) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"LastIndex")) (Val #()))
+  {{ (li : w64), RET (PairV #li #interface.nil); memEnd γs e ∗ ⌜uint.nat li + 1 = e⌝ }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs e  $$ [HP] as %li HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-theorem kvOwnStorage_intro (s ms : Loc) (γs : MemStorNames) (σ : StorState) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ ownMemoryStorage ms γs σ -∗ ownStorage (kvStorIface s) σ := by
-  iintro #Hrec Hown
-  ihave H : kvOwnStorage (kvStorIface s) σ $$ [Hown]
-  · unfold kvOwnStorage
-    iexists s, ms, γs
-    iframe Hrec Hown
-    ipureintro; rfl
-  iexact H
+theorem kvStorage.wp_Term (wp : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (k : Nat) (dq : DFrac) (es : List EntryM) (i0 : w64)
+    (ec : GoInterface) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memLog γs k dq es ∗ ⌜k ≤ uint.nat i0 ∧ uint.nat i0 < k + es.length⌝ ∗
+      globalAddr ErrCompacted ↦□ ec) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"Term")) (Val #i0))
+  {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
+      memLog γs k dq es ∗
+      (⌜err = interface.nil ∧ (fun e : EntryM => e.Term') <$> es[uint.nat i0 - k]? = some t⌝ ∨
+       (⌜err = ec⌝ ∗ memCompacted γs (uint.nat i0 + 1))) }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs k dq es i0 ec  $$ [HP] as %t %err HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-theorem kvStorCut_at (s ms : Loc) (γs : MemStorNames) (n : Int) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ storCut (kvStorIface s) n -∗ memStorCut γs n := by
-  iintro #Hrec Hc
-  ihave Hc : kvStorCut (kvStorIface s) n $$ [Hc]
-  · iexact Hc
-  unfold kvStorCut
-  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
-  have := kvStorIface_inj (GF := GF) _ _ Hst
-  subst this
-  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
-  subst H1 H2
-  iexact Hc
+theorem kvStorage.wp_Entries (wp : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM)
+    (lo hi maxSize : w64) (ec : GoInterface) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memLog γs k dq1 a ∗ memLog γs (k + a.length) dq2 b ∗
+      ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ k + a.length + b.length⌝ ∗
+      globalAddr ErrCompacted ↦□ ec) }}
+    (App (App (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"Entries")) (Val #lo)) (Val #hi)) (Val #maxSize))
+  {{ (sl : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #sl #err);
+      memLog γs k dq1 a ∗ memLog γs (k + a.length) dq2 b ∗
+      ((⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo)) ∨
+       (⌜err = interface.nil⌝ ∗ entsRO sl es ∗
+        ⌜es ≠ [] ∧ sl.cap = sl.len ∧
+          es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs k dq1 dq2 a b lo hi maxSize ec  $$ [HP] as %sl %es %err HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-theorem kvStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ memStorCut γs n -∗ storCut (kvStorIface s) n := by
-  iintro #Hrec Hc
-  ihave H : kvStorCut (kvStorIface s) n $$ [Hc]
-  · unfold kvStorCut
-    iexists s, ms, γs
-    iframe Hrec Hc
-    ipureintro; rfl
-  iexact H
+theorem kvStorage.wp_Append (wp : MemoryStorage.Append.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (sl : GoSlice) (dq : DFrac)
+    (h1 : ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j)
+    (h2 : k + es.length ≤ 2^61) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
+      entsPts sl dq es) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"Append")) (Val #sl))
+  {{ RET #interface.nil; entsPts sl dq es ∗
+      (if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs k old es sl dq h1 h2 $$ [HP] as  HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-/-- (D22 S-r) The floor's witness, at a known storage: its `MemoryStorage`'s, below `2^61`. -/
-theorem kvStorFloor_at (s ms : Loc) (γs : MemStorNames) (x : w64) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ storFloor (kvStorIface s) x -∗
-      memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝ := by
-  iintro #Hrec Hc
-  ihave Hc : kvStorFloor (kvStorIface s) x $$ [Hc]
-  · iexact Hc
-  unfold kvStorFloor
-  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc, %Hx⟩
-  have := kvStorIface_inj (GF := GF) _ _ Hst
-  subst this
-  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
-  subst H1 H2
-  iframe Hc
-  ipureintro; exact Hx
+theorem kvStorage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc)
+    (dq : DFrac) (sv : SnapshotM) (eood : GoInterface)
+    (h1 : j ≤ uint.nat sv.Metadata'.Index')
+    (h2 : uint.nat sv.Metadata'.Index' < 2^61) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
+      memLog γs j (DFrac.own 1) old ∗ memEnd γs (j + old.length) ∗
+      J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index') ∗
+      snapArg sp dq sv ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"ApplySnapshot")) (Val #sp))
+  {{ RET #interface.nil; ownSnapM sp dq sv ∗
+      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+      memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') }} := by
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hold, Hend, #HB, #HSV, #HDL, Hsnap, #Hlb, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none j old sp dq sv eood h1 h2 $$ [Hold Hend Hsnap] as HQ
+  · iframe Hold Hend Hsnap Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB HSV HDL
+  iapply HΦ
+  icases HQ with ⟨H1, H2, H3, H4, H5, -⟩
+  iframe H1 H2 H3 H4 H5
 
-theorem kvStorCert_at (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ storCert (kvStorIface s) k -∗ memStorCert γs k := by
-  iintro #Hrec Hc
-  ihave Hc : kvStorCert (kvStorIface s) k $$ [Hc]
-  · iexact Hc
-  unfold kvStorCert
-  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
-  have := kvStorIface_inj (GF := GF) _ _ Hst
-  subst this
-  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
-  subst H1 H2
-  iexact Hc
+theorem kvStorage.wp_SetHardState (wp : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorMeta ms γs hs ∗ hsOpt st hs') }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"SetHardState")) (Val #st))
+  {{ RET #interface.nil; memStorMeta ms γs hs' }} := by
+  wp_start as ⟨#Hrec, HP⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs hs st hs'  $$ [HP] as  HQ
+  · iexact HP
+  iapply HΦ
+  iexact HQ
 
-theorem kvStorCert_intro (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
-    ⊢ kvStorRec (GF := GF) s ms γs -∗ memStorCert γs k -∗ storCert (kvStorIface s) k := by
-  iintro #Hrec Hc
-  ihave H : kvStorCert (kvStorIface s) k $$ [Hc]
-  · unfold kvStorCert
-    iexists s, ms, γs
-    iframe Hrec Hc
-    ipureintro; rfl
-  iexact H
+theorem kvStorage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc)
+    (dq : DFrac) (c : ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
+      memLog γs (uint.nat i) DFrac.discard [e] ∗
+      J.SV (memSnapMade i e.Term' c bs) ∗ J.DL (uint.nat i) ∗
+      memSnapLb γs 0 ∗ ownCSM cs dq c ∗ data ↦* bs ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood) }}
+    (App (App (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"CreateSnapshot")) (Val #i)) (Val #cs)) (Val #data))
+  {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
+      ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
+      ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
+       (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }} := by
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, #He, #HSV, #HDL, #Hlb, Hcs, Hdata, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none i e cs dq c data bs eood $$ [Hcs Hdata] as %snap %err HQ
+  · iframe He Hlb Hcs Hdata Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HSV HDL
+  iapply HΦ
+  icases HQ with ⟨H1, H2, (⟨%H, H3, -⟩ | ⟨%H, H3, -⟩)⟩
+  · iframe H1 H2; ileft
+    isplitr
+    · ipureintro; exact H
+    iapply ownSnapV_M $$ H3
+  · iframe H1 H2; iright; iframe H3; ipureintro; exact H
 
-/-- A store storage whose `MemoryStorage`'s registry is tied to the cluster
-(`storageCertInv`) has the cluster's certificates (`storageCertLink`). -/
-theorem kvStorCertLink_intro (γ : Cluster) (N : Namespace) (s ms : Loc) (γs : MemStorNames) :
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ kvStorRec s ms γs -∗
-      storageCertLink γ N (kvStorIface s) := by
-  iintro #Hinv #Hrec
-  iapply storageCertLink_intro γ N (kvStorIface s)
-  isplit
-  · iintro !> %k %E %hE #Hc
-    ihave #Hc := kvStorCert_at s ms γs k $$ Hrec Hc
-    iapply storageCert_read γ N γs k E hE $$ Hinv Hc
-  · iintro !> %k %E %hE #Hk
-    imod storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
-    imodintro
-    iapply kvStorCert_intro s ms γs k $$ Hrec Hc
+theorem kvStorage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :
+  {{ kvStorRec (GF := GF) s ms γs ∗
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
+      ((∃ (e : EntryM), memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
+      J.B (uint.nat x) ∗ memSnapLb γs (uint.nat x) ∗ globalAddr ErrCompacted ↦□ ecomp) }}
+    (App (Val (s @!! go.GoType.PointerType
+      rStorageTy @!! go!"Compact")) (Val #x))
+  {{ (err : GoInterface), RET #err;
+      ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) }} := by
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hpre, #HB, #Hlb, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none x ecomp $$ [Hpre] as %err HQ
+  · iframe Hpre Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB
+  iapply HΦ
+  icases HQ with ⟨%H, H1, -⟩
+  iframe H1
+  ipureintro; exact H
 
-/-- **The store's storage is a raft `Storage`.** -/
+end promoted
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [KVStor GF]
+
+/-- `kvJ`'s compaction justification is the API's (`storBnd`). -/
+theorem kvJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
+    memBnd (kvJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
+  unfold memBnd storBnd kvJ; exact .rfl
+
+theorem kvJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvJ (GF := GF) γ K).B 0 := by
+  unfold kvJ; exact nodeAppliedLb_zero γ K
+
+/-- **The store's storage meets the storage contract of key `K`** (under `kvStorageModel`). -/
 theorem kvStorage_isStorage
     (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
-      kvStorRec (GF := GF) s ms γs -∗ isStorage (kvStorIface s) := by
-  iintro #Hpkg #Hrec
-  ihave #Hrec' := Hrec
-  iunfold kvStorRec at Hrec'
-  icases Hrec' with ⟨#Hfield, -⟩
-  unfold isStorage isStorageWith
-  iexists (⟨go.GoType.PointerType rStorageTy, #s⟩ : GoInterfaceOk)
+      kvStorRec s ms γs -∗ memStorInvP ms γs (kvJ γ K) -∗
+      isStorage γ K (kvStorIface s) := by
+  iintro #Hpkg #Hrec #Hinv
+  ihave #Hl : memStorLock ms γs $$ []
+  · iunfold memStorInvP at Hinv; icases Hinv with ⟨#Hl, -⟩; iexact Hl
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold isStorage isStorageP
+  iexists (interface.mk (go.GoType.PointerType
+    rStorageTy) #s)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro %σ
+  · iintro %e
     imodintro
-    iintro %Φ ⟨Hown, %Hpn⟩ HΦ
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_method_call
-    wp_auto
-    wp_apply wp_LastIndex $$ [$Hown] as %li ⟨%Hli, Hown⟩
-    · ipureintro; exact Hpn
+    iintro %Φ He HΦ
+    ihave He := kvStorEnd_to s ms γs e $$ Hrec He
+    wp_apply kvStorage.wp_LastIndex wp_LastIndex s ms γs e $$ [$Hrec $Hinit $Hl $He] as %li ⟨He, %Hli⟩
     iapply HΦ
-    ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown
+    ihave He := kvStorEnd_of s ms γs e $$ Hrec He
+    iframe He
     ipureintro; exact Hli
   isplitr
-  · iintro %σ
+  · iintro %k %dq %es %i0 %ec
     imodintro
-    iintro %Φ Hown HΦ
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_method_call
-    wp_auto
-    wp_apply wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
+    iintro %Φ ⟨H, %Hr, #Hec⟩ HΦ
+    ihave H := kvStorLog_to s ms γs k dq es $$ Hrec H
+    wp_apply kvStorage.wp_Term wp_Term s ms γs k dq es i0 ec $$ [$Hrec $Hinit $Hl $H $Hec]
+      as %t %err ⟨H, Ht⟩
+    · ipureintro; exact Hr
     iapply HΦ
-    ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown
-    isplitr
-    · ipureintro; exact Hfi
-    icases Hcut with (%Hc | #Hc)
-    · ileft; ipureintro; exact Hc
-    · iright; iapply kvStorCut_intro s ms γs _ $$ Hrec Hc
-  isplitr
-  · iintro %σ %i0 %ec
-    imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_method_call
-    wp_auto
-    wp_apply wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
-    · ipureintro; exact ⟨Hr, Hpf⟩
-    iapply HΦ
-    ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown
+    ihave H := kvStorLog_of s ms γs k dq es $$ Hrec H
+    iframe H
     icases Ht with (%Ht | ⟨%Ht, #Hc⟩)
     · ileft; ipureintro; exact Ht
     · iright
       isplitr
       · ipureintro; exact Ht
-      iapply kvStorCut_intro s ms γs _ $$ Hrec Hc
+      iapply kvStorCompacted_of s ms γs _ $$ Hrec Hc
   isplitr
-  · iintro %σ %lo %hi %maxSize %ec
+  · iintro %k %dq1 %dq2 %a %b %lo %hi %maxSize %ec
     imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_method_call
-    wp_auto
-    wp_apply wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec]
-      as %sl %es %err Hres
-    · ipureintro; exact ⟨Hr, Hpf⟩
+    iintro %Φ ⟨Ha, Hb, %Hr, #Hec⟩ HΦ
+    ihave Ha := kvStorLog_to s ms γs k dq1 a $$ Hrec Ha
+    ihave Hb := kvStorLog_to s ms γs (k + a.length) dq2 b $$ Hrec Hb
+    wp_apply kvStorage.wp_Entries wp_Entries s ms γs k dq1 dq2 a b lo hi maxSize ec
+      $$ [$Hrec $Hinit $Hl $Ha $Hb $Hec] as %sl %es %err ⟨Ha, Hb, Hres⟩
+    · ipureintro; exact Hr
     iapply HΦ $$ %sl %es %err
-    icases Hres with (⟨%He, #Hc, Hown⟩ | ⟨%He, Hs, %Hp, Hown⟩)
+    ihave Ha := kvStorLog_of s ms γs k dq1 a $$ Hrec Ha
+    ihave Hb := kvStorLog_of s ms γs (k + a.length) dq2 b $$ Hrec Hb
+    iframe Ha Hb
+    icases Hres with (⟨%He, #Hc⟩ | Hres)
     · ileft
-      ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-      iframe Hown
       isplitr
       · ipureintro; exact He
-      iapply kvStorCut_intro s ms γs _ $$ Hrec Hc
-    · iright
-      ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-      iframe Hown Hs
-      ipureintro; exact ⟨He, Hp⟩
+      iapply kvStorCompacted_of s ms γs _ $$ Hrec Hc
+    · iright; iexact Hres
   isplitr
-  · imodintro
-    iintro %σ Hown
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    icases ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
-    ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown
-    ipureintro; exact Hb
-  isplitr
-  · iintro %σ %esu %n
+  · iintro %c
     imodintro
-    iintro %Φ ⟨Hown, #Hesu, #Hn⟩ HΦ
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave #Hn' : (⌜n ≤ 0⌝ ∨ memStorCut (GF := GF) γs n) $$ []
-    · icases Hn with (%Hc | #Hc)
-      · ileft; ipureintro; exact Hc
-      · iright; iapply kvStorCut_at s ms γs _ $$ Hrec Hc
-    wp_apply wp_Snapshot s ms γs σ esu n $$ [$Hfield $Hown $Hesu $Hn'] as %snap %err ⟨Hown, Hr⟩
+    iintro %Φ #Hc HΦ
+    ihave #Hc := kvStorCompacted_to s ms γs c $$ Hrec Hc
+    wp_apply kvStorage.wp_FirstIndex wp_FirstIndex s ms γs c $$ [$Hrec $Hinit $Hl $Hc]
+      as %fi ⟨%Hfi, #Hc'⟩
     iapply HΦ
-    ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown
-    -- the store's answer is non-empty outright; the clause asks it only once compacted
-    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv, #Hc⟩)
-    · ileft; ipureintro; exact Herr
-    iright
     isplitr
-    · ipureintro; exact Herr
-    iexists sv
-    iframe Hv
-    isplitr
-    · ipureintro
-      exact ⟨fun _ => Hsv.1, Hsv.2⟩
-    iright; iapply kvStorCert_intro s ms γs _ $$ Hrec Hc
+    · ipureintro; exact Hfi
+    iapply kvStorCompacted_of s ms γs _ $$ Hrec Hc'
   isplitr
-  · imodintro
-    iintro %σ %p Hown %Hpo
-    ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-    imod memStorage_handout ms γs σ p Hpo $$ Hown with ⟨Hown, Htok⟩
-    ihave Hown := kvOwnStorage_intro s ms γs _ $$ Hrec Hown
+  · iintro %c %esu
     imodintro
-    iframe Hown
-    ihave H : kvAppendTok (kvStorIface s) σ p $$ [Htok]
-    · unfold kvAppendTok
-      iexists s, ms, γs
-      iframe Hrec Htok
-      ipureintro; rfl
-    iexact H
+    iintro %Φ ⟨#Hc, #Hesu⟩ HΦ
+    ihave #Hc := kvStorCompacted_to s ms γs c $$ Hrec Hc
+    wp_apply wp_Snapshot s ms γs (kvJ γ K) c esu $$ [$Hpkg $Hrec $Hinv $Hc $Hesu]
+      as %snap %err Hres
+    iapply HΦ
+    iexact Hres
   isplitr
-  imodintro
-  iintro %σ1 %σ %p Hown Ht
-  ihave Hown := kvOwnStorage_at s ms γs σ1 $$ Hrec Hown
-  ihave Ht : kvAppendedTok (kvStorIface s) σ p $$ [Ht]
-  · iexact Ht
-  unfold kvAppendedTok
-  icases Ht with ⟨%s', %ms', %γs', %Hst, #Hrec2, Ht⟩
-  have := kvStorIface_inj (GF := GF) _ _ Hst
-  subst this
-  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec2 with ⟨%H1, %H2⟩
-  subst H1 H2
-  imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
-  ihave Hown := kvOwnStorage_intro s ms γs _ $$ Hrec Hown
-  imodintro
-  iframe Hown
-  ipureintro; exact Heq
-  imodintro
-  iintro %σ %x Hown %Hx
-  ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
-  icases ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
-  imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
-  ihave Hown := kvOwnStorage_intro s ms γs _ $$ Hrec Hown
-  ihave H : kvStorFloor (kvStorIface s) x $$ [Hfw]
-  · unfold kvStorFloor
-    iexists s, ms, γs
-    iframe Hrec Hfw
-    ipureintro; exact ⟨rfl, by have := Hx.2.2; omega⟩
-  imodintro
-  iframe Hown H
+  · iintro !> %c #Hc
+    ihave #Hc := kvStorCompacted_to s ms γs c $$ Hrec Hc
+    imod memCompacted_bound ms γs (kvJ γ K) c $$ Hinv Hc with Hb
+    imodintro
+    iapply kvJ_bnd γ K c $$ Hb
+  iintro !> %k %dq %es H
+  ihave H := kvStorLog_to s ms γs k dq es $$ Hrec H
+  iunfold memLog at H
+  icases H with ⟨H, %Hb⟩
+  isplitr
+  · ipureintro; exact Hb
+  iapply kvStorLog_of s ms γs k dq es $$ Hrec
+  iunfold memLog
+  iframe H
+  ipureintro; exact Hb
 
-/-- `InitialState`, as `RestartNode` asks of its storage (`RestartNode.spec`'s premise, the shape
-of `newRaft`'s): a fresh empty hard state (`hsOpt`) and the voters' conf state, read-only for
-good, its `AutoLeave` cell unset (`al = false`: the store sets none; 2026-10-16, stage R6b,
-raft's specs admit either), the owner's state unchanged. -/
-theorem kvStorage_initialState
+/-- **The store's storage before `RestartNode`** (`RestartNode`'s `restartStorage` premise at the
+empty contents; until 2026-11-01, durability layer 4, `bootStorage`), from what `NewMemoryStorage`
+gave of its `MemoryStorage` and the wrapper's records: `FirstIndex` is `1` (the storage is fresh,
+`memStorFresh_compacted`), `LastIndex` `0`, and `InitialState` (kv's own: no `MemoryStorage` call)
+gives the empty hard state, the voters' conf state, and -- at the key `K` raft names the storage by,
+allocating the storage's invariant from `memStorLock ∗ memStorFresh` and raft's bound at the attach
+(`kvJ_B0`) -- the contract and the (empty) log. The frame `F` is the client's, made from the
+invariant at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the frame depends on the key); `run`
+keeps the invariant (`runStor`). -/
+theorem kvStorage_bootStorage
     (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))
-    (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) :
+    (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
-      s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID),
-           ownStorage (kvStorIface s) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (kvStorIface s) { σ with ss := ss' } -∗
-            hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (kv.kvConfState voters) al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
-             (Val #())) {{ Φ }}) := by
-  iintro #Hpkg #Hfield #Hv
+      kvStorRec s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
+      memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
+      memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
+      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K) -∗
+      restartStorage γ (kvStorIface s)
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        (kv.kvConfState voters) 0 F := by
+  iintro #Hpkg #Hrec #Hfield #Hv #Hl Hfresh #Hlog He HF
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold restartStorage
+  iexists (interface.mk (go.GoType.PointerType rStorageTy) #s)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K))
+  iexists 0
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; simp [StorContents.b, StorContents.commit]
+  isplitl [Hfresh He HF]
+  · iframe Hfresh He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+    wp_apply kvStorage.wp_FirstIndex wp_FirstIndex s ms γs 0 $$ [$Hrec $Hinit $Hl]
+      as %fi ⟨%Hfi, #Hc⟩
+    · iapply memCompacted_zero
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
+    iapply HΦ
+    iframe Hfresh He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+    wp_apply kvStorage.wp_LastIndex wp_LastIndex s ms γs 1 $$ [$Hrec $Hinit $Hl $He]
+      as %li ⟨He, %Hli⟩
+    have Hli0 : li = W64 (StorContents.last ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
+    iapply HΦ
+    iframe Hfresh He HF
+  iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+  wp_apply wp_InitialState s vsl voters $$ [$Hpkg $Hfield $Hv] as %hp %cs ⟨#Hhs, #Hcs⟩
+  iapply HΦ $$ %hp %cs %false
+  iframe Hhs Hcs
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (kvJ γ K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    iapply kvJ_B0 γ K
+  · ileft; ipureintro; rfl
+  ihave HFK := HF $$ %K Hinv
   imodintro
-  iintro %Φ %ss' Hown HΦ
-  wp_apply wp_InitialState s vsl voters $$ [$Hfield $Hv] as %hp %cs ⟨#Hhs, #Hcs⟩
-  iapply HΦ $$ %hp %cs %false Hown Hhs Hcs
+  isplitr
+  · iapply kvStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
+      s ms γs γ K $$ Hpkg Hrec Hinv
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
+  iexists (zero_val EntryM)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply kvStorCompacted_of s ms γs 0 $$ Hrec
+    iapply memCompacted_zero
+  isplitr
+  · iapply kvStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvStorLog_of s ms γs 1 DFrac.discard [] $$ Hrec
+    iapply memLog_nil
+  isplitr
+  · iapply kvStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
+    iapply memLog_nil
+  iapply kvStorEnd_of s ms γs 1 $$ Hrec He
 
-end inst
+end api
 
 end EtcdGrove
 end Perennial

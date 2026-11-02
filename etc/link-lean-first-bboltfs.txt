@@ -1,0 +1,51 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/Link.lean` (all
+# Lean-first), read by `etc/gen-link.py --bboltfs`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `bboltfs`.
+#
+# minibolt's page and meta helpers (`examples/bboltfs/page.go`): pure byte memory
+bboltfs_pageAt:
+bboltfs_Page__meta:
+bboltfs_Meta__sum64:
+bboltfs_Meta__validate: bboltfs_Meta__sum64
+bboltfs_Meta__write: bboltfs_Meta__sum64 bboltfs_Page__meta
+bboltfs_initPages: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__sum64
+bboltfs_pickMeta: bboltfs_Meta__validate
+#
+# minibolt (`examples/bboltfs/minibolt.go`)
+bboltfs_mmapSize:
+bboltfs_DB__meta: bboltfs_pickMeta
+bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
+os_File__ReadAt:
+bboltfs_DB__init: bboltfs_initPages os_File__WriteAt os_File__Fd syscall_Fdatasync
+os_File__WriteAt:
+syscall_Fdatasync:
+bboltfs_DB__munmap: unix_Munmap
+bboltfs_DB__close: bboltfs_DB__munmap os_File__Fd syscall_Flock os_File__Close
+bboltfs_DB__Close: bboltfs_DB__close
+os_File__Fd:
+syscall_Flock:
+bboltfs_flock: os_File__Fd syscall_Flock =_root_.Perennial.time.wp_Sleep
+bboltfs_DB__mmap: bboltfs_DB__munmap bboltfs_mmapSize os_File__Fd unix_Mmap unix_Madvise unix_Munmap bboltfs_pageAt bboltfs_Page__meta
+bboltfs_DB__commit: bboltfs_DB__mmap os_File__Truncate os_File__Sync bboltfs_pageAt os_File__WriteAt os_File__Fd syscall_Fdatasync bboltfs_Page__meta bboltfs_Meta__write
+bboltfs_DB__Commit: bboltfs_DB__meta bboltfs_DB__commit
+os_File__Truncate:
+os_File__Sync:
+# the os/syscall/unix specs minibolt calls (proved on osfs-specs)
+unix_Munmap:
+unix_Mmap:
+unix_Madvise:
+os_File__Close:
+bboltfs_DB__Get: bboltfs_DB__meta bboltfs_pageAt
+bboltfs_DB__Snapshot: bboltfs_DB__meta bboltfs_pageAt =_root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proofRacy
+bboltfs_Open: os_OpenFile os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
+os_OpenFile:
+os_File__Name:
+os_File__Stat:
+os_fileStat__Size:
+#
+# the programs over minibolt (`examples/bboltfs/programs.go`)
+bboltfs_envFailure: =_root_.Perennial.sync.atomic.wp_AddUint64
+bboltfs_valueOk:
+bboltfs_testMinibolt: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure
+bboltfs_testMiniboltConcurrent: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure bboltfs_valueOk

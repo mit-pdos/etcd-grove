@@ -6,7 +6,9 @@ linkv3p's `newClient` until then, D27-D29): `clientv3.New` of a configuration wi
 
 **The triple:** for plain endpoints (`plainEndpoints`, `clientv3.New`'s premise: at least one, each
 plain), read-only, and a logger, from the package's fact: the client of those endpoints
-(`isNewClient` at any watch environment `V`, the caller's choice) and `nil`, or an error and `null`
+(`isNewClient` at any watch environment `V`, the caller's choice; its `KV` a `*kv` over its
+connection whose attempts carry the context's own token only, `clientTokAt` at `False`: the
+client has no user name, 2026-10-29 for authkv's anonymous principals) and `nil`, or an error and `null`
 (`clientv3.New`'s two cases). A write through it is sent at most once when the endpoints are
 refusal-free (`clientWriteOnce`, D29), which the caller establishes. The timeouts are no premise:
 `clientCfgOk` leaves `DialTimeout` free (`newClient`'s proof covers it) and takes any keepalive
@@ -43,7 +45,8 @@ abbrev NewClients.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.NewClients)) (Val #eps))
       (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗
+        clientTokAt cl addrs (fun _ => iprop(False))) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

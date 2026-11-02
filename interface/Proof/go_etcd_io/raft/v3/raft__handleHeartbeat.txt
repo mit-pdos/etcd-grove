@@ -11,19 +11,20 @@ theorem raft.handleHeartbeat.wp_proof [package_sem : Assumptions] (wp_raftLog_co
     (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
       m.From' ≠ id →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                  "Hm" ∷ msgPtsC ml dq dqe cap { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } -∗
-              ▷
-                  (ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) ∗
-                      msgPtsC ml dq dqe cap { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } -∗
-                    Φ (intoVal ())) -∗
-                WP
-                  ((intoVal
-                      (methods raft.ty.PointerType
-                        go!"handleHeartbeat"
-                        (intoVal r)))
-                    (intoVal ml))
-                  {{ Φ }}
+        s.term ≠ W64 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                    "Hm" ∷ msgPtsC ml dq dqe cap { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } -∗
+                ▷
+                    (ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) ∗
+                        msgPtsC ml dq dqe cap { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } -∗
+                      Φ (intoVal ())) -∗
+                  WP
+                    ((intoVal
+                        (methods raft.ty.PointerType
+                          go!"handleHeartbeat"
+                          (intoVal r)))
+                      (intoVal ml))
+                    {{ Φ }}

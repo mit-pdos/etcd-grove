@@ -14,7 +14,10 @@ budget's `N + 7` write-backs and a read token with an open share per reader slot
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
 
@@ -71,32 +74,53 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : 
 
 /-- **The backend `NewServer` uses, from `backend.New`'s postcondition** (see the file header):
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
-`wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s. -/
+`wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s;
+(the backend-compaction stage, 2026-10-29) over data with no compaction recorded, the backend's
+no-compaction token (`mvcc.bkNoCmp_of_fkCl`: until then a separate premise of `bootOk`); (question 5's
+core stage, part (1)) the safe-range slot (`srSlot`, kept for a compacting store: M2's); (M2, the
+storage side, 2026-10-30; the backend-cmp Probe's S3) the compaction keys' values tracked
+(`backend.fkV γ true`, persistent: `mvcc.bkNoCmp_fkV_of_fkCl`), what a compacting store's `NewStore`
+takes. (2026-11-02, the backend-auth-split stage) From the post with its reader slots pooled
+(`backend.newPostP`, `newPost_pool`'s): the backend's pool of readers (`bkRPool`, the apply
+thread's) and a read token per slot of the counted stock (`rdStockN`; until then per slot of all
+`actualMaxReaders`). -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
-    (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit) :
-    backend.newPost γ P W Pk b D ⊢
+    (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
+    (hnc : mvcc.noCmpData D) :
+    backend.newPostP γ P W Pk b D ⊢
       backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.isStopChans γ b ∗ backend.plHook γ func.nil ∗
       backend.bOpen γ (1 : Qp).half ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
       ownToks γ.wb (N + 7) ∗ backend.rbOwn γ (backend.rbData P D) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        mvcc.bkRTx γ P b) := by
-  unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd⟩
-  iframe Hb Hsc Hh Hrb
-  icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
-  ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]
+      ([∗list] _x ∈ List.replicate backend.rdStockN (),
+        mvcc.bkRTx γ P b) ∗
+      -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
+      backend.dlInit γ ∗ mvcc.bkNoCmp γ ∗
+      -- (M2, the storage side) the compaction keys' values tracked, for a compacting store
+      backend.fkV γ true ∗
+      -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
+      backend.srSlot b ∗
+      -- (the backend-auth-split stage) the backend's pool of readers
+      backend.bkRPool γ P b := by
+  iintro Hnew
+  unfold backend.newPostP
+  icases Hnew with ⟨#HnB, #HnSC, Ho, Hos, HnV, HnH, HnWb, HnRB, HnPool, HnRT, HnDl, HnFk, HnSr⟩
+  iframe HnB HnSC HnH HnRB HnDl HnSr HnPool
+  ihave ⟨Hnc, Hfv⟩ := mvcc.bkNoCmp_fkV_of_fkCl γ _ hnc $$ HnFk
+  iframe Hnc Hfv
+  iunfold backend.rdStock at HnRT
+  ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$HnRT $Hos]
   iframe Hrts Ho
-  isplitl [Hv]
+  isplitl [HnV]
   · unfold mvcc.bkView
     iexists _
-    isplitl [Hv]
-    · unfold backend.bView; iexists true; iexact Hv
+    isplitl [HnV]
+    · unfold backend.bView; iexists true; iexact HnV
     ipureintro; exact hD
   obtain ⟨k, hk⟩ : ∃ k, backend.wbInit = k + (N + 7) :=
     ⟨backend.wbInit - (N + 7), (Nat.sub_add_cancel hN).symm⟩
   rw [hk]
-  icases (ownToks_add (N + 7) k γ.wb).1 $$ Hw with ⟨-, Hw⟩
+  icases (ownToks_add (N + 7) k γ.wb).1 $$ HnWb with ⟨-, Hw⟩
   iexact Hw
 
 end boot

@@ -58,6 +58,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The tokens -/
 
@@ -228,7 +229,7 @@ theorem srvAuthAt_of_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     isServerReq s E ρ ∗ isServerRead s E γr ⊢ srvAuthAt s E := by
   iintro ⟨#Hq, #Hr⟩
   iunfold isServerReq at Hq
-  icases Hq with ⟨%vq, Hq⟩
+  icases Hq with ⟨⟨%vq, Hq⟩, -⟩
   iunfold srvReqFieldsAt at Hq
   icases Hq with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -, #Has, #Hreq, -, -, -, -, -, -, -, -, -, -, -⟩
   iunfold isServerRead at Hr

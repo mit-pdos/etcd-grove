@@ -44,7 +44,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     iexists rev
     unfold ownRemoteKV RemoteKVSt.val'
     iframe Hrk Hr Hc
-    ipureintro; exact Hrr
+    ipureintro; exact ⟨Hk.2.1, Hrr⟩
   · ihave %Hne : ⌜err ≠ GoInterface.nil⌝ $$ [Herr]
     · unfold concurrency.isPkgErr; icases Herr with ⟨-, %H⟩; ipureintro; exact H
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

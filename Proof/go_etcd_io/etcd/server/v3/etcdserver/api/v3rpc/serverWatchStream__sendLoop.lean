@@ -346,7 +346,7 @@ theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNa
     have hid : x.id = rr.id := by
       rcases hne with hne | hne
       · exact Hid.1 hne
-      · exact Hid.2.resolve_right hne
+      · exact Hid.2.1.resolve_right hne
     rw [h.1, hid, Hag]
     iexact Hida
   by_cases hx : x.id = W64 (-1)
@@ -557,7 +557,7 @@ def v3rpc.ctrlMid (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvcc.WsStrea
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.watchConsumer r.γc rcv ∗
       v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
-      v3rpc.ctrlWatcher r.srv.γ γo req m ∗ v3rpc.createdAfter r.γs D.length m) ∨
+      v3rpc.ctrlWatcher r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) γo req m ∗ v3rpc.createdAfter r.γs D.length m) ∨
     (⌜v = returnVal #()⌝ ∗ v3rpc.retSt r pendL))
 
 theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvcc.WsStreamNames)
@@ -566,7 +566,7 @@ theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvc
     v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.watchConsumer r.γc rcv ∗
       v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
-      v3rpc.ctrlWatcher r.srv.γ γo req m ∗ v3rpc.createdAfter r.γs D.length m ⊢
+      v3rpc.ctrlWatcher r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) γo req m ∗ v3rpc.createdAfter r.γs D.length m ⊢
     v3rpc.ctrlMid r sws idsL pendL γo req m executeVal := by
   iintro H
   iunfold v3rpc.ctrlMid
@@ -924,7 +924,9 @@ local macro "watch_resp" : tactic => `(tactic| (
   irename «$r0» => Hwr
   ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
   ipersist Hwr
-  have hCR : wv.CompactRevision' = W64 0 := HwvI.2.2
+  -- (watches across a compaction, D6) the compaction revision as mvcc's response has it, canceled
+  -- if set
+  have hCR : wv.CompactRevision' = x.compactRev := HwvI.2.2
   ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr»
       (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
   · iapply (v3rpc.watchRespMsg_intro «$r0_ptr»
@@ -1938,7 +1940,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       -- of it), so that the drain is verified once
       imod (monoListLbOwn_nil (GF := GF) (A := mvcc.RespM) r.γc.sentl) with #Hl0n
       ihave ⟨%l0, #Hl0, Hcw, #Hsnap⟩ : iprop(∃ l0 : List mvcc.RespM, mvcc.chanSentLb r.γc l0 ∗
-          v3rpc.ctrlWatcher r.srv.γ γo req m ∗
+          v3rpc.ctrlWatcher r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) γo req m ∗
           (if m.canceled then iprop(True) else iprop(∃ (w0 : Loc) (n0 : Nat),
             mvcc.idAssigned γo m.watchId w0 ∗ mvcc.streamSentLb γo l0 ∗ mvcc.streamRegAt γo w0 n0 ∗
             ⌜n0 ≤ l0.length⌝))) $$ [Hcw]
@@ -1949,7 +1951,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
           obtain ⟨c, hreq⟩ := hreq
           irevert Hcw; rw [hreq]; iintro Hcw
-          icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw
+          icases v3rpc.ctrlWatcher_snap r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) γo c m hca0 $$ Hcw
             with ⟨Hcw, %w0, %l0, %n0, #Hia0, #Hl0s, #Hn0, %Hn0l⟩
           irevert Hcw; rw [← hreq]; iintro Hcw
           iexists l0

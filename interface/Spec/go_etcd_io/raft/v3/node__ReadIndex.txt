@@ -8,8 +8,8 @@ def node.ReadIndex.spec : Prop :=
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q ∗ readCredit γ -∗
-          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
+            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal
                     (methods node.ty.PointerType go!"ReadIndex"

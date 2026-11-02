@@ -33,7 +33,9 @@ abbrev raftLog.nextUnstableSnapshot.spec : Prop :=
   {{ (p : Loc), RET #p; ownRaftLog l ls ∗ ⌜p = null ↔ (ls.snap = none ∨ ls.sip = true)⌝ ∗
       (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜ls.snap = some sid ∧ ls.sip = false ∧ snapId sv = sid ∧
-          snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧ 0 < uint.Z sid.index' ∧
+          -- (2026-10-28, stage U0) its `ConfState` naming a node
+          (∃ x, sv.Metadata'.ConfState'.lists.Has x)⌝ ∗
         ownSnapS p (DFrac.own 1) sv) }}
 
 end spec

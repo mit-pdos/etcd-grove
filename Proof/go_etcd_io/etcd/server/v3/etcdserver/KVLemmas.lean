@@ -61,9 +61,9 @@ theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel
   exact kvStateOf_backendLog _ rq _ (kvModel_ne_nil γk L h0)
 
 /-- **A plain committed log's state has no lease** (unit T3, L3a). -/
-theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) (h : plainLog L) :
+theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) {cmp : Bool} (h : plainLogM cmp L) :
     kvModelSt γk L = kvStateOf (kvModel γk L) := by
-  unfold kvModelSt kvLeases; rw [kvTableOf_plain _ _ L h]
+  unfold kvModelSt kvLeases; rw [kvTableOf_plainM _ _ cmp L h]
 
 /-- A write-free entry keeps the model's log. -/
 theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -113,6 +113,14 @@ theorem kvEntrySt_filler (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseT
   unfold kvEntrySt kvEntry kvTable
   simp [ht, hd]
 
+theorem kvEntrySt_emptyV2 (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseTable)
+    (m : EntryModel) (h : m.toLE.isEmptyV2) : kvEntrySt c₀ ch s m = s := by
+  obtain ⟨-, ht⟩ := h
+  simp only [EntryModel.toLE] at ht
+  have h0 : ¬ m.typ = W32 0 := by rw [ht]; decide
+  unfold kvEntrySt kvEntry kvTable
+  rw [if_neg h0, if_neg h0]
+
 theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : mvcc.Log × LeaseTable),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
@@ -128,10 +136,16 @@ theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
         simp [opsOf, hf]
       rw [this]
       exact kvRaftSt_ops c₀ ch A s hA
+    by_cases hv : m.toLE.isEmptyV2
+    · rw [kvEntrySt_emptyV2 c₀ ch s m hv]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hv]
+      rw [this]
+      exact kvRaftSt_ops c₀ ch A s hA
     · rw [kvEntrySt_above c₀ ch s m (h m (List.mem_cons_self ..))]
       have : opsOf ((m :: A).map EntryModel.toLE) =
           m.toLE :: opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf]
+        simp [opsOf, hf, hv]
       rw [this, List.foldl_cons]
       exact kvRaftSt_ops c₀ ch A _ hA
 
@@ -167,6 +181,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- An entry with data that decode to a plain request is plain. -/
 theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
@@ -177,26 +192,29 @@ theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
   cases h
   exact hp
 
-/-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
+/-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain; M2's apply side: in the
+mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
+    (hok : plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    plainLogM γk.cmp (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
-  obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
-  refine ⟨?_, hidx', hc0, hch, h0⟩
-  rw [plainLog_append]
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
+      cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log := by
+  obtain ⟨hplog, -, hc0, hch, h0, hcl, htie⟩ := hok
+  refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl), htie⟩
+  rw [plainLogM_append]
   refine ⟨hplog, fun m hm => ?_⟩
   rw [List.mem_singleton] at hm
   subst hm
-  exact hpl
+  exact plainEntryM_of _ _ hpl
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
+    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -204,24 +222,177 @@ theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : E
   iunfold kvWork
   isplitr
   · ipureintro
-    rw [logShape_append]
-    refine ⟨⟨Hsh.1, fun m hm => ?_⟩, fun m hm => ?_⟩
-    · rw [List.mem_singleton] at hm; subst hm; exact hs
+    obtain ⟨hs0, hc0, hk0, hl0⟩ := Hsh
+    refine ⟨?_, fun m hm => ?_, logPutsOk_snoc L e hk0 hk, hl0⟩
+    · rw [logShape_append]
+      refine ⟨hs0, fun m hm => ?_⟩
+      rw [List.mem_singleton] at hm; subst hm; exact hs
     · rw [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm
-      · exact Hsh.2 m hm
+      · exact hc0 m hm
       · subst hm; exact hc
   iapply BigSepL.bigSepL_snoc.2
   iframe Hcl He
 
-/-- **A proposal's update, from the KV invariant** (see the file header): since D19c
+/-- **A KV certificate's revision, on the requested log** (item 6, review rounds 5-6; since the
+client's `kv.Compact`, 2026-10-31, the step from a member's certificate to `kvRevLb`,
+`kvRevLb_of_srvRevLb`): a KV certificate of a log longer than `r` gives a lower bound `L₀` of the
+server's log of requested entries whose model has the revision (given the invariant's
+`c0 ≤ ai0`, which `kvModel_eqv` needs). At the caller's mask: it opens the certificates' invariant
+and the server's raft log's, never the KV invariant. -/
+theorem kvCert_reqLb (γ : ServerRaftNames) (γk : KVNames) (E : CoPset)
+    (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) (r : w64) :
+    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗
+      iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝) ={E}=∗
+      ∃ L₀, srvReqLogLb γ L₀ ∗
+        ⌜uint.Z γk.c0 ≤ uint.Z γ.ai0 → sint.Z r < (kvModel γk L₀).length⌝ := by
+  iintro #Hci #Hrl #Hr
+  icases Hr with ⟨%l, #Hc, %Hl⟩
+  ihave #Hci' := Hci
+  iunfold kvCertInv at Hci'
+  iunfold kvCert at Hc
+  icases Hc with (%h | #He)
+  · -- one of the start's two revisions: below the start log's (at least two revisions)
+    iinv Hci' with >Hi Hclose
+    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
+    imod Hclose $$ [HC Hhi'] with -
+    · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+    imod srvReqLogLb_nil γ with #H0
+    imodintro
+    iexists []
+    iframe H0
+    ipureintro
+    intro _
+    have h0 : kvModel γk [] = γk.log0 := rfl
+    rw [h0]
+    have := Hok.2
+    omega
+  · -- an element of the map: the model of a committed raft log, read as requested entries
+    iinv Hci' with >Hi Hclose
+    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
+    ihave %Hm := ghost_map_lookup $$ HC He
+    imod Hclose $$ [HC Hhi'] with -
+    · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+    obtain ⟨-, -, -, A, hA, hm⟩ := Hok.1 _ _ Hm
+    ihave #HA := srvRLogLb_mono γ A Lb hA $$ HLb
+    imod (srvReqLogLb_of_rlogLb γ E hE2 A) $$ Hrl HA with ⟨%L₀, #HL0, %Heqv⟩
+    imodintro
+    iexists L₀
+    iframe HL0
+    ipureintro
+    intro hc
+    rw [← (kvModel_eqv γ γk A L₀ Heqv hc).1, hm]
+    exact Hl
+
+/-- **The commit step (G4): a compaction proposal's update** over the KV invariant (`reqPropOk`'s
+compaction form: the cluster's mode on, in M2's scope, of a good shape, at a reached revision `r`),
+for data claimed under the request's id, as `kv_prop_auW`'s arms.
+The entry leaves the model (a compaction is no write: `kvModelSt_snoc_nonwrite`), is plain in the
+mode (`plainLogM`), and its claim (`cmpEntryOk`) is the leading step's bound, placed below the
+committed log. The result is `True`. -/
+theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
+    (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq) (hk : apply.irrPutsLe etcdKeyMax rq)
+    (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
+    (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
+    (r : w64) (hr : rq.compaction = some r)
+    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
+      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLbZ γk (sint.Z r + γk.cret) ={E}=∗
+      srvPropAu1 γ d (fun _ => iprop(True)) := by
+  have Hdisj := kvN_raftN
+  iintro #Hinv #Hci #Hrl #Hcl #Hreg #Hr
+  iunfold kvRevLbZ at Hr
+  icases Hr with ⟨%L₀, #HL0, %HL0r⟩
+  imodintro
+  unfold srvPropAu1
+  iauintro
+  unfold atomic_acc
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  -- the revision's bound, on the cluster's requested log (the invariant's tie), below the log
+  have hrl : γk.rlog = γ.raft.log := Hok.2.2.2.2.2.2
+  ihave #HL0' : srvReqLogLb γ L₀ $$ []
+  · unfold srvReqLogLb; rw [← hrl]; iexact HL0
+  icases srvReqLogLb_prefix γ L L₀ $$ [$HL $HL0'] with ⟨HL, %Hpre⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists L
+  iframe HL
+  isplit
+  · iintro HL
+    imod Hmask with -
+    imod Hclose $$ [HL Hσ] with -
+    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro %e ⟨%He, HL⟩
+    imod Hmask with -
+    obtain ⟨het, hed, hidx⟩ := He
+    have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx (Or.inl het)
+    have hent : kvModelSt γk (L ++ [e]) = kvModelSt γk L := by
+      apply kvModelSt_snoc_nonwrite
+      right; right
+      intro rq' h
+      rw [hed, hdec] at h
+      cases h
+      exact compactPropOk_nonwrite rq hform.2.1
+    -- the entry's claim: its revision one of the model's before it
+    have hclaim : cmpEntryOk γk γk.cmp L e := by
+      intro _ _ rq' h _
+      rw [hed, hdec] at h
+      cases h
+      refine ⟨hform.1, hform.2.1, fun r' hr' => ?_⟩
+      rw [hr] at hr'
+      cases hr'
+      have h1 := HL0r
+      have h2 := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 L₀ L Hpre).length_le
+      unfold kvModel at h1 ⊢
+      omega
+    -- plain in the mode: a compaction in M2's scope
+    have hplain : plainEntryM γk.cmp e := by
+      intro _ _ rq' h
+      rw [hed, hdec] at h
+      cases h
+      exact Or.inr ⟨hform.1, hform.2.1⟩
+    have hsh : entryShape e :=
+      ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2.2⟩, fun h => absurd het h⟩
+    ihave #Hecl : entryClaim γk.ids e $$ []
+    · iunfold entryClaim
+      iright
+      iexists rq, id, γf, γk.ids.key
+      rw [hed]
+      iunfold idClaim at Hcl
+      iframe Hcl Hreg
+      ipureintro; exact ⟨hdec, hid⟩
+    ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
+      (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw Hecl
+    imod Hclose $$ [HL Hσ] with -
+    · inext
+      iexists L ++ [e]
+      rw [hent]
+      iframe HL Hσ Hw'
+      ipureintro
+      obtain ⟨hpl, -, hc0, hch, h0, hcl, htie⟩ := Hok
+      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim, htie⟩
+      rw [List.mem_append, List.mem_singleton] at hm
+      rcases hm with hm | hm
+      · exact hpl m hm
+      · subst hm; exact hplain
+    imodintro
+    iintro !>
+    itrivial
+
+/-- **A write proposal's update, from the KV invariant** (see the file header): since D19c
 (2026-10-18) for data claimed under the request's id (`idClaim`), which the invariant keeps with
-the request's shape (`reqPropOk`'s `rqShape`). -/
-theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
+the request's shape (`reqPropOkW`'s `rqShape`). -/
+theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
+    (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗
+    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ reqPropOkW γk rq Qr ={E}=∗
       srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
   iintro #Hinv #Hcl #Hreg Hok
@@ -233,11 +404,12 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
   · iintro %e %hed
     iunfold entryClaim
     iright
-    iexists rq, id, γf
+    iexists rq, id, γf, γk.ids.key
     rw [hed]
+    iunfold idClaim at Hcl
     iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
-  iunfold reqPropOk at Hok
+  iunfold reqPropOkW at Hok
   icases Hok with (%Hno | ⟨%op, %Q, %Hop, #Hau⟩ | ⟨%op, %Q, %γc, %Hop, Hau⟩)
   · -- no KV write
     obtain ⟨hplain, hnw, -, hshape, hQr⟩ := Hno
@@ -273,7 +445,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         cases h
         exact hnw
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -329,11 +501,11 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -392,11 +564,11 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -409,6 +581,25 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       rw [← kvModelSt_plain γk L Hok.1, Hag]
       iexact HQ
 
+
+/-- **A proposal's update, from the KV invariant** (M2's apply side, item 6): a write proposal's
+(`kv_prop_auW`), or a compaction's (`kv_prop_au_cmp`: its revision read through the certificates'
+invariant and the server's raft log's before the atomic update, so the mask holds `kvcN` and
+`srvRaftN` too). -/
+theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
+    (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
+    (hk : apply.irrPutsLe etcdKeyMax rq) (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
+    (E : CoPset) (hE : ↑kvN ⊆ E) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗ idClaim γk.ids id d γf -∗
+      idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗ srvPropAu1 γ d Qr := by
+  iintro #Hinv #Hci #Hrl #Hcl #Hreg Hok
+  iunfold reqPropOk at Hok
+  icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩)
+  · iapply (kv_prop_auW γ γk d rq Qr hd hdec hk id γf hid E hE) $$ Hinv Hcl Hreg Hok
+  · obtain ⟨hc, hcp, hs, -, hQ⟩ := Hc
+    subst hQ
+    iapply (kv_prop_au_cmp γ γk d rq hdec hk id γf hid E hE1 hE2 r hr ⟨hc, hcp, hs⟩)
+      $$ Hinv Hci Hrl Hcl Hreg Hr
 
 /-- **A result predicate of the KV model of the log is one the server's two logs agree on**
 (2026-10-27): the KV invariant keeps the start's consistent index at most the start index
@@ -433,6 +624,10 @@ theorem reqPropOk_shape (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMo
     reqPropOk (GF := GF) γk rq Qr ⊢ ⌜∃ Q : mvcc.Log → IProp GF, Qr = fun L => Q (kvModel γk L)⌝ := by
   iintro Hok
   iunfold reqPropOk at Hok
+  icases Hok with (Hok | ⟨%Hc, -⟩)
+  rotate_left
+  · ipureintro; exact ⟨fun _ => iprop(True), Hc.2.2.2.2⟩
+  iunfold reqPropOkW at Hok
   icases Hok with (%Hno | ⟨%op, %Q, %Hop, -⟩ | ⟨%op, %Q, %γc, %Hop, -⟩)
   · ipureintro; exact ⟨fun _ => iprop(True), Hno.2.2.2.2⟩
   · ipureintro; exact ⟨fun l => iprop(□ Q (kvStateOf l)), Hop.2.2.2.2⟩
@@ -452,7 +647,7 @@ theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRMod
 
 /-- Firing every registered read update at the state of `L`'s model, the KV authority's half
 agreeing. -/
-theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (hpl : plainLog L) :
+theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp L) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvModelSt γk L) -∗
         ([∗list] g ∈ gs, regOk γk g) -∗
@@ -644,6 +839,21 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
   obtain ⟨-, -, hk, hrq⟩ := hw
   rw [dispatchKind_withHeader] at hk
   unfold reqPropOk
+  iintro (H | ⟨%Hc, %r, %hr, #Hr⟩)
+  rotate_left
+  · -- (M2's apply side, item 6) a compaction: the header is all the wire changes
+    iright
+    obtain ⟨hc, hcp, hs, hnz, hQ⟩ := Hc
+    have he := hrq hnz
+    subst he
+    isplitr
+    · ipureintro; exact ⟨hc, hcp, hs, hnz, hQ⟩
+    iexists r
+    iframe Hr
+    ipureintro; exact hr
+  ileft
+  unfold reqPropOkW
+  irevert H
   iintro (%Hno | ⟨%op, %Q, %Hop, #Hau⟩ | ⟨%op, %Q, %γc, %Hop, Hau⟩)
   · ileft
     obtain ⟨hp, hnw, hnz, hs, hQ⟩ := Hno

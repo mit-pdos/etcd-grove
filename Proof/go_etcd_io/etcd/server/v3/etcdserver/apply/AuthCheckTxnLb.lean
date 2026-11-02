@@ -146,6 +146,24 @@ instance rangeClassFrom_persistent (M : auth.AuthMode) (n : Nat) (info : auth.Au
     (o : OpFull) : Persistent (rangeClassFrom (GF := GF) M n info o) := by
   unfold rangeClassFrom; infer_instance
 
+/-- **A read's class with auth off is one no older than any `n`** (the auth-mode merge's step 5:
+the mode-off `Range` in the merged spec's terms). -/
+theorem rangeClassFrom_off (n : Nat) (info : auth.AuthInfo) (o : OpFull) :
+    rangeClass (GF := GF) .off info o ⊢ rangeClassFrom .off n info o := by
+  unfold rangeClass rangeClassFrom
+  iintro ⟨%e, %he, -⟩
+  iexists e
+  unfold auth.permVerdictFrom
+  ipureintro; exact ⟨he, rfl⟩
+
+theorem rangeClass_of_from_off (n : Nat) (info : auth.AuthInfo) (o : OpFull) :
+    rangeClassFrom (GF := GF) .off n info o ⊢ rangeClass .off info o := by
+  unfold rangeClass rangeClassFrom
+  iintro ⟨%e, %he, -⟩
+  iexists e
+  unfold classRes
+  ipureintro; exact ⟨he, trivial⟩
+
 /-- A check's verdict in the mode `off` is a pass. -/
 theorem permVerdictFrom_isOn (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
     (k e : GoString) (op : auth.PermType) (err : GoInterface) :
@@ -154,6 +172,73 @@ theorem permVerdictFrom_isOn (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo
   | off => unfold auth.permVerdictFrom; iintro %h; ipureintro; intro _; exact h
   | on γa => iintro -; ipureintro; intro h; cases h
   | any => iintro -; ipureintro; intro h; cases h
+
+/-- A passed check's verdict no older than `n` gives the class of its one permission no older than
+`n` (G2's freeze, 2026-10-30). -/
+theorem classResFrom_of_permVerdictFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
+    (k e : GoString) (op : auth.PermType) :
+    auth.permVerdictFrom (GF := GF) M n info k e op GoInterface.nil ⊢
+      classResFrom M n info [(k, e, op)] := by
+  cases M with
+  | on γa =>
+    iintro H
+    iapply classResFrom_on_singleton
+    iapply auth.permVerdictFrom_on_nil $$ H
+  | off => iintro -; iapply classResFrom_not_on; intro γa h; cases h
+  | any => iintro -; iapply classResFrom_not_on; intro γa h; cases h
+
+/-- **The store's range check no older than `n`, as a class** (G2's freeze, 2026-10-30): the
+check of `isAuthStoreRangeLb`, its passing verdict the class no older than `n`. -/
+theorem rangeCheckFrom_of_isAuthStoreRangeLb (ai : GoInterfaceOk) (RD : IProp GF)
+    (M : auth.AuthMode) (n : Nat) :
+    isAuthStoreRangeLb (GoInterface.ok ai) RD M n ⊢
+    □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ (⌜err = GoInterface.nil⌝ → classResFrom M n info [(k, e, .read)]) }}) := by
+  iintro HR
+  iunfold isAuthStoreRangeLb at HR
+  icases HR with ⟨%ai', %Hai', HP3L⟩
+  cases Hai'
+  iunfold permCheck3Lb at HP3L
+  icases HP3L with #HP3L
+  iintro !> %a %info %dq %key %re %k %e %dk %de
+  iintro %Φ !> Hpre HΦ
+  iapply HP3L $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, #Hv⟩
+  iapply HΦ
+  iframe Ha Hk He HRD Herr
+  iintro %h
+  subst h
+  iapply classResFrom_of_permVerdictFrom $$ Hv
+
+/-- **The store's range check outside the mode `on`, as a class no older than any `n`** (G2's
+freeze, 2026-10-30): `permCheck3`'s check, the class holding outside `on`. -/
+theorem rangeCheckFrom_of_permCheck3 (ai : GoInterfaceOk) (RD : IProp GF) (M : auth.AuthMode)
+    (n : Nat) (h : ∀ γa, M ≠ .on γa) :
+    permCheck3 ai go!"IsRangePermitted" RD M .read ⊢
+    □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ (⌜err = GoInterface.nil⌝ → classResFrom M n info [(k, e, .read)]) }}) := by
+  iintro HP3
+  iunfold permCheck3 at HP3
+  icases HP3 with #HP3
+  iintro !> %a %info %dq %key %re %k %e %dk %de
+  iintro %Φ !> Hpre HΦ
+  iapply HP3 $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, -, -⟩
+  iapply HΦ
+  iframe Ha Hk He HRD Herr
+  iintro -
+  iapply classResFrom_not_on
+  exact h
 
 end defs
 

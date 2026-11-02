@@ -12,14 +12,13 @@ Three exits that matter, in the body's order:
   not that the snapshot's `ConfState` names it);
 - the log already has `(Term, Index)` (`matchTerm`): `commitTo(Index)` and `false` -- a
   fast-forward of the commit index;
-- otherwise `raftLog.restore(s)`, then the tracker rebuilt from the snapshot's
-  `ConfState` (`MakeProgressTracker`, `confchange.Restore`, `switchToConfig`,
-  `assertConfStatesEquivalent`) and `true`.
+- otherwise `raftLog.restore(s)` and `true`. (Until 2026-10-28, stage U0, the tracker was then
+  rebuilt from the snapshot's `ConfState` (`MakeProgressTracker`, `confchange.Restore`,
+  `switchToConfig`, `assertConfStatesEquivalent`): the fork's `raft37-goose-lean-a2` moves that to
+  `appliedSnap`, the fix of `issues/raft-snapshot-during-apply-stale-confchange.md`.)
 
-Two more are dead under the premises: the node is not a follower
-(`becomeFollower(Term+1)`, `false`) -- both callers have just made it one, so `s.role =
-.follower`; and `confchange.Restore` failing (`panic`) -- the `ConfState` is
-well formed (`SnapScope`), so `Restore` answers the configuration it denotes (`restoreM_wf`).
+One more is dead under the premises: the node is not a follower (`becomeFollower(Term+1)`,
+`false`) -- both callers have just made it one, so `s.role = .follower`.
 
 (Since D22 S-b′4, 2026-10-20, the premise is `SnapScopeIf id sv cl`: the scope only once the
 lists name the node, which the `!found` exit tests before reading them; `Step` derives it from
@@ -34,11 +33,12 @@ progress map), `AutoLeave` off when not joint (`Restore` drops it then, and the 
 would see it); and the index is below `2^61` (`LogStoreOk`'s bound for a pending snapshot,
 `InvRaftlog.lean`).
 
-The rebuilt tracker: a fresh, empty `Votes` map -- the tally was already empty
-(`s.votes = ∅`: a follower's, `FollowerVotesOk`), so `NState.votes` does not move -- a
-fresh progress map over the configuration's ids (`prs`), and `Progress` values `pvs` the
-spec does not pin -- a follower's are invisible to the protocol (`toPState`). After a
-restore the node is at the configuration the `ConfState` denotes (`snapCfg sv cl`, `csCfgM`).
+After a restore the node stays at its configuration `c` (2026-10-28, stage U0; until then it was
+at the one the `ConfState` denotes, `snapCfg sv cl`, with a rebuilt tracker): the snapshot is the
+log's pending one, whose configuration `appliedSnap` installs. The scope `SnapScope` and the empty
+tally `s.votes = ∅` were the rebuild's; `restore` no longer reads them, and they stay premises
+(the callers have them, and `appliedSnap` takes them) so that the statement moves only in its
+postcondition.
 
 Lean notes: Rocq's `snap_scope` and `restore_result` are `SnapScope` and
 `RestoreResult` (Prop-valued definitions).
@@ -80,7 +80,8 @@ struct at any `c` (`ownRaftPhysCV c c.voters`, joint or not); since B8 (the same
 snapshot's `ConfState` any well-formed one, joint included (`SnapScope`, its four slices
 read-only, `ownCSL`) (since D22 S-b not necessarily naming the node: the `!found` exit refuses it,
 `RestoreResult`'s first case); after a restore the node is at
-the configuration it denotes, otherwise still at `c` (`restoreCfg`). (Until B8 the `ConfState`
+the configuration it denotes, otherwise still at `c` (`restoreCfg`; since 2026-10-28, stage U0,
+at `c` in every case: the configuration switches at `appliedSnap`). (Until B8 the `ConfState`
 was non-joint with the voters `cfg`, `SnapScope cfg sv voters learners`, and a statement
 `specS` with the node's own voters; `specS` had no caller and is gone.) -/
 abbrev raft.restore.spec : Prop :=
@@ -95,12 +96,12 @@ abbrev raft.restore.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (D22 S-d4 item 4) every pointer field set (`handleSnapshot`'s `EnsureSnapshot`)
       "Hsnap" ∷ ownSnapS sp (DFrac.own 1) sv ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (it joins the
-      -- log's `ksn`, `raftLog.restore`)
-      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `ksnCert`) the snapshot certified (it
+      -- joins the log's `ksn`, `raftLog.restore`)
+      "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
   {{ (b : Bool) (s' : NState), RET #b;
-      ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
+      ownRaftPhysCV c c.voters r id s' ∗
       ownSnapE sp (DFrac.own 1) sv ∗
       ⌜RestoreResult id s sv cl b s'⌝ }}
 

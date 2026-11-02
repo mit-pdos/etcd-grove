@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Authenticate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterMemberAttrSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterVersionSet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Compaction
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__DowngradeInfoSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__LeaseCheckpoint
@@ -71,6 +72,7 @@ public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType__String
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.needAdminPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Backend
@@ -86,6 +88,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__P
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Txn
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
@@ -116,6 +123,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem pbutil.wp_MustUnmarshalMessage :
@@ -130,21 +138,9 @@ theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Debug.wp_proof
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
-
-theorem txn.wp_WarnOfExpensiveRequest :
-    EtcdGrove.txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.WarnOfExpensiveRequest.wp_proof
-
-theorem txn.wp_WarnOfFailedRequest :
-    EtcdGrove.txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.WarnOfFailedRequest.wp_proof
-
-theorem storage.BackendQuota.wp_Cost :
-    EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.BackendQuota.Cost.wp_proof
+theorem lease.Lease.wp_Keys :
+    EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.Lease.Keys.wp_proof
 
 theorem semver.wp_MustParse :
     EtcdGrove.semver.MustParse.spec (GF := GF) (hG := hG) :=
@@ -182,6 +178,38 @@ theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof
 
+theorem traceutil.wp_TODO :
+    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.TODO.wp_proof
+
+theorem traceutil.wp_Get :
+    EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Get.wp_proof traceutil.wp_TODO
+
+theorem traceutil.Trace.wp_IsEmpty :
+    EtcdGrove.traceutil.Trace.IsEmpty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.IsEmpty.wp_proof
+
+theorem traceutil.wp_newTrace :
+    EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.newTrace.wp_proof
+
+theorem storage.BackendQuota.wp_Cost :
+    EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.BackendQuota.Cost.wp_proof
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem txn.wp_WarnOfExpensiveRequest :
+    EtcdGrove.txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfExpensiveRequest.wp_proof
+
+theorem txn.wp_WarnOfFailedRequest :
+    EtcdGrove.txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfFailedRequest.wp_proof
+
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Panic.wp_proof
@@ -195,79 +223,20 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem wp_noSideEffect :
     EtcdGrove.apply.noSideEffect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.noSideEffect.wp_proof
 
-theorem applierV3Capped.wp_Put :
-    EtcdGrove.apply.applierV3Capped.Put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Capped.Put.wp_proof
-
-theorem applierV3Capped.wp_Txn :
-    EtcdGrove.apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Capped.Txn.wp_proof storage.BackendQuota.wp_Cost
-
-theorem applierV3Capped.wp_LeaseGrant :
-    EtcdGrove.apply.applierV3Capped.LeaseGrant.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Capped.LeaseGrant.wp_proof
-
-theorem wp_newApplierV3Capped :
-    EtcdGrove.apply.newApplierV3Capped.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.newApplierV3Capped.wp_proof applierV3Capped.wp_Put applierV3Capped.wp_Txn applierV3Capped.wp_LeaseGrant
-
-theorem applierV3Corrupt.wp_Put :
-    EtcdGrove.apply.applierV3Corrupt.Put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.Put.wp_proof
-
-theorem applierV3Corrupt.wp_Range :
-    EtcdGrove.apply.applierV3Corrupt.Range.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.Range.wp_proof
-
-theorem applierV3Corrupt.wp_DeleteRange :
-    EtcdGrove.apply.applierV3Corrupt.DeleteRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.DeleteRange.wp_proof
-
-theorem applierV3Corrupt.wp_Txn :
-    EtcdGrove.apply.applierV3Corrupt.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.Txn.wp_proof
-
-theorem applierV3Corrupt.wp_LeaseGrant :
-    EtcdGrove.apply.applierV3Corrupt.LeaseGrant.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.LeaseGrant.wp_proof
-
-theorem applierV3Corrupt.wp_LeaseRevoke :
-    EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.wp_proof
-
-theorem wp_newApplierV3Corrupt :
-    EtcdGrove.apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.newApplierV3Corrupt.wp_proof applierV3Corrupt.wp_Put applierV3Corrupt.wp_Range applierV3Corrupt.wp_DeleteRange applierV3Corrupt.wp_Txn applierV3Corrupt.wp_LeaseGrant applierV3Corrupt.wp_LeaseRevoke
-
-theorem uberApplier.wp_restoreAlarms :
-    EtcdGrove.apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.uberApplier.restoreAlarms.wp_proof wp_newApplierV3Capped wp_newApplierV3Corrupt
-
-theorem uberApplier.wp_Alarm :
-    EtcdGrove.apply.uberApplier.Alarm.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.uberApplier.Alarm.wp_proof uberApplier.wp_restoreAlarms
-
-theorem uberApplier.wp_dispatch :
-    EtcdGrove.apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.uberApplier.dispatch.wp_proof errors.wp_Is txn.wp_ApplySecObserve txn.wp_WarnOfExpensiveRequest txn.wp_WarnOfFailedRequest uberApplier.wp_Alarm
-
-theorem uberApplier.wp_Apply :
-    EtcdGrove.apply.uberApplier.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.uberApplier.Apply.wp_proof uberApplier.wp_dispatch
-
 theorem wp_Apply :
     EtcdGrove.apply.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.Apply.wp_proof pbutil.wp_MustUnmarshalMessage zap.wp_Stringer zap.Logger.wp_Debug wp_noSideEffect uberApplier.wp_Apply
+  EtcdGrove.apply.Apply.wp_proof pbutil.wp_MustUnmarshalMessage zap.wp_Stringer zap.Logger.wp_Debug wp_noSideEffect
 
 theorem wp_checkLeasePutsKeys :
     EtcdGrove.apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.checkLeasePutsKeys.wp_proof
+  EtcdGrove.apply.checkLeasePutsKeys.wp_proof lease.Lease.wp_Keys
 
 theorem wp_checkLeasePuts :
     EtcdGrove.apply.checkLeasePuts.spec (GF := GF) (hG := hG) :=
@@ -409,9 +378,17 @@ theorem applierV3backend.wp_DowngradeInfoSet :
     EtcdGrove.apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.DowngradeInfoSet.wp_proof
 
+theorem traceutil.wp_EnsureTrace :
+    EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
+
+theorem applierV3backend.wp_Compaction [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.store.wp_Compact mvcc.readView.wp_Range
+
 theorem wp_newApplierV3Backend [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.newApplierV3Backend.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.newApplierV3Backend.wp_proof applierV3backend.wp_Apply applierV3backend.wp_Put applierV3backend.wp_DeleteRange applierV3backend.wp_Range applierV3backend.wp_Txn applierV3backend.wp_LeaseRevoke applierV3backend.wp_LeaseGrant applierV3backend.wp_LeaseCheckpoint applierV3backend.wp_Alarm applierV3backend.wp_Authenticate applierV3backend.wp_UserAdd applierV3backend.wp_UserDelete applierV3backend.wp_UserChangePassword applierV3backend.wp_UserGrantRole applierV3backend.wp_UserGet applierV3backend.wp_UserRevokeRole applierV3backend.wp_RoleAdd applierV3backend.wp_RoleGrantPermission applierV3backend.wp_RoleGet applierV3backend.wp_RoleRevokePermission applierV3backend.wp_RoleDelete applierV3backend.wp_UserList applierV3backend.wp_RoleList applierV3backend.wp_AuthEnable applierV3backend.wp_AuthDisable applierV3backend.wp_AuthStatus applierV3backend.wp_ClusterVersionSet applierV3backend.wp_ClusterMemberAttrSet applierV3backend.wp_DowngradeInfoSet
+  EtcdGrove.apply.newApplierV3Backend.wp_proof applierV3backend.wp_Apply applierV3backend.wp_Put applierV3backend.wp_DeleteRange applierV3backend.wp_Range applierV3backend.wp_Txn applierV3backend.wp_LeaseRevoke applierV3backend.wp_LeaseGrant applierV3backend.wp_LeaseCheckpoint applierV3backend.wp_Alarm applierV3backend.wp_Authenticate applierV3backend.wp_UserAdd applierV3backend.wp_UserDelete applierV3backend.wp_UserChangePassword applierV3backend.wp_UserGrantRole applierV3backend.wp_UserGet applierV3backend.wp_UserRevokeRole applierV3backend.wp_RoleAdd applierV3backend.wp_RoleGrantPermission applierV3backend.wp_RoleGet applierV3backend.wp_RoleRevokePermission applierV3backend.wp_RoleDelete applierV3backend.wp_UserList applierV3backend.wp_RoleList applierV3backend.wp_AuthEnable applierV3backend.wp_AuthDisable applierV3backend.wp_AuthStatus applierV3backend.wp_ClusterVersionSet applierV3backend.wp_ClusterMemberAttrSet applierV3backend.wp_DowngradeInfoSet applierV3backend.wp_Compaction
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
@@ -477,17 +454,77 @@ theorem wp_newApplierV3 [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.newApplierV3.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.newApplierV3.wp_proof wp_newApplierV3Backend wp_newQuotaApplierV3 wp_newAuthApplierV3
 
-theorem wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.apply.NewUberApplier.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.NewUberApplier.wp_proof wp_newApplierV3 uberApplier.wp_restoreAlarms
+theorem applierV3Capped.wp_Put :
+    EtcdGrove.apply.applierV3Capped.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Capped.Put.wp_proof
+
+theorem applierV3Capped.wp_Txn :
+    EtcdGrove.apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Capped.Txn.wp_proof storage.BackendQuota.wp_Cost
+
+theorem applierV3Capped.wp_LeaseGrant :
+    EtcdGrove.apply.applierV3Capped.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Capped.LeaseGrant.wp_proof
+
+theorem wp_newApplierV3Capped :
+    EtcdGrove.apply.newApplierV3Capped.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.newApplierV3Capped.wp_proof applierV3Capped.wp_Put applierV3Capped.wp_Txn applierV3Capped.wp_LeaseGrant
+
+theorem applierV3Corrupt.wp_Put :
+    EtcdGrove.apply.applierV3Corrupt.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.Put.wp_proof
+
+theorem applierV3Corrupt.wp_Range :
+    EtcdGrove.apply.applierV3Corrupt.Range.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.Range.wp_proof
+
+theorem applierV3Corrupt.wp_DeleteRange :
+    EtcdGrove.apply.applierV3Corrupt.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.DeleteRange.wp_proof
+
+theorem applierV3Corrupt.wp_Txn :
+    EtcdGrove.apply.applierV3Corrupt.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.Txn.wp_proof
+
+theorem applierV3Corrupt.wp_LeaseGrant :
+    EtcdGrove.apply.applierV3Corrupt.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.LeaseGrant.wp_proof
+
+theorem applierV3Corrupt.wp_LeaseRevoke :
+    EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.wp_proof
 
 theorem applierV3Corrupt.wp_Compaction :
     EtcdGrove.apply.applierV3Corrupt.Compaction.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3Corrupt.Compaction.wp_proof
 
+theorem wp_newApplierV3Corrupt :
+    EtcdGrove.apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.newApplierV3Corrupt.wp_proof applierV3Corrupt.wp_Put applierV3Corrupt.wp_Range applierV3Corrupt.wp_DeleteRange applierV3Corrupt.wp_Txn applierV3Corrupt.wp_LeaseGrant applierV3Corrupt.wp_LeaseRevoke applierV3Corrupt.wp_Compaction
+
+theorem uberApplier.wp_restoreAlarms :
+    EtcdGrove.apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.restoreAlarms.wp_proof wp_newApplierV3Capped wp_newApplierV3Corrupt
+
+theorem wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.NewUberApplier.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.NewUberApplier.wp_proof wp_newApplierV3 uberApplier.wp_restoreAlarms
+
 theorem wp_checkTxnReqsPermission :
     EtcdGrove.apply.checkTxnReqsPermission.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.checkTxnReqsPermission.wp_proof wp_checkPutAuth wp_checkTxnPermission
+
+theorem uberApplier.wp_Alarm :
+    EtcdGrove.apply.uberApplier.Alarm.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.Alarm.wp_proof uberApplier.wp_restoreAlarms
+
+theorem uberApplier.wp_dispatch :
+    EtcdGrove.apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.dispatch.wp_proof errors.wp_Is txn.wp_ApplySecObserve txn.wp_WarnOfExpensiveRequest txn.wp_WarnOfFailedRequest uberApplier.wp_Alarm
+
+theorem uberApplier.wp_Apply :
+    EtcdGrove.apply.uberApplier.Apply.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.Apply.wp_proof uberApplier.wp_dispatch
 
 end links_hasLC
 

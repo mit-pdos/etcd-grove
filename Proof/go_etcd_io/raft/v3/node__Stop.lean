@@ -1,0 +1,169 @@
+/- Lean-first (no Rocq counterpart), 2026-10-29 (stage U9a). -/
+module
+
+public import Spec.go_etcd_io.raft.v3.node__Stop
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-! ## The raw triple (internal: private to this file)
+
+`select { case n.stop <- struct{}{}: case <-n.done: return }; <-n.done`: the client's half of
+`live` goes to `run` on `stop` (`isNodeChan`'s `Hstop`), which closes `done` once stopped
+(`node_done_recv_au`); if `done` fired first, the node had stopped already. (2026-11-01, durability
+stage II (n), the stop's option (c)) `run` answers with its share of the generation and its
+protocol state (`stopAns`), which with the client's share of the generation give the id's slot
+back (`raft_stop`). -/
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the header above. -/
+private abbrev node.Stop.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+      nodeLiveRaw γ 1 }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
+  {{ RET #(); nodeStoppedRaw γ ∗ raftIdSlot γ.raft id }}
+
+end spec
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
+  intro γ id n
+  wp_start as ⟨#Hnode, Hlive⟩
+  ihave #Hnode' := Hnode
+  open_node Hnode'
+  wp_auto_lc 3
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `n.stop <- struct{}{}`: the client's half of `live` to `run`; then `<-n.done`
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.stop',
+      γ.stop, ()
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · iapply isHandshake_isChan $$ Hstop
+    unfold nodeLiveRaw
+    icases Hlive with ⟨Hlv, Hsl⟩
+    iapply handshake_send_au γ.stop nv.stop' ()
+      (fun (_ : Unit) => dghostVar γ.live (DFrac.own (1 : Qp).half) false) (stopAns γ id)
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlv]
+    · iexact Hlv
+    inext
+    iintro Hans
+    unfold stopAns
+    icases Hans with ⟨Hsl', %s, %md, Hg⟩
+    subst Hgid
+    have Hfr := (slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional (Qp.half 1)
+      (Qp.half 1)
+    rw [Qp.half_add_half] at Hfr
+    ihave Hsl1 := Hfr.2 $$ [$Hsl $Hsl']
+    imod raft_stop ⊤ γ.raft γ.id s γ.gen (md := md) CoPset.subseteq_top $$ Hsl1 Hg with Hslot
+    wp_auto
+    wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    wp_auto
+    iapply HΦ
+    iframe Hst Hslot
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `<-n.done`: stopped already
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    iexfalso
+    iapply nodeLiveRaw_stopped γ 1 $$ [$Hlive $Hst]
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
+
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.Stop.spec` from the raw triple: the names are `nodeRunning`'s (`isNode`'s are not
+needed). -/
+private theorem node.wp_Stop_impl
+    (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
+    EtcdGrove.isNode
+  intro n γ N id
+  iintro %Φ ⟨#Hinit, #Hnd, Hlive⟩ HΦ
+  iunfold nodeRunning at Hlive
+  icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
+  iapply (hS γn id1 n) $$ [Hl]
+  · iframe Hinit Hn Hl
+  iintro !> ⟨#Hst, Hslot⟩
+  iunfold isNode at Hnd
+  icases Hnd with ⟨%γn2, %Hok2, #Hn2, -⟩
+  ihave %Hid := isNode_id_agree γn γn2 id1 id n $$ Hn Hn2
+  subst Hid
+  iapply HΦ
+  isplitr
+  · iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
+    iframe Hn Htb Hst
+  unfold EtcdGrove.nodeVacant nodeVacantU
+  rw [← Hok.1.1]
+  iexact Hslot
+
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.Stop.wp_proof : node.Stop.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_Stop_impl node.Stop.wp_raw
+
+end proof
+
+end EtcdGrove
+end Perennial

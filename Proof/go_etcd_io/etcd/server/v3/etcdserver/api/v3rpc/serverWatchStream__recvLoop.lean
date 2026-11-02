@@ -206,7 +206,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
-  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -, #Htag⟩
+  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -, #Htag, #HaLb⟩
   iunfold v3rpc.watchVars at Hvars
   icases Hvars with ⟨#Heof, #Hwpv⟩
   iunfold v3rpc.watchPkgVars at Hwpv
@@ -271,7 +271,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     icases Hreq with ⟨%u, #Hu, Hm⟩
     rcases m with c | cid | _ | _
     · -- create
-      ihave ⟨%Hok, Htok⟩ := Hup $$ HUp
+      ihave ⟨%Hok, Htok, #Hpub, #Hnoc⟩ := Hup $$ HUp
       obtain ⟨Hpkv, Hfrag, Hfil, Hwid0⟩ := Hok
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L (.create c) $$ Hrt
       icases Hm with ⟨%cr, Hon, Hcr⟩
@@ -321,7 +321,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
       wp_apply hPerm sws r cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
-        (DFrac.own 1) (DFrac.own 1) $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls⟩
+        (DFrac.own 1) (DFrac.own 1) c.bound $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls⟩
       · iframe #
         ipureintro
         split
@@ -363,8 +363,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         ihave %Hel1 := ownSlice_len $$ Hesv1
         -- the range end: `[]byte{}` (from the key on) for `"\x00"`
         wp_join iprop(∃ es2 : GoSlice,
-            ⌜(c.rangeEnd = [] → es2 = slice.nil) ∧
-              (c.rangeEnd ≠ [] → c.rangeEnd ≠ [W8 0] → es2 ≠ slice.nil)⌝ ∗
+            ⌜(c.rangeEnd = [] → es2 = slice.nil) ∧ (c.rangeEnd ≠ [] → es2 ≠ slice.nil)⌝ ∗
             creq_ptr ↦ cr ∗
             structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" cr ↦ es2 ∗
             es2 ↦*□ (if c.rangeEnd = [W8 0] then [] else c.rangeEnd))
@@ -384,10 +383,10 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               $$ [Hesv1] as -
             · iframe #; ipureintro; rw [hb]; rfl
             wp_if_destruct
-            · wp_apply wp_slice_literal (l := ([] : List w8))
+            · wp_apply wp_slice_literal_nonnull (l := ([] : List w8))
               isplitr
               · ipureintro; rfl
-              iintro %esl ⟨He0, -⟩
+              iintro %esl %Hesl ⟨He0, -⟩
               imod ownSlice_persist $$ He0 with #He0
               wp_auto
               wp_join_done
@@ -395,7 +394,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iframe creq Hes
               isplitr
               · ipureintro
-                exact ⟨fun h => absurd (hb.symm.trans h) (by simp), fun _ h => absurd hb h⟩
+                refine ⟨fun h => absurd (hb.symm.trans h) (by simp), fun _ h => ?_⟩
+                exact Hesl (congrArg GoSlice.ptr h)
               rw [hb, if_pos rfl]
               iexact He0
             · wp_join_done
@@ -404,7 +404,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               simp only [hne, ↓reduceIte]
               iexists es1
               isplitr
-              · ipureintro; exact ⟨Hes1.1, fun h _ => Hes1.2 h⟩
+              · ipureintro; exact Hes1
               iframe
               iframe #
           · have hne : c.rangeEnd ≠ [W8 0] := by
@@ -414,7 +414,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             · itrivial
             iexists es1
             isplitr
-            · ipureintro; exact ⟨Hes1.1, fun h _ => Hes1.2 h⟩
+            · ipureintro; exact Hes1
             iframe
             iframe #
         wp_apply hFil cr fs c.filters DFrac.discard $$ [] as %fsl ⟨-, %fl, Hfl, %Hflen⟩
@@ -455,7 +455,10 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         ihave #Hctx'' := Hctxw $$ Hctxis
         to_params
         ihave Htok : (v3rpc.wParams r.srv).T $$ [Htok]
-        · unfold v3rpc.wParams mvcc.storeWatchParams; iexact Htok
+        · unfold v3rpc.wParams mvcc.storeWatchParams
+          isplitl [Htok]
+          · iexact Htok
+          · iexact Hnoc
         wp_apply hWatch r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo ctx'
           { r.cd with Values := vs } c.watchId ks' es2 fsl (if c.key = [] then [W8 0] else c.key)
           (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) [] c.startRev $$ [$HR $Htok]
@@ -565,9 +568,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                 by_cases h1 : c.rangeEnd = []
                 · simp only [h1, ↓reduceIte, Hes2.1 h1]
                 · by_cases h2 : c.rangeEnd = [W8 0]
-                  · simp only [h2, ↓reduceIte]
-                    by_cases h3 : es2 = slice.nil <;> simp [h3]
-                  · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
+                  · simp [h2, Hes2.2 h1]
+                  · simp only [h1, h2, ↓reduceIte, Hes2.2 h1]
               iframe HIWF
               iframe Hia Hit Hfl
               isplitr
@@ -575,13 +577,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               -- the registration's authorization (the auth plan's A4): the passed check's class
               isplitr
               · iunfold v3rpc.watchAuthed
-                ihave ⟨%info, #Hcl, -⟩ := Hcls $$ %rfl
+                ihave ⟨%info, #Hcl, #Hbd⟩ := Hcls $$ %rfl
                 iexists r.srv.E.authMode, info
                 iframe Htag
-                isplitl
-                · iunfold apply.watchClass
-                  unfold apply.watchPerms apply.watchKey
-                  iexact Hcl
+                isplitr
+                · iapply apply.watchClassFrom_of_classResFrom $$ Hcl
+                isplitr
+                · iintro !> %hon
+                  iapply infoBoundT_of_principalBoundI
+                  iapply Hbd; ipureintro; exact hon
                 ipureintro
                 exact apply.reqShape_of_watch c.key c.rangeEnd Hrng
               iexists l0, nr

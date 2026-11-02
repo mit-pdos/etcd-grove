@@ -64,7 +64,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       have h2 := Hpre.2.1
       omega
     have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-        (bktOf st1.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.confStateKeyBytes := by
+        (bktOf st1.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.confStateKeyBytes := by
       intro h
       have := HPw.2.2.2.2 _ h
       rw [hP.2.1] at this
@@ -79,9 +79,10 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · iintro !> %bk %key %val %vb %Φ' !> ⟨#HM, #Hkey, #Hval, Hl⟩ HΦ'
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
-          (by decide) (by decide) hpend hSB)
-        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -⟩
+          (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)))
+        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -, -⟩
       · iframe #
+        rw [fkPut_eq γ _ _ (by decide)]
         simp only [hkPut, hhk, rbPut, hP.2.2.2.2, Bool.false_eq_true, ↓reduceIte]
         itrivial
       iapply HΦ'

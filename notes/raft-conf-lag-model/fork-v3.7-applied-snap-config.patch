@@ -1,0 +1,448 @@
+From 565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885 Mon Sep 17 00:00:00 2001
+From: Upamanyu Sharma <upamanyu-claude4@csail.mit.edu>
+Date: Wed, 28 Oct 2026 06:17:29 +0000
+Subject: [PATCH] raft: switch to a snapshot's configuration when it is applied
+
+Conf changes applied after a snapshot was restored, from a Ready handed out
+before it, applied on top of the snapshot's configuration, though the
+snapshot already included them (a wrong configuration, or a panic in
+applyConfChange). The configuration now switches in appliedSnap.
+The fix of etcd-grove's issues/raft-snapshot-during-apply-stale-confchange.md
+(upstream candidate fix/raft-snapshot-during-apply-stale-confchange), on v3.7.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ raft.go                                       | 40 ++++++-----
+ raft_snap_test.go                             |  1 +
+ raft_test.go                                  | 26 +++++--
+ rawnode_test.go                               | 71 +++++++++++++++++++
+ testdata/confchange_v1_add_single.txt         |  2 +-
+ testdata/confchange_v2_add_double_auto.txt    |  4 +-
+ .../confchange_v2_add_double_implicit.txt     |  2 +-
+ testdata/confchange_v2_add_single_auto.txt    |  2 +-
+ .../confchange_v2_add_single_explicit.txt     |  2 +-
+ testdata/confchange_v2_replace_leader.txt     |  2 +-
+ testdata/snapshot_succeed_via_app_resp.txt    |  2 +-
+ .../snapshot_succeed_via_app_resp_behind.txt  |  2 +-
+ 12 files changed, 125 insertions(+), 31 deletions(-)
+
+diff --git a/raft.go b/raft.go
+index 64637ba..e6d2f0d 100644
+--- a/raft.go
++++ b/raft.go
+@@ -767,6 +767,24 @@ func (r *raft) appliedSnap(snap *pb.Snapshot) {
+ 	index := snap.GetMetadata().GetIndex()
+ 	r.raftLog.stableSnapTo(index)
+ 	r.appliedTo(index, 0 /* size */)
++
++	// Switch to the snapshot's configuration only now that it is applied: until
++	// then, ApplyConfChange calls are for entries before it, which change the
++	// configuration in use, as they would without the snapshot.
++	cs := pb.EnsureConfState(snap.GetMetadata().GetConfState())
++	r.trk = tracker.MakeProgressTracker(r.trk.MaxInflight, r.trk.MaxInflightBytes)
++	cfg, trk, err := confchange.Restore(confchange.Changer{
++		Tracker:   r.trk,
++		LastIndex: r.raftLog.lastIndex(),
++	}, cs)
++
++	if err != nil {
++		// This should never happen. Either there's a bug in our config change
++		// handling or the client corrupted the conf change.
++		panic(fmt.Sprintf("unable to restore config %+v: %s", cs, err))
++	}
++
++	assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))
+ }
+ 
+ // maybeCommit attempts to advance the commit index. Returns true if the commit
+@@ -1851,9 +1869,10 @@ func (r *raft) handleSnapshot(m *pb.Message) {
+ 	}
+ }
+ 
+-// restore recovers the state machine from a snapshot. It restores the log and the
+-// configuration of state machine. If this method returns false, the snapshot was
+-// ignored, either because it was obsolete or because of an error.
++// restore recovers the state machine from a snapshot. It restores the log; the
++// configuration is restored when the snapshot is applied (appliedSnap). If this
++// method returns false, the snapshot was ignored, either because it was obsolete
++// or because of an error.
+ func (r *raft) restore(s *pb.Snapshot) bool {
+ 	if s.GetMetadata().GetIndex() <= r.raftLog.committed {
+ 		return false
+@@ -1917,21 +1936,6 @@ func (r *raft) restore(s *pb.Snapshot) bool {
+ 
+ 	r.raftLog.restore(s)
+ 
+-	// Reset the configuration and add the (potentially updated) peers in anew.
+-	r.trk = tracker.MakeProgressTracker(r.trk.MaxInflight, r.trk.MaxInflightBytes)
+-	cfg, trk, err := confchange.Restore(confchange.Changer{
+-		Tracker:   r.trk,
+-		LastIndex: r.raftLog.lastIndex(),
+-	}, cs)
+-
+-	if err != nil {
+-		// This should never happen. Either there's a bug in our config change
+-		// handling or the client corrupted the conf change.
+-		panic(fmt.Sprintf("unable to restore config %+v: %s", cs, err))
+-	}
+-
+-	assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))
+-
+ 	last := r.raftLog.lastEntryID()
+ 	r.logger.Infof("%x [commit: %d, lastindex: %d, lastterm: %d] restored snapshot [index: %d, term: %d]",
+ 		r.id, r.raftLog.committed, last.index, last.term, id.index, id.term)
+diff --git a/raft_snap_test.go b/raft_snap_test.go
+index 396290f..a1c10f0 100644
+--- a/raft_snap_test.go
++++ b/raft_snap_test.go
+@@ -37,6 +37,7 @@ func TestSendingSnapshotSetPendingSnapshot(t *testing.T) {
+ 	storage := newTestMemoryStorage(withPeers(1))
+ 	sm := newTestRaft(1, 10, 1, storage)
+ 	sm.restore(testingSnap)
++	applyRestoredSnapshot(t, sm, storage)
+ 
+ 	sm.becomeCandidate()
+ 	sm.becomeLeader()
+diff --git a/raft_test.go b/raft_test.go
+index 76f7af9..a67651a 100644
+--- a/raft_test.go
++++ b/raft_test.go
+@@ -2561,13 +2561,25 @@ func TestRestore(t *testing.T) {
+ 
+ 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
+ 	assert.Equal(t, s.GetMetadata().GetTerm(), mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())))
+-	assert.Equal(t, s.GetMetadata().GetConfState().Voters, sm.trk.VoterNodes())
++	// The configuration changes when the snapshot is applied.
++	assert.Equal(t, []uint64{1, 2}, sm.trk.VoterNodes())
+ 
+ 	require.False(t, sm.restore(s))
+ 	for i := 0; i < sm.randomizedElectionTimeout; i++ {
+ 		sm.tick()
+ 	}
+ 	assert.Equal(t, StateFollower, sm.state)
++
++	applyRestoredSnapshot(t, sm, storage)
++	assert.Equal(t, s.GetMetadata().GetConfState().Voters, sm.trk.VoterNodes())
++}
++
++// applyRestoredSnapshot applies the snapshot r restored, as the application
++// does with the one in a Ready.
++func applyRestoredSnapshot(t testing.TB, r *raft, s *MemoryStorage) {
++	snap := r.raftLog.nextUnstableSnapshot()
++	require.NoError(t, s.ApplySnapshot(snap))
++	r.appliedSnap(snap)
+ }
+ 
+ // TestRestoreWithLearner restores a snapshot which contains learners.
+@@ -2583,6 +2595,7 @@ func TestRestoreWithLearner(t *testing.T) {
+ 	storage := newTestMemoryStorage(withPeers(1, 2), withLearners(3))
+ 	sm := newTestLearnerRaft(3, 8, 2, storage)
+ 	assert.True(t, sm.restore(s))
++	applyRestoredSnapshot(t, sm, storage)
+ 
+ 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
+ 	assert.Equal(t, s.GetMetadata().GetTerm(), mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())))
+@@ -2620,9 +2633,6 @@ func TestRestoreWithVotersOutgoing(t *testing.T) {
+ 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
+ 	assert.Equal(t, mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())), s.GetMetadata().GetTerm())
+ 
+-	sg := sm.trk.VoterNodes()
+-	assert.Equal(t, []uint64{1, 2, 3, 4}, sg)
+-
+ 	require.False(t, sm.restore(s))
+ 
+ 	// It should not campaign before actually applying data.
+@@ -2630,6 +2640,10 @@ func TestRestoreWithVotersOutgoing(t *testing.T) {
+ 		sm.tick()
+ 	}
+ 	assert.Equal(t, StateFollower, sm.state)
++
++	applyRestoredSnapshot(t, sm, storage)
++	sg := sm.trk.VoterNodes()
++	assert.Equal(t, []uint64{1, 2, 3, 4}, sg)
+ }
+ 
+ // TestRestoreVoterToLearner verifies that a normal peer can be downgraded to a
+@@ -2672,6 +2686,8 @@ func TestRestoreLearnerPromotion(t *testing.T) {
+ 
+ 	assert.True(t, sm.isLearner)
+ 	assert.True(t, sm.restore(s))
++	assert.True(t, sm.isLearner)
++	applyRestoredSnapshot(t, sm, storage)
+ 	assert.False(t, sm.isLearner)
+ }
+ 
+@@ -2745,6 +2761,7 @@ func TestProvideSnap(t *testing.T) {
+ 	storage := newTestMemoryStorage(withPeers(1))
+ 	sm := newTestRaft(1, 10, 1, storage)
+ 	sm.restore(s)
++	applyRestoredSnapshot(t, sm, storage)
+ 
+ 	sm.becomeCandidate()
+ 	sm.becomeLeader()
+@@ -2771,6 +2788,7 @@ func TestIgnoreProvidingSnap(t *testing.T) {
+ 	storage := newTestMemoryStorage(withPeers(1))
+ 	sm := newTestRaft(1, 10, 1, storage)
+ 	sm.restore(s)
++	applyRestoredSnapshot(t, sm, storage)
+ 
+ 	sm.becomeCandidate()
+ 	sm.becomeLeader()
+diff --git a/rawnode_test.go b/rawnode_test.go
+index 24b92a3..a6329d9 100644
+--- a/rawnode_test.go
++++ b/rawnode_test.go
+@@ -1066,3 +1066,74 @@ func benchmarkRawNodeImpl(b *testing.B, peers ...uint64) {
+ 	b.ReportMetric(float64(numReady)/float64(b.N), "ready/op")
+ 	b.Logf("storage access stats: %+v", s.callStats)
+ }
++// TestRawNodeSnapshotDuringConfChangeApply ensures that a follower that receives
++// a snapshot while the application is applying a conf change the snapshot covers
++// ends with the snapshot's configuration, and that ApplyConfChange returns the
++// configuration at the conf change's index.
++func TestRawNodeSnapshotDuringConfChangeApply(t *testing.T) {
++	for i, tt := range []struct {
++		cc     pb.ConfChangeI
++		cs     *pb.ConfState // the snapshot's, at index 2
++		voters [2][]uint64   // the configuration at index 1
++	}{
++		// "add 4" at index 1, then "remove 4" at index 2.
++		{&pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(uint64(4))},
++			&pb.ConfState{Voters: []uint64{1, 2, 3}},
++			[2][]uint64{{1, 2, 3, 4}, nil}},
++		// "add 4" entering a joint configuration at index 1, still joint at index 2.
++		{&pb.ConfChangeV2{Transition: pb.ConfChangeTransitionJointExplicit.Enum(),
++			Changes: []*pb.ConfChangeSingle{{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(uint64(4))}}},
++			&pb.ConfState{Voters: []uint64{1, 2, 3, 4}, VotersOutgoing: []uint64{1, 2, 3}},
++			[2][]uint64{{1, 2, 3, 4}, {1, 2, 3}}},
++	} {
++		t.Run(fmt.Sprint(i), func(t *testing.T) {
++			s := newTestMemoryStorage(withPeers(1, 2, 3))
++			rawNode, err := NewRawNode(newTestConfig(2, 10, 1, s))
++			require.NoError(t, err)
++			typ, data, err := pb.MarshalConfChange(tt.cc)
++			require.NoError(t, err)
++			snap := &pb.Message{From: new(uint64(1)), To: new(uint64(2)), Term: new(uint64(1)), Type: pb.MsgSnap.Enum(),
++				Snapshot: &pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: new(uint64(2)), Term: new(uint64(1)), ConfState: tt.cs}}}
++
++			var cs *pb.ConfState
++			// apply applies committed entries, calling ApplyConfChange for
++			// the conf change.
++			apply := func(ents []*pb.Entry) {
++				for _, e := range ents {
++					if e.GetType() == typ {
++						cs = rawNode.ApplyConfChange(tt.cc)
++					}
++				}
++			}
++			// Leader 1 commits the conf change at index 1, and the
++			// application starts applying it. Its snapshot at index 2
++			// arrives before the application calls ApplyConfChange.
++			require.NoError(t, rawNode.Step(&pb.Message{From: new(uint64(1)), To: new(uint64(2)), Term: new(uint64(1)),
++				Type: pb.MsgApp.Enum(), Index: new(uint64(0)), LogTerm: new(uint64(0)), Commit: new(uint64(1)),
++				Entries: []*pb.Entry{{Term: new(uint64(1)), Index: new(uint64(1)), Type: typ.Enum(), Data: data}}}))
++			rd := rawNode.Ready()
++			require.Len(t, rd.CommittedEntries, 1)
++			require.NoError(t, s.Append(rd.Entries))
++			require.NoError(t, rawNode.Step(snap))
++			apply(rd.CommittedEntries)
++			rawNode.Advance(rd)
++			// Leader 1 sends the snapshot again if the follower ignored it.
++			require.NoError(t, rawNode.Step(snap))
++			for rawNode.HasReady() {
++				rd := rawNode.Ready()
++				if !IsEmptySnap(rd.Snapshot) {
++					require.NoError(t, s.ApplySnapshot(rd.Snapshot))
++				}
++				require.NoError(t, s.Append(rd.Entries))
++				apply(rd.CommittedEntries)
++				rawNode.Advance(rd)
++			}
++
++			require.NotNil(t, cs)
++			assert.Equal(t, tt.voters[0], cs.GetVoters())
++			assert.Equal(t, tt.voters[1], cs.GetVotersOutgoing())
++			assert.Equal(t, tt.cs.GetVoters(), rawNode.raft.trk.Voters[0].Slice())
++			assert.Equal(t, tt.cs.GetVotersOutgoing(), rawNode.raft.trk.Voters[1].Slice())
++		})
++	}
++}
+diff --git a/testdata/confchange_v1_add_single.txt b/testdata/confchange_v1_add_single.txt
+index f13d307..2081c40 100644
+--- a/testdata/confchange_v1_add_single.txt
++++ b/testdata/confchange_v1_add_single.txt
+@@ -82,7 +82,6 @@ stabilize
+   1->2 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 2 switched to configuration voters=(1 2)
+   INFO 2 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 2 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 2 handling Ready
+@@ -91,6 +90,7 @@ stabilize
+   Snapshot Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   2->1 MsgAppResp Term:1 Log:0/4
++  INFO 2 switched to configuration voters=(1 2)
+ > 1 receiving messages
+   2->1 MsgAppResp Term:1 Log:0/4
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 2 [StateSnapshot match=4 next=5 paused pendingSnap=4]
+diff --git a/testdata/confchange_v2_add_double_auto.txt b/testdata/confchange_v2_add_double_auto.txt
+index f290c98..02567fc 100644
+--- a/testdata/confchange_v2_add_double_auto.txt
++++ b/testdata/confchange_v2_add_double_auto.txt
+@@ -105,7 +105,6 @@ stabilize 1 2
+   1->2 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:true
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 2 switched to configuration voters=(1 2 3)&&(1) autoleave
+   INFO 2 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 2 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 2 handling Ready
+@@ -114,6 +113,7 @@ stabilize 1 2
+   Snapshot Index:4 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:true
+   Messages:
+   2->1 MsgAppResp Term:1 Log:0/4
++  INFO 2 switched to configuration voters=(1 2 3)&&(1) autoleave
+ > 1 receiving messages
+   2->1 MsgAppResp Term:1 Log:0/4
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 2 [StateSnapshot match=4 next=5 paused pendingSnap=4]
+@@ -181,7 +181,6 @@ stabilize 1 3
+   1->3 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:5 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 5, term: 1]
+-  INFO 3 switched to configuration voters=(1 2 3)
+   INFO 3 [commit: 5, lastindex: 5, lastterm: 1] restored snapshot [index: 5, term: 1]
+   INFO 3 [commit: 5] restored snapshot [index: 5, term: 1]
+ > 3 handling Ready
+@@ -190,6 +189,7 @@ stabilize 1 3
+   Snapshot Index:5 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   3->1 MsgAppResp Term:1 Log:0/5
++  INFO 3 switched to configuration voters=(1 2 3)
+ > 1 receiving messages
+   3->1 MsgAppResp Term:1 Log:0/5
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 3 [StateSnapshot match=5 next=6 paused pendingSnap=5]
+diff --git a/testdata/confchange_v2_add_double_implicit.txt b/testdata/confchange_v2_add_double_implicit.txt
+index 2db3b7c..f497ffc 100644
+--- a/testdata/confchange_v2_add_double_implicit.txt
++++ b/testdata/confchange_v2_add_double_implicit.txt
+@@ -88,7 +88,6 @@ stabilize 1 2
+   1->2 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:true
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 2 switched to configuration voters=(1 2)&&(1) autoleave
+   INFO 2 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 2 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 2 handling Ready
+@@ -97,6 +96,7 @@ stabilize 1 2
+   Snapshot Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:true
+   Messages:
+   2->1 MsgAppResp Term:1 Log:0/4
++  INFO 2 switched to configuration voters=(1 2)&&(1) autoleave
+ > 1 receiving messages
+   2->1 MsgAppResp Term:1 Log:0/4
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 2 [StateSnapshot match=4 next=5 paused pendingSnap=4]
+diff --git a/testdata/confchange_v2_add_single_auto.txt b/testdata/confchange_v2_add_single_auto.txt
+index 3c23415..ce1d997 100644
+--- a/testdata/confchange_v2_add_single_auto.txt
++++ b/testdata/confchange_v2_add_single_auto.txt
+@@ -83,7 +83,6 @@ stabilize
+   1->2 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 2 switched to configuration voters=(1 2)
+   INFO 2 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 2 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 2 handling Ready
+@@ -92,6 +91,7 @@ stabilize
+   Snapshot Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   2->1 MsgAppResp Term:1 Log:0/4
++  INFO 2 switched to configuration voters=(1 2)
+ > 1 receiving messages
+   2->1 MsgAppResp Term:1 Log:0/4
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 2 [StateSnapshot match=4 next=5 paused pendingSnap=4]
+diff --git a/testdata/confchange_v2_add_single_explicit.txt b/testdata/confchange_v2_add_single_explicit.txt
+index 0128276..84bb3af 100644
+--- a/testdata/confchange_v2_add_single_explicit.txt
++++ b/testdata/confchange_v2_add_single_explicit.txt
+@@ -83,7 +83,6 @@ stabilize 1 2
+   1->2 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 2 switched to configuration voters=(1 2)&&(1)
+   INFO 2 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 2 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 2 handling Ready
+@@ -92,6 +91,7 @@ stabilize 1 2
+   Snapshot Index:4 Term:1 ConfState:Voters:[1 2] VotersOutgoing:[1] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   2->1 MsgAppResp Term:1 Log:0/4
++  INFO 2 switched to configuration voters=(1 2)&&(1)
+ > 1 receiving messages
+   2->1 MsgAppResp Term:1 Log:0/4
+   DEBUG 1 recovered from needing snapshot, resumed sending replication messages to 2 [StateSnapshot match=4 next=5 paused pendingSnap=4]
+diff --git a/testdata/confchange_v2_replace_leader.txt b/testdata/confchange_v2_replace_leader.txt
+index 628cc44..493fb85 100644
+--- a/testdata/confchange_v2_replace_leader.txt
++++ b/testdata/confchange_v2_replace_leader.txt
+@@ -132,7 +132,6 @@ stabilize
+   1->4 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:4 Term:1 ConfState:Voters:[2 3 4] VotersOutgoing:[1 2 3] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 4, term: 1]
+-  INFO 4 switched to configuration voters=(2 3 4)&&(1 2 3)
+   INFO 4 [commit: 4, lastindex: 4, lastterm: 1] restored snapshot [index: 4, term: 1]
+   INFO 4 [commit: 4] restored snapshot [index: 4, term: 1]
+ > 4 handling Ready
+@@ -141,6 +140,7 @@ stabilize
+   Snapshot Index:4 Term:1 ConfState:Voters:[2 3 4] VotersOutgoing:[1 2 3] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   4->1 MsgAppResp Term:1 Log:0/4
++  INFO 4 switched to configuration voters=(2 3 4)&&(1 2 3)
+ > 1 receiving messages
+   4->1 MsgAppResp Term:1 Log:0/4
+ 
+diff --git a/testdata/snapshot_succeed_via_app_resp.txt b/testdata/snapshot_succeed_via_app_resp.txt
+index b1fc414..b35a44c 100644
+--- a/testdata/snapshot_succeed_via_app_resp.txt
++++ b/testdata/snapshot_succeed_via_app_resp.txt
+@@ -110,7 +110,6 @@ stabilize 3
+   1->3 MsgSnap Term:1 Log:0/0
+     Snapshot: Index:11 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   INFO log [committed=0, applied=0, applying=0, unstable.offset=1, unstable.offsetInProgress=1, len(unstable.Entries)=0] starts to restore snapshot [index: 11, term: 1]
+-  INFO 3 switched to configuration voters=(1 2 3)
+   INFO 3 [commit: 11, lastindex: 11, lastterm: 1] restored snapshot [index: 11, term: 1]
+   INFO 3 [commit: 11] restored snapshot [index: 11, term: 1]
+ > 3 handling Ready
+@@ -119,6 +118,7 @@ stabilize 3
+   Snapshot Index:11 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   3->1 MsgAppResp Term:1 Log:0/11
++  INFO 3 switched to configuration voters=(1 2 3)
+ 
+ # The MsgAppResp lets the leader move the follower back to replicating state.
+ # Leader sends another MsgAppResp, to communicate the updated commit index.
+diff --git a/testdata/snapshot_succeed_via_app_resp_behind.txt b/testdata/snapshot_succeed_via_app_resp_behind.txt
+index 3bab832..f8476b9 100644
+--- a/testdata/snapshot_succeed_via_app_resp_behind.txt
++++ b/testdata/snapshot_succeed_via_app_resp_behind.txt
+@@ -110,7 +110,6 @@ deliver-msgs 3
+ 1->3 MsgSnap Term:1 Log:0/0
+   Snapshot: Index:11 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+ INFO log [committed=5, applied=5, applying=5, unstable.offset=6, unstable.offsetInProgress=6, len(unstable.Entries)=0] starts to restore snapshot [index: 11, term: 1]
+-INFO 3 switched to configuration voters=(1 2 3)
+ INFO 3 [commit: 11, lastindex: 11, lastterm: 1] restored snapshot [index: 11, term: 1]
+ INFO 3 [commit: 11] restored snapshot [index: 11, term: 1]
+ 
+@@ -147,6 +146,7 @@ stabilize 3
+   Snapshot Index:11 Term:1 ConfState:Voters:[1 2 3] VotersOutgoing:[] Learners:[] LearnersNext:[] AutoLeave:false
+   Messages:
+   3->1 MsgAppResp Term:1 Log:0/11
++  INFO 3 switched to configuration voters=(1 2 3)
+ 
+ stabilize 1
+ ----
+-- 
+2.53.0
+
