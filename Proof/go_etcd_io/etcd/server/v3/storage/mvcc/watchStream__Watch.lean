@@ -696,7 +696,9 @@ theorem mvcc.watchStream.Watch.wp_proofC (hspan : trace.SpanFromContext.spec (GF
           iexists w, fcs
           simp only [hmv, ← hlo]
           iframe Hia HIWF' Hfi
-          ipureintro; rfl
+          ipureintro
+          have h5 : sint.nat startRev = (sint.Z startRev).toNat := rfl
+          exact ⟨rfl, hidm, by omega⟩
         imodintro
         (try wp_auto)
         iapply HΦ

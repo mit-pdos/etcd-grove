@@ -401,14 +401,15 @@ abbrev wsRecv_events.law : Prop :=
         (∀ r ∈ rs, r.compactRev ≠ W64 0 → 0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev)⌝
 
 /-- **Progress**: a response without events, the `j`-th received, at revision `P`, for the
-watcher `id`, or for the whole stream (`-1`) and a live watcher registered before it was sent,
-comes after every event of the watcher up to `P`. -/
+watcher `id` (without filters), comes after every event of the watcher up to `P`. (2026-11-02, the
+proof: a response for the whole stream, `-1`, covers the watchers registered before it only through
+a later credit, `regsAt`, which a law without a fancy update cannot spend; and filters as for
+`wsRecv_events`.) -/
 abbrev wsRecv_progress.law : Prop :=
   ∀ ws γ ι rs W σ,
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsWatchers ι W ∗ mvccState γ σ ⊢
       ⌜∀ (j : Nat) (id : w64) (r : WResp) (w : WInfo), rs[j]? = some r → W !! id = some w →
-        r.evs = [] → r.compactRev = W64 0 →
-        (r.id = id ∨ (r.id = W64 (-1) ∧ w.k ≤ j ∧ w.live = true)) →
+        w.fs = [] → r.evs = [] → r.compactRev = W64 0 → r.id = id →
         sint.nat r.rev + 1 ≤ σ.notifiedLog.length ∧
         recvEvs (rs.take (j + 1)) id =
           filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1))⌝

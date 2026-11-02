@@ -266,7 +266,7 @@ theorem events_one (ι : WsNameI) (σ : MvccState) (ms : List RespM) (id : w64) 
         recvEvs (ms.map respView) id = filtered wi.fs (watchEvents σ.notifiedLog wi.rg wi.lo hi)⌝ := by
   iintro ⟨#Hfs, #Hi, Hσ⟩
   iunfold wInfoOk at Hi
-  icases Hi with ⟨%w0, %fcs0, #Hia, #Hwi, #Hfi, %Hrg⟩
+  icases Hi with ⟨%w0, %fcs0, #Hia, #Hwi, #Hfi, ⟨%Hrg, -⟩⟩
   ihave #Hwi0 := Hwi
   iunfold watcherIs at Hwi0
   icases Hwi0 with ⟨%γw0, %C, #Hmeta0, #Hfx0, -, -, %Hlo0⟩
@@ -402,6 +402,140 @@ theorem wsRecv_events_proof : wsRecv_events.law (GF := GF) := by
   intro r hr hc
   obtain ⟨m, -, rfl⟩ := List.mem_map.1 hr
   exact absurd rfl hc
+
+/-- **One progress response** (`wsRecv_progress`, for a watcher without filters): the response
+covers its own watcher (`respCov`) up to its revision (`covFact`), the watcher being the view's (its
+id the view's, assigned by the stream to the view's watcher). -/
+theorem progress_one (ι : WsNameI) (σ : MvccState) (ms : List RespM) (id : w64) (wi : WInfo)
+    (j : Nat) (m : RespM) (hids : ι.o.ids = ι.c.ids) (hw : ι.mv.watched = true) (hfs : wi.fs = [])
+    (hj : ms[j]? = some m) (he : m.evs = []) (hid : m.id = id) :
+    □ ([∗list] j ↦ m ∈ ms, rcvFact (GF := GF) ι.mv.ws ι.c (ms.take j) m) ∗ wInfoOk ι id wi ∗
+      mvccStateI ι.mv σ ⊢
+      ⌜sint.nat m.rev + 1 ≤ σ.notifiedLog.length ∧
+        recvEvs ((ms.map respView).take (j + 1)) id =
+          filtered wi.fs (watchEvents σ.notifiedLog wi.rg wi.lo (sint.nat m.rev + 1))⌝ := by
+  iintro ⟨#Hfs, #Hi, Hσ⟩
+  iunfold wInfoOk at Hi
+  icases Hi with ⟨%w0, %fcs0, #Hia, #Hwi, #Hfi, ⟨%Hrg, %Hidne, %Hlo1⟩⟩
+  ihave #Hwi0 := Hwi
+  iunfold watcherIs at Hwi0
+  icases Hwi0 with ⟨%γw0, %C, #Hmeta0, #Hfx0, -, -, %Hlo0⟩
+  isimp only [hfs] at Hfi
+  iunfold filtersImpl at Hfi
+  icases Hfi with ⟨%fps, #Hfps, %Hfl, -⟩
+  have hfps : fps = [] := List.eq_nil_of_length_eq_zero (by simpa using Hfl)
+  subst hfps
+  ihave %Hag : ⌜∀ m ∈ ms, m.evs ≠ [] → decide (m.id = id) = decide (m.w = w0)⌝ $$ []
+  · iapply (pure_forall (PROP := IProp GF)).2
+    iintro %m'
+    iapply (pure_wand (PROP := IProp GF)).1
+    iintro %hm
+    obtain ⟨j', hj'⟩ := List.mem_iff_getElem?.1 hm
+    ihave #Hfj := BigSepL.bigSepL_lookup hj' $$ Hfs
+    iapply rcv_agree ι.mv.ws ι.o ι.c hids id w0 wi.rg fcs0 Hrg (ms.take j') m'
+    iframe Hia Hfx0 Hfj
+  ihave #Hfj := BigSepL.bigSepL_lookup hj $$ Hfs
+  icases persistent_entails_right (rev_one ι σ (ms.take j) m hw he) $$ [$Hfj $Hσ] with
+    ⟨%Hrv, -, Hσ⟩
+  ihave #Hfj' := Hfj
+  iunfold rcvFact at Hfj'
+  icases Hfj' with ⟨#Hok, -, #Hreg, -, #Hcov, -⟩
+  -- the response's watcher is the view's
+  iunfold respOk at Hok
+  icases Hok with ⟨-, %rr, %fcs, #Hfx, %Hid⟩
+  iunfold chanRegFact at Hreg
+  icases Hreg with ⟨%rr', %fcs', #Hfx', #Hca, -⟩
+  ihave %Ha1 := watcherFixed_agree m.w rr rr' fcs fcs' $$ [$Hfx $Hfx']
+  obtain ⟨rfl, rfl⟩ := Ha1
+  have hmid : m.id = rr.id := by
+    rcases Hid.2 with h | h
+    · exact h
+    · exact absurd (hid ▸ h) Hidne
+  iunfold idAssigned at Hia
+  iunfold chanIdAssigned at Hca
+  isimp only [hids] at Hia
+  isimp only [← hmid, hid] at Hca
+  ihave %Hww := ghostMapElem_agree _ _ _ _ _ _ $$ Hia Hca
+  -- it covers itself
+  iunfold respCov at Hcov
+  icases Hcov with ⟨#Hcf, -, %Hin, -⟩
+  ihave #Hcv := Hcf $$ %m.w %(Hin he)
+  iunfold covFact at Hcv
+  icases Hcv with ⟨%γw, %r, %fcs1, %D, %L, %d, #Hmeta, -, #Hfx1, #Hev, #HD, %Hc⟩
+  isimp only [← Hww] at Hmeta Hfx1
+  ihave %Hm := watcherMeta_agree ι.mv.ws w0 γw γw0 $$ Hmeta Hmeta0
+  ihave %Hf := watcherFixed_agree w0 r wi.rg fcs1 fcs0 $$ [$Hfx1 $Hfx0]
+  obtain ⟨rfl, rfl⟩ := Hf
+  subst Hm
+  ihave %Hwhole := deliv_nofilter fcs1 D $$ [$Hfps $HD]
+  ihave %Hpre := evLog_notified ι.mv σ L $$ [$Hev $Hσ]
+  ipureintro
+  obtain ⟨hevs, hwe, hdL, hd1, hd2, -, hlo⟩ := Hc
+  have hlo' : γw.lo = wi.lo := Hlo0.1
+  have h5 : sint.nat m.rev = (sint.Z m.rev).toNat := rfl
+  have hd : d = sint.nat m.rev + 1 := by omega
+  refine ⟨by omega, ?_⟩
+  have hf0 : ∀ evs : List EvM, filtered [] evs = evs := by intro evs; unfold filtered; simp
+  rw [← List.map_take, recvEvs_view, hfs, hf0]
+  have hag' : ∀ x ∈ ms.take (j + 1), x.evs ≠ [] → decide (x.id = id) = decide (x.w = w0) :=
+    fun x hx => Hag x (List.mem_of_mem_take hx)
+  rw [flatten_filter_evs_eq _ _ _ hag']
+  have htk : ms.take (j + 1) = ms.take j ++ [m] := by rw [List.take_succ, hj]; rfl
+  have hfl : (((ms.take j ++ [m]).filter (fun x => decide (x.w = w0))).map RespM.evs).flatten =
+      (((ms.take j).filter (fun x => decide (x.w = w0))).map RespM.evs).flatten := by
+    simp [List.filter_append, ← Hww, he]
+  rw [htk, hfl, Hww, hevs, delivs_whole D Hwhole, hwe, ← hd, hlo']
+  rcases hdL with hdL | hdL
+  · exact watchEvents_prefix Hpre _ hdL
+  · rw [watchEvents_empty _ _ (by rw [← hlo']; exact hdL),
+      watchEvents_empty _ _ (by rw [← hlo']; omega)]
+
+/-- **Progress** (`wsRecv_progress`). -/
+theorem wsRecv_progress_proof : wsRecv_progress.law (GF := GF) := by
+  intro ws γ ι rs W σ
+  iintro ⟨#Hst, Hr, Hw, Hσ⟩
+  iunfold isMvccWatchStream at Hst
+  iunfold isMvccWatchStreamI at Hst
+  icases Hst with ⟨%Hn, -⟩
+  obtain ⟨hmv, hw, hids, -⟩ := Hn
+  subst hmv
+  iunfold wsRecv at Hr
+  iunfold wsRecvI at Hr
+  icases Hr with ⟨-, %ms, -, %Hrs, #Hfs⟩
+  subst Hrs
+  iunfold wsWatchers at Hw
+  iunfold wsWatchersI at Hw
+  icases Hw with ⟨-, -, #Hinfo⟩
+  iunfold mvccState at Hσ
+  iapply (pure_forall (PROP := IProp GF)).2
+  iintro %j
+  iapply (pure_forall (PROP := IProp GF)).2
+  iintro %id
+  iapply (pure_forall (PROP := IProp GF)).2
+  iintro %r
+  iapply (pure_forall (PROP := IProp GF)).2
+  iintro %wi
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %hj
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %hW
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %hfs
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %he
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro -
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %hid
+  rw [List.getElem?_map] at hj
+  obtain ⟨m, hm, rfl⟩ : ∃ m, ms[j]? = some m ∧ respView m = r := by
+    cases h : ms[j]? with
+    | none => rw [h] at hj; cases hj
+    | some m => rw [h] at hj; exact ⟨m, rfl, Option.some.inj hj⟩
+  simp only [respView] at he hid ⊢
+  ihave #Hi := BigSepM.bigSepM_lookup hW $$ Hinfo
+  iapply progress_one ι σ ms id wi j m hids hw hfs hm he hid
+  iframe Hfs Hi Hσ
 
 end laws
 

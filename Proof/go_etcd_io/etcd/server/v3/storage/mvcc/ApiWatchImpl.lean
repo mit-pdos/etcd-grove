@@ -82,7 +82,7 @@ def wsOpenI (ι : WsNameI) (q : Qp) : IProp GF := ghostVar ι.op q ()
 to a watcher of the store with the view's range, filters and first revision. -/
 def wInfoOk (ι : WsNameI) (id : w64) (wi : WInfo) : IProp GF :=
   iprop(∃ (w : Loc) (fcs : GoSlice), idAssigned ι.o id w ∗
-    watcherIs ι.mv.ws w wi.rg fcs wi.lo ∗ filtersImpl fcs wi.fs ∗ ⌜wi.rg.id = id⌝)
+    watcherIs ι.mv.ws w wi.rg fcs wi.lo ∗ filtersImpl fcs wi.fs ∗ ⌜wi.rg.id = id ∧ id ≠ W64 (-1) ∧ 1 ≤ wi.lo⌝)
 
 instance wInfoOk_persistent (ι : WsNameI) (id : w64) (wi : WInfo) :
     Persistent (wInfoOk (GF := GF) ι id wi) := by
