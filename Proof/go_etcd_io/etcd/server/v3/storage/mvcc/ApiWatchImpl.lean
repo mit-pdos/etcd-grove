@@ -33,6 +33,8 @@ structure WsNameI where
   reg : GName
   rcv : GName
   op : GName
+  /-- the stream's closed mark (`dghostVar Unit`: whole while open, persistent once closed) -/
+  cl : GName
 
 /-- The open token's invariant's namespace. -/
 def wsOpenN : Namespace := nroot .@ "mvccWsOpen"
@@ -65,7 +67,8 @@ def isMvccWatchStreamI (st : Loc) (γ : MvccImpl) (ι : WsNameI) : IProp GF :=
     inv watchN (watchChanInv γ.ws ι.ch ι.c) ∗
     savedPropOwn ι.o.prog DFrac.discard iprop(True) ∗
     savedPredOwn ι.o.rsn DFrac.discard (fun _ : w64 => iprop(True)) ∗
-    inv wsOpenN iprop(ghostVar ι.op 1 () ∨ watchStreamOpen ι.o) ∗
+    inv wsOpenN iprop((ghostVar ι.op 1 () ∗ dghostVar ι.cl DFrac.discard ()) ∨
+      (watchStreamOpen ι.o ∗ dghostVar ι.cl (DFrac.own 1) ())) ∗
     isWatchableMvccI γ.wl γ)
 
 instance isMvccWatchStreamI_persistent (st : Loc) (γ : MvccImpl) (ι : WsNameI) :
@@ -85,9 +88,11 @@ instance wInfoOk_persistent (ι : WsNameI) (id : w64) (wi : WInfo) :
     Persistent (wInfoOk (GF := GF) ι id wi) := by
   unfold wInfoOk; infer_instance
 
-/-- **The registrar's view** (`wsWatchers`): its token, and each watcher's facts. -/
+/-- **The registrar's view** (`wsWatchers`): its token, each watcher's id's token (`idTok`, so an id
+the stream assigns next is not in the view) and each watcher's facts. -/
 def wsWatchersI (ι : WsNameI) (W : GMap w64 WInfo) : IProp GF :=
-  iprop(ghostVar ι.reg 1 () ∗ □ ([∗map] id ↦ wi ∈ W, wInfoOk ι id wi))
+  iprop(ghostVar ι.reg 1 () ∗ ([∗map] id ↦ _wi ∈ W, idTok ι.o id) ∗
+    □ ([∗map] id ↦ wi ∈ W, wInfoOk ι id wi))
 
 /-- **What a received response gave** (persistent), the `j`-th after the responses `pre`: the
 receive's facts (`watchRecvResult`'s, but the consumer's half). -/

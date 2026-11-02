@@ -87,7 +87,7 @@ abbrev mvcc.watchStream.Watch.specC : Prop :=
       ((⌜err = GoInterface.nil ∧ (e = [] ∨ go.GoStringLt kk e)⌝ ∗
           ∃ (σ : mvcc.MvccState) (W : GMap w64 mvcc.WInfo), Q σ W id) ∨
        (⌜id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err ∗
-          (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ □ (∀ q : Qp, mvcc.wsOpen ι q -∗ False)) ∗
+          (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ □ (∀ q : Qp, mvcc.wsOpen ι q ={⊤}=∗ False)) ∗
           AU <{ ∃∃ (σ : mvcc.MvccState) (W : GMap w64 mvcc.WInfo), mvcc.mvccState γ σ ∗ mvcc.wsWatchers ι W }>
               @ ⊤ \ ↑mvcc.mvccN, ∅
             <{ ∀∀ (id : w64) (k : Nat), ⌜W !! id = none⌝ ∗ mvcc.mvccState γ σ ∗

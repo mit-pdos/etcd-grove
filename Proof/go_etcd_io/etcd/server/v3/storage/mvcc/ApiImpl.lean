@@ -129,13 +129,10 @@ theorem revPool_take (γ : StoreNames) : revPool (GF := GF) γ ∗ ⧗ 1 ⊢ |={
   imodintro
   unfold revToken; iframe
 
-/-- The watch tokens' pool's namespace. -/
-def wtPoolN : Namespace := nroot .@ "mvccWtPool"
-
-/-- **The watch tokens' pool** (a store with watchers: a registration spends one, `watchToks`), as
-the revision tokens' (`revPool`): paid by receipts. -/
-def wtPool (γ : WsNames) : IProp GF :=
-  inv wtPoolN iprop(∃ (a n : Nat), ⧗ a ∗ watchToks γ n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+/-- **What a registration costs** (a store with watchers: `Watch` spends a watch token,
+`storeWatchParams`'s `T`): the watch tokens' pool, paid by receipts (`watchTokPool`), and the
+store's freeze (`noCompactor`: the abstract mode's watchable store does not compact). -/
+def wtPool (γ : WsNames) : IProp GF := iprop(watchTokPool γ ∗ noCompactor γ.st)
 
 instance wtPool_persistent (γ : WsNames) : Persistent (wtPool (GF := GF) γ) := by
   unfold wtPool; infer_instance

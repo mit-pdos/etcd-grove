@@ -238,11 +238,14 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proofC
   imod ghostVar_alloc (GF := GF) () with ⟨%γr, Hreg⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γv, Hrcv⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γp, Hop⟩
-  imod inv_alloc mvcc.wsOpenN ⊤ iprop(ghostVar γp 1 () ∨ mvcc.watchStreamOpen γo) $$ [Hopen] with #Hoi
-  · inext; iright; iexact Hopen
+  imod dghostVar_alloc (GF := GF) () with ⟨%γq, Hcl⟩
+  imod inv_alloc mvcc.wsOpenN ⊤ iprop((ghostVar γp 1 () ∗ dghostVar γq DFrac.discard ()) ∨
+      (mvcc.watchStreamOpen γo ∗ dghostVar γq (DFrac.own 1) ())) $$ [Hopen Hcl] with #Hoi
+  · inext; iright; iframe Hopen Hcl
   imodintro
   iapply HΦ
-  iexists ({ mv := γ, o := γo, c := γc, ch := ch, reg := γr, rcv := γv, op := γp } : mvcc.WsNameI)
+  iexists ({ mv := γ, o := γo, c := γc, ch := ch, reg := γr, rcv := γv, op := γp, cl := γq } :
+    mvcc.WsNameI)
   isplitr
   · iunfold mvcc.isMvccWatchStream
     iunfold mvcc.isMvccWatchStreamI
@@ -261,6 +264,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proofC
   · iunfold mvcc.wsWatchers
     iunfold mvcc.wsWatchersI
     iframe Hreg
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2
+      iempintro
     iintro !>
     iapply BigSepM.bigSepM_empty.2
     iempintro

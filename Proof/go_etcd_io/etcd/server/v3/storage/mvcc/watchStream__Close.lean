@@ -145,14 +145,15 @@ theorem mvcc.watchStream.Close.wp_proofC (hO : mvcc.watchStream.Close.spec (GF :
   iunfold mvcc.wsOpenI at Hop
   iapply fupd_wp
   iinv Hoi with Hi Hclose
-  icases Hi with (>Ht' | >Ho)
+  icases Hi with (⟨>Ht', -⟩ | ⟨>Ho, >Hcl⟩)
   · ihave %Hv := ghostVar_valid_2 ι.op _ _ _ _ $$ Hop Ht'
     exfalso
     have h1 : (1 : Rat) + (1 : Qp).val ≤ 1 := Hv.1
     have := (1 : Qp).2
     grind
+  imod dghostVar_persist ι.cl 1 () $$ Hcl with #Hcl
   imod Hclose $$ [Hop] with _
-  · inext; ileft; iexact Hop
+  · inext; ileft; iframe Hop Hcl
   imodintro
   iapply (hO st _ _ ι.o) $$ %Φ [Ho]
   · iframe Hpkg Hws Ho

@@ -170,7 +170,7 @@ theorem mvcc.New.wp_proofC
   iapply wp_fupd
   wp_apply (hNA lg _ le cfg (some d) γl γl Pk #func.nil rd0 γi γok γl true hcfg hrb)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hro Hifresh Hok0] as %s ⟨%st, %γ, %Hγ, #Hws, ⟨%rd, Hro, Hrd⟩,
-      #Hhook, Hww, Htw, Hok, Hreaders, Hcl, -, Hab, -⟩
+      #Hhook, Hww, Htw, Hok, Hreaders, Hcl, Hcr, Hab, -⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
     · iintro %s %γ %hγ
@@ -204,13 +204,11 @@ theorem mvcc.New.wp_proofC
   imod threadPool.init mvcc.tixN (mvcc.watchReader s st γ) ⊤ _ hn $$ Hreaders with ⟨%γt, #Hpool⟩
   -- the revision tokens' pool and the watch tokens' pool
   imod receipt_zero (GF := GF) with H0
-  imod receipt_zero (GF := GF) with H1
   imod inv_alloc mvcc.revPoolN ⊤ iprop(∃ (a n : Nat), ⧗ a ∗ ownToks γ.st.revs n ∗
       ⌜receiptBound GF ≤ a + n + 1⌝) $$ [H0 Hrevs] with #Hrev
   · inext; iexists 0, mvcc.wBudget [[], []]; iframe H0 Hrevs; ipureintro; unfold mvcc.wBudget; simp; omega
-  imod inv_alloc mvcc.wtPoolN ⊤ iprop(∃ (a n : Nat), ⧗ a ∗ mvcc.watchToks γ n ∗
-      ⌜receiptBound GF ≤ a + n + 1⌝) $$ [H1 Htw] with #Hwtp
-  · inext; iexists 0, 2 ^ 63 - 3; iframe H1 Htw; ipureintro; omega
+  imod mvcc.watchTokPool_alloc γ ⊤ (by omega) $$ Htw with #Hwtp
+  imod mvcc.noCompactor_of_new s st γ ⊤ $$ [$Hws $Hcr] with #Hnc
   -- the open token, its invariant holding the closer
   imod ghostVar_alloc (GF := GF) () with ⟨%γo, Hop⟩
   imod inv_alloc mvcc.mvccOpenN ⊤ iprop(ghostVar γo 1 () ∨
@@ -251,7 +249,7 @@ theorem mvcc.New.wp_proofC
     isplitr
     · iexact Hwb
     isplitr
-    · iunfold mvcc.wtPool; iexact Hwtp
+    · iunfold mvcc.wtPool; iframe Hwtp Hnc
     iexact Hws
   isplitl [Hab Hpn Hok Hwl]
   · iunfold mvcc.mvccState
@@ -302,7 +300,7 @@ theorem mvcc.New.wp_proofC
   · iunfold mvcc.revPool; iexact Hrev
   isplitr
   · iexact Hwb
-  iunfold mvcc.wtPool; iexact Hwtp
+  iunfold mvcc.wtPool; iframe Hwtp Hnc
 
 end candidate
 
