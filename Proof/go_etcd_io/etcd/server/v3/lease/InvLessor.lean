@@ -1012,16 +1012,6 @@ theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w6
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIS
 
-/-- **The lessor's reader pool, from `n` reader slots** (enough for every thread but one). -/
-theorem lessorRdPool_init (γl : GName) (E : CoPset) (n : Nat) (Hn : threadBound GF ≤ n + 1) :
-    ([∗list] _x ∈ List.replicate n (), lessorRdOf (GF := GF) γl) ⊢ |={E}=> lessorRdPool γl := by
-  iintro Hs
-  imod threadPool.init lessorPoolN (lessorRdOf γl) E n Hn $$ Hs with ⟨%γp, #Hp⟩
-  imodintro
-  unfold lessorRdPool
-  iexists γp
-  iexact Hp
-
 /-- **A reader slot borrowed from the lessor's pool** with the thread token, and the step that
 gives it back for the token. -/
 theorem lessorRdPool_borrow (γl : GName) (E : CoPset) (HN : ↑lessorPoolN ⊆ E) :

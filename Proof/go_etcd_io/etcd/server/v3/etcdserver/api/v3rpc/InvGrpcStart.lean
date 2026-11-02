@@ -248,6 +248,23 @@ theorem v3rpc.leaseSReg_mem (q : Loc) (sds : List google_golang_org.grpc.StreamD
   rw [e, h]
   exact List.mem_cons_self ..
 
+/-- The Lease descriptor's names are distinct. -/
+theorem v3rpc.leaseDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.leaseDescMethods ∧
+      sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+        [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]) :
+    (descNames mds sds).Nodup := by
+  have h1 : mds.map (·.MethodName') = v3rpc.leaseDescMethods.map Prod.fst := by
+    rw [← h.1, List.map_map]; rfl
+  have h2 : sds.map (·.StreamName') = [go!"LeaseKeepAlive"] := by
+    rw [show (sds.map (·.StreamName')) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map Prod.fst by
+        rw [List.map_map]; rfl, h.2]
+    rfl
+  simp only [descNames, h1, h2, v3rpc.leaseDescMethods, List.map_cons, List.map_nil]
+  decide
+
 /-- The Watch descriptor's names are distinct. -/
 theorem v3rpc.watchDesc_nodup (sds : List google_golang_org.grpc.StreamDesc)
     (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =

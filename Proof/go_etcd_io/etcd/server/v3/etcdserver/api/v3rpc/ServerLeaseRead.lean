@@ -37,7 +37,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's lease reads, from its linked specs** (no premise but the server's facts and the
-bounds the two specs take): `raftLeaseRead` at `S := E.RD ∗ threadTok` and
+bounds the two specs take, and the lessor's reader pool): `raftLeaseRead` at `S := E.RD ∗ threadTok` and
 `R := mvcc.storeReader E.s E.γ`; the server's header ids `cs ms` stay inside (`leasesAns`). -/
 theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG))
     (hLs : EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG))

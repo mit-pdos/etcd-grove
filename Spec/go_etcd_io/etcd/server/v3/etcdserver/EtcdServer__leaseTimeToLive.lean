@@ -30,7 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 choice), any goroutine, at a context, with the request side's and the read side's server facts, its
 lessor (`srvLessorRd`), the lessor's reader pool (`lessorRdPool`; a reader slot of the lessor's
 lock until the lease-src plan, 2026-11-02: on the leader the slot is borrowed for `Lookup` and given
-back before `Keys()`, which takes the token) and a thread token, reading `r`: on
+back before `Remaining()`, `Keys()` and `Demoted()`, which take the token one after another, each
+releasing its lock on return, `v3_server.go:636-675`; a follower takes no lessor lock) and a thread
+token, reading `r`: on
 `nil`, a fresh response (owned) with a fresh header (owned, not nil: the leader's
 `&pb.ResponseHeader{}`, under `// TODO: fill out ResponseHeader`; a follower's decoded by
 `proto.Unmarshal` from the leader's reply, whose header etcd's lease handler sets, empty too;
