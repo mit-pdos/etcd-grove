@@ -157,6 +157,88 @@ theorem restModel_present (c0 : w64) (bootLog : List EntryM) (L : List EntryMode
   | nil => exact h
   | cons m L ih => rw [List.foldl_cons]; exact ih _ (restEntry_present _ _ _ _ h)
 
+/-! ### The rest buckets present (`restPresent`, 2026-11-02, the cluster-rows stage) -/
+
+theorem restPresent_restBoot (bootLog : List EntryM) :
+    restPresent (restBoot bootLog).bk := fun _ h => h
+
+/-- **Every rest state of the model has them** (`restModel_present`). -/
+theorem restPresent_restModel (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) :
+    restPresent (restModel c0 bootLog L).bk :=
+  fun n hn => restModel_present c0 bootLog L n (restPresent_restBoot bootLog n hn)
+
+theorem restPresent_putIn (r : apply.RestM) (n k v : GoString)
+    (h : restPresent r.bk) : restPresent (r.putIn n k v).bk :=
+  fun n' hn => putIn_present r n k v n' (h n' hn)
+
+theorem restPresent_delIn (r : apply.RestM) (n k : GoString)
+    (h : restPresent r.bk) : restPresent (r.delIn n k).bk :=
+  fun n' hn => delIn_present r n k n' (h n' hn)
+
+/-- **Buckets agreeing off `lease`, with `lease` present, keep them** (the lessor's revocation
+lens, `SnapRO.lean:172-179`: it gives back `srvRestOwn` at buckets agreeing with `rs.bk` off
+`mvcc.leaseName`; its hypothesis gains `lease` present, which its call sites' buckets have,
+`restPresent_rbDel`). -/
+theorem restPresent_congr (bk bk' : GMap GoString backend.BktData)
+    (h : ∀ n, n ≠ mvcc.leaseName → bk.lookup n = bk'.lookup n)
+    (hl : (bk'.lookup mvcc.leaseName).isSome = true)
+    (hp : restPresent bk) : restPresent bk' := by
+  intro n hn
+  by_cases hnl : n = mvcc.leaseName
+  · subst hnl; exact hl
+  · rw [← h n hnl]; exact hp n hn
+
+/-- **The revocation lens's form** (review round 4: the lens's hypothesis gains
+`⌜(rs.bk.lookup leaseName).isSome → (bk.lookup leaseName).isSome⌝`, which both call sites,
+`LessorDerive.lean:213,235`, discharge: at `rs.bk` trivially, at `rbDel` by its insert). -/
+theorem restPresent_lens (bk bk' : GMap GoString backend.BktData)
+    (h : ∀ n, n ≠ mvcc.leaseName → bk'.lookup n = bk.lookup n)
+    (hl : (bk.lookup mvcc.leaseName).isSome = true → (bk'.lookup mvcc.leaseName).isSome = true)
+    (hp : restPresent bk) : restPresent bk' :=
+  restPresent_congr bk bk' (fun n hn => (h n hn).symm)
+    (hl (hp _ (by simp [restBootBk, mvcc.leaseName,
+      go_etcd_io.etcd.server.v3.storage.schema.leaseName]))) hp
+
+/-- **A delete keeps them** (`rbDel` inserts its bucket): the revocation lens's call sites,
+`LessorDerive.lean:213,235`, give back `rs.bk` or `rbDel rs.bk leaseName k` (round 3: the lens's
+hypothesis quantifies over these, or takes `lease` present, for `restPresent_congr`). -/
+theorem restPresent_rbDel (bk : GMap GoString backend.BktData) (n k : GoString)
+    (h : restPresent bk) : restPresent (mvcc.rbDel bk n k) := by
+  intro m hm
+  by_cases hn : n = m
+  · subst hn; simp [mvcc.rbDel]
+  · simp only [mvcc.rbDel, GMap.lookup_insert_eq_iff, hn, false_and, false_or] at *
+    first | exact h m hm | simpa [hn] using h m hm
+
+/-- `SetVersion`'s row keeps them. -/
+theorem restPresent_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
+    (h : restPresent r.bk) :
+    restPresent (apply.restSetVersion b s r).bk := by
+  unfold apply.restSetVersion; split
+  · exact restPresent_putIn _ _ _ _ h
+  · exact h
+
+/-- `UpdateAttributes`' row keeps them. -/
+theorem restPresent_restUpdateAttrs (b : Bool) (a : apply.MemberAttrModel) (r : apply.RestM)
+    (h : restPresent r.bk) :
+    restPresent (apply.restUpdateAttrs b a r).bk := by
+  unfold apply.restUpdateAttrs; split
+  · exact h
+  · split
+    · exact restPresent_putIn _ _ _ _ h
+    · exact h
+
+/-- `applyConfChange` keeps them. -/
+theorem restPresent_ccRest (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM)
+    (h : restPresent r.bk) : restPresent (ccRest v3 cm r).bk := by
+  unfold ccRest; split
+  · split
+    · exact restPresent_putIn _ _ _ _ h
+    · split
+      · exact restPresent_putIn _ _ _ _ (restPresent_delIn _ _ _ h)
+      · exact h
+  · exact h
+
 theorem restModel_members (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) :
     ((restModel c0 bootLog L).bk.lookup go!"members").isSome ∧
       ((restModel c0 bootLog L).bk.lookup go!"members_removed").isSome :=

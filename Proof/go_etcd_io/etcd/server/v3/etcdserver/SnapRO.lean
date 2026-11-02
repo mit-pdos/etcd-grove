@@ -143,7 +143,7 @@ theorem srvRestRWH_lessor [go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   iunfold srvObjsOn at Hrw
   icases Hrw with ⟨Hrw, -, -, Hle, -⟩
   iunfold srvRestRW at Hrw
-  icases Hrw with ⟨%r, Hrw⟩
+  icases Hrw with ⟨%r, Hrw, -⟩
   ihave ⟨Hrw, -⟩ := (backend.rbOwn_split (GF := GF) γB (fun n : GoString => n = go!"lease") r).1 $$ Hrw
   iframe Hle
   iexists r
@@ -175,6 +175,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
     ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+          ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
           mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
           srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
@@ -204,7 +205,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   iframe Hl Hle
   isplitr
   · ipureintro; exact hlp
-  iintro %bk %hbk ⟨⟨Hl, -⟩, Hle⟩
+  iintro %bk %hbk %hl ⟨⟨Hl, -⟩, Hle⟩
   iunfold srvRestOwnH
   iunfold srvObjsOn
   iunfold srvRestOwn
@@ -218,7 +219,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
       (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
     iframe Hl
     iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
-  · ipureintro; exact Hmi
+  · ipureintro; exact ⟨Hmi.1, restPresent_lens _ _ hbk hl Hmi.2⟩
 
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its

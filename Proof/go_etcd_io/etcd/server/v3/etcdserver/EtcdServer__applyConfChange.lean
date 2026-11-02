@@ -379,7 +379,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
@@ -453,7 +455,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg

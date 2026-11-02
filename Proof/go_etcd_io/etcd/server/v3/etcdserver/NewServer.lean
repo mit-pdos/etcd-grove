@@ -1933,7 +1933,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         ihave Hrbn := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrbn
         isplitl [Hrbc Hrbn Hmem]
         · iframe Hrbc Hrbn Hmem
-          ipureintro; exact memIdOk_memBoot _
+          ipureintro; exact ⟨memIdOk_memBoot _, restPresent_restBoot _⟩
         iframe HalOn HauthOn HleOn HclBe
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]

@@ -409,6 +409,21 @@ theorem restBootBk_of_fresh [GooseExts] (d : mvcc.KBReal) (D : backend.Data)
 def memIdOk (mem : GMap w64 apply.MemberM) : Prop :=
   ∀ id m, mem.lookup id = some m → m.id = id
 
+section present
+variable [GooseExts]
+
+/-- **The rest buckets are present in `bk`**: every bucket `NewServer`'s constructors make
+(`restBootBk`: `lease`, `alarm`, `auth`, `authUsers`, `authRoles`, `members`, `members_removed`,
+`cluster`). Their writers (the cluster's rows and `applyConfChange`; the alarm store's and the
+auth store's, through `RW`; the lessor's revocation, an `UnsafeDelete` in `lease`, through `RO`'s
+lens) `UnsafePut`/`UnsafeDelete` in them, fatal on a missing bucket
+(`batch_tx.go:169-173,229-237`); no Go code deletes a rest bucket at run time. The lessor's put
+right, drawn from `RW` without this fact, is a separate follow-up. -/
+def restPresent (bk : GMap GoString backend.BktData) : Prop :=
+  ∀ n, (restBootBk.lookup n).isSome = true → (bk.lookup n).isSome = true
+
+end present
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -429,18 +444,24 @@ inside sessions whose contracts give back a part) — and the cluster `c`'s in-m
 at `r.mem`, each member under its own id (`memIdOk r.mem`, 2026-11-02, round 5: Go saves a member
 under `BackendMemberKey(m.ID)`, the model's `restUpdateAttrs` under `memberKey a.memberID`; they
 agree because the member under `a.memberID` has that id; true of Go: `c.members` is keyed by each
-member's `ID`). Until 2026-11-01 the whole writer's half
-`rbOwn γB r.bk`. -/
+member's `ID`), and **the rest buckets present** (`restPresent r.bk`, 2026-11-02, the cluster-rows
+stage: the rows' `MustSave…`s are fatal on a missing bucket; every rest state of the model has
+them, `restModel_present`). Until 2026-11-01 the whole writer's half `rbOwn γB r.bk`. -/
 def srvRestOwn (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
   iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
     backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMem c r.mem ∗
-    ⌜memIdOk r.mem⌝)
+    ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
 
 
-/-- **The server's `AEnv.RW`**: the backend's tracked buckets' client half at some value (what
-the stores' writers the workload does not reach would need; the apply thread holds it at its
-model in `srvRestOwn` and never lends it). -/
-def srvRestRW (γB : backend.BNames) : IProp GF := iprop(∃ r, backend.rbOwn γB r)
+/-- **The server's `AEnv.RW`**: the backend's tracked buckets' client half at some value, **the
+rest buckets present** (what the stores' writers the workload does not reach would need:
+`SetDowngradeInfo`'s `MustSaveDowngradeToBackend` puts in `cluster`, the alarm store's
+`MustPutAlarm` in `alarm`, the auth store's writers in theirs, each fatal on a missing bucket;
+2026-11-02, the cluster-rows stage, until then any value; the lessor's put right, drawn from it
+without the presence fact, is a separate follow-up; the apply thread holds the half at its model
+in `srvRestOwn` and never lends it). -/
+def srvRestRW (γB : backend.BNames) : IProp GF :=
+  iprop(∃ r, backend.rbOwn γB r ∗ ⌜restPresent r⌝)
 
 /-- **The server's `AEnv.RO` with its objects' backend parts `H`** (D22 receiver epochs, S7c,
 2026-10-23): `srvRestOwn` and `H`, the halves of the backend fields of the objects that write the
