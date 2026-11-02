@@ -344,7 +344,7 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   ihave #Hs1 : mvcc.isMvccI s γ $$ []
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iunfold mvcc.isMvccI at Hs1
-  icases Hs1 with ⟨#Hst, %Hf, ⟨%o, #Hpin⟩, #Hpool, #Hrev, #Hwb, #Hfz⟩
+  icases Hs1 with ⟨#Hst, %Hf, ⟨%o, #Hpin⟩, #Hpool, #Hrev, #Hwb, #Hfz, -⟩
   ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
   ihave #Hhook0 := Hhook
   iunfold mvcc.mvccHook at Hhook0

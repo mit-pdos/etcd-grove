@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCode
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
 
 @[expose] public section
 
@@ -128,6 +129,20 @@ theorem revPool_take (γ : StoreNames) : revPool (GF := GF) γ ∗ ⧗ 1 ⊢ |={
   imodintro
   unfold revToken; iframe
 
+/-- The watch tokens' pool's namespace. -/
+def wtPoolN : Namespace := nroot .@ "mvccWtPool"
+
+/-- **The watch tokens' pool** (a store with watchers: a registration spends one, `watchToks`), as
+the revision tokens' (`revPool`): paid by receipts. -/
+def wtPool (γ : WsNames) : IProp GF :=
+  inv wtPoolN iprop(∃ (a n : Nat), ⧗ a ∗ watchToks γ n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+
+instance wtPool_persistent (γ : WsNames) : Persistent (wtPool (GF := GF) γ) := by
+  unfold wtPool; infer_instance
+
+/-- The open token's namespace. -/
+def mvccOpenN : Namespace := nroot .@ "mvccOpen"
+
 /-- **A copy of the readers' pool**: the store's reader ticket and, on a store with watchers, a reader
 slot of the watchable store's lock (`watchReader`'s). -/
 def poolX (γ : MvccImpl) : IProp GF :=
@@ -146,7 +161,8 @@ def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
       threadBound GF ≤ 2 ^ 30 ∧ γ.sl = s⌝ ∗
     (∃ o : StoreObjs, curAt γ.st DFrac.discard o) ∗
     threadPool.isThreadPool tixN γ.tl (poolR s γ) ∗ revPool γ.st ∗
-    □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st)
+    □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st ∗
+    (if γ.watched then wtPool γ.ws else iprop(True)))
 
 instance isMvccI_persistent (s : Loc) (γ : MvccImpl) : Persistent (isMvccI (GF := GF) s γ) := by
   unfold isMvccI; infer_instance
@@ -207,8 +223,13 @@ instance isWatchableMvccI_persistent (ws : Loc) (γ : MvccImpl) :
     Persistent (isWatchableMvccI (GF := GF) ws γ) := by
   unfold isWatchableMvccI; infer_instance
 
-/-- **A share `q` of the store's open token** (`mvccOpen`). -/
-def mvccOpenI (γ : MvccImpl) (q : Qp) : IProp GF := ghostVar γ.op q ()
+/-- **A share `q` of the store's open token** (`mvccOpen`): the token, and the invariant that holds
+either all of it or the store's closer (the watchable store's, `wsCloserM`: `Close` trades the whole
+token for it). -/
+def mvccOpenI (γ : MvccImpl) (q : Qp) : IProp GF :=
+  iprop(ghostVar γ.op q () ∗
+    inv mvccOpenN iprop(ghostVar γ.op 1 () ∨
+      (if γ.watched then (∃ c : Int, wsCloserM γ.wl γ.sl γ.st c) else storeCloser γ.sl γ.st)))
 
 /-- **The range deleter `rd`** (`mvccDeleter`): with watchers, the watchable store's `Write` at a
 fresh trace (`rdCode`); a store without watchers has none in the abstract mode yet. -/

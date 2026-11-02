@@ -102,13 +102,14 @@ open token, and the range deleter it set on the lessor (its own `Write`). -/
 abbrev mvcc.New.specC : Prop :=
   ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal) (Pk : IProp GF)
     (γl : GName) (rd0 : GoFunc),
-  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → threadBound GF ≤ 2 ^ 30 →
-  mvcc.bridgeParams d.P →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
+  threadBound GF + 2 ≤ 2 ^ 30 → mvcc.bridgeParams d.P → d.cm = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
       mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
+      backend.dlInit d.γB ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
       □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx d.γB d.P d.be) ∗

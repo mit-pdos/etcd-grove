@@ -372,7 +372,7 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
   ihave #Hs1 : mvcc.isMvccI s γ $$ []
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iunfold mvcc.isMvccI at Hs1
-  icases Hs1 with ⟨#Hst, %Hf, -, #Hpool, -, -, #Hfz⟩
+  icases Hs1 with ⟨#Hst, %Hf, -, #Hpool, -, -, #Hfz, -⟩
   obtain ⟨habs, -, -, -⟩ := Hf
   imod ownToks_0 γ.st.revs with Hm0
   imod mvcc.idxCert_nil γ.st.idx with #Hc0
