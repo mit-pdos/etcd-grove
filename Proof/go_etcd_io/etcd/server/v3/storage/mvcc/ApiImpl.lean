@@ -20,6 +20,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCode
 
 @[expose] public section
 
@@ -41,6 +42,10 @@ structure MvccImpl where
   /-- the readers' tickets' thread pool (`threadPool.isThreadPool`) -/
   tl : GName
   watched : Bool
+  /-- the watchable store's location (a store with watchers; not read otherwise) -/
+  wl : Loc
+  /-- the store's open token (`ghostVar Unit`, fractional: `mvccOpen`) -/
+  op : GName
 
 /-- The store's names. -/
 abbrev MvccImpl.st (γ : MvccImpl) : StoreNames := γ.ws.st
@@ -121,13 +126,24 @@ theorem revPool_take (γ : StoreNames) : revPool (GF := GF) γ ∗ ⧗ 1 ⊢ |={
   imodintro
   unfold revToken; iframe
 
+/-- **A copy of the readers' pool**: the store's reader ticket and, on a store with watchers, a reader
+slot of the watchable store's lock (`watchReader`'s). -/
+def poolX (γ : MvccImpl) : IProp GF :=
+  if γ.watched then sync.ownRWMutex (wsMuAddr γ.wl) (watchStoreInv γ.wl γ.ws) else iprop(True)
+
+def poolR (s : Loc) (γ : MvccImpl) : IProp GF := iprop(storeReaderC s γ.st ∗ poolX γ)
+
+/-- **A transaction's loan** from the readers' pool: the pool's loan token, and the part of the
+copy the store's transactions do not use (`poolX`: the watchable store's reader slot). -/
+def mvccLoan (γ : MvccImpl) : IProp GF := iprop(threadPool.ownThreadLoan γ.tl ∗ poolX γ)
+
 /-- **The store `s` of the names `γ`** (`isMvcc`): see the file's header. -/
 def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
   iprop(isStore s γ.st ∗
     ⌜γ.st.absQ = true ∧ γ.st.watchQ = γ.watched ∧ (∃ d, γ.st.kb = some d) ∧
       threadBound GF ≤ 2 ^ 30⌝ ∗
     (∃ o : StoreObjs, curAt γ.st DFrac.discard o) ∗
-    threadPool.isThreadPool tixN γ.tl (storeReaderC s γ.st) ∗ revPool γ.st ∗
+    threadPool.isThreadPool tixN γ.tl (poolR s γ) ∗ revPool γ.st ∗
     □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st)
 
 instance isMvccI_persistent (s : Loc) (γ : MvccImpl) : Persistent (isMvccI (GF := GF) s γ) := by
@@ -164,17 +180,68 @@ today's read transaction at the state's log, revision and compaction revision, o
 transaction at the log the state is, nothing pending; and the reader's loan of the readers' pool
 (the caller's thread token is in the pool until `End`). -/
 def mvccTxnI (t : GoInterface) (γ : MvccImpl) (trace : Loc) : MTxn → IProp GF
-  | .read σ => iprop(∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗ threadPool.ownThreadLoan γ.tl ∗
+  | .read σ => iprop(∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗ mvccLoan γ ∗
       ((∃ mw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∗
           isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev) ∨
        (∃ trw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw⌝ ∗
           isRoTxnWrite trw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev)))
   | .write σ pend => iprop(∃ (mw s : Loc) (puts deletes putSize : w64),
-      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ σ.pending = none ∧
-        1 ≤ σ.log.length ∧ (γ.st.cm = false → σ.crev = -1)⌝ ∗
+      ⌜σ.pending = none ∧ 1 ≤ σ.log.length ∧ (γ.st.cm = false → σ.crev = -1)⌝ ∗
       isMvccI s γ ∗
       isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
-      threadPool.ownThreadLoan γ.tl)
+      mvccLoan γ ∗
+      (⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∨
+       (∃ tw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw ∧
+          γ.watched = true⌝ ∗
+        tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
+                 s' := γ.wl } : watchableStoreTxnWrite) ∗
+        isWatchableStore γ.wl s γ.ws)))
+
+/-- **The watchable store `ws` of the names `γ`** (`isWatchableMvcc`): the store's, with watchers. -/
+def isWatchableMvccI (ws : Loc) (γ : MvccImpl) : IProp GF :=
+  iprop(⌜γ.watched = true ∧ γ.wl = ws⌝ ∗ ∃ st : Loc, isWatchableStore ws st γ.ws ∗ isMvccI st γ)
+
+instance isWatchableMvccI_persistent (ws : Loc) (γ : MvccImpl) :
+    Persistent (isWatchableMvccI (GF := GF) ws γ) := by
+  unfold isWatchableMvccI; infer_instance
+
+/-- **A share `q` of the store's open token** (`mvccOpen`). -/
+def mvccOpenI (γ : MvccImpl) (q : Qp) : IProp GF := ghostVar γ.op q ()
+
+/-- **The range deleter `rd`** (`mvccDeleter`): with watchers, the watchable store's `Write` at a
+fresh trace (`rdCode`); a store without watchers has none in the abstract mode yet. -/
+def mvccDeleterI (rd : GoFunc) (γ : MvccImpl) : IProp GF :=
+  if γ.watched then rdCode rd γ.wl else iprop(False)
+
+instance mvccDeleterI_persistent (rd : GoFunc) (γ : MvccImpl) :
+    Persistent (mvccDeleterI (GF := GF) rd γ) := by
+  unfold mvccDeleterI; split <;> infer_instance
+
+/-- **A ticket of the pool**: the store's reader and the loan. -/
+theorem mvccBorrow (s : Loc) (γ : MvccImpl) :
+    £ 1 ∗ isMvccI (GF := GF) s γ ∗ threadTok ⊢ |={⊤}=> storeReaderC s γ.st ∗ mvccLoan γ := by
+  iintro ⟨Hlc, #Hs, Htt⟩
+  iunfold isMvccI at Hs
+  icases Hs with ⟨-, -, -, #Hpool, -, -, -⟩
+  imod threadPool.borrow_lc tixN γ.tl (poolR s γ) ⊤ (by simp) $$ [$Hlc $Hpool $Htt] with ⟨HR, Hl⟩
+  iunfold poolR at HR
+  icases HR with ⟨Hr, Hx⟩
+  imodintro
+  iunfold mvccLoan
+  iframe Hr Hl Hx
+
+/-- **The ticket back to the pool**, for the thread token. -/
+theorem mvccGiveBack (s : Loc) (γ : MvccImpl) :
+    isMvccI (GF := GF) s γ ∗ mvccLoan γ ∗ storeReaderC s γ.st ⊢ |={⊤}=> threadTok := by
+  iintro ⟨#Hs, Hl, Hr⟩
+  iunfold isMvccI at Hs
+  icases Hs with ⟨-, -, -, #Hpool, -, -, -⟩
+  iunfold mvccLoan at Hl
+  icases Hl with ⟨Hl, Hx⟩
+  iapply threadPool.giveBack tixN γ.tl (poolR s γ) ⊤ (by simp)
+  iframe Hpool Hl
+  iunfold poolR
+  iframe Hr Hx
 
 /-- In the abstract mode, a part of the abstract committed log agrees with a ghost half. -/
 theorem absAt_agree (γ : StoreNames) (h : γ.absQ = true) (q1 q2 : Qp) (l1 l2 : Log) :

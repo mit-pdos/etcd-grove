@@ -94,12 +94,16 @@ instance isMvcc_persistent (s : Loc) (γ : MvccName) : Persistent (isMvcc (GF :=
   unfold isMvcc; infer_instance
 
 /-- **`ws` (a `*watchableStore`) serves the store `γ`** (persistent). -/
-opaque isWatchableMvcc (ws : Loc) (γ : MvccName) : IProp GF := iprop(True)
+def isWatchableMvcc (ws : Loc) (γ : MvccName) : IProp GF := isWatchableMvccI ws γ
+
+instance isWatchableMvcc_persistent (ws : Loc) (γ : MvccName) :
+    Persistent (isWatchableMvcc (GF := GF) ws γ) := by
+  unfold isWatchableMvcc; infer_instance
 
 /-- **A share `q` of the store's open token** (fractional): `Compact` takes a share (after `Close`
 the scheduler is stopped, and a compaction's `Schedule` panics); `Close` and `Restore` (which
 replaces the scheduler a concurrent `Compact` reads) take it whole. -/
-opaque mvccOpen (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
+def mvccOpen (γ : MvccName) (q : Qp) : IProp GF := mvccOpenI γ q
 
 /-- **The store's backend is `b`, with parameters `P` and batch-lock invariant `Pk`**
 (persistent; from `New`): what the backend's hook (`mvccHook`) and commit request
@@ -140,7 +144,11 @@ def mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp G
 
 /-- **`rd` is the range deleter the store set on its lessor**: `rd()` is the store's
 `Write(TODO)`, the watchable store's if it has watchers (persistent; `mvccDeleter_spec`). -/
-opaque mvccDeleter (rd : GoFunc) (γ : MvccName) : IProp GF := iprop(True)
+def mvccDeleter (rd : GoFunc) (γ : MvccName) : IProp GF := mvccDeleterI rd γ
+
+instance mvccDeleter_persistent (rd : GoFunc) (γ : MvccName) :
+    Persistent (mvccDeleter (GF := GF) rd γ) := by
+  unfold mvccDeleter; infer_instance
 
 /-- **The watchers were taken care of for `op`** (or the store has none): notified of a commit,
 reset for a restore; what a write transaction's own `End` and the store's own `Restore` take. A

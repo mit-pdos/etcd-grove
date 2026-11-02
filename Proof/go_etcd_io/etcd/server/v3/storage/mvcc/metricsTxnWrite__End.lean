@@ -200,7 +200,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
     · simp only [mvcc.isTxnEnd, mvcc.txnEndPreA]
       iframe Hrd
       try iframe #
-    imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+    imod mvcc.mvccGiveBack s γ $$ [$Hs $Hloan $Hrdr] with Htt
     imodintro
     iapply HΦ
     iframe Htt Htrc
@@ -208,7 +208,10 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
     icases Hpre with ⟨#Hwok, #Hhook, HP, Hau⟩
     iunfold mvcc.mvccTxn at Htx
     simp only [mvcc.mvccTxnI]
-    icases Htx with ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hpn, -⟩, #Hs, Htxw, Hloan⟩
+    icases Htx with ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Hpn, -⟩, #Hs, Htxw, Hloan,
+      (%Ht | ⟨%tw, ⟨%Ht, -⟩, -⟩)⟩
+    rotate_left
+    · simp [interface_mkOk_inj, metricsTxnWrite.ty, watchableStoreTxnWrite.ty] at Ht
     simp only [interface_mkOk_inj, _root_.true_and] at Ht
     have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
     subst hmw
@@ -243,7 +246,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
         unfold mvcc.absCommit
         rw [if_pos rfl]
         iexact HQ
-      imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+      imod mvcc.mvccGiveBack s γ $$ [$Hs $Hloan $Hrdr] with Htt
       imodintro
       iapply HΦ
       simp only [mvcc.txnEndPostA]
@@ -268,7 +271,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
           iframe Hhk HP Hac
           rw [mvcc.logQPre_plain γ.st σ₀.log pend hq]
           itrivial
-        imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+        imod mvcc.mvccGiveBack s γ $$ [$Hs $Hloan $Hrdr] with Htt
         imodintro
         iapply HΦ
         simp only [mvcc.txnEndPostA]

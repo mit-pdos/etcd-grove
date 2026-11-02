@@ -292,7 +292,7 @@ theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
 theorem mvccTxn_read_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) :
     mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.read σ) ⊣⊢
       ∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
-        isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ threadPool.ownThreadLoan γ.tl := by
+        isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ mvccLoan γ := by
   unfold mvccTxn mvccTxnI
   constructor
   · iintro ⟨%s, %Hl, #Hs, Hl', (⟨%mw', %Ht, Hr⟩ | ⟨%trw, %Ht, -⟩)⟩
@@ -318,7 +318,7 @@ theorem mvccTxn_ro_eq (trw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState)
     mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) ⊣⊢
       ∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
         isRoTxnWrite trw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗
-        threadPool.ownThreadLoan γ.tl := by
+        mvccLoan γ := by
   unfold mvccTxn mvccTxnI
   constructor
   · iintro ⟨%s, %Hl, #Hs, Hl', (⟨%mw, %Ht, -⟩ | ⟨%trw', %Ht, Hr⟩)⟩
@@ -346,20 +346,23 @@ theorem mvccTxn_write_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccStat
       ∃ (s : Loc) (puts deletes putSize : w64),
         ⌜σ.pending = none ∧ 1 ≤ σ.log.length ∧ (γ.st.cm = false → σ.crev = -1)⌝ ∗ isMvccI s γ ∗
         isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
-        threadPool.ownThreadLoan γ.tl := by
+        mvccLoan γ := by
   unfold mvccTxn mvccTxnI
   constructor
-  · iintro ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hp, %Hl, %Hc⟩, #Hs, Hr, Hl'⟩
-    simp only [interface_mkOk_inj, _root_.true_and] at Ht
-    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
-    subst hmw
-    iexists s, puts, deletes, putSize
-    iframe Hs Hr Hl'
-    ipureintro; exact ⟨Hp, Hl, Hc⟩
-  · iintro ⟨%s, %puts, %deletes, %putSize, ⟨%Hp, %Hl, %Hc⟩, #Hs, Hr, Hl'⟩
+  · iintro ⟨%mw', %s, %puts, %deletes, %putSize, %Hpl, #Hs, Hr, Hl', (%Ht | ⟨%tw, ⟨%Ht, -⟩, -⟩)⟩
+    · simp only [interface_mkOk_inj, _root_.true_and] at Ht
+      have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+      subst hmw
+      iexists s, puts, deletes, putSize
+      iframe Hs Hr Hl'
+      ipureintro; exact Hpl
+    · simp [interface_mkOk_inj, metricsTxnWrite.ty, watchableStoreTxnWrite.ty] at Ht
+  · iintro ⟨%s, %puts, %deletes, %putSize, %Hpl, #Hs, Hr, Hl'⟩
     iexists mw, s, puts, deletes, putSize
     iframe Hs Hr Hl'
-    ipureintro; exact ⟨rfl, Hp, Hl, Hc⟩
+    isplitr
+    · ipureintro; exact Hpl
+    ileft; ipureintro; rfl
 
 /-- **A store that does not compact has its compaction revision at `-1`** (`wsFrozenM`'s frozen
 part, opened before the caller's update). -/

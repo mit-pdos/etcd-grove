@@ -355,12 +355,13 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   imod mvcc.crevLb_neg γ.st.idx with #Hlb
   iapply wp_fupd
   iapply (hA s γ.st trace P Pre Q #f te (-1) iprop(True) DFrac.discard o
-    (threadPool.ownThreadLoan γ.tl)) $$ %_ [Htt Hpre Htrc]
+    (mvcc.mvccLoan γ)) $$ %_ [Htt Hpre Htrc]
   · iframe Hpkg Hst Hlb Hhk Hpin Htriple Hpre Htrc
     isplitl [Htt]
     · iintro Hlc
-      iapply threadPool.borrow_lc mvcc.tixN γ.tl (mvcc.storeReaderC s γ.st) ⊤ (by simp)
-      iframe Hlc Hpool Htt
+      iapply mvcc.mvccBorrow s γ
+      iframe Hlc Htt
+      iunfold mvcc.isMvcc at Hs; iexact Hs
     isplitr
     · iintro !>; itrivial
     isplitr
@@ -381,10 +382,11 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   simp only [mvcc.mvccTxnI]
   iexists mw, s, W64 0, W64 0, W64 0
   isplitr
-  · ipureintro; have := List.length_pos_iff.2 Hne; exact ⟨rfl, trivial, by omega, Hcr⟩
+  · ipureintro; have := List.length_pos_iff.2 Hne; exact ⟨trivial, by omega, Hcr⟩
   isplitr
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iframe Htx Hloan
+  ileft; ipureintro; rfl
 
 end proof
 

@@ -379,12 +379,13 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
   imod mvcc.crevLb_neg γ.st.idx with #Hlb
   iapply (hA s γ.st mode trace 0 [] te (-1) iprop(True) none
     (fun log c => iprop(∃ σ : mvcc.MvccState, ⌜σ.log = log ∧ σ.crev = c ∧ 1 ≤ σ.log.length⌝ ∗ Q σ))
-    (threadPool.ownThreadLoan γ.tl)) $$ %Φ [Htt Hau Hm0 Htrc]
+    (mvcc.mvccLoan γ)) $$ %Φ [Htt Hau Hm0 Htrc]
   · iframe Hpkg Hst Hc0 Hlb Hm0 Htrc
     isplitl [Htt]
     · iintro Hlc
-      iapply threadPool.borrow_lc mvcc.tixN γ.tl (mvcc.storeReaderC s γ.st) ⊤ (by simp)
-      iframe Hlc Hpool Htt
+      iapply mvcc.mvccBorrow s γ
+      iframe Hlc Htt
+      iunfold mvcc.isMvcc at Hs; iexact Hs
     isplitr
     · iintro !>; itrivial
     isplitr

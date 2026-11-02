@@ -58,7 +58,7 @@ theorem mvcc.txnReadWrite.End.wp_proofC (hO : mvcc.txnReadWrite.End.spec (GF := 
     as ⟨Hrd, -, Htrc⟩
   · iframe Hro
     try iframe #
-  imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrd] with Htt
+  imod mvcc.mvccGiveBack s γ $$ [$Hs $Hloan $Hrd] with Htt
   imodintro
   iapply HΦ
   iframe Htt Htrc
