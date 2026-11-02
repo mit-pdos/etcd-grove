@@ -567,3 +567,39 @@ The open questions:
     differs from them.
   - The stage-1 condition, one key per prefix, goes. `idIncarnation_alloc` becomes provable: a fresh
     incarnation number, chosen from the finite maps.
+
+### R2c stage 2, where it stands (2026-11-02, branch `r2c-stage2`, not landed)
+
+**Done, and it checks:**
+- The extension: `GooseLang/Ext/IdIssue/Impl.lean` (`"Issue"` of `(id, g)`) and `Specs.lean`
+  (`wp_IdIssue_atomic`, the closure `idIssueExts`).
+- The trusted model `TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: the generated body with
+  `assume (Issue (id, g))` before the return.
+- The Goose configuration marks `Generator.Next` trusted; the translation was regenerated, with its
+  `ManualProof` module.
+
+**Not done** (the branch does not build: `Next`'s proof is the old one, over the old body):
+1. **The record's ghost state, in a form that needs no `Main` changes.** The extension's state
+   interpretation holds the record's authority; a successful `"Issue"` hands the program the
+   persistent fact `id ↪ g`. So the program's starting resource is `True`, and no example's `Main`
+   gains an argument (`kvdurable`'s `durableOwn` would have). `Specs.lean` is still the
+   ghost-variable form and has to change.
+2. **`idutil`:**
+   - `IdNames` gains the pending map's name and the generator map's name.
+   - The generator's invariant splits `idIssued` into the list plus pending ids.
+   - The cluster invariant gains, for every listed id, the record's fact at its key's generator, and
+     the key-to-generator map `Gm`. `Gm`'s values are `Option Loc`: `none` at the key's allocation
+     (the element in `idShare`), set by `NewGenerator`. It is injective by the persistent
+     prefix-field points-to.
+   - The definitions read the record's fact through `if h : HasExt idIssueExt then … else False`
+     (`HasExt` is a `Prop`), so that they need no extension instance.
+   - `Next` proved in two steps over the model; `NewGenerator` registers the generator.
+   - The one-key-per-prefix condition goes; `idIncarnation_alloc` is proved.
+3. **The instance.** `Next.wp_proof` takes `[HasExt idIssueExt]`, and the linked results that
+   include it take it too. That means `etc/gen-link.py` (the server's `Link.lean` and its
+   downstream links), and each server example's closure: `TrivialExt.lean`'s closure becomes the
+   issue record's.
+   - The 16 adequacy files' `goosePreGExts := ((), PUnit.unit)` take the universal camera they
+     already have (`…GF_allG`).
+   - Their `attribute [local instance]` lines gain the closure's `HasExt`.
+4. **Review.** The trusted model and the extension go through the `axiom` skill before landing.
