@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# Porcupine: what `checkParallel`'s proof shares (2026-10-14)
+# Porcupine PR #46: what `checkParallel`'s proof shares (v1.3.1's, 2026-10-14; adapted 2026-11-02)
 
 `checkParallel` runs one `checkSingle` goroutine per partition `i`; goroutine `i` writes its
 cell `longest[i]` and sends its verdict on the buffered channel `results`. The proof's
@@ -9,9 +9,13 @@ channel predicate (`resultP`, a bag: Perennial's `isChanBag`) says of a verdict 
 from some goroutine `i < n`, with that goroutine's token `i ↪[γt] ()` (a ghost map, so the
 verdicts the main thread receives come from distinct goroutines), its cell written
 (`cellDone`, persistent: the cell and the `longest` slice it holds, read-only from then on), and
-`checkSingle`'s disjunction: `b = true` and partition `i` is linearizable, or `b = false` and
-partition `i` is not linearizable or the context was cancelled (`□ PD`, the context's Done
-proposition, which only the main thread mints, when it cancels).
+`checkSingle`'s disjunction: `b = true` and partition `i` is linearizable respecting its chains'
+order (`partOk`), or `b = false` and partition `i` is not or the context was cancelled (`□ PD`,
+the context's Done proposition, which only the main thread mints, when it cancels).
+
+PR #46: the partitions are indexed by their histories `hs` and their chains `css`
+(`checkParallel.spec`); a partition's memory (`ohistOwn`) is handed to its goroutine, so the main
+thread's loop keeps the partitions not yet started (`bigSepL_drop_cons`).
 -/
 module
 
@@ -68,12 +72,31 @@ instance cellDone_persistent (lsl : GoSlice) (i : Nat) :
 
 variable {σ : Type}
 
+/-- Partition `i` (of the histories `hs`, with the chains `css`) is linearizable respecting its
+chains' order (vacuous past the end). -/
+def partOk (S : ModelSpec GF σ) (hs : List (List (Theory.Op OpV))) (css : List (List (List Nat)))
+    (i : Nat) : Prop :=
+  ∀ h cs, hs[i]? = some h → css[i]? = some cs → LinearizableCO S.M h (chainOrder cs)
+
 /-- What a verdict `b` sent on `results` carries (see the file header). -/
-def resultP (S : ModelSpec GF σ) (hs : List (List (Theory.Op OpV))) (γt : GName)
-    (lsl : GoSlice) (PD : IProp GF) (b : Bool) : IProp GF :=
+def resultP (S : ModelSpec GF σ) (hs : List (List (Theory.Op OpV))) (css : List (List (List Nat)))
+    (γt : GName) (lsl : GoSlice) (PD : IProp GF) (b : Bool) : IProp GF :=
   iprop(∃ i : Nat, ⌜i < hs.length⌝ ∗ ghostMapElem γt i (DFrac.own 1) () ∗ cellDone lsl i ∗
-    (⌜b = true ∧ ∃ h, hs[i]? = some h ∧ Linearizable S.M h⌝ ∨
-      (⌜b = false⌝ ∗ (⌜∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h⌝ ∨ □ PD))))
+    (⌜b = true ∧ partOk S hs css i⌝ ∨
+      (⌜b = false⌝ ∗ (⌜¬ partOk S hs css i⌝ ∨ □ PD))))
+
+/-- The partitions from `n` on: the first, and those after it. -/
+theorem bigSepL_drop_cons {A : Type} (Φ : Nat → A → IProp GF) {l : List A} {n : Nat} {x : A}
+    (hx : l[n]? = some x) :
+    ([∗list] k ↦ y ∈ l.drop n, Φ (n + k) y) ⊢
+      Φ n x ∗ [∗list] k ↦ y ∈ l.drop (n + 1), Φ (n + 1 + k) y := by
+  have hn : n < l.length := (List.getElem?_eq_some_iff.1 hx).1
+  have hxe : l[n] = x := (List.getElem?_eq_some_iff.1 hx).2
+  rw [List.drop_eq_getElem_cons hn, hxe]
+  have hf : (fun k y => Φ (n + (k + 1)) y) = fun k y => Φ (n + 1 + k) y := by
+    funext k y; congr 1; omega
+  refine BigSepL.bigSepL_cons.1.trans ?_
+  rw [hf, Nat.add_zero]
 
 theorem bigSepL_replicate_range {A : Type} (Φ : Nat → A → IProp GF) (n : Nat) (v0 : A) :
     ([∗list] i ↦ x ∈ List.replicate n v0, Φ i x) ⊢ [∗list] k ∈ (List.range n : List Nat), Φ k v0 := by
