@@ -602,6 +602,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3p")],
     ),
     Project(
+        name="mvccrand",
+        # mvcc's randomized tester (notes/mvccrand.md): the watchable store over a real backend and
+        # lessor with a post-lock hook, one writer, concurrent floored readers and a watch stream,
+        # each result checked against the history. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached through
+        # the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "mvccrand"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
+    ),
+    Project(
         name="watchkv",
         # The watch example: one member started in-process, as in putget, a prefix watch from
         # revision 1, writer goroutines putting random keys under the prefix, and a check of the

@@ -80,8 +80,8 @@ func check(ok bool, msg string) {
 	}
 }
 
-// A rec is a key's key-value in the model.
-type rec struct {
+// A kvRec is a key's key-value in the model.
+type kvRec struct {
 	val    string
 	create int64
 	mod    int64
@@ -94,7 +94,7 @@ type rec struct {
 type change struct {
 	del bool
 	key string
-	kv  rec
+	kv  kvRec
 }
 
 // A history is the store's expected history, shared by the writer (which appends) and the other
@@ -104,7 +104,7 @@ type change struct {
 // it. published is the last revision the writer has finished writing.
 type history struct {
 	mu         sync.RWMutex
-	states     []map[string]rec
+	states     []map[string]kvRec
 	changes    [][]change
 	published  atomic.Int64
 	aboveFloor atomic.Int64
@@ -121,19 +121,19 @@ func (h *history) seen(floor, cur int64, what string) {
 }
 
 func newHistory() *history {
-	h := &history{states: []map[string]rec{{}, {}}, changes: [][]change{nil, nil}}
+	h := &history{states: []map[string]kvRec{{}, {}}, changes: [][]change{nil, nil}}
 	h.published.Store(1)
 	return h
 }
 
 // snapshot returns the states so far (each state is never changed once appended).
-func (h *history) snapshot() []map[string]rec {
+func (h *history) snapshot() []map[string]kvRec {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.states[:len(h.states):len(h.states)]
 }
 
-func (h *history) appendRev(st map[string]rec, chs []change) {
+func (h *history) appendRev(st map[string]kvRec, chs []change) {
 	h.mu.Lock()
 	h.states = append(h.states, st)
 	h.changes = append(h.changes, chs)
@@ -219,7 +219,7 @@ func (r *rng) genRange(cur int64) rangeReq {
 
 // checkRange checks a range read's result (res, err) in a transaction at revision cur against
 // the states (states[r] at revision r, for r up to cur). The store is never compacted.
-func checkRange(states []map[string]rec, cur int64, q rangeReq, res *mvcc.RangeResult, err error) {
+func checkRange(states []map[string]kvRec, cur int64, q rangeReq, res *mvcc.RangeResult, err error) {
 	if q.ro.Rev > cur {
 		check(err == mvcc.ErrFutureRev, "a future revision's read did not fail with ErrFutureRev")
 		check(res != nil && len(res.KVs) == 0 && res.Count == -1 && res.Rev == cur,
@@ -259,7 +259,7 @@ func checkRange(states []map[string]rec, cur int64, q rangeReq, res *mvcc.RangeR
 	}
 }
 
-func checkKV(kv *mvccpb.KeyValue, k string, e rec, keysOnly bool) {
+func checkKV(kv *mvccpb.KeyValue, k string, e kvRec, keysOnly bool) {
 	check(string(kv.Key) == k, "a read returned the wrong key")
 	check(kv.CreateRevision == e.create, "a read returned the wrong create revision")
 	check(kv.ModRevision == e.mod, "a read returned the wrong mod revision")
@@ -272,8 +272,8 @@ func checkKV(kv *mvccpb.KeyValue, k string, e rec, keysOnly bool) {
 	}
 }
 
-func copyState(st map[string]rec) map[string]rec {
-	c := make(map[string]rec, len(st))
+func copyState(st map[string]kvRec) map[string]kvRec {
+	c := make(map[string]kvRec, len(st))
 	for k, v := range st {
 		c[k] = v
 	}
@@ -283,16 +283,16 @@ func copyState(st map[string]rec) map[string]rec {
 // A pending transaction's model: the revision it writes, its state and its changes.
 type pending struct {
 	rev     int64
-	st      map[string]rec
+	st      map[string]kvRec
 	changes []change
 }
 
 func (p *pending) put(k, v string, l int64) {
 	e, ok := p.st[k]
 	if ok {
-		p.st[k] = rec{val: v, create: e.create, mod: p.rev, ver: e.ver + 1, lease: l}
+		p.st[k] = kvRec{val: v, create: e.create, mod: p.rev, ver: e.ver + 1, lease: l}
 	} else {
-		p.st[k] = rec{val: v, create: p.rev, mod: p.rev, ver: 1, lease: l}
+		p.st[k] = kvRec{val: v, create: p.rev, mod: p.rev, ver: 1, lease: l}
 	}
 	p.changes = append(p.changes, change{key: k, kv: p.st[k]})
 }
@@ -351,7 +351,7 @@ func (w *writer) end(p *pending, end func()) {
 
 // view returns the states with the pending revision appended (once it has a change) and the
 // revision a read in the write transaction is at.
-func (w *writer) view(p *pending) ([]map[string]rec, int64) {
+func (w *writer) view(p *pending) ([]map[string]kvRec, int64) {
 	st := w.h.snapshot()
 	if len(p.changes) == 0 {
 		return st, p.rev - 1
