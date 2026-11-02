@@ -129,9 +129,11 @@ triple needs (no 200 without a response; a 404 is an allowed error).
 
 ## Freeze list (so far)
 
-- Trusted: `EtcdServer.leaseTimeToLive.spec`'s `⌜w.ID' = v.ID'⌝` (D3), its cluster assumption
-  restated (Test). Collections resting on it: `server.txt` (the review). The `axiom` skill runs on it
-  before Freeze (`notes/spec-first-plan.md`, "Freeze: the axioms attacked first").
+- Trusted: `EtcdServer.leaseTimeToLive.spec`'s `⌜w.ID' = v.ID'⌝` (D3). The `axiom` skill
+  (`notes/axiom-review/lease-ttl-id.md`): the ID survives; the axiom as it stood since lease-grpc was
+  refuted (its cluster assumption only prose), now the premise `leasePeersOk` (the user's (A)),
+  threaded to `leasekv_safe`'s hypotheses. Collections resting on it: `server.txt`, `leasekv.txt`.
+  `notes/decisions.md`, "The closed lease example".
 - Frozen specs changed: `EtcdServer.LeaseTimeToLive.spec`, `ttlAns`, `leaseTTLOut` (D3);
   `memberBuilt`/`memberUp`/`grpcUp` gain conjuncts (the review's locality finding: nine `Main`
   proofs' patterns changed).
