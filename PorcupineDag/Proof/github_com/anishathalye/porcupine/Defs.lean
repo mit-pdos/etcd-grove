@@ -47,10 +47,27 @@ wrong, so an answer `true` stays sound.
 ## A history
 
 `histOf ops` is the abstract history of a Go slice of `Operation`s (inputs and outputs, call
-and return timestamps read signed, as `int64`). `HistOk S ops` is the caller's premise on it:
-every operation's call is at most its return, and there are fewer than `2^60` (so that the
-entry ids, `2·n` entries and the bitset's size fit). `entryOf`, `EntriesFor` relate a Go slice of
-`entry`s to the abstract entries of `Theory` (what `makeEntries` returns).
+and return timestamps read signed, as `int64`). `HistOk ops` is v1.3.1's premise on it: every
+operation's call is at most its return, and there are fewer than `2^60`. PR #46 adds `ClientsOk`:
+the client ids are non-negative and small enough for the allocations they size
+(`ClientIdsOk`, `AllocOk`, `maxAllocBytes`), and along each client's listed order the returns do
+not decrease (`MonoReturns`). The checker decides linearizability respecting the client order
+(`Theory.LinearizableCO` at `clientOrder`); under sequential clients (`ClientsSeq`) that is
+linearizability (`linCO_iff_lin`).
+
+The PR never calls the model's `Hash` (its cache hashes the bitset only), so `isModel`'s and
+`isModelFilled`'s `Hash` clause is not needed; it is kept to share v1.3.1's `isModel`.
+
+The allocations that grow with the number of operations only (`longest`, the bitset, the
+entries) are smaller than the caller's slice of `Operation`s or are grown by `append` from a live
+slice: Go runs out of memory (the heap is at most 2^47 bytes) before one of them could exceed
+`maxAlloc`, so no premise bounds them.
+
+## A partition
+
+`makeEntries` splits a partition by client: an `operationHistory`, one slice of
+`clientOperation`s per client (`ohistOwn`, `CoFresh`), abstractly the chains `chainsOf ops nc`
+(`Chains.lean`).
 -/
 module
 
@@ -239,7 +256,7 @@ instance isModelFilled_persistent (S : ModelSpec GF σ) (m : Model) :
 
 end defs_hasLC
 
-/-! ## Histories and entries -/
+/-! ## Histories, clients and chains -/
 
 section hist
 variable [GooseExts]
@@ -251,25 +268,119 @@ def opOf (o : Operation) : Theory.Op OpV :=
 /-- A slice of `Operation`s as a history. -/
 def histOf (ops : List Operation) : List (Theory.Op OpV) := ops.map opOf
 
-/-- The caller's premise on a history (see the file header). -/
+/-- The caller's premise on a history (v1.3.1's): fewer than `2^60` operations, each called no
+later than it returns. -/
 def HistOk (ops : List Operation) : Prop :=
   (ops.length : Int) < 2 ^ 60 ∧ ∀ o ∈ ops, sint.Z o.Call' ≤ sint.Z o.Return'
 
-/-- An `entry`'s abstract entry: its kind (`entryKind` is `Bool`, `returnEntry` is `true`) and
-id. -/
-def entryOf (e : entry) : Theory.Entry :=
-  ⟨e.kind', (sint.Z e.id').toNat⟩
+/-- gc's largest allocation, in bytes: `maxAlloc` on 64-bit linux (2^48; ios/arm64 has 2^40); a
+larger `make` panics (`makeslice: len out of range`). Perennial does not model it: the premises
+that mention it keep the specs true of Go, and the proofs never use them. -/
+@[word_unfold] def maxAllocBytes : Int := 2 ^ 48
 
-/-- `es` are the entries of history `h`: the abstract entries satisfy `EntriesOk`, each id is
-a non-negative `int`, and each entry carries its operation's input (a call) or output (a
-return) and time. -/
-def EntriesFor (h : List (Theory.Op OpV)) (es : List entry) : Prop :=
-  es.length = 2 * h.length ∧ EntriesOk h (es.map entryOf) ∧
-    ∀ e ∈ es, 0 ≤ sint.Z e.id' ∧ ∃ o, h[(sint.Z e.id').toNat]? = some o ∧
-      (if e.kind' then e.value' = o.val.2 ∧ sint.Z e.time' = o.ret
-       else e.value' = o.val.1 ∧ sint.Z e.time' = o.call)
+/-- The allocations sized by `nc` clients over `n` operations fit (`newChains`, `makeEntries`):
+the largest is `8·nc·max n 6` bytes (`firstUnks`, `8·n·nc`; the clients, `48·nc`). -/
+def AllocOk (nc n : Nat) : Prop := (nc : Int) * ((max n 6 : Nat) : Int) * 8 ≤ maxAllocBytes
+
+/-- The client ids index the chains: non-negative, and small enough that the allocations they
+size fit. -/
+def ClientIdsOk (ops : List Operation) : Prop :=
+  ∀ o ∈ ops, 0 ≤ sint.Z o.ClientId' ∧ AllocOk (sint.nat o.ClientId' + 1) ops.length
+
+/-- Along each client's listed order, the returns do not decrease. -/
+def MonoReturns (ops : List Operation) : Prop :=
+  ∀ (i j : Nat) (oi oj : Operation), i < j → ops[i]? = some oi → ops[j]? = some oj →
+    oi.ClientId' = oj.ClientId' → sint.Z oi.Return' ≤ sint.Z oj.Return'
+
+/-- PR #46's premise on a history (`notes/porcupine-dag-plan.md`, spec plan, "Premises"). -/
+def ClientsOk (ops : List Operation) : Prop := ClientIdsOk ops ∧ MonoReturns ops
+
+/-- The client order: `i` listed before `j`, with the same client id. -/
+def clientOrder (ops : List Operation) (i j : Nat) : Prop :=
+  i < j ∧ ∃ oi oj : Operation, ops[i]? = some oi ∧ ops[j]? = some oj ∧ oi.ClientId' = oj.ClientId'
+
+/-- Sequential clients: of two operations of one client, the one listed first returns strictly
+before the other is called. Under it the client order is real time's (`linCO_iff_lin`). -/
+def ClientsSeq (ops : List Operation) : Prop :=
+  ∀ (i j : Nat) (oi oj : Operation), i < j → ops[i]? = some oi → ops[j]? = some oj →
+    oi.ClientId' = oj.ClientId' → sint.Z oi.Return' < sint.Z oj.Call'
+
+/-- A partition's well-formedness (`HistOk` in pure terms). -/
+def HistWf (h : List (Theory.Op OpV)) : Prop := (h.length : Int) < 2 ^ 60 ∧ Theory.CallLeRet h
+
+/-- The chains `makeEntries` builds: client `c`'s ids, in order, for the clients below `nc`. -/
+def chainsOf (ops : List Operation) (nc : Nat) : List (List Nat) :=
+  (List.range nc).map fun (c : Nat) =>
+    (List.range ops.length).filter fun (i : Nat) =>
+      decide (((ops[i]?).map (fun o => sint.Z o.ClientId')) = some (c : Int))
+
+/-- A client's slice of `clientOperation`s holding the chain `ch` of `h`, as `makeEntries` builds
+it: each with its id (`id`, `globalId`), its operation's input, output and times, and not yet
+`visited` (its other fields, `firstUnk` and the operation's other fields, any). -/
+def CoFresh (h : List (Theory.Op OpV)) (ch : List Nat) (cos : List clientOperation) : Prop :=
+  cos.length = ch.length ∧ ∀ (k : Nat) (co : clientOperation), cos[k]? = some co →
+    ∃ (y : Nat) (o : Theory.Op OpV), ch[k]? = some y ∧ h[y]? = some o ∧
+    sint.Z co.id' = y ∧ sint.Z co.globalId' = y ∧ co.Op'.Input' = o.val.1 ∧
+    co.Op'.Output' = o.val.2 ∧ sint.Z co.Op'.Call' = o.call ∧ sint.Z co.Op'.Return' = o.ret ∧
+    co.visited' = false
 
 end hist
+
+section ohist
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+
+/-- An `operationHistory` (one slice of `clientOperation`s per client) holding the chains `cs`
+of `h`. -/
+def ohistOwn (ohsl : GoSlice) (h : List (Theory.Op OpV)) (cs : List (List Nat)) : IProp GF :=
+  iprop(∃ sls : List GoSlice, ohsl ↦* sls ∗ ⌜sls.length = cs.length⌝ ∗
+    [∗list] c ↦ sl ∈ sls, ∃ cos : List clientOperation, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝)
+
+end ohist
+
+/-! ## Laws -/
+
+/-- What the `Check*` specs' result (`Ok` and the property, `Illegal` and not, or `Unknown` with
+a timeout) gives a caller that knows the property (`L`): `Ok`, or `Unknown` with a timeout. -/
+theorem checkResult_complete {r : GoString} {L : Prop} {dur : w64}
+    (hr : (r = go!"Ok" ∧ L) ∨ (r = go!"Illegal" ∧ ¬ L) ∨ (r = go!"Unknown" ∧ 0 < sint.Z dur))
+    (hL : L) : r = go!"Ok" ∨ (r = go!"Unknown" ∧ 0 < sint.Z dur) := by
+  rcases hr with ⟨h1, -⟩ | ⟨-, h2⟩ | h3
+  · exact Or.inl h1
+  · exact absurd hL h2
+  · exact Or.inr h3
+
+section laws
+variable [GooseExts] {σ : Type}
+
+/-- Under sequential clients, the client order is real time's: linearizable respecting it is
+linearizable. -/
+theorem linCO_iff_lin {M : SeqModel σ OpV} {ops : List Operation} (hseq : ClientsSeq ops) :
+    LinearizableCO M (histOf ops) (clientOrder ops) ↔ Linearizable M (histOf ops) := by
+  refine ⟨linearizable_of_co, good_mono fun a b hab => ?_⟩
+  rcases hab with hp | ⟨hlt, oa, ob, ha, hb, hc⟩
+  · exact hp
+  · refine ⟨opOf oa, opOf ob, ?_, ?_, hseq a b oa ob hlt ha hb hc⟩
+    · simp [histOf, ha]
+    · simp [histOf, hb]
+
+/-- Linearizable respecting the client order, from a linearization (respecting real time) that
+keeps each client's operations in the order listed. -/
+theorem linearizableCO_intro {M : SeqModel σ OpV} {h : List (Theory.Op OpV)}
+    {co : Nat → Nat → Prop} {π : List Nat}
+    (hπ : Completes M h (Prec h) (fun _ => False) M.init π)
+    (hco : π.Pairwise fun a b => ¬ co b a) : LinearizableCO M h co := by
+  obtain ⟨hnd, hmem, hrun, hpw⟩ := hπ
+  refine ⟨π, hnd, hmem, hrun, ?_⟩
+  refine List.Pairwise.imp₂ (fun a b h1 h2 hor => ?_) hpw hco
+  rcases hor with h | h
+  · exact h1 h
+  · exact h2 h
+
+end laws
 
 end github_com.anishathalye.porcupine
 
