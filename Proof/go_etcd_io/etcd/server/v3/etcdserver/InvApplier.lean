@@ -41,6 +41,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 
 @[expose] public section
 
@@ -542,6 +543,27 @@ theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   cases hkb0
   rw [← hcm0, hcm]
 
+/-- **The server's current backend, with its hooks** (persistent; 2026-11-02, the user's approval,
+branch `snap-window`): the store's backend `d` (`E.γ.kb`) is the real backend whose batch lock has
+the apply protocol's resource at the consistent index's keys (`batchLockInv γ (metaTM d.γB d.P)`),
+its hooks the server's `BackendHooks` `bh`, `s.beHooks` (`backend.hooksAt`) over the consistent index `ci`
+(`isBackendHooks`), at parameters with the hooks' keys (`ciKeys`, `hooksParams`). What the merged
+snapshot's window needs to freeze the stored index (`storeReq_freeze`). Made where the backend is:
+`NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
+def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ (d : mvcc.KBReal) (bh lgh : Loc),
+    ⌜E.γ.kb = some d ∧ ciKeys d.P ∧ storage.hooksParams d.P⌝ ∗
+    structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
+    storage.isBackendHooks bh
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
+      lgh ∗
+    backend.hooksAt d.be (storage.hooksIface bh) ∗
+    backend.isBackend d.γB d.P (mvcc.lateW d.gx) (batchLockInv γ (metaTM d.γB d.P)) d.be)
+
+instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
+    Persistent (srvBeHooked (GF := GF) s γ ci E) := by
+  unfold srvBeHooked; infer_instance
+
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
 rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-memory members
@@ -561,7 +583,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :

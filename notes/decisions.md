@@ -29126,6 +29126,48 @@ exported `applyAll_model`'s preconditions name: a change to an exported statemen
 Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
 opening the store's invariant at names the restore is changing.
 
+## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)
+
+**The gap.** `mergedCreate_window` (`SnapSendBranch.lean`), `createMergedSnapshotMessage`'s window
+(`s.KV().Commit()` then `s.be.Snapshot()`, the snapshot observing `mergedObs`), was a named `sorry`.
+Five of `mergedObs`'s clauses had sources (the consistent index from the freeze, `ciObs`; the rest
+buckets, `rbOwn`; `IdxWf`, `soleWriter_idxWf`). Four did not:
+
+1. **The `Key` bucket as the writer's log.** `Snapshot`'s observation is a pure wand; the batch lock's
+   resource `W` (`lateW`, the store's `writerRes`) has the bucket's view at the batch lock's log `L`,
+   and nothing the apply thread holds outside a transaction pins `L` to its log (`writerL`'s half is in
+   `writerInv`). With compaction on, the clause as stated (exact) is false: the job deletes keys.
+2. **The freeze's hooks.** `storeReq_freeze` needs `isBackendNH` (the backend's `hooks` field), which
+   `isServer` did not keep (its `TM` generic, `NewServer`'s post existential).
+3. **`ci` at 0.** After a restart Go's `consistentIndex` field is 0 until the first apply (the
+   effective index the backend's, loaded lazily), and `UnsafeSave` stores nothing, so a merged snapshot
+   sent before any apply meets `st.k = 0`, which the freeze excluded (`consFrozen`: `s.k ≠ 0`).
+4. **No compaction key with compaction off** (`noCmpData D`, which `merged_image` needs): the
+   `backend.Snapshot` axiom's observation saw neither of the `Meta` bucket's compaction keys.
+
+**Chosen.**
+- (1) `mergedObs`'s `Key` clause thin always, exact with `cmp` off (internal; the user's "law first, as
+  sorry"). The law `txn.kvWriter_keyObs` (`txn/KeyObs.lean`, a named `sorry`) gives it from the
+  writer, `lateW` and the view; M2's item 37 (the writer's pin of the batch lock's log) implements it
+  in mvcc.
+- (2) The creation specs (`backend.New`, `newBackend`, the axiom `storage.OpenBackend`,
+  `OpenSnapshotBackend`) give the `hooks` field (`backend.hooksAt b h`), `bootOk` carries it, and the
+  server's field predicates carry `srvBeHooked` (the server's `beHooks`, its hooks over `ci`, the
+  backend at the apply thread's batch-lock resource), set by `NewServer` and `applySnapshot`
+  (`snap_isServer`). Approved.
+- (3) `consFrozen` holds `wrOwn γ w` with the stored index `ciEff γ s.k` (`s.k = 0 ↔ w = false`), and
+  `freezeY`'s quarter of `mt` is at `ciEff γ s.k`; the save chain (`commit_freeze_au` ...
+  `storeReq_freeze`) loses `s.k ≠ 0`, the save's disjunct passed through `termOk_after_save`.
+  Internal.
+- (4) `backend.Snapshot`'s post gains a reader's bound of the compaction-key flag over the snapshot's
+  data, `fkRd γ P (D, ⟨∅, W64 0⟩)`, what `unsafeCommit` gives the backend's readers (reviewed:
+  `notes/axiom-review/backend-snapshot-fk.md`, survives; the reviewer's restatement, chosen by the user
+  over the reviewed draft, an observation argument `fkLbAbs γ fa` with `Q` at `fkAbsD D`). The law
+  `txn.kvWriter_noCmp` (a named `sorry`, item 37: the off-mode store lends the writer `bkNoCmp`) gives
+  `d.cm = false → fkAbsRv`, and `noCmpData_of_fkAbsD` the clause.
+
+`mergedCreate_window` is proved over these; the trust base trades its `sorry` for the two laws'.
+
 ## C3's store law: a compaction permit fixed at the store's creation (2026-11-02 · the user's approval · branch `c3-perm`)
 
 **Scope (the user's).** C3 (`notes/compactor-pilot-plan.md`): the store's compaction revision is at

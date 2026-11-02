@@ -21,7 +21,11 @@ the read transaction began left them. For the server, `W` holds the store's view
 bucket (`mvcc.writerRes`'s `bucketView`), `Pk` the consistent index's meta keys
 (`batchLockInv`, `metaTM`), `R` the apply thread's half of the tracked buckets: `Q` can say the
 key bucket is the store's log's, the stored index the apply thread's (D22 S-h) and the other
-buckets the applied log's (`restModel`).
+buckets the applied log's (`restModel`). (2026-11-02, the merged snapshot's window) The post also
+gives a reader's lower bound of the compaction keys' flag over `D` with an empty read buffer
+(`fkRd`, what a commit gives the backend's readers, `batchTxBuffered.unsafeCommit`): with the
+client's half at `0` (`fkOwn γ 0`, a store that does not compact), `D` has no compaction key
+(`fkRd_abs`).
 -/
 module
 
@@ -56,7 +60,8 @@ abbrev backend.backend.Snapshot.spec : Prop :=
         R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ ⌜Q vd d r⌝) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
-      snapOpen sp D ∗ bOpen γ qo ∗ R ∗ ⌜Q (sData P D) (hkData P D) (rbData P D)⌝ }}
+      snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
+      ⌜Q (sData P D) (hkData P D) (rbData P D)⌝ }}
 
 end spec
 
