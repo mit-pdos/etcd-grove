@@ -30257,3 +30257,20 @@ at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cac
 are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
 answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
 is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec).
+
+## Today's `authSchemaSrv` is false; the auth-on snapshot premise restated
+
+**2026-11-01 · the user's decisions · `notes/snapshot-auth-on-plan.md`, "The user's decisions"**
+
+`authSchemaSrv` (`AuthSrv.lean`, the trusted premise of `NewServer.specM true`) is false as stated: a
+bug in this repository's model, not in etcd (so recorded here, not in `issues/`). Review round 3 of
+the auth-on snapshot Draft refuted it five ways: the read contract's latest clause holds no
+write-batch guard and is false inside a batch; it takes no share of the published index's authority,
+so the client can publish past what the backend holds; it hands back the client's half of every
+tracked bucket, so the auth buckets can be written around the store; its guards carry no share of
+the backend's open token, so the client can `Close` it and read; and `beP`'s write token is not tied
+to the apply thread's. The user's decisions: split the tracked buckets' token by bucket set, move part
+of the published index's authority into the realization (publication needs the write token), per-
+backend ghost names carrying an open share, the history recorded before `Recover` (candidate (ii)),
+and one spec per function over the mode. The restated statements are in the Draft
+(`SnapAuthOnDraft.lean`), to be approved before they replace today's.
