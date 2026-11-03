@@ -929,3 +929,18 @@ case of the durability invariant), not a premise that `Save` fails only on I/O: 
 **The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
 `examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
 `newestSnapshotEntry`.
+
+### R2b-1 draft, round 2 (2026-11-03)
+
+In `etcdserver/InvWal.lean`, after review round 1:
+- **Raft's receive** (`readyGotFacts_stmt`, a raft API change): `readyGot` also gives
+  `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed fact
+  (`committedAtTerm`), without *enter*. Raft's proof has both, persistent, where it builds
+  *enter* (`isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`).
+- **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the contents (its claim), the durable state and either the records holding it (`walHolds`: the
+  committed log they are within, with which the durable log agrees, `DurAgrees`; the hard state's
+  half; the commit counter) with the pending token, or a received snapshot's records with its
+  `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
+  counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
+  loop's two tokens.
