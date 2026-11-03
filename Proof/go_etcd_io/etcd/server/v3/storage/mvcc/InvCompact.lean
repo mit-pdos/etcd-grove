@@ -470,7 +470,7 @@ compaction mode, a share of the log tie at `L` (the writer's pin's, `writerPin_l
 revision tie's half at `c` (the compaction right's, `compactRightR_lend`), the pin's registration
 fact, the batch lock's resource (`lateWD d`) and the backend's own halves of the physical view and
 of the compaction keys' values (in the form `pvHalf`/`ckHalf`, as the backend's snapshot spec hands
-them to its observer: `backend.backend.Snapshot.specF2`, the Draft's restated trust boundary) give the physical cut of `L` at records of revision `c` with the keys'
+them to its observer: `backend.backend.Snapshot.spec`, restated at F2's stage 3) give the physical cut of `L` at records of revision `c` with the keys'
 values the records' (`keyImageM_of_tracked` turns it into the image), everything kept. -/
 theorem lateWD_cmpObs (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) (hcm : d.cm = true)
     (L : Log) (c : Int) (q : Qp) (vd : backend.VData) (v : backend.FkVals) :
@@ -490,7 +490,7 @@ theorem lateWD_cmpObs (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) (hcm 
   ipureintro; exact ho
 
 /-- **The observation at the writer's pin and the compaction right** (`lateWD_cmpObs`'s corollary:
-what `apply.cmpObs_stmt` opens `kvWriter` and `cmpOwn` to). -/
+what `apply.cmpObs` opens `kvWriter` and `cmpOwn` to). -/
 theorem lateWD_cmpObsP (s : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d)
     (hcm : d.cm = true) (L : Log) (c : Int) (vd : backend.VData) (v : backend.FkVals) :
     writerPin (GF := GF) γ L ∗ compactRightR s γ c ∗ lateWD d ∗

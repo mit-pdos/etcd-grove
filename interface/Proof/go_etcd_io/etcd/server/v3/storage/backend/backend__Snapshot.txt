@@ -5,7 +5,7 @@
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
   -- `Perennial.EtcdGrove.backend.backend.Snapshot.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
-    (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop),
+    (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData → backend.FkVals → Prop),
     ⊢
       ∀ Φ,
         (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -14,15 +14,20 @@ axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
                 backend.wbTok γ ∗
                   R ∗
                     □
-                      ∀ vd d r,
-                        R -∗ W -∗ Pk -∗ backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ ⌜Q vd d r⌝) -∗
+                      ∀ vd d r v,
+                        R -∗
+                          W -∗
+                            Pk -∗
+                              backend.viewAt γ vd -∗
+                                backend.pvHalf γ vd -∗
+                                  backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.ckHalf γ v -∗ ⌜Q vd d r v⌝) -∗
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗
                     backend.bOpen γ qo ∗
                       R ∗
                         backend.fkRd γ P (D, { bks := ∅, ver := W64 0 }) ∗
-                          ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)⌝ -∗
+                          ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D) (backend.fkVals D)⌝ -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType (intoVal sp)))) -∗
