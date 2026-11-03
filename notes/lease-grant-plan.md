@@ -1353,9 +1353,25 @@ KV names at `lg`, the post `γk.lg = lg` and `if lg then True else etcdKV …` (
 `kvInv_alloc_boot`'s gated post); the callers simplify it at `false`. Mechanical: a default
 argument rather than a `_false` corollary (the callers' text is unchanged).
 
-**Where the plumbing stopped** (2026-11-03): 3b, 4a and 4b done (above); (E') found false (above),
-waiting on the user's decision; then `applyResultIs_notNoSpace_M`'s grant case, the rest of commit
-4, and commit 5.
+**Commit 5a: `v3rpc.lessorGrantOkL_of_server` proved** (2.4; 2026-11-03, statement unchanged, over
+`EtcdServer.LeaseGrant.spec` as a hypothesis, so independent of commit 4's rest). Mechanical: the
+theorem moved from `api/v3rpc/InvLeaseGrant.lean` (kept: the definition `lessorGrantOkL`, imported
+by the client's `InvLease`) to a new `api/v3rpc/ServerLeaseGrant.lean` (as `ServerLeaseRead.lean`),
+because its proof needs `srvErrIs_of_applyErrIs` (`ServerKV`, over `ModeSpecs`), which the client
+side should not import; `common/ServedLeaseGrant.lean` imports the new module.
+- *Found for the rest of commit 5:* `kv_lease_served` at `lg = true` needs the Lease service's
+  `LeaseGrant` and `LeaseLeases` handlers registered at `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`
+  (`etcdLeaseGrantAt`); no such served-level theorem exists yet (the lease reads have
+  `client.etcd_leaseReadMethodsOk` over `raftLeaseRead`; the grant needs its analogue over
+  `lessorGrantOkL`, and `LeaseLeases` one at the lessor's history `E.γ.leases`). That is the next
+  piece of 2.2, before `alloc1 true` and `leasegrant.Main.wp_proof`.
+
+**Where the plumbing stopped** (2026-11-03): 3b, 4a-4d and 5a done (above); (E') found false
+(above), waiting on the user's decision. Left: (E') as decided and `applyResultIs_notNoSpace_M`'s
+grant case; the rest of commit 4 (`kvInv` at `plainLogM γk.cmp γk.lg`, `reqPropOk`'s grant disjunct,
+`kv_prop_au_grant`, on `lease-grant-4-wip`; M1's lemmas at `lg`; `applyEntryNormal`'s grant arm;
+`EtcdServer.LeaseGrant.wp_proof`); commit 5's rest (the Lease service's grant/listing handlers at
+the lessor's history, `kv_lease_served lg`, `alloc1 true`, `leasegrant.Main.wp_proof`).
 
 **`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
 argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's

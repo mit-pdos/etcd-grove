@@ -20,7 +20,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.ServedLease
 public import Proof.go_etcd_io.etcd.client.v3.InvLeaseGrant
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseGrant
 
 @[expose] public section
 

@@ -5,13 +5,14 @@ lease-grant plan's D4, 2026-11-02, `notes/lease-grant-plan.md`). Lean-first (no 
 A sibling of `raftLessor`'s grant conjunct `lessorGrantOk` (left as it is: a premise of the served
 theorems), at the same request (its `TTL` read-only, `leaseGrantReqIs`, its `ID` owned,
 `leaseGrantReqIdOwn`: `LeaseGrant` writes it, `v3_server.go:436-439`; the wire model's `recvOwn`
-since 2026-11-02), with the answer carrying the lease's grant in the lessor's history. `lessorGrantOkL_of_server` derives it
-from `EtcdServer.LeaseGrant.spec` in a cluster that grants leases (not proved: Draft).
+since 2026-11-02), with the answer carrying the lease's grant in the lessor's history. `lessorGrantOkL_of_server`
+(`ServerLeaseGrant.lean`) derives it from `EtcdServer.LeaseGrant.spec` in a cluster that grants
+leases.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseGrant
 
 @[expose] public section
 
@@ -52,29 +53,6 @@ instance lessorGrantOkL_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF) 
   unfold lessorGrantOkL; infer_instance
 
 end defs
-
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-
-/-- **The server's `LeaseGrant` meets `lessorGrantOkL`** in a cluster that grants leases, given the
-run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.spec`'s). Not proved
-(Draft): the header's answer (`leaseHdrAns`: the revision reached, `etcdReached_of_certOk` from
-`leaseGrantedResp`'s `srvRevLb`; the four id fields from its `txn.respHdrOwn`) and the run's
-context (`grpcRunCtx`). -/
-theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
-      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkL s E S := by
-  sorry
-
-end proof
 
 end v3rpc
 end EtcdGrove
