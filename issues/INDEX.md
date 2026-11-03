@@ -62,7 +62,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (20)
+## Reported by others (21)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -79,6 +79,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [recipes: Barrier.Wait reports the barrier released when its watch closes while the barrier is still held](recipes-barrier-wait-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [recipes: Queue.Dequeue panics when its watch closes](recipes-dequeue-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
+| [bbolt: `DeleteBucket` leaks a nested bucket's pages when the bucket was written in the same transaction](bbolt-deletebucket-nested-leak.md) | no | etcd-io/bbolt#1305 pr open |
 | [etcdserver: after a member installs a leader's snapshot it refuses every write with "too many requests" until another write commits](etcd-applied-index-stale-after-snapshot.md) | no | etcd-io/etcd#22516 issue open; etcd-io/etcd#22510 pr open; etcd-io/etcd#22528 issue open; etcd-io/etcd#22524 issue open |
 | [auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key](etcd-auth-grant-permission-same-key.md) | no | etcd-io/etcd#21845 pr open |
 | [rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it](etcd-rafthttp-stream-dial-bad-server-version-panic.md) | no | etcd-io/etcd#21829 pr open; etcd-io/etcd#22261 pr open; etcd-io/etcd#21839 pr merged |
