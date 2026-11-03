@@ -248,3 +248,83 @@ and its invariants (frozen, this note); then each client package's specs restate
 theorems) and their invariants (the server's holding `mvccState`, `v3rpc`'s sharing `wsState`), each
 reviewed; a gap found there that needs a stronger mvcc spec reopens the API before the proof, not
 during it. Then the proofs, mvcc first.
+
+## Hand-off: the parallel internals' invariants (2026-11-03, stage 1)
+
+**Built** (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/`, no `sorry`, no axiom; today's
+modules untouched):
+- `Ghost.lean`: `AbsNames` (`abs`, `pnd`, `crevLb`, `tok`, and `frz`, the writer's frozen flag);
+  `absPart`/`pndPart` (agree, update with two shares making 1), `crevAuth`/`crevAtLeast`,
+  `shareTok` (`shareTok_excl`), `absNames_alloc` (all of them at a new store, the flag down).
+- `InvStoreX.lean`: today's bodies with a **slot**, every lemma over them restated for any slot
+  (today's proofs, carrying it): `revMuBodyLX`/`revMuBodyX` (slot `X q log c`),
+  `revMuBodyLX_fractional`, `_of`, `_noLag`, `_mu`, `_wsd`; `revMuCurX`, `revMuInvX` (restoring:
+  the counters only, the slot's part the restorer's), `_fractional`, `revMuInvX_open`, `_open_pin`,
+  `_open_cur`, `_closeL`, `_close`, `_open_held`, `_open_share`; `writerLX` (slot `Y ilog`);
+  `writerInvBodyX s γ Y F Fr fz` (in/out with the flag whole and down; **frozen**: the flag half up
+  and `F` deposited; restoring: with `Fr` deposited and the flag down), `writerInvX_checkout`/
+  `_checkin` (the writer holds `G`, `F ∗ G ⊢ False`), `writerInvX_freeze`/`_thaw` (the freezer
+  takes `writerTaken`: the state, or the open writer's key); `isStoreX` and `_withPhys`. **The
+  API's instance**: `revMuAbs a q L c` (¼q of the view and of the compaction authority),
+  `writerAbs a pw L` (¼ of the view, `pw` of the pending revision at `none`; `pndW γ`: ¼ watched,
+  ½ plain), `isStoreA s γ a` (`F = Fr = shareTok a 1`, flag `a.frz`), `revMuInvA_fractional`.
+- `InvWatchX.lean`: `watchStoreInvX s γ Z q` (slot `Z q σ`), `_fractional` (with today's
+  `ownIvt_split` hypothesis), `isWatchableStoreX`, `revMuInvX_open_ws`; **the API's instance**
+  `wsAbs a q σ` (¼q of the pending revision, agreeing with `σ.Lmu`'s last revision: `pndOk`),
+  `isWatchableStoreA`; `watchStreamInvX`/`isWatchStreamX` (slot `Z nextID closed WM`); the stream's
+  countable ghost (`StreamAbsNames`: `sst`, `reg`, `dead`; `WInfoC`, `RegC`, `wrC`; `winfoIs`, a
+  watcher's info against its countable part and saved filters) and the first-cut instance
+  `streamAbs` (¼ of `ι.sst` at the mutex's closed flag, ½ of the registry's and the cancelled
+  set's authorities), `isWatchStreamA`.
+
+**Scope, corrected.** Not only the five proofs whose statements change: a lock's invariant is
+fixed at its creation, so **every proof that opens `s.revMu`, the writer's invariant, the watchable
+store's `s.mu` or a stream's `ws.mu`** is redone over the slotted invariants (today's proofs over
+`isStore`/`isWatchableStore` do not apply to `isStoreA`/`isWatchableStoreA`). Those that open them
+(today's files): `store__Read`, `store__Write`, `storeTxnWrite__End`, `metricsTxnWrite__End`,
+`store__updateCompactRev`, `store__Restore`, `RestoreMoves`, `RestoreOn`, `NewStore`, `ReaderSpecs`,
+`InvCompact` (lemmas), `InvWatchStore` (lemmas), `watchableStore__watch`, `__syncWatchers`,
+`__moveVictims`, and those of `watchStoreInv` (`watchableStoreTxnWrite__End`, `__cancelWatcher`,
+`__progressIfSync`, `__syncWatchersLoop`, `__syncVictimsLoop`, `__Restore`, `newWatchableStore`,
+`NewWatchableLemmas`) and of `watchStreamInv` (the stream's methods). The other 45-odd files that
+only take `isStore`/`isWatchableStore` as a premise port by renaming (`isStoreX` has `isStore`'s
+named conjuncts). Most proofs carry the slot untouched: they can be proved for **any slot**
+(generic `X Y F Fr fz Z`), as the lemmas here are, and only the steps below need the instance.
+
+**Per proof: the new invariants, lemmas and ghost updates** (§3's table):
+- **`storeTxnWrite.End`** (and the plain store's `End`): `writerInvX_checkin` with `G :=
+  shareTok a q` (its backend share); at the bump under `s.revMu` (`revMuInvX_open_held`, the
+  body `revMuBodyX` at `log`): `absPart_update` with the lock's ¼ (`revMuAbs`), the writer's ¼
+  (`writerAbs`, in the transaction's hands) and the client's ½ (the update's), to `(log ++ [pend],
+  c)`; `pndPart_update` back to `none` (the client's ½, the writer's `pndW`, a watched store's
+  `wsAbs` ¼ under `s.mu`); the notify step (watchable `End`, `watchStoreInvX` at `σ.Lmu`):
+  `pndPart_update` to `some pend` with `pndOk` from the notified log; the receipt from the writer's
+  `⧖ (logCh ilog + pend.length)`.
+- **`store.updateCompactRev`** (`Compact`): under `s.mu`, `s.revMu` exclusive, `writerInvX` open (the
+  writer's state in: the flag down; frozen excluded by its share): `absPart_update` (lock ¼, writer
+  ¼, client ½) to `(log, c')`; `crevAuth_update` with the lock's ¼, the compaction right's ¼ and the
+  client's ½ (`crevAtLeast` minted).
+- **`store.Restore` / `RestoreMoves`** (`restore_takeover`, `restore_switch`, `restore_finish`): the
+  takeover moves the writer's invariant to its restoring state, depositing `Fr := shareTok a 1`
+  (the restorer's whole share; a frozen state is excluded by it) with the flag down, and takes
+  `writerAbs`'s and `revMuAbs`'s parts out (`revMuInvX` restoring holds the counters only); at the
+  switch, `absPart_update` whole to `(σ'.log, σ'.crev)`, `crevAuth_update`, the pending revision at
+  `none`; the finish returns `Fr`.
+- **`watchableStore.watch`**: under `s.mu` (`watchStoreInvX`) and `ws.mu` (`watchStreamInvX`):
+  agreement of the client's view with `revMuAbs` (the read revision), `pndOk`'s `none`; the
+  registration: `ι.sst` updated (¾ client, ¼ `streamAbs`), a registry element minted
+  (`ghostMapElem ι.reg id .discard e`, with `savedFilters_alloc`), the tie of `streamAbs` to `WM`
+  strengthened as the proof needs (the first cut ties only `closed`).
+- **`NewStore`** (and `newWatchableStore`, `NewWatchStream`): `absNames_alloc` at `mvccStart`
+  (`absPart 1`, split ½ client, ¼ `revMuAbs`, ¼ `writerAbs`; `pndPart 1` split ½ client and
+  `pndW`/`wsAbs`; `crevAuth 1` split ½ client, ¼ compaction right, ¼ `revMuAbs`; `shareTok 1` to the
+  client's `mvccBackend`; `frz` whole in `writerInvBodyX`), the locks created at
+  `revMuInvX`/`watchStoreInvX`/`watchStreamInvX` (`revMuInvA_fractional`,
+  `watchStoreInvX_fractional` with `wsAbs_fractional`); the stream's `StreamAbsNames` allocated at
+  `NewWatchStream`.
+- **The snapshot law** (`mvccImage_snapshot.law`, stage 2): `writerInvX_freeze` with `F :=
+  shareTok a 1` (`hFr`, `hFF`: `shareTok_excl`), the observation from `writerTaken`'s `writerLX`
+  (its `γ.wv` half agrees with `W`'s; its `writerAbs` with the client's `σ`), `writerInvX_thaw`.
+
+**Not done here**: `ι.rcv` (the consumer's view, re-split in the channel invariant, §1) and the
+read-only proofs' ports.
