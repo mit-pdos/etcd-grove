@@ -234,7 +234,12 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
         isCommittedLogLb γ (st.delivered ++ ce) ∗
           (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
             readyRest γ N id rd st ce es h L ms ss ∗
-              readyLeaderMsgs γ N id st ms ss ∗ readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+              readyLeaderMsgs γ N id st ms ss ∗
+                readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+                  deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+                    (⌜phsNext st.hardState h = hsZero⌝ ∨
+                      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+                        ⌜↑(st.afterReady ce es h L ss).delivered.length ≤ uint.Z (phsNext st.hardState h).Commit'⌝))
 
 theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err

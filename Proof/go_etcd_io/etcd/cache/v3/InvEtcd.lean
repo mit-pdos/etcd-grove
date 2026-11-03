@@ -371,6 +371,32 @@ instance isEtcdKvs_persistent (rev : w64) (pfx : GoString) (m : KvMap) :
     Persistent (isEtcdKvs (GF := GF) rev pfx m) := by
   unfold isEtcdKvs; infer_instance
 
+omit EM package_sem in
+/-- The `i`th `*KeyValue` of `m` holds the `i`th key-value of `s`. -/
+theorem kvValsAt_at (m : KvMap) (s : List EtcdKv) (i : Nat) (e : KvEntry) (v : EtcdKv)
+    (hm : m[i]? = some e) (hs : s[i]? = some v) :
+    kvValsAt (GF := GF) m s ⊢ kvValAt e.2 v := by
+  unfold kvValsAt
+  iintro #H
+  iapply H $$ %i %e %v %hm %hs
+
+omit package_sem in
+/-- **What `isEtcdKvs` gives a client**: etcd's state `s` at `rev` under `pfx`, of `m`'s length,
+every key of `m` under `pfx`, and `m`'s `*KeyValue`s holding `s`'s key-values in order. -/
+theorem isEtcdKvs_elim (rev : w64) (pfx : GoString) (m : KvMap) :
+    isEtcdKvs (GF := GF) rev pfx m ⊢
+      ∃ s : List EtcdKv, □ etcdState rev pfx s ∗
+        ⌜m.length = s.length ∧ ∀ e ∈ m, pfx <+: e.1⌝ ∗ kvValsAt m s := by
+  unfold isEtcdKvs
+  iintro ⟨%s, #Hst, %Hk, %Hwf, #Hv⟩
+  iexists s
+  iframe Hst Hv
+  ipureintro
+  refine ⟨by have := congrArg List.length Hk; simpa using this, fun e he => ?_⟩
+  have hk : e.1 ∈ s.map EtcdKv.key := by rw [← Hk]; exact List.mem_map_of_mem he
+  obtain ⟨v, hv, hve⟩ := List.mem_map.1 hk
+  rw [← hve]; exact Hwf.2 v hv
+
 omit EM in
 /-- The events `evs` (as the store reads them) are etcd's events `cs`, pointwise: the same type,
 key and revision, and each event's `*KeyValue` holds etcd's key-value (`kvValAt`). -/

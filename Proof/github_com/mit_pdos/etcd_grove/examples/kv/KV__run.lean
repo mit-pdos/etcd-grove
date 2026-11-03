@@ -245,7 +245,7 @@ theorem KV.run.wp_proof
   wp_apply node.wp_readyRecv n ch γr.cluster kvRaftN id _ rfl $$ [$Hch $HisNode $Hdrv]
     as %rdv' Hgot
   iunfold readyGot at Hgot
-  icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter⟩
+  icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter, -, -⟩
   iunfold readyEnter at Henter
   imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
   ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest

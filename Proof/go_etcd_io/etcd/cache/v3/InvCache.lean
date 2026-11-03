@@ -356,13 +356,6 @@ theorem initCore_ok (pfx : GoString) (cap : Nat) (c : DemuxCore) (rev : w64)
 
 end tail
 
-/-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
-watcher's consumer is in the stream. -/
-def lastEvRevOr (L : List RespModel) (dflt : Int) : Int :=
-  match (eventsOf L).getLast? with
-  | some e => sint.Z e.rev
-  | none => dflt
-
 /-- The ghost names of the channel `Cache.Watch` returns: the channel's (an SPSC channel:
 `Watch`'s goroutine produces, the caller consumes) and the log of the responses sent on it
 (`fwd`, a monotone list). -/
@@ -1566,6 +1559,60 @@ def cacheGetResult (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp
     (key : GoString) (o : OpModel) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜resp = null⌝ ∗ cacheGetErr cf r0 s key o err) ∨
     (⌜err = GoInterface.nil⌝ ∗ cacheGetOk cf r0 key o resp))
+
+/-- **`Cache.Get`'s result, by cases**: an error (with a `nil` response), or an answer (with a
+`nil` error). -/
+theorem cacheGetResult_cases (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF))
+    (key : GoString) (o : OpModel) (resp : Loc) (err : GoInterface) :
+    cacheGetResult (GF := GF) cf r0 s key o resp err ⊢
+      (⌜resp = null⌝ ∗ cacheGetErr cf r0 s key o err) ∨
+      (⌜err = GoInterface.nil⌝ ∗ cacheGetOk cf r0 key o resp) := by
+  unfold cacheGetResult
+  iintro H
+  iexact H
+
+/-- **`Cache.Get`'s errors are non-nil**: each is a fixed non-nil error of the cache's or
+`rpctypes`' package (their facts), or one the spec says is non-nil. -/
+theorem cacheGetErr_ne_nil (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF))
+    (key : GoString) (o : OpModel) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes -∗
+      cacheGetErr cf r0 s key o err -∗ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #Hpkg #Hrpc Herr
+  ihave Hci : (cacheInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
+  ihave Hri : (rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hrpc
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, -, -⟩
+  unfold cacheGetErr
+  icases Herr with (⟨%h, -⟩ | %h | ⟨-, #H⟩ | %h | ⟨-, #H, -⟩ | ⟨-, #H⟩ | ⟨%st, -, #Hse, %Hno⟩)
+  · ipureintro; exact h
+  · ipureintro; exact h.2
+  · icombine H HeKR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · ipureintro; exact h.2
+  · icombine H HeFR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · icombine H HeCT gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · iapply snapErr_ne_nil _ err Hno $$ Hpkg Hrpc Hse
+
+/-- **`Cache.Get`'s answer at a revision asked for** (`o.rev ≠ 0`): the response's `Kvs` are the
+key-values of etcd's state at `o.rev` under the cache's prefix (`isEtcdKvs`), in the range asked
+for. -/
+theorem cacheGetOk_rev (cf : CacheFields) (r0 : w64) (key : GoString) (o : OpModel) (resp : Loc)
+    (h : o.rev ≠ W64 0) :
+    cacheGetOk cf r0 key o resp ⊢
+      ∃ (hdr : Loc) (kvsSl : GoSlice) (m : KvMap),
+        resp ↦ getRespVal hdr kvsSl (W64 (kvRange key o.rangeEnd m).length) ∗
+        kvsSl ↦* ((kvRange key o.rangeEnd m).map Prod.snd) ∗
+        ownSliceCap Loc kvsSl (DFrac.own 1) ∗ isEtcdKvs (GF := GF) o.rev cf.pfx m := by
+  unfold cacheGetOk
+  iintro ⟨%hdr, %kvsSl, %st, %r, %m, Hresp, -, Hkvs, Hcap, -, Hst, -⟩
+  rw [if_neg h]
+  iexists hdr, kvsSl, m
+  iframe
 
 end cache
 

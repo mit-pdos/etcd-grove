@@ -29,7 +29,10 @@ from the session).
 
 **The fork's fix** (branch `goose-lean-walsnap`, with
 `nonissues/etcd-wal-stale-entries-above-snapshot.md`'s): `recoverSnapshot` opens the WAL at the
-valid snapshot record of the highest index, so that a later record of a lower index is ignored.
+valid snapshot record of the highest index, so that a later record of a lower index is ignored. `323320bb8` does the same in `LatestSnapshotEntry`, which `storage.MinimalEtcdVersion` reopens at
+(reached only by a downgrade's check): reopened at the older record, `ReadAll` could meet the
+received snapshot's later entries past a gap and fail (`ErrSliceOutOfRange`), and
+`MinimalEtcdVersion` panics on it.
 
 ## Proof
 

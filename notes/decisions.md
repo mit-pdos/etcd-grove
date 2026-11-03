@@ -30549,3 +30549,92 @@ recorded here and in `notes/STATUS.md` for the user's decision, none fixed on th
   caller's `dir`, the shape `%HN` had; it belongs in the precondition.
 - Minor: `srvFiles`' docstring says the last snapshot record (Go takes the highest-index valid
   one); `NewServer.spec`'s new pure premises written as implications, as its others are.
+
+## Laws in place of cross-module unfolds: the cache's Get, the adapter, the store watcher (2026-11-03 · the user's "go ahead with the unfold follow-ups")
+
+The follow-ups of "cachekv checks a progress notification" and of the cache's `Get` at the
+requested revision: consumers stop unfolding predicates of other modules (the user's principle,
+`.claude/skills/spec/PRINCIPLES.md`), each through a law beside the definition. No statement of a
+result changed.
+
+- **The cache's `Get`** (`InvCache`): `cacheGetResult_cases`; `cacheGetOk_rev` (at `o.rev ≠ 0`,
+  the response's `Kvs` and `isEtcdKvs o.rev`, dropping the store's facts no client uses);
+  `cacheGetErr_ne_nil` (moved from `cachekv/GetFacts.lean`), over `snapErr_ne_nil` (`InvStore`).
+  `isEtcdKvs_elim` and `kvValsAt_at` (`InvEtcd`): the state, `m`'s length and keys under the prefix,
+  the values (not `EtcdStateWf`, which no client needs).
+- **The adapter** (`client/v3/EtcdModelKV`): `kmLog_W` (a log the client saw is a prefix of
+  changes satisfying `γ.W`, the one use of `kmInv` the examples made), `kmLog_lb` (its lower bound
+  of `γ.ch`, the representation `kmRevAt`, `kmWriteQ` and `kmReachedAt` already share),
+  `kmLog_getElem`, `kmEtcdState_elim`, `kmStep_elim`. `common.kmRevAt` keeps its definition (over
+  the lower bound: `okFactKM_of_write` has only `kmWriteQ`'s, not a `kmLog`; *rejected:* redefining
+  it over `kmLog`), with `kmRevAt_of_log` and `kmRevAt_log` beside it. Users: `getCheck_km`,
+  `km_step_log` (`cachekv`), `wkSteps_km` (`linkv3p`).
+- **The store watcher** (`Cache.applyStorage`): `storeW_chain`/`storeW_quiet` unfolded the
+  demux's publication; they are facts of an unfiltered publication, so they moved to `InvDemux` as
+  `demuxPubBody_next_chain`/`demuxPubBody_next_quiet` (with `lastEvRevOr` and the pure batch lemmas
+  they use), and `storeW_revCerts` uses a new `demuxPubBody_evProg` (every event published has its
+  batch's `C.prog`). *Rejected:* deriving `storeW_quiet` from `pub_progressQuiet` (round 2's
+  suggestion): moving the proof is shorter and needs no new reasoning.
+
+Left (not in the follow-ups; the same kind): unfolds of other modules' predicates elsewhere in the
+examples (`linkv3p/WatchKV.lean`'s `watchChain`, `etcdStepCertBody`, `evsMatch`, `kmWriteQ`;
+`cachekv`'s `CacheFacts`, `collect`, `awaitProgress`, `NoDup`, `Main`), and pure functions'
+unfolds, which the principle does not cover.
+
+## The WAL's API (2026-11-03 · the user's request for a spec-first pass, and approval of candidate 3)
+
+**Before:** the WAL's contract grew one piece at a time: `isRNWal` (`InvRaftNode.lean`: `Save`, then
+`SaveSnap`, `Sync`, the open token and `Close`'s I/O premise, 2026-10-31), the tokens and premises in
+`storage/InvOpen.lean`, `bootOk`'s open WAL, `Release`'s own spec, and R2b-1's draft records
+(`InvWal.lean`). None of it said what the WAL holds, which a restart reads. The user asked for the
+whole API through the spec-first approach before R2b-1's proof.
+
+**The API** (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`, both sealed by `etc/import-all.txt`):
+the records `walRecs w σ` (what `ReadAll` returns at the restart's snapshot record) and their model
+(`walSave`, `walSaveSnap`, `walFresh`), the base's lower bounds (`walBaseLb`), a WAL directory's
+state (`walDirFresh`, `walFiles`: one ghost variable per directory), the purge's right
+(`walPurgeRight`), the contract `isWalStorage` over the server's storage (sealed, one law per
+operation: `Save` as two atomic updates, saved or on an error some records; `SaveSnap`; `Sync`;
+`Close` making the files), and `walOpened`, what `bootstrap` gives.
+
+**Reviews:** round 1, a `spec-reviewer` and the `axiom` skill, which refuted candidate 1 with Go
+tests: a restart at a received snapshot named its next WAL file below the snapshot, and a later
+restart could fail once the purge removed the file with the record (fixed on the fork, `323320bb8`;
+`nonissues/etcd-wal-restart-file-below-snapshot.md`), and two cases the server never issues
+(`Close` with a received snapshot's `Save` pending; `SaveSnap` at the base's index with another
+term), now excluded by premises. Round 2 (a `spec-reviewer`): the WAL directory is opaque
+(`config.walDirOf dataDir dedicated`: a concatenated string was false), `Close` needs the purge
+stopped (`walPurgeRight`: `Close` releases every lock), the directory's state is a ghost variable
+(timeless, one per directory), the module sealed mechanically, and every change to a trusted
+statement listed.
+
+**Approved by the user (2026-11-03), to land with R2b-1's proof:** (1) `NewStorage`'s contract
+(`rnNewStorageOk`) gives `isWalStorage` in place of `isRNWal`; (2) `bootstrap`'s first start takes
+`walDirFresh` and gives `walOpened … walFresh` and `walPurgeRight`, the restart contract takes
+`walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope: `ForceNewCluster` off, a decision:
+with it `bootstrap` writes conf entries to the WAL itself); (3) `srvFiles` is `∃ cid, walFiles
+(config.walDirOf dd "") id cid σ ∗` the backend file; (4) `storage.Release` takes `walBaseLb` (the
+received snapshot's `notifyc` then carries it); (5) `purgeFile` takes and returns `walPurgeRight`;
+(6) the examples' members start with their WAL directories fresh (`walDirFresh`, a new premise).
+Out of the API: `MinimalEtcdVersion` (a downgrade's check; its `Reopen` also opens a purge window,
+code reading), `wal.Repair`, `UnsafeNoFsync`.
+
+**Why not incremental:** each piece added alone had been reviewed against its one client; together
+they said nothing about the files a restart reads, and three of the WAL's own bugs (two found while
+drafting R2b-1, one by the API's axiom review) were invisible until the records were modelled.
+
+## Raft's receive gives the delivered log and the committed hard state before *enter* (2026-11-03 · the restart plan's R2b-1 stage 1)
+
+`readyGot` (raft's API, `InvNode.lean`; `readyPost` in `InvApi.lean`) gains two persistent
+conjuncts: `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed
+fact (`⌜phsNext … = hsZero⌝ ∨ committedAtTerm …`). Until now a client got both only from the
+entered driver (`nodeDriver_deliveredLogLb`, `nodeDriver_hardStateCommitted`), after *enter*. A
+client that enters a batch at its disk write needs them before: etcd's server hands the committed
+entries to its apply thread (`applyc`, `rnApN`: `deliveredLogLb (F ++ ce)`, the new term's
+`rnRtOk`) before the WAL `Save`, where R2b-1 moves *enter* so that a stop between the receive and
+the `Save` leaves the node's durable state the WAL's. Raft's proof had both, persistent, where it
+builds *enter* (`readyRecv_open`: `isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`);
+`deliveredLogLb`'s implementation moved from `InvApiView` to `InvApi` for `readyPost` to name it.
+The four clients that destructure `readyGot` (the server's `rn_ready_recv`, `kv`, `kvreconf`,
+`kvdurable`) drop the two new conjuncts. The `isCommittedLogLb (delivered ++ ce)` conjunct, which
+the new `deliveredLogLb` implies, stays (dropping it would move every client's pattern for nothing).

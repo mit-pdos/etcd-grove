@@ -2141,6 +2141,26 @@ def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : Nod
       raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
+-- (2026-11-03, R2b-1 stage 1: moved here from `InvApiView`, for `readyPost`)
+/-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
+raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
+def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
+  iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
+    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ n γn) ∗ dlvLb γn ds) ∗
+    isCommittedLogLb γ l)
+
+instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    Persistent (deliveredLogLb (GF := GF) n γ N l) := by
+  unfold deliveredLogLb; infer_instance
+
+theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p : HardStateM) (L : Option SnapLoan) :
+    nodeDriverBusy (GF := GF) γn id n ds es p L ⊢
+      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
+  unfold nodeDriverBusy
+  iintro ⟨#Hn, #Hlb, Hr⟩
+  iframe Hn Hlb Hr
+
 /-- What receiving a `Ready` gives (the draft's `readyGot`, `node.readyRecv.spec`'s
 postcondition). -/
 abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
@@ -2153,7 +2173,11 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
       [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
     readyRest γ N id rd st ce es h L ms ss ∗
     (⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms) ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    -- (2026-11-03, R2b-1 stage 1) the delivered log after the `Ready` and its hard state's
+    -- committed fact, without *enter*: a client that enters at its disk write needs them before
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length)
 
 /-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
 abbrev node.readyRecv.spec : Prop :=
@@ -2572,6 +2596,16 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       rw [this, Hlen]; push_cast; omega
     ihave #Hlb' : isCommittedLogLb γ (st.delivered ++ strip ce) $$ []
     · rw [← Hds, ← strip_append]; iexact Hlb
+    -- (2026-11-03, R2b-1 stage 1) the delivered log's lower bound, before *enter* takes the token
+    ihave ⟨Hbusy, #Hdlbn⟩ : nodeDriverBusy γn γn.id n (dlvAfter ds ce none) es p' none ∗
+        dlvLb γn (dlvAfter ds ce none) $$ [Hbusy]
+    · iunfold nodeDriverBusy at Hbusy
+      icases Hbusy with ⟨#Hbn, #Hdlb, Hbr⟩
+      iframe Hdlb
+      unfold nodeDriverBusy
+      iframe Hbn Hdlb Hbr
+    ihave #Hdlbn' : dlvLb γn (ds ++ ce) $$ []
+    · iExactEq Hdlbn; rfl
     ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
       ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
       (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
@@ -2632,7 +2666,21 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         rfl
     isplitr
     · iexact Hlm
-    iexact Henter
+    isplitl [Henter]
+    · iexact Henter
+    -- (2026-11-03, R2b-1 stage 1) the delivered log and the hard state's committed fact
+    isplitr
+    · iunfold deliveredLogLb
+      isplitr
+      · iexists γn, γn.id, ds ++ ce
+        iframe Hnode Hdlbn'
+        isplitr
+        · ipureintro; exact ⟨Hnok, by rw [strip_append, Hds]; rfl⟩
+        iright; iexact Htab
+      · iExactEq Hlb'; rfl
+    · iExactEq Hhc
+      rw [Hp']
+      simp only [NodeDriverState.afterReady, List.length_append, strip_length, Hlen]
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
@@ -2735,7 +2783,21 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       ipureintro; rw [← Hγr]; exact Hbl
     isplitr
     · iexact Hlm
-    iexact Henter
+    isplitl [Henter]
+    · iexact Henter
+    -- (2026-11-03, R2b-1 stage 1) the delivered log and the hard state's committed fact
+    isplitr
+    · iunfold deliveredLogLb
+      isplitr
+      · iexists γn, γn.id, l.dlv
+        iframe Hnode Hdlb
+        isplitr
+        · ipureintro; exact ⟨Hnok, rfl⟩
+        iright; iexact Htab
+      · iExactEq Hlbd; rfl
+    · iExactEq Hhc
+      rw [Hp']
+      simp only [NodeDriverState.afterReady, strip_length]
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N id0 st Hh
