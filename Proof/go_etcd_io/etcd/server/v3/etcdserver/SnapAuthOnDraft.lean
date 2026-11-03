@@ -250,11 +250,14 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
 
 /-- **The states of the committed log's history are well formed** (pure; the catch-up needs them:
 `authHist` keeps `permKeysOk` of every state, `Recover` the image state's `permsFit`, the fuel
-its size and a revision bound). Statement only: to check against the model's admin steps (the
+its size and a revision bound), of a mode-on log (`plainLogOn`; review R1's F2: without it false,
+the model's `userAddF` refusing only the empty name while `authSmall` bounds names by `maxKeySize`;
+`adminKindOk` bounds them). Statement only: to check against the model's admin steps (the
 grant step's `isValidPermissionRange`, `StepSmall` of the eleven steps). The revision is `1` plus
 the number of state-changing admin entries, so at most the log's length plus one (review round 1's
 F3: `< 2^61` is false of `2^61 - 1` distinct `UserAdd`s). -/
-theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 ^ 61) :
+theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 ^ 61)
+    (hp : plainLogOn A') :
     (∀ x ∈ srvHist γk A', auth.permKeysOk x) ∧
       auth.permsFit (srvAuthAtLog γk srvAuthSt0 A') ∧
       auth.authSmall (srvAuthAtLog γk srvAuthSt0 A') ∧
@@ -681,6 +684,17 @@ instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : 
     Persistent (authWAtHook (GF := GF) γa d γc) := by
   unfold authWAtHook; infer_instance
 
+/-- **The auth store's readers backed by thread tokens** (decision 2 on the restated Draft, review
+R1's F4; in place of `actualMaxReaders` copies of `R` and of `R` lent against a backend reader's
+`bkRTx`): a thread's token lends it one reader resource `R` of the store, given back for the token.
+The realization borrows the current backend's reader slot from its pool (`backend.rdPool`, which
+the boot premise and the snapshot clause take). -/
+def authRdLoan (R : IProp GF) : IProp GF :=
+  iprop(□ (threadTok ={⊤}=∗ R ∗ (R ={⊤}=∗ threadTok)))
+
+instance authRdLoan_persistent (R : IProp GF) : Persistent (authRdLoan (GF := GF) R) := by
+  unfold authRdLoan; infer_instance
+
 /-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
 lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
@@ -695,15 +709,17 @@ def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
       (r : GMap GoString backend.BktData) (st : auth.AuthState),
     ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ablOn abl d.be lg -∗
+    -- (review R1's F5) the auth buckets in the backend's table, as `NewAuthStore.spec` takes them
+    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    backend.rbOwnIn d.γB authBkts r -∗ mvcc.bkRTx d.γB d.P d.be -∗ backend.bOpen d.γB authOpenQ -∗
+    backend.rbOwnIn d.γB authBkts r -∗ backend.rdPool d.γB d.P d.be -∗
+    backend.bOpen d.γB authOpenQ -∗
     auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗
     |==> ∃ γc : auth.AuthBkNames,
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ auth.authWTok γc ∗
-      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      R ∗ (R -∗ mvcc.bkRTx d.γB d.P d.be))
+      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ))
 
 instance authSchemaSnap_persistent (γa : auth.AuthNames) (R : IProp GF) :
     Persistent (authSchemaSnap (GF := GF) γa R) := by
@@ -735,8 +751,9 @@ def AonDraft.authSchemaSrv : IProp GF :=
     ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
       (r.lookup go!"authRoles").getD ∅ = ∅⌝ -∗
     ablOn abl d.be lg -∗
+    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
-    backend.bOpen d.γB authOpenQ -∗
+    backend.bOpen d.γB authOpenQ -∗ backend.rdPool d.γB d.P d.be -∗
     backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
     auth.authSucc γa -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
@@ -750,7 +767,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
       auth.authWTok γc ∗ auth.authPubTok γa ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       mvcc.csContract P f Pre Q Post ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), R) ∗
+      authRdLoan R ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
       authSchemaSnap γa R)
 
@@ -824,7 +841,8 @@ image's committed log `A'` extending `A`, the new backend `dn` opened with its h
 client's idle half of its auth buckets `r` holding `A'`'s state (`rbOwnIn … authBkts`; the install
 keeps the other buckets' half), its open share for the realization, and the snapshot clause at the
 store's `R`: after `Recover`, the store on the new backend (`authBeOn`), the apply thread's auth
-resource on it at `A'`'s state, the read token back,
+resource on it at `A'`'s state, the caller's thread token back (the reader `Recover` used, lent
+against it by `authRdLoan`; review R1's F4),
 and **the old backend's open share** (after an update: its release, for the close goroutine;
 decision 3c). -/
 abbrev authRecoverOn.spec : Prop :=
@@ -834,18 +852,21 @@ abbrev authRecoverOn.spec : Prop :=
   E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       authBeOn ast dO.be ∗ AonDraft.authApplyResPre (.on γa) ast sa dO RD ∗
-      AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗
+      AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ authRdLoan R ∗
       authHistTie E γr srvAuthSt0 ∗ srvRLogLb γr.raft A' ∗
-      ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61⌝ ∗
+      -- (review R1's F2) the image's committed log a mode-on log (`kvInvOn`'s), whose admin entries
+      -- are bounded (`adminKindOk`)
+      ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61 ∧ plainLogOn A'⌝ ∗
       ⌜lg ≠ null⌝ ∗ ablOn abl dn.be lg ∗
+      ⌜dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI⌝ ∗
       backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.plHookRO dn.γB f ∗ ⌜f ≠ func.nil⌝ ∗
-      backend.rbOwnIn dn.γB authBkts r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗
+      backend.rbOwnIn dn.γB authBkts r ∗ backend.rdPool dn.γB dn.P dn.be ∗ threadTok ∗
       backend.bOpen dn.γB authOpenQ ∗ ⌜authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r⌝ }}
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
-  {{ RET #(); |==> (authBeOn ast dn.be ∗
+  {{ RET #(); |={⊤}=> (authBeOn ast dn.be ∗
       AonDraft.authApplyResPre (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn RD ∗
-      mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bOpen dO.γB authOpenQ) }}
+      threadTok ∗ backend.bOpen dO.γB authOpenQ) }}
 
 end premise
 
@@ -867,10 +888,10 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
     authRecoverOn.spec (GF := GF) (hG := hG) := by
   intro ast abl lg dO dn W Pk f r γa R RD E γr A A' sa hM
   simp only [AonDraft.authApplyResPre]
-  iintro %Φ ⟨#Hpkg, Hbeon, Hres, #Hinv, #Hsnap, #Htie, #HA', %Hp, %Hlg, #Habl, #HisB, #Hhk,
-    %Hf, Hrb, Hrt, HbO, %Hbk⟩ HΦ
-  obtain ⟨hpre, hsa, hlen⟩ := Hp
-  obtain ⟨hk, hfit, hsmall, hrev⟩ := srvHist_wf γr.kv A' hlen
+  iintro %Φ ⟨#Hpkg, Hbeon, Hres, #Hinv, #Hsnap, #Hloan, #Htie, #HA', %Hp, %Hlg, #Habl, %Hhas,
+    #HisB, #Hhk, %Hf, Hrb, #Hpool, Htt, HbO, %Hbk⟩ HΦ
+  obtain ⟨hpre, hsa, hlen, hplain⟩ := Hp
+  obtain ⟨hk, hfit, hsmall, hrev⟩ := srvHist_wf γr.kv A' hlen hplain
   icases Hres with ⟨%hs, %P0, %f0, %γc₀, %be, %b, Hown, Hfu, Htr, -, HTh, Hpub,
     #Hlife, -, #Hsteps, Htp, %Hlast⟩
   iunfold auth.authWHeld at HTh
@@ -897,12 +918,16 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   -- the snapshot clause at the new backend
   ihave #Hsn := Hsnap
   iunfold authSchemaSnap at Hsn
-  imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl HisB Hhk
-      [] Hrb Hrt HbO Hlk Hsucc
-    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife', HR, HRb⟩
+  imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl [] HisB Hhk
+      [] Hrb Hpool HbO Hlk Hsucc
+    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife'⟩
   · ipureintro; exact Hlg
   · ipureintro; exact Hbk
+  · ipureintro; exact Hhas
   · ipureintro; exact Hf
+  -- a reader resource of the store, lent against the thread token
+  iunfold authRdLoan at Hloan
+  imod Hloan $$ Htt with ⟨HR, HRb⟩
   -- `Recover`
   iunfold authBeOn at Hbeon
   icases Hbeon with ⟨%abl0, %lg0, -, Hbe, -, -⟩
@@ -930,10 +955,11 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   iunfold auth.recoverOut at Hout
   icases Hout with ⟨HT', Hbk', HCu0⟩
   iapply HΦ
+  -- the reader given back for the thread token
+  imod HRb $$ HR with Hrt
   -- the old backend released: its open share and the publication quarter back
   imod Hrel0 $$ [Hrtd HCu0] with ⟨HoO, Hpub⟩
   · iframe Hrtd HCu0
-  ihave Hrt := HRb $$ HR
   imodintro
   iframe Hrt HoO
   isplitl [Hbe]
@@ -982,7 +1008,8 @@ round the draft took the invariant and the clause at `RD` itself: a bug of the d
 `authStoreKit_on` builds it.) -/
 def srvAuthSnapOk (s : Loc) (γa : auth.AuthNames) (RD : IProp GF) : IProp GF :=
   iprop(∃ (ast : Loc) (R : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface ast ∗
-    AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ ⌜RD = auth.authRd ast R (.on γa)⌝)
+    AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ authRdLoan R ∗
+    ⌜RD = auth.authRd ast R (.on γa)⌝)
 
 instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp GF) :
     Persistent (srvAuthSnapOk (GF := GF) s γa RD) := by
