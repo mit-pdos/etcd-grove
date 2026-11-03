@@ -75,7 +75,7 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         apply.certPreVW v3 E x.chain rq x.log
           (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
         mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-        ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+        ⌜apply.rqOk false x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
         ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
         E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ L hs ∗
         ⌜x.chain = apply.baseChain E.authOn ∧ apply.isKVKind (apply.dispatchKind rq) = true ∧
@@ -114,7 +114,7 @@ abbrev apply.Apply.kvSpecL : Prop :=
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk false x.log rq ∧
         apply.dispatchOk E.authOn rq⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ L hs ∗
       ⌜x.chain = apply.baseChain E.authOn ∧ apply.isKVKind (apply.dispatchKind rq) = true ∧

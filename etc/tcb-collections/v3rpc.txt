@@ -108,8 +108,6 @@ axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom trace.SpanFromContext.wp_proof

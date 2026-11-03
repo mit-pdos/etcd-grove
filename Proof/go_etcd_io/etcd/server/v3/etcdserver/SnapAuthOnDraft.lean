@@ -215,12 +215,12 @@ theorem EtcdServer.applyAll.specSnap_of_M
     (h : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn
-    rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
+    rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn _hpre hnI
   cases hon : E.authOn with
   | false =>
     have H := h s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk
       q γn rt n srvAuthSt0 (by rw [authMode_off_of E hon]; simp) hai hi61 hboot hAL hcia hraft hc0
-      (by rw [hon]; exact hch) hlog0 hγn hnI
+      (by rw [hon]; exact hch) hlog0 hlgk hγn hnI
     rw [hon] at H
     exact H
   | true =>

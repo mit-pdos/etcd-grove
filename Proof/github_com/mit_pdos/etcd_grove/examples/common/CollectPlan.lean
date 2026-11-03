@@ -72,8 +72,7 @@ theorem wp_Collect_plan (wp_Collect : Collect.spec (GF := GF) (hG := hG))
     · ipureintro; exact Hcur
     iintro !> %j %e %he
     ihave Hf := Hev $$ %j %e %he
-    iunfold evFactR at Hf
-    icases Hf with ⟨%Hfe, %v', %kvv, #Hkvv, %Hval, Hr⟩
+    icases evFactR_elim $$ Hf with ⟨%Hfe, %v', %kvv, #Hkvv, %Hval, Hr⟩
     iexists kvv
     isplitr
     · iexact Hkvv
@@ -94,7 +93,6 @@ theorem wp_Collect_plan (wp_Collect : Collect.spec (GF := GF) (hG := hG))
   icases Hpost with ⟨%evs, Hs, %Hup, #Hall⟩
   iexists evs
   iframe
-  iunfold collectOk
   ihave %Hf : ⌜∀ (i : Nat) (e : wev), evs[i]? = some e →
       e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ $$ []
   · iapply BI.pure_forall.2
@@ -107,9 +105,8 @@ theorem wp_Collect_plan (wp_Collect : Collect.spec (GF := GF) (hG := hG))
       icases H with ⟨%H, -⟩
       ipureintro; intro _; exact H
     · ipureintro; intro h; exact absurd h hi
-  isplitr
-  · ipureintro
-    have hlen : ∀ hne : evs ≠ [], evs.length + 1 < 2 ^ 63 ∧
+  iapply collectOk_intro
+  · have hlen : ∀ hne : evs ≠ [], evs.length + 1 < 2 ^ 63 ∧
         sint.Z (evs.getLast hne).Rev' = 1 + evs.length := by
       intro hne
       have hl : evs[evs.length - 1]? = some (evs.getLast hne) := by

@@ -99,28 +99,22 @@ theorem wkSteps_km (γ : client.KMNames) (P : List (GoString × GoString)) (hW :
   iintro !> %r0 %r1 %evs #Hstep
   ihave #Hs : client.kmStep γ r0 r1 wkPfx evs $$ []
   · iexact Hstep
-  iunfold client.kmStep at Hs
-  icases Hs with ⟨%L, #HL, %Hs⟩
-  iunfold client.kmLog at HL
-  icases HL with ⟨%l, #Hlb, %Hw⟩
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
-  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
-  imod Hclose $$ [Hσ Hc Ht] with -
-  · inext; iexists σ, m; iframe; ipureintro; exact Hm
+  icases client.kmStep_elim _ _ _ _ _ $$ Hs with ⟨%L, #HL, %Hs⟩
+  imod client.kmLog_W γ L $$ Hinv HL with %HW
+  obtain ⟨cs, hcs, hLcs⟩ := HW
+  have hwk : WkLog P L :=
+    ((show wkW P cs by rw [← hW]; exact hcs).prefix (List.prefix_refl _)).prefix hLcs
+  icases client.kmLog_lb γ L $$ HL with ⟨%l, #Hlb, %Hw⟩
   imodintro
-  have hWσ : wkW P σ.changes := by rw [← hW]; exact Hm.2
-  have hwk : WkLog P ([] :: l) := hWσ.prefix Hp.2
   iexists L
   isplitr
-  · ipureintro; exact ⟨hwk.prefix Hw.1, Hs⟩
+  · ipureintro; exact ⟨hwk, Hs⟩
   iintro !> %r %k %v %h
   iunfold revAtK
   iexists l
   iframe Hlb
   ipureintro
-  obtain ⟨t, ht⟩ := Hw.1
+  obtain ⟨t, ht⟩ := Hw
   have hr : r < L.length := (List.getElem?_eq_some_iff.mp h).1
   rw [← ht, List.getElem?_append_left hr]
   exact h
@@ -139,18 +133,15 @@ theorem chain_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
     simp at h
   | b :: bs, prev, n, hcur, hok => by
     iintro #HS Hch
-    iunfold watchChain at Hch
-    icases Hch with ⟨#Hcert, %Hlt, Hrest⟩
-    iunfold etcdStepCertBody at Hcert
-    icases Hcert with ⟨%cs, #Hm, #Hstep, -, -⟩
+    icases watchChain_cons_elim $$ Hch with ⟨#Hcert, %Hlt, Hrest⟩
+    icases etcdStepCertBody_elim $$ Hcert with ⟨%cs, #Hm, #Hstep, -, -⟩
     ihave #HSw : wkSteps EM P R $$ []
     · iexact HS
     iunfold wkSteps at HS
     imod HS $$ %prev %(batchRev b) %cs Hstep with ⟨%L, %HL, #HR⟩
     iclear Hstep
     obtain ⟨Hwk, h0, -, hr1, hnone, hcs⟩ := HL
-    iunfold evsMatch at Hm
-    icases Hm with ⟨%Hml, #Hmv⟩
+    icases evsMatch_elim $$ Hm with ⟨%Hml, #Hmv⟩
     obtain ⟨hbne, hbrev⟩ := hok b (List.mem_cons_self ..)
     have hcsne : txn.revEvs L wkPfx (sint.Z (batchRev b)).toNat ≠ [] := by
       rw [hcs]; intro h; rw [h] at Hml; exact hbne (List.length_eq_zero_iff.mp Hml.1)
@@ -174,7 +165,7 @@ theorem chain_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
       simp only [List.flatten_cons, List.singleton_append, List.getElem?_cons_zero,
         Option.some.injEq] at hj
       subst hj
-      iunfold common.evFactR
+      iapply common.evFactR_intro
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -221,8 +212,7 @@ theorem resp_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
       □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗
         common.evFactR R P (2 + n + j) e := by
   iintro #HS Hok
-  iunfold watchRespOk at Hok
-  icases Hok with (⟨%H, -⟩ | %H | ⟨%H, #Hs, -⟩ | ⟨%H, Hc⟩)
+  icases watchRespOk_cases $$ Hok with (⟨%H, -⟩ | %H | ⟨%H, #Hs, -⟩ | ⟨%H, Hc⟩)
   · exact absurd H.1 hne
   · obtain ⟨-, he, -, rfl⟩ := H
     imodintro
@@ -262,8 +252,7 @@ theorem resp_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
     rw [hl] at hlast
     simp at hlast
     ihave #Hf := Hch $$ %(r.events.length - 1) %el %hel
-    iunfold common.evFactR at Hf
-    icases Hf with ⟨%Hfe, -⟩
+    icases common.evFactR_elim $$ Hf with ⟨%Hfe, -⟩
     imodintro
     isplitr
     · ipureintro
@@ -311,9 +300,11 @@ theorem okFactK_of_put (γ : client.KMNames) (k v : GoString) (σ : KVState)
     (hc : σ.compacted = 0) (h1 : 1 ≤ σ.rev) (hb : σ.rev + 4 < 2 ^ 63) :
     client.kmWriteQ (GF := GF) γ [] (.put (client.putKeyOp k v)) σ ⊢
       okFactK γ ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩ := by
-  unfold client.kmWriteQ
-  rw [kvOpStep_putKeyOp]
-  iintro ⟨#Hlb, -⟩
+  have hlb := client.kmWriteQ_lb (GF := GF) (γ := γ) (l0 := [])
+    (op := .put (client.putKeyOp k v)) (σ := σ)
+  rw [kvOpStep_putKeyOp] at hlb
+  iintro H
+  icases hlb $$ H with ⟨#Hlb, -⟩
   have hz : sint.Z (W64 ((σ.rev + 1 : Nat) : Int)) = σ.rev + 1 := by word
   have hr : σ.rev = σ.changes.length := by simp [KVState.rev, hc]
   unfold okFactK revAtK

@@ -56,7 +56,9 @@ local macro "rr_ok" : tactic => `(tactic| (
     · iapply (apply.dispatchAnswer_nil_tr _ _ _ _ v.Trace' _ _)
       rw [← hve]
       iexact Hans
-    iexact Hau'
+    isplitl [Hau']
+    · iexact Hau'
+    iexact Hga'
   iexact HQL))
 
 set_option maxRecDepth 20000 in
@@ -84,7 +86,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau, Hga⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -171,6 +173,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         ihave %Hadm := adminDoneM_of_tie on ρ.kv rq' L res o skip v hve $$ HtM Hv
         -- (C1's A3) an `Authenticate`'s response
         ihave Hau' := authnAnsM_of_ar on E res rq' o skip v hve $$ Hau Hv
+        ihave Hga' := grantAnsM_of_ar E res rq' o skip v hve $$ Hga Hv
         (try wp_auto)
         wp_apply hV ctx _ cd rfl $$ [] as %val %Hval
         · iframe #

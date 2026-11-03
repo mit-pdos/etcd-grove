@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWal
 
 @[expose] public section
 
@@ -56,15 +57,13 @@ below. -/
   letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
     □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-        (es : List EntryModel) (Q Qf : IProp GF),
+        (es : List EntryModel) (Q : IProp GF),
       {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          (AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
-            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅
-             <{ ∃ σ' : StorContents, walRecs w σ', COMM Qf }>) }}
+          AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }}) ∗
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           smPtsV mp dq' md ∗
@@ -96,26 +95,26 @@ theorem isWalStorage_ok (st : GoInterface) :
   ipureintro; exact ⟨si, Heq⟩
 
 /-- **The WAL's operations** (the contract's laws: a client uses these, not `isWalStorage`'s body).
-`Save`: the records saved, or on an error some records (the raft loop then calls `lg.Fatal`,
-which never returns). -/
+`Save`: the records saved, or the environment failed (the raft loop then calls `lg.Fatal`;
+`walSaveOk`, in `diskOk`, as for `SaveSnap` and `Close`). (2026-11-03, R2b-1 stage 5, the user's
+choice: until then on an error some records, a second atomic update; with records unknown after a
+failed `Save`, the apply thread's own `SaveSnap` could not show its precondition.) -/
 theorem walSave_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInterface.ok si)
     (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-    (es : List EntryModel) (Q Qf : IProp GF) :
+    (es : List EntryModel) (Q : IProp GF) :
     isWalStorage st ⊢
       {{ storage.walOpen (storage.walOf st) q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          (AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ ∗
                 ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
             @ ⊤, ∅ <{ walRecs (storage.walOf st) (walSave σ hs.toM (es.map EntryModel.toM)),
-              COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ }> @ ⊤, ∅
-             <{ ∃ σ' : StorContents, walRecs (storage.walOf st) σ', COMM Qf }>) }}
+              COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen (storage.walOf st) q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }} := by
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }} := by
   unfold isWalStorage
   iintro ⟨%si', %Heq, #HS, -, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %q %hp %hs %sl %esL %es %Q %Qf
+  ispecialize HS $$ %q %hp %hs %sl %esL %es %Q
   iexact HS
 
 /-- `SaveSnap`: the snapshot record saved (or the environment failed: the apply thread panics on an
@@ -182,6 +181,57 @@ theorem walOpened_elim (w : Loc) (dir : GoString) (id cid : w64) (σ : StorConte
       storage.walOpen w 1 ∗ walRecs w σ ∗ walMetaIs w id cid ∗
         ⌜storage.walReady w ∧ walDirOf w = dir⌝ := by
   unfold walOpened; iintro H; iexact H
+
+/-! ### The WAL's slots in the boot hub
+
+(2026-11-03, the first slots of the convention the user approved: `notes/spec-first-plan.md`, "The
+slot convention".) `bootstrap`'s contract, `bootOk` and `NewServer.spec` name the WAL only through
+these, sealed: a change to what the WAL takes or gives at boot changes their bodies and laws, not
+the hub's text. No `wal.bootCfg` (the WAL places no condition on the configuration); `wal.Names`
+and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
+
+/-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL**: the configuration's WAL
+directory (`cfg.WALDir()`) fresh, a first start's (from program start, `startRights`). -/
+@[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+  iprop(walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and dedicated WAL
+directory `w` takes the token of `config.walDirOf d w`. -/
+theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d w : GoString)
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = w) :
+    walDirFresh (GF := GF) (config.walDirOf d w) ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; subst hw; iintro H; iexact H
+
+/-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
+configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
+and the right to close it with its files kept (the purge's, `walPurgeRight`). -/
+@[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) : IProp GF :=
+  iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
+    walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
+give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing
+`wal.bootOk_storage`): the WAL's durability allocated over the fresh records (`rnDur_alloc`: the
+invariant, the raft loop's view at the start and its "not failed" token, the stop's claim, the apply
+thread's token, the handed log's lower bound), and what `NewStorage` and `Close` take: the open
+token, whole, the WAL read, its metadata and the purge's right. -/
+theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) :
+    wal.bootOk (GF := GF) cfg id cid w ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
+        storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
+        walPurgeRight (walDirOf w) := by
+  unfold wal.bootOk
+  iintro ⟨Hw, Hp⟩
+  icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
+  imod rnDur_alloc w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
+  imodintro
+  iexists ν
+  rw [Hrd.2]
+  iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
+  ipureintro; exact Hrd.1
 
 end defs
 

@@ -156,29 +156,16 @@ theorem km_step_log (γ : client.KMNames) (P : List (GoString × GoString)) (hW 
         □ ∀ (r : Nat) (k v : GoString), ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ -∗
           common.kmRevAt γ r k v := by
   iintro #Hinv #Hstep
-  iunfold client.kmStep at Hstep
-  icases Hstep with ⟨%L, #HL, %Hs⟩
-  iunfold client.kmLog at HL
-  icases HL with ⟨%l, #Hlb, %Hl⟩
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
-  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
-  imod Hclose $$ [Hσ Hc Ht] with -
-  · inext; iexists σ, m; iframe; ipureintro; exact Hm
-  have hwk : watchkv.WkLog P L := watchkv.wkW_prefix (by rw [← hW]; exact Hm.2) Hp.2 Hl.1
+  icases client.kmStep_elim _ _ _ _ _ $$ Hstep with ⟨%L, #HL, %Hs⟩
+  imod client.kmLog_W γ L $$ Hinv HL with %HW
+  obtain ⟨cs, hcs, hLcs⟩ := HW
+  have hwk : watchkv.WkLog P L :=
+    watchkv.wkW_prefix (by rw [← hW]; exact hcs) (List.prefix_refl _) hLcs
   imodintro
   iexists L
   isplitr
   · ipureintro; exact ⟨hwk, Hs⟩
-  iintro !> %r %k %v %h
-  unfold common.kmRevAt
-  iexists l
-  iframe Hlb
-  ipureintro
-  obtain ⟨t, ht⟩ := Hl.1
-  rw [← ht, List.getElem?_append_left (List.getElem?_eq_some_iff.mp h).1]
-  exact h
+  iapply common.kmRevAt_of_log γ L $$ HL
 
 /-- **The certificate chain of a cache watch's batches at a watchkv server** (see the file
 header). -/
@@ -198,20 +185,16 @@ theorem certChain_ck (γ : client.KMNames) (P : List (GoString × GoString))
     iintro #Hinv Hch
     rw [certChain_cons]
     icases Hch with ⟨⟨%p, %Hp, #Hcert⟩, Hrest⟩
-    have hcb : (etcdStepCert (EM := client.etcdModelOfKV (GF := GF) γ) ckPfx).cert p b =
-        etcdStepCertBody (EM := client.etcdModelOfKV (GF := GF) γ) ckPfx p b := rfl
     irevert Hcert
-    rw [hcb]
+    rw [etcdStepCert_cert (EM := client.etcdModelOfKV γ)]
     iintro #Hcert'
-    iunfold etcdStepCertBody at Hcert'
-    icases Hcert' with ⟨%cs, #Hm, #Hstep, -, -⟩
+    icases etcdStepCertBody_elim (EM := client.etcdModelOfKV γ) $$ Hcert' with ⟨%cs, #Hm, #Hstep, -, -⟩
     ihave #Hstep' : client.kmStep γ p (batchRev b) ckPfx cs $$ []
     · iexact Hstep
     iclear Hstep
     imod km_step_log γ P hW p (batchRev b) ckPfx cs $$ Hinv Hstep' with ⟨%L, %HL, #HR⟩
     obtain ⟨Hwk, -, -, hr1, hnone, hcs⟩ := HL
-    iunfold evsMatch at Hm
-    icases Hm with ⟨%Hml, #Hmv⟩
+    icases evsMatch_elim $$ Hm with ⟨%Hml, #Hmv⟩
     obtain ⟨hbne, hbrev⟩ := hok b (List.mem_cons_self ..)
     have hcsne : txn.revEvs L ckPfx (sint.Z (batchRev b)).toNat ≠ [] := by
       rw [hcs]; intro h; rw [h] at Hml; exact hbne (List.length_eq_zero_iff.mp Hml.1)
@@ -238,8 +221,7 @@ theorem certChain_ck (γ : client.KMNames) (P : List (GoString × GoString))
       simp only [List.flatten_cons, List.singleton_append, List.getElem?_cons_zero,
         Option.some.injEq] at hj
       subst hj
-      iunfold evFact
-      iunfold common.evFactR
+      iapply common.evFactR_intro
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -270,8 +252,7 @@ theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
         (some (keyPredForRange ckPfx rangeEnd)) (W64 2) L ={⊤}=∗
       □ ∀ (j : Nat) (e : EvModel), ⌜(eventsOf L)[j]? = some e⌝ -∗ evFact γ P (2 + j) e := by
   iintro #Hinv #Hlog
-  iunfold cacheWatchLog at Hlog
-  icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
+  icases cacheWatchLog_cases $$ Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
   · ihave ⟨%bs, %p₀, %Hf, #Hch, -⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
       ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
     obtain ⟨hev, -, hst, hsr⟩ := Hf
@@ -290,9 +271,7 @@ theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
       iintro %e
       by_cases hj : bs.flatten[j]? = some e
       · ihave Hf := Hb $$ %j %e %hj
-        iunfold evFact at Hf
-        iunfold common.evFactR at Hf
-        icases Hf with ⟨-, %v, %kvv, -, %Hv, -⟩
+        icases common.evFactR_elim $$ Hf with ⟨-, %v, %kvv, -, %Hv, -⟩
         ipureintro; intro _; exact hkeys _ Hv.2
       · ipureintro; intro h; exact absurd h hj
     have hid : bs.flatten.filter (fun e => keyPredForRange ckPfx rangeEnd e.key) = bs.flatten := by
@@ -330,8 +309,7 @@ theorem log_ck_progress (γ : client.KMNames) (P : List (GoString × GoString))
         (some (keyPredForRange ckPfx rangeEnd)) (W64 2) L ={⊤}=∗
       ⌜sint.Z r.hdrRev ≤ 1 + (eventsOf L).length⌝ := by
   iintro #Hinv #Hlog
-  iunfold cacheWatchLog at Hlog
-  icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
+  icases cacheWatchLog_cases $$ Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
   · ihave ⟨%bs, %p₀, %Hf, #Hch, #Hpq⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
       ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
     obtain ⟨hev, -, hst, hsr⟩ := Hf
@@ -352,9 +330,7 @@ theorem log_ck_progress (γ : client.KMNames) (P : List (GoString × GoString))
       iintro %e
       by_cases hj : bs.flatten[j]? = some e
       · ihave Hf := Hb $$ %j %e %hj
-        iunfold evFact at Hf
-        iunfold common.evFactR at Hf
-        icases Hf with ⟨%Hr, %v, %kvv, -, %Hv, -⟩
+        icases common.evFactR_elim $$ Hf with ⟨%Hr, %v, %kvv, -, %Hv, -⟩
         ipureintro; intro _; exact ⟨hkeys _ Hv.2, by rw [Hr.2]; push_cast; omega⟩
       · ipureintro; intro h; exact absurd h hj
     have hid : bs.flatten.filter (fun e => keyPredForRange ckPfx rangeEnd e.key) = bs.flatten := by

@@ -46,19 +46,22 @@ request with an id that `rqOk` admits at the apply thread's log or an admitted a
 (`adminKindOk`), dispatchable on the apply thread's chain. -/
 def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
+    (apply.rqOk false x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
-off, `entryOkOn` on. -/
-def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
+§2.8; auth on is a cluster that grants none). -/
+def entryOkM (on lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
-  | false => entryOk x m
+  | false => entryOk lg x m
   | true => entryOkOn x m
 
-theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+theorem entryOkM_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM false lg x m = entryOk lg x m :=
   rfl
 
-theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+theorem entryOkM_true (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM true lg x m = entryOkOn x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -140,6 +143,15 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × m
     · rfl
   · rw [hk]
 
+/-- **An admitted admin request is no grant** (the lease-grant plan's 2.6: nothing to carry,
+`grantArM_not_grant`). -/
+theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseGrant := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
 /-- An admitted admin request sets neither cluster field (`dispatchKind` tries them first). -/
 theorem adminKindOk_noCluster (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
     rq.clusterVersionSet = none ∧ rq.clusterMemberAttrSet = none := by
@@ -187,7 +199,7 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch [] x m (lg := false) (Or.inl hd) hl
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
@@ -414,7 +426,12 @@ theorem srvRest_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
     srvRest E γr (A ++ [m]) = srvRest E γr A := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
-  rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
+  have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  have hr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  rw [srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr),
+    restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
   rfl
 
 /-- **After the entry, in the mode `on`** (`kvApplied_next`'s counterpart): the apply thread's KV

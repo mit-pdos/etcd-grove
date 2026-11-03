@@ -42,13 +42,14 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     -- part's (until then everywhere: with auth on, the rest model does not model the admin writes)
     (hbk : ∀ n, membership.clusterBkts n ∨ restSet E.authMode n →
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n = bk.lookup n)
-    (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
+    (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
+    (hlg : E.lg = false) :
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
       backend.rbPart d'.γB (restSet E.authMode) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
-  unfold srvRest
+  rw [srvRest_false _ _ _ (by rw [snapE_lg]; exact hlg)]
   rw [snapE_RO]
   unfold srvRestOwnH srvRestOwn srvObjsOn
   have hmi : memIdOk memI := hmem ▸ restModel_memIdOk' _ _ _

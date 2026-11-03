@@ -71,8 +71,8 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
+    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ps ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
@@ -82,9 +82,13 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent (linkv3pWatchProgram nw nops steps) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
+      ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -93,13 +97,12 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.linkv3p.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch)) (Val #nw))
       (Val #nops)) (schedLit steps))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""] HDsNd σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG
@@ -107,10 +110,11 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, Hps⟩
+  iintro #Hinit Htok ⟨Has, Hps, Hds⟩
   simp only [linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
   icases Hps with ⟨Hf₁, Hf₂, Hf₃, -⟩
+  icases Hds with ⟨Hw₁, Hw₂, Hw₃, -⟩
   -- the schedule's slice literal: the array of an abstract list takes one pure step
   -- (`pure_wp_array_lit_full`, before the generic automation unfolds it), then the slice over it
   -- (`wp_slice_literal`)
@@ -146,16 +150,16 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro %sl ⟨Hsl, -⟩
   imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
   (try wp_auto)
-  have hM := linkv3p.wp_MainWatch (GF := linkvGF) n id₁ id₂ id₃ ctxs boot nw nops
+  have hM := linkv3p.wp_MainWatch (GF := linkvGF) n id₁ id₂ id₃ ps ctxs boot nw nops
     (slice.mk sl
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.linkv3p.Step.ty))))
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.linkv3p.Step.ty)))))
     steps Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok]
+  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

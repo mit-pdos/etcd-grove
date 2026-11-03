@@ -188,7 +188,6 @@ theorem snap_isApplyLessor
   · iPkgInit
   iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp sst γs _ _
     (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
-    (lease.lessorBeOn lp d'.be) (backend.rbPart d'.γB (· = go!"lease"))
   iunfold lessorLookupOk at Hllk
   iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg Hhok
   isplitr
@@ -196,7 +195,11 @@ theorem snap_isApplyLessor
   isplitr
   · iapply (srvRestOwnH_lens_revoke γs d' hk hlp M al ast lp cl)
   isplitl []
-  · unfold mvcc.storeWT mvcc.storeRT
+  · iintro !> %d0 %hd0
+    rw [hk] at hd0
+    cases hd0
+    rw [show mvcc.leaseName = go!"lease" from rfl]
+    unfold mvcc.storeWT mvcc.storeRT
     rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
     iunfold lessorApplyOk at Hlbe
@@ -204,7 +207,13 @@ theorem snap_isApplyLessor
       %(lease.lessorBeOn lp d'.be) HB Hhook [] []
     · ipureintro; exact hgnn
     · iapply lessorBeOn_lens
-  · iapply srvRestRWH_lessor
+  · iintro !> Hrw
+    ihave #Hl := srvRestRWH_lessor (GF := GF) d'.γB al ast lp cl d'.be
+    ihave ⟨Hbe, Hr⟩ := Hl $$ Hrw
+    iexists d'
+    rw [show mvcc.leaseName = go!"lease" from rfl]
+    iframe Hbe Hr
+    ipureintro; exact hk
 
 /-! ## The KV and the hook -/
 

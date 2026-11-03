@@ -41,15 +41,15 @@ theorem startServer.wp_proof
       NewServer.specM (GF := GF) (hG := hG) true)
     (wp_Start : EtcdServer.Start.specOn (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
-  intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2
-    Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
+    Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold common.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -97,8 +97,16 @@ theorem startServer.wp_proof
       v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
-      (fun _ => ⟨rfl, by word, by word⟩))
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+      -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
+      -- literal's clock, the directory of the peers
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
+      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf)
+      -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
+      -- literal, and the write budget
+      (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
+      ⟨rfl, common.discoveryZero_len, common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty⟩
+      HwbN)
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -114,15 +122,17 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
+    isplitl [Hwdf]
+    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
-    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-    iapply Htk
-    ipureintro; rfl
+    isplitr; · ipureintro; exact hslg
+    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
@@ -133,6 +143,8 @@ theorem startServer.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Herr
   wp_auto
+  -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
+  ihave #HLnil := HLnil $$ %(by trivial)
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on, the monitors off

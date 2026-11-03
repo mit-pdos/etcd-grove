@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r Hwco
-  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt⟩
+  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%v, Hwvo, %Hvp⟩, ⟨%stm, %id, %cid, #Hstm, Hmeta, Hpurge⟩⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -37,14 +37,22 @@ theorem raftNode.onStop.wp_proof :
   iunfold isRNTransport at Htri
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
-  iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
+  ihave %Hsok := isWalStorage_ok st $$ Hsti
+  obtain ⟨si, Hsieq⟩ := Hsok
   iunfold rnWalTok at Hwt
   icases Hwt with ⟨%st', #Hst', Hwo⟩
   icombine Hst Hst' gives %Hsteq
   have Hsteq' : st' = st := by first | exact Hsteq.symm | exact Hsteq.2.symm
   subst Hsteq'
-  subst Hsieq
+  icombine Hst Hstm gives %Hsteq2
+  have Hsteq2' : stm = st' := by first | exact Hsteq2.symm | exact Hsteq2.2.symm
+  subst Hsteq2'
+  iunfold rnWalView at Hwvo
+  icases Hwvo with ⟨Hwv, Hwok⟩
+  -- (R2b-1 stage 6) the records, taken out of the durability invariant (`rnDur_take`)
+  imod rnDur_take γ.wal (storage.walOf stm) v Hvp $$ Hdur Hwst Hwap Hwv Hwok
+    with ⟨%σ, Hrecs, %Hσ⟩
+  obtain ⟨-, Hσb, Hσc⟩ := Hσ
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩
   icombine Hdnc Hdnc' gives %Heq
@@ -59,11 +67,13 @@ theorem raftNode.onStop.wp_proof :
   wp_apply HStop $$ [$Hrun] as -
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
-  wp_apply HClose $$ [$Hwo] as %cerr %Hcerr
-  have hcerr : cerr = GoInterface.nil := by
-    rcases Hcerr with h | h
-    · exact h
-    · exact absurd Hwco h
+  ihave #HClose := walClose_spec stm si Hsieq σ id cid $$ Hsti
+  subst Hsieq
+  wp_apply HClose $$ [$Hwo $Hrecs $Hmeta $Hpurge] as %cerr Hcerr
+  · ipureintro; omega
+  icases Hcerr with (⟨%hcerr, -⟩ | %Hcerr)
+  rotate_left
+  · exact absurd Hwco Hcerr
   subst hcerr
   (try wp_auto)
   wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]

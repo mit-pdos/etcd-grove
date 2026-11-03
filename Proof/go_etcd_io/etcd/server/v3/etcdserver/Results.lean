@@ -473,7 +473,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
+        ⌜st.pending = false ∧ entryOk false x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
               uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
@@ -507,7 +507,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo⟩
+    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
@@ -1123,16 +1123,16 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lp γl
 
 /-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
-(`lease.lessorInv`, its configuration, its `expiredC` at the grant guard `False`, D19n, D45)
-meets `lessorOk`: `ExpiredLeasesC` proved,
+(`lease.lessorInv`, its configuration, its `expiredC` at the server's grant guard, D19n, the
+lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
 `Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
 `lease.lessor.Demote.wp_proof`). -/
-theorem lessor_server_contract (lp : Loc) (γl : GName) :
+theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
-      lease.lessorCfg lp ∗ lease.lessorExpiredC lp srvGrantGuard ⊢
+      lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
       lessorOk (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
-    lease.lessor.wp_ExpiredLeasesC lp γl
+    lease.lessor.wp_ExpiredLeasesC lp γl lg on
 
 /-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
 at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,
@@ -1143,7 +1143,7 @@ lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`
 backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : EtcdGrove.apply.RestM → IProp GF)
-    (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    (RW : IProp GF) :
     ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.hookOk γ P f ∗
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
@@ -1153,8 +1153,11 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
-      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
+      □ (∀ d : mvcc.KBReal, ⌜γ.kb = some d⌝ →
+        lease.lessorBackend lp P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
+          (backend.rbPart d.γB (· = mvcc.leaseName))) ∗
+      □ (RW -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗ lease.lessorBeOn lp d.be ∗
+        ∃ r, backend.rbPart d.γB (· = mvcc.leaseName) r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
@@ -1163,7 +1166,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp s γ P f RO RW RW₀ Rb
+    lp s γ P f RO RW
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -2200,7 +2203,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = false⌝ ∗
+          γk.cmp = false ∧ γk.lg = false⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2232,6 +2235,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
+          ρ.rd.kv.lg = γk.lg ∧
           ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=

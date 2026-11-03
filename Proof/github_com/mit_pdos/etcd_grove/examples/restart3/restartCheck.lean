@@ -65,7 +65,7 @@ theorem restartCheck.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     restartCheck.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
-    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir HU
+    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
     Hpe Hlg Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hmst, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
@@ -125,7 +125,7 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hu Hlg Hck Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hlg Hck Haf Hbuq Hdbo)
     $$ [Hpa Htok Himg Hpown] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)
@@ -144,7 +144,7 @@ theorem restartCheck.wp_proof
   icases Hst with ⟨HmR, -, -, -⟩
   ihave #Hcm := Hcom
   iunfold common.commonPremises at Hcm
-  icases Hcm with ⟨-, -, -, -, -, #Hnrl⟩
+  icases Hcm with ⟨-, -, -, -, #Hnrl⟩
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)

@@ -23,7 +23,7 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
   KV's log (`revAuth E x₀.log`: a ghost allocation at `E.γrev`, an empty map does, `revAuth_empty`;
   the vertical slice's unit V1);
 * the contracts of the names-only parts (`clusterVersionOk`: `ClusterVersion()`, monotone from
-  `nil` to non-`nil`; `□ |==> idCred ρ.ids 1`: the read loop's ids; `□ |==> Er.T`: the ticks);
+  `nil` to non-`nil`; `□ |==> idCred ρ.ids 1`: the read loop's ids; (until D19b `□ |==> Er.T`: the ticks; since then `True`, no contract);
 * the fields `start` sets (any values), `wg` and `wgMu` at their zero values;
 * the reader slots `start` hands on: `s.lgMu`'s for `run` and for the read loop, and
   `s.firstCommitInTerm`'s for the read loop;
@@ -241,8 +241,11 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
+    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id

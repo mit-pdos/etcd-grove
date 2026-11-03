@@ -37,9 +37,9 @@ theorem StartServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule
-    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hname8 Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule
+    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hck Haf Hbuq Hdbo
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -71,10 +71,10 @@ theorem StartServer.wp_proof
   wp_apply (wp_newServer N name peerAddr client name (W64 0) (W64 10000) (W64 281474976710656)
       (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
+      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by decide) Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb] as %s %err Hres
+      Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `newServer` failed: the error returned, with the thread token

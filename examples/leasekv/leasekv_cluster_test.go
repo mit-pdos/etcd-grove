@@ -42,7 +42,7 @@ func TestClusterLeaseReads(t *testing.T) {
 	srvs := make([]*etcdserver.EtcdServer, 3)
 	clis := make([]*clientv3.Client, 3)
 	for i := range peers {
-		s, err := common.NewServer(names[i], cluster[names[i]], clients[i], cluster, "leasekv3",
+		s, err := common.BuildServer(names[i], cluster[names[i]], clients[i], cluster, "leasekv3",
 			common.NoSnapCount, common.NoSnapCatchUp, lg)
 		if err != nil {
 			t.Fatal(err)

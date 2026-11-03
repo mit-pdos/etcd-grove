@@ -149,18 +149,23 @@ theorem apply.newApplierV3Backend.wp_proof
     iframe Hpre
     iframe #
   isplitr
+  · -- `LeaseGrant` (the lease-grant stage, 2.11)
+    imodintro
+    iintro %r %rq %g %log %T %rs %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' Hpre HΦ'
+    iapply (hLeaseGrant E p r rq g log T rs Pre Q Post info) $$ [Hpre] HΦ'
+    iframe Hpre
+    iframe #
+  isplitr
   · imodintro
     iintro %m %r %log %Pre %Q %Post %info %hm
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl
+      rfl | rfl | rfl
     all_goals simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hLeaseGrant E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
-      iframe
-      iframe #
     · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iapply (hLeaseCheckpoint E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
       iframe

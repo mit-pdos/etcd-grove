@@ -39,15 +39,15 @@ theorem v3rpc.quotaLease_grantHandlerOk_of
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaLeaseServerAt q ls s ∗
-        grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ⊢
-      grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
+        grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ⊢
+      grpcHandlerOwnOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
-  unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Grant Req Rep Spec q s ls S m Φ ci cd r) $$ [HS Hqr HSpec]
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, Hown, HSpec⟩ HΨ
+  iapply (wp_Grant Req Rep Spec q s ls S m Φ ci cd r) $$ [HS Hqr Hown HSpec]
   · iframe; iframe #
-    unfold grpcHandlerOk
+    unfold grpcHandlerOwnOk
     iexact Hh
   inext
   iintro %resp %err ⟨HS, Hqr, Hres⟩

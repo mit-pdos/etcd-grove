@@ -149,6 +149,7 @@ theorem applySnapshot_walk
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       lease.lessorRevocable E.γ.leases ∗
        srvKVCloserW s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
@@ -193,7 +194,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -363,7 +364,9 @@ theorem applySnapshot_walk
   ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
   ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
   -- the old backend's objects, from the rest resource
-  iunfold srvRest at HRS
+  -- (the lease-grant stage, 2.9) the revocable lessor refutes the leased arm: a cluster that
+  -- grants none
+  ihave ⟨%Hlg0, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
   rw [hRO]
   iunfold srvRestOwnH at HRS
   icases HRS with ⟨HoRO, HoObj⟩
@@ -399,7 +402,7 @@ theorem applySnapshot_walk
   have Hwkl : wsk = wsl := by simp at Hwk; exact GoGlobalContext.intoVal_inj_loc Hwk.symm
   subst wsk
   iunfold apply.leasesLive at HlLive
-  icases HlLive with ⟨%Ll, #HlK, HlUser⟩
+  icases HlLive with ⟨%Ll, #HlK, HlUser, -⟩
   iunfold lease.lessorUser at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]

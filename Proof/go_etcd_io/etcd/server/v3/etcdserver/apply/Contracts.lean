@@ -318,7 +318,7 @@ def revokeClause (le : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (P : IPro
         mvcc.storeWT γ ∗ ⌜log.length + 4 ≤ 2 ^ 63⌝ ∗
         lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
         lease.leaseRevokers γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
-        lease.rdAt γ.leases s ∗ RO rs ∗
+        lease.rdAt γ.leases s ∗ lease.lessorRevocable γ.leases ∗ RO rs ∗
         □ mvcc.certOkNext γ log (mvcc.leaseDels (mvcc.stateAfter log) id) }}
       (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
     {{ (err : GoInterface), RET #err; mvcc.storeReader s γ ∗ lease.rdAt γ.leases s ∗ applyErrIs err ∗
@@ -354,23 +354,34 @@ state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are no
 premises); a granted lease is `leaseTTLIs` (no `Keys()`). (D22, 2026-10-23) `Grant` and
 `Checkpoint` take the write right `RW` of the lease bucket, spent with the write-back token (the
 lessor's backend contract `lease.lessorBackend` takes both per write); the server's `AEnv.RW` is
-the backend's tracked buckets' half, which its apply thread does not lend (no lease request is
-admitted). -/
+the backend's tracked buckets' half. (Review M2, 2026-11-02) The `Grant` clause consumes `RW` and
+does not give it back (`lease.lessor.Grant.spec` spends the backend's write token with it): in a
+cluster that grants none the apply thread never calls it (no grant is admitted, `rqOk`), so no write
+right is lent; a granting cluster's accounting (the right handed back after the grant's batch, or
+re-split per grant) is the lease-grant plan's open B2. (The lease-grant plan's D3, 2026-11-02) `Grant`'s clause exact, as `lease.lessor.Grant.spec`:
+an error exactly when the id is `0`, the TTL above `MaxLeaseTTL` or the id live (`Pre` and the live
+set back), else `Post`, the live set `L ++ [id]`, the new lease `leaseTTLIs l id` and in the
+lessor's history (`leaseLiveFrom`). Until then: some superset of `L`, and on success a lease of
+some live id. (The lease-grant stage, 2.12, 2026-11-03) `Grant`'s clause over the rest resource
+`RO rs` instead of the write right (the server's `RW` is `False`, and the grant writes the `lease`
+bucket the rest resource holds exactly): given back at `rs` on an error, at `rs` with the lease's
+record put at some TTL (`restGrantT`) on success; its condition `grantIdsOk`. -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-        (Pre Q Post : IProp GF),
+        (rs : RestM) (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗
           mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
-          lease.leaseGranted γ.leases id ∗ RW }}
+          lease.leaseGranted γ.leases id ∗ RO rs }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
-      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
-          (∃ L' : List w64, lease.leaseOwn γ.leases L' I ∗ lease.leaseRevokers γ.leases L' ∗
-            ⌜∀ x ∈ L, x ∈ L'⌝ ∗
-            (⌜err ≠ GoInterface.nil⌝ ∨
-              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
-          applyErrIs err }}) ∗
+      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); mvcc.storeRT γ ∗ applyErrIs err ∗
+          ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ lease.lessorErrIs err ∗ Pre ∗
+              lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗ RO rs) ∨
+            (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
+              lease.leaseOwn γ.leases (L ++ [id]) I ∗ lease.leaseRevokers γ.leases (L ++ [id]) ∗
+              leaseTTLIs l id ∗ lease.leaseLiveFrom γ.leases 0 id l ∗
+              ∃ t : w64, RO (restGrantT id t rs))) }}) ∗
     -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
     revokeClause li s γ P f RO ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),

@@ -66,7 +66,8 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ)
     (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (c' : Int) (on : Bool) (st : auth.AuthState) :
+    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (hlg : E.lg = false) (c' : Int) (on : Bool)
+    (st : auth.AuthState) :
     -- (P6.2, 2026-11-03) the new applier at `E'` (until then the wand `NewUberApplier` gives, with
     -- `E'`'s options), the auth part by the mode at `E'` (`kvAuthM`; until then `srvAuthApplyRes`
     -- at `E`)
@@ -100,7 +101,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
     #Hwok, HRD0, Hcmp⟩
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
+    hγw hwq hRok hrb hlg $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
   · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
   iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, c'⟩

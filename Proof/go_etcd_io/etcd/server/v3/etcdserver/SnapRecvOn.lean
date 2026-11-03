@@ -393,7 +393,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     (hch : γr.kv.ch0 = apply.alarmChain true false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) (hlg : E.lg = false) :
     ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
@@ -407,6 +407,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
   have hz : uint.Z (W64 0) = 0 := rfl
+  rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvsOn at Hinvs
   icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, #Hcp, -⟩
@@ -444,7 +445,6 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
   -- the cluster's in-memory members, from the rest resource
-  iunfold srvRest at Hrest
   rw [hRO]
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
@@ -501,9 +501,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
   isplitl [Hrb Hrn Hmem HH]
-  · iunfold srvRest
-    rw [hRO]
-    iunfold srvRestOwnH
+  · iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
     iframe Hrb Hrn Hmem

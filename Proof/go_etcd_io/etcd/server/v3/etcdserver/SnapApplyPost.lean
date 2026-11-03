@@ -92,7 +92,7 @@ theorem srvSnapApplied_of_walk
     -- (P6.2, 2026-11-03, F9) by the mode: the rest model's buckets (`snapRestImgM`), in place of `hoff`
     (hA' : snapRestImgM E.authOn γr d.P D A' ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
-    (hany : E.authMode ≠ .any) :
+    (hany : E.authMode ≠ .any) (hlg : E.lg = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
@@ -145,7 +145,7 @@ theorem srvSnapApplied_of_walk
     hkb' ⟨ho4, ho5⟩ $$ [Hauar]
   · iframe #; iframe Hauar
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      rfl hkb' hγw hwq hpre hRok hrbw r.crev E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') $$
+      rfl hkb' hγw hwq hpre hRok hrbw hlg r.crev E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') $$
       [Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
   · iframe #; iframe Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
     iunfold apply.cmpOwn
@@ -155,7 +155,7 @@ theorem srvSnapApplied_of_walk
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
-    cl _ memI A' rfl (snapRestImgM_bk E.authMode γr d.P D A' hany hA'.1) hA'.2
+    cl _ memI A' rfl (snapRestImgM_bk E.authMode γr d.P D A' hany hA'.1) hA'.2 hlg
     $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb
   -- step 7: the rest, framed

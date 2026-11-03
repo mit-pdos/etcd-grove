@@ -341,11 +341,11 @@ def reqPropOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (Gb : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel) (hm : apply.HeaderModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop((⌜plainReq (apply.withHeader rq₀ hm) ∧ ¬ writeKind (apply.dispatchKind (apply.withHeader rq₀ hm)) ∧
-      irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape (apply.withHeader rq₀ hm) ∧
+      irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape false (apply.withHeader rq₀ hm) ∧
       kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel),
       ⌜plainReq (apply.withHeader rq₀ hm) ∧ reqKVOp (apply.withHeader rq₀ hm) = some op ∧
-        irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape (apply.withHeader rq₀ hm) ∧
+        irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape false (apply.withHeader rq₀ hm) ∧
         kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = grantedRes γk st₀ (apply.withHeader rq₀ hm) γc Q⌝ ∗
       srvReqLogLb γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk st₀ Gb rq₀ L₀) Q) ∨
     ⌜adminPropOk st₀ (apply.withHeader rq₀ hm) ∧ irrNoZeroEnd (apply.withHeader rq₀ hm) ∧
@@ -413,7 +413,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       reqPropOkOn γ γk st₀ Gb rq₀ hm Qr ={E}=∗ srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
   iintro #Hinv #Hcl #Hreg #Hgb Hok
-  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape (apply.withHeader rq₀ hm) → entryShapeOn e := by
+  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape false (apply.withHeader rq₀ hm) → entryShapeOn e := by
     intro e het hed hs
     refine ⟨fun _ => Or.inr ⟨(apply.withHeader rq₀ hm), by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inl hs⟩,
       fun h => absurd het h⟩

@@ -8,7 +8,7 @@ another lease. Lean-first (no Rocq counterpart).
 `127.0.0.1:23936` (`netAddrFree`, which program start gives once: D19d), the main thread's token
 (`Start` forks the server's goroutines) and `Main`'s named premises (`leasekv.premises`,
 `Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/Defs.lean`), `Main()` returns: it does not
-panic: the listing has no lease twice (etcd's `etcdLeaseLeasesSpec`, from the lessor's map's keys)
+panic: the listing has no lease twice (etcd's `etcdLeaseLeasesSpecAny`, from the lessor's map's keys)
 and the answer is about the lease asked (`etcdLeaseTTLSpec`), whatever the lessor holds.
 
 **The pure premises:** the member id and bootstrap log Go computes (`leasekv.BootFacts`); the
@@ -58,12 +58,16 @@ abbrev Main.spec : Prop :=
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   leasePeersOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.leasekv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23936" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23936" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"leasekv.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.leasekv.Main)) (Val #()))
   {{ RET #(); True }}
 

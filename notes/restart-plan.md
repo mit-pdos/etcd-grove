@@ -159,8 +159,8 @@ theorem restart3_safe ... :
     goose_adequacy ... restart3.Main ... (fun v => v = #())
 ```
 
-What stays out: crashes (Q4), membership changes (the membership track), restarting the leader
-mid-request (Q6), and a member whose data directory was lost.
+What stays out: crashes (Q4; a later stage, R6 under "Stages"), membership changes (the membership
+track), restarting the leader mid-request (Q6), and a member whose data directory was lost.
 
 ## Questions for the user (decided 2026-11-02: each the recommended option)
 
@@ -219,6 +219,45 @@ shutdown with `Cleanup` in it.
 - **R5. Probe:** one easy proof (the example's `Main` over the frozen specs) and one hard one (`run`'s
   deferred shutdown, or the apply thread's start at the consistent index).
 - **Freeze, then Prove:** M6's request-path tokens, L5's widening, the example.
+- **R6, later: crash durability** (added 2026-11-03, the user's request). R2-R5 cover a graceful
+  stop in one process, where every write is visible to the next incarnation, fsynced or not (Q4
+  (a)). R6 replaces the stop by a crash: the process is gone, and only what was fsynced survives.
+  The goal is the server-level counterpart of `kvdurable_porcupine_safe`: acknowledged writes
+  survive a member's crash and restart, and the history stays linearizable across it.
+  - **What it builds on.** Raft's durability, proved with no sorry (durability stage II:
+    `StartNode`, `RestartNode`, `node.run`'s persist-before-send, `examples/kvdurable`). R2b-1's WAL
+    model, contract and durability invariant (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`,
+    `etcdserver/InvWal.lean`, a failed `Save` leaving `walFailed`). R2-R5's restart boot and
+    catch-up.
+  - **What is new.**
+    - File semantics with crashes under the WAL and bbolt (Q4 (b)): the Linux file extension of
+      `notes/osfs-ext-plan.md` (files, fsync, bytes lost on a failed fsync) or `durableExt`. The
+      image L2 hands to the next incarnation becomes the durable part of the files, not the ghost
+      image.
+    - The WAL over those files: `Save`'s and `SaveSnapshot`'s fsyncs, the segment cut and rename,
+      preallocation. Either proved (Q3 (b), the trust boundary down to the WAL), or a crash-aware
+      contract reviewed with the `axiom` skill.
+    - bbolt's commit (data pages before the meta page) over the same files, which the osfs plan
+      targets. The backend's consistent index is committed with batches, not per apply, so after a
+      crash the backend may be behind the WAL; the restart replays the WAL above it. The image
+      invariant must say so.
+    - The snapshot files (`.snap`, the `.snap.db` backend) against the WAL's snapshot records: their
+      order of writes and fsyncs. The two WAL non-issues of R2b-1
+      (`etcd-wal-stale-entries-above-snapshot`, `etcd-wal-snapshot-record-order`) are where it
+      already showed.
+    - The server's persist-before-send. A follower saves before it sends. The leader sends its
+      messages before its own `Save` (`raft.go`, "the leader can write to its disk in parallel with
+      replicating", raft thesis §10.2.1), so the leader's acknowledged writes rest on a quorum of
+      followers' fsyncs, not its own. The invariant must state which, as raft's stage II does for
+      raft.
+  - **The example**: `restart3` with a crash of the follower in place of `HardStop`, or a crash
+    step in its schedule; a closed theorem that the client's history is linearizable, as
+    kvdurable's.
+  - **Questions for its Scope**: osfs or `durableExt`; bbolt and the WAL proved over the files or
+    behind crash-aware contracts; one member's crash or the whole cluster's (power loss); a failed
+    fsync handled (`walFailed`, osfs's lost bytes) or excluded by a premise.
+  - **Order and size**: after R2-R5 have landed and the osfs extension exists. The largest stage of
+    this plan.
 
 ## Size and order
 
@@ -1013,3 +1052,102 @@ without a received snapshot and across the member's own snapshot. The etcd pin m
 `323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
 Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
 changes).
+
+### R2b-1 stage 1: raft's receive gives its facts before *enter* (2026-11-03)
+
+`readyGot` gains `deliveredLogLb` of the delivered log after the `Ready` and its hard state's
+committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
+hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
+changes) and stage 4 (the raft loop entering at the `Save`), which go together.
+
+### R2b-1 stage 3a-3b: a member's WAL directory fresh at start, `bootstrap` gives the opened WAL (2026-11-03)
+
+The user's choice for change 6: an axiomatized token. `walDirFresh dir` (`storage/WalDir.lean`) and
+`walFiles` (`storage/WalRecs.lean`) are axiomatized, timeless only (no exclusivity: read as `True`
+every axiom holds, the start axiom's satisfiability argument). Program start gives `walDirFresh`
+for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new environment premise,
+`walDirsAbsent e Ds`; `etcd_adequate` and `k8setcd3`'s adequacy pass the members' directories.
+`bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
+`walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
+theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
+base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.
+
+### R2b-1 stages 3c-6: one landing (2026-11-03, plan)
+
+**Why together.** Putting `isWalStorage` in `isRNWal`'s place (`rnNewStorageOk`, approved change 1)
+changes every WAL operation's contract at once: `Save`'s success update needs `WalSaveOk` (the
+records tracking raft's log: the durability invariant), the apply thread's `SaveSnap` needs the
+records' base term, and `Close` needs the records, the metadata and the purge's right. None of
+them can be met from a weaker invariant (`∃ σ, walRecs w σ` does not give `WalSaveOk`). Giving both
+contracts during a transition would be unsound (an old `Save` moves the records behind
+`walRecs`' back, and `Close` would then give `walFiles` of the wrong records). So stages 3c
+(the contract), 4 (the loop's `SaveSnap`/`Save`), 5 (the apply thread's `SaveSnap`) and 6
+(`onStop`'s `Close`) land as one, on one branch, built in that order.
+
+**Where the WAL's ghost state lives.**
+- `wal.Names` (the draft's `WalNames`) is a field group of the wrapper's names (`RNNames.wal`; the
+  slot convention's name-record split), allocated in `NewServer`'s proof from `wal.bootOk` by the
+  narrow law `wal.bootOk ⊢ |==> ∃ ν, wal.srvInv … ∗ (the loop's part) ∗ (the stop's part)`, which
+  replaces `wal.bootOk_storage`.
+- `wal.srvInv` = `rnDurInv ν w` (persistent), in the wrapper's components beside `isWalStorage`.
+- The loop's part: its view half and "not failed" token, with the driver's state (`rnDrv`: the
+  view's durable state is the driver's `S`), and the metadata and purge right until `onStop`.
+- The apply thread's: `walCommitLb` of the log it applied (from `notifyc`'s deposit) and its token
+  `ν.app` with its half of the open token (`rnWalTok`, review M3).
+- The stop's claim `ν.stop` goes with `srvStopRight` (R2b-2).
+
+**Firing *enter*: at the receive** (the user's choice, 2026-11-03, over the draft's "at the
+`Save`", round 3 M1): today's `rn_ready_recv` keeps firing it; the loop's `Save` then moves the
+records and the invariant's view from the durable state before the batch to the entered one
+(`walSave_holds`, `walSnapSave_holds`, stage 2). Enough for a graceful stop and restart: at every
+idle point, where the stop happens, the records hold the node's durable state. Not for a crash
+between the receive and the `Save`, which nothing models yet: entering at the `Save` is recorded as
+open for crash recovery (it would rewrite `rn_ready_recv` and the middle of both branches of
+`raftNode.start`, where the loop would hold no driver).
+
+**The view's half** lives in the loop's token (`rnLoopTokP`), at the durable state of its driver,
+which the driver's predicates now name (`rnDrv γ L p S`, `rnBusyN … S`, `rnBusyS … S`: `Advance`
+keeps it), with the "not failed" token. Between the receive and the `Save` the view is at the
+state before the batch and the busy driver at the entered one; `rn_ready_recv` says how they relate
+(`readyDurable`).
+
+**Order of work:** (a) the vocabulary: `RNNames.wal`, the view in the driver's predicates, the
+contract in `isRaftNode`, `rnNewStorageOk`; (b) the start: `NewServer` allocates from `wal.bootOk`,
+`NodeStart`'s first driver holds the initial view (`RaftState.init`, `walFresh`; `γ.pre = []`);
+(c) the loop: receive without *enter*, `SaveSnap`/`Save` with the invariant, both branches of
+`raftNode.start`; (d) the apply thread's `SaveSnap`; (e) `onStop`'s `Close`.
+
+**Where it stands (2026-11-03, branch `r2b1-s3c`, built, not landed):** the vocabulary and the
+pure halves are done: `RNNames.wal`; the driver predicates name their durable state; `rnDur_alloc`
+and `wal.bootOk_start` (NewServer allocates; the names reach `newRaftNode`); the loop's `Save` and
+`SaveSnap` as the contract's atomic updates (`rnDur_save_au`, `rnDur_saveSnap_au`, over the pure
+`WalSaveStep`/`WalSnapStep`); a received batch is such a step, proved from raft's `ReadyRestFacts`
+(`walSaveStep_ready`, `walSnapSteps_ready`), and `rn_ready_recv` hands the steps to the loop
+(`rnReadyData`, `rnReadySnap`). Left, as one change: the view's half and "not failed" token in the
+loop's token (`rnLoopTokP`, from `NodeStartSpec`); `isWalStorage` in place of `isRNWal`
+(`rnNewStorageOk`, `isRaftNode` with `rnDurInv`); the loop's `SaveSnap`/`Save` over the lemmas; the
+apply thread's `SaveSnap` (its token `ν.app` with its half of the open token, review M3: `rnWalTok`
+takes the wrapper's names, or the apply side's half becomes its own predicate); `onStop`'s `Close`
+(the records from `rnDurTake`, with the metadata and purge right the loop keeps from the start).
+
+### R2b-1 stages 3c-6, done (2026-11-03)
+
+The WAL contract is in use: `NewStorage` gives `isWalStorage` (`isRNWal` is gone), the wrapper holds
+the durability invariant (`isRaftNode`'s `rnDurInv γ.wal`), allocated in `NewServer` from
+`wal.bootOk_start`. Every WAL operation is proved over the contract:
+- the loop's `SaveSnap` and `Save` (`rnDur_saveSnap_au`, `rnDur_save_au`; the steps from the
+  receive, `rnReadyData`/`rnReadySnap`), its view's half in the loop's token (`rnLoopTokP`'s
+  `rnWalView`, the initial view from `NodeStartSpec`);
+- the apply thread's own `SaveSnap` (`rnDur_ownSnap_au`), with its token `ν.app` in its WAL share
+  (`rnWalTokA`, review M3) and the handed log's bound (`rnWalHanded`, carried by `raftAdvancedC`,
+  closed after the loop's `Save`); its chain (`applyAll`, `snapshotIfNeeded`, `snapshot`) takes a
+  fresh start's premise `γr.raft.pre = []` (the snapshot's index is the applied log's length),
+  which `run` has;
+- `onStop`'s `Close` (`rnDur_take`: the records out of the invariant, with the stop's claim, the
+  apply token from `stopped`, the loop's view; the metadata and purge right in the loop's share
+  `rnWalTokL`).
+A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): the invariant has no failed
+state. Close's result (`walFiles`) is dropped for now: R2b-3 makes the image from it (`rnWalClosed`,
+`srvFiles`). Open: M2 (the order at the view's handed log vs the stop's `pre ++ A`), enter at the
+`Save` (crash recovery).

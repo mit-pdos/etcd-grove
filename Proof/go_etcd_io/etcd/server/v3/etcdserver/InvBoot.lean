@@ -57,6 +57,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Code.net.http
+public import Proof.unicode.utf8.Valid
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
 
@@ -85,10 +89,6 @@ peer's handler may add a remote for. -/
 def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
-
-/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
-peer URL `url`, no other member. -/
-def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
 
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
@@ -200,8 +200,16 @@ request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal
 `remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
 approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
 `lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-Neither call is exercised while the server's grant guard is `False` (`srvGrantGuard`: no lessor has
-a lease); the lease-grant work must revisit both. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
+When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
+S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
+that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
+neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
+schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
+`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
+(`server.go:394-406`): outside the verified request path, so the premise then has content. The
+examples leave the feature off (`examples/common/common.go:96`: `le.cp == nil`, nothing is ever
+proposed), so for `examples/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
+this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
 opaque ckptEffectsOk : Prop
 
@@ -212,6 +220,25 @@ the backend's put fatal (`nonissues/etcd-backend-put-value-too-large-fatal.md`).
 keep the auth store's contents, so the bound is named, a premise of `auth.NewAuthStore`'s axiom
 and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
+
+/-- **The configurations `bootstrap`'s contracts cover, at either start** (2026-11-03, the
+whole-`bootOk` review, C): a logger (`bootstrap` logs through `cfg.Logger` from its first line,
+`bootstrap.go:64`: nil panics), a quota bbolt can map (`storage.openMmapOk`: `newBackend` panics
+otherwise), a batch limit the backend's model admits (`openLimit cfg` positive and at most `2 ^ 57`:
+`bootOk`'s `Hbe`, `d.P.Wf`; Go takes any `BackendBatchLimit`, `storage/backend.go:36-41`), no
+bootstrap defragmentation (`BootstrapDefragThresholdMegabytes = 0`, `bootstrap.go:267-272`: `Defrag`
+is not modeled, and `bootWB` counts no defrag session), and raft's timing (`1 < ElectionTicks`,
+which `Hraft`'s `ConfigValid` needs). Until then the last came only from the examples' `cfgOk`.
+(2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
+`heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
+states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/common/common.go`)
+meets all. -/
+def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
+    0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
+    cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
+    1 < sint.Z cfg.ElectionTicks'
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -235,17 +262,17 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- forwards a follower's renewal through (`srvPeerRt`)
     "%Hprt" ∷ ⌜∃ t : Loc, bs.prt' =
       GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
-    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
-    -- which `NewStorage`'s contract takes
-    "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
-    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
-    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
-    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
+    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL, which `NewStorage`'s contract takes
+    -- (2026-11-03, the WAL's API, approved change 2; its slot, the slot convention) the new WAL
+    -- opened in the configuration's WAL directory, and the purge's right (`wal.bootOk`)
+    "Hwal" ∷ wal.bootOk cfg id cid bw.w' ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
+    -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
+    -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
+    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
       sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
@@ -254,7 +281,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
       cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
+      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
@@ -291,11 +318,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
     -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
-    -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
-    -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
-    -- any request), at most `2 ^ 20` of them (each peer's goroutines borrow eight of `lgMu`'s
-    -- reader slots)
-    "%Hdirps" ∷ ⌜(∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20⌝ ∗
+    -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, the directory's
+    -- members raft's peers, at most `2 ^ 20`, a fact of the caller's `dir` and `γ.vs`, now
+    -- `NewServer`'s premise, the transport's slot `rafthttp.bootCfg dir γ.vs`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
@@ -334,7 +359,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
-    -- `SetConfState` `applyConfChange` calls
+    -- `SetConfState` `applyConfChange` calls, and (D22 J1a, 2026-10-26) which the snapshot path's
+    -- `OpenSnapshotBackend` installs on each new backend (2026-11-03, the whole-`bootOk` review,
+    -- I: stated once; until then a second copy for J1a)
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
@@ -359,12 +386,6 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π))) ∗
-    -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
-    -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
-    -- `OpenSnapshotBackend` installs on each new backend
-    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
-      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
-      lgh) ∗
     -- the backend of the real instance, with the server's hooks (2026-11-01, J8a-1, approved: and
     -- its parameters `newBackend` configures, well-formed with the batch limit `openLimit cfg`, as
     -- `OpenSnapshotBackend`'s `openPre` requires of a snapshot's backend)
@@ -387,21 +408,23 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#HhkAt" ∷ backend.hooksAt d.be (storage.hooksIface bk.beHooks') ∗
 
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
-    -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
-    -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty
-    -- key bucket (a new cluster's), the budget within its `wbInit` write-backs (`N` for the
-    -- entries, seven for the construction); and what `bootstrap` adds: the store's registration
-    -- right, `keySized` (`bootBackend_of_newPost` turns `newPost` into the resources `NewServer`
-    -- uses)
-    "Hnew" ∷ backend.newPost d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
-      (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
+    -- `newPostK`, at the server's batch-lock resources: its hooks the server's, so its
+    -- `isBackend` names the apply protocol's batch lock), as `bootstrap` leaves it: `D` the data
+    -- at its return (the opened file and the empty buckets its sessions created), with an empty
+    -- key bucket (a new cluster's); (2026-11-03, the whole-`bootOk` review, A) `N + 7` write-back
+    -- tokens (`N` for the entries, seven for the construction) and the open token (`bootLeft`),
+    -- not every token (`bFresh`: false after `bootstrap`'s own two write-backs; the bound is the
+    -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
+    -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
+    -- turns `newPostK` into the resources `NewServer` uses)
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
+      (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
-    "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
     -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
     "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
@@ -441,6 +464,18 @@ structure BootURLs [GooseExts] where
   initMap : GMap GoString GoSlice
   initURLs : GoString → List _root_.Perennial.net.url.URL
 
+/-- **And at a first start** (2026-11-03, the whole-`bootOk` review, C): a new cluster
+(`NewCluster`: the peers and the empty remotes are `bootstrapNewClusterNoWAL`'s,
+`bootstrap.go:519-528`), no discovery service (`ShouldDiscover` is
+`len(DiscoveryCfg.Endpoints) > 0`, `config.go:311-313`: the members would be the service's,
+`bootstrap.go:387-405`; a restart only warns, `:415-420`), and (Q8, 2026-11-02, moved here from the
+examples' `bootPremise`) the initial cluster's member names valid UTF-8 (`bootstrap` keeps a name
+raw in the cluster's members while the peers' contexts, `json.Marshal` of them, decode with U+FFFD
+in its place, so `bootOk`'s members are the contexts' decodings only for valid names). -/
+def bootCfgFresh (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : Prop :=
+  cfg.NewCluster' = true ∧ cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len = W64 0 ∧
+    ∀ k, (U.initMap.lookup k).isSome → utf8Valid k
+
 /-- **The configuration's URLs, read-only** (persistent; D19r (F)): what `bootstrap` reads of the
 configuration beyond its scalar fields (`VerifyBootstrap`, `NewClusterFromURLsMap`, the member's
 id from its peer URLs and the cluster token). -/
@@ -457,11 +492,21 @@ configuration `cfg` with its URLs `U` read-only (D19r (F): the member id `id` an
 log are what Go computes from them) and the storage registry's authority, empty (D19r (B): the
 new `MemoryStorage` joins it; until then the contract gave its registration with no authority,
 which no update can), an error, or the record with `bootOk` (at the write-back budget
-`N + 7`). -/
+`N + 7`). (2026-11-03, the whole-`bootOk` review, A and C) For the configurations it covers
+(`bootCfgOk`, `bootCfgFresh`: until then every configuration, including ones where Go panics or
+does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`).
+(2026-11-03, the final whole-`bootOk` review's M1) On a disk that cooperates with `bootstrap`'s own
+I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
+`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
+(`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
+call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
-  iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
+  iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
+          storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
+        bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+        wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

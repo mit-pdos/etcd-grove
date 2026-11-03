@@ -43,10 +43,12 @@ abbrev MainWatch.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64) (sched : GoSlice)
+    (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
-  BootFacts id₁ id₂ id₃ ctxs boot →
+  BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
@@ -60,7 +62,11 @@ abbrev MainWatch.spec : Prop :=
       netAddrFree (GF := GF) bridgeAddr₃ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
       httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗
-      premises N id₁ id₂ id₃ ctxs boot }}
+      premises N id₁ id₂ id₃ ps ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch))
       (Val #nw)) (Val #nops)) (Val #sched))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}

@@ -92,14 +92,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
+    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn hnI
   cases hM : E.authMode with
   | any => exact absurd hM hany
   | off =>
     have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
     rw [hon] at hch ⊢
     exact hSnapOff s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid
-      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
+      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn (by rw [hraft]) hnI
   | on γa =>
   have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
   rw [hon] at hch ⊢
@@ -123,7 +123,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #Hkvi := srvKVInvsM_true s E γr $$ HkiM
   ihave #Hkvi2 := Hkvi
   iunfold srvKVInvsOn at Hkvi2
-  icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, -, %Hcmf⟩
+  icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, -, %Hcmlg⟩
+  have Hcmf := Hcmlg.1
   -- the cluster runs auth on, the member's KV invariant says
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI0 with %hao
   -- the applied auth state is the applied log's
@@ -137,9 +138,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
     %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
-    #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #Hws, #Hcfg⟩
+    #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
+  -- (the lease-grant stage, 2.9) the lessor revocable refutes the rest's leased arm
+  ihave #Hlrev : lease.lessorModeIs E.γ.leases false $$ []
+  · rw [← hlgk]; iexact HlpM
+  ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
+  rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
   -- the snapshot saved in the member's directory
@@ -167,7 +173,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   have hai0 : uint.Z ai = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
   imod snapRecv_imageOn γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ _ hkb hraft hc0 hch
-      hlog0 hai0 hai hboot hRO $$ Hkvi Himg Hka HRS Hrc
+      hlog0 hai0 hai hboot hRO HElg $$ Hkvi Himg Hka HRS Hrc
     with ⟨Hka, HRS, %A', %R, %r, #HA', %Hif, #Hrc0, #Hpf0, #Hpc0⟩
   -- the KV's ghost state jumps to the image's log
   imod snapRecv_kv_jumpOn E γr A A' x _ Hif.pre Hif.hlen $$ Hkvi Hka HA' with ⟨%Hxch, #Hcert', HkaL⟩

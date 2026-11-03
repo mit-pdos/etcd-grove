@@ -54,7 +54,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩) $$ Hcp
   ihave #Hcok := apply.certOkNext_of_commitLog E.γ log _ $$ Hcok
   iunfold apply.leasesLive at Hknown
-  icases Hknown with ⟨%L, #Hk, Hu⟩
+  icases Hknown with ⟨%L, #Hk, Hu, HltL⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   wp_apply (txn.deleteRange_soleWriter_floor hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
@@ -86,14 +86,14 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Herr.1, Hl2, hlen⟩
-    isplitl [Hrd Hsw Hown Hrdo Hrvk Hard]
+    isplitl [Hrd Hsw Hown Hrdo Hrvk Hard HltL]
     · iunfold apply.kvOwn
       iframe Hrd Hsw Hard
       iunfold apply.leasesLive
       iexists L
-      isplitr [Hown Hrdo Hrvk]
+      isplitr [Hown Hrdo Hrvk HltL]
       · iapply apply.leasesKnown_commit_delete $$ Hk
-      iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk
+      iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk HltL
     ileft; iexact HPost
   · -- the range read's context error: not at `context.TODO()` (`nd`)
     exact Herr.elim

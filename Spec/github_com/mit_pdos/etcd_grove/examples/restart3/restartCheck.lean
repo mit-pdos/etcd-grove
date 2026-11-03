@@ -48,11 +48,15 @@ abbrev restartCheck.spec : Prop :=
     (Uok : BootURLs → Prop) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (id : w64) (γ : SrvRaft) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   ρ.rd.kv.st = γr.kv.st →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   -- (R2b-2) at most `NBoot` bootstrap entries, which `stop` waits for
   bootLog.length ≤ 3 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ →
   plainEndpoint caddr → lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →

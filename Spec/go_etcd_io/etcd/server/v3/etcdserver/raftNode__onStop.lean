@@ -35,8 +35,13 @@ abbrev raftNode.onStop.spec : Prop :=
       -- side's, `stopped`'s), which `node.Stop` takes
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN 1) ∗
       -- (2026-10-31) the WAL's whole open token (the loop's half and the apply side's), which
-      -- `Close` takes
-      rnWalTok r 1 }}
+      -- `Close` takes; (2026-11-03, R2b-1 stage 6) the records, which `Close` also takes, from the
+      -- durability invariant (`rnDur_take`): the stop's claim, the apply thread's token, the loop's
+      -- view at no pending snapshot; and the metadata and the purge's right
+      rnWalTok r 1 ∗ token γ.wal.stop ∗ token γ.wal.app ∗
+      (∃ v : WalView, rnWalView γ v ∗ ⌜v.pend = none⌝) ∗
+      (∃ (st : GoInterface) (id cid : w64), rnStorageAddr r ↦□ st ∗
+        walMetaIs (storage.walOf st) id cid ∗ walPurgeRight (walDirOf (storage.walOf st))) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"onStop")) (Val #()))
   {{ RET #(); True }}
 

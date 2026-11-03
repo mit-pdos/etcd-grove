@@ -158,7 +158,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.restoreRightM E.s γw.st c ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
         mvcc.watchWriter γw log ∗
-        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD) ∗
+        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E (mvcc.stateAfter log) ∗ E.RD) ∗
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗

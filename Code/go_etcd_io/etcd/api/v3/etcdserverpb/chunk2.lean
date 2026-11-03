@@ -447,6 +447,7 @@ class LeaseGrantRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_sizeCache : ∀ (x : LeaseGrantRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaseGrantRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaseGrantRequest)))
   method_set : go.MethodSetIs LeaseGrantRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseGrantRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.int64]))), (go!"GetTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetTTL_unfold : MethodUnfold (go.GoType.PointerType LeaseGrantRequest.ty) go!"GetTTL" LeaseGrantRequest.GetTTL.impl
 
 attribute [instance] LeaseGrantRequest.TypeAssumptions.type_repr
   LeaseGrantRequest.TypeAssumptions.underlying
@@ -462,6 +463,7 @@ attribute [instance] LeaseGrantRequest.TypeAssumptions.type_repr
   LeaseGrantRequest.TypeAssumptions.set_sizeCache
   LeaseGrantRequest.TypeAssumptions.method_set
   LeaseGrantRequest.TypeAssumptions.ptr_method_set
+  LeaseGrantRequest.TypeAssumptions.ptr_GetTTL_unfold
 
 class LeaseGrantResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseGrantResponse.underlying LeaseGrantResponse
