@@ -377,6 +377,7 @@ axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walDirFresh
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof

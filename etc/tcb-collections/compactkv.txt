@@ -593,6 +593,7 @@ axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walDirFresh
 axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
