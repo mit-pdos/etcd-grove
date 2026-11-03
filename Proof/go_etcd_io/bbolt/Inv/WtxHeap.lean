@@ -1,0 +1,154 @@
+/-
+The writer's heap at a fraction (U0a of `notes/bbolt-proof-plan.md`; design §3.10, §3.13): the
+old `ownWriteTxG` (`old/bbolt/.../WriteTxPred.lean`) with every points-to at `dq`, over the live
+and dead objects (A3), the handles' `FillPercent` fields beside their points-tos (`fills`, F3)
+and the root bucket's (`rootFill`, B6.5).
+
+A slice the writer keeps is in the view (`Src.view`: a pure fact), or persistent heap bytes
+(`Src.own`: `↦*□`, the cloned keys and `Put`'s values), or stale. A live object's slices carry
+their facts; a dead object keeps only its points-tos. A bucket's `page` field is read only while
+it is view-backed (`PageSt.view`, N2).
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Inv.Store
+public import Proof.go_etcd_io.bbolt.Model.LTree
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- The transaction's root bucket: its field `root`. -/
+def txRoot (tx : Loc) : Loc := structFieldRef Tx go!"root" tx
+
+/-- A kept slice and its source (see the module doc). -/
+def srcOwn (v : View) (s : GoSlice) (src : Src) (bs : List w8) : IProp GF :=
+  match src with
+  | .view => iprop(⌜inViewAt v s bs⌝)
+  | .own _ => iprop(s ↦*□ bs)
+  | .stale => iprop(True)
+
+/-- The inode `it` is the entry `w` (its slices' facts only for a live node). -/
+def wOwn (v : View) (live : Bool) (it : Inode) (w : WEntry) : IProp GF :=
+  iprop(⌜it.flags' = w.flags ∧ it.pgid' = w.pgid⌝ ∗
+    if live then srcOwn v it.key' w.ks w.key ∗ srcOwn v it.value' w.vs w.value else emp)
+
+/-- A bucket's inline page, as its `page` field's status says (N2). -/
+def pageOwn (v : View) (B : BRec) : IProp GF :=
+  match B.pst with
+  | .view => iprop(⌜inViewLoc v B.bv.page' B.ipg⌝)
+  | _ => match B.isrc with
+    | .own _ => if B.bv.page' = null then iprop(emp) else bytesPointsto B.bv.page' DFrac.discard B.ipg
+    | _ => iprop(emp)
+
+/-- **An object of the writer's heap** at `dq` (a bucket: its fields but `FillPercent`, its
+header, its maps, its page; a node: its struct, inodes, children and key), live (with its slices'
+facts on the view `v`) or dead. -/
+def objOwn (v : View) (l : Loc) (dq : DFrac) (live : Bool) : WObj → IProp GF
+  | .bkt B => iprop(
+      l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗ l.[Bucket, go!"tx"] ↦{dq} B.bv.tx' ∗
+      l.[Bucket, go!"buckets"] ↦{dq} B.bv.buckets' ∗ l.[Bucket, go!"page"] ↦{dq} B.bv.page' ∗
+      l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
+      B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
+      (if live then pageOwn v B else emp))
+  | .node _ r => iprop(
+      l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗ ownSliceCap Inode r.nv.inodes' dq ∗
+      ([∗list] it;w ∈ r.ins;r.ws, wOwn v live it w) ∗
+      r.nv.children' ↦*{dq} r.cs ∗ ownSliceCap Loc r.nv.children' dq ∗
+      (if live ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp))
+
+/-- The transaction's fields but `db`, `stats` and `root`, its meta copy, and its page cache
+`pages` with the buffers. -/
+def txFields (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
+  iprop(tx.[Tx, go!"writable"] ↦{dq} X.t.t.writable' ∗ tx.[Tx, go!"managed"] ↦{dq} X.t.t.managed' ∗
+    tx.[Tx, go!"meta"] ↦{dq} X.t.t.meta' ∗ tx.[Tx, go!"pages"] ↦{dq} X.t.t.pages' ∗
+    tx.[Tx, go!"commitHandlers"] ↦{dq} X.t.t.commitHandlers' ∗
+    tx.[Tx, go!"WriteFlag"] ↦{dq} X.t.t.WriteFlag' ∗
+    X.t.t.meta' ↦{dq} X.t.mv ∗ X.t.t.pages' ↦${dq} X.t.pm ∗
+    ([∗map] id ↦ pl ∈ X.t.pm, ∃ bs, ⌜X.t.bufs !! id = some bs⌝ ∗ bytesPointsto pl dq bs))
+
+/-- The root bucket's `FillPercent` (not a handle; `newBucket` sets `0.5`), non-NaN (B6.5). -/
+def rootFill (tx : Loc) (dq : DFrac) : IProp GF :=
+  iprop(∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ (tx.[Tx, go!"root"]).[Bucket, go!"FillPercent"] ↦{dq} f)
+
+/-- **Every handle's `FillPercent`** at `dq`, non-NaN, its value beside its points-to (F3). -/
+def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
+  iprop([∗map] b ↦ _x ∈ H, ∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{dq} f)
+
+/-- **The writer's heap** at `dq` (design §3.13). -/
+def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
+  iprop(⌜X.rl = tx.[Tx, go!"root"]⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
+    [∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o)
+
+/-! ## Remaps: views become stale -/
+
+/-- A source after a remap. -/
+def Src.unview : Src → Src
+  | .view => .stale
+  | s => s
+
+/-- A bucket after a remap: its view-backed page stale (N2). -/
+def BRec.unview (B : BRec) : BRec :=
+  { B with isrc := B.isrc.unview, pst := if B.pst = .view then .stale else B.pst,
+           ns := B.ns.fmap fun r => { r with ws := r.ws.map fun w =>
+             { w with ks := w.ks.unview, vs := w.vs.unview }, ksrc := r.ksrc.unview } }
+
+/-- An object after a remap. -/
+def WObj.unview : WObj → WObj
+  | .bkt B => .bkt B.unview
+  | .node bl r => .node bl { r with ws := r.ws.map fun w =>
+      { w with ks := w.ks.unview, vs := w.vs.unview }, ksrc := r.ksrc.unview }
+
+/-- `X` after a remap to the base `b`: the view re-based, every view source stale. -/
+def WX.rebase (X : WX) (b : Loc) : WX :=
+  { X with v := { X.v with base := b },
+           t := { X.t with bs := X.t.bs.fmap BRec.unview, dead := X.t.dead.fmap WObj.unview } }
+
+/-- **`dereference`'s coverage contract** (design §4.2, over the live objects, A3): no live
+node's entry or key is a view slice. (A bucket's `page` is outside it, N2.) -/
+def derefOK (X : WX) : Prop :=
+  ∀ l o, X.t.objs !! l = some o → l ∈ X.live →
+    match o with
+    | .node _ r => (∀ w ∈ r.ws, w.ks ≠ .view ∧ w.vs ≠ .view) ∧ r.ksrc ≠ .view
+    | .bkt _ => True
+
+/-! ## Lemma statements (U5, U4, U8, U9) -/
+
+theorem wtxHeap_fractional (tx : Loc) (X : WX) :
+    Fractional (fun q => wtxHeap (GF := GF) tx (DFrac.own q) X) := by
+  sorry
+
+theorem fills_fractional (H : GMap Loc (GoString × Nat)) :
+    Fractional (fun q => fills (GF := GF) H (DFrac.own q)) := by
+  sorry
+
+/-- An object goes dead (spill's spilled children, rebalance's removed nodes, `DeleteBucket`'s
+bucket and nodes): its facts are dropped, its points-tos kept. -/
+theorem wtxHeap_kill (tx : Loc) (dq : DFrac) (X : WX) (l : Loc) :
+    wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq { X with live := X.live.delete l } := by
+  sorry
+
+/-- **The remap** (U4): after `dereference` (the coverage contract), the heap is the re-based
+`X`'s; nothing of it reads the old mapping. -/
+theorem wtxHeap_rebase (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X) :
+    wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq (X.rebase b) := by
+  sorry
+
+end heap
+
+end bbolt
+end EtcdGrove
+end Perennial
