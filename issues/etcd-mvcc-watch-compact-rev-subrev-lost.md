@@ -6,11 +6,17 @@ links: []
 
 # server/storage/mvcc: a watch from exactly the compaction revision loses the earlier changes of a key changed twice in that revision
 
-- **Status**: a wrong result at mvcc's Go API (an event missing from a watch). Not reachable through
+- **Status**: a wrong result (an event missing from a watch). At the pin, not reachable through
   etcd's gRPC API, which rejects a transaction that changes a key twice (`checkIntervals`,
   `server/etcdserver/api/v3rpc/key.go:236-290`: `ErrGRPCDuplicateKey` for a key put twice, or put
-  and covered by a delete of the same request); a client of mvcc's `TxnWrite` (mvcc's own tests,
-  embedders, this repository's randomized tester `examples/mvccrand`) can make such a revision.
+  and covered by a delete of the same request), since the fork carries etcd-io/etcd#22395. On
+  upstream `main` without #22395, likely reachable through gRPC (by reading, 2026-11-03, not
+  reproduced): `checkIntervals` accepts `Then(OpDelete(k, WithFromKey()), OpPut(k, v))`
+  ([etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md)), whose revision `c` has
+  a tombstone `{c,0}` and a put `{c,1}` of `k`; a compaction at `c` (auto-compaction can pick
+  exactly `c`) keeps `{c,1}`, and a watch from `c` then misses the delete. A client of mvcc's
+  `TxnWrite` (mvcc's own tests, embedders, this repository's randomized tester
+  `examples/mvccrand`) can make such a revision.
 - **Where**: at the etcd pin (`etc/goose.py`, `249d76bea`), `server/storage/mvcc/`:
   - the compaction keeps, per key, only the largest revision at or below the compaction revision
     `c` (`key_index.go`, `doCompact`: `g.walk(f)` stops at the first, from the newest, revision with

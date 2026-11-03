@@ -535,3 +535,16 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
 5. Asked what the question is (the registration stamp).
 6. Asked why the backend boundary is a placeholder.
 7. **`New`'s premises accepted.**
+
+### The user's second answers (2026-11-03)
+
+1. **A store without a hook is in scope** (the tester may run without one): `Write`'s and
+   `Compact`'s hook contract gets back its `nil` row (`LockInsideApply` then runs nothing: the
+   caller's view shift from `P ∗ Pre` to `Q`); `mvccHook γ P func.nil` from the backend's own frozen
+   `nil` hook. Round 9's proof required a hook (`bkHookIs`): proof work, not a spec restriction.
+2. Asked for options A and B in detail.
+3. **The closed flag in the stream's state: accepted.**
+4. Proposed instead of a fix: a precondition that a transaction does not change a key twice; asked
+   whether to fix upstream, and its cost. Found while answering: on upstream `main` (without
+   etcd-io/etcd#22395) the bug is likely reachable through gRPC (`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`).
+6. **The backend precondition designed now, against M2's model: accepted.**
