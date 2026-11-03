@@ -112,7 +112,13 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   axiom of an axiomatized family still holds when its predicates are read as `True`, the family says
   nothing (`pilot-review-1.md`).
 - **The postcondition says what the caller inspects**: not a constant when the caller tests the error
-  or destructures the result. (`pilot-review-1.md`)
+  or destructures the result. (`pilot-review-1.md`) And a fact the caller needs of a result belongs
+  at the call that returns it, not in a law about the object's whole state from which the caller
+  would derive it: ask what the caller does with the bound before exporting one. (The mvcc API, round
+  15, 2026-11-03: a size law on the store's state, for etcd's sort of range results, was false after
+  a compacted restore and threaded through every client; the user: "Why would the client need a
+  size bound from sigma?" The sort needs its slice small and its values non-negative: the `Range`
+  contracts now say so of what they could read.)
 - **Facts that can be combined**: a fact at an unknown point (a clock reading) that is not related to
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
