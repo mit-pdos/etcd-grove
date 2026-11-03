@@ -184,11 +184,13 @@ def kvSortOk (e : EtcdKv) : Prop :=
   0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version
 
 /-- **A state safe to sort** (round 15): at most `2 ^ 62` key-values (the premise of Perennial's
-sort spec, its heapsort fallback's index arithmetic), each safe to sort. **A temporary, local
-assumption**: it exists only because of that limitation of Perennial's spec, to go when Perennial's
-sort spec drops its size premise, so it is stated at the one place a range's results are produced
-(the `Range` contracts), not as a law of the store's state that every client would thread (the
-user, 2026-11-03). -/
+sort spec, its heapsort fallback's index arithmetic), each safe to sort. **The size bound is a temporary, local
+assumption**: it exists only because of that limitation of Perennial's spec
+(`notes/perennial-changes.md`, "`sort.Sort`'s size premise"), to go when Perennial's sort spec drops
+it, so it is stated at the one place a range's results are produced (the `Range` contracts), not as
+a law of the store's state that every client would thread (the user, 2026-11-03). The values' part
+(`kvSortOk`) is not temporary: it is what makes etcd's own comparators, which subtract, a strict weak
+order. -/
 def stateOk (s : List EtcdKv) : Prop := s.length ≤ 2 ^ 62 ∧ ∀ e ∈ s, kvSortOk e
 
 /-- **A backend, as the store sees it**: its ghost names, parameters and location. -/

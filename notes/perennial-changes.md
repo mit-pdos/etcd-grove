@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
+
+- **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
+  requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
+  program needs (a slice that long cannot exist in memory).
+- **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
+  range's results.
+- **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
+  `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
+  proved from the store's whole-history receipt; not a law of the store's state (the user,
+  2026-11-03: "we're going to ultimately get rid of the explicit size limit assumptions ... by
+  improving perennial itself, so I want those assumptions as local as possible").
+- **Proposed change.** Prove `sort.Sort` without the bound (from the slice's length being an `int`,
+  or the heap indices computed without overflow), then drop `stateOk`'s length conjunct.
+- **Status.** Not started.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
