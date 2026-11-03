@@ -54,7 +54,7 @@ theorem Cache.Get.wp_proof
   iNamed Hc'
   wp_auto
   unfold cacheReader
-  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) r0 $$ [$HisStore $Hrd $Hlb]
+  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) r0 $$ [$HisStore $Hrd $Hlb]
     as %lr ⟨Hrd, %st0, #Hseen0, #-, %Hlr⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -246,7 +246,7 @@ theorem Cache.Get.wp_proof
           itrivial
       all_goals
         icases Hfresh with ⟨%r0', #Hlb', %Hr0', Hfr⟩
-        wp_apply wp_store_Get cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) r0' ssl esl key
+        wp_apply wp_store_Get cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) r0' ssl esl key
           of.base.rangeEnd (DFrac.own 1) DFrac.discard of.base.rev $$ [$HisStore $Hrd $Hlb' $Hssl $Hesl]
           as %kvs %lrev %gerr ⟨Hrd, Hssl, -, %st, #Hseen, #-, #Herr, Hres⟩
         iunfold storeSeen at Hseen
@@ -257,7 +257,7 @@ theorem Cache.Get.wp_proof
           simp only [snapErr]
           icases Herr with %Hgn
           subst Hgn
-          icases Hres with ⟨%Hlrev, #HE, Hkvs, Hcap, #HkvsAt⟩
+          icases Hres with ⟨%Hlrev, #HE, ⟨%b, %Hb, #Hgap⟩, Hkvs, Hcap, #HkvsAt⟩
           wp_auto
           irename «$r0» => Hrp
           generalize «$r0_ptr» = rp at *
@@ -281,7 +281,15 @@ theorem Cache.Get.wp_proof
           · unfold respHeaderVal; iexact «$v0»
           iframe Hkvs Hcap HkvsAt
           isplitr
-          · iunfold etcdCert at HE; iexact HE
+          · -- at the revision asked for: the snapshot's gap covers it
+            iunfold etcdCert at HE
+            have hle := snapModel_ok_le st of.base.rev r m Hm
+            generalize hv : (if of.base.rev = W64 0 then st.latestRev else of.base.rev) = v at hle Hb ⊢
+            rcases Int.lt_or_eq_of_le hle with hlt | heq
+            · ihave #Hs := cacheGap_at cf.pfx r b v ⟨hlt, Hb⟩ $$ Hgap
+              iapply isEtcdKvs_quiet r v cf.pfx m hlt $$ [$Hs $HE]
+            · have : r = v := by word
+              subst this; iexact HE
           isplitr
           · unfold storeSeen; iframe Hlbst; ipureintro; exact ⟨Hst.1, by omega⟩
           isplitr

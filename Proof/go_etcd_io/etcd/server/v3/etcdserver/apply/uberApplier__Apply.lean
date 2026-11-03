@@ -30,8 +30,8 @@ theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs T
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, #Hcpr, #Hgp, HLt, %Hskip, #HF, HFS, HSp, HRO,
-    Hco⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, #Hcpr, #Hgp, HLt, %Hskip, #HF, HFS, HSp, %Hrr,
+    HRO, Hco⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
   ihave #Hs' := Hs
@@ -67,7 +67,7 @@ theorem apply.uberApplier.Apply.wp_proof
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) x.crev T) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO Hco HLt]
     · iframe #
       iframe Hres Ha Hkv Hwt Hcs HFS HSp HRO Hco HLt
-      ipureintro; exact ⟨Hok, HcE⟩
+      ipureintro; exact ⟨Hok, HcE, Hrr⟩
     inext
     iintro %ar ⟨Hres, HFS, Hco, HB⟩
     iapply HΦ'

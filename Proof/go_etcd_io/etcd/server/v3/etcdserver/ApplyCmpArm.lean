@@ -406,16 +406,19 @@ theorem srvGrantIf_permPG [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumption
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
 the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
-the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`). -/
+the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`), the revision positive
+(the proposal's `compactPropOk`). -/
 theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (kb : Option mvcc.KBReal) (log : mvcc.Log) (hl : log = kvModel γk A)
     (hkb : cmp = true → mvcc.kbCmpM kb) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
     apply.cmpAdmit kb log rq := by
   intro hk r hr
-  obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
+  obtain ⟨hc, ⟨⟨-, r', hr', h1⟩, -⟩, hrl⟩ := h ht hd rq hdec hk
+  rw [hr] at hr'
+  cases hr'
   subst hl
-  exact ⟨hkb hc, by have := hrl r hr; omega⟩
+  exact ⟨hkb hc, by have := hrl r hr; omega, h1⟩
 
 
 /-- **A revision of the KV model of a committed prefix is reached** (C3's server stage, 2026-11-02):
@@ -486,6 +489,67 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames)
   ipureintro
   obtain ⟨-, -, hc0, -, -, hcl, -⟩ := Hok
   exact cmpEntryOk_transfer γ γk γk.cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
+
+/-- **Off, a committed log has no compaction** (`kv_log_plain`, `crevOf_plain`). -/
+theorem crevOf_off (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (hcm : γk.cmp = false) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗ ⌜crevOf γk A = -1⌝ := by
+  iintro #Hinv #Hr #HA
+  imod kv_log_plain γ γk A $$ Hinv Hr HA with %Hp
+  imodintro
+  ipureintro
+  rw [hcm, plainLogM_false] at Hp
+  exact crevOf_plain γk A Hp.1
+
+/-- The mode-off fact for a committed log, in either mode. -/
+theorem crevOf_offM (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗
+      ⌜γk.cmp = false → crevOf γk A = -1⌝ := by
+  iintro #Hinv #Hr #HA
+  cases hm : γk.cmp
+  · imod crevOf_off γ γk A hm $$ Hinv Hr HA with %h
+    imodintro; ipureintro; exact fun _ => h
+  · imodintro; ipureintro; intro h; cases h
+
+/-- **The committed log's compaction revision is the cluster's permit** (#7-cmp's Freeze, the
+user's approval of the review's `CrevPermitLaw`): `-1`, or the revision of a committed compaction,
+whose claim (`cmpEntryOk`, `kv_entry_claim`) puts it at a positive revision at least the retention
+below the model before it, which the cluster reached (`kv_revLbZ_of_rlogLb`): `cmpPermRq_of_entry`'s
+argument at the maximum. -/
+theorem crevOf_permit (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗
+      (⌜crevOf γk A = -1⌝ ∨ kvCmpPermit γk (crevOf γk A)) := by
+  suffices h : ∀ L : List EntryModel, ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗
+      srvRLogLb γ L.reverse ={⊤}=∗ (⌜crevOf γk L.reverse = -1⌝ ∨ kvCmpPermit γk (crevOf γk L.reverse)) by
+    have := h A.reverse; rw [List.reverse_reverse] at this; exact this
+  intro L
+  induction L with
+  | nil =>
+    iintro - - -
+    imodintro; ileft; ipureintro; rfl
+  | cons m L ih =>
+    rw [List.reverse_cons]
+    generalize L.reverse = B at ih ⊢
+    iintro #Hinv #Hr #HA
+    ihave #HB : srvRLogLb (GF := GF) γ B $$ []
+    · iapply srvRLogLb_mono γ B (B ++ [m]) (List.prefix_append _ _) $$ HA
+    imod ih $$ Hinv Hr HB with Hih
+    imod kv_entry_claim γ γk B m $$ Hinv Hr HA with %Hcl
+    rw [crevOf_snoc]
+    rcases kvCrevEntry_cases γk.c0 γk.ch0 (crevOf γk B) m with heq | ⟨rq, r, ht, hd, hdec, hk, hrc, heq⟩
+    · rw [heq]; imodintro; iexact Hih
+    · obtain ⟨-, hc, hrl⟩ := Hcl ht hd rq hdec hk
+      have h1 : 1 ≤ sint.Z r := by
+        obtain ⟨⟨-, r', hr', h1⟩, -⟩ := hc
+        rw [hrc] at hr'; cases hr'; exact h1
+      have h2 := hrl r hrc
+      rw [heq]
+      imod kv_revLbZ_of_rlogLb γ γk B (sint.Z r + γk.cret) h2 $$ Hinv Hr HB with #Hlb
+      imodintro
+      iright
+      iunfold kvCmpPermit
+      isplitr
+      · ipureintro; omega
+      iexact Hlb
 
 
 end arm

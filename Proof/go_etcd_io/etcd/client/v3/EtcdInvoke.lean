@@ -41,7 +41,7 @@ interceptor's attempts; urpc's `wp_Client__Call_pred`). What it returns:
   holds the reply's copy of `resp`'s message (`Rep.recv out m'`) with the run's `Φ m'`. Other runs
   may have happened (failed attempts the retry interceptor retried: an attempt that failed with a
   gRPC `Canceled` or `DeadlineExceeded` while `ctx` is not done is retried whatever the method,
-  `issues/etcd-client-retry-put-ctx-error.md`); the reply is the last one's.
+  `nonissues/etcd-client-retry-put-ctx-error.md`); the reply is the last one's.
 * an error (a client error, `clientErr`, that grpc's `status` accepts, `statusErrOk`): nothing
   about whether, or how often, the handler ran, nor about `out`.
 

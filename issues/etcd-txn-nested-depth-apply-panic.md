@@ -1,72 +1,70 @@
 ---
-upstream: unchecked
-checked: 2026-10-30
-links: []
+upstream: none
+checked: 2026-11-02
+links:
+blocks-proof: yes
 ---
 
-# etcdserver: a transaction nested 4999 deep passes gRPC and panics every member at apply (with --max-txn-ops ≥ about 5000)
+# etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)
 
-- **Status**: bug (a reachable panic of the apply loop, persistent across restarts), reachable only
-  with a non-default `--max-txn-ops`. Found by the axiom review of the nested-transaction wire
-  model (`notes/axiom-review/txn-nested-wire.md`).
-- **Where** (the fork's `goose-lean`, `249d76bea7`; upstream `main` the same code):
-  - `server/etcdserver/api/v3rpc/key.go:202-231, 333-334`: `checkTxnRequest` recurses into nested
-    transactions (`checkRequestOp`'s `RequestOp_RequestTxn` case) with the budget `maxTxnOps - opc`,
-    so a chain of nested transactions of one operation each may be about `--max-txn-ops` deep; no
-    other bound on the depth.
-  - gRPC's codec decodes the request with protobuf-go's default recursion limit
-    (`protowire.DefaultRecursionLimit`, 10000 message levels): a request at most 10000 levels deep
-    is accepted.
-  - `server/etcdserver/v3_server.go:1094`: the request is wrapped in an `InternalRaftRequest`
-    (one level more) and marshalled into a raft entry (marshalling has no depth limit).
-  - `server/etcdserver/apply/apply.go:29`: `apply.Apply` decodes every committed normal entry with
-    `pbutil.MustUnmarshalMessage` (`proto.Unmarshal`, the same 10000 limit), which panics on error.
-- **What happens**: a `TxnRequest` whose innermost transaction has one comparison, nested 4999 times
-  (each level a `RequestOp` holding the next `TxnRequest`), is 10000 messages deep: gRPC decodes
-  it; with `--max-txn-ops` at least about 5000, `checkTxnRequest` accepts it; the server proposes
-  its 10001-deep `InternalRaftRequest` (34 KB, far below `--max-request-bytes`); raft commits it;
-  every member's apply loop panics, `unmarshal should never fail (proto: exceeded maximum recursion
-  depth)`. The entry is in the WAL: a restarted member replays it and panics again. One client
-  request takes the cluster down for good. Through the client's public API:
+With `--max-txn-ops` raised to about 5000 or more, one client `Txn` nested 4999 deep (each level a
+transaction holding the next, the innermost one comparison; 34 KB on the wire) is accepted,
+committed, and then panics the apply loop of every member with `unmarshal should never fail
+(proto: exceeded maximum recursion depth)`. The entry is in every member's WAL, so a restarted
+member replays it and panics again: the cluster stays down.
 
-  ```go
-  op := clientv3.OpTxn([]clientv3.Cmp{clientv3.Compare(clientv3.Version("k"), "=", 0)}, nil, nil)
-  for i := 0; i < 4998; i++ {
-      op = clientv3.OpTxn(nil, []clientv3.Op{op}, nil)
-  }
-  cli.Txn(ctx).Then(op).Commit()
-  ```
+**Expected:** a request the server accepts and proposes should be applied; one too deep to be
+applied should be refused before it is proposed.
 
-  Reproduction: `examples/axiomcx/txnwire/poison_test.go` on branch `axiom/txn-nested-wire`
-  (`TestNestedDepthPoison`: one member with `MaxTxnOps: 10000`, the member panics in
-  `apply.Apply`; with `TXNPOISON_DIR` set, `TestNestedDepthPoisonRestart` restarts it from the same
-  data directory and it panics again). `TestDepthBoundary` (`depth_test.go`) shows the boundary
-  without a server: the 4999-deep request decodes, its `InternalRaftRequest` does not; a request
-  one level deeper is refused by gRPC with `codes.Internal` (`TestNestedDepthRefused`, harmless).
-  With the default `--max-txn-ops` (128) the nesting stays below about 128 levels and the bug is
-  not reachable.
-- **Expected**: a request the gRPC layer accepts and the server proposes can be applied; a request
-  too deep for the apply path is refused before it is proposed.
-- **How the proof handles it** (2026-10-31, branch `irr-depth`, `notes/irr-depth.md`; the user's
-  approval, `notes/decisions.md`, "A depth premise for `proto.MarshalIRR`"): as a premise and a scope
-  restriction. Until then `proto.MarshalIRR.wp_proof` (an axiom) said the marshalled bytes of any
-  `InternalRaftRequest` decode, which is false of one 10001 messages deep. Now:
-  - `proto.MarshalIRR.spec` (`Spec/google_golang_org/protobuf/proto/MarshalIRR.lean`) takes the
-    premise `apply.irrDepthOk rq` (`apply/IrrDepth.lean`: the request's transaction at most 9999
-    messages deep, `TxnModel.msgDepth`), its post unchanged;
-  - the server's proposer (`processInternalRaftRequestOnce.spec`, `raftRequest.spec`) takes the same
-    premise, and `EtcdServer.Txn.spec` takes `apply.txnDepthOk t` of a writing transaction;
-  - the gRPC handler discharges it: `v3rpc.txnCheck_msgDepth` (`v3rpc/CheckLemmas.lean`) proves that
-    a transaction `checkTxnRequest` accepts at the budget `n` is at most `2n + 1` messages deep, and
-    the `*kvServer` keeps `v3rpc.maxTxnOpsOk (sint.Z n)` (`n ≤ 4999`, `v3rpc/RecvLimit.lean`);
-  - `NewServer.spec` takes `v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps')`: the **scope restriction**,
-    exact (at 5000 the 4999-deep chain above passes the check and panics the apply). etcd's default
-    (128) meets it; the examples discharge it (`MaxTxnOps: 128`).
-- **Possible fixes**: bound the nesting depth in `checkTxnRequest` (a depth parameter; a limit
-  well below 5000, e.g. 64 or `maxTxnOps`-independent); or check, before proposing, that the
-  marshalled `InternalRaftRequest` decodes (cost: one decode per write); or decode raft entries
-  with a larger `RecursionLimit` (`proto.UnmarshalOptions`), which only moves the boundary unless
-  gRPC's limit is kept strictly below it.
-- **Found**: 2026-10-30, the `axiom` skill's review of the nested-transaction wire model (the
-  attack "the server's decoded copy reproduces the client's tree": the gRPC decode does; the raft
-  round trip does not).
+**Impact:** only with a non-default `--max-txn-ops` of about 5000 or more (the default, 128,
+limits the nesting to about 128 levels). Then any client allowed to send a `Txn` can take the
+cluster down with one request; recovery means removing the entry from every member's WAL.
+
+**Reproduction:** `TestTxnNestedDeep` in
+[`issues/etcd-txn-nested-depth-apply-panic/txn_nested_depth_test.go`](etcd-txn-nested-depth-apply-panic/txn_nested_depth_test.go),
+copied (as `zz_txn_nested_depth_test.go`) into `tests/integration/clientv3` at
+etcd-io/etcd@a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5 (2026-11-02), go1.27.3 (one member with
+`MaxTxnOps: 10000`):
+
+```
+$ (cd tests && go test ./integration/clientv3 -run '^TestTxnNestedDeep$' -count=1)
+panic: unmarshal should never fail (proto: exceeded maximum recursion depth) [recovered]
+	panic: execute job failed
+go.etcd.io/etcd/pkg/v3/pbutil.MustUnmarshalMessage(...)
+	.../pkg/pbutil/pbutil.go:63 +0x94
+go.etcd.io/etcd/server/v3/etcdserver/apply.Apply(...)
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3	0.266s
+```
+
+**Cause:** [`checkTxnRequest`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/etcdserver/api/v3rpc/key.go#L202-L231)
+bounds the nesting only through `--max-txn-ops` (each level is checked with the budget left by
+its parent), and gRPC decodes requests up to protobuf-go's default depth of 10000 messages. A
+4999-deep transaction is 10000 messages deep; the server wraps it in an `InternalRaftRequest`, one
+level more, and the apply loop decodes each committed entry with
+[`MustUnmarshalMessage`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/etcdserver/apply/apply.go#L29),
+which hits the same limit and
+[panics](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/pkg/pbutil/pbutil.go#L61-L65).
+
+## Proof
+
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: `proto.MarshalIRR.spec` takes the premise `apply.irrDepthOk` (the request at most 9999
+messages deep, `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/IrrDepth.lean`), which the gRPC
+handler discharges only under `NewServer.spec`'s configuration premise `v3rpc.maxTxnOpsOk`
+(`--max-txn-ops` at most 4999, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/RecvLimit.lean`);
+etcd accepts any `--max-txn-ops`.
+
+## Fix
+
+Not written. Bound the nesting depth in `checkTxnRequest` (a depth parameter, a limit well below
+5000 and independent of `--max-txn-ops`); or check before proposing that the marshalled request
+decodes; decoding entries with a larger `RecursionLimit` only moves the boundary unless gRPC's
+limit stays below it.
+
+## Notes
+
+A 5000-deep request is refused by gRPC (`codes.Internal`), harmlessly. A restart from the same
+data directory panics again on replay (seen 2026-10-30 with the examples' `TestNestedDepthPoisonRestart`,
+branch `axiom/txn-nested-wire`, since deleted; the test above was rebuilt from it). Related:
+[`etcd-txn-keysonly-reply-alloc-panic`](etcd-txn-keysonly-reply-alloc-panic.md) and
+[`nonissues/etcd-max-txn-ops-nested`](../nonissues/etcd-max-txn-ops-nested.md) (the same per-level
+budget).

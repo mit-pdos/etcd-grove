@@ -38,8 +38,8 @@ theorem mvcc.newWatchableStore.wp_proof
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0 hboot
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Htie, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -48,14 +48,17 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
-    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0 hboot)
+    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Htie $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hpin, Hright, Hret, #HcpIs⟩
+      Hwsd, Hfrag, Hpin, Hright, Hkc, Hret, #HcpIs⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
   -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
-  imod mvcc.crevRight_split γs $$ Hright with ⟨#Hfrz, Hcr⟩
+  ihave Hkc : mvcc.kbCrev (GF := GF) γs.kb (-1) $$ [Hkc]
+  · rw [hγk]; iexact Hkc
+  imod mvcc.crevRight_split γs $$ [Hright Hkc] with ⟨#Hfrz, Hcr⟩
+  · iframe Hright Hkc
   ihave Hreaders := mvcc.storeReaders_of st γs _ $$ Hreaders
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide

@@ -44,7 +44,7 @@ The right's revision is at least `-1` (`NewStore`'s; each success raises it: 202
 contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
 then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
 is positive (`isStore`: `NewStore` excludes a negative one,
-`issues/etcd-compaction-negative-batch-limit.md`).
+`nonissues/etcd-compaction-negative-batch-limit.md`).
 
 **The certificate** (2026-10-13, unit 6a): the caller holds a certificate of a log `log` with
 revision `rev` (so `rev` is not above the committed log). The store records it for the new
@@ -71,11 +71,20 @@ compaction's supply `kbWTSupplyM γ.kb` (persistent; the server's from its write
 which the store no longer keeps; the job gets it in its premise (`compactJobPre`).
 
 The revision is permitted (`crevPermAt`, C3's store law, 2026-11-02): the store's compaction
-permit holds of it, which `s.mu`'s and `s.revMu`'s resources keep of the compaction revision. -/
+permit holds of it, which `s.mu`'s and `s.revMu`'s resources keep of the compaction revision.
+
+**The scope restriction** (F2, stage 2; the user's Q7, approved 2026-11-03): the revision is at least
+`1`, no compaction at revision `0` (`nonissues/etcd-restore-scheduled-compact-zero.md`: a member that
+compacted at `0` and restores mid-way through that compaction goes back to compaction revision `-1`).
+In compaction mode the backend's tracking records the compaction's records as positive revisions
+(`physCut`'s `recsPos`); etcd does not enforce it, its server's caller does
+(`EtcdServer.Compact.spec`'s `1 ≤ r`, through `apply.cmpAdmitRev`). The restriction is uniform: it
+binds mvcc's assumed backend (`kb = none`) too, which tracks nothing, so that the spec has one
+scope in every instance. -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
-  trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
+  trace ≠ null → mvcc.storeCmp γ → -1 ≤ c → 1 ≤ sint.Z rev →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗

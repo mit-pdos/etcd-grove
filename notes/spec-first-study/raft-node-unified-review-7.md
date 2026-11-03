@@ -45,7 +45,7 @@ One scope restriction is not filed:
 **Go defects**: none new. Nothing to file in `issues/`. The one panic I re-checked is already filed:
 `CreateSnapshot` below the storage's first index panics (`storage.go:250-257`, `ms.ents[i-offset]` with
 `i < offset`). It is reachable only if the log is compacted past the snapshot, which is
-`issues/raft-compact-past-snapshot.md`.
+`nonissues/raft-compact-past-snapshot.md`.
 
 ---
 

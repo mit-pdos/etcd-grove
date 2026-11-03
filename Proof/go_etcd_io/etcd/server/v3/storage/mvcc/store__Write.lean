@@ -30,7 +30,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, HhookC, HpinP, Hpre, #Htriple, Htrc⟩
   -- the writer's pin: its quarter of the view, joined below with `writerRes`'s, and its loan
   iunfold mvcc.writerPin at HpinP
-  icases HpinP with ⟨HbvP, Hloan⟩
+  icases HpinP with ⟨HbvP, Hloan, HlgP, -⟩
   -- the caller's hook: its facts and the writer's fragment (D22 receiver epochs, S5b: the caller's
   -- names are the current ones)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
@@ -110,10 +110,11 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     ipureintro; rfl
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -, #HbtB⟩
-  ihave #Hbt := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbt
+  ihave #Hbt := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbt
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-      (mvcc.kbMW γ.kb γ.bucket) $$ []
+      (mvcc.kbMW γ.kb γ.bucket) (PV := mvcc.storePV γ) (PVx := mvcc.storePVx γ)
+      (CK := mvcc.storeCK γ) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
@@ -125,16 +126,18 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited; the store
   -- registered in its backend (S6: now, if a restore left it pending)
   imod mvcc.writerInv_checkout s γ _ ow $$ Hlc2 Hwi Hpinw HW Hwr
-    with ⟨HL, #Hreg, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
+    with ⟨HL, #Hreg, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres, HlgW, HtrkW⟩, Hpinw⟩
   iunfold mvcc.writerL at HL
   icases HL with ⟨%ilog, %ntok, HL⟩
   iNamed HL
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
-  icases mvcc.bucketView_join_quarters γ (mvcc.bucketMap ilog) (mvcc.bucketMap logP)
-    $$ [Hbv HbvP] with ⟨-, Hbv⟩
+  ihave Hbv := mvcc.bucketViewL_join γ (1 : Qp).half ilog logP $$ [Hbv HbvP]
   · iframe Hbv HbvP
+  -- the batch lock's tracking, opened for the session (F2, stage 2): the writer's resource's and the
+  -- pin's quarters of the tie
+  ihave Htrk := mvcc.writerTrk_open γ ilog logP $$ [$HlgW $HlgP $HtrkW]
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)
   iunfold mvcc.crevSafe at HclM0
@@ -167,7 +170,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ow.ti, bt, Locked, chs, [], ntok, Ph, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Htrk Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

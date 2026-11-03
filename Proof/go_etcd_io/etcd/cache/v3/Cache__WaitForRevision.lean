@@ -39,7 +39,7 @@ theorem Cache.WaitForRevision.wp_proof
   wp_auto
   unfold cacheReader
   wp_for
-  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (W64 0) $$ [$HisStore $Hrd]
+  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) (W64 0) $$ [$HisStore $Hrd]
     as %lr ⟨Hrd, %st, #Hseen, #-, %Hlr⟩
   · unfold storeRevLb; rw [show sint.nat (W64 0) = 0 from rfl]; iexact Hlb0
   iunfold storeSeen at Hseen

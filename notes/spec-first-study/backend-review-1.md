@@ -74,7 +74,7 @@ the predicate.** That is harmless to soundness, but mvcc must then receive `dlIn
   `pend < P.limit` (`sessPuts`, `BackendBridge.lean:136-138`), and `ForceCommit` between batches
   resets the count. So `CompactionBatchLimit ≤ 2^56` (with `P.limit` bounded) gives `Unlock`'s
   `pend + hookMax < 2^58`.
-  - A non-positive limit is already a filed Go bug (`issues/etcd-compaction-negative-batch-limit.md`:
+  - A non-positive limit is already a filed Go bug (`nonissues/etcd-compaction-negative-batch-limit.md`:
     `unsafeRange` treats `limit ≤ 0` as unbounded and the loop never ends). The job already assumes
     a positive limit through `isStore`. The new premise belongs in the same place.
 
@@ -370,4 +370,4 @@ Go guarantees exactness except for deleted keys.
 - Whether D22's exact reads are sequential (F6(b), the D22 map).
 - `cacheValidC`'s invalidation (Target 2).
 
-**No new Go bug.** The negative batch limit is already `issues/etcd-compaction-negative-batch-limit.md`.
+**No new Go bug.** The negative batch limit is already `nonissues/etcd-compaction-negative-batch-limit.md`.

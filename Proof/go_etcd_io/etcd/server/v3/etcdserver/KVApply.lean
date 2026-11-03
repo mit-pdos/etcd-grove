@@ -204,6 +204,47 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
       iapply kvCert_certOk γk E.γ hγ $$ Hc
     · rw [hoff] at h; cases h
 
+/-- **The apply thread's compaction revision follows the model's** (`kvCrevEntry`) on an entry
+plain in the cluster's mode: a compaction in M2's scope is neither skipped nor rejected
+(`compactPropOk`), so `Apply` dispatches it; any other request leaves the revision. -/
+theorem batchStep_crev (c₀ : w64) (cmp : Bool) (m : EntryModel) (x x' : apply.ApplyKV)
+    (hm : plainEntryM cmp m) (h : batchStep c₀ m x x') :
+    x'.crev = kvCrevEntry c₀ x.chain x.crev m := by
+  unfold batchStep at h
+  unfold kvCrevEntry
+  by_cases ht : m.typ = W32 0
+  · rw [if_pos ht] at h; rw [if_pos ht]
+    obtain ⟨out, h⟩ := h
+    unfold entryStep at h
+    by_cases hd : m.data = []
+    · rw [if_pos hd] at h; rw [if_pos hd, h.1]
+    · rw [if_neg hd] at h; rw [if_neg hd]
+      obtain ⟨rq, -, hdec, -, hst⟩ := h
+      rw [hdec]
+      have hok : apply.dispatchKind rq = .compaction → compactPropOk rq := by
+        intro hk
+        rcases hm ht hd rq hdec with hp | ⟨-, hc⟩
+        · exact absurd hk (plainReq_nonCmp rq hp)
+        · exact hc
+      cases out with
+      | dispatched o skip => exact hst.2.2.2.2
+      | skipped =>
+        by_cases hk : apply.dispatchKind rq = .compaction
+        · have h1 := (hok hk).2.1; have h2 := hst.1; rw [h1] at h2; cases h2
+        · rw [hst.2]; exact (apply.dispatchCrev_nonCmp _ _ _ _ hk).symm
+      | rejected =>
+        by_cases hk : apply.dispatchKind rq = .compaction
+        · have h1 := (hok hk).2.2; have h2 := hst.1; rw [h1] at h2; cases h2
+        · rw [hst.2]; exact (apply.dispatchCrev_nonCmp _ _ _ _ hk).symm
+  · rw [if_neg ht] at h; rw [if_neg ht, h]
+
+/-- The next state's compaction revision is the model's after the entry (`kvApplied_next`'s
+`hcr`). -/
+theorem crevOf_batchStep (γk : KVNames) (A : List EntryModel) (m : EntryModel)
+    (x x' : apply.ApplyKV) (hm : plainEntryM γk.cmp m) (h : batchStep γk.c0 m x x')
+    (hch : x.chain = γk.ch0) (hcr : x.crev = crevOf γk A) : x'.crev = crevOf γk (A ++ [m]) := by
+  rw [batchStep_crev γk.c0 γk.cmp m x x' hm h, crevOf_snoc, hch, hcr]
+
 /-- **The apply thread's step on the next committed entry `m`**: `m` plain in the cluster's mode
 (M2's apply side: a compaction in M2's scope, in compaction mode), the chain the start's (auth
 disabled), the log after `m` the model's, certified (`kv_cert_step`). -/
@@ -211,13 +252,15 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntryM γr.kv.cmp E.lg m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
+      ⌜plainEntryM γr.kv.cmp E.lg m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true ∧
+        x.crev = crevOf γr.kv A⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -, %Hlg, -⟩
   iunfold kvApplied at Ha
-  icases Ha with ⟨Ha, %Hch⟩
+  icases Ha with ⟨Ha, %Hch'⟩
+  obtain ⟨Hch, Hcr⟩ := Hch'
   imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI Hlb with %Hpc
   obtain ⟨Hpl, Hch0⟩ := Hpc
   ihave %Hl : iprop(⌜x.log = kvModel γr.kv A⌝) $$ [Ha]
@@ -229,7 +272,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   imodintro
   iframe Ha
   ipureintro
-  refine ⟨Hlg.2 ▸ Hpl m (by simp), Hch, ?_⟩
+  refine ⟨Hlg.2 ▸ Hpl m (by simp), Hch, ?_, Hcr⟩
   rw [Hch, Hch0]; rfl
 
 /-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's
@@ -326,7 +369,8 @@ model's, the chain the start's), and the applied log's raft log for the read sid
 theorem kvApplied_next (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (x x' : apply.ApplyKV) (i : w64)
     (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length + 1)
-    (hl : x'.log = kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) (hc : x'.chain = γr.kv.ch0) :
+    (hl : x'.log = kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) (hc : x'.chain = γr.kv.ch0)
+    (hcr : x'.crev = crevOf γr.kv (A ++ [m])) :
     kvAppliedL (GF := GF) γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) ⊢
       kvApplied γr.raft γr.kv (A ++ [m]) x' ∗ kvLogAt γr i x'.log := by
   rw [← hl]
@@ -337,7 +381,7 @@ theorem kvApplied_next (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
   · iunfold kvApplied
     iunfold kvAppliedL
     iframe HB Hhi Hc
-    ipureintro; exact ⟨Hl, hc⟩
+    ipureintro; exact ⟨Hl, hc, hcr⟩
   iunfold kvLogAt
   iexists A ++ [m]
   iframe HB

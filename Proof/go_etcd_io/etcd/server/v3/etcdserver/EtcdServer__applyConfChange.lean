@@ -269,12 +269,8 @@ local macro "succ_tail" : tactic => `(tactic| (
   wsteps
   rw [Hvlrn, Hvnm]
   subst Hpus
-  ihave Hm : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
-  · iunfold membership.memberAt
-    isplitr
-    · ipureintro; exact Hmnn
-    iexists _, _
-    simp only [membership.ccMemberAt]
+  imod membership.memberAt_of_owned («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) _ _ Hmnn $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus] with Hm
+  · simp only [membership.ccMemberAt]
     iframe
   ihave #HbeSave : membership.beSaveOk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -285,7 +281,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) $$ []
   · iunfold membership.beSaveOk
     iintro !> %Φ' !> ⟨⟨Hp, Hu, Hw, Ht, Hb⟩, Hmm⟩ HΦ'
-    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateW d.gx) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
+    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateWD d) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
       $$ [Hp Hu Hw Ht Hb Hmm] as ⟨Hpo, Ht, Hb, Hmm⟩
     · iframe #; iframe
       isplitr
@@ -383,7 +379,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
@@ -457,7 +455,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
@@ -532,7 +532,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 $$ []
   · iunfold membership.beReadOk
     iintro !> %Φ' !> ⟨Hmb, Hpl, Htk⟩ HΦ'
-    wp_apply (hRead mbl lgm d (mvcc.lateW d.gx) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
+    wp_apply (hRead mbl lgm d (mvcc.lateWD d) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
       as %mp %rp ⟨Hpl, Htk, Hmb, Hmr, Hrm⟩
     · iframe #; iframe; ipureintro; exact Hlgmnn
     iapply HΦ'

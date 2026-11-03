@@ -139,7 +139,7 @@ func TestModelMatchesCorrectnessModel(t *testing.T) {
 }
 
 // TestModelNonCanonicalDiffers: on a non-canonical item a no-op update rewrites (the store does),
-// which the unfixed real Model rejects (issues/k8s-correctness-model-noop-rewrite.md).
+// which the unfixed real Model rejects (nonissues/k8s-correctness-model-noop-rewrite.md).
 func TestModelNonCanonicalDiffers(t *testing.T) {
 	st := mstore{items: []item{{key: "a", obj: Obj{Name: "a", Value: "x", ResourceVersion: 2}, canon: false}}, rv: 2}
 	in := Input{Kind: KUpdate, Key: "a", NoOp: true}

@@ -210,6 +210,29 @@ instance kmStep_timeless (γ : KMNames) (r0 r1 : w64) (pfx : GoString) (evs : Li
     Timeless (kmStep (GF := GF) γ r0 r1 pfx evs) := by
   unfold kmStep; infer_instance
 
+/-- **etcd's state as the client saw it, by its log**: a log it saw, of revision `rev`, whose
+state at `rev` under `pfx` is `s`. -/
+theorem kmEtcdState_elim (γ : KMNames) (rev : w64) (pfx : GoString) (s : List EtcdKv) :
+    kmEtcdState (GF := GF) γ rev pfx s ⊢
+      ∃ log : Log, kmLog γ log ∗
+        ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧
+          s = underPfx pfx (stateAt log (sint.Z rev).toNat)⌝ := by
+  unfold kmEtcdState
+  iintro H
+  iexact H
+
+/-- **A step as the client saw it, by its log**: a log it saw, of revision `r1`, without events
+under `pfx` strictly between `r0` and `r1`, whose events under `pfx` at `r1` are `evs`. -/
+theorem kmStep_elim (γ : KMNames) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) :
+    kmStep (GF := GF) γ r0 r1 pfx evs ⊢
+      ∃ log : Log, kmLog γ log ∗
+        ⌜0 ≤ sint.Z r0 ∧ sint.Z r0 ≤ sint.Z r1 ∧ sint.Z r1 < log.length ∧
+          (∀ x : Nat, sint.Z r0 < x → x < sint.Z r1 → revEvs log pfx x = []) ∧
+          revEvs log pfx (sint.Z r1).toNat = evs⌝ := by
+  unfold kmStep
+  iintro H
+  iexact H
+
 /-- **The token of revision `r`**: minted when a client's write made it (`km_write_au`). -/
 def kmRevTok (γ : KMNames) (r : w64) : IProp GF :=
   ghostMapElem (K := Nat) (V := Unit) γ.tok (sint.Z r).toNat (DFrac.own 1) ()
@@ -340,6 +363,25 @@ theorem kmStep_transfer (γ : KMNames) (r0 a r1 : w64) (pfx : GoString) (s : Lis
   exact (step_transfer L1 pfx (sint.Z a).toNat (sint.Z r1).toNat (by omega) (by omega)
     (fun x hx1 hx2 => h1q x (by omega) (by omega))).symm
 
+/-- **Restriction** (`EtcdModel.etcdStep_restrict`): the quiet part of a step is a quiet step, over
+the same log. -/
+theorem kmStep_restrict (γ : KMNames) (p a x b : w64) (pfx : GoString) (evs : List EtcdEv) :
+    sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+    kmStep (GF := GF) γ p b pfx evs ⊢ kmStep (GF := GF) γ a x pfx [] := by
+  intro hpa hax hxb
+  unfold kmStep
+  iintro ⟨%L, #H, %h⟩
+  iexists L
+  isplitr
+  · iexact H
+  ipureintro
+  obtain ⟨h0, h1, h2, hq, he⟩ := h
+  have hxb' : sint.Z x ≤ sint.Z b := by rcases hxb with h | ⟨rfl, -⟩ <;> omega
+  refine ⟨by omega, by omega, by omega, fun y hy1 hy2 => hq y (by omega) (by omega), ?_⟩
+  rcases hxb with hxb | ⟨rfl, rfl⟩
+  · exact hq _ (by omega) (by omega)
+  · exact he
+
 theorem kmStep_compose (γ : KMNames) (a b c : w64) (pfx : GoString) (evs : List EtcdEv) :
     kmStep (GF := GF) γ a b pfx [] ∗ kmStep γ b c pfx evs ⊢ kmStep γ a c pfx evs := by
   unfold kmStep
@@ -418,6 +460,7 @@ def etcdModelOfKV (γ : KMNames) : EtcdModel GF where
   EtcdStep_timeless := kmStep_timeless γ
   etcdStep_transfer := kmStep_transfer γ
   etcdStep_compose := kmStep_compose γ
+  etcdStep_restrict := kmStep_restrict γ
   etcdStep_delete_present := kmStep_delete_present γ
 
 theorem etcdModelOfKV_etcdState (γ : KMNames) :
@@ -477,6 +520,44 @@ theorem kmInv_alloc (γk : KVNames) (σ0 : KVState) (W : List (List Change) → 
   iframe Hlb
   unfold kmInv
   iexact Hinv
+
+/-- **A log the client saw has the application's property** (`γ.W`): it is a prefix of the
+changes of a state that satisfies it. -/
+theorem kmLog_W (γ : KMNames) (L : Log) :
+    ⊢ kmInv (GF := GF) γ -∗ kmLog γ L ={⊤}=∗ ⌜∃ cs, γ.W cs ∧ L <+: [] :: cs⌝ := by
+  iintro #Hinv #HL
+  unfold kmLog
+  icases HL with ⟨%l, #Hlb, %Hl⟩
+  unfold kmInv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
+  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
+  imod Hclose $$ [Hσ Hc Ht] with -
+  · inext; iexists σ, m; iframe; ipureintro; exact Hm
+  imodintro
+  ipureintro
+  exact ⟨σ.changes, Hm.2, Hl.1.trans ((List.prefix_cons_inj _).2 Hp.2)⟩
+
+/-- **A log the client saw is below a lower bound of the changes** (`γ.ch`, the representation
+`kmRevAt`, `kmWriteQ` and `kmReachedAt` share). -/
+theorem kmLog_lb (γ : KMNames) (L : Log) :
+    kmLog (GF := GF) γ L ⊢ ∃ l : List (List Change), monoListLbOwn γ.ch l ∗ ⌜L <+: [] :: l⌝ := by
+  unfold kmLog
+  iintro ⟨%l, #Hlb, %Hl⟩
+  iexists l
+  iframe Hlb
+  ipureintro; exact Hl.1
+
+/-- **Two logs the client saw agree where both are defined.** -/
+theorem kmLog_getElem (γ : KMNames) (L1 L2 : Log) (r : Nat) (h1 : r < L1.length)
+    (h2 : r < L2.length) :
+    kmLog (GF := GF) γ L1 ∗ kmLog γ L2 ⊢ ⌜L1[r]? = L2[r]?⌝ := by
+  iintro H
+  ihave %Hc := kmLog_two γ L1 L2 $$ H
+  ipureintro
+  obtain ⟨L, ⟨t1, ht1⟩, ⟨t2, ht2⟩, -⟩ := Hc
+  rw [← List.getElem?_append_left (l₂ := t1) h1, ← List.getElem?_append_left (l₂ := t2) h2,
+    ht1, ht2]
 
 /-- **What a read learns**: the state read is one the client saw (its changes' lower bound), at or
 after the changes `l0` it saw before. -/

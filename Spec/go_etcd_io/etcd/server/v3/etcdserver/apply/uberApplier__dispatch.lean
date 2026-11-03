@@ -37,11 +37,13 @@ warnings) return. A write token of the store (`mvcc.storeWT E.γ`) is handed to 
 that may open a store write transaction (2026-10-13, unit 6). The certificates of the logs the
 request may commit (`certPre`; 2026-10-14, unit T1). The apply thread's compaction resources
 (`cmpOwn`), at `crev` before and at `dispatchCrev` after (M2's apply side, 2026-10-31: the compaction
-arm, item 11). A grant (the lease-grant stage, 2026-11-03; admitted where the cluster grants,
-`rqOk E.lg`) with its permits (`grantPermRq`), the apply thread's half of the lessor's live set
-`T` (`ltHalf`) and the rest buckets after it (`grantIds`, `grantRest`, the identity but for a
-grant dispatched with `v3`), its answer (`grantRes`), and its outcome the lessor's verdict at `T`
-(`grantOutOk`; amendment (C), 2026-11-03). -/
+arm, item 11). The rest state's premise `restReqOk` (the cluster-rows stage, 2026-11-02: a member
+attributes request's member a member of `rs.mem`, `UpdateAttributes`' row). A grant (the
+lease-grant stage, 2026-11-03; admitted where the cluster grants, `rqOk E.lg`) with its permits
+(`grantPermRq`), the apply thread's half of the lessor's live set `T` (`ltHalf`) and the rest
+buckets after it (`grantIds`, `grantRest`, the identity but for a grant dispatched with `v3`), its
+answer (`grantRes`), and its outcome the lessor's verdict at `T` (`grantOutOk`; amendment (C),
+2026-11-03). -/
 abbrev apply.uberApplier.dispatch.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -53,7 +55,8 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       ⌜apply.rqOk E.lg log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
       apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗
       ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
+      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
+      apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.chainResAny c a ∗ E.FS ∗
       apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗

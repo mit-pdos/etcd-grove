@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestLeased
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 
 @[expose] public section
 
@@ -97,12 +98,52 @@ theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : L
 /-! ## The image -/
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
-the file header). -/
+the file header). (#7-cmp's Freeze, 2026-11-02, the user's approval) The `Key` bucket and the
+compaction records by the KV names' compaction mode (`mvcc.keyImageM γk.cmp`) at records `r` of
+the committed log's compaction revision (`r.crev = crevOf γk A`: the store's `compactMainRev` is
+the latest compaction applied, which a receiver restores and its apply thread carries on from);
+mode off, at a log with no compaction, today's `keyImage` (`imageAt_off`). -/
 def imageAt [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A : List EntryModel)
     (D : Data) : Prop :=
-  mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
+  (∃ r : mvcc.CmpRecs, mvcc.keyImageM γk.cmp (kvModel γk A) r D ∧ r.crev = crevOf γk A) ∧
+    dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
     bkRestAtL γk bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
+
+/-- **Off, at a log with no compaction, the image is `keyImage`'s** (`keyImageM_off`). -/
+theorem imageAt_off [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64)
+    (L A : List EntryModel) (D : Data) (hcm : γk.cmp = false) :
+    imageAt γk bootLog i L A D ↔
+      (mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
+        (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
+        bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []) ∧ crevOf γk A = -1 := by
+  unfold imageAt
+  rw [hcm]
+  constructor
+  · rintro ⟨⟨r, hk, hc⟩, h2, h3, h4, h5⟩
+    obtain ⟨hk', hr⟩ := (mvcc.keyImageM_off _ r D).1 hk
+    subst hr
+    exact ⟨⟨hk', h2, h3, h4, h5⟩, by rw [← hc, mvcc.CmpRecs.crev_empty]⟩
+  · rintro ⟨⟨hk, h2, h3, h4, h5⟩, hc⟩
+    exact ⟨⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨hk, rfl⟩,
+      by rw [mvcc.CmpRecs.crev_empty, hc]⟩, h2, h3, h4, h5⟩
+
+/-- `imageAt` reads the KV names through their start values and mode; an image moves to another
+mode when, for the mode off, the committed log has no compaction (`keyImageM_mode`). -/
+theorem imageAt_kv_congr [GooseExts] {γk γk' : KVNames} {bootLog : List EntryM} {i : w64}
+    {L A : List EntryModel} {D : Data}
+    (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0)
+    (hc : γk.cmp = true → γk'.cmp = false → crevOf γk A = -1) :
+    imageAt γk bootLog i L A D → imageAt γk' bootLog i L A D := by
+  have hk : kvModel γk A = kvModel γk' A := by simp only [kvModel, h0, h1, h2]
+  have hcr : crevOf γk A = crevOf γk' A := by simp only [crevOf, h0, h1]
+  rintro ⟨⟨r, hkI, hr⟩, h2', h3, h4, h5⟩
+  have hb : mvcc.LogB (kvModel γk A) := ⟨by have := h5.2.1; omega, h5.2.2.2⟩
+  have hl : kvLeases γk L = kvLeases γk' L := by simp only [kvLeases, h0, h1]
+  refine ⟨⟨r, ?_, by rw [← hcr]; exact hr⟩, h2', h3,
+    by unfold bkRestAtL at h4 ⊢; rw [← hl, ← h0]; exact h4, by rw [← hk]; exact h5⟩
+  rw [← hk]
+  exact mvcc.keyImageM_mode _ _ _ r D hb hkI (fun h h' => by rw [hr]; exact hc h h')
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -112,10 +153,14 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`D` is the image of the committed log through index `i`** (persistent; see the file
-header): of a committed prefix `A` of the server's log ending at `i`. -/
+header): of a committed prefix `A` of the server's log ending at `i`, with (#7-cmp's Freeze,
+2026-11-02; M2's B2 `dbImageR`, adopted in place) the KV log's persistent receipt, which the
+installer's `restoreRcptM` needs in compaction mode (a receiver's own certificate covers only its
+shorter log). -/
 def dbImage (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk γ.raft.boot i (γ.pre ++ A) A D⌝)
+    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk γ.raft.boot i (γ.pre ++ A) A D⌝ ∗
+    ⧖ (mvcc.logCh (kvModel γk A)))
 
 instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) :
     Persistent (dbImage (GF := GF) γ γk i D) := by
@@ -125,8 +170,10 @@ instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D 
 2026-10-19; the server's `NetPayload.img`, `srvNet`): `dbImage` at the fresh cluster's start
 (`⟨γ, [], 0⟩`, `NewServer.spec`'s `ρ.rd.raft`) for KV names with the start values `NewServer.spec`
 fixes. The KV names differ per member (their ghost names), but `dbImage` reads only the start
-values (`kvModel`): `dbImage_of_srvImage`, `srvImage_of_dbImage` move between a member's and the
-network's. -/
+values (`kvModel`) and the compaction mode, which the certificate leaves free (no mode in `srvNet`):
+`srvImage_of_dbImage` gives a member's to the network, `dbImage_of_srvImage_mode` the network's at
+some mode, and `SnapRecvFacts.dbImage_of_srvImage` at a member's own names (the mode moved by its KV
+invariant: off, its committed log has no compaction). -/
 def srvImage (γ : SrvRaft) (i : w64) (D : Data) : IProp GF :=
   iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧
     γk.log0 = [[], []]⌝ ∗ dbImage ⟨γ, [], W64 0⟩ γk i D)
@@ -135,28 +182,23 @@ instance srvImage_persistent (γ : SrvRaft) (i : w64) (D : Data) :
     Persistent (srvImage (GF := GF) γ i D) := by
   unfold srvImage; infer_instance
 
-/-- `dbImage` reads the KV names only through their start values. -/
+/-- `dbImage` reads the KV names through their start values and mode. -/
 theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {D : Data}
-    (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0) :
+    (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0)
+    (hc : γk.cmp = γk'.cmp) :
     dbImage (GF := GF) γ γk i D ⊢ dbImage γ γk' i D := by
   have hk : ∀ A, kvModel γk A = kvModel γk' A := by
     intro A; simp only [kvModel, h0, h1, h2]
-  have hc : γk.c0 = γk'.c0 := h0
   iintro H
   iunfold dbImage at H
   iunfold dbImage
-  icases H with ⟨%A, #Hlb, %h⟩
+  icases H with ⟨%A, #Hlb, %h, #Hr⟩
   iexists A
   iframe Hlb
+  rw [← hk]
+  iframe Hr
   ipureintro
-  refine ⟨h.1, ?_⟩
-  have h2' := h.2
-  have hl : ∀ L, kvLeases γk L = kvLeases γk' L := by
-    intro L; simp only [kvLeases, h0, h1]
-  unfold imageAt bkRestAtL at h2' ⊢
-  rw [← hk, ← hc]
-  simp only [← hl]
-  exact h2'
+  exact ⟨h.1, imageAt_kv_congr h0 h1 h2 (fun h h' => by rw [hc] at h; rw [h] at h'; cases h') h.2⟩
 
 /-- A member's image certificate is the network's. -/
 theorem srvImage_of_dbImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
@@ -170,16 +212,19 @@ theorem srvImage_of_dbImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
   ipureintro
   exact ⟨h0, h1, h2⟩
 
-/-- The network's image certificate is any member's. -/
-theorem dbImage_of_srvImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
+/-- **The network's image certificate at a member's start values, at some mode** (the sender's:
+the certificate names none). -/
+theorem dbImage_of_srvImage_mode {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
     (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
     (h2 : γk.log0 = [[], []]) :
-    srvImage (GF := GF) γ i D ⊢ dbImage ⟨γ, [], W64 0⟩ γk i D := by
+    srvImage (GF := GF) γ i D ⊢ ∃ b : Bool, dbImage ⟨γ, [], W64 0⟩ { γk with cmp := b } i D := by
   iintro H
   iunfold srvImage at H
   icases H with ⟨%γk', %h, #H⟩
   obtain ⟨h0', h1', h2'⟩ := h
-  iapply (dbImage_kv_congr (h0'.trans h0.symm) (h1'.trans h1.symm) (h2'.trans h2.symm)) $$ H
+  iexists γk'.cmp
+  iapply (dbImage_kv_congr (γk := γk') (γk' := { γk with cmp := γk'.cmp })
+    (h0'.trans h0.symm) (h1'.trans h1.symm) (h2'.trans h2.symm) rfl) $$ H
 
 end defs
 
@@ -204,14 +249,6 @@ theorem bkRestAt_boot {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {
     (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
      simp [restBoot, restBootBk])
 
-/-- The readers' view of a backend opened over an image (`newPost`'s `bView`), under the bridge's
-parameters, is the `Key` bucket of the image's KV model. -/
-theorem imageAt_keyView {P : BParams} (hP : mvcc.bridgeParams P) {γk : KVNames}
-    {bootLog : List EntryM} {i : w64} {L A : List EntryModel} {D : Data}
-    (h : imageAt γk bootLog i L A D) :
-    mvcc.keyView (vData P (D, ⟨∅, W64 0⟩)) (mvcc.bucketMap (kvModel γk A)) :=
-  mvcc.keyView_of_keyImage hP h.1
-
 /-- The image's stored meta keys are `(i, t)` for some term (`metaIs`, what the consistent
 index's protocol names the backend's start with: `ApplyNames.m0`). -/
 theorem imageAt_metaIs {γk : KVNames} {bootLog : List EntryM} {i : w64} {L A : List EntryModel}
@@ -229,29 +266,6 @@ theorem bkRestAt_of_rb {P : BParams} (hRB : ∀ n ∈ restBuckets, P.RB n = true
   have := congrArg (fun r => GMap.lookup r n) hrb
   simp only [rbData_lookup, hRB n hn, ↓reduceIte] at this
   exact this
-
-/-- The modeled half of an image from a snapshot's observation (`backend.Snapshot.spec`'s `Q`):
-the readers' view `sData P D` the `Key` bucket of `kvModel γk A`, the hook's own keys holding the
-index `i` and some term and (D22, 2026-10-23) the tracked buckets the rest model's at `L`; no
-compaction key given (`bkNoCmp`'s, not modeled). (D22 J7b) The KV model well formed (`hwf`): the
-sender's sole writer's (`soleWriter_idxWf`, at the applied log `kvModel γk A`). -/
-theorem imageAt_of_snap {P : BParams} (hP : mvcc.bridgeParams P) (hK : ciKeys P)
-    (hRB : ∀ n ∈ restBuckets, P.RB n = true)
-    {γk : KVNames} {bootLog : List EntryM} {i : w64} {L A : List EntryModel} {D : Data}
-    (hv : mvcc.keyView (sData P D) (mvcc.bucketMap (kvModel γk A)))
-    (hci : (hkData P D).lookup (schema.metaName, schema.ciKeyBytes) = encMeta i)
-    (htm : ∃ t : w64, (hkData P D).lookup (schema.metaName, schema.termKeyBytes) = encMeta t)
-    (hcmp : dget D schema.metaName mvcc.schedKeyBytes = none ∧
-      dget D schema.metaName mvcc.finKeyBytes = none)
-    (f : w64 → w64)
-    (hrb : rbData P D = (apply.restLeasesWith f (kvLeases γk L).ids (restModel γk.c0 bootLog L)).bk)
-    (hwf : mvcc.IdxWf (kvModel γk A) []) : imageAt γk bootLog i L A D := by
-  have hrest := bkRestAtL_of_rb hRB f hrb
-  obtain ⟨t, ht⟩ := htm
-  rw [hkData_lookup, ciKeys_hk hK (Or.inl rfl)] at hci
-  rw [hkData_lookup, ciKeys_hk hK (Or.inr rfl)] at ht
-  exact ⟨⟨mvcc.dget_of_keyView hP hv, hcmp⟩, by simpa using hci, ⟨t, by simpa using ht⟩, hrest,
-    hwf⟩
 
 end lemmas
 

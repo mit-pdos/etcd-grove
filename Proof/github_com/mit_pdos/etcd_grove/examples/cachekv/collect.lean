@@ -61,9 +61,15 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     (try wp_auto)
     iapply HΦ
     iintro -
-    iexists []
+    iexists [], []
+    isplitr
+    · ipureintro; simp [eventsOf]
     isplitr
     · iapply ownSlice_nil
+    isplitr
+    · iapply ownSliceCap_nil
+    isplitl [Hcons]
+    · iexact Hcons
     iunfold collectOk
     iunfold common.collectOk
     isplitr
@@ -261,7 +267,9 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
         wp_for_post
         iapply HΦ
         iintro -
-        iexists evs0 ++ ws
+        iexists evs0 ++ ws, rs ++ [r]
+        isplitr
+        · ipureintro; exact ⟨hc', hlens⟩
         iframe
         iunfold collectOk
         iunfold common.collectOk

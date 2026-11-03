@@ -113,6 +113,26 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
   · exact hn
   · exact hM k h'
 
+/-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
+whole-`bootOk` review, C) from the fields a configuration literal sets: a logger, the default quota,
+batch limit and bootstrap defragmentation (zero), raft's clock `100` ms and `10` ticks. -/
+theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (hlg : cfg.Logger' ≠ null) (hq : cfg.QuotaBackendBytes' = W64 0)
+    (hbl : cfg.BackendBatchLimit' = W64 0)
+    (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
+    (het : cfg.ElectionTicks' = W64 10) (htk : cfg.TickMs' = W64 100) : bootCfgOk cfg := by
+  have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
+  refine ⟨hlg, storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, ?_⟩
+  · rw [hl]; decide
+  · rw [hl]; decide
+  · rw [het]; decide
+  · rw [htk]; decide
+
+/-- The zero discovery configuration has no endpoints (`ShouldDiscover` is false). -/
+theorem discoveryZero_len :
+    (zero_val go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig).ConfigSpec'.Endpoints'.len =
+      W64 0 := rfl
+
 end pure
 
 section defs
@@ -134,17 +154,16 @@ def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.Server
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
-the storage registry they name), for its configuration and URLs meeting `Uok`, **the initial
-cluster's member names valid UTF-8** (`utf8Valid` of every key of `U.initMap`; 2026-11-02, the
-backend-auth-split stage, Q8: `bootstrap` keeps a name raw in the cluster's members while the
-peers' contexts, `json.Marshal` of them, decode with U+FFFD in its place, so `bootOk`'s members are
-the contexts' decodings only for valid names), at the peers' contexts `ctxs`, the bound `N` and the
-directory `dir` (see the file header). -/
+the storage registry they name), for its configuration and URLs meeting `Uok`, at the peers'
+contexts `ctxs`, the bound `N` and the directory `dir` (see the file header). (2026-11-03, the
+whole-`bootOk` review, C: the initial cluster's member names valid UTF-8, a conjunct here since
+2026-11-02, Q8, moved into the contract's precondition, `bootCfgFresh`, with the other
+configuration conditions `bootstrap` needs.) -/
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
     IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk token name cfg ∧ Uok U ∧ (∀ k, (U.initMap.lookup k).isSome → utf8Valid k) ∧
+      ⌜cfgOk token name cfg ∧ Uok U ∧
         γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
@@ -169,7 +188,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
   iunfold bootPremise
   imodintro
   iintro %cfg %U %γ %Hp
-  obtain ⟨hc, hu, -, h1, h2, h3⟩ := Hp
+  obtain ⟨hc, hu, h1, h2, h3⟩ := Hp
   iapply H
   ipureintro
   exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩

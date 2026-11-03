@@ -38,6 +38,8 @@ abbrev StartPeriodicServer.spec : Prop :=
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
@@ -47,14 +49,17 @@ abbrev StartPeriodicServer.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       threadTok ∗
-      -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
-      bootPremise (N + N) [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
+      -- compaction's write-back stock)
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
       memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #period)) (Val #lg))

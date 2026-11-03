@@ -76,7 +76,9 @@ local macro "cc_kv_applied" : tactic => `(tactic| (
     imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
       $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
     ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
-      hcc0.symm Hpe.2.1 $$ Hka
+      hcc0.symm Hpe.2.1
+      (crevOf_batchStep γr.kv _ m xj xj Hpe.1
+        (by unfold batchStep; rw [if_neg (by rw [h1]; decide)]) Hpe.2.1 Hpe.2.2.2) $$ Hka
     imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
       $$ Hainv Hao Hlog HkL with Hpre
     wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
@@ -359,11 +361,11 @@ theorem EtcdServer.apply.wp_proofOff
     iapply wp_go_step_receipt'
     case hv => exact isPanic_intoVal _
     inext
-    iintro Hr -
+    iintro Hr Hlc
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr HWA HKV
+    imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
     ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
@@ -433,11 +435,12 @@ theorem EtcdServer.apply.wp_proofOff
         -- (linkv-txn stage B1) the entry's registration, for the member's own ids
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
             (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -785,11 +788,12 @@ theorem EtcdServer.apply.wp_proofOff
         -- (linkv-txn stage B1) the entry's registration, for the member's own ids
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
             (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -1232,11 +1236,11 @@ theorem EtcdServer.apply.wp_proofOn
     iapply wp_go_step_receipt'
     case hv => exact isPanic_intoVal _
     inext
-    iintro Hr -
+    iintro Hr Hlc
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr HWA HKV
+    imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
     ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
@@ -1308,12 +1312,13 @@ theorem EtcdServer.apply.wp_proofOn
         · iframe Hewo; iapply isServerM_waitIs $$ Hsrv0
         ihave HtokR : srvTokRights E (ciEff γ (stLoaded γ st').k) $$ [HtokR]
         · rw [hlc]; iexact HtokR
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
             (A ++ ms.take (sint.nat j)) γa saj hM)
             $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS Hr2 HtokR]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost, HtokR⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS HlbJ HtokR
+          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr
@@ -1677,11 +1682,12 @@ theorem EtcdServer.apply.wp_proofOn
         · iframe Hewo; iapply isServerM_waitIs $$ Hsrv0
         ihave HtokR : srvTokRights E (ciEff γ (stLoaded γ st').k) $$ [HtokR]
         · rw [hlc]; iexact HtokR
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
             (A ++ ms.take (sint.nat j)) γa saj hM) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS Hr2 HtokR]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst, HtokR⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS HlbJ HtokR
+          iframe Hsrv0 Hlnil Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr

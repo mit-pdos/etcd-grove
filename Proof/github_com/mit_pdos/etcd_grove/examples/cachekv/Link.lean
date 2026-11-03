@@ -11,7 +11,13 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.awaitProgress
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.checkGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.checkProgress
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.hasKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.lastVal
+public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.context.Link
@@ -30,7 +36,7 @@ namespace cachekv
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.cachekv
 
 section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -57,7 +63,7 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -67,9 +73,33 @@ theorem wp_collect :
     EtcdGrove.cachekv.collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cachekv.collect.wp_proof
 
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
+theorem wp_lastVal :
+    EtcdGrove.cachekv.lastVal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cachekv.lastVal.wp_proof
+
+theorem wp_hasKey :
+    EtcdGrove.cachekv.hasKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cachekv.hasKey.wp_proof
+
+theorem wp_checkGet :
+    EtcdGrove.cachekv.checkGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cachekv.checkGet.wp_proof wp_lastVal wp_hasKey
+
+theorem wp_awaitProgress :
+    EtcdGrove.cachekv.awaitProgress.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cachekv.awaitProgress.wp_proof client.v3.WatchResponse.wp_IsProgressNotify
+
+theorem wp_checkProgress :
+    EtcdGrove.cachekv.checkProgress.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cachekv.checkProgress.wp_proof
+
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.cachekv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cachekv.Main.wp_proof common.wp_GenAll common.wp_Writer common.wp_MaxRev wp_collect common.wp_Check zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch
+  EtcdGrove.cachekv.Main.wp_proof common.wp_GenAll common.wp_Writer common.wp_MaxRev wp_collect common.wp_Check zap.wp_NewNop common.wp_StartPeriodicServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch Cache.wp_Get context.wp_WithTimeoutBackground wp_checkGet Cache.wp_RequestProgress wp_awaitProgress wp_checkProgress
 
 end links_hasLC
 

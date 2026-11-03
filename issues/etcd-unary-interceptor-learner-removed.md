@@ -1,102 +1,45 @@
 ---
 upstream: known
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#21966 issue open: same root cause (IsLocalMemberLearner panics after concurrent removal), different caller (Maintenance/Status)
+  - etcd-io/etcd#21966 issue open: same root cause (IsLocalMemberLearner panics after a concurrent removal), different caller (Maintenance/Status)
   - etcd-io/etcd#22188 pr open: same bug; returns false instead of panicking in IsLocalMemberLearner, names the unary/stream interceptors' non-atomic check; awaiting ok-to-test, no review
   - etcd-io/etcd#22205 pr open: same root cause, fix in IsLocalMemberLearner for #21966; needs rebase, does not mention the interceptor
   - etcd-io/etcd#21967 pr closed: same root cause, earlier fix attempt, closed unmerged
   - etcd-io/etcd#18606 pr merged: related, not this bug (the same check-then-act fixed for another caller, 3374e27f1)
+blocks-proof: yes
 ---
 
-# server: the unary interceptor's learner check panics if the local member is removed meanwhile
+# server: a request arriving as the member's own removal is applied can crash the member
 
-- **Status**: open upstream; **fixed in the fork** 2026-10-26 (D43 M4: branch `goose-lean-learnerfix` of
-  `upamanyus/etcd`, `c00a2dc06`, `IsLocalMemberLearner` returns `false` for a removed local member,
-  as etcd-io/etcd#22188, with `TestIsLocalMemberLearnerRemoved`; `EtcdServer.IsLearner` proved over it) (a narrow race: a reachable panic of a member that is being removed).
-- **Where**: `server/etcdserver/api/v3rpc/interceptor.go` at the pinned revision
-  (`etc/goose.py`, bc8b52a50319): `newUnaryInterceptor`'s
-  `s.IsMemberExist(s.MemberID()) && s.IsLearner() && !isRPCSupportedForLearner(req)`;
-  `server/etcdserver/server.go` `EtcdServer.IsLearner` (`s.cluster.IsLocalMemberLearner()`);
-  `server/etcdserver/api/membership/cluster.go:786` `RaftCluster.IsLocalMemberLearner`, which
-  calls `c.lg.Panic("failed to find local ID in cluster members")` when `c.members` has no entry
-  for `c.localID`; `IsMemberExist` and `IsLocalMemberLearner` each lock the cluster, so the
-  conjunction is not atomic.
-- **What happens**: a gRPC unary request whose interceptor finds the local member in the cluster
-  (`IsMemberExist`), after which the apply loop applies the local member's removal
-  (`applyConfChange`, `RemoveMember`; the server stops only afterwards), reaches
-  `IsLocalMemberLearner` with the member gone: the server panics (zap's `Panic`), instead of
-  answering the request or stopping. Reproduction of the interleaving, sequentially (in
-  `server/etcdserver/api/membership`; passes: the panic is caught):
+A unary gRPC request whose interceptor finds the local member in the cluster, just before the apply
+loop applies that member's removal, then asks whether the member is a learner: the member is gone, and
+`IsLocalMemberLearner` panics (zap `Panic`, not recovered), killing the member instead of answering the
+request or stopping cleanly. A narrow race on a member being removed.
 
-  ```go
-  func TestUnaryInterceptorLearnerCheckRemovedMember(t *testing.T) {
-  	c := newTestCluster(t, []*Member{newTestMember(1, nil, "node1", nil), newTestMember(2, nil, "node2", nil)})
-  	c.SetID(types.ID(1), types.ID(100))
-  	if !c.IsMemberExist(types.ID(1)) {
-  		t.Fatal("local member should exist")
-  	}
-  	// the apply loop applies the local member's removal here
-  	c.RemoveMember(types.ID(1), true)
-  	defer func() {
-  		if r := recover(); r == nil {
-  			t.Fatal("expected IsLocalMemberLearner to panic")
-  		}
-  	}()
-  	c.IsLocalMemberLearner()
-  }
-  ```
+**Reproduction:** `TestUnaryInterceptorLearnerCheckRemovedMember` in
+[`issues/etcd-unary-interceptor-learner-removed/learner_removed_test.go`](etcd-unary-interceptor-learner-removed/learner_removed_test.go),
+copied into `server/etcdserver/api/membership` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3 linux/amd64. It runs, in
+order, the interceptor's two calls
+([`IsMemberExist(MemberID()) && IsLearner()`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/interceptor.go#L53),
+each under its own lock) with the apply loop's `RemoveMember` of the local member between them:
 
-  (`IsLocalMemberLearner panicked: failed to find local ID in cluster members`.)
-- **How it happens**: every unary gRPC request passes the learner check in
-  `newUnaryInterceptor`. The check first asks whether the local member exists, then whether it
-  is a learner. Each call takes the cluster lock separately, so the member can be removed in
-  between, and `IsLocalMemberLearner` panics if the local member is missing:
+```
+$ go test ./etcdserver/api/membership/ -run '^TestUnaryInterceptorLearnerCheckRemovedMember$' -count=1
+    logger.go:146: ... PANIC	failed to find local ID in cluster members	{"cluster-id": "64", "local-member-id": "1"}
+    learner_removed_test.go:37: the learner check of a request panicked: failed to find local ID in cluster members
+FAIL
+```
 
-  1. Member 1 serves a unary request (a `Put`, say). The interceptor calls
-     `s.IsMemberExist(1)`: true.
-  2. The apply loop applies the conf change that removes member 1: `RemoveMember(1)` deletes
-     it from `c.members`. The server stops only after the apply.
-  3. The interceptor calls `s.IsLearner()`, which calls `IsLocalMemberLearner`. `c.members` has
-     no entry for `c.localID`, so it calls `c.lg.Panic`. Nothing recovers panics in etcd's gRPC
-     handlers, so the process dies.
+## Proof
 
-  Upstream fixed the same check-then-act pattern for another caller in 3374e27f1 (2024,
-  "etcdserver: fix panic when checking IsLearner of removed member"), with the failpoint
-  `afterIsMemberExist` to test it. The interceptor still has the pattern.
+yes: the verified fork carries #22188's fix (`c00a2dc06`, branch `goose-lean-learnerfix`: a removed
+local member is no learner); before it, `EtcdServer.IsLearner`'s spec needed the premise
+`membership.localKept` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/RaftCluster__IsLocalMemberLearner.lean`).
 
-  ```go
-  // server/etcdserver/api/v3rpc/interceptor.go:53-55 and api/membership/cluster.go:786-797 (etcd main f061acd09)
-  		if s.IsMemberExist(s.MemberID()) && s.IsLearner() && !isRPCSupportedForLearner(req) { // <-
-  			return nil, rpctypes.ErrGRPCNotSupportedForLearner
-  		}
-  // cluster.go
-  func (c *RaftCluster) IsLocalMemberLearner() bool {
-  	c.Lock()
-  	defer c.Unlock()
-  	localMember, ok := c.members[c.localID]
-  	if !ok {
-  		c.lg.Panic( // <-
-  			"failed to find local ID in cluster members",
-  			zap.String("cluster-id", c.cid.String()),
-  			zap.String("local-member-id", c.localID.String()),
-  		)
-  	}
-  	return localMember.IsLearner
-  ```
-- **Expected**: the learner check of a request is a check, not a crash: a removed member answers
-  (an error, as it does when `IsMemberExist` is already false) or stops.
-- **How the proof handles it**: `EtcdServer.IsLearner`'s spec (an axiom: `server.go` and
-  `membership` are names-only, `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__IsLearner.lean`)
-  has the premise `membership.localKept c` (an axiomatized predicate,
-  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/Defs.lean`: the local member stays
-  in the members map), a premise of `newUnaryInterceptor`'s spec
-  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/newUnaryInterceptor.lean`) and so of the
-  interceptor contract the server's gRPC result `etcd_kv_served` takes
-  (`Proof/go_etcd_io/etcd/client/v3/Results.lean`).
-- **Possible fixes**: one locked check (`RaftCluster.IsLocalMemberLearner` returning
-  `(isLearner, ok bool)`, or a `RaftCluster.IsMemberLearner(id) (bool, bool)` the interceptor
-  calls once); or `IsLocalMemberLearner` returning `false` for a missing local member instead of
-  panicking.
-- **Found**: 2026-10-14, unit P3b (the server's unary interceptor proved), by the spec of
-  `IsLearner` needing the local member present.
+## Notes
+
+The test plays the interleaving sequentially on the cluster object rather than racing a request
+against a removal on a running member; upstream's fix of the same pattern for another caller
+(3374e27f1) used the gofail failpoint `afterIsMemberExist` for an integration test.

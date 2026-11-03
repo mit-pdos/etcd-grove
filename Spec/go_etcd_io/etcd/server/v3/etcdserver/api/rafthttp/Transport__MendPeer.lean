@@ -28,7 +28,7 @@ returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added) 
 (`remote.Resume`, if one is started): the transport
 delivers again (until the next `CutPeer`); a dropped message is one the network may lose. A remote's
 `Resume` sets its paused flag (the fork's fix, J8a-7, 2026-11-01: upstream's `remote.Pause` stops the
-pipeline and a second one panics, `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`;
+pipeline and a second one panics, `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`;
 until then `id` had to be no remote, `trNoRemOr`). The method set's premise `PeerPausable`
 (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=

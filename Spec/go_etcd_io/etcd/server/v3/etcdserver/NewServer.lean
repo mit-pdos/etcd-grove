@@ -39,7 +39,8 @@
   `2 ^ 31` until then; the backend-auth-split stage, 2026-11-02: also the backend's pool of readers),
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
   a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
-  `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
+  `receiptBound GF ≤ N + 1` (D19b: the `N` write tokens go in a receipt-backed budget (made by
+  `start` until M2's item 15, stage B3, now by `NewServer`; in compaction mode also the compaction's supply),
   one taken per applied entry; until then the premise `srvLifeBound`, at most `N` entries); the
   first also bounds the store's sealed logs (`storeSmall_of_receipts`: mvcc's index writer holds
   a receipt per change; until D19b the premise `storeSmall`) and, given to the store
@@ -151,7 +152,7 @@ abbrev NewServer.spec : Prop :=
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -182,7 +183,7 @@ abbrev NewServer.spec : Prop :=
   threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
-  -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
+  -- `N + 7` write tokens `bootstrap` gives (the write budget `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
   -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
@@ -200,6 +201,12 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -208,12 +215,15 @@ abbrev NewServer.spec : Prop :=
       "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      -- (M2) in compaction mode at `N + N` write tokens: `N` more, the compaction's write-back
-      -- stock (`srvCmpStock`; one token count for both a later option, the user's)
-      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs (N + if E₀.cmp then N else 0) dir ∗
+      -- (M2's item 15, stage B3) at `N` write tokens in both modes: the compaction's write-back
+      -- supply draws on the write budget's stock (until then `N + N` in compaction mode, `N` more for
+      -- the compaction's own stock, `srvCmpStock`)
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -263,7 +273,7 @@ abbrev NewServer.spec : Prop :=
       "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
@@ -345,7 +355,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = false →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -369,7 +379,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
-  -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
+  -- `N + 7` write tokens `bootstrap` gives (the write budget `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
   -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
@@ -394,6 +404,12 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
   -- example is auth off: `srvGrantGuard`)
   (on = true → ρ.rd.kv.lg = false) →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -406,6 +422,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -455,7 +473,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
@@ -520,8 +538,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
 /-- **`NewServer(cfg)` in either auth mode and either compaction mode** (M2, 2026-10-31; what
 `NewServer.wp_proofG` proves): `NewServer.specM on` at `cmp = false` (`NewServer.wp_proofM`), and
 with `cmp = true` (auth off) `NewServer.spec`'s compaction premises: the compactor in revision mode at a
-positive retention, the stand-in's mode on, and `bootstrap`'s contract at `N + N` write tokens, `N`
-for the compaction's write-back stock (`NewServer.wp_proof`). The post is `specM`'s. -/
+positive retention, the stand-in's mode on (`NewServer.wp_proof`); `bootstrap`'s contract at `N` write
+tokens in both modes (M2's item 15, stage B3; `N + N` in compaction mode until then, `N` more for the
+compaction's write-back stock). The post is `specM`'s. -/
 abbrev NewServer.specG (on cmp : Bool) : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
     (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
@@ -544,7 +563,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -576,7 +595,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
-  -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
+  -- `N + 7` write tokens `bootstrap` gives (the write budget `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
   -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
@@ -601,6 +620,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
   -- example is auth off: `srvGrantGuard`)
   (on = true → ρ.rd.kv.lg = false) →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -609,12 +634,14 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      -- (M2, `NewServer.spec`'s compaction mode) at `N + N` write tokens: `N` more, the
-      -- compaction's write-back stock (`srvCmpStock`)
-      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs (N + if cmp then N else 0) dir ∗
+      -- (M2's item 15, stage B3) at `N` write tokens in both modes (until then `N + N` in
+      -- compaction mode, `N` more for the compaction's own stock, `srvCmpStock`)
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -664,7 +691,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises

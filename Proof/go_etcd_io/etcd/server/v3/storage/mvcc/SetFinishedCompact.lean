@@ -51,12 +51,12 @@ theorem mvcc.SetFinishedCompact.wp_proof
   · iframe HW Hlc1
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
     (Val #(GoInterface.ok bt))) (Val #value))
-  iapply (h0 bt iprop(Locked [] ∗ MW) _ value Hv) $$ [Hl HMW]
+  iapply (h0 bt iprop(Locked [] ∗ MW) _ (fun _ => iprop(True)) (none, none) value Hv) $$ [Hl HMW]
   · iframe Hpkg Hcap Hl HMW
   inext
   -- (the backend-compaction stage, R2-3) the put leaves a token only `Unlock` takes; the right
   -- swapped back for the lock's resource
-  iintro ⟨⟨%U, HU, #Hua⟩, HMW⟩
+  iintro ⟨⟨⟨%U, HU, #Hua⟩, HMW⟩, -⟩
   imod Hback $$ HMW with HW
   iunfold mvcc.unlockAt at Hua
   icases Hua with ⟨#HUnlock0, -⟩

@@ -147,7 +147,7 @@ def plainLog (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntry m
 /-- **A compaction request in M2's scope**, as `EtcdServer.Compact` proposes it
 (`&pb.InternalRaftRequest{Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the
 storage side, 2026-10-30: **M2's scope restriction**, the user's Q7 (a), the approval's item 35: no
-compaction at revision `0`, `issues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s
+compaction at revision `0`, `nonissues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s
 premise `1 ≤ r`), with no side-effect-free field (`Apply` would skip it without a waiter) and no admin
 field (the auth layer's admin check would reject it) beside it (M2's apply side, item 5, review round
 1's F-4: so `Apply` dispatches it on every member). `Compact`'s request has nothing else set. -/
@@ -1161,6 +1161,116 @@ theorem kvStateOf_backendLog (lt : LeaseTable) (rq : apply.IRRModel) (l : mvcc.L
         split <;> rfl
       · rw [if_neg hi, if_neg hi, if_neg (show id ∉ (kvStateOf l lt).leases.ids from hi)]
   all_goals rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]; try rfl
+
+/-! ## The compaction revision of a raft log (moved from M2's apply Draft at #7-cmp's Freeze) -/
+
+section crev
+variable [GooseExts]
+
+/-- **An entry's effect on the compaction revision**, from the consistent index `c₀` with the
+chain `ch` (`kvEntry`'s twin): a normal entry with data that decodes is dispatched (`v3` iff above
+`c₀`): `apply.dispatchCrev`. -/
+def kvCrevEntry (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : EntryModel) : Int :=
+  if m.typ = W32 0 then
+    if m.data = [] then crev
+    else match apply.irrDecode m.data with
+      | some rq => apply.dispatchCrev ch rq (decide (uint.Z c₀ < uint.Z m.index)) crev
+      | none => crev
+  else crev
+
+/-- The compaction revision after the raft log `A`, from `crev₀`. -/
+def kvCrevOf (c₀ : w64) (ch : apply.Chain) (crev₀ : Int) (A : List EntryModel) : Int :=
+  A.foldl (kvCrevEntry c₀ ch) crev₀
+
+theorem kvCrevEntry_ge (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : EntryModel) :
+    crev ≤ kvCrevEntry c₀ ch crev m := by
+  unfold kvCrevEntry
+  split
+  · split
+    · exact Int.le_refl _
+    · split
+      · exact apply.dispatchCrev_ge _ _ _ _
+      · exact Int.le_refl _
+  · exact Int.le_refl _
+
+theorem kvCrevOf_ge (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ crev₀ : Int, crev₀ ≤ kvCrevOf c₀ ch crev₀ A := by
+  induction A with
+  | nil => intro crev₀; exact Int.le_refl _
+  | cons m A ih =>
+    intro crev₀
+    exact Int.le_trans (kvCrevEntry_ge c₀ ch crev₀ m) (ih (kvCrevEntry c₀ ch crev₀ m))
+
+/-- A plain entry leaves the compaction revision as it is. -/
+theorem kvCrevEntry_plain (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : EntryModel)
+    (h : plainEntry m) : kvCrevEntry c₀ ch crev m = crev := by
+  unfold kvCrevEntry
+  split
+  · split
+    · rfl
+    · rename_i ht hd
+      split
+      · rename_i rq hrq
+        exact apply.dispatchCrev_nonCmp _ _ _ _ (plainReq_nonCmp rq (h ht hd rq hrq))
+      · rfl
+  · rfl
+
+/-- An admitted entry leaves the compaction revision at `-1` or at least `1` (a compaction in M2's
+scope is at a revision `≥ 1`). -/
+theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int) (m : EntryModel)
+    (hm : plainEntryM cmp m) (hc : crev = -1 ∨ 1 ≤ crev) :
+    kvCrevEntry c₀ ch crev m = -1 ∨ 1 ≤ kvCrevEntry c₀ ch crev m := by
+  unfold kvCrevEntry
+  split
+  · split
+    · exact hc
+    · rename_i ht hd
+      split
+      · rename_i rq hrq
+        rcases hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
+        · rw [apply.dispatchCrev_nonCmp _ _ _ _ (plainReq_nonCmp rq hp)]; exact hc
+        · unfold apply.dispatchCrev
+          split
+          · rw [hr]
+            simp only
+            unfold apply.cmpRevAfter
+            split
+            · right; exact h1
+            · exact hc
+          · exact hc
+      · exact hc
+  · exact hc
+
+/-- **An entry leaves the compaction revision or raises it to a compaction's revision.** -/
+theorem kvCrevEntry_cases (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : EntryModel) :
+    kvCrevEntry c₀ ch crev m = crev ∨ ∃ (rq : apply.IRRModel) (r : w64), m.typ = W32 0 ∧
+      m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.dispatchKind rq = .compaction ∧
+      rq.compaction = some r ∧ kvCrevEntry c₀ ch crev m = sint.Z r := by
+  unfold kvCrevEntry
+  by_cases ht : m.typ = W32 0
+  · rw [if_pos ht]
+    by_cases hd : m.data = []
+    · rw [if_pos hd]; left; rfl
+    · rw [if_neg hd]
+      cases hdec : apply.irrDecode m.data with
+      | none => left; rfl
+      | some rq =>
+        simp only
+        unfold apply.dispatchCrev
+        split
+        · rename_i hc
+          cases hrc : rq.compaction with
+          | none => left; rfl
+          | some r =>
+            simp only
+            unfold apply.cmpRevAfter
+            by_cases hlt : crev < sint.Z r
+            · rw [if_pos hlt]; right; exact ⟨rq, r, ht, hd, rfl, hc.2.1, hrc, rfl⟩
+            · rw [if_neg hlt]; left; rfl
+        · left; rfl
+  · rw [if_neg ht]; left; rfl
+
+end crev
 
 end EtcdGrove
 end Perennial

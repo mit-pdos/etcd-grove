@@ -122,13 +122,29 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (L
   unfold premises; infer_instance
 
 /-- **A stoppable member** (DRAFT; see the file header): the `member` record at `m` (its server
-`s`, its peer listener `pl`), the right to stop `s` once started, and the right to close `pl`,
-served at `peerAddr` with member `id`'s raft protocol in the network `γn`. -/
+`s`, its peer listener `pl`), the right to stop `s` once started, at the request names `ρ`, and
+the right to close `pl`, served at `peerAddr` with member `id`'s raft protocol in the network `γn`;
+(R2b-2, 2026-11-02) the raft names `ρ` records the cluster's `γ`, and the applied index's
+invariant (`srvAppliedInv`, `AppliedIndex()`'s premise: `stop` waits on it until the bootstrap log
+is applied). -/
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) : IProp GF :=
+    (γn : NetNames GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.restart3.member.mk s pl) ∗
-    srvStopRight s γ id ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
-    http.httpListenerCloser pl peerAddr (raftProto (netRh γn)))
+    srvStopRight s γ ρ id dd ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
+    http.httpListenerCloser pl peerAddr (raftProto (netRh γn)) ∗
+    ⌜ρ.rd.raft.raft = γ⌝ ∗ (∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd))
+
+/-- A started member's applied index's invariant (from its reader's view, `isServerRead`). -/
+theorem memberUp_applied (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) :
+    common.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
+      common.memberUp s ρ E₀ lg γn id ∗ ∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd := by
+  refine persistent_entails_left ?_
+  unfold common.memberUp
+  iintro ⟨%E, %cfg, %γw, -, -, #Hrd, -⟩
+  iexists E
+  iapply isServerRead_applied
+  iexact Hrd
 
 end defs
 

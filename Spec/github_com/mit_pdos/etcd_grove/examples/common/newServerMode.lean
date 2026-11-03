@@ -7,7 +7,8 @@ a parameter -- member `name` of a new cluster with token `token` built, its conf
 **The triple:** `newServer`'s (`Spec/.../common/newServer.lean`), in the compaction mode `cmp`: off
 (the retention zero), or on in revision mode (a positive retention, the cluster's retention at most
 it) or in periodic mode (a period of at least 10ns, the cluster's retention `0`), as `NewServer`'s
-premise; on, at `N + N` write tokens and the boot bundle in compaction mode (`memberBoot … true`).
+premise; at `N` write tokens (`N + N` on until M2's item 15, stage B3), on with the boot bundle in
+compaction mode (`memberBoot … true`).
 -/
 module
 
@@ -39,6 +40,8 @@ abbrev newServerMode.spec : Prop :=
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
@@ -57,11 +60,14 @@ abbrev newServerMode.spec : Prop :=
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      -- on, at `N + N` write tokens: `N` more, the compaction's write-back stock
-      bootPremise (if cmp then N + N else N) ps bootLog ctxs dir token name Uok id ∗
+      -- at `N` write tokens in both modes (M2's item 15, stage B3; until then `N + N` on, `N` more
+      -- for the compaction's write-back stock)
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗
       commonPremises ∗ context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServerMode))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))

@@ -130,7 +130,7 @@ retention ≠ 0. That is feasible, and it is the expected glue, not a spec defec
 - The `err` disjunct says which modes fail.
 - The `RunTok` is existential, so the representation stays private.
 - `modeRunPre` is at C1's permit for the mode.
-- The scope premise `mode = periodic → 10 ≤ ret` cites `issues/etcd-compactor-periodic-tiny-retention.md`.
+- The scope premise `mode = periodic → 10 ≤ ret` cites `nonissues/etcd-compactor-periodic-tiny-retention.md`.
 - `ret` keeps its sign for revision mode, and that is true. `Rev() - ret` cannot overflow for `ret > 0` because
   `Rev() ≥ 0`. For `ret < 0`, an overflow wraps to a negative value, which `rev <= 0` skips (`revision.go`). So
   `revPermit`'s `RevLb (r + ret)` is `RevLb (Rev())` whenever `Compact` is called, and no premise is needed.

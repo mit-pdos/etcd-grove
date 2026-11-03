@@ -66,6 +66,13 @@ structure StorState : Type where
 def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
   iprop((∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k)) ∨ ⌜c ≤ sn.a0⌝)
 
+def AttachRec (sn : StorNames) (prev : entryID) (ents : List EntryM) (c0 a0 : Nat) : Prop :=
+  sn.a0 = a0 ∧
+    sn.c0 = c0 ∧
+      (∀ (i : Nat) (t : w64),
+          (i, t) ∈ sn.ct → i ≤ c0 → 1 ≤ i ∧ (uint.nat prev.index' ≤ i → termAt prev ents (W64 ↑i) = some t)) ∧
+        ∀ (i : Nat), 1 ≤ i → i ≤ c0 → ∃ t, (i, t) ∈ sn.ct ∧ ∀ (t' : w64), (i, t') ∈ sn.ct → t' = t
+
 theorem ksnCerts_nil (sn : StorNames) : ⊢ ksnCerts sn []
 
 def PendOk (σ : StorState) (p : List EntryM) : Prop :=

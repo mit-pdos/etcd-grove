@@ -300,7 +300,7 @@ the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved 
   reaches the client unchanged, `http2_client.go:695-705`), the `toGRPCErrorMap`/`rpctypes`
   initializer axioms, the stream interceptor contract, and ~15 server specs, and needs a no-TLS
   premise: the auth-off claim is false of etcd with client-cert auth
-  (`issues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
+  (`nonissues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
   no TLS). The auth-on payoff (an auth-refused attempt's update given back) also needs the proposer
   to keep the update for a write refused at commit (`ProposeOn.lean:230-233`).
 

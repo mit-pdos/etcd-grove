@@ -38,7 +38,7 @@ def bootPremiseR (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List 
     IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
       ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapRestartContract cfg U γ id ctxs N dir)
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapRestartContract cfg U γ id N dir)
 
 instance bootPremiseR_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString) (token name : GoString)

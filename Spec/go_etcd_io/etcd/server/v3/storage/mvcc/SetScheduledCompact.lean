@@ -34,20 +34,27 @@ generality (question 5's Draft, review round 14's F6, R9-3; the core stage, part
 write tokens `RT`/`WT` (lent to `LockInsideApply`, the read token given back), put condition, tracked
 buckets' right and the compaction keys' write right `MW` are the caller's, and the caller's swap of
 the lock's resource for that right (`mwSwap W MW`: the store's, from its write right's invariant)
-gives the right for the `Meta` put. -/
+gives the right for the `Meta` put. (F2, stage 2) The swap (`mwSwapCK`, used once) also lends the
+compaction keys' values `CK c` the lock's resource holds (`batchTxSpecG`'s `CK`: the real backend's
+client half), which the put moves to the scheduled key's new value, and gives the caller what it
+takes out of the session (`X`: the store's, the tie of the compaction revision raised with the
+records). -/
 abbrev mvcc.SetScheduledCompact.spec : Prop :=
   ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (MW HN : IProp GF) (hk : Option val)
-    (value : w64) (Pre Q Post : IProp GF),
+    (value : w64) (Pre Q Post : IProp GF) (PV : mvcc.Bucket → IProp GF) (PVx : Prop)
+    (CK : backend.FkVals → IProp GF) (X : IProp GF),
   0 ≤ sint.Z value →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mvcc.mwSwap W MW ∗
+      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW (PV := PV) (PVx := PVx)
+        (CK := CK) ∗
+      mvcc.mwSwapCK W MW CK mvcc.schedKeyBytes (mvcc.revBytes ⟨value, W64 0⟩ false) X ∗
       RT ∗ WT ∗ Pre ∗ mvcc.lockArmS bt RT WT W P HF Locked HN hk Pre Q Post }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact)) (Val #(GoInterface.ok bt)))
       (Val #value))
-  {{ RET #(); RT ∗ Post }}
+  {{ RET #(); RT ∗ Post ∗ X }}
 
 end spec
 

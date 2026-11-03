@@ -91,9 +91,9 @@ theorem mvcc.NewStore.wp_proof
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
-  intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0
+  intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0 hboot
   have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Htie, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := by rw [mvcc.nReaders_val]; decide
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
@@ -287,6 +287,8 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
   -- the writer's half: `writerRes`'s quarter and the writer's pin's (M2's item 37)
   icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
+  ihave Hbv1 := mvcc.bucketViewL_init γ _ $$ Hbv1
+  ihave HbvP := mvcc.bucketViewL_init γ _ $$ HbvP
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
   icases (mvcc.crevUB_split γ.idx (1 : Qp).half (1 : Qp).half (-1)).1 $$ [Hcu] with ⟨Hright, Hcu⟩
   · rw [Qp.half_add_half]; iexact Hcu
@@ -365,16 +367,22 @@ theorem mvcc.NewStore.wp_proof
   have hone : (W64 1 : w64) = W64 (((([[], []] : mvcc.Log).length : Int)) - 1) := rfl
   ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
   · rw [hγl]; iexact Hlrd
-  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres]
-  · iunfold mvcc.writerRes
+  -- (F2, stage 2) the store's ties: the tracking from the lock's unregistered client halves at its
+  -- registration, with the writer's resource's quarter of the log tie; the pin's quarter, the
+  -- revision tie's half and the job cursor's half apart (`kbTieInit_boot`)
+  icases mvcc.kbTieInit_boot γ.kb (by rw [hγk]; exact hboot) $$ Htie with ⟨HtieW, HlgP, Hkc, Hjob⟩
+  ihave HW : mvcc.kbWiC (GF := GF) γ.kb -∗ mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres HtieW]
+  · iintro Hc
+    ihave ⟨Htrk, Hlg⟩ := HtieW $$ Hc
+    iunfold mvcc.writerRes
     iexists [[], []]
     simp only [named]
-    rw [mvcc.bucketMap_init]
     iunfold mvcc.writerKey
-    iframe Hwk Hwv2 Hbv1 Hcres
+    iframe Hwk Hwv2 Hbv1 Hcres Hlg Htrk
     iframe #
     ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
+  imod mvcc.writerReg_alloc «$r0_ptr» γ ⊤ $$ Hregd with #HrgI
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP
@@ -404,7 +412,8 @@ theorem mvcc.NewStore.wp_proof
   have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
       (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
       (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ) (mvcc.storeRb γ) (mvcc.storeBt γ)
-      (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (DFrac.own 1) (DFrac.own 1) []
+      (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb)
+      (mvcc.storePV γ) (mvcc.storePVx γ) (mvcc.storeCK γ) (DFrac.own 1) (DFrac.own 1) []
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
@@ -451,6 +460,7 @@ theorem mvcc.NewStore.wp_proof
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
+  ihave Hbv2 := mvcc.bucketViewL_init γ _ $$ Hbv2
   ihave Hrt1 : mvcc.kbRT (GF := GF) γ.kb $$ [Hrt1]
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
@@ -470,7 +480,7 @@ theorem mvcc.NewStore.wp_proof
     $$ [HL HcurWi] with #Hwi
   · inext; iunfold mvcc.writerInvBody; ileft
     iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
-    iunfold mvcc.writerReg; ileft; iexact Hregd
+    iexact HrgI
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
   · iunfold mvcc.writerInv; iexact Hwi
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
@@ -528,7 +538,7 @@ theorem mvcc.NewStore.wp_proof
     iunfold mvcc.revMuBody
     iexists [[], []], 2 ^ 63 - 5, -1
     simp only [named]
-    rw [mvcc.bucketMap_init, ← hone]
+    rw [← hone]
     iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR
     iframe #
     isplitl []
@@ -542,9 +552,11 @@ theorem mvcc.NewStore.wp_proof
   -- the no-compaction token: a compacting store's write right (in `mwInv`), else the writer's loan
   -- (M2's item 37)
   ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
-      (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
+      (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw HlgP]
   · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
-    rw [mvcc.bucketMap_init]
+    ihave #Hpr : mvcc.pinRegd (GF := GF) γ $$ []
+    · iunfold mvcc.pinRegd; iright; iexists «$r0_ptr»; iexact Hregd
+    iframe HlgP Hpr
     by_cases hcm : mvcc.kbCmpM γ.kb
     · simp only [hcm, ↓reduceIte]
       iframe HbvP
@@ -555,7 +567,7 @@ theorem mvcc.NewStore.wp_proof
       iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
         unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
   icases HpinW with ⟨HpinW, Hmw⟩
-  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd] with #HmwP
+  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $HrgI] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
   ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
   · iunfold mvcc.stopPayAt; rw [hγsx, hγs]; iframe Hx Hpi
@@ -563,6 +575,7 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.physOk
     iexists P, Dep
     simp only [named]
+    ihave #HbkF := mvcc.isKeyBackendG_ncFalse _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbk0
     iframe #
     ipureintro; rw [hγcm, hγk]; simp
   ihave Hfs : mvcc.fieldShareAt «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)
@@ -634,19 +647,19 @@ theorem mvcc.NewStore.wp_proof
     iexact Htks
   -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
   -- queue, whose last name saves the initial `True` (2026-10-13, unit 5c)
-  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0 Hjrt Hsrm]
+  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0 Hjrt Hsrm Hjob]
   · iunfold mvcc.compactQueue
     iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
     rw [hγs, List.singleton_append]
     iframe Hq0 Hp0
-    isplitl [Hcmp0 Hjrt Hsrm]
+    isplitl [Hcmp0 Hjrt Hsrm Hjob]
     · iunfold mvcc.compactTok
       isplitl [Hcmp0]
       · iexists -1
         rw [hγi]
         iframe Hcmp0
         ipureintro; exact Int.le_refl _
-      iapply mvcc.compactJobResM_of; iframe Hjrt Hsrm
+      iapply mvcc.compactJobResM_of; iframe Hjrt Hsrm Hjob
     iintro ⟨-, H⟩
     iexact H
   -- the right to close: the stop channel's close, the scheduler's stop token, the queue (D19m (C))
@@ -677,7 +690,7 @@ theorem mvcc.NewStore.wp_proof
   isplitl [HcurFrag]
   · iunfold mvcc.writerFrag; iexists _; iexact HcurFrag
   -- the compaction right's half of the revision's authority at `-1`
-  iframe Hright
+  iframe Hright Hkc
   iframe HcpIs
   iunfold mvcc.retiredAt
   iexact Hret0

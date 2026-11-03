@@ -34,8 +34,8 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c P hk Pre Q Post log hcmp
-  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
+  intro s γ rev c cp P hk Pre Q Post log hcmp hr1 hlag
+  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM, Hwr⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
@@ -45,11 +45,11 @@ theorem mvcc.store.compactLockfree.wp_proof
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c P hk Pre Q Post log hcmp) $$ [$Hmu $Hright $Hctx $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
+  wp_apply (h1 s γ rev c cp P hk Pre Q Post log hcmp hr1 hlag) $$ [$Hmu $Hright $Hctx $HRTok $Hwr] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩
   · iframe #; ipureintro; exact HrevC
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
-    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag⟩ |
+    ⟨⟨%Hle, %Hcp, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
   · subst Herr
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
@@ -60,11 +60,11 @@ theorem mvcc.store.compactLockfree.wp_proof
     ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
     iapply HΦ
-    iframe HRTok Hhook
+    iframe HRTok Hhook Hwr
     ileft
-    iframe Hmu HPost Hch'
+    iframe Hmu HPost Hch' Hlag
     isplitr
-    · ipureintro; exact ⟨rfl, Hlt⟩
+    · ipureintro; exact ⟨rfl, Hlt, Hle'⟩
     iframe Hright
     iunfold mvcc.compactJobPre at Hjob
     icases Hjob with ⟨-, -, -, #Hlb, -, -⟩
@@ -72,11 +72,11 @@ theorem mvcc.store.compactLockfree.wp_proof
   · subst Herr
     (try wp_auto)
     iapply HΦ
-    iframe HRTok Hhook
+    iframe HRTok Hhook Hwr
     iright
     iframe Hmu Hright HPre Hch
     isplitr
-    · ipureintro; exact Hle
+    · ipureintro; exact ⟨Hle, Hcp⟩
     iexists ec; iframe Hec; ipureintro; rfl
 
 end proof

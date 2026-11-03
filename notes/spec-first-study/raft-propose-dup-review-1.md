@@ -224,7 +224,7 @@ No bug found. Behaviour the spec relies on:
 - **Writes into the stepped message.** `stepLeader` writes into the stepped message's entries
   (raft.go:1340) and `stepFollower` writes its `To` (raft.go:1720). kvreconf clones per copy
   (cluster.go:229-231, 263-265). This is already recorded as a non-issue
-  (`issues/nonissues/raft-step-writes-caller-message.md`, cited at cluster.go:275-276).
+  (`nonissues/raft-step-writes-caller-message.md`, cited at cluster.go:275-276).
 - **Empty `MsgProp` panic** (raft.go:1295-1297). Unreachable for a copy: every sent `MsgProp` has
   the entries of the `Propose` that made it.
 

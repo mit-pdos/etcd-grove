@@ -22,7 +22,7 @@
 - A program whose environment cooperates panics in Go, and the axiom proves it returns, no
   `sorry`.
 - **Fixed (2026-10-29, the user's decision, on `backend-cmp`):** `openPre` gained `openMmapOk cfg`
-  (below); the etcd finding is `issues/etcd-quota-backend-bytes-mmap-panic.md`.
+  (below); the etcd finding is `nonissues/etcd-quota-backend-bytes-mmap-panic.md`.
 
 ## The claim
 

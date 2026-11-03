@@ -1,141 +1,102 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#15220 issue closed: related, different: a requested progress response overtook a watch's queued events (progress request after the create)
-  - etcd-io/etcd#15237 pr merged: the fix of #15220 (progress responses through mvcc's watch channel); leaves the created response on ctrlStream, which overtakes the progress response here
-candidate: issues/upstream/etcd-watch-progress-before-created/
+  - etcd-io/etcd#15237 pr merged: the fix of #15220 (progress responses through mvcc's watch channel); leaves the created response on the control channel, which overtakes the progress response here
+  - etcd-io/etcd#20229 pr merged: related, different trigger (a lagging member's progress below a watch's start revision); its check covers only watchers that exist when the progress is computed
+blocks-proof: yes
 ---
 
-# A progress notification can reach a watch created after it, before the watch's events
+# watch: a progress notification requested before a watch is created can reach that watch before its events
 
-- **Fix** (the user's decision, 2026-10-16: folded into the verified fork): fork commit `c267e0ffe`
-  (branch `watch-progress-before-created`, on upstream `f061acd09`), cherry-picked onto
-  `goose-lean` as `09669450f`, both pushed: before sending a `Created` response, `sendLoop` sends
-  the watch responses already queued on the watch channel (a non-blocking receive until the
-  channel is empty; the handling of a watch response moved into a closure `sendWatch`, used by
-  both cases). With it the reproduction finds no hit in 3 × 500 trials (without: a hit within 47,
-  252, 373 trials); v3rpc's unit tests and `tests/integration/clientv3/watch` pass. The commit
-  adds the reproduction as `TestWatchProgressBeforeCreatedRace`. A bounded drain
-  (`len(sws.watchStream.Chan())` responses) was the first version; it passes the same tests, but
-  Perennial's `Len` spec (`wp_Len`) only bounds the result, so the proof could not use it.
-- **Upstream candidate** (2026-10-19; rebased 2026-10-21): branch `fix/etcd-watch-progress-before-created` off
-  upstream `main` `bf9cadf04` (not pushed), with a deterministic integration test `TestV3WatchProgressBeforeCreated`
-  over a raw watch stream (fails 20 of 20 at the base) and the fix with a bounded drain (`len(Chan())` responses), which
-  upstream prefers to draining until empty; `issues/upstream/etcd-watch-progress-before-created/`. Revised 2026-10-23
-  (the user's review: report it, as a break of linearizability): the issue states the guarantee broken (a progress
-  notification at revision R promises every event up to R; the new watch then receives an event below R), rebuilt on
-  upstream `main` `3aaab3479`.
-- **Status**: bug (a wrong result): a watch created from an old revision can receive, as its first
-  response, a progress notification at a revision above events it has not received yet. A client
-  that reads a progress notification as "nothing changed under my range up to this revision" (its
-  documented meaning; etcd's `cache` package does) then skips those events or sees them go
-  backwards.
-- **Where** (`upamanyus/etcd` `goose-lean` `107edf7e4`, the same code as upstream `main`
-  `f061acd09`):
-  - `server/etcdserver/api/v3rpc/watch.go`: `recvLoop` (249) handles a progress request by
-    `sws.watchStream.RequestProgressAll()` (398), which puts the `-1` response on the mvcc stream's
-    channel at once (`watchableStore.progressIfSync`, `server/storage/mvcc/watchable_store.go`
-    517–543: when every watcher of the stream is synced, at the store's current revision); a later
-    create request registers the watcher (`sws.watchStream.Watch`, 340) and puts its `Created`
-    response on `sws.ctrlStream` (367);
-  - `sendLoop` (411) selects between the mvcc channel (435) and `ctrlStream` (514), so with both
-    ready it can send the `Created` response before the progress response that was queued first;
-  - `client/v3/watch.go`: `run` moves the new substream into `substreams` on `Created`, and then
-    broadcasts the progress response (watch id `-1`) to every substream (`broadcastResponse`, 745),
-    the new one included.
-- **What happens**: on one gRPC watch stream, the client sends a progress request and then a create
-  request for a watch from an old revision (`WithRev(2)`). The server answers the progress request
-  when the stream's watchers are synced, at revision `r`; the new watcher is registered after, and
-  unsynced (its events from revision 2 are still to be sent). If `sendLoop` sends `Created` first,
-  the client broadcasts the progress notification at `r` to the new watch before any of its events.
+A watch created right after a progress request, from a revision below the current one, can receive
+the progress notification (revision R) before its own events below R. A client that trusts the
+notification ("every event up to R has been delivered") then misses those events: on one stream,
+`RequestProgress` followed by `Watch(WithRev(old))` is enough, while the member still has responses
+queued for the stream.
 
-  Reproduction: `tests/integration/clientv3/watch/zz_progress_created_race_test.go` (below), run
-  from `tests/` with `go test ./integration/clientv3/watch -run TestWatchProgressBeforeCreatedRace
-  -count=1 -v` on a checkout of upstream `main` (`f061acd09`; checked on the fork's
-  `watch-progress-closed-substream` branch, whose one commit changes only the client's handling of
-  canceled substreams). Three runs, each a hit, after 47, 252 and 373 trials (`progress
-  notification at revision 1393 before the watch's events (from revision 2)`).
+**Expected:** a progress notification at revision R on a watch should mean the watch has received
+every event of its range up to R, as `rpc.proto` says of a progress response ("all future events
+received in this stream" have a higher revision) and as `clientv3.WithProgressNotify` and
+`RequestProgress` document; a watch created after the progress request was answered should not
+receive it.
 
-  ```go
-package watch
+**Impact:** any client that sends a progress request and then creates a watch from a past revision
+on the same stream, while the stream is busy; the Go client shares one stream among all watches with
+the same context metadata and broadcasts a progress response to every watch it holds when the
+response arrives. Readers that serve reads from a watch's progress (Kubernetes' watch cache with
+`RequestProgress`, etcd's own `cache` package) can serve a stale read. Two further consequences,
+each with its own test: etcd's `cache` answers a watch "from now" with a spurious `ErrCompacted`
+([cache-stale-progress-compacts-newest-watch](cache-stale-progress-compacts-newest-watch.md)), and
+the Go client resumes a watch from a future revision below its start after a reconnect
+([etcd-watch-resume-below-start-revision](etcd-watch-resume-below-start-revision.md)). Reproduced at
+`main`; release branches not checked.
 
-import (
-	"context"
-	"sync"
-	"testing"
-	"time"
+**Reproduction:** `TestV3WatchProgressBeforeCreated` in
+[`issues/etcd-watch-progress-before-created/watch_progress_before_created_test.go`](etcd-watch-progress-before-created/watch_progress_before_created_test.go),
+copied into `tests/integration/clientv3/watch` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3 linux/amd64. Over one
+raw watch stream: put `b` (revision 2), watch `a`, put `a` ten times with 100 KiB values without
+reading, send a progress request, create a watch on `b` from revision 2, then read.
 
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/tests/v3/framework/integration"
-)
+```
+$ go test ./integration/clientv3/watch/ -run '^TestV3WatchProgressBeforeCreated$' -count=1
+--- FAIL: TestV3WatchProgressBeforeCreated (0.23s)
+    watch_progress_before_created_test.go:87:
+        	Error:      	Should be false
+        	Messages:   	progress response at revision 12 after the created response of the watcher on b, before its event at revision 2
+FAIL
+```
 
-func TestWatchProgressBeforeCreatedRace(t *testing.T) {
-	integration.BeforeTest(t)
-	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 1})
-	defer clus.Terminate(t)
-	cli := clus.Client(0)
-	ctx := t.Context()
-	for i := 0; i < 10; i++ {
-		if _, err := cli.Put(ctx, "k", "v"); err != nil {
-			t.Fatal(err)
-		}
-	}
-	hits, trials := 0, 0
-	for trial := 0; trial < 500 && hits == 0; trial++ {
-		trials++
-		tctx, cancel := context.WithCancel(ctx)
-		bw := cli.Watch(tctx, "busy", clientv3.WithPrefix())
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for j := 0; j < 30; j++ {
-				cli.Put(ctx, "busy/x", "v")
-			}
-		}()
-		time.Sleep(time.Millisecond)
-		if err := cli.RequestProgress(tctx); err != nil {
-			t.Fatal(err)
-		}
-		wch := cli.Watch(tctx, "k", clientv3.WithRev(2), clientv3.WithProgressNotify())
-		select {
-		case resp := <-wch:
-			if resp.IsProgressNotify() {
-				hits++
-				t.Logf("trial %d: progress notification at revision %d before the watch's events (from revision 2)",
-					trial, resp.Header.Revision)
-			}
-		case <-time.After(5 * time.Second):
-			t.Fatal("no response on the new watch")
-		}
-		cancel()
-		for range bw {
-		}
-		wg.Wait()
-	}
-	if hits > 0 {
-		t.Fatalf("%d of %d trials: a progress notification reached a new watch before its events", hits, trials)
-	}
-	t.Logf("no hit in %d trials", trials)
-}
-  ```
+**Cause:** `recvLoop` answers a progress request by queuing mvcc's progress response on the watch
+channel
+([L395-L400](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/watch.go#L395-L400)),
+computed over the watchers the stream has then, and a later create by queuing the created response on
+`ctrlStream`
+([L367](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/watch.go#L367)).
+`sendLoop` takes from the two channels in either order
+([L435](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/watch.go#L435),
+[L514](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/watch.go#L514)),
+so the created response can go first, and the client
+[broadcasts](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/client/v3/watch.go#L737-L738)
+the later progress response to the new watch, which it does not cover.
 
-  A progress notification before the watch's events can only come from the broadcast: a
-  per-watcher progress notification (`RequestProgress` of the server's watch stream, the periodic
-  `WithProgressNotify` one) is sent only for a synced watcher, and the new watcher is unsynced.
-- **Expected**: a progress notification at revision `r` on a watch means the watch has received
-  every event of its range up to `r` (the `WithProgressNotify` and `RequestProgress`
-  documentation: "the client ... has seen all events up to that revision"); a watch created after
-  the server answered the progress request should not receive it.
-- **How the proof handles it**: found while designing the watch slice's unit W-K (the cache over
-  etcd's client watcher, `notes/status-history.md`, "W-K"): mvcc's progress response is specified to cover
-  the watchers of the stream's map when it is sent, which does not include a watcher registered
-  after it; the client's contract for a broadcast progress response cannot hold for such a watch.
-  The proof is being decided (a fix in the verified fork, or a contract without broadcast
-  coverage).
-- **Possible fixes**: in `sendLoop`, keep the order between a progress response and later control
-  responses (e.g. answer `RequestProgressAll` on `ctrlStream`, or have `recvLoop` wait until the
-  progress response is sent before handling the next request); or in the client, broadcast a
-  progress response only to the substreams created before the progress request was sent.
-- **Found**: 2026-10-16, the watch slice's unit W-K (designing the progress responses' contract).
+## Proof
+
+yes: the verified fork carries the fix (`upamanyus/etcd` `09669450f`, cherry-picked from
+`c267e0ffe`): `sendLoop`'s proof states mvcc's progress response for the watchers registered when it
+is computed, and the client's broadcast contract needs it sent before any later created response
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvWatchStream.lean`).
+
+## Fix
+
+**Branch**: `fix/etcd-watch-progress-before-created` in `~/etcd-fixes/etcd-watch-progress-before-created` (upamanyus/etcd, not pushed): 983eb5c36 test, 165c936b6 fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
+
+**PR draft**:
+
+Title: etcdserver: send queued progress responses before a created response
+
+`recvLoop` answers a progress request by queuing mvcc's progress response on the watch channel ([L395-L400](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L395-L400)), and a later create request by queuing the created response on `ctrlStream` ([L367](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L367)). `sendLoop` takes from the two in either order ([L435](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L435), [L514](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L514)), and the client [passes](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/client/v3/watch.go#L737-L738) a progress response arriving after the created response to the new watch, which it does not cover. This PR makes `sendLoop` send the responses already on the watch channel before a created response.
+
+Fixes: the issue, once filed.
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+This PR changes `sendLoop`, as the fix of the watch ID reuse issue (#22673) does; whichever merges second needs a rebase in which every response taken from the watch channel, including those taken before a created response, is counted and checked for a canceled watcher. I can combine both fixes in one PR if you prefer.
+
+**If a reviewer asks**: the drain is bounded by `len(Chan())` at the created response (upstream's
+style; the fork drains until empty, which its proof needed). Alternatives: answer progress requests on
+`ctrlStream`, or have `recvLoop` wait until the progress response is sent (blocks request handling),
+or have the client broadcast only to watches created before the request (does not help other
+clients). The other PR is [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md)'s;
+a plain merge of the two is textually clean but wrong (this drain bypasses that fix's counting);
+the resolution, moving the counting into `sendWatch`, is the local branch
+`merge/etcd-watch-progress-and-id-reuse` (`e970b7079`).
+
+## Notes
+
+`rpc.proto`'s wording ("all future events received in this stream") cannot hold for a watch created
+later from an earlier revision; the issue draft asks whether it should say "the watches created
+before the progress request".

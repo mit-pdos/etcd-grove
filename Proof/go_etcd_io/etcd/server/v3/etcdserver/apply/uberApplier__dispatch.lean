@@ -201,7 +201,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T
   wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, #Hgp, HLt, %HcE, #HF, HFS, HSp,
-    HRO, Hco⟩
+    %Hrr, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -284,7 +284,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCV.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCV
     have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
-    have hsv : semverValid x := by
+    have hsv : semverValid x ∧ semverAtMostServer x := by
       have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
     wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post
         %(apply.ClusterReq.ver x) %rs %info [] [Hkv Hres Hc Hwt HFS HRO] as ⟨Hpost, HFS, HRO⟩
@@ -324,6 +324,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       · isplitr
         · ipureintro; rfl
         iframe HR
+        ipureintro; exact apply.restReqOk_attr rq rs x Hrr hk hs
       iunfold apply.mPreV
       iframe
     persist_ar
@@ -394,7 +395,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iapply apply.grantRes_null
     isplitl []
     · iapply apply.resTrace_null
-    simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
+    simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
   ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]

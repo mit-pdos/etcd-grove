@@ -653,6 +653,8 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
@@ -676,5 +678,3 @@ axiom zap.Uint64.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry merged_image
-sorry run_job_snap_cmp

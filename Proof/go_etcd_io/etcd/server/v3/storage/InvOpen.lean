@@ -106,7 +106,7 @@ def diskOk : Prop :=
 
 /-- **The configuration's mmap size is one the process can map** (2026-10-29, the `axiom` skill's
 `notes/axiom-review/openbackend.md`; 2026-10-30, `notes/axiom-review/openbackend-post.md`;
-`issues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
+`nonissues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
 the backend's `MmapSize` to `q + q/10` for a quota `q = cfg.QuotaBackendBytes` that is positive and not
 `DefaultQuotaBytes` (`quota.go:30`, 2 GiB), and `backend.New` passes it to bbolt as `InitialMmapSize`
 (`backend/backend.go:225`). bbolt's `Open` fails with "mmap too large" above `maxMapSize`
@@ -143,22 +143,22 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
   iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
 
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
     iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ)) ⊢
+      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ={⊤}=∗ W γ ∗ Pk γ)) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
   iintro ⟨%Hc, Hg, #Hh, Hmk⟩
   iunfold openPre
   iframe Hg Hh
   isplitr
   · ipureintro; exact Hc
-  iintro %γ ⟨Hk, Hf⟩
-  imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
+  iintro %γ ⟨Hk, Hpk, Hf⟩
+  imod Hmk $$ %γ [$Hk $Hpk] with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
 

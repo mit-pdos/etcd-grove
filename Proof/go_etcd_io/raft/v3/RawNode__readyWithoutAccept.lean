@@ -98,7 +98,7 @@ theorem hsOpt_of_hsRO (p : Loc) (h : HardStateM) : hsRO (GF := GF) p h ⊢ hsOpt
 
 omit [GooseInterp] [GooseSemantics] go_gctx [StorageModel GF] in
 /-- (2026-11-01, durability stage II (k)) The leader's state number is the leader's. -/
-theorem stateW64_leader {r : PRole} (h : stateW64 r = StateLeader) : r = .leader := by
+private theorem stateW64_leader {r : PRole} (h : stateW64 r = StateLeader) : r = .leader := by
   cases r <;> first | rfl | (exfalso; revert h; simp [stateW64, StateFollower, StateCandidate,
     StateLeader, StatePreCandidate])
 

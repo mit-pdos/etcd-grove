@@ -41,7 +41,7 @@ namespace restart3
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -110,13 +110,13 @@ theorem Run.wp_proof
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC lg N id₁ id₂ id₃ ctxs boot ThB RcB RcN Hlg Hp Hms hAs
+  intro CS CRE CEC lg N id₁ id₂ id₃ ctxs boot ThB RcB RcN HwbN Hlg Hp Hms hAs
   obtain ⟨Hbf, Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   wp_start as Hres
   iunfold runRes at Hres
-  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem⟩
+  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
@@ -217,14 +217,16 @@ theorem Run.wp_proof
     simp [dir3, hn13.symm, hn23.symm]
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
+  have hb3 : (LogEntry.toEntries boot 0).length ≤ 3 := by
+    simp [LogEntry.toEntries, hblen0]
   -- the three members (`startMember`), the thread token passed along
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (urlsOk peerAddr₁ clientAddr₁) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁]
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁]
     as %m₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₁, %pl₁, Hup₁, Hst₁⟩)
@@ -245,8 +247,8 @@ theorem Run.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (urlsOk peerAddr₂ clientAddr₂) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂]
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂]
     as %m₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₂, %pl₂, Hup₂, Hst₂⟩)
@@ -266,8 +268,8 @@ theorem Run.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (urlsOk peerAddr₃ clientAddr₃) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃]
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃]
     as %m₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₃, %pl₃, Hup₃, Hst₃⟩)
@@ -354,13 +356,13 @@ theorem Run.wp_proof
   · -- member 3 leads: member 2 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
         (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
-        m₂ s₂ pl₂ E₂' { ρ₂ with wait := γw₂ } N name₂ peerAddr₂ clientAddr₂
+        m₂ s₂ pl₂ ρ₂ N name₂ peerAddr₂ clientAddr₂
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
         (urlsOk peerAddr₂ clientAddr₂) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
-        (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } γn hst₂
-        hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
+        (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } γn HwbN hst₂
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hac₂ Htok2]
     · iframe; iframe #
@@ -368,13 +370,13 @@ theorem Run.wp_proof
   · -- member 3 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
         (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
-        m₃ s₃ pl₃ E₃' { ρ₃ with wait := γw₃ } N name₃ peerAddr₃ clientAddr₃
+        m₃ s₃ pl₃ ρ₃ N name₃ peerAddr₃ clientAddr₃
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
         (urlsOk peerAddr₃ clientAddr₃) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
-        (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } γn hst₃
-        hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
+        (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } γn HwbN hst₃
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hac₃ Htok2]
     · iframe; iframe #

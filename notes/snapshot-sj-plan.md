@@ -404,7 +404,7 @@ the auth applier borrows the apply thread's `E.RD` (`kvOwn`'s) per call instead 
   `RemoveAllPeers` needs back: fine in the examples' mode, where the snapshot branch is dead. A
   future example with both snapshots and partitions cannot keep `PeerPausable` without a fork fix
   (an idempotent `remote.Pause`): a window remote cut twice panics (`remote.go:89-91`,
-  `pipeline.go:81-82`). `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` corrected.
+  `pipeline.go:81-82`). `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` corrected.
 - **What J-T takes from M5**: the state split, `trLive` to the apply thread, `RemoveAllPeers` proved
   (its `sorry` gone; the slots it really gives back), `Stop_live` with the Stop clause and the
   `stopped` payload, the readers restated, W8. M5 keeps `RemovePeer`, `applyConfChange` and the

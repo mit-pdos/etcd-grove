@@ -40,6 +40,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
        etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
+       etc/gen-link.py --porcupine-dag > PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
        etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Link.lean
@@ -161,6 +162,11 @@ durableExt] [go.IntoValInj GoString]`, which its specs take).
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
 `wp_<M><S>`; a caller names it the same way.
+`--porcupine-dag` links porcupine's pull request #46 (the DAG search,
+`notes/porcupine-dag-plan.md`) in the part `PorcupineDag/`, from
+etc/link-lean-first-porcupine-dag.txt, as `--porcupine`: its specs are searched in the main tree
+and in `PorcupineDag/` (the part's spec of a function taking the place of v1.3.1's of the same
+name; `sort.Sort`'s is the main tree's).
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -334,6 +340,13 @@ LEAN_FIRST = {
                     "github_com.anishathalye.porcupine.Assumptions",
                     "Porcupine's proofs (`third_party/porcupine`: the checker, its entry points)",
                     [""]),
+    # porcupine's pull request #46 (third_party/porcupine-dag, the part PorcupineDag/, project
+    # porcupine-dag of etc/goose.py): a spec of the part is linked in place of v1.3.1's
+    "--porcupine-dag": ("link-lean-first-porcupine-dag.txt", "github_com.anishathalye.porcupine",
+                        "github_com.anishathalye.porcupine.Assumptions",
+                        "Porcupine pull request #46's proofs (`third_party/porcupine-dag`, the DAG "
+                        "search: the checker, its entry points; `PorcupineDag/`)",
+                        ["", "PorcupineDag"]),
     # the generic driver over porcupine (examples/lintest), over porcupine's (`@`)
     "--lintest": ("link-lean-first-lintest.txt",
                   "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
@@ -509,9 +522,15 @@ LEAN_FIRST = {
 }
 # The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
 EXTS = {"--bboltfs": "osFsExt"}
+# The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
+# model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
+# proof (the server's, and those linking over it) takes its `HasExt`.
+for _m in ["--server", "--v3rpc", "--common", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+           "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
+    EXTS[_m] = "idIssueExt"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
-              "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
+              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--kvdurable": "kvdurable", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "bboltfs"}
@@ -569,7 +588,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
@@ -725,9 +744,26 @@ for fn in fns:
     spec[fn] = ".".join(inner + [m.group(1)])
     in_eg[fn] = "EtcdGrove" in nss
 
-# The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).
+# The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant), and the
+# functions whose proof proves a spec stated at any `HasLC` only at `HasLC.hasLC` (PR #46's
+# `makeEntries`, whose callees' specs are stated there): their results are stated there too.
+def proved_at_haslc(fn):
+    if fn in pending or fn in external or "+" in fn:
+        return False
+    pf = os.path.join(root, prefix[fn].rstrip("."), "Proof", *where[fn].split(".")) + ".lean"
+    return os.path.exists(pf) and "[hG : HeapGS HasLC.hasLC GF]" in open(pf).read()
+
+
 haslc = {fn for fn in fns
-         if "HeapGS HasLC.hasLC" in open(spec_file(fn)).read()}
+         if "HeapGS HasLC.hasLC" in open(spec_file(fn)).read() or proved_at_haslc(fn)}
+# and the functions linked over such a result (their specs, at any `HasLC`, at `HasLC.hasLC`)
+_grow = True
+while _grow:
+    _grow = False
+    for fn in fns:
+        if fn not in haslc and any(c in haslc for c in callees[fn]):
+            haslc.add(fn)
+            _grow = True
 
 
 nsd = NAMESPACED.get(sys.argv[1])
@@ -1060,7 +1096,7 @@ variable [sem : go.Semantics]
                and fn not in reused]
     special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
                and fn not in reused]
-    assert all(c not in haslc for fn in generic for c in callees[fn])
+    assert all(c not in haslc for fn in generic for c in callees[fn]), [(fn, c) for fn in generic for c in callees[fn] if c in haslc]
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")
     if special:

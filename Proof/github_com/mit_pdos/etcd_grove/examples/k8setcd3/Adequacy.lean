@@ -46,7 +46,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 /-! ## The ghost-state bundle -/
 
@@ -75,7 +75,7 @@ instance k8setcd3GF_gooseGpreS : GooseGpreS k8setcd3GF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := ((), PUnit.unit)
+  goosePreGExts := (⟨k8setcd3GF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := k8setcd3GF_allG
 
@@ -123,6 +123,8 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops) [go!"127.0.0.1:23896"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent (k8setcd3Program clients ops) [config.walDirOf go!"k8setcd3.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
@@ -134,7 +136,6 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   suffices H : (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
     refine ⟨H.1, H.2.1, fun v hv => ?_⟩
@@ -146,7 +147,8 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩
-    k8setcd3Names [go!"127.0.0.1:23896"] (by decide) (by decide) HNs HAs ?_
+    k8setcd3Names [go!"127.0.0.1:23896"] [config.walDirOf go!"k8setcd3.etcd" go!""] (by decide) (by decide)
+    (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hprem0 := Hprem hG
@@ -170,7 +172,7 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩, -⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩, -, ⟨Hwd, -⟩⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold k8setcd3Program
@@ -181,9 +183,9 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := k8setcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8setcd3.storageErrTyOk_holds k8setcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
-  wp_apply hM $$ [Haddr Htok]
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

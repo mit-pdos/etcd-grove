@@ -177,7 +177,7 @@ The same as in `openbackend.md`:
    mappings)". No configuration bound guarantees this. Even the default 10 GiB `InitialMmapSize`
    fails under a small `ulimit -v`, which is an environment fact like the file lock. Item 1 keeps
    what is checkable about the configuration out of the opaque premise, as the first fix intended.
-3. The issue `issues/etcd-quota-backend-bytes-mmap-panic.md` is amended. The real limit on amd64
+3. The issue `nonissues/etcd-quota-backend-bytes-mmap-panic.md` is amended. The real limit on amd64
    Linux is the 47-bit address space, not `MaxMapSize`, so the fix it proposes (validate against
    `MaxMapSize·10/11`) is not enough.
 

@@ -13,7 +13,7 @@ calling `NewServer`. Lean-first (no Rocq counterpart).
   `kvInv`, the client's `etcdKV` at the bootstrap log's model and the fresh-token authorities.
 * `srvClusterBoot_alloc`: that, with the cluster's claims (`idCluster_alloc`, under the pure
   premise that the members' ids' 16 low bits are distinct and not `0`: D21e (A),
-  `issues/etcd-request-id-member-prefix.md`), the proposals' mint (`srvPropMint`), the read
+  `nonissues/etcd-request-id-member-prefix.md`), the proposals' mint (`srvPropMint`), the read
   contexts (`srvRdCtxInv`), and each member's share: its prefix's entry of the claims and `2 ^ 48`
   of raft's read credits (fewer than `2 ^ 16` members, from the premise).
 
@@ -147,7 +147,7 @@ invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the
 `Φs` (the caller's: a member's at its prefix), with the reserved id `0`, the proposals' mint, the
 read contexts, and each member's share: its prefix's entry of the claims (2026-10-30: no read credits), the
 its boot token and its snapshot directory. The pure premises (D21e (A),
-`issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
+`nonissues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). (The lease-grant
 plan's 2.3, the user's (C):) in a cluster that grants leases (`lg`), the KV invariant takes the KV
 state's ghost variable whole and no client's `etcdKV` is returned; at `lg = false` as before. -/
@@ -170,7 +170,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         (if lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
         idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
           -- (2026-11-01, durability layer 4) with its durable state at `RaftState.init` and its
           -- vacant id (`cluster_alloc`'s, `StartNode`'s premises)
@@ -274,7 +274,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     ipureintro; exact ⟨ps, Hne, by rw [hbt]; exact hboot⟩
   -- the KV invariant at the bootstrap log
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, 0, wn, 0, fs⟩, 0, cmp, γ.log, cret, lg⟩
+    ⟨issued, cnt, 0, 0, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lg⟩
   imod ghostVar_alloc (GF := GF) (kvModelSt γk0 (bootEntries γ.boot)) with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
   have hm : kvModelSt γk (bootEntries γ.boot) = kvModelSt γk0 (bootEntries γ.boot) := rfl
@@ -311,8 +311,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
       · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
         iframe Hboots Hslots
       iexact Hsd
-    have hm : ([∗list] p ∈ idPfxsOf ps, (p, 0) ↪[cnt] ([] : List w64)) =
-        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) : IProp GF)) := by
+    have hm : ([∗list] p ∈ idPfxsOf ps, (p, 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry)) =
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) : IProp GF)) := by
       unfold idPfxsOf; rw [BigSepL.bigSepL_map]
     rw [← hm]
     iframe Hps
@@ -339,7 +339,7 @@ prefix); with its read names' fresh rows (`srvReadNamesFreshNK`), the KV invaria
 theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInv (GF := GF) ⟨γ, [], W64 0⟩ γk -∗
-      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) -∗
+      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
       ∃ ρ : ReqNames,
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
@@ -351,6 +351,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
         idWaitTok ρ.ids := by
   iintro #Hkv Hp Hwt
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
   imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
@@ -360,7 +361,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   imodintro
   iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs⟩, γk.hist, γk.cmp, γk.rlog,
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
       γk.cret, γk.lg⟩⟩⟩
   isplitr
   · ipureintro
@@ -368,13 +369,13 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   isplitr
   · dsimp only
     rw [kvInv_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs⟩, γk.hist, γk.cmp, γk.rlog,
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
       γk.cret, γk.lg⟩ γk
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
     iexact Hkv
-  isplitl [Hp Hsl]
+  isplitl [Hp Hsl Hpend]
   · iunfold idShare
-    iframe Hp Hsl
+    iframe Hp Hsl Hpend
   isplitr [Hwt]
   · iunfold srvReadNamesFreshNK
     iframe Ha Hc Hl Hpd Hhi

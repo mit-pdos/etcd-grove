@@ -279,7 +279,7 @@ one freezes:
 What drafting has found so far:
 
 - **Request ids across incarnations.** A restarted member's id generator starts again at its old
-  prefix, from the wall clock (`issues/etcd-request-id-restart-reuse.md`). The cluster's map of
+  prefix, from the wall clock (`nonissues/etcd-request-id-restart-reuse.md`). The cluster's map of
   issued ids (`idClusterInv`) cannot take a reissued id, so the restart boot takes a premise: the
   new generator's first suffix is past the ids the member's prefix issued (a time premise, as the
   issue's precondition). Named in R2c.
@@ -369,7 +369,7 @@ are still the R2a placeholders and hypotheses (`HardStop.spec`, `BuildServer.spe
 **Open in R2c** (the content of the placeholders): the floor fact of the member's id prefix
 (`Φs pfx = srvFloorFact E₀` names the first incarnation's stand-in environment; the restarted
 member's store is new), the id generator's start past the old ids
-(`issues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
+(`nonissues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
 backend (L5).
 
 ### R2c: what a restart needs of the cluster's id state (2026-11-02, design)
@@ -399,8 +399,10 @@ image carries none of them.
 **What the keys cannot give: fresh ids.** Two incarnations of one member issue ids under the same
 16-bit prefix; the cluster's map must not see one twice. The old generator may keep issuing after
 the stop (item 1), so no ghost bound on its suffix exists when the new one starts. Disjointness is
-the issue's precondition (`issues/etcd-request-id-restart-reuse.md`): the clock does not step back
-and a member issues fewer than 256 ids per millisecond on average. It is an assumption about the
+the issue's precondition (`nonissues/etcd-request-id-restart-reuse.md`): the clock does not step back
+and the earlier generator, started at millisecond t0, issues in all at most 256·(t1 − t0) ids, t1
+the later one's start (2026-11-02 review: the earlier "fewer than 256 per millisecond on average" was
+imprecise). It is an assumption about the
 environment, and has to enter as a trust-boundary statement or a premise:
 - **(a) a spec of the generator's start time** (`time.Now` in `NewGenerator`'s call): the suffix it
   starts from is past every suffix issued under the prefix so far (a per-prefix high-water mark in
@@ -501,3 +503,533 @@ The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded 
     extension's instance, which each example's adequacy provides.
   - Drop the one-key-per-prefix condition, and prove `idIncarnation_alloc` (a fresh incarnation
     number chosen from the finite maps).
+
+### R2e: raft's restart, now that the durability work has landed (2026-11-02)
+
+The durability branch landed on `lean` (stage II (u)), so R2e can be built on proved raft specs,
+not a named `sorry`:
+
+- **`RestartNode.spec`** (`Spec/go_etcd_io/raft/v3/RestartNode.lean`, proved). It restarts node
+  `id` of the cluster from three things:
+  - the id vacant (`nodeVacant`: no node of it runs);
+  - a storage holding raft's stored contents `σ` (`restartStorage`), at a configuration point `a`
+    the storage's `ConfState` reports, between the applied index and the stored commit;
+  - the client's update `AU`, which fires when raft reads the storage. It checks the storage holds
+    the client's durable state `S` (`raftState`, `StorageHolds`).
+
+  Its post gives the `Ready` loop's token at the committed log from `max σ.b Applied`. It also gives
+  the configuration view at `(a, m)` and the storage's key.
+- **`node.Stop`** gives the id's vacancy back (`nodeStopped`, `nodeVacant`).
+- **`examples/kvdurable`** is the pattern for a stop and a restart:
+  - `Replica.stop` returns `nodeVacant` and the replica's durable-state ghost variable (`raftState`).
+  - `Cluster.restart` restarts from them, with the crash token held by the cluster.
+
+For the server, this fixes what the image (`srvDiskImage`) holds of raft:
+- `HardStop`'s `run` shutdown calls `raftNode.stop`, which calls `node.Stop`, which returns
+  `nodeVacant`.
+- The WAL's hard state, snapshot and entries are the durable state `S`. etcd's `bootstrappedWAL`
+  rebuilds its `MemoryStorage` from them, so bootstrap's restart contract (L3) must produce
+  `restartStorage σ` with `StorageHolds σ S`.
+- The configuration point is the WAL snapshot's `ConfState`, the snapshot's index.
+
+The open questions:
+1. The server's raft node is not `kvdurable`'s. It runs through `raftNode` and its `Ready` loop, and
+   `bootstrap` reads the WAL, not a durable file of the client's. So the restart contract has to
+   state the WAL image's correspondence to `S`.
+2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
+   holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
+
+### R2c: the image's content (2026-11-02, draft, `InvRestart.lean`)
+
+What a stopped member's data directory holds, and what `bootstrap` makes of it, read from etcd's
+code (`bootstrap.go` at the pin):
+
+- On an existing WAL, `bootstrapRaftFromWAL` gives raft no peers, so `newRaftNode` calls
+  `RestartNode`; `raftConfig` leaves `Applied` at 0. The storage is `bootstrappedWAL.MemoryStorage`:
+  `ApplySnapshot` of the WAL's last snapshot record, `SetHardState`, `Append` of its entries.
+- `bootstrap` then **replaces the WAL snapshot's `ConfState` by the backend's**
+  (`buildConfStateFromV3store`). So raft restarts with the membership the backend holds at its
+  consistent index `i`, not at the WAL snapshot's index. `RestartNode` allows this: its
+  configuration point may be anywhere from the storage's base to its stored commit.
+- `bootstrapClusterWithWAL` builds the cluster from its ids only; `Finalize`'s `cl.Recover` reads
+  the members from the backend's buckets. No remotes, as on a first start.
+- `recoverSnapshot` keeps the backend file unless its consistent index is below the WAL snapshot's
+  (then a `.snap.db` replaces it). A graceful stop never leaves it below: a snapshot is of the
+  applied state.
+
+**The draft** (statements only; the opaque parts are R2d's or the trust boundary's):
+
+- `srvDiskImage γ ρ id`: raft's part (`nodeVacant`, `raftState S`, the WAL's records `σ` with
+  `StorageHolds S σ`, what `RestartNode` takes); the backend's part (the file's data `D` is the
+  image of a committed prefix `A` through `i`, the snapshot path's `imageAt`, reused); the order
+  `σ.b ≤ i ≤ σ.commit`; the configuration point `confAt γ.cl i m`, `m` the backend's members at
+  `A` (`v3ConfState`, opaque until R2d); the files (`srvFiles dd σ D`, a trust-boundary token, and
+  the backend path's `pathOwn`).
+- `bootOkR`: `bootOk` with five changes marked `[R2c]`: no peers; the storage rebuilt at `σ`
+  (`memStorRestarted`, opaque until R2d derives `restartStorage` from it, as kvdurable's
+  `kd_restartStorage`); the members `(restModel 0 γ.boot L).mem`; the consistent index loaded at
+  `i`; the backend's data the image, the fresh file's facts gone.
+- `bootstrapRestartContract`: for every image whose facts hold, `bootstrap` on the files gives an
+  error or `bootOkR`. A premise, as `bootstrapContract`.
+
+**What R2b must prove of the stop** (`HardStop` to the image): the raft loop's `raftState` and
+`node.Stop`'s `nodeVacant`; the backend's certificate at its consistent index (as the snapshot
+sender's, from the store's view and the index's meta keys); the order `σ.b ≤ i ≤ σ.commit` as an
+invariant of the raft loop and the apply thread; `confAt` at `i`; and the closes' trust-boundary
+axioms giving `srvFiles`.
+
+**Scope:** a static cluster (`Hmembers`, `Hdirps` as a first start's); graceful stops in one
+process (no crash: writes are visible to the next open, synced or not).
+
+### R2c image review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+The reviewer confirmed the order `σ.b ≤ i ≤ σ.commit` at a graceful stop from etcd's code:
+- The raft loop hands a `Ready` to the apply thread before its `Save`, with no stop check between.
+- The stop runs the scheduler's pending jobs (`sched.Stop`) before `s.r.stop()`, and closes the WAL
+  after the loop exits.
+- The backend's last commit (`CommitAndStop`) saves the consistent index.
+- A WAL snapshot record follows its `applySnapshot` job. etcd's own comment that the consistent
+  index may pass the commit is about crashes only.
+
+It found no bug in etcd. Its first-tier findings, all taken:
+- **F1.** `bootOkR`'s `ciApplying` at the image's index was false: the applying index and term are
+  the apply loop's own fields, which `NewConsistentIndex` leaves at 0. Back to `0 0`.
+- **F2.** The image's directory was existential, unrelated to the configuration's `DataDir`. Now a
+  parameter: `srvStopRight s γ id dd` records it at `NewServer`, and `srvDiskImage γ ρ id dd`
+  names it. `HardStop` and `stop` quantify over it; the examples' specs give `name ++ ".etcd"`
+  (`cfgOk`).
+- **F3.** The restart could not give `memStorRegAuth ∅`: raft's names are kept, so the registry is
+  the first incarnation's, its old storage registered for good. Now the image carries the
+  registry's authority back, and the contract takes it at any `M` and returns it with the new
+  storage at a location not in `M`.
+- **F4.** Nothing made the stopped member have applied the bootstrap log. In `restart3` the put
+  returns on two members' acknowledgements, so a follower may be stopped before its first `Ready`.
+  Then the members bucket is empty, and `Hmem`, `Hmembers` and `RestartNode`'s
+  `bootLen ≤ σ.commit` fail. Now `γ.cl.bootLen ≤ i` is in the image and the contract's premise: a
+  scope restriction `restart3`'s stop must meet (R2b: a witness that the member applied
+  `bootLen`). `v3ConfState` is now over the backend's data (the members bucket), as
+  `buildConfStateFromV3store` reads it.
+- **F5.** The KV names' `c0` was free in the contract, but `restModel (W64 0)` assumes 0. The
+  contract now asks for an image at `c0 = 0` (existential), the image states `ρ.rd.kv.c0 = 0`, and
+  `restartNames` keeps `c0`.
+
+Second tier:
+- **Taken:**
+  - `srvFiles` names the member (the WAL's metadata, `cv.ID' = id`).
+  - The contract's image is an existential.
+  - `ctxs` is dropped from the contract.
+  - The error arm is documented: like a first start's, the contract may always fail.
+- **Open:**
+  - `srvFiles`'s exclusivity per directory (R2b makes the token).
+  - `ctxs` is still a dead parameter of `bootPremiseR`.
+  - Sealing the image behind an API module with the laws R2d needs (the image is an exposed `def`
+    today).
+  - `memStorRestarted` must also give the snapshot token and the storage's conf state, which
+    `restartStorage` needs (R2d).
+  - Conf entries in `(σ.b, i]` are delivered again after a restart. etcd skips `ApplyConfChange`
+    for them but still calls `AddMember`/`SetConfState`; R2d must check that an `AddMember` of a
+    present member is harmless.
+
+### R2c stage 2: the trusted `Next`, design (2026-11-02)
+
+- **The record: an extension.** `idutil` has no package variable whose initializer could allocate a
+  model-only map, and `go.GlobalAlloc` runs only from an initializer. So the issuers' record is a
+  GooseLang extension's local state, `idIssueExt` (`GooseLang/Ext/IdIssue/`): a map from id to
+  issuing generator.
+  - Its one operation, `"Issue"` of `(id, g)`, returns whether no other generator holds the id
+    (`M !! id = none ∨ M !! id = some g`), and records `id ↦ g` if so.
+  - The examples close their programs over it in place of `trivialExt`. It does nothing a Go
+    program can see.
+- **The model: `Generator.Next`, trusted.** It is the generated body with one step before the
+  return: `assume (ExternalOp "Issue" (id, g))`. Perennial's `assume` loops forever on `false`
+  (`wp_assume`), so the model excludes exactly the executions in which two generators issue one id.
+  Its faithfulness is the issue's precondition. It goes through the `axiom` skill's review before it
+  lands.
+- **The proof: two atomic steps.**
+  - The increment counts the id as pending in the generator's invariant (`idIssued` is the list
+    plus the pending ids).
+  - The issue step opens the cluster invariant. Its `assume` gives `M !! id ∈ {none, some g}`.
+    `some g` would put the id in the generator's own list, but a pending id is not there: the
+    receipts' bound keeps the suffix from wrapping. So `M !! id = none`, the id is in no key's
+    list, and it enters the maps.
+- **The cluster invariant:**
+  - The extension's record (the program's half). It agrees with the keys' lists through a map from
+    key to generator, `Gm`.
+  - `Gm` is injective. That is proved at registration: the new generator's fields are owned whole,
+    and every registered generator's prefix field is persistently readable, so the new address
+    differs from them.
+  - The stage-1 condition, one key per prefix, goes. `idIncarnation_alloc` becomes provable: a fresh
+    incarnation number, chosen from the finite maps.
+
+### R2c stage 2, where it stands (2026-11-02)
+
+**Done, and it checks:**
+- The extension: `GooseLang/Ext/IdIssue/Impl.lean` (`"Issue"` of `(id, g)`) and `Specs.lean`
+  (`wp_IdIssue_atomic`, the closure `idIssueExts`).
+- The trusted model `TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: the generated body with
+  `assume (Issue (id, g))` before the return.
+- The Goose configuration marks `Generator.Next` trusted; the translation was regenerated, with its
+  `ManualProof` module.
+
+**Then, in order** (all done 2026-11-02):
+1. **The record's ghost state, in a form that needs no `Main` changes** (`GooseLang/Ext/IdIssue/Specs.lean`):
+   - The state interpretation holds a ghost record contained in the physical one (any initial
+     record is allowed; the ghost one starts empty), its authority and every entry's persistent
+     element. The program starts with `True`, so no `Main` takes anything for it.
+   - `wp_IdIssue` gives, with `b = true`, the fact `idIssueFrag id g`, with the mask open around the
+     step for an invariant. `idIssueFrag_agree`: one issuer per id.
+   - `idIssueFragD` reads the fact without the instance: `if h : HasExt idIssueExt then … else
+     False`, rewritten by `idIssueFragD_eq` under the instance. `idIssueFragD_agree` holds either
+     way. So no spec mentions the instance; only proofs that run `Next` take it.
+2. **`idutil`** (`Defs`, `Lemmas`, `NewGenerator`, `Generator__Next`):
+   - `IdNames` gains `pend`. A key's entry of the keys' map is a pair: issued ids, and the generator
+     once `NewGenerator` registers it. That replaces the separate key-to-generator map.
+   - The cluster invariant keeps, per registered key, its generator's persistent prefix field and
+     the record's fact for every listed id (`idKeyGenFacts`). One key per generator (`idClusterOk`).
+     The one-key-per-prefix condition is gone.
+   - `NewGenerator` registers its generator. It is no registered key's: its prefix field is owned
+     whole, and `w64_pointsto_excl` is a local lemma, recorded in `notes/perennial-changes.md`.
+   - `Next` is proved over the trusted model in two steps:
+     - the increment counts the id as pending and takes its wait slot;
+     - the issue step opens both invariants around `"Issue"`. With the record's fact, the
+       generators' facts, the injectivity and the pending token, the id is in no key's list, so in
+       no map.
+
+     The proof depends only on Lean's standard axioms (`#print axioms`).
+   - `idIncarnation_alloc`: a key `(p, inc)` with `inc` above every key's (`idKey_fresh_inc`), its
+     empty entry, registry cell and facts' parameter. R2c's restart allocation will use it.
+3. **The allocations**: the `IdNames` literals take `pend`; the server's member allocations
+   (`NewServerAlloc`, `NewServerAllocOn`) allocate the pending map; the boot statements' entries are
+   pairs. `SrvRaftLog`'s `srvRdFresh_mint`, which opens the generator's invariant, has its new shape.
+4. **The instance.**
+   - `Next.wp_proof` takes `[HasExt idIssueExt]`, and so does every result that reaches it:
+     `etc/gen-link.py` adds it to the modes linking over the server (`EXTS`: server, v3rpc, common,
+     linkv3p, linkvtxn, watchkv, authkv, cachekv, k8setcd3, k8s, k8s-etcd3), and the hand-written
+     sections using those results (`Results` files, the examples' `Main`s, ...) have it as a
+     section variable. A file was given it only where the build asked for it.
+   - The examples' closure (`TrivialExt.lean`, names kept) is `[idIssueExt]`, with
+     `trivialExts_hasExt`. The adequacy files take the universal camera they already had as the
+     extension's pre-ghost state (`goosePreGExts := (⟨…GF_allG⟩, ())`) and the closure's `HasExt`
+     as a local instance.
+5. **Review** (a fresh agent, the trusted-base and `axiom` skills' method): verdict OK, nothing
+   unsound. The trusted `Next` is the generated body plus the one `assume` step; the record's step
+   is deterministic, heap-preserving, and stuck only off its one call site; the assumption yields
+   only "two generator addresses never issue one id", and the proof does not use the record against
+   a single generator's repeats (those are excluded by the receipts' bound). Documentation fixes,
+   applied:
+   - The precondition was stated imprecisely ("fewer than 256 ids per millisecond on average"): the
+     exact one is that the earlier generator, started at millisecond t0, issues in all at most
+     256·(t1 − t0) ids, t1 the later one's start. Corrected in the issue, the model, the extension
+     and this plan.
+   - The issue file's "How the proof handles it" was stale (pointed to `Incarnations.lean` and
+     `primitive.Assume`); `TrivialExt.lean`'s header said the closure does nothing.
+   - The crash rule's limit (a generator after a crash could take a stopped one's address: still
+     sound, but `Next`'s proof would need the record cleared) and the extension's non-package name
+     are documented in `Impl.lean`.
+
+### R2b: the stop, its plan (2026-11-02)
+
+`HardStop` sends on `s.stop`; `run` returns and its deferred shutdown runs: `close(stopping)`,
+`cancel`, `sched.Stop()` (the pending `applyAll` jobs run), `s.wg.Wait()`, `s.r.stop()` (the raft
+loop's `onStop`: `node.Stop`, the ticker, the transport, the WAL's `Close`), `Cleanup()` (the
+lessor, the KV store, the auth store, `be.Close()`, the compactor), `close(done)`; `HardStop`
+returns on `done`. What the proof has today: `run`'s `stop` and `errorc` bags carry `False` (D19m),
+so the shutdown is unreached; `raftNode.stop`'s post is `True`; `Cleanup` has no spec; the WAL is
+the trust-boundary contract `isRNWal` with an open token (`walOpen`) and no contents.
+
+Two findings from reading the stop path:
+
+1. **The raft loop can stop holding an unsaved `Ready`.** `raftNode.start`'s loop returns on
+   `r.stopped` from two selects between receiving a `Ready` and its WAL `Save`: the read state's
+   send (`readStateC`) and the hand-off to the apply thread (`applyc`). The server's proof enters
+   each batch at its receive (`rnBusyN`: "its WAL `Save` is not modelled as durable"), so at such a
+   stop the node's durable state `raftState S` includes a batch the WAL never got, and the image's
+   `StorageHolds S σ` is false. Raft's node API allows the other order (`readyEnter`: "a durable
+   client: in the write that makes it durable"): what the loop does before the `Save` needs only
+   the receive (the committed entries and `isCommittedLogLb` for the apply thread; at role leader
+   the messages, `readyLeaderMsgs`). So R2b moves the server's *enter* to the WAL's `Save`. Not an
+   etcd bug: at such a stop nothing of the batch was applied (the stop is chosen instead of the
+   `applyc` send) or sent by a follower (it sends after the `Save`); a leader's messages carry no
+   promise.
+2. **The WAL's records are not modelled.** The image needs them (`σ`, what `ReadAll` returns from
+   the last snapshot record). They become a ghost token beside `walOpen`, `walRecs w σ`, which the
+   trust-boundary contract `isRNWal` updates: `Save(h, es)` (the entries truncate-and-append, the
+   hard state replaced when not empty) and `SaveSnap(m)` (a snapshot record: `ReadAll` then starts
+   there). Two threads write the WAL: the raft loop (`Save`, `SaveSnap` of a received snapshot) and
+   the apply thread (`SaveSnap` of its own snapshots, `snapshot()`), so the token lives in an
+   invariant both open; the raft loop's `Save` fires *enter* inside it, keeping
+   `StorageHolds S σ` (as `kvdurable`'s `kdFileInv`).
+
+The sub-steps, each a draft reviewed before its proof:
+
+- **R2b-1. The WAL as the durable point.** `walRecs` and its laws, `isRNWal`'s `Save`/`SaveSnap`
+  over it (trust boundary), `bootOk`'s fresh WAL's records (`StorageHolds RaftState.init σ₀`), the
+  invariant `S`–`σ`, the raft loop entering at the `Save` (`raftNode.start`'s proof). The order's
+  first half: every WAL snapshot record is at or below the applied index (`σ.b ≤ i`: the raft
+  loop's `SaveSnap` of a received snapshot precedes its apply; the apply thread's own snapshots are
+  of its applied state), and its second: the apply thread applies only entries a saved hard state
+  commits (`i ≤ σ.commit`, the `Save` follows the hand-off unconditionally).
+- **R2b-2. The shutdown.** `s.stop`'s bag carries the stop request; `done` closes with the image
+  escrowed for the stop right's holder (an invariant: the image or the claim); `run`'s stop case
+  through the deferred shutdown: `sched.Stop`'s last post (the apply thread's final state: its
+  index `i`, the backend's view), `s.wg.Wait`, `raftNode.stop` (its post strengthened: `raftState`,
+  `nodeVacant`, the WAL closed with its records), `Cleanup` (its spec: `be.Close` gives the data
+  `D` the store's view held and the path back). `HardStop` proved; `srvStopRight` defined (the
+  stop request and the claim, the directory recorded).
+- **R2b-3. The image.** The closes' trust-boundary axioms giving `srvFiles dd id σ D` (`wal.Close`
+  and `backend.Close` in one directory, its exclusivity the right's); the backend's certificate at
+  the consistent index (`imageAt`, as the snapshot sender's from the store's view and the meta
+  keys); `confAt` at `i`; the bootstrap log applied (`bootLen ≤ i`: the scope restriction of R2c's
+  review F4, which `restart3` meets by waiting, before the stop, until the member has applied it;
+  a Go change to the example, and a spec of the wait).
+
+Order: R2b-2's statements first (they fix what R2b-1 and R2b-3 must give), then R2b-1, R2b-3.
+
+### R2b-2: the shutdown's statements (2026-11-02, draft)
+
+Reading `start` changed one thing in the plan: `start`, not `NewServer`, makes the channels `stop`,
+`done` and `stopping`, so the stop right comes out of `Start`. `NewServer` records only the data
+directory (`srvDataDir s dd`: the read-only `Cfg` field's `DataDir`).
+
+- **The right** (`InvRestart.lean`, defined): `srvStopRight s γ ρ id dd` is the stop channel (a bag
+  whose predicate is `True`: anyone may ask), `done` (a broadcast channel whose close announces
+  `srvDoneInv γ ρ id dd c`, an invariant holding the image or the claim `c`), and the claim `c`. It
+  now records the request names `ρ`, so that `run`, which knows them, can fill the escrow.
+- **`HardStop`** (proved; translated with its body, as is `Cleanup`): from the right, the image.
+  It no longer takes the request view `isServerReq`: a `HardStop` before `Start` blocks forever,
+  which partial correctness allows.
+- **`Start`** (`common.Start_builtS_spec`, first start, and `Start_builtR_spec`, a restart: draft
+  `Prop`s): from `memberBuilt` and `srvDataDir s dd`, `memberUp` and the right at
+  `ρ.rd.raft.raft`. `BuildServer.specStop`/`specRestart` give `srvDataDir` in place of the right;
+  `restart3`'s `memberStop` records `ρ`, `stop` no longer takes `isServerReq`.
+- **`run`** (`run.specStop`, draft): `isServerRun` takes the stop requests' predicate `SP` and
+  `done`'s `DQ` (defaults `False` and `True`, the runs covered so far, unchanged), at `True` and
+  `srvDoneInv`, with `srvShutdownPre` (the raft loop's stop claim, the data directory, the storage
+  registry's authority).
+- **`raftNode.stop.specStop`** (draft): with the loop's stop claim and the apply side's token at the
+  log `A` handed to it, the node's id vacant, its durable state `S`, the WAL closed with records `σ`
+  (`rnWalClosed`, opaque until R2b-1), `StorageHolds S σ` and
+  `σ.b ≤ |pre ++ A| ≤ σ.commit`.
+
+Left to R2b-3's draft: `Cleanup`'s spec (the backend closed, its data), the closes' axioms
+(`srvFiles`), and the image's assembly from `run`'s state after the shutdown.
+
+### R2b-2 review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+No bug in etcd. Three blocking findings, all taken:
+- **F1.** `srvDataDir` made the whole `Cfg` read-only, which contradicts `memberBuilt`'s ownership of
+  the fields `start` writes (`SnapshotCount`, ...): `BuildServer.specStop`'s success case was
+  `False`, and the proofs over it vacuous. Now per field (`DataDir`, as `srvSnapRes`), with
+  `DedicatedWALDir` empty, so that the WAL is `<dd>/member/wal` as `srvFiles` says.
+- **F2.** With a stop request carrying nothing, `run` could not fill the escrow: a `HardStop`
+  right after `Start` stops a member that has not applied the bootstrap log, and the image needs
+  `bootLen ≤ i` (R2c review F4). Now the stop bag carries `srvBootApplied ρ` (an applied-index
+  lower bound, `appliedAtLeast`, at least the bootstrap log's length), which `HardStop` takes.
+  `restart3`'s `stop` gets it by waiting: `for m.s.AppliedIndex() < NBoot { time.Sleep(1ms) }`
+  (Go changed, the test passes; proved, with `memberStop` carrying the applied index's invariant
+  and the raft names, `restartCheck` the bootstrap log's length).
+- **F3.** Nothing named the sources of the shutdown's resources. `srvShutdownPre` now lists
+  `srvCleanupOwn` (the lessor's stop right, the auth store's closer; opaque until R2b-3) besides
+  the raft loop's claim, the data directory and the registry's authority, and says where each
+  comes from; `NewServer` keeps them for `Start` (`srvStopKeep`, opaque, which
+  `BuildServer.specStop`/`specRestart` give and the `Start` drafts take). The KV's and the backend's
+  closers come back from the apply thread through `sched.Stop`'s last job's post.
+
+Smaller:
+- **F4 (one spec per function), recorded, not yet done:** the drafts are families (`run.specStop`
+  beside `spec`, `Start_builtS_spec` beside `Start.spec`, `raftNode.stop.specStop` beside `spec`,
+  `BuildServer.specStop` beside `spec`). When R2b-2's proof is done they collapse: `Start.spec`
+  gives the right (callers that never stop drop it), `run`'s one spec is the stop-capable one,
+  `raftNode.stop.specStop` replaces `spec`. The draft keeps both so that nothing proved moves.
+- **F5:** `raftNode.stop.specStop` is true of `raft.go` once the server enters a batch at its WAL
+  `Save` (R2b-1). R2b-1 must change `isRaftNode`'s `done` (its predicate is fixed at `True` in a
+  persistent conjunct), so every spec over `isRaftNode` moves. The image's order is at the
+  backend's consistent index, equal to the handed log's length once the jobs ran and the backend
+  committed: R2b-3's. Both noted in the docstring.
+- **F6:** `run.specStop` no longer takes `id` (it is `γn.id`). Not taken: dropping `γ` from
+  `srvStopRight`, or a `memberBoot` law in place of `startMember`'s unfold (it would rebuild every
+  example for one line of glue).
+- **Scope:** `run.specStop` covers first starts (`isServerRun`'s `HEr`); a restarted member's
+  right is R2d's. The `errorc` path stays closed (its bag's `False`).
+
+### R2b-1: the WAL's records (2026-11-02, blocked on a finding)
+
+Drafting the WAL's records model found that etcd's WAL does not hold the durable state raft's
+restart checks. `wal.ReadAll` returns every entry record above its start snapshot's index,
+whatever its place relative to the snapshot record. A follower that installs a received snapshot
+at `k` over a conflicting log keeps the old entries above `k` in its WAL; if it stops before any
+entry above `k` reaches it, its restarted log is the snapshot followed by entries of lower terms
+(`nonissues/etcd-wal-stale-entries-above-snapshot.md`, with a failing WAL-level test). Raft's
+durable state (`RaftState.next`) has no entries above an installed snapshot, so the image's
+`StorageHolds S σ` is false of such a member, and so is `raftNode.stop.specStop`'s post.
+
+Options:
+1. **A fix on the goosed fork** (as the three raft fixes): `ReadAll`, at a snapshot record at `k`
+   whose term differs from the entry it holds at `k`, drops the entries from `k` on (a received
+   snapshot that conflicts; the server's own snapshots match their entry, and raft puts a received
+   snapshot in a `Ready` only when it conflicts or the log is shorter). The model of `ReadAll`
+   then matches `RaftState.next`, and R2b-1 goes on as planned. Upstream-worthy if the stale tail
+   can be shown to matter at the raft level.
+2. **Model the WAL as it is:** `StorageHolds` (raft's restart, the durability work) admits a stale
+   tail of lower terms above the snapshot. A change to raft's restart spec and its proof (the
+   restarted log is not a log raft ever had).
+3. **A scope premise** on the stopped member (no received snapshot since its last appended entry):
+   nothing in `restart3` can check it.
+
+**Decision (the user, 2026-11-02): option 1, the fork's fix.** Branch `goose-lean-walsnap` of the
+etcd fork (`6293455e0`, on the pin `ab3c28d9a`; in `/shared/etcd-goose-lean-walsnap`): `ReadAll`
+reads the records as the log they write (an entry at or below the start index truncates the
+entries above it; at the start snapshot's record the entries above it go unless the log holds the
+snapshot's entry). The WAL and server tests pass; two new tests fail without it. The pin moves to it
+once the branch is pushed (`etc/goose.py`, `examples/go.mod`); the Go code is the trust boundary
+(the `wal` package is names-only), so the translation does not change.
+
+**The draft** (`etcdserver/InvWal.lean`, imported by nothing proved yet): the records `walRecs`
+(trust-boundary token), their model (`walSave`: hard state by `phsNext`, entries by `appendEnts`;
+`walSaveSnap`: the entries above the snapshot kept only when the log holds its entry; `walFresh`),
+the contract `isRNWalR` (`Save`/`SaveSnap` as atomic updates in the cases the server uses,
+`WalSaveOk`/`WalSnapOk`, failing only on I/O), the durability invariant `rnDurInv`, the pure laws
+as statements (`walSave_holds_stmt`, `walSnapSave_holds_stmt`, `walOwnSnap_holds_stmt`,
+`walFresh_holds_stmt`), and the receive keeping *enter* unfired (`rnReadyRecvR_stmt`).
+
+### R2b-1 review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+Code reading found a second etcd problem and a flaw in the first fork fix:
+- **G1** (`nonissues/etcd-wal-snapshot-record-order.md`): the apply thread's own `SaveSnap(i)`
+  can land after the raft loop's `SaveSnap(k)` of a received snapshot, `i < k`, and
+  `recoverSnapshot` opens the WAL at the *last* record: the restart reads back the old log above
+  `i` with the commit `k` (a panic if it ends below `k`). Fork fix: open at the highest index.
+- **G2**: the first fix decided by the WAL's entry at the snapshot's index, but raft decides on its
+  in-memory log. Fork fix revised: drop the entries above the start snapshot iff it is above the
+  commit index saved before its record (exactly a received snapshot).
+- **G3**: `ReadAll` did not restore `w.state`, which a cut repeats at a file's head (the G2 rule
+  needs it). Fixed.
+The fork's branch is now `6293455e0` + `ce3dbc097`; the WAL and server tests pass, four new WAL
+tests fail without it.
+
+On the draft:
+- **F1, F5** (false laws): `walSaveSnap` follows the commit rule and ignores a record below the
+  base; `walSnapSave_holds_stmt` and `walSave_holds_stmt` take the entries consecutive, which
+  raft's `ReadyRestFacts` does not state yet (a raft API law to add); `walOwnSnap_holds_stmt`
+  needs the durable log's term at the snapshot's index, which the invariant must carry.
+- **F2**: `WalSaveOk` requires consecutive entries. `Save` failing only on I/O widens the
+  environment premise `walSaveOk` (today `SaveSnap`'s only): **open, the user's choice**.
+- **F3**: `rnDurInv` needs a "snapshot pending" state, the hard-state agreement, the
+  `walCommitLb` authority, the log's agreement with the committed log, an exit for the stop, and
+  credits for `walRecs`: listed in its docstring, for the next draft.
+- **F4**: entering at the `Save` needs a raft API change: `readyGot` must give
+  `deliveredLogLb (delivered ++ ce)` and the new hard state's term fact without *enter* (the
+  hand-off on `applyc` precedes the `Save`).
+- **F6**: `isRNWalR` replaces `isRNWal`'s `Save`/`SaveSnap` in the proof.
+
+**Decision (the user, 2026-11-02): a failed `Save` leaves the records unknown** (`walFailed`, a
+case of the durability invariant), not a premise that `Save` fails only on I/O: the loop then calls
+`lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.
+
+**The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
+`examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
+`newestSnapshotEntry`.
+
+### R2b-1 draft, round 2 (2026-11-03)
+
+In `etcdserver/InvWal.lean`, after review round 1:
+- **Raft's receive** (`readyGotFacts_stmt`, a raft API change): `readyGot` also gives
+  `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed fact
+  (`committedAtTerm`), without *enter*. Raft's proof has both, persistent, where it builds
+  *enter* (`isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`).
+- **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the contents (its claim), the durable state and either the records holding it (`walHolds`: the
+  committed log they are within, with which the durable log agrees, `DurAgrees`; the hard state's
+  half; the commit counter) with the pending token, or a received snapshot's records with its
+  `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
+  counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
+  loop's two tokens.
+
+### R2b-1 review, round 2, and the draft's round 3 (2026-11-03)
+
+The model half holds: the pure laws are true as stated (checked by hand against `StorageHolds`,
+`RaftState.next`, `appendEnts`), `walSaveSnap`/`WalSaveOk` match the fork's `ReadAll`, and raft's
+receive can give the facts the server needs before *enter* (in `readyRecv_open` they are
+persistent before `api_enter`), which are enough for the hand-off on `applyc`. The invariant half
+was not keepable; round 3:
+- **F1, F2:** the pending token excluded the wrong case, and nothing tied the invariant's durable
+  state to the loop's. Now a ghost variable, half the loop's, holds the loop's view (`WalView`:
+  the durable state, the records' hard state, the pending received snapshot, the handed log), as
+  kvdurable's writer variable; the records are as the view says (`walAsViewed`).
+- **F3:** `σ.commit ≤ |committed log|` was not keepable (raft pages committed entries). Now the
+  handed log `l`: `σ.b ≤ |l| ≤ σ.commit`, `DurAgrees S l`; `walCommitLb` bounds `|l|`.
+- **F4:** a failed `Save` now leaves some records (`∃ σ'`), not `walFailed`, so that the apply
+  thread's `SaveSnap` can still update them; the taken state holds the apply thread's token.
+- **F5:** `walRecs` is a ghost variable at an opaque per-WAL name (timeless, exclusive by proof),
+  and the invariant holds `raftState` without an extra later.
+- **F6:** the receive statement became `readyGotR`, the receive's new postcondition (a law over
+  today's `readyGot` could not be proved).
+- **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
+  `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
+  record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).
+
+### R2b-1 review, round 3, and the draft's round 4 (2026-11-03)
+
+The reviewer walked every step (a `Ready` with and without a snapshot, commit-only, empty hard
+state, paged entries, a failed `Save`, the apply thread's own snapshot at every point, the stop):
+most keep `rnDurInv`, and `DurAgrees` survives each loop step. Taken:
+- **H1:** the loop could not rule out the taken case: it now holds the loop's "not failed" token.
+- **H2:** the apply thread could not get its snapshot's term: `walCommitLb` is now a prefix of the
+  handed log (a monotone list), not a length.
+- **M1:** firing *enter* inside the `Save`'s update would need a later credit: `raftState` is the
+  loop's own again (beside its view half), not the invariant's.
+- **L1–L3:** `SaveSnap` keeps its I/O premise (the apply thread panics on its error), said so;
+  the records' ghost name is the storage's WAL identity (`MinimalEtcdVersion` reopens the WAL
+  behind it); `readyGotR` drops the conjunct `deliveredLogLb` implies.
+Recorded for R2b-1's proof (docstring of `rnDurTake_stmt`): **M2**, the order is at the view's
+handed log, the stop's post at the apply side's `pre ++ A`; equating them needs every sent batch
+received (`applyc` is unbuffered; the spsc idiom's spec admits a buffer). **M3**, the apply
+thread's token travels with its half of `rnWalTok`. **L4**, `Close` and `rnWalClosed` are R2b-3's.
+
+The draft is ready for R2b-1's proof. Its stages: (1) raft's receive gives `readyGotR`
+(`readyRecv_open`, `node.readyRecv.spec`, `readyGot`'s users); (2) the pure laws; (3) the WAL
+contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs` (fresh:
+`walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
+(`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
+snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).
+
+### The WAL's API, spec-first (2026-11-03, the user's request; approved)
+
+Before R2b-1's proof, the user asked for the WAL's whole API through the spec-first approach
+(`notes/decisions.md`, "The WAL's API"). Three review rounds; the axiom review found a third WAL bug
+(a restart at a received snapshot names the next file below it; `nonissues/
+etcd-wal-restart-file-below-snapshot.md`), fixed on the fork in `323320bb8` (with
+`LatestSnapshotEntry` at the highest record); **the pin moves to it once the user pushes
+`goose-lean-walsnap`**. The API landed as modules no proof uses yet (`storage/WalRecs.lean`,
+`etcdserver/WalApi.lean`, sealed); `InvWal.lean` keeps the durability invariant over it. R2b-1's
+stage 3 puts it in place, with the six approved changes to trusted statements.
+
+### R2b-1 stage 2: the pure laws, proved (2026-11-03)
+
+`walFresh_holds`, `walSave_holds`, `walSnapSave_holds`, `walOwnSnap_holds` (`InvWal.lean`), over
+three list lemmas (`appendEnts_cons`, `plogTermAt_take_append`, `drop_take_append`) and
+`plogTermAt_some_le`: the WAL's records keep holding the durable state across a saved batch with or
+without a received snapshot and across the member's own snapshot. The etcd pin moved to the fork's
+`323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
+Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
+changes).
+
+### R2b-1 stage 1: raft's receive gives its facts before *enter* (2026-11-03)
+
+`readyGot` gains `deliveredLogLb` of the delivered log after the `Ready` and its hard state's
+committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
+hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
+changes) and stage 4 (the raft loop entering at the `Save`), which go together.
+
+### R2b-1 stage 3a-3b: a member's WAL directory fresh at start, `bootstrap` gives the opened WAL (2026-11-03)
+
+The user's choice for change 6: an axiomatized token. `walDirFresh dir` (`storage/WalDir.lean`) and
+`walFiles` (`storage/WalRecs.lean`) are axiomatized, timeless only (no exclusivity: read as `True`
+every axiom holds, the start axiom's satisfiability argument). Program start gives `walDirFresh`
+for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new environment premise,
+`walDirsAbsent e Ds`; `etcd_adequate` and `k8setcd3`'s adequacy pass the members' directories.
+`bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
+`walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
+theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
+base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.

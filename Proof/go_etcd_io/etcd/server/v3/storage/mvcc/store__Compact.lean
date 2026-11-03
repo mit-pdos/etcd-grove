@@ -37,7 +37,7 @@ theorem mvcc.store.Compact.wp_of_le
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
-    (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
+    (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) (hr1 : 1 ≤ sint.Z rev) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗ mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
@@ -64,14 +64,14 @@ theorem mvcc.store.Compact.wp_of_le
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ 1)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%c', HmuP, Hwr⟩
+  icases HmuP with ⟨%c', HmuP, Hwr, Hfsh⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.compactRightR_crev s γ c $$ Hright with ⟨Hcr, Hrclose⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c HcM hc $$ HcrevM Hcr
   subst Hcc
-  ihave Hmu1 : mvcc.muInvAt s γ 1 c' $$ [HcmpM HcrevM]
-  · iunfold mvcc.muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+  ihave Hmu1 : mvcc.muInvLag s γ c' c' $$ [HcmpM HcrevM]
+  · iunfold mvcc.muInvLag; iframe HcmpM HcrevM; iframe #; ipureintro; exact ⟨HcM, Int.le_refl c'⟩
   ihave Hright := Hrclose $$ Hcr
   -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
   icases mvcc.compactRightR_take s γ c' $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
@@ -79,7 +79,7 @@ theorem mvcc.store.Compact.wp_of_le
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P (some f) Pre Q Post log hcmp) $$ [$Hmu1 $Hright $HRTok Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
+  wp_apply (h1 s γ rev c' c' P (some f) Pre Q Post log hcmp hr1 (fun h => absurd h (Int.lt_irrefl c'))) $$ [$Hmu1 $Hright $HRTok $Hwr Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hwr, Hres⟩
   · rw [mvcc.lockCtxM_some]
     iframe #; iframe Hcs HhookW; ipureintro; exact HrevC
   rw [mvcc.lockBackM_some]
@@ -87,12 +87,12 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle0⟩, Hmu, Hright, HPost, #Hjob, -⟩ |
     ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
-    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iframe Hwr; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr Hfsh]
+    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iframe Hwr Hfsh; iexact Hmu
     (try wp_auto)
     icases mvcc.compactRightR_take s γ (sint.Z rev) $$ Hright with ⟨%o', Hfs, Hq, Hrclose⟩
     wp_apply (h3 s γ trace rev prev pcc te mvcc.q8 o' htr) $$ [$Hjob $Hq $Htrc $Hfs]
@@ -111,8 +111,8 @@ theorem mvcc.store.Compact.wp_of_le
     iexact Hlb
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
-    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr Hfsh]
+    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr Hfsh; iexact Hmu
     (try wp_auto)
     iapply HΦ
     iframe Htrc HRTok HhookW
@@ -128,8 +128,8 @@ theorem mvcc.store.Compact.wp_proof
     (h2 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
-  intro s γ trace rev c P f Pre Q Post log te htr hcmp hc
-  exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post log te htr hcmp hc
+  intro s γ trace rev c P f Pre Q Post log te htr hcmp hc hr1
+  exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post log te htr hcmp hc hr1
 
 end proof
 

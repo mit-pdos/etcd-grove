@@ -80,7 +80,7 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   cacher's metrics; worked around, at the cost of `watchCacheEvent` being axiomatized, so
   `processEvent` and `watchCache.UpdateResourceVersion` cannot be proved until G3's general fix)
   and a constraint interface's `comparable` (`notes/perennial-changes.md`).
-- **A bug** (`issues/k8s-watchcache-index-error-partial-update.md`, reproduced): an index function's
+- **A bug** (`nonissues/k8s-watchcache-index-error-partial-update.md`, reproduced): an index function's
   error leaves the update in the store's B-tree, and the next snapshot serves it, without the
   event in the history.
 - **The store** (`Proof/k8s_io/apiserver/pkg/storage/cacher/store/`; `Defs.lean`, `DefsWCS.lean`;

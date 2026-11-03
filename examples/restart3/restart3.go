@@ -16,6 +16,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -45,6 +46,9 @@ const (
 	SnapCount   uint64 = 1
 	SnapCatchUp uint64 = 1
 )
+
+// NBoot is the number of the cluster's bootstrap entries: one configuration change per member.
+const NBoot = 3
 
 // NPuts is the number of Puts made while the third member is stopped: enough that the leader
 // compacts its log past the stopped member's last index.
@@ -90,6 +94,11 @@ func serveClient(m *member, client string) error {
 // must not be called again: a second lessor.Stop closes a closed channel), then its peer listener
 // closed, so that the restarted member can listen on the address again.
 func stop(m *member) {
+	// wait until the member has applied the cluster's bootstrap entries (one per member), so that
+	// its data directory holds the cluster's members when it is started again
+	for m.s.AppliedIndex() < NBoot {
+		time.Sleep(time.Millisecond)
+	}
 	m.s.HardStop()
 	m.pl.Close()
 }

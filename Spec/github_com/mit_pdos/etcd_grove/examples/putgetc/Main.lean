@@ -59,11 +59,15 @@ abbrev Main.spec : Prop :=
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putgetc ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23791" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23791" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"putgetc.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.putgetc.Main)) (Val #()))
   {{ RET #(); True }}
 

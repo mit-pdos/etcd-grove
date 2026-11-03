@@ -40,7 +40,7 @@ namespace restart3
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -64,10 +64,10 @@ theorem restartCheck.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     restartCheck.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl E ρ N name peerAddr caddr peer cluster lg M iu
-    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN Hst hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU
+  intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
+    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir HU
     Hpe Hlg Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Hmst, #Hreq, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
+  wp_start as ⟨Hmst, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -83,8 +83,8 @@ theorem restartCheck.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `stop(m)`
-  wp_apply (wp_stop m s pl γ id peerAddr γn E ρ) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
-  · iframe; iframe #
+  wp_apply (wp_stop m s pl γ id peerAddr γn ρ (name ++ go!".etcd")) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
+  · iframe; ipureintro; rw [hboot]; exact hb3
   (try wp_auto)
   -- the puts of `k ↦ v2`: once one returned `nil`, the put's flag
   simp only [github_com.mit_pdos.etcd_grove.examples.restart3.NPuts]
@@ -125,7 +125,7 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hu Hlg Hck Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hu Hlg Hck Haf Hbuq Hdbo)
     $$ [Hpa Htok Himg Hpown] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)

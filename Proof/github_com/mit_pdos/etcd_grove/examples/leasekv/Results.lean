@@ -35,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -49,7 +49,7 @@ theorem leasekv_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWi
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The adequacy example is safe, in the operational semantics** (`leasekv_adequate`, see the
@@ -68,6 +68,8 @@ theorem leasekv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent leasekvProgram [config.walDirOf go!"leasekv.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ leasekv.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
@@ -79,7 +81,7 @@ theorem leasekv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  leasekv_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp HNs HAs n Hprem σ g
+  leasekv_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

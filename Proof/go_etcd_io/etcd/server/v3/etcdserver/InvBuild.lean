@@ -25,7 +25,7 @@ halves of the unit share, frozen once placed:
   now proved): every committed log's entries have good shapes (`logShape`; until D19c's move the
   apply premises themselves, `entriesOk`) and its ids are claimed under this server's generator
   (`batchWaitOk`). For several members both are facts about the other members' requests
-  (`issues/etcd-request-id-member-prefix.md`).
+  (`nonissues/etcd-request-id-member-prefix.md`).
 * **The built part** `srvBuilt` and **the residual** `srvBuildGap`. Since D17 (2026-10-17) the
   residual has one row, the raft storage's snapshot contract `rnSnapOnce`; the others (the KV
   rows, the write budget, the uber-applier's, `storeSmall`, the id budget, `ClusterVersion()`'s
@@ -331,6 +331,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
+    -- `srvMonitorPermitM_of`: its attribute requests name it)
+    "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
@@ -362,7 +365,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
-    "HWB" ∷ srvWTStock E N ∗
+    "HWB" ∷ srvWTBudget E ∗
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗

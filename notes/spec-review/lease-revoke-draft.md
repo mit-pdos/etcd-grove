@@ -152,7 +152,7 @@ proofs above. That is out of the decided scope.
   `revokeDels _ 0 = []` agrees even if `0 ∈ L`.
 - `rd ≠ nil` comes from `rdIs` (`InvWatchStore.lean:1841`). This rules out Go's `le.rd == nil`
   early return (`lessor.go:338-340`). Revoking twice without a deleter would close `revokec`
-  twice; that case is already filed as `issues/nonissues/etcd-lessor-revoke-twice-no-deleter.md`.
+  twice; that case is already filed as `nonissues/etcd-lessor-revoke-twice-no-deleter.md`.
 
 ### Findings
 
@@ -351,7 +351,7 @@ carries `putOk` and no `rqOk`. Add the `leaseDels_mem` law (D1-2), so that the c
   in this repository's spec, so it belongs in `notes/`, not `issues/`). I confirmed it: Go writes
   `le.rd = rd` at `lessor.go:605`, and the axiom's pre/post have no `rdOwn`.
 - **No new bug in the Go code.** `le.rd == nil` with a double revoke is already in
-  `issues/nonissues/etcd-lessor-revoke-twice-no-deleter.md`.
+  `nonissues/etcd-lessor-revoke-twice-no-deleter.md`.
 
 ## Ranking by need of revision
 

@@ -67,7 +67,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hcmp hlgk hγn hnI
+    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn hnI
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -127,8 +127,16 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- the image's facts (`snapRecv_image`): its committed log `A'` extending `A`
   have hai0 : uint.Z ai = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
-  imod snapRecv_image γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ hraft hc0 hch hlog0
-      hai0 hai hboot hRO HElg $$ Hkvi Himg Hka HRS Hrc with ⟨Hka, HRS, %A', %R, #HA', %Hif⟩
+  imod snapRecv_image γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ hkb hraft hc0 hch hlog0
+      hai0 hai hboot hRO HElg $$ Hkvi Himg Hka HRS Hrc
+    with ⟨Hka, HRS, %A', %R, %r, #HA', %Hif, #Hrc0, #Hpf0, #Hpc0⟩
+  -- (M2's item 15, stage C) `specSnap`'s `hcc`: the apply thread's compaction revision is its
+  -- applied log's (`kvApplied`), at most the image's records' (`crev_hcc`)
+  iunfold kvApplied at Hka
+  icases Hka with ⟨HkaL0, %Hxc⟩
+  have hcc : x.crev ≤ r.crev := crev_hcc γr.kv A A' x.crev r.crev Hxc.2 Hif.pre Hif.crev
+  ihave Hka : kvApplied γr.raft γr.kv A x $$ [HkaL0]
+  · iunfold kvApplied; iframe HkaL0; ipureintro; exact Hxc
   -- the auth mode off (the run's), the KV's ghost state jumps to the image's log
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
   have hoff := authMode_off_of E Hoff
@@ -145,10 +153,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
   subst Hale
   icombine Hcfdd Hdd gives %Hdde
   subst Hdde
-  have hncm : ¬ mvcc.kbCmpM E.γ.kb := by
-    rw [hkb]; simp only [mvcc.kbCmpM]; rw [hcm, hcmp]; simp
-  ihave HKC : srvKVCloser s E $$ [HKC]
-  · rw [← srvKVCloserW_off s E hncm]; iexact HKC
   -- the apply thread's membership resources: the transport, the members' directory
   iunfold srvApRes at HAR
   icases HAR with ⟨%bh, %ix, %lgh', %tl, %lid, %cl', %lgc, %cid, %prs, #Hbhf, #Hbh, #Htrf, #Hmidf,
@@ -178,8 +182,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   · rw [← hlgk]; iexact HlpM
   wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
-      (by rw [hcm, hcmp]) hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok Hif.hkI hbr hlp γp hrb stp γd γt
+      hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
+      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r (fun _ => hcc) Hif.hkI hbr hlp γp hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hauthb Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
@@ -198,7 +202,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   icases Hsapp with ⟨%γ', %TM', %E', %b', %st', %d', %x', %cs', %L, %Hsa1, #Hsrv1, Hai, Hat, Hsd,
     Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,
     ⟨%kv', #Hkvf', #Hkvi'⟩⟩
-  obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, hxch, hL⟩ := Hsa1
+  obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, hxcr, hxch, hL⟩ := Hsa1
   -- `s.applyEntries(ep, apply)`: no entries
   wp_apply hAE s ep ap es $$ []
   · iframe #
@@ -242,7 +246,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- resource at `A'`, the snapshot path's resources at the new backend
   ihave Hka : kvApplied γr.raft γr.kv A' x' $$ [HkaL]
   · iapply kvApplied_of_jump γr.raft γr.kv A' x' (by rw [hxl]; exact Hif.log)
-      (by rw [hxch, Hoff, hch]) $$ HkaL
+      (by rw [hxch, Hoff, hch]) (by rw [hxcr]; exact Hif.crev) $$ HkaL
   have hpos : 0 < uint.Z sv.Metadata'.Index' := by have := hai; word
   have hρr : ρ.raft = γr.raft := by rw [← Hρrd]
   ihave #Hdl' := Hdl
@@ -279,11 +283,9 @@ theorem EtcdServer.applyAll.wp_proofSnap
       iframe Htlive Hmd'
       ipureintro; exact ⟨Hcl, Hdk⟩
     ipureintro; exact ⟨hcov, hmo⟩
-  ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (by rw [hcm', hcmp]) hP'
+  ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (hcm'.trans hcm) hP'
     hRO' $$ [Hro Half Hauf Hlpf Hclf]
   · iframe Hro Half Hauf Hlpf Hclf
-  have hncm' : ¬ mvcc.kbCmpM E'.γ.kb := by
-    rw [hkb']; simp only [mvcc.kbCmpM]; rw [hcm']; simp
   ihave Hso' : srvSnapOwn s ci E' γr sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
   · iunfold srvSnapOwn
     iexists γt, uint.nat sv.Metadata'.Index'
@@ -295,7 +297,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     iframe Hstopc Hbo Half Hcfdd Hpath
     isplitr
     · ipureintro; exact hkb'
-    rw [srvKVCloserW_off s E' hncm']; iexact HKC
+    iexact HKC
   iunfold epConfState at Hcs
   icases Hcs with ⟨Hcs, #Hcsok⟩
   -- the step's end, shared by the selects' branches: the apply thread at a state `stF` of the
@@ -411,7 +413,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
         iapply wp_go_step_receipt'
         case hv => first | rfl | simp [val.isPanic]
         inext
-        iintro Hr1 -
+        iintro Hr1 Hl1
         iapply wp_value'
         repeat (
           fail_if_success wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
@@ -420,7 +422,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
         iapply wp_go_step_receipt'
         case hv => first | rfl | simp [val.isPanic]
         inext
-        iintro Hr2 -
+        iintro Hr2 Hl2
         iapply wp_value'
         (try wp_auto)
         wp_apply (hGT.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
@@ -456,16 +458,18 @@ theorem EtcdServer.applyAll.wp_proofSnap
             icases srvApplyKV_core s E' ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ' ci TM' E'
                 ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci' hpos hlenZ
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hr2]
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hr2 Hst Hbe Happ HKVc HRS
+            · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' (mergedObs γr E'.cmp E'.lg sv.Metadata'.Index' A' x'.log))
+                RS RS' (mergedObs γr E'.cmp E'.lg sv.Metadata'.Index' A' x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
             imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
+            icases srvApplyKV_idxCert s E' ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
+            ihave #Hrcx := mvcc.idxCert_rcpt E'.γ.idx x'.log $$ Hicx
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -481,14 +485,14 @@ theorem EtcdServer.applyAll.wp_proofSnap
             · iframe Hcsom Hc0
             subst Hcc
             imod srv_merged_sent γr A' sv.Metadata'.Index' sv.Metadata'.Term' cm γm.id ct sm sn hpos
-                hi61 hmo.2 hlenZ hltA Hcs0 Hty hsn (by word)
+                hi61 hmo.2.1 hlenZ hltA Hcs0 Hty hsn (by word)
                 (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
               $$ [Hrli HA' Hsm Hct] with #Hsm'
             · iframe Hrli HA' Hsm Hct
             -- (S2's `merged_image`) the image's certificate
             imod merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ ⟨hc0, hlog0⟩
               $$ [Hka] with ⟨Hka, #Himg'⟩
-            · iframe Hsrv1 Hka; ipureintro; exact HQd
+            · iframe Hsrv1 Hka Hrcx; ipureintro; exact HQd
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                 sv.Metadata'.Term' Dm Hty
               $$ [Hml Hsm' Hrs Himg'] with Hbun

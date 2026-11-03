@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -36,6 +36,14 @@ globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+
 [[lean_lib]]
 name = "RaftWitness"
 globs = ["RaftWitness.+"]
+
+# porcupine's pull request #46 (the DAG search; notes/porcupine-dag-plan.md), vendored in
+# third_party/porcupine-dag and translated by etc/goose.py's project porcupine-dag into a parallel
+# tree with the same layout (PorcupineDag/{Code,GeneratedProof,Spec,Proof}/): the Go path is
+# v1.3.1's, so its modules declare the main porcupine's names; nothing outside it imports it.
+[[lean_lib]]
+name = "PorcupineDag"
+globs = ["PorcupineDag.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

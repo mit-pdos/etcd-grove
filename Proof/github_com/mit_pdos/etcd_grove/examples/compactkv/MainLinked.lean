@@ -17,7 +17,6 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.checkCompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
@@ -40,20 +39,11 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.compactkv.Assumptions]
-
-/-- `StartCompactingServer`, over `newServer`'s compacting variant (`specCompact`) and `NewServer`'s
-linked result (`wp_NewServer`: `NewServer.spec` in either compaction mode, M2's item 14). -/
-theorem compactkv.wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] :
-    common.StartCompactingServer.spec (GF := GF) (hG := hG) :=
-  common.StartCompactingServer.wp_proof
-    (common.newServer.wp_proofCompact common.wp_newServerMode)
-    EtcdServer.wp_Start
 
 /-- `checkCompactRev` (C3's watch side, 2026-11-02), over the client's `Watch`, `common.CompactRev`
 and the context's functions. -/
@@ -68,7 +58,7 @@ its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics
 and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem compactkv.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     compactkv.Main.spec (GF := GF) (hG := hG) :=
-  compactkv.Main.wp_proof zap.NewNop.wp_proof compactkv.wp_StartCompactingServer common.wp_Serve
+  compactkv.Main.wp_proof zap.NewNop.wp_proof common.wp_StartCompactingServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch common.wp_Collect
     compactkv.wp_checkCompactRev

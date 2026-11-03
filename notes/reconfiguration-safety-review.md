@@ -26,11 +26,11 @@ against the Go code at the pinned revision (`40f8be730b18`; a scratch copy, file
 
 Counterexamples (Go tests, in package `raft`; each passes by asserting the violation):
 
-- `issues/raft-conf-lag-model/readindex_singleton_test.go`: two stale reads,
+- `notes/raft-conf-lag-model/readindex_singleton_test.go`: two stale reads,
   `issues/raft-readindex-singleton-stale.md`; the fix `readindex-singleton-fix.patch` makes both
   tests fail (no stale read) and leaves `go test ./...` passing otherwise.
-- `issues/raft-conf-lag-model/joiner_empty_confstate_test.go`: two different entries committed
-  at index 3 with faithful applications (A1 holds), `issues/nonissues/raft-joiner-empty-confstate.md`.
+- `notes/raft-conf-lag-model/joiner_empty_confstate_test.go`: two different entries committed
+  at index 3 with faithful applications (A1 holds), `nonissues/raft-joiner-empty-confstate.md`.
 
 Neither breaks the paper's core argument (I1-I3, `W`, the table, the case analysis). #1 is a
 code path the argument does not model, and #2 contradicts a scope claim. Both should be settled
@@ -317,11 +317,11 @@ Config.Applied` (`482-484`) without re-applying the conf entries in between.
 `MemoryStorage.InitialState` returns the *snapshot's* `ConfState`. If an application restarts
 with `Applied` past a conf entry newer than its stored `ConfState`, its configuration is behind
 `applied`: the window of `raft-advance-before-applyconfchange.md`, opened at restart. Noted in
-`issues/nonissues/raft-joiner-empty-confstate.md` ("Related"); not reproduced.
+`nonissues/raft-joiner-empty-confstate.md` ("Related"); not reproduced.
 
 ## Model runs
 
-`issues/raft-conf-lag-model/model.py` was run as random walks (`WALKS=20000`, 60 steps each)
+`notes/raft-conf-lag-model/model.py` was run as random walks (`WALKS=20000`, 60 steps each)
 with `4 3 faithful 4 8 3 2 joint`, `5 3 faithful 4 8 3 2 joint` and `4 3 lag 4 8 3 2 simple`. No
 violation in any of the three, not even in `lag` mode, whose known counterexamples need specific
 schedules of about 22-26 steps. The walks are therefore no evidence for the faithful mode (see

@@ -52,7 +52,7 @@ links between the clients and their members (`notes/client-cut-plan.md`): each c
 every member, through a copy of etcd's test bridge per member, which is part of the network (D26: trust-boundary
 specs, its code not verified): it relays a prefix of each side's bytes, which gRPC sees as the
 member's server or as a failed attempt, as any connection. A blackholed bridge is never blackholed
-again (its `Blackhole` panics on a second call, `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`).
+again (its `Blackhole` panics on a second call, `nonissues/etcd-bridge-blackhole-twice-panic.md`).
 Each client is configured with every member's bridge (failover, D27): each attempt of a call goes
 to one member, and the reply is that member's; the client's results take the conjunction of the
 members' specs (`Proof/go_etcd_io/etcd/client/v3/Results.lean`, "The client's KV calls").
@@ -76,7 +76,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -99,7 +99,7 @@ theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The partitioned three-member instance is safe, in the operational semantics**
@@ -123,6 +123,10 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent (linkv3pProgram clients ops steps) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -135,7 +139,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   linkv3p_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
 (`linkv3p_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
@@ -161,6 +165,10 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent (linkv3pWatchProgram nw nops steps) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -173,7 +181,7 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   linkv3p_watch_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hops Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

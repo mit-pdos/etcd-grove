@@ -173,7 +173,9 @@ def isKeyBackendGR (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT 
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
     (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) (HN : IProp GF := iprop(False)) :
+    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) (HN : IProp GF := iprop(False))
+    (PV : Bucket → IProp GF := fun _ => iprop(True)) (PVx : Prop := False)
+    (CK : backend.FkVals → IProp GF := fun _ => iprop(True)) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
@@ -186,7 +188,7 @@ def isKeyBackendGR (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT 
           ∃ L : IProp GF, L ∗ keyReadSnapR View RT NC r Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN }}) ∗
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN PV PVx CK }}) ∗
     □ (∀ (X Y : IProp GF),
       {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); RT ∗ Y }}) ∗
@@ -207,8 +209,9 @@ instance isKeyBackendGR_persistent (b : GoInterface) (View : Qp → Bucket → I
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) :
-    Persistent (isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN) := by
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF) :
+    Persistent
+      (isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK) := by
   unfold isKeyBackendGR; infer_instance
 
 theorem isKeyBackendGR_empty (b : GoInterface) (View : Qp → Bucket → IProp GF)
@@ -216,9 +219,9 @@ theorem isKeyBackendGR_empty (b : GoInterface) (View : Qp → Bucket → IProp G
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) :
-    isKeyBackendGR b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN =
-      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN := by
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF) :
+    isKeyBackendGR b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK =
+      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK := by
   unfold isKeyBackendGR isKeyBackendG; simp only [keyReadSnapR_empty]
 
 /-- `isKeyBackendGR` without its nil-hook clause (`HN := False`; `isKeyBackendG_noNil`). -/
@@ -227,9 +230,10 @@ theorem isKeyBackendGR_noNil (b : GoInterface) (View : Qp → Bucket → IProp G
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) :
-    isKeyBackendGR (GF := GF) b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
-    isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF) :
+    isKeyBackendGR (GF := GF) b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK ⊢
+    isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW (PV := PV)
+      (PVx := PVx) (CK := CK) := by
   iintro #H
   iunfold isKeyBackendGR at H
   iunfold isKeyBackendGR
@@ -243,7 +247,91 @@ theorem isKeyBackendGR_noNil (b : GoInterface) (View : Qp → Bucket → IProp G
   inext
   iintro %bt #Hb'
   iapply HΦ
-  iapply isBatchTxG_noNil $$ Hb'
+  iapply isBatchTxG_noNil (PV := PV) (PVx := PVx) (CK := CK) $$ Hb'
+
+/-! ### The store's own contract: no records' resource (M2's item 15)
+
+`physOk` keeps the backend's contract with the records' resource `False` (no reader of the store
+holds one: only `restore()` reads the compaction keys, over its caller's contract), so that a store
+restored from records has it too (`isKeyBackendGR_ncFalse`). -/
+
+theorem keyReadLockedR_ncFalse (RT NC : IProp GF) (r : CmpRecs) (rng : Bool) (rt : GoInterfaceOk)
+    (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
+    keyReadLockedR (GF := GF) RT NC r rng rt m Rd Tok cl ⊢ keyReadLocked RT iprop(False) rng rt m Rd Tok cl := by
+  unfold keyReadLockedR keyReadLocked
+  cases rng
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨#H1, #H2, -, #H4⟩
+    iframe H1 H2 H4
+  · simp only [↓reduceIte]
+    iintro ⟨#H1, #H2, ⟨#H3, #H4, #H5, -⟩, #H6⟩
+    iframe H1 H2 H3 H4 H5 H6
+    iintro !> Hf
+    iexfalso; iexact Hf
+
+theorem keyReadSnapR_ncFalse (View : Qp → Bucket → IProp GF) (RT NC : IProp GF) (r : CmpRecs)
+    (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
+    keyReadSnapR (GF := GF) View RT NC r Del rng rt m L ⊢ keyReadSnap View RT iprop(False) Del rng rt m L := by
+  unfold keyReadSnapR keyReadSnap
+  iintro #H !> %q %Φ !> Hpre HΦ
+  iapply H $$ %q Hpre
+  inext
+  iintro ⟨Hv, %m', %Rd, %Tok, Ht, #Hl, #Hth⟩
+  iapply HΦ
+  iframe Hv
+  iexists m', Rd, Tok
+  iframe Ht Hth
+  iapply keyReadLockedR_ncFalse $$ Hl
+
+/-- **The contract at any records, with no records' resource.** -/
+theorem isKeyBackendGR_ncFalse (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT NC : IProp GF) (r : CmpRecs) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
+    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF) :
+    isKeyBackendGR (GF := GF) b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK ⊢
+    isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK := by
+  iintro #H
+  iunfold isKeyBackendGR at H
+  iunfold isKeyBackendG
+  icases H with ⟨%bi, %Hbi, #Hcrt, #Hrt, #Hbt, #Hfc, #Hsz, #Hszu, #Hcmp⟩
+  iexists bi
+  iframe Hbt Hfc Hsz Hszu Hcmp
+  isplitr
+  · ipureintro; exact Hbi
+  isplitr
+  · iintro !> %q %m %Φ !> Hpre HΦ
+    iapply Hcrt $$ %q %m Hpre
+    inext
+    iintro %rt ⟨Hv, %L, HL, #Hs⟩
+    iapply HΦ
+    iframe Hv
+    iexists L
+    iframe HL
+    iapply keyReadSnapR_ncFalse $$ Hs
+  iintro !> %q %m %Φ !> Hpre HΦ
+  iapply Hrt $$ %q %m Hpre
+  inext
+  iintro %rt ⟨Hv, %L, HL, #Hs⟩
+  iapply HΦ
+  iframe Hv
+  iexists L
+  iframe HL
+  iapply keyReadSnapR_ncFalse $$ Hs
+
+/-- The same at no record (today's contract, any records' resource). -/
+theorem isKeyBackendG_ncFalse (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT NC : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
+    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF) :
+    isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK ⊢
+    isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN PV PVx CK := by
+  rw [← isKeyBackendGR_empty]
+  exact isKeyBackendGR_ncFalse b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt
+    SR SRh MW HN PV PVx CK
 
 /-- **What `Restore` lends for the compaction `restore()` resumes** (item 31, switched 2026-10-30; the
 restore Draft's A2, in place of round 3's `resumeCsM`): on, when the records resume a compaction, the new backend's unset hook (lent,
@@ -256,28 +344,31 @@ theorem resumeHookM_no (d' : KBReal) (r : CmpRecs) (h : r.resumes = false) :
   unfold resumeHookM; simp [h]
 
 /-- **The view `restore()` reads, over the image's bucket `m` and records `r`** (item 27's
-`restoreViewR`, over the records' resource `NC`): `NewStore`'s empty bucket (no record), or the
-bucket `m` over a clean read buffer with the records' clean read. -/
-def restoreViewR (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log)
+`restoreViewR`, over the records' resource `NC`): by the caller's branch `ns`, `NewStore`'s empty
+bucket (no record), or the bucket `m` over a clean read buffer with the records' clean read (M2's
+item 15: any restored log, the empty one included, which a compacting store's image can be with a
+record). -/
+def restoreViewR (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (ns : Bool)
     (m : Bucket) (NC : IProp GF) (r : CmpRecs) : IProp GF :=
-  if R = [] then iprop(bucketView γ q ∅ ∗ ⌜m = ∅ ∧ r = CmpRecs.empty⌝)
+  if ns then iprop(bucketView γ q ∅ ∗ ⌜m = ∅ ∧ r = CmpRecs.empty⌝)
   else iprop(bucketViewC γ q m ∗ keyCleanReadR b (bucketViewC γ) RT NC r)
 
 /-- At no record and the whole bucket it is today's `restoreView`. -/
 theorem restoreViewR_empty (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) :
     restoreView (GF := GF) b γ RT q R ⊢
-      restoreViewR b γ RT q R (bucketMap ([[], []] ++ R)) (kbNoCmp γ.kb γ.bucket) CmpRecs.empty := by
+      restoreViewR b γ RT q (decide (R = [])) (bucketMap ([[], []] ++ R)) (kbNoCmp γ.kb γ.bucket)
+        CmpRecs.empty := by
   iintro Hview
   iunfold restoreView at Hview
   iunfold restoreViewOut at Hview
   iunfold restoreViewR
   by_cases hR0 : R = []
   · subst hR0
-    simp only [↓reduceIte]
+    simp only [decide_true, ↓reduceIte]
     icases Hview with ⟨Hv, -⟩
     iframe Hv
     ipureintro; exact ⟨rfl, trivial⟩
-  · simp only [hR0, ↓reduceIte]
+  · simp only [hR0, decide_false, Bool.false_eq_true, ↓reduceIte]
     rw [keyCleanReadR_empty]
     iexact Hview
 

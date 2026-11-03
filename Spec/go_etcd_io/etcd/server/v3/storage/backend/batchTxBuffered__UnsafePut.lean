@@ -33,8 +33,10 @@ gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's
 bucket, `rbPut` (since decision 3, 2026-11-01, of its bucket only; a holder of `rbOwn` splits it with `rbPutAll_split`), likewise; a compaction key (`fkKey`, the backend-compaction stage,
 2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
 raises it to at least `1`, which the post does not say, no caller needing it), and a well-formed
-value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
-exit: the call does not return (`issues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
+value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true); (F2's stage 1,
+2026-11-02) a non-hook bucket with the client's half of the physical view, `pvPut`, and a compaction
+key with the client's half of their values, `ckPut`, each given back at the new contents. A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
+exit: the call does not return (`nonissues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
 `issues/etcd-backend-duplicate-put-stale-read.md`). -/
@@ -44,10 +46,12 @@ abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   sint.Z st.pend + 1 < 2 ^ 58 →
   (P.SB bi.name = true → ∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) →
   (fkKey bi.name kb → P.FV vb) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S ∗ fkPut γ bi.name kb }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S ∗ fkPut γ bi.name kb ∗
+      pvPut γ P bi.name st.S ∗ ckPut γ bi.name kb st.S }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
   {{ RET #(); batchLocked γ P b (st.put bi kb vb false) ∗ hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
-      rbPut γ P bi.name (st.put bi kb vb false).S ∗ fkPut γ bi.name kb }}
+      rbPut γ P bi.name (st.put bi kb vb false).S ∗ fkPut γ bi.name kb ∗
+      pvPut γ P bi.name (st.put bi kb vb false).S ∗ ckPut γ bi.name kb (st.put bi kb vb false).S }}
 
 end spec
 

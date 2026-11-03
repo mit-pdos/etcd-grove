@@ -62,11 +62,17 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_apply hMP as %rv Hrv
   icases Hrv with (⟨-, %nv, %Hnv, #Hsv⟩ | %Hn)
   rotate_left
-  · exact absurd Hvalid Hn.1
+  · exact absurd Hvalid.1 Hn.1
   obtain ⟨rfl, Hnv⟩ := Hnv
   wp_auto
-  wp_apply HSV $$ [$Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
-  · ipureintro; exact Hnv
+  ihave #Hpmb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  ihave #Hpapi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api $$ []
+  · iPkgInit
+  wp_apply HSV $$ [$Hpmb $Hpapi $Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
+  · isplitr
+    · ipureintro; exact Hnv
+    ipureintro; exact Hvalid.2
   ihave Hwo := Hrdb $$ Hrt
   ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
   · iunfold apply.kvOwn; iframe

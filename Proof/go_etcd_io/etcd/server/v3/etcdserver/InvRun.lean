@@ -371,16 +371,17 @@ end addrsR
 errors on which nothing is sent: a bag with predicate `False`, D19m, 2026-10-18: its senders are
 `stopWithDelay`, which `apply` never asks for, and the transport's peers, which report nothing
 there: `rafthttp.Transport.Start`'s axiom, D21 M2),
-`stop` (the unit channel `HardStop` sends on, a bag with predicate `False`: the runs covered call
-neither `Stop` nor `HardStop`, D19m), `done`, `cancel` (the server
+`stop` (the unit channel `HardStop` sends on, a bag with predicate `SP`: `False` by default, the
+runs covered calling neither `Stop` nor `HardStop`, D19m; R2b-2, 2026-11-02: `True` for a server
+that may be stopped, `run.specStop`), `done`, `cancel` (the server
 context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,
 `leadTimeMu`'s write side, the committed index's invariant, `GoAttach`'s protocol. -/
 def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.ContextNames)
-    (v : RunFields) : IProp GF :=
+    (v : RunFields) (SP : IProp GF := iprop(False)) : IProp GF :=
   iprop(srvErrorcAddr s ↦□ v.errorc ∗
       (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
     srvStopAddr s ↦□ v.stop ∗
-      (∃ γst : ChanNames, isChanBag γst v.stop (V := Unit) (fun _ => iprop(False))) ∗
+      (∃ γst : ChanNames, isChanBag γst v.stop (V := Unit) (fun _ => SP)) ∗
     srvDoneAddr s ↦□ v.done ∗
     srvCancelAddr s ↦□ v.cancel ∗ context.cancelSpec v.cancel γcx iprop(True) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
@@ -390,8 +391,8 @@ def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.C
     srvCommittedInv s γr ∗ srvGoAttachOk s γg)
 
 instance srvRunFieldsAt_persistent (s : Loc) (γr : ReadNames) (γg : GoNames)
-    (γcx : context.ContextNames) (v : RunFields) :
-    Persistent (srvRunFieldsAt (GF := GF) s γr γg γcx v) := by
+    (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF) :
+    Persistent (srvRunFieldsAt (GF := GF) s γr γg γcx v SP) := by
   unfold srvRunFieldsAt; infer_instance
 
 /-- **The apply thread's resources when `run` starts** (at the snapshot's index `ai₀`, the KV at
@@ -487,14 +488,17 @@ theorem srvGrantOpen_snap : srvGrantOpen (GF := GF) → runSnapLgOkBody (GF := G
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
-at the empty log; the committed index's writer half; the right to close `done` and `stopping`;
+at the empty log; the committed index's writer half; the right to close `done` (whose close
+announces `DQ`: `True` by default; R2b-2, 2026-11-02: the stopped server's image, escrowed,
+`srvDoneInv`, for `run.specStop`) and `stopping`; the stop requests' predicate `SP`
+(`srvRunFieldsAt`'s);
 the apply thread's resources at the start; `run`'s own logger slot; the write budget (D19b: the
 receipt-backed `srvWTPool`, until then `N` write tokens). -/
 def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
-    IProp GF :=
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
+    (SP : IProp GF := iprop(False)) (DQ : IProp GF := iprop(True)) : IProp GF :=
   iprop("#Hsrv" ∷ isServer s γ ci TM E ρ γr ∗
     "#Hsa" ∷ isServerApplyAll s γr ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
@@ -517,11 +521,11 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-    "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
+    "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
-    "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
+    "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗

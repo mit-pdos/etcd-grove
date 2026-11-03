@@ -88,11 +88,21 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
     -- (but for keys compaction deleted: none the read names, `rangeKeys`)
-    ihave #Hrdr := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+    -- the view's bucket `m`, thin of `ilog`'s (M2's item 15): a reader of it reads `ilog`'s
+    iunfold mvcc.bucketViewL at Hbv
+    icases Hbv with ⟨%m, Hbv, #Hbl⟩
+    ihave #Hrdr0 := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ)
-      (mvcc.storeRb γ) (mvcc.kbMW γ.kb γ.bucket) (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
+      (mvcc.storeRb γ) (mvcc.kbMW γ.kb γ.bucket) (mvcc.pendPuts ilog pend) (1 : Qp).half m $$ Hbt
+    ihave #Hthin := mvcc.snapThin_foldl_insert (mvcc.pendPuts ilog pend) (mvcc.bucketMap ilog) m
+      (mvcc.delKey γ) $$ [Hbl]
+    · iapply mvcc.bucketLog_thin; iexact Hbl
+    ihave #Hrdr := mvcc.keyReaderD_thin bt
+      ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
+      ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) _ _ $$ [Hrdr0 Hthin]
+    · iframe Hrdr0 Hthin
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
-        mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
+        mvcc.bucketView γ (1 : Qp).half m) $$ [Hlocked Hbv]
     · iframe Hlocked Hbv
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
@@ -100,7 +110,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     icases mvcc.muHeld_cmp_idx s γ crev ti $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
     wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
-        iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
+        iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half m)
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
         ctx cd todo key endk k e ro _ _ crev ilog te _ (by assumption))
       $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hcert $Hkn $Hidx $Hidxf $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
@@ -124,6 +134,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     · iapply typedPointsto_combine _ _ _ Hnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
+    ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
+    · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
     iapply HΦ
     isplitl []
     · ipureintro; exact Htodo

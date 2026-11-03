@@ -33,9 +33,14 @@ type, `UnsafeNoFsync`, `Mlock`, the feature gate's `NonBlockingDefrag` and the h
 (bbolt's `Open` failed); under `dbOpensOk` and `openMmapOk cfg` it does not panic (2026-10-29: the
 quota's mmap size, which the `axiom` skill found unconstrained, `notes/axiom-review/openbackend.md`,
 then bounded by the address space, not bbolt's limit, 2026-10-30, `openbackend-post.md`,
-`issues/etcd-quota-backend-bytes-mmap-panic.md`). (D22 receiver epochs, S8a, 2026-10-24:
+`nonissues/etcd-quota-backend-bytes-mmap-panic.md`). (D22 receiver epochs, S8a, 2026-10-24:
 the statement generalized with `New`'s, the creator's `K` for the fresh backend's payment rights;
-the same argument, `New`'s proof allocates them in the batch lock's ghost step.) Why an axiom and not a proof: the
+the same argument, `New`'s proof allocates them in the batch lock's ghost step.) (F2's stage 1,
+2026-11-03, the user's decision: `openPre`'s creator also receives `pvckInit γ P D`, the client
+halves of the backend's exact ghosts at the opened data, the non-hook buckets' `sData P D` and the
+compaction keys' `fkVals D`; the same argument as for `hkOwn`: `New`'s spec, proved, hands its
+creator both, `NewAlloc` allocating them at the data `Open` read, and `OpenBackend` passes `New`'s
+creator through.) Why an axiom and not a proof: the
 goroutine's panic cannot be excluded from `New`'s spec, and a goroutine must not panic
 (`wp_fork`); the rest (the timer's `select`, `time.After` has a spec) is provable. What would
 discharge it: `OpenBackend` and `newBackend` translated with their bodies, over a `New` whose

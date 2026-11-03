@@ -10,7 +10,7 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
   - `etc/api/raft.txt`;
   - `Proof/go_etcd_io/raft/v3/{InvStorage,InvApiDyn,Protocol/CfgOverlap}.lean`;
   - `Spec/go_etcd_io/raft/v3/MemoryStorage__SetHardState.lean`.
-  - Also `notes/raft-unified-plan.md` in the worktree, and `issues/raft-committedentries-stable-storage-doc.md`.
+  - Also `notes/raft-unified-plan.md` in the worktree, and `nonissues/raft-committedentries-stable-storage-doc.md`.
 - **Go**:
   - raft a2 (`.lake/raft-fork`, `565c2bd`): `storage.go`, `node.go`, `confchange/{confchange,restore}.go`;
   - kvreconf (`examples/kvreconf/{kv,cluster,reconf}.go`);
@@ -40,7 +40,7 @@ partly fixed, and both of H2's repairs leave a false statement behind.
 
 **Tier 1 (2)**: J1, J2. **Tier 2 (2)**: J3, J4. **Tier 3 (5)**: J5-J9.
 **Go defects**: none new. The server's `nil` `ConfState` path (J3) cannot happen in the real server (the scheduler
-stops before raft), so it is not filed. H7 is filed (`issues/raft-committedentries-stable-storage-doc.md`).
+stops before raft), so it is not filed. H7 is filed (`nonissues/raft-committedentries-stable-storage-doc.md`).
 
 ---
 
@@ -56,7 +56,7 @@ stops before raft), so it is not filed. H7 is filed (`issues/raft-committedentri
 | H4 `stepIn_intro`'s `MsgSnap` premise | in `SentMsgShape` | **Fixed** (spec). The source of the bound in a cluster with no bootstrap log is not given (J6) |
 | H5 plan text | "The spec" and U8 rewritten | **Fixed**. U11 does not name `ownCfgPairM` (J8) |
 | H6 nits | header claims fixed | **Partly**: line 17 still says "Reviews: …-{1..7}", "(F9)" is still in §1, §0 still cites a missing `notes/decisions.md` entry, and the `Step`/`Propose` nits remain (J9) |
-| H7 doc issue | filed | **Fixed**: `issues/raft-committedentries-stable-storage-doc.md`, `upstream: unchecked` |
+| H7 doc issue | filed | **Fixed**: `nonissues/raft-committedentries-stable-storage-doc.md`, `upstream: unchecked` |
 
 ---
 

@@ -41,9 +41,9 @@ theorem startServer.wp_proof
       NewServer.specM (GF := GF) (hG := hG) true)
     (wp_Start : EtcdServer.Start.specOn (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
-  intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2
+  intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold common.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
@@ -97,8 +97,13 @@ theorem startServer.wp_proof
       v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
-      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf))
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf)
+      -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
+      -- literal, and the write budget
+      (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl rfl)
+      ⟨rfl, common.discoveryZero_len, common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty⟩
+      HwbN)
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -114,6 +119,9 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
+    isplitl [Hwdf]
+    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck

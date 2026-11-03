@@ -63,6 +63,10 @@ theorem reqPropOkM_true_authn (γ : ServerRaftNames) (γk : KVNames)
     ⊢ reqPropOkM (GF := GF) true γ γk Gb (irrAuthenticate ⟨name, [], pre⟩)
         (fun hm => adminPropRes γk srvAuthSt0 (apply.withHeader (irrAuthenticate ⟨name, [], pre⟩) hm)) := by
   iunfold reqPropOkM
+  isplitl
+  rotate_left
+  · ipureintro
+    exact attrIdOk_of_kind _ _ (by simp [apply.dispatchKind, irrAuthenticate, apply.irrEmpty])
   iintro %hm
   iunfold reqPropOkOn
   iright

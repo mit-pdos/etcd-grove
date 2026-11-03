@@ -1,78 +1,50 @@
 ---
 upstream: known
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#21869 pr closed: same bug and fix (delete k, not key, in EvictRange); closed unmerged by serathius citing the AI-contribution policy
   - etcd-io/etcd#21589 pr closed: same bug and fix, bundled with a lease-freshness fix for #19091; closed unmerged by its author
-  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+  - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+blocks-proof: yes
 ---
 
-# clientv3/leasing: EvictRange evicts only the range's first key, leaving deleted keys in the cache
+# clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted
 
-## Summary
+When a range delete through the leasing KV returns an error although etcd applied it (a lost
+response, a timeout), only the range's first key is evicted from the cache; the other cached keys
+in the range keep their deleted values, and later `Get`s through the leasing KV return them until
+another client writes them or the session ends.
 
-`leaseCache.EvictRange(key, end)` in `client/v3/leasing` finds every cached key in `[key, end)` but deletes `key`, not the key it found, so a range evicts at most its first key. It is called when a range delete through the leasing KV returns an error; if the delete was applied by etcd anyway (a lost response, a timeout), the other cached keys in the range keep their deleted values, and later `Get`s through the leasing KV return them. I found this while formally verifying the leasing package.
+**Reproduction:** `TestLeasingOwnerDeleteRangeLostResponse` in
+[`issues/leasing-evictrange-key/leasing_evictrange_test.go`](leasing-evictrange-key/leasing_evictrange_test.go),
+copied into `tests/integration/clientv3/lease` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3 (a client interceptor
+returns `Unavailable` after the range delete's `Txn` reached etcd):
 
-## What happens
+```
+$ go test ./integration/clientv3/lease -run '^TestLeasingOwnerDeleteRangeLostResponse$' -count=1
+--- FAIL: TestLeasingOwnerDeleteRangeLostResponse (0.23s)
+        	Error:      	Should be empty, but was [key:"b" create_revision:4 mod_revision:4 version:1 value:"v"]
+        	Messages:   	expected the leasing KV not to return "b", deleted on etcd, got [key:"b" create_revision:4 mod_revision:4 version:1 value:"v"]
+FAIL
+```
 
-References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
+**Cause:** [`leaseCache.EvictRange`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/client/v3/leasing/cache.go#L178-L187)
+loops over the cached keys `k` in the range but deletes `key`, not `k`; its only caller is
+[`deleteRangeRPC`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/client/v3/leasing/kv.go#L340-L351)'s
+error path.
 
-1. `EvictRange` (`client/v3/leasing/cache.go:178-187`) loops over `lc.entries`, and for each `k` with `inRange(k, key, end)` runs `delete(lc.entries, key)` and `lc.revokes[key] = time.Now()` (`cache.go:183-184`): `key`, not `k`. The first key of the range is evicted (and marked revoked even if it was not cached); every other cached key in the range stays.
+## Proof
 
-   ```go
-   // client/v3/leasing/cache.go:178-187 (etcd main f061acd09)
-   func (lc *leaseCache) EvictRange(key, end string) {
-   	lc.mu.Lock()
-   	defer lc.mu.Unlock()
-   	for k := range lc.entries {
-   		if inRange(k, key, end) {
-   			delete(lc.entries, key)      // <- key, not k
-   			lc.revokes[key] = time.Now() // <-
-   		}
-   	}
-   }
-   ```
-2. Its only caller is `deleteRangeRPC` (`client/v3/leasing/kv.go:340-351`): when the range-delete transaction (`If(CreateRevision(pfx+key).WithRange(pfx+end) < maxLeaseRev+1).Then(OpGet(key, WithRange(end), WithKeysOnly()), OpDelete(key, WithRange(end)))`) returns an error, it calls `EvictRange(key, end)` and returns the error. The error does not mean the transaction was not applied; the single-key delete handles the same case by evicting the key (`kv.go:393-395`, "don't know if delete was processed").
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the leasing KV's intended spec (linearizable reads) is false after such an error; the proof
+states what the code does (`LeaseCacheSt.evictRange`,
+`Proof/go_etcd_io/etcd/client/v3/leasing/leaseCache__EvictRange.lean`); the verified fork carries
+no fix.
 
-   ```go
-   // client/v3/leasing/kv.go:340-351 (etcd main f061acd09)
-   func (lkv *leasingKV) deleteRangeRPC(ctx context.Context, maxLeaseRev int64, key, end string) (*v3.DeleteResponse, error) {
-   	lkey, lend := lkv.pfx+key, lkv.pfx+end
-   	resp, err := lkv.kv.Txn(ctx).If(
-   		v3.Compare(v3.CreateRevision(lkey).WithRange(lend), "<", maxLeaseRev+1),
-   	).Then(
-   		v3.OpGet(key, v3.WithRange(end), v3.WithKeysOnly()),
-   		v3.OpDelete(key, v3.WithRange(end)),
-   	).Commit()
-   	if err != nil {
-   		lkv.leases.EvictRange(key, end) // <- the delete may have been applied
-   		return nil, err
-   	}
-   ```
-3. If the transaction was applied, the keys left in the cache hold values etcd has deleted. Nothing evicts them later: the transaction did not touch this client's leasing keys (`pfx+k`), so `monitorLease` (`kv.go:159-188`) sees no `REVOKE`. A `Get` of such a key through the leasing KV is served from the cache (`leaseCache.Get`, `cache.go:191-210`) and returns the deleted key, until another client writes the key (revoking this client's lease on it) or the leasing session ends.
+## Fix
 
-## How to reproduce
+**Branch**: `leasing-evictrange-key` (upamanyus/etcd, pushed): 14d1c4bf3 test and fix (one commit)
+**Base**: etcd-io/etcd@f061acd0902d489041448cdd19d71a345d27b9f5
 
-The branch below adds:
-
-- `TestLeaseCacheEvictRange`, `TestLeaseCacheEvictRangeBeginNotCached` and `TestLeaseCacheEvictRangeFromKey` (`client/v3/leasing/cache_test.go`), which cache some keys, call `EvictRange` and check that exactly the cached keys in the range are evicted and marked revoked. On `main` all three fail (e.g. with `a`, `b`, `c`, `d` cached, `EvictRange("a", "c")` leaves `b` cached).
-
-  ```
-  cd client/v3 && go test ./leasing/ -run EvictRange
-  ```
-
-- `TestLeasingOwnerDeleteRangeLostResponse` (`tests/integration/clientv3/lease/leasing_test.go`). The leasing KV's client has a gRPC unary interceptor that, once armed, lets the next range-delete `Txn` reach etcd and then returns `Unavailable` (not retried for a `Txn`), as if the response were lost. The test puts `a` and `b`, gets both through the leasing KV (caching them), deletes `[a, c)` through it (which returns the injected error), and checks that both keys are gone on etcd and that the leasing KV's `Get` returns neither. On `main`, the leasing KV returns `b` with its old value.
-
-  ```
-  cd tests && go test ./integration/clientv3/lease/ -run TestLeasingOwnerDeleteRangeLostResponse
-  ```
-
-No existing test exercised `EvictRange`; none needed changes.
-
-## Expected
-
-After a range delete through the leasing KV fails, no key in the range is served from the cache: every cached key in `[key, end)` is evicted (and marked revoked, so it is not re-acquired before the backoff), as the single-key delete does for its key.
-
-## The fix
-
-Branch `leasing-evictrange-key` (one commit, with the tests): `delete(lc.entries, k)` and `lc.revokes[k] = time.Now()`.
+`delete(lc.entries, k)` and `lc.revokes[k] = time.Now()`, as #21869 did. The branch also has
+internal unit tests of `EvictRange` (`client/v3/leasing/cache_test.go`).

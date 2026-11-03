@@ -28,7 +28,7 @@ abbrev watcher.Watch.spec : Prop :=
 
 1. **Round 1** (reviewer): the stream a watch joins was opened by *another* context with the same
    stream key, so its metadata is that context's (`streamKeyFromCtx`, which collides:
-   `issues/etcd-watch-stream-key-collision.md`); the attempt relation must include the client's
+   `nonissues/etcd-watch-stream-key-collision.md`); the attempt relation must include the client's
    interceptor; the bound must travel per create; an auth fact already existed (A4's
    `watchAuthed`), so strengthen it rather than add one. **The user**: the full design (keep the
    refused watch); from-key ranges through a general Perennial lemma, not a scope cut; a

@@ -60,7 +60,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-! ## The ghost-state bundle -/
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 /-- The functors (kv's `kvGF`): the universal camera (`AllG`) at slot 0, then invariants, later
 credits, GooseLang's heap, prophecies and package state, and iris-lean's non-atomic invariants at
@@ -87,7 +87,7 @@ instance kvrGF_gooseGpreS : GooseGpreS kvrGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := ((), PUnit.unit)
+  goosePreGExts := (⟨kvrGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := kvrGF_allG
 

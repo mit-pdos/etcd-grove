@@ -257,8 +257,9 @@ def grantKindOk (rq : IRRModel) : Prop :=
 /-- **The per-request premise** of `rq` at the sole writer's log `log`, by what `dispatch` does
 with it: the txn package's for a KV request (`TxnPre` for a transaction); a lease checkpoint
 request with at most one checkpoint (each checkpoint is its own critical section of the batch
-lock: `issues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
-parses. **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
+lock: `nonissues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
+parses and is not above the server's (`semverAtMostServer`, the cluster-rows stage, 2026-11-02:
+`isCluster`'s `SetVersion` row panics above it). **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
 `LeaseGrant`, `LeaseRevoke` or `LeaseCheckpoint` (with no lease granted none expires, so the
 lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3).
 **No alarm, auth or downgrade request** (D22, 2026-10-23: the backend over every bucket): their
@@ -280,7 +281,7 @@ def rqOk (lg : Bool) (log : mvcc.Log) (rq : IRRModel) : Prop :=
     | false => False
   | .leaseRevoke => False
   | .leaseCheckpoint => False
-  | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
+  | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v ∧ semverAtMostServer v
   | .downgradeInfoSet => False
   | .alarm => False
   | .authenticate => False
@@ -300,6 +301,24 @@ def rqOk (lg : Bool) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .authUserList => False
   | .authRoleList => False
   | _ => True
+
+/-- **The rest state's premise of `dispatch(rq)`** (the cluster-rows stage, 2026-11-02): a member
+attributes request's member is a member of the in-memory members (`UpdateAttributes` panics on an
+id that is neither a member nor removed, and the server removes no member). Of the request's model
+and the rest state the entry meets: the apply thread's `restModel`, which the server's proof
+relates to the committed log's workload facts (`attrLogOk`). -/
+def restReqOk (rq : IRRModel) (rs : RestM) : Prop :=
+  dispatchKind rq = .clusterMemberAttrSet →
+    ∀ a, rq.clusterMemberAttrSet = some a → (rs.mem.lookup a.memberID).isSome = true
+
+/-- Another request kind asks nothing of the rest state. -/
+theorem restReqOk_other (rq : IRRModel) (rs : RestM) (h : dispatchKind rq ≠ .clusterMemberAttrSet) :
+    restReqOk rq rs := fun hk => absurd hk h
+
+/-- **`dispatch`'s `ClusterMemberAttrSet` call site**. -/
+theorem restReqOk_attr (rq : IRRModel) (rs : RestM) (a : MemberAttrModel) (h : restReqOk rq rs)
+    (hk : dispatchKind rq = .clusterMemberAttrSet) (ha : rq.clusterMemberAttrSet = some a) :
+    (rs.mem.lookup a.memberID).isSome = true := h hk a ha
 
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
 only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
@@ -378,9 +397,11 @@ S-8): the store compacting (its backend in compaction mode: the KV invariant adm
 entries only in the cluster's compaction mode, and `envAgree`/`srvEnvOkD` tie the store's mode to
 it) and the revision one of the log's (the committed log's claim, `cmpLogOk`). No `NoDelPutAt`:
 the fork has etcd-io/etcd#22377 (review round 1's F-5; mvcc's specs drop the premise before the
-switch). -/
+switch). (F2, stage 2; the user's Q7, approved 2026-11-03) The revision at least `1`: the store's
+compaction's scope restriction (`store.Compact.spec`, `nonissues/etcd-restore-scheduled-compact-zero.md`),
+which the server's `EtcdServer.Compact.spec` (`1 ≤ r`) supplies. -/
 def cmpAdmitRev (kb : Option mvcc.KBReal) (log : mvcc.Log) (rev : w64) : Prop :=
-  mvcc.kbCmpM kb ∧ sint.Z rev < log.length
+  mvcc.kbCmpM kb ∧ sint.Z rev < log.length ∧ 1 ≤ sint.Z rev
 
 theorem chainCompacts_auth (on : Bool) (c : Chain) : chainCompacts (.auth on c) = chainCompacts c := rfl
 theorem chainCompacts_quota (c : Chain) : chainCompacts (.quota c) = chainCompacts c := rfl
@@ -1375,11 +1396,16 @@ def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   else iprop(E.RW ∗ ⌜adminAdmitted E.authMode⌝)
 
 /-- **A cluster method's request facts** (D22, 2026-10-23): the request `r` of the method `m`
-(`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. -/
-def clusterFacts (E : AEnv GF) (m : GoString) (cr : ClusterReq) (r : Loc) : IProp GF :=
+(`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. (The
+cluster-rows stage, 2026-11-02: of the rest state `rs` the applier contract's cluster row binds,
+`ClusterVersionSet`'s version not above the server's, `ClusterMemberAttrSet`'s member a member of
+`rs.mem`: the specs' premises; `dispatch` takes them from `rqOk` and `restReqOk`.) -/
+def clusterFacts (E : AEnv GF) (m : GoString) (cr : ClusterReq) (r : Loc) (rs : RestM) : IProp GF :=
   match cr with
-  | .ver v => iprop(⌜m = go!"ClusterVersionSet"⌝ ∗ clusterVersionSetIs r v ∗ ⌜semverValid v⌝)
-  | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ memberAttrSetIs r a)
+  | .ver v => iprop(⌜m = go!"ClusterVersionSet"⌝ ∗ clusterVersionSetIs r v ∗
+      ⌜semverValid v ∧ semverAtMostServer v⌝)
+  | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ memberAttrSetIs r a ∗
+      ⌜(rs.mem.lookup a.memberID).isSome = true⌝)
   | .dg d => iprop(⌜m = go!"DowngradeInfoSet"⌝ ∗ downgradeInfoSetIs r d ∗ E.RW)
 
 /-- The methods `(resp, err) = m(r)` that leave the log as it is (the lease checkpoint, the
@@ -1667,7 +1693,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (cr : ClusterReq) (rs : RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ clusterFacts E m cr r ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗
+      {{ clusterFacts E m cr r rs ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗
           E.RO rs }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
       {{ RET #(); mPostV v3 E c (.ok ai) info log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) ∗

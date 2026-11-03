@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 unsynced (`now ≠ 0`, `last > now`) and `d` is positive, else the package variable
 `watchResyncPeriod` (100 ms). Positive either way: what `syncWatchersLoop`'s `Ticker.Reset`
 needs, for any `d` (`time.Since` may answer `0` on a coarse clock,
-`issues/etcd-watch-sync-ticker-reset-zero.md`). -/
+`nonissues/etcd-watch-sync-ticker-reset-zero.md`). -/
 abbrev mvcc.resyncDelay.spec : Prop :=
   ∀ (d : w64) (last now : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}

@@ -15,7 +15,7 @@ The one difference from `correctness.Model` is `canon`. The store skips a no-op 
 the stored value is canonical and not stale (`store.go:547`), so `KSt.update` writes unless the
 object is unchanged *and* the item is canonical. `correctness.Model.update` skips every update
 that leaves the object unchanged (`KSt.updateM`, the Model's), which rejects the store's
-behavior on non-canonical data (`issues/k8s-correctness-model-noop-rewrite.md`). On a state
+behavior on non-canonical data (`nonissues/k8s-correctness-model-noop-rewrite.md`). On a state
 whose items are all canonical the two agree (`KSt.update_eq_updateM`).
 
 The abstraction (D30i) goes through linkv's model of etcd's KV state (`linkv.MSt`, `absSt`):

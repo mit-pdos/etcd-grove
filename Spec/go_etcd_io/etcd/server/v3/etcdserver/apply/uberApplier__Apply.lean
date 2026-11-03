@@ -33,10 +33,11 @@ layer's admin rejection (the state as it is), or `dispatch`'s outcome (`applySte
 One write token of the store spent (`mvcc.storeWT E.γ`; 2026-10-13, unit 6). The certificates
 of the logs the request may commit (`certPre`; 2026-10-14, unit T1). A compaction admitted with
 its facts (`cmpAdmit`), the apply thread's compaction resources at `x.crev` before and at `x'.crev`
-after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). A grant (the lease-grant
-stage, 2026-11-03) as `dispatch`'s: admitted at `rqOk E.lg`, with its permits, the half of the
-live set `T` and the rest buckets after it (`grantIdsA`, `grantRestA`), its answer (`grantResA`),
-its outcome the lessor's verdict at `T` (`grantOutOkA`; amendment (C), 2026-11-03). -/
+after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). The rest state's premise
+`restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). A grant (the lease-grant stage,
+2026-11-03) as `dispatch`'s: admitted at `rqOk E.lg`, with its permits, the half of the live set
+`T` and the rest buckets after it (`grantIdsA`, `grantRestA`), its answer (`grantResA`), its
+outcome the lessor's verdict at `T` (`grantOutOkA`; amendment (C), 2026-11-03). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
     (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
@@ -48,7 +49,8 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       ⌜apply.rqOk E.lg x.log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
       apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev }}
+      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
+      apply.cmpOwn E x.crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
