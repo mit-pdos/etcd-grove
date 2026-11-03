@@ -921,3 +921,7 @@ On the draft:
   `deliveredLogLb (delivered ++ ce)` and the new hard state's term fact without *enter* (the
   hand-off on `applyc` precedes the `Save`).
 - **F6**: `isRNWalR` replaces `isRNWal`'s `Save`/`SaveSnap` in the proof.
+
+**Decision (the user, 2026-11-02): a failed `Save` leaves the records unknown** (`walFailed`, a
+case of the durability invariant), not a premise that `Save` fails only on I/O: the loop then calls
+`lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.

@@ -15,12 +15,13 @@ into the durable state (`raftState`) at its receive, and the WAL has an open tok
   record: the snapshot record at `σ.base`, the hard state `σ.hs`, the entries above `σ.base`.
 * **Their model** (`walSave`, `walSaveSnap`, `walFresh`): `Save(h, es)` replaces the hard state
   unless `h` is empty and truncate-appends the entries as raft's log does; `SaveSnap(m)` starts
-  the records at `m`'s index, keeping the entries above it when the log holds `m`'s entry (a
-  snapshot of the applied log) and none otherwise (a received snapshot that conflicts).
+  the records at `m`'s index, keeping the entries above it when `m` is within the saved commit (a
+  snapshot of the applied log) and none when above it (a received snapshot: raft discarded its
+  log), and changes nothing below the records' base (the restart opens at the highest record).
 * **The contract** (`isRNWalR`): `Save` and `SaveSnap` update the records atomically (the raft
-  loop and the apply thread both write the WAL), within the cases etcd's server uses (entries
-  above the records' base and at most one past their last; a snapshot at or above the base), and
-  fail only on I/O (`walSaveOk`).
+  loop and the apply thread both write the WAL), `Save` within the case etcd's server uses
+  (consecutive entries above the records' base, the first at most one past their last), with any
+  error as today, after which the records are not known (`walFailed`).
 * **The durability invariant** (`rnDurInv`): the node's durable state and the records, the latter
   holding the former (`StorageHolds`), with the records' commit index's lower bounds
   (`walCommitLb`, which the apply thread's snapshot needs: at or below the saved commit).
@@ -134,25 +135,31 @@ at `walFresh`, a restart's at the image's), `Save` and `SaveSnap` update it (`is
 leaves it (R2b-3: the closes' axioms make `srvFiles` of it). -/
 opaque walRecs (w : Loc) (σ : StorContents) : IProp GF
 
+/-- (DRAFT, R2b-1; the user's choice, 2026-11-02) **The WAL `w`'s records are not known** (opaque,
+exclusive): what a failed `Save` leaves (it may have written part of its records). The raft loop
+then calls `lg.Fatal`, which never returns, so it never stops, and no image is made of such a
+WAL. In place of a premise that `Save` fails only on I/O. -/
+opaque walFailed (w : Loc) : IProp GF
+
 /-- (DRAFT, R2b-1) **The WAL contract with its records** (`isRNWal`'s, trust boundary): `Save` and
 `SaveSnap` as atomic updates of the records (the raft loop and the apply thread both write the
 WAL, so the records live in an invariant), `Save` in the case the server uses (`WalSaveOk`),
-failing only on I/O (`walSaveOk`, in place of `Save`'s any error today: OPEN, the user's choice,
-since it widens an environment premise; the alternative keeps any error and a "failed" state in
-the durability invariant). `Close` and `Sync` as `isRNWal`'s. (R2b-1 review F6: R2b-1's proof
-replaces `isRNWal`'s `Save`/`SaveSnap` by these, one spec per function; the draft conjoins
+with any error as today: one of two updates fires, the records saved or, on an error, not known
+(`walFailed`; the user's choice, 2026-11-02, over widening the premise `walSaveOk` to `Save`).
+`Close` and `Sync` as `isRNWal`'s. (R2b-1 review F6: R2b-1's proof replaces `isRNWal`'s `Save`/`SaveSnap` by these, one spec per function; the draft conjoins
 them.) -/
 def isRNWalR (st : GoInterface) : IProp GF :=
   letI w := storage.walOf st
   iprop(isRNWal st ∗ ∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
     □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-        (es : List EntryModel) (Q : IProp GF),
+        (es : List EntryModel) (Q Qf : IProp GF),
       {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
-            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> }}
+          (AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> ∧
+           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅ <{ walFailed w, COMM Qf }>) }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }}) ∗
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           smPtsV mp dq' md ∗
@@ -189,8 +196,9 @@ thread's snapshot, F5); an exit for the stop (an escrow or a cancelable invarian
 `raftNode.stop.specStop` takes `raftState` and the records out); and credits or timelessness for
 `walRecs` at the updates' commits. -/
 def rnDurInv (γ : RNNames) (w : Loc) : IProp GF :=
-  inv rnDurN iprop(∃ (S : RaftState) (σ : StorContents),
-    ▷ raftState γ.node.cl γ.id S ∗ walRecs w σ ∗ ⌜StorageHolds S σ⌝)
+  inv rnDurN iprop(∃ (S : RaftState),
+    ▷ raftState γ.node.cl γ.id S ∗
+      ((∃ σ : StorContents, walRecs w σ ∗ ⌜StorageHolds S σ⌝) ∨ walFailed w))
 
 /-- (DRAFT, R2b-1) **The receive, entering at the `Save`** (`rn_ready_recv`'s new form, a
 statement for R2b-1's proof): from the idle driver's view without the durable state (the
