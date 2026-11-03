@@ -967,6 +967,17 @@ and a capped chain rejects a grant at `.noSpace` with `ErrNoSpace` (`capped.go`)
 `ErrCorrupt`. Instead, (E)'s conjunct stays and `grantRes` gains `⌜(∃ l ns, o = .applied l ns) →
 v.Err' = nil⌝`, true at every chain (`dispatch` has it from `grantPost`).
 
+**Amendment: (F), the user's, 2026-11-03** (plumbing problems after "Commit 4e" below):
+- *(F1)* `dispatchStep`'s grant arm is the chain's step (`storeKind … ∨ dispatchKind rq = .leaseGrant`),
+  so `dispatch.spec`/`Apply.spec` (texts unchanged, meaning stronger) carry `chainStep backendStep`
+  for a grant: a failed grant at the start's chain is `.rejected .backend`. True at every chain (all
+  four layers prove `grantPost`'s `chainStep`).
+- *(F2)* `LeaseServer.LeaseGrant.spec` takes the grant contract alone (not `raftLessor`, whose revoke
+  contract a granting cluster lacks), with a parameter for the success fact, so `lessorGrantOkL`'s
+  `leaseGrantedAt` reaches the client.
+- *(F3)* `LeaseServer.LeaseLeases.spec`'s error arm is limited to auth-on: Go's `LeaseLeases` fails
+  only through `checkLeaseLeases`, `nil` when auth is off (`v3_server.go:737-756`).
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
