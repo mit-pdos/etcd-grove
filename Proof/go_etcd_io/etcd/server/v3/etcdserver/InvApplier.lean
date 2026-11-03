@@ -111,17 +111,26 @@ def loopOk (γ : ApplyNames) (st : ApplyState) (a : w64) : Prop :=
 skips it), or its data decode (`irrDecode`: the proposer marshalled an `InternalRaftRequest`) to
 a request with an id or a header (`irrId`: else `apply.Apply` panics; pre-3.0 entries), neither a
 compaction nor empty (`dispatchOk`), and satisfying the txn package's premises at `x.log`
-(`rqOk`: `apply.Apply.spec`'s). -/
-def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+(`rqOk`: `apply.Apply.spec`'s), in a cluster that grants leases or not (`lg`; the lease-grant
+stage's §2.8, 2026-11-03: `rqOk lg`, at `lg = false` what it was). -/
+def entryOk (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    apply.rqOk false x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+    apply.rqOk lg x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+
+/-- **An entry's premise in a cluster that grants none is one in any.** -/
+theorem entryOk_of_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) (h : entryOk false x m) :
+    entryOk lg x m := by
+  rcases h with h | ⟨rq, hdec, hid, hrq, hd⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨rq, hdec, hid, apply.rqOk_of_false lg _ rq hrq, hd⟩
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
 small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
-theorem entryOk_of_shape [GooseExts] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape false m)
+theorem entryOk_of_shape [GooseExts] (lg : Bool) (x : apply.ApplyKV) (m : EntryModel)
+    (hs : entryShape lg m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lg x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
   · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩
@@ -657,6 +666,20 @@ theorem isServer_rdPoolN (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI →
   iunfold isServer at H
   icases H with ⟨-, -, -, -, -, -, %h⟩
   ipureintro; exact h
+
+/-- **The request path's lease-grant mode is the environment's** (the lease-grant stage's §2.8: the
+raft contract's shapes, `srvC`, are at the KV names' `lg`, the apply thread's at `E.lg`). -/
+theorem isServer_lg (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lg = E.lg⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨%hr, -, -, Hat, -, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hk⟩
+  iunfold srvKVInvs at Hk
+  icases Hk with ⟨-, -, -, -, -, %hl, -⟩
+  ipureintro; exact ⟨hr, hl.2⟩
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=

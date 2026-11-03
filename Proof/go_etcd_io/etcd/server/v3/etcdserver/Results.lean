@@ -469,7 +469,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
+        ⌜st.pending = false ∧ entryOk false x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
               uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
@@ -503,7 +503,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨HkA, Hvi, Hpo⟩
+    ipureintro; exact ⟨HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ

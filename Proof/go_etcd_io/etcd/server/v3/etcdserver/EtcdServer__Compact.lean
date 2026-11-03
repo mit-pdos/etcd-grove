@@ -359,7 +359,7 @@ theorem EtcdServer.Compact.wp_proof
     · iunfold reqPropOk
       iright
       isplitr
-      · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, hsh.1, hsh.2, rfl⟩
+      · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, rqShape_mono _ _ hsh.1, hsh.2, rfl⟩
       iexists rv.Revision'
       isplitr
       · ipureintro; rfl

@@ -62,7 +62,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
       ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-      ⌜st.pending = false ∧ entryOkM E.authOn x m ∧ m.typ = W32 0 ∧
+      ⌜st.pending = false ∧ entryOkM E.authOn E.lg x m ∧ m.typ = W32 0 ∧
         (E.authOn = true → receiptBound GF ≤ 2 ^ 48)⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧

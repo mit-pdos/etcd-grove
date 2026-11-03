@@ -280,8 +280,8 @@ theorem EtcdServer.apply.wp_proofOff
     have hmem : m ∈ ms := List.mem_of_getElem? Hm_lookup
     -- the entry's premise at the KV's log, from its shape and the log's smallness (D19c's move)
     icases srvApplyKV_small s E ρ.wait xj $$ HKV with ⟨%Hsmall, HKV⟩
-    have hOk1 : m.typ = W32 0 → entryOk xj m := fun ht =>
-      entryOk_of_shape xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
+    have hOk1 : m.typ = W32 0 → entryOk E.lg xj m := fun ht =>
+      entryOk_of_shape E.lg xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
     have hlenA : (A ++ ms.take (sint.nat j)).length = A.length + sint.nat j := by

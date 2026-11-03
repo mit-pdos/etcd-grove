@@ -271,6 +271,21 @@ def entryShape [GooseExts] (lg : Bool) (m : EntryModel) : Prop :=
 /-- Every entry of a log has a good shape. -/
 def logShape [GooseExts] (lg : Bool) (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape lg m
 
+/-- **A shape in a cluster that grants none is one in any** (`apply.rqOk_of_false`; the lease-grant
+stage's §2.8). -/
+theorem rqShape_mono (lg : Bool) (rq : apply.IRRModel) (h : rqShape false rq) : rqShape lg rq :=
+  ⟨h.1, fun log hs => apply.rqOk_of_false lg log rq (h.2 log hs)⟩
+
+theorem entryShape_mono [GooseExts] (lg : Bool) (m : EntryModel) (h : entryShape false m) :
+    entryShape lg m := by
+  refine ⟨fun ht => ?_, h.2⟩
+  rcases h.1 ht with hd | ⟨rq, hdec, hid, hs⟩
+  · exact Or.inl hd
+  · exact Or.inr ⟨rq, hdec, hid, rqShape_mono lg rq hs⟩
+
+theorem logShape_mono [GooseExts] (lg : Bool) (L : List EntryModel) (h : logShape false L) :
+    logShape lg L := fun m hm => entryShape_mono lg m (h m hm)
+
 theorem logShape_append [GooseExts] (lg : Bool) (A B : List EntryModel) :
     logShape lg (A ++ B) ↔ logShape lg A ∧ logShape lg B := by
   unfold logShape

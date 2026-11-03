@@ -214,7 +214,7 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape false e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
+    (hs : entryShape γk.lg e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -295,7 +295,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
     (r : w64) (hr : rq.compaction = some r)
-    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape false rq) :
+    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lg rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
       idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLbZ γk (sint.Z r + γk.cret) ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
@@ -356,7 +356,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       rw [hed, hdec] at h
       cases h
       exact Or.inr (Or.inl ⟨hform.1, hform.2.1⟩)
-    have hsh : entryShape false e :=
+    have hsh : entryShape γk.lg e :=
       ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2.2⟩, fun h => absurd het h⟩
     ihave #Hecl : entryClaim γk.ids e $$ []
     · iunfold entryClaim
@@ -397,7 +397,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
   have Hdisj := kvN_raftN
   iintro #Hinv #Hcl #Hreg Hok
   -- the entry's workload facts, whichever case
-  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape false rq → entryShape false e := by
+  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape γk.lg rq → entryShape γk.lg e := by
     intro e het hed hs
     refine ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hs⟩, fun h => absurd het h⟩
   ihave #Hecl : iprop(∀ e : EntryModel, ⌜e.data = d⌝ -∗ entryClaim γk.ids e) $$ []
@@ -475,6 +475,9 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     icases Hacc with ⟨%σ, Hc, Hucl⟩
     iunfold etcdKV at Hc
     ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+    -- (C): a client's half refutes a granting cluster
+    ihave %Hlg := kvSt_client_lg γk _ _ $$ Hσ Hc
+    rw [kvStQ_false γk Hlg]
     isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
     imodintro
     iexists L
@@ -537,6 +540,9 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     icases Hacc with ⟨%σ, Hc, Hucl⟩
     iunfold etcdKV at Hc
     ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+    -- (C): a client's half refutes a granting cluster
+    ihave %Hlg := kvSt_client_lg γk _ _ $$ Hσ Hc
+    rw [kvStQ_false γk Hlg]
     isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
     imodintro
     iexists L
@@ -649,9 +655,9 @@ theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRMod
 agreeing. -/
 theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp false L) :
     ∀ gs : List GName,
-      ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvModelSt γk L) -∗
+      ⊢ ghostVar (GF := GF) γk.st (kvStQ γk) (kvModelSt γk L) -∗
         ([∗list] g ∈ gs, regOk γk g) -∗
-        |={(⊤ \ ↑srvRaftN) \ ↑kvN}=> ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
+        |={(⊤ \ ↑srvRaftN) \ ↑kvN}=> ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
           readQs gs L
   | [] => by
     iintro Hσ -

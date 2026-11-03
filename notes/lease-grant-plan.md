@@ -1195,7 +1195,76 @@ collections, `gen-init.py --check`, `gen-interface.py --check` (backend, raft) c
   `apply.rqOk_of_false`. With 2.8, `applyEntryNormal`'s grant arm uses `srvRest_applyG` and
   `srvGrantIf_perm` (both proved). M1's lemmas are for commit 4.
 
-**Where the plumbing stopped** (2026-11-03): 3b done (above); next: commits 4 and 5 (and 2.8).
+**Commit 4a: §2.8's shapes and (C)'s fraction** (2026-11-03, one commit, a full build with the
+checks; the design's statements as written, the grant not yet admitted into the KV invariant):
+- *Shapes (2.8).* `entryOk lg x m` (`rqOk lg`; `entryOk_of_false`, `entryOk_of_shape lg`),
+  `entryOkM on lg`, `logShapeM on lg`; `rqShape_mono`, `entryShape_mono`, `logShape_mono`
+  (`WorkloadDefs`). Frozen texts: `applyAll.spec`'s `logShape E.lg`, `applyEntries`/`apply.spec`'s
+  `logShapeM E.authOn E.lg`, `applyEntryNormal.spec`'s `entryOkM E.authOn E.lg x m` (as 2.8). The
+  off corollaries (`ModeSpecs`' `specOff`s) at `E.lg`; `request_delivered` (`Results`) keeps its
+  meaning, `entryOk false x m`, lifted by `entryOk_of_false`. `kvWork`'s `logShape γk.lg`;
+  `reqPropOkW`'s and the compaction form's `rqShape γk.lg` (their makers wrap `rqShape_mono`).
+- *Mechanical adaptation:* the raft contract's `srvC`, `clusterWorkloadOk`, `srvCM`,
+  `clusterWorkloadOkM` take the shapes at `ρ.kv.lg` (the KV names', `kvWork`'s), not `E.lg`:
+  `NewServer` states the raft environment at the stand-in `E₀`, and `envAgree` (in `NewServer.spec`'s
+  post) does not tie `E₀.lg`, so `srvC_agree` would need a new `envAgree` clause. The apply thread
+  converts by `isServer_lg` (`ρ.rd = γr`, `γr.kv.lg = E.lg`; `run_job_body`).
+  `kvInv_congr` (`NewServerAlloc`) takes `γk.lg = γk'.lg` too (`kvInv` reads `lg` through `kvStQ`).
+- *(C)'s fraction (2.7).* `kvInv`'s ghost variable at `kvStQ γk := if γk.lg then 1 else ½` (a name
+  for the design's `if`; `kvStQ_false`/`_true`); `kvSt_client_lg` (a client's `etcdKV` beside it gives
+  `γk.lg = false`) refutes a granting cluster in every opener with a client update (`kv_prop_auW`'s
+  two write forms, `kv_fire_reads`, `ReadOn`'s linearizable read), which then rewrite the fraction to
+  `½` and go on as before; `kv_revLbZ_le` is fraction-generic. `kvInv_alloc_boot` (2.3) returns
+  `if γk.lg then True else etcdKV …`, the variable whole to the invariant at `lg`
+  (`srvClusterBoot_alloc` still fixes `γk.lg = false`; its `lg` argument is commit 4's).
+- *Not in 4a* (the problem below): `kvInv`'s plain log stays `plainLogM γk.cmp false`, so no grant
+  entry reaches the apply thread, and `reqPropOk` has no grant form yet. Their code, with
+  `kv_prop_au_grant` and the plain log at `γk.lg` threaded through `kv_log_plain`,
+  `kv_applied_step`, `SnapRecvFacts`, is on branch `lease-grant-4-wip` (`09d0835656`, one WIP commit
+  that does not build: it stops exactly at `applyEntryNormal`'s grant arm).
+
+**The problem: a grant's error and `applyEntryNormal`'s `ErrNoSpace` check** (found 2026-11-03;
+stops commit 4 from admitting a grant, hence `kv_prop_au`'s grant form, `EtcdServer.LeaseGrant` and
+commit 5).
+- *What.* Once the KV invariant admits a grant (`plainLogM γk.cmp γk.lg`), `applyEntryNormal`'s v3
+  arm must pass a grant through `server.go:1975`: `if !errors.Is(ar.Err, ErrNoSpace) ||
+  len(alarmStore.Get(NOSPACE)) > 0 { Trigger; return }`, else raise the NOSPACE alarm from a
+  `GoAttach` goroutine (`raftRequest` of an `AlarmRequest`). The proof keeps that branch dead
+  (D19k): `applyResultIs_notNoSpace_M` (`ApplyCmpArm.lean`) gives `notNoSpaceErr ar.Err` for a
+  covered request or a compaction at the start's chain, from `dispatchAnswer`'s error variables. For
+  a grant nothing gives it: `dispatchAnswer`'s grant arm is `True`, and the design's `grantAnswer`
+  (2.6) / `grantRes` / the grant triple's post (2.11) say only `err ≠ nil` on failure. The failure is
+  reachable (a raft duplicate of a grant entry: `ErrLeaseExists`; an over-long TTL:
+  `ErrLeaseTTLTooLarge`), so `err = nil` does not help; and `applyErrVars` (the apply package's init
+  facts) has `errVarApart ErrNoSpace` for `ErrLeaseNotFound` only, not for `ErrLeaseExists`/
+  `ErrLeaseTTLTooLarge`. The r4 review called the auth-off arm safe; it did not check this branch.
+- *True of Go:* at the start's chain (`alarmChain false false false`: no capped applier) a grant
+  passes quota (`apply.backendUnderQuota`) and the backend answers with `lessor.Grant`'s error,
+  `lessorErrIs` (`ErrLeaseNotFound`/`ErrLeaseExists`/`ErrLeaseTTLTooLarge`), never `ErrNoSpace`.
+- *Options.*
+  (1) The grant triple's post (2.11, the four frozen `LeaseGrant.spec`s, `grantPost`) and `grantRes`
+  (2.10, through `dispatch.spec`/`Apply.spec`'s `grantRes`/`grantResA`, text unchanged) carry the
+  backend's error: e.g. `⌜o = .rejected .backend⌝ → lessorErrIs err` (the backend layer has it from
+  `Grant.spec`'s error arm; quota passes it; capped/corrupt reject at `.capped`/`.corrupt`), with
+  `grantRes`'s `o` then used. `applyErrVars` (generated, `etc/gen-init.py`'s `SPECIAL` for the apply
+  package) gains `errVarLeaf`/`errVarApart ErrNoSpace` for `ErrLeaseExists` and
+  `ErrLeaseTTLTooLarge` (distinct messages, `errVarApart_of`, as `ErrLeaseNotFound`'s), and
+  `applyResultIs_notNoSpace_M` a grant case (at the start's chain `dispatchStep` gives applied, so
+  `err = nil`, or `.rejected .backend`). Frozen texts change: the four `LeaseGrant.spec`s; no new
+  axiom or hypothesis. Recommended: the smallest, and true of Go.
+  (2) `grantAnswer`'s error arm itself `⌜err ≠ nil⌝ ∗ notNoSpaceErr err`: false at a capped chain
+  (`applierV3Capped.LeaseGrant` answers `ErrNoSpace`), so it needs the chain as an argument; no gain
+  over (1).
+  (3) Prove the NOSPACE branch for a grant (the alarm raised by `raftRequest` from a `GoAttach`
+  goroutine): out of the model's fixed start chain, far larger.
+- *Not started, waiting on it:* the grant form of `reqPropOk` and `kv_prop_au_grant` (on
+  `lease-grant-4-wip`), `applyEntryNormal`'s grant arm and M1's lemmas (`plainOrCmp_of_entryM`,
+  `kv_certPre_M`, `batchStep_plainM`, `cmpPermRq_of_entry`, and `applyResultIs_notNoSpace_M`, which
+  the review's M1 list missed), `appliedOkM`/`grantArM` (2.6; its `grantAnswer` may gain (1)'s
+  conjunct), `srvClusterBoot_alloc lg`, `EtcdServer.LeaseGrant.wp_proof`, and commit 5.
+
+**Where the plumbing stopped** (2026-11-03): 3b and 4a done (above); stopped at the problem above
+(the user's decision); then the rest of commit 4, and commit 5.
 
 **`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
 argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's

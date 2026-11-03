@@ -265,7 +265,7 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
 audit phase B3), and every id claimed. -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape false L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
+  iprop(⌜logShape γk.lg L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
@@ -330,6 +330,35 @@ theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : p
   intro i m hi
   exact cmpEntryOk_plain γk cmp _ m (h m (List.mem_of_getElem? hi))
 
+/-- **The fraction of the KV state's ghost variable the KV invariant holds** (the lease-grant
+stage's §2.7, the user's (C)): the whole of it in a cluster that grants leases (`γk.lg`), so no
+client holds `etcdKV`; else the other half from the clients'. -/
+def kvStQ (γk : KVNames) : Qp := if γk.lg then 1 else (1 : Qp).half
+
+theorem kvStQ_false (γk : KVNames) (h : γk.lg = false) : kvStQ γk = (1 : Qp).half := by
+  unfold kvStQ; rw [h]; rfl
+
+theorem kvStQ_true (γk : KVNames) (h : γk.lg = true) : kvStQ γk = 1 := by
+  unfold kvStQ; rw [h]; rfl
+
+theorem kvStQ_one_add_false (q : Qp) (h : (1 : Qp) + q ≤ 1) : False := by
+  have h1 : (1 : Rat) + q.val ≤ 1 := h
+  have := q.2
+  grind
+
+/-- **A client's `etcdKV` refutes a granting cluster** (the user's (C)): beside the KV invariant's
+fraction of the state, a client's half exists only at `γk.lg = false`. -/
+theorem kvSt_client_lg (γk : KVNames) (s σ : KVState) :
+    ⊢ ghostVar (GF := GF) γk.st (kvStQ γk) s -∗ ghostVar γk.st (1 : Qp).half σ -∗
+      ⌜γk.lg = false⌝ := by
+  iintro H1 H2
+  ihave %h := ghostVar_valid_2 γk.st s (kvStQ γk) σ (1 : Qp).half $$ H1 H2
+  ipureintro
+  cases hl : γk.lg
+  · rfl
+  · rw [kvStQ_true γk hl] at h
+    exact (kvStQ_one_add_false _ h.1).elim
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
@@ -339,10 +368,15 @@ facts of `L` (`kvWork`), which every update the server hands raft checks of its 
 that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
 2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
 scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
-`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) (The lease-grant stage's §2.7-2.8,
+2026-11-03, the user's (C): in a cluster that grants leases, `γk.lg`, the invariant owns the KV
+state's ghost variable whole, `kvStQ`. No client's `etcdKV` can then exist, so every KV result is
+true there vacuously: a granting cluster makes no claim about etcd's KV service. At `γk.lg = false`
+it means what it meant. The plain log is still `plainLogM γk.cmp false`: admitting a grant,
+`γk.lg`, waits on `applyEntryNormal`'s grant arm, `notes/lease-grant-plan.md`, "Plumbing".) -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
-    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
+    srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
     ⌜plainLogM γk.cmp false L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log⌝ ∗
@@ -573,15 +607,15 @@ range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply 
 write forms, `reqPropOk`'s first disjunct.) -/
 def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape false rq ∧
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
-        irrNoZeroEnd rq ∧ rqShape false rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+        irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q) ∨
     -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
     -- token `γc` (`kvRes`)
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
-        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape false rq ∧
+        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
@@ -733,7 +767,7 @@ its result trivial. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
-    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape false rq ∧ irrNoZeroEnd rq ∧
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
 

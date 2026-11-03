@@ -78,7 +78,7 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
     ileft
     ipureintro
     obtain ⟨h1, h2, h3, h4, -⟩ := monitorReq_prop rq hrq
-    exact ⟨h1, h2, h3, h4, rfl⟩
+    exact ⟨h1, h2, h3, rqShape_mono _ _ h4, rfl⟩
   · iunfold reqPropOkM
     iintro %hm
     iunfold reqPropOkOn

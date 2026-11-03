@@ -103,7 +103,9 @@ start index `0`, the consistent index `0`, the base chain, a non-empty start log
 server's log of requested entries at the cluster's bootstrap log (`srvLogInv_alloc`'s; 2026-10-27,
 until then the client's half of raft's committed log), each a conf change of id `0` that
 `applyConfChange` takes (`hcc`), and the KV state's variable at the bootstrap log's model, the
-invariant and the client's `etcdKV`. -/
+invariant and the client's `etcdKV` (the lease-grant stage's §2.3, the user's (C): in a cluster that
+grants leases, `γk.lg`, the invariant takes the variable whole and no client's `etcdKV` is
+returned). -/
 theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
@@ -112,10 +114,22 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     (hrl : γk.rlog = γs.raft.log) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
-      kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot)) := by
+      kvInv γs γk ∗
+        (if γk.lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot))) := by
   generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
   iintro HL Hv
-  icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
+  ihave ⟨Hv1, Hv2⟩ : iprop(ghostVar γk.st (kvStQ γk) (kvModelSt γk (bootEntries bootLog)) ∗
+      (if γk.lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries bootLog)))) $$ [Hv]
+  · cases hlg : γk.lg
+    · rw [kvStQ_false γk hlg]
+      icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
+      iframe Hv1
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iunfold etcdKV; iexact Hv2
+    · rw [kvStQ_true γk hlg]
+      iframe Hv
+      simp only [↓reduceIte]
+      itrivial
   have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
       uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
         ccIdOf m.data = W64 0 := by
@@ -177,7 +191,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     rw [ht]; decide)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
+      srvRLog γs L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
       ⌜plainLogM γk.cmp false L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
         γk.rlog = γs.raft.log⌝ ∗
@@ -195,13 +209,13 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     iunfold kvWork
     iframe Hcl
     ipureintro
-    refine ⟨hshape, hccl, fun m hm => entryPutsOk_conf m ?_, hlk⟩
+    refine ⟨logShape_mono _ _ hshape, hccl, fun m hm => entryPutsOk_conf m ?_, hlk⟩
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, -⟩ := hent' n m hn
     rw [ht]; decide
   imodintro
   iframe Hinv
-  iunfold etcdKV; iexact Hv2
+  iexact Hv2
 
 /-- **The certificates' invariant**: from the store's certificate authority (empty), the
 certified length's half at the start log's length, and the empty log committed. -/

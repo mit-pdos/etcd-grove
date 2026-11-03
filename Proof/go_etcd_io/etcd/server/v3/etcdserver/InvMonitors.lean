@@ -100,7 +100,7 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     rcases hk with hk | ⟨hk, -⟩
     · exact Or.inl hk
     · exact Or.inr hk
-  refine ⟨?_, ?_, hz, hs, rfl⟩
+  refine ⟨?_, ?_, hz, rqShape_mono _ rq hs, rfl⟩
   · refine ⟨?_, putgetKind_cluster rq hk'⟩
     unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact ⟨hns, hna⟩
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide

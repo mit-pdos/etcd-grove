@@ -49,16 +49,19 @@ def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
     (apply.rqOk false x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
-off, `entryOkOn` on. -/
-def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
+§2.8; auth on is a cluster that grants none). -/
+def entryOkM (on lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
-  | false => entryOk x m
+  | false => entryOk lg x m
   | true => entryOkOn x m
 
-theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+theorem entryOkM_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM false lg x m = entryOk lg x m :=
   rfl
 
-theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+theorem entryOkM_true (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM true lg x m = entryOkOn x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -187,7 +190,7 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch [] x m (lg := false) (Or.inl hd) hl
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]

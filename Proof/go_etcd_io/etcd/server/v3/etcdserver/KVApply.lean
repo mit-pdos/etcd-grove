@@ -59,7 +59,7 @@ theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (l
 /-- **An entry's model log is within the revision budget** when its request's premises hold
 (`entryOk`: a put's or a delete's room for one more revision). -/
 theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply.ApplyKV)
-    (m : EntryModel) (hok : entryOk x m) (hl : x.log.length < 2 ^ 63) :
+    (m : EntryModel) {lg : Bool} (hok : entryOk lg x m) (hl : x.log.length < 2 ^ 63) :
     (kvEntry c₀ ch lt x.log m).length < 2 ^ 63 := by
   rcases kvEntry_grow c₀ ch lt x.log m with h | ⟨cs, h⟩
   · rw [h]; exact hl
@@ -90,7 +90,12 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply
             rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
               (chainLog_of_backendLog lt rq x.log hb)] at h
             simp at h
-        · have := hrq; simp only [apply.rqOk, hk] at this
+        · -- (the lease-grant stage) a grant writes no revision
+          have hb : backendLog lt rq x.log = x.log := by
+            unfold backendLog; rw [hk]
+          rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
+            (chainLog_of_backendLog lt rq x.log hb)] at h
+          simp at h
         · have := hrq; simp only [apply.rqOk, hk] at this
       · have hnw : ∀ rq', apply.irrDecode m.data = some rq' →
             ¬ writeKind (apply.dispatchKind rq') := by

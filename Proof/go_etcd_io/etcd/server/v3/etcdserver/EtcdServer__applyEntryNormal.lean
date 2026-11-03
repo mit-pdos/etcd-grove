@@ -406,7 +406,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iframe Hcx
         ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
         iframe Hcpq
-        ipureintro; exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
+        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -622,7 +622,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         · iframe Hst Happ Hbe HcF
           ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
           iframe Hcpq
-          ipureintro; exact ⟨hpre, hdec, hid, apply.rqOk_of_false _ _ _ hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1

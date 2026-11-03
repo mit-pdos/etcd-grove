@@ -776,13 +776,14 @@ instance kvWorkOn_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
   unfold kvWorkOn; infer_instance
 
 /-- `kvWork` gives `kvWorkOn`. -/
-theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
+theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
+    (hlg : γk.lg = false) :
     kvWork (GF := GF) cfg γk L ⊢ kvWorkOn cfg γk L := by
   unfold kvWork kvWorkOn
   iintro ⟨%h, #H⟩
   iframe H
   ipureintro
-  exact ⟨fun m hm => entryShapeOn_of_entryShape m (h.1 m hm), h.2⟩
+  exact ⟨fun m hm => entryShapeOn_of_entryShape m (hlg ▸ h.1 m hm), h.2⟩
 
 /-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
 

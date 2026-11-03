@@ -56,7 +56,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
-    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape false (A ++ ce))
+    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape C.ρ.kv.lg (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, no conf entry;
     -- with one, a fresh start (`c₀ ≤ ai₀`) at the server's rule (2026-10-30, the repair: one mode)
@@ -116,9 +116,10 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   have hun : unapplied ai ce = ce := unapplied_all ai ce habove
   have hcong : ∀ m ∈ ce, (uint.Z (ciEff B.γ st.k) < uint.Z m.index ↔ uint.Z C.c₀ < uint.Z m.index) :=
     fun m hm => ciJ_iff _ _ _ HJ m (habove m hm)
-  have hok' : logShape false (unapplied ai ce) := by
-    rw [hun]
-    exact ((logShape_append false A ce).1 hok).2
+  ihave %Hlgt := isServer_lg $$ Hsrv
+  have hok' : logShape B.E.lg (unapplied ai ce) := by
+    rw [hun, ← Hlgt.2, ← Hlgt.1]
+    exact ((logShape_append _ A ce).1 hok).2
   have hb1 : uint.Z ai + 1 < 2 ^ 64 := by
     have h1 := hidx.1
     simp only [List.length_append] at h1

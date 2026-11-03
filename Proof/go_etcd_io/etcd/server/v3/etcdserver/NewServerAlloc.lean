@@ -70,12 +70,12 @@ height or its slots and prefix. -/
 theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     (h : γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
       γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.cmp = γk'.cmp ∧
-      γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret) :
+      γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lg = γk'.lg) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
-  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10⟩ := h
+  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11⟩ := h
   unfold kvInv kvWork entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
-    cmpEntryOk kvModel
-  rw [h1, h2, h3, h4, h6, h7, h8, h9, h10]
+    cmpEntryOk kvModel kvStQ
+  rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11]
 
 /-- The client's `etcdKV` reads only the state's variable. -/
 theorem etcdKV_congr (γk γk' : KVNames) (h : γk.st = γk'.st) (σ : KVState) :
@@ -286,6 +286,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     $$ [HL] [Hstv] with ⟨#Hkv, Hetcd⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
+  have hlg0 : γk.lg = false := rfl
+  isimp only [hlg0, Bool.false_eq_true, ↓reduceIte] at Hetcd
   -- the mints
   imod (srvPropMint_alloc ⟨γ, [], W64 0⟩ γk.ids ⊤) $$ Hfresh with #Hpm
   imod (srvRdCtxInv_alloc ⟨γ, [], W64 0⟩ issued ⊤) $$ Hrdf [Hctxs] with #Hrc
@@ -367,7 +369,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
     rw [kvInv_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs⟩, γk.hist, γk.cmp, γk.rlog,
       γk.cret, γk.lg⟩ γk
-      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
     iexact Hkv
   isplitl [Hp Hsl]
   · iunfold idShare

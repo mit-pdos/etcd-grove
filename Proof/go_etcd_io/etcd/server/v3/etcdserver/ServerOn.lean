@@ -55,25 +55,27 @@ def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
 section pure
 variable [GooseExts]
 
-/-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
-def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
+/-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
+leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
+def logShapeM (on lg : Bool) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape false L
+  | false => logShape lg L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
-theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
+theorem logShapeM_cc (on lg : Bool) (L : List EntryModel) (h : logShapeM on lg L) :
     ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0 := by
   cases on
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape false L := rfl
+theorem logShapeM_false (lg : Bool) (L : List EntryModel) : logShapeM false lg L = logShape lg L :=
+  rfl
 
-theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+theorem logShapeM_true (lg : Bool) (L : List EntryModel) : logShapeM true lg L = logShapeOn L := rfl
 
-theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
-    logShapeM on A := by
+theorem logShapeM_append (on lg : Bool) (A B : List EntryModel) (h : logShapeM on lg (A ++ B)) :
+    logShapeM on lg A := by
   cases on
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
@@ -251,7 +253,7 @@ instance kvCertInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames
 /-- **The server's `E.C` in the auth mode `on`** (`srvC` with the mode's shapes). -/
 def srvCM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvCM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (L : List EntryModel) :
@@ -274,7 +276,7 @@ theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x�
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
 def clusterWorkloadOkM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOkM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOkM (GF := GF) on ρ E) := by
@@ -780,7 +782,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lg L HshL) HcclL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
