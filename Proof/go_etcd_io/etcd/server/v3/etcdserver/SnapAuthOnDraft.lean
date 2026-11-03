@@ -183,98 +183,8 @@ def AonDraft.srvSnapROAuth (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Read
 (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`), `specSnap_of_M` its
 proof file's. -/
 
-/-- **`s.applyAll(ep, ap)` on a snapshot payload, in the server's auth mode** (F9: one spec over
-`E.authMode`, in place of the twin `specSnapOn`; lean's `applyAll.specSnap` is its `off` case,
-`applyAll.specSnap_of_M`; the caller of `applySnapshot.specSnapM`): `applyAll.specSnap`'s statement
-with the server's, the applier's and the KV's rows in the mode (`isServerM`/`srvApplyKVM`/
-`kvAppliedM` at `E.authOn`, on at the applied log's auth state `sa`), the start's chain the mode's;
-the store's snapshot clause, `srvAuthSnapOk`, is `srvSnapRO`'s gated row; after, at the image's auth
-state. Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
-`srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
-false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
-mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), and under
-`authApplyResB`'s redefinition as `specSnapM` is. -/
-abbrev EtcdServer.applyAll.specSnapM : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice) (sn : Loc)
-    (sv : SnapshotM) (rac nc : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
-    (x : apply.ApplyKV) (A : List EntryModel) (mst : Loc) (γs : MemStorNames) (γp : GName)
-    (γnc : NotifyNames) (w : Nat) (nid : w64) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat)
-    (sa : auth.AuthState),
-  -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`)
-  E.authMode ≠ .any →
-  -- the snapshot past the applied index, below `2^61`, at least the boot log
-  uint.Z ai < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-  (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
-  -- the applied log `A` through `ai`, the consistent index at most the applied one
-  uint.Z ai = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z ai →
-  -- a fresh cluster's start (`snapRecv_image`'s), in either compaction mode (review R1's F7: a
-  -- mode-on committed log has no compaction, `plainLogOn`, so its records are at `-1` in both)
-  γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
-  γr.kv.ch0 = apply.alarmChain E.authOn false false → γr.kv.log0 = [[], []] →
-  -- the batch's term good for a log at least the snapshot's (the merge's guard)
-  γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
-      -- the payload (`rnApSnap`'s)
-      taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
-      taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-      (letI := srvStor (GF := GF) γr.raft.raft; iprop(snapshotCert γr.raft.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-        nodeSnapLocal γr.raft.raft.cl nid sv.Metadata'.Index')) ∗
-      taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
-      taRaftAdvancedCAddr ap ↦□ rac ∗
-      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        iprop(nodeAppliedLb ρ.raft.raft.cl nk (uint.nat sv.Metadata'.Index') ∗
-          nodeCommitLb ρ.raft.raft.cl nk (uint.nat sv.Metadata'.Index') ∗
-          srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
-          srvFrozenBelow γs (uint.nat sv.Metadata'.Index'))) ∗
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
-      -- the apply thread's resources, as `spec`'s
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
-      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
-      srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      srvWTPool E γp ∗ srvWTTaken γp w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
-      srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-      rnWalTok (srvRAddr s) q ∗
-      -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
-      -- `isServerApplyAll`'s two fields)
-      -- (auth on: the store's invariant and snapshot clause, `srvAuthSnapOk`, are `srvSnapRO`'s
-      -- gated row, `AonDraft.srvSnapROAuth`)
-      srvSnapOwn s ci E γr ai ∗
-      -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
-      -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
-      □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
-        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
-        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
-        □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
-          isMetaBackend (interface.mkOk (go.GoType.PointerType
-            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
-            (readView (γ.withPh π))) }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
-      (Val #ap))
-  {{ RET #();
-      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
-        (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
-        srvRLogLb γr.raft A' ∗
-        epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
-        epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
-        srvSnapState s ep mst γs sv.Metadata'.Index' (W64 0) ∗ applyThread γ' st' ∗
-        applyBackend γ' ci b' ∗ ciApplying ci a t ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
-        srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
-        srvWTTaken γp w ∗
-        (∃ x' : apply.ApplyKV, srvApplyKVM E.authOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
-          appliedLogAt γr sv.Metadata'.Index' x'.log ∗
-          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
-        srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
-        ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
-          A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
-          lastTermIs A' sv.Metadata'.Term'⌝ }}
+/- (P6.3, 2026-11-03) `applyAll.specSnapM` is the spec file's
+(`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`). -/
 
 /-- **The glue at `run`: the applied log's auth state** (what `specSnapM`'s applied auth state and
 `applyAll.specSnapM`'s `kvAppliedM` take, on, from `applyResOn`'s `kvRunAtOn`): the KV row's model
@@ -298,41 +208,7 @@ theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
   unfold srvAuthAtLog
   rw [← He]
 
-/-- **`run`'s auth-on snapshot-payload job** (review R1's F6: restated as the twin of J8b's
-`run_job_snap`, `EtcdServer__run.lean`, statement only): its premises and resources, with the loop's
-resources in the mode `on` (`applyResOn`; the store's snapshot clause is its `srvSnapOwn`'s
-`srvSnapRO` row, review R2's N6); `applyAll.specSnapM` takes the loop from `A` to the image's log
-`A'`. -/
-theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
-    (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
-    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames) (rt : w64) (γa : auth.AuthNames) (hM : C.E.authMode = .on γa)
-    (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
-    (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
-    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
-    (hlt : A.length < A'.length)
-    (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
-    (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
-    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index') :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
-        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
-        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-        (letI := srvStor (GF := GF) γn.node; iprop(
-          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
-        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
-        taRaftAdvancedCAddr apL ↦□ rac ∗
-        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
-          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length)) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
-        schedule.schedRunning γs ∗ applyResOn C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
-      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
-        (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyResOn C A' }} := by
-  sorry
+/- (P6.3, 2026-11-03) `run_snap_jobOn` is `EtcdServer__run.lean`'s. -/
 
 /-- **Lean's `applyAll.specSnap` is `applyAll.specSnapM`'s `off` case** (F9). -/
 theorem EtcdServer.applyAll.specSnap_of_M

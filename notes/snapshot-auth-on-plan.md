@@ -972,3 +972,25 @@ Entries (P6, 2026-11-03):
   (`NewServer`'s first ticket of the kit's supply, unused until then; `authApplyResB_of_pre` takes
   it, `authRdM`). The Freeze's `authFuelB`, `AonDraft.authApplyResPre`/`authApplyResB` are
   superseded (the fuel entry above). `authOpenQ`, `ablOn`, `authWAtHook` moved to `AuthBkHook.lean`.
+- `[F, proof, trusted, approved (the user, 2026-11-03)]` **hub** (`NewServer`'s premise
+  `authSchemaSrv`, and `authSchemaSnap`) a new clause `authBkLend`: the holder of the store's write
+  token and the history's admin half borrows the tracked auth buckets, which hold the latest auth
+  state, and gives them back. The Freeze left the merged snapshot's auth buckets (#7-on) without a
+  reader: the apply thread's rest resource has no auth buckets in the mode `on`, and the store's
+  invariant holds them. Threaded into `authInstallPre`; `srvHist_wf` (the five admin kinds keep
+  `permKeysOk`, `authSmall`) proved. (`5f98328c29`)
+- `[F, proof, internal, —]` (#7-on) `mergedCreate_window` takes a lend `bkLendW E SA QA RA` of
+  buckets `SA` among the rest buckets and observes them (`∃ r, QA r ∧ ∀ n, SA n → D.lookup n =
+  r.lookup n`); off, nothing (`bkLendW_none`). `srvAuthApplyResB_lend` lends the auth buckets from
+  the auth row; `merged_imageOn` builds `srvImageOn` from the observation. `srvKVInvsOn` gains
+  `⌜E.cmp = false⌝` (from `NewServer.specG`'s compactor premise: no compaction with auth on, the
+  Freeze's assumption, now a fact of the invariant). `applyAll.wp_proofOn` has no `sorry`.
+  (`f9670808f5`)
+- `[C, proof, public, F9 approved]` (P6.3) `applyAll.specSnapM` (the Draft's, unchanged) moved to the
+  spec file and proved (`ApplyAllSnapOn.lean`, `wp_proofSnapM`: off, lean's `specSnap`; on, the
+  twin of `wp_proofSnap` over `applySnapshot.specSnapM`, `snapRecv_imageOn`,
+  `snapRecv_kv_jumpOn`, `applied_jumpM`, `merged_imageOn`). `run.wp_proofOn` takes it (a new
+  hypothesis `hAAS`), its snapshot case over `run_snap_jobOn` (the Draft's statement, proved; the
+  token rights `srvTokRights` framed across the install, at the snapshot's index after). Results:
+  `server_apply_snapshot_m` (`wp_proof_snapM` with the linked `auth.authStore.wp_Recover`) and
+  `server_apply_all_snap_m` feed `server_run_on`. `run.wp_proofOn` has no `sorry`.

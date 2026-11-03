@@ -237,6 +237,7 @@ axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
@@ -399,5 +400,3 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.applyAll.wp_proofOn
-sorry EtcdServer.run.wp_proofOn
