@@ -22,7 +22,35 @@ The plan from here (2026-11-03):
    `run.wp_proofOn` lose their `sorry`. The receiver rests on the mode-on image certificate
    (`snapRecv_imageOn`); the sender's side (#7-on) stays a named `sorry` unless taken in this stage.
 
-What the Draft's author (etcd-grove-83, 2026-11-03) flagged for the rebase:
+**Step 1 done (2026-11-03, on lean `dac0145eb1`).** The Draft builds; its sorries are the three
+intended (`snapRecv_imageOn`, `srvHist_wf`, `run_snap_jobOn`), the glue (`authRecoverOn_glue`,
+`kvRunAtOn_sa`, the catch-up) proved over the rebased statements. What changed, each the mode-on twin
+taking lean's change:
+- the backend stage: the Draft's opaque `backend.rbOwnIn` and its split law gone (the law,
+  `rbOwn ⊣⊢ rbOwnIn S ∗ rbOwnIn ¬S`, is false of the real backend, whose `rbOwn` splits into two
+  `rbPart`s, `rbOwn_split`; unused); `authBkts` is lean's `auth.authBkts`; `AonDraft.srvRestOwn`'s
+  `on` arm is lean's owner (the cluster's buckets idle, the others a part, `memIdOk`/`restPresent`)
+  with the auth buckets left out of the part (`restNonAuth`: neither the cluster's nor the auth ones);
+- durability and J8b: the raft-advanced channel's bounds at the storage key `nk`
+  (`nodeAppliedLb`/`nodeCommitLb`, no `storDL`), as `applyAll.specSnap`'s;
+- M2's item 15 and #7-cmp: `imageAtOn` by `keyImageM γk.cmp` at records of `crevOf`, `dbImageOn`
+  with the KV log's receipt (`⧖ logCh`); `SnapImageFactsOn` with the records `r` (`hkI` by
+  `keyImageM d.cm`, `crev`); `snapRecv_imageOn` with `hkb`, giving the restored log's receipt and
+  the two permits; `applySnapshot.specSnapOn` without `d.cm = false`, with `r`/`hcc`/`keyImageM`,
+  `halbi`, `threadTok` (pre and post), `srvKVCloserW`, the receipt and the permits;
+  `srvSnapAppliedOn` at `r` (`d'.cm = d.cm`, `x'.crev = r.crev`, `srvKVCloserW`).
+- Kept: `applyAll.specSnapOn`'s `E.cmp = false` (with auth on no server spec runs the compactor:
+  `NewServer.specG`'s `cmp → on = false`, the apply plan's stage 5 drops both). `imageAtOn`'s
+  records at `crevOf` then need, in the mode off, `crevOf = -1` of an auth-on log, which the auth-on KV
+  invariants must give as `srvKVInvs` gives it (`imageAt_off`): a proof obligation of
+  `snapRecv_imageOn`, to check.
+- Checked, unchanged: `authSchemaSrv`'s restatement (lean's boot premise has the same shape; the
+  `NewAuthStore` axiom now takes a part of a bucket set and the auth buckets in the table, which the
+  server's proof passes); the snapshot clause's `bkRTx` (after the install `snapWalkPost` still gives
+  one spare `bkRTx` beside the pool, `SnapApplyDefs.lean:138`); `srvSnapROAuth`'s delta; the Draft
+  names none of cluster-rows' rows or `request_delivered`.
+
+
 - Stale: the Draft predates J8b and the backend split (`a43af91055`): `rtHeldF` now carries
   `rtx ≠ null`; the per-bucket `rbOwnIn`/`rbLock` and the reader pool; J8b's `srvClusterOk`/`srvEnvOk`
   shifts (83's scratch note, copied to this session's scratchpad as `j8b-run_job_snap.md`). The user's
