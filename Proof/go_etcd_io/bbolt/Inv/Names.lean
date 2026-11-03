@@ -94,7 +94,8 @@ def poolN (N : Namespace) : Namespace := N .@ "pool"
 - `rbk`: `ghostMap Loc RHandle`, the reader's handles (auth in `txsInv`);
 - `nl`: `ghostMap Loc (Loc × Nat)`, the writer's node-location registry (persistent
   fragments, N3);
-- `done`: `ghostVar Bool`, the transaction is closed (½ `txsInv`, ½ the exclusive part). -/
+- `done`: `ghostVar Bool`, the transaction is closed (½ `txsInv`, ½ the exclusive part);
+- `pg`: `ghostMap Nat Unit`, the writer's page tokens (`txShape`, `Inv/Shape.lean`). -/
 structure TxNames where
   v : GName
   ex : GName
@@ -102,11 +103,13 @@ structure TxNames where
   rbk : GName
   nl : GName
   done : GName
+  pg : GName
   deriving Inhabited, DecidableEq
 
 instance TxNames.countable : Pos.Countable TxNames :=
-  countableOfLeftInverse (fun n => (n.v, n.ex, n.bk, n.rbk, n.nl, n.done))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun n => (n.v, n.ex, n.bk, n.rbk, n.nl, n.done, n.pg))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 /-- Where a read transaction's (`mmaplock`, `statlock`) reader-token pair comes from (round 4,
 N5): lent by the pool for a `threadTok`, or the writer side's spare pair (`freepages`). -/
