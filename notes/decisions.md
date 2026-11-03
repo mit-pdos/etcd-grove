@@ -30476,10 +30476,11 @@ no token to lend, and the loans' counted stocks failed the bounds gate. The user
 ticket**. Readers keep plain copies, as today. A realization backs `authRdN` copies (`2 ^ 7`, at least
 the 67 `NewServer` hands out) with as many reader slots of each backend (`authRdSlots`, a part of the
 backend's slot partition carved from the counted stock). The boot premise and the snapshot clause
-take those slots, and the old backend's lifecycle gives them back with its open share. This is sound
-in Go: a reader redeems its ticket inside the store's `RLock`, and `Recover` swaps the backend under
-`beMu`'s write lock, so no ticket is redeemed across the swap. `Recover` itself reads with the apply
-thread's copy of `RD`. The ripple stays inside the auth store, the backend's partition and the install. **F5's boot half**: checked, not chosen. The boot caller holds the auth buckets idle:
+take those slots for good: review R4 showed a permission check's read transaction can outlive
+`beMu` (`store.go:941-947`), so the old backend's release cannot give them back, and its `Close`
+needs only the open token. A ticket is redeemed at `lockedReadTx` against the backend current then,
+with a share of its currency `Cu`, which the release takes whole. The kit gives `authRdN - 1` copies
+in every mode, and the last copy is the apply thread's (in `authApplyResPre`), which `Recover` reads with. The ripple stays inside the auth store, the backend's partition and the install. **F5's boot half**: checked, not chosen. The boot caller holds the auth buckets idle:
 the lessor returns every tracked bucket idle (`NewServer.lean:586-587`, `rbOwnIn ⊤`), and the caller
 weakens it to a part (`NewServer.lean:741-742`) only because today's kit's pre takes one
 (`AuthSrv.lean:84`). So the restated boot clause, and the kit's pre, keep the idle

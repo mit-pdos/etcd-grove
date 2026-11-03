@@ -97,6 +97,16 @@ allowed as staged owners' matches, `etc/bounds-allow.txt`). N2 (the auth buckets
 N4: the boot weakening to a part is the caller's (`NewServer.lean:741-742`, the kit's pre taking a
 part, `AuthSrv.lean:84`): the kit's pre and post in "Impact on the base".
 
+**Review R4 (2026-11-03, at `7cb799c4b8`, `scratchpad/aon-review-R4.md`)** of the ticket: the holders
+fit (`NewServer`'s 67 within `authRdN`), a ticket redeemable against the current backend (a share of
+`Cu` at `lockedReadTx`), the glue an exact round trip. **F1**: the release could not give back the
+old backend's slots (a check's read transaction outlives `beMu`, `store.go:941-947`; `Close` needs
+only the open token): the release is the open share again, the slots the realization's for good.
+**F2**: the kit needs `authRdN + 1` tickets (the supply and `authApplyResPre`'s): the supply is
+`authRdN - 1` copies, in every mode (N2: no mode split, no `actualMaxReaders` stock). **F3** (Impact):
+the carved slots carry no open share, which the close goroutine reassembles: kept with the half's
+holder (a three-way `bOpen_one_pool`). N1 (stale texts), N3 (`SnapRO.lean:394` in Impact) done.
+
 **Open, for the user before the Freeze:**
 - ~~F8~~ **Decided (2026-11-03, the user's go-ahead after the measurement): #7-on (b) in this stage.**
   The image certificate by the **cluster's** auth mode: in the merge `SrvRaft` gains a field
@@ -123,7 +133,7 @@ part, `AuthSrv.lean:84`): the kit's pre and post in "Impact on the base".
   ∃ γa, E.authMode = .on γa` (lean's has no mode premise: its rows force `off`).
 - ~~R2's N4~~ **Decided (2026-11-03): the loans in this stage; superseded the same day after R3's F2:
   `R` a ticket** (R3's record above). Drafted: `authRdN`, `authRdSlots`, `AonDraft.authRdSupply M RD`
-  (the kit's post: `actualMaxReaders` copies of `RD` off, `authRdN` on). In "Impact on the base".
+  (the kit's post: `authRdN - 1` copies of `RD` in every mode, after R4). In "Impact on the base".
 - ~~F5's boot half~~ **Checked (2026-11-03): the idle form.** The boot caller has the auth buckets idle
   (the lessor's `rbOwnIn ⊤`, `NewServer.lean:586-587`; the caller weakens it to a part,
   `NewServer.lean:741-742`, only because the kit's pre takes one, `AuthSrv.lean:84`), so the boot
@@ -746,13 +756,17 @@ not a false claim about Go) and the reader-slot count (S9).
   (`ApplyAllSnap.lean`, `SnapApply*.lean`: one proof, the mode split inside), `EtcdServer__run.lean`
   (`run_job_snap` and the auth-on site through `applyAll.specSnapM`), `Link.lean`; the interface diff.
 - N4 (`R` a ticket): `storage/backend/RdPool.lean` (the partition `rdPoolN + authRdN + rdStockN =
-  actualMaxReaders`: `rdStockN`'s value drops by `authRdN`, `rdStockN_val` and the mvcc arithmetic
-  over it, `newPost_pool` splitting off the auth share), `AuthSrv.lean` (`authStoreKit`'s pre: the
-  idle `rbOwnIn … authBkts` and `authRdSlots`; its post: `authRdSupply M RD` for the copies),
+  actualMaxReaders`: `rdStockN_val` 805306367 → 805306239, its `omega` uses need a few hundred at
+  most; `newPost_pool` splitting off the auth share, whose `authRdN` open shares stay with the
+  half's holder: a three-way `bOpen_one_pool`, R4's F3; `SnapApplyWalk.lean:651-658`'s close
+  goroutine and `BootBackend.lean` with it), `AuthSrv.lean` (`authStoreKit`'s pre: the idle
+  `rbOwnIn … authBkts` and `authRdSlots`; its post: `authRdSupply RD` for the copies; an allow entry
+  for its stock or a baseline bump, `etc/bounds-allow.txt`), `SnapRO.lean:394` (the auth buckets in
+  the table beside `alarmBI`, R3's N2),
   `NewServer.lean` (`:741-742` the idle form passed on; `:831-836`: `authRdN` copies on, the first into
   `authApplyResPre`), the snapshot path's new backend (`SnapApplyWalk.lean`: its auth share to the
-  snapshot clause) and the old one's close goroutine (the slots back with the open share). The
-  serving slots, the client package and the examples are unchanged.
+  snapshot clause; the old one's slots stay the realization's). The serving slots, the client
+  package and the examples are unchanged.
 
 - `authSchemaSrv`: `etcdserver/AuthSrv.lean` (`authStoreKit_on`, `newAuthStore_on`, `authSrvTP_on`:
   re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn` (idle), `authSucc`, the

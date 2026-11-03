@@ -677,7 +677,7 @@ end bk
 
 - **The store's `R`** is fixed at the store's construction (`beP`, the readers' `authRd`), so the
   snapshot clause is produced by the boot premise, at the boot's `R`, and carried (TaDa).
-- **`Recover`'s own read** needs one `R`: lent by the clause against the new backend's read token.
+- **`Recover`'s own read** needs one `R`: the apply thread's copy of `RD` (in `authApplyResPre`).
 - **The open share** `authOpenQ` of every server backend: a quarter, out of the apply thread's half
   (which keeps the other quarter); the old backend's comes back at its release, for its `Close`. -/
 
@@ -728,21 +728,21 @@ on. The server hands out 67 copies of `RD` (`NewServer.lean:831-836`: the auth a
 @[word_unfold] def authRdN : Nat := 2 ^ 7
 
 /-- **The auth store's reader slots of the backend `d`** (N4): `authRdN` of its reader slots, which
-the boot premise and the snapshot clause hand the realization, and the old backend's lifecycle gives
-back at its release (with its open share, for its `Close`). A ticket `R` is redeemed inside the
-store's `RLock` against a slot of the backend current then; an install holds `beMu`'s write lock,
-so no ticket is redeemed across it, and the same `R` works on the new backend. -/
+the boot premise and the snapshot clause hand the realization for good (review R4's F1: a permission
+check's read transaction may outlive `beMu`, `store.go:941-947`, so the release cannot give them
+back; `backend.Close` takes only the open token, which the slots carry no share of). A ticket `R` is
+redeemed against a slot of the backend current at `lockedReadTx` (with a share of its currency
+`Cu`, which the release takes whole), so the same `R` works on every backend. -/
 def authRdSlots (d : mvcc.KBReal) : IProp GF :=
   iprop([∗list] _x ∈ List.replicate authRdN (), backend.rdTok d.γB d.P d.be)
 
-/-- **The auth store's reader supply, by the mode** (N4): what `authStoreKit`'s post gives the
-server in place of today's `actualMaxReaders` copies of `RD`. Off, the copies (as today: no snapshot
-moves `R`). On, `authRdN` copies of `RD`: plain copies of the ticket, which the readers keep as
-long as they like (a gRPC slot, the apply thread's `kvOwn`, the compactor), as today. -/
-def AonDraft.authRdSupply (M : auth.AuthMode) (RD : IProp GF) : IProp GF :=
-  match M with
-  | .on _ => iprop([∗list] _x ∈ List.replicate authRdN (), RD)
-  | _ => iprop([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD)
+/-- **The auth store's reader supply** (N4; review R4's F2 and N2): what `authStoreKit`'s post gives
+the server in place of today's `actualMaxReaders` copies of `RD`, in every mode: `authRdN - 1` plain
+copies of the ticket, which the readers keep as long as they like (a gRPC slot, the apply thread's
+`kvOwn`, the compactor), as today; the `authRdN`-th is the auth applier's, in `authApplyResPre`
+(`Recover` reads with it). `NewServer` takes 66 of them. -/
+def AonDraft.authRdSupply (RD : IProp GF) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate (authRdN - 1) (), RD)
 
 /-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
@@ -753,8 +753,8 @@ succession right (the previous backend retired), the client's idle half of the a
 share of its reader slots (`authRdSlots`): schema's
 auth backend `abl` over it meets, for fresh names `γc`, the guarded read contract at `R`, the write
 contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
-the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share and the
-slots until the release). The readers' copies of `R` (tickets, the boot premise's) work on it
+the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share until
+the release, and the slots for good). The readers' copies of `R` (tickets, the boot premise's) work on it
 unchanged. The client keeps the other tracked buckets. -/
 def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
@@ -770,7 +770,7 @@ def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ auth.authWTok γc ∗
-      auth.authBkLife γa γc iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d))
+      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ))
 
 instance authSchemaSnap_persistent (γa : auth.AuthNames) (R : IProp GF) :
     Persistent (authSchemaSnap (GF := GF) γa R) := by
@@ -817,7 +817,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
           go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
       auth.authWTok γc ∗ auth.authPubTok γa ∗
-      auth.authBkLife γa γc iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d) ∗
+      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       mvcc.csContract P f Pre Q Post ∗
       ([∗list] _x ∈ List.replicate authRdN (), R) ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
@@ -861,7 +861,7 @@ the apply thread's write token on the current backend `γc` (`authWHeld`: `T` an
 name), the publication quarter, the backend's **lifecycle** (its retirement), the **hook clause**
 (`authWAtHook`), the admin steps at any hook (`authStepsAny`), the provider's admin share and the
 auth applier's copy of `RD` (N4: what `Recover` reads the new backend with; `NewServer.lean:831`'s
-first copy). The lifecycle's release gives back the open share and the store's reader slots.
+first copy).
 (Boot's form adds the token rights' empty authority, `ghostMapAuth γa.fresh`, as today's.) -/
 def AonDraft.authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
     (d : mvcc.KBReal) (RD : IProp GF) : IProp GF :=
@@ -870,7 +870,7 @@ def AonDraft.authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthStat
       (be : GoInterface) (b : Nat),
       auth.authOwn (.on γa) hs ∗ authFuelB hs b ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f0 (auth.authWTok γc) ∗ auth.authWHeld γa γc ∗
-      auth.authPubTok γa ∗ auth.authBkLife γa γc iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d) ∗
+      auth.authPubTok γa ∗ auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       authWAtHook γa d γc ∗ authStepsAny stl γa RD ∗ auth.tpAdmin stl (.on γa) ∗ RD ∗
       ⌜hs.getLast? = some st⌝)
   | _ => iprop(True)
@@ -896,8 +896,8 @@ client's idle half of its auth buckets `r` holding `A'`'s state (`rbOwnIn … au
 keeps the other buckets' half), its open share for the realization, and the snapshot clause at the
 store's `R` (`RD` the checks' reader over it; `Recover` reads with the apply thread's copy, N4):
 after `Recover`, the store on the new backend (`authBeOn`), the apply thread's auth resource on it at
-`A'`'s state, and **the old backend's open share and the store's reader slots of it** (after an
-update: its release, for the close goroutine; decision 3c). -/
+`A'`'s state, and **the old backend's open share** (after an update: its release, for the close
+goroutine; decision 3c; its reader slots stay the realization's, R4's F1). -/
 abbrev authRecoverOn.spec : Prop :=
   ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
     (r : GMap GoString backend.BktData) (γa : auth.AuthNames) (R RD : IProp GF) (E : apply.AEnv GF)
@@ -919,7 +919,7 @@ abbrev authRecoverOn.spec : Prop :=
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |={⊤}=> (authBeOn ast dn.be ∗
       AonDraft.authApplyResPre (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn RD ∗
-      backend.bOpen dO.γB authOpenQ ∗ authRdSlots dO) }}
+      backend.bOpen dO.γB authOpenQ) }}
 
 end premise
 
