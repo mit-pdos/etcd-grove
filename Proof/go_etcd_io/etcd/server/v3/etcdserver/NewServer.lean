@@ -1834,7 +1834,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
       isplit
       · iframe Hkci Hsrl Hkvinv Htie HcpIs
-        ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+        ipureintro
+        -- (#7-on) auth on, the compaction mode off (`specG`'s compactor premise)
+        refine ⟨Hγw.2.2.2.2.trans Hcok.symm, Hcmp0.trans ?_⟩
+        cases hc : cmp
+        · rfl
+        · rw [hc] at Hacr; simp at Hacr
       · iapply srvUberOn_of_kit hKit
         iPkgInit
   isplitr

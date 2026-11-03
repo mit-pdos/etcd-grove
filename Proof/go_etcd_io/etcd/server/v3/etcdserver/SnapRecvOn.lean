@@ -409,7 +409,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   have hz : uint.Z (W64 0) = 0 := rfl
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, #Hcp⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, #Hcp, -⟩
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩
@@ -539,6 +539,111 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   subst hre
   rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
   isplitr <;> iapply mvcc.crevPermAt_none
+
+/-- **The apply thread's KV ghost state jumps to a longer committed log, in the mode `on`**
+(`kv_cert_jump`'s counterpart): certified, at the mode-on model's state after `A'`. -/
+theorem kv_cert_jumpOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
+    (hE : ↑kvcN ⊆ E) (A A' : List EntryModel) (s : auth.AuthState × mvcc.Log) (hA : A <+: A')
+    (hlen : (kvModelOn γk st₀ A').length < 2 ^ 63) :
+    ⊢ kvCertInvOn (GF := GF) γ γk st₀ -∗ kvAppliedLOn γ γk st₀ A s -∗ srvRLogLb γ A' ={E}=∗
+      kvAppliedLOn γ γk st₀ A' (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') := by
+  iintro #Hinv Ha #Hlb
+  iunfold kvAppliedLOn at Ha
+  icases Ha with ⟨#HA, Hhi, #Hc, %Hl⟩
+  have hs2 : s.2 = kvModelOn γk st₀ A := by unfold kvModelOn; rw [Hl]
+  have hq : (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) A' :=
+    rfl
+  rw [hs2]
+  have hpre : kvModelOn γk st₀ A <+: kvModelOn γk st₀ A' := kvModelOn_prefix γk st₀ hA
+  by_cases heq : (kvModelOn γk st₀ A).length = (kvModelOn γk st₀ A').length
+  · have he : kvModelOn γk st₀ A = kvModelOn γk st₀ A' := hpre.eq_of_length heq
+    imodintro
+    iunfold kvAppliedLOn
+    simp only
+    rw [← he]
+    iframe Hlb Hhi Hc
+    ipureintro; rw [he]; exact hq
+  · have hlt : (kvModelOn γk st₀ A).length < (kvModelOn γk st₀ A').length := by
+      have := hpre.length_le; omega
+    iunfold kvCertInvOn at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
+    ihave %Hhe := ghostVar_agree γk.hi _ _ _ _ $$ Hhi Hhi'
+    have hfresh : C.lookup (W64 ((kvModelOn γk st₀ A').length : Int)) = none := by
+      cases h : C.lookup (W64 ((kvModelOn γk st₀ A').length : Int)) with
+      | none => rfl
+      | some l'' =>
+        obtain ⟨h1, h2, h3, -⟩ := Hok.1 _ _ h
+        have := w64_len_inj _ _ hlen h3 h2
+        omega
+    imod ghost_map_insert_persist _ (kvModelOn γk st₀ A') hfresh $$ HC with ⟨HC, #He⟩
+    imod ghostVar_update_halves (kvModelOn γk st₀ A').length γk.hi _ _ $$ Hhi Hhi' with ⟨Hhi, Hhi'⟩
+    ihave %Hcmp := srvRLogLb_prefix γ A' Lb $$ [Hlb HLb]
+    · iframe Hlb HLb
+    have hold : ∀ n l2, C.lookup n = some l2 → l2.length ≤ (kvModelOn γk st₀ A').length := by
+      intro n l2 hn
+      have := (Hok.1 n l2 hn).1
+      omega
+    imod Hclose $$ [HC Hhi'] with -
+    · inext
+      rcases Hcmp with h | h
+      · iexists C.insert (W64 ((kvModelOn γk st₀ A').length : Int)) (kvModelOn γk st₀ A'),
+          (kvModelOn γk st₀ A').length, Lb
+        iframe HC Hhi' HLb
+        ipureintro
+        refine ⟨?_, Hok.2⟩
+        intro n l2 hn
+        rw [GMap.lookup_insert_Some] at hn
+        rcases hn with ⟨rfl, rfl⟩ | ⟨-, hn⟩
+        · exact ⟨Nat.le_refl _, rfl, hlen, A', h, rfl⟩
+        · obtain ⟨-, h2, h3, A'', h4, h5⟩ := Hok.1 n l2 hn
+          exact ⟨hold n l2 hn, h2, h3, A'', h4, h5⟩
+      · iexists C.insert (W64 ((kvModelOn γk st₀ A').length : Int)) (kvModelOn γk st₀ A'),
+          (kvModelOn γk st₀ A').length, A'
+        iframe HC Hhi' Hlb
+        ipureintro
+        refine ⟨?_, Hok.2⟩
+        intro n l2 hn
+        rw [GMap.lookup_insert_Some] at hn
+        rcases hn with ⟨rfl, rfl⟩ | ⟨-, hn⟩
+        · exact ⟨Nat.le_refl _, rfl, hlen, A', List.prefix_refl _, rfl⟩
+        · obtain ⟨-, h2, h3, A'', h4, h5⟩ := Hok.1 n l2 hn
+          exact ⟨hold n l2 hn, h2, h3, A'', h4.trans h, h5⟩
+    imodintro
+    iunfold kvAppliedLOn
+    simp only
+    iframe Hlb Hhi
+    isplitr
+    · iunfold kvCert; iright; iexact He
+    ipureintro; exact hq
+
+/-- **The receiver's KV ghost state jumps to the image's log, in the mode `on`**
+(`snapRecv_kv_jump`'s counterpart). -/
+theorem snapRecv_kv_jumpOn (E : apply.AEnv GF) (γr : ReadNames) (A A' : List EntryModel)
+    (x : apply.ApplyKV) (sa : auth.AuthState) (hA : A <+: A')
+    (hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63) :
+    ⊢ srvKVInvsOn (GF := GF) E γr srvAuthSt0 -∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗
+      srvRLogLb γr.raft A' ={⊤}=∗
+      ⌜x.chain = γr.kv.ch0⌝ ∗ mvcc.certOk E.γ (kvModelOn γr.kv srvAuthSt0 A') ∗
+      kvAppliedLOn γr.raft γr.kv srvAuthSt0 A'
+        (srvAuthAtLog γr.kv srvAuthSt0 A', kvModelOn γr.kv srvAuthSt0 A') := by
+  iintro #Hinvs Ha #Hlb
+  iunfold srvKVInvsOn at Hinvs
+  icases Hinvs with ⟨-, #HcI, -, -, %Hcok, -⟩
+  iunfold kvAppliedOn at Ha
+  icases Ha with ⟨Ha, %Hch⟩
+  imod kv_cert_jumpOn γr.raft γr.kv srvAuthSt0 ⊤ (fun _ _ => CoPset.mem_full) A A' (sa, x.log) hA hlen
+    $$ HcI Ha Hlb with Ha
+  iunfold kvAppliedLOn at Ha
+  icases Ha with ⟨#HB, Hhi, #Hc, %Hl⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hch
+  isplitr
+  · iapply kvCert_certOk γr.kv E.γ Hcok $$ Hc
+  iunfold kvAppliedLOn
+  iframe HB Hhi Hc
+  ipureintro; exact Hl
 
 end lemmas
 

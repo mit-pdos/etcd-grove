@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MergedImageOn
 
 @[expose] public section
 
@@ -374,15 +375,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
             imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ ci TM E ρ
                 γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
+                (fun _ => False) (fun _ => True) emp (fun _ h => h.elim)
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObsM E.authMode γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+              iapply bkLendW_none
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' _)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
+            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, -, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
             icases srvApplyKV_idxCert s E ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
             ihave #Hrcx := mvcc.idxCert_rcpt E.γ.idx x'.log $$ Hicx
@@ -414,7 +416,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
             · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0)
               iframe Hsrv Hka Hrcx; ipureintro
-              exact mergedObs_of_M ((auth.AuthMode.isOn_false_iff _).1 Hoff) HQd
+              exact mergedObs_of_M ((auth.AuthMode.isOn_false_iff _).1 Hoff) HQd.1
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -767,20 +769,24 @@ theorem EtcdServer.applyAll.wp_proofOn
             have hpos : 0 < uint.Z ai' := by word
             (try wp_auto)
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
-            icases srvApplyKVOn_core s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HKVk⟩
+            icases srvApplyKVOn_coreA s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
+            -- (#7-on) the auth row lends the auth buckets to the window
+            ihave HL := srvAuthApplyResB_lend s E sa' γa hM $$ HAr
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
             imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe true s γ ci TM E ρ
                 γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
+                auth.authBkts (authBucketsAt sa') (srvAuthApplyResB s E sa') authBkts_rest
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2 HL]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObsM E.authMode γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+            · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS HL
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' _)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
-            ihave HKV := HKVk $$ HKVc
+            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, HAr, %Hst3⟩
+            ihave HKV := HKVk $$ HKVc HAr
+            icases srvApplyKVOn_idxCert s E ρ.wait x' sa' $$ HKV with ⟨HKV, #Hicx, -⟩
+            ihave #Hrcx := mvcc.idxCert_rcpt E.γ.idx x'.log $$ Hicx
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -804,12 +810,15 @@ theorem EtcdServer.applyAll.wp_proofOn
                 hltA Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
-            -- (S2's `merged_image`) the image's certificate
-            -- with auth on, the KV log is the mode-on model's, not the image `srvNet` carries
-            -- (`merged_image` is of the mode off): open (`notes/decisions.md`, "applyAll's merge
-            -- branch (S1)")
-            ihave #Himg : □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ []
-            · sorry -- SNAPSHOT-SORRY #7-on: the merged snapshot's image with auth on
+            -- (#7-on's `merged_imageOn`) the image's certificate: the auth buckets the lent part's
+            ihave Hmi : |={⊤}=> kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
+                □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
+            · iapply (merged_imageOn s γ ci TM E ρ γr γa ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
+                Hkv0)
+              iframe Hsrv Hka Hrcx; ipureintro
+              obtain ⟨h1, r, hQ, hr⟩ := HQd
+              exact ⟨h1, authBucketsAt_congr sa' D r hr hQ⟩
+            imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
             · iframe Hml Hsm' Hrs Himg

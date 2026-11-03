@@ -914,6 +914,53 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   · iexact Har
   iexact Hw
 
+/-- **The mode-`on` row lends its shared part and its auth row** (`srvApplyKVOn_core`'s, with the
+auth row `srvAuthApplyResB`, which lends the auth buckets to the merged snapshot's window: #7-on). -/
+theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗ srvAuthApplyResB s E st ∗
+        (srvApplyKVCore s E γw x ua -∗ srvAuthApplyResB s E st -∗ srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  iexists ua
+  isplitl [Hua Hkv Hbo Hra Hw]
+  · iunfold srvApplyKVCore
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hap
+    isplitl [Hkv]
+    · iexact Hkv
+    isplitl [Hbo]
+    · iexact Hbo
+    isplitl [Hra]
+    · iexact Hra
+    iexact Hw
+  isplitl [Har]
+  · iexact Har
+  iintro Hc Har
+  iunfold srvApplyKVCore at Hc
+  icases Hc with ⟨Hua, -, Hkv, Hbo, Hra, Hw⟩
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [Hra]
+  · iexact Hra
+  isplitl [Har]
+  · iexact Har
+  iexact Hw
+
 /-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
 theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
     (x : apply.ApplyKV) (st : auth.AuthState) :

@@ -596,6 +596,62 @@ theorem ownFuT_lendC (stl bel : Loc) (γa : auth.AuthNames) (P : IProp GF) (f : 
   iexists be
   iframe Hbe Hok HT Hon
 
+/-- **The apply thread's auth row lends the auth buckets** (#7-on): in the mode `on`, its write
+token and its half of the history, at the latest state `st`, borrow the auth buckets' part
+(`authInstallPre`'s `authBkLend`), which hold `st`. -/
+theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState)
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    srvAuthApplyResB (GF := GF) s E st ⊢
+      bkLendW E authBkts (authBucketsAt st) (srvAuthApplyResB s E st) := by
+  iintro H
+  unfold bkLendW
+  iintro %d0 %hd0
+  iunfold srvAuthApplyResB at H
+  icases H with ⟨%stl, %d, %hd, #Hsf, Har, Hrw, Hro⟩
+  rw [hd0] at hd
+  obtain rfl := Option.some.inj hd
+  rw [hM]
+  simp only [authApplyResB]
+  icases Har with ⟨%hs, %P, %f0, %T, %be, Hfu, Htie, Hwok, Hwh, Hlife, Hpub, Htp, %Hl, Hwat,
+    Hsteps, #Hins, HRD⟩
+  ihave #Hins' := Hins
+  iunfold authInstallPre at Hins'
+  icases Hins' with ⟨-, -, -, #Hlend⟩
+  iunfold auth.authOwnFu at Hfu
+  icases Hfu with ⟨Hown, Hfuel⟩
+  simp only [auth.authOwn]
+  icases Hown with ⟨Hhh, Hcur⟩
+  iunfold auth.authWHeld at Hwh
+  icases Hwh with ⟨Hwt, Hbc⟩
+  iunfold authBkLend at Hlend
+  imod Hlend $$ %hs %st %Hl Hwt Hhh with ⟨%r, Hp, %Hr, Hback⟩
+  imodintro
+  iexists r
+  iframe Hp
+  isplitr
+  · ipureintro; exact Hr
+  iintro Hp
+  imod Hback $$ Hp with ⟨Hwt, Hhh⟩
+  imodintro
+  iunfold srvAuthApplyResB
+  iexists stl, d0
+  iframe Hsf Hrw Hro
+  isplitr
+  · ipureintro; exact hd0
+  rw [hM]
+  simp only [authApplyResB]
+  iexists hs, P, f0, T, be
+  iframe Htie Hwok Hlife Hpub Htp Hwat Hsteps Hins HRD
+  isplitl [Hhh Hcur Hfuel]
+  · iunfold auth.authOwnFu
+    iframe Hfuel
+    simp only [auth.authOwn]
+    iframe Hhh Hcur
+  isplitl [Hwt Hbc]
+  · iunfold auth.authWHeld
+    iframe Hwt Hbc
+  ipureintro; exact Hl
+
 end lemmas
 
 end EtcdGrove

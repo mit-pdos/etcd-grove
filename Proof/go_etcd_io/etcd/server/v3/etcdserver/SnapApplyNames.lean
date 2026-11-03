@@ -161,7 +161,7 @@ theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) (d d' : mvcc.K
         authHistTie E γr srvAuthSt0 := rfl
     simp only [srvAtomicsM, srvKVInvsM, srvKVInvsOn]
     rw [e1, e2]
-    iintro ⟨#Ha, #Ht, ⟨#Hk, #Hc, #Hr, #Hti, %Hcok, #Hcp⟩, #Hu⟩
+    iintro ⟨#Ha, #Ht, ⟨#Hk, #Hc, #Hr, #Hti, %Hcok, #Hcp, %Hcm⟩, #Hu⟩
     isplitr; · iexact Ha
     isplitr; · iexact Ht
     isplitr
@@ -171,9 +171,11 @@ theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) (d d' : mvcc.K
       isplitr; · iexact Hti
       isplitr
       · ipureintro; exact Hcok
-      iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
-        (kvCmpPermit γr.kv))
-      iexact Hcp
+      isplitr
+      · iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
+          (kvCmpPermit γr.kv))
+        iexact Hcp
+      ipureintro; exact Hcm
     iexact Hu
 
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :

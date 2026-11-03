@@ -275,7 +275,7 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     iintro #H
     ihave #Hon := srvKVInvsM_onPart s E γr $$ H
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok, #Hcp⟩
+    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok, #Hcp, -⟩
     isplitl []
     · iexact Hk
     isplitl []

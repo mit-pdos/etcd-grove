@@ -462,15 +462,17 @@ theorem EtcdServer.applyAll.wp_proofSnap
             icases srvApplyKV_core s E' ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ' ci TM' E'
                 ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci' hpos hlenZ
+                (fun _ => False) (fun _ => True) emp (fun _ h => h.elim)
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
+              iapply bkLendW_none
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' (mergedObsM E'.authMode γr E'.cmp sv.Metadata'.Index' A' x'.log x'.crev))
+                RS RS' _)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
+            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, -, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
             icases srvApplyKV_idxCert s E' ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
             ihave #Hrcx := mvcc.idxCert_rcpt E'.γ.idx x'.log $$ Hicx
@@ -496,7 +498,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
             -- (S2's `merged_image`) the image's certificate
             imod merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ ⟨hc0, hlog0⟩
               $$ [Hka] with ⟨Hka, #Himg'⟩
-            · iframe Hsrv1 Hka Hrcx; ipureintro; exact mergedObs_of_M hoff' HQd
+            · iframe Hsrv1 Hka Hrcx; ipureintro; exact mergedObs_of_M hoff' HQd.1
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                 sv.Metadata'.Term' Dm Hty
               $$ [Hml Hsm' Hrs Himg'] with Hbun

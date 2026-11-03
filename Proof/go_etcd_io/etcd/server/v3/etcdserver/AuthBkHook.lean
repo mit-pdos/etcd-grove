@@ -77,6 +77,15 @@ instance authBkLend_persistent (γa : auth.AuthNames) (γc : auth.AuthBkNames) (
     Persistent (authBkLend (GF := GF) γa γc d) := by
   unfold authBkLend; infer_instance
 
+/-- **A lend of tracked buckets of the environment's backend** (#7-on, 2026-11-03): at the
+backend `d` of `E`'s store, a part of the buckets `SA` at contents `r` with `QA r`, given back for
+`RA`. What the merged snapshot's window observes the auth buckets with in the mode `on`
+(`srvAuthApplyResB_lend`, from `authBkLend`); nothing in the mode `off` (`bkLendW_none`). -/
+def bkLendW (E : apply.AEnv GF) (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop)
+    (RA : IProp GF) : IProp GF :=
+  iprop(∀ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ={⊤}=∗ ∃ r : GMap GoString backend.BktData,
+    ⌜QA r⌝ ∗ backend.rbPart d.γB SA r ∗ (backend.rbPart d.γB SA r ={⊤}=∗ RA))
+
 end defs
 
 end EtcdGrove
