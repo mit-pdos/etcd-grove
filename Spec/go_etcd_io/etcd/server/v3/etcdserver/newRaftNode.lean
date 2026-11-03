@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
-    (ms : Loc) (γs : MemStorNames) (cv : raftNodeConfig),
+    (ms : Loc) (γs : MemStorNames) (key : GName) (cv : raftNodeConfig),
   cv.lg' ≠ null →
   cv.heartbeat' ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -48,7 +48,8 @@ abbrev newRaftNode.spec : Prop :=
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,
-        ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs⌝ ∗
+        ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
+          γ.key = key⌝ ∗
         rnBuilt E γ r cv }}
 
 end spec

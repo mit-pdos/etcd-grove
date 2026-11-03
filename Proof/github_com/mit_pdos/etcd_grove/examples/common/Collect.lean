@@ -31,7 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Collect.spec (GF := GF) (hG := hG) := by
-  intro CS Ok I F A wch γ upTo hI0 hP Hce Hresp
+  intro CS Ok I F A wch γ upTo c0 hI0 hP Hce Hresp
   haveI : ∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
     Persistent (Ok c c' v r) := hP
   wp_start as ⟨#Hw, Hcons, #HA⟩
@@ -55,7 +55,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
       "%Hc" ∷ ⌜I evs0.length c ∧ ∀ e, evs0.getLast? = some e → lv = e.Rev'⌝ ∗
       "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ F i e :
       IProp GF) $$ [evs last Hcons]
-  · iexists [], slice.nil, _, 0, W64 0
+  · iexists [], slice.nil, _, 0, c0
     iframe
     isplitr
     · iapply ownSlice_nil

@@ -1,60 +1,68 @@
 ---
-upstream: unchecked
-checked: 2026-10-27
+upstream: none
+checked: 2026-11-01
 links: []
+blocks-proof: no
 ---
 
-# client-go's `GetIndexers` returns the store's indexers' map, read and written under different rules
+# client-go: `Indexer.GetIndexers` races with `AddIndexers` (concurrent map read and write)
 
-- **Status**: a data race (an unstated precondition of `GetIndexers`). `threadSafeMap.GetIndexers`
-  returns the store's own `Indexers` map, reading the field without the store's lock, and the
-  caller then reads the map (`GetIndexers()[name]`); `AddIndexers` writes the same map under the
-  store's write lock (`storeIndex.addIndexers`: `i.indexers[k] = v`). A `GetIndexers()` read
-  concurrent with an `AddIndexers` is a concurrent map read and write (Go may abort the process:
-  `fatal error: concurrent map read and map write`). Since `sharedIndexInformer.AddIndexers` no
-  longer refuses a started informer (it checks only `stopped`, `shared_informer.go:983`), the two
-  can run concurrently on a shared informer: two controllers sharing the pod informer each run
-  `pkg/controller`'s `AddPodNodeNameIndexer`/`AddPodControllerIndexer`, whose first step is the
-  unlocked `podInformer.GetIndexer().GetIndexers()[...]`, and the mutation cache's `ByIndex`
-  (`mutation_cache.go:235`) reads it on every call. Nothing in the API says the returned map must
-  not be read while indexers may be added, nor that it is the store's own map rather than a copy.
-- **Where**: `k8s.io/client-go/tools/cache/thread_safe_store.go` at the pinned
-  `v0.0.0-20261021054439-569675c57fa3`: `GetIndexers` (line 501, `return c.index.indexers`, no
-  lock), `AddIndexers` (505, under `c.lock.Lock()`) and `storeIndex.addIndexers` (155-167);
-  `store.go:317` (`cache.GetIndexers`), `index.go:50` (the interface's doc: "GetIndexers return the
-  indexers").
-- **What happens** (Go test against the pin, `go test -race`: `WARNING: DATA RACE`, write at
-  `storeIndex.addIndexers` `thread_safe_store.go:164`, previous read at the caller's map access):
+`GetIndexers` on a client-go `Indexer` (a shared informer's store, or `cache.NewIndexer`) returns
+the store's own indexers map, read without the store's lock, while `AddIndexers` writes that map
+under the lock. A caller reading the result (`GetIndexers()[name]`, as `pkg/controller`'s
+`AddPodNodeNameIndexer` does) while another goroutine adds indexers is a concurrent map read and
+write: the race detector reports it, and Go may abort the process (`fatal error: concurrent map
+read and map write`).
 
-  ```go
-  func TestGetIndexersRacesAddIndexers(t *testing.T) {
-      idx := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-      var wg sync.WaitGroup
-      wg.Add(2)
-      go func() {
-          defer wg.Done()
-          for i := 0; i < 1000; i++ {
-              _ = idx.AddIndexers(cache.Indexers{fmt.Sprintf("i%d", i):
-                  func(obj interface{}) ([]string, error) { return nil, nil }})
-          }
-      }()
-      go func() {
-          defer wg.Done()
-          for i := 0; i < 1000; i++ {
-              _ = idx.GetIndexers()["i0"] // as AddPodNodeNameIndexer does
-          }
-      }()
-      wg.Wait()
-  }
-  ```
-- **Expected**: `GetIndexers` returns a copy taken under the read lock (or is documented as
-  unsafe concurrently with `AddIndexers`).
-- **How the proof handles it**: `threadSafeMap.GetIndexers.spec` and `cache.GetIndexers.spec`
-  (`Spec/k8s_io/client_go/tools/cache/`) give only the map's location `γ.im`; the map's points-to
-  is the store lock's resource (`tsP`, `TSDefs.lean`), so no client can read the result without
-  the lock. The DaemonSet controller's `AddPod*Indexer` reads will need the store quiescent
-  (phase 5: before the informers start, no `AddIndexers` runs concurrently).
-- **Possible fixes**: in `GetIndexers`, `c.lock.RLock(); defer c.lock.RUnlock()` and return
-  `maps.Clone(c.index.indexers)`.
-- **Found**: 2026-10-27, specifying `GetIndexers` for the DaemonSet plan's phase 4
-  (`notes/k8s-daemonset-plan.md`): the result is a location whose contents the lock guards.
+**Expected:** `GetIndexers` should be safe to call concurrently with the store's other methods, as
+the store is documented to be
+([`ThreadSafeStore`](https://github.com/kubernetes/kubernetes/blob/v1.37.2/staging/src/k8s.io/client-go/tools/cache/thread_safe_store.go#L31-L34):
+"allows concurrent indexed access"), including `AddIndexers`, which "supports adding indexes after
+the store already has items" ([`Indexer`](https://github.com/kubernetes/kubernetes/blob/v1.37.2/staging/src/k8s.io/client-go/tools/cache/index.go#L50-L54));
+`SharedIndexInformer.AddIndexers` refuses only a stopped informer, not a started one.
+
+**Impact:** programs that add indexers to a running shared informer while another component of
+the same process reads its indexers: `pkg/controller`'s `AddPodNodeNameIndexer` and
+`AddPodControllerIndexer` (which check `GetIndexers()` before adding), and the mutation cache's
+`ByIndex` (`mutation_cache.go`, on every call). kube-controller-manager does not reach it: it
+builds all controllers, and so adds all their indexers, sequentially before starting the
+informers. Out-of-tree controllers that register indexers lazily, after start, can.
+
+**Reproduction:** `TestGetIndexersRacesAddIndexers` in
+[`issues/k8s-clientgo-getindexers-unlocked-map/getindexers_race_test.go`](k8s-clientgo-getindexers-unlocked-map/getindexers_race_test.go),
+copied into `tools/cache` of a writable copy of `k8s.io/client-go@v0.37.2` (Kubernetes v1.37.2, the
+latest release, 2026-11-01), go1.27.3 linux/amd64:
+
+```
+$ GOWORK=off GOFLAGS=-mod=mod go test -race ./tools/cache -run TestGetIndexersRacesAddIndexers -count=1
+==================
+WARNING: DATA RACE
+Read at 0x00c00032a000 by goroutine 11:
+  runtime.mapaccess2_faststr()
+  runtime.mapaccess1_faststr()
+
+Previous write at 0x00c00032a000 by goroutine 10:
+  runtime.mapassign_faststr()
+  k8s.io/client-go/tools/cache.(*storeIndex).addIndexers()
+      tools/cache/thread_safe_store.go:164 +0x87e
+  k8s.io/client-go/tools/cache.(*threadSafeMap).AddIndexers()
+      tools/cache/thread_safe_store.go:506 +0xe4
+  k8s.io/client-go/tools/cache.(*cache).AddIndexers()
+      tools/cache/store.go:346 +0x47
+```
+
+**Cause:** [`threadSafeMap.GetIndexers`](https://github.com/kubernetes/kubernetes/blob/v1.37.2/staging/src/k8s.io/client-go/tools/cache/thread_safe_store.go#L498-L500)
+returns `c.index.indexers` without taking `c.lock`, and hands out the map itself;
+[`storeIndex.addIndexers`](https://github.com/kubernetes/kubernetes/blob/v1.37.2/staging/src/k8s.io/client-go/tools/cache/thread_safe_store.go#L155-L167)
+writes the same map under the write lock.
+
+## Proof
+
+no: `threadSafeMap.GetIndexers`'s spec (`Spec/k8s_io/client_go/tools/cache/threadSafeMap__GetIndexers.lean`)
+gives only the map's location, whose contents the store lock guards; the DaemonSet controller's
+`AddPod*Indexer` reads need no concurrent `AddIndexers`, which kube-controller-manager meets (all
+indexers added before the informers start).
+
+## Fix
+
+In `GetIndexers`, take `c.lock.RLock()` and return `maps.Clone(c.index.indexers)`.

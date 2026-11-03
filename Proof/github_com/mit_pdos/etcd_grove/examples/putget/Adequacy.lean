@@ -19,10 +19,11 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 **Its hypotheses** (D19a; `notes/decisions.md`, D19r):
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
   bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
-  `apply.backendUnderQuota`, `storage.dbOpensOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
-  and the execution's length (`n + 2 ≤ 2 ^ 31`: the thread bound and, with `N = n + 1`, the
-  time-receipt bounds; `n + 7 ≤ backend.wbInit`: the backend's write-back budget `bootstrap`'s
-  contract gives);
+  `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
+  `storage.diskOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
+  and the execution's length (`n + 2 ≤ 2 ^ 28`: the thread bound and, with `N = n + 1`, the
+  time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
+  `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`putget`'s, the cache's), and the
   model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
@@ -58,7 +59,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 /-! ## The ghost-state bundle -/
 
@@ -84,7 +85,7 @@ instance putgetGF_gooseGpreS : GooseGpreS putgetGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := ((), PUnit.unit)
+  goosePreGExts := (⟨putgetGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetGF_allG
 
@@ -121,9 +122,11 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetProgram [config.walDirOf go!"putget.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -131,13 +134,13 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.putget.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) [config.walDirOf go!"putget.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
@@ -145,11 +148,12 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -⟩
+  iintro #Hinit Htok ⟨Has, -, Hds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putget.wp_Main (GF := putgetGF) n id ctxs boot Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok]
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   ipureintro
   rfl

@@ -30,7 +30,7 @@ a fresh slice of that key's strings, **at least one**. The last is narrower than
 copies whatever the context holds: it is true of the metadata grpc's transports put in a request's
 context (each key from at least one header field), not of a context built with
 `metadata.NewIncomingContext(ctx, MD{k: {}})`, on which etcd's `AuthInfoFromCtx` panics (`ts[0]`;
-`issues/etcd-auth-token-md-empty.md`). -/
+`nonissues/etcd-auth-token-md-empty.md`). -/
 abbrev metadata.FromIncomingContext.spec : Prop :=
   ∀ (ctx : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata }}

@@ -98,7 +98,7 @@ variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the store's cluster `γ` (persistent). -/
 def kvPeerOk (γ : Cluster) (id : w64) (nd : GoInterface) : IProp GF :=
-  iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+  iprop(∃ (n : Loc), ⌜γ.snapLoc id = none⌝ ∗ ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     isNode n γ kvRaftN id)
 
 instance kvPeerOk_persistent (γ : Cluster) (id : w64) (nd : GoInterface) :

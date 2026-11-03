@@ -39,8 +39,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 /-- See the file header. -/
 abbrev Collect.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (Ok : RespOk GF) (I : Nat → w64 → Prop)
-    (F : Nat → wev → IProp GF) (A : IProp GF) (wch : Loc) (γ : EtcdWatchNames) (upTo : w64),
-  I 0 (W64 0) →
+    (F : Nat → wev → IProp GF) (A : IProp GF) (wch : Loc) (γ : EtcdWatchNames) (upTo c0 : w64),
+  I 0 c0 →
   (∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
     Persistent (Ok c c' v r)) →
   (∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
@@ -53,7 +53,7 @@ abbrev Collect.spec : Prop :=
         ∃ kvv : EtcdKv, kvValAt e.kv kvv ∗ F (n + j) (evWev e kvv.value)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isRespChan wch γ Ok ∗ etcdWatchConsumer γ 0 (W64 0) ∗ □ A }}
+      isRespChan wch γ Ok ∗ etcdWatchConsumer γ 0 c0 ∗ □ A }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.Collect)) (Val #wch))
       (Val #upTo))
   {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok);

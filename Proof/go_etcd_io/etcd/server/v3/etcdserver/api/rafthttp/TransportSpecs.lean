@@ -49,7 +49,7 @@ theorem rafthttp.Transport.Start_ok
     $$ [Ht Hlsf HRL] as %err Hres
   · iframe; iframe #; ipureintro; exact Hpre
   iapply HΦ
-  icases Hres with (%He | ⟨%He, %c, %Hc, Hl, Hun, Htoks⟩)
+  icases Hres with (%He | ⟨%He, %c, %Hc, Hl, Htoks⟩)
   · ileft; ipureintro; exact He
   iright
   isplitr
@@ -97,18 +97,20 @@ theorem rafthttp.Transport.AddRemote_ok
       γn t c id us dq ss Hne Hpl Hown Hself Hpm HL
 
 theorem rafthttp.Transport.CutPeer_ok
-    (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG)) :
+    (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
+    (hR : rafthttp.remote.Pause.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) := by
   intro hpp γn t c id
   haveI := hpp
-  exact rafthttp.Transport.CutPeer_full hM γn t c id
+  exact rafthttp.Transport.CutPeer_full hM hR γn t c id
 
 theorem rafthttp.Transport.MendPeer_ok
-    (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG)) :
+    (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
+    (hR : rafthttp.remote.Resume.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) := by
   intro hpp γn t c id
   haveI := hpp
-  exact rafthttp.Transport.MendPeer_full hM γn t c id
+  exact rafthttp.Transport.MendPeer_full hM hR γn t c id
 
 theorem rafthttp.Transport.Handler_ok
     (hNPH : rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG))

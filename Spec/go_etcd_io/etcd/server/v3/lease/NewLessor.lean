@@ -31,7 +31,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 lessor at `lp` (`lessorInv`, its configuration and `expiredC`, a reader slot of its lock for the
 store, the live set empty, `SetCheckpointer` returns), and the contract of its backend for the
 lessor's writes (`lessorBackend`), at the backend's batch lock `Pk` and any frozen post-lock hook
-`f`, with one write-back token per write and the reader's open share lent (D14f).
+`f`, with one write-back token per write and the reader's open share lent (D14f). The `Lease`
+bucket is in the backend's table, tracked, none of its keys a hook's (`mvcc.leaseParams d.P`, a
+boot fact; 2026-11-01, E: so the bucket it creates is among the backend's ghost names `γ.rbD`, as
+`rbOwnIn` of the result needs); a part of any bucket set `S` containing it comes back idle
+(`rbPart d.γB S r` in, `rbOwnIn d.γB S (r.insert "lease" ∅)` out).
 
 Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the etcd pin):
 * `newLessor` allocates the lessor (its maps, `expiredC` a channel of 16, `stopC`, `doneC`), sets
@@ -39,15 +43,18 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   a non-negative one, `lessorCfg`; audit B4b, 2026-10-18), then `initAndRecover`:
   `b.BatchTx()`'s `LockOutsideApply` (no hook: the backend open, `bOpen`), `UnsafeCreateLeaseBucket`,
   `MustUnsafeGetAllLeases` (it decodes every record of the `Lease` bucket, a panic on an
-  undecodable one: the bucket is empty, the tracked buckets' half `backend.rbOwn d.γB r` says so,
-  D22, 2026-10-23; until then the opaque token `bkFresh d.γB "lease"`, consumed; the creation
-  needs the half, given back with the bucket present and empty), `Unlock` (one
-  write-back: the token), the heap's `Init`, and `b.ForceCommit()`, which commits first so its
-  `Unlock` finds nothing pending and does not write back (the backend's `ForceCommit.spec` charges
-  a token: the spec is coarser than the code). Its commit runs the backend's hooks (`isBackend`).
-  So the live set is empty (`leaseOwn γl [] ∅`), and so is the item map (`le.itemMap`, made
-  by `newLessor`: the lock holds half of it, the caller the other half, unit T3, L2b), with no
-  lease to revoke (`leaseRevokers γl []`).
+  undecodable one: the bucket is empty, a part of any bucket set `S` containing `lease`,
+  `backend.rbPart d.γB S r`, says so; `MustUnsafeGetAllLeases` reads through the batch transaction,
+  the writer's contents, which the part names; D22, 2026-10-23: until then the opaque token
+  `bkFresh d.γB "lease"`, consumed; the creation needs the part, given back with the bucket present
+  and empty), `Unlock` (one write-back: the token; after it the readers see the writer's contents
+  on every bucket, the Go basis: the part **idle**, `rbOwnIn`, `TestBksNewLessorIdle`), the heap's
+  `Init`, and `b.ForceCommit()`, which commits first so its `Unlock` finds nothing pending and does
+  not write back (the backend's `ForceCommit.spec` charges a token: the spec is coarser than the
+  code). Its commit runs the backend's hooks (`isBackend`). So the live set is empty (`leaseOwn γl
+  [] ∅`), and so is the item map (`le.itemMap`, made by `newLessor`: the lock holds half of it, the
+  caller the other half, unit T3, L2b), with no lease to revoke (`leaseRevokers γl []`).
+  (2026-11-01, the backend-auth-split stage: until then the whole writer's half `rbOwn`, in and out.)
   The range deleter `rd` is unset (`nil`): `newLessor` does not set it, and the caller owns the
   half of the field that the lock does not hold (`rdOwn γl func.nil`, unit T3).
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
@@ -62,16 +69,17 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
   predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
   bucket; `Recover`, not called, would reload it).
-* The backend's contract (`lessorBackend lp Pk f T R`, used by `Grant` and `Checkpoint` through
+* The backend's contract (`lessorBackend lp Pk f T R Rb`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
   `initAndRecover`; a hook bucket, `bridgeParams`, so the readers' view is unchanged) of an
   8-byte key never fails; `Unlock` writes back at most once (`wbTok`). The `Lease` bucket is a
-  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): the put takes the tracked buckets' client
-  half (`backend.rbOwn d.γB r`, the backend's `UnsafePut` of a tracked bucket: `rbPut`) and gives
-  it back with the entry put (`mvcc.rbSet r "lease" k v`; leases T3, L3c, 2026-10-27: until then
-  each write took the half, `srvRestRW d.γB`, in its write right, and the put's effect was not
+  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): the put takes the lease bucket's part
+  (`backend.rbPart d.γB (· = "lease")`, the backend's `UnsafePut` of a tracked bucket, per bucket:
+  `rbPut`; 2026-11-01, the backend-auth-split stage: until then the whole client half `rbOwn`) and
+  gives it back with the entry put (`mvcc.rbSet r "lease" k v`; leases T3, L3c, 2026-10-27: until
+  then each write took the half, `srvRestRW d.γB`, in its write right, and the put's effect was not
   stated); the lock and `Unlock` do not need it.
   (D22 receiver epochs, S7c, 2026-10-23) The lessor's lock holds half of `le.b`
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
@@ -91,25 +99,35 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   the map), and the lock's acquisition is the step that strips the guard's agreement's later (a
   server whose guard is `False`, `srvGrantGuard`, finds no lease: `lookupNil_of_guard`).
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
-  2026-10-17: the store's and the apply thread's lease owner each hold one). -/
+  2026-10-17: the store's and the apply thread's lease owner each hold one).
+* (lease-keys Part B, 2026-10-31) **The readers' model** (`lessorRdInv`, in `lessorInv`), ghost
+  state only: allocated before `γl`'s element, which pins its names (`lessorPinR`), it is the
+  lessor's history at the single snapshot `(∅, ∅)` (the fresh `leaseMap` and `itemMap`, empty as
+  above), split a quarter to the invariant `lessorRdN`, a quarter to the lock (`lessorMu`, at the
+  whole lock's fraction) and a half to the owner (`leaseClosers`), and the item-sets map empty, its
+  authority halved between the invariant and the owner; the invariant's `setsOk [(∅, ∅)] ∅` and
+  `histOk [(∅, ∅)]` hold trivially (no lease, no key). No Go state is read or written for it. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
-    (r : GMap GoString backend.BktData),
+    (S : GoString → Prop) (r : GMap GoString backend.BktData),
+  S go!"lease" → mvcc.leaseParams d.P →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
       ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      backend.rbOwn d.γB r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}
+      backend.rbPart d.γB S r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #cl)) (Val #cfg))
-  {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗ backend.rbOwn d.γB (r.insert go!"lease" ∅) ∗
+  {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗
+      backend.rbOwnIn d.γB S (r.insert go!"lease" ∅) ∗
       ∃ (lp : Loc) (γl : GName),
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗ lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
+      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
+      lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

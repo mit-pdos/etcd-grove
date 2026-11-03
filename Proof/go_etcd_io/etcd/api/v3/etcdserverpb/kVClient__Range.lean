@@ -30,7 +30,7 @@ theorem kVClient.Range.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Range.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx cd inp req k e opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok⟩
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -50,7 +50,7 @@ theorem kVClient.Range.wp_proof
     iexists req, k, e
     iframe
     iframe #
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hsz.1⟩
   ihave Hblank : pbRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbRangeResponse]
     iexact «$r0»
@@ -62,6 +62,7 @@ theorem kVClient.Range.wp_proof
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
   icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr

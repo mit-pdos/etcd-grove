@@ -480,6 +480,12 @@ def SnpKeep (ls ls' : LogState) : Prop :=
         ls'.ksn = ls.ksn ∧
           ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧ ls'.sn = ls.sn ∧ ls'.sg = ls.sg
 
+theorem lentStor_caught [package_sem : Assumptions] (b : Bool) (sn : StorNames) (st : Storage) (σ :
+    StorState) : lentStor b sn st σ ⊢ storCaught sn ∗ lentStor b sn st σ
+
+theorem ownRaftLog_caught [package_sem : Assumptions] (l : Loc) (ls : LogState) : ownRaftLog l ls ⊢
+    storCaught ls.sn ∗ ownRaftLog l ls
+
 theorem ownRaftLogW_intro [package_sem : Assumptions] (l : Loc) (lv : raftLog) (st : Storage) (σ :
     StorState) (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} {lt
     : Bool} {sn : StorNames} : lv.storage' = st → lv.committed' = ls.committed → lv.applied' =

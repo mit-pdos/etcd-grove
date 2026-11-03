@@ -12,8 +12,8 @@ if the watch did not report exactly the writes).
 putget's at `watchkv`'s configuration and the watch stream's transport premise), `Main(nw, nops)`
 does not panic and returns `Ok` (`0`: the check ran and passed), `Failed` (`1`: a step of the start
 failed) or `WatchEnded` (`2`: the watch ended before it reported every successful Put). The pure
-premises are putget's (`putget.Main.spec`), the thread bound below the watchable
-store's lock's reader limit (`2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
+premises are putget's (`putget.Main.spec`), the thread bound `2 ^ 28` (the server's, since
+J8a-6, 2026-11-01; until then the watchable store's lock's reader limit `2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
 the client watcher's (`isNewClient_watcher`'s).
 -/
 module
@@ -45,14 +45,18 @@ abbrev Main.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
   putget.BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  storage.dbOpensOk → v3rpc.ServerMethodSets →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23872" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23872" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"watchkv.etcd" go!"") }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.watchkv.Main)) (Val #nw))
       (Val #nops))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}

@@ -26,7 +26,7 @@ full id; each member's generator issues under its prefix (`uint16(memberID) << 4
 its issued ids at its prefix's entry of a second cluster map (`γi.cnt`), whose element it owns
 (`idShare`), so that the cluster's map holds the reserved `0` and exactly the ids the members
 issued. Request ids are unique across members only if the prefixes differ
-(`issues/etcd-request-id-member-prefix.md`): the allocation's pure premise (`idPfxOk` of each
+(`nonissues/etcd-request-id-member-prefix.md`): the allocation's pure premise (`idPfxOk` of each
 member's prefix, the prefixes `Nodup`), the only premise this adds. The claimers' facts are per
 prefix (`Φs`, the cluster's choice; a member's own `Φs γi.pfx`): a member reads the claimer's
 fact of an id of its own prefix only (`idClaim_fact`). The wait slots stay the member's.
@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.DGhostVar
 public import Perennial.GooseLang.Receipts
+public import GooseLang.Ext.IdIssue.Specs
 
 @[expose] public section
 
@@ -69,6 +70,24 @@ structure IdNames where
   slot : GName
   pfx : w64
   wn : GName
+  /-- (R2c, 2026-11-02) the incarnation's number: `0` for a member's first start -/
+  inc : Nat
+  /-- (R2c) the cluster's keys' facts map (keyed by key: the parameter of the cluster's facts) -/
+  fs : GName
+  /-- (R2c stage 2) the incarnation's pending ids (counted by `Next`'s increment, not yet issued) -/
+  pend : GName
+
+/-- **A member incarnation's key** (R2c, 2026-11-02, `notes/restart-plan.md`): its prefix and its
+incarnation number. The cluster's id state is per key: each incarnation has its own list of issued
+ids, its own registry cell and its own claims' facts. -/
+abbrev IdKey := w64 × Nat
+
+/-- The incarnation's key. -/
+abbrev IdNames.key (γi : IdNames) : IdKey := (γi.pfx, γi.inc)
+
+/-- **A claim** (an entry of the issued ids' map, once claimed; R2c): the request's data, the
+claimer's ghost name and the claimer's key. -/
+abbrev IdClaimV := List w8 × GName × IdKey
 
 /-- `id` is among the first `k` ids of the generator with prefix `pfx` and initial suffix
 `s0`: `pfx | lowbit(s0 + j, 48)` for `1 ≤ j ≤ k`. -/
@@ -82,7 +101,7 @@ def idPfx (id : w64) : w64 := id &&& W64 (2 ^ 64 - 2 ^ 48)
 def idPfxOf (m : w16) : w64 := W64 (uint.Z m) <<< W64 48
 
 /-- **A good member prefix** (D21e (A)): not `0` (D19c: a generator of prefix `0` issues the id
-`0` of raft's bootstrap conf changes, `issues/etcd-request-id-zero-bootstrap-confchange.md`), its
+`0` of raft's bootstrap conf changes, `nonissues/etcd-request-id-zero-bootstrap-confchange.md`), its
 48 low bits `0`. -/
 def idPfxOk (p : w64) : Prop := p ≠ W64 0 ∧ p &&& W64 (2 ^ 48 - 1) = W64 0
 
@@ -187,7 +206,7 @@ theorem idPfxOf_toNat (m : w16) : (idPfxOf m).toNat = m.toNat * 2 ^ 48 := by
   omega
 
 /-- **The member ids' prefixes, good and distinct** (D21e (A)): from the pure premise that the
-member ids' 16 low bits are distinct and not `0` (`issues/etcd-request-id-member-prefix.md`). -/
+member ids' 16 low bits are distinct and not `0` (`nonissues/etcd-request-id-member-prefix.md`). -/
 def idPfxsOf (ps : List w64) : List w64 := ps.map (fun id => idPfxOf (W16 (uint.Z id)))
 
 theorem idPfxOf_low (id : w64) : uint.Z (W16 (uint.Z id)) = uint.Z id % 2 ^ 16 := by
@@ -278,40 +297,80 @@ theorem idCred_supply (γi : IdNames) (Hb : receiptBound GF ≤ 2 ^ 48) :
   ipureintro
   exact Hb
 
-/-- The right to claim the id `id` for a request's data. -/
+/-- **The right to claim the id `id`** (exclusive). -/
 def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
-  id ↪[γi.issued] (none : Option (List w8 × GName))
+  id ↪[γi.issued] (none : Option IdClaimV)
 
-/-- The id `id` was claimed for the data `d`, with the claimer's ghost name `γf` (persistent;
-agreeing). -/
+/-- **The id `id` was claimed by this incarnation** for the data `d`, with the claimer's ghost name
+`γf` (persistent; agreeing): the claim records the claimer's key (R2c, 2026-11-02). What the
+proposer makes (`idClaim_make`) and a waiter of the incarnation holds. -/
 def idClaim (γi : IdNames) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
-  id ↪[γi.issued]□ (some (d, γf))
+  id ↪[γi.issued]□ (some (d, γf, γi.key) : Option IdClaimV)
 
 instance idClaim_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
     Persistent (idClaim (GF := GF) γi id d γf) := by
   unfold idClaim; infer_instance
 
+/-- **The id `id` was claimed for `d`, with `γf`, by some incarnation** (persistent; R2c): what a
+committed entry's reader knows, whoever proposed it. -/
+def idClaimAny (γi : IdNames) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ k : IdKey, id ↪[γi.issued]□ (some (d, γf, k) : Option IdClaimV))
+
+instance idClaimAny_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
+    Persistent (idClaimAny (GF := GF) γi id d γf) := by
+  unfold idClaimAny; infer_instance
+
+/-- An incarnation's claim is a claim. -/
+theorem idClaimAny_of (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
+    idClaim (GF := GF) γi id d γf ⊢ idClaimAny γi id d γf := by
+  unfold idClaim idClaimAny
+  iintro #H
+  iexists γi.key
+  iexact H
+
 /-- **No request claims the id `0`** (persistent; D19c): the issued ids' map holds `0 ↦ none`,
 read-only. The cluster's allocation gives it (`idCluster_alloc`, D21e (A); until stage M4
 `NewGenerator`, for a member id whose 16 low bits are not `0`). -/
 def idNoZero (γi : IdNames) : IProp GF :=
-  (W64 0) ↪[γi.issued]□ (none : Option (List w8 × GName))
+  (W64 0) ↪[γi.issued]□ (none : Option IdClaimV)
 
 instance idNoZero_persistent (γi : IdNames) : Persistent (idNoZero (GF := GF) γi) := by
   unfold idNoZero; infer_instance
 
-/-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed). -/
-def idClaimFact (Φ : w64 → List w8 → GName → IProp GF) (id : w64)
-    (v : Option (List w8 × GName)) : IProp GF :=
+/-- **Key `k`'s claims' facts are the cluster's family at `x`** (persistent; R2c): the key's element
+of the keys' facts map, a first-order parameter `x` of the family `Φs` the cluster fixes once
+(`idClusterInv`), given when the key is made. The server's `x` is the incarnation's store index, so a
+restarted incarnation's facts (its new store's floors) need not exist when the cluster is allocated;
+being first-order, two of them agree exactly, without a later (saved predicates would add one). -/
+def idKeyFactAt {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) : IProp GF :=
+  k ↪[fs]□ x
+
+instance idKeyFactAt_persistent {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) :
+    Persistent (idKeyFactAt (GF := GF) fs k x) := by
+  unfold idKeyFactAt; infer_instance
+
+/-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed): the family at its key's
+parameter. -/
+def idClaimFact {X : Type} [Pos.Countable X] (Φs : X → w64 → List w8 → GName → IProp GF)
+    (fs : GName) (id : w64) (v : Option IdClaimV) : IProp GF :=
   match v with
-  | some (d, γf) => iprop(□ Φ id d γf)
+  | some (d, γf, k) => iprop(∃ x : X, idKeyFactAt fs k x ∗ □ Φs x id d γf)
   | none => iprop(True)
 
-/-- The claimers' facts over the claimed ids of the map `I`, each by its prefix's `Φs` (D21e
-(A): the facts of the members' claimers, the cluster's choice). -/
-def idClaimsFacts (Φs : w64 → w64 → List w8 → GName → IProp GF)
-    (I : GMap w64 (Option (List w8 × GName))) : IProp GF :=
-  iprop([∗map] id ↦ v ∈ I, idClaimFact (Φs (idPfx id)) id v)
+instance idClaimFact_persistent {X : Type} [Pos.Countable X]
+    (Φs : X → w64 → List w8 → GName → IProp GF) (fs : GName) (id : w64) (v : Option IdClaimV) :
+    Persistent (idClaimFact (GF := GF) Φs fs id v) := by
+  rcases v with _ | ⟨d, γf, k⟩ <;> unfold idClaimFact <;> infer_instance
+
+/-- The claimers' facts over the claimed ids of the map `I`, each by its claimer's key. -/
+def idClaimsFacts {X : Type} [Pos.Countable X] (Φs : X → w64 → List w8 → GName → IProp GF)
+    (fs : GName) (I : GMap w64 (Option IdClaimV)) : IProp GF :=
+  iprop([∗map] id ↦ v ∈ I, idClaimFact Φs fs id v)
+
+instance idClaimsFacts_persistent {X : Type} [Pos.Countable X]
+    (Φs : X → w64 → List w8 → GName → IProp GF) (fs : GName) (I : GMap w64 (Option IdClaimV)) :
+    Persistent (idClaimsFacts (GF := GF) Φs fs I) := by
+  unfold idClaimsFacts; infer_instance
 
 /-- The id's slot in the wait registry (exclusive): `Register(id)` takes it. -/
 def idSlot (γi : IdNames) (id : w64) : IProp GF :=
@@ -322,79 +381,141 @@ id of the member's prefix. -/
 def idFresh (γi : IdNames) (id : w64) : IProp GF :=
   iprop(idUnclaimed γi id ∗ idSlot γi id ∗ ⌜idPfx id = γi.pfx⌝)
 
-/-- **The cluster's ids** (D21e (A)): the issued ids' map `I` holds the reserved `0` and exactly
-the ids the members issued, recorded at their prefixes in `C`; every prefix of `C` good
-(`idPfxOk`), and its ids of it. -/
-def idClusterOk (I : GMap w64 (Option (List w8 × GName))) (C : GMap w64 (List w64)) : Prop :=
-  (∀ id, (I !! id).isSome ↔ id = W64 0 ∨ ∃ p L, C !! p = some L ∧ id ∈ L) ∧
-  (∀ p L, C !! p = some L → idPfxOk p ∧ ∀ id ∈ L, idPfx id = p)
+/-- **A `uint64` cell owned whole is no other cell's read-only one** (R2c stage 2: a new generator's
+`prefix` field is no registered generator's). A fact about Perennial's points-to (through its first
+byte's heap points-to, whose fractions `own 1` and `discard` do not compose), here until Perennial
+has it (`notes/perennial-changes.md`). -/
+theorem w64_pointsto_excl (l : Loc) (v w : w64) :
+    ⊢ typedPointsto (GF := GF) l v (DFrac.own 1) -∗ typedPointsto (GF := GF) l w DFrac.discard -∗
+      False := by
+  iintro H1 H2
+  ihave H1 := typedPointsto_split $$ H1
+  ihave H2 := typedPointsto_split $$ H2
+  simp only [TypedPointsto.typedPointstoDef] at *
+  have h8 : ∀ n : Nat, ∃ b bs, natBytes 8 n = b :: bs := fun n => ⟨_, _, rfl⟩
+  obtain ⟨b1, bs1, e1⟩ := h8 (BitVec.toNat v)
+  obtain ⟨b2, bs2, e2⟩ := h8 (BitVec.toNat w)
+  rw [e1, e2]
+  iunfold bytesPointsto at H1 H2
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  iunfold heapPointsto at H1 H2
+  icases H1 with ⟨-, H1⟩
+  icases H2 with ⟨-, H2⟩
+  icombine H1 H2 gives %Hv
+  obtain ⟨Hv, -⟩ := Hv
+  have h1 := DFrac.valid_own_op Hv
+  exact absurd h1 (by simp)
 
-/-- **The cluster's claims** (persistent; D21e (A), stage M4): the issued ids' map and the prefixes'
-map, with the claimers' facts `Φs` of the claimed ids. Allocated once for the cluster
-(`idCluster_alloc`); every member's generator (`idGen`) and claim (`idClaim`) is over it. -/
-def idClusterInv (issued cnt : GName) (Φs : w64 → w64 → List w8 → GName → IProp GF) :
-    IProp GF :=
-  inv idClusterN iprop(∃ (I : GMap w64 (Option (List w8 × GName))) (C : GMap w64 (List w64)),
-    ghostMapAuth issued 1 I ∗ ghostMapAuth cnt 1 C ∗ ⌜idClusterOk I C⌝ ∗ idClaimsFacts Φs I)
+/-- **A key's entry of the keys' map** (R2c stage 2): the ids its incarnation issued, and its
+generator, once `NewGenerator` made it. -/
+abbrev IdKeyEntry := List w64 × Option Loc
 
-instance idClusterInv_persistent (issued cnt : GName)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) :
-    Persistent (idClusterInv (GF := GF) issued cnt Φs) := by
+/-- **The cluster's ids** (D21e (A); by key since R2c): the issued ids' map `I` holds the reserved
+`0` and exactly the ids the keys' lists `C` hold; every key's prefix good, and its ids of it; the
+keys' entries, registries' cells `R` and facts `Fm` of one domain; (stage 2) one generator per key,
+distinct keys' generators distinct, and a key's ids issued only once it has one. Two incarnations of
+one prefix are two keys: their ids are kept apart by the issue record (`idIssueFragD`, in
+`idClusterInv`), not by the prefix. -/
+def idClusterOk {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
+    (R : GMap IdKey GName) (Fm : GMap IdKey X) : Prop :=
+  (∀ id, (I !! id).isSome ↔ id = W64 0 ∨ ∃ k e, C !! k = some e ∧ id ∈ e.1) ∧
+  (∀ k e, C !! k = some e → idPfxOk k.1 ∧ ∀ id ∈ e.1, idPfx id = k.1) ∧
+  (∀ k k' e e' g, C !! k = some e → C !! k' = some e' → e.2 = some g → e'.2 = some g → k = k') ∧
+  (∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome) ∧
+  (∀ k, (C !! k).isSome ↔ (R !! k).isSome) ∧ (∀ k, (C !! k).isSome ↔ (Fm !! k).isSome)
+
+/-- **A key's generator's resources in the cluster's claims** (persistent; stage 2): the generator's
+`prefix` field (its address one generator's: `NewGenerator` owns a new one's whole), and for every
+id the key issued, the issue record's fact that this generator issued it. -/
+def idKeyGenFacts (k : IdKey) (e : IdKeyEntry) : IProp GF :=
+  match e.2 with
+  | some g => iprop(structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ k.1 ∗
+      [∗list] id ∈ e.1, idIssueFragD id g)
+  | none => iprop(True)
+
+instance idKeyGenFacts_persistent (k : IdKey) (e : IdKeyEntry) :
+    Persistent (idKeyGenFacts (GF := GF) k e) := by
+  unfold idKeyGenFacts; split <;> infer_instance
+
+instance idKeyGenFacts_timeless (k : IdKey) (e : IdKeyEntry) :
+    Timeless (idKeyGenFacts (GF := GF) k e) := by
+  unfold idKeyGenFacts; split <;> infer_instance
+
+/-- **The cluster's claims** (persistent; D21e (A), stage M4; by key since R2c): the issued ids'
+map, the keys' entries, the registries' cells and the keys' facts, with the claimers' facts of the
+claimed ids, and (stage 2) each key's generator's facts. Allocated once for the cluster
+(`idCluster_alloc`); every incarnation's generator (`idGen`) and claim (`idClaim`) is over it. -/
+def idClusterInv {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+    (Φs : X → w64 → List w8 → GName → IProp GF) : IProp GF :=
+  inv idClusterN iprop(∃ (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
+      (R : GMap IdKey GName) (Fm : GMap IdKey X),
+    ghostMapAuth issued 1 I ∗ ghostMapAuth cnt 1 C ∗ ghostMapAuth wn 1 R ∗ ghostMapAuth fs 1 Fm ∗
+    ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs fs I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts k e)
+
+instance idClusterInv_persistent {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+    (Φs : X → w64 → List w8 → GName → IProp GF) :
+    Persistent (idClusterInv (GF := GF) issued cnt wn fs Φs) := by
   unfold idClusterInv; infer_instance
 
-/-- **A member's share of the cluster's ids** (D21e (A), stage M4): its prefix's entry of the
-prefixes' map, with no id issued, and its wait slots' map, empty. `NewGenerator` takes it. -/
+/-- **An incarnation's share of the cluster's ids** (D21e (A), stage M4; by key since R2c): its
+key's entry of the keys' map, no id issued and no generator yet, its wait slots' map and (stage 2)
+its pending ids' map, empty. `NewGenerator` takes it. -/
 def idShare (γi : IdNames) : IProp GF :=
-  iprop(γi.pfx ↪[γi.cnt] ([] : List w64) ∗ ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit))
+  iprop(γi.key ↪[γi.cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+    ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit) ∗ ghostMapAuth γi.pend 1 (∅ : GMap w64 Unit))
 
 /-- **The generator `g`** (persistent): its `prefix` field fixed at the member's prefix `γi.pfx`
 (its 48 low bits 0: the member id shifted by 48, so ids of distinct suffixes differ), its `suffix`
-(a plain `uint64` field the code updates with `atomic.AddUint64`) in an invariant with the issued
-ids' count `k`, backed by `k` time receipts (D19b; from D17 a monotone counter, before it the
-credits' authority, `2 ^ 48 - 1` less `k`), its prefix's entry `L` of the cluster's prefixes' map
-and its wait slots' map (the ids issued, `idIssued`, and only those, are in both); and (D21e (A),
-stage M4) the cluster's claims, whose facts at its prefix are `Φ` (`Φ`, the member's, fixed at
-`NewGenerator`: unit V2). `NewGenerator` establishes it; `Next`, under the receipts' bound
-(`idCred`), counts one more id and returns an `idFresh` id. (Until M4 the generator's invariant
-held the issued ids' map and the claimers' facts itself.) -/
+(a plain `uint64` field the code updates with `atomic.AddUint64`) in an invariant with the count `k`
+of `Next`'s increments, backed by `k` time receipts (D19b), its key's entry of the cluster's keys'
+map (the ids issued `L`, and `g` itself) and its wait slots' map; and the cluster's claims, its key's
+facts `Φ` the cluster's family at the key's parameter (R2c). (Stage 2: `Next` counts an id at its
+increment and issues it at its issue step, `idutil`'s trusted model; between the two the id is
+pending, `P`: the counted ids, `idIssued`, are the issued and the pending ones, disjoint, and all have
+wait slots.) `NewGenerator` establishes it; `Next`, under the receipts' bound (`idCred`), returns an
+`idFresh` id. -/
 def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) : IProp GF :=
   iprop(∃ s0 : w64, ⌜g ≠ null⌝ ∗
     structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ γi.pfx ∗
     ⌜uint.Z s0 < 2 ^ 48 ∧ γi.pfx &&& W64 (2 ^ 48 - 1) = W64 0⌝ ∗
-    inv idN iprop(∃ (k : Nat) (L : List w64) (S : GMap w64 Unit),
+    inv idN iprop(∃ (k : Nat) (L : List w64) (S P : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" g ↦
         (s0 + W64 (k : Int)) ∗
       ⧗ k ∗
-      γi.pfx ↪[γi.cnt] L ∗ ghostMapAuth γi.slot 1 S ∗
-      ⌜∀ id, (id ∈ L ↔ idIssued γi.pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued γi.pfx s0 k id)⌝) ∗
-    ∃ Φs : w64 → w64 → List w8 → GName → IProp GF, ⌜Φs γi.pfx = Φ⌝ ∗
-      idClusterInv γi.issued γi.cnt Φs)
+      γi.key ↪[γi.cnt] ((L, some g) : IdKeyEntry) ∗ ghostMapAuth γi.slot 1 S ∗
+      ghostMapAuth γi.pend 1 P ∗
+      ⌜∀ id, ((id ∈ L ∨ (P !! id).isSome) ↔ idIssued γi.pfx s0 k id) ∧
+        ((S !! id).isSome ↔ idIssued γi.pfx s0 k id) ∧ (id ∈ L → P !! id = none)⌝) ∗
+    ∃ (X : Type) (_ : Pos.Countable X) (Φs : X → w64 → List w8 → GName → IProp GF) (x : X),
+      ⌜Φs x = Φ⌝ ∗ idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs Φs)
 
 instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) :
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
 
-/-- **A member's entry of the registries' map, not yet set** (exclusive; linkv-txn stage B1,
-2026-10-20): the map's (persistent) element of the member's prefix names a cell the member owns,
-empty; the member's `start` sets it to its wait registry's ghost name (`idWaitTok_set`). -/
-def idWaitTokAt (wn : GName) (p : w64) : IProp GF :=
-  iprop(∃ γp : GName, p ↪[wn]□ γp ∗ dghostVar γp (DFrac.own 1) (none : Option GName))
+/-- **A key's entry of the registries' map, not yet set** (exclusive; linkv-txn stage B1,
+2026-10-20; by key since R2c): the map's (persistent) element of the key names a cell the
+incarnation owns, empty; its `start` sets it to its wait registry's ghost name (`idWaitTok_set`). -/
+def idWaitTokAt (wn : GName) (k : IdKey) : IProp GF :=
+  iprop(∃ γp : GName, k ↪[wn]□ γp ∗ dghostVar γp (DFrac.own 1) (none : Option GName))
 
-/-- `idWaitTokAt` at the member's names. -/
-abbrev idWaitTok (γi : IdNames) : IProp GF := idWaitTokAt γi.wn γi.pfx
+/-- `idWaitTokAt` at the incarnation's names. -/
+abbrev idWaitTok (γi : IdNames) : IProp GF := idWaitTokAt γi.wn γi.key
 
-/-- **The member of prefix `p` registers its requests in the wait registry `W`** (persistent;
-linkv-txn stage B1): the cell of `p`'s element of the registries' map, set to `W`. -/
-def idWaitIs (γi : IdNames) (p : w64) (W : GName) : IProp GF :=
-  iprop(∃ γp : GName, p ↪[γi.wn]□ γp ∗ dghostVar γp DFrac.discard (some W))
+/-- **The incarnation of key `k` registers its requests in the wait registry `W`** (persistent;
+linkv-txn stage B1; by key since R2c): the cell of `k`'s element of the registries' map, set to
+`W`. -/
+def idWaitIs (γi : IdNames) (k : IdKey) (W : GName) : IProp GF :=
+  iprop(∃ γp : GName, k ↪[γi.wn]□ γp ∗ dghostVar γp DFrac.discard (some W))
 
-instance idWaitIs_persistent (γi : IdNames) (p : w64) (W : GName) :
-    Persistent (idWaitIs (GF := GF) γi p W) := by
+instance idWaitIs_persistent (γi : IdNames) (k : IdKey) (W : GName) :
+    Persistent (idWaitIs (GF := GF) γi k W) := by
   unfold idWaitIs; infer_instance
 
-/-- A prefix's registry is unique. -/
-theorem idWaitIs_agree (γi : IdNames) (p : w64) (W W' : GName) :
-    ⊢ idWaitIs (GF := GF) γi p W -∗ idWaitIs γi p W' -∗ ⌜W = W'⌝ := by
+/-- A key's registry is unique. -/
+theorem idWaitIs_agree (γi : IdNames) (k : IdKey) (W W' : GName) :
+    ⊢ idWaitIs (GF := GF) γi k W -∗ idWaitIs γi k W' -∗ ⌜W = W'⌝ := by
   unfold idWaitIs
   iintro ⟨%γp, #H1, #C1⟩ ⟨%γp', #H2, #C2⟩
   ihave %Hp := ghostMapElem_agree $$ H1 H2
@@ -403,9 +524,9 @@ theorem idWaitIs_agree (γi : IdNames) (p : w64) (W W' : GName) :
   ipureintro
   exact Option.some.inj Hw
 
-/-- Setting a member's entry of the registries' map. -/
+/-- Setting an incarnation's entry of the registries' map. -/
 theorem idWaitTok_set (γi : IdNames) (W : GName) :
-    ⊢ idWaitTok (GF := GF) γi ==∗ idWaitIs γi γi.pfx W := by
+    ⊢ idWaitTok (GF := GF) γi ==∗ idWaitIs γi γi.key W := by
   unfold idWaitTok idWaitTokAt idWaitIs
   iintro ⟨%γp, #Hp, Hc⟩
   imod dghostVar_update (some W) γp (none : Option GName) $$ Hc with Hc
@@ -414,143 +535,257 @@ theorem idWaitTok_set (γi : IdNames) (W : GName) :
   iexists γp
   iframe Hp Hc
 
-/-- **The registries' map, allocated** (linkv-txn stage B1): an unset entry for each prefix of
-`ps` (distinct). -/
-theorem idWait_alloc_list (ps : List w64) (Hnd : ps.Nodup) :
-    ⊢ |==> ∃ wn : GName, [∗list] p ∈ ps, idWaitTokAt (GF := GF) wn p := by
+/-- **A new key** (R2c): into maps without it, the key's empty entry (no id, no generator), its
+unset registry cell and its facts' parameter `x`. -/
+theorem idKey_insert {X : Type} [Pos.Countable X] (cnt wn fs : GName) (C : GMap IdKey IdKeyEntry)
+    (R : GMap IdKey GName) (Fm : GMap IdKey X) (k : IdKey) (x : X)
+    (hC : C !! k = none) (hR : R !! k = none) (hF : Fm !! k = none) :
+    ⊢ ghostMapAuth (GF := GF) cnt 1 C -∗ ghostMapAuth wn 1 R -∗ ghostMapAuth fs 1 Fm ==∗
+      ∃ γp : GName,
+        ghostMapAuth cnt 1 (C.insert k (([], none) : IdKeyEntry)) ∗ ghostMapAuth wn 1 (R.insert k γp) ∗
+        ghostMapAuth fs 1 (Fm.insert k x) ∗
+        k ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗ idWaitTokAt wn k ∗
+        idKeyFactAt fs k x := by
+  iintro HC HR HF
+  imod ghost_map_insert k ((([] : List w64), (none : Option Loc)) : IdKeyEntry) hC $$ HC with ⟨HC, Hk⟩
+  imod dghostVar_alloc (GF := GF) (none : Option GName) with ⟨%γp, Hc⟩
+  imod ghost_map_insert_persist k γp hR $$ HR with ⟨HR, #Hp⟩
+  imod ghost_map_insert_persist k x hF $$ HF with ⟨HF, #Hxk⟩
+  imodintro
+  iexists γp
+  iframe HC HR HF Hk
+  isplitl
+  · iunfold idWaitTokAt; iexists γp; iframe Hp Hc
+  · iunfold idKeyFactAt; iexact Hxk
+
+/-- **The cluster's claims, allocated** (D21e (A), stage M4; by key since R2c) for the members'
+prefixes `ps`, under the pure premise that they are good and distinct
+(`nonissues/etcd-request-id-member-prefix.md`): the claims invariant at the facts' family `Φs` (the
+caller's choice), the reserved id `0` (`idNoZero`, D19c) and each member's first incarnation's key
+`(p, 0)` -- its entry of the keys' map, empty (with its slots and pending map, the caller's,
+`idShare`), its unset registry cell and its facts' parameter `xs p` (the caller's choice). -/
+theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
+    (Φs : X → w64 → List w8 → GName → IProp GF) (xs : w64 → X)
+    (E : CoPset) (Hnd : ps.Nodup) (Hok : ∀ p ∈ ps, idPfxOk p) :
+    ⊢ |={E}=> ∃ issued cnt wn fs : GName, idClusterInv (GF := GF) issued cnt wn fs Φs ∗
+      (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+      [∗list] p ∈ ps, (p, 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+        idWaitTokAt wn (p, 0) ∗ idKeyFactAt fs (p, 0) (xs p) := by
   istart
-  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := GName)) with ⟨%γ, H⟩
-  have hgen : ∀ (qs : List w64) (M : GMap w64 GName), qs.Nodup →
-      (∀ q ∈ qs, M !! q = none) →
-      ⊢ ghostMapAuth (GF := GF) γ 1 M ==∗ [∗list] p ∈ qs, ∃ γp : GName,
-        p ↪[γ]□ γp ∗ dghostVar (GF := GF) γp (DFrac.own 1) (none : Option GName) := by
+  imod (ghost_map_alloc_empty (K := w64) (V := Option IdClaimV)) with ⟨%γI, HI⟩
+  imod (ghost_map_alloc_empty (K := IdKey) (V := IdKeyEntry)) with ⟨%γC, HC⟩
+  imod (ghost_map_alloc_empty (K := IdKey) (V := GName)) with ⟨%γR, HR⟩
+  imod (ghost_map_alloc_empty (K := IdKey) (V := X)) with ⟨%γF, HF⟩
+  imod ghost_map_insert_persist (W64 0) (none : Option IdClaimV) (GMap.lookup_empty _)
+    $$ HI with ⟨HI, #H0⟩
+  -- each prefix's first key, inserted into the three maps, which keep one domain: the keys of
+  -- the prefixes inserted so far, each empty
+  have hgen : ∀ (qs : List w64) (C : GMap IdKey IdKeyEntry) (R : GMap IdKey GName)
+      (Fm : GMap IdKey X),
+      qs.Nodup → (∀ q ∈ qs, idPfxOk q) →
+      (∀ k, (C !! k).isSome ↔ (R !! k).isSome) → (∀ k, (C !! k).isSome ↔ (Fm !! k).isSome) →
+      (∀ k e, C !! k = some e → idPfxOk k.1 ∧ e = ([], none) ∧ k.2 = 0 ∧ k.1 ∉ qs) →
+      ⊢ ghostMapAuth (GF := GF) γC 1 C -∗ ghostMapAuth γR 1 R -∗ ghostMapAuth γF 1 Fm ==∗
+        ∃ (C' : GMap IdKey IdKeyEntry) (R' : GMap IdKey GName) (Fm' : GMap IdKey X),
+          ghostMapAuth γC 1 C' ∗ ghostMapAuth γR 1 R' ∗ ghostMapAuth γF 1 Fm' ∗
+          ⌜(∀ k, (C' !! k).isSome ↔ (R' !! k).isSome) ∧ (∀ k, (C' !! k).isSome ↔ (Fm' !! k).isSome) ∧
+            (∀ k e, C' !! k = some e → idPfxOk k.1 ∧ e = ([], none))⌝ ∗
+          [∗list] p ∈ qs, (p, 0) ↪[γC] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+            idWaitTokAt γR (p, 0) ∗ idKeyFactAt γF (p, 0) (xs p) := by
     intro qs
     induction qs with
     | nil =>
-      intro M _ _
-      iintro -
+      intro C R Fm _ _ hR hF hC
+      iintro HC HR HF
       imodintro
+      iexists C, R, Fm
+      iframe HC HR HF
+      isplitr
+      · ipureintro
+        exact ⟨hR, hF, fun k e h => ⟨(hC k e h).1, (hC k e h).2.1⟩⟩
       iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
       itrivial
     | cons q qs ih =>
-      intro M hnd hfr
+      intro C R Fm hnd hok hR hF hC
       have hnd' := List.nodup_cons.1 hnd
-      iintro HM
-      imod dghostVar_alloc (GF := GF) (none : Option GName) with ⟨%γq, Hc⟩
-      imod ghost_map_insert_persist q γq (hfr q (List.mem_cons_self ..)) $$ HM with ⟨HM, #Hq⟩
-      imod (ih (M.insert q γq) hnd'.2 (fun r hr => by
-          rw [GMap.lookup_insert_eq_iff]
-          have hne : q ≠ r := fun h => hnd'.1 (h ▸ hr)
-          simp only [hne, ite_false]
-          exact hfr r (List.mem_cons_of_mem _ hr))) $$ HM with Hqs
+      have hq0 : C !! (q, 0) = none := by
+        cases h : C !! (q, 0) with
+        | none => rfl
+        | some e => exact absurd (List.mem_cons_self ..) (hC _ e h).2.2.2
+      have hqR : R !! (q, 0) = none := by
+        cases h : R !! (q, 0) with
+        | none => rfl
+        | some _ => have := (hR (q, 0)).2 (by simp [h]); simp [hq0] at this
+      have hqF : Fm !! (q, 0) = none := by
+        cases h : Fm !! (q, 0) with
+        | none => rfl
+        | some _ => have := (hF (q, 0)).2 (by simp [h]); simp [hq0] at this
+      iintro HC HR HF
+      imod (idKey_insert γC γR γF C R Fm (q, 0) (xs q) hq0 hqR hqF) $$ HC HR HF
+        with ⟨%γp, HC, HR, HF, Hk, Hw, Hf⟩
+      imod (ih (C.insert (q, 0) ([], none)) (R.insert (q, 0) γp) (Fm.insert (q, 0) (xs q)) hnd'.2
+          (fun r hr => hok r (List.mem_cons_of_mem _ hr))
+          (fun k => by
+            rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, hR k])
+          (fun k => by
+            rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, hF k])
+          (fun k e h => by
+            rw [GMap.lookup_insert_eq_iff] at h
+            by_cases hk : (q, 0) = k
+            · subst hk
+              simp at h
+              exact ⟨hok q (List.mem_cons_self ..), h.symm, rfl, hnd'.1⟩
+            · simp only [hk, ite_false] at h
+              obtain ⟨h1, h2, h3, h4⟩ := hC k e h
+              exact ⟨h1, h2, h3, fun hm => h4 (List.mem_cons_of_mem _ hm)⟩)) $$ HC HR HF
+        with ⟨%C', %R', %Fm', HC, HR, HF, %Hok', Hqs⟩
       imodintro
+      iexists C', R', Fm'
+      iframe HC HR HF
+      isplitr
+      · ipureintro; exact Hok'
       iapply BigSepL.bigSepL_cons.2
-      iframe Hqs
-      iexists γq
-      iframe Hq Hc
-  imod (hgen ps ∅ Hnd (fun q _ => GMap.lookup_empty q)) $$ H with Hps
-  imodintro
-  iexists γ
-  unfold idWaitTokAt
-  iexact Hps
-
-/-- The prefixes' entries of the list `ps`, each with no id issued, inserted into a map that has
-none of them. -/
-theorem idCnt_alloc_list (γ : GName) (ps : List w64) (C : GMap w64 (List w64))
-    (Hnd : ps.Nodup) (Hfr : ∀ p ∈ ps, C !! p = none) :
-    ⊢ ghostMapAuth (GF := GF) γ 1 C ==∗ ∃ C' : GMap w64 (List w64), ghostMapAuth γ 1 C' ∗
-      ⌜∀ p L, C' !! p = some L → C !! p = some L ∨ (L = [] ∧ p ∈ ps)⌝ ∗
-      [∗list] p ∈ ps, p ↪[γ] ([] : List w64) := by
-  induction ps generalizing C with
-  | nil =>
-    iintro HC
-    imodintro
-    iexists C
-    iframe HC
-    isplitr
-    · ipureintro; intro p L h; exact Or.inl h
-    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-    itrivial
-  | cons p ps ih =>
-    iintro HC
-    have hp : C !! p = none := Hfr p (List.mem_cons_self ..)
-    have hnd := List.nodup_cons.1 Hnd
-    imod ghost_map_insert p ([] : List w64) hp $$ HC with ⟨HC, Hp⟩
-    imod (ih (C.insert p []) hnd.2 (fun q hq => by
-        rw [GMap.lookup_insert_eq_iff]
-        have hne : p ≠ q := fun h => hnd.1 (h ▸ hq)
-        simp only [hne, ite_false]
-        exact Hfr q (List.mem_cons_of_mem _ hq))) $$ HC with ⟨%C', HC, %HC', Hps⟩
-    imodintro
-    iexists C'
-    iframe HC
-    isplitr
-    · ipureintro
-      intro q L h
-      rcases HC' q L h with h' | ⟨h1, h2⟩
-      · rw [GMap.lookup_insert_eq_iff] at h'
-        by_cases hq : p = q
-        · subst hq; simp at h'; exact Or.inr ⟨h', List.mem_cons_self ..⟩
-        · simp only [hq, ite_false] at h'; exact Or.inl h'
-      · exact Or.inr ⟨h1, List.mem_cons_of_mem _ h2⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe Hp Hps
-
-/-- **The cluster's claims, allocated** (D21e (A), stage M4) for the members' prefixes `ps`, under
-the pure premise that they are good and distinct (`issues/etcd-request-id-member-prefix.md`): the
-claims invariant (at the claimers' facts `Φs`, the caller's choice), the reserved id `0`
-(`idNoZero`, D19c) and each prefix's entry of the prefixes' map (a member's share, with its
-slots, `idShare`). -/
-theorem idCluster_alloc (ps : List w64) (Φs : w64 → w64 → List w8 → GName → IProp GF)
-    (E : CoPset) (Hnd : ps.Nodup) (Hok : ∀ p ∈ ps, idPfxOk p) :
-    ⊢ |={E}=> ∃ issued cnt : GName, idClusterInv (GF := GF) issued cnt Φs ∗
-      (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
-      [∗list] p ∈ ps, p ↪[cnt] ([] : List w64) := by
-  istart
-  imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8 × GName))) with ⟨%γI, HI⟩
-  imod (ghost_map_alloc_empty (K := w64) (V := List w64)) with ⟨%γC, HC⟩
-  imod ghost_map_insert_persist (W64 0) (none : Option (List w8 × GName)) (GMap.lookup_empty _)
-    $$ HI with ⟨HI, #H0⟩
-  imod (idCnt_alloc_list γC ps ∅ Hnd (fun p _ => GMap.lookup_empty p)) $$ HC
-    with ⟨%C, HC, %HC, Hps⟩
-  imod (inv_alloc idClusterN E iprop(∃ (I : GMap w64 (Option (List w8 × GName)))
-      (C : GMap w64 (List w64)),
-      ghostMapAuth γI 1 I ∗ ghostMapAuth γC 1 C ∗ ⌜idClusterOk I C⌝ ∗ idClaimsFacts Φs I))
-    $$ [HI HC] with #Hinv
+      iframe Hk Hw Hf Hqs
+  imod (hgen ps ∅ ∅ ∅ Hnd Hok (fun k => by simp [GMap.lookup_empty])
+      (fun k => by simp [GMap.lookup_empty]) (fun k e h => by simp [GMap.lookup_empty] at h)) $$ HC HR HF
+    with ⟨%C, %R, %Fm, HC, HR, HF, %HCok, Hps⟩
+  obtain ⟨hR, hF, hCe⟩ := HCok
+  have hG : (emp : IProp GF) ⊢ [∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) k e :=
+    BigSepM.bigSepM_intro (fun {k e} hke => by
+      rw [(hCe k e hke).2]; unfold idKeyGenFacts; exact true_intro)
+  ihave #HG : iprop([∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) k e) $$ []
+  · iapply hG; iempintro
+  imod (inv_alloc idClusterN E iprop(∃ (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
+      (R : GMap IdKey GName) (Fm : GMap IdKey X),
+      ghostMapAuth γI 1 I ∗ ghostMapAuth γC 1 C ∗ ghostMapAuth γR 1 R ∗ ghostMapAuth γF 1 Fm ∗
+      ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs γF I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts k e))
+    $$ [HI HC HR HF] with #Hinv
   · inext
-    iexists ((∅ : GMap w64 (Option (List w8 × GName))).insert (W64 0) none), C
-    iframe HI HC
+    iexists ((∅ : GMap w64 (Option IdClaimV)).insert (W64 0) none), C, R, Fm
+    iframe HI HC HR HF HG
     isplitr
     · ipureintro
-      constructor
+      refine ⟨?_, ?_, ?_, ?_, hR, hF⟩
       · intro id
         rw [GMap.lookup_insert_is_Some, GMap.lookup_empty]
         constructor
         · rintro (h | ⟨-, h⟩)
           · exact Or.inl h.symm
           · simp at h
-        · rintro (h | ⟨p, L, hpL, hid⟩)
+        · rintro (h | ⟨k, e, hke, hid⟩)
           · exact Or.inl h.symm
-          · rcases HC p L hpL with h' | ⟨rfl, -⟩
-            · simp [GMap.lookup_empty] at h'
-            · simp at hid
-      · intro p L hpL
-        rcases HC p L hpL with h' | ⟨rfl, hp⟩
-        · simp [GMap.lookup_empty] at h'
-        · exact ⟨Hok p hp, by simp⟩
+          · rw [(hCe k e hke).2] at hid; simp at hid
+      · intro k e hke
+        refine ⟨(hCe k e hke).1, ?_⟩
+        rw [(hCe k e hke).2]; simp
+      · intro k k' e e' g hke _ he _
+        rw [(hCe k e hke).2] at he; cases he
+      · intro k e hke hne
+        rw [(hCe k e hke).2] at hne; exact absurd rfl hne
     iunfold idClaimsFacts
     iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
-      (m := (∅ : GMap w64 (Option (List w8 × GName))))
-      (Φ := fun id v => idClaimFact (Φs (idPfx id)) id v) (GMap.lookup_empty _)).2
+      (m := (∅ : GMap w64 (Option IdClaimV)))
+      (Φ := fun id v => idClaimFact Φs γF id v) (GMap.lookup_empty _)).2
     isplitr
     · iunfold idClaimFact; itrivial
     iapply BigSepM.bigSepM_empty.2
     itrivial
   imodintro
-  iexists γI, γC
+  iexists γI, γC, γR, γF
   iframe H0 Hps
   iunfold idClusterInv
   iexact Hinv
+
+/-- An incarnation number above every key's of a finite map. -/
+theorem idKey_fresh_inc {V : Type} (C : GMap IdKey V) : ∃ n : Nat, ∀ k v, C !! k = some v → k.2 < n := by
+  have hmax : ∀ (l : List Nat) (x : Nat), x ∈ l → x ≤ l.foldr max 0 := by
+    intro l
+    induction l with
+    | nil => intro x hx; simp at hx
+    | cons a l ih =>
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hx
+      · simp only [List.foldr_cons]; omega
+      · have := ih x hx; simp only [List.foldr_cons]; omega
+  refine ⟨(C.toList.map (fun kv : IdKey × V => kv.1.2)).foldr max 0 + 1, fun k v h => ?_⟩
+  have hm := (GMap.mem_toList C k v).2 h
+  have hmem : k.2 ∈ C.toList.map (fun kv : IdKey × V => kv.1.2) :=
+    List.mem_map.2 ⟨(k, v), hm, rfl⟩
+  have := hmax _ k.2 hmem
+  omega
+
+/-- **A new incarnation's key** (the restart plan's R2c stage 2: a member's restart): for the good
+prefix `p`, a key `(p, inc)` no key of the cluster has, with its empty entry, its unset registry cell
+and its facts' parameter `x`. The number is chosen above every key's: nothing is handed from one
+incarnation to the next. -/
+theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+    (Φs : X → w64 → List w8 → GName → IProp GF) (p : w64) (x : X) (E : CoPset)
+    (HE : ↑idClusterN ⊆ E) (Hp : idPfxOk p) :
+    ⊢ idClusterInv (GF := GF) issued cnt wn fs Φs ={E}=∗ ∃ inc : Nat,
+      (p, inc) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+      idWaitTokAt wn (p, inc) ∗ idKeyFactAt fs (p, inc) x := by
+  iintro #Hcl
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hi Hclose
+  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
+  obtain ⟨n, hn⟩ := idKey_fresh_inc C
+  have hC : C !! (p, n) = none := by
+    cases h : C !! (p, n) with
+    | none => rfl
+    | some v => exact absurd (hn _ v h) (Nat.lt_irrefl n)
+  have hR : R !! (p, n) = none := by
+    cases h : R !! (p, n) with
+    | none => rfl
+    | some _ => have := (Hok.2.2.2.2.1 (p, n)).2 (by simp [h]); simp [hC] at this
+  have hF : Fm !! (p, n) = none := by
+    cases h : Fm !! (p, n) with
+    | none => rfl
+    | some _ => have := (Hok.2.2.2.2.2 (p, n)).2 (by simp [h]); simp [hC] at this
+  imod (idKey_insert cnt wn fs C R Fm (p, n) x hC hR hF) $$ HC HR HF
+    with ⟨%γp, HC, HR, HF, Hk, Hw, Hf⟩
+  imod Hclose $$ [HI HC HR HF] with -
+  · inext
+    iexists I, (C.insert (p, n) ([], none)), (R.insert (p, n) γp), (Fm.insert (p, n) x)
+    iframe HI HC HR HF HFs
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
+    isplitr
+    · ipureintro
+      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' => ?_,
+        fun k e hke hne => ?_, fun k => ?_, fun k => ?_⟩
+      · rw [h1 id]
+        apply or_congr Iff.rfl
+        constructor
+        · rintro ⟨k, e, hke, hid⟩
+          exact ⟨k, e, by
+            rw [GMap.lookup_insert_ne _ _ (fun h => by subst h; rw [hC] at hke; cases hke)]
+            exact hke, hid⟩
+        · rintro ⟨k, e, hke, hid⟩
+          by_cases hk : (p, n) = k
+          · subst hk; rw [GMap.lookup_insert] at hke; cases hke; simp at hid
+          · exact ⟨k, e, by rw [GMap.lookup_insert_ne _ _ hk] at hke; exact hke, hid⟩
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact ⟨Hp, by simp⟩
+        · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h2 k e hke
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; cases he
+        · by_cases hk' : (p, n) = k'
+          · subst hk'; rw [GMap.lookup_insert] at hke'; cases hke'; cases he'
+          · rw [GMap.lookup_insert_ne _ _ hk] at hke
+            rw [GMap.lookup_insert_ne _ _ hk'] at hke'
+            exact h3 k k' e e' g hke hke' he he'
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact absurd rfl hne
+        · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h4 k e hke hne
+      · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h5 k]
+      · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h6 k]
+    iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := C)
+      (Φ := fun k e => idKeyGenFacts (GF := GF) k e) hC).2
+    iframe HG
+    iunfold idKeyGenFacts
+    itrivial
+  imodintro
+  iexists n
+  iframe Hk Hw Hf
 
 end ghost
 

@@ -60,22 +60,25 @@ theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Cha
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
   · iright; iexact HPre
-  iapply apply.chainClass_auth_rejected
+  isplitl []
+  · iapply apply.chainClass_auth_rejected
+  · iapply apply.chainLeaseClass_auth_rejected
 
 /-- `auth_pass_kvPost` with a floor (unit V2): the inner's post, the field, and the request's
-class the passed checks established (A3). -/
+class and lease class the passed checks established (A3; the lease-keys plan). -/
 theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
     (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log F : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       apply.kvPostF E c inner info' rq log F R Pre Post -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
+      apply.reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
       apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
         log F R Pre Post := by
-  iintro #Happ Hpost Hinfo #Hcls
+  iintro #Happ Hpost Hinfo #Hcls #Hlc
   iunfold apply.kvPostF at Hpost
   iunfold apply.kvPostF
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -⟩
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
   iexists oc
   iframe HR Hkv HPP
   isplitr
@@ -86,25 +89,85 @@ theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain
   ihave Hres := apply.chainResAny_of c inner info' $$ Hres
   isplitl [Hinfo Hres]
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
-  iapply apply.chainClass_auth_pass $$ Hcls
+  isplitl []
+  · iapply apply.chainClass_auth_pass $$ Hcls
+  · iapply apply.chainLeaseClass_auth_pass $$ Hlc
+
+/-- `auth_reject_kvPostF` without a floor (`LeaseRevoke`, the lease-revoke plan). -/
+theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log : mvcc.Log) (R : apply.Outcome → IProp GF)
+    (Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
+    (hm : apply.authMayReject on rq) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      R (.rejected .auth) -∗ apply.kvOwn E log -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
+      apply.chainResAny c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
+      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
+        log R Pre Post := by
+  iintro #Happ HR Hkv Hinfo Hres Hcs
+  ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
+  iunfold apply.kvPost
+  iexists (.rejected .auth)
+  isplitr
+  · ipureintro
+    simp [apply.chainStep, hk, hm]
+  simp only [apply.Outcome.logAfter]
+  iframe HR Hkv
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  isplitl [HPre]
+  · iright; iexact HPre
+  isplitl []
+  · iapply apply.chainClass_auth_rejected
+  · iapply apply.chainLeaseClass_auth_rejected
+
+/-- `auth_pass_kvPostF` without a floor (`LeaseRevoke`, the lease-revoke plan). -/
+theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      apply.kvPost E c inner info' rq log R Pre Post -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
+      apply.reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
+      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
+        log R Pre Post := by
+  iintro #Happ Hpost Hinfo #Hcls #Hlc
+  iunfold apply.kvPost at Hpost
+  iunfold apply.kvPost
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
+  iexists oc
+  iframe HR Hkv HPP
+  isplitr
+  · ipureintro
+    simp only [apply.chainStep]
+    split <;> simp [Hst]
+  ihave Hres := apply.chainResAny_of c inner info' $$ Hres
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  isplitl []
+  · iapply apply.chainClass_auth_pass $$ Hcls
+  · iapply apply.chainLeaseClass_auth_pass $$ Hlc
 
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
 def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
-    IProp GF :=
+    (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac)
+    (U : apply.LeaseView) : IProp GF :=
   iprop(□ ∀ (rt : Loc) (t : TxnModel) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
+      apply.lessorView γ.leases U ∗ ⌜U = none → txn.txnReadonly t = true⌝ ∗
       txn.txnRequestIs rt t -∗
-    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
+    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ apply.lessorView γ.leases U ∗ authApplyErrIs err ∗
         ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-        (∀ _ : err = GoInterface.nil, apply.txnClass on info t) -∗ Φ #err) -∗
+        (∀ _ : err = GoInterface.nil, apply.txnClass on info t ∗
+          apply.viewClass U (fun I => apply.txnLeaseClass on info I t)) -∗ Φ #err) -∗
     WP (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt)) {{ Φ }})
 
 instance apply.txnPermT_persistent (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
     (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (dq : DFrac) : Persistent (apply.txnPermT st le γ P f RD on RW ai info dq) := by
+    (dq : DFrac) (U : apply.LeaseView) : Persistent (apply.txnPermT st le γ P f RD on RW ai info dq U) := by
   unfold apply.txnPermT; infer_instance
 
 /-- **`checkTxnReqsPermission`, over `checkTxnPermission`'s triple** (`txnPermT`, for its
@@ -113,17 +176,19 @@ theorem apply.checkTxnReqs_of
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG)) :
   ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
-    (ps : List Loc) (ops : List TxnOp),
+    (ps : List Loc) (ops : List TxnOp) (U : apply.LeaseView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
-      reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on RW ai info dq }}
+      apply.lessorView γ.leases U ∗ ⌜U = none → ops.all txn.opIsGet = true⌝ ∗
+      reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on RW ai info dq U }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
-      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.opsClass on info ops) }} := by
-  intro st le γ P f RD on RW ai info dq reqs ps ops
-  wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hreqs, #Hops, #IH⟩
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView γ.leases U ∗
+      authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.opsClass on info ops ∗
+        apply.viewClass U (fun I => apply.opsLeaseClass on info I ops)) }} := by
+  intro st le γ P f RD on RW ai info dq reqs ps ops U
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu, %Hro, #Hreqs, #Hops, #IH⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hreqs
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
@@ -136,7 +201,8 @@ theorem apply.checkTxnReqs_of
   ihave HI : iprop(∃ (n : w64) (q : Loc),
       "i" ∷ i_ptr ↦ n ∗ "requ" ∷ requ_ptr ↦ q ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z reqs.len⌝ ∗
-      "#Hcls" ∷ apply.opsClass on info (ops.take (sint.nat n))) $$ [i requ]
+      "#Hcls" ∷ apply.opsClass on info (ops.take (sint.nat n)) ∗
+      "#Hlc" ∷ apply.viewClass U (fun I => apply.opsLeaseClass on info I (ops.take (sint.nat n)))) $$ [i requ]
   · iexists W64 0, _
     iframe i requ
     isplitl []
@@ -145,7 +211,9 @@ theorem apply.checkTxnReqs_of
       · decide
       · have := Hsll.2; word
     · rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]
-      iapply apply.opsClass_nil
+      isplitl []
+      · iapply apply.opsClass_nil
+      · iapply apply.viewClass_opsLease_nil
   wp_for HI
   wp_if_destruct
   · obtain ⟨p, hp⟩ : ∃ p, ps[(sint.Z n).toNat]? = some p :=
@@ -178,6 +246,14 @@ theorem apply.checkTxnReqs_of
         · ihave %Hel := ownSlice_len _ _ _ $$ He
           have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
           rw [hsn, List.take_add_one, show ops[sint.nat n]? = some op from hop, Option.toList_some]
+          isplitl []
+          rotate_left
+          · iapply apply.viewClass_opsLease_snoc
+            iframe Hlc
+            rw [Hpo]
+            iapply apply.viewClass_intro
+            intro I
+            iapply apply.opLeaseClass_get
           iapply apply.opsClass_snoc
           iframe Hcls
           rw [Hpo]
@@ -191,7 +267,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a put
       ihave #Hr' := Hr
       iunfold txn.putRequestIs at Hr'
@@ -199,7 +275,18 @@ theorem apply.checkTxnReqs_of
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
-      wp_apply (hPut _ le γ P f RD on RW ai info dq r o) $$ [$Hst $Hle $Hai $Hrd $Hr] as %err ⟨Hai, Hrd, #HeI2, %Hof2, #Hcls2⟩
+      have hU : U ≠ none := fun h => by
+        have hall := List.all_eq_true.mp (Hro h) op (List.mem_of_getElem? hop)
+        rw [Hpo] at hall
+        unfold txn.putTxnOp at hall
+        by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
+          simp [h1, h2, txn.opIsGet] at hall
+      obtain ⟨⟨L, I⟩, rfl⟩ := Option.ne_none_iff_exists'.mp hU
+      ihave Hu : lease.lessorUser γ.leases L I $$ [Hu]
+      · rw [← apply.lessorView_some]; iexact Hu
+      wp_apply (hPut _ le γ P f RD on RW ai info dq r o L I) $$ [$Hst $Hle $Hai $Hrd $Hu $Hr] as %err ⟨Hai, Hrd, Hu, #HeI2, %Hof2, #Hcls2⟩
+      ihave Hu : apply.lessorView γ.leases (some (L, I)) $$ [Hu]
+      · rw [apply.lessorView_some]; iexact Hu
       cases err with
       | nil =>
         wp_auto
@@ -211,16 +298,24 @@ theorem apply.checkTxnReqs_of
         · ipureintro; constructor <;> word
         · have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
           rw [hsn, List.take_add_one, show ops[sint.nat n]? = some op from hop, Option.toList_some]
+          isplitl []
+          rotate_left
+          · iapply apply.viewClass_opsLease_snoc
+            iframe Hlc
+            rw [Hpo]; simp only [apply.viewClass_some]
+            ihave ⟨-, #Hlk⟩ := Hcls2 $$ %rfl
+            iapply apply.opLeaseClass_put
+            iexact Hlk
           iapply apply.opsClass_snoc
           iframe Hcls
           rw [Hpo]
           iapply apply.opClass_put_of_putClass
-          ihave #Hpc := Hcls2 $$ %rfl
+          ihave ⟨#Hpc, -⟩ := Hcls2 $$ %rfl
           iexact Hpc
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a delete
       iunfold txn.deleteRangeRequestIs at Hr
       icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho, %Hkb⟩
@@ -243,6 +338,14 @@ theorem apply.checkTxnReqs_of
           · ihave %Hel := ownSlice_len _ _ _ $$ He
             have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
             rw [hsn, List.take_add_one, show ops[sint.nat n]? = some op from hop, Option.toList_some]
+            isplitl []
+            rotate_left
+            · iapply apply.viewClass_opsLease_snoc
+              iframe Hlc
+              rw [Hpo]
+              iapply apply.viewClass_intro
+              intro I
+              iapply apply.opLeaseClass_delete
             iapply apply.opsClass_snoc
             iframe Hcls
             rw [Hpo]
@@ -256,7 +359,7 @@ theorem apply.checkTxnReqs_of
         | ok e' =>
           wp_auto
           wp_for_post
-          iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+          iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
       wp_auto
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hai Hrd] as %err ⟨Hai, -, -, Hrd, #HeI4, %Hof4, #Hv4⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
@@ -264,7 +367,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
       | nil =>
       wp_auto
       wp_apply HDel $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hai Hrd] as %err ⟨Hai, -, -, Hrd, #HeI5, %Hof5, #Hv5⟩
@@ -281,6 +384,14 @@ theorem apply.checkTxnReqs_of
         · ihave %Hel := ownSlice_len _ _ _ $$ He
           have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
           rw [hsn, List.take_add_one, show ops[sint.nat n]? = some op from hop, Option.toList_some]
+          isplitl []
+          rotate_left
+          · iapply apply.viewClass_opsLease_snoc
+            iframe Hlc
+            rw [Hpo]
+            iapply apply.viewClass_intro
+            intro I
+            iapply apply.opLeaseClass_delete
           iapply apply.opsClass_snoc
           iframe Hcls
           rw [Hpo]
@@ -297,7 +408,7 @@ theorem apply.checkTxnReqs_of
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+        iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
     · -- a nested transaction
       ihave #Hr' := Hr
       iunfold txn.txnRequestIs at Hr'
@@ -306,8 +417,12 @@ theorem apply.checkTxnReqs_of
       simp only [Hrn, decide_false]
       wp_auto
       iunfold apply.txnPermT at IH
-      wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) [Hai Hrd] as %err ⟨Hai, Hrd, #HeI6, %Hof6, #Hcls6⟩
+      wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) [Hai Hrd Hu] as %err ⟨Hai, Hrd, Hu, #HeI6, %Hof6, #Hcls6⟩
       · iframe; iframe #
+        ipureintro
+        intro h
+        have hall := List.all_eq_true.mp (Hro h) op (List.mem_of_getElem? hop)
+        rw [Hpo] at hall; simp [txn.opIsGet] at hall
       cases err with
       | nil =>
         wp_auto
@@ -319,30 +434,38 @@ theorem apply.checkTxnReqs_of
         · ipureintro; constructor <;> word
         · have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by unfold sint.nat at *; word
           rw [hsn, List.take_add_one, show ops[sint.nat n]? = some op from hop, Option.toList_some]
+          isplitl []
+          rotate_left
+          · iapply apply.viewClass_opsLease_snoc
+            iframe Hlc
+            rw [Hpo]
+            ihave ⟨-, #Ht2⟩ := Hcls6 $$ %rfl
+            iapply (apply.viewClass_mono U _ _ (fun I => apply.opLeaseClass_txn on info I cs ts es)) $$ Ht2
           iapply apply.opsClass_snoc
           iframe Hcls
           rw [Hpo]
           iapply apply.opClass_txn
-          ihave #Ht := Hcls6 $$ %rfl
+          ihave ⟨#Ht, -⟩ := Hcls6 $$ %rfl
           iexact Ht
       | ok e' =>
         wp_auto
         wp_for_post
-        iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
-  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
+        iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+  iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
   iintro %_
   ihave %Hpl := txn.requestOpsIs_length ps ops $$ Hops
   have hle : ops.length ≤ sint.nat n := by unfold sint.nat at *; word
-  iExactEq Hcls
-  rw [List.take_of_length_le hle]
+  isplitl []
+  · iExactEq Hcls; rw [List.take_of_length_le hle]
+  · iExactEq Hlc; rw [List.take_of_length_le hle]
 
 theorem apply.checkTxnPermission_loeb
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG)) :
     apply.checkTxnPermission.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on RW ai info dq rt t
+  intro st le γ P f RD on RW ai info dq rt t U
   iloeb as IH generalizing %rt %t
-  wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hrt⟩
-  ihave #IHT : apply.txnPermT st le γ P f RD on RW ai info dq $$ []
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu, %Hro, #Hrt⟩
+  ihave #IHT : apply.txnPermT st le γ P f RD on RW ai info dq U $$ []
   · iunfold apply.txnPermT; iexact IH
   iclear IH
   iunfold txn.txnRequestIs at Hrt
@@ -409,25 +532,37 @@ theorem apply.checkTxnPermission_loeb
     | ok e' =>
       wp_auto
       wp_for_post
-      iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
-  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq ssl sps t.thenOps) $$ [$Hst $Hle $Hai $Hrd $Hssl $Hss $IHT] as %err ⟨Hai, Hrd, #HeI8, %Hof8, #Hcls8⟩
+      iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+  have hro1 : U = none → t.thenOps.all txn.opIsGet = true := fun h => by
+    have := Hro h; unfold txn.txnReadonly at this; rw [List.all_append] at this
+    exact (Bool.and_eq_true _ _ ▸ this).1
+  have hro2 : U = none → t.elseOps.all txn.opIsGet = true := fun h => by
+    have := Hro h; unfold txn.txnReadonly at this; rw [List.all_append] at this
+    exact (Bool.and_eq_true _ _ ▸ this).2
+  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq ssl sps t.thenOps U) $$ [$Hst $Hle $Hai $Hrd $Hu $Hssl $Hss $IHT] as %err ⟨Hai, Hrd, Hu, #HeI8, %Hof8, #Hcls8⟩
+  · ipureintro; exact hro1
   cases err with
   | ok e' =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
+    iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl)); (iintro %h; cases h)
   | nil =>
   wp_auto
-  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq fsl fps t.elseOps) $$ [$Hst $Hle $Hai $Hrd $Hfsl $Hfs $IHT] as %err ⟨Hai, Hrd, #HeI9, %Hof9, #Hcls9⟩
-  iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
+  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq fsl fps t.elseOps U) $$ [$Hst $Hle $Hai $Hrd $Hu $Hfsl $Hfs $IHT] as %err ⟨Hai, Hrd, Hu, #HeI9, %Hof9, #Hcls9⟩
+  · ipureintro; exact hro2
+  iapply HΦ; iframe Hai Hrd Hu; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply authApplyErrIs_nil); isplitr; (ipureintro; first | assumption | (intro _; rfl))
   iintro %Herr
   try subst Herr
-  unfold apply.txnClass
   have hle : t.cmps.length ≤ sint.nat n := by unfold sint.nat at *; word
-  ihave #H8 := Hcls8 $$ %rfl
-  ihave #H9 := Hcls9 $$ %rfl
-  iframe H8 H9
-  iExactEq Hcc
-  rw [List.take_of_length_le hle]
+  ihave ⟨#H8, #L8⟩ := Hcls8 $$ %rfl
+  ihave ⟨#H9, #L9⟩ := Hcls9 $$ %rfl
+  isplitl []
+  · unfold apply.txnClass
+    iframe H8 H9
+    iExactEq Hcc
+    rw [List.take_of_length_le hle]
+  · simp only [apply.txnLeaseClass]
+    iapply (apply.viewClass_sep U _ _)
+    iframe L8 L9
 
 end proof
 

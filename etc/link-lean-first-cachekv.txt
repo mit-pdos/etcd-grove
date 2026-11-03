@@ -8,6 +8,15 @@
 # the program's own functions: its `collect`; the watch workload's other functions are the
 # examples' shared ones (`common`'s, linked in its `Link.lean`)
 cachekv_collect:
+# (2026-11-02) the check of the cache's Get: `lastVal`, `hasKey`, `checkGet`
+cachekv_lastVal:
+cachekv_hasKey:
+cachekv_checkGet: cachekv_lastVal cachekv_hasKey
+# (2026-11-03) the check of a progress notification: `awaitProgress` (the client's
+# `WatchResponse.IsProgressNotify`, linked in the cache's `Link.lean`), `checkProgress`
+WatchResponse__IsProgressNotify: @
+cachekv_awaitProgress: WatchResponse__IsProgressNotify
+cachekv_checkProgress:
 common_GenAll: @
 common_Writer: @
 common_MaxRev: @
@@ -16,7 +25,8 @@ common_Check: @
 getPrefix:
 WithPrefix: getPrefix
 WithRev:
-# `Main`: the examples' shared start of the server and the client (`common`'s `StartServer`,
+# `Main`: the examples' shared start of the server and the client (`common`'s
+# `StartPeriodicServer` since 2026-11-02, `StartServer` until then,
 # `Serve`, `NewClient`, linked in its `Link.lean`; zap's trust-boundary axiom), the cache's
 # client (the client's watcher's `Watch` and `RequestProgress`, linked in the client's
 # `Link.lean`; a context's `Err`, in `context`'s), the cache's `New` and `Watch` (linked in the
@@ -26,8 +36,13 @@ watcher__Watch: @
 watcher__RequestProgress: @
 cache_v3_New: @
 Cache__Watch: @
-common_StartServer: @
+common_StartPeriodicServer: @
 common_Serve: @
 common_NewClient: @
 zap_NewNop:
-cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch
+# (2026-11-02) the cache's Get (linked in the cache's `Link.lean`) with a timeout (`context`'s,
+# `Proof/context/WithTimeoutBackground.lean`, over Perennial's spec), then `checkGet`
+Cache__Get: @
+Cache__RequestProgress: @
+context_WithTimeoutBackground:
+cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartPeriodicServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch Cache__Get context_WithTimeoutBackground cachekv_checkGet Cache__RequestProgress cachekv_awaitProgress cachekv_checkProgress

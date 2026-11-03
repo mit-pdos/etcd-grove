@@ -25,6 +25,8 @@ initializers listed in the generated `Proof/runtime/PkgInitExt.lean` (`ExternalI
 
 The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
 (`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
+The part `PorcupineDag/` (porcupine PR #46) gets its own package's `Init.lean`, from its own
+translation, and `Closures.lean`, the func literals its package fact names (`DAG_*`).
 
   etc/gen-init.py            regenerate every file
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
@@ -47,7 +49,13 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
+         'github_com.mit_pdos.etcd_grove.examples.compactkv',
+         # the closed lease example (2026-11-02, notes/lease-ex-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.leasekv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
+         # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
+         'github_com.mit_pdos.etcd_grove.examples.restart3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
          'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
@@ -58,6 +66,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
          'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         # (2026-11-01) the durable store (its files through the durable-state extension's Go
+         # package `durable`)
+         'github_com.mit_pdos.etcd_grove.examples.kvdurable',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',
@@ -92,10 +103,11 @@ PRE_RES = {'go_etcd_io.etcd.server.v3.etcdserver.read': 'EtcdGrove.read.readRegP
 PERENNIAL_HERE = {'math.rand', 'reflect'}
 
 
-def inventory():
-    """Every translated package: its file, imports, untranslated initializers, translated vars."""
+def inventory(code='Code'):
+    """Every translated package: its file, imports, untranslated initializers, translated vars
+    (of the translation under `code`: `Code`, or a part's `<root>/Code`)."""
     out = {}
-    files = sorted(glob.glob('Code/**/*.lean', recursive=True)) + \
+    files = sorted(glob.glob(code + '/**/*.lean', recursive=True)) + \
         sorted(glob.glob(PERENNIAL_CODE + '/**/*.lean', recursive=True))
     for f in files:
         t = open(f).read()
@@ -110,14 +122,15 @@ def inventory():
     return out
 
 
-def instances():
-    """Where each package's `IsPkgInit` instance is (first in path order) and its fact."""
+def instances(proof='Proof/'):
+    """Where each package's `IsPkgInit` instance is (first in path order) and its fact (in the
+    proofs under `proof`: `Proof/`, or a part's `<root>/Proof/`)."""
     loc = {}
-    for f in sorted(glob.glob('Proof/**/*.lean', recursive=True)):
+    for f in sorted(glob.glob(proof + '**/*.lean', recursive=True)):
         t = open(f).read()
         for m in re.finditer(r"IsPkgInit \(IProp GF\) pkg_id\.(\S+?) :=\s*\n?\s*define_is_pkg_init\s+(\S+)", t):
             loc.setdefault(m.group(1).replace('«attribute»', 'attribute'), []).append(
-                (f[len('Proof/'):-len('.lean')], m.group(2)))
+                (f[len(proof):-len('.lean')], m.group(2)))
     return loc
 
 
@@ -367,6 +380,17 @@ initializer runs its variables' untranslated initializers (`version.go`): string
                                   post='globalAddr MinClusterVersion ↦ go!"3.0.0"', pat='H@'),
     },
     finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
+)
+
+# (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
+SPECIAL['go_etcd_io.etcd.server.v3.lease.leasehttp'] = dict(
+    doc='''Its fact (`lease/leasehttp/Base.lean`): `LeasePrefix` holds some string. Its initializer
+runs its variables' untranslated initializers (`http.go`); the trust-boundary axiom
+`LeasePrefix_init` states the one the fact reads (`"/leases"`, its value not stated),
+`opaqueInitsOk` the others.''',
+    custom={'LeasePrefix': dict(doc='/-- `LeasePrefix = "/leases"` (`http.go`): some string. -/',
+                                post='∃ p : GoString, globalAddr LeasePrefix ↦ p', pat='⟨%p@, H@⟩')},
+    finish=['ipersist HLeasePrefix'] + FIN_PRE[:6],
 )
 
 # The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
@@ -777,8 +801,8 @@ def counter_inc(x, file='metrics.go'):
                 pat='⟨%c@, H@, #S@⟩')
 
 SPECIAL['go_etcd_io.etcd.server.v3.lease'] = dict(
-    doc='''Its fact (`leaseInit`, `Base.lean`): the error variables `ErrLeaseNotFound`,
-`ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
+    doc='''Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
+`ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
@@ -789,15 +813,18 @@ other untranslated initializers run.''',
                 doc='/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
                 post='∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦ GoInterface.ok h ∗ go_etcd_io.etcd.server.v3.storage.backend.histSpec h',
                 pat='⟨%h@, H@, #S@⟩')},
-    alloc_types={'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
+    alloc_types={'ErrNotPrimary': 'GoInterface',
+                 'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx',
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL']},
-    finish=['ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
+    finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
+            'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',
             'ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL',
@@ -1336,7 +1363,7 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd10',
-             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF⟩',
+             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
@@ -1479,10 +1506,9 @@ names) and the four
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, -⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
-             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods',
             
             
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
              '  iframe HK HL HC HA HM',
@@ -1499,7 +1525,7 @@ names) and the four
              'ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA',
              '-- mvcc\'s',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd36',
+             '· iapply isPkgInit_access $$ Hd37',
              'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI, -⟩',
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
@@ -1513,7 +1539,7 @@ names) and the four
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd43',
+             '· iapply isPkgInit_access $$ Hd44',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',
@@ -2078,6 +2104,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putgetc':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.compactkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.leasekv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':
@@ -2106,6 +2136,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.kvdurable':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
 
@@ -2193,6 +2225,133 @@ def part_copy(path, txt):
             f'-- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part\'s.\n')
     return f'{PART_ROOT}/{path}', txt[:i] + note + txt[i:]
 
+# The part `PorcupineDag/` (porcupine's pull request #46, the DAG search; notes/porcupine-dag-plan.md):
+# the same Go path as v1.3.1's porcupine, translated into a module root of its own. Its package's
+# initializer is generated as the main tree's, from the part's translation (`DAG_ROOT/Code`) and
+# the part's instance (`DAG_ROOT/Proof`), with the imports of the part's modules prefixed; and the
+# closures its fact names (func literals of its variables' initializers, which capture nothing),
+# extracted from the translation into `Closures.lean`.
+DAG_ROOT = 'PorcupineDag'
+DAG_PKG = 'github_com.anishathalye.porcupine'
+# name -> (variable, the `Let` binding of a composite literal's field, or None for the whole
+# initializer), and the doc
+DAG_CLOSURES = [
+    ('rtV', 'RealTime', None, '`RealTime`: the real-time oracle.'),
+    ('glV', 'GeneralLikely', None, '`GeneralLikely`: the call-order oracle.'),
+    ('rvInitV', 'RVal', '$v0', '`RVal.Init`: the model\'s `Init`.'),
+    ('rvStepV', 'RVal', '$v1', '`RVal.Step`: the model\'s `StepContext`.'),
+]
+DAG_SPECIAL = dict(
+    doc="""Its fact (`linInit`, `Base.lean`): `Linearizability` holds the consistency value whose
+oracles slice holds `RealTime` and `GeneralLikely` and whose validity is `RVal` (the closures of
+`Closures.lean`). Its initializer runs its variables' translated initializers (func literals,
+slice and struct literals).""",
+    imports=[],
+    alloc_types={'GeneralLikely': 'GoFunc', 'RealTime': 'GoFunc',
+                 'LinearizabilityOracles': 'GoSlice', 'RealTimeWrites': 'GoFunc',
+                 'OrderedSequentialConsistencyOracles': 'GoSlice', 'RVal': 'Validity',
+                 'Linearizability': 'Consistency', 'OrderedSequentialConsistency': 'Consistency'},
+    finish=[
+        # `LinearizabilityOracles`, then `OrderedSequentialConsistencyOracles`: slice literals of
+        # the globals' closures
+        'wp_apply wp_slice_literal (l := [rtV, glV])', 'isplitr', '· ipureintro; rfl',
+        'iintro %s1 ⟨S1, -⟩', 'try wp_auto',
+        'wp_apply wp_slice_literal (l := [_, _])', 'isplitr', '· ipureintro; rfl',
+        'iintro %s2 ⟨S2, -⟩', 'try wp_auto',
+        # `RVal`: a struct literal of two func literals, folded to their names
+        'rw [← rvInitV_val, ← rvStepV_val]', 'try wp_auto',
+        'ipersist HLinearizability', 'ipersist S1', 'iframe Hown', 'imodintro', 'isplitr',
+        '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'imodintro',
+        'unfold linInit', 'iexists _', 'iframe HLinearizability', 'unfold isLinearizability',
+        'iframe S1', 'ipureintro', 'rfl'],
+)
+
+
+def sexp_end(s, i):
+    """The index after the parenthesized term starting at `s[i] == '('` (strings skipped)."""
+    assert s[i] == '(', s[i:i + 20]
+    depth = 0
+    j = i
+    while j < len(s):
+        ch = s[j]
+        if ch == '"':
+            j += 1
+            while s[j] != '"':
+                j += 2 if s[j] == '\\' else 1
+        elif ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    raise ValueError('unbalanced')
+
+
+def dag_initializer(body, var):
+    """The initializer term of `var` in `initialize'`'s body: the `Let "$r0"` bound around its
+    store."""
+    store = body.index(f'(GlobalVarAddr {var}))) (Val #())) (Var "$r0")')
+    best = None
+    for m in re.finditer(r'\(Let "\$r0" ', body):
+        if m.start() < store and sexp_end(body, m.start()) > store:
+            best = m.start()
+    k = best + len('(Let "$r0" ')
+    return body[k:sexp_end(body, k)]
+
+
+def dag_closures():
+    """`Closures.lean`: the func literals the package fact names, from the translation."""
+    t = open(f'{DAG_ROOT}/Code/{dirof(DAG_PKG)}.lean').read()
+    i = t.find("noncomputable def initialize'")
+    body = t[i:t.find("\n\n", i)]
+    L = ['/-',
+         f'The closures `{DAG_PKG}`\'s package fact names (`linInit`, `Base.lean`): the func literals',
+         'of its variables\' initializers, as the translation\'s `initialize\'` has them (they capture',
+         'nothing). Generated by `etc/gen-init.py` (`DAG_CLOSURES`) from',
+         f'`{DAG_ROOT}/Code/{dirof(DAG_PKG)}.lean`; do not edit.',
+         '-/', 'module', '', f'public import {DAG_ROOT}.Code.{DAG_PKG}', '',
+         '@[expose] public section', '', 'set_option maxRecDepth 100000', '',
+         'open Iris', '',
+         'namespace Perennial', 'noncomputable section', '', f'namespace {DAG_PKG}', '']
+    for name, var, field, doc in DAG_CLOSURES:
+        init = dag_initializer(body, var)
+        if field is not None:
+            k = init.index(f'(Let "{field}" ') + len(f'(Let "{field}" ')
+            init = init[k:sexp_end(init, k)]
+        m = re.match(r'\(Lam "([^"]*)"\n', init)
+        assert m and init.endswith(')'), (name, init[:60])
+        arg = m.group(1)
+        inner = init[m.end():-1]
+        L.append(f'/-- {doc} -/')
+        L.append(f'noncomputable def {name} [GooseExts] [GoGlobalContext] : GoFunc :=')
+        L.append(f'  func.mk BAnon "{arg}"')
+        L.append('  ' + inner.replace('\n', '\n  '))
+        L.append('')
+        L.append(f'/-- `{name}` as the value its func literal evaluates to (to fold it in a goal). -/')
+        L.append(f'theorem {name}_val [GooseExts] [GoLocalContext] [GoGlobalContext] [GoSemanticsFunctions]\n    [go.Semantics] :')
+        L.append(f'    (#{name} : val) = RecV BAnon "{arg}"')
+        L.append('  ' + inner.replace('\n', '\n  ') + ' := by')
+        L.append('  rw [go.intoVal_unfold GoFunc]; rfl')
+        L.append('')
+    L += [f'end {DAG_PKG}', '', 'end', 'end Perennial']
+    return f'{DAG_ROOT}/Proof/{dirof(DAG_PKG)}/Closures.lean', '\n'.join(L) + '\n'
+
+
+def dag_init():
+    """The part's `Init.lean`, generated as the main tree's from the part's files."""
+    global inv, inst
+    saved = inv, inst
+    try:
+        inv = inventory(f'{DAG_ROOT}/Code')
+        inst = instances(f'{DAG_ROOT}/Proof/')
+        path, txt = gen(DAG_PKG, DAG_SPECIAL)
+    finally:
+        inv, inst = saved
+    txt = re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt)
+    return f'{DAG_ROOT}/{path}', txt
+
+
 
 def main(argv):
     check = '--check' in argv
@@ -2203,6 +2362,8 @@ def main(argv):
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
+    if not [a for a in argv if not a.startswith('--')]:
+        outs += [dag_closures(), dag_init()]
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

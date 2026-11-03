@@ -34,7 +34,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,7 @@ theorem putget_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWit
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The adequacy example is safe, in the operational semantics** (`putget_adequate`, see the
@@ -63,9 +63,11 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetProgram [config.walDirOf go!"putget.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -73,12 +75,12 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem σ g
-    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  putget_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs n Hprem σ g
+    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

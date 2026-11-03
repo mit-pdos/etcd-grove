@@ -104,13 +104,28 @@ theorem recvCmpl_at (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.
   · iright; iexact HA
   · iright; iexact Hok
 
+/-- **An error among the responses `run` sends** (`respKindOk`, no close error) is a compaction
+response: no events, at the header revision `0` (watches across a compaction). -/
+theorem respKind_err (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
+    (hv : v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
+      v.Canceled' = r.canceled) (hk : respKindOk r) :
+    watchErr v → r.hdrRev = W64 0 ∧ r.events = [] := by
+  intro he
+  rcases hk with ⟨h1, h2⟩ | ⟨-, -, he', -, hh⟩
+  · exfalso
+    unfold watchErr at he
+    rw [hv.1, hv.2.1, hv.2.2, h1, h2] at he
+    simp at he
+  · exact ⟨hh, he'⟩
+
 /-- **The resume revision after a response that is not a created one** (F3: `nextRev` moves to
 the header's revision + 1 only forward, then past the last event): at the dispatch cursor's new
 position `hiA` and the second cursor's `h2A`. -/
 theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w64)
     (r : RespModel) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (hok : wsReqOk V.pfx P) (hc : P.γ.cpl = cplOf P)
-    (hfl : r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0)
+    (hcr : r.created = false)
+    (herr : watchErr v → r.hdrRev = W64 0 ∧ r.events = [])
     (hv : v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
       v.Canceled' = r.canceled)
     (h0 : (sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = r.hdrRev + W64 1) ∨
@@ -126,8 +141,18 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hro
   obtain ⟨-, Hgt, HhiA⟩ := Hrw
   have hrev0 : 0 ≤ sint.Z P.rev := hok.2.2.1
-  have hnoerr : ¬ watchErr v := by
-    unfold watchErr; rw [hv.1, hv.2.1, hv.2.2, hfl.2.2, hfl.2.1]; simp
+  -- a response without an error: no compaction, not canceled
+  have hflOf : ¬ watchErr v → r.canceled = false ∧ r.compactRev = W64 0 := by
+    intro hn
+    unfold watchErr at hn
+    rw [hv.1, hv.2.1, hv.2.2] at hn
+    refine ⟨?_, ?_⟩
+    · cases h : r.canceled
+      · rfl
+      · exact absurd (Or.inr (Or.inr h)) hn
+    · by_cases h : r.compactRev = W64 0
+      · exact h
+      · exact absurd (Or.inr (Or.inl h)) hn
   rcases h1 with ⟨hne, hnr⟩ | ⟨e, hlast, hnr⟩
   · -- no events: the header's revision, forward only
     have hhiA : hiA = hl := by rw [HhiA, hne]; rfl
@@ -143,7 +168,23 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
       icases Hw with ⟨%γst, Hw⟩
       iunfold rawRespOk at Hw
       icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
-      · exact absurd H.1 hnoerr
+      · -- an error (a compaction response; watches across a compaction): the cursor kept, its
+        -- header's revision `0`
+        ipureintro; intro hcp
+        have hc2 := Hr3 hcp
+        have hpos : 1 ≤ sint.Z P.rev := by
+          have hcp' : cplOf P = true := by rw [← hc]; exact hcp
+          have := (cplCond_rev hcp').2
+          have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+          omega
+        have hh0 : r.hdrRev = W64 0 := (herr H.1).1
+        have hrv : sint.Z P.rev ≤ sint.Z rv :=
+          Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
+        rcases h0 with ⟨hlt, -⟩ | ⟨-, he⟩
+        · rw [hh0] at hlt; exfalso
+          have : sint.Z (W64 0 + W64 1) = 1 := by word
+          omega
+        · rw [he, H.2, hc2]
       · -- not a progress notification: its revision is 0
         ipureintro; intro hcp
         have hc2 := Hr3 hcp
@@ -155,7 +196,8 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
         have hh0 : r.hdrRev = W64 0 := by
           refine Classical.byContradiction fun hn => ?_
           have hp := H.2.2.1
-          simp [RespModel.isProgressNotify, hne, hfl.1, hfl.2.1, hfl.2.2] at hp
+          have hk := hflOf H.1
+          simp [RespModel.isProgressNotify, hne, hcr, hk.1, hk.2] at hp
           exact hn hp
         have hrv : sint.Z P.rev ≤ sint.Z rv :=
           Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
@@ -249,7 +291,7 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
       icases Hw with ⟨%γst, Hw⟩
       iunfold rawRespOk at Hw
       icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
-      · exact absurd H.1 hnoerr
+      · exact absurd (herr H.1).2 (by intro h; rw [h] at hmem; cases hmem)
       · exact absurd H.2.1 (by intro h; rw [h] at hmem; cases hmem)
       · exfalso
         have hp := H.2.1

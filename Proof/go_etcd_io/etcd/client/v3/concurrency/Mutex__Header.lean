@@ -27,10 +27,11 @@ theorem Mutex.Header.wp_proof : Mutex.Header.spec (GF := GF) (hG := hG) := by
   intro m st
   wp_start as Hst
   unfold mutexState
-  icases Hst with ⟨Hk, Hr, Hh⟩
+  icases Hst with ⟨Hk, Hr, Hh, %Hkl⟩
   wp_auto
   iapply HΦ
   iframe
+  ipureintro; exact Hkl
 
 end proof
 

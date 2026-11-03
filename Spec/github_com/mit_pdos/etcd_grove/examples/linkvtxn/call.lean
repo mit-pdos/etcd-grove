@@ -50,7 +50,7 @@ abbrev call.spec : Prop :=
       (Val #x))
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, callRes i Q σ ∗
-        ⌜y.Err' = false ∧ σ.rev + 3 < 2 ^ 63 ∧ (GoodKV σ → y = outAt i σ)⌝ }}
+        ⌜y.Err' = false ∧ kvRevFits σ.rev ∧ (GoodKV σ → y = outAt i σ)⌝ }}
 
 end spec
 

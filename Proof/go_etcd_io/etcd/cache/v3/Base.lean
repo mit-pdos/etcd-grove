@@ -191,7 +191,8 @@ instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
 /-- **`etcdserverpb`'s six `ServiceDesc`s** (`rpc_grpc.pb.go`: generated literals, never written;
 item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
 handler types and distinct method and stream names; the KV service's methods and the Watch
-service's stream exactly ((the auth plan's E3zb) the Auth service's methods too; 2026-10-18: the Watch stream a client stream, `ClientStreams`, which
+service's stream exactly ((the auth plan's E3zb) the Auth service's methods too; (the lease-src plan, 2026-11-02) the Lease
+service's methods and stream; 2026-10-18: the Watch stream a client stream, `ClientStreams`, which
 `grpc.ClientConn.NewStream`'s spec asks of its descriptor; and the Lease service's stream, the client
 lease's keep-alive). -/
 abbrev etcdserverpbDescs : IProp GF :=
@@ -209,7 +210,18 @@ abbrev etcdserverpbDescs : IProp GF :=
       ⌜mds = [] ∧ sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
         [(go!"Watch", @! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler)] ∧
         sds.map (·.ClientStreams') = [true]⌝) ∗
-    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease" go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty ∗
+    -- (the lease-src plan, 2026-11-02) the Lease service's methods and stream exactly, with their
+    -- generated handlers
+    (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) =
+          [(go!"LeaseGrant", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseGrant_Handler),
+           (go!"LeaseRevoke", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseRevoke_Handler),
+           (go!"LeaseTimeToLive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler),
+           (go!"LeaseLeases", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler)] ∧
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"LeaseKeepAlive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseKeepAlive_Handler)]⌝) ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
     -- (the auth plan's E3zb) the Auth service's methods exactly, with their generated handlers
     (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),

@@ -5,7 +5,7 @@
 allocated in the proof: raft's cluster (`cluster_alloc`, `dup = true`), the store's decisions
 (`confPolicy`), snapshot registry and invariant; the client gets the store's state (`rkvVal`, the
 empty store) and the stopper's token. Needs the storage registry (`kvrStorInv`) and raft's step
-bound (`receiptBound GF ≤ 2^64 - 2`).
+bound (`receiptBound GF ≤ 2^61`: raft's `RestartNode` takes `readyFits`).
 -/
 module
 
@@ -34,7 +34,9 @@ attribute [local instance] kvrStorageModel
 /-- See the file header. -/
 abbrev StartCluster.spec : Prop :=
   ∀ (o : ROptions),
-  OptsOk o → receiptBound GF ≤ 2 ^ 64 - 2 →
+  -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`,
+  -- the receipts' bound within `2^61`; until then `2^64 - 2`)
+  OptsOk o → receiptBound GF ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf ∗ context.isClosedchanInit ∗ kvrStorInv }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvreconf.StartCluster)) (Val #o))
   {{ (c : Loc), RET #c; ∃ γr : RNames,

@@ -1,0 +1,15 @@
+# Project bboltfs's `os` (etc/goose.py), not Perennial's (`Perennial.Code.os`, which trusts
+# nothing; the two must never be in one import closure): what minibolt (examples/bboltfs) uses.
+# The flags, and `File` (`struct{ *file }`) as it is; `FileInfo`, `FileMode` and `PathError` are
+# aliases of io/fs's (Code/io/fs.toml).
+translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_EXCL", "O_SYNC",
+  "O_TRUNC", "File", "FileInfo", "FileMode", "PathError",
+  # real Go over the trusted layouts of `file` and `fileStat` (`return f.name`, `return fs.size`)
+  "File.Name", "fileStat.Size"]
+# what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
+imports = ["!*", "errors", "io", "io/fs", "syscall"]
+# The functions and methods minibolt calls, modeled by the Linux file extension osFsExt
+# (TrustedCode/os.lean, GooseLang/Ext/OsFs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
+# `syscall.Stat_t`) with the layouts the models need.
+trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
+  "File.Truncate", "File.Sync", "File.Close", "File.Fd"]

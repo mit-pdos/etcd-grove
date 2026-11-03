@@ -59,6 +59,7 @@ importable Spec.go_etcd_io.raft.v3.node__Tick
 importable Spec.go_etcd_io.raft.v3.node__TransferLeadership
 importable Spec.go_etcd_io.raft.v3.IsEmptyHardState
 importable Spec.go_etcd_io.raft.v3.IsEmptySnap
+importable Spec.go_etcd_io.raft.v3.MustSync
 importable Proof.go_etcd_io.raft.v3.InvNodeCtx
 importable Proof.go_etcd_io.raft.v3.ApiVocab
 importable Proof.go_etcd_io.raft.v3.ApiCtx
@@ -103,6 +104,9 @@ importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
 importable Proof.go_etcd_io.raft.v3.Protocol
 importable Proof.go_etcd_io.raft.v3.Protocol.Ghost
 importable Proof.go_etcd_io.raft.v3.Protocol.GhostState
+# (2026-10-31, durability stage I-1) a node's durable state `RaftState`, which the node API's
+# `raftState` is indexed by
+importable Proof.go_etcd_io.raft.v3.Protocol.RaftState
 importable Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 importable Proof.go_etcd_io.raft.v3.Protocol.Facts
 importable Proof.go_etcd_io.raft.v3.Protocol.ReadIndex

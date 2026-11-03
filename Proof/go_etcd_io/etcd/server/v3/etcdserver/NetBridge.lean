@@ -43,7 +43,7 @@ theorem srv_netRaftOk
     (wp_ReportSnapshot : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (γd : GName) (s : Loc) (id : w64) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id ⊢ netRaftOk γn id γd (srvLgReader s) (srvIface s) := by
+      srvProcOk γn s id γd ⊢ netRaftOk γn id γd (srvLgReader s) (srvIface s) := by
   iintro ⟨#Hpkg, #Hok⟩
   iunfold netRaftOk
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
@@ -57,16 +57,16 @@ theorem srv_netRaftOk
     iframe Hlr Herr
   isplitr
   · iintro !> %x %Φ !> - HΦ
-    wp_apply wp_IsIDRemoved γn s id x
+    wp_apply wp_IsIDRemoved γn γd s id x
     · iframe #
     iapply HΦ; itrivial
   isplitr
   · iintro !> %x %Φ !> - HΦ
-    wp_apply wp_ReportUnreachable γn s id x
+    wp_apply wp_ReportUnreachable γn γd s id x
     · iframe #
     iapply HΦ; itrivial
   · iintro !> %x %st %Φ !> - HΦ
-    wp_apply wp_ReportSnapshot γn s id x st
+    wp_apply wp_ReportSnapshot γn γd s id x st
     · iframe #
     iapply HΦ; itrivial
 

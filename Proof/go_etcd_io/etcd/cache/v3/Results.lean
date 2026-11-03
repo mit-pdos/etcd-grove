@@ -9,15 +9,16 @@ Every Go function of the package has a `Spec`/`Proof` pair and a linked result
   configuration) or a cache (`isCacheFields`, every field) with its handles (`cacheHandles`):
   the readers `Get` needs, the slots `Watch` needs, the handles `WaitForNextResync` needs, the
   token `Close` needs; its three loops (resync, watch, progress requests) run.
-* **`Get`** (`cache_Get`): the answer is etcd's state at a revision the cache holds
-  (`isEtcdKvs`), restricted to the requested range; a linearizable request is at least as fresh
+* **`Get`** (`cache_Get`): the answer is etcd's state at the revision asked for (the header
+  revision for `0`; `isEtcdKvs`), restricted to the requested range; a linearizable request is at least as fresh
   as etcd was when it started (`cacheGetResult`).
 * **`Watch`** (`cache_Watch`) and **its delivery theorem** (`cache_Watch_delivery`): every
   prefix of the responses the caller receives on the returned channel is a `cacheWatchLog`, and
   such a log is, unless the request was rejected, exactly etcd's events under the key range from
   the start revision on, in order, with no gap and no duplicate, each batch certified by etcd's
-  step from the previous one (`EtcdStep`), possibly ended by a compaction's cancel after
-  everything below the compaction revision.
+  step from the previous one (`EtcdStep`), each progress notification quiet (nothing under the
+  prefix after the last batch at or below it, up to its revision: `watchProgressQuiet`), possibly
+  ended by a compaction's cancel after everything below the compaction revision.
 * `WaitForRevision`, `WaitForNextResync`, `Close`, `Ready`, `WaitReady`, `RequestProgress`: the
   remaining methods of `Cache`.
 * **The cache over etcd's client and server** (`cache_end_to_end_client`, unit K3): `New` for a
@@ -51,7 +52,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -74,9 +75,13 @@ theorem cache_Watch : Cache.Watch.spec (GF := GF) (hG := hG) := Cache.wp_Watch
   whose keys are in the range, in order (no gap, no duplicate), the log in order (`SentOrdered`),
   the batches each of one revision, increasing, and each certified by etcd's step from at most
   the previous one (`certChain (etcdStepCert pfx) p₀ bs`), and for `sr ≠ 0` all at or above
-  `sr` with `p₀ < sr` (nothing etcd did from `sr` on is missing);
+  `sr` with `p₀ < sr` (nothing etcd did from `sr` on is missing); and each progress notification
+  quiet (`watchProgressQuiet`: at a positive revision `p`, etcd had no event under the prefix after
+  the last batch of `bs` at or below `p`, up to `p`). Margins: for `sr = 0` the first batch's
+  `p₀` is unknown to the client, so a notification before any batch says nothing; a sub-range
+  watch's `bs` includes batches with no event in its range;
 * such a delivery, complete below a compaction revision `n`, followed by the compaction's
-  cancel response;
+  cancel response (its progress notifications' quiet fact not kept: closed logs drop it);
 * the single cancel response of a rejected request. -/
 theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
     cacheWatchLog (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr L ⊢
@@ -84,7 +89,7 @@ theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List 
         ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
           SentOrdered L ∧ StreamOk bs ∧
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
-        certChain (etcdStepCert pfx) p₀ bs) ∨
+        certChain (etcdStepCert pfx) p₀ bs ∗ watchProgressQuiet pfx p₀ bs L) ∨
       (∃ (L0 : List RespModel) (n : w64) (bs : List Batch) (p₀ : Int),
         ⌜L = L0 ++ [cancelModel n] ∧
           eventsOf L0 = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
@@ -127,7 +132,7 @@ contract about its client (`isEtcdClient`) discharged at the server's model, so 
 results (`cache_Get`, `cache_Watch`, `cache_Watch_delivery`) are about etcd's server. -/
 
 section cache_client
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -144,7 +149,8 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 the adapter's invariant `kmInv γ`, `client.kmInv_alloc` from the KV state's half): the cache's
 `Get`s and `Watch`es then speak of etcd's KV state. -/
 theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bool)
-    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (sl : GoSlice)
+    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0])
+    (hpl : pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -162,10 +168,11 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #HKV, #HW, #Hkv, #Hw, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D48): `cache_end_to_end_client`
 for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
@@ -179,8 +186,9 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
     (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hk : V.kst = γ.kv.st)
-    (hst : γr.kv.st = γ.kv.st) (hrb : receiptBound GF ≤ 2 ^ 62)
-    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
+    (hst : kvSame γr.kv γ.kv) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
+    (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -211,10 +219,11 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     ipureintro; exact H.2
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's server, started for a cache** (the started-server step; as `client.etcd_kv_started`,
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a
@@ -223,7 +232,8 @@ with its stream registration in `sregs`, the stream chain `[ims, is]`'s contract
 slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd's KV methods
 at `addr` (`kvRegs`, the server's request names' read names `γr`), and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
 packages' facts `watchAddrFacts` lists beyond the stream's. With `clientv3.New`'s result at `addr`
-these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). -/
+these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). Under
+`grpcRepliesFit` (`grpc.start`'s, 2026-10-31). -/
 theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -238,9 +248,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
     -- (W3) the watch contract at the server's model
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
-    -- (M2, the storage side, review round 2's N1, the approval's item 13) the server off: its store
-    -- does not compact, so its watchers' create requests carry the "no compactor" fact
-    (hoff : V.R.E.γ.cm = false) :
+    (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -257,24 +265,29 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        client.srvKVFacts V ∗ client.eofOk ⊢
+        client.srvKVFacts V ∗ client.eofOk ∗
+        -- (watches across a compaction, 2026-11-01; until then `hoff : V.R.E.γ.cm = false`) the
+        -- store's fact for watches: it does not compact (`isWatchServer_watchNoDup_env`), or no
+        -- revision writes a key twice
+        mvcc.watchNoDup V.R.E.γ ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
+    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof, #HwnD⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
+    hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst
   · iframe; iframe #
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
+  ihave #Hnc : mvcc.watchNoDup V.R.γ.st $$ []
+  · rw [Hlink]; iexact HwnD
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd
-  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink $$ Hkf
   imodintro
   iframe Htok'
   isplitl []

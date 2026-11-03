@@ -20,14 +20,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`p.stop()`** of a started peer with the right to stop it: it returns, its pipeline's four
-resources back (its goroutines done). -/
+/-- **`p.stop()`** of a started peer with the right to stop it: it returns, its pipeline's
+goroutines done (until J8a-6, 2026-11-01, with their four resources `R` back). -/
 abbrev rafthttp.peer.stop.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       peerOk Rh lid pid γd R p ∗ peerStop Rh pid R p }}
     (App (Val (p @!! go.GoType.PointerType rafthttp.peer.ty @!! go!"stop")) (Val #()))
-  {{ RET #(); R ∗ R ∗ R ∗ R }}
+  {{ RET #(); True }}
 
 end spec
 

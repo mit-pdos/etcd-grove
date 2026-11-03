@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
+public import Perennial.Proof.ThreadPool
 
 @[expose] public section
 
@@ -242,7 +243,66 @@ instance netRaftOk_persistent (γn : NetNames GF) (id : w64) (γd : GName) (R : 
     (r : GoInterface) : Persistent (netRaftOk γn id γd R r) := by
   unfold netRaftOk; infer_instance
 
+/-! ### The pool of `R`s (J8a-6, 2026-11-01; `notes/decisions.md`, "The transport's `R`s from a
+thread pool") -/
+
+/-- The namespace of the receiver's pool of `R`s. -/
+def raftPoolN : Namespace := nroot .@ "rafthttp_raft_pool"
+
+/-- **The receiver's pool of `R`s** (persistent): a thread pool (Perennial's `threadPool`) of the
+resources its `Raft`'s `Process` borrows, from which a goroutine that calls `Process` borrows one
+with its thread token for its life (`raftPool_borrow`) and gives it back when it exits
+(`raftLoan_giveBack`), so no copy is ever lost; the transport's (`trFixed`), given to `Start`. -/
+def raftPool (R : IProp GF) : IProp GF := iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R)
+
+instance raftPool_persistent (R : IProp GF) : Persistent (raftPool R) := by
+  unfold raftPool; infer_instance
+
+/-- **An `R` lent out by the pool** (exclusive): what a borrower gives back with the `R`. -/
+def raftLoan (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R ∗ threadPool.ownThreadLoan γ)
+
 end defs
+
+section pool
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+/-- A pool from `n` copies of `R`, `threadBound GF ≤ n + 1` (`threadPool.init`). -/
+theorem raftPool_init (R : IProp GF) (E : CoPset) (n : Nat) (Hn : threadBound GF ≤ n + 1) :
+    ([∗list] _x ∈ List.replicate n (), R) ⊢ |={E}=> raftPool R := by
+  iintro HR
+  imod threadPool.init raftPoolN R E n Hn $$ HR with ⟨%γ, #Hp⟩
+  imodintro
+  iunfold raftPool
+  iexists γ
+  iexact Hp
+
+/-- **Borrow an `R`** with a thread token (and a later credit). -/
+theorem raftPool_borrow (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    £ 1 ∗ raftPool R ∗ threadTok ⊢ |={E}=> R ∗ raftLoan R := by
+  iintro ⟨Hlc, #Hp, Htt⟩
+  iunfold raftPool at Hp
+  icases Hp with ⟨%γ, #Hp⟩
+  imod threadPool.borrow_lc raftPoolN γ R E HN $$ [Hlc Hp Htt] with ⟨HR, Hl⟩
+  · iframe; iframe #
+  imodintro
+  iframe HR
+  iunfold raftLoan
+  iexists γ
+  iframe; iframe #
+
+/-- **Give a borrowed `R` back**, for the thread token. -/
+theorem raftLoan_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    raftLoan R ∗ R ⊢ |={E}=> threadTok := by
+  iintro ⟨Hl, HR⟩
+  iunfold raftLoan at Hl
+  icases Hl with ⟨%γ, #Hp, Hl⟩
+  iapply threadPool.giveBack raftPoolN γ R E HN $$ [Hp Hl HR]
+  iframe; iframe #
+
+end pool
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

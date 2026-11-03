@@ -40,7 +40,7 @@ theorem unstable.restore.wp_proof
   wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ihave Hsp := Hmback $$ Hm
   iapply wp_fupd
-  wp_apply wp_proto_CloneSnapshot.2.2.2 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
+  wp_apply wp_proto_CloneSnapshot.2.2.2.1 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
   imod ownSnapS_persist _ _ _ $$ Hc with #Hc
   ihave #HcM := ownSnapS_M _ _ _ $$ Hc
   imodintro

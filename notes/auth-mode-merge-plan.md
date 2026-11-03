@@ -147,6 +147,10 @@ mechanical and request groups).
 - **`backend-cmp`** (`/shared/etcd-grove-be`): in `storage/mvcc` and `storage/backend`; its
   server-side touches (`hookStep`, the put/`UnsafeDelete` premises, `srvWTPool`) are invariant and
   hook files, not these specs. Little overlap.
+- **Nested transactions** (`notes/txn-nested.md`, 2026-10-30): the client's `Txn` with auth on admits
+  nested writing transactions (`txnNestOk`), the auth-off one stays plain (`TxnModel.plain`), a
+  recorded scope restriction (`notes/decisions.md`, "Nested transactions with auth on only"): merging
+  the `Txn` specs takes the on side's premise.
 
 ## Progress (branch `auth-mm`, worktree `/shared/etcd-grove-amm`, started 2026-10-29)
 
@@ -296,7 +300,7 @@ the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved 
   reaches the client unchanged, `http2_client.go:695-705`), the `toGRPCErrorMap`/`rpctypes`
   initializer axioms, the stream interceptor contract, and ~15 server specs, and needs a no-TLS
   premise: the auth-off claim is false of etcd with client-cert auth
-  (`issues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
+  (`nonissues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
   no TLS). The auth-on payoff (an auth-refused attempt's update given back) also needs the proposer
   to keep the update for a write refused at commit (`ProposeOn.lean:230-233`).
 

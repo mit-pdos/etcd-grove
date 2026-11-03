@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpTrack
 
 @[expose] public section
 
@@ -30,13 +31,14 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
+  icases Hcres with ⟨Hcres, Hloan, Htrk⟩
   obtain ⟨Hps, Hlen⟩ := Hps
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
   -- the lock token, the batch transaction's or the one the lessor's delete left: its `Unlock`s
-  icases mvcc.lockedIs_unlock ld bt _ _ _ _ _ _ _ _ _ _ _ _ _ (mvcc.pendPuts ilog pend)
+  icases mvcc.lockedIs_unlock ld bt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (mvcc.pendPuts ilog pend)
     $$ [$Hbt $Hlocked] with ⟨%U, Hlocked, #Hul⟩
   iunfold mvcc.unlockAt at Hul
   icases Hul with ⟨#HUnlock0, #HUnlock⟩
@@ -60,10 +62,15 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     have hnil : pend = [] := hpend.2 Hif
     subst hnil
     ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
+    -- the session's tracking closed at the committed log (F2, stage 2): the writer's resource's
+    -- quarter of the tie and its tracking, the pin's quarter
+    icases mvcc.writerTrk_close γ ilog $$ Htrk with ⟨HlgW, HlgP, HtrkW⟩
     (try wp_auto)
     -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
     -- transaction's part of `s.mu`'s deposit ghost back
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
+    -- the view's quarters: `writerRes`'s and the writer's pin's (M2's item 37)
+    icases (mvcc.bucketViewL_halves γ (1 : Qp).half _).1 $$ Hbv with ⟨Hbv, HbvP⟩
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -73,11 +80,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       ipureintro; exact ⟨Hbudget, Hne⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
     imod mvcc.writerInv_checkin s γ ilog _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
-    ihave HW : mvcc.writerRes s γ $$ [Hwk HwvW Hbv Hcres]
+    ihave HW : mvcc.writerRes s γ $$ [Hwk HwvW Hbv Hcres HlgW HtrkW]
     · iunfold mvcc.writerRes
       iexists ilog
       simp only [named]
-      iframe Hwk HwvW Hbv Hcres
+      iframe Hwk HwvW Hbv Hcres HlgW HtrkW
       iframe #
       ipureintro; exact Hne
     ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
@@ -113,9 +120,15 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
     iframe Hcert Htok Hfrag
+    iunfold mvcc.writerPin; iframe HbvP Hloan HlgP
+    iunfold mvcc.pinRegd; iright; iexists s; iexact Hreg
 
   · -- a change: commit the pending revision under `s.revMu`
     have hne' : pend ≠ [] := fun h => Hif (hpend.1 h)
+    -- the session's tracking closed at the committed log (F2, stage 2: the puts are the committed
+    -- revision's entries)
+    ihave %Hiwf := mvcc.idxWriterB_wf γ.idx ilog pend sealed $$ Hw
+    imod mvcc.writerTrk_commit γ ilog pend Hiwf Hne $$ Htrk with ⟨HlgW, HlgP, HtrkW⟩
     (try wp_auto)
     wp_apply +noauto sync.RWMutex.wp_Lock $$ [$HrevMu] as ⟨Hlk, HP⟩
     wp_auto_lc 1
@@ -162,9 +175,14 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · rw [← hsplit]; iexact Hcur
     icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcur2 with ⟨HcurL, Hcur⟩
     -- the bucket's full view: `s.revMu`'s half and the writer's
-    ihave Hview : mvcc.bucketView γ 1 (mvcc.bucketMap ilog) $$ [HbucketL Hbv]
-    · iapply (mvcc.bucketView_halves γ 1 _).2
+    ihave Hview : mvcc.bucketViewL γ 1 ilog $$ [HbucketL Hbv]
+    · iapply (mvcc.bucketViewL_halves γ 1 _).2
       iframe HbucketL Hbv
+    -- its bucket `m`, of `ilog` (M2's item 15: thin after a restore in compaction mode); the
+    -- commit's puts keep it of the committed log
+    iunfold mvcc.bucketViewL at Hview
+    icases Hview with ⟨%m, Hview, #Hbl⟩
+    ihave #Hbl' := mvcc.bucketLog_append γ ilog pend m Hne $$ Hbl
     -- `tw.tx.Unlock()`: the write-back, then the batch lock's resource at the committed log
     -- (half the new view), the other half kept for `s.revMu`
     -- the writer's state at the committed log, checked back in (D22 receiver epochs, S2)
@@ -180,19 +198,26 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact ⟨by simp; omega, by simp⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
     imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
-    ihave #HUnlock' := HUnlock $$ %(mvcc.bucketMap ilog)
-      %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as Hbucket
-    · rw [← mvcc.bucketMap_append ilog pend Hne]
-      iintro Hv
+    ihave #HUnlock' := HUnlock $$ %m
+      %(iprop(mvcc.bucketViewL γ (1 : Qp).half (ilog ++ [pend]) ∗
+        mvcc.bucketViewL γ (1 : Qp).half.half (ilog ++ [pend])))
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres HlgW HtrkW] as ⟨Hbucket, HbvP⟩
+    · iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-      iframe Hv2
+      icases (mvcc.bucketView_quarters γ _).1 $$ Hv1 with ⟨Hv1, Hv1b⟩
+      ihave Hv2 : mvcc.bucketViewL γ (1 : Qp).half (ilog ++ [pend]) $$ [Hv2]
+      · iunfold mvcc.bucketViewL; iexists _; iframe Hv2; iexact Hbl'
+      ihave Hv1b : mvcc.bucketViewL γ (1 : Qp).half.half (ilog ++ [pend]) $$ [Hv1b]
+      · iunfold mvcc.bucketViewL; iexists _; iframe Hv1b; iexact Hbl'
+      ihave Hv1 : mvcc.bucketViewL γ (1 : Qp).half.half (ilog ++ [pend]) $$ [Hv1]
+      · iunfold mvcc.bucketViewL; iexists _; iframe Hv1; iexact Hbl'
+      iframe Hv2 Hv1b
       iapply mvcc.storeW_put s γ
       iframe Hreg
       iunfold mvcc.writerRes
       iexists (ilog ++ [pend])
       simp only [named]
-      iframe Hwk HwvW Hv1 Hcres
+      iframe Hwk HwvW Hv1 Hcres HlgW HtrkW
       iframe #
       ipureintro; simp
     (try wp_auto)
@@ -240,6 +265,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
       iframe Hcert' Hq Hfrag
+      iunfold mvcc.writerPin; iframe HbvP Hloan HlgP
+      iunfold mvcc.pinRegd; iright; iexists s; iexact Hreg
 end proof
 
 end EtcdGrove

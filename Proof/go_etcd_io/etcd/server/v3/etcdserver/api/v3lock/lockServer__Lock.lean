@@ -43,8 +43,8 @@ theorem lockServer.Lock.wp_proof
     (hMH : concurrency.Mutex.Header.spec (GF := GF) (hG := hG))
     (hMK : concurrency.Mutex.Key.spec (GF := GF) (hG := hG)) :
     lockServer.Lock.spec (GF := GF) (hG := hG) := by
-  intro ls c req nsl name lease ctx cs
-  wp_start as ⟨#Hls, #Hok, #Hnf, #Hns, #Hlf, #Hctx, #Hcc⟩
+  intro ls c req nsl name lease ctx cs maxReq
+  wp_start as ⟨#Hls, #Hok, #Hnf, #Hns, %Hrecv, #Hlf, #Hctx, #Hcc⟩
   iunfold isLockServer at Hls
   iunfold lockClientOk at Hok
   icases Hok with ⟨%cctx, #Hsc, #Hmc⟩
@@ -98,6 +98,7 @@ theorem lockServer.Lock.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %(name ++ go!"/")
   wp_apply hNM s γ c id name $$ [$Hcpkg $Hss $Hmc'] as %m ⟨#Hm, Hmst⟩
+  · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hrecv.1 Hrecv.2
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hML m s γ c id (name ++ go!"/") MutexSt.init ctx cs (W64 0) $$

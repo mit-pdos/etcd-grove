@@ -43,6 +43,7 @@ abbrev writer.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   γ.W = wkW P → tried.map pairOf = P →
   cls ≠ [] → 0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
+  (∀ x ∈ tried, common.wkvSizeOk x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       clis ↦*□ cls ∗

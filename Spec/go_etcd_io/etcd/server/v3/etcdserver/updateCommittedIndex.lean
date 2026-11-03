@@ -29,10 +29,11 @@ log (2026-10-16, stage R7b): and (2026-10-14, unit C2a) the committed index at l
 last index after (`committedLast`). (D22 J6a, 2026-10-26) With a snapshot (`sn` not `nil`, read
 only, no committed entries, raft's snapshot `Ready`), with a committed log `A'` reaching the
 snapshot's index: the committed index at least the snapshot's after; until then for no snapshot
-only. -/
+only. (2026-10-31, #3) The snapshot's model `sv` is the spec's, named by the post (until then the
+post re-quantified it, which a caller cannot tie to its own). -/
 abbrev updateCommittedIndex.spec : Prop :=
   ∀ (ap rh : Loc) (es : GoSlice) (ceL : List Loc) (A ce : List EntryModel) (R : IProp GF)
-    (γr : ReadNames) (sn : Loc),
+    (γr : ReadNames) (sn : Loc) (sv : SnapshotM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       taEntriesAddr ap ↦□ es ∗ es ↦*□ ceL ∗ entriesAt ceL ce ∗
       structFieldRef toApply go!"snapshot" ap ↦□ sn ∗ isReadyHandler rh R γr ∗ R ∗
@@ -41,13 +42,12 @@ abbrev updateCommittedIndex.spec : Prop :=
       srvRLogLb γr.raft (A ++ ce) ∗ ⌜srvIdxOk γr.raft.ai0 (A ++ ce)⌝ ∗
       -- (D22 J6a) no snapshot, or one read-only with no committed entries and a committed log
       -- reaching its index
-      (⌜sn = null⌝ ∨ ∃ (sv : SnapshotM) (A' : List EntryModel), ownSnapM sn DFrac.discard sv ∗
+      (⌜sn = null⌝ ∨ ∃ A' : List EntryModel, ownSnapM sn DFrac.discard sv ∗
         srvRLogLb γr.raft A' ∗
         ⌜ce = [] ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z γr.raft.ai0 + A'.length⌝) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex)) (Val #ap)) (Val #rh))
   {{ RET #(); R ∗ committedLast γr ce ∗
-      (⌜sn = null⌝ ∨ ∃ sv : SnapshotM, ownSnapM sn DFrac.discard sv ∗
-        committedAtLeast γr sv.Metadata'.Index') }}
+      (⌜sn = null⌝ ∨ committedAtLeast γr sv.Metadata'.Index') }}
 
 end spec
 

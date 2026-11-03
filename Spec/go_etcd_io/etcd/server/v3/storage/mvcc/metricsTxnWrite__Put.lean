@@ -28,6 +28,7 @@ abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
     (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
     (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
       (Val #value)) (Val #leaseID))

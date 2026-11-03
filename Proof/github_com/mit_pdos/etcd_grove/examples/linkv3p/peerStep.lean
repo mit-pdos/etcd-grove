@@ -114,15 +114,15 @@ theorem peerStep.wp_proof
   · iexists idb; iunfold common.srvPeerCtl; iexists τb; iframe Htkb; iexact Hmb
   ihave #Hida : srvMemberIDAddr sa ↦□ ida $$ []
   · iunfold srvNetMember at Hma
-    icases Hma with ⟨#Hp, -⟩
+    icases Hma with ⟨⟨%γda, #Hp⟩, -⟩
     iunfold srvProcOk at Hp
-    icases Hp with ⟨%l, %c, %st, %γ, -, -, #Hid, -, -, -, -, -, -, -, -⟩
+    icases Hp with ⟨%l, %c, %st, %γ, -, -, #Hid, -, -, -, -, -, -, -, -, -⟩
     iexact Hid
   ihave #Hidb : srvMemberIDAddr sb ↦□ idb $$ []
   · iunfold srvNetMember at Hmb
-    icases Hmb with ⟨#Hp, -⟩
+    icases Hmb with ⟨⟨%γdb, #Hp⟩, -⟩
     iunfold srvProcOk at Hp
-    icases Hp with ⟨%l, %c, %st, %γ, -, -, #Hid, -, -, -, -, -, -, -, -⟩
+    icases Hp with ⟨%l, %c, %st, %γ, -, -, #Hid, -, -, -, -, -, -, -, -, -⟩
     iexact Hid
   -- cut or mend, both directions, by the kind
   wp_if_destruct

@@ -41,11 +41,11 @@ variable [KvrStor GF]
 abbrev Storage.InitialState.spec : Prop :=
   ∀ (s ms bp : Loc) (γs : MemStorNames) (hs : HardStateM) (csm : ConfStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf ∗
-      kvrStorRec s ms γs ∗ kvrStorBoot s bp csm ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs }}
+      kvrStorRec s ms γs ∗ kvrStorBoot s bp csm ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs 0 memSnapEmpty }}
     (App (Val (s @!! go.GoType.PointerType
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
-      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs ∗ ownCSM cs (DFrac.own 1) csm }}
+      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs 0 memSnapEmpty ∗ ownCSM cs (DFrac.own 1) csm }}
 
 end spec
 

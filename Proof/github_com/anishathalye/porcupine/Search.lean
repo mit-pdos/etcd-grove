@@ -22,7 +22,8 @@ The state values (the current one, the frames', the cache entries') are shared i
 
 `Theory.Inv` is not part of it: `checkSingle`'s loop carries `⌜Inv …⌝ ∨ □ cs.PDone` beside it,
 since a `StepContext` on a done context may refuse an operation the model allows
-(`stepCtxSpec`).
+(`stepCtxSpec`); and, unconditionally, `⌜Theory.Sound …⌝` (`Soundness.lean`), which a wrong
+refusal keeps.
 -/
 module
 

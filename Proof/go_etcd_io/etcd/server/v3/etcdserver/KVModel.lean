@@ -126,7 +126,7 @@ theorem chainStep_plain (lt : LeaseTable) : ∀ (c : apply.Chain) (rq : apply.IR
             · rintro (hk | hk | hk | hk | hk)
               · exact hm.1 hk
               · exact hm.2.2.1 hk
-              · exact hm.2.2.2 hk
+              · exact hm.2.2.2.1 hk
               · rw [hk] at hp; exact (hp : False).elim
               · rw [hk] at hp; exact (hp : False).elim
           left; rw [h, chainLog_nonwrite rq lt log hk c]; rfl

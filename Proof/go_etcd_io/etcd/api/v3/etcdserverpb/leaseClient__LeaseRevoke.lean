@@ -34,7 +34,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     leaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro lc conn addr Spec Q ctx cd inp req opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -53,7 +53,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
   · simp only [pbLeaseRevokeRequest]
     iexists req
     iframe
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hsz⟩
   ihave Hblank : pbLeaseRevokeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseRevokeResponse]
     iexact «$r0»
@@ -65,6 +65,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', Hin', -⟩
   icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, -⟩)
   · subst Herr

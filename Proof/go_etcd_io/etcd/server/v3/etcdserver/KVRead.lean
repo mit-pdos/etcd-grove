@@ -111,7 +111,7 @@ theorem readWit_fire (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Q : List E
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = l⌝ ∗ □ Q L := by
   iintro #Hainv #Hkvi #Hw #Hc Hlc
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, %Hcok⟩
+  icases Hkvi with ⟨-, #HcI, -, %Hcok, -⟩
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAt s E γr ci₀ L₀ $$ Hainv HL with #HkL

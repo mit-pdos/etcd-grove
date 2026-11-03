@@ -127,8 +127,9 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
-  · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
-        (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, op_simps])⟩
+  · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk.1, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
+        (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, op_simps]),
+        newKeyTxn_size lease Hk.2.1 Hk.2.2⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
@@ -181,7 +182,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     ipureintro; exact Hlo_r
   · -- the key was created at `r`
     ihave %Hrevs := txnStates_pos' pfx r s0 _ _ $$ Hts
-    obtain ⟨habs, h1, h2, hwf', hv⟩ := newKeyTxn_then pfx key val lease r s0 Hwf0 Hk Hrevs hok
+    obtain ⟨habs, h1, h2, hwf', hv⟩ := newKeyTxn_then pfx key val lease r s0 Hwf0 Hk.1 Hrevs hok
     ihave ⟨#Hs0, #Hs1⟩ := txnStates_wrote pfx r s0 _ _ _ h2 h1 $$ Hts
     ihave Htok := tokIf_true h2 _ $$ Htok
     have hok' : (newKeyTxn key val lease).cmps.all (cmpHolds s0) = true := hok

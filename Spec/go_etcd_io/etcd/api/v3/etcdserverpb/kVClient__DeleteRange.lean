@@ -27,7 +27,9 @@ for a metadata-indexed spec `Spec` the server registered for the method (since 2
 plan's E3zc; a plain one is `GrpcSpec.md`) and the caller's `Φ` at every metadata an attempt may
 deliver (`attemptPre`): `Invoke` of
 `"/etcdserverpb.KV/DeleteRange"` with `grpc.StaticMethod()` before the options, into a new
-`*DeleteRangeResponse`: the call's answer (`deleteCallOut`, the run's `Φ`); the request comes back. -/
+`*DeleteRangeResponse`: the call's answer (`deleteCallOut`, the run's `Φ`); the request comes back. The
+request has no unknown fields (a struct literal) and its encoding is below `grpcMsgMax` (2026-10-30:
+grpc marshals before it checks a size, `grpcInvokerOk`). -/
 abbrev kVClient.DeleteRange.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Φ : DelRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -36,7 +38,8 @@ abbrev kVClient.DeleteRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
       reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
-      opts ↦*□ vs ∗ callOptsOk vs }}
+      opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil ∧ (pbDeleteRangeRequest (GF := GF)).wireLen (deleteReqOp req k e) < grpcMsgMax⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

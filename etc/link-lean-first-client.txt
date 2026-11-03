@@ -46,6 +46,12 @@ watchClient__Watch: grpc_StaticMethod grpc_ClientConn__NewStream grpc_GenericCli
 # The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
 RetryKVClient: NewKVClient
 retryKVClient__Put: kVClient__Put
+# the client's `kv.Compact` (2026-11-01): the compaction request and its RPC
+CompactOp__applyCompactOpts:
+OpCompact: CompactOp__applyCompactOpts
+CompactOp__toRequest:
+kVClient__Compact: grpc_StaticMethod grpc_ClientConn__Invoke
+retryKVClient__Compact: kVClient__Compact
 withRepeatablePolicy:
 retryKVClient__Range: withRepeatablePolicy kVClient__Range
 retryKVClient__DeleteRange: kVClient__DeleteRange
@@ -82,13 +88,17 @@ Op__IsSortOptionValid:
 Op__toRangeRequest:
 kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put retryKVClient__DeleteRange ContextError
 kv__Put: OpPut kv__Do ContextError
+kv__Compact: OpCompact CompactOp__toRequest retryKVClient__Compact ContextError
 kv__Get: NewOp kv__Do ContextError
 kv__Delete: OpDelete kv__Do ContextError
 # the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2
 kv__Txn:
 Op__isWrite:
-Op__toRequestOp: Op__toRangeRequest
+# `toRequestOp` proves its nested case (`toTxnRequest`) by Löb induction, unfolding `toTxnRequest`'s
+# body; `toTxnRequest`'s own proof takes `toRequestOp`'s spec (`notes/txn-nested.md`, S4)
+Op__toRequestOp: Op__toRangeRequest Cmp__Clone Cmp__GetCompare
 txn__If: Cmp__Clone Cmp__GetCompare
+Op__toTxnRequest: Op__toRequestOp Cmp__Clone Cmp__GetCompare
 txn__Then: Op__isWrite Op__toRequestOp
 txn__Else: Op__isWrite Op__toRequestOp
 txn__Commit: retryKVClient__Txn ContextError
@@ -209,6 +219,18 @@ retryLeaseClient__LeaseRevoke: withRepeatablePolicy leaseClient__LeaseRevoke
 retryLeaseClient__LeaseKeepAlive: withRepeatablePolicy leaseClient__LeaseKeepAlive
 v3_lessor__Grant: retryLeaseClient__LeaseGrant LeaseGrantResponse__GetHeader ContextError
 v3_lessor__Revoke: retryLeaseClient__LeaseRevoke ContextError
+# the closed lease example (2026-11-02, `notes/lease-ex-plan.md`): the lessor's reads, the retry
+# lease client's and the stub's, the options of `TimeToLive`
+LeaseTimeToLiveResponse__GetHeader:
+LeaseLeasesResponse__GetHeader:
+leaseClient__LeaseTimeToLive: grpc_StaticMethod grpc_ClientConn__Invoke
+leaseClient__LeaseLeases: grpc_StaticMethod grpc_ClientConn__Invoke
+retryLeaseClient__LeaseTimeToLive: withRepeatablePolicy leaseClient__LeaseTimeToLive
+retryLeaseClient__LeaseLeases: withRepeatablePolicy leaseClient__LeaseLeases
+LeaseOp__applyOpts:
+toLeaseTimeToLiveRequest: LeaseOp__applyOpts
+v3_lessor__TimeToLive: toLeaseTimeToLiveRequest retryLeaseClient__LeaseTimeToLive LeaseTimeToLiveResponse__GetHeader ContextError
+v3_lessor__Leases: retryLeaseClient__LeaseLeases LeaseLeasesResponse__GetHeader ContextError
 keepAlive__close:
 metadata_FromOutgoingContext:
 v3_lessor__closeRequireLeader: metadata_FromOutgoingContext

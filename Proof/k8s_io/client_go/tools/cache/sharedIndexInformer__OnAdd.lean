@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.OnAdd.wp_proof
     (wp_dist : sharedProcessor.distribute.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.OnAdd.spec (GF := GF) (hG := hG) := by
-  intro s p γp γe evs o b Hbound
+  intro _ s p γp γe evs o b
   wp_start as ⟨#Hs, HH⟩
   iunfold isSII at Hs
   icases Hs with ⟨#Hp, ⟨%d, #Hd, #Hmd⟩, #Hproc⟩
@@ -54,7 +54,7 @@ theorem sharedIndexInformer.OnAdd.wp_proof
       (notifOf (Ev.add o b)) (by simp)) $$ Hlb
   rw [show interface.mkOk addNotification.ty #(addNotification.mk o b) = notifOf (Ev.add o b)
     from rfl]
-  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.add o b) false Hbound)
+  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.add o b) false)
     $$ [$Hpkg $Hproc $Hrd $Hsend $HQ] as ⟨Hrd, Hsend⟩
   iapply HΦ
   iunfold infH

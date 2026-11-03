@@ -1,0 +1,7 @@
+# Types and names only (the lease-renew plan, 2026-11-01: `EtcdServer.LeaseRenew`'s forwarding to
+# the leader, `RenewHTTP` and `LeasePrefix`): bodies axiomatized.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

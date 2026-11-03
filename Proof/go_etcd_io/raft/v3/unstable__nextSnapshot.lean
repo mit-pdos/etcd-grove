@@ -41,7 +41,7 @@ theorem unstable.nextSnapshot.wp_proof
     simp only [Hnn, _root_.decide_false]
     wp_auto
     rcases Hsip : us.sip <;> wp_auto
-    · wp_apply wp_proto_CloneSnapshot.2.2.2 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
+    · wp_apply wp_proto_CloneSnapshot.2.2.2.1 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
       -- the clone is not `nil`
       iunfold ownSnapS at Hc
       icases Hc with ⟨%ds, %pm, %uf, %Hnn', Hc⟩

@@ -32,7 +32,8 @@ abbrev retryAuthClient.RoleGrantPermission.spec : Prop :=
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗ □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
-      (pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      (pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜(pbAuthRoleGrantPermissionRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
     (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
         go!"RoleGrantPermission")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

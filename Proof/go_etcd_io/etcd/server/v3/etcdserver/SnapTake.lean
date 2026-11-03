@@ -12,7 +12,7 @@
   argument (`memCsArg`: `ep.confState` may be `nil`): the entry registered at the linearization
   point, for the snapshot the storage's state then gives.
 * `srvSnapDisk s γr`: the raft wrapper's `storage` (a `*storage.storage` over the snapshotter
-  `ss`), its `SaveSnap` (the WAL's and the snapshotter's write, names-only: `saveSnapOk`) and the
+  `ss`), its `SaveSnap` (the WAL's and the snapshotter's write, the WAL contract's, `isRNWal`) and the
   snapshot directory's invariant at a removal fact `Rm` that the applied index past `j` gives
   (J1a's `srvSnapRm`'s second disjunct): what `snapshot(toDisk)`'s `SaveSnap` and `Release` take.
 -/
@@ -75,28 +75,16 @@ theorem memCertReg_alloc (γs : MemStorNames) (Ec : CoPset) :
   iexact Ha
 
 -/
-/-- **The raft wrapper's `SaveSnap`** (persistent; the trust boundary, names-only: the WAL's
-`SaveSnapshot` and the snapshotter's `SaveSnap` write the snapshot's `.snap` file and its WAL
-record, outside what the model tracks; `bootOk`'s storage contract, J1a): for a read-only
-snapshot, it returns `nil` (an I/O failure is the environment's, as `storage.releaseOk`). -/
-def saveSnapOk (stp : Loc) : IProp GF :=
-  iprop(□ ∀ (sn : Loc) (sv : SnapshotM),
-    {{ ownSnapM sn DFrac.discard sv }}
-      (App (Val (stp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!
-        go!"SaveSnap")) (Val #sn))
-    {{ RET #interface.nil; True }})
-
-instance saveSnapOk_persistent (stp : Loc) : Persistent (saveSnapOk (GF := GF) stp) := by
-  unfold saveSnapOk; infer_instance
-
 /-- **The disk snapshot's storage** (persistent; see the file header) of the server `s` with the
-read names `γr`. -/
+read names `γr`: the raft wrapper's storage (its `SaveSnap` the WAL contract's, `isRNWal`; 2026-10-31,
+`notes/axiom-review/savesnap.md`: until then `saveSnapOk`, `nil` for any snapshot, false of a nil
+metadata), over the snapshotter `ss`. -/
 def srvSnapDisk (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (stp ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
     ⌜storage.storageSnap stp ss⌝ ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    saveSnapOk stp ∗
+    isRNWal (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) ∗
     inv snapDirN (snapDirInv ss γd img Rm) ∗
     □ (∀ j : w64, monoNatLbOwn γr.applied (uint.nat j + 1) -∗ Rm j))
 

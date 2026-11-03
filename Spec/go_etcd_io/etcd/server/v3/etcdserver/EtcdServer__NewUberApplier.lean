@@ -26,16 +26,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.NewUberApplier()`: `apply.NewUberApplier`'s result over the options it builds of the
-server's fields (read-only; the server itself as the raft status and the snapshot server), with
-the auth store's reader resource `RD`; its contract (`uberIs`, `uberOwn`) in every environment
-`E` whose reader resource is `RD` and for which `apply.NewUberApplier.spec`'s premise holds
+server's fields (read-only; the server itself as the raft status and the snapshot server), (2026-11-01,
+J8a: no auth store's reader resource, which the auth layer's `Apply` borrows from its caller); its
+contract (`uberIs`, `uberOwn`) in every environment `E` for which `apply.NewUberApplier.spec`'s premise holds
 (`backendOptsOk E opts`), given after the call (unit N4, 2026-10-17: the environment's post-lock
 hook is installed after the call, `server.go:412`; until then `backendOptsOk` was a premise, at
 any `TxnModeWriteWithSharedBuffer` and with `RaftStatus`/`SnapshotServer` unconstrained, which no
 caller could discharge). The alarm store is the real one (`isAlarmStore a`: its `Get`). -/
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
-    (wad : time.Duration) (RD : IProp GF) (dq : DFrac) (T : IProp GF) (z : Bool),
+    (wad : time.Duration) (dq : DFrac) (T : IProp GF) (z : Bool),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -45,7 +45,7 @@ abbrev EtcdServer.NewUberApplier.spec : Prop :=
       srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
       srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
       srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-      isAlarmStore a ∗ RD ∗ apply.alarmGetIs a T z ∗ T }}
+      isAlarmStore a ∗ apply.alarmGetIs a T z ∗ T }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NewUberApplier")) (Val #()))
   {{ (ua : GoInterface), RET #ua; srvBeAddr s ↦{dq} be ∗ T ∗ ∃ (p : Loc)
         (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions),
@@ -57,7 +57,7 @@ abbrev EtcdServer.NewUberApplier.spec : Prop :=
         opts.WarningApplyDuration' = wad ∧
         opts.RaftStatus' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s ∧
         opts.SnapshotServer' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s⌝ ∗
-      ∀ E : apply.AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
+      ∀ E : apply.AEnv GF, apply.backendOptsOk E opts -∗
         apply.uberIs E p opts ∗ ∃ ns cr : Bool, ⌜z = true → ns = false ∧ cr = false⌝ ∗
           apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 

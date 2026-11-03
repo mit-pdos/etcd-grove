@@ -10,11 +10,11 @@
 roots raftNode\.wp_
 roots \bwp_updateCommittedIndex$
 axiom backend.optsAt
-axiom proto.Clone.wp_proof
+axiom proto.CloneSnapshot.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
-sorry raftNode.start.wp_proof
-sorry rn_ready_recv
+axiom zap.Uint64.wp_proof

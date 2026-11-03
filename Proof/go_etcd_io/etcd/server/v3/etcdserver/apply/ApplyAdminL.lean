@@ -148,7 +148,7 @@ def apply.applierAdmL (E : apply.AEnv GF) (c : apply.Chain) (a : GoInterface)
   iprop(∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
     □ (∀ (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF) (hs : List auth.AuthState),
-      {{ apply.irrWrapperIs r rq skip ∗ A ∗ L hs ∗
+      {{ apply.irrWrapperIs r rq skip ∗ A ∗ apply.rdLend E A ∗ L hs ∗
           ({{ apply.chainRes c (.ok ai) (apply.principalOf rq) ∗ A ∗ L hs ∗
                 ⌜apply.adminPassL E.authMode hs rq⌝ }}
               (App (App (Val #af) (Val #r)) (Val #v3))
@@ -176,7 +176,7 @@ abbrev apply.authApplierV3.Apply.specL : Prop :=
     (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applyNR c inner ∗
-      apply.irrWrapperIs r rq skip ∗ A ∗ L hs ∗
+      apply.irrWrapperIs r rq skip ∗ A ∗ apply.rdLend E A ∗ L hs ∗
       ({{ apply.chainRes (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p)
             (apply.principalOf rq) ∗ A ∗ L hs ∗ ⌜apply.adminPassL E.authMode hs rq⌝ }}
           (App (App (Val #af) (Val #r)) (Val #v3))
@@ -304,7 +304,7 @@ theorem apply.authApplierV3.Apply.wp_latest
     (hNA : apply.needAdminPermission.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.Apply.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq skip v3 af A B L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, #Hw, HA, HL, #Haf⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, #Hw, HA, #Hlend, HL, #Haf⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -327,7 +327,7 @@ theorem apply.authApplierV3.Apply.wp_latest
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, -, ⟨%hl, #HH, #Hhdr⟩, -⟩
-  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo, Hard⟩
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo⟩
   iunfold apply.authInfoIdle at Hinfo
   wp_join iprop(structFieldRef authApplierV3 go!"authInfo" p ↦ apply.principalOf rq ∗ aa_ptr ↦ p ∗
       r_ptr ↦ r)
@@ -385,9 +385,8 @@ theorem apply.authApplierV3.Apply.wp_latest
       iframe Hres HB
       iexists i; iexact Hi
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; cases info2; rfl) | (congr 1; cases info2; simp [zeroValDef])
@@ -397,7 +396,11 @@ theorem apply.authApplierV3.Apply.wp_latest
     ipureintro
     exact apply.adminPassL_of_not_need _ _ _ hna
   wp_auto
+  ihave #Hlend' := Hlend
+  iunfold apply.rdLend at Hlend'
+  ihave ⟨Hard, HAb⟩ := Hlend' $$ HA
   wp_apply HAdmin $$ [$Hinfo $Hard $HL] as %err ⟨Hinfo, Hard, HL, #HeI, %Hv⟩
+  ihave HA := HAb $$ Hard
   cases err with
   | nil =>
     wp_auto
@@ -422,9 +425,8 @@ theorem apply.authApplierV3.Apply.wp_latest
       iframe Hres HB
       iexists i; iexact Hi
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; cases info2; rfl) | (congr 1; cases info2; simp [zeroValDef])
@@ -439,9 +441,8 @@ theorem apply.authApplierV3.Apply.wp_latest
     generalize «$r0_ptr» = ar at *
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; simp [zeroValDef])
@@ -474,9 +475,9 @@ theorem apply.applierAdmL_auth
   iexists ⟨go.GoType.PointerType authApplierV3.ty, #p⟩
   isplitr
   · ipureintro; rfl
-  iintro !> %r %rq %skip %v3 %af %A %B %hs %Φ' !> ⟨#Hw, HA, HL, Haf⟩ HΦ'
+  iintro !> %r %rq %skip %v3 %af %A %B %hs %Φ' !> ⟨#Hw, HA, #Hlend, HL, Haf⟩ HΦ'
   iapply (hApplyL E c inner p r rq skip v3 af A B L hs) $$ [HA HL Haf] HΦ'
-  iframe HA HL Haf
+  iframe HA HL Haf Hlend
   (try iframe #)
 
 /-- **With no alarm set the current applier's latest-state `Apply` is the base applier's**: its
@@ -542,6 +543,8 @@ theorem apply.uberApplier.Apply.wp_adminL
           apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
       %hs [Ha Hkv Hcs Hback Hrc HW Hx HL] as %ar Hpost
   · iframe Hw Ha Hkv Hcs Hback Hrc HW Hx HL
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW, Hx⟩, HL, %Hpass⟩ HΦ'
     ihave Ho := Hback $$ HL
@@ -568,13 +571,15 @@ theorem apply.uberApplier.Apply.wp_adminL
     ⟨%Hrj, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW, -⟩, HL, Hrej⟩)
   · imodintro
     iapply HΦ
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.adminOut, apply.adminRejErr]
     iframe Hkv HPP Htr Hres HW Hdone
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
     isplitr
-    · ipureintro; exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl⟩, Or.inr ⟨o, rfl⟩⟩
+    · ipureintro
+      exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl, (apply.dispatchCrev_nonCmp _ _ _ _
+        (fun h => by have := Hok.2.1; simp [apply.adminKindOk, h] at this)).symm⟩, Or.inr ⟨o, rfl⟩⟩
     ipureintro
     refine ⟨fun h => (by cases h), fun _ _ => Hpass⟩
   · ihave Ho := Hback $$ HL

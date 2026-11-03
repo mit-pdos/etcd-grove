@@ -31,14 +31,14 @@ theorem leasingKV.Get.wp_proof
     (hget : leasingKV.get.spec (GF := GF) (hG := hG)) :
     leasingKV.Get.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key sl gs lo q
-  wp_start as ⟨#Hlkv, Hrd, Hslot, #Hctx, #Hopts, #Hlo, %Hgs, Hopen, Htok⟩
+  wp_start as ⟨#Hlkv, #Hctx, #Hopts, #Hlo, %Hgs, Hopen, Htok⟩
   wp_auto
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_apply hOpGet key sl gs $$ [$Hcv $Hopts] as %opv #Hop
   · ipureintro; exact Hgs.1
   wp_apply hget lkv γ pfx ctx cs opv (opGetModel key gs) lo q
-    $$ [$Hpkg $Hlkv $Hrd $Hslot $Hctx $Hop $Hlo $Hopen $Htok] as %ret %err H
+    $$ [$Hpkg $Hlkv $Hctx $Hop $Hlo $Hopen $Htok] as %ret %err H
   · ipureintro; exact Hgs.2
   iapply HΦ
   iexact H

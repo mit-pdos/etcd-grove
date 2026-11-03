@@ -7,7 +7,8 @@ caller's update fired at), that `σ` is the state of a log the store could have 
 * `KVState.log σ`: `σ`'s log, revision `0`'s (no change) then `σ`'s changes;
 * `kvLogOkTo σ r`: `σ` is its log's state (`kvStateOf`: nothing compacted, the base the empty
   store), and its log is well formed (`mvcc.LogWf'`: every delete of a present key) and small
-  (`txn.LogSmall`: at most `2 ^ 62` changes) through revision `r ≤ σ.rev`, below `2 ^ 63 - 1`;
+  (`txn.LogSmall`: at most `2 ^ 62` changes) through revision `r ≤ σ.rev`, below `2 ^ 63 - 1`,
+  and its keys short (`mvcc.LogPutsLe etcdKeyMax`, 2026-10-30: `notes/keylen.md`);
 * `kvLogOk σ`: through its current revision (a KV reply's: the log a member applied).
 
 A watch response gives the first only through the revision it moves the stream to: its update
@@ -57,7 +58,9 @@ def KVState.log (σ : KVState) : mvcc.Log := [] :: σ.changes
 /-- **`σ` is a well-formed small log's state through revision `r`** (see the file header). -/
 def kvLogOkTo (σ : KVState) (r : Nat) : Prop :=
   σ = kvStateOf σ.log ∧ r ≤ σ.rev ∧ r + 1 < 2 ^ 63 ∧
-    mvcc.LogWf' (σ.log.take (r + 1)) ∧ txn.LogSmall (σ.log.take (r + 1))
+    mvcc.LogWf' (σ.log.take (r + 1)) ∧ txn.LogSmall (σ.log.take (r + 1)) ∧
+    -- (2026-10-30, `notes/keylen.md`) its keys short
+    mvcc.LogPutsLe etcdKeyMax (σ.log.take (r + 1))
 
 /-- **`σ` is a well-formed small log's state** (through its current revision). -/
 def kvLogOk (σ : KVState) : Prop := kvLogOkTo σ σ.rev
@@ -76,7 +79,8 @@ theorem kvStateOf_log (l : mvcc.Log) (h : l[0]? = some []) : (kvStateOf l).log =
 /-- **A longer log's state is well formed through a well-formed small log's revisions**: the state
 of `C`, through any revision `r` of its prefix `l`. -/
 theorem kvLogOkTo_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' l)
-    (hs : txn.LogSmall l) (hl : l.length < 2 ^ 63) {r : Nat} (hr : r < l.length) :
+    (hs : txn.LogSmall l) (hl : l.length < 2 ^ 63) {r : Nat} (hr : r < l.length)
+    (hk : mvcc.LogPutsLe etcdKeyMax l) :
     kvLogOkTo (kvStateOf C) r := by
   have hne : l ≠ [] := by intro h; subst h; simp at hr
   have h0 : C[0]? = some [] := by
@@ -87,35 +91,44 @@ theorem kvLogOkTo_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' l)
   have ht : C.take (r + 1) = l.take (r + 1) := by
     obtain ⟨t, rfl⟩ := hp; exact List.take_append_of_le_length (by omega)
   have htl : l.take (r + 1) <+: l := List.take_prefix _ _
-  refine ⟨by rw [kvStateOf_log C h0], ?_, by omega, ?_, ?_⟩
+  refine ⟨by rw [kvStateOf_log C h0], ?_, by omega, ?_, ?_, ?_⟩
   · rw [kvStateOf_rev]; omega
   · rw [kvStateOf_log C h0, ht]; exact logWf'_of_prefix htl hw
   · rw [kvStateOf_log C h0, ht]; exact logSmall_of_prefix htl hs
+  · rw [kvStateOf_log C h0, ht]; exact hk.prefix htl
 
 /-- **A well-formed small log's state is well formed.** -/
 theorem kvLogOk_of (l : mvcc.Log) (hw : mvcc.LogWf' l) (hs : txn.LogSmall l)
-    (hl : l.length < 2 ^ 63) (hne : l ≠ []) : kvLogOk (kvStateOf l) := by
+    (hl : l.length < 2 ^ 63) (hne : l ≠ []) (hk : mvcc.LogPutsLe etcdKeyMax l) :
+    kvLogOk (kvStateOf l) := by
   unfold kvLogOk
   rw [kvStateOf_rev]
   exact kvLogOkTo_of_prefix (List.prefix_refl l) hw hs hl
-    (by have := List.length_pos_iff.2 hne; omega)
+    (by have := List.length_pos_iff.2 hne; omega) hk
 
 /-- **A prefix of a well-formed small log's state is well formed** (a write's reply: the log the
 write met, the certified log after it extending it). -/
 theorem kvLogOk_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' C)
-    (hs : txn.LogSmall C) (hl : C.length < 2 ^ 63) (hne : l ≠ []) : kvLogOk (kvStateOf l) :=
+    (hs : txn.LogSmall C) (hl : C.length < 2 ^ 63) (hne : l ≠ [])
+    (hk : mvcc.LogPutsLe etcdKeyMax C) : kvLogOk (kvStateOf l) :=
   kvLogOk_of l (logWf'_of_prefix hp hw) (logSmall_of_prefix hp hs)
-    (by have := hp.length_le; omega) hne
+    (by have := hp.length_le; omega) hne (hk.prefix hp)
 
 /-- Through its current revision, a well-formed state's log is its log. -/
 theorem kvLogOk_log {σ : KVState} (h : kvLogOk σ) :
     mvcc.LogWf' σ.log ∧ txn.LogSmall σ.log ∧ σ.log.length < 2 ^ 63 ∧ σ.log.length = σ.rev + 1 := by
-  obtain ⟨he, -, hr, hw, hs⟩ := h
+  obtain ⟨he, -, hr, hw, hs, -⟩ := h
   have hc : σ.compacted = 0 := by rw [he]; rfl
   have hl : σ.log.length = σ.rev + 1 := by
     simp only [KVState.log, KVState.rev, List.length_cons, hc]; omega
   rw [List.take_of_length_le (by omega)] at hw hs
   exact ⟨hw, hs, by omega, hl⟩
+
+/-- Through its current revision, a well-formed state's log has short keys. -/
+theorem kvLogOk_keys {σ : KVState} (h : kvLogOk σ) : mvcc.LogPutsLe etcdKeyMax σ.log := by
+  have hl := (kvLogOk_log h).2.2.2
+  have hk := h.2.2.2.2.2
+  rwa [List.take_of_length_le (by omega)] at hk
 
 end EtcdGrove
 end Perennial

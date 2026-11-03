@@ -219,7 +219,7 @@ def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsAtM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
@@ -235,7 +235,9 @@ fields with the wait in the mode (`srvFieldsAtM`) and the atomics in the mode (`
 def isServerM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAtM on s γ ci TM E ρ v) ∗
-    srvAtomicsM on s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
+    srvAtomicsM on s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
+    -- (the backend-auth-split stage, 2026-11-02) `isServer`'s thread bound
+    ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance isServerM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
@@ -338,7 +340,7 @@ theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI 
   imodintro
   isplitr
   · ipureintro
-    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+    rw [← Hc, Hx.1, Hch, apply.alarmChain_authOn]
   isplitl [Hua Hap Hakv Hrest]
   · iunfold srvApplyKV
     iexists ua
@@ -365,7 +367,7 @@ theorem authOn_false_of_run (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterf
   imodintro
   isplitr
   · ipureintro
-    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+    rw [← Hc, Hx.1, Hch, apply.alarmChain_authOn]
   iframe Hakv
   iunfold kvRun
   iunfold kvApplied

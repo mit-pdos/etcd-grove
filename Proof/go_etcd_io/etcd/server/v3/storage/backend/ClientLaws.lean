@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 
 @[expose] public section
 
@@ -243,5 +244,45 @@ theorem newPostK_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF
 end named
 
 end backend
+
+/-! ## `RLock` under a guard (the backend-auth-split stage's decision 1) -/
+
+section guarded
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **`RLock` under a guard that carries an open share** (the frame the auth realization's `RLock`
+clause uses): a token `G q` that yields the open share `f q` and takes it back (the realization's
+currency `Cu q`, the open share in its invariant). The guard comes back at `RLock`'s return; the
+read then needs no share (`backend.readTx.UnsafeRange.spec`), so the guard's holder can give the
+whole of it up (for `Close`) while reads begun before still run. A frame of `RLock`; what it shows
+is that `RLock` leaves nothing of the guard with the reader. -/
+theorem backend.guarded_RLock (hRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (γ : BNames) (G : Qp → IProp GF) (f : Qp → Qp)
+    (hG1 : ∀ q, G q ⊢ |={⊤}=> bOpen γ (f q) ∗ (bOpen γ (f q) ={⊤}=∗ G q))
+    (P : BParams) (W Pk : IProp GF) (b rt : Loc) (q : Qp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ G q }}
+      (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
+    {{ RET #(); ∃ (rtx : Loc) (rv : RView), rtHeld γ P b rtx rv ∗ G q }} := by
+  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hr, Hg⟩ HΦ
+  imod hG1 q $$ Hg with ⟨Ho, Hback⟩
+  iapply wp_fupd
+  iapply (hRL γ P W Pk b rt (f q)) $$ %(fun v => iprop(|={⊤}=> Φ v)) [Hr Ho]
+  · iframe Hr Ho; iframe #
+  inext
+  iintro ⟨%rtx, %rv, Hh, Ho⟩
+  imod Hback $$ Ho with Hg
+  imodintro
+  iapply HΦ
+  iexists rtx, rv
+  iframe Hh Hg
+
+end guarded
+
 end EtcdGrove
 end Perennial

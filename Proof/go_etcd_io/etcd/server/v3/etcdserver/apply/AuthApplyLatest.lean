@@ -223,14 +223,6 @@ theorem certPreW_inner (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (lo
   iintro !> %oc %hs
   iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs], h oc hs⟩)
 
-theorem kvPostFL_kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel) (log F : mvcc.Log)
-    (R : Outcome → IProp GF) (Pre Post : IProp GF) (X : Outcome → Prop) :
-    kvPostFL E c a info rq log F R Pre Post X ⊢ kvPostF E c a info rq log F R Pre Post := by
-  unfold kvPostFL kvPostF
-  iintro ⟨%oc, %H, HR⟩
-  iexists oc; iframe HR; ipureintro; exact ⟨H.1, H.2.1⟩
-
 theorem rangePostL_rangePost (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
     (resp : Loc) (err : GoInterface) (X : Outcome → Prop) :

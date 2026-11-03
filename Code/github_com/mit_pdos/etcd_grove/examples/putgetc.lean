@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Code.github_com.mit_pdos.etcd_grove.examples.common
 public import Perennial.Golang.Defn
@@ -26,16 +27,16 @@ namespace github_com.mit_pdos.etcd_grove.examples.putgetc
 @[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23791")
 
-@[reducible] noncomputable def retention [GooseExts] [GoGlobalContext] : val :=
-  #(1 : Int)
+@[reducible] noncomputable def period [GooseExts] [GoGlobalContext] : val :=
+  #(W64 10000000)
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/putgetc.Main"
 
-/-- Main starts one member of a new cluster with the auto-compactor on, puts key "k" with value
+/-- Main starts one member of a new cluster with the auto-compactor on (periodic), puts key "k" with value
     "v", gets "k" and panics if the value is not "v".
 
-    go: putgetc.go:30:6 -/
+    go: putgetc.go:32:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -45,9 +46,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (Val #(go!"putgetc"))
   (Let "$a1" (Val #(go!"127.0.0.1:23801"))
   (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val retention))
+  (Let "$a3" (Val period)
   (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -189,7 +190,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.putgetc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -197,8 +198,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -207,11 +211,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
 
 attribute [instance] Assumptions.Main_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_common_Assumption
 

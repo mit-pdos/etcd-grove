@@ -150,7 +150,7 @@ theorem's program runs with it on (D51, withdrawing D50's premise "a failed writ
 S1, and so the adequacy theorem, is false of the unmodified controller, and `Main`'s Go test fails
 in such runs. The controller is left unfixed until the S1 proof genuinely gets stuck here
 (expected at the ambiguous create in `syncNodes`), or the user fixes it; candidate fixes in
-`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/`.
+`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`.
 
 ## Phases
 
@@ -247,7 +247,7 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    the pin `ad74ee4f6` (2026-10-28) the 14 promoted methods (gap C2 closed) and the waiting loop's
    deferred `HandleCrashWithLogger` (the deferred-variadic `sorry`s gone): no `sorry`, no pending
    hypothesis. Two bugs filed:
-   `issues/k8s-workqueue-done-without-get-duplicates.md`,
+   `nonissues/k8s-workqueue-done-without-get-duplicates.md`,
    `issues/k8s-workqueue-exponential-backoff-2to63.md`. Not done: `TypedWithMaxWaitRateLimiter`,
    metrics other than the no-op ones, `SetProvider`, `parallelizer.go`.
    *Status, `util/consistency` (2026-10-27, branch `k8s-leaf-cache`):* every function proved, linked

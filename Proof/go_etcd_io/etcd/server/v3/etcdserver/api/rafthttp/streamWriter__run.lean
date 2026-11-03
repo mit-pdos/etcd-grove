@@ -22,6 +22,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.time.NewTicker
 public import Spec.time.Ticker__Stop
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -45,14 +46,14 @@ set_option hygiene false in
 /-- A log call (`if cw.lg != nil { cw.lg.Warn(...) }` and the like): its fields' strings, the
 call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hTString _ _ _ $$ [t] as %_ t; iframe)
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hZString as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hTString _ _ _ $$ [t] as %_ t; iframe)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option hygiene false in
@@ -78,7 +79,7 @@ local macro "post_idle" : tactic => `(tactic| (
   iframe HΦ
   iexists _, _, _, _, _, _, _, _, false, _
   simp only [named]
-  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer HR Hdone Hlc1 Hlc2 Hrun
+  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer Hdone Hlc1 Hlc2 Hrun
   isplitr
   · ipureintro
     have h := Hbat
@@ -133,7 +134,7 @@ local macro "post_working" : tactic => `(tactic| (
   iframe HΦ
   iexists _, _, _, _, _, _, _, _, true, _
   simp only [named]
-  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer HR Hdone Hlc1 Hlc2 Hrun
+  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer Hdone Hlc1 Hlc2 Hrun
   isplitr
   · ipureintro
     have h := Hbat
@@ -257,8 +258,8 @@ local macro "run_msg" : tactic => `(tactic| (
     wp_apply hDeactivate ps _ es $$ []
     · iframe #
     (try wp_auto)
-    wp_apply +noauto hClose Rh ty lid pid Rr cw _ true cl (connBack Rh wi a R γk) $$ [Hrun HR Hclr HWr]
-      as %b ⟨%Hb, HR, %mc', Hrun⟩
+    wp_apply +noauto hClose Rh ty lid pid Rr cw _ true cl (connBack Rh wi a R γk) $$ [Hrun Hclr HWr]
+      as %b ⟨%Hb, %mc', Hrun⟩
     · iframe #
       simp only [↓reduceIte]
       iframe
@@ -363,8 +364,8 @@ local macro "run_hb" : tactic => `(tactic| (
     · iframe #
     (try wp_auto)
     count_failure
-    wp_apply +noauto hClose Rh ty lid pid Rr cw _ true cl (connBack Rh wi a R γk) $$ [Hrun HR Hclr HWr]
-      as %b ⟨%Hb, HR, %mc', Hrun⟩
+    wp_apply +noauto hClose Rh ty lid pid Rr cw _ true cl (connBack Rh wi a R γk) $$ [Hrun Hclr HWr]
+      as %b ⟨%Hb, %mc', Hrun⟩
     · iframe #
       simp only [↓reduceIte]
       iframe
@@ -396,7 +397,7 @@ local macro "run_conn_tail" : tactic => `(tactic| (
   iframe HΦ
   iexists _, _, _, _, _, _, _, _, true, _
   simp only [named]
-  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer HR Hdone Hlc1 Hlc2
+  iframe heartbeatc msgc t enc flusher batched unflushed cw tickc defer Hdone Hlc1 Hlc2
   isplitl [Hmc Hwk Hcl]
   · iunfold swRunOwn
     iexists γr
@@ -430,8 +431,8 @@ local macro "run_conn" : tactic => `(tactic| (
   · iexact Hmu
   ihave ⟨%γm1, Hmc, Hwk, Hcl, #Hbag1⟩ := swRunOwn_combine _ _ _ _ _ _ _ _ $$ Hrun Hinv
   (try wp_auto)
-  (wp_apply hCloseUnlocked Rh ty lid pid Rr cw _ γm1 _ cl _ $$ [Hmc Hwk Hcl HC HR]
-     as %b ⟨%Hb, HR, %mc', %γm', Hmc, Hwk, Hcl, #Hbag'⟩; (iframe; iframe #))
+  (wp_apply hCloseUnlocked Rh ty lid pid Rr cw _ γm1 _ cl _ $$ [Hmc Hwk Hcl HC]
+     as %b ⟨%Hb, %mc', %γm', Hmc, Hwk, Hcl, #Hbag'⟩; (iframe; iframe #))
   iunfold outConnOk at Hconn
   icases Hconn with ⟨%wi, %clc, %a, %R, %γk, %γw, #Hct, #Hcw, #Hcf, #Hccl, #Hclid, #Hcpid, Hrw,
     #Hreg, %HR3, Hclr⟩
@@ -491,7 +492,7 @@ theorem rafthttp.streamWriter.run.wp_proof
     (hTickStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     rafthttp.streamWriter.run.spec (GF := GF) (hG := hG) := by
   intro Rh ty lid pid Rr cw mc
-  wp_start as ⟨#Hf, Hrun, Hdone, HR⟩
+  wp_start as ⟨#Hf, Hrun, Hdone⟩
   ihave #Hf' := Hf
   iunfold swFixed at Hf'
   icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, %Hlgnn, #Hlid,
@@ -533,12 +534,12 @@ theorem rafthttp.streamWriter.run.wp_proof
       "enc" ∷ enc_ptr ↦ encv ∗ "flusher" ∷ flusher_ptr ↦ flv ∗ "batched" ∷ batched_ptr ↦ bat ∗
       "unflushed" ∷ unflushed_ptr ↦ unf ∗ "cw" ∷ cw_ptr ↦ cw ∗ "tickc" ∷ tickc_ptr ↦ tk ∗
       "defer" ∷ defer ↦ _ ∗
-      "Hrun" ∷ swRunOwn Rh ty lid pid cw mcw wk cl ∗ "HR" ∷ Rr ∗ "Hdone" ∷ swDoneRight cw ∗
+      "Hrun" ∷ swRunOwn Rh ty lid pid cw mcw wk cl ∗ "Hdone" ∷ swDoneRight cw ∗
       "Hlc1" ∷ £ 1 ∗ "Hlc2" ∷ £ 1 ∗
       "%Hbat" ∷ ⌜0 ≤ sint.Z bat ∧ sint.Z bat ≤ 2049 ∧ 0 ≤ sint.Z unf ∧ sint.Z unf < 2 ^ 62 ∧
         (wk = true → sint.Z unf ≤ (sint.Z bat + 1) * 2 ^ 50)⌝ ∗ "Hst" ∷ (⌜wk = false ∧ hbc = chan.nil ∧ mcl = chan.nil⌝ ∨
         ⌜wk = true ∧ hbc = tch ∧ mcl = mcw⌝ ∗ swLive Rh ty lid pid fs encv flv cl)) $$
-      [heartbeatc msgc t enc flusher batched unflushed cw tickc defer Hrun HR Hdone Hlc1 Hlc2]
+      [heartbeatc msgc t enc flusher batched unflushed cw tickc defer Hrun Hdone Hlc1 Hlc2]
   · iexists _, _, _, _, _, _, _, mc, false, GoInterface.nil
     simp only [named]
     iframe
@@ -578,8 +579,8 @@ theorem rafthttp.streamWriter.run.wp_proof
       iapply broadcast_chan_receive $$ Hstop
       iintro -
       (try wp_auto)
-      wp_apply hClose Rh ty lid pid Rr cw mcw false cl iprop(True) $$ [$Hrun $HR]
-        as %b ⟨%Hb, HR, %mc', Hrun⟩
+      wp_apply hClose Rh ty lid pid Rr cw mcw false cl iprop(True) $$ [$Hrun]
+        as %b ⟨%Hb, %mc', Hrun⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
@@ -629,8 +630,8 @@ theorem rafthttp.streamWriter.run.wp_proof
       iintro -
       (try wp_auto)
       icases swLive_closing _ _ _ _ _ _ _ _ $$ Hlive with ⟨%Q, HQ⟩
-      wp_apply hClose Rh ty lid pid Rr cw _ true cl Q $$ [$Hrun $HR HQ]
-        as %b ⟨%Hb, HR, %mc', Hrun⟩
+      wp_apply hClose Rh ty lid pid Rr cw _ true cl Q $$ [$Hrun HQ]
+        as %b ⟨%Hb, %mc', Hrun⟩
       · iframe #
         simp only [↓reduceIte]
         iexact HQ

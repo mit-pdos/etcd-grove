@@ -1,0 +1,5 @@
+# Project bboltfs's `io/fs` (etc/goose.py; Perennial does not translate it): types and names only,
+# the types `os` names (`FileInfo`, `FileMode`) and the error its models return (`PathError`,
+# TrustedCode/os.lean).
+translate = ["!*", "FileInfo", "FileMode", "PathError"]
+imports = ["!*"]

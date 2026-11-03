@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem processorListener.add.wp_proof
     (wp_Start : synctrack.SingleFileTracker.Start.spec (GF := GF) (hG := hG)) :
     processorListener.add.spec (GF := GF) (hG := hG) := by
-  intro l γ Q sent e Hbound
+  intro _ l γ Q sent e
   wp_start as ⟨#Hl, Hprod, HQ⟩
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache.synctrack $$ []
   · iPkgInit
@@ -49,7 +49,7 @@ theorem processorListener.add.wp_proof
       (try wp_auto)
       iapply HΦ; iexact Hprod
     · wp_auto
-      wp_apply wp_Start t γ.tr Hbound $$ [$Hst $Hsft] as Htok
+      wp_apply wp_Start t γ.tr $$ [$Hst $Hsft] as Htok
       (try wp_auto)
       wp_apply (wp_spsc_send γ.add addCh _ _ sent _) $$ [$Hsa $Hprod HP Htok] as Hprod
       · iapply HP; simp only [Ev.initial, ↓reduceIte]; iexact Htok

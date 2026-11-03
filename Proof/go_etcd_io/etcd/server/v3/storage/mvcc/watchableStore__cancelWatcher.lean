@@ -183,14 +183,15 @@ theorem cancelState_ok (σ : WsState) (hok : WsOk σ) (wa : Loc) (st : WatcherSt
     WsOk (cancelState σ wa st Ws Wu VB) := by
   have hv' : ∀ w, (cancelState σ wa st Ws Wu VB).victimOf w =
       if w = wa then none else σ.victimOf w := hV
+  have hstn : ∀ w, (cancelState σ wa st Ws Wu VB).ST !! w =
+      if w = wa then some { st with ch := null } else σ.ST !! w := fun w => lookup_insert' _ _ _ _
   have hlv : ∀ w, (cancelState σ wa st Ws Wu VB).live w ↔ (w ≠ wa ∧ σ.live w) := by
     intro w
     unfold WsState.live
-    show ((Ws !! w).isSome ∨ (Wu !! w).isSome ∨ (VB.findSome? (· !! w)).isSome) ↔ _
-    rw [hWs, hWu, hV]
+    show ((Ws !! w).isSome ∨ (Wu !! w).isSome ∨ (VB.findSome? (· !! w)).isSome ∨
+      ((cancelState σ wa st Ws Wu VB).ST !! w).any _) ↔ _
+    rw [hWs, hWu, hV, hstn]
     by_cases h : w = wa <;> simp [h, WsState.live]
-  have hstn : ∀ w, (cancelState σ wa st Ws Wu VB).ST !! w =
-      if w = wa then some { st with ch := null } else σ.ST !! w := fun w => lookup_insert' _ _ _ _
   have hE : ∀ w, (cancelState σ wa st Ws Wu VB).E !! w = if w = wa then none else σ.E !! w :=
     fun w => lookup_delete' _ _ _
   obtain ⟨ws_wu, ws_v, wu_v, _, live_st, live_e, st_m, wo_m, m_st, wo_st, wo_live, st_flags,
@@ -250,12 +251,13 @@ theorem cancelState_ok (σ : WsState) (hok : WsOk σ) (wa : Loc) (st : WatcherSt
     · rename_i e
       subst e
       cases h
-      obtain ⟨h1, -, -⟩ := st_flags w st hst
-      refine ⟨h1, fun h' => absurd rfl ((hlv w).1 h').1, ?_⟩
+      refine ⟨fun _ => ⟨by show Ws !! w = none; rw [hWs]; simp, by rw [hv']; simp⟩,
+        fun h' => absurd rfl ((hlv w).1 h').1, ?_⟩
       simp [hlv]
     · rename_i hne
       obtain ⟨h1, h3, h4⟩ := st_flags w st' h
-      refine ⟨h1, ?_, ?_⟩
+      refine ⟨fun hc => ⟨by show Ws !! w = none; rw [hWs, if_neg hne]; exact (h1 hc).1,
+        by rw [hv', if_neg hne]; exact (h1 hc).2⟩, ?_, ?_⟩
       · intro hl
         rw [hv', if_neg hne]
         exact h3 ((hlv w).1 hl).2
@@ -363,8 +365,9 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
   have hok' : WsOk σ' := hσ' ▸ cancelState_ok σ hok wa st hst hlive Ws Wu VB hWs hWu hV hone
   have hlv' : ¬ σ'.live wa := by
     rw [hσ']; unfold WsState.live
-    show ¬ ((Ws !! wa).isSome ∨ (Wu !! wa).isSome ∨ (VB.findSome? (· !! wa)).isSome)
-    rw [hWs, hWu, hV]; simp
+    show ¬ ((Ws !! wa).isSome ∨ (Wu !! wa).isSome ∨ (VB.findSome? (· !! wa)).isSome ∨
+      ((<[wa := { st with ch := null }]> σ.ST) !! wa).any _)
+    rw [hWs, hWu, hV, GMap.lookup_insert]; simp
   have hM : σ'.M = σ.M := by rw [hσ']; rfl
   have hL : σ'.Lmu = σ.Lmu := by rw [hσ']; rfl
   have hWs' : σ'.Ws = Ws := by rw [hσ']; rfl
@@ -404,6 +407,7 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     · rw [hσ']
       show GMap.delete wa σ.E !! k = _
       rw [GMap.lookup_delete_ne _ (Ne.symm hk')]
+    · rw [hST, GMap.lookup_insert_ne _ _ (Ne.symm hk')]
   isplitr
   · iapply (BigSepM.bigSepM_mono (fun {k v} _ => ?_)) $$ Hout
     unfold outRes; rw [hM]
@@ -649,17 +653,13 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
       iunfold mvcc.watcherMeta at HmW0
       ihave %HmM := ghost_map_lookup $$ Hmeta HmW0
       have hnl : ¬ σ.live wa → σ.victimOf wa = none := by
-        intro h; unfold WsState.live at h; rw [hws, hwu] at h; simpa using h
+        intro h; unfold WsState.live at h; rw [hws, hwu] at h; simp at h; exact h.1
       obtain ⟨st0, qf, hsrc⟩ : ∃ st0 qf, (σ.ST !! wa = some st0 ∧ qf = 1) ∨
           (σ.Wo !! wa = some st0 ∧ qf = (1 : Qp).half) := by
         rcases Hok.m_st wa (by rw [HmM]; rfl) with h | h
         · obtain ⟨st0, h⟩ := Option.isSome_iff_exists.1 h; exact ⟨st0, 1, Or.inl ⟨h, rfl⟩⟩
         · obtain ⟨st0, h⟩ := Option.isSome_iff_exists.1 h
           exact ⟨st0, (1 : Qp).half, Or.inr ⟨h, rfl⟩⟩
-      have hcomp : st0.compacted = false := by
-        rcases hsrc with ⟨h, -⟩ | ⟨h, -⟩
-        · exact (Hok.st_flags wa st0 h).1
-        · exact (Hok.wo_flags wa st0 h).1
       icases mvcc.state_acc σ wa st0 qf hsrc $$ [$Hst $Hwo] with ⟨Hwa, Hback⟩
       iunfold mvcc.watcherOwn at Hwa
       icases Hwa with ⟨Hmin, Hvic, Hcomp, Hres, Hchf⟩
@@ -696,6 +696,75 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
         wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk $HP]
         iapply HΦ
         iexact Hdead
+      by_cases hcmp : st0.compacted = true
+      · -- compacted: its compaction response took it out of its group; cancelled here
+        obtain ⟨hst, rfl⟩ : σ.ST !! wa = some st0 ∧ qf = 1 := by
+          rcases hsrc with h | ⟨h, -⟩
+          · exact h
+          · have := (Hok.wo_flags wa st0 h).1; rw [hcmp] at this; cases this
+        have hlive : σ.live wa :=
+          Or.inr (Or.inr (Or.inr (by rw [hst]; simp [hcmp]; exact Hif)))
+        have hv0 : σ.victimOf wa = none := ((Hok.st_flags wa st0 hst).1 hcmp).2
+        ihave Hown := Hback $$ [Hmin Hvic Hcomp Hres Hchf]
+        · iunfold mvcc.watcherOwn
+          iframe
+        icases Hown with ⟨Hst, Hwo⟩
+        rw [hcmp]
+        wp_auto_lc 1
+        wp_apply HwgDec
+        wp_for_post
+        icases (BigSepM.bigSepM_delete (m := σ.ST) hst).1 $$ Hst with ⟨Hwa, Hst⟩
+        icases (BigSepM.bigSepM_delete (m := σ.ST) hst).1 $$ Hmem with ⟨Hmwa, Hmem⟩
+        icases mvcc.memberRes_live_elim γ 1 σ wa st0 hlive $$ Hmwa with
+          ⟨%γw', %r', %fcs', %evsw, %d, %hm, #Hm', #Hf', #Hch, %he, -, Hlive⟩
+        ihave #HmW1 := HmW
+        ihave #Hm0 := Hm'
+        iunfold mvcc.watcherMeta at HmW1 Hm0
+        ihave %Heq := ghostMapElem_agree $$ HmW1 Hm0
+        subst Heq
+        imod mvcc.cancel_ghost γ wa γw st0.ch $$ Hlc1 HmW Hch Hlive with #Hcan
+        iunfold mvcc.watcherOwn at Hwa
+        icases Hwa with ⟨Hmin, Hvic, Hcomp, Hres, Hchf⟩
+        wp_auto
+        imod ghostVar_update (mvcc.cancelState σ wa st0 σ.Ws σ.Wu σ.VB) γ.wst σ
+          $$ Hσ with Hσ
+        ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hmin Hvic Hcomp Hres Hchf Hrel Hwsf]
+        · iunfold mvcc.watchStoreInv
+          iexists (mvcc.cancelState σ wa st0 σ.Ws σ.Wu σ.VB)
+          isplitr [Hrel Hwsf]
+          rotate_left
+          · isplitl [Hrel]
+            · (try simp only [mvcc.cancelState]); iexact Hrel
+            iframe Hwsf; ipureintro
+            refine And.intro ?_ ?_
+            · exact mvcc.cancelState_settled σ Hset wa st0 σ.Ws σ.Wu σ.VB
+                (fun w => by by_cases h : w = wa <;> simp [h, hws])
+                (fun w => by
+                  by_cases h : w = wa
+                  · subst h; simp only [ite_true]; exact hv0
+                  · simp only [h, ite_false]; rfl)
+            · exact ⟨Hsrb, mvcc.cancelState_unsRst σ Hurst wa st0 σ.Ws σ.Wu σ.VB
+                (fun w => by by_cases h : w = wa <;> simp [h, hwu])⟩
+          iapply mvcc.body_cancel s γ σ _ Hok wa st0 hst hlive σ.Ws σ.Wu σ.VB
+            (fun w => by by_cases h : w = wa <;> simp [h, hws])
+            (fun w => by by_cases h : w = wa <;> simp [h, hwu])
+            (fun w => by
+              by_cases h : w = wa
+              · subst h; simp only [ite_true]; exact hv0
+              · simp only [h, ite_false]; rfl)
+            Hok.v_one rfl γw r' fcs' hm
+          iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem
+          iframe #
+          isplitr
+          · ipureintro; exact Hvlen
+          iunfold mvcc.watcherOwn
+          iframe
+        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk $HP]
+        iapply HΦ
+        iexists γw
+        iframe #
+      have hcomp : st0.compacted = false := by simpa using hcmp
+      clear hcmp
       rw [hcomp]
       wp_auto
       have hvic : st0.victim = true := by
@@ -704,8 +773,8 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
             Hif ((Hok.st_flags wa st0 h).2.2.2 hn)
           refine ((Hok.st_flags wa st0 h).2.1 hl).2 ?_
           unfold WsState.live at hl
-          rw [hws, hwu] at hl
-          simpa using hl
+          rw [hws, hwu, h] at hl
+          simpa [hcomp] using hl
         · exact (Hok.wo_flags wa st0 h).2.1
       rw [hvic]
       wp_auto
@@ -790,8 +859,8 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           -- the victim: cancelled out of its batch
           have HBm' : B = GMap.fmap Prod.snd PB := HBm
           have hBwa : B !! wa = some eb0 := by rw [HBm', GMap.lookup_fmap, hp]; rfl
-          have hlive : σ.live wa := Or.inr (Or.inr
-            (mvcc.findSome?_isSome_of _ σ.VB (sint.nat n) B HB (by rw [hBwa]; rfl)))
+          have hlive : σ.live wa := Or.inr (Or.inr (Or.inl
+            (mvcc.findSome?_isSome_of _ σ.VB (sint.nat n) B HB (by rw [hBwa]; rfl))))
           obtain ⟨hV, hone⟩ := mvcc.vb_delete σ Hok (sint.nat n) B wa HB (by rw [hBwa]; rfl)
           obtain ⟨st1, hst⟩ : ∃ st1, σ.ST !! wa = some st1 :=
             Option.isSome_iff_exists.1 (Hok.live_st wa hlive)

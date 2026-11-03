@@ -55,12 +55,16 @@ abbrev Main.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   putget.BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  storage.dbOpensOk → v3rpc.ServerMethodSets →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"authkv.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Main)) (Val #()))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}
 

@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log Pre Q Post info
+  intro E c inner p r rq id log rs Pre Q Post info
   wp_start as ⟨-, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -36,10 +36,34 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
   icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
-  icases Hpre with ⟨%Hk, -, -, -, Hkv, Hres, Hcs⟩
-  -- D14h: no lease revocation in the workload
-  have hF := Hk.2.2
-  simp only [apply.rqOk, Hk.2.1] at hF
+  icases Hpre with ⟨%Hk, -, -, -, ⟨Hkv, Hres, Hcs⟩, Hrr⟩
+  wp_auto
+  iapply HΦ
+  isplitr [Hrr]
+  · ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
+    · iapply apply.chainClass_corrupt_rejected
+    ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.corrupt c) rq (.rejected .corrupt) $$ []
+    · iapply apply.chainLeaseClass_corrupt_rejected
+    iunfold apply.kvPost
+    iexists (.rejected .corrupt)
+    isplitr
+    · ipureintro
+      simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
+    simp only [apply.revokeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    iframe Hkv Hres Hcls Hlc
+    isplitl []
+    · isplitl []
+      · ipureintro; trivial
+      iunfold txn.errVarIs
+      iexists eC
+      iframe HeC
+      ipureintro; rfl
+    iright
+    iapply apply.csContract_pre $$ Hcs
+  · iunfold apply.revokeRes at Hrr
+    iunfold apply.revokeResAfter
+    simp only [reduceCtorEq, ↓reduceIte]
+    iexact Hrr
 
 end proof
 

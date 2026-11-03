@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ theorem putget3_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWi
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **putget3 is safe, in the operational semantics** (`putget3_adequate`, see the
@@ -59,9 +59,13 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent putget3Program [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -69,12 +73,12 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putget3Program], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget3_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem σ g
-    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  putget3_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDsNd HDs n Hprem σ g
+    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

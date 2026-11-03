@@ -22,12 +22,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`cw.run()`**, the writer's goroutine, from its start (not working, no closer; with its
-halves, the right to close `done`, and one of the `Raft`'s resources `Rr`): returns once stopped. -/
+halves and the right to close `done`): returns once stopped. (Until J8a-6, 2026-11-01, it held one
+of the `Raft`'s resources `Rr`, which it never uses.) -/
 abbrev rafthttp.streamWriter.run.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (cw : Loc) (mc : GoChan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       swFixed Rh ty lid pid Rr cw ∗ swRunOwn Rh ty lid pid cw mc false GoInterface.nil ∗
-      swDoneRight cw ∗ Rr }}
+      swDoneRight cw }}
     (App (Val (cw @!! go.GoType.PointerType rafthttp.streamWriter.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

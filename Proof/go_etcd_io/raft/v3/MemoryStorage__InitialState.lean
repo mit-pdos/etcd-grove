@@ -32,7 +32,7 @@ theorem MemoryStorage.InitialState.wp_proof
     (wp_GetConfState : raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     MemoryStorage.InitialState.spec (GF := GF) (hG := hG) := by
-  intro ms γs hs
+  intro ms γs hs c sv
   wp_start as ⟨Hmeta, Hfresh⟩
   iunfold memStorMeta at Hmeta
   icases Hmeta with ⟨%n, %hp, Hmeta⟩
@@ -40,10 +40,10 @@ theorem MemoryStorage.InitialState.wp_proof
   iunfold memStorFresh at Hfresh
   icases Hfresh with ⟨Hjc, Hhk, %sp, Hsnapshot, Hsnap, Hsx⟩
   wp_auto
-  wp_apply wp_GetMetadata.1 sp (DFrac.own 1) memSnapEmpty $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
+  wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap
-  wp_apply wp_GetConfState pm (DFrac.own 1) memSnapEmpty.Metadata' $$ [Hm] as %pc ⟨Hc, Hcback⟩
-  · simp only [memSnapEmpty]; iframe Hm
+  wp_apply wp_GetConfState pm (DFrac.own 1) sv.Metadata' $$ [Hm] as %pc ⟨Hc, Hcback⟩
+  · iframe Hm
   icases csOptA_nn _ _ _ $$ Hc with ⟨Hc, %Hnull⟩
   rcases Hnull with Hnull | Hnn
   · -- no conf state: `EnsureConfState` makes a fresh one, frozen
@@ -67,19 +67,17 @@ theorem MemoryStorage.InitialState.wp_proof
       iexists sp
       iframe
     rw [Hc0]
-    simp only [memSnapEmpty]
     iframe Hr
   · -- the storage's conf state: its `AutoLeave` set in place, then frozen
     iapply wp_fupd
-    wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc memSnapEmpty.Metadata'.ConfState' Hnn
+    wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc sv.Metadata'.ConfState' Hnn
       $$ [Hc] as #Hr
-    · simp only [memSnapEmpty]; iexact Hc
+    · iexact Hc
     ihave Hm := Hcback $$ []
     · iunfold csOptA; iright; iright; iexact Hr
     ihave Hsnap := Hmback $$ Hm
     imodintro
     iapply HΦ
-    simp only [memSnapEmpty] at *
     iframe Hhs Hr
     isplitl [HhardState Hcs_initialState]
     · unfold memStorMeta

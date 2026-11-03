@@ -18,7 +18,7 @@ nothing. Nothing in the repository changed except this file.
 
 **Go.** I found no new Go bug. Both known bugs are recorded:
 - `issues/etcd-restore-pending-compaction-unclosed.md`;
-- `issues/etcd-restore-scheduled-compact-zero.md`.
+- `nonissues/etcd-restore-scheduled-compact-zero.md`.
 
 One Go fact matters below (A2): during `kv.Restore` the new backend has no post-lock hook. The hook
 is set only after `Restore` returns:

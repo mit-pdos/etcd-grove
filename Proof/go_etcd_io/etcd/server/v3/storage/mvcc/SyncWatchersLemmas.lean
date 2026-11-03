@@ -80,7 +80,7 @@ theorem WsOk.congr {σ σ' : WsState} (h : WsOk σ) (hWs : σ'.Ws = σ.Ws) (hWu 
     (hv1 : ∀ (i j : Nat) (B B' : GMap Loc EventBatch) (w : Loc), σ'.VB[i]? = some B →
       σ'.VB[j]? = some B' → (B !! w).isSome → (B' !! w).isSome → i = j) : WsOk σ' := by
   have hl : ∀ k, σ'.live k ↔ σ.live k := by
-    intro k; unfold WsState.live; rw [hWs, hWu, hvo]
+    intro k; unfold WsState.live; rw [hWs, hWu, hvo, hST]
   constructor
   · rw [hWs, hWu]; exact h.ws_wu
   · intro w hw; rw [hvo]; rw [hWs] at hw; exact h.ws_v w hw
@@ -96,7 +96,7 @@ theorem WsOk.congr {σ σ' : WsState} (h : WsOk σ) (hWs : σ'.Ws = σ.Ws) (hWu 
   · intro w st hst
     rw [hST] at hst
     obtain ⟨h1, h3, h4⟩ := h.st_flags w st hst
-    refine ⟨h1, fun hlv => ?_, ?_⟩
+    refine ⟨fun hc => by rw [hWs, hvo]; exact h1 hc, fun hlv => ?_, ?_⟩
     · rw [hvo]; exact h3 ((hl w).1 hlv)
     · rw [hl]; exact h4
   · rw [hWo]; exact h.wo_flags
@@ -130,9 +130,20 @@ theorem WsOk.chooseRst_ST {σ : WsState} (h : WsOk σ) (c : w64) (D : GMap Loc U
     WsOk { σ with ST := chooseRst c D σ.ST } := by
   have hst : ∀ k, (chooseRst c D σ.ST !! k).isSome = (σ.ST !! k).isSome := by
     intro k; unfold chooseRst; rw [gmapMapK_lookup]; cases σ.ST !! k <;> rfl
-  refine ⟨h.ws_wu, h.ws_v, h.wu_v, h.v_one, fun w hw => ?_, h.live_e, fun w hw => ?_, h.wo_m,
-    fun w hw => ?_, fun w hw => ?_, h.wo_live, fun w st hs => ?_, h.wo_flags, h.synced_d⟩
-  · show (chooseRst c D σ.ST !! w).isSome; rw [hst]; exact h.live_st w hw
+  have hl : ∀ k, ({ σ with ST := chooseRst c D σ.ST } : WsState).live k ↔ σ.live k := by
+    intro k; unfold WsState.live
+    have : (chooseRst c D σ.ST !! k).any (fun st => st.compacted && st.ch != null) =
+        (σ.ST !! k).any (fun st => st.compacted && st.ch != null) := by
+      unfold chooseRst; rw [gmapMapK_lookup]
+      cases σ.ST !! k with
+      | none => rfl
+      | some st0 => simp only [Option.map_some, Option.any_some]; split <;> simp
+    simp only [WsState.victimOf] at *
+    rw [this]
+  refine ⟨h.ws_wu, h.ws_v, h.wu_v, h.v_one, fun w hw => ?_, fun w => by rw [hl]; exact h.live_e w,
+    fun w hw => ?_, h.wo_m, fun w hw => ?_, fun w hw => ?_,
+    fun w hw => by rw [hl]; exact h.wo_live w hw, fun w st hs => ?_, h.wo_flags, h.synced_d⟩
+  · show (chooseRst c D σ.ST !! w).isSome; rw [hst]; exact h.live_st w ((hl w).1 hw)
   · have hw' : (chooseRst c D σ.ST !! w).isSome := hw
     rw [hst] at hw'; exact h.st_m w hw'
   · show (chooseRst c D σ.ST !! w).isSome ∨ _; rw [hst]; exact h.m_st w hw
@@ -148,7 +159,8 @@ theorem WsOk.chooseRst_ST {σ : WsState} (h : WsOk σ) (c : w64) (D : GMap Loc U
       have e1 : st.compacted = st0.compacted := by rw [← hs']; split <;> simp
       have e2 : st.victim = st0.victim := by rw [← hs']; split <;> simp
       have e3 : st.ch = st0.ch := by rw [← hs']; split <;> simp
-      exact ⟨by rw [e1]; exact f1, fun hl' => by rw [e2]; exact f2 hl', by rw [e3]; exact f3⟩
+      exact ⟨by rw [e1]; exact f1, fun hl' => by rw [e2]; exact f2 ((hl w).1 hl'),
+        by rw [e3, hl]; exact f3⟩
 
 /-- Settled with `choose`'s restore reset (S6). -/
 theorem WsState.settled_chooseRst {σ : WsState} (h : σ.settled) (c : w64) (D : GMap Loc Unit) :
@@ -227,13 +239,13 @@ theorem WsOk.sync_step {σ : WsState} {v : SyncVars} (h : WsOk (v.st σ)) {w : L
     cases dst with
     | synced => exact Or.inl (by rw [(hpop.1 rfl).1]; rfl)
     | unsynced => exact Or.inr (Or.inl (by rw [(hpop.2.1 rfl).2.1]; rfl))
-    | victim B => exact Or.inr (Or.inr (by rw [(hpop.2.2 B rfl).2.2]; rfl))
+    | victim B => exact Or.inr (Or.inr (Or.inl (by rw [(hpop.2.2 B rfl).2.2]; rfl)))
   have hlive : ∀ k, S'.live k ↔ S.live k := by
     intro k
     by_cases hk : k = w
     · subst hk; exact ⟨fun _ => hliveS, fun _ => hlivew⟩
-    · obtain ⟨h1, h2, -, -, h5⟩ := hoff k hk
-      unfold WsState.live; rw [h1, h2, h5]
+    · obtain ⟨h1, h2, h3, -, h5⟩ := hoff k hk
+      unfold WsState.live; rw [h1, h2, h5, h3]
   have hM : S'.M = S.M := by rw [← hS, ← hS']; rfl
   have hWo : S'.Wo = S.Wo := by rw [← hS, ← hS']; rfl
   have hLmu : S'.Lmu = S.Lmu := by rw [← hS, ← hS']; rfl
@@ -330,17 +342,17 @@ theorem WsOk.sync_step {σ : WsState} {v : SyncVars} (h : WsOk (v.st σ)) {w : L
     · subst hkw
       rw [hSTw] at hst0; cases hst0
       obtain ⟨h1, h3, h4⟩ := hst'
-      refine ⟨h1, fun _ => ?_, ?_⟩
+      refine ⟨(fun hc => by rw [h1] at hc; cases hc), fun _ => ?_, ?_⟩
       · rw [h4]
         cases dst with
         | synced => rw [(hpop.1 rfl).2.2]; simp [SyncDst.isVictim]
         | unsynced => rw [(hpop.2.1 rfl).2.2]; simp [SyncDst.isVictim]
         | victim B => rw [(hpop.2.2 B rfl).2.2]; simp [SyncDst.isVictim]
       · rw [h3]; exact ⟨fun he => absurd he hchnn, fun hn => absurd hlivew hn⟩
-    · obtain ⟨-, -, h3, -, h5⟩ := hoff k hkw
+    · obtain ⟨h0, -, h3, -, h5⟩ := hoff k hkw
       rw [h3] at hst0
       obtain ⟨g1, g3, g4⟩ := h.st_flags k st0 hst0
-      refine ⟨g1, fun hl => ?_, ?_⟩
+      refine ⟨fun hc => by rw [h0, h5]; exact g1 hc, fun hl => ?_, ?_⟩
       · rw [h5]; exact g3 ((hlive k).1 hl)
       · rw [hlive]; exact g4
   · intro k st0 h0; rw [hWo] at h0; exact h.wo_flags k st0 h0
@@ -491,7 +503,7 @@ theorem SyncLoop.unsynced_facts {σ : WsState} {ST0 : GMap Loc WatcherSt} {v : S
     {PB PBv PBr : GMap Loc (Loc × EventBatch)}
     {keys : List Loc} {i : Nat} (h : SyncLoop σ ST0 v PB PBv PBr keys i) {key : Loc} {r : WatchRange}
     {st : WatcherSt} (hWu : v.Wu !! key = some r) (hST : v.ST !! key = some st) :
-    st.compacted = false ∧ st.victim = false ∧ st.ch ≠ null ∧
+    st.victim = false ∧ st.ch ≠ null ∧
       σ.victimOf key = none ∧ v.Bv !! key = none ∧ v.Ws !! key = none := by
   have hu : ((v.st σ).Wu !! key).isSome := by rw [SyncVars.st_Wu, hWu]; rfl
   have hv := h.ok.wu_v key hu
@@ -507,7 +519,7 @@ theorem SyncLoop.unsynced_facts {σ : WsState} {ST0 : GMap Loc WatcherSt} {v : S
     | some _ =>
       have := h.ok.ws_wu key (by rw [SyncVars.st_Ws, h1]; rfl)
       rw [SyncVars.st_Wu, hWu] at this; cases this
-  refine ⟨f1, ?_, fun hn => (f4.1 hn) hl, hσ.1, hσ.2, hws⟩
+  refine ⟨?_, fun hn => (f4.1 hn) hl, hσ.1, hσ.2, hws⟩
   have := (f3 hl)
   rw [hv] at this
   cases hs : st.victim
@@ -589,18 +601,19 @@ theorem sw_bigSepM_split {V : Type} (p : Loc → V → Bool) (m : GMap Loc V)
 victim batch. -/
 theorem sw_memberRes_congr (γ : WsNames) (q : Qp) (σ1 σ2 : WsState) (w : Loc) (st : WatcherSt)
     (hM : σ1.M !! w = σ2.M !! w) (hE : σ1.E !! w = σ2.E !! w) (hWs : σ1.Ws !! w = σ2.Ws !! w)
-    (hWu : σ1.Wu !! w = σ2.Wu !! w) (hvo : σ1.victimOf w = σ2.victimOf w) :
+    (hWu : σ1.Wu !! w = σ2.Wu !! w) (hvo : σ1.victimOf w = σ2.victimOf w)
+    (hST : σ1.ST !! w = σ2.ST !! w) :
     memberRes (GF := GF) γ q σ1 w st = memberRes γ q σ2 w st := by
   unfold memberRes popFacts WsState.live
-  simp only [hM, hE, hWs, hWu, hvo]
+  simp only [hM, hE, hWs, hWu, hvo, hST]
 
 /-- **`memberRes` reads only a watcher's `minRev` and channel of its state** (D22 receiver
 epochs, S6: not its restore flag, which `chooseAll` clears). -/
 theorem memberRes_st_congr (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st st' : WatcherSt)
-    (h1 : st.minRev = st'.minRev) (h2 : st.ch = st'.ch) :
+    (h1 : st.minRev = st'.minRev) (h2 : st.ch = st'.ch) (h3 : st.compacted = st'.compacted) :
     memberRes (GF := GF) γ q σ w st = memberRes γ q σ w st' := by
   unfold memberRes popFacts victimBatchOk
-  simp only [h1, h2]
+  simp only [h1, h2, h3]
 
 /-- An unsynced member's resources, unfolded. -/
 
@@ -613,15 +626,16 @@ theorem sw_memberRes_unsynced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (
       ⌜σ.E !! w = some (evsw, sint.nat st.minRev)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗
       dghostVar γw.live (DFrac.own q.half) true ∗ ⌜(γw.lo : Int) ≤ sint.Z st.minRev⌝ ∗
       evsWf γ r γw.lo evsw (sint.nat st.minRev) ∗
-      ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max γw.lo Lc.length⌝ := by
+      (∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max γw.lo Lc.length⌝) ∗
+      (⌜st.compacted = true⌝ → ∃ c0 : Int, crevLb γ.st.idx c0 ∗ ⌜sint.Z st.minRev < c0⌝) := by
   have hl : σ.live w := Or.inr (Or.inl hWu)
   have hWs' : (σ.Ws !! w).isSome = false := by rw [hWs]; rfl
   unfold memberRes popFacts
   simp only [hl, hWs', hWu, ↓reduceIte, Bool.false_eq_true]
-  iintro ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl, ⟨%Hp, #Hwf, #Hc2⟩⟩
+  iintro ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl, ⟨%Hp, #Hwf, #Hc2, #Hcmp⟩⟩
   obtain ⟨h1, rfl⟩ := Hp
   iexists γw, r, fcs, evsw
-  iframe Hm Hf Hc Hfo Ha Hl Hwf Hc2
+  iframe Hm Hf Hc Hfo Ha Hl Hwf Hc2 Hcmp
   ipureintro; exact ⟨hM, Hsr, hE, h1⟩
 
 /-- A live member's resources from their parts. -/
@@ -651,7 +665,8 @@ theorem sw_popFacts_unsynced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchR
     (h2 : (σ.Wu !! k).isSome) :
     popFacts (GF := GF) γ σ k r lo st evsw d =
       iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
-        ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝) := by
+        (∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝) ∗
+        (⌜st.compacted = true⌝ → ∃ c0 : Int, crevLb γ.st.idx c0 ∗ ⌜sint.Z st.minRev < c0⌝)) := by
   unfold popFacts; simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]
 
 /-- The unsynced members' `minRev`s are non-negative and at most the larger of their first
@@ -677,7 +692,7 @@ theorem sw_unsynced_bounds (γ : WsNames) (σ : WsState) (hok : WsOk σ) (q : Qp
     | some _ => have := hok.ws_wu w (by rw [h]; rfl); rw [this] at hu; cases hu
   icases (BigSepM.bigSepM_lookup_acc hst).1 $$ Hmem with ⟨Hw, -⟩
   icases sw_memberRes_unsynced γ 1 σ w st hws hu $$ Hw with
-    ⟨%γw, %r, %fcs, %evsw, %hM, -, -, -, -, -, -, -, -, %Hlo, -, %Lc, #HLc, %HLc⟩
+    ⟨%γw, %r, %fcs, %evsw, %hM, -, -, -, -, -, -, -, -, %Hlo, -, ⟨%Lc, #HLc, %HLc⟩, -⟩
   icases idxLogAuth_cert_prefix _ _ _ _ $$ [$Hauth $HLc] with %Hp
   ipureintro
   intro _ _
@@ -691,12 +706,13 @@ theorem sw_memberRes_step_ne (γ : WsNames) (σ : WsState) (v : SyncVars) (w : L
     (r : WatchRange) (dst : SyncDst) (st' : WatcherSt) (e' : List EvM × Nat) (k : Loc)
     (hk : k ≠ w) (x : WatcherSt) :
     memberRes (GF := GF) γ 1 (v.st σ) k x = memberRes γ 1 ((v.step w r dst st' e').st σ) k x := by
-  obtain ⟨-, h2, h3, h4, h5⟩ := v.step_ne w r dst st' e' k hk
-  refine sw_memberRes_congr γ 1 _ _ k x rfl ?_ ?_ ?_ ?_
+  obtain ⟨h1, h2, h3, h4, h5⟩ := v.step_ne w r dst st' e' k hk
+  refine sw_memberRes_congr γ 1 _ _ k x rfl ?_ ?_ ?_ ?_ ?_
   · exact h4.symm
   · exact h3.symm
   · exact h2.symm
   · rw [SyncVars.st_victimOf, SyncVars.st_victimOf, h5]
+  · exact h1.symm
 
 /-- Replacing one key's entry of a big separating conjunction, with a new predicate that agrees
 elsewhere. -/
@@ -770,7 +786,7 @@ theorem sw_memberRes_new_unsynced (γ : WsNames) (σ : WsState) (v : SyncVars) (
     (D : Nat) (Lc : Log) (hM : σ.M !! key = some γw) (hsr : sint.Z r.startRev ≤ (γw.lo : Int))
     (hWs0 : v.Ws !! key = none) (hWu0 : v.Wu !! key = some r)
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev)
-    (hLc : sint.nat st'.minRev ≤ max γw.lo Lc.length) :
+    (hLc : sint.nat st'.minRev ≤ max γw.lo Lc.length) (hcp : st'.compacted = false) :
     watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw D ∗ idxCert γ.st.idx Lc ⊢
@@ -786,9 +802,11 @@ theorem sw_memberRes_new_unsynced (γ : WsNames) (σ : WsState) (v : SyncVars) (
   iframe Hm Hf Hc Hfo Ha Hl Hwf
   isplitr
   · ipureintro; exact hlo
-  iexists Lc
-  iframe HLc
-  ipureintro; exact hLc
+  isplitr
+  · iexists Lc
+    iframe HLc
+    ipureintro; exact hLc
+  iintro %hc; rw [hcp] at hc; cases hc
 
 /-- The stepped member's resources, a victim with its batch. -/
 theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (key : Loc)
@@ -809,7 +827,7 @@ theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
   have hv : ((v.step key r (.victim B) st' (evsw, D)).st σ).victimOf key = some B := by
     rw [SyncVars.st_victimOf, hvo]; simp [SyncVars.step, GMap.lookup_insert]
   iintro ⟨#Hm, #Hf, #Hc, #Hfo, Ha, Hl, #Hwf⟩
-  iapply (sw_memberRes_intro γ ((v.step key r (.victim B) st' (evsw, D)).st σ) key st' (Or.inr (Or.inr (by rw [hv]; rfl))) γw r fcs evsw D hM
+  iapply (sw_memberRes_intro γ ((v.step key r (.victim B) st' (evsw, D)).st σ) key st' (Or.inr (Or.inr (Or.inl (by rw [hv]; rfl)))) γw r fcs evsw D hM
     (by simp [SyncVars.step, SyncVars.st, GMap.lookup_insert]) hsr)
   rw [popFacts_victim γ _ key r γw.lo st' evsw D B (by rw [hWs]; rfl) (by rw [hWu]; rfl) hv]
   iframe Hm Hf Hc Hfo Ha Hl Hwf

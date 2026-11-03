@@ -56,7 +56,6 @@ abbrev Serve.spec : Prop :=
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗ srvWatchReaders s E 64 ∗
       v3rpc.runsNoRequireLeader ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         grpcUp s E ρ γr gs lis addr cid mid R ={⊤}=∗ grpcServeTok gs lis ∗ Q cid mid R) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.Serve))
@@ -84,7 +83,6 @@ abbrev Serve.specOn : Prop :=
       srvServeFacts s E cfg ∗ srvWatchReaders s E 64 ∗
       v3rpc.runsNoRequireLeader ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         grpcUpOn s E ρ γr gs lis addr cid mid R ={⊤}=∗ grpcServeTok gs lis ∗ Q cid mid R) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.Serve))

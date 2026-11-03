@@ -56,7 +56,14 @@ theorem auth.authStore.CheckPassword.wp_proof
     iapply HΦ
     iframe Hen Hbr HR
     iunfold passwordChecked
-    ileft; ipureintro; simp
+    ileft
+    isplitr
+    · ipureintro; simp
+    iexists .authNotEnabled
+    iunfold authErrOf
+    iexists eNE
+    simp only [AuthErr.var]
+    iframe HeNE
   (try wp_auto)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -86,7 +93,14 @@ theorem auth.authStore.CheckPassword.wp_proof
     iapply HΦ
     iframe Hen Hbr HR
     iunfold passwordChecked
-    ileft; ipureintro; simp
+    ileft
+    isplitr
+    · ipureintro; simp
+    iexists .authFailed
+    iunfold authErrOf
+    iexists eAF
+    simp only [AuthErr.var]
+    iframe HeAF
   ihave Hu' := userOut_some u sta username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
@@ -132,7 +146,14 @@ theorem auth.authStore.CheckPassword.wp_proof
       iapply HΦ
       iframe Hen Hbr HR
       iunfold passwordChecked
-      ileft; ipureintro; simp
+      ileft
+      isplitr
+      · ipureintro; simp
+      iexists .authFailed
+      iunfold authErrOf
+      iexists eAF
+      simp only [AuthErr.var]
+      iframe HeAF
     | nil =>
       (try wp_auto)
       iapply HΦ
@@ -167,7 +188,14 @@ theorem auth.authStore.CheckPassword.wp_proof
       iapply HΦ
       iframe Hen Hbr HR
       iunfold passwordChecked
-      ileft; ipureintro; simp
+      ileft
+      isplitr
+      · ipureintro; simp
+      iexists .noPasswordUser
+      iunfold authErrOf
+      iexists eNP
+      simp only [AuthErr.var]
+      iframe HeNP
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
     iapply HRev $$ %sta Htok
@@ -200,7 +228,14 @@ theorem auth.authStore.CheckPassword.wp_proof
       iapply HΦ
       iframe Hen Hbr HR
       iunfold passwordChecked
-      ileft; ipureintro; simp
+      ileft
+      isplitr
+      · ipureintro; simp
+      iexists .authFailed
+      iunfold authErrOf
+      iexists eAF
+      simp only [AuthErr.var]
+      iframe HeAF
     | nil =>
       (try wp_auto)
       iapply HΦ

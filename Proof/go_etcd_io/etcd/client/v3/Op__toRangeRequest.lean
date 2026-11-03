@@ -48,6 +48,7 @@ theorem Op.toRangeRequest.wp_proof : Op.toRangeRequest.spec (GF := GF) (hG := hG
     isplitl []
     · iexact Hend
     ipureintro
+    refine ⟨?_, rfl⟩
     simp only [rangeReqOp, rangeWireOf, sortOrderWire, sortTargetWire, hss, hl, hrev, hser, hko, hc,
       hmin, hmax, hcmin, hcmax]
     rfl
@@ -67,6 +68,7 @@ theorem Op.toRangeRequest.wp_proof : Op.toRangeRequest.spec (GF := GF) (hG := hG
     isplitl []
     · iexact Hend
     ipureintro
+    refine ⟨?_, rfl⟩
     simp only [rangeReqOp, rangeWireOf, sortOrderWire, sortTargetWire, hss, hl, hrev, hser, hko, hc,
       hmin, hmax, hcmin, hcmax, ↓reduceIte]
 

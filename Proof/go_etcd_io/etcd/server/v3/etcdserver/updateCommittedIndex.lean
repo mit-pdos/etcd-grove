@@ -58,7 +58,7 @@ theorem updateCommittedIndex.wp_proof
     (hSGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro ap rh es ceL A ce R γr sn
+  intro ap rh es ceL A ce R γr sn sv
   wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR, #Hlog, %Hidx, #Hsn⟩
   imod monoNatLbOwn_0 (GF := GF) γr.committed with #H0
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
@@ -113,7 +113,7 @@ theorem updateCommittedIndex.wp_proof
       rfl
   iunfold isReadyHandler at Hrh
   icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
-  icases Hsn with (%Hnull | ⟨%sv, %A', #Hown, #HA', %Hce⟩)
+  icases Hsn with (%Hnull | ⟨%A', #Hown, #HA', %Hce⟩)
   rotate_left
   · -- (D22 J6a) a snapshot: no committed entries, so `ci` is the snapshot's index if not `0`
     obtain ⟨hce, hle⟩ := Hce
@@ -149,13 +149,13 @@ theorem updateCommittedIndex.wp_proof
       iframe HR
       isplitr
       · unfold committedLast; simp only [List.getLast?_nil]; itrivial
-      iright; iexists sv; iframe Hown Hca
+      iright; iframe Hca
     · -- the index is `0`: nothing raised, `0` a lower bound already
       iapply HΦ
       iframe HR
       isplitr
       · unfold committedLast; simp only [List.getLast?_nil]; itrivial
-      iright; iexists sv; iframe Hown
+      iright
       have h0 : sv.Metadata'.Index' = W64 0 := by
         have : ¬ (uint.Z (W64 0) < uint.Z sv.Metadata'.Index') := by simpa using Hif
         word

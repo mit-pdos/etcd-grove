@@ -260,7 +260,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   wp_start as ⟨#He, #Hctx, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -302,7 +302,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   wp_apply HG $$ [] as %gresp %gerr #Hgres
   · iframe Hctx Hslf HRl
     ipureintro
-    exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx⟩
+    exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R0, %gm, #HgRev, -, #HR0, -, %HR0le, Hgr⟩)
   · obtain ⟨e', rfl⟩ : ∃ e', gerr = GoInterface.ok e' := by
@@ -381,7 +381,11 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     · iframe HctxB Hopts
       ipureintro
       refine ⟨Hw1, Hw2, HR0pos, ?_⟩
-      rw [Hw3, Hw4]; exact keyRangeUnder_prefix pfx Hpfx
+      rw [Hw3, Hw4]
+      exact ⟨keyRangeUnder_prefix pfx Hpfx,
+        watchSizeOk_opWatchModel (K := 2 ^ 27) (E := 2 ^ 27) (V := 0)
+          (optsKeep_cons (withRevM_keep R0) (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+            (optsKeep_nil _ _ _))) Hpl (by decide)⟩
     (try wp_auto)
     ihave IHB : iprop(∃ (kvp hdrp : Loc) (rcv : List go_etcd_io.etcd.client.v3.WatchResponse) (c : w64),
         "kv" ∷ kv_ptr ↦ kvp ∗ "hdr" ∷ hdr_ptr ↦ hdrp ∗
@@ -654,13 +658,19 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       · cases Hf'; cases Hg; iexact Hfr
       · simp at Hf'
     obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts v.key (R + W64 1)
+    ihave %Hvk : ⌜v.key.length ≤ etcdKeyMax⌝ $$ [Hobs]
+    · iunfold observedAt at Hobs
+      icases Hobs with ⟨%so, #Hso, %Hvso, -⟩
+      ihave %Hks := etcdState_keys R pfx so $$ Hso
+      ipureintro; exact Hks v Hvso
     ihave #HWa := HW $$ %ctx' %({ cs with PDone := iprop(cs.PDone ∨ True), Done_gn := γ' })
       %v.key %optsSl %([withRevM (R + W64 1)] : List (OpFull → OpFull)) %(R + W64 1)
     (try wp_auto)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hwcons, #Hcur0⟩
     · iframe Hctx' Hopts
       ipureintro
-      refine ⟨Hw1, Hw2, by word, ?_⟩
+      refine ⟨Hw1, Hw2, by word, ?_,
+        watchSizeOk_keyWatch (R + W64 1) (by unfold etcdKeyMax at Hvk; omega)⟩
       rw [Hw3, Hw4]; exact keyRangeUnder_key pfx v.key HJ.1
     (try wp_auto)
     have HcR : R + W64 1 - W64 1 = R := by word

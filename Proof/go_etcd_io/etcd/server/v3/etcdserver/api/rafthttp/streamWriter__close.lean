@@ -29,7 +29,7 @@ theorem rafthttp.streamWriter.close.wp_proof
     (hCloseUnlocked : rafthttp.streamWriter.closeUnlocked.spec (GF := GF) (hG := hG)) :
     rafthttp.streamWriter.close.spec (GF := GF) (hG := hG) := by
   intro Rh ty lid pid Rr cw mc wk cl Q
-  wp_start as ⟨#Hf, Hrun, Hcls, HR⟩
+  wp_start as ⟨#Hf, Hrun, Hcls⟩
   ihave #Hf' := Hf
   iunfold swFixed at Hf'
   icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, -, -, -, -, -, -, -, -,
@@ -48,8 +48,8 @@ theorem rafthttp.streamWriter.close.wp_proof
   ihave ⟨%Hecl, Hcl⟩ := typedPointsto_combine_halves _ _ _ $$ [$Hcl $Hcl0]
   subst Hemc Hewk Hecl
   (try wp_auto)
-  wp_apply hCloseUnlocked Rh ty lid pid Rr cw mc γm wk cl Q $$ [$Hmc $Hwk $Hcl $Hcls $HR]
-    as %b ⟨%Hb, HR, %mc', %γm', Hmc, Hwk, Hcl, #Hbag'⟩
+  wp_apply hCloseUnlocked Rh ty lid pid Rr cw mc γm wk cl Q $$ [$Hmc $Hwk $Hcl $Hcls]
+    as %b ⟨%Hb, %mc', %γm', Hmc, Hwk, Hcl, #Hbag'⟩
   · iframe #
   (try wp_auto)
   ihave ⟨Hmc, Hmc0⟩ := (typedPointsto_halves _ _).1 $$ Hmc
@@ -61,7 +61,6 @@ theorem rafthttp.streamWriter.close.wp_proof
     iexists mc', γm', false, cl
     iframe; iframe #
   iapply HΦ
-  iframe HR
   isplitr
   · ipureintro; exact Hb
   iexists mc'

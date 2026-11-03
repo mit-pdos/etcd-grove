@@ -25,7 +25,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `c.LeaseGrant(ctx, in, opts...)` on a stub on a connection to the server at `addr`
 (`leaseStubAt`), for a spec `Spec` the server registered for the method and the caller's `Φ`:
 `Invoke` of `"/etcdserverpb.Lease/LeaseGrant"` with `grpc.StaticMethod()` before the options,
-into a new `*LeaseGrantResponse`: the call's answer (`leaseGrantCallOut`); the request comes back. -/
+into a new `*LeaseGrantResponse`: the call's answer (`leaseGrantCallOut`); the request comes back. The
+request has no unknown fields (a struct literal; 2026-10-30, the wire model's bound,
+`ProtoMsg.wireLen`). -/
 abbrev leaseClient.LeaseGrant.spec : Prop :=
   ∀ (lc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
@@ -33,7 +35,8 @@ abbrev leaseClient.LeaseGrant.spec : Prop :=
     (inp : Loc) (req : etcdserverpb.LeaseGrantRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
-      □ ▷ Spec (req.TTL', req.ID') Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      □ ▷ Spec (req.TTL', req.ID') Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

@@ -32,10 +32,10 @@ abbrev lessor.resetRecv.spec : Prop :=
       leaseKAStreamOk addr }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"resetRecv")) (Val #()))
   {{ (st err : GoInterface), RET (PairV #st #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Dn : Nat → (w64 × w64) → IProp GF)
-          (cd : context.ContextDesc (IProp GF)),
-        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse
-          (fun _ _ => iprop(True)) Dn cd ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
+          (Dn : Nat → (w64 × w64) → IProp GF) (cd : context.ContextDesc (IProp GF)),
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd ∗
+        kaUpZero Up ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
       (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 

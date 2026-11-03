@@ -32,6 +32,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.clusterImageOk_restModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
@@ -232,11 +233,12 @@ theorem kvModel_len_of_rok (γk : KVNames) (A : List EntryModel) (R : mvcc.Log)
 
 /-- **The facts `specSnap` takes of the image** `D` at the index `i` for the receiver's names `γr`
 and real backend `d`, the applied raft log `A` and KV state `x`, the image's committed log `A'`
-(after the fresh start's index `0`) and the restored log's tail `R`, the members `memI` the
-membership buckets decode to (see the file header). Each field is the premise of `specSnap` of the
-same name. -/
+(after the fresh start's index `0`) and the restored log's tail `R`, the image's compaction records
+`r`, the members `memI` the membership buckets decode to (see the file header). Each field is the
+premise of `specSnap` of the same name (`crev`: #7-cmp's, `specSnap`'s `hcc` by `crev_hcc`, and the
+apply thread's `kvApplied` after the restore, whose compaction revision is `r.crev`). -/
 structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (cl : Loc)
-    (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log)
+    (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log) (r : mvcc.CmpRecs)
     (memI : GMap w64 apply.MemberM) : Prop where
   /-- the image's log extends the applied one -/
   pre : A <+: A'
@@ -245,7 +247,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   /-- the restored log is the KV model of the image's log -/
   log : [[], []] ++ R = kvModel γr.kv A'
   hpre : x.log <+: [[], []] ++ R
-  hkI : mvcc.keyImage ([[], []] ++ R) D
+  hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D
+  /-- the records at the image's committed log's compaction revision -/
+  crev : r.crev = crevOf γr.kv A'
   /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
   `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
@@ -296,7 +300,7 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
-  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2
+  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
@@ -313,14 +317,101 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     (fun m hm _ => Hcc m hm)
   exact fun m hm => this m hm (hnv m hm)
 
+/-- **The network's image certificate at a member's own names** (#7-cmp's Freeze, the review's
+member-names law): the certificate leaves the mode free (`dbImage_of_srvImage_mode`); the member's
+KV invariant moves it to its own (`imageAt_kv_congr`): off, its committed log has no compaction
+(`crevOf_offM`). -/
+theorem dbImage_of_srvImage (γ : SrvRaft) (γk : KVNames) (i : w64) (D : backend.Data)
+    (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
+    (h2 : γk.log0 = [[], []]) :
+    ⊢ kvInv (GF := GF) ⟨γ, [], W64 0⟩ γk -∗ srvRaftLogInv ⟨γ, [], W64 0⟩ -∗ srvImage γ i D ={⊤}=∗
+      dbImage ⟨γ, [], W64 0⟩ γk i D := by
+  iintro #HkI #HrI #Himg
+  ihave ⟨%b, #Hdb⟩ := (dbImage_of_srvImage_mode (γ := γ) (γk := γk) (i := i) (D := D) h0 h1 h2)
+    $$ Himg
+  iunfold dbImage at Hdb
+  icases Hdb with ⟨%A, #HA, %hA, #Hrc⟩
+  imod crevOf_offM ⟨γ, [], W64 0⟩ γk A $$ HkI HrI HA with %Hoff
+  have hk : kvModel { γk with cmp := b } A = kvModel γk A := rfl
+  iunfold dbImage
+  iexists A
+  iframe HA
+  rw [← hk]
+  iframe Hrc
+  ipureintro
+  exact ⟨hA.1, imageAt_kv_congr (γk := { γk with cmp := b }) rfl rfl rfl
+    (fun _ h => by show crevOf γk A = -1; exact Hoff h) hA.2⟩
+
+/-- **The installer's receipt and permits from an image** (#7-cmp's Freeze; `specSnap`'s pre): the
+image's receipt (`dbImage`'s) is `restoreRcptM`'s; the permits are the receiver's store's
+(`crevPermIs`) of the committed log's compaction revision (`crevOf_permit`), the finished record
+below it (`CmpRecs.finRev_le_crev`, `recsPos`). Not carried in the certificate: a permit names the
+receiver's KV ghost state. -/
+theorem image_restoreRes (E : apply.AEnv GF) (γr : ReadNames) (d : mvcc.KBReal)
+    (A' : List EntryModel) (r : mvcc.CmpRecs) (D : backend.Data)
+    (hkI : mvcc.keyImageM d.cm (kvModel γr.kv A') r D) (hr : r.crev = crevOf γr.kv A') :
+    ⊢ kvInv (GF := GF) γr.raft γr.kv -∗ srvRaftLogInv γr.raft -∗
+      mvcc.crevPermIs E.γ (kvCmpPermit γr.kv) -∗ srvRLogLb γr.raft A' -∗
+      ⧖ (mvcc.logCh (kvModel γr.kv A')) ={⊤}=∗
+      mvcc.restoreRcptM d (kvModel γr.kv A') ∗ mvcc.crevPermAt E.γ r.finRev ∗
+        mvcc.crevPermAt E.γ r.crev := by
+  iintro #HkI #HrI #Hcp #HA' #Hrc
+  ihave #Hrcpt : mvcc.restoreRcptM (GF := GF) d (kvModel γr.kv A') $$ []
+  · unfold mvcc.restoreRcptM
+    split
+    · iexact Hrc
+    · itrivial
+  cases hdm : d.cm with
+  | false =>
+    rw [hdm] at hkI
+    obtain ⟨-, rfl⟩ := (mvcc.keyImageM_off _ _ D).1 hkI
+    imodintro
+    iframe Hrcpt
+    rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
+    isplitr <;> iapply mvcc.crevPermAt_none
+  | true =>
+    rw [hdm] at hkI
+    have hpos := mvcc.keyImageM_recsPos _ _ _ hkI
+    imod crevOf_permit γr.raft γr.kv A' $$ HkI HrI HA' with (%Hn | #Hp)
+    · have he := mvcc.CmpRecs.empty_of_crev r hpos (by rw [hr]; exact Hn)
+      subst he
+      imodintro
+      iframe Hrcpt
+      rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
+      isplitr <;> iapply mvcc.crevPermAt_none
+    · imodintro
+      iframe Hrcpt
+      ihave #Hpc : mvcc.crevPermAt (GF := GF) E.γ r.crev $$ []
+      · rw [hr]
+        iapply mvcc.crevPermAt_of E.γ (kvCmpPermit γr.kv) (crevOf γr.kv A')
+        iframe Hcp
+        imodintro; iexact Hp
+      iframe Hpc
+      have hf : r.finRev = -1 ∨ 1 ≤ r.finRev := by
+        have hp1 : ∀ x, r.fin = some x → 1 ≤ sint.Z x := hpos.1
+        unfold mvcc.CmpRecs.finRev
+        cases hfx : r.fin with
+        | none => left; rfl
+        | some y => right; have := hp1 y hfx; simpa using this
+      rcases hf with hf | hf
+      · rw [hf]; iapply mvcc.crevPermAt_none
+      · iapply mvcc.crevPermAt_of E.γ (kvCmpPermit γr.kv) r.finRev
+        iframe Hcp
+        imodintro
+        iapply (kvCmpPermit_le γr.kv r.finRev (crevOf γr.kv A') (by omega)
+          (by rw [← hr]; exact mvcc.CmpRecs.finRev_le_crev r))
+        iexact Hp
+
 /-- **The image facts, from the image's certificate** (see the file header): for the receiver at
 the fresh cluster's start (`γr.raft = ⟨γ, [], 0⟩`, the start values of `NewServer.spec`), its
 applied raft log `A` at the applied index `ai` below the snapshot's `i`, at least the boot log's
 length, and its rest resource on the real backend `d` of the cluster `cl` (`hRO`): a committed
-`A'` with `SnapImageFacts` at `memI` the model's members, `kvApplied` and `srvRest` given back. -/
+`A'` with `SnapImageFacts` at `memI` the model's members and the image's records `r`, `kvApplied`
+and `srvRest` given back; (#7-cmp's Freeze, the glue folded in) with the new backend `d` of the store
+(`hkb`), the restored log's receipt and the two permits of `specSnap`'s pre (`image_restoreRes`). -/
 theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
     (D : backend.Data) (d : mvcc.KBReal) (A : List EntryModel) (x : apply.ApplyKV) (cl : Loc)
-    (H : IProp GF)
+    (H : IProp GF) (hkb : E.γ.kb = some d)
     (hraft : γr.raft = ⟨γ, [], W64 0⟩) (hc0 : γr.kv.c0 = W64 0)
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
@@ -329,19 +420,29 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
-      ∃ (A' : List EntryModel) (R : mvcc.Log), srvRLogLb γr.raft A' ∗
-        ⌜SnapImageFacts γr d D cl i A A' x R
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ := by
+      ∃ (A' : List EntryModel) (R : mvcc.Log) (r : mvcc.CmpRecs), srvRLogLb γr.raft A' ∗
+        ⌜SnapImageFacts γr d D cl i A A' x R r
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ ∗
+        mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗
+        mvcc.crevPermAt E.γ r.crev := by
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, %Hcm, -, #Hcp⟩
+  have hdcm : d.cm = γr.kv.cmp := by
+    have h2 := Hcm.2; rw [hkb] at h2; simp only [mvcc.kbCmpM] at h2
+    rw [Hcm.1]; cases hd : d.cm <;> cases he : E.cmp <;> simp_all
+  ihave #HkI0 : kvInv (GF := GF) ⟨γ, [], W64 0⟩ γr.kv $$ []
+  · rw [← hraft]; iexact HkI
+  ihave #HrI0 : srvRaftLogInv (GF := GF) ⟨γ, [], W64 0⟩ $$ []
+  · rw [← hraft]; iexact HrI
+  imod (dbImage_of_srvImage γ γr.kv i D hc0 hch hlog0) $$ HkI0 HrI0 Himg with #Hdb0
   ihave #Hdb : dbImage γr.raft γr.kv i D $$ []
-  · rw [hraft]; iapply (dbImage_of_srvImage hc0 hch hlog0); iexact Himg
+  · rw [hraft]; iexact Hdb0
   iunfold dbImage at Hdb
-  icases Hdb with ⟨%A', #HA', %hA'⟩
+  icases Hdb with ⟨%A', #HA', %hA', #Hrcp⟩
   obtain ⟨hlen', himA⟩ := hA'
   iunfold kvApplied at Hka
   icases Hka with ⟨Hal, %Hch'⟩
@@ -364,7 +465,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hmem⟩
+  icases Hro with ⟨Hrb, Hrn, Hmem, %Hmi⟩
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
@@ -377,24 +478,29 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
+  have hsplit := kvModel_split γr.kv A' hlog0
+  obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrest, hwf⟩ := himA
+  rw [← hdcm] at hkI
+  imod image_restoreRes E γr d A' r D hkI hr $$ HkI HrI Hcp HA' Hrcp with ⟨#Hrcpt, #Hpf, #Hpc⟩
   imodintro
   isplitl [Hhi]
   · iunfold kvApplied
     iunfold kvAppliedL
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
-  isplitl [Hrb Hmem HH]
+  isplitl [Hrb Hrn Hmem HH]
   · iunfold srvRest
     rw [hRO]
     iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
-    iframe Hrb Hmem
-  iexists A', (kvModel γr.kv A').drop 2
+    iframe Hrb Hrn Hmem
+    ipureintro; exact Hmi
+  iexists A', (kvModel γr.kv A').drop 2, r
   iframe HA'
+  rw [hsplit]
+  iframe Hrcpt Hpf Hpc
   ipureintro
-  have hsplit := kvModel_split γr.kv A' hlog0
-  obtain ⟨hkI, hci, htm, hrest, hwf⟩ := himA
   have hb := image_bootBuckets d hrest
   have hrok : mvcc.restoreLogOk ((kvModel γr.kv A').drop 2) := by
     unfold kvModel at hwf ⊢
@@ -406,6 +512,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     log := hsplit
     hpre := by rw [Hl, hsplit]; exact kvRaftOf_prefix _ _ _ _ _ hAA'
     hkI := by rw [hsplit]; exact hkI
+    crev := hr
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
     hRok := hrok
     hlen := kvModel_len_of_rok γr.kv A' _ hsplit hrok
@@ -428,7 +535,7 @@ theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List Entr
       kvAppliedL γr.raft γr.kv A' (kvModel γr.kv A') := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #HcI, -, %Hcok⟩
+  icases Hinvs with ⟨-, #HcI, -, %Hcok, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_cert_jump γr.raft γr.kv ⊤ (fun _ _ => CoPset.mem_full) A A' x.log hA hlen
@@ -437,7 +544,7 @@ theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List Entr
   icases Ha with ⟨#HB, Hhi, #Hc, %Hl⟩
   imodintro
   isplitr
-  · ipureintro; exact Hch
+  · ipureintro; exact Hch.1
   isplitr
   · iapply kvCert_certOk γr.kv E.γ Hcok $$ Hc
   iunfold kvAppliedL
@@ -448,13 +555,105 @@ theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List Entr
 the start's: after `applySnapshot`, `NewUberApplier`'s chain with auth off and no alarm,
 `alarmChain false false false`, which `γk.ch0` is). -/
 theorem kvApplied_of_jump (γ : ServerRaftNames) (γk : KVNames) (A' : List EntryModel)
-    (x' : apply.ApplyKV) (hlog : x'.log = kvModel γk A') (hch : x'.chain = γk.ch0) :
+    (x' : apply.ApplyKV) (hlog : x'.log = kvModel γk A') (hch : x'.chain = γk.ch0)
+    (hcr : x'.crev = crevOf γk A') :
     kvAppliedL (GF := GF) γ γk A' (kvModel γk A') ⊢ kvApplied γ γk A' x' := by
   iintro H
   iunfold kvApplied
   rw [hlog]
   iframe H
-  ipureintro; exact hch
+  ipureintro; exact ⟨hch, hcr⟩
+
+/-- (2026-11-01, J8a-5) **`ep.confState` after a snapshot reports the voters**: the snapshot's
+conf state (`srvSnapApplied`'s `csOptA`), certified (`rnApSnap`'s `snapshotCert`, valid by
+`snapshotCert_valid`), is the membership after its committed prefix, the voters' simple one at every
+index (`srv_confAt_simple`); not `nil`, since the voters hold the local member `lid`. -/
+theorem epCsVoters_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (cs : Loc) (lid : w64)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hlid : lid ∈ γ.raft.cfg) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      csOptA cs DFrac.discard sv.Metadata'.ConfState' ={⊤}=∗ epCsVoters γ cs := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #Hcs
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  have hci : confStateIs sv.Metadata'.ConfState' (Membership.simple γ.raft.cfg) := Hf.2.2.2.1
+  imodintro
+  iunfold epCsVoters
+  iunfold csOptA at Hcs
+  icases Hcs with (%Hn | #H | #H)
+  · exfalso
+    have hv := hci.1
+    rw [Hn.2] at hv
+    exact List.not_mem_nil (hv.mem_iff.2 ((GMap.elem_of_elements _ lid).2 hlid))
+  · iexists sv.Metadata'.ConfState'
+    iframe H
+    ipureintro; exact hci
+  · iexists sv.Metadata'.ConfState'
+    isplitl
+    · iunfold csPts at H
+      icases H with ⟨%a1, %a2, %a3, %a4, %pa, H⟩
+      iNamed H
+      iunfold csPts
+      iexists a1, a2, a3, a4, pa
+      simp only [named]
+      iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+      ipureintro; exact ⟨Hnn, fun h => by cases h⟩
+    ipureintro; exact hci
+
+/-- (2026-11-01, J8a-5) **The image's log ends at the snapshot's term**: the certified snapshot's
+committed prefix (`snapshotValid`'s, of length its index, its last entry of its term) and the
+image's committed log `A'` of the same length (from an empty prefix) agree. -/
+theorem lastTermIs_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (A' : List EntryModel)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hpre : γ.pre = []) (hlen : uint.Z sv.Metadata'.Index' = A'.length) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      srvRLogLb γ A' -∗ ⌜lastTermIs A' sv.Metadata'.Term'⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #HA
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, -, -, %Hf⟩
+  iunfold srvRLogLb at HA
+  icases HA with ⟨#HA, -⟩
+  icases isCommittedLogLb_agree γ.raft.cl l (srvLE γ A') $$ [Hlb HA] with %H
+  · iframe Hlb HA
+  ipureintro
+  have hl : (srvLE γ A').length = l.length := by
+    rw [srvLE_length, hpre, Hf.1]; simp only [List.length_nil, Nat.zero_add]
+    have := uint_nat_eq sv.Metadata'.Index'; omega
+  have heq : srvLE γ A' = l := by
+    rcases H with h | h
+    · exact (h.eq_of_length hl.symm).symm
+    · exact h.eq_of_length hl
+  have ht := Hf.2.2.1
+  rw [← heq] at ht
+  unfold srvLE at ht
+  rw [hpre, List.nil_append, List.getLast?_map, Option.map_map] at ht
+  unfold lastTermIs
+  right
+  exact ht
 
 end lemmas
 

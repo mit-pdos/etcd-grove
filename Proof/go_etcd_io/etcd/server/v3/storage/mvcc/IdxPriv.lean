@@ -234,12 +234,12 @@ theorem idxFresh_split (γ : IdxNames) :
     split at hr
     · simp only [Option.some.injEq] at hr; subst hr; simp at hi
     · simp at hr
-  imod receipt_zero (GF := GF) with Hr0
+  imod preceipt_zero (GF := GF) with #Hr0
   imodintro
   iframe Hnauth Hcmp Hllb Hlother
   isplitl []
   · iunfold crevLb; rw [crevN_neg]; iexact Hclb
-  isplitl [Hhauth Hlauth Hr0]
+  isplitl [Hhauth Hlauth]
   · iunfold idxWriter
     rw [hshape, hevs]
     iframe Hhauth Hlauth

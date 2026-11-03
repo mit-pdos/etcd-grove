@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item mstore mcfg state)
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -64,7 +64,9 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
       (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x") slice.nil
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
         (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x"))) σ) ∗
-        ⌜σ' = σ⌝)))
+        ⌜σ' = σ⌝))
+      (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
+        (by simp [storeKeyL]; omega) (by simp [encodeWith]; omega) (by decide)))
     $$ [Hau] as %resp %err Hout
   · simp only [List.map_cons, List.map_nil]
     iframe #

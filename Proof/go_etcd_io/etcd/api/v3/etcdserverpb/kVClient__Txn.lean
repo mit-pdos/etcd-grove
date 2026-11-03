@@ -30,7 +30,7 @@ theorem kVClient.Txn.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Txn.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx cd inp req t opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok⟩
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -50,6 +50,7 @@ theorem kVClient.Txn.wp_proof
     iexists req
     iframe
     iframe #
+    ipureintro; exact Hsz.1
   ihave Hblank : pbTxnResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbTxnResponse]
     iexact «$r0»
@@ -61,6 +62,7 @@ theorem kVClient.Txn.wp_proof
   wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', Hin', -⟩
   icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr

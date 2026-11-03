@@ -34,7 +34,7 @@ theorem mvcc.readView.Range.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.readView.Range.spec (GF := GF) (hG := hG) := by
-  intro rv s γ ctx cd key endk k e ro clb
+  intro rv s γ ctx cd todo key endk k e ro clb
   wp_start as ⟨#Hrv, Hrd, #Hclb, #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.isReadView at Hrv
   icases Hrv with ⟨%kv, Hrv⟩
@@ -52,7 +52,7 @@ theorem mvcc.readView.Range.wp_proof
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t 0 [] true clb iprop(True) none) $$ [$Hkvo $Hs $Hrd $Hnone $Hc0 $Hclb $Htrc]
-    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, #Hrok, %Hp, -, -⟩
+    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, #HpermC, #Hrok, %Hp, -, -⟩
   · isplitr
     · iintro !>; itrivial
     isplitr
@@ -62,10 +62,8 @@ theorem mvcc.readView.Range.wp_proof
   -- `tr.Range(...)`: `metricsTxnWrite.Range`
   ihave Htx : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
-  · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
-  wp_apply (hRange t mw s γ (.read log rev) ctx cd false key endk k e ro crev iprop(True))
-    $$ [$Htx $Hctx' $Hkey $Hend] as %r %err ⟨-, Htx, Hout⟩
+  wp_apply (hRange t mw s γ (.read log rev) ctx cd todo key endk k e ro crev iprop(True))
+    $$ [$Htx $Hctx $Hkey $Hend] as %r %err ⟨%Hnn, Htx, Hout⟩
   (try wp_auto)
   simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
   iunfold mvcc.isTxnRead at Htx
@@ -88,9 +86,11 @@ theorem mvcc.readView.Range.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Hrd
+  isplitr
+  · ipureintro; exact Hnn
   iexists log, rev, crev
   withPhys_simp
-  iframe HcertT Hout Hlbc
+  iframe HcertT Hout Hlbc HpermC
   ipureintro
   exact ⟨HneT, HrevT, Hp.2.2, HcrevT.1⟩
 

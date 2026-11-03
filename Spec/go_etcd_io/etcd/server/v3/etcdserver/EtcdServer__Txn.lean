@@ -38,7 +38,10 @@ update is over the whole state (`txnPermit`: plain, no range end `[0]`, the clie
 (linkv-txn stage A, as `Put`) fired at most once (`kvOpAu1`), a success giving `Q`. Unit W-M3: a read-only
 `t` takes a read deposit as `Range` (`kvDep γr.kv Qr`: a client's read update, or nothing), a
 linearizable success reading the KV model of a committed raft log `L` at which the deposit gave
-`□ Qr L` (`txnReadOk`), the state of the log written for a writing `t` (`txnAppliedOk`). -/
+`□ Qr L` (`txnReadOk`), the state of the log written for a writing `t` (`txnAppliedOk`).
+(2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`) A writing `t` within protobuf's
+recursion limit (`apply.txnDepthOk`: its `InternalRaftRequest` must decode at apply; the gRPC
+handler's check at a bounded `--max-txn-ops` gives it, `v3rpc.txnCheck_msgDepth`). -/
 abbrev EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
@@ -48,7 +51,8 @@ abbrev EtcdServer.Txn.spec : Prop :=
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
       srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗
+      ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       (if txn.txnReadonly t then kvDep γr.kv Qr else txnPermit ρ.kv t Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
@@ -73,7 +77,8 @@ there and its result `Q` holds at the log the entry met (`txnAppliedOk`); a refu
 (`txnErrOk`). A read-only transaction in the mode `on` (the read path, `doSerialize`'s check at
 the auth store) is not covered here. (E3zb, 2026-10-28) A success names the grant at the committed
 log `L` before the entry (`grantedAt`); a success and an applied error, the header the server
-stamped, whose user is bound to the context (`hdrBoundM`; `txnErrOkOn`). -/
+stamped, whose user is bound to the context (`hdrBoundM`; `txnErrOkOn`). (2026-10-31) `t` within
+protobuf's recursion limit (`apply.txnDepthOk`, as `spec`'s writing case). -/
 abbrev EtcdServer.Txn.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel) (Q : KVState → IProp GF)
@@ -82,8 +87,8 @@ abbrev EtcdServer.Txn.specOn : Prop :=
       isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-      txn.txnRequestIs r t ∗ ⌜txn.txnReadonly t = false⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      txnPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) t Q }}
+      txn.txnRequestIs r t ∗ ⌜txn.txnReadonly t = false ∧ apply.txnDepthOk t⌝ ∗
+      mvcc.idxCert E.γ.idx F ∗ txnPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) t Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

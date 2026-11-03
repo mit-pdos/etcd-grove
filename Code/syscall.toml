@@ -1,0 +1,9 @@
+# Project bboltfs's `syscall` (etc/goose.py; Perennial does not translate it): what minibolt
+# (examples/bboltfs) uses. `Errno`, the type of the errors the models return, and the constants
+# minibolt names.
+translate = ["!*", "Errno", "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN", "PROT_READ", "MAP_SHARED",
+  "MADV_RANDOM", "EWOULDBLOCK", "ENOSYS"]
+imports = ["!*"]
+# The functions minibolt calls, modeled by the Linux file extension osFsExt
+# (TrustedCode/syscall.lean, GooseLang/Ext/OsFs/Impl.lean).
+trusted = ["Fdatasync", "Flock"]

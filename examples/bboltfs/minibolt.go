@@ -1,0 +1,441 @@
+package bboltfs
+
+import (
+	"errors"
+	"io"
+	"os"
+	"sync"
+	"syscall"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
+)
+
+// minibolt is a two-meta-page store in bbolt's style, cut to one value: each
+// commit appends a data page holding the value and points the meta at it.
+//   - Open: flock, Stat, init if the file has no complete pair of metas, mmap,
+//     validate both metas (FNV-64a), and read through the valid one with the
+//     highest txid.
+//   - Commit: remap if the new page is past the mapping, grow (Truncate and
+//     Sync), write the data page and fdatasync, then write the meta to slot
+//     txid % 2 and fdatasync.
+//   - Get: a read transaction, through the mapping.
+//   - Snapshot: tx.go's WriteTo, a read transaction that copies the file with
+//     ReadAt while the writer may be writing it.
+//
+// It differs from bbolt in one place, init: bbolt writes the metas and the
+// pages they point at with one WriteAt and one fdatasync, so a crash in between
+// can leave a valid meta over a torn root page (README.md). minibolt syncs the
+// pages first and the metas second, and redoes init when neither meta is valid,
+// which (under the premise of README.md) only happens before init has synced
+// the metas.
+
+// DB is minibolt's database, with bbolt's three locks.
+type DB struct {
+	path    string
+	file    *os.File
+	dataref []byte // the mapping
+	datasz  int
+	filesz  int
+	meta0   *Meta
+	meta1   *Meta
+	// failed: a commit failed. Its writes may be in the page cache (and so in
+	// the mapping) without being durable, or durable in part, so the handle
+	// refuses every later transaction (guarded by metalock).
+	failed bool
+
+	rwlock   sync.Mutex   // one writer at a time
+	metalock sync.Mutex   // the meta pages
+	mmaplock sync.RWMutex // the mapping, during remapping
+}
+
+// Open opens or creates the database at path.
+func Open(path string) (*DB, error) {
+	db := &DB{}
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return nil, err
+	}
+	db.file = f
+	db.path = f.Name()
+	if err := flock(f, true); err != nil {
+		_ = f.Close()
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		db.close()
+		return nil, err
+	}
+	db.filesz = int(info.Size())
+	// db.go's getPageSize, read before the file is mapped: is there a valid meta, and of
+	// which page size
+	valid := false
+	if db.filesz >= 4*pageSize {
+		ps, ok, err := db.readPageSize()
+		if err != nil {
+			db.close()
+			return nil, err
+		}
+		if ok && ps != pageSize {
+			db.close()
+			return nil, errPageSize
+		}
+		valid = ok
+	}
+	// a new file, or neither meta valid (a crash during init): initialize, before mapping, so
+	// that init never writes mapped pages
+	if !valid {
+		if err := db.init(); err != nil {
+			db.close()
+			return nil, err
+		}
+	}
+	if err := db.mmap(0); err != nil {
+		db.close()
+		return nil, err
+	}
+	return db, nil
+}
+
+// errPageSize is Open's answer for a database of another page size.
+var errPageSize = errors.New("minibolt: the database has another page size")
+
+// readPageSize is db.go's getPageSize: the page size in the first meta that
+// validates, read with ReadAt (the file has at least 4 pages). A failed read is an
+// error, never "no valid meta": Open would initialize over the database.
+func (db *DB) readPageSize() (int, bool, error) {
+	buf := make([]byte, pageSize)
+	for i := 0; i < 2; i++ {
+		if _, err := db.file.ReadAt(buf, int64(i*pageSize)); err != nil {
+			return 0, false, err
+		}
+		if m := pageAt(buf, 0).meta(); m.validate() {
+			return int(m.pageSize), true, nil
+		}
+	}
+	return 0, false, nil
+}
+
+// init writes db.go's four initial pages: all four with the meta pages zero, synced,
+// then meta 1, synced, then meta 0, synced.
+func (db *DB) init() error {
+	buf := make([]byte, 4*pageSize)
+	initPages(buf, pageSize)
+	// first all four pages, with the meta pages zero: whatever a crash left in the meta slots
+	// (an interrupted init's arbitrary bytes) is overwritten and synced before any meta is
+	// written, so no leftover bytes can complete into a valid meta
+	first := make([]byte, 4*pageSize)
+	copy(first[2*pageSize:], buf[2*pageSize:])
+	if _, err := db.file.WriteAt(first, 0); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	// then meta 1 (txid 1), synced, before meta 0 (txid 0): a crash that keeps meta 0 has kept
+	// meta 1, so txid 0 is never the current meta (a torn write of both could keep meta 0 alone,
+	// and the commit after it would give txid 1 a value, which the boot check refuses)
+	if _, err := db.file.WriteAt(buf[pageSize:2*pageSize], pageSize); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	if _, err := db.file.WriteAt(buf[:pageSize], 0); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	if db.filesz < 4*pageSize {
+		db.filesz = 4 * pageSize
+	}
+	return nil
+}
+
+// mmapSize is db.mmapSize below 1 GiB: the smallest power of two from 32 KiB
+// up that holds size.
+func mmapSize(size int) int {
+	sz := minMmapSize
+	for sz < size {
+		sz *= 2
+	}
+	return sz
+}
+
+// mmap is db.go's mmap: unmap, then map at least minsz and the file.
+func (db *DB) mmap(minsz int) error {
+	db.mmaplock.Lock()
+	defer db.mmaplock.Unlock()
+	size := db.filesz
+	if size < minsz {
+		size = minsz
+	}
+	size = mmapSize(size)
+	if err := db.munmap(); err != nil {
+		return err
+	}
+	b, err := unix.Mmap(int(db.file.Fd()), 0, size, syscall.PROT_READ, syscall.MAP_SHARED)
+	if err != nil {
+		return err
+	}
+	err = unix.Madvise(b, syscall.MADV_RANDOM)
+	if err != nil && err != syscall.ENOSYS {
+		_ = unix.Munmap(b)
+		return err
+	}
+	db.dataref = b
+	db.datasz = size
+	db.meta0 = pageAt(b, 0).meta()
+	db.meta1 = pageAt(b, pageSize).meta()
+	return nil
+}
+
+// munmap is bolt_unix.go's munmap with db.invalidate.
+func (db *DB) munmap() error {
+	if db.dataref == nil {
+		return nil
+	}
+	err := unix.Munmap(db.dataref)
+	db.dataref = nil
+	db.datasz = 0
+	db.meta0 = nil
+	db.meta1 = nil
+	return err
+}
+
+// meta is db.go's meta, which panics when neither meta is valid. Its caller
+// holds metalock.
+func (db *DB) meta() *Meta {
+	m := pickMeta(db.meta0, db.meta1)
+	if m == nil {
+		panic("minibolt: invalid meta pages")
+	}
+	return m
+}
+
+// errFailed is what a handle answers after a failed commit.
+var errFailed = errors.New("minibolt: an earlier commit failed")
+
+// errMapTooLarge is a commit's answer when the database would grow past maxMapSize (bbolt's
+// "mmap too large").
+var errMapTooLarge = errors.New("minibolt: the database would exceed its maximum size")
+
+// Get is a read transaction (beginTx, then the root page through the mapping):
+// the current txid, and the value if the root page holds one.
+func (db *DB) Get() (uint64, uint64, bool, error) {
+	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
+	db.mmaplock.RLock()
+	if db.meta0 == nil {
+		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// and the commit that remapped is failing; refuse, as after a failed commit
+		db.mmaplock.RUnlock()
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
+	m := *db.meta()
+	db.metalock.Unlock()
+	off := int(m.root.root) * pageSize
+	has := pageAt(db.dataref, off).count == 1
+	var v uint64
+	if has {
+		v = *(*uint64)(unsafe.Pointer(&db.dataref[off+int(pageHeaderSize)]))
+	}
+	db.mmaplock.RUnlock()
+	return m.txid, v, has, nil
+}
+
+// Snapshot is tx.go's WriteTo (WriteFlag 0), cut to minibolt: a read
+// transaction that copies the file with ReadAt, up to and including the page
+// the next commit writes, so that the copy races the writer's WriteAt and
+// Truncate there and its meta WriteAt. It returns what the copy's root page
+// holds, as Get does. Its assertion: the copy reaches every page of the
+// transaction.
+func (db *DB) Snapshot() (uint64, uint64, bool, error) {
+	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
+	db.mmaplock.RLock()
+	if db.meta0 == nil {
+		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// and the commit that remapped is failing; refuse, as after a failed commit
+		db.mmaplock.RUnlock()
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
+	m := *db.meta()
+	db.metalock.Unlock()
+	defer db.mmaplock.RUnlock()
+	out := make([]byte, int(m.pgid+1)*pageSize)
+	n, err := db.file.ReadAt(out, 0)
+	if err != nil && err != io.EOF {
+		return 0, 0, false, err
+	}
+	if n < int(m.pgid)*pageSize {
+		panic("minibolt: a snapshot is shorter than its transaction")
+	}
+	off := int(m.root.root) * pageSize
+	has := pageAt(out, off).count == 1
+	var v uint64
+	if has {
+		v = *(*uint64)(unsafe.Pointer(&out[off+int(pageHeaderSize)]))
+	}
+	return m.txid, v, has, nil
+}
+
+// Commit is a write transaction storing v: a new root page at the high water
+// mark, then the meta. An error means the outcome is unknown: after a failed
+// fdatasync of the meta, the new meta is in the page cache, and a crash may
+// keep it or not (its bytes are lost, plan D2). bbolt goes on serving it; minibolt
+// marks the handle failed instead, so that it never reads or builds on a
+// commit that may not be durable.
+func (db *DB) Commit(v uint64) error {
+	db.rwlock.Lock()
+	defer db.rwlock.Unlock()
+	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return errFailed
+	}
+	m := *db.meta()
+	db.metalock.Unlock()
+	if err := db.commit(m, v); err != nil {
+		db.metalock.Lock()
+		db.failed = true
+		db.metalock.Unlock()
+		return err
+	}
+	return nil
+}
+
+// commit writes the transaction after m (a copy of the current meta).
+func (db *DB) commit(m Meta, v uint64) error {
+	m.txid++
+	pg := m.pgid
+	m.pgid = pg + 1
+	m.root.root = pg
+
+	// db.allocate: remap if the high water mark passes the mapping; refuse to grow past
+	// maxMapSize, as db.mmapSize does
+	minsz := int(m.pgid+1) * pageSize
+	if minsz > maxMapSize {
+		return errMapTooLarge
+	}
+	if minsz >= db.datasz {
+		if err := db.mmap(minsz); err != nil {
+			return err
+		}
+	}
+	// db.grow: Truncate and Sync, so that the size is durable
+	if minsz > db.filesz {
+		sz := db.datasz
+		if err := db.file.Truncate(int64(sz)); err != nil {
+			return err
+		}
+		if err := db.file.Sync(); err != nil {
+			return err
+		}
+		db.filesz = sz
+	}
+	// tx.write
+	buf := make([]byte, pageSize)
+	p := pageAt(buf, 0)
+	p.id = pg
+	p.flags = leafPageFlag
+	p.count = 1
+	*(*uint64)(unsafe.Pointer(&buf[int(pageHeaderSize)])) = v
+	if _, err := db.file.WriteAt(buf, int64(pg)*pageSize); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	// tx.writeMeta
+	mbuf := make([]byte, pageSize)
+	mp := pageAt(mbuf, 0)
+	m.write(mp)
+	db.metalock.Lock()
+	if _, err := db.file.WriteAt(mbuf, int64(mp.id)*pageSize); err != nil {
+		// part of the meta may be in the page cache, and so in the mapping: fail the handle
+		// before a reader can see it, so that no reader needs the checksum to reject it
+		db.failed = true
+		db.metalock.Unlock()
+		return err
+	}
+	// the meta's fdatasync under metalock too (bbolt syncs after unlocking): the proof then holds
+	// the meta pages' bytes whole across it, and so knows them durable once it succeeds
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		db.failed = true
+		db.metalock.Unlock()
+		return err
+	}
+	db.metalock.Unlock()
+	return nil
+}
+
+// Close is db.go's Close: all three locks, unmap, funlock, close; it returns the first error.
+func (db *DB) Close() error {
+	db.rwlock.Lock()
+	defer db.rwlock.Unlock()
+	db.metalock.Lock()
+	defer db.metalock.Unlock()
+	db.mmaplock.Lock()
+	defer db.mmaplock.Unlock()
+	return db.close()
+}
+
+// close is db.go's close: it reports a failed munmap (a mapping left behind) or close, as
+// bbolt does.
+func (db *DB) close() error {
+	err := db.munmap()
+	_ = syscall.Flock(int(db.file.Fd()), syscall.LOCK_UN)
+	if cerr := db.file.Close(); err == nil {
+		err = cerr
+	}
+	return err
+}
+
+// BootMinibolt is minibolt's boot program: it runs when the node starts and
+// again after every crash. The value of the committed transaction txid is txid
+// (init's two transactions have no value). Each boot checks that, commits the
+// next transaction, and checks that it is visible. Its panics must never fire
+// under the model's crash relation, however often the node crashes, given the
+// premise of README.md. On an error it stops.
+func BootMinibolt(dir string) {
+	db, err := Open(dir + "/db")
+	if err != nil {
+		return
+	}
+	txid, v, has, err := db.Get()
+	if err != nil {
+		db.Close()
+		return
+	}
+	if txid <= 1 {
+		if has {
+			panic("minibolt: init's root page holds a value")
+		}
+	} else if !has || v != txid {
+		panic("minibolt: the current meta's root page does not hold its value")
+	}
+	if err := db.Commit(txid + 1); err != nil {
+		db.Close()
+		return
+	}
+	txid2, v2, has2, err := db.Get()
+	if err != nil {
+		db.Close()
+		return
+	}
+	if txid2 != txid+1 || !has2 || v2 != txid2 {
+		panic("minibolt: a commit is not visible")
+	}
+	db.Close()
+}

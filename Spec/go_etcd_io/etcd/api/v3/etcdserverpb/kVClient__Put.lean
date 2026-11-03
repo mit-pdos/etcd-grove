@@ -27,7 +27,9 @@ for a metadata-indexed spec `Spec` the server registered for the method (since 2
 plan's E3zc; a plain one is `GrpcSpec.md`) and the caller's `Φ` at every metadata an attempt may
 deliver (`attemptPre`): `Invoke` of
 `"/etcdserverpb.KV/Put"` with `grpc.StaticMethod()` before the options, into a new
-`*PutResponse`: the call's answer (`putCallOut`, the run's `Φ`); the request comes back. -/
+`*PutResponse`: the call's answer (`putCallOut`, the run's `Φ`); the request comes back. The
+request has no unknown fields (a struct literal) and its encoding is below `grpcMsgMax` (2026-10-30:
+grpc marshals before it checks a size, `grpcInvokerOk`). -/
 abbrev kVClient.Put.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse)
     (Φ : PutRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -36,7 +38,8 @@ abbrev kVClient.Put.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Spec ∗
       reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
-      opts ↦*□ vs ∗ callOptsOk vs }}
+      opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil ∧ (pbPutRequest (GF := GF)).wireLen (putReqOp req k v) < grpcMsgMax⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

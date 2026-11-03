@@ -466,7 +466,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     exact absurd Hadmk (by simp [apply.adminKindOk, hk])
   have zTxn : rq.txn = none := nTx.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Compaction: out of the model (the premise `dispatchOk`)
+  · -- Compaction: not an admin request (`adminKindOk`)
     have hl : lCo ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
     have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
@@ -510,7 +510,8 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
-    have hnm : (apply.AdminReq.authenticate x.name x.simpleToken).nameOk := trivial
+    have hnm : (apply.AdminReq.authenticate x.name x.simpleToken).nameOk := by
+      have h := Hadmk; unfold apply.adminKindOk at h; rw [hk] at h; exact h.2 x hs
     ihave Hx : (apply.AdminReq.authenticate x.name x.simpleToken).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
@@ -928,7 +929,7 @@ theorem apply.uberApplier.dispatch.wp_admin
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
-  exact Hdok.2.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  exact Hdok.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
   -- after the join: `return ar` and the deferred metrics
   iintro Hj
   imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩

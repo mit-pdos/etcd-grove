@@ -55,7 +55,7 @@ theorem mvcc.store.Rev.wp_proof
   -- `rv.kv.Read(mode, t)`: the store's, with the caller's tokens and certificate
   imod mvcc.crevLb_neg γ.idx with #Hlbn
   wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t m log₀ true (-1) iprop(True) none) $$ [$Hkvo $Hs $Hrd $Htoks $Hc0 $Hlbn $Htrc]
-    as %mw ⟨%log, %rev, %crev, Htx, Htoks, -, #Hrok, %Hpin, -, -⟩
+    as %mw ⟨%log, %rev, %crev, Htx, Htoks, -, -, #Hrok, %Hpin, -, -⟩
   · isplitr
     · iintro !>; itrivial
     isplitr
@@ -93,7 +93,7 @@ theorem mvcc.store.Rev.wp_proof
   iframe Hrd Htoks
   iexists log
   withPhys_simp
-  iframe HcertT
+  iframe HcertT Hrok
   ipureintro
   exact ⟨Hpin.1, Hpin.2.1, HneT, HrevT⟩
 

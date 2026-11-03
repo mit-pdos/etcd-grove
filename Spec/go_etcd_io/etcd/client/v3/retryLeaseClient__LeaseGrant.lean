@@ -33,7 +33,8 @@ abbrev retryLeaseClient.LeaseGrant.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
       □ ▷ Spec (req.TTL', req.ID') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
-      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseGrant")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

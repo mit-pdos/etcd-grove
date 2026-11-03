@@ -33,13 +33,13 @@ theorem rafthttp.startRemote.wp_proof
     (hPipeStart : rafthttp.pipeline.start.spec (GF := GF) (hG := hG)) :
     rafthttp.startRemote.spec (GF := GF) (hG := hG) := by
   intro Rh t lid γd R urls uvs pid Hne Hurls Hmem Hnp Hpm
-  wp_start as ⟨#Htr, #Hus, HR1, HR2, HR3, HR4⟩
+  wp_start as ⟨#Htr, #Hus⟩
   iapply wp_fupd
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
@@ -57,7 +57,7 @@ theorem rafthttp.startRemote.wp_proof
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (pl.[rafthttp.pipeline, go!"wg"]) $$ wgP
     with ⟨%γwg, Hwg⟩
   imod sync.join.init _ γwg $$ Hwg with Hwg
-  wp_apply hPipeStart Rh pl pid R $$ [msgcP stopcP Hwg HR1 HR2 HR3 HR4] as Hpl
+  wp_apply hPipeStart Rh pl pid R $$ [msgcP stopcP Hwg] as Hpl
   · iframe
     iunfold pipeFixed
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, null, r, lid, γd
@@ -76,6 +76,10 @@ theorem rafthttp.startRemote.wp_proof
   generalize «$r0_ptr» = g at *
   iStructNamed Hg
   ipersist lg; ipersist localID; ipersist id; ipersist status; ipersist pipeline
+  -- (J8a-7) the remote's lock over `paused`
+  imod sync.init_Mutex (remoteLockInv g) ⊤ (g.[rafthttp.remote, go!"mu"]) $$ mu [paused]
+    with #Hgmu
+  · inext; iunfold remoteLockInv; iexists _; iframe
   imodintro
   iapply HΦ
   isplitr

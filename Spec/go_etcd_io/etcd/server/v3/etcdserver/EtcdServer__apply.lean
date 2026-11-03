@@ -34,7 +34,8 @@ differ by the mode at `E.authOn`: the server's view (`isServerM`), the committed
 model's auth state `sa`, unconstrained off), the apply thread's model (`kvAppliedM`, from
 `srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
 receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
-at the new consistent index after. -/
+at the new consistent index after. (2026-10-31, the snapshot track's S5) `ep.confState` reports
+the voters once an entry is applied (`epCsAt`: the first is a validated conf change). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -46,7 +47,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
@@ -63,7 +64,8 @@ abbrev EtcdServer.apply.spec : Prop :=
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗

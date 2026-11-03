@@ -16,6 +16,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -38,14 +39,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 set_option hygiene false in
 /-- A log call (`lg.Warn(...)`): its fields' strings, the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hString _ $$ [] as %_ -; (iframe #; ipureintro; assumption))
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "String" => (wp_apply hString _ $$ [] as %_ -; (iframe #; ipureintro; assumption))
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option maxRecDepth 8000 in

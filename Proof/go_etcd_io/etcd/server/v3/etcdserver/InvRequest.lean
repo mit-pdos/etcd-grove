@@ -29,7 +29,7 @@ verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
 2): `Next` returns an id nobody holds, which the proposer claims for its request's data. The ids
 of other members' requests (other generators, other prefixes) are claimed in the same map: that
 the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's apply side
-(`issues/etcd-request-id-member-prefix.md`).
+(`nonissues/etcd-request-id-member-prefix.md`).
 
 **The wait registry** (`isWait w γi γw R RD`: `pkg/v3/wait/Defs.lean`, `wait.New`'s contract
 since unit 2). The server's registration condition (`reqWaitR`): `Ψ` is `resultΨ E rq` for the
@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
@@ -115,6 +116,57 @@ in its own invariant (a per-key view, if it wants one, is its ghost map beside i
 also keeps `L` plain at the workload (`plainLog`, D19q): the only updates raft can fire
 over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
+/-! ## The attribute requests' members (2026-11-02, the cluster-rows stage) -/
+
+section attrReq
+variable [GooseExts]
+
+/-- **An attribute request names a member of `S`** (the cluster-rows stage): a request `dispatch`
+sends to `ClusterMemberAttrSet` has its member in `S` (raft's configuration, the server's static
+membership), and it has no range end `[0]` (`irrNoZeroEnd`: the wire then decodes the request
+itself, `attrIdOk_wire`; a cluster kind wins `dispatchKind` over a range's). Any other request:
+nothing. -/
+def attrIdOk (S : GSet w64) (rq : apply.IRRModel) : Prop :=
+  apply.dispatchKind rq = .clusterMemberAttrSet →
+    irrNoZeroEnd rq ∧ ∀ a, rq.clusterMemberAttrSet = some a → a.memberID ∈ S
+
+theorem attrIdOk_of_kind (S : GSet w64) (rq : apply.IRRModel)
+    (h : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : attrIdOk S rq := fun hk => absurd hk h
+
+/-- A committed entry's: its request's (a normal entry that decodes). -/
+def attrEntryOk (S : GSet w64) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
+
+/-- **The committed log's attribute requests name members of `S`** (a new conjunct of the KV
+invariant's workload facts, `kvWork`; the cluster-rows stage, 2026-11-02). -/
+def attrLogOk (S : GSet w64) (L : List EntryModel) : Prop := ∀ m ∈ L, attrEntryOk S m
+
+theorem attrLogOk_append (S : GSet w64) (A B : List EntryModel) :
+    attrLogOk S (A ++ B) ↔ attrLogOk S A ∧ attrLogOk S B := by
+  unfold attrLogOk; simp only [List.mem_append]
+  exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
+    fun h m hm => hm.elim (h.1 m) (h.2 m)⟩
+
+/-- The entry a proposal of `d` commits, from its permission's `attrIdOk` (`kv_prop_auW`'s step). -/
+theorem attrEntryOk_of (S : GSet w64) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
+    (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (h : attrIdOk S rq) :
+    attrEntryOk S e := by
+  intro _ _ rq' h'
+  rw [hed, hdec] at h'
+  cases h'
+  exact h
+
+/-- An empty entry asks nothing (raft's no-op fillers, `BuildGap.lean:150-151`: `applyEntryNormal`
+returns on `len(e.Data) == 0`, `server.go:1989-1998`, before decoding; round 2). -/
+theorem attrEntryOk_empty (S : GSet w64) (e : EntryModel) (he : e.data = []) : attrEntryOk S e :=
+  fun _ hne => absurd he hne
+
+/-- A conf entry asks nothing (`kvWork_snoc`'s conf case). -/
+theorem attrEntryOk_conf (S : GSet w64) (e : EntryModel) (ht : e.typ ≠ W32 0) : attrEntryOk S e :=
+  fun h => absurd h ht
+
+end attrReq
+
 section kvGhost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -143,6 +195,43 @@ structure KVNames where
   /-- The auth history's mono-list (the auth-mode merge's 5b: `kvInvOn`'s half and a client's
   view, `authHistView`; unused with auth off). -/
   hist : GName := 0
+  /-- The cluster's compaction mode (M2's apply side, item 5: one for every member; `srvKVInvs` and
+  `srvReqFieldsAt` tie each member's `E.cmp` to it). -/
+  cmp : Bool := false
+  /-- The cluster's log of requested raft entries (`SrvRaft.log`: one for the cluster, every
+  member's `ServerRaftNames.raft.log`; `kvInv`'s tie `γk.rlog = γ.raft.log`), where a revision
+  reached is read (`kvRevLb`; the client's `kv.Compact`, 2026-10-31). -/
+  rlog : GName := 0
+  /-- (C3's server stage, 2026-11-02, the user's) The cluster's compaction retention: every
+  compaction of the cluster is at least `cret` revisions behind a revision its KV has reached
+  (`reqPropOk`'s compaction form, `kvCmpPermit`); `0`, no more than the store's own check. -/
+  cret : Nat := 0
+
+/-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
+watches, `client.srvWEnv … default`). -/
+instance : Inhabited KVNames :=
+  ⟨{ st := default, c0 := default, ch0 := apply.alarmChain false false false, log0 := [],
+     cok := default, hi := default, ids := ⟨default, default, default, default, default, default, default, default⟩ }⟩
+
+/-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
+state, the same model (its start index, chain and start log), the same requested log and the same
+mode and retention; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
+def kvSame (γk γk' : KVNames) : Prop :=
+  γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
+    γk.rlog = γk'.rlog ∧ γk.cmp = γk'.cmp ∧ γk.cret = γk'.cret
+
+theorem kvSame_refl (γk : KVNames) : kvSame γk γk := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem kvSame_symm {γk γk' : KVNames} (h : kvSame γk γk') : kvSame γk' γk := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm, h7.symm⟩
+
+theorem kvSame_trans {γk γk' γk'' : KVNames} (h : kvSame γk γk') (h' : kvSame γk' γk'') :
+    kvSame γk γk'' := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  obtain ⟨h1', h2', h3', h4', h5', h6', h7'⟩ := h'
+  exact ⟨h1.trans h1', h2.trans h2', h3.trans h3', h4.trans h4', h5.trans h5', h6.trans h6',
+    h7.trans h7'⟩
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -174,27 +263,33 @@ def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk
 lease table. -/
 def kvModelSt (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L) (kvLeases γk L)
 
-/-- **`id` was registered** (persistent; linkv-txn stage B1, 2026-10-20) in the wait registry of
-the member of its prefix (the cluster's registries' map, `idWaitIs`), with the consumer token `t`:
-what a proposal's entry carries, its proposer having registered the id before proposing. -/
-def idRegd (γi : IdNames) (id : w64) : IProp GF :=
-  iprop(∃ W t : GName, idWaitIs γi (idPfx id) W ∗ waitRegd W id t)
+/-- **`id` was registered by the incarnation of key `k`** (persistent; linkv-txn stage B1,
+2026-10-20; by key since R2c, 2026-11-02, until then by the id's prefix) in its wait registry (the
+cluster's registries' map, `idWaitIs`), with the consumer token `t`: what a proposal's entry
+carries, its proposer having registered the id before proposing. -/
+def idRegdAt (γi : IdNames) (k : IdKey) (id : w64) : IProp GF :=
+  iprop(∃ W t : GName, idWaitIs γi k W ∗ waitRegd W id t)
 
-instance idRegd_persistent (γi : IdNames) (id : w64) : Persistent (idRegd (GF := GF) γi id) := by
-  unfold idRegd; infer_instance
+instance idRegdAt_persistent (γi : IdNames) (k : IdKey) (id : w64) :
+    Persistent (idRegdAt (GF := GF) γi k id) := by
+  unfold idRegdAt; infer_instance
 
-instance idRegd_timeless (γi : IdNames) (id : w64) : Timeless (idRegd (GF := GF) γi id) := by
-  unfold idRegd idWaitIs waitRegd; infer_instance
+instance idRegdAt_timeless (γi : IdNames) (k : IdKey) (id : w64) :
+    Timeless (idRegdAt (GF := GF) γi k id) := by
+  unfold idRegdAt idWaitIs waitRegd; infer_instance
+
+/-- `idRegdAt` by the incarnation of the names `γi` (its proposer's). -/
+abbrev idRegd (γi : IdNames) (id : w64) : IProp GF := idRegdAt γi γi.key id
 
 /-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
-request with an id was claimed for its data under that id (`idClaim`, the generator's names
-`γi`), and (linkv-txn stage B1, 2026-10-20) the id registered before the entry was proposed
-(`idRegd`). -/
+request with an id was claimed for its data under that id by the incarnation of some key `k` (R2c:
+the claim records it), and (linkv-txn stage B1, 2026-10-20) the id registered by that incarnation
+before the entry was proposed (`idRegdAt`). -/
 def entryClaim (γi : IdNames) (m : EntryModel) : IProp GF :=
   iprop(⌜m.typ ≠ W32 0 ∨ m.data = []⌝ ∨
-    ∃ (rq : apply.IRRModel) (id : w64) (γf : GName),
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf ∗
-      idRegd γi id)
+    ∃ (rq : apply.IRRModel) (id : w64) (γf : GName) (k : IdKey),
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗
+      id ↪[γi.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt γi k id)
 
 instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
     Persistent (entryClaim (GF := GF) γi m) := by
@@ -202,7 +297,7 @@ instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
 
 instance entryClaim_timeless (γi : IdNames) (m : EntryModel) :
     Timeless (entryClaim (GF := GF) γi m) := by
-  unfold entryClaim idClaim; infer_instance
+  unfold entryClaim; infer_instance
 
 /-- Every conf change of `L` is one the server's `applyConfChange` takes (`ccPolOk`, at raft's
 configuration `cfg`; audit phase B3, 2026-10-18). -/
@@ -212,9 +307,12 @@ def ccLogOk (γ : SrvRaft) (L : List EntryModel) : Prop :=
 /-- **The workload facts of the committed log `L`** (persistent; D19c): every entry of a good
 shape (`logShape`: a request's premise at every log but for its size clauses; a conf change's id
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
-audit phase B3), and every id claimed. -/
+audit phase B3), and every id claimed; (2026-11-02, the cluster-rows stage) every attribute
+request names a voter of `cfg` (`attrLogOk`). -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
+  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
+      attrLogOk cfg.cfg L⌝ ∗
+    [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWork (GF := GF) cfg γk L) := by
@@ -224,18 +322,77 @@ instance kvWork_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
 
+/-- **What a committed compaction entry `m` after the log `A` claims** (pure; M2's apply side,
+item 5): in the cluster's compaction mode only, in M2's scope (`compactPropOk`: neither skipped nor
+rejected by `Apply`; review round 1's F-4), at a revision of the model of `A` (no `ErrFutureRev`). -/
+def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+    apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOk rq ∧
+      ∀ r, rq.compaction = some r → sint.Z r + γk.cret < (kvModel γk A).length
+
+/-- **Every compaction of `L` claims at the model before it.** -/
+def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
+  ∀ (i : Nat) (m : EntryModel), L[i]? = some m → cmpEntryOk γk cmp (L.take i) m
+
+theorem cmpLogOk_snoc_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : cmpLogOk γk cmp (A ++ [m])) : cmpEntryOk γk cmp A m := by
+  have := h A.length m (by simp)
+  simpa using this
+
+theorem cmpLogOk_prefix (γk : KVNames) (cmp : Bool) (A L : List EntryModel)
+    (h : cmpLogOk γk cmp L) (hp : A <+: L) : cmpLogOk γk cmp A := by
+  obtain ⟨C, rfl⟩ := hp
+  intro i m hi
+  have hlt : i < A.length := by
+    rcases (List.getElem?_eq_some_iff.1 hi) with ⟨hl, -⟩; exact hl
+  have := h i m (by rw [List.getElem?_append_left hlt]; exact hi)
+  rwa [List.take_append_of_le_length (Nat.le_of_lt hlt)] at this
+
+/-- The claims, one entry on. -/
+theorem cmpLogOk_snoc (γk : KVNames) (cmp : Bool) (L : List EntryModel) (e : EntryModel)
+    (h : cmpLogOk γk cmp L) (he : cmpEntryOk γk cmp L e) : cmpLogOk γk cmp (L ++ [e]) := by
+  intro i m hi
+  have hil := (List.getElem?_eq_some_iff.1 hi).1
+  simp only [List.length_append, List.length_singleton] at hil
+  rcases Nat.lt_or_ge i L.length with hlt | hge
+  · rw [List.getElem?_append_left hlt] at hi
+    rw [List.take_append_of_le_length (Nat.le_of_lt hlt)]
+    exact h i m hi
+  · have hi' : i = L.length := by omega
+    subst hi'
+    simp only [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
+      Option.some.injEq] at hi
+    subst hi
+    simpa using he
+
+/-- A plain entry claims nothing. -/
+theorem cmpEntryOk_plain (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : plainEntry m) : cmpEntryOk γk cmp A m :=
+  fun ht hd rq hrq hk => absurd hk (plainReq_nonCmp rq (h ht hd rq hrq))
+
+/-- A plain log has no compaction, so its claims hold in either mode. -/
+theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : plainLog L) :
+    cmpLogOk γk cmp L := by
+  intro i m hi
+  exact cmpEntryOk_plain γk cmp _ m (h m (List.mem_of_getElem? hi))
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
 with auth disabled and no alarm, the start log not empty; and (D19c, 2026-10-18) the workload
 facts of `L` (`kvWork`), which every update the server hands raft checks of its entry. (2026-10-27:
 `L` the requested entries only, `srvRLog`; the start's consistent index at most the start index, so
-that every entry of a log after the start is above it, `kvModel_eqv`.) -/
+that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
+2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
+scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft γk L)
+    ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log⌝ ∗
+      kvWork γ.raft γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -415,6 +572,85 @@ def kvCert (γk : KVNames) (l : mvcc.Log) : IProp GF :=
 instance kvCert_persistent (γk : KVNames) (l : mvcc.Log) : Persistent (kvCert (GF := GF) γk l) := by
   unfold kvCert; infer_instance
 
+end kvGhost
+
+section crevPure
+variable [GooseExts]
+
+/-! ### The compaction revision of the committed log (moved from M2's apply Draft at #7-cmp's
+Freeze) -/
+
+/-- **The compaction revision of the committed log `A`** (Q5 (a): the apply side models it; the
+cluster's start store never compacted, `-1`). -/
+def crevOf (γk : KVNames) (A : List EntryModel) : Int := kvCrevOf γk.c0 γk.ch0 (-1) A
+
+theorem crevOf_snoc (γk : KVNames) (A : List EntryModel) (m : EntryModel) :
+    crevOf γk (A ++ [m]) = kvCrevEntry γk.c0 γk.ch0 (crevOf γk A) m := by
+  unfold crevOf kvCrevOf
+  rw [List.foldl_append]
+  rfl
+
+/-- **The compaction revision never goes down along the committed log** (what the snapshot
+track's #8 needs for `Restore.specM`'s `c ≤ c'`: the installer's applied log is a prefix of the
+image's). -/
+theorem crevOf_mono (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
+    crevOf γk A ≤ crevOf γk B := by
+  obtain ⟨C, rfl⟩ := h
+  unfold crevOf kvCrevOf
+  rw [List.foldl_append]
+  exact kvCrevOf_ge _ _ C _
+
+theorem crevOf_ge (γk : KVNames) (A : List EntryModel) : -1 ≤ crevOf γk A :=
+  kvCrevOf_ge _ _ A (-1)
+
+/-- **A plain log never compacts** (the compaction-off servers' logs: the revision stays `-1`). -/
+theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : crevOf γk A = -1 := by
+  unfold crevOf kvCrevOf
+  generalize hc : (-1 : Int) = c₀
+  have key : ∀ (B : List EntryModel), plainLog B → ∀ c, B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
+    intro B
+    induction B with
+    | nil => intro _ c; rfl
+    | cons m B ih =>
+      intro hB c
+      simp only [List.foldl_cons]
+      rw [kvCrevEntry_plain _ _ _ _ (hB m (List.mem_cons_self))]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
+  exact key A h c₀
+
+/-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
+the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp A) :
+    crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
+  unfold crevOf kvCrevOf
+  have key : ∀ (B : List EntryModel), plainLogM cmp B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+      B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
+    intro B
+    induction B with
+    | nil => intro _ c hc; exact hc
+    | cons m B ih =>
+      intro hB c hc
+      simp only [List.foldl_cons]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) _
+        (kvCrevEntry_pos _ _ cmp c m (hB m (List.mem_cons_self)) hc)
+  exact key A h (-1) (Or.inl rfl)
+
+/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is
+its applied log's (`kvApplied`'s), below the image's log `A'`, whose compaction revision the
+records carry (`imageAt`'s). -/
+theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (crev : Int) (rcrev : Int)
+    (hcrev : crev = crevOf γk A) (hAA : A <+: A') (hr : rcrev = crevOf γk A') : crev ≤ rcrev := by
+  rw [hcrev, hr]; exact crevOf_mono γk A A' hAA
+
+end crevPure
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 /-- **The apply thread's KV ghost state** at the applied raft log `A` and the KV log `l`: `A`
 committed, `l` its model, certified, the longest certified length. -/
 def kvAppliedL (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (l : mvcc.Log) :
@@ -423,10 +659,11 @@ def kvAppliedL (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (l :
     ⌜l = kvModel γk A⌝)
 
 /-- `kvAppliedL` of the apply thread's state `x`, at the start's chain (the plain log does not
-change it). -/
+change it), its compaction revision the committed log's (`crevOf`; M2 apply item 4's last clause,
+landed at #7-cmp's Freeze, 2026-11-02: the snapshot's image carries it). -/
 def kvApplied (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (x : apply.ApplyKV) :
     IProp GF :=
-  iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0⌝)
+  iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0 ∧ x.crev = crevOf γk A⌝)
 
 /-- **What a put of `op` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: any flags but a
 lease): the lease `0`, and its client's update; since 2026-10-19 (D21 M6) fired at most once. -/
@@ -458,8 +695,9 @@ delete, no transaction: `Qr` trivial); or a plain request of the KV operation `o
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
 the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
 (`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
-range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). -/
-def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply side, item 6: the
+write forms, `reqPropOk`'s first disjunct.) -/
+def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
@@ -472,6 +710,184 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
+
+/-- **etcd's KV `γk` has reached revision `r`** (persistent; the client's `kv.Compact`, 2026-10-31,
+in place of M2's `cmpReach`): the cluster's requested raft log has a prefix whose KV model is
+longer than `r`, so every entry requested later is applied after revision `r` exists. One for the
+cluster (`kvSame` names agree on it), unlike a member's certificates. A `Put`'s reply gives it at
+the put's revision; the start's revisions are free (`kvRevLb_start`). What `reqPropOk`'s compaction
+form carries to the commit, where the KV invariant records the revision as one of the model
+before the entry (`cmpLogOk`, `kv_prop_au_cmp`). Clients use its laws only. At an integer
+revision (`kvRevLbZ`, C3's server stage: a revision plus the retention does not wrap). -/
+def kvRevLbZ (γk : KVNames) (n : Int) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗ ⌜n < (kvModel γk L₀).length⌝)
+
+omit raftAsm in
+instance kvRevLbZ_persistent (γk : KVNames) (n : Int) : Persistent (kvRevLbZ (GF := GF) γk n) := by
+  unfold kvRevLbZ; infer_instance
+
+omit raftAsm in
+instance kvRevLbZ_timeless (γk : KVNames) (n : Int) : Timeless (kvRevLbZ (GF := GF) γk n) := by
+  unfold kvRevLbZ; infer_instance
+
+omit raftAsm in
+/-- A revision below a reached one is reached. -/
+theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
+    kvRevLbZ (GF := GF) γk m ⊢ kvRevLbZ γk n := by
+  iintro H
+  iunfold kvRevLbZ at H
+  icases H with ⟨%L₀, #HL, %Hl⟩
+  iunfold kvRevLbZ
+  iexists L₀
+  iframe HL
+  ipureintro; omega
+
+omit raftAsm in
+/-- The same cluster's KV names agree on the revisions reached. -/
+theorem kvRevLbZ_same (γk γk' : KVNames) (h : kvSame γk γk') (n : Int) :
+    kvRevLbZ (GF := GF) γk n ⊢ kvRevLbZ γk' n := by
+  obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
+  unfold kvRevLbZ kvModel
+  rw [h2, h3, h4, h5]
+
+/-- `kvRevLbZ` at a `w64` revision. -/
+def kvRevLb (γk : KVNames) (r : w64) : IProp GF := kvRevLbZ γk (sint.Z r)
+
+omit raftAsm in
+instance kvRevLb_persistent (γk : KVNames) (r : w64) : Persistent (kvRevLb (GF := GF) γk r) := by
+  unfold kvRevLb; infer_instance
+
+/-- **The cluster's compaction permit** (C3's server stage, 2026-11-02; persistent): a positive
+revision at least the retention `cret` behind a revision the cluster's KV has reached. The
+server's store keeps it of its compaction revision (`mvcc.crevPermIs`). -/
+def kvCmpPermit (γk : KVNames) (c : Int) : IProp GF :=
+  iprop(⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret))
+
+/-- A permit at a positive revision below a permitted one (#7-cmp's Freeze: the restored finished
+record's, below the scheduled one's). -/
+theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') :
+    kvCmpPermit (GF := GF) γk c' ⊢ kvCmpPermit γk c := by
+  iintro H
+  iunfold kvCmpPermit at H
+  icases H with ⟨-, #H⟩
+  iunfold kvCmpPermit
+  isplitr
+  · ipureintro; exact h0
+  iapply kvRevLbZ_mono γk (c + γk.cret) (c' + γk.cret) (by omega)
+  iexact H
+
+omit raftAsm in
+instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
+    Persistent (kvCmpPermit (GF := GF) γk c) := by
+  unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+instance kvCmpPermit_timeless (γk : KVNames) (c : Int) :
+    Timeless (kvCmpPermit (GF := GF) γk c) := by
+  unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+/-- The same cluster's KV names have one compaction permit (C3's watch side). -/
+theorem kvCmpPermit_same (γk γk' : KVNames) (h : kvSame γk γk') :
+    kvCmpPermit (GF := GF) γk = kvCmpPermit γk' := by
+  have hc : γk.cret = γk'.cret := h.2.2.2.2.2.2
+  obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
+  funext c
+  unfold kvCmpPermit kvRevLbZ kvModel
+  rw [h2, h3, h4, h5, hc]
+
+omit raftAsm in
+/-- **A permit's revision reached** (C3's watch side): the revision plus the retention. -/
+theorem kvCmpPermit_revLb (γk : KVNames) (c : Int) :
+    kvCmpPermit (GF := GF) γk c ⊢ ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret) := by
+  unfold kvCmpPermit; exact .rfl
+
+omit raftAsm in
+/-- A revision below a reached one is reached. -/
+theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk r' := by
+  unfold kvRevLb; exact kvRevLbZ_mono γk _ _ h
+
+omit raftAsm in
+/-- The start log's revisions are reached (`log0 = [[], []]` in every cluster: `0` and `1`). -/
+theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length) :
+    ⊢ |==> kvRevLb (GF := GF) γk r := by
+  iintro
+  imod (monoListLbOwn_nil (GF := GF) (A := EntryModel) γk.rlog) with #H0
+  imodintro
+  unfold kvRevLb kvRevLbZ
+  iexists []
+  iframe H0
+  ipureintro
+  exact h
+
+open Iris.ProofMode in
+/-- **The read-side law: a revision reached is at most the KV's revision** (2026-11-02, C3's
+client stage): with the KV invariant, a revision `n` the cluster's KV has reached (`kvRevLbZ`, a
+lower bound of the committed log of requested entries, `γk.rlog = γ.raft.log`) is at most the
+revision of the clients' KV state (`etcdKV`, which the invariant keeps at that log's model). So
+every linearizable read whose update fires after the bound was known reads at a revision at
+least `n`. -/
+theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E) (n : Int)
+    (σ : KVState) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvRevLbZ γk n -∗ etcdKV γk σ ={E}=∗
+      etcdKV γk σ ∗ ⌜n ≤ (σ.rev : Int)⌝ := by
+  iintro #Hinv #Hlb Hc
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  iunfold etcdKV at Hc
+  ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+  iunfold kvRevLbZ at Hlb
+  icases Hlb with ⟨%L₀, #H0, %Hn⟩
+  have hrl := Hok.2.2.2.2.2.2
+  iunfold srvRLog at HL
+  ihave #H0' : monoListLbOwn γ.raft.log L₀ $$ []
+  · iExactEq H0; rw [hrl]
+  ihave %Hp := mono_list_auth_lb_valid γ.raft.log _ L L₀ $$ HL H0'
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  iunfold etcdKV
+  iframe Hc
+  ipureintro
+  have hpre : kvModel γk L₀ <+: kvModel γk L := kvRaftOf_prefix _ _ _ _ _ Hp.2
+  have hlen := hpre.length_le
+  have hσ : σ = kvModelSt γk L := Hag.symm
+  rw [hσ]
+  unfold kvModelSt
+  rw [kvStateOf_rev]
+  omega
+
+omit raftAsm in
+/-- The same cluster's KV names agree on the revisions reached. -/
+theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk' r := by
+  unfold kvRevLb; exact kvRevLbZ_same γk γk' h _
+
+/-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
+(`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
+revision at least the cluster's retention behind a reached one (`kvRevLbZ`, C3's server stage),
+its result trivial. -/
+def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(reqPropOkW γk rq Qr ∨
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+        Qr = fun _ => iprop(True)⌝ ∗
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
+
+/-- The write forms are proposals. -/
+theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    reqPropOkW (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr := by
+  iintro H; iunfold reqPropOk; ileft; iexact H
+
+/-- **Off, only the write forms** (the compaction form needs the mode on). -/
+theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
+    (h : γk.cmp = false) : reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
+  unfold reqPropOk
+  iintro (H | ⟨%hc, -⟩)
+  · iexact H
+  · rw [h] at hc; exact absurd hc.1 (by decide)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
@@ -873,7 +1289,7 @@ theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outco
     · rw [h.1]; exact commitLog_grow _ _
   · obtain ⟨pend, -, h⟩ := h
     rw [h]; exact commitLog_grow _ _
-  · exact h.elim
+  · rw [h]; left; rfl
   · exact h.elim
   · rcases h with h | h <;> (rw [h]; left; rfl)
 
@@ -940,14 +1356,29 @@ theorem floorAt_agree (γf : GName) (F F' : mvcc.Log) :
   iintro H1 H2
   iapply dghostVar_agree $$ H1 H2
 
+/-- A store index's names, as numbers (for the cluster's keys' facts map). -/
+instance idxNames_countable : Pos.Countable mvcc.IdxNames :=
+  .ofInjective (fun i => Pos.Countable.encode [i.hist, i.nev, i.log, i.crev, i.cmp])
+    (fun ⟨a1, b1, c1, d1, e1⟩ ⟨a2, b2, c2, d2, e2⟩ h => by
+      have h := Pos.encode_inj h
+      simp only [List.cons.injEq, and_true] at h
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
+      rfl)
+
+/-- **The server's claimers' facts, by store** (the cluster's family of facts, `idClusterInv`'s
+`Φs`; R2c, 2026-11-02): a claim's ghost name records a floor certified in the store index `idx`
+its claimer's incarnation registered (`idKeyFactAt`). -/
+def srvFloorFacts (idx : mvcc.IdxNames) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert idx F)
+
 /-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
-a claim's ghost name records a certified floor. -/
-def srvFloorFact (E : apply.AEnv GF) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
-  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert E.γ.idx F)
+a claim's ghost name records a certified floor (`srvFloorFacts` at the store's index). -/
+def srvFloorFact (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
+  srvFloorFacts E.γ.idx id d γf
 
 instance srvFloorFact_timeless (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) :
     Timeless (srvFloorFact (GF := GF) E id d γf) := by
-  unfold srvFloorFact floorAt mvcc.idxCert; infer_instance
+  unfold srvFloorFact srvFloorFacts floorAt mvcc.idxCert; infer_instance
 
 /-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
 at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
@@ -988,7 +1419,7 @@ its own data under that id, learns `e.data` are its data, and collects its propo
 entry met (`resultIsW`'s): so the proposer's update fired at the state of the log the write met. -/
 def entryWit (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
-    srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
+    srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧ kvModel ρ.kv (L.take m) = lb⌝)
 
@@ -1024,7 +1455,7 @@ B1 (2026-10-20) also `ρ.wait` as the member's entry of the cluster's registries
 def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
   iprop((∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's registry in the cluster's registries' map
-    idWaitIs ρ.ids ρ.ids.pfx ρ.wait)
+    idWaitIs ρ.ids ρ.ids.key ρ.wait)
 
 instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInv (GF := GF) w ρ E) := by
@@ -1036,19 +1467,30 @@ decode to a request with an id, were claimed under that id, and (linkv-txn stage
 registered (`idRegd`); a conf change's id (`ccIdOf`) is no
 KV request's registration (the conf change's proposer claimed it for the conf change: typed
 claims, unit 4), and the change is one `applyConfChange` takes (`ccPolOk` at raft's
-configuration; audit phase B3, 2026-10-18). -/
+configuration; audit phase B3, 2026-10-18); (2026-11-02, the cluster-rows stage) a normal entry's
+attribute request names a voter of raft's configuration (`attrEntryOk`, the KV invariant's
+`attrLogOk`). -/
 def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-        (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
-      ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
+        ∃ (γf : GName) (k : IdKey),
+          id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt ρ.ids k id) ∗
+      ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝)
   else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
     ⌜ccPolOk ρ.raft.raft m.data⌝)
 
 instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
     Persistent (entryWaitOk (GF := GF) ρ E m) := by
   unfold entryWaitOk; split <;> infer_instance
+
+/-- A normal entry's attribute fact (the cluster-rows stage, 2026-11-02: `applyEntryNormal`'s
+`restReqOk`). -/
+theorem entryWaitOk_attr (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) (ht : m.typ = W32 0) :
+    entryWaitOk (GF := GF) ρ E m ⊢ ⌜attrEntryOk ρ.raft.raft.cfg m⌝ := by
+  unfold entryWaitOk; rw [if_pos ht]
+  iintro ⟨-, %L, -, %H⟩
+  ipureintro; exact H.2
 
 /-- `entryWaitOk` of every entry of a batch (persistent). -/
 def batchWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (ms : List EntryModel) : IProp GF :=

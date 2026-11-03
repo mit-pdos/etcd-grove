@@ -735,7 +735,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 icases Hc' with ⟨-, %Hb', -⟩
                 exfalso
                 refine mvcc.rangeAnswers_not_del lc log log' Hlcp.1 ⟨Hlen, Hcs⟩ ⟨Hb'.2.1, Hb'.2.2⟩
-                  Hcmp' c' Hk'.1 (by omega) Hk'.2.2 _ k e _ ?_ a hmem false Hk'.2.1
+                  Hcmp' c' Hk'.1 (by omega) _ k e _ ?_ a hmem false Hk'.2
                 rw [← hRW]; omega
               iunfold mvcc.keyVals at Hkv
               rw [hlookm]

@@ -35,8 +35,8 @@ theorem electionServer.Resign.wp_proof
     (hER : concurrency.Election.Resign.spec (GF := GF) (hG := hG))
     (hEH : concurrency.Election.Header.spec (GF := GF) (hG := hG)) :
     electionServer.Resign.spec (GF := GF) (hG := hG) := by
-  intro es c req lk name key rev lease ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hlf, Hlk, #Hctx, #Hcc⟩
+  intro es c req lk name key rev lease ctx cs maxReq
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -55,7 +55,7 @@ theorem electionServer.Resign.wp_proof
     iframe He0
     ipureintro
     exact ⟨⟨rfl, rfl⟩, by simp⟩
-  icases Hlk with (%Hnull | ⟨#Hlk, %Hne⟩)
+  icases Hlk with (%Hnull | ⟨#Hlk, %Hne, %Hrecv⟩)
   · exact absurd Hnull hlk
   iunfold leaderKeyAt at Hlk
   icases Hlk with ⟨%nsl, %ksl, #Hnf, #Hns, #Hkf, #Hks, #Hrf, #Hlsf⟩
@@ -82,7 +82,9 @@ theorem electionServer.Resign.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %name
   wp_apply hRE s γ c id name key rev $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, Hest⟩
-  · ipureintro; exact Hne
+  · ipureintro
+    exact ⟨⟨Hne, Nat.le_of_lt (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1)⟩,
+      Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.2) (by decide))⟩
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hER e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs (W64 0) $$

@@ -69,7 +69,9 @@ theorem txnLeasing.guardKeys.wp_proof
       "Hcap" ∷ ownSliceCap go_etcd_io.etcd.client.v3.Cmp csl (DFrac.own 1) ∗
       "#Hrelc" ∷ listRel cmpAt cvs ms ∗ "Hm" ∷ mref ↦$ m ∗ "Hrd" ∷ lkvReader lkv γ pfx ∗
       "Hlkvf" ∷ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝) $$ [i op cmps Hm Hrd Hlkvf]
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝ ∗
+      "%Hg" ∷ ⌜ms.length ≤ sint.nat n ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝)
+      $$ [i op cmps Hm Hrd Hlkvf]
   · iexists W64 0, _, slice.nil, [], [], ∅
     simp only [named]
     iframe
@@ -79,7 +81,9 @@ theorem txnLeasing.guardKeys.wp_proof
     · iapply ownSliceCap_nil
     isplitl []
     · iapply listRel_nil
-    ipureintro; constructor <;> word
+    isplitr
+    · ipureintro; constructor <;> word
+    ipureintro; simp
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < vs.length := by word
@@ -106,7 +110,9 @@ theorem txnLeasing.guardKeys.wp_proof
       simp only [named]
       iframe
       iframe #
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro; exact ⟨by have := Hg.1; word, Hg.2⟩
     · wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
       ihave %Hel := ownSlice_len _ _ _ $$ He
       (try wp_auto)
@@ -146,7 +152,16 @@ theorem txnLeasing.guardKeys.wp_proof
             iframe #
             iapply listRel_single
             iexact Hc1
-          ipureintro; constructor <;> word
+          isplitr
+          · ipureintro; constructor <;> word
+          ipureintro
+          refine ⟨by simp only [List.length_append, List.length_singleton]; have := Hg.1; word, ?_⟩
+          intro c hc
+          simp only [List.mem_append, List.mem_singleton] at hc
+          rcases hc with hc | rfl
+          · exact Hg.2 c hc
+          · exact ⟨o, List.mem_of_getElem? Hoi, by simp [compareM, cmpKeyM], by simp [compareM, cmpKeyM],
+              by simp [compareM, cmpKeyM]⟩
         · (try wp_auto)
           wp_for_post
           iframe
@@ -154,7 +169,9 @@ theorem txnLeasing.guardKeys.wp_proof
           simp only [named]
           iframe
           iframe #
-          ipureintro; constructor <;> word
+          isplitr
+          · ipureintro; constructor <;> word
+          ipureintro; exact ⟨by have := Hg.1; word, Hg.2⟩
       · (try wp_auto)
         wp_for_post
         iframe
@@ -162,14 +179,23 @@ theorem txnLeasing.guardKeys.wp_proof
         simp only [named]
         iframe
         iframe #
-        ipureintro; constructor <;> word
+        isplitr
+        · ipureintro; constructor <;> word
+        ipureintro; exact ⟨by have := Hg.1; word, Hg.2⟩
   · (try wp_auto)
     iapply HΦ
     iframe
     iexists ms
-    iapply (cmpsAt_listRel _ _).2
-    iexists cvs
-    iframe #
+    isplitl []
+    · iapply (cmpsAt_listRel _ _).2
+      iexists cvs
+      iframe #
+    iframe
+    ipureintro
+    refine ⟨?_, Hg.2⟩
+    have := Hg.1
+    rw [← Hlen]
+    word
 
 end proof
 

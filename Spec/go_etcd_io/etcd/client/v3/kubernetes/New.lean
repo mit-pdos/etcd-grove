@@ -8,6 +8,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -29,13 +30,13 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       clientCfgOk cfg eps ∗
       -- (the auth plan's C1, 2026-10-28) `New`'s premise on the credentials
-      clientAuthPre cfg eps P ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+      clientAuthPre cfg eps P }}
     (App (Val (@! go_etcd_io.etcd.client.v3.kubernetes.New)) (Val #cfg))
   {{ (kc : Loc) (err : GoInterface), RET (PairV #kc #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ cl : Loc,

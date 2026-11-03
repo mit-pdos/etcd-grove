@@ -688,7 +688,12 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
     ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
-    ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝)
+    ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝ ∗
+    -- (2026-11-01, J8a) the cluster's snapshot directories the members' (`snapLoc`)
+    ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝ ∗
+    -- (2026-11-01, J8b) the cluster's bootstrap log the server's (`cluster_alloc`'s `bootLen`):
+    -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
+    ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -696,10 +701,13 @@ instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvCluster
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
 server's log invariant, the cluster, the start log committed and the start index its length; and
 (2026-10-30, the repair: one mode, the old dynamic mode's fresh start) the start log empty, so the
-start index `0`. (2026-10-27: until then raft's commit invariant and the conf-change policy.) -/
+start index `0`. (2026-10-27: until then raft's commit invariant and the conf-change policy.)
+(2026-10-31, the snapshot track's S5) And the bootstrap log committed first, of some peers' (`srvBootLogOk`):
+the applied log's first entry is the first peer's `AddNode` (`srv_first_boot`). -/
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
   iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝ ∗
-    ⌜γ.pre = []⌝)
+    ⌜γ.pre = []⌝ ∗ srvRLogLb γ (γ.raft.boot.map EntryModel.ofM) ∗
+    ⌜∃ ps : List w64, ps ≠ [] ∧ srvBootLogOk ps γ.raft.boot⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
@@ -710,6 +718,75 @@ theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
   unfold srvRaftLogInv
   iintro ⟨-, -, -, %H, -⟩
   ipureintro; exact H
+
+/-- **The server's raft names are the fresh start's** (2026-11-02, `merged_image`): the start log
+empty and the start index its length. -/
+theorem srvRaftLogInv_fresh (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ = ⟨γ.raft, [], W64 0⟩⌝ := by
+  unfold srvRaftLogInv
+  iintro ⟨-, -, -, %ha, %hp, -⟩
+  ipureintro
+  have ha0 : γ.ai0 = W64 0 := by
+    rw [hp] at ha; simp only [List.length_nil] at ha
+    word
+  cases γ; simp only at hp ha0 ⊢; rw [hp, ha0]
+
+/-- (2026-10-31, S5) **The applied log starts with the first boot entry**: a non-empty committed
+prefix's first entry is a conf entry decoding to an `AddNode` (the bootstrap log's first). -/
+theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryModel)
+    (hm : L.head? = some m) :
+    srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ L ⊢
+      ⌜m.typ = W32 1 ∧ ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0⌝ := by
+  unfold srvRaftLogInv
+  iintro ⟨⟨-, -, -, -, -, #Hb, %Hok⟩, #HL⟩
+  ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
+  · iframe Hb HL
+  ipureintro
+  obtain ⟨ps, hps, hlen, -, hk⟩ := Hok
+  have hpos : 0 < γ.raft.boot.length := by
+    rw [hlen]; cases ps with
+    | nil => exact absurd rfl hps
+    | cons _ _ => simp
+  obtain ⟨e, he⟩ : ∃ e, γ.raft.boot[0]? = some e := ⟨_, List.getElem?_eq_getElem hpos⟩
+  obtain ⟨-, -, hty, cm, hcm, hct, -⟩ := hk 0 e he
+  have hhead : (γ.raft.boot.map EntryModel.ofM).head? = some (EntryModel.ofM e) := by
+    rw [List.head?_map, List.head?_eq_getElem?, he]; rfl
+  have heq : m = EntryModel.ofM e := by
+    rcases Hp with ⟨t, ht⟩ | ⟨t, ht⟩
+    · rw [← ht, List.head?_append, hhead] at hm
+      simpa using hm.symm
+    · rw [← ht, List.head?_append, hm] at hhead
+      simpa using hhead
+  subst heq
+  exact ⟨hty, cm, hcm, hct⟩
+
+/-- (2026-10-31, S5) **The apply loop's first entry** (`srv_first_boot` at the loop's position): the
+`j`-th entry `m` of the batch `ms` after the applied log `A`, if nothing is before it, is the first
+boot entry (an `AddNode`), with nothing before the server's log. -/
+theorem srv_first_entry (γ : ServerRaftNames) (A ms : List EntryModel) (j : Nat) (m : EntryModel)
+    (hm : ms[j]? = some m) :
+    srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ (A ++ ms) ⊢
+      ⌜A ++ ms.take j = [] → γ.pre = [] ∧ m.typ = W32 1 ∧
+        ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0⌝ := by
+  iintro ⟨#Hi, #HL⟩
+  by_cases h : A ++ ms.take j = []
+  · obtain ⟨hA, ht⟩ := List.append_eq_nil_iff.1 h
+    have hj : j = 0 := by
+      rcases List.take_eq_nil_iff.1 ht with h' | h'
+      · exact h'
+      · subst h'; simp at hm
+    subst hA hj
+    have hhd : ([] ++ ms).head? = some m := by
+      rw [List.nil_append, List.head?_eq_getElem?]; exact hm
+    ihave %Hb := srv_first_boot γ ([] ++ ms) m hhd $$ [Hi HL]
+    · iframe Hi HL
+    ihave #Hi' := Hi
+    iunfold srvRaftLogInv at Hi'
+    icases Hi' with ⟨-, -, -, -, %Hpre, -⟩
+    ipureintro
+    exact fun _ => ⟨Hpre, Hb⟩
+  · ipureintro
+    exact fun h' => absurd h' h
 
 end regs
 
@@ -816,7 +893,7 @@ theorem srv_committed_ccBoot (γ : ServerRaftNames) (l : List LogEntry) (E : CoP
       |={E}=> ⌜∀ e ∈ l, e.type = W32 1 → ccBootOk γ.raft.cfg e.data⌝ := by
   iintro ⟨#Hinv, #Hl⟩
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, -, -, -, %Hpre⟩
+  icases Hinv with ⟨#Hli, -, -, -, %Hpre, -⟩
   iunfold srvLogInv at Hli
   iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
   iunfold srvLogCore at Hcore
@@ -914,7 +991,7 @@ theorem srv_confAt_simple (γ : ServerRaftNames) (l : List LogEntry) (k : Nat) (
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨-, #Hcl, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨#Hc, #Hp, #H0, -, -, -, %Hkeep⟩
+  icases Hcl with ⟨#Hc, #Hp, #H0, -, -, -, %Hkeep, -⟩
   iapply srv_confAt_simple_ind γ l E hC Hall Hkeep k hk
   iframe Hc Hp Hl H0
 
@@ -1210,7 +1287,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hp #HQ Htk Hlc Hau
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, #Hcl, #Hlb0, %Hai0, %Hpre⟩
+  icases Hinv with ⟨#Hli, #Hcl, #Hlb0, %Hai0, %Hpre, -⟩
   iauintro
   unfold atomic_acc
   iunfold srvLogInv at Hli
@@ -1770,7 +1847,7 @@ raft's registry of reads is the cluster's. (Until M4 inside the member's mint, w
 whole `idFresh`.) -/
 def srvRdCtxInv (γ : ServerRaftNames) (issued : GName) : IProp GF :=
   iprop(inv srvRdCtxN iprop(∃ U : List w64, ghostMapAuth γ.raft.rdFresh 1 (ctxMap U) ∗ ⌜U.Nodup⌝ ∗
-    [∗list] id ∈ U, id ↪[issued] (none : Option (List w8 × GName))) ∗
+    [∗list] id ∈ U, id ↪[issued] (none : Option IdClaimV)) ∗
     -- (2026-10-27) the read contexts committed with raft's node API, each with its fresh token
     inv srvRdUsedN iprop(∃ (Uc : GSet (List w8)) (Lc : List (List w8)),
       ownReadCtxs γ.raft.cl Uc ∗ ([∗list] c ∈ Lc, c ↪[γ.raft.rdFresh] ()) ∗
@@ -1891,17 +1968,17 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   -- the bound: the minted ids are issued ids
   iunfold idGen at Hg
   icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hgi, -⟩
-  iinv Hgi with ⟨%k, %L, %S, >Hsuf, >Hcred, >Hcnt, >HS, >%HIS⟩ Hclose2
+  iinv Hgi with ⟨%k, %L, %S, %P, >Hsuf, >Hcred, >Hcnt, >HS, >HP, >%HIS⟩ Hclose2
   imod receipt_snapshot k $$ Hcred with ⟨Hcred, #Hpk⟩
   ihave %Hkb := preceipt_lt k $$ Hpk
   have Hk : k ≤ 2 ^ 48 - 1 := by omega
   ihave %Hiss := idSlots_issued γi S U $$ HS Hus
   have Hlen : U.length ≤ k := idIssued_length_le γi.pfx s0 k U Hnd
-    (fun id' hid' => (HIS id').2.1 (by rw [Hiss id' hid']; rfl))
-  imod Hclose2 $$ [Hsuf Hcred Hcnt HS] with -
+    (fun id' hid' => (HIS id').2.1.mp (by rw [Hiss id' hid']; rfl))
+  imod Hclose2 $$ [Hsuf Hcred Hcnt HS HP] with -
   · inext
-    iexists k, L, S
-    iframe Hsuf Hcred Hcnt HS
+    iexists k, L, S, P
+    iframe Hsuf Hcred Hcnt HS HP
     ipureintro
     exact HIS
   -- the token, in the cluster's read contexts
@@ -1911,7 +1988,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   by_cases hinV : id ∈ V
   · iexfalso
     icases BigSepL.bigSepL_mem_acc
-      (Φ := fun id => (id ↪[γi.issued] (none : Option (List w8 × GName)) : IProp GF)) hinV $$ HVs
+      (Φ := fun id => (id ↪[γi.issued] (none : Option IdClaimV) : IProp GF)) hinV $$ HVs
       with ⟨Hv', -⟩
     iunfold idUnclaimed at Hun
     ihave %Hne := ghostMapElem_ne γi.issued id id (DFrac.own 1) _ _ $$ Hun Hv'

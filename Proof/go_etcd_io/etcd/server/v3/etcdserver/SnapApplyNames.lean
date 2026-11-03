@@ -110,8 +110,41 @@ parts; step 2). -/
 theorem waitInv_snapE (w : GoInterface) (ρ : ReqNames) :
     waitInv w ρ (snapE E γ' TM' ci p' g γB al ast lp cl be) = waitInv w ρ E := rfl
 
-theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) :
-    srvAtomics s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr = srvAtomics s E γr := rfl
+/-- (M2's apply side, item 19 with S-5's law: `srvKVInvs` ties the server's mode to its store's
+backend's, so the swap needs the new backend's mode the old one's, `hcm'`; M2's item 15: until
+then both off.) -/
+theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal) (hkb : E.γ.kb = some d)
+    (hkb' : p'.kb = some d') (hcm' : d'.cm = d.cm) :
+    srvAtomics (GF := GF) s E γr ⊢ srvAtomics s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr := by
+  have e1 : srvAppliedInv (GF := GF) s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr =
+      srvAppliedInv s E γr := rfl
+  unfold srvAtomics srvKVInvs
+  rw [e1]
+  iintro ⟨#Ha, #Ht, #Hk, #Hc, #Hr, %Hcok, %Htie, %Hcrt, #Hcp⟩
+  isplitr
+  · iexact Ha
+  isplitr
+  · iexact Ht
+  isplitr
+  · iexact Hk
+  isplitr
+  · iexact Hc
+  isplitr
+  · iexact Hr
+  isplitr
+  · ipureintro; exact Hcok
+  isplitr
+  · ipureintro
+    refine ⟨Htie.1, ?_⟩
+    have he : mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb ↔ mvcc.kbCmpM E.γ.kb := by
+      rw [snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hkb]; simp [mvcc.kbCmpM, hcm']
+    show mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb ↔ E.cmp = true
+    exact he.trans Htie.2
+  isplitr
+  · ipureintro; exact Hcrt
+  iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
+    (kvCmpPermit γr.kv))
+  iexact Hcp
 
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :
     srvGenAt s (snapE E γ' TM' ci p' g γB al ast lp cl be) ρ = srvGenAt s E ρ := rfl

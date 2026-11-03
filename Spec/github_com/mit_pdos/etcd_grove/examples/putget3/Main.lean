@@ -43,14 +43,21 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id₁ id₂ id₃ ctxs boot →
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk → v3rpc.ServerMethodSets →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.putget3.Main)) (Val #()))
   {{ RET #(); True }}
 

@@ -32,7 +32,7 @@ namespace common
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -45,7 +45,8 @@ theorem Serve.wp_proof
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg Q Hlg Htos Hwpi Hms Hbuq
-  wp_start as ⟨Haddr, #Hreq, #Hrd, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, Hwp, HG⟩
+  wp_start as ⟨Haddr, #Hreq, #Hrd, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
+  ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
   · iapply v3rpc.eofVar_of_init
@@ -72,15 +73,16 @@ theorem Serve.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
-  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwp]
-    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
-      Hwpi2⟩
+  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+      %lcid, %lmid, %R,
+      Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
+      Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp
     ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
@@ -96,9 +98,14 @@ theorem Serve.wp_proof
   wp_auto
   -- the caller's ghost step, between `Listen` and `go gs.Serve(l)`
   obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR
-  ihave Hup : grpcUp s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hwpi2 HWRs Hlis]
+  ihave #Hlu : grpcLeaseUp s C.A regs $$ []
+  · iunfold grpcLeaseUp
+    iexists ql, pl, lcid, lmid
+    iframe #
+    ipureintro; exact Hregs.2.2.2.1
+  ihave Hup : grpcUp s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hlis]
   · iunfold grpcUp
-    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs, d'
+    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
     exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
@@ -121,7 +128,8 @@ theorem Serve.wp_proofOn
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.specOn (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg γa Q hγa Hlg Htos Hwpi Hms Hbuq
-  wp_start as ⟨Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, Hwp, HG⟩
+  wp_start as ⟨Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
+  ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
   · iapply v3rpc.eofVar_of_init
@@ -148,15 +156,15 @@ theorem Serve.wp_proofOn
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
-  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwp]
-    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, #Has, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
-      Hwpi2⟩
+  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+      %lcid, %lmid, %R,
+      Hgsn, %Hregs, #Has, -, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp
     ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
@@ -172,12 +180,12 @@ theorem Serve.wp_proofOn
   wp_auto
   -- the caller's ghost step, between `Listen` and `go gs.Serve(l)`
   obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR
-  ihave Hup : grpcUpOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hwpi2 HWRs Hlis]
+  ihave Hup : grpcUpOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hlis]
   · iunfold grpcUpOn
-    iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs, d'
+    iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
-    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
+    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
   imod HG $$ %gs %lis %cid %mid %R Hup with ⟨Hserv, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]

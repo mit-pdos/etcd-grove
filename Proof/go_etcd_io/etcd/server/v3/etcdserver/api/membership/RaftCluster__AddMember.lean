@@ -15,6 +15,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Strings
 public import Spec.go_uber_org.zap.Bool
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -51,15 +52,15 @@ local macro "open_member" : tactic => `(tactic| (
 set_option hygiene false in
 /-- A log line of the added member: the field strings, the slice literal, `Info`. -/
 local macro "log_line" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply wp_IDStr _ _ _ $$ [Hid] as %_ ⟨Hid, -⟩; iframe #; iexact Hid)
-    | (wp_apply wp_IDStr $$ [] as %_ ⟨-, -⟩; iframe #)
-    | (wp_apply wp_String as %_ -)
-    | (wp_apply wp_Strings as %_ -)
-    | (wp_apply wp_Bool as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply wp_IDStr _ _ _ $$ [Hid] as %_ ⟨Hid, -⟩; iframe #; iexact Hid)
+    | "String" => (wp_apply wp_IDStr $$ [] as %_ ⟨-, -⟩; iframe #)
+    | "zap.String" => (wp_apply wp_String as %_ -)
+    | "zap.Strings" => (wp_apply wp_Strings as %_ -)
+    | "zap.Bool" => (wp_apply wp_Bool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply wp_Info $$ []; ipureintro; exact Hlgnn)
+    | "Info" => (wp_apply wp_Info $$ []; ipureintro; exact Hlgnn)
     | wp_auto)))
 
 set_option maxHeartbeats 1000000 in

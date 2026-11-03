@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem NewPriorityQueue.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     NewPriorityQueue.spec (GF := GF) (hG := hG) := by
   intro client key
-  wp_start as #Hc
+  wp_start as ⟨#Hc, %Hkl⟩
   iapply wp_fupd
   wp_auto
   wp_apply hTODO
@@ -43,6 +43,7 @@ theorem NewPriorityQueue.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF
   iapply HΦ
   unfold isPriorityQueue
   iframe #
+  ipureintro; exact Hkl
 
 end proof
 

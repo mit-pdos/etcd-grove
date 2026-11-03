@@ -42,6 +42,7 @@ theorem sharedIndexInformer_handlerOk
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗ accRet OK ⊢
       handlerOk OK (interface.mkOk (go.GoType.PointerType sharedIndexInformer.ty) #s)
         (infH p γp γe) := by
+  haveI : ReceiptBoundLe GF (2 ^ 63) := ⟨Hbound⟩
   iintro ⟨#Hpkg, #Hs, #Hacc⟩
   unfold handlerOk
   iexists _
@@ -52,20 +53,20 @@ theorem sharedIndexInformer_handlerOk
     iintro %evs %o %b %Φ
     imodintro
     iintro ⟨HH, -⟩ HΦ
-    iapply (wp_OnAdd s p γp γe evs o b Hbound) $$ [$Hpkg $Hs $HH] HΦ
+    iapply (wp_OnAdd s p γp γe evs o b) $$ [$Hpkg $Hs $HH] HΦ
   isplitr
   · imodintro
     iintro %evs %old %new %Φ
     imodintro
     iintro ⟨HH, #Hold, #Hnew⟩ HΦ
-    iapply (wp_OnUpdate s p γp γe evs OK old new Hbound) $$ [$Hpkg $Hs $Hacc $Hold HH] HΦ
+    iapply (wp_OnUpdate s p γp γe evs OK old new) $$ [$Hpkg $Hs $Hacc $Hold HH] HΦ
     iframe
     iunfold okNil; iright; iexact Hnew
   · imodintro
     iintro %evs %o %Φ
     imodintro
     iintro ⟨HH, -⟩ HΦ
-    iapply (wp_OnDelete s p γp γe evs o Hbound) $$ [$Hpkg $Hs $HH] HΦ
+    iapply (wp_OnDelete s p γp γe evs o) $$ [$Hpkg $Hs $HH] HΦ
 
 end proof
 

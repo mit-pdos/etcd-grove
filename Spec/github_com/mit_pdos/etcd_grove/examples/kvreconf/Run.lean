@@ -39,7 +39,9 @@ attribute [local instance] kvrStorageModel
 abbrev Run.spec : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.kvreconf.Config) (clockVal : w64 → IProp GF)
     (t0 : w64) (Eclk : CoPset) (clock : GoFunc),
-  OptsOk cfg.Options' → receiptBound GF ≤ 2 ^ 64 - 2 →
+  -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`,
+  -- the receipts' bound within `2^61`; until then `2^64 - 2`)
+  OptsOk cfg.Options' → receiptBound GF ≤ 2 ^ 61 →
   (↑lintest.lintestN : CoPset) ⊆ ⊤ \ Eclk →
   0 ≤ sint.Z cfg.Clients' → sint.Z cfg.Clients' < 2 ^ 31 → 0 ≤ sint.Z cfg.Ops' →
   sint.Z cfg.Clients' * sint.Z cfg.Ops' < 2 ^ 60 → sint.Z cfg.Proposers' < 2 ^ 31 - 1 →

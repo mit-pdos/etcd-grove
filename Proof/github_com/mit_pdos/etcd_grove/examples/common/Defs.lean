@@ -37,6 +37,8 @@ public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Base
 
 @[expose] public section
@@ -96,6 +98,41 @@ def urls3 (n₁ n₂ n₃ : GoString) (iu : GoString → List _root_.Perennial.n
       U.initMap = GMap.insert n₃ sl₃ (GMap.insert n₂ sl₂ (GMap.insert n₁ sl₁ ∅))) ∧
     U.initURLs = iu
 
+/-- **A map's keys all valid UTF-8** (2026-11-02, the backend-auth-split stage: `bootPremise`'s
+condition on the initial cluster's map, Q8), for the empty map. -/
+theorem utf8Keys_empty : ∀ k, ((∅ : GMap GoString GoSlice).lookup k).isSome → utf8Valid k := by
+  intro k h; simp at h
+
+/-- **A map's keys all valid UTF-8**, kept by inserting a valid key (2026-11-02, the
+backend-auth-split stage). -/
+theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice)
+    (hn : utf8Valid n) (hM : ∀ k, (M.lookup k).isSome → utf8Valid k) :
+    ∀ k, ((GMap.insert n sl M).lookup k).isSome → utf8Valid k := by
+  intro k h
+  rcases (GMap.lookup_insert_is_Some M n k sl).1 h with rfl | ⟨-, h'⟩
+  · exact hn
+  · exact hM k h'
+
+/-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
+whole-`bootOk` review, C) from the fields a configuration literal sets: a logger, the default quota,
+batch limit and bootstrap defragmentation (zero), raft's clock `100` ms and `10` ticks. -/
+theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (hlg : cfg.Logger' ≠ null) (hq : cfg.QuotaBackendBytes' = W64 0)
+    (hbl : cfg.BackendBatchLimit' = W64 0)
+    (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
+    (het : cfg.ElectionTicks' = W64 10) (htk : cfg.TickMs' = W64 100) : bootCfgOk cfg := by
+  have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
+  refine ⟨hlg, storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, ?_⟩
+  · rw [hl]; decide
+  · rw [hl]; decide
+  · rw [het]; decide
+  · rw [htk]; decide
+
+/-- The zero discovery configuration has no endpoints (`ShouldDiscover` is false). -/
+theorem discoveryZero_len :
+    (zero_val go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig).ConfigSpec'.Endpoints'.len =
+      W64 0 := rfl
+
 end pure
 
 section defs
@@ -118,12 +155,16 @@ def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.Server
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
 the storage registry they name), for its configuration and URLs meeting `Uok`, at the peers'
-contexts `ctxs`, the bound `N` and the directory `dir` (see the file header). -/
+contexts `ctxs`, the bound `N` and the directory `dir` (see the file header). (2026-11-03, the
+whole-`bootOk` review, C: the initial cluster's member names valid UTF-8, a conjunct here since
+2026-11-02, Q8, moved into the contract's precondition, `bootCfgFresh`, with the other
+configuration conditions `bootstrap` needs.) -/
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
     IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
+      ⌜cfgOk token name cfg ∧ Uok U ∧
+        γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
@@ -185,11 +226,14 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
+      ρ.rd.kv.cmp = cmp⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
-    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
@@ -213,11 +257,21 @@ theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E
   iunfold memberBoot at H
   icases H with ⟨%Hρ, Hr⟩
   isplitr
-  · ipureintro; exact Hρ.2.2.2.2.2.2.2
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
   iunfold memberBoot
   isplitr
   · ipureintro; exact Hρ
   iexact Hr
+
+/-- **The lessor's reader side** (persistent; the closed lease example, 2026-11-02,
+`notes/lease-ex-plan.md`): `NewServer`'s `srvLessorRd` and `lessorRdPool`, which the served lease
+reads take (`raftLeaseRead_server`). -/
+def srvLeaseRd (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases)
+
+instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) :
+    Persistent (srvLeaseRd (GF := GF) s E) := by
+  unfold srvLeaseRd; infer_instance
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
@@ -228,22 +282,23 @@ monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServe
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
-`served`). -/
+`served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
+first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (N : Nat) (served : Bool) : IProp GF :=
+    (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
+    (x₀ : apply.ApplyKV := bootKV) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       (γk : GName) (τ : SrvTr GF),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
-      γrn b (W64 0)
-      (W64 0) (W64 0) bootKV N ∗
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk))
+      γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -267,14 +322,28 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E)
+
+/-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
+2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
+`*quotaLeaseServer` `ql` over the `*LeaseServer` `pl` of the server `s`, its header at the KV answers
+`A` (`v3rpc.Server`'s post). -/
+def grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val × GoInterface)) :
+    IProp GF :=
+  iprop(∃ (ql pl : Loc) (lcid lmid : w64), ⌜∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs⌝ ∗
+    v3rpc.quotaLeaseServerAt ql
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
+    v3rpc.leaseServerAt pl s A lcid lmid)
+
+instance grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF)
+    (regs : List (GoString × val × GoInterface)) : Persistent (grpcLeaseUp (GF := GF) s A regs) := by
+  unfold grpcLeaseUp; infer_instance
 
 /-- **What `v3rpc.Server` and `Listen` return** (the ghost step's input): the gRPC server `gs`
 being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s postcondition, at
@@ -284,7 +353,7 @@ server's resources back, and the listener `lis` at `addr`. -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
-      (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+      (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
       R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
@@ -299,9 +368,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
-    netListenerAt lis addr)
+    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -313,9 +381,12 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
-    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
+      ρ.rd.kv.cmp = cmp⌝ ∗
+    (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
@@ -324,6 +395,20 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     srvReadNamesFreshNK ρ.rd ∗ kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
     ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
     ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+
+/-- **The member's compaction mode, read off its boot bundle with auth on** (`memberBoot_cmp`'s). -/
+theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
+    memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp := by
+  iintro H
+  iunfold memberBootOn at H
+  icases H with ⟨%Hρ, Hr⟩
+  isplitr
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
+  iunfold memberBootOn
+  isplitr
+  · ipureintro; exact Hρ
+  iexact Hr
 
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
 `NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
@@ -339,14 +424,17 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
+    -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
+    -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
+    -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on
@@ -354,7 +442,7 @@ the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
 def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
-      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
       v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
@@ -370,7 +458,6 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
     netListenerAt lis addr)
 

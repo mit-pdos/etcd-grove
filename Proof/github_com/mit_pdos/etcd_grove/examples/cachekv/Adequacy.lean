@@ -47,7 +47,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -76,12 +76,14 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (cachekvProgram nw nops) cachekvNames)
     (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23873"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent (cachekvProgram nw nops) [config.walDirOf go!"cachekv.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ cachekv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -89,15 +91,16 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.cachekv.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main) #nw #nops)
-    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23873"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+        (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+          (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) [config.walDirOf go!"cachekv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
@@ -105,19 +108,21 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.cachekv.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.cachekv.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -⟩
+  iintro #Hinit Htok ⟨Has, -, Hds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := cachekv.wp_Main (GF := putgetGF) n id ctxs boot nw nops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul
-  wp_apply hM $$ [Haddr Htok]
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro
-  rcases Hr with rfl | rfl | rfl
+  rcases Hr with rfl | rfl | rfl | rfl
   · exact Or.inl rfl
   · exact Or.inr (Or.inl rfl)
-  · exact Or.inr (Or.inr rfl)
+  · exact Or.inr (Or.inr (Or.inl rfl))
+  · exact Or.inr (Or.inr (Or.inr rfl))
 
 end adequacy
 

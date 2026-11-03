@@ -38,7 +38,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`New`'s client is a client of etcd's KV** (see the file header). -/
 theorem isKv_of_newClient (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (γk : KVNames) (hst : γr.kv.st = γk.st)
+    (γr : ReadNames) (cid mid : w64) (γk : KVNames) (hst : kvSame γr.kv γk)
     (hrb : receiptBound GF ≤ 2 ^ 62) :
     isNewClient cl [ep] V ∗ clientWriteOnce cl [ep] ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ⊢

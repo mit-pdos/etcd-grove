@@ -43,12 +43,15 @@ reads it under an update with no program step).
 
 `NewMemoryStorage` gives the lock (`memStorLock`), the frozen dummy at `0`, the end at `1`, the
 client's snapshot half at the empty snapshot, the hard state (`memStorMeta`) and the allocation's
-fuel (`memStorFresh`: the authority of `jc` and the snapshot's home, which the lock does not hold
-until then). `InitialState` reads the snapshot without the lock, so it is specified on
-`memStorFresh` (before the justification invariant exists). `memStorInvP_alloc` turns the fuel
-into the invariant (`memStorInvP ms γs J`, persistent), from which the methods that need the
-justifications (`Snapshot`, `ApplySnapshot`, `CreateSnapshot`, `Compact`) and the contract law
-(`MemstorageInstance.lean`) follow.
+fuel (`memStorFresh ms γs 0 memSnapEmpty`, the detached mode: the authority of `jc` and the
+snapshot's home, which the lock does not hold until then). `InitialState` reads the snapshot
+without the lock, so it is specified on `memStorFresh` (before the justification invariant
+exists). The methods that need the justifications (`Snapshot`, `ApplySnapshot`, `CreateSnapshot`,
+`Compact`) take a mode (`memStorAt`, durability stage I, I-5): detached, they move
+`memStorFresh`'s compaction point and snapshot (a restart restores a storage before attaching
+it). `memStorInvP_alloc` turns the detached token into the invariant (`memStorInvP ms γs J`,
+persistent), from which the attached mode and the contract law (`MemstorageInstance.lean`)
+follow.
 -/
 module
 
@@ -671,56 +674,109 @@ instance memStorInvP_persistent (ms : Loc) (γs : MemStorNames) (J : MemJust GF)
     Persistent (memStorInvP ms γs J) := by
   unfold memStorInvP; infer_instance
 
-/-- **The allocation's fuel** (`NewMemoryStorage`'s, consumed by `memStorInvP_alloc`): the
-authority of `jc` (at `[0]`), and the snapshot's home, empty, which the lock does not hold. Also
-what `InitialState`, which reads the snapshot without the lock, takes. -/
-def memStorFresh (ms : Loc) (γs : MemStorNames) : IProp GF :=
-  iprop(monoListAuthOwn γs.jc 1 [0] ∗ memKey γs.hk ∗ ∃ (sp : Loc),
-    ms.[MemoryStorage, go!"snapshot"] ↦ sp ∗ ownSnapM sp (DFrac.own 1) memSnapEmpty ∗
-    ghostVar γs.sx (1 : Qp).half memSnapEmpty)
+/-- **The detached mode** at the compaction point `c` and the stored snapshot `sv` (exclusive;
+durability stage I, I-5, 2026-10-31: `notes/raft-durability-proof-plan.md`; survey-storage §5).
+No node reads the storage, and the storage is not attached to any justification `J` yet: it owns
+outright what the justification invariant owns once attached, the authority of `jc` (every
+justified point at most `c`, `0` among them) and the snapshot's home (at `sv`, with no validity).
+`NewMemoryStorage` gives it at `0` and the empty snapshot; the detached modes of `Snapshot`,
+`ApplySnapshot`, `Compact` and `CreateSnapshot` (`memStorAt`) move it; `memStorInvP_alloc`
+consumes it (a storage is attached once). Also what `InitialState`, which reads the snapshot
+without the lock, takes. -/
+def memStorFresh (ms : Loc) (γs : MemStorNames) (c : Nat) (sv : SnapshotM) : IProp GF :=
+  iprop((∃ (L : List Nat), monoListAuthOwn γs.jc 1 L ∗ ⌜0 ∈ L ∧ ∀ k ∈ L, k ≤ c⌝) ∗
+    memKey γs.hk ∗ ∃ (sp : Loc),
+    ms.[MemoryStorage, go!"snapshot"] ↦ sp ∗ ownSnapM sp (DFrac.own 1) sv ∗
+    ghostVar γs.sx (1 : Qp).half sv)
 
-/-- (raft-final, 2026-10-29) **A fresh storage is compacted at `0` only**: with the allocation's
-fuel, no compaction point past `0` is justified. A wrapper's `FirstIndex` answers exactly `1`
-(`bootStorage`) from `MemoryStorage.FirstIndex`'s `memCompacted (fi - 1)`. -/
-theorem memStorFresh_compacted (ms : Loc) (γs : MemStorNames) (c : Nat) :
-    memStorFresh (GF := GF) ms γs ∗ memCompacted γs c ⊢ ⌜c = 0⌝ ∗ memStorFresh ms γs := by
+/-- **A call's mode** (I-5): detached at `c` and `sv` (`o = some (c, sv)`: the lock and
+`memStorFresh`), or attached at the justifications `J` with the call's bounds `P` (`o = none`).
+The four methods that read the justifications take it, and give the detached token back in a
+`match o` of their post. -/
+def memStorAt (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM))
+    (P : IProp GF) : IProp GF :=
+  match o with
+  | some (c, sv) => iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv)
+  | none => iprop(memStorInvP ms γs J ∗ P)
+
+/-- The attached mode unfolded (for `rw`/`simp only` at a call site or in a post). -/
+theorem memStorAt_none (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (P : IProp GF) :
+    memStorAt ms γs J none P = iprop(memStorInvP ms γs J ∗ P) := rfl
+
+/-- The detached mode unfolded. -/
+theorem memStorAt_some (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (sv : SnapshotM)
+    (P : IProp GF) :
+    memStorAt ms γs J (some (c, sv)) P = iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv) := rfl
+
+/-- **An attached caller's mode** (I-5): the storage's invariant at `J` and the call's bounds give
+the attached mode, for an attached call site (`iapply memStorAt_none_intro $$ Hsi HP`). -/
+theorem memStorAt_none_intro (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (P : IProp GF) :
+    ⊢ memStorInvP ms γs J -∗ P -∗ memStorAt ms γs J none P := by
+  iintro Hi HP
+  rw [memStorAt_none]
+  iframe Hi HP
+
+/-- **A detached storage is compacted at most at `c`** (I-5; `c = 0` gives a wrapper's
+`FirstIndex` answering exactly `1`, as `bootStorage` needed): with the detached token, every
+justified compaction point is at most `c`. -/
+theorem memStorFresh_compacted (ms : Loc) (γs : MemStorNames) (c : Nat) (sv : SnapshotM) (c' : Nat) :
+    memStorFresh (GF := GF) ms γs c sv ∗ memCompacted γs c' ⊢
+      ⌜c' ≤ c⌝ ∗ memStorFresh ms γs c sv := by
   iintro ⟨Hf, Hc⟩
   iunfold memCompacted at Hc
   icases Hc with (%H | ⟨#-, %L, #HL, %Hk⟩)
-  · iframe Hf; ipureintro; exact H
+  · iframe Hf; ipureintro; omega
   iunfold memStorFresh at Hf
-  icases Hf with ⟨Ha, Hrest⟩
-  ihave %Hp := mono_list_auth_lb_valid γs.jc 1 [0] L $$ Ha HL
+  icases Hf with ⟨⟨%L', Ha, %HL'⟩, Hrest⟩
+  ihave %Hp := mono_list_auth_lb_valid γs.jc 1 L' L $$ Ha HL
   isplitr
   · ipureintro
     obtain ⟨k, hk, hck⟩ := Hk
     have hs := Hp.2.sublist.subset hk
-    simp at hs
+    have := HL'.2 k hs
     omega
   iunfold memStorFresh
-  iframe Ha Hrest
+  iframe Hrest
+  iexists L'
+  iframe Ha
+  ipureintro; exact HL'
 
-/-- **The allocation of the storage's invariant** at the justifications `J` (step 4: at the
-client's `(γ, id)`), from the fuel and the justification of `0`. -/
-theorem memStorInvP_alloc (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (E : CoPset) :
-    ⊢ memStorLock ms γs -∗ memStorFresh ms γs -∗ J.B 0 ={E}=∗ memStorInvP ms γs J := by
-  iintro #Hl Hf #HB0
+/-- Every element of a list of points at most `c` is justified, from the justification of every
+point up to `c` (the attach's `□ ∀`). -/
+theorem memJust_bigSepL_le (J : MemJust GF) (c : Nat) (L : List Nat) (hL : ∀ k ∈ L, k ≤ c) :
+    □ (∀ k, ⌜k ≤ c⌝ -∗ J.B k) ⊢ [∗list] k ∈ L, J.B k := by
+  apply BigSepL.bigSepL_intro
+  intro i x hx
+  iintro #H
+  iapply H
+  ipureintro
+  exact hL x (List.mem_of_getElem? hx)
+
+/-- **The attach** (I-5, the generalized allocation of the storage's invariant at the
+justifications `J`): from the detached token at `c` and `sv`, the justification of every
+compaction point up to `c`, and the stored snapshot's validity unless it is empty. It consumes the
+token, so a storage is attached once. -/
+theorem memStorInvP_alloc (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (E : CoPset)
+    (c : Nat) (sv : SnapshotM) :
+    ⊢ memStorLock ms γs -∗ memStorFresh ms γs c sv -∗ □ (∀ k, ⌜k ≤ c⌝ -∗ J.B k) -∗
+      (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ={E}=∗
+      memStorInvP ms γs J := by
+  iintro #Hl Hf #HB Hval
   iunfold memStorFresh at Hf
-  icases Hf with ⟨Ha, Hhk, %sp, Hsp, Hsnap, Hsx⟩
-  imod inv_alloc memStorN E (memJustInv ms γs J) $$ [Ha Hhk Hsp Hsnap Hsx] with #Hinv
+  icases Hf with ⟨⟨%L, Ha, %HL⟩, Hhk, %sp, Hsp, Hsnap, Hsx⟩
+  ihave #HB0 := HB $$ %0 %(Nat.zero_le c)
+  ihave #HBL := memJust_bigSepL_le J c L HL.2 $$ HB
+  imod inv_alloc memStorN E (memJustInv ms γs J) $$ [Ha Hhk Hsp Hsnap Hsx Hval] with #Hinv
   · inext
     iunfold memJustInv
     isplitl [Ha]
-    · iexists [0]
-      iframe Ha
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ k => J.B k)).2
-      iexact HB0
+    · iexists L
+      iframe Ha HBL
     ileft
     iunfold memSnapHome
     iframe Hhk
-    iexists sp, memSnapEmpty
+    iexists sp, sv
     iframe
-    ileft; ipureintro; rfl
   imodintro
   iunfold memStorInvP
   iframe Hl HB0 Hinv

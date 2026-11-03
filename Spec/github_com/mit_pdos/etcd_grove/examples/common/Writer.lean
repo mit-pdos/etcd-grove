@@ -11,7 +11,8 @@ and `ContextErrsClient` on Go's context errors), logging each that returned no e
 (`wsInvF`, the log's lock invariant) with the caller's fact `OkF` of its record (from `QW` and the
 reply's facts: its revision is `σ`'s next, `σ` a well-formed log's state, `kvLogOk`). The caller's facts are its own
 (watchkv's of its invariant over the KV state, cachekv's of the clients' model of etcd); until
-2026-10-26 the adapter's (`kmInv`, `okFactKM`), before D48 the server's sealed logs.
+2026-10-26 the adapter's (`kmInv`, `okFactKM`), before D48 the server's sealed logs. Each Put must fit a gRPC
+message: the pairs tried are small (`wkvSizeOk`; 2026-10-31, `notes/invoke-size.md`, pass 4).
 -/
 module
 
@@ -44,7 +45,7 @@ abbrev Writer.spec : Prop :=
     (OkF : wrec → IProp GF) (w : Loc) (tsl : GoSlice) (tried : List wkv) (lo hi : w64),
   (∀ p, Persistent (OkF p)) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
+  0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length → (∀ x ∈ tried, wkvSizeOk x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□

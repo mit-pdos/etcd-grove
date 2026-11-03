@@ -44,6 +44,7 @@ abbrev Client.OptimisticDelete.spec : Prop :=
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (Q : KVState → IProp GF),
+  key.length ≤ opKeyMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
@@ -59,7 +60,7 @@ abbrev Client.OptimisticDelete.spec : Prop :=
             (optDelTxn key rev opts.GetOnFailure')).1 ∧
           resp.Revision' =
             W64 ((kvOpStep (.txn (optDelTxn key rev opts.GetOnFailure')) σ).rev : Int) ∧
-          σ.rev + 3 < 2 ^ 63⌝ ∗
+          kvRevFits σ.rev⌝ ∗
         (if opts.GetOnFailure' && !resp.Succeeded' then
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨

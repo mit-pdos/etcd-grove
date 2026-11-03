@@ -171,18 +171,7 @@ configuration (`nodeCfg`) of the node's names, at the membership's state, the na
 def nodeConfig (n : Loc) (γ : Cluster) (_N : Namespace) (v : ConfigView) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64),
     ⌜NodeOk γ γn ∧ γn.mode.isDyn = true ∧ CCGood (stOf v.membership)⌝ ∗
-    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗ nodeCfg γn v.applied (stOf v.membership))
-
-/-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
-raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
-def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
-  iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
-    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ dlvLb γn ds) ∗
-    isCommittedLogLb γ l)
-
-instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
-    Persistent (deliveredLogLb (GF := GF) n γ N l) := by
-  unfold deliveredLogLb; infer_instance
+    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ n γn ∗ nodeCfg γn v.applied (stOf v.membership))
 
 theorem drv_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
     EtcdGrove.nodeDriverChan (GF := GF) γn id n ds p ⊢
@@ -191,31 +180,32 @@ theorem drv_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) 
   iintro ⟨#Hn, Hd, #Hlb, Hr⟩
   iframe Hn Hd Hlb Hr
 
-theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
-    (p : HardStateM) (L : Option SnapLoan) :
-    nodeDriverBusy (GF := GF) γn id n ds es p L ⊢
-      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
-  unfold nodeDriverBusy
-  iintro ⟨#Hn, #Hlb, Hr⟩
-  iframe Hn Hlb Hr
+theorem nodeDriver_hardStateCommitted_impl (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      hsCommitted γ N st.hardState st.delivered.length := by
+  unfold nodeDriver
+  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, #Hkey, Htok⟩
+  isplitl [Htok]
+  · iexists γn, id, ds
+    iframe Hci Hlb0 Htab Hhc Hkey Htok
+    ipureintro; exact ⟨Hf, Hdyn⟩
+  · iexact Hhc
 
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver deliveredLogLb
-  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, Htok⟩
-  icases Htok with (⟨%Hn, Htok⟩ | ⟨%es, %L, %Hh, Htok, Hm⟩)
+  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, #Hkey, Htok⟩
+  icases Htok with (⟨%Hn, Htok, Hdur⟩ | ⟨%es, %L, %W, %Hh, Htok, Hm⟩)
   · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨Htok, #Hnd, #Hdl⟩
-    isplitl [Htok]
+    isplitl [Htok Hdur]
     · iexists γn, id, ds
+      iframe Hci Hlb0 Htab Hhc Hkey
       isplitr; · ipureintro; exact Hf
-      isplitr; · iexact Hci
-      isplitr; · iexact Hlb0
       isplitr; · ipureintro; exact Hdyn
-      isplitr; · iexact Htab
-      isplitr; · iexact Hhc
       ileft
-      iframe Htok
+      iframe Htok Hdur
       ipureintro; exact Hn
     isplitr
     · iexists γn, id, ds
@@ -227,14 +217,11 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
   · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨Htok, #Hnd, #Hdl⟩
     isplitl [Htok Hm]
     · iexists γn, id, ds
+      iframe Hci Hlb0 Htab Hhc Hkey
       isplitr; · ipureintro; exact Hf
-      isplitr; · iexact Hci
-      isplitr; · iexact Hlb0
       isplitr; · ipureintro; exact Hdyn
-      isplitr; · iexact Htab
-      isplitr; · iexact Hhc
       iright
-      iexists es, L
+      iexists es, L, W
       iframe Htok Hm
       ipureintro; exact Hh
     isplitr
@@ -244,6 +231,61 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
       isplitr; · iright; iexact Htab
       iexact Hdl
     iexact Hlb0
+
+/-- (stage II helper) What was delivered is committed for the driver's storage. -/
+theorem deliveredLogLb_nodeCommitLb_core (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) (l : List LogEntry) :
+    nodeDriver (GF := GF) n γ N st ∗ deliveredLogLb n γ N l ⊢
+      nodeDriver n γ N st ∗ nodeCommitLbU γ st.key l.length := by
+  iintro ⟨Hd, #Hl⟩
+  unfold nodeDriver
+  icases Hd with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, #Hkey, Htok⟩
+  isplitl [Htok]
+  · iexists γn, id, ds
+    iframe Hci Hlb0 Htab Hhc Hkey Htok
+    ipureintro; exact ⟨Hf, Hdyn⟩
+  unfold deliveredLogLb
+  icases Hl with ⟨⟨%γn', %id', %ds', %Hf', #Hnd', Htab', #Hdl'⟩, #Hc⟩
+  icases Htab' with (%Hnd | #Htab')
+  · exfalso
+    have h1 := Hf.1.2.2
+    have h2 := Hf'.1.2.2
+    rw [h2, ← h1, Hdyn] at Hnd
+    cases Hnd
+  ihave %Hn := nodeTabOk_agree γ n γn γn' $$ Htab Htab'
+  -- (durability stage I-6) the table records the names, not the attach record: the certified
+  -- terms (`dlvKeys`) read only `gd`
+  have Hgd : γn'.sn.gd = γn.sn.gd := by
+    simp only [cfgNamesOf, Prod.mk.injEq] at Hn
+    obtain ⟨-, -, -, -, -, -, -, -, h4, -, -⟩ := Hn
+    exact h4.symm
+  rw [← Hf'.2]
+  iapply nodeCommitLbU_of_dlvLb γ st.key { γn' with sn := γn.sn } ds'
+  iframe Hkey
+  isplitl []
+  · unfold dlvLb dlvKeys dlvKeysAt
+    simp only
+    rw [← Hgd]
+    iexact Hdl'
+  rw [Hf'.2]; iexact Hc
+
+/-- (2026-11-01, durability stage I-4) The `Ready` loop's storage has its committed log
+(`nodeDriver_nodeCommitLb`): its `dlvLb`'s certified terms, under the key's names. -/
+theorem nodeDriver_nodeCommitLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢
+      nodeDriver n γ N st ∗ nodeCommitLbU γ st.key st.delivered.length := by
+  iintro Hd
+  icases nodeDriver_deliveredLogLb_impl n γ N st $$ Hd with ⟨Hd, #Hl⟩
+  iapply deliveredLogLb_nodeCommitLb_core n γ N st st.delivered $$ [$Hd $Hl]
+
+/-- (2026-11-01, durability stage I-4) What was delivered is committed for the node's storage
+(`deliveredLogLb_nodeCommitLb`): the node's table entry and the driver's agree on its names. -/
+theorem deliveredLogLb_nodeCommitLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) (l : List LogEntry) :
+    nodeDriver (GF := GF) n γ N st ∗ deliveredLogLb n γ N l ⊢
+      nodeDriver n γ N st ∗ nodeCommitLbU γ st.key l.length :=
+  deliveredLogLb_nodeCommitLb_core n γ N st l
 
 theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by

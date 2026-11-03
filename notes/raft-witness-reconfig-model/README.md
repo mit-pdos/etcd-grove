@@ -2,7 +2,7 @@
 
 `model.py`: an explicit-state model of etcd-raft membership changes with one witness, as
 raft#168 does it in the fork `raft-witness-goose-lean` (`9ed005d46`). It extends
-`issues/raft-conf-lag-model/model.py` (atomic elections, one AppendEntries round trip per `app`,
+`notes/raft-conf-lag-model/model.py` (atomic elections, one AppendEntries round trip per `app`,
 apply-time configuration switching) with subterms, the leader's epoch (excluded voter per half),
 the witness's storage (atomic CAS) and each node's proxy cache, the witness's vote and append
 rules, `getWitnessVoteRequestReadiness`, `maybeCommit`'s quorum-1 index per replicating half,

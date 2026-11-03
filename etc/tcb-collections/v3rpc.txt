@@ -22,6 +22,10 @@
 # (`grpc.serve`, `grpcServerAt`, `grpcServes`, `grpcServes_persistent`; `etcd_kv_served`'s, in the
 # client's collection).
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
+axiom EtcdServer.ensureLeadership.wp_proof
+axiom EtcdServer.leaseTimeToLive.wp_proof
+axiom EtcdServer.waitAppliedIndex.wp_proof
+axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
@@ -79,6 +83,8 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom lease.lessor.Renew.wp_proof
+axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
@@ -95,6 +101,7 @@ axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom sort.Sort.wp_anyLess
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom storage.NewBackendQuota.wp_proof

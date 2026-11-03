@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
 
@@ -36,26 +37,30 @@ stream chain `[ims, is]` (grpc-prometheus's, `newStreamInterceptor(s)`'s), all t
 etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
 the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
 `*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
-`pa` over the server (`authRegs`, `authServerIs`), given the service values' method sets (`ServerMethodSets`, Go's
-type checker's facts). The server's resources come back (the progress interval
-written by `NewWatchServer`). -/
+`pa` over the server (`authRegs`, `authServerIs`), and (the lease-src plan, 2026-11-02) the Lease
+service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer` `ql` over the
+`*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), given the service values' method sets (`ServerMethodSets`, Go's
+type checker's facts). The server's resources come back (J8a-3: the progress interval read-only,
+`NewWatchServer` no longer writes it). -/
 abbrev v3rpc.Server.spec : Prop :=
   v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
+      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
       gsl ↦*□ gvs ∗ ⌜∀ v ∈ gvs, grpcSrvOpt v .neutral⌝ }}
     (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
       (Val #(func.nil : GoFunc))) (Val #gsl))
-  {{ (gs : Loc), RET #gs; ∃ (q p pw pa : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
-      (regs sregs : List (GoString × val × GoInterface)) (cid mid : w64) (R : v3rpc.WSrv GF)
-      (d' : w64),
+  {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
+      (regs sregs : List (GoString × val × GoInterface)) (cid mid lcid lmid : w64) (R : v3rpc.WSrv GF),
       grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
       ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
-        (∀ x ∈ v3rpc.authRegs pa, x ∈ regs)⌝ ∗
+        (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+        (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs⌝ ∗
       v3rpc.authServerIs pa s ∗
+      v3rpc.quotaLeaseServerAt ql ⟨go.GoType.PointerType v3rpc.LeaseServer.ty, #pl⟩ s ∗
+      v3rpc.leaseServerAt pl s C.A lcid lmid ∗
       v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
       v3rpc.kvServerIs p s C.A cid mid C.n ∗
       v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
@@ -63,8 +68,7 @@ abbrev v3rpc.Server.spec : Prop :=
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
       srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
       srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
-      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' }}
+      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s }}
 
 end spec
 

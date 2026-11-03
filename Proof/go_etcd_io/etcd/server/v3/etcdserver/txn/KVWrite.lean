@@ -47,9 +47,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- The writer's part of a watchable store's notified log, unfolded. -/
 theorem wlogOwn_watch (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) (h : γ.watchQ = true) :
-    wlogOwn (GF := GF) s γ L ⊣⊢ ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗
-      mvcc.isWatchableStore ws s γw ∗ monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L := by
-  unfold wlogOwn; rw [h]; simp only [↓reduceIte]; exact .rfl
+    wlogOwn (GF := GF) s γ L ⊣⊢ (∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗
+      mvcc.isWatchableStore ws s γw ∗ monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L) ∗
+      mvcc.writerPin γ L := by
+  unfold wlogOwn wlogOwnW; rw [h]; simp only [↓reduceIte]; exact .rfl
 
 /-! ## The KV -/
 
@@ -180,8 +181,9 @@ theorem kv_Write (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
     simp only [interface.mkOk, GoInterface.ok.injEq] at Hkv
     injection Hkv with h1 h2
     subst h1 h2
-    iapply (hWF s γ trace P Pre Q f te) $$ [Hrd Htok Hwt Hpre Htrc Hhook]
-    · iframe Hrd Htok Hwt Hpre Htrc Hhook; iframe #; ipureintro; exact Ht
+    ihave Hpin := (wlogOwn_plain s γ Lw Hwq).1 $$ Hwl
+    iapply (hWF s γ trace P Pre Q f te Lw) $$ [Hrd Htok Hwt Hpre Htrc Hhook Hpin]
+    · iframe Hrd Htok Hwt Hpre Htrc Hhook Hpin; iframe #; ipureintro; exact Ht
     inext
     iintro %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
     iapply HΦ
@@ -200,14 +202,14 @@ theorem kv_Write (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
     icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
     iNamed Hws'
     obtain ⟨hb, hlen⟩ := Hsole Hwq
-    icases (wlogOwn_watch s γw.st Lw Hwq).1 $$ Hwl with ⟨%ws2, %γw2, %hγ2, #Hws2, Hhalf, #HcL⟩
+    icases (wlogOwn_watch s γw.st Lw Hwq).1 $$ Hwl with ⟨⟨%ws2, %γw2, %hγ2, #Hws2, Hhalf, #HcL⟩, Hpin⟩
     ihave %Hws := watchableStore_unique ws ws2 s γw γw2 $$ [$Hws $Hws2]
     subst Hws
     -- the sole writer of the notified log, at `γw2`'s names
-    ihave Hww : mvcc.watchWriter γw2 Lw $$ [Htok Hm Hhalf]
+    ihave Hww : mvcc.watchWriter γw2 Lw $$ [Htok Hm Hhalf Hpin]
     · iunfold mvcc.watchWriter
       rw [hγ2]
-      iframe HcL Hhalf
+      iframe HcL Hhalf Hpin
       have hb' : mvcc.wBudget Lw = m + 1 := by unfold mvcc.wBudget; unfold soleBudget at hb; omega
       rw [hb']
       unfold mvcc.revToken
@@ -271,13 +273,13 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
       iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ hwq); iframe Hhook HP Hok
     inext
     iintro ⟨Hrd, Hpost, %te', Htrc⟩
-    ihave ⟨#Hc, Htok, Hfrag⟩ := mvcc.txnEndPost_plain _ _ _ _ _ _ hwq $$ Hpost
+    ihave ⟨#Hc, Htok, Hfrag, Hpin⟩ := mvcc.txnEndPost_plain _ _ _ _ _ _ hwq $$ Hpost
     iapply HΦ
     iframe Hrd Hc Htok Hm
     isplitl [Htrc]
     · iexists te'; iexact Htrc
-    isplitl []
-    · iapply wlogOwn_plain s γ _ hwq
+    isplitl [Hpin]
+    · iapply (wlogOwn_plain s γ _ hwq).2; iexact Hpin
     iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   · -- the watchable store's `End`: the watchers notified under its lock
     obtain ⟨h1, h2, hγ⟩ := H
@@ -300,7 +302,7 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     inext
     iintro ⟨Hrd, #Hc, Hww, Htrc, Hfrag⟩
     iunfold mvcc.watchWriter at Hww
-    icases Hww with ⟨-, Htoks, Hhalf⟩
+    icases Hww with ⟨-, Htoks, Hhalf, Hpin⟩
     iapply HΦ
     iframe Hrd Hc Htrc
     have e : mvcc.wBudget (mvcc.commitLog ilog pend) = m + (if pend = [] then 1 else 0) := by
@@ -317,10 +319,62 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
       · simp only [hp, ↓reduceIte]; itrivial
     isplitr [Hfrag]
     · iapply (wlogOwn_watch s γw.st _ Hwq).2
+      iframe Hpin
       iexists ws, γw
       iframe Hws Hhalf Hc
       ipureintro; rfl
     iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag
+
+/-- **The KV's writer, opened at the watchable store** (the lease-revoke plan, R2, F4): the sole writer of the watchable
+store at the names its notified-log half holds (the store's `γ`), `X` of them (from a contract at
+every name set), the log's bounds (`soleLog`, fewer than `2 ^ 48` changes), and its closing at a
+`soleLog` log. -/
+theorem kvWriter_open (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (hw : γ.watchQ = true)
+    (X : Loc → mvcc.WsNames → IProp GF) :
+    kvWriter s γ log ∗ □ (∀ (ws : Loc) (γw : mvcc.WsNames), mvcc.isWatchableStore ws s γw -∗ X ws γw) ⊢
+      ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ ∧ soleLog log ∧ mvcc.logCh log < 2 ^ 48⌝ ∗
+        X ws γw ∗ mvcc.watchWriter γw log ∗ mvcc.writerFrag γ ∗
+        (∀ log' : mvcc.Log, ⌜soleLog log'⌝ -∗ mvcc.watchWriter γw log' -∗ mvcc.writerFrag γ -∗
+          kvWriter s γ log') := by
+  iintro ⟨Hkw, #HX⟩
+  iunfold kvWriter at Hkw
+  icases Hkw with ⟨Hsw, Hwl, Hfrag⟩
+  iunfold soleWriter at Hsw
+  icases Hsw with ⟨#Hc, Htok, %Hs⟩
+  ihave #Hcs := mvcc.idxCert_sealed γ.idx log $$ Hc
+  ihave %Hsm := mvcc.idxSealed_small γ.idx log $$ Hcs
+  icases (wlogOwn_watch (GF := GF) s γ log hw).1 $$ Hwl with ⟨⟨%ws, %γw, %hγ, #Hws, Hhalf, -⟩, Hpin⟩
+  subst hγ
+  iexists ws, γw
+  isplitr
+  · ipureintro; exact ⟨rfl, Hs.1, by have := Hs.2; omega⟩
+  isplitr
+  · iapply HX $$ Hws
+  isplitl [Htok Hhalf Hpin]
+  · iunfold mvcc.watchWriter
+    iframe Hc Hhalf Hpin
+    unfold mvcc.wBudget
+    unfold soleBudget
+    iexact Htok
+  iframe Hfrag
+  iintro %log' %Hs' Hww Hfrag
+  iunfold mvcc.watchWriter at Hww
+  icases Hww with ⟨#Hc', Htok', Hhalf', Hpin'⟩
+  iunfold kvWriter
+  iframe Hfrag
+  isplitl [Htok']
+  · iunfold soleWriter
+    iframe Hc'
+    isplitl
+    · unfold mvcc.wBudget
+      unfold soleBudget
+      iexact Htok'
+    · ipureintro; exact ⟨Hs', Hs.2⟩
+  iapply (wlogOwn_watch (GF := GF) s γw.st log' hw).2
+  iframe Hpin'
+  iexists ws, γw
+  iframe Hws Hhalf' Hc'
+  ipureintro; rfl
 
 end kv
 

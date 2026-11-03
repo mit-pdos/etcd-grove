@@ -43,7 +43,7 @@ namespace putget3
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -97,8 +97,8 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
+  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `Main`'s premises in the shared start's form
@@ -230,9 +230,11 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
+      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN HwbN
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -244,8 +246,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup₁
-  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
+    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_StartMember N name₂ peerAddr₂ clientAddr₂ go!"putget3"
@@ -254,9 +256,11 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
+      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN HwbN
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -277,9 +281,11 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃
+      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN HwbN
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -302,10 +308,11 @@ theorem Main.wp_proof
   wp_apply (wp_Serve s₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => common.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Hac Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Hac Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
-    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48)
+    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl)
+    unfold common.kvServeStocks
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
@@ -320,7 +327,7 @@ theorem Main.wp_proof
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
       (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
-      (by unfold plainEndpoint clientAddr₁; decide) Htb) as %cl %cerr Hcl
+      (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -354,7 +361,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl clientAddr₁ _ E ρ₁.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -378,7 +387,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ₁.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl clientAddr₁ _ E ρ₁.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

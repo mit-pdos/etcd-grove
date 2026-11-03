@@ -549,7 +549,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hlb⟩
   iunfold kvTxnOk
   iintro %ctx %r %cs %ts %es %n' !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
-  obtain ⟨Hck, HivT, HivE, Hin, Hro, Hsh⟩ := Hok
+  obtain ⟨Hck, Hdp, HivT, HivE, Hin, Hro, Hsh⟩ := Hok
   obtain ⟨ts', es', hts, hes, hm⟩ := txnModelOf_of_check Hck
   simp only [srvKVAnsOn] at Hin ⊢
   simp only [kvDepPre] at Hro
@@ -588,7 +588,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       · ipureintro; exact Hlgn
       isplitr
       · simp only [traceutil.ownTraceOpt]; itrivial
-      ipureintro; exact hro
+      ipureintro; exact ⟨hro, Hdp t hm⟩
     ihave Hrc : srvRdCall s E γr c $$ [Hsr Hlgr Hca Hrr Hard]
     · iunfold srvRdCall; iframe
     iapply HΦ

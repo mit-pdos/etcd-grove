@@ -14,8 +14,10 @@ theorem ownRaftGhost_rd [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (
     PState) (ms : List Msg) (Hs' : s' = { term := s.term, vote := s.vote, lead := s.lead, role :=
     s.role, votes := s.votes, outbox := s.outbox ++ ms, base := s.base, log := s.log, commit :=
     s.commit, matched := s.matched, rd := s'.rd }) : ⊢ ([∗list] m ∈ ms, isMessage γ m) -∗
-    ownRaftGhost γ id s md -∗ (∀ kl, ownLogGhost γ id s kl -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
-    ownLogGhost γ id s kl ∗ rdOwn γ id s') ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id s' md
+    ownRaftGhost γ id s md -∗ (∀ kl γs V πc, ⌜γ.reSlot !! id = some γs⌝ -∗ slotInv γ id -∗ ghostVar
+    γs.fst (Qp.half 1) V -∗ ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
+    ghostVar γs.fst (Qp.half 1) V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s') ={⊤ \
+    ↑(raftRegN γ)}=∗ ownRaftGhost γ id s' md
 
 theorem isMessage_readIndex_tr [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (m m' : Msg) : m.ty =
     MsgType.readIndex → m'.ty = MsgType.readIndex → m'.entries = m.entries → ⊢ isMessage γ m -∗
@@ -59,6 +61,19 @@ theorem ownRaftGhost_step_lose [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftN
 theorem regs_open [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (P Q : IProp GF) : ⊢ raftCommitInv γ -∗
     £ 1 -∗ (regsOwn γ -∗ P ={⊤ \ ↑(raftRegN γ)}=∗ regsOwn γ ∗ Q) -∗ P ={⊤}=∗ Q
 
+theorem outbox_re [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (πc : List
+    Prom) (W : DurMaps) (o : List Msg) : (s'.role = Role.leader → s.role = Role.leader) → (s'.role =
+    Role.candidate → s.role = Role.candidate ∧ s'.term = s.term) → ([∗list] m ∈ o, outMsgOk γ id s
+    πc W m) ⊢ [∗list] m ∈ o, outMsgOk γ id s' πc W m
+
+theorem ownLogGhost_ack_at [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
+    Option w64) (W : DurMaps) (i T : w64) (HT : s.term = T) (Hnc : s.role ≠ Role.candidate) (Hli :
+    s.role = Role.leader → uint.Z i ≤ plogLastIndexZ s.base s.log) : ⊢ ackInF γ T i -∗ ackOk γ s
+    (s.term, i) -∗ (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ commitIn
+    γ (fp ++ s.log) s.commit s.term -∗ hist γ (fp ++ s.log) s.term i (bnd s kl)) -∗ ownLogGhost γ id
+    s kl W -∗ ownLogGhost γ id s kl (W.add (Prom.ack T i)) ∗ promJust γ id W (Prom.ack T i) ∗ □
+    (durFrags γ id (W.add (Prom.ack T i)) -∗ isAcked γ id T i)
+
 theorem preceipt_zero_bound [ReceiptGS GF] [InvGS GF] (n : Nat) : ⊢ |==> ⧖(Int.toNat 0 - n)
 
 theorem ownRaftGhost_ackIn_le [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s :
@@ -71,6 +86,12 @@ theorem ownRaftGhost_step_app_reject [ReceiptGS GF] [InvGS GF] {md : Bool} (γ :
     index' := m.index } → RejHintOk s.base s.log m.index m.logterm hint → ⊢ isMessage γ m -∗
     ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs (padoptLeader s m.src) [Msg.mk
     MsgType.appResp id m.src s.term true m.index hintterm (W64 0) hint []]) md
+
+theorem outbox_add [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (V :
+    DurMaps) (πc : List Prom) (p : Prom) (o : List Msg) : PromFresh (virt V πc) p → (s'.role =
+    Role.leader → s.role = Role.leader) → (s'.role = Role.candidate → s.role = Role.candidate ∧
+    s'.term = s.term) → ([∗list] m ∈ o, outMsgOk γ id s πc (virt V πc) m) ⊢ [∗list] m ∈ o, outMsgOk
+    γ id s' (πc ++ [p]) (virt V (πc ++ [p])) m
 
 theorem ownRaftGhost_step_takeReads [ReceiptGS GF] [InvGS GF] {md : Bool} {E : CoPset} (γ :
     RaftNames) (id : w64) (s : PState) : ⊢ ([∗list] m ∈ [], isMessage γ m) -∗ rdCred γ (rdCount [])
@@ -87,8 +108,11 @@ theorem ownRaftGhost_step_read_single [ReceiptGS GF] [InvGS GF] {md : Bool} (γ 
     γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id
     (preadRespondAll id s [{ index := s.commit, src := m.src, ents := m.entries }]) md
 
-theorem ownLogGhost_ack_le [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v : w64) (s : PState) (kl :
-    Option w64) (t i : w64) : ⊢ ownLogGhost γ v s kl -∗ ackEv γ v t i -∗ ⌜uint.Z t ≤ uint.Z s.term⌝
+theorem ownLogGhost_ack_le [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (v : w64) (s :
+    PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (t i : w64) : γ.reSlot
+    !! v = some γs → ↑(slotN γ v) ⊆ E → ⊢ slotInv γ v -∗ ghostVar γs.fst (Qp.half 1) V -∗
+    ownLogGhost γ v s kl (virt V πc) -∗ ackEv γ v t i ={E}=∗ ghostVar γs.fst (Qp.half 1) V ∗
+    ownLogGhost γ v s kl (virt V πc) ∗ ⌜uint.Z t ≤ uint.Z s.term⌝
 
 theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ (m : Msg), m ∈ ms → ReplOk id
     s m) : rdCount ms = 0
@@ -140,14 +164,25 @@ theorem ownRaftGhost_lastRec [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNam
     PState) : ⊢ ownRaftGhost γ id s md -∗ lastRec γ (plogLastIndexZ s.base s.log) ∗ ⌜plogLastIndexZ
     s.base s.log < 2 ^ 64⌝
 
+theorem outbox_intro [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (πc : List
+    Prom) (W : DurMaps) (ms : List Msg) : ([∗list] m ∈ ms, isMessage γ m) ⊢ [∗list] m ∈ ms, outMsgOk
+    γ id s πc W m
+
 theorem ownLogGhost_reject_ok [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl
-    : Option w64) (m : Msg) (hint : w64) (Hty : m.ty = MsgType.app) (Hle : uint.Z s.commit ≤ uint.Z
-    m.index) (Hnm : ¬PlogMatches s.base s.log { term' := m.logterm, index' := m.index }) (Hh :
-    RejHintOk s.base s.log m.index m.logterm hint) : ⊢ isMessage γ m -∗ ownLogGhost γ id s kl -∗
-    ⌜γ.reBoot ≠ [] → ↑γ.reBoot.length < uint.Z m.index ∧ 1 ≤ uint.Z hint ∧ uint.Z hint ≤ uint.Z
-    m.index⌝ ∗ ownLogGhost γ id s kl
+    : Option w64) (W : DurMaps) (m : Msg) (hint : w64) (Hty : m.ty = MsgType.app) (Hle : uint.Z
+    s.commit ≤ uint.Z m.index) (Hnm : ¬PlogMatches s.base s.log { term' := m.logterm, index' :=
+    m.index }) (Hh : RejHintOk s.base s.log m.index m.logterm hint) : ⊢ isMessage γ m -∗ ownLogGhost
+    γ id s kl W -∗ ⌜γ.reBoot ≠ [] → ↑γ.reBoot.length < uint.Z m.index ∧ 1 ≤ uint.Z hint ∧ uint.Z
+    hint ≤ uint.Z m.index⌝ ∗ ownLogGhost γ id s kl W
+
+theorem commitIn_ackInF [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp
+    F : List EntryM) (c tm : w64) : uint.Z tm ≤ uint.Z t → ⊢ votesTbl γ -∗ leadPrefix γ ldr t bL l
+    -∗ lpfull γ ldr t bL l fp -∗ commitIn γ F c tm -∗ votesTbl γ ∗ ackInF γ t c
 
 theorem lastRec_persistent [ReceiptGS GF] (γ : RaftNames) (L : Int) : Persistent (lastRec γ L)
+
+theorem OutPend_follower (id : w64) (s : PState) (πc : List Prom) : s.role = Role.follower → OutPend
+    id s πc
 
 theorem ownRaftGhost_step_read_arrive [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id :
     w64) (s : PState) (m : Msg) : m.ty = MsgType.readIndex → s.role = Role.leader → plogTermAt
@@ -193,11 +228,13 @@ theorem ownRaftGhost_stepC [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames
     m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ
     id s md ={⊤}=∗ ownRaftGhost γ id s' md
 
-theorem ownLogGhost_hbResp [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v : w64) (s : PState) (kl :
-    Option w64) (L : w64) (ctx : List w8) : ⊢ ownLogGhost γ v s kl -∗ (⌜ctx = []⌝ ∨ ∃ q recs, ⌜ctx =
-    u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ L s.term recs ∗ [∗list] r ∈ recs, rqRecOk γ s.term
-    r) -∗ ⌜ctx = []⌝ ∨ ∃ q recs, ⌜ctx = u64Le q ∧ HbAckOk v (uint.nat q) recs⌝ ∗ rqLb γ L s.term
-    recs
+theorem ownLogGhost_hbResp [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (v : w64) (s :
+    PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (L : w64) (ctx : List
+    w8) : γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ⊢ slotInv γ v -∗ ghostVar γs.fst (Qp.half 1)
+    V -∗ ownLogGhost γ v s kl (virt V πc) -∗ (⌜ctx = []⌝ ∨ ∃ q recs, ⌜ctx = u64Le q ∧ uint.nat q ≤
+    recs.length⌝ ∗ rqLb γ L s.term recs ∗ [∗list] r ∈ recs, rqRecOk γ s.term r) ={E}=∗ ghostVar
+    γs.fst (Qp.half 1) V ∗ ownLogGhost γ v s kl (virt V πc) ∗ (⌜ctx = []⌝ ∨ ∃ q recs, ⌜ctx = u64Le q
+    ∧ HbAckOk v (uint.nat q) recs⌝ ∗ rqLb γ L s.term recs)
 
 theorem ownRaftGhost_step_rematch [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (mt : GMap w64 w64) : s.role = Role.leader → (∀ (v i : w64), mt !! v = some i →
@@ -218,9 +255,10 @@ theorem ownRaftGhost_rdR [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) 
     PState) (ms : List Msg) (R : IProp GF) (Hs' : s' = { term := s.term, vote := s.vote, lead :=
     s.lead, role := s.role, votes := s.votes, outbox := s.outbox ++ ms, base := s.base, log :=
     s.log, commit := s.commit, matched := s.matched, rd := s'.rd }) : ⊢ ([∗list] m ∈ ms, isMessage γ
-    m) -∗ ownRaftGhost γ id s md -∗ (∀ kl, ownLogGhost γ id s kl -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN
-    γ)}=∗ ownLogGhost γ id s kl ∗ rdOwn γ id s' ∗ R) ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id s' md
-    ∗ R
+    m) -∗ ownRaftGhost γ id s md -∗ (∀ kl γs V πc, ⌜γ.reSlot !! id = some γs⌝ -∗ slotInv γ id -∗
+    ghostVar γs.fst (Qp.half 1) V -∗ ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \
+    ↑(raftRegN γ)}=∗ ghostVar γs.fst (Qp.half 1) V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id
+    s' ∗ R) ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id s' md ∗ R
 
 theorem recv_one [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (m : Msg) : ⊢ ([∗list] m ∈ [m], isMessage
     γ m) -∗ isMessage γ m
@@ -245,10 +283,19 @@ theorem ownRaftGhost_step_rejectVote [ReceiptGS GF] [InvGS GF] {md : Bool} (γ :
     isMessage γ m) -∗ rdCred γ (rdCount [m]) -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
     ownRaftGhost γ id (psendMsgs s [Msg.plain MsgType.voteResp id m.src s.term true]) md
 
+theorem outbox_eq' [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (πc : List
+    Prom) (W : DurMaps) : s'.outbox = s.outbox → (s'.role = Role.leader → s.role = Role.leader) →
+    (s'.role = Role.candidate → s.role = Role.candidate ∧ s'.term = s.term) → ([∗list] m ∈ s.outbox,
+    outMsgOk γ id s πc W m) ⊢ [∗list] m ∈ s'.outbox, outMsgOk γ id s' πc W m
+
 theorem ownRaftGhost_step_stepDown [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (Hrole : s.role = Role.leader) : ⊢ ([∗list] m ∈ [], isMessage γ m) -∗ rdCred γ
     (rdCount []) -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (pbecomeFollower
     s s.term (W64 0)) md
+
+theorem OutPend_step' (id : w64) (s s' : PState) (πc πc' : List Prom) : (∀ (p : Prom), p ∈ πc → p ∈
+    πc') → (s'.role = Role.leader → s.role = Role.leader) → (s'.role = Role.candidate → s.role =
+    Role.candidate ∧ s'.term = s.term) → OutPend id s πc → OutPend id s' πc'
 
 theorem ownRaftGhost_arrive [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (t :
     PState) (src : w64) (ents : List EntryM) (t' : PState) : t.role = Role.leader → plogTermAt
@@ -316,8 +363,9 @@ theorem ownRaftGhost_step_campaign [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : R
     {id}))) : ⊢ dynEnv γ id c s -∗ ([∗list] m ∈ [], isMessage γ m) -∗ rdCred γ (rdCount []) -∗
     ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs (pbecomeCandidate id
     s) ([Msg.plain MsgType.voteResp id id (pbecomeCandidate id s).term false] ++ List.map (fun dst
-    => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log) cl) peers)) md ∗ ∃ fp,
-    ⌜FullOk s.base fp⌝ ∗ logRecs γ base0 fp ∗ isCampK γ id (s.term + W64 1) (fp ++ s.log) s.commit
+    => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log) cl) peers)) md
+
+theorem padoptLeader_role (s : PState) (src : w64) : (padoptLeader s src).role = Role.follower
 
 theorem ownRaftGhost_step_beat [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s :
     PState) (ms : List Msg) : s.role = Role.leader → (∀ (m : Msg), m ∈ ms → HeartbeatOk id s m) → (∀
@@ -328,10 +376,10 @@ theorem ownRaftGhost_step_app_accept [ReceiptGS GF] [InvGS GF] {md : Bool} (γ :
     w64) (s : PState) (m : Msg) (lastnewi : w64) (es' : List EntryM) : m.ty = MsgType.app → m.src ≠
     id → m.term = s.term → s.role ≠ Role.leader → uint.Z s.commit ≤ uint.Z m.index → plogMaybeAppend
     s.base s.log { term' := m.logterm, index' := m.index } m.entries = some (lastnewi, es') → ⊢
-    isMessage γ m -∗ ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs (have __src :=
-    padoptLeader s m.src; { term := __src.term, vote := __src.vote, lead := __src.lead, role :=
-    __src.role, votes := __src.votes, outbox := __src.outbox, base := __src.base, log := es', commit
-    :=
+    isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs
+    (have __src := padoptLeader s m.src; { term := __src.term, vote := __src.vote, lead :=
+    __src.lead, role := __src.role, votes := __src.votes, outbox := __src.outbox, base :=
+    __src.base, log := es', commit :=
                             plogCommitTo s.commit (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi),
                           matched := __src.matched, rd := __src.rd })
                         [Msg.mk MsgType.appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []])
@@ -347,14 +395,16 @@ theorem regs_frame [ReceiptGS GF] [InvGS GF] {A B C D : IProp GF} (γ : RaftName
     ={⊤ \ ↑(raftRegN γ)}=∗ D) : ⊢ regsOwn γ -∗ A -∗ B -∗ C ={⊤ \ ↑(raftRegN γ)}=∗ regsOwn γ ∗ D
 
 theorem ownLogGhost_leader_last [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState)
-    (kl : Option w64) : ⊢ ownLogGhost γ id s kl -∗ ⌜s.role = Role.leader → γ.reBoot ≠ [] → 2 ≤
-    plogLastIndexZ s.base s.log⌝ ∗ ownLogGhost γ id s kl
+    (kl : Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜s.role = Role.leader → γ.reBoot
+    ≠ [] → 2 ≤ plogLastIndexZ s.base s.log⌝ ∗ ownLogGhost γ id s kl W
 
 theorem ownRaftGhost_step_higherTerm [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id :
     w64) (m : Msg) (s : PState) (Hlt : uint.Z s.term < uint.Z m.term) (Hto : m.dst = id) (Hfl :
     fromLeader m.ty = true → m.src ≠ id) : ⊢ ([∗list] m ∈ [m], isMessage γ m) -∗ rdCred γ (rdCount
     [m]) -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (pbecomeFollower s
     m.term (if fromLeader m.ty = true then m.src else W64 0)) md
+
+syntax tacticRole_tac
 
 theorem ownRaftGhost_leader_last [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s
     : PState) : ⊢ ownRaftGhost γ id s md -∗ ⌜s.role = Role.leader → γ.reBoot ≠ [] → 2 ≤
@@ -363,11 +413,12 @@ theorem ownRaftGhost_leader_last [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : Raf
 theorem ownRaftGhost_step_snap_fastfwd [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id :
     w64) (s : PState) (m : Msg) : m.ty = MsgType.snap → m.src ≠ id → m.term = s.term → s.role ≠
     Role.leader → uint.Z s.commit < uint.Z m.index → PlogMatches s.base s.log { term' := m.logterm,
-    index' := m.index } → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs
-    (have __src := padoptLeader s m.src; { term := __src.term, vote := __src.vote, lead :=
-    __src.lead, role := __src.role, votes := __src.votes, outbox := __src.outbox, base :=
-    __src.base, log := __src.log, commit := m.index, matched := __src.matched, rd := __src.rd })
-    [Msg.mk MsgType.appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []]) md
+    index' := m.index } → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+    ownRaftGhost γ id (psendMsgs (have __src := padoptLeader s m.src; { term := __src.term, vote :=
+    __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes, outbox :=
+    __src.outbox, base := __src.base, log := __src.log, commit := m.index, matched := __src.matched,
+    rd := __src.rd }) [Msg.mk MsgType.appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0)
+    []]) md
 
 theorem ownRaftGhost_step_read_fwd [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (m : Msg) : m.ty = MsgType.readIndex → s.role ≠ Role.leader → s.lead ≠ W64 0 → ⊢
@@ -376,37 +427,43 @@ theorem ownRaftGhost_step_read_fwd [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : R
     W64 0, reject := m.reject, index := m.index, logterm := m.logterm, commit := m.commit,
     rejecthint := m.rejecthint, entries := m.entries, cl := m.cl, al := m.al, ctx := m.ctx }]) md
 
+theorem padoptLeader_outbox (s : PState) (src : w64) : (padoptLeader s src).outbox = s.outbox
+
 theorem ownRaftGhost_step_snap_restore [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id :
     w64) (s : PState) (m : Msg) : m.ty = MsgType.snap → m.src ≠ id → m.term = s.term → s.role ≠
     Role.leader → uint.Z s.commit < uint.Z m.index → ¬PlogMatches s.base s.log { term' := m.logterm,
-    index' := m.index } → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs
-    (have __src := padoptLeader s m.src; { term := __src.term, vote := __src.vote, lead :=
-    __src.lead, role := __src.role, votes := __src.votes, outbox := __src.outbox, base := { term' :=
-    m.logterm, index' := m.index }, log := [], commit := m.index, matched := __src.matched, rd :=
-    __src.rd }) [Msg.mk MsgType.appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
-    md
+    index' := m.index } → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+    ownRaftGhost γ id (psendMsgs (have __src := padoptLeader s m.src; { term := __src.term, vote :=
+    __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes, outbox :=
+    __src.outbox, base := { term' := m.logterm, index' := m.index }, log := [], commit := m.index,
+    matched := __src.matched, rd := __src.rd }) [Msg.mk MsgType.appResp id m.src s.term false
+    m.index (W64 0) (W64 0) (W64 0) []]) md
 
 theorem rdOwn_arrive [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl : Option
-    w64) (q : ReadReq) (e : EntryM) (c : List w8) (d : Option (w64 × GSet w64)) : s.role =
-    Role.leader → q.index = s.commit → q.ents = [e] → ⊢ ownLogGhost γ id s kl -∗ rdOwn γ id s -∗
-    ⌜e.Data' = c⌝ -∗ rqRecOk γ s.term ((c, s.commit), d) -∗ rdCred γ 1 ={⊤ \ ↑(raftRegN γ)}=∗
-    ownLogGhost γ id s kl ∗ rdOwn γ id { term := s.term, vote := s.vote, lead := s.lead, role :=
-    s.role, votes := s.votes, outbox := s.outbox, base := s.base, log := s.log, commit := s.commit,
-    matched := s.matched, rd :=
-                            have __src := s.rd;
-                            { states := __src.states, ro := readonlyArrive s.rd.ro id q, pend := __src.pend } }
+    w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (q : ReadReq) (e : EntryM) (c : List w8) (d
+    : Option (w64 × GSet w64)) : γ.reSlot !! id = some γs → s.role = Role.leader → q.index =
+    s.commit → q.ents = [e] → ⊢ slotInv γ id -∗ ghostVar γs.fst (Qp.half 1) V -∗ ownLogGhost γ id s
+    kl (virt V πc) -∗ rdOwn γ id s -∗ ⌜e.Data' = c⌝ -∗ rqRecOk γ s.term ((c, s.commit), d) -∗ rdCred
+    γ 1 ={⊤ \ ↑(raftRegN γ)}=∗ ghostVar γs.fst (Qp.half 1) V ∗ ownLogGhost γ id s kl (virt V πc) ∗
+    rdOwn γ id { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
+    outbox := s.outbox, base := s.base, log := s.log, commit := s.commit, matched := s.matched, rd
+    :=
+                                    have __src := s.rd;
+                                    { states := __src.states, ro := readonlyArrive s.rd.ro id q, pend := __src.pend } }
+
+theorem padoptLeader_term (s : PState) (src : w64) : (padoptLeader s src).term = s.term
 
 theorem ownRaftGhost_step_heartbeat [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (m : Msg) : m.ty = MsgType.heartbeat → m.dst = id → m.term = s.term → m.src ≠ id →
     s.role ≠ Role.leader → uint.Z m.commit ≤ plogLastIndexZ s.base s.log → ⊢ isMessage γ m -∗
-    ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs (have __src := padoptLeader s m.src; {
-    term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role, votes :=
-    __src.votes, outbox := __src.outbox, base := __src.base, log := __src.log, commit :=
-    plogCommitTo s.commit m.commit, matched := __src.matched, rd := __src.rd }) [have __src :=
-    Msg.plain MsgType.heartbeatResp id m.src s.term false; { ty := __src.ty, src := __src.src, dst
-    := __src.dst, term := __src.term, reject := __src.reject, index := __src.index, logterm :=
-    __src.logterm, commit := __src.commit, rejecthint := __src.rejecthint, entries := __src.entries,
-    cl := __src.cl, al := __src.al, ctx := m.ctx }]) md
+    ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs (have __src :=
+    padoptLeader s m.src; { term := __src.term, vote := __src.vote, lead := __src.lead, role :=
+    __src.role, votes := __src.votes, outbox := __src.outbox, base := __src.base, log := __src.log,
+    commit := plogCommitTo s.commit m.commit, matched := __src.matched, rd := __src.rd }) [have
+    __src := Msg.plain MsgType.heartbeatResp id m.src s.term false; { ty := __src.ty, src :=
+    __src.src, dst := __src.dst, term := __src.term, reject := __src.reject, index := __src.index,
+    logterm := __src.logterm, commit := __src.commit, rejecthint := __src.rejecthint, entries :=
+    __src.entries, cl := __src.cl, al := __src.al, ctx := m.ctx }]) md
 
 theorem ownRaftGhost_step_propose [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (ents : List EntryM) (n : Nat) : s.role = Role.leader → plogLastIndexZ s.base s.log
@@ -418,6 +475,9 @@ theorem ownRaftGhost_step_propose [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : Ra
     md ==∗ ownRaftGhost γ id (psendMsgs (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))
     [pselfAck id (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))]) md
 
+theorem ownLogGhost_evs [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
+    Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜EvsOk s.term W⌝
+
 theorem ownRaftGhost_step_read_pend [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (m : Msg) (pm : MessageM) : m.ty = MsgType.readIndex → s.role = Role.leader → ⊢
     isMessage γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id {
@@ -427,13 +487,22 @@ theorem ownRaftGhost_step_read_pend [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : 
                     { states := __src.states, ro := __src.ro, pend := s.rd.pend ++ [(pm, m.entries)] } }
                 md
 
-theorem ownLogGhost_hbAck [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v : w64) (s : PState) (kl :
-    Option w64) (q : Nat) (recs : List RqRec) (hq : q ≤ recs.length) : ⊢ ownLogGhost γ v s kl -∗
-    ([∗list] r ∈ recs, rqRecOk γ s.term r) -∗ ⌜HbAckOk v q recs⌝
+theorem ownLogGhost_hbAck [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (v : w64) (s :
+    PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (q : Nat) (recs : List
+    RqRec) (hq : q ≤ recs.length) : γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ⊢ slotInv γ v -∗
+    ghostVar γs.fst (Qp.half 1) V -∗ ownLogGhost γ v s kl (virt V πc) -∗ ([∗list] r ∈ recs, rqRecOk
+    γ s.term r) ={E}=∗ ghostVar γs.fst (Qp.half 1) V ∗ ownLogGhost γ v s kl (virt V πc) ∗ ⌜HbAckOk v
+    q recs⌝
 
 theorem ownLogGhost_term1 [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
-    Option w64) : ⊢ ownLogGhost γ id s kl -∗ ⌜γ.reBoot ≠ [] → ∀ (t0 : w64), plogTermAt s.base s.log
-    (W64 1) = some t0 → uint.Z t0 ≤ 1⌝ ∗ ownLogGhost γ id s kl
+    Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜γ.reBoot ≠ [] → ∀ (t0 : w64),
+    plogTermAt s.base s.log (W64 1) = some t0 → uint.Z t0 ≤ 1⌝ ∗ ownLogGhost γ id s kl W
+
+theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).evs
+
+theorem OutPend_step (id : w64) (s s' : PState) (πc : List Prom) : (s'.role = Role.leader → s.role =
+    Role.leader) → (s'.role = Role.candidate → s.role = Role.candidate ∧ s'.term = s.term) → OutPend
+    id s πc → OutPend id s' πc
 
 theorem lpfull_fp [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp :
     List EntryM) : ⊢ lpfull γ ldr t bL l fp -∗ logRecs γ base0 fp ∗ ⌜FullOk bL fp ∧ PlogWf bL l ∧ ∀
@@ -455,14 +524,18 @@ theorem ownRaftGhost_step_zeroAck [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : Ra
     ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs s [Msg.mk
     MsgType.appResp id dst s.term false (W64 0) (W64 0) (W64 0) (W64 0) []]) md
 
-theorem ownLogGhost_not_doomed_list [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v : w64) (s : PState)
-    (kl : Option w64) (recs : List RqRec) : ⊢ ownLogGhost γ v s kl -∗ ([∗list] r ∈ recs, rqRecOk γ
-    s.term r) -∗ ⌜∀ (r : RqRec), r ∈ recs → ∀ (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈
-    q⌝
+theorem ownLogGhost_not_doomed_list [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (v : w64)
+    (s : PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (recs : List
+    RqRec) : γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ⊢ slotInv γ v -∗ ghostVar γs.fst (Qp.half
+    1) V -∗ ownLogGhost γ v s kl (virt V πc) -∗ ([∗list] r ∈ recs, rqRecOk γ s.term r) ={E}=∗
+    ghostVar γs.fst (Qp.half 1) V ∗ ownLogGhost γ v s kl (virt V πc) ∗ ⌜∀ (r : RqRec), r ∈ recs → ∀
+    (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈ q⌝
 
-theorem ownLogGhost_not_doomed [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v : w64) (s : PState) (kl
-    : Option w64) (r : RqRec) : ⊢ ownLogGhost γ v s kl -∗ rqRecOk γ s.term r -∗ ⌜∀ (t' : w64) (q :
-    GSet w64), r.snd = some (t', q) → ¬v ∈ q⌝
+theorem ownLogGhost_not_doomed [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (v : w64) (s :
+    PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (r : RqRec) : γ.reSlot
+    !! v = some γs → ↑(slotN γ v) ⊆ E → ⊢ slotInv γ v -∗ ghostVar γs.fst (Qp.half 1) V -∗
+    ownLogGhost γ v s kl (virt V πc) -∗ rqRecOk γ s.term r ={E}=∗ ghostVar γs.fst (Qp.half 1) V ∗
+    ownLogGhost γ v s kl (virt V πc) ∗ ⌜∀ (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈ q⌝
 
 theorem lastRec_receipt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (L : Int) : ⊢ lastRec γ L ==∗
     ⧖(L.toNat - γ.reBoot.length)
@@ -484,3 +557,12 @@ theorem rdOwn_ack [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PSt
 
 theorem HbAckOk_prefix (v : w64) (k : Nat) (recs0 recs : List RqRec) : recs0 <+: recs → HbAckOk v k
     recs0 → HbAckOk v k recs
+
+theorem outbox_add_eq [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (V :
+    DurMaps) (πc : List Prom) (p : Prom) (o : List Msg) : o = s.outbox → PromFresh (virt V πc) p →
+    (s'.role = Role.leader → s.role = Role.leader) → (s'.role = Role.candidate → s.role =
+    Role.candidate ∧ s'.term = s.term) → ([∗list] m ∈ s.outbox, outMsgOk γ id s πc (virt V πc) m) ⊢
+    [∗list] m ∈ o, outMsgOk γ id s' (πc ++ [p]) (virt V (πc ++ [p])) m
+
+theorem vote_just_inv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v T c : w64) : ⊢ raftCommitInv γ -∗
+    isVote γ v T c ={⊤ \ ↑(raftRegN γ)}=∗ voteJust γ v T c

@@ -20,13 +20,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`g.stop()`** with the right to stop it: it returns, its pipeline's four resources back. -/
+/-- **`g.stop()`** with the right to stop it: it returns, its pipeline stopped (until J8a-6,
+2026-11-01, with its four resources `R` back). -/
 abbrev rafthttp.remote.stop.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       remoteOk Rh lid pid R g ∗ remoteStop Rh pid R g }}
     (App (Val (g @!! go.GoType.PointerType rafthttp.remote.ty @!! go!"stop")) (Val #()))
-  {{ RET #(); R ∗ R ∗ R ∗ R }}
+  {{ RET #(); True }}
 
 end spec
 

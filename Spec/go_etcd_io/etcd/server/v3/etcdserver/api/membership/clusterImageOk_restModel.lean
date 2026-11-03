@@ -46,7 +46,10 @@ every member running the same binary, `bootOk`):
   thread writes (`InvRest.lean`): `members` holds, under `schema.BackendMemberKey(id)`, the JSON
   `MustSaveMemberToBackend` writes (`json.Marshal` of the `*Member`, `memberEnc`), which
   `MustReadMembersFromBackend` (`mustParseMemberIDFromBytes`, `json.Unmarshal`) decodes back to the
-  record the model keeps in `mem` (`restUpdateAttrs` and `ccRest` change both together); the boot
+  record the model keeps in `mem` (`restUpdateAttrs` and `ccRest` change both together) (UTF-8:
+  `json.Marshal` replaces invalid UTF-8, but the records are valid UTF-8: the attributes are
+  decoded protobuf strings, which protobuf-go v2 validates, and the boot members decoded JSON,
+  which `json.Unmarshal` normalizes: `TestBks2MemberEncUTF8`, `TestBks2AttrsValidUTF8`.); the boot
   log's members, which `memBoot` puts in `mem` before any is saved, are saved when the boot log's
   conf changes are applied (each an `AddNode` of a boot member, above `c0 = 0` so `v3`, valid:
   `ValidateConfigurationChange` finds no member with its id or peer URLs yet, the boot members

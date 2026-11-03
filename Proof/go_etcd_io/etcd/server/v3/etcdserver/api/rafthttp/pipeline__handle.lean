@@ -59,7 +59,7 @@ theorem rafthttp.pipeline.handle.wp_proof
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG)) :
     rafthttp.pipeline.handle.spec (GF := GF) (hG := hG) := by
   intro Rh p to R
-  wp_start as ⟨#Hh, HR, Hdone⟩
+  wp_start as ⟨#Hh, Hdone⟩
   ihave #Hh' := Hh
   iunfold pipeHandleOk at Hh'
   icases Hh' with ⟨#Hs, %ps, %fs, %r, %id, %γd, %mc, %γm, #Hps, #Hpsok, #Hfs, #Hr, #Hraft,
@@ -216,7 +216,7 @@ theorem rafthttp.pipeline.handle.wp_proof
     (try wp_auto)
     wp_for_post
     (try wp_auto)
-    wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done R _) $$ [$HR $Hdone]
+    wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) _) $$ [$Hdone]
     (try wp_auto)
     iapply HΦ
     itrivial

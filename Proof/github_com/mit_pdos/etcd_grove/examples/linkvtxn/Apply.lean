@@ -127,6 +127,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         · iframe
         simp [Hxs] at Hok
       · obtain ⟨herr, hb, hy⟩ := Hy
+        replace hb := hb.lt
         unfold readQ
         icases HQ with ⟨%hg, #Hbit⟩
         have hy' := hy hg
@@ -236,6 +237,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         · iframe
         simp [Hxs] at Hok
       · obtain ⟨herr, hb, hy⟩ := Hy
+        replace hb := hb.lt
         unfold wQ
         icases HQ with (⟨%Hg, HΦ⟩ | %Hbad)
         · obtain ⟨hg, -⟩ := Hg

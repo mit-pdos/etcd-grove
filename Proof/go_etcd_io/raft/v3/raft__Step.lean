@@ -193,7 +193,8 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hmc HΦ
   have Hcl_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
-      isMessage γ (absMsg .heartbeat m ents ctx) -∗
+      isMessage γ (absMsg .heartbeat m ents ctx) ={⊤}=∗
+      ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn ∗
       ⌜uint.Z s.term ≤ uint.Z m.Term' →
        uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ := by
     iintro Hg #Hm
@@ -202,13 +203,18 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
       -- of the term, which `isLeader_unique` excludes
       ihave #Hl2 := isMessage_heartbeat_isLeader γ m ents ctx $$ Hm
       ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hg Hl2
-      ihave %Hc := heartbeat_commit_le_last γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl
-        Hto Hle (fun Heq Hr => Hnl Heq ((proleRole_leader _).1 Hr)) $$ Hg Hm
+      imod heartbeat_commit_le_last ⊤ γ id (toPState s) (absMsg .heartbeat m ents ctx)
+        CoPset.subseteq_top rfl Hto Hle (fun Heq Hr => Hnl Heq ((proleRole_leader _).1 Hr))
+        $$ Hg Hm with ⟨Hg, %Hc⟩
+      imodintro
+      iframe Hg
       ipureintro
       exact fun _ => Hc
-    · ipureintro
+    · imodintro
+      iframe Hg
+      ipureintro
       exact fun h => absurd h Hle
-  ihave %Hcl := Hcl_lem $$ Hghost Hmc
+  imod Hcl_lem $$ Hghost Hmc with ⟨Hghost, %Hcl⟩
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hcl Hfv)
@@ -458,6 +464,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnlk, Hrest⟩
   icases ghostRest_certLink γ md c id s $$ Hrest with ⟨#Hlink, Hrest⟩
   iunfold certLink at Hlink
+  icases Hlink with ⟨#Hlink, -⟩
   iunfold storCertOk at Hlink
   icases Hlink with ⟨-, -, #Hreg⟩
   imod Hreg $$ %_ %⊤ %CoPset.subseteq_top HcrD with #Hcert

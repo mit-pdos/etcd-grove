@@ -71,15 +71,19 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
   list_elem [go!"a", go!"b", go!"c", go!"d"] (sint.Z (n / W64 63 / W64 3 % W64 4)).toNat as v
   wp_apply wp_load_slice_index _ (sint.Z (n / W64 63 / W64 3 % W64 4)) _ _ v hv4.1 $$ [Hv] as Hv
   · iframe; ipureintro; exact Hv_lookup
+  have hvl : v.length ≤ inMax := by
+    have h := List.mem_of_getElem? Hv_lookup
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl | rfl | rfl <;> decide
   (try wp_auto)
   wp_if_destruct
-  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inl rfl)
+  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inl rfl) (by simp)
   wp_if_destruct
-  · iapply HΦ; ipureintro; exact genIn_key _ (fun h => absurd rfl h) (Or.inr (Or.inl rfl))
+  · iapply HΦ; ipureintro; exact genIn_key _ (fun h => absurd rfl h) (Or.inr (Or.inl rfl)) (by simp)
   wp_if_destruct
-  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inr (Or.inr (Or.inl rfl)))
+  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inr (Or.inr (Or.inl rfl))) hvl
   wp_if_destruct
-  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inr (Or.inr (Or.inr rfl)))
+  · iapply HΦ; ipureintro; exact genIn_key _ (fun _ => hkm) (Or.inr (Or.inr (Or.inr rfl))) (by simp)
   wp_if_destruct
   · -- a transaction of one to three operations
     wp_apply wp_pick _ (W64 3) (by decide)
@@ -126,9 +130,9 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     · intro o ho
       rcases List.mem_append.1 ho with ho | ho
       · rcases thenOfL_subset _ o ho with rfl | rfl | rfl
-        · exact ⟨by word, hkm⟩
-        · exact ⟨by word, hk1m⟩
-        · exact ⟨by word, hk2m⟩
+        · exact ⟨by word, hkm, hvl⟩
+        · exact ⟨by word, hk1m, hvl⟩
+        · exact ⟨by word, hk2m, hvl⟩
       · simp [elseOfL] at ho
     · intro h
       have h0 : 0 < sint.Z (n / W64 63 / W64 3 / W64 4 % W64 3 + W64 1) := by word
@@ -148,6 +152,10 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     W64 4)).toNat as nv
   wp_apply wp_load_slice_index _ _ _ _ nv hn4.1 $$ [Hv] as Hv
   · iframe; ipureintro; exact Hnv_lookup
+  have hnvl : nv.length ≤ inMax := by
+    have h := List.mem_of_getElem? Hnv_lookup
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl | rfl | rfl <;> decide
   (try wp_auto)
   iapply HΦ
   ipureintro
@@ -156,7 +164,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
   · intro c hc
     simp only [cmpsOfL, h1, Int.zero_lt_one, ↓reduceIte, List.mem_singleton] at hc
     subst hc
-    word
+    exact ⟨by word, wks_short _ hkm, hvl⟩
   · intro o ho
     simp only [thenOfL, elseOfL, h1, Int.zero_lt_one, ↓reduceIte, List.mem_append,
       List.mem_singleton] at ho
@@ -164,8 +172,8 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
       ↓reduceIte] at ho
     simp only [List.not_mem_nil, or_false] at ho
     rcases ho with rfl | rfl
-    · exact ⟨by simp only; word, hkm⟩
-    · exact ⟨by simp only; word, hkm⟩
+    · exact ⟨by simp only; word, hkm, hnvl⟩
+    · exact ⟨by simp only; word, hkm, by simp⟩
   · simp [thenOfL]
 
 end proof

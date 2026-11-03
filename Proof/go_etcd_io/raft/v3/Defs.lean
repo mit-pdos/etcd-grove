@@ -271,6 +271,22 @@ structure StorNames where
   gd : Nat := 0
   /-- (U8 v2) the pin of a received snapshot's certificate (`ksnCert`) -/
   gk : Nat := 0
+  /-- (2026-11-01, durability stage I-6: the attach record) the applied bound raft handed out at
+  the attach (`restartStorage`'s continuation: `max σ.b A`): compacting up to it is safe from the
+  attach on (`raftBnd`'s third reading), although raft's floor reaches it only once `newRaft` has
+  applied up to it (`storCaught`). `0` for a log no attach record covers. -/
+  a0 : Nat := 0
+  /-- (durability stage I-6) the stored commit at the attach (`σ.commit`) -/
+  c0 : Nat := 0
+  /-- (durability stage I-6) the stored log's terms at the attach, on `[σ.b, σ.commit]`, as
+  (index, term) pairs (`raftDL`'s third reading: a valid snapshot at a recorded index has the
+  recorded term) -/
+  ct : List (Nat × w64) := []
+
+/-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
+it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the
+view's floor and certified terms still at the base, `ownStorage sn.unrec`). -/
+def StorNames.unrec (sn : StorNames) : StorNames := { sn with a0 := 0, c0 := 0, ct := [] }
 
 structure LogState [GooseExts] where
   prev : entryID

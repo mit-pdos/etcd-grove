@@ -28,6 +28,7 @@ apply thread; here it is read-only.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
@@ -41,6 +42,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 
 @[expose] public section
 
@@ -155,7 +157,7 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h
     exact hc _
-  · exact h.elim
+  · subst h; exact List.prefix_refl _
   · exact h.elim
   · rcases h with rfl | rfl <;> exact List.prefix_refl _
 
@@ -328,10 +330,14 @@ structure SrvFields where
   tickMs : w64
 
 /-- The server's KV invariants (persistent; 2026-10-14, unit T1): the KV invariant, the
-certificates', raft's committed log's; the store's certificates at the KV's names. -/
+certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
+side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
+`kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
+track's `srvEnvOkD` makes the backend's mode the server's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝)
+    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝ ∗
+    ⌜γr.kv.cret = E.cret⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -414,6 +420,39 @@ theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
 def epConfState (ep cs : Loc) : IProp GF :=
   iprop(epConfStateAddr ep ↦ cs ∗ epCsOk cs)
 
+/-- (2026-10-31, the snapshot track's S5) **`ep.confState` reports the voters** of the server's raft
+names `γs` (persistent): a read-only conf state of the cluster's simple membership, raft's answer to
+a validated conf change (`applyConfChange`; `epCsCfg` at the read names). -/
+def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
+  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜confStateIs c (Membership.simple γs.raft.cfg)⌝)
+
+instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
+    Persistent (epCsVoters (GF := GF) γs cs) := by
+  unfold epCsVoters; infer_instance
+
+/-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
+nothing applied yet, or it reports the voters (the log's first entry is a conf entry,
+`srv_first_entry`, that validates on a fresh backend, `ccValidOn_boot`). -/
+def epCsAt (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) : IProp GF :=
+  iprop(⌜L = []⌝ ∨ epCsVoters γs cs)
+
+instance epCsAt_persistent (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    Persistent (epCsAt (GF := GF) γs L cs) := by
+  unfold epCsAt; infer_instance
+
+theorem epCsAt_voters (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    epCsVoters (GF := GF) γs cs ⊢ epCsAt γs L cs := by
+  iintro #H; iunfold epCsAt; iright; iexact H
+
+theorem epCsAt_ne (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) (h : L ≠ []) :
+    epCsAt (GF := GF) γs L cs ⊢ epCsVoters γs cs := by
+  iintro #H
+  iunfold epCsAt at H
+  icases H with (%h' | #H)
+  · exact absurd h' h
+  · iexact H
+
 end defs
 
 section defs_lc
@@ -473,13 +512,58 @@ write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
 (`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
-2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
-`store.Restore`'s premise; M2 turns the server's compaction on). -/
+2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
+user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
+server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
+interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode).
+(2026-11-01, `restorePre_of_apply`) And the store's logical mode is the server's (`E.γ.cm = E.cmp`,
+`envAgree`'s at `NewServer`; a restore keeps both): what makes a compaction-off store frozen
+(`isWatchableStore_frozen`) for `Restore`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
+
+/-- **The store compacts exactly in the server's mode** (S-5's law, from `srvEnvOk`). -/
+theorem srvEnvOk_kbCmp (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : mvcc.kbCmpM E.γ.kb ↔ E.cmp = true := by
+  obtain ⟨-, -, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
+  rw [hkb, ← hcm]; rfl
+
+/-- **The store's logical mode is the server's** (`srvEnvOk`). -/
+theorem srvEnvOk_cm (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : E.γ.cm = E.cmp := h.1
+
+/-- **At a store that does not compact, the server's mode is off** (`srvEnvOk`). -/
+theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (d : mvcc.KBReal) (h : srvEnvOk s γ ci E cl) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
+    E.cmp = false := by
+  obtain ⟨-, -, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
+  rw [hkb] at hkb0
+  cases hkb0
+  rw [← hcm0, hcm]
+
+/-- **The server's current backend, with its hooks** (persistent; 2026-11-02, the user's approval,
+branch `snap-window`): the store's backend `d` (`E.γ.kb`) is the real backend whose batch lock has
+the apply protocol's resource at the consistent index's keys (`batchLockInv γ (metaTM d.γB d.P)`),
+its hooks the server's `BackendHooks` `bh`, `s.beHooks` (`backend.hooksAt`) over the consistent index `ci`
+(`isBackendHooks`), at parameters with the hooks' keys (`ciKeys`, `hooksParams`). What the merged
+snapshot's window needs to freeze the stored index (`storeReq_freeze`). Made where the backend is:
+`NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
+def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ (d : mvcc.KBReal) (bh lgh : Loc),
+    ⌜E.γ.kb = some d ∧ ciKeys d.P ∧ storage.hooksParams d.P⌝ ∗
+    structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
+    storage.isBackendHooks bh
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
+      lgh ∗
+    backend.hooksAt d.be (storage.hooksIface bh) ∗
+    backend.isBackend d.γB d.P (mvcc.lateWD d) (batchLockInv γ (metaTM d.γB d.P)) d.be)
+
+instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
+    Persistent (srvBeHooked (GF := GF) s γ ci E) := by
+  unfold srvBeHooked; infer_instance
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
@@ -500,7 +584,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
@@ -526,12 +610,25 @@ hands the wait carry a witness at them, `resultIsW`); the server's raft node (`s
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
-    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
+    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
+    -- (the backend-auth-split stage, 2026-11-02) the thread bound within the backend's pool of
+    -- readers (`NewServer`'s premise), for the pool of each backend the apply thread opens
+    ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     Persistent (isServer s γ ci TM E ρ γr) := by
   unfold isServer; infer_instance
+
+/-- **The server's thread bound is within the backend's pool of readers** (2026-11-02, the
+backend-auth-split stage). -/
+theorem isServer_rdPoolN (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨-, -, -, -, -, -, %h⟩
+  ipureintro; exact h
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=
@@ -542,7 +639,7 @@ abbrev srvBeIface (be : Loc) : GoInterface :=
 (`backend.isBackend`), what the storage-version monitor writes it through. True of every backend
 the server ever holds, so it is kept in `s.bemu`'s lock invariant with the field (`bemuP`). -/
 def srvBeRO (d : mvcc.KBReal) : IProp GF :=
-  iprop(∃ Pk : IProp GF, backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be)
+  iprop(∃ Pk : IProp GF, backend.isBackend d.γB d.P (mvcc.lateWD d) Pk d.be)
 
 instance srvBeRO_persistent (d : mvcc.KBReal) : Persistent (srvBeRO (GF := GF) d) := by
   unfold srvBeRO; infer_instance
@@ -552,11 +649,17 @@ until then `NewServer` kept half of `s.be` read-only for good): half of `s.be` (
 `s.bemu`'s lock invariant's, `bemuP`), at the real backend `d` of the store's names `E.γ`, and a
 quarter of the ghost variable `E.γbe` of the current backend (half `bemuP`'s, split among the
 readers of `s.bemu`; a quarter the write budget's, `srvWTPool`). `applySnapshot`, the only writer
-of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both. -/
+of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both.
+(2026-11-02, the backend-auth-split stage) With what the apply thread's readers of the backend
+need: its facts (`srvBeRO d`, persistent; item T: `isBackend` for the membership readers and
+writers, which `applyConfChange` calls without `s.bemu`) and its pool of readers
+(`backend.bkRPool`, not persistent: the apply thread's one copy; `applySnapshot` hands the old
+backend's to the goroutine closing it, with its other open shares, and holds the new one's). -/
 def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d)
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗
+    srvBeRO d ∗ backend.bkRPool d.γB d.P d.be)
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
@@ -574,42 +677,76 @@ def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 
+/-- **The id `id`, claimed for the data `d`, is not this incarnation's** (persistent; R2c,
+2026-11-02): every claim of it for `d` records another key (another member's, or an earlier
+incarnation's of this member). Until R2c: its prefix was not the member's. -/
+def idOther (γi : IdNames) (id : w64) (d : List w8) : IProp GF :=
+  iprop(□ ∀ (γf : GName) (k : IdKey),
+    id ↪[γi.issued]□ (some (d, γf, k) : Option IdClaimV) -∗ ⌜k ≠ γi.key⌝)
+
+instance idOther_persistent (γi : IdNames) (id : w64) (d : List w8) :
+    Persistent (idOther (GF := GF) γi id d) := by
+  unfold idOther; infer_instance
+
 /-- **What the caller of `applyEntryNormal` knows of the entry's registration** (persistent; the
 request path's unit 4d): for an entry whose data decode to a request with an id, `ot`'s
 knowledge of the id (`waitRegdOpt`: nothing for `none`, the registration with the consumer token
-`t` for `some t`); and (linkv-txn stage B1, 2026-10-20) nothing known only of another prefix's id
-than the member's `p` (the member's own requests were registered before they were proposed:
-`idRegd`, `entryWaitOk`). -/
-def entryRegd (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) : IProp GF :=
+`t` for `some t`); and (linkv-txn stage B1, 2026-10-20) nothing known only of an id that is not the
+incarnation's (`idOther`; by key since R2c, until then another prefix's than the member's): the
+incarnation's own requests were registered before they were proposed (`idRegd`, `entryWaitOk`). -/
+def entryRegd (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName) : IProp GF :=
   iprop(□ ∀ (rq : apply.IRRModel) (id : w64),
     ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ →
-      waitRegdOpt γw id ot ∗ ⌜ot = none → m.data ≠ [] → idPfx id ≠ p⌝)
+      waitRegdOpt γw id ot ∗ (⌜ot = none⌝ → ⌜m.data ≠ []⌝ → idOther γi id m.data))
 
-instance entryRegd_persistent (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) :
-    Persistent (entryRegd (GF := GF) γw p m ot) := by
+instance entryRegd_persistent (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName) :
+    Persistent (entryRegd (GF := GF) γw γi m ot) := by
   unfold entryRegd; infer_instance
 
+/-- **Nothing registered here: the entry's claim is another key's** (R2c): from the entry's
+registration with nothing known (`ot = none`) and its claim by the key `k`, `k` is not the
+incarnation's. -/
+theorem entryRegd_none_key (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName)
+    (rq : apply.IRRModel) (id : w64) (γf : GName) (k : IdKey)
+    (h : apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id) :
+    ⊢ entryRegd (GF := GF) γw γi m ot -∗ id ↪[γi.issued]□ (some (m.data, γf, k) : Option IdClaimV) -∗
+      ⌜ot = none → m.data ≠ [] → k ≠ γi.key⌝ := by
+  iintro #Hr #Hc
+  iunfold entryRegd at Hr
+  ihave ⟨-, #Ho⟩ := Hr $$ %rq %id %h
+  cases ot with
+  | some t => ipureintro; intro h'; cases h'
+  | none =>
+    by_cases hd : m.data = []
+    · ipureintro; intro _ h'; exact absurd hd h'
+    · ihave #Ho' := Ho $$ %rfl %hd
+      iunfold idOther at Ho'
+      ihave %Hk := Ho' $$ %γf %k Hc
+      ipureintro; intro _ _; exact Hk
+
 /-- **What the apply thread knows of a committed entry's registration** (linkv-txn stage B1,
-2026-10-20): from the entry's claims (`entryWaitOk`: the id registered in its prefix's member's
-registry, `idRegd`) and the member's registry (`idWaitIs`, `waitInv`), the registration with its
-consumer token for an id of the member's prefix, nothing for another's. -/
+2026-10-20; by key since R2c): from the entry's claims (`entryWaitOk`: the id claimed by the
+incarnation of some key and registered in that incarnation's registry, `idRegdAt`) and the
+incarnation's registry (`idWaitIs`, `waitInv`), the registration with its consumer token for an
+id of the incarnation's own key, nothing (`idOther`) for another key's. -/
 theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
     (ht : m.typ = W32 0) :
-    entryWaitOk (GF := GF) ρ E m ∗ idWaitIs ρ.ids ρ.ids.pfx ρ.wait ⊢
-      ∃ ot : Option GName, entryRegd ρ.wait ρ.ids.pfx m ot := by
+    entryWaitOk (GF := GF) ρ E m ∗ idWaitIs ρ.ids ρ.ids.key ρ.wait ⊢
+      ∃ ot : Option GName, entryRegd ρ.wait ρ.ids m ot := by
   iintro ⟨#Hw, #Hn⟩
   unfold entryWaitOk
   simp only [ht, ↓reduceIte]
   icases Hw with ⟨#Hc, -⟩
   have hnone : (∀ rq id, apply.irrDecode m.data = some rq → apply.irrId rq = some id →
-      m.data ≠ [] → idPfx id ≠ ρ.ids.pfx) → ⊢ entryRegd (GF := GF) ρ.wait ρ.ids.pfx m none := by
+      m.data ≠ [] → False) → ⊢ entryRegd (GF := GF) ρ.wait ρ.ids m none := by
     intro h
     iunfold entryRegd
     iintro !> %rq %id %hrq
     iunfold waitRegdOpt
     isplitr
     · itrivial
-    ipureintro; intro _ hd; exact h rq id hrq.1 hrq.2 hd
+    iintro %- %hd
+    exact (h rq id hrq.1 hrq.2 hd).elim
   by_cases hd : m.data = []
   · iexists none
     iapply hnone (fun _ _ _ _ h => absurd hd h)
@@ -624,12 +761,12 @@ theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
       iapply hnone (fun rq' _ h h' => by
         rw [hdec] at h; cases h; rw [hid] at h'; cases h')
     | some id =>
-      ihave ⟨-, #Hreg⟩ := Hc $$ %rq %id %(⟨hd, rfl, hid⟩)
-      by_cases hp : idPfx id = ρ.ids.pfx
-      · iunfold idRegd at Hreg
+      ihave ⟨%γf, %k, #Hcl, #Hreg⟩ := Hc $$ %rq %id %(⟨hd, rfl, hid⟩)
+      by_cases hk : k = ρ.ids.key
+      · subst hk
+        iunfold idRegdAt at Hreg
         icases Hreg with ⟨%W, %t, #HW, #Hr⟩
-        rw [hp]
-        ihave %HWe := idWaitIs_agree ρ.ids ρ.ids.pfx W ρ.wait $$ HW Hn
+        ihave %HWe := idWaitIs_agree ρ.ids ρ.ids.key W ρ.wait $$ HW Hn
         subst HWe
         iexists some t
         iunfold entryRegd
@@ -640,15 +777,29 @@ theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
         subst this
         iunfold waitRegdOpt
         iframe Hr
-        ipureintro; intro h; cases h
+        iintro %h; cases h
       · iexists none
-        iapply hnone (fun rq' id' h h' _ => by
-          rw [hdec] at h; cases h; rw [hid] at h'; cases h'; exact hp)
+        iunfold entryRegd
+        iintro !> %rq' %id' %h
+        have : rq' = rq := by rw [hdec] at h; exact (Option.some.inj h.1).symm
+        subst this
+        have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
+        subst this
+        iunfold waitRegdOpt
+        isplitr
+        · itrivial
+        iintro %- %-
+        iunfold idOther
+        iintro !> %γf' %k' #Hcl'
+        ihave %He := idClaim_entry_agree ρ.ids _ _ _ $$ Hcl Hcl'
+        simp only [Prod.mk.injEq] at He
+        ipureintro
+        rw [← He.2.2]; exact hk
 
 /-- The member's registry, from the server's view (linkv-txn stage B1). -/
 theorem isServer_waitIs (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServer (GF := GF) s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+    isServer (GF := GF) s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.key ρ.wait := by
   iintro #H
   iunfold isServer at H
   icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩
@@ -703,7 +854,7 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
   iintro H
   ihave #Hc : iprop(mvcc.idxCert E.γ.idx x.log) $$ [H]
   · iunfold apply.applyKV at H
-    icases H with ⟨%p, -, -, Hk⟩
+    icases H with ⟨%p, -, -, Hk, -⟩
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
     iunfold txn.kvWriter at Hsw
@@ -760,7 +911,7 @@ theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   iunfold srvApplyKV at H
   icases H with ⟨%ua, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw
@@ -775,13 +926,20 @@ theorem srvApplyKV_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
 
 /-- Two claims of one id agree on the data and the ghost name. -/
 theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName) :
-    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ idClaim γi id d2 γ2 -∗ ⌜d1 = d2 ∧ γ1 = γ2⌝ := by
-  iintro H1 H2
-  iunfold idClaim at H1 H2
-  icombine H1 H2 gives %Hag
-  ipureintro
-  have := Option.some.inj Hag.2
-  exact ⟨(Prod.mk.inj this).1, (Prod.mk.inj this).2⟩
+    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ idClaim γi id d2 γ2 -∗ ⌜d1 = d2 ∧ γ1 = γ2⌝ :=
+  idClaim_agree γi id d1 d2 γ1 γ2
+
+/-- **A claim of the incarnation and a committed entry's claim of one id agree** (R2c): on the
+data, the ghost name, and the entry's key, the incarnation's. -/
+theorem idClaim_agree_entry (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName)
+    (k : IdKey) :
+    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ id ↪[γi.issued]□ (some (d2, γ2, k) : Option IdClaimV) -∗
+      ⌜d1 = d2 ∧ γ1 = γ2 ∧ γi.key = k⌝ := by
+  iintro #H1 #H2
+  iunfold idClaim at H1
+  ihave %H := idClaim_entry_agree γi id _ _ $$ H1 H2
+  simp only [Prod.mk.injEq] at H
+  ipureintro; exact H
 
 /-! ### The write budget backed by time receipts (D19b) -/
 
@@ -790,7 +948,29 @@ def srvWTN : Namespace := nroot .@ "srvWT"
 -- (S7b) for a later over an existential backend in the budget's invariant
 deriving instance Inhabited for backend.DBNames
 deriving instance Inhabited for backend.BNames
+deriving instance Inhabited for mvcc.CmpTies
 deriving instance Inhabited for mvcc.KBReal
+
+/-- The backends' stocks' invariants' name (disjoint from the budget's, `srvWTN`). -/
+def srvWTStockN : Namespace := nroot .@ "srvWTStock"
+
+theorem srvWTStockN_mask : (↑srvWTStockN : CoPset) ⊆ ⊤ \ ↑srvWTN :=
+  sync.wg_mask_ndot_ne nroot "srvWTStock" "srvWT" (by decide)
+
+/-- **The write-back tokens of the backend `d`** (persistent; M2's item 15, stage B, 2026-11-02:
+the storage plan's draft, "The write budget, one stock per backend"): an invariant holding `n`
+tokens of `d` and a lower bound `m` of the write budget's count of tokens taken (`γp`, the
+budget's counter), with `receiptBound ≤ m + n + 1`: every take raises the count by one (a receipt
+into the budget), so the stock never runs out before the receipts do. Named by `d`, which a backend
+swap does not change, so a persistent supply of `d` (a compaction job's, `kbWTSupplyM (some d)`)
+stays good after `applySnapshot` moves `E.γbe` to the next backend. -/
+def srvWTStockInv (γp : GName) (d : mvcc.KBReal) : IProp GF :=
+  inv srvWTStockN iprop(∃ (m n : Nat), monoNatLbOwn γp m ∗ ownToks d.γB.wb n ∗
+    ⌜receiptBound GF ≤ m + n + 1⌝)
+
+instance srvWTStockInv_persistent (γp : GName) (d : mvcc.KBReal) :
+    Persistent (srvWTStockInv (GF := GF) γp d) := by
+  unfold srvWTStockInv; infer_instance
 
 /-- **The apply thread's write budget** (D19b, 2026-10-18; persistent): an invariant holding,
 for the `a` write tokens taken so far, `a` time receipts, and `n` write tokens of the store
@@ -814,12 +994,17 @@ of `d` (`mvcc.bkRTx`, until S7b the monitor's own for good, `srvSVRes`), or, whi
 it checked out for a session, a part of the monitor's share of `E.γbe` in its place.
 `applySnapshot`, holding `bemu`'s write side, gathers all of `E.γbe` from `bemuP`, `srvBeOwn` and
 this invariant (so no session is open: a checked-out part would make more than the whole), moves
-it to the new backend, takes the old backend's tokens (for its `Close`) and puts in the new one's:
-the pool is refilled per backend, one invariant over the current backend. -/
+it to the new backend and puts in the new one's stock: one invariant over the current backend.
+
+**One stock per backend** (M2's item 15, stage B, 2026-11-02): the current backend's tokens and
+their bound are its stock (`srvWTStockInv γp d`), which shares the budget's counter; a swap puts the
+new backend's stock fact in place of the old one's and takes no token out, so a persistent supply
+of any backend with a stock survives swaps (restore in compaction mode). A take costs a later
+credit (the stock's fact is under the budget's `▷`). -/
 def srvWTPool (E : apply.AEnv GF) (γp : GName) : IProp GF :=
-  inv srvWTN iprop(∃ (a n : Nat) (d : mvcc.KBReal), ⧗ a ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ ownToks d.γB.wb n ∗
-    monoNatAuthOwn γp 1 a ∗ ⌜receiptBound GF ≤ a + n + 1⌝ ∗
+  inv srvWTN iprop(∃ (a : Nat) (d : mvcc.KBReal), ⧗ a ∗
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ srvWTStockInv γp d ∗
+    monoNatAuthOwn γp 1 a ∗
     (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d))
 
 instance srvWTPool_persistent (E : apply.AEnv GF) (γp : GName) :
@@ -864,11 +1049,27 @@ theorem srvWTTaken_le (γp : GName) (n n' : Nat) (h : n' ≤ n) :
   iintro H
   iapply monoNatLbOwn_le n' h $$ H
 
+/-- **A backend's stock from its fresh tokens** (`start`'s at the boot backend, the snapshot
+walk's before `Restore`). -/
+theorem srvWTStock_alloc (γp : GName) (d : mvcc.KBReal) (n : Nat) (h : receiptBound GF ≤ n + 1)
+    (Ms : CoPset) :
+    ⊢ ownToks (GF := GF) d.γB.wb n ={Ms}=∗ srvWTStockInv γp d := by
+  iintro Hn
+  imod monoNatLbOwn_0 (GF := GF) γp with #H0
+  unfold srvWTStockInv
+  iapply inv_alloc srvWTStockN Ms
+  inext
+  iexists 0, n
+  iframe H0 Hn
+  ipureintro; omega
+
 /-- The budget from its stock (`N` write tokens), under `receiptBound GF ≤ N + 1`, its counter at
-`0`. -/
+`0`, with the current backend's stock fact (which gives the compaction's supply,
+`kbWTSupplyM_of_stock`). -/
 theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     (h : receiptBound GF ≤ N + 1) :
-    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0) := by
+    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0) ∗
+      ∃ d, ⌜E.γ.kb = some d⌝ ∗ srvWTStockInv γp d := by
   iintro HW
   iunfold srvWTStock at HW
   icases HW with ⟨%d, %Hd, Hg, Hw, Hrt⟩
@@ -878,24 +1079,29 @@ theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
   · rw [← hw]; iexact Hw
   imod receipt_zero (GF := GF) with H0
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γp, Ha, #Hlb⟩
+  imod srvWTStock_alloc γp d N h Ms $$ Hw with #Hs
   iexists γp
   isplitl
   · unfold srvWTPool
     iapply inv_alloc srvWTN Ms
     inext
-    iexists 0, N, d
-    isplitl [H0]
-    · iexact H0
-    isplitl [Hg]
-    · iexact Hg
-    isplitl [Hw]
-    · iexact Hw
-    isplitl [Ha]
-    · iexact Ha
-    isplitr
-    · ipureintro; omega
+    iexists 0, d
+    iframe H0 Hg Hs Ha
     ileft; iexact Hrt
-  · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hlb
+  · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]
+    iframe Hlb
+    iexists d
+    iframe Hs
+    ipureintro; exact Hd
+
+/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on** (persistent): the
+budget made (`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on
+the same stock), its counter at least `0`. -/
+def srvWTBudget (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0))
+
+instance srvWTBudget_persistent (E : apply.AEnv GF) : Persistent (srvWTBudget (GF := GF) E) := by
+  unfold srvWTBudget; infer_instance
 
 /-- One write-back token of the backend `d` off a supply. -/
 theorem wbToks_split (d : mvcc.KBReal) (n : Nat) :
@@ -917,7 +1123,7 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
       (dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
-  icases H with ⟨%d, %Hd, Hbe, Hg⟩
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
   iexists d
   isplitr
   · ipureintro; exact Hd
@@ -925,7 +1131,26 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
   iintro Hg
   iunfold srvBeOwn
   iexists d
-  iframe Hbe Hg
+  iframe Hbe Hg Hro Hpl
+  ipureintro; exact Hd
+
+/-- **The apply thread's backend facts and pool of readers, lent from its part of `s.be`**
+(2026-11-02, the backend-auth-split stage): at the current backend `d` (the store's names' `E.γ.kb`),
+`srvBeRO d` and the pool (`backend.bkRPool`), the pool to give back. -/
+theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
+    srvBeOwn (GF := GF) s E ⊢ ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeRO d ∗
+      backend.bkRPool d.γB d.P d.be ∗ (backend.bkRPool d.γB d.P d.be -∗ srvBeOwn s E) := by
+  iintro H
+  iunfold srvBeOwn at H
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
+  iexists d
+  isplitr
+  · ipureintro; exact Hd
+  iframe Hro Hpl
+  iintro Hpl
+  iunfold srvBeOwn
+  iexists d
+  iframe Hbe Hg Hro Hpl
   ipureintro; exact Hd
 
 /-- The apply thread's part of `s.be`, lent from its applier state (S7b). -/
@@ -948,31 +1173,83 @@ theorem srvApplyKV_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
   · iexact Hbo
   iexact Hrest
 
+/-- **A token of a backend with a stock, for a receipt** (M2's item 15, stage B): the receipt goes
+into the budget (its count up by one, from any lower bound `k` to `k + 1`), the token out of the
+stock. -/
+theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (k : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTStockInv γp d -∗ ⧗ 1 -∗ monoNatLbOwn γp k ={⊤}=∗
+      backend.wbTok d.γB ∗ monoNatLbOwn γp (k + 1) := by
+  have hm := srvWTStockN_mask
+  iintro #Hp #Hs Hr #Hk
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %d0, >Ha, >Hg, #Hs0, >Hc, Hrt⟩ Hclose
+  unfold srvWTStockInv
+  iinv Hs with ⟨%m, %n, >#Hm, >Hn, >%Hb⟩ Hclose2
+  ihave %Hma := monoNatLbOwn_valid γp 1 a m $$ Hc Hm
+  ihave %Hka := monoNatLbOwn_valid γp 1 a k $$ Hc Hk
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by have := Hma.2; omega⟩
+  icases wbToks_split d n' $$ Hn with ⟨Ht, Hn⟩
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
+  imod Hclose2 $$ [Hn] with -
+  · inext
+    iexists a + 1, n'
+    iframe Hlb Hn
+    ipureintro; have := Hma.2; omega
+  imod Hclose $$ [Ha Hg Hc Hrt] with -
+  · inext
+    iexists a + 1, d0
+    iframe Ha Hg Hs0 Hc Hrt
+  imodintro
+  iframe Ht
+  iapply monoNatLbOwn_le (k + 1) (by have := Hka.2; omega) $$ Hlb
+
+/-- **The compaction's write-back supply of a backend with a stock** (M2's item 15, stage B):
+persistent, good after any number of swaps (moved from the step's Draft). -/
+theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
+    srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp d ⊢ mvcc.kbWTSupplyM (some d) := by
+  iintro ⟨#Hp, #Hs⟩
+  unfold mvcc.kbWTSupplyM
+  split
+  · unfold mvcc.kbWTSupply
+    iintro !> Hr
+    imod monoNatLbOwn_0 (GF := GF) γp with #H0
+    imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
+    imodintro
+    iexact Ht
+  · itrivial
+
+/-- **The current backend's stock** (M2's item 15, stage B): a taker's part of `E.γbe` at `d` agrees
+with the budget's, whose stock fact (under the budget's `▷`: a later credit) is `d`'s. -/
+theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ £ 1 -∗ dghostVar E.γbe dq d ={⊤}=∗
+      srvWTStockInv γp d ∗ dghostVar E.γbe dq d := by
+  iintro #Hp Hlc Hg
+  ihave #Hp' := Hp
+  unfold srvWTPool
+  iinv Hp' with ⟨%a, %d0, >Ha, >Hg0, #Hs0, >Hc, Hrt⟩ Hclose
+  ihave %Hdd := dghostVar_agree E.γbe d dq d0 _ $$ Hg Hg0
+  subst Hdd
+  imod lc_fupd_elim_later (E := ⊤ \ ↑srvWTN) $$ Hlc Hs0 with #Hs1
+  imod Hclose $$ [Ha Hg0 Hc Hrt] with -
+  · inext
+    iexists a, d
+    iframe Ha Hg0 Hs0 Hc Hrt
+  imodintro
+  iframe Hs1 Hg
+
 /-- **One write-back token of the current backend `d` for the entry at `v + 1`** (S7b): the
 taker's part of `E.γbe` at `d` agrees with the budget's; from the lower bound at `v` to one at
 `v + 1`. -/
 theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac)
     (v : w64) (hv : uint.Z v + 1 < 2 ^ 64) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTAt γp v -∗ dghostVar E.γbe dq d ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp v -∗ dghostVar E.γbe dq d ={⊤}=∗
       backend.wbTok d.γB ∗ srvWTAt γp (v + W64 1) ∗ dghostVar E.γbe dq d := by
-  iintro #Hp Hr #Hv Hg
-  unfold srvWTPool
-  iinv Hp with ⟨%a, %n, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
-  ihave %Hdd := dghostVar_agree E.γbe d dq d' _ $$ Hg Hg'
-  subst Hdd
+  iintro #Hp Hr Hlc #Hv Hg
+  imod srvWTPool_stockOf E γp d dq $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
   unfold srvWTAt
-  icases monoNatLbOwn_valid γp 1 a (uint.nat v) $$ Hc Hv with %Hva
-  replace Hva := Hva.2
-  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
-  · iframe
-  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-  icases wbToks_split d n' $$ Hn with ⟨Ht, Hn⟩
-  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
-  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
-  · inext
-    iexists a + 1, n', d
-    iframe Ha Hg' Hn Hc Hrt
-    ipureintro; omega
+  imod srvWTStock_take E γp d (uint.nat v) $$ Hp Hs Hr Hv with ⟨Ht, #Hlb⟩
   imodintro
   iframe Ht Hg
   iapply monoNatLbOwn_le (uint.nat (v + W64 1)) (by
@@ -986,12 +1263,12 @@ the apply thread's lower bound at `v` to one at `v + 1`; (S7b) at the apply thre
 applier state's part of `s.be`, `srvBeOwn`). -/
 theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
     (v : w64) (hv : uint.Z v + 1 < 2 ^ 64) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTAt γp v -∗ srvApplyKV s E γw x ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp v -∗ srvApplyKV s E γw x ={⊤}=∗
       mvcc.storeWT E.γ ∗ srvWTAt γp (v + W64 1) ∗ srvApplyKV s E γw x := by
-  iintro #Hp Hr #Hv HKV
+  iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKV_beOwn s E γw x $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
-  imod srvWTPool_take_at_d E γp d _ v hv $$ Hp Hr Hv Hg with ⟨Ht, #Hlb, Hg⟩
+  imod srvWTPool_take_at_d E γp d _ v hv $$ Hp Hr Hlc Hv Hg with ⟨Ht, #Hlb, Hg⟩
   ihave Hbo := Hbo $$ Hg
   ihave HKV := HKV $$ Hbo
   imodintro
@@ -1002,35 +1279,19 @@ theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : a
 count `srvWTTaken`, with no bound on it: the count is a natural number). -/
 theorem srvWTPool_take_n (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
     (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTTaken γp n -∗ srvApplyKV s E γw x ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKV s E γw x ={⊤}=∗
       mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKV s E γw x := by
-  iintro #Hp Hr #Hv HKV
+  iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKV_beOwn s E γw x $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
-  unfold srvWTPool
-  iinv Hp with ⟨%a, %m, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
-  ihave %Hdd := dghostVar_agree E.γbe d _ d' _ $$ Hg Hg'
-  subst Hdd
+  imod srvWTPool_stockOf E γp d _ $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
   unfold srvWTTaken
-  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
-  replace Hva := Hva.2
-  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
-  · iframe
-  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
-  icases wbToks_split d m' $$ Hn with ⟨Ht, Hn⟩
-  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
-  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
-  · inext
-    iexists a + 1, m', d
-    iframe Ha Hg' Hn Hc Hrt
-    ipureintro; omega
+  imod srvWTStock_take E γp d n $$ Hp Hs Hr Hv with ⟨Ht, #Hlb⟩
   ihave Hbo := Hbo $$ Hg
   ihave HKV := HKV $$ Hbo
   imodintro
-  iframe HKV
-  isplitl [Ht]
-  · iapply storeWT_of_wbTok E.γ d Hd $$ Ht
-  iapply monoNatLbOwn_le (n + 1) (by omega) $$ Hlb
+  iframe HKV Hlb
+  iapply storeWT_of_wbTok E.γ d Hd $$ Ht
 
 /-- (D22 S-l sender, 2026-10-22) **A write token for a receipt, for no entry** at the current
 backend `d` (S7b): the merged snapshot's two write-backs (`KV().Commit()`'s `ForceCommit`,
@@ -1038,32 +1299,22 @@ backend `d` (S7b): the merged snapshot's two write-backs (`KV().Commit()`'s `For
 (`srvWTPool_take_at`); the count of tokens taken grows past the applied index, whose lower bound
 (`srvWTAt`) stays one. -/
 theorem srvWTPool_take_extra_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ dghostVar E.γbe dq d ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ dghostVar E.γbe dq d ={⊤}=∗
       backend.wbTok d.γB ∗ dghostVar E.γbe dq d := by
-  iintro #Hp Hr Hg
-  unfold srvWTPool
-  iinv Hp with ⟨%a, %n, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
-  ihave %Hdd := dghostVar_agree E.γbe d dq d' _ $$ Hg Hg'
-  subst Hdd
-  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
-  · iframe
-  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-  icases wbToks_split d n' $$ Hn with ⟨Ht, Hn⟩
-  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, -⟩
-  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
-  · inext
-    iexists a + 1, n', d
-    iframe Ha Hg' Hn Hc Hrt
-    ipureintro; omega
+  iintro #Hp Hr Hlc Hg
+  imod srvWTPool_stockOf E γp d dq $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
+  imod monoNatLbOwn_0 (GF := GF) γp with #H0
+  imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
   imodintro
   iframe Ht Hg
 
 /-- `srvWTPool_take_extra_d` at the apply thread's backend (`srvBeOwn`). -/
 theorem srvWTPool_take_extra (s : Loc) (E : apply.AEnv GF) (γp : GName) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvBeOwn s E ={⊤}=∗ mvcc.storeWT E.γ ∗ srvBeOwn s E := by
-  iintro #Hp Hr Hbo
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvBeOwn s E ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvBeOwn s E := by
+  iintro #Hp Hr Hlc Hbo
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
-  imod srvWTPool_take_extra_d E γp d _ $$ Hp Hr Hg with ⟨Ht, Hg⟩
+  imod srvWTPool_take_extra_d E γp d _ $$ Hp Hr Hlc Hg with ⟨Ht, Hg⟩
   ihave Hbo := Hbo $$ Hg
   imodintro
   iframe Hbo
@@ -1071,11 +1322,11 @@ theorem srvWTPool_take_extra (s : Loc) (E : apply.AEnv GF) (γp : GName) :
 
 /-- (D22 S-l sender) **The merged snapshot's two write tokens**, for two receipts. -/
 theorem srvWTPool_take_two (s : Loc) (E : apply.AEnv GF) (γp : GName) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ ⧗ 1 -∗ srvBeOwn s E ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ ⧗ 1 -∗ £ 1 -∗ £ 1 -∗ srvBeOwn s E ={⊤}=∗
       mvcc.storeWT E.γ ∗ mvcc.storeWT E.γ ∗ srvBeOwn s E := by
-  iintro #Hp Hr1 Hr2 Hbo
-  imod srvWTPool_take_extra s E γp $$ Hp Hr1 Hbo with ⟨Ht1, Hbo⟩
-  imod srvWTPool_take_extra s E γp $$ Hp Hr2 Hbo with ⟨Ht2, Hbo⟩
+  iintro #Hp Hr1 Hr2 Hlc1 Hlc2 Hbo
+  imod srvWTPool_take_extra s E γp $$ Hp Hr1 Hlc1 Hbo with ⟨Ht1, Hbo⟩
+  imod srvWTPool_take_extra s E γp $$ Hp Hr2 Hlc2 Hbo with ⟨Ht2, Hbo⟩
   imodintro
   iframe Ht1 Ht2 Hbo
 
@@ -1085,16 +1336,15 @@ theorem srvWTPool_bound (E : apply.AEnv GF) (γp : GName) (v : w64) :
     ⊢ srvWTPool (GF := GF) E γp -∗ srvWTAt γp v ={⊤}=∗ ⌜uint.Z v < receiptBound GF⌝ := by
   iintro #Hp #Hv
   unfold srvWTPool
-  iinv Hp with ⟨%a, %n, %d, >Ha, >Hg, >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  iinv Hp with ⟨%a, %d, >Ha, >Hg, #Hs, >Hc, Hrt⟩ Hclose
   unfold srvWTAt
   icases monoNatLbOwn_valid γp 1 a (uint.nat v) $$ Hc Hv with %Hva
   replace Hva := Hva.2
   ihave %Hlt := receipt_lt a $$ Ha
-  imod Hclose $$ [Ha Hg Hn Hc Hrt] with -
+  imod Hclose $$ [Ha Hg Hc Hrt] with -
   · inext
-    iexists a, n, d
-    iframe Ha Hg Hn Hc Hrt
-    ipureintro; omega
+    iexists a, d
+    iframe Ha Hg Hs Hc Hrt
   imodintro
   ipureintro
   have := uint_nat_eq v
@@ -1105,16 +1355,15 @@ theorem srvWTPool_bound_n (E : apply.AEnv GF) (γp : GName) (n : Nat) :
     ⊢ srvWTPool (GF := GF) E γp -∗ srvWTTaken γp n ={⊤}=∗ ⌜n < receiptBound GF⌝ := by
   iintro #Hp #Hv
   unfold srvWTPool
-  iinv Hp with ⟨%a, %m, %d, >Ha, >Hg, >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  iinv Hp with ⟨%a, %d, >Ha, >Hg, #Hs, >Hc, Hrt⟩ Hclose
   unfold srvWTTaken
   icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
   replace Hva := Hva.2
   ihave %Hlt := receipt_lt a $$ Ha
-  imod Hclose $$ [Ha Hg Hn Hc Hrt] with -
+  imod Hclose $$ [Ha Hg Hc Hrt] with -
   · inext
-    iexists a, m, d
-    iframe Ha Hg Hn Hc Hrt
-    ipureintro; omega
+    iexists a, d
+    iframe Ha Hg Hs Hc Hrt
   imodintro
   ipureintro
   omega

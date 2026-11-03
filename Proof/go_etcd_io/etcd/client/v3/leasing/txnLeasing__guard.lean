@@ -32,15 +32,16 @@ theorem txnLeasing.guard.wp_proof
     (hGR : txnLeasing.guardRanges.spec (GF := GF) (hG := hG)) :
     txnLeasing.guard.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops⟩
+  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops, %Hos⟩
   wp_auto
-  wp_apply hGK $$ [$Hlkvf $HLKV $Hrd $Hops] as %c1 ⟨Hlkvf, Hrd, %ms1, #Hc1, Hcap1⟩
+  wp_apply hGK $$ [$Hlkvf $HLKV $Hrd $Hops] as %c1 ⟨Hlkvf, Hrd, %ms1, #Hc1, Hcap1, %Hg1⟩
   (try wp_auto)
   wp_apply hGR $$ [$Hlkvf $Hctxf $HLKV $Hrd $Hsr $Hctx $Hcc $Hops] as %c2 %err
     ⟨Hlkvf, Hctxf, Hrd, Hres⟩
+  · ipureintro; exact Hos
   ihave #Hc1' := (cmpsAt_listRel _ _).1 $$ Hc1
   icases Hc1' with ⟨%cs1, #Hcs1, #Hrel1⟩
-  icases Hres with (⟨%Herr, %Hc2⟩ | ⟨%Herr, %ms2, #Hc2⟩)
+  icases Hres with (⟨%Herr, %Hc2⟩ | ⟨%Herr, %ms2, #Hc2, %Hg2⟩)
   · subst Hc2
     (try wp_auto)
     wp_apply (wp_slice_append_persistent c1 cs1 slice.nil ([] : List go_etcd_io.etcd.client.v3.Cmp)
@@ -60,11 +61,18 @@ theorem txnLeasing.guard.wp_proof
     isplitr
     · ipureintro; exact Herr
     iexists ms1 ++ ms2
-    iapply (cmpsAt_listRel _ _).2
-    iexists cs1 ++ cs2
-    iframe Hc3
-    iapply listRel_app
-    iframe #
+    isplitl []
+    · iapply (cmpsAt_listRel _ _).2
+      iexists cs1 ++ cs2
+      iframe Hc3
+      iapply listRel_app
+      iframe #
+    ipureintro
+    refine ⟨by simp only [List.length_append]; omega, ?_⟩
+    intro c hc
+    rcases List.mem_append.1 hc with h | h
+    · exact Hg1.2 c h
+    · exact Hg2.2 c h
 
 end proof
 

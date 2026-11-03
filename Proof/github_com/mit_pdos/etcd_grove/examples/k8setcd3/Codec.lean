@@ -156,6 +156,40 @@ theorem decodeObjD_of (d n v : GoString) (h : decodeD d = some (n, v)) :
 theorem decodeObjD_none (d : GoString) (h : decodeD d = none) : decodeObjD d = none := by
   unfold decodeObjD; rw [h]; rfl
 
+/-- A decoding's parts fill the data: the tag, the name's length byte, the name and the value. -/
+theorem decodeD_length (d n v : GoString) (h : decodeD d = some (n, v)) :
+    4 + n.length + v.length = d.length := by
+  unfold decodeD at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  dsimp only at h
+  split at h
+  · cases h
+  simp only [Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨rfl, rfl⟩ := h
+  simp only [List.length_take, List.length_drop]
+  omega
+
+/-- **Re-encoding a decoded object keeps its length** (either tag is three bytes): a no-op update,
+which writes the object read with the current tag, writes no more than it read. -/
+theorem decodeObjD_encode_length (d : GoString) (o : DObj) (h : decodeObjD d = some o) :
+    (encodeWith tagV1 o.1.1 o.1.2).length = d.length := by
+  unfold decodeObjD at h
+  cases hd : decodeD d with
+  | none => rw [hd] at h; cases h
+  | some p =>
+    rw [hd] at h
+    simp only [Option.bind_some] at h
+    split at h
+    · cases h
+      have := decodeD_length d p.1 p.2 hd
+      simp only [encodeWith, List.length_append, List.length_cons, List.length_nil]
+      have h3 : tagV1.length = 3 := rfl
+      omega
+    · cases h
+
 /-- The string form of a resource version is empty only for `0`. -/
 theorem rvStr_nil (n : w64) (h : rvStr n = []) : n = 0 := by
   unfold rvStr at h

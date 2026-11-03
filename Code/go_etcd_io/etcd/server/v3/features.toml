@@ -1,9 +1,10 @@
 # Names only, with the feature constants the server reads: the request path's (`PriorityRequest`
 # in processInternalRaftRequestOnce, `TxnModeWriteWithSharedBuffer` in Txn), the construction's
 # (`LeaseCheckpointPersist`, `LeaseCheckpoint` in NewServer; unit N4, 2026-10-17) and the one
-# `v3rpc.newHealthNotifier` reads (`StopGRPCServiceOnDefrag`; item 4, the server start).
+# `v3rpc.newHealthNotifier` reads (`StopGRPCServiceOnDefrag`; item 4, the server start), and
+# `LeaseRenew`'s (`FastLeaseKeepAlive`; the lease-renew plan, 2026-11-01).
 translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "LeaseCheckpointPersist",
-  "LeaseCheckpoint", "StopGRPCServiceOnDefrag"]
+  "LeaseCheckpoint", "StopGRPCServiceOnDefrag", "FastLeaseKeepAlive"]
 imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports

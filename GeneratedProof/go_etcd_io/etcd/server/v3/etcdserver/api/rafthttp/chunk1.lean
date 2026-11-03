@@ -665,6 +665,8 @@ noncomputable instance remote_typed_pointsto :
     "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) v.id' dq ∗
     "status" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) v.status' dq ∗
     "pipeline" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"mu" l) v.mu' dq ∗
+    "paused" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"paused" l) v.paused' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -751,6 +753,38 @@ noncomputable instance remote_access_store_pipeline (l : Loc) (v : go_etcd_io.et
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) pipeline' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pipeline' := pipeline' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance remote_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance remote_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance remote_access_load_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"paused" l) v.paused' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"paused" l) v.paused' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance remote_access_store_paused (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (paused' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"paused" l) v.paused' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"paused" l) paused' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with paused' := paused' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -194,6 +194,151 @@ theorem leaseItemsOf_dels (r : w64) (ks : List GoString) :
     rw [leaseItemsOf_del]
     by_cases h1 : it.Key' = k <;> by_cases h2 : it.Key' ∈ ks <;> simp [h1, h2]
 
+/-! ## A revocation's deletions (the lease-revoke plan, R1, 2026-10-31) -/
+
+/-- **The keys a revocation of `id` deletes** at the state `s`: every key the item map puts on `id`
+(none for `0`: a key with lease `0` has no item), in the state's (key) order. -/
+def leaseDelKeys (s : List EtcdKv) (id : w64) : List GoString :=
+  if id = W64 0 then [] else (s.filter (fun v => decide (v.lease = id))).map EtcdKv.key
+
+/-- **A revocation's deletions**: `leaseDelKeys`'s, one delete each. -/
+def leaseDels (s : List EtcdKv) (id : w64) : List Change := (leaseDelKeys s id).map Change.del
+
+/-- In a sorted state, two key-values of one key are one. -/
+theorem sorted_key_unique : ∀ {s : List EtcdKv}, s.Pairwise etcdKvLess →
+    ∀ {v w : EtcdKv}, v ∈ s → w ∈ s → v.key = w.key → v = w
+  | [], _, _, _, hv, _, _ => by cases hv
+  | x :: s, hs, v, w, hv, hw, hk => by
+    have hx := (List.pairwise_cons.1 hs).1
+    rcases List.mem_cons.1 hv with rfl | hv' <;> rcases List.mem_cons.1 hw with rfl | hw'
+    · rfl
+    · have h := hx w hw'; unfold etcdKvLess at h; rw [hk] at h
+      exact absurd h (go.goStringLt_irrefl _)
+    · have h := hx v hv'; unfold etcdKvLess at h; rw [hk] at h
+      exact absurd h (go.goStringLt_irrefl _)
+    · exact sorted_key_unique hs.of_cons hv' hw' hk
+
+/-- In a sorted state, `findKey` finds exactly the key-value of the key. -/
+theorem findKey_iff_sorted {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (k : GoString)
+    (v : EtcdKv) : findKey k s = some v ↔ v ∈ s ∧ v.key = k := by
+  constructor
+  · intro h; exact ⟨List.mem_of_find?_eq_some h, findKey_key h⟩
+  · rintro ⟨hv, hk⟩
+    cases hf : findKey k s with
+    | none =>
+      have := List.find?_eq_none.1 hf v hv
+      simp [hk] at this
+    | some w =>
+      rw [sorted_key_unique hs (List.mem_of_find?_eq_some hf) hv
+        ((findKey_key hf).trans hk.symm)]
+
+/-- **A deleted key is one the item map put on `id`**, and every such key is deleted (a sorted
+state). -/
+theorem leaseDelKeys_mem {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (id : w64) (k : GoString) :
+    k ∈ leaseDelKeys s id ↔ (leaseItemsOf s).lookup (LeaseItem.mk k) = some id := by
+  rw [leaseItemsOf_lookup]
+  simp only
+  unfold leaseDelKeys
+  by_cases h0 : id = W64 0
+  · subst h0
+    simp only [↓reduceIte, List.not_mem_nil, false_iff]
+    intro h
+    cases hf : findKey k s with
+    | none => rw [hf] at h; cases h
+    | some v =>
+      rw [hf] at h
+      simp only [Option.bind_some, kvLease] at h
+      split at h
+      · cases h
+      · rename_i hne; exact hne (Option.some.inj h)
+  · rw [if_neg h0]
+    constructor
+    · intro h
+      obtain ⟨v, hv, rfl⟩ := List.mem_map.1 h
+      obtain ⟨hvs, hl⟩ := List.mem_filter.1 hv
+      have hl' : v.lease = id := of_decide_eq_true hl
+      rw [(findKey_iff_sorted hs v.key v).2 ⟨hvs, rfl⟩]
+      simp only [Option.bind_some, kvLease, hl']
+      rw [if_neg h0]
+    · intro h
+      cases hf : findKey k s with
+      | none => rw [hf] at h; cases h
+      | some v =>
+        rw [hf] at h
+        simp only [Option.bind_some, kvLease] at h
+        split at h
+        · cases h
+        · cases h
+          obtain ⟨hvs, hk⟩ := (findKey_iff_sorted hs k v).1 hf
+          exact List.mem_map.2 ⟨v, List.mem_filter.2 ⟨hvs, by simp⟩, hk⟩
+
+/-- `leaseDels`'s members: the deletes of `leaseDelKeys`'s. -/
+theorem leaseDels_mem {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (id : w64) (c : Change) :
+    c ∈ leaseDels s id ↔ ∃ k, c = .del k ∧ (leaseItemsOf s).lookup (LeaseItem.mk k) = some id := by
+  unfold leaseDels
+  constructor
+  · intro h; obtain ⟨k, hk, rfl⟩ := List.mem_map.1 h; exact ⟨k, rfl, (leaseDelKeys_mem hs id k).1 hk⟩
+  · rintro ⟨k, rfl, hk⟩; exact List.mem_map.2 ⟨k, (leaseDelKeys_mem hs id k).2 hk, rfl⟩
+
+/-- Every change of `leaseDels` is a delete. -/
+theorem leaseDels_isDel (s : List EtcdKv) (id : w64) : ∀ c ∈ leaseDels s id, c.isDel = true := by
+  intro c hc; obtain ⟨k, -, rfl⟩ := List.mem_map.1 hc; rfl
+
+/-- The deleted keys are strictly increasing (a sorted state). -/
+theorem leaseDelKeys_sorted {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (id : w64) :
+    (leaseDelKeys s id).Pairwise go.GoStringLt := by
+  unfold leaseDelKeys
+  split
+  · exact List.Pairwise.nil
+  · exact List.pairwise_map.2 (hs.filter _)
+
+/-- Two strictly increasing lists with the same members are equal. -/
+theorem eq_of_lt_sorted_mem : ∀ {l₁ l₂ : List GoString}, l₁.Pairwise go.GoStringLt →
+    l₂.Pairwise go.GoStringLt → (∀ x, x ∈ l₁ ↔ x ∈ l₂) → l₁ = l₂
+  | [], [], _, _, _ => rfl
+  | [], b :: _, _, _, h => absurd ((h b).2 (List.mem_cons_self ..)) (List.not_mem_nil)
+  | a :: _, [], _, _, h => absurd ((h a).1 (List.mem_cons_self ..)) (List.not_mem_nil)
+  | a :: l₁, b :: l₂, h₁, h₂, h => by
+    have ha := (List.pairwise_cons.1 h₁).1
+    have hb := (List.pairwise_cons.1 h₂).1
+    have hab : a = b := by
+      rcases List.mem_cons.1 ((h a).1 (List.mem_cons_self ..)) with e | e
+      · exact e
+      rcases List.mem_cons.1 ((h b).2 (List.mem_cons_self ..)) with e' | e'
+      · exact e'.symm
+      exact absurd (ha b e') (go.goStringLt_asymm (hb a e))
+    subst hab
+    congr 1
+    apply eq_of_lt_sorted_mem h₁.of_cons h₂.of_cons
+    intro x
+    constructor
+    · intro hx
+      rcases List.mem_cons.1 ((h x).1 (List.mem_cons_of_mem _ hx)) with e | e
+      · subst e; exact absurd (ha x hx) (go.goStringLt_irrefl _)
+      · exact e
+    · intro hx
+      rcases List.mem_cons.1 ((h x).2 (List.mem_cons_of_mem _ hx)) with e | e
+      · subst e; exact absurd (hb x hx) (go.goStringLt_irrefl _)
+      · exact e
+
+/-- **The sorted keys of `id` are `leaseDelKeys`'s** (what `lessor.Revoke` deletes: its item set,
+sorted): a list without duplicates, in Go's string order, of exactly the keys the item map puts on
+`id`. -/
+theorem leaseDelKeys_eq {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (id : w64)
+    (ks : List GoString) (hnd : ks.Nodup)
+    (hmem : ∀ k : GoString, k ∈ ks ↔ (leaseItemsOf s).lookup (LeaseItem.mk k) = some id)
+    (hsort : ∀ (i j : Nat) (ki kj : GoString), ks[i]? = some ki → ks[j]? = some kj → i < j →
+      go.GoStringLe ki kj) :
+    ks = leaseDelKeys s id := by
+  apply eq_of_lt_sorted_mem _ (leaseDelKeys_sorted hs id)
+  · intro x; rw [hmem x, leaseDelKeys_mem hs id x]
+  · rw [List.pairwise_iff_getElem]
+    intro i j hi hj hij
+    have hle := hsort i j _ _ (List.getElem?_eq_getElem hi) (List.getElem?_eq_getElem hj) hij
+    rcases hle with e | e
+    · exact absurd e (List.pairwise_iff_getElem.1 hnd i j hi hj hij)
+    · exact e
+
 end items
 
 end mvcc

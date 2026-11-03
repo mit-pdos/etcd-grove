@@ -40,7 +40,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxWriter at Hw
-  icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, Hrc⟩
+  icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, #Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
   wp_auto
   wp_apply wp_with_defer
@@ -61,11 +61,10 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
-  -- the receipt of the change (D19b), from the next resolution step
-  wp_take_receipt as Hr
-  ihave Hrc : iprop(⧗ (mvcc.logCh ilog + (pend ++ [mvcc.Change.del k]).length)) $$ [Hrc Hr]
-  · rw [List.length_append, List.length_singleton, ← Nat.add_assoc]
-    iapply (receipt_add _ 1).2; iframe
+  -- the change's step raises the writer's persistent receipt (D19b; M2's B2: `⧖`, not `⧗ 1` taken)
+  wp_raise_receipt Hrc
+  ihave #Hrc' : iprop(⧖ (mvcc.logCh ilog + (pend ++ [mvcc.Change.del k]).length)) $$ [Hrc]
+  · rw [List.length_append, List.length_singleton, ← Nat.add_assoc]; iexact Hrc
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
@@ -198,7 +197,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iapply HΦ
   iunfold mvcc.idxWriter
   rw [← mvcc.histShape_ev, hcount]
-  iframe Hauth Hlauth Hrc
+  iframe Hauth Hlauth Hrc'
   isplitl []
   · iexact Hnlb'
   ipureintro; exact hwf''

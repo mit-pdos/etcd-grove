@@ -33,7 +33,8 @@ abbrev txnLeasing.guardKeys.spec : Prop :=
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"guardKeys")) (Val #sl))
   {{ (cmps : GoSlice), RET #cmps; structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗ lkvReader lkv γ pfx ∗
       ∃ ms : List CmpModel, cmpsAt cmps ms ∗
-        ownSliceCap go_etcd_io.etcd.client.v3.Cmp cmps (DFrac.own 1) }}
+        ownSliceCap go_etcd_io.etcd.client.v3.Cmp cmps (DFrac.own 1) ∗
+        ⌜ms.length ≤ os.length ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝ }}
 
 end spec
 

@@ -21,14 +21,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`startRemote(tr, urls, id)`** on a started transport of the member `lid`, with `id`'s URLs
-(non-empty, its own) and four of the transport's `Raft` resources (its pipeline's goroutines'): a
-started remote and the right to stop it. -/
+(non-empty, its own): a started remote and the right to stop it. (Until J8a-6, 2026-11-01, four of
+the transport's `Raft` resources, for its pipeline's goroutines, which need none.) -/
 abbrev rafthttp.startRemote.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (urls : GoSlice)
     (uvs : List net.url.URL) (pid : w64),
   uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → Rh.member lid → lid ≠ pid → Rh.member pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFixed Rh t lid γd R ∗ urls ↦*□ uvs ∗ R ∗ R ∗ R ∗ R }}
+      trFixed Rh t lid γd R ∗ urls ↦*□ uvs }}
     (App (App (App (Val (@! rafthttp.startRemote)) (Val #t)) (Val #urls)) (Val #pid))
   {{ (g : Loc), RET #g; remoteOk Rh lid pid R g ∗ remoteStop Rh pid R g }}
 

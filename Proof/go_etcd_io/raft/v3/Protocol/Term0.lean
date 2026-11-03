@@ -45,11 +45,11 @@ theorem isEntryR_term_one (γ : RaftNames) (e : EntryM) (pt : w64) :
     rw [Ht]; word
 
 /-- **At term `0` a node's log is empty**: its boundary is the initial one, its suffix empty. -/
-theorem ownLogGhost_term0 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
+theorem ownLogGhost_term0 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
       ⌜s.term = W64 0 → plogLast s.base s.log = base0⌝ := by
   unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iintro ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   have ⟨Hf, Hw, Htle⟩ := Hfull
   have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hf Hw

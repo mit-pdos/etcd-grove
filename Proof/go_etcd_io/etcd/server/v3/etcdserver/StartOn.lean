@@ -74,8 +74,8 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInvM true s E γr ∗
     "#Hkvi" ∷ srvKVInvsM true s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -85,15 +85,30 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
+    -- against the snapshot payload's `nodeSnapLocal … γn.id`)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
+    -- `srvMonitorPermitM_of`: its attribute requests name it)
+    "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗
     "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
+    -- until then `2 ^ 31`, `GoAttach`'s)
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
@@ -113,7 +128,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
-    "HWB" ∷ srvWTStock E N ∗
+    "HWB" ∷ srvWTBudget E ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
     "Hsnapb" ∷ srvSnapBoot s ci E γr)
@@ -158,7 +173,7 @@ theorem kvRun_nil_on (γr : ReadNames) (ai₀ c₀ : w64) (x : apply.ApplyKV) :
   · iexists srvAuthSt0
     iframe HL Hhi Hc
     ipureintro
-    refine ⟨?_, hch⟩
+    refine ⟨?_, hch.1⟩
     rw [hl]
     rfl
   · ipureintro; exact h
@@ -172,13 +187,13 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
       isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuiltG srvBuildGap isServerBuiltOn srvUberRowM
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #HuB, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
-  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
+  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
-  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh Hwth Hwtl
   isplitr
   · unfold srvFieldsBuiltNA
     iexists v
@@ -192,7 +207,11 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   isplitr
   · ipureintro; exact HEr
   isplitr
+  · ipureintro; exact Hdisk
+  isplitr
   · ipureintro; exact Hρrd
+  isplitr
+  · ipureintro; exact Hmidc
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNAM applyBuiltNAOn applyBuiltOn
@@ -218,6 +237,41 @@ theorem isServerBuilt_of_gapM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     exact isServerBuilt_of_gap s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   · rw [isServerBuiltM_true]
     exact isServerBuilt_of_gapOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+
+/-- **The server's member id field, a voter** (2026-11-02, the cluster-rows stage): what `Start`
+reads off its construction premise for the monitors' permission (`srvMonitorPermitM_of`). -/
+theorem isServerBuilt_mid (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuilt (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
+      isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
+        srvMemberIDAddr s ↦□ γn.id ∗ ⌜γn.id ∈ ρ.raft.raft.cfg⌝ := by
+  iintro H
+  iunfold isServerBuilt at H
+  iNamed H
+  have hm : γn.id ∈ ρ.raft.raft.cfg := by rw [ReqNames.raft, Hρrd]; exact Hmidc
+  iframe Hmid
+  isplitl
+  · iunfold isServerBuilt
+    iframe % # ∗
+  ipureintro; exact hm
+
+/-- `isServerBuilt_mid`'s, in the mode `on`. -/
+theorem isServerBuiltOn_mid (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuiltOn (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
+      isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
+        srvMemberIDAddr s ↦□ γn.id ∗ ⌜γn.id ∈ ρ.raft.raft.cfg⌝ := by
+  iintro H
+  iunfold isServerBuiltOn at H
+  iNamed H
+  have hm : γn.id ∈ ρ.raft.raft.cfg := by rw [ReqNames.raft, Hρrd]; exact Hmidc
+  iframe Hmid
+  isplitl
+  · iunfold isServerBuiltOn
+    iframe % # ∗
+  ipureintro; exact hm
 
 end lemmas
 

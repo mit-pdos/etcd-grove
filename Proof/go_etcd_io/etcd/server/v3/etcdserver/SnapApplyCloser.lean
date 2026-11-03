@@ -49,6 +49,49 @@ theorem snap_kvCloser (s : Loc) (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : Me
   · iexact Hk
   · iexact Hst
 
+
+/-- **Step 6 by the mode** (M2's item 15, stage B): the KV's closer at the snapshot's environment
+(`srvKVCloserW`) and the apply thread's compaction right at the restored revision `c'`
+(`apply.cmpRight`), from the watchable store's kept parts and the store's right `store.Restore`
+gave back (`storeCloserM` at `c'`): off, `snap_kvCloser`'s closer and `c' = -1`; on, the restored
+store's compaction right is the apply thread's, the closer the watchable store's own parts. -/
+theorem snap_kvCloserW (s : Loc) (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF)
+    (ci : Loc) (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (al ast lp cl be : Loc)
+    (γw : mvcc.WsNames) (wsk stck : Loc) (hγw : γw.st = E.γ) (c' : Int) (hc : -1 ≤ c')
+    (hoff : ¬ mvcc.kbCmpM (E.γ.withPhys p').kb → c' = -1) :
+    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
+      mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk ∗ mvcc.storeCloserM E.s (γw.st.withPhys p') c' ⊢
+    srvKVCloserW s (snapE E γ' TM' ci p' g γB al ast lp cl be) ∗
+      apply.cmpRight (snapE E γ' TM' ci p' g γB al ast lp cl be) c' := by
+  by_cases h : mvcc.kbCmpM (E.γ.withPhys p').kb
+  · unfold srvKVCloserW apply.cmpRight
+    simp only [snapE_s, snapE_γ, h, ↓reduceIte]
+    rw [← hγw] at h ⊢
+    iintro ⟨#Hk, #Hst, Hsc, Hw, Hc⟩
+    isplitl [Hsc Hw]
+    · iexists wsk
+      iframe Hk
+      iexists stck
+      iframe Hst Hsc Hw
+    iframe
+    isplitl
+    · iapply (mvcc.storeCloserM_on E.s (γw.st.withPhys p') c' h).1 $$ Hc
+    ipureintro; exact hc
+  · have hγ : ¬ mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb := by
+      simp only [snapE_γ]; exact h
+    rw [srvKVCloserW_off s _ hγ]
+    unfold apply.cmpRight
+    simp only [hγ, ↓reduceIte]
+    iintro ⟨#Hk, #Hst, Hsc, Hw, Hc⟩
+    isplitl
+    · iapply snap_kvCloser s E γ' TM' ci p' g γB al ast lp cl be γw wsk stck hγw
+      iframe Hk Hst Hsc Hw
+      rw [hγw]
+      iapply (mvcc.storeCloserM_off E.s (E.γ.withPhys p') c' h).1 $$ Hc
+    ipureintro; exact hoff h
+
 end proof
 end EtcdGrove
 end Perennial

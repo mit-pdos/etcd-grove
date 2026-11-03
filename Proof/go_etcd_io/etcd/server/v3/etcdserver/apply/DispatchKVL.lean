@@ -719,7 +719,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zTxn : rq.txn = none := nTx.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Compaction: out of the model (the premise `dispatchOk`)
+  · -- Compaction: not a KV request (`isKVKind`)
     have hl : lCo ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
     have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
@@ -913,7 +913,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
-  exact Hok.2.2.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  exact Hok.2.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
   -- after the join: `return ar` and the deferred metrics
   iintro Hj
   imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩

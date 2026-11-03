@@ -36,8 +36,10 @@ theorem NewKV.wp_proof
     (hClose : leasingKV.Close.spec (GF := GF) (hG := hG))
     (hWS : leasingKV.waitSession.spec (GF := GF) (hG := hG)) :
     NewKV.spec (GF := GF) (hG := hG) := by
-  intro cl pfx osl
-  wp_start as ⟨#Hcci, #Hcl, %Hpre⟩
+  intro _ cl pfx osl
+  wp_start as ⟨#Hcci, #Hcl, %Hpre0⟩
+  have Hpre : pfx ≠ [] ∧ pfx.length ≤ 2 ^ 26 ∧ threadBound GF ≤ 2 ^ 30 - 1 :=
+    ⟨Hpre0.1, Hpre0.2, by have := ThreadBoundLe.le (GF := GF) (2 ^ 29); omega⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -75,11 +77,13 @@ theorem NewKV.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γwc, Hwca⟩
   imod ownTokAuth_add leasingWgOwedMax γwc 0 $$ Hwca with ⟨Hwca, Hcaps⟩
   imod ownToks_0 (GF := GF) γwc with Hcap0
-  ihave Htk0 : threadToks (GF := GF) 0 $$ []
-  · iapply threadToks_zero
   imod ghostVar_alloc (GF := GF) () with ⟨%γop, Hop⟩
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γrp, Hrpa⟩
+  imod ownToks_0 (GF := GF) γrp with Hrp0
+  have Hwgb : threadBound GF + leasingWgOwedMax ≤ 2 ^ 31 := by
+    have := Hpre.2.2; unfold leasingWgOwedMax; omega
   obtain ⟨γ, hγ⟩ : ∃ γ : LeasingNames, γ = ⟨⟨γst, γready, γinst⟩, γsess, γlog, γwg, γwr, γwo, γwc,
-      γop⟩ := ⟨_, rfl⟩
+      γop, γrp⟩ := ⟨_, rfl⟩
   -- `sessionc`, a broadcast channel announcing `sessionReadyQ γ`
   imod alloc_broadcast_chan (sessionReadyQ γ) γsc sc $$ Hsc Hsoc with Hpend
   icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γch, #Hint, Hown⟩
@@ -100,8 +104,8 @@ theorem NewKV.wp_proof
       (1 : Qp).half (1 : Qp).half).1 $$ [Csessionc] with ⟨Hsc1, Hsc2⟩
   · rw [Qp.half_add_half]; iexact Csessionc
   -- the lease cache
-  imod leasingCache_init «$r0_ptr» γ pfx rm sc $$ [Hcci Lmu Lentries Lrevokes Hrm Lheader Hst Hready Hinst
-    Hs1 Hsc1 Hlog Hsess] with ⟨#Hcache, Hrds⟩
+  imod leasingCache_init «$r0_ptr» γ pfx rm sc Hpre.2.2 $$ [Hrpa Hcci Lmu Lentries Lrevokes Hrm Lheader
+    Hst Hready Hinst Hs1 Hsc1 Hlog Hsess] with ⟨#Hcache, #Hpool, Hr⟩
   · subst hγ
     iframe
     iframe #
@@ -112,7 +116,7 @@ theorem NewKV.wp_proof
   have hwg : γ.wg = γwg := by subst hγ; rfl
   rw [← hwg]
   imod inv_alloc leasingWgN ⊤ (leasingWgInv (GF := GF) γ)
-    $$ [Hwgo Hwaiters Hwra Htk0 Hwoa Hcap0 Hwca] with #HwgInv
+    $$ [Hwgo Hwaiters Hwra Hrp0 Hwoa Hcap0 Hwca] with #HwgInv
   · inext
     subst hγ
     unfold leasingWgInv
@@ -140,15 +144,15 @@ theorem NewKV.wp_proof
   · unfold isLeasingKV
     iexists cl, kv, ictx, _, cancel, osl
     isplitr
-    · ipureintro; exact Hpre.1
+    · ipureintro; exact ⟨Hpre.1, Hpre.2.1⟩
     iframe #
-    ipureintro; exact Hpre.2
+    ipureintro; exact Hwgb
   ihave #Hcanc : isLeasingCancel «$r0_ptr» $$ []
   · unfold isLeasingCancel concurrency.cancelSpec
     iexists cancel
     iframe #
   -- `lkv.wg.Add(2)`
-  wp_apply wp_leasingWg_Add2 «$r0_ptr» γ 1 Hpre.2 $$ [$Hsync $HisWg $HwgInv $Hcaps $Hop]
+  wp_apply wp_leasingWg_Add2 «$r0_ptr» γ 1 _ Hwgb $$ [$Hsync $HisWg $HwgInv $Hpool $Hcaps $Hop]
     as ⟨H2, Hop⟩
   icases ownToks_add_1 1 1 γ.wo $$ H2 with ⟨Hr1, Hr2⟩
   -- the session monitor
@@ -188,12 +192,7 @@ theorem NewKV.wp_proof
     (try wp_auto)
     iexact Htok
   (try wp_auto)
-  -- `lkv.waitSession(cctx)`, with a reader slot lent
-  obtain ⟨n, hn⟩ : ∃ n, leasingMaxReaders = n + 1 :=
-    ⟨leasingMaxReaders - 1, by
-      unfold leasingMaxReaders; rw [sync.rwmutex.actualMaxReaders_unseal]; decide⟩
-  rw [hn, List.replicate_succ]
-  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hr, Hrds⟩
+  -- `lkv.waitSession(cctx)`, with the reader slot left out of the pool
   wp_apply hWS «$r0_ptr» γ pfx ictx _ $$ [$Hpkg $Hlkv $Hr $Hictx] as %err ⟨Hr, Herr⟩
   (try wp_auto)
   iapply HΦ
@@ -202,10 +201,6 @@ theorem NewKV.wp_proof
   isplitr
   · ipureintro; rfl
   iframe Hlkv
-  isplitl [Hr Hrds]
-  · rw [hn, List.replicate_succ]
-    iapply BigSepL.bigSepL_cons.2
-    iframe
   iframe Hop
   isplitr
   · unfold leasingCloseFn

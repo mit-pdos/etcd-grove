@@ -100,6 +100,18 @@ def errKeyMsg (err : GoInterface) : IProp GF :=
 instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF := GF) err) := by
   unfold errKeyMsg; infer_instance
 
+/-- Exact relations of an error tree's methods (`errors.errorWalkTree`): each error's `Is` and
+`Unwrap` have one answer, so that `errors.Is`'s answer is a function of the tree
+(`errors.isWalk_det`). -/
+def exactRels (I : GoInterfaceOk → Bool → Prop) (U : GoInterfaceOk → List GoInterface → Prop) :
+    Prop :=
+  (∀ ii b b', I ii b → I ii b' → b = b') ∧ (∀ ii cs cs', U ii cs → U ii cs' → cs = cs')
+
+/-- A leaf's relations (`errors.errorWalkTree_leaf`'s) are exact. -/
+theorem exactRels_leaf :
+    exactRels (fun _ b => b = false) (fun _ (cs : List GoInterface) => cs = []) :=
+  ⟨fun _ _ _ h h' => h.trans h'.symm, fun _ _ _ h h' => h.trans h'.symm⟩
+
 /-- A target `errors.Is` can compare with by `==` in the model (Perennial's `errors.wp_Is`): `nil`
 or a pointer error. -/
 def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
@@ -120,25 +132,52 @@ through `applyErrIs_tree`). As `clientErrIs` for the client's errors. Defined he
 package's `Base` (moved from the server's `InvApplier.lean`, 2026-10-12, the merge of the apply
 package's unit 2), so that the apply package states it and the server reads it
 (`apply.resultErrOk`). `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
-(`applyErrIs_leaf`). -/
+(`applyErrIs_leaf`).
+
+The tree is exact (2026-11-01, the lease rows at the gRPC level): its `Is` and `Unwrap` methods
+have one answer each (`errors.errorWalkTree` at functional relations, `exactRels`), so that two
+`errors.Is` calls of one error and target answer the same (`errors.isWalk_det`), as Go's do:
+`v3rpc/lease.go` tests `errors.Is(err, ErrLeaseNotFound)` twice. `applyErrIs_tree` is the
+over-approximating tree the other callers take. -/
 def applyErrIs (err : GoInterface) : IProp GF :=
-  iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
-    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target)⌝) ∗ errKeyMsg err)
+  iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
+    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝) ∗
+    errKeyMsg err)
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
   unfold applyErrIs; infer_instance
 
-/-- The error tree of an `applyErrIs` error (what `errors.wp_Is` takes). -/
-theorem applyErrIs_tree (err : GoInterface) :
+/-- The exact error tree of an `applyErrIs` error (what `errors.Is.spec` takes, with
+`errors.isWalk_det`). -/
+theorem applyErrIs_walk (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ □ ∀ target : GoInterface,
+      ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+        (U : GoInterfaceOk → List GoInterface → Prop),
+        _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
+        ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧
+          exactRels I U⌝ := by
+  iunfold applyErrIs
+  iintro ⟨#H, -⟩
+  iexact H
+
+/-- The error tree of an `applyErrIs` error, over-approximated (what this repository's
+`errors.Is.spec` takes). -/
+theorem applyErrIs_tree [_root_.Perennial.errors.Assumptions] (err : GoInterface) :
     applyErrIs (GF := GF) err ⊢ □ ∀ target : GoInterface,
       ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
         _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
         ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target)⌝ := by
-  iunfold applyErrIs
-  iintro ⟨#H, -⟩
-  iexact H
+  iintro #H
+  ihave #Hw := applyErrIs_walk err $$ H
+  iintro !> %target
+  ihave ⟨%S, %I, %U, #Ht, %HS⟩ := Hw $$ %target
+  iexists S, (fun ii => I ii true)
+  isplitl
+  · iapply _root_.Perennial.errors.errorIsTree_of_walk S I U target $$ Ht
+  ipureintro; exact ⟨HS.1, HS.2.1⟩
 
 /-- A pointer error is a safe map key at `error`: Go's `==` on two pointer errors of one type
 compares the pointers. -/
@@ -157,12 +196,12 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   rotate_left
   · iunfold errKeyMsg; ileft; ipureintro; rfl
   iintro !> %target
-  iexists (· = GoInterface.nil), (fun _ => False)
+  iexists (· = GoInterface.nil), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
   · iintro !> %ii %h
     cases h
   ipureintro
-  refine ⟨rfl, fun _ => ?_⟩
+  refine ⟨rfl, fun _ => ?_, exactRels_leaf⟩
   intro ii tii h
   cases h
 
@@ -178,11 +217,11 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
     · ipureintro; exact safeMapKey_ptrErr e h.1
     iexists e; iframe Hm; ipureintro; rfl
   iintro !> %target
-  iexists (· = GoInterface.ok e), (fun _ => False)
+  iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
-  · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) target h.2.1 h.2.2
+  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2
   ipureintro
-  exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1⟩
+  exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf⟩
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
@@ -202,11 +241,11 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
     · ipureintro; exact hkey
     iexists e; iframe Hm; ipureintro; rfl
   iintro !> %target
-  iexists (· = GoInterface.ok e), (fun _ => False)
+  iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
-  · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) target hleaf hIs
+  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target hleaf hIs
   ipureintro
-  refine ⟨rfl, fun hpt ii tii hii ht hty' => ?_⟩
+  refine ⟨rfl, fun hpt ii tii hii ht hty' => ?_, exactRels_leaf⟩
   cases hii
   obtain ⟨T, l, hT, -⟩ := hpt tii ht
   exact absurd (hty'.trans hT) (hty T)

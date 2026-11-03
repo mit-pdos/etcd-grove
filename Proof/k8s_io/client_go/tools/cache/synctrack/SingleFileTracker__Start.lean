@@ -26,7 +26,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.synctrack.Assumptions]
 
 theorem SingleFileTracker.Start.wp_proof :
     SingleFileTracker.Start.spec (GF := GF) (hG := hG) := by
-  intro t γ Hbound
+  intro _ t γ
+  have Hbound : receiptBound GF ≤ 2 ^ 63 := ReceiptBoundLe.le (GF := GF) _
   wp_start as #Hsft
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit

@@ -41,8 +41,8 @@ theorem RawNode.Step.wp_proof [package_sem : Assumptions] (wp_IsResponseMsg : Is
                                 { delivered := rs.delivered, unpersisted := rs.unpersisted, steps := rs.steps, term := t,
                                   storage := rs.storage, sn := rs.sn, outlb := rs.outlb, unst := rs.unst, clb := rs.clb,
                                   tc := rs.tc, mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw,
-                                  psnap := rs.psnap || decide (st.msg.Type' = MsgSnap), slent := rs.slent,
-                                  phs := rs.phs } ∗
+                                  psnap := rs.psnap || decide (st.msg.Type' = MsgSnap), slent := rs.slent, phs := rs.phs,
+                                  dur := rs.dur, role := rs.role, bw := rs.bw, hlb := rs.hlb } ∗
                             "%Ht" ∷
                               ⌜uint.Z rs.term ≤ uint.Z t ∧
                                   uint.Z t ≤ uint.Z rs.tc ∧

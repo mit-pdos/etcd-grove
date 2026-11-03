@@ -25,8 +25,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.UnsafeCreateBucket(bucket)` under the lock (a name of `1..MaxKeySize` bytes): the bucket,
-empty if it was absent; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of
-the tracked buckets (`rbPut`), given back updated. -/
+empty if it was absent; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's part of
+that bucket (`rbPut`: since decision 3, 2026-11-01, of its bucket only), given back updated. -/
 abbrev backend.batchTxBuffered.UnsafeCreateBucket.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo),
   P.has bi → 0 < bi.name.length → bi.name.length ≤ maxKeySize → sint.Z st.pend + 1 < 2 ^ 58 →

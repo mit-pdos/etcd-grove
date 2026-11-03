@@ -7,6 +7,7 @@ import all Proof.go_etcd_io.raft.v3.InvNodeChan
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
@@ -21,7 +22,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 `select { case n.stop <- struct{}{}: case <-n.done: return }; <-n.done`: the client's half of
 `live` goes to `run` on `stop` (`isNodeChan`'s `Hstop`), which closes `done` once stopped
-(`node_done_recv_au`); if `done` fired first, the node had stopped already. -/
+(`node_done_recv_au`); if `done` fired first, the node had stopped already. (2026-11-01, durability
+stage II (n), the stop's option (c)) `run` answers with its share of the generation and its
+protocol state (`stopAns`), which with the client's share of the generation give the id's slot
+back (`raft_stop`). -/
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,7 +40,7 @@ private abbrev node.Stop.specRaw : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeLiveRaw γ 1 }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); nodeStoppedRaw γ }}
+  {{ RET #(); nodeStoppedRaw γ ∗ raftIdSlot γ.raft id }}
 
 end spec
 
@@ -64,11 +68,22 @@ private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_send_au γ.stop nv.stop' () (fun (_ : Unit) => nodeLiveRaw γ 1) iprop(True)
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlive]
-    · iexact Hlive
+    unfold nodeLiveRaw
+    icases Hlive with ⟨Hlv, Hsl⟩
+    iapply handshake_send_au γ.stop nv.stop' ()
+      (fun (_ : Unit) => dghostVar γ.live (DFrac.own (1 : Qp).half) false) (stopAns γ id)
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlv]
+    · iexact Hlv
     inext
-    iintro -
+    iintro Hans
+    unfold stopAns
+    icases Hans with ⟨Hsl', %s, %md, Hg⟩
+    subst Hgid
+    have Hfr := (slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional (Qp.half 1)
+      (Qp.half 1)
+    rw [Qp.half_add_half] at Hfr
+    ihave Hsl1 := Hfr.2 $$ [$Hsl $Hsl']
+    imod raft_stop ⊤ γ.raft γ.id s γ.gen (md := md) CoPset.subseteq_top $$ Hsl1 Hg with Hslot
     wp_auto
     wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
     · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
@@ -76,7 +91,7 @@ private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
     iintro #Hst
     wp_auto
     iapply HΦ
-    iexact Hst
+    iframe Hst Hslot
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-n.done`: stopped already
@@ -88,11 +103,11 @@ private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
     · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
     iapply node_done_recv_au γ nv.done' _ $$ Hdone
     iintro #Hst
-    wp_auto
-    iapply HΦ
-    iexact Hst
+    iexfalso
+    iapply nodeLiveRaw_stopped γ 1 $$ [$Hlive $Hst]
   iapply BigAndL.bigAndL_nil.2
   itrivial
+
 
 end proof
 
@@ -113,16 +128,26 @@ private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
+    EtcdGrove.isNode
   intro n γ N id
-  iintro %Φ ⟨#Hinit, -, Hlive⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnd, Hlive⟩ HΦ
   iunfold nodeRunning at Hlive
   icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
   iapply (hS γn id1 n) $$ [Hl]
   · iframe Hinit Hn Hl
-  iintro !> #Hst
+  iintro !> ⟨#Hst, Hslot⟩
+  iunfold isNode at Hnd
+  icases Hnd with ⟨%γn2, %Hok2, #Hn2, -⟩
+  ihave %Hid := isNode_id_agree γn γn2 id1 id n $$ Hn Hn2
+  subst Hid
   iapply HΦ
-  iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
-  iframe Hn Htb Hst
+  isplitr
+  · iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
+    iframe Hn Htb Hst
+  unfold EtcdGrove.nodeVacant nodeVacantU
+  rw [← Hok.1.1]
+  iexact Hslot
+
 
 end wrap
 

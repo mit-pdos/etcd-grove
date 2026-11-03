@@ -6,13 +6,13 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261103041248-bb1b80ca035a
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261103041248-bb1b80ca035a
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261103162249-673da07c8fab
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261028061729-565c2bda9e6d
 )
 
@@ -40,6 +40,7 @@ require (
 	go.etcd.io/etcd/tests/v3 v3.0.0-00010101000000-000000000000
 	go.etcd.io/raft/v3 v3.7.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/sys v0.48.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -75,7 +76,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect

@@ -69,8 +69,15 @@ def propMsgM : MessageM :=
 theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.Type' ≠ none) :
     SentMsgOk st
 
+theorem softStateIs_RO [package_sem : Assumptions] (p : Loc) (ss : Option (w64 × StateType)) :
+    softStateIs p ss ⊢ softStateRO p
+
 theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg) (hr : st'.resps
     = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st'
+
+def readyDurable (S : RaftState) (h' : HardStateM) (L : Option SnapLoan) (es : List EntryM) :
+    RaftState :=
+  S.next h'.Term' h'.Vote' h'.Commit' (Option.map (fun x => x.snap) L) es
 
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜SentMsgShape st⌝ ∗
@@ -146,6 +153,9 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
           storLog st (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
             storEnd st (uint.nat l.snap.Metadata'.Index' + 1 + es.length))
 
+def roleAfter (r : StateType) (ss : Option (w64 × StateType)) : StateType :=
+  (Option.map (fun x => x.snd) ss).getD r
+
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
   iprop(□
       ∀ k p dq m e x Φ,
@@ -171,6 +181,9 @@ def AppShape (st : MsgSt) : Prop :=
   st.msg.Vote' = W64 0 ∧
     st.msg.Reject' = false ∧ st.msg.RejectHint' = W64 0 ∧ st.snap = none ∧ st.ctx = [] ∧ st.resps = []
 
+theorem softStateIs_ne_null [package_sem : Assumptions] (p : Loc) (x : w64 × StateType) :
+    softStateIs p (some x) ⊢ ⌜p ≠ null⌝
+
 def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
   match md with
   | RNMode.static => ownRaftGhost γ id initPState
@@ -194,6 +207,9 @@ def ConfigValid (cv : Config) : Prop :=
 
 def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
   if st.msg.Type' = MsgProp then [∗list] e ∈ st.ents, entTk γ e else iprop(emp)
+
+theorem softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) : Persistent (softStateIs p
+    ss)
 
 theorem bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal ps ctxs bootLog)
@@ -263,6 +279,19 @@ structure RNState : Type where
   psnap : Bool
   slent : Option SnapLoan
   phs : HardStateM
+  dur : RaftState
+  role : StateType
+  bw : DurMaps
+  hlb : HardStateM
+
+def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF :=
+  match x✝ with
+  | none => iprop(⌜p = null⌝)
+  | some (lead, rs) =>
+    iprop(⌜p ≠ null⌝ ∗
+        typedPointsto (structFieldRef SoftState go!"Lead" p) lead DFrac.discard ∗
+          typedPointsto (structFieldRef SoftState go!"RaftState" p) rs
+            DFrac.discard)
 
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp) (k : Nat) (e :
     EntryM) (cs' : CCState) : Prop :=

@@ -6,8 +6,9 @@ watchkv's `Main` (`Proof/.../watchkv/Main.lean`, before 2026-10-26, when watchkv
 adapter) with the watch through etcd's cache: `genAll`
 picks the writers' Puts `trs` first; the server's start is watchkv's, the examples' shared one
 (`common.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
-the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartServer`, `common.Serve` with one
-watch run slot, `etcd_noRefusal` and `watchkv.wk_served` as the ghost step, D33). Then
+the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartPeriodicServer` (since 2026-11-02;
+the store's fact for watches from the plan, `noDupKeys_of_wk`), `common.Serve` with one
+watch run slot, `etcd_noRefusal` and `watchkv.wk_served_nd` as the ghost step, D33). Then
 `common.NewClient` (etcd's default configuration; the member refusal-free, so `clientWriteOnce`,
 D29); the cache's client at the adapter's model (`client.isEtcdClient_of_km`: its `KV` a client of
 the KV, `client.isKv_of_regs`, its `Watcher` a watcher of the KV, `isNewClient_watcher`);
@@ -20,8 +21,14 @@ with the adapter's write update, which keeps the plan's fact, `wk_put_W`, its lo
 `okFactKM_of_write`), the
 log's Puts `oks` taken under the lock, `maxRev`, `collect` (the cache watch's log, `log_ck`), the
 cancel, and the check: `CheckOk` from `collectOk` and the Puts' `okFactKM`s
-(`common.checkOk_of_km`). Every start step's error ends `Main` with `Failed`; `collect`'s `false`
-with `WatchEnded`.
+(`common.checkOk_of_km`), after (2026-11-03) a progress notification (`RequestProgress` with a
+second watch slot's demux handle, `awaitProgress`: not past the events, `log_ck_progress`) and
+`checkProgress`. Then (2026-11-02) the cache's `Get` of the prefix at the highest
+revision `m` (`Cache.Get.spec` with one of `New`'s readers, `WithTimeout(Background())`'s context):
+its error is non-nil (`cacheGetErr_ne_nil`) and ends `Main` with `GetFailed`; its answer is
+etcd's state under the prefix at `m` (`cacheGetOk`), which passes `checkGet` (`getCheck_km`, over
+`collect`'s facts and the adapter's invariant). Every start step's error ends `Main` with
+`Failed`; `collect`'s `false` with `WatchEnded`.
 -/
 module
 
@@ -34,7 +41,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Writes
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
 public import Spec.go_uber_org.zap.NewNop
-public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.NoDup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc
@@ -45,6 +53,14 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.watcher__RequestProgress
 public import Spec.go_etcd_io.etcd.cache.v3.New
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__Watch
+public import Spec.go_etcd_io.etcd.cache.v3.Cache__Get
+public import Spec.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.checkGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.GetFacts
+public import Spec.go_etcd_io.etcd.cache.v3.Cache__RequestProgress
+public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.awaitProgress
+public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.checkProgress
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.context.Link
@@ -72,7 +88,7 @@ namespace cachekv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -93,6 +109,17 @@ theorem cfgDefault_bounded : CfgBounded (cfgApply [] defaultConfigVal) := by
   refine ⟨by decide, by decide, by decide, by decide⟩
 
 omit package_sem in
+/-- The cache's `Get` options (`WithPrefix()`, `WithRev(m)`): the range of the prefix, at revision
+`m`; `OpGet` does not panic. -/
+theorem ckGet_opts (m : w64) :
+    (opGetModel ckPfx [withPrefixM, withRevM m]).base.rangeEnd = prefixRangeEnd ckPfx ∧
+      (opGetModel ckPfx [withPrefixM, withRevM m]).base.rev = m ∧
+      ¬ opGetPanics [withPrefixM, withRevM m] := by
+  have h : ckPfx ≠ [] := by decide
+  refine ⟨?_, ?_, ?_⟩ <;>
+    simp [opGetModel, opGetPanics, op_simps, h]
+
+omit package_sem in
 /-- The cache watch's options (`WithPrefix()`, `WithRev(2)`): the range of the prefix, from
 revision `2`; `OpWatch` does not panic. -/
 theorem ckWatch_opts :
@@ -104,6 +131,7 @@ theorem ckWatch_opts :
     simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, h]
 
 set_option maxHeartbeats 1600000 in
+set_option maxRecDepth 8192 in
 theorem Main.wp_proof
     (wp_GenAll : common.GenAll.spec (GF := GF) (hG := hG))
     (wp_Writer : common.Writer.spec (GF := GF) (hG := hG))
@@ -111,7 +139,7 @@ theorem Main.wp_proof
     (wp_collect : collect.spec (GF := GF) (hG := hG))
     (wp_Check : common.Check.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
+    (wp_StartPeriodicServer : common.StartPeriodicServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
@@ -122,12 +150,20 @@ theorem Main.wp_proof
     (wp_CNew : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
       EtcdGrove.New.spec (GF := GF) (hG := hG))
     (wp_CWatch : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
-      Cache.Watch.spec (GF := GF) (hG := hG)) :
+      Cache.Watch.spec (GF := GF) (hG := hG))
+    (wp_CGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
+      Cache.Get.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_checkGet : checkGet.spec (GF := GF) (hG := hG))
+    (wp_CRP : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
+      Cache.RequestProgress.spec (GF := GF) (hG := hG))
+    (wp_awaitProgress : awaitProgress.spec (GF := GF) (hG := hG))
+    (wp_checkProgress : checkProgress.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN Hck Haf
-    Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
+  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN HwbN Hck Haf
+    Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
@@ -176,6 +212,8 @@ theorem Main.wp_proof
     simp only [pairOf]
     simp only [genKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with h | h | h <;> rw [h] <;> decide
+  have hsz : ∀ p ∈ trs, common.wkvSizeOk p := fun p hp =>
+    common.GenKv.sizeOk (by decide) (Htrs.2 p hp)
   (try wp_auto)
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -199,10 +237,9 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (ckDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
-  -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
-  ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
+      (by omega) (by omega) (cmp := true)) $$ Hmarsh
+    with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
@@ -222,15 +259,17 @@ theorem Main.wp_proof
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
-  -- `StartServer("cachekv", peerAddr, clientAddr, lg)`
+  -- `StartPeriodicServer("cachekv", peerAddr, clientAddr, period, lg)` (the cache over a
+  -- compacting member, 2026-11-02: periodic mode at 10ms, the cluster's retention `0`)
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (ckDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873" lg (LogEntry.toEntries boot 0) ctxs
-      (ckDir id) id γ ρ E₀ Φs γn Htb31
-      Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [ckDir, dirOne]) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb] as %srv %err Hr
+  wp_apply (wp_StartPeriodicServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873"
+      (W64 10000000) lg (LogEntry.toEntries boot 0) ctxs
+      (ckDir id) id γ ρ E₀ Φs γn Htb
+      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
+      (by simp [ckDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
+    $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
   · cases err with
@@ -241,25 +280,24 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
-  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
-  -- `Serve(s, clientAddr)`, with the ghost step `wk_served` (the KV specs and the watch server's
+  -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
   wp_apply (wp_Serve srv go!"127.0.0.1:23873" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23873"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23873", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) ∗
+        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) ∗
         srvGoRes srv ∗ mvcc.idxCert R.E.γ.idx [[], []]))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUp at Hg
-    icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, -, HWRs, Hlis⟩
+    icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, HWRs, Hlis, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -286,8 +324,8 @@ theorem Main.wp_proof
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := watchkv.cert0_of_server pw R $$ Hws
     ihave #Hkf : client.srvKVFacts
-        (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) $$ []
-    · iapply client.srvKVFacts_of_off _ ρ.rd rfl hlog (by omega)
+        (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) $$ []
+    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
       iframe Hinvs
       iapply mvcc.idxCert_sealed; iexact H00
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
@@ -297,9 +335,19 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (watchkv.wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) go!"127.0.0.1:23873"
+    ihave %Hlk := client.watchSrvLink_of_server pw R $$ Hws
+    -- (the cache over a compacting member, 2026-11-02) the store's fact for watches: no revision
+    -- writes a key twice (the writers' plan, `kmInv`'s `wkW`)
+    ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
+    · iunfold mvcc.watchNoDup; iright
+      ihave #HWau : kvReadAu ρ.rd.kv (fun σ => iprop(⌜watchkv.wkW (trs.map pairOf) σ.changes⌝)) $$ []
+      · rw [← hγW, ← hγkv]; iapply kmWAu γk $$ Hkm
+      iapply (noDupKeys_of_wk (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv)
+        ρ.rd.kv rfl (trs.map pairOf))
+      iframe Hkf HWau
+    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) go!"127.0.0.1:23873"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff)
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
@@ -323,7 +371,7 @@ theorem Main.wp_proof
   ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23873" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) Hlg
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -344,21 +392,21 @@ theorem Main.wp_proof
   -- client of the KV from the member's registrations (`isKv_of_regs`), and its `Watcher`, a watcher
   -- of the KV (`isNewClient_watcher`, with the watch server's facts)
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWa, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    [go!"127.0.0.1:23873"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) rfl
+    [go!"127.0.0.1:23873"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) rfl
     rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKVa, #Hkvo⟩, -⟩
-  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv])
+  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _)
       (by omega)) $$ [Hkvo] with #Hisk
   · iframe Hkvo
     iapply client.kvRegs_one
     iexact HKV
   -- the writers' client of the KV, sending a write at most once
   imod (client.isKv_of_newClient cl go!"127.0.0.1:23873"
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) R.E ρ.rd
-      cid mid γk.kv (by rw [hγkv]) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) R.E ρ.rd
+      cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
   · iframe #
   ihave #Hkw : client.isKvWatcher w γk.kv $$ []
   · unfold client.isKvWatcher
@@ -380,12 +428,13 @@ theorem Main.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax; omega⟩
   wp_apply (wp_CNew (EM := client.etcdModelOfKV γk) cl ckPfx slice.nil []) $$ []
     as %c %cerr Hnew
   · iframe #
     isplitr
     · ipureintro; intro _; exact cfgDefault_bounded
-    ipureintro; unfold cacheWgOwedMax; omega
+    ipureintro; have : ckPfx.length = 3 := rfl; omega
   irevert Hnew
   unfold newCacheResult
   rw [if_pos cfgDefault_valid]
@@ -394,18 +443,33 @@ theorem Main.wp_proof
   subst Hcerr
   (try wp_auto)
   iunfold cacheHandles at Hhandles
-  icases Hhandles with ⟨-, Hslots, -, -, Hopen⟩
-  ihave ⟨Hslot, -⟩ : cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
-      (sint.nat (cfgApply [] defaultConfigVal).HistoryWindowSize') ∗ True $$ [Hslots]
-  · have hmr : maxReaders - 2 = (maxReaders - 3) + 1 := by
+  icases Hhandles with ⟨Hrds, Hslots, -, -, Hopen⟩
+  -- one of the cache's readers, for its `Get`
+  ihave ⟨Hcrd, -⟩ : cacheReader (EM := client.etcdModelOfKV γk) cf ∗ True $$ [Hrds]
+  · have hmr : maxReaders - 1 = (maxReaders - 2) + 1 := by
       have := sync.actualMaxReaders_ge_2
       unfold maxReaders
       rw [sync.rwmutex.actualMaxReaders_unseal] at *
       omega
     rw [hmr]
     simp only [List.replicate_succ]
-    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs, -⟩
-    iframe Hs
+    icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hr, -⟩
+    iframe Hr
+  -- two of `New`'s watch slots: the watch's, and the demux handle `RequestProgress` needs
+  ihave ⟨Hslot, Hslot2, -⟩ : cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
+      (sint.nat (cfgApply [] defaultConfigVal).HistoryWindowSize') ∗
+    cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
+      (sint.nat (cfgApply [] defaultConfigVal).HistoryWindowSize') ∗ True $$ [Hslots]
+  · have hmr : maxReaders - 2 = (maxReaders - 4) + 1 + 1 := by
+      unfold maxReaders
+      rw [sync.rwmutex.actualMaxReaders_unseal]
+      decide
+    rw [hmr]
+    simp only [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs, Hslots⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs2, -⟩
+    iframe Hs Hs2
+  icases cacheWatchSlot_parts (EM := client.etcdModelOfKV γk) _ _ _ $$ Hslot2 with ⟨Hdh, -⟩
   -- the main thread's token, back from the server's start (`srvGoRes`)
   iunfold srvGoRes at Hgo2
   icases Hgo2 with ⟨-, Htok⟩
@@ -518,7 +582,7 @@ theorem Main.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega)) $$ []
+            omega) hsz) $$ []
       · iframe #
         isplitr
         · iintro !> %k' %v' %hkv
@@ -574,27 +638,140 @@ theorem Main.wp_proof
   · iframe
   wp_apply (wp_collect γk (trs.map pairOf) wch γw (prefixRangeEnd ckPfx) m hγW hpk
       hkeys) $$ [Hcons]
-    as %esl %ok Hcol
+    as %esl0 %ok0 Hcol
+  · iframe; iframe #
+  (try wp_auto)
+  cases ok0
+  · -- the watch ended before it reported every successful Put: `cancel()`
+    (try wp_auto)
+    wp_apply Hcancel $$ [] as -
+    · itrivial
+    (try wp_auto)
+    iapply HΦ; ipureintro; right; right; left; rfl
+  ihave ⟨%evs0, %rs, %Hrs, Hes0, Hecap0, Hcons, Hcok0⟩ := Hcol $$ %rfl
+  (try wp_auto)
+  -- `c.RequestProgress(wctx)`
+  wp_apply (wp_CRP (EM := client.etcdModelOfKV γk) c cf γrd γd _ _) $$ [Hdh] as Hdh
+  · iframe; iframe #
+  (try wp_auto)
+  -- `p, evs, ok := awaitProgress(wch, evs)`, then `cancel()`
+  wp_apply (wp_awaitProgress γk (trs.map pairOf) wch γw (prefixRangeEnd ckPfx) m esl0 evs0 rs
+      hγW hpk hkeys Hrs.1 Hrs.2) $$ [Hcons Hes0 Hecap0 Hcok0]
+    as %p %esl %ok Hap
   · iframe; iframe #
   (try wp_auto)
   wp_apply Hcancel $$ [] as -
   · itrivial
   (try wp_auto)
   cases ok
-  · -- the watch ended before it reported every successful Put
+  · -- the watch ended before a progress notification
     (try wp_auto)
-    iapply HΦ; ipureintro; right; right; rfl
-  ihave ⟨%evs, Hes, Hcok⟩ := Hcol $$ %rfl
-  ihave %HCk := common.checkOk_of_km γk trs m evs oks Hm.2 $$ [Hcok]
-  · iframe Hcok
-    iexact Hoks
+    iapply HΦ; ipureintro; right; right; left; rfl
+  ihave ⟨%evs, Hes, Hcok, %Hp⟩ := Hap $$ %rfl
+  icases common.collectOk_elim _ _ _ _ $$ Hcok with ⟨%Hcp, #Hcr⟩
   imod ownSlice_persist _ _ _ $$ Hes with #Hes
+  (try wp_auto)
+  -- `checkProgress(evs, p)`
+  wp_apply (wp_checkProgress esl evs p (fun i e h => (Hcp.2.2 i e h).2.1) Hp) $$ []
+  · iframe #
+  (try wp_auto)
+  ihave %HCk := common.checkOk_of_km γk trs m evs oks Hm.2 $$ []
+  · iframe Hoks
+    iapply (common.collectOk_intro _ _ _ _ Hcp) $$ Hcr
   imod ownSlice_persist _ _ _ $$ Hos with #Hos
   (try wp_auto)
   wp_apply (wp_Check go!"cachekv" go!"Put" esl tsl osl evs trs oks HCk) $$ []
   · iframe #
   (try wp_auto)
-  iapply HΦ; ipureintro; left; rfl
+  -- `if r != 0`: the cache's Get of the prefix at `r`
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; ipureintro; left; rfl
+  · have hm0 : m ≠ W64 0 := by simpa using Hif
+    have hm1 : 1 ≤ sint.Z m := by
+      have h0 := Hm.1
+      have : sint.Z m ≠ 0 := fun h => hm0 (by word)
+      omega
+    have hme : sint.Z m ≤ 1 + evs.length := by
+      rcases Hcp.1 with h | h
+      · exact absurd h hm0
+      · exact h
+    -- `gctx, gcancel := context.WithTimeout(context.Background(), common.RequestTimeout)`
+    wp_apply context.wp_Background
+    (try wp_auto)
+    wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+      as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, #Hgic⟩
+    (try wp_auto)
+    -- the Get's options: the prefix at revision `r`
+    wp_apply wp_WithPrefix as %g1 #Hg1
+    wp_apply wp_WithRev m as %g2 #Hg2
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %gsl ⟨Hgsl, -⟩
+    ipersist Hgsl
+    (try wp_auto)
+    generalize hgsl : slice.mk gsl _ _ = gOptsSl
+    have hgfs : ([g1, zero_val GoFunc].set (sint.nat (W64 (0 + 1))) g2) = [g1, g2] := rfl
+    ihave #Hgopts : optsAt gOptsSl ([withPrefixM, withRevM m] : List (OpFull → OpFull)) $$ []
+    · iunfold optsAt
+      iexists _
+      iframe Hgsl
+      isplitr
+      · ipureintro; rw [hgfs]; rfl
+      imodintro
+      iintro %i %f %g %Hf %Hg
+      rw [hgfs] at Hf
+      rcases i with _ | _ | i
+      · cases Hf; cases Hg; iexact Hg1
+      · cases Hf; cases Hg; iexact Hg2
+      · simp at Hf
+    imod monoNatLbOwn_0 (GF := GF) cf.γs.rev with #Hlb0
+    obtain ⟨hgre, hgrev, hgnp⟩ := ckGet_opts m
+    -- `gresp, err := c.Get(gctx, prefix, ...)`
+    wp_apply (wp_CGet (EM := client.etcdModelOfKV γk) c cf γrd γd _ (W64 0) gctx gcd ckPfx gOptsSl
+        ([withPrefixM, withRevM m] : List (OpFull → OpFull))) $$ [Hcrd]
+      as %gresp %gerr ⟨Hcrd, Hgres⟩
+    · iframe; iframe #
+      isplitr
+      · ipureintro; exact hgnp
+      unfold storeRevLb; rw [show sint.nat (W64 0) = 0 from rfl]; iexact Hlb0
+    (try wp_auto)
+    -- `gcancel()`
+    wp_apply Hgcancel
+    (try wp_auto)
+    icases cacheGetResult_cases (EM := client.etcdModelOfKV γk) _ _ _ _ _ _ _ $$ Hgres with (⟨%Hnull, Hgerr⟩ | ⟨%Hgnil, Hgok⟩)
+    · -- an error: `GetFailed`
+      ihave #Prpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
+      · iPkgInit
+      ihave %Hne := cacheGetErr_ne_nil (EM := client.etcdModelOfKV γk) cf (W64 0) gcd ckPfx _
+        gerr $$ Pcache Prpc Hgerr
+      cases gerr with
+      | nil => exact absurd rfl Hne
+      | ok e =>
+        wp_auto
+        iapply HΦ; ipureintro; right; right; right; rfl
+    · -- the answer: etcd's state under the prefix at `r`, which passes `checkGet`
+      subst Hgnil
+      icases cacheGetOk_rev (EM := client.etcdModelOfKV γk) _ _ _ _ _ hm0 $$ Hgok with ⟨%hdr, %kvsSl, %m', Hresp, Hkvs, Hkcap, Hst⟩
+      irevert Hst
+      rw [Hcfe.1]
+      iintro Hst
+      imod getCheck_km γk (trs.map pairOf) hγW evs m m'
+          (fun i e h => ⟨(Hcp.2.2 i e h).2.1, (Hcp.2.2 i e h).2.2⟩) hpk hm1 hme
+        $$ Hkm Hcr Hst with ⟨%s, %Hs, #Hv⟩
+      obtain ⟨HCG, Hlen, Hrange⟩ := Hs
+      irevert Hkvs
+      try simp only []
+      rw [hre, Hrange]
+      iintro Hkvs
+      imod ownSlice_persist _ _ _ $$ Hkvs with #Hkvs
+      ihave #Hhold := kvsHold_of_vals m' s Hlen $$ Hv
+      wp_auto
+      wp_apply (wp_checkGet esl evs m kvsSl (m'.map Prod.snd) s HCG) $$ []
+      · iframe #
+      (try wp_auto)
+      iapply HΦ; ipureintro; left; rfl
 
 end proof
 

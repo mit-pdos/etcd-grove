@@ -31,7 +31,7 @@ transaction the caller holds the whole authority (`authOwnF`), which an append n
 **Premises** (`stepOk`): the revision below `2^64 - 1` (the atomic `revision` is a `uint64`) and
 the next state's permissions fitting the cache's trees (`permsFit`, `refreshRangePermCache`'s
 premise): the records' growth is unbounded in the Go code
-(`issues/etcd-auth-record-too-large-fatal.md`); a record's name as a bbolt key is bounded by the
+(`nonissues/etcd-auth-record-too-large-fatal.md`); a record's name as a bbolt key is bounded by the
 write contract (`issues/etcd-auth-useradd-long-name-fatal.md`).
 -/
 module

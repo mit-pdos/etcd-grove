@@ -37,11 +37,12 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     (hWS : EtcdGrove.WithSerializable.spec (GF := GF) (hG := hG)) :
     stmSerializable.Get.spec (GF := GF) (hG := hG) := by
   intro lvl p pfx st ksl ks
-  wp_start as ⟨Hst, #Hks, %Hser, %Hpk⟩
+  wp_start as ⟨Hst, #Hks, %Hsp, %Hc⟩
+  obtain ⟨Hser, Hpk⟩ := Hsp
   ihave %Hlen := ownSlice_len $$ Hks
   unfold stmState
   simp only [stmBase, Hser, ↓reduceIte]
-  icases Hst with ⟨#Henv, Hrs, Hws, ⟨%gs, Hopts, %Hgs⟩, #Hcf, ⟨%pre, Hpre, %HpreOk⟩⟩
+  icases Hst with ⟨#Henv, Hrs, Hws, ⟨%gs, Hopts, %Hgs⟩, #Hcf, ⟨%pre, Hpre, %HpreOk⟩, %Hsz⟩
   wp_auto
   wp_if_destruct
   · have Hks0 : ks = [] := by
@@ -56,9 +57,11 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     · iframe Henv Hrs Hws Hcf
       isplitl [Hopts]
       · iexists gs; iframe Hopts; ipureintro; exact Hgs
-      iexists pre; iframe Hpre; ipureintro; exact HpreOk
+      isplitl [Hpre]
+      · iexists pre; iframe Hpre; ipureintro; exact HpreOk
+      · ipureintro; exact Hsz
     ipureintro
-    exact ⟨rfl, ⟨fun _ _ h => h, fun k h => Or.inl h⟩, fun _ => rfl, fun h => absurd rfl h⟩
+    exact ⟨rfl, ⟨fun _ _ h => h, fun k h => Or.inl h⟩, rfl, fun _ => rfl, fun h => absurd rfl h⟩
   have Hksne : 0 < ks.length := by
     have h1 := Hlen.1
     have h2 : sint.Z ksl.len ≠ 0 := by intro h; apply Hif; word
@@ -78,16 +81,19 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     obtain ⟨Hk, Hwk, Hv⟩ := Hw
     iapply HΦ
     iapply stmRet_ret
-    iexists st
+    iexists ({ reads := st.reads, writes := st.writes, n := st.n + ks.length } : STMSt)
     isplitl
     · iframe Henv Hrs Hcf
       isplitl [Hwf Hwm]
       · iexists wm, wsMap; iframe Hwf Hwm Hwat
       isplitl [Hopts]
       · iexists gs; iframe Hopts; ipureintro; exact Hgs
-      iexists pre; iframe Hpre; ipureintro; exact HpreOk
+      isplitl [Hpre]
+      · iexists pre; iframe Hpre; ipureintro; exact HpreOk
+      · ipureintro
+        exact STMSizeOk_reads Hsz Hc ⟨fun _ _ h => h, fun k' h => Or.inl h⟩
     ipureintro
-    refine ⟨rfl, ⟨fun _ _ h => h, fun k' h => Or.inl h⟩, fun h => by simp [h] at Hk, fun _ => ?_⟩
+    refine ⟨rfl, ⟨fun _ _ h => h, fun k' h => Or.inl h⟩, rfl, fun h => by simp [h] at Hk, fun _ => ?_⟩
     exact ⟨k, Hk, Or.inl ⟨w, Hwk, Hv⟩⟩
   obtain ⟨rfl, -⟩ := Hpn
   wp_auto
@@ -187,7 +193,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       iexists rm, rsMap'
       iframe Hrf Hrm Hrat
     wp_apply hF (structFieldRef stmSerializable go!"stm" p) pfx reads' gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
-    · ipureintro; exact ⟨Hgs', Hpk⟩
+    · ipureintro; exact ⟨Hgs', Hpk, by have := Hc.1; omega, Hc.2.1⟩
     iunfold stmRet at Hr
     icases Hr with (⟨%rp, %Hrp', %reads'', Hrs, Hopts, %Hgrow, Hrp⟩ | %Hab)
     rotate_left
@@ -206,7 +212,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
       iapply stmRet_ret
-      iexists ({ reads := reads'', writes := st.writes } : STMSt)
+      iexists ({ reads := reads'', writes := st.writes, n := st.n + ks.length } : STMSt)
       iunfold stmRsetOwn at Hrs
       icases Hrs with ⟨%rm2, %rsMap2, Hrf2, Hrm2, #Hrat2⟩
       isplitl
@@ -217,13 +223,15 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
         · iexists wm, wsMap; iframe Hwf Hwm Hwat
         isplitl [Hopts]
         · iexists gs; iframe Hopts; ipureintro; exact Hgs
-        iexists pre'
         isplitl [Hpf Hpm]
-        · iexists pm, preMap'; iframe Hpf Hpm Hpat
-        ipureintro; exact Hfin2
+        · iexists pre'
+          isplitl [Hpf Hpm]
+          · iexists pm, preMap'; iframe Hpf Hpm Hpat
+          · ipureintro; exact Hfin2
+        · ipureintro; exact STMSizeOk_reads Hsz Hc Hfin1
       ipureintro
       obtain ⟨Hk, Hre', Hkv⟩ := Hke
-      exact ⟨rfl, Hfin1, fun h => absurd h (List.ne_nil_of_length_pos Hksne),
+      exact ⟨rfl, Hfin1, rfl, fun h => absurd h (List.ne_nil_of_length_pos Hksne),
         fun _ => ⟨k, Hk, Or.inr ⟨Hnw k Hk, e', Hre', by simp [ReadM.value, Hkv]⟩⟩⟩
     · ihave #He' := He
       iunfold readRespAt at He'
@@ -261,7 +269,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
       iapply stmRet_ret
-      iexists ({ reads := reads'', writes := st.writes } : STMSt)
+      iexists ({ reads := reads'', writes := st.writes, n := st.n + ks.length } : STMSt)
       iunfold stmRsetOwn at Hrs
       icases Hrs with ⟨%rm2, %rsMap2, Hrf2, Hrm2, #Hrat2⟩
       isplitl
@@ -272,13 +280,15 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
         · iexists wm, wsMap; iframe Hwf Hwm Hwat
         isplitl [Hopts]
         · iexists [withRevM e.hdr, withSerializableM]; iframe Hopts; ipureintro; unfold GetOptsOk; rw [Hser]; simp only [↓reduceIte]; exact Or.inr ⟨e.hdr, rfl⟩
-        iexists pre'
         isplitl [Hpf Hpm]
-        · iexists pm, preMap'; iframe Hpf Hpm Hpat
-        ipureintro; exact Hfin2
+        · iexists pre'
+          isplitl [Hpf Hpm]
+          · iexists pm, preMap'; iframe Hpf Hpm Hpat
+          · ipureintro; exact Hfin2
+        · ipureintro; exact STMSizeOk_reads Hsz Hc Hfin1
       ipureintro
       obtain ⟨Hk, Hre', Hkv⟩ := Hke
-      exact ⟨rfl, Hfin1, fun h => absurd h (List.ne_nil_of_length_pos Hksne),
+      exact ⟨rfl, Hfin1, rfl, fun h => absurd h (List.ne_nil_of_length_pos Hksne),
         fun _ => ⟨k, Hk, Or.inr ⟨Hnw k Hk, e', Hre', by simp [ReadM.value, Hkv]⟩⟩⟩
 
 end proof

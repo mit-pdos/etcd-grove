@@ -24,8 +24,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 theorem credentials.NewPerRPCCredentialBundle.wp_proof :
     credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) := by
-  intro P
-  wp_start as %Htb
+  intro _ P
+  wp_start
+  have Htb : threadBound GF ≤ 2 ^ 30 := ThreadBoundLe.le (GF := GF) _
   wp_auto
   wp_alloc b as Hb
   iStructNamed Hb

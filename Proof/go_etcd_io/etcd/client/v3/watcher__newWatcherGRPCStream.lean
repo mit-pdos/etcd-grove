@@ -39,11 +39,11 @@ theorem watcher.newWatcherGRPCStream.wp_proof
     (wp_run : watchGRPCStream.run.spec (GF := GF) (hG := hG)) :
     watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG) := by
   intro V w inctx cs
-  wp_start as ⟨#Hw, #Hin, %Hb⟩
+  wp_start as ⟨#Hw, #Hin⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
   icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, -⟩ := Hlgb
+  obtain ⟨Hlgnn, Hb⟩ := Hlgb
   wp_auto
   wp_alloc vcp as Hvc
   ipersist Hvc

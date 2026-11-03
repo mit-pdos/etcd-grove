@@ -127,7 +127,7 @@ theorem apply.uberApplier.Apply.wp_kvL
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply HApply $$ %r %rq %skip %v3
@@ -146,6 +146,8 @@ theorem apply.uberApplier.Apply.wp_kvL
         apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO HL] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO HL
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO, HL⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) ci L hs)
@@ -166,7 +168,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     imodintro
     iapply HΦ
     iframe HFS
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes]
     iframe Hkv HPP Hres Htr HRO Hcls Hadm HL
     isplitl [Ha']
@@ -174,7 +176,8 @@ theorem apply.uberApplier.Apply.wp_kvL
       ipureintro; exact HcE
     isplitr
     · ipureintro
-      exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
+      exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1, (apply.dispatchCrev_nonCmp _ _ _ _
+        (fun h => by simp [apply.isKVKind, h] at Hkk)).symm⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
     ipureintro
     intro o' ho' hv
     injection ho' with ho'

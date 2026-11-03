@@ -51,7 +51,7 @@ Brief for the prover: as `NewServer.lean:1040-1110` (the lessor's and the auth s
   (`hγB`). (`mvcc.hookOk_of_init` is the boot's form, for the `none`-hook case.)
 - `isApplyLessor`: `apply.isApplyLessor_of_lessorInv` (the eight lease specs; `iPkgInit` for the
   lease package; `lessorLookupOk lp` unfolds to its `Lookup` clause) with `lessorApplyOk lp`
-  applied at `d'`, `W := mvcc.lateW d'.gx`, `Pk := E'.P`, `g`, `RW := E'.RW`, its `rwLens` as at
+  applied at `d'`, `W := mvcc.lateWD d'`, `Pk := E'.P`, `g`, `RW := E'.RW`, its `rwLens` as at
   boot (`srvRestRWH`, `srvObjsOn` taken apart and put back); `mvcc.storeWT`/`storeRT` of `E'.γ`
   are `backend.wbTok d'.γB`/`bkRTx d'.γB d'.P d'.be` (`hkb'`, `rfl`).
 - `isAuthStore … E'.RD E'.authMode E'.RW`: `authApplyOk ast E.RD` at `d'` (mode `.off`: `hoff`).
@@ -70,6 +70,7 @@ theorem snap_backendOptsOk
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -81,6 +82,7 @@ theorem snap_backendOptsOk
     (opts' : apply.ApplierOptions) (lg : Loc) (al ast lp cl : Loc)
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
     (hgnn : g ≠ func.nil) (hoff : E.authMode = auth.AuthMode.off)
+    (hlp : mvcc.leaseParams d'.P)
     (hopts : opts'.Logger' = lg ∧
       opts'.KV' = interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws ∧
       opts'.AlarmStore' = al ∧ opts'.AuthStore' = auth.authIface ast ∧
@@ -91,7 +93,7 @@ theorem snap_backendOptsOk
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
       isServerCI s (snapγ γ π0 γB) ci ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d')
         (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
       backend.plHookRO γB g ∗
       mvcc.hookP (γw.st.withPhys p') (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) ∗
@@ -118,9 +120,12 @@ theorem snap_backendOptsOk
   · rw [← hγw]
     iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
   isplitr
-  · iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL al ast lp cl E.s d'
-      (E.γ.withPhys p') hk _ g hgnn
-    iframe Hpkg HleA Hlcfg Hllk HB Hhook
+  · ihave #Hhok : mvcc.hookOk (E.γ.withPhys p') _ #g $$ []
+    · rw [← hγw]
+      iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
+    iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv al ast lp cl E.s d'
+      (E.γ.withPhys p') hk _ g hgnn (by simp only [mvcc.StoreNames.withPhys_watchQ]; exact hwq) hlp
+    iframe Hpkg HleA Hlcfg Hllk HB Hhook Hhok
     rw [mvcc.StoreNames.withPhys_leases]; iexact Hlinv
   isplitr
   · iapply snap_isAuthStore al ast lp cl E.RD d' (E.γ.withPhys p') hk _ g hgnn

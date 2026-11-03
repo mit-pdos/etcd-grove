@@ -28,17 +28,17 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 theorem CheckOperations.wp_proof
     (wp_checkOperations : checkOperations.spec (GF := GF) (hG := hG)) :
     CheckOperations.spec (GF := GF) (hG := hG) := by
-  intro σ S m sl ops dq Hops
-  wp_start as ⟨#Hcci, #Hm, Hsl, #Hio⟩
+  intro σ S m sl ops dq
+  wp_start as ⟨#Hcci, #Hm, Hsl, #Hio, %Hops⟩
   wp_auto
-  wp_apply wp_checkOperations σ S m sl ops dq false (W64 0) Hops $$ [$Hsl] as %r %info %Hr
-  · iframe #
+  wp_apply wp_checkOperations σ S m sl ops dq false (W64 0) $$ [$Hsl] as %r %info %Hr
+  · iframe #; ipureintro; exact Hops
   iapply HΦ
   ipureintro
-  intro Hlin
-  have := (Hr Hlin).2 (by decide)
-  subst this
-  simp
+  rcases Hr with ⟨rfl, Hlin⟩ | ⟨rfl, Hnl⟩ | ⟨-, Hd⟩
+  · simpa using Hlin
+  · exact ⟨fun h => absurd h (by decide), fun h => absurd h Hnl⟩
+  · exact absurd Hd (by decide)
 
 end proof
 

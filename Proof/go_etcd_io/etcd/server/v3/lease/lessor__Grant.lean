@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
 public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -59,7 +60,7 @@ theorem lease.lessor.Grant.wp_proof
   icases Htl' with ⟨%etl, #Hetl, -⟩
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrd⟩
   ihave #Hcfg' := Hcfg
   iunfold lessorCfg at Hcfg'
   icases Hcfg' with ⟨%mt, %cpp, %cl, %ci, %lg, %rr, #Hmt, #Hcpp, #Hcl, #Hclok, #Hci, #Hlg, -⟩
@@ -109,7 +110,6 @@ theorem lease.lessor.Grant.wp_proof
     have := Hif; rw [h9] at this; omega
   have hid0 : id ≠ W64 0 := by assumption
   wp_apply hNew as %l ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%rc, Hrc, Hrcl⟩⟩
-  ipersist HID
   ipersist Hrc
   -- the new lease's locks
   icases ptsto_halves_split _ _ $$ Hexp with ⟨Hexp, HexpG⟩
@@ -119,20 +119,12 @@ theorem lease.lessor.Grant.wp_proof
   have hmax : sync.rwmutex.actualMaxReaders.toNat = (sync.rwmutex.actualMaxReaders.toNat - 1) + 1 := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   rw [hmax, List.replicate_succ]
-  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HexRs with ⟨HexR, -⟩
+  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HexRs with ⟨HexR, HexRest⟩
   icases sync.ownRWMutex_guard _ _ $$ HexR with ⟨-, #HexG⟩
-  icases ptsto_halves_split (lsF go!"itemSet" l) sm $$ HiS with ⟨HiS, HiS'⟩
-  icases ownMap_halves_split sm (∅ : GMap LeaseItem Unit) $$ Hsm with ⟨Hsm, Hsm'⟩
-  imod (sync.init_RWMutex (leaseItems l) (E := ⊤) (lsF go!"mu" l)) $$ [HiS Hsm] Hmu0
-    with HmuRs
-  · inext; iunfold leaseItems; iexists sm, ∅; iframe
-  rw [hmax, List.replicate_succ]
-  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HmuRs with ⟨HmuR, -⟩
-  icases sync.ownRWMutex_guard _ _ $$ HmuR with ⟨HmuR, #HmuG⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
@@ -147,13 +139,13 @@ theorem lease.lessor.Grant.wp_proof
     (try wp_auto)
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
     · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
     iframe Hrtk
@@ -196,6 +188,12 @@ theorem lease.lessor.Grant.wp_proof
         [$Hpkg $Hrem $Httl $Hexp $HexG] as ⟨Hrem, -, Hexp⟩
       wp_join_done
     wp_apply (wp_mapInsert LeaseID.ty lm M id l) $$ HM as HM
+    -- the live set grows; the lessor's state and its history with the new lease
+    iapply fupd_wp
+    imod closers_grant γl lp L M id l rc I I0 sm ⊤ (fun _ _ => CoPset.mem_full) Hlnn hM HL
+      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID⟩
+    imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
+    imodintro
     -- (S7c) `le.b`, read with the write token's fraction
     ihave ⟨%dqb, Hb, Hwtk⟩ := Hlens $$ Hwtk
     icombine Hb Hbl gives %Hbb
@@ -208,7 +206,9 @@ theorem lease.lessor.Grant.wp_proof
     (try wp_auto)
     iunfold go_etcd_io.etcd.server.v3.storage.backend.histSpec at Hhts
     icases Hhts with #Hhts
-    wp_apply Hhts
+    wp_apply +noauto Hhts
+    -- the map's receipt, raised for the lease it now holds (at `leaseGranted.Inc`'s resolution)
+    wp_raise_receipt Hsz
     (try wp_auto)
     iunfold counterSpec at Hcgs
     icases Hcgs with #Hcgs
@@ -232,10 +232,6 @@ theorem lease.lessor.Grant.wp_proof
         $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
       wp_join_done
     (try wp_auto)
-    -- the live set grows; the lessor's state with the new lease
-    imod closers_grant γl lp L M id l rc I0 sm hM HL $$ [$Ha $Hcls $Hrvk $Hrc $Hrcl $HiS' $Hsm' $HmuR]
-      with ⟨Ha, Hcls, Hrvk⟩
-    imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
       iframe HID HexG
@@ -246,21 +242,20 @@ theorem lease.lessor.Grant.wp_proof
       isplitl [Hrem]
       · iexists _; iexact Hrem
       iexists _; iexact Hexp
-    ihave #Hlo : isLeaseObj l $$ []
-    · iunfold isLeaseObj; iframe HmuG; ipureintro; exact Hlnn
     ihave Hmeta := (BigSepM.bigSepM_insert (Φ := fun i x => leaseMeta (GF := GF) i x 1) hM).2
       $$ [$Hml $Hmeta]
-    ihave #Hls' := (BigSepM.bigSepM_insert (Φ := fun _ x => isLeaseObj (GF := GF) x) hM).2
+    ihave #Hls' := (BigSepM.bigSepM_insert (Φ := fun _ x => isLeaseObj (GF := GF) γl x) hM).2
       $$ [$Hlo $Hls]
     ihave Hx : lessorExtra lp (<[id := l]> M) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
     · iunfold lessorExtra; iexists dc, np, h', hx', cp, b; iframe
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
       iunfold lessorMu
       iexists lm, im, (<[id := l]> M), I, rd0, (L ++ [id])
+      rw [GMap.map_size_insert_None M id l hM]
       iframe
-      iframe Hls'
+      iframe Hsz Hls'
       ipureintro
       intro x
       rw [GMap.lookup_insert_is_Some, List.mem_append, List.mem_singleton, HL x]

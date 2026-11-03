@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.pkg.v3.idutil
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time

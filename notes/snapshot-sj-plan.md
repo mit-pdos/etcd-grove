@@ -404,7 +404,7 @@ the auth applier borrows the apply thread's `E.RD` (`kvOwn`'s) per call instead 
   `RemoveAllPeers` needs back: fine in the examples' mode, where the snapshot branch is dead. A
   future example with both snapshots and partitions cannot keep `PeerPausable` without a fork fix
   (an idempotent `remote.Pause`): a window remote cut twice panics (`remote.go:89-91`,
-  `pipeline.go:81-82`). `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` corrected.
+  `pipeline.go:81-82`). `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` corrected.
 - **What J-T takes from M5**: the state split, `trLive` to the apply thread, `RemoveAllPeers` proved
   (its `sorry` gone; the slots it really gives back), `Stop_live` with the Stop clause and the
   `stopped` payload, the readers restated, W8. M5 keeps `RemovePeer`, `applyConfChange` and the
@@ -472,7 +472,7 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
 - **J5** also decouples the write counter (item 4): the specs of `apply`, `applyEntries`,
   `applyAll`, `snapshotIfNeededAndCompactRaftLog`.
 - **J7**: +1 axiom (item 9).
-- **J8a**: `os.Rename` restated (item 5); `srvSnapApplied` with the counted stocks.
+- **J8a**: `os.Rename` restated (item 5; done 2026-10-31 on `snap-sorries`); `srvSnapApplied` with the counted stocks.
 - **J8b and L3 are gated on the Perennial reader-slot change** (item 5) or the fallback premise.
 - New issue: `issues/etcd-applied-index-stale-after-snapshot.md`.
 - Axioms, revised: −2 (`snapshot`, `compactRaftLog`), +1 (`clusterImageOk_restModel`); restated:

@@ -93,7 +93,9 @@ in `bootstrap.go` (a change to the verified code; etcd-io/etcd's own choice is o
 **Q4. The stopping server's extent.** *(A)* Only the removed member's own stop: `stopWithDelay` ->
 `errorc` -> `run` returns -> its deferred shutdown, with D19m (B)'s "server open" token so that
 the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from the application.
-(A) is what removal needs.
+(A) is what removal needs. **Revised 2026-11-02 (the user, `notes/restart-plan.md` Q5): (B)**, the
+stopping server proved once for both triggers -- the removed member's own stop and the application's
+`HardStop`, whose shutdown calls `Cleanup` -- in the restart plan's L1, which does M6.
 
 ## Stages
 

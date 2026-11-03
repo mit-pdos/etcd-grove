@@ -31,7 +31,8 @@ state (a read may be answered by any member, and again) or, `Q` trivial, none; t
 update's, `□ Q σ`, if linearizable) at whose current revision the reply's header is, the reply's
 key-values and count the selection of `σ`'s store at the revision the range reads (`readRev`: the
 one asked, at most the current, or the current), `σ` a well-formed small log's state (`kvLogOk`,
-D48); or a client error (`kvErr`) and no reply. -/
+D48); or a client error (`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`;
+2026-10-30, `grpcInvokerOk`). -/
 abbrev kv.Get.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -42,7 +43,8 @@ abbrev kv.Get.spec : Prop :=
       ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1⌝ ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf (opGetModel key opts)).base.serializable = false⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>)) }}
+        <{ etcdKV γ σ, COMM □ Q σ }>)) ∗
+      ⌜opSizeOk (opGetModel key opts)⌝ }}
     (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -51,7 +53,7 @@ abbrev kv.Get.spec : Prop :=
           ⌜sint.Z (rangeWireOf (opGetModel key opts)).base.rev ≤ (σ.rev : Int) ∧
             txn.srvRangeOk (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
             m.count = txn.srvCount (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
+            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
         (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec

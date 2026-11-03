@@ -38,8 +38,8 @@ theorem mvcc.newWatchableStore.wp_proof
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0 hboot
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Htie, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -48,14 +48,17 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0 hboot)
+    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Htie $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hright, Hret⟩
+      Hwsd, Hfrag, Hpin, Hright, Hkc, Hret, #HcpIs⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
   -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
-  imod mvcc.crevRight_split γs $$ Hright with ⟨#Hfrz, Hcr⟩
+  ihave Hkc : mvcc.kbCrev (GF := GF) γs.kb (-1) $$ [Hkc]
+  · rw [hγk]; iexact Hkc
+  imod mvcc.crevRight_split γs $$ [Hright Hkc] with ⟨#Hfrz, Hcr⟩
+  · iframe Hright Hkc
   ihave Hreaders := mvcc.storeReaders_of st γs _ $$ Hreaders
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
@@ -194,7 +197,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iframe HhookP Hsclose Hcr wg Hfrag Hret
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
-    iframe Hcert Hwl2
+    iframe Hcert Hwl2 Hpin
     have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
     rw [hb]; iexact Htoks
   isplitl [Htw]
@@ -202,11 +205,13 @@ theorem mvcc.newWatchableStore.wp_proof
   isplitl [Hok]
   · iexact Hok
   isplitr [Hstop]
-  · have hjr : mvcc.nJobRd kb ≤ Int.toNat sync.rwmutex.actualMaxReaders :=
-      Nat.le_trans (mvcc.nJobRd_le kb) (Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos))
+  · have hjr : mvcc.nJobRd kb ≤ backend.rdStockN := by
+      have := backend.rdStockN_val; have := mvcc.nJobRd_le kb; omega
+    ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
     icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
     iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus
+  iframe HcpIs
   iexists stc
   iframe stopc
   iunfold mvcc.stopCloser

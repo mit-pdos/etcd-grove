@@ -53,9 +53,11 @@ abbrev Main.spec : Prop :=
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   BootFacts id₁ id₂ id₃ ctxs boot →
-  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  storage.dbOpensOk → v3rpc.ServerMethodSets →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
@@ -66,7 +68,11 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
       netAddrFree (GF := GF) bridgeAddr₃ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

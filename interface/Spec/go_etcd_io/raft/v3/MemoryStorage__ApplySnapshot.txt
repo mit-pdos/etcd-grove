@@ -3,26 +3,28 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.ApplySnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM)
-    (eood : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
+    (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
     j ≤ uint.nat sv.Metadata'.Index' →
       uint.nat sv.Metadata'.Index' < 2 ^ 61 →
         ⊢
           ∀ Φ,
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                memStorInvP ms γs J ∗
+                memStorAt ms γs J o
+                    iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
                   memLog γs j (DFrac.own 1) old ∗
                     memEnd γs (j + old.length) ∗
-                      J.B (uint.nat sv.Metadata'.Index') ∗
-                        J.SV sv ∗
-                          J.DL (uint.nat sv.Metadata'.Index') ∗
-                            snapArg sp dq sv ∗
-                              memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                      snapArg sp dq sv ∗
+                        memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
               ▷
-                  (ownSnapM sp dq sv ∗
+                  ((ownSnapM sp dq sv ∗
                       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
                         memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
-                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') -∗
+                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+                            memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
+                              match o with
+                              | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+                              | none => emp) -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP
                   ((intoVal

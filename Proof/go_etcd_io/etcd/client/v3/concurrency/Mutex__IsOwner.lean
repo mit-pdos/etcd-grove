@@ -31,7 +31,7 @@ theorem Mutex.IsOwner.wp_proof (hCR : CreateRevision.spec (GF := GF) (hG := hG))
   intro m st
   wp_start as Hst
   unfold mutexState
-  icases Hst with ⟨Hk, Hr, Hh⟩
+  icases Hst with ⟨Hk, Hr, Hh, %Hkl⟩
   wp_auto
   wp_apply hCR st.key as %c #Hc
   (try wp_auto)
@@ -40,6 +40,8 @@ theorem Mutex.IsOwner.wp_proof (hCR : CreateRevision.spec (GF := GF) (hG := hG))
     refine ⟨by decide, st.rev, Or.inl rfl, rfl⟩
   iapply HΦ
   iframe
+  isplitl
+  · ipureintro; exact Hkl
   iexact Hc'
 
 end proof

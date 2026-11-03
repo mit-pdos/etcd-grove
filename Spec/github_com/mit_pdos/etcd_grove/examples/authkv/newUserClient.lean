@@ -8,7 +8,8 @@ timeouts, as `common.NewClient`'s, and the user name and password): given `Authe
 registered at the address with a reply to `(name, pw)` meeting `P` (`authTokReg`; with auth on,
 `P` is `auth.tokIssued γa · name`), a new client (`isNewClient`) whose KV calls carry a token
 meeting `P` or the context's own (`clientTokAt`; `clientTokAt_user` gives `userClientAt`), or an
-error and `nil`.
+error and `nil`. The name and password fit in a gRPC message (`strsSizeOk`, `New`'s premise for the
+`Authenticate` it sends; invoke-size).
 -/
 module
 
@@ -35,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 /-- See the file header. -/
 abbrev newUserClient.spec : Prop :=
   ∀ (name pw : GoString) (lg : Loc) (V : WEnv GF) (P : GoString → IProp GF),
-  lg ≠ null → threadBound GF ≤ 2 ^ 30 →
+  lg ≠ null → threadBound GF ≤ 2 ^ 30 → strsSizeOk [name, pw] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       client.ctxErrClientAll ∗ authTokReg [go!"127.0.0.1:23916"] name pw P }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.newUserClient))

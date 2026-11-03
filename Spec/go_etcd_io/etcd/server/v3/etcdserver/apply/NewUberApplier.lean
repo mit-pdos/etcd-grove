@@ -28,18 +28,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`NewUberApplier(opts)`**: an `*uberApplier` `p` over the options `opts` (whose contracts
 hold in `E`): its fields from the options and the base chain (`uberIs`, persistent), its current
-applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain E.authOn ns cr`); the auth
-layer's mutex takes the reader resource `E.RD` (2026-10-14, unit A2). -/
+applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain E.authOn ns cr`)
+(2026-11-01, J8a: no reader resource `E.RD`, which the auth layer's `Apply` borrows from its caller;
+until then its mutex took one). -/
 abbrev apply.NewUberApplier.spec : Prop :=
-  ∀ (opts : ApplierOptions) (RD : IProp GF) (T : IProp GF) (z : Bool),
+  ∀ (opts : ApplierOptions) (T : IProp GF) (z : Bool),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.alarmGetIs opts.AlarmStore' T z ∗ T }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
   {{ (ua : GoInterface), RET #ua; T ∗ ∃ p : Loc,
       ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
-      ∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
+      ∀ E : AEnv GF, apply.backendOptsOk E opts -∗
         apply.uberIs E p opts ∗ ∃ ns cr : Bool, ⌜z = true → ns = false ∧ cr = false⌝ ∗
           apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 

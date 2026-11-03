@@ -47,7 +47,7 @@ and returns at once, compacting nothing, while it is not `0`. (2026-10-19, D21 M
 `SnapshotCatchUpEntries` is `scu` (read-only). (2026-10-26, its body translated) The logger's cell
 `s.lg` (`l`, not `nil`). -/
 abbrev EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (γr : SrvRaft) (id : w64)
+  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (γr : SrvRaft) (K : GName)
     (scu : w64) (l : Loc),
   1 ≤ uint.Z snapi →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
@@ -55,7 +55,7 @@ abbrev EtcdServer.compactRaftLog.spec : Prop :=
       srvInflight s ∗
       rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
       (letI : MemStorReg GF := ⟨γr.reg⟩
-       iprop(memStorInv ms γs γr.cl id ∗ nodeAppliedLb γr.cl id (uint.nat snapi))) ∗
+       iprop(memStorInv ms γs γr.cl K ∗ nodeAppliedLb γr.cl K (uint.nat snapi))) ∗
       memSnapLb γs (uint.nat snapi) ∗
       ((∃ e, memLog γs (compactIdx snapi scu) DFrac.discard [e]) ∨
         memCompacted γs (compactIdx snapi scu)) ∗

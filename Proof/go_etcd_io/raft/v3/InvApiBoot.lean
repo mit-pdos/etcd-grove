@@ -44,8 +44,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **A founder's start token in a cluster with a bootstrap log** (`InvNodeRule`'s `nodeBoot`): node
 `id`, one of the voters `ps`, of the cluster; raft's names those of the voters' membership and of the
 bootstrap log of the peers `ps` (`BootLogOk`), whose bytes are `Marshal`'s at the peers' changes with
-the contexts `ctxs` (`bootMarshal`), committed; the term budget at the bootstrap term; the node's raft
-ghost state at the bootstrap state and its (empty) table of views. -/
+the contexts `ctxs` (`bootMarshal`), committed; the term budget at the bootstrap term. (2026-11-01,
+durability stage I-7: persistent; until then also the node's raft ghost state at the bootstrap state
+and its (empty) table of views, which moved to `raftStateU`/`nodeVacantU`.) -/
 def nodeBootU (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
     IProp GF :=
   iprop(isClusterU γ N ∗
@@ -53,9 +54,11 @@ def nodeBootU (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List 
       γ.raft.reCfg = GMap.listToSet ps ∧
       (∃ g, ModeDec γ (Membership.simple (GMap.listToSet ps)) g) ∧ BootLogOk ps γ.raft.reBoot⌝ ∗
     bootMarshal ps ctxs γ.raft.reBoot ∗ isCommitted γ.raft γ.raft.reBoot ∗
-    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1) ∗
-    ownRaftGhost γ.raft id (bootPState γ.raft.reBoot) true ∗
-    (∃ g : GName, ⌜γ.nodeTab !! id = some g⌝ ∗ ghostMapAuth g 1 (∅ : GMap w64 CfgNames)))
+    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
+
+instance nodeBootU_persistent (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : Persistent (nodeBootU (GF := GF) γ N ps ctxs id) := by
+  unfold nodeBootU; infer_instance
 
 /-- No entry of a bootstrap log is an empty `ConfChangeV2` (each is a `ConfChange`, type `1`). -/
 theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
@@ -70,19 +73,20 @@ theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps 
 /-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
 `cluster_alloc` at a non-empty `boot`). -/
 theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (dup : Bool) (E : CoPset) :
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
-        ⌜γ.raft.dup = dup ∧ γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
-        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id := by
+        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
+          nodeVacantU γ id := by
   intro Hrb Hne Hnd Hnz Hlen HB
   iintro #Hm
   imod budget_alloc_boot (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := CfgNames) (GMap.listToSet vs) with ⟨%tab, -, Htab⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := CfgNames) with ⟨%tab, Htab⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (w64 × List w8)) with ⟨%g, Hreg, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Option ConfChangeIM) with ⟨%gd, Hdm⟩
   have Hok := BootLog_ok HB
@@ -100,7 +104,7 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) (GMap.listToSet vs) (some (DynCfg.all dc))
     (fun _ _ => True) (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud md tab) none
     (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) sl
     (N .@ "raft") N (some g) (some gd) dup Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
@@ -129,11 +133,20 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
     iexists 0, 2 ^ 64 - 2
     iframe H0 Hcr
     ipureintro; omega
+  -- (durability stage I-2) the node table's invariant, empty
+  imod inv_alloc (N .@ "nodetab") E iprop(∃ M : GMap Loc CfgNames, ghostMapAuth γ.nodeTab 1 M ∗
+      [∗map] n ↦ _x ∈ M, ∃ nv : node, n ↦□ nv) $$ [Htab] with #Htabinv
+  · inext
+    iexists ∅
+    rw [Hγt]
+    iframe Htab
+    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
-  · unfold isClusterU rdPool
+  · unfold isClusterU rdPool nodeTabInv
+    iframe Htabinv
     isplitr
     · ipureintro
-      refine ⟨⟨c0, gd, Hmr⟩, Hsl, Hcert, ?_⟩
+      refine ⟨⟨c0, gd, Hmr⟩, Hcert, ?_⟩
       rw [HbootL]; exact bootLogOk_noEmptyV2 Hok
     isplitr
     · unfold clusterInv
@@ -145,7 +158,7 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   iexists γ
   iframe Hops Hctx Hdc Hblb
   isplitr
-  · ipureintro; exact ⟨Hdup, by rw [HbootL, toEntries_length]⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length]⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd
@@ -169,24 +182,22 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
     isplitr; · ipureintro; exact ⟨Hrg, .nil⟩
     imodintro
     iapply (BigSepL.bigSepL_nil).2; iempintro
-  -- each voter's part: raft's ghost state at the bootstrap state, its table of views
-  isimp only [Option.isSome_some] at Hnodes
-  ihave Hboth : ([∗map] x ↦ _u ∈ toMap (GMap.listToSet vs),
-      iprop(ownRaftGhost (GF := GF) γ.raft x (initPStateAt (W64 1) (LogEntry.toEntries boot 0)) true ∗
-        ∃ gx : GName, ⌜tab !! x = some gx⌝ ∗ ghostMapAuth (GF := GF) gx 1 (∅ : GMap w64 CfgNames))) $$ [Hnodes Htab]
-  · rw [BigSepM.bigSepM_sep_eq]; iframe Hnodes Htab
+  -- each voter's part: its durable state at the initial state, its vacant slot
+  ihave #Htlb0 : termLB (GF := GF) bud (W64 0) $$ []
+  · iapply termLB_le bud (W64 1) (W64 0) (by decide) $$ Htlb
   iapply bigSepM_listToSet _ vs Hnd
-  iapply BigSepM.bigSepM_impl $$ Hboth
+  iapply BigSepM.bigSepM_impl $$ Hnodes
   imodintro
   iintro %id %u %Hid ⟨Hg, Ht⟩
   have Hin : id ∈ vs := by
     rw [← GMap.elem_of_list_to_set]
     exact (GMap.elem_of_gset _ _).2 (by cases u; exact Hid)
-  unfold nodeBootU
-  rw [HbootL, Hγb, Hγt, bootPState_eq]
-  iframe Hdc Hg Hc0 Hm Hbinv Htlb Ht
+  unfold nodeBootU raftStateU nodeVacantU
+  rw [HbootL, Hγb, show RaftState.init.term = W64 0 from rfl]
+  iframe Hdc Hg Hc0 Hm Hbinv Htlb Ht Htlb0
   ipureintro
   exact ⟨Hin, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hok⟩
+
 
 end boot
 

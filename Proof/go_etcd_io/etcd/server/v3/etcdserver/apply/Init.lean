@@ -183,7 +183,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icases NKNF with ⟨%xKNF, #HKNF, -⟩
   ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF⟩
+  icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩
   ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []
   · unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk
     iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0

@@ -36,7 +36,10 @@ theorem newCache.wp_proof
     (wp_getWatchLoop : Cache.getWatchLoop.spec (GF := GF) (hG := hG))
     (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG)) :
     newCache.spec (GF := GF) (hG := hG) := fun client pfx cfg clk => by
-  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hthr⟩
+  have Hthr : threadBound GF + cacheWgOwedMax ≤ 2 ^ 31 := by
+    have := ThreadBoundLe.le (GF := GF) (2 ^ 31 - cacheWgOwedMax)
+    unfold cacheWgOwedMax at *; omega
+  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hpl⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -116,7 +119,7 @@ theorem newCache.wp_proof
   iunfold isEtcdClient at Hcl'
   icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN⟩
   try wp_auto
-  wp_apply wp_newStore (etcdCert pfx) R0 cfg.BTreeDegree' cfg.HistoryWindowSize'
+  wp_apply wp_newStore (etcdCert pfx) R0 (cacheGap pfx) cfg.BTreeDegree' cfg.HistoryWindowSize'
     $$ [$Hpkg $HstorePre]
     as %st %γs ⟨#HisStore, #HisStoreW, #Hslb0, Hrds⟩
   wp_apply wp_newReady $$ [$Hpkg] as %rd %γr ⟨#HisReady, -⟩
@@ -210,7 +213,7 @@ theorem newCache.wp_proof
       isplitl []
       · iexact Hictx
       · iexact Hcc
-    ipureintro; exact ⟨hP, Hthr⟩
+    ipureintro; exact ⟨hP, Hthr, Hpl⟩
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
   · iexact HwgInv
   ihave #HisWg' : sync.isWaitGroup (cacheWgAddr «$r0_ptr») cf.γwg cacheWgWGN $$ []

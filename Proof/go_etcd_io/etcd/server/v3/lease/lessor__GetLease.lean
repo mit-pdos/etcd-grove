@@ -29,19 +29,19 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   intro lp γl item L0 I0
   wp_start as ⟨#Hinv, Hrd, Hown⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold lessorRd at Hrd
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   -- the owner's half of the item map agrees with the lock's
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
   ihave %Hpl := lessorPin_agree γl lp lp' $$ [$Hpin]
   · iunfold lessorPin; iexists γga, γcl; iexact Hp
   subst Hpl
@@ -51,12 +51,12 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   subst HIeq
   wp_auto
   wp_apply (wp_map_lookup1 LeaseItem.ty LeaseID.ty im I item) $$ HI as HI
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx] as Hrd
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist] as Hrd
   · inext
     iunfold lessorMu
     iexists lm, im, M, I, rd0, L
     iframe
-    iframe Hls
+    iframe Hsz Hls
     ipureintro; exact HL
   rw [show (zero_val w64) = W64 0 from rfl]
   iapply HΦ
@@ -67,7 +67,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   iunfold leaseClosers
   iexists lp, γga, γcl, C, im
   iframe Hp Him' HI' Hcs
-  ipureintro; exact ⟨HC, HIL⟩
+  ipureintro; exact ⟨HC, HIL, HIS⟩
 
 end proof
 

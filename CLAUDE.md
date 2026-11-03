@@ -21,7 +21,10 @@ is specific to the Lean port.
   because an entry chose it; supersede the entry instead (its header says how).
 - `notes/status-history.md` — STATUS.md's superseded sections, append-only (move a section there when it stops describing the current state).
 
-Before you finish, update `notes/STATUS.md` if anything moved.
+Before you finish, update `notes/STATUS.md` if anything moved. Its "Last updated" line keeps the
+ten newest dated entries: add yours at the front and move the oldest to the list at the end of
+`notes/status-history.md`. In a merge conflict on that line, keep one copy of each entry (never
+both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
@@ -109,6 +112,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
+  project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
+  and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
+  --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
@@ -162,12 +169,16 @@ moved out of the internals), `Linked` (raft's linked results for proofs outside 
 
 When you find a bug in the Go code being verified (a reachable panic, a wrong result) or
 in its documentation (a precondition the code needs that its API does not state, behavior
-its documentation contradicts), record it in `issues/`, one file per issue, in the format
-of `issues/README.md` (starting with its front matter, `upstream: unchecked`), with a reproduction when you can make one (a Go test). Do this as
-soon as it is found, including when a spec sidesteps it with a premise: the premise is
-where the proof records it, `issues/` is where people find it. Bugs in this repository's
-own specs and proofs go in `notes/` instead. A subagent that finds one says so in its
-report.
+its documentation contradicts), record it, one file per finding, in the format of
+`issues/README.md`: in `issues/` when it has a Go test that fails at an upstream commit and
+reaches the bug the way etcd (or a documented user of a public package) uses the code, the
+test in `issues/<slug>/` and the file written as the bug report we would file; otherwise in
+`nonissues/` (found by code reading, a precondition etcd meets, documentation only), with its
+reason. Each says whether it blocks the proof (`blocks-proof:`). Do this as soon as it is
+found, including when a spec sidesteps it with a premise: the premise is where the proof
+records it, `issues/` is where people find it. `etc/issues-status.py --index` regenerates the
+indexes, `--check` checks the files. Bugs in this repository's own specs and proofs go in
+`notes/` instead. A subagent that finds one says so in its report.
 
 ## Feedback on specs
 
@@ -176,6 +187,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 (yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
+
+## Bounds
+
+Thread counts, `RWMutex` reader slots, lifetime counters and sizes are reasoned about where they
+are owned (`notes/bounds-plan.md`): the adequacy theorem fixes the constants, the owner of a lock,
+wait group or counter turns them into a protocol inside its invariant (a thread pool of reader
+slots, a wait group backed by thread tokens, receipts), and a spec in between takes only its
+`threadTok` and the owner's handle. `etc/bounds-check.py` counts what does
+not yet follow this, per kind and package (`--kind KIND` lists the places); `--check` (in
+`etc/gates.sh` and CI) refuses a count above `etc/bounds-baseline.txt`, and `--check --update`
+records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
 
 ## Trust base
 

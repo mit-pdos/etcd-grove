@@ -59,6 +59,31 @@ environment; D22 receiver epochs, S8d, 2026-10-24): `storage.Release`'s closing 
 files below a snapshot and removal of the older `.snap.db` files do not fail (I/O). -/
 opaque releaseOk : Prop
 
+/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **`w` is a WAL ready to write** (opaque): a
+`*wal.WAL` that `ReadAll` has read (its encoder set, a lock file held), as `bootstrapWAL` hands the
+server's (`bootstrap.go:666`). What `serverstorage.NewStorage`'s contract (`rnNewStorageOk`) is for:
+over a nil WAL, or one opened and not read, `Close`, `Save`, `SaveSnap` and `Sync` panic. -/
+opaque walReady (w : Loc) : Prop
+
+/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL records a snapshot** (opaque, a named
+premise about the program's environment, as `releaseOk`): `wal.SaveSnapshot`'s write and sync of a
+well-formed snapshot record do not fail (I/O). -/
+opaque walSaveOk : Prop
+
+/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL closes** (opaque, a named premise about
+the program's environment, as `walSaveOk`): `wal.Close`'s sync and closes of its files do not fail
+(I/O). -/
+opaque walCloseOk : Prop
+
+/-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
+premise") **The ghost name of the WAL `w`'s open token** (opaque): one per WAL, not per storage
+over it, so that every `NewStorage` over `w` shares its token (`walOpen`). -/
+opaque walGName (w : Loc) : GName
+
+/-- (2026-10-31) **The WAL a server storage writes** (opaque; `storage.st.w`, names-only: the
+struct is not translated): `NewStorage(lg, w, ss)`'s result's is `w` (`rnNewStorageOk`). -/
+opaque walOf [GooseExts] (st : GoInterface) : Loc
+
 /-- **The file system cooperates for an applied snapshot's files** (a named premise about the
 program's environment, as `dbOpensOk`; D22 receiver epochs, S8d, 2026-10-24): the snapshot
 directories' reads (`snap.dirReadOk`), the renames of a held file onto an owned entry
@@ -71,9 +96,17 @@ def snapOpensOk : Prop :=
   (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk ∧
     dbCloseOk
 
+/-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
+premise") **The disk cooperates** (a named premise about the program's environment, the one the
+exported results take): bbolt opens the database files (`dbOpensOk`), the snapshot's files and the
+storage's releases (`snapOpensOk`), and the WAL's snapshot records and close (`walSaveOk`,
+`walCloseOk`) do not fail. Until then the exported results took `dbOpensOk` alone. -/
+def diskOk : Prop :=
+  dbOpensOk ∧ snapOpensOk ∧ walSaveOk ∧ walCloseOk
+
 /-- **The configuration's mmap size is one the process can map** (2026-10-29, the `axiom` skill's
 `notes/axiom-review/openbackend.md`; 2026-10-30, `notes/axiom-review/openbackend-post.md`;
-`issues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
+`nonissues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
 the backend's `MmapSize` to `q + q/10` for a quota `q = cfg.QuotaBackendBytes` that is positive and not
 `DefaultQuotaBytes` (`quota.go:30`, 2 GiB), and `backend.New` passes it to bbolt as `InitialMmapSize`
 (`backend/backend.go:225`). bbolt's `Open` fails with "mmap too large" above `maxMapSize`
@@ -110,24 +143,42 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
   iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
 
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
     iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ)) ⊢
+      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ={⊤}=∗ W γ ∗ Pk γ)) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
   iintro ⟨%Hc, Hg, #Hh, Hmk⟩
   iunfold openPre
   iframe Hg Hh
   isplitr
   · ipureintro; exact Hc
-  iintro %γ ⟨Hk, Hf⟩
-  imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
+  iintro %γ ⟨Hk, Hpk, Hf⟩
+  imod Hmk $$ %γ [$Hk $Hpk] with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
+
+/-- (2026-10-31) **The WAL `w` open, at the fraction `q`** (`walGName w`'s ghost variable): every
+fraction lets the storages over `w` write it (`Save`, `SaveSnap`, `Sync`), the whole closes it
+(`Close`), so no write follows a close (`wal.Save` past its shortcut `cut()`s through `w.fp`, nil
+after `Close`). `bootstrap`'s contract (`bootOk`) gives the whole of the WAL it opens. -/
+def walOpen (w : Loc) (q : Qp) : IProp GF :=
+  dghostVar (walGName w) (.own q) ()
+
+instance walOpen_fractional (w : Loc) : Fractional (fun q => walOpen (GF := GF) w q) := by
+  unfold walOpen; infer_instance
+
+instance walOpen_as_fractional (w : Loc) (q : Qp) :
+    AsFractional (walOpen (GF := GF) w q) ioΦ (fun q => walOpen w q) ioq q where
+  as_fractional := .rfl
+  as_fractional_fractional := walOpen_fractional w
+
+instance walOpen_timeless (w : Loc) (q : Qp) : Timeless (walOpen (GF := GF) w q) := by
+  unfold walOpen; infer_instance
 
 end preds
 

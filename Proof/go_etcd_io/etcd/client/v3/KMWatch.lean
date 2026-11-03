@@ -214,13 +214,13 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem kmLog_take (γ : KMNames) (σ : KVState) (r : Nat) (h : kvLogOkTo σ r) :
     monoListLbOwn (GF := GF) γ.ch σ.changes ⊢ kmLog γ (σ.log.take (r + 1)) := by
   obtain ⟨hl, -⟩ := kvLogOkTo_len h
-  obtain ⟨-, hr, hr63, hw, hs⟩ := h
+  obtain ⟨-, hr, hr63, hw, hs, hk⟩ := h
   iintro #Hlb
   unfold kmLog
   iexists σ.changes
   iframe Hlb
   ipureintro
-  refine ⟨List.take_prefix _ _, hw, ?_, hs⟩
+  refine ⟨List.take_prefix _ _, hw, ?_, hs, hk⟩
   rw [List.length_take]; omega
 
 /-- etcd has reached every revision of a log the client saw. -/
@@ -576,9 +576,10 @@ cache's channel element, `etcdWatchElem`). -/
 theorem etcdWatchElem_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoString)
     (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (o : OpFull) (rev : w64)
     (hk : o.key = pfx) (he : o.base.rangeEnd = prefixRangeEnd pfx) (hrev : o.base.rev = rev)
-    (γw : EtcdWatchNames) (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    (γk : KVNames) (γw : EtcdWatchNames) (Au : IProp GF) (i : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) :
     etcdReached (EM := etcdModelOfKV γ) (rev - W64 1) ∗
-        watchStateElem (GF := GF) γw o (kmSeenQ γ l0) Au i v ⊢
+        watchStateElem (GF := GF) γk γw o (kmSeenQ γ l0) Au i v ⊢
       etcdWatchElem (EM := etcdModelOfKV γ) γw pfx i v := by
   iintro ⟨#Hr0, H⟩
   iunfold watchStateElem at H
@@ -613,7 +614,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   iintro ⟨#P1, #P2, #P3, #Hw, #Hinv⟩
   unfold isEtcdWatcher
   iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre, #Hrd⟩ HΦ
-  obtain ⟨hpw, hnp, hrev⟩ := Hpre
+  obtain ⟨hpw, hnp, hrev, hsz⟩ := Hpre
   unfold OpFull.isPrefixWatch at hpw
   simp only [decide_eq_true_eq, hp, if_false] at hpw
   obtain ⟨ht, hr, -, -, hpk, hfr, hfp, hfd, hkey, hend⟩ := hpw
@@ -630,9 +631,10 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     · ipureintro; exact Hkst
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by omega⟩
-      unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
-      exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      refine ⟨?_, hnp, by omega, ?_⟩
+      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+        exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      · exact hsz
     isplitr
     · iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)
@@ -646,11 +648,11 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   iapply HΦ
   isplitr
   · unfold isEtcdWatchChan
-    iexists watchStateElem γw (opWatchModel key gs) (kmSeenQ γ l0) _
+    iexists watchStateElem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _
     iframe Hs
     iintro !> %i %v H
     imodintro
-    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr γw _ i v
+    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr _ γw _ i v
       $$ [Hreach H]
     iframe Hreach H
   unfold etcdWatchConsumer

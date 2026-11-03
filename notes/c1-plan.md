@@ -1,6 +1,6 @@
 # Plan: C1, a user client's attempts carry its user's token (spec-first)
 
-Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
+Status (2026-10-31): C1 done: A4 and A5 proved (branch `auth-a4`; `notes/decisions.md`, "C1's A4 and A5"): `EtcdServer.Authenticate` in the mode `on γa`, the handler in `authRegs`, the stub `etcd_kv_auth_served_onA` proved; it replaced the old `etcd_kv_auth_served_on`, taking its name. (2026-10-28: the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left.) Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
 proofs. (Phase 1's note "not to be merged into `lean` before the proofs" held while its `sorry`s
 sat under `New` and the retry interceptor; phase 2 proved them. A1-A3 merged into `lean`
@@ -216,7 +216,7 @@ written). Five statements false or unprovable as written, checked against the so
 - **F1** `pbAuthenticateRequest` reads the request read-only, but `EtcdServer.Authenticate` clears
   `r.Password` in a `defer` (CVE-2021-28235's fix; `v3_server.go`): `Password` goes to `recvOwn`.
 - **F2** `grpcAttemptMd` makes a key the context carries with no values visible to the handler as
-  `some []`; grpc sends no header for it (as `issues/etcd-auth-token-md-empty.md` relies on):
+  `some []`; grpc sends no header for it (as `nonissues/etcd-auth-token-md-empty.md` relies on):
   compare value lists up to empty ones.
 - **F3** grpc lowercases the credentials' keys: `credsMapIs` with lower-case keys.
 - **F4** `NewClient` calls the credentials' `RequireTransportSecurity()` on an insecure

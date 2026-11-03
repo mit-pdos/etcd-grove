@@ -26,28 +26,32 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- What `Do` needs of a nested transaction `op` (`OpTxn(cmps, thenOps, elseOps)`): comparisons
 with their operands set, plain operations a transaction can run (fewer than `2^63` in all, for
 `Commit`'s `make`). -/
-def doTxnPre (opv : go_etcd_io.etcd.client.v3.Op) : IProp GF :=
+def doTxnPre (pfx : GoString) (opv : go_etcd_io.etcd.client.v3.Op) : IProp GF :=
   iprop(∃ (ms : List CmpModel) (tos eos : List OpFull) (tops eops : List TxnOp),
     cmpsSetAt opv.cmps' ms ∗ opsAt opv.thenOps' tos ∗ opsAt opv.elseOps' eos ∗
     ⌜tos.map txnOpOf = tops.map some ∧ eos.map txnOpOf = eops.map some ∧
-      (tos.length : Int) + eos.length < 2 ^ 63⌝)
+      (tos.length : Int) + eos.length < 2 ^ 63 ∧ (LTxnBuild.mk ms tos eos true true true).sizeOk pfx⌝)
 
 /-- **`lkv.Do(ctx, op)`**, by the kind of `op` (`o.t`): a get answers as `get` (in the
 `OpResponse`'s `get`), a put as `put`, a delete as `delete`, a transaction as `Txn(ctx).If(...)
 .Then(...).Else(...).Commit()` (`commitOutcome`); anything else, an empty `OpResponse` and `nil`.
-The monitor slot is kept unless a get started a lease monitor; the context must be cancelable. -/
+The thread's token is kept (a reader slot borrowed with it from the leasing KV's pool and given
+back); the context must be cancelable. A
+get, put or delete takes `OpShape opKeyMax opKeyMax opValMax`, a transaction `LTxnBuild.sizeOk`
+("Leasing's sizes"). -/
 abbrev leasingKV.Do.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
       opFullAt opv o ∗ etcdReached lo ∗ leasingOpen γ q ∗ threadTok ∗
-      ⌜o.t = W64 2 → txnOpOf o ≠ none⌝ ∗ (⌜o.t = W64 4⌝ -∗ doTxnPre opv) }}
+      ⌜(o.t = W64 2 → txnOpOf o ≠ none) ∧ (o.t ≠ W64 4 → OpShape opKeyMax opKeyMax opValMax o)⌝ ∗
+      (⌜o.t = W64 4⌝ -∗ doTxnPre pfx opv) }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Do")) (Val #(GoInterface.ok ctx))) (Val #opv))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      lkvReader lkv γ pfx ∗ leasingOpen γ q ∗ threadTok ∗
-      (if o.t = W64 1 then getOutcome γ pfx lo o r.get' err (lkvReader lkv γ pfx)
-       else lkvReader lkv γ pfx ∗
+      leasingOpen γ q ∗ threadTok ∗
+      (if o.t = W64 1 then getOutcome γ pfx lo o r.get' err
+       else
         (if o.t = W64 2 then
           (⌜err ≠ GoInterface.nil ∧ r.put' = null⌝ ∨
            (⌜err = GoInterface.nil⌝ ∗ ∃ top, ⌜txnOpOf o = some top⌝ ∗ putCommitted γ lo o top r.put'))

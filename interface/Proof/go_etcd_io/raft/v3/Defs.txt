@@ -630,6 +630,9 @@ def StateCandidate : w64 :=
 theorem nstateWf_becomeLeader [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     NStateWf (becomeLeader id s)
 
+def StorNames.unrec (sn : StorNames) : StorNames :=
+  { ga := sn.ga, gg := sn.gg, gsv := sn.gsv, gd := sn.gd, gk := sn.gk }
+
 theorem nstateWf_sendMsgs [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (ms : List Msg) (H :
     NStateWf s) : NStateWf (sendMsgs s ms)
 
@@ -1511,6 +1514,9 @@ structure StorNames : Type where
   gsv : Nat
   gd : Nat
   gk : Nat
+  a0 : Nat
+  c0 : Nat
+  ct : List (Nat × w64)
 
 theorem becomeLeaderPre.proj_outbox [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState)
     : (becomeLeaderPre id s).outbox = (resetTo s s.term).outbox

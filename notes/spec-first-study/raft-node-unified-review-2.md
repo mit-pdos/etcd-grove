@@ -14,7 +14,7 @@ Reviewer: fresh `spec-reviewer`, 2026-10-28. Read-only; nothing in the repositor
   brief's `.claude/skills/spec/PRINCIPLES.md` and `.claude/skills/spec/examples/README.md` **do not exist** in
   this worktree, and there is no `.claude/skills/spec/` directory, so I could not apply them.
 - **Context**: review 1 (`notes/spec-first-study/raft-node-unified-review-1.md`). The worktree now has an
-  untracked `issues/raft-applyconfchange-reject-doc-contradiction.md`. It files the doc defect that review 1
+  untracked `nonissues/raft-applyconfchange-reject-doc-contradiction.md`. It files the doc defect that review 1
   said had no `issues/` file of its own.
 
 ## Summary
@@ -315,7 +315,7 @@ answers)". This is false:
 - `ConfRule.Ok` over every valid `m` is not restrictive: any rule can be made `Ok` by filtering out the
   decisions `applyChange` refuses. The client then proves that its Go decision equals the filtered rule on
   reachable states. For etcd that needs a workload premise, because etcd's own rule can remove the last voter
-  (`issues/raft-remove-last-voter-panic.md`). Say so in the docstring.
+  (`nonissues/raft-remove-last-voter-panic.md`). Say so in the docstring.
 
 **The stated reason is overstated.** The candidate says the fold covers "every log prefix, uncommitted ones
 included", so that "the cluster needs the interpretation of every possible entry before anyone applies it".
@@ -467,7 +467,7 @@ No new bug in the Go code.
 - **a2's window** (restore → `appliedSnap`) does not reach `hasUnappliedConfChanges`' panic, because the node is
   not promotable then (`raft.go:997-1001, 1947-1949`).
 - **Review 1's doc defect** (`doc.go` versus `node.go:179-183`) now has a file, untracked in this worktree:
-  `issues/raft-applyconfchange-reject-doc-contradiction.md`.
+  `nonissues/raft-applyconfchange-reject-doc-contradiction.md`.
 
 ## Uncertain points
 

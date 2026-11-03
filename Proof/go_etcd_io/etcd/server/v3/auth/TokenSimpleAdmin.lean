@@ -17,6 +17,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.String
+public import Spec.go_etcd_io.etcd.server.v3.auth.tokenSimple__genTokenPrefix
 
 @[expose] public section
 
@@ -472,7 +473,8 @@ side's resource `simpleAdmin p` (the auth plan's S5d): `info` over `ValidSpec` (
 hypothesis), `enable` over `RunSpec`, `disable`, `invalidateUser`, `assign`. -/
 theorem tokenSimple_okA (hValid : ValidSpec (GF := GF) (hG := hG)) (hRun : RunSpec (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
-    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_GTP : tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ⊢
       tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) := by
   iintro ⟨#Hpkg, #Hok⟩
@@ -496,9 +498,13 @@ theorem tokenSimple_okA (hValid : ValidSpec (GF := GF) (hG := hG)) (hRun : RunSp
   · iintro !> %name %Φ !> HA HΦ
     iapply (tokenSimple_invalidateUser p γa.tok γa.fresh name) $$ [HA] HΦ
     iframe #; iexact HA
+  isplitr
   · iintro !> %ctx %user %rev %Φ !> Hctx HΦ
     iapply (tokenSimple_assign p γa.tok γa.fresh γa rfl rfl ctx user rev) $$ [Hctx] HΦ
     iframe #; iexact Hctx
+  · iintro !> %Φ !> - HΦ
+    wp_apply h_GTP p as %s %err %Herr
+    iapply HΦ; ipureintro; exact Herr
 
 end proof
 

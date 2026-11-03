@@ -69,16 +69,70 @@ theorem decAll_keys (os : List TOp) (ms : List (linkv.MOp GoString GoString))
   rw [decTOp_key o _ hb]
   exact hk o (List.mem_of_getElem? ho)
 
+/-- The workload's keys are short. -/
+theorem wks_short : ∀ k ∈ wks, k.length ≤ inMax := by decide
+
+theorem decTOp_bytesLe (o : TOp) (m : linkv.MOp GoString GoString) (h : decTOp o = some m)
+    (hk : o.Key'.length ≤ inMax) (hv : o.Val'.length ≤ inMax) : mopBytesLe inMax m := by
+  unfold decTOp at h
+  split at h
+  · cases h; exact hk
+  split at h
+  · cases h; exact ⟨hk, hv⟩
+  split at h
+  · cases h; exact hk
+  · cases h
+
+theorem decCmp_bytesLe (c : Cmp) (m : linkv.MCmp GoString GoString) (h : decCmp c = some m)
+    (hk : c.Key'.length ≤ inMax) (hv : c.Val'.length ≤ inMax) : mcmpBytesLe inMax m := by
+  unfold decCmp at h
+  split at h
+  · cases h; exact ⟨hk, hv⟩
+  split at h
+  · cases h; exact hk
+  split at h
+  · cases h; exact hk
+  · cases h
+
+/-- What holds of every element holds of every decoded one. -/
+theorem decAll_forall {α β : Type} (f : α → Option β) (P : α → Prop) (Q : β → Prop)
+    (hf : ∀ a b, f a = some b → P a → Q b) (l : List α) (l' : List β) (h : decAll f l = some l')
+    (hl : ∀ a ∈ l, P a) : ∀ b ∈ l', Q b := by
+  intro b hb
+  obtain ⟨k, hk'⟩ := List.getElem_of_mem hb
+  obtain ⟨hlt, rfl⟩ := hk'
+  have hlen := decAll_length _ _ _ h
+  obtain ⟨a, ha⟩ : ∃ a, l[k]? = some a := ⟨l[k], List.getElem?_eq_getElem (by omega)⟩
+  obtain ⟨b', hb1, hb2⟩ := decAll_getElem f l l' h k a ha
+  rw [List.getElem?_eq_getElem hlt] at hb2
+  cases hb2
+  exact hf a _ hb1 (hl a (List.mem_of_getElem? ha))
+
 /-- **A transaction `Gen` makes is one `Apply` takes** (see the file header). -/
 theorem genIn_txn (r : Input) (cs : List Cmp) (ts es : List TOp) (h : TxnShape r cs ts es)
     (c : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
     (hc : decAll decCmp cs = some c) (ht : decAll decTOp ts = some t)
-    (he : decAll decTOp es = some e) (hk : ∀ o ∈ ts ++ es, o.Key' ∈ wks) (hne : ts ++ es ≠ []) :
+    (he : decAll decTOp es = some e) (hk : ∀ o ∈ ts ++ es, o.Key' ∈ wks) (hne : ts ++ es ≠ [])
+    (hcb : ∀ c ∈ cs, c.Key'.length ≤ inMax ∧ c.Val'.length ≤ inMax)
+    (hob : ∀ o ∈ ts ++ es, o.Val'.length ≤ inMax) :
     GenIn r := by
   have hd := decIn_txnShape r cs ts es h
   rw [hc, ht, he] at hd
   simp only [Option.bind_some, Option.map_some] at hd
-  refine ⟨⟨_, hd, ?_⟩, fun c' t' e' h' => ?_⟩
+  have hP : ∀ (os : List TOp) (ms : List (linkv.MOp GoString GoString)), decAll decTOp os = some ms →
+      (∀ o ∈ os, o ∈ ts ++ es) → ∀ m ∈ ms, mopBytesLe inMax m := fun os ms h hsub =>
+    decAll_forall decTOp (fun o => o ∈ ts ++ es) (mopBytesLe inMax)
+      (fun o m hm ho => decTOp_bytesLe o m hm (wks_short _ (hk o ho)) (hob o ho)) os ms h hsub
+  refine ⟨⟨_, hd, ?_⟩, fun c' t' e' h' => ?_, fun i hi => ?_⟩
+  rotate_right
+  · rw [hd] at hi
+    cases hi
+    refine ⟨decAll_forall decCmp (fun c => c ∈ cs) (mcmpBytesLe inMax)
+      (fun c m hm hc' => decCmp_bytesLe c m hm (hcb c hc').1 (hcb c hc').2) cs c hc (fun _ h => h),
+      fun o ho => ?_⟩
+    rcases List.mem_append.1 ho with ho | ho
+    · exact hP ts t ht (fun o h => List.mem_append_left _ h) o ho
+    · exact hP es e he (fun o h => List.mem_append_right _ h) o ho
   · intro op hop
     rcases List.mem_append.1 hop with hop | hop
     · exact decAll_keys ts t ht (fun o ho => hk o (List.mem_append_left _ ho)) op hop
@@ -95,13 +149,21 @@ theorem genIn_txn (r : Input) (cs : List Cmp) (ts es : List TOp) (h : TxnShape r
 
 /-- A get, a list, a put or a delete of a workload key is an input `Apply` takes. -/
 theorem genIn_key (r : Input) (hk : r.Kind' ≠ W64 1 → r.Key' ∈ wks)
-    (hkind : r.Kind' = W64 0 ∨ r.Kind' = W64 1 ∨ r.Kind' = W64 2 ∨ r.Kind' = W64 3) :
+    (hkind : r.Kind' = W64 0 ∨ r.Kind' = W64 1 ∨ r.Kind' = W64 2 ∨ r.Kind' = W64 3)
+    (hv : r.Val'.length ≤ inMax) :
     GenIn r := by
   have hnt : ∀ cs t e, decIn r ≠ some (.txn cs t e) := by
     intro cs t e h
     unfold decIn at h
     rcases hkind with h' | h' | h' | h' <;> simp [h'] at h
-  refine ⟨?_, fun cs t e h => absurd h (hnt cs t e)⟩
+  refine ⟨?_, fun cs t e h => absurd h (hnt cs t e), fun i hi => ?_⟩
+  rotate_right
+  · unfold decIn at hi
+    rcases hkind with h' | h' | h' | h' <;> simp only [h'] at hi
+    · simp at hi; subst hi; exact wks_short _ (hk (by rw [h']; decide))
+    · simp at hi; subst hi; trivial
+    · simp at hi; subst hi; exact ⟨wks_short _ (hk (by rw [h']; decide)), hv⟩
+    · simp at hi; subst hi; exact wks_short _ (hk (by rw [h']; decide))
   rcases hkind with h' | h' | h' | h'
   · exact ⟨.get r.Key', by unfold decIn; simp [h'], hk (by rw [h']; decide)⟩
   · exact ⟨.list, by unfold decIn; simp [h'], trivial⟩
@@ -137,16 +199,16 @@ empty, is one `Apply` takes** (`genIn_txn` at its own lists). -/
 theorem genIn_txn' (r : Input) (hk : r.Kind' = W64 4) (h1 : 0 ≤ sint.Z r.NCmps')
     (h2 : sint.Z r.NCmps' ≤ 1) (h3 : 0 ≤ sint.Z r.NThen') (h4 : sint.Z r.NThen' ≤ 3)
     (h5 : 0 ≤ sint.Z r.NElse') (h6 : sint.Z r.NElse' ≤ 1)
-    (hc : ∀ c ∈ cmpsOfL r, uint.Z c.Kind' < 3)
-    (ho : ∀ o ∈ thenOfL r ++ elseOfL r, uint.Z o.Kind' < 3 ∧ o.Key' ∈ wks)
+    (hc : ∀ c ∈ cmpsOfL r, uint.Z c.Kind' < 3 ∧ c.Key'.length ≤ inMax ∧ c.Val'.length ≤ inMax)
+    (ho : ∀ o ∈ thenOfL r ++ elseOfL r, uint.Z o.Kind' < 3 ∧ o.Key' ∈ wks ∧ o.Val'.length ≤ inMax)
     (hne : thenOfL r ++ elseOfL r ≠ []) : GenIn r := by
-  obtain ⟨c, hc'⟩ := decAll_some decCmp _ (fun a ha => decCmp_some a (hc a ha))
+  obtain ⟨c, hc'⟩ := decAll_some decCmp _ (fun a ha => decCmp_some a (hc a ha).1)
   obtain ⟨t, ht'⟩ := decAll_some decTOp (thenOfL r)
     (fun a ha => decTOp_some a (ho a (List.mem_append_left _ ha)).1)
   obtain ⟨e, he'⟩ := decAll_some decTOp (elseOfL r)
     (fun a ha => decTOp_some a (ho a (List.mem_append_right _ ha)).1)
   exact genIn_txn r _ _ _ ⟨hk, h1, h2, h3, h4, h5, h6, rfl, rfl, rfl⟩ c t e hc' ht' he'
-    (fun o h => (ho o h).2) hne
+    (fun o h => (ho o h).2.1) hne (fun c h => (hc c h).2) (fun o h => (ho o h).2.2)
 
 theorem thenOfL_subset (x : Input) : ∀ o ∈ thenOfL x, o = x.Then0' ∨ o = x.Then1' ∨ o = x.Then2' := by
   intro o ho

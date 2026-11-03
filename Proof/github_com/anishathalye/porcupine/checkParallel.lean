@@ -49,8 +49,11 @@ theorem checkParallel.wp_proof
     wp_auto
     iapply HΦ
     ipureintro
-    intro _
-    exact ⟨by decide, fun _ => rfl⟩
+    left
+    refine ⟨rfl, fun h hh => ?_⟩
+    have hs0 : hs.length = 0 := by rw [← Hlen, Hslen.1, Hif]; rfl
+    rw [List.eq_nil_of_length_eq_zero hs0] at hh
+    cases hh
   have Hn0 : 0 < sint.Z hsl.len := by
     have : sint.Z hsl.len ≠ 0 := fun h => Hif (by word)
     omega
@@ -138,10 +141,16 @@ theorem checkParallel.wp_proof
         · ipureintro; rw [Hlen']; word
         isplitr
         · unfold cellDone; iexists l; iframe #
-        icases Hdisj with (%Hb | %Hb | #Hb)
-        · ileft; ipureintro; exact Hb
-        · iright; ileft; ipureintro; exact ⟨h, Hhes.1, Hb⟩
-        · iright; iright; iexact Hb
+        icases Hdisj with (%Hb | ⟨%Hbf, (%Hb | #Hb)⟩)
+        · ileft; ipureintro; exact ⟨Hb.1, h, Hhes.1, Hb.2⟩
+        · iright
+          isplitr
+          · ipureintro; exact Hbf
+          ileft; ipureintro; exact ⟨h, Hhes.1, Hb⟩
+        · iright
+          isplitr
+          · ipureintro; exact Hbf
+          iright; iexact Hb
       itrivial
     wp_for_post
     iframe
@@ -185,6 +194,8 @@ theorem checkParallel.wp_proof
       "Htoks" ∷ ([∗list] i ∈ R, ghostMapElem γt i (DFrac.own 1) ()) ∗
       "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone lsl i) ∗
       "%Hok" ∷ ⌜(∀ h ∈ hs, Linearizable S.M h) → okv = true⌝ ∗
+      "%Hsnd" ∷ ⌜okv = true → ∀ i ∈ R, ∀ h, hs[i]? = some h → Linearizable S.M h⌝ ∗
+      "%Hfull" ∷ ⌜donev = true → okv = true → tov = false → hs.length ≤ R.length⌝ ∗
       "%Hto" ∷ ⌜tov = true → 0 < sint.Z dur⌝ ∗
       "Hcan" ∷ ((⌜donev = false⌝ ∗ dghostVar γc (DFrac.own 1) ()) ∨
         (⌜donev = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨ □ dghostVar γc DFrac.discard ())))
@@ -199,6 +210,10 @@ theorem checkParallel.wp_proof
     · imodintro; iintro %i %Hi; simp at Hi
     isplitr
     · ipureintro; intro; rfl
+    isplitr
+    · ipureintro; intro _ i hi; simp at hi
+    isplitr
+    · ipureintro; intro h; cases h
     isplitr
     · ipureintro; intro h; cases h
     ileft; iframe; ipureintro; rfl
@@ -225,11 +240,12 @@ theorem checkParallel.wp_proof
       iunfold resultP at HP
       icases HP with ⟨%i, %Hi, Hti, #Hcdi, Hd⟩
       ihave %Hni := toks_fresh γt R i $$ Htoks Hti
-      ihave ⟨%Hbv, Htok⟩ : (⌜b = true ∨ ∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h⌝ ∗
+      ihave ⟨%Hbv, Htok⟩ : (⌜(b = true ∧ ∃ h, hs[i]? = some h ∧ Linearizable S.M h) ∨
+          (b = false ∧ ∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h)⌝ ∗
           dghostVar γc (DFrac.own 1) ()) $$ [Hd Htok]
-      · icases Hd with (%Hb | %Hb | #Hpd)
+      · icases Hd with (%Hb | ⟨%Hbf, (%Hb | #Hpd)⟩)
         · iframe; ipureintro; exact Or.inl Hb
-        · iframe; ipureintro; exact Or.inr Hb
+        · iframe; ipureintro; exact Or.inr ⟨Hbf, Hb⟩
         · iexfalso; iapply tok_pd_false $$ Htok Hpd
       have HRlt := nodup_length_lt HR.2.1 HR.2.2 Hi Hni
       wp_auto
@@ -237,14 +253,26 @@ theorem checkParallel.wp_proof
       have Hok' : (∀ h ∈ hs, Linearizable S.M h) → (okv && b) = true := by
         intro Hall
         rw [Hok Hall]
-        rcases Hbv with Hb | ⟨h, Hh, Hnl⟩
+        rcases Hbv with ⟨Hb, -⟩ | ⟨-, h, Hh, Hnl⟩
         · simp [Hb]
         · exact absurd (Hall h (List.mem_of_getElem? Hh)) Hnl
-      generalize hk : (okv && b) = k at Hok' ⊢
-      wp_join iprop(∃ dn : Bool, done_ptr ↦ dn ∗ cancel_ptr ↦ cancel ∗ count_ptr ↦ (c + W64 1) ∗
+      have Hsnd' : (okv && b) = true → ∀ j ∈ i :: R, ∀ h, hs[j]? = some h →
+          Linearizable S.M h := by
+        intro hkb j hj h' hh'
+        have hkb' := Bool.and_eq_true_iff.mp hkb
+        rcases List.mem_cons.1 hj with rfl | hj
+        · rcases Hbv with ⟨-, h0, Hh0, Hl0⟩ | ⟨Hbf, -⟩
+          · rw [Hh0] at hh'; cases hh'; exact Hl0
+          · rw [hkb'.2] at Hbf; cases Hbf
+        · exact Hsnd hkb'.1 j hj h' hh'
+      generalize hk : (okv && b) = k at Hok' Hsnd' ⊢
+      wp_join iprop(∃ dn : Bool,
+          ⌜dn = true → k = true → (hs.length : Int) ≤ sint.Z (c + W64 1)⌝ ∗
+          done_ptr ↦ dn ∗ cancel_ptr ↦ cancel ∗ count_ptr ↦ (c + W64 1) ∗
           ((⌜dn = false⌝ ∗ dghostVar γc (DFrac.own 1) ()) ∨
             (⌜dn = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨ □ dghostVar γc DFrac.discard ()))))
-        at (if: _ then _ else _) with [done Htok cancel count] as ⟨%dn, done, cancel, count, Hcan⟩
+        at (if: _ then _ else _) with [done Htok cancel count]
+        as ⟨%dn, %Hdn, done, cancel, count, Hcan⟩
       · rcases (show (k = true) ∨ (k = false ∧ cp = true) ∨ (k = false ∧ cp = false) by
             cases k <;> cases cp <;> simp) with Hkc | ⟨Hk, Hc⟩ | ⟨Hk, Hc⟩
         all_goals first | subst Hkc | (subst Hk; subst Hc)
@@ -257,6 +285,8 @@ theorem checkParallel.wp_proof
           isplitr
           · ipureintro; rfl
           iexists true
+          isplitr
+          · ipureintro; intro _ h; cases h
           iframe
           iright
           isplitr
@@ -269,6 +299,8 @@ theorem checkParallel.wp_proof
           · isplitr
             · ipureintro; first | rfl | trivial
             iexists true
+            isplitr
+            · ipureintro; intro _ _; rw [Hlen']; word
             iframe done cancel count
             iright
             isplitr
@@ -277,6 +309,8 @@ theorem checkParallel.wp_proof
           · isplitr
             · ipureintro; first | rfl | trivial
             iexists false
+            isplitr
+            · ipureintro; intro h; cases h
             iframe done cancel count
             ileft
             isplitr
@@ -296,12 +330,17 @@ theorem checkParallel.wp_proof
       iframe
       iframe #
       ipureintro
-      refine ⟨⟨?_, List.nodup_cons.2 ⟨Hni, HR.2.1⟩, ?_⟩, Hok', Hto⟩
+      refine ⟨⟨?_, List.nodup_cons.2 ⟨Hni, HR.2.1⟩, ?_⟩, Hok', Hsnd', fun hd hk' _ => ?_, Hto⟩
       · have := HR.1; simp only [List.length_cons]; word
       · intro j hj
         rcases List.mem_cons.1 hj with rfl | hj
         · exact Hi
         · exact HR.2.2 j hj
+      · have h1 := Hdn hd hk'
+        have h2 := HR.1
+        have h3 : (hs.length : Int) < 2 ^ 32 := Hn
+        simp only [List.length_cons]
+        word
     iapply BigAndL.bigAndL_cons.2
     isplit
     · icases Htc with (%Hnil | ⟨%γa, %Hdpos, #Hta⟩)
@@ -330,6 +369,10 @@ theorem checkParallel.wp_proof
         · ipureintro; exact HR
         isplitr
         · ipureintro; exact Hok
+        isplitr
+        · ipureintro; exact Hsnd
+        isplitr
+        · ipureintro; intro _ _ h; cases h
         isplitr
         · ipureintro; exact fun _ => Hdpos
         iright
@@ -527,20 +570,31 @@ theorem checkParallel.wp_proof
     · iexact HPD
     iapply HΦ
     ipureintro
-    intro Hall; exact absurd (Hok Hall) (by simp)
+    right; left
+    exact ⟨rfl, fun Hall => absurd (Hok Hall) (by simp)⟩
   · cases tov
     · wp_auto
       wp_apply Hcancel' $$ [HPD]
       · iexact HPD
       iapply HΦ
       ipureintro
-      intro _; exact ⟨by decide, fun _ => rfl⟩
+      left
+      refine ⟨rfl, fun h hh => ?_⟩
+      have HRle : R.length ≤ hs.length := by
+        have h3 := (HR.2.1).length_le_of_subset (l₂ := List.range hs.length)
+          (fun x hx => List.mem_range.2 (HR.2.2 x hx))
+        simpa only [List.length_range] using h3
+      have HRn : R.length = hs.length := Nat.le_antisymm HRle (Hfull rfl rfl rfl)
+      obtain ⟨j, hjl, hje⟩ := List.getElem_of_mem hh
+      exact Hsnd rfl j (nodup_all_mem HR.2.1 HR.2.2 HRn j hjl) h
+        (by rw [List.getElem?_eq_getElem hjl, hje])
     · wp_auto
       wp_apply Hcancel' $$ [HPD]
       · iexact HPD
       iapply HΦ
       ipureintro
-      intro _; exact ⟨by decide, fun h => absurd (Hto rfl) (by omega)⟩
+      right; right
+      exact ⟨rfl, Hto rfl⟩
 
 end proof
 

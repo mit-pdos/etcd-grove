@@ -32,13 +32,13 @@ cluster's allocation (`idCluster_alloc`); the generator's facts are its prefix's
 (Until M4 it took fresh names, `idNamesFresh`, and gave the reserved id `0`, `idNoZero`, which
 the cluster's allocation now gives.) -/
 abbrev idutil.NewGenerator.spec : Prop :=
-  ∀ (γi : IdNames) (memberID : w16) (now : time.Time)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF),
+  ∀ (γi : IdNames) (memberID : w16) (now : time.Time) {X : Type} [Pos.Countable X]
+    (Φs : X → w64 → List w8 → GName → IProp GF) (x : X),
   γi.pfx = idPfxOf memberID →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil ∗ idShare γi ∗
-      idClusterInv γi.issued γi.cnt Φs }}
+      idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs Φs }}
     (App (App (Val (@! idutil.NewGenerator)) (Val #memberID)) (Val #now))
-  {{ (g : Loc), RET #g; idGen γi g (Φs γi.pfx) }}
+  {{ (g : Loc), RET #g; idGen γi g (Φs x) }}
 
 end spec
 

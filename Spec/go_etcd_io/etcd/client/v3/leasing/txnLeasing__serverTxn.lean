@@ -32,7 +32,8 @@ transaction (`txnCommitResult`). The context must be cancelable. -/
 abbrev txnLeasing.serverTxn.spec : Prop :=
   ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ownTxnLeasing txn lkv γ pfx ctx cs b ∗ lkvReader lkv γ pfx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ownTxnLeasing txn lkv γ pfx ctx cs b ∗ lkvReader lkv γ pfx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗
+      ⌜b.sizeOk pfx⌝ }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"serverTxn")) (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvReader lkv γ pfx ∗
       ∃ tops eops : List TxnOp, ⌜b.thenOps = some tops ∧ b.elseOps = some eops⌝ ∗

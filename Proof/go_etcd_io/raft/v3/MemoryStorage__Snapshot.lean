@@ -9,6 +9,7 @@ module
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
 public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import Proof.go_etcd_io.raft.v3.InvMemstorageAt
 
 @[expose] public section
 
@@ -33,12 +34,9 @@ theorem MemoryStorage.Snapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J c bb esu
-  wp_start as ⟨#Hsi, #Hc, Hnone, #Hesu⟩
-  iunfold memStorInvP at Hsi
-  icases Hsi with ⟨#Hlock, #HB0, #Hjinv⟩
-  ihave #Hsi : memStorInvP ms γs J $$ []
-  · iunfold memStorInvP; iframe Hlock HB0 Hjinv
+  intro ms γs J o c bb esu
+  wp_start as ⟨Hat, #Hc, Hnone, #Hesu⟩
+  icases memStorAt_split ms γs J o emp $$ Hat with ⟨#Hlock, Hjc, Hho⟩
   iunfold memStorLock at Hlock
   icases Hlock with ⟨#Hinit, #Hmu⟩
   wp_auto
@@ -58,12 +56,12 @@ theorem MemoryStorage.Snapshot.wp_proof
     · ipureintro; omega
     icases monoNatLbOwn_valid _ _ _ _ $$ Hcp_inv Hlb with %H
     ipureintro; exact H.2
-  imod memSnap_take ms γs J ⊤ HN $$ Hsi Hlk_inv with Hhome
+  imod memSnap_take_at ms γs J o emp ⊤ HN $$ Hjc Hho Hlk_inv with ⟨Hjc, Hlko, Hhome⟩
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  iunfold memSnapHome at Hhome
+  iunfold memSnapHomeAt at Hhome
   icases Hhome with ⟨Hhk, %sp, %sv', Hsnapshot, Hsnap, Hsxh, #Hval⟩
   icases ghostVar_agree γs.sx _ _ _ _ $$ Hsx_inv Hsxh with %Hag
   subst Hag
@@ -77,11 +75,9 @@ theorem MemoryStorage.Snapshot.wp_proof
   · iframe Hr
   ihave Hr := ownSnapW_E $$ Hr
   ihave Hr := ownSnapE_weaken $$ Hr
-  imod memSnap_put ms γs J ⊤ HN $$ Hsi [Hhk Hsnapshot Hr Hsxh] with Hlk
-  · iunfold memSnapHome
-    iframe Hhk
-    iexists r, sv
-    iframe Hsnapshot Hr Hsxh Hval
+  imod memSnap_put_at ms γs J o emp ⊤ HN sv r $$ Hjc Hlko Hhk Hsnapshot Hr Hsxh [] with
+    ⟨Hjc, Hlk, Hho⟩
+  · iapply memValAt_new $$ Hval
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk]
@@ -101,10 +97,25 @@ theorem MemoryStorage.Snapshot.wp_proof
   isplitr
   · ipureintro; rfl
   iexists sv
-  iframe Hp' Hval
-  ipureintro
-  have := Hok_inv.2.2.2.1
-  exact ⟨by omega, Hbe⟩
+  iframe Hp'
+  isplitr
+  · ipureintro
+    have := Hok_inv.2.2.2.1
+    exact ⟨by omega, Hbe⟩
+  cases o with
+  | none =>
+    simp only [memValAt]
+    iexact Hval
+  | some p =>
+    obtain ⟨c0, sv0⟩ := p
+    simp only [memValAt]
+    icases Hval with %Hsv
+    subst Hsv
+    isplitr
+    · ipureintro; rfl
+    iapply memStorFresh_of_at ms γs J emp c0 sv c0 sv
+    simp only [memSetAt, Option.map_some] at *
+    iframe Hjc Hho
 
 end proof
 

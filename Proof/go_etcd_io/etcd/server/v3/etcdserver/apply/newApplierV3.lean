@@ -33,14 +33,13 @@ theorem apply.newApplierV3.wp_proof
     (hQ : apply.newQuotaApplierV3.spec (GF := GF) (hG := hG))
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
-  intro opts RD Hbuq
-  wp_start as Hard
+  intro opts Hbuq
+  wp_start as -
   wp_auto
   wp_apply (hB opts) $$ [] as %b ⟨⟨%pb, %Hpb, #Hpbo⟩, #Hb⟩
   wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ []
     as %q ⟨⟨%pq, %Hpq, #Hpqf⟩, #Hq⟩
-  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p ⟨#Hpaf, #Hpas, #Hple, #HpA, #Hp⟩
-  · iframe
+  wp_apply (hA opts.AuthStore' q opts.Lessor') $$ [] as %p ⟨#Hpaf, #Hpas, #Hple, #HpA, #Hp⟩
   iapply HΦ
   isplitr
   · iunfold apply.baseShape
@@ -49,22 +48,22 @@ theorem apply.newApplierV3.wp_proof
     iframe Hpaf Hpqf Hpbo
     ipureintro; rfl
   isplitr
-  · iintro !> %E %hRD #Hopts
+  · iintro !> %E #Hopts
     ihave #Hok := Hopts
     iunfold apply.backendOptsOk at Hok
     icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
     ihave #Hb' := Hb $$ %E Hopts
     ihave #Hq' := Hq $$ %E %.backend Hb'
     simp only [apply.baseChain]
-    iapply Hp $$ %E %(.quota .backend) %hRD Has Hle Hq'
+    iapply Hp $$ %E %(.quota .backend) Has Hle Hq'
   -- (E3k) the auth layer
-  iintro !> %E %hRD #Hopts
+  iintro !> %E #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
   ihave #Hb' := Hb $$ %E Hopts
   ihave #Hq' := Hq $$ %E %.backend Hb'
-  ihave #HA := HpA $$ %E %hRD Has Hle
+  ihave #HA := HpA $$ %E Has Hle
   iunfold apply.baseAuth
   iexists p, q
   iframe HA Hq' Hpas Hple

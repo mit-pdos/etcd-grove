@@ -38,6 +38,10 @@ theorem lastRevOp_facts (key e : GoString) :
   by_cases hk : key = [] <;>
   simp [opGetPanics, op_simps, lastRevGs, OpFull.isPrefixGet, hk]
 
+theorem lastRevOp_size (key e : GoString) (hk : key.length ≤ 2 ^ 27) (he : e.length ≤ 2 ^ 27) :
+    opSizeOk (opGetModel key (lastRevGs e)) := by
+  by_cases hk' : key = [] <;> simp [opSizeOk, op_simps, lastRevGs, hk'] <;> omega
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -59,7 +63,7 @@ theorem txnLeasing.guardRanges.wp_proof
     (hCR : EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG)) :
     txnLeasing.guardRanges.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops⟩
+  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops, %Hos⟩
   ihave #HLKV' := HLKV
   iunfold isLeasingKV at HLKV'
   icases HLKV' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkvf, #Hpfxf, -, -, -,
@@ -80,7 +84,9 @@ theorem txnLeasing.guardRanges.wp_proof
       "#Hrelc" ∷ listRel cmpAt cvs ms ∗ "Hrd" ∷ lkvReader lkv γ pfx ∗
       "Hlkvf" ∷ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       "Hctxf" ∷ structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝) $$ [i op cmps Hrd Hlkvf Hctxf]
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝ ∗
+      "%Hg" ∷ ⌜ms.length ≤ 2 * sint.nat n ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝)
+      $$ [i op cmps Hrd Hlkvf Hctxf]
   · iexists W64 0, _, slice.nil, [], []
     simp only [named]
     iframe
@@ -90,7 +96,9 @@ theorem txnLeasing.guardRanges.wp_proof
     · iapply ownSliceCap_nil
     isplitl []
     · iapply listRel_nil
-    ipureintro; constructor <;> word
+    isplitr
+    · ipureintro; constructor <;> word
+    ipureintro; simp
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < vs.length := by word
@@ -114,7 +122,9 @@ theorem txnLeasing.guardRanges.wp_proof
       simp only [named]
       iframe
       iframe #
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro; exact ⟨by have := Hg.1; word, Hg.2⟩
     · wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
       ihave %Hel := ownSlice_len _ _ _ $$ He
       (try wp_auto)
@@ -126,15 +136,19 @@ theorem txnLeasing.guardRanges.wp_proof
         simp only [named]
         iframe
         iframe #
-        ipureintro; constructor <;> word
+        isplitr
+        · ipureintro; constructor <;> word
+        ipureintro; exact ⟨by have := Hg.1; word, Hg.2⟩
       · (try wp_auto)
         wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
         wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
         wp_apply hRange $$ [$op $Hbase] as %esl2 ⟨op, #He2⟩
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
+        have Hob := Hos o (List.mem_of_getElem? Hoi)
         wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$HLKV $Hrd $Hsr $Hctx $Hcc]
           as %maxRev %err Hrd
+        · ipureintro; exact Hob
         cases err with
         | ok e =>
           (try wp_auto)
@@ -187,7 +201,7 @@ theorem txnLeasing.guardRanges.wp_proof
           obtain ⟨Hnp, Ht1, HnP, Hrev0⟩ := lastRevOp_facts o.key o.base.rangeEnd
           wp_apply HG $$ [] as %gresp %gerr #Hgres
           · iframe Hctx Hopts H0
-            ipureintro; exact ⟨Hnp, Ht1⟩
+            ipureintro; exact ⟨Hnp, Ht1, lastRevOp_size _ _ Hob.1 Hob.2⟩
           iunfold kvGetResult at Hgres
           icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
           · obtain ⟨ge, rfl⟩ : ∃ ge, gerr = GoInterface.ok ge := by
@@ -278,7 +292,20 @@ theorem txnLeasing.guardRanges.wp_proof
             iapply listRel_cons
             iframe Hc2
             iapply listRel_single; iexact Hd2
-          ipureintro; constructor <;> word
+          isplitr
+          · ipureintro; constructor <;> word
+          ipureintro
+          refine ⟨by simp only [List.length_append, List.length_cons, List.length_nil]
+                     have := Hg.1; word, ?_⟩
+          intro c hc
+          simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+          have Ho := List.mem_of_getElem? Hoi
+          rcases hc with hc | rfl | rfl
+          · exact Hg.2 c hc
+          · exact ⟨o, Ho, by simp [compareM, cmpWithRangeM, cmpKeyM],
+              by simp [compareM, cmpWithRangeM, cmpKeyM], by simp [compareM, cmpWithRangeM, cmpKeyM]⟩
+          · exact ⟨o, Ho, by simp [compareM, cmpWithRangeM, cmpKeyM],
+              by simp [compareM, cmpWithRangeM, cmpKeyM], by simp [compareM, cmpWithRangeM, cmpKeyM]⟩
   · (try wp_auto)
     iapply HΦ
     iframe
@@ -286,9 +313,15 @@ theorem txnLeasing.guardRanges.wp_proof
     isplitr
     · ipureintro; rfl
     iexists ms
-    iapply (cmpsAt_listRel _ _).2
-    iexists cvs
-    iframe #
+    isplitl []
+    · iapply (cmpsAt_listRel _ _).2
+      iexists cvs
+      iframe #
+    ipureintro
+    refine ⟨?_, Hg.2⟩
+    have := Hg.1
+    rw [← Hlen]
+    word
 
 end proof
 

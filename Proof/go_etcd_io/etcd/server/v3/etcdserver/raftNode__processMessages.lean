@@ -56,15 +56,15 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%dq, %st, Hm, %Hty, #Hsm, Hc⟩
-    iexists dq, st
+    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc⟩
+    iexists DFrac.own 1, st
     iframe Hm
     isplit
     · iintro %h
       exact absurd Hty h
     · iintro %_ Hm
       iunfold rnSnapMsg
-      iexists dq, st
+      iexists st
       iframe Hm Hsm Hc
       ipureintro; exact Hty
 

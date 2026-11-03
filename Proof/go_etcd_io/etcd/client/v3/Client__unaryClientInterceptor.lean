@@ -107,7 +107,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   iintro !> %md
   unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
-    %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+    %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
   ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ') else iprop(□ laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ'))) ∗
@@ -182,6 +182,8 @@ theorem Client.unaryClientInterceptor.wp_proof
       as %err ⟨Hsend, -, Hres⟩
     · iframe Hg' Hctx' Hrpc
       iframe
+      isplitl []
+      · iexact Hsz
       isplitl []
       · ipureintro; exact Hopt
       iapply BigSepL.bigSepL_nil.2
@@ -274,6 +276,8 @@ theorem Client.unaryClientInterceptor.wp_proof
         as %err ⟨Hsend, Hpbs, Hres⟩
       · iframe Hg' Hctx' Hrpc
         iframe
+        isplitl []
+        · iexact Hsz
         isplitl []
         · ipureintro; exact Hopt
         iapply BigSepL.bigSepL_nil.2

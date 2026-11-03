@@ -24,7 +24,7 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section start
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -63,7 +63,7 @@ theorem grpcCfgOk_of_started_on_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   iunfold srvWatchReaders at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAtM at Hv
@@ -97,6 +97,8 @@ theorem grpcCfgOk_of_started_on_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
     · ipureintro; exact hlg
     isplitr
     · ipureintro; exact Hlgn
+    isplitr
+    · ipureintro; exact Hmto
     isplitr
     · iunfold srvLeadInv
       iunfold srvAtomicU64 at Hlead

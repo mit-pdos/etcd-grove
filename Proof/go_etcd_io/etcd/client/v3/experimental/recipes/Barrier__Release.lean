@@ -29,7 +29,7 @@ theorem Barrier.Release.wp_proof : Barrier.Release.spec (GF := GF) (hG := hG) :=
   intro b client key lo
   wp_start as ⟨#Hb, #Hlo⟩
   iunfold isBarrier at Hb
-  icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl⟩
+  icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨-, -, #HDel, -⟩
@@ -39,7 +39,7 @@ theorem Barrier.Release.wp_proof : Barrier.Release.spec (GF := GF) (hG := hG) :=
   obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
   wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres
   · ipureintro
-    refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl⟩
+    refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl, deleteOp_size (by omega)⟩
     rw [hkk, hke]; exact concurrency.keyRangeUnder_key key key (List.prefix_refl key)
   iunfold deleteResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s, #Hr, %Hrr, #Hts⟩)

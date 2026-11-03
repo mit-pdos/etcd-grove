@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
@@ -32,8 +32,8 @@ theorem mvcc.watcherGroup.choose.wp_proof
     (hAll : mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) := by
   have hAdd := mvcc.watcherGroup.add.spec_group hAdd
-  intro wg W ST maxWatchers curRev compactRev
-  wp_start as ⟨Hg, HST, %HdomSt, %HWsz⟩
+  intro γ ql wg W ST maxWatchers curRev compactRev
+  wp_start as ⟨Hg, HST, #Hperm, Hsp, %HdomSt, %HWsz⟩
   obtain ⟨Hdom, Hst⟩ := HdomSt
   icases mvcc.ownWatcherGroup_fixed wg W $$ Hg with ⟨Hg, #Hfixed⟩
   icases mvcc.ownWatcherGroup_watchers wg W $$ Hg with ⟨%v, Hwg, Hws, Hback⟩
@@ -48,14 +48,17 @@ theorem mvcc.watcherGroup.choose.wp_proof
   wp_if_destruct
   · ihave Hg := Hback $$ Hwg [Hws]
     · iunfold mvcc.ownWatcherSet; iexact Hws
-    wp_apply (hAll wg W ST curRev compactRev) $$ [$Hg $HST] as %m ⟨Hg, HST, %Hm⟩
+    wp_apply (hAll γ ql wg W ST curRev compactRev) $$ [$Hg $HST $Hperm $Hsp] as %m ⟨%Cm, %HCm, Hg, HST, Hsp, %Hm⟩
     · ipureintro; exact ⟨Hdom, Hst⟩
     (try wp_auto)
     iapply HΦ
-    ileft
-    iframe Hg HST
-    ipureintro
-    exact ⟨⟨rfl, by rw [← hsz]; exact Hif⟩, Hm⟩
+    iexists W, Cm
+    iframe HST Hsp
+    isplitr
+    · ipureintro; exact ⟨GMap.map_subseteq_refl _, HCm⟩
+    isplitl [Hg]
+    · ileft; iframe Hg; ipureintro; exact ⟨rfl, rfl, by rw [← hsz]; exact Hif⟩
+    ipureintro; exact Hm
   wp_apply hNew as %gv Hgv
   (try wp_auto)
   ihave Hret := Hgv $$ %ret_ptr ret
@@ -145,22 +148,23 @@ theorem mvcc.watcherGroup.choose.wp_proof
   iintro %bv ⟨%Hbv, Hws, %W', %mw, %wv, Hmw, Hw, Hret, %HW'⟩
   subst Hbv
   wp_auto
-  wp_apply (hAll ret_ptr W' ST curRev compactRev) $$ [$Hret $HST] as %m ⟨Hret, HST, %Hm⟩
+  wp_apply (hAll γ ql ret_ptr W' ST curRev compactRev) $$ [$Hret $HST $Hperm $Hsp] as %m ⟨%Cm, %HCm, Hret, HST, Hsp, %Hm⟩
   · ipureintro
     refine ⟨fun w hw => ?_, Hst⟩
     obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hw
     exact Hdom w (by rw [GMap.lookup_weaken hr HW'.1]; rfl)
   (try wp_auto)
   iapply HΦ
-  iright
-  iexists W'
-  iframe Hret HST
-
-  isplitl []
-  · ipureintro
-    refine ⟨HW'.1, by rw [hsz] at Hif; omega, HW'.2⟩
-  isplitl [Hwg Hws Hback]
-  · iapply Hback $$ Hwg
+  iexists W', Cm
+  iframe HST Hsp
+  isplitr
+  · ipureintro; exact ⟨HW'.1, HCm⟩
+  isplitl [Hwg Hws Hback Hret]
+  · iright
+    iframe Hret
+    isplitr
+    · ipureintro; exact ⟨by rw [hsz] at Hif; omega, HW'.2⟩
+    iapply Hback $$ Hwg
     iunfold mvcc.ownWatcherSet; iexact Hws
   ipureintro; exact Hm
 

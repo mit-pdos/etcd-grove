@@ -33,7 +33,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,7 @@ theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Seman
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The watch example is safe, in the operational semantics** (`watch_adequate`, see the file
@@ -65,12 +65,14 @@ theorem watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
     (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent (watchkvProgram nw nops) [config.walDirOf go!"watchkv.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ watchkv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -78,12 +80,12 @@ theorem watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([watchkvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  watch_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hdbo nw nops H0 H31 Hops Hmul
-    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  watch_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
+    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

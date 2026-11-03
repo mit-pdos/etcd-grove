@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedProcessor.distribute.wp_proof
     (wp_add : processorListener.add.spec (GF := GF) (hG := hG)) :
     sharedProcessor.distribute.spec (GF := GF) (hG := hG) := by
-  intro p γp QP E e snc Hbound
+  intro _ p γp QP E e snc
   wp_start as ⟨#Hp, Hrd, Hsend, #HQ⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -140,12 +140,12 @@ theorem sharedProcessor.distribute.wp_proof
           $$ [Hprod HQ' obj sync listener isSyncing]
         · cases snc
           · wp_auto
-            wp_apply (wp_add l γl QP (E.map notifOf) e Hbound) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
+            wp_apply (wp_add l γl QP (E.map notifOf) e) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
             iframe
             simp only [List.map_append, List.map_cons, List.map_nil]
             iframe
           · wp_auto
-            wp_apply (wp_add l γl QP (E.map notifOf) e Hbound) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
+            wp_apply (wp_add l γl QP (E.map notifOf) e) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
             iframe
             simp only [List.map_append, List.map_cons, List.map_nil]
             iframe
@@ -255,12 +255,12 @@ theorem sharedProcessor.distribute.wp_proof
           $$ [Hprod HQ' obj sync listener isSyncing]
         · cases snc
           · wp_auto
-            wp_apply (wp_add l γl QP (E.map notifOf) e Hbound) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
+            wp_apply (wp_add l γl QP (E.map notifOf) e) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
             iframe
             simp only [List.map_append, List.map_cons, List.map_nil]
             iframe
           · wp_auto
-            wp_apply (wp_add l γl QP (E.map notifOf) e Hbound) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
+            wp_apply (wp_add l γl QP (E.map notifOf) e) $$ [$Hpkg $Hli $Hprod $HQ'] as Hprod
             iframe
             simp only [List.map_append, List.map_cons, List.map_nil]
             iframe

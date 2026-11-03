@@ -101,6 +101,11 @@ theorem fkCl_wf (γ : BNames) (P : BParams) {D : Data} (h : fkWfD P D) :
   rw [fkWInit_of_wf h]
   iframe H Hv
 
+/-- Data with none of the keys the backend tracks records no compaction (`fkAbsD_of_noCmp`'s
+converse; the merged snapshot's window, 2026-11-02: a snapshot's reader bound, `fkRd_abs`). -/
+theorem noCmpData_of_fkAbsD {D : Data} (h : fkAbsD D) : noCmpData D :=
+  ⟨h _ _ ⟨rfl, Or.inl rfl⟩, h _ _ ⟨rfl, Or.inr rfl⟩⟩
+
 /-- A key image records no compaction. -/
 theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2
 

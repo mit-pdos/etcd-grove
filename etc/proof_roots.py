@@ -15,8 +15,10 @@ here too.
 The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and
 `<root>/Proof/`, so a new package's proofs are picked up when its directory has them.
 `etc/tcb-report.lean` imports the modules of one run into one environment; the runs
-group the root modules by the part roots they reach (none, for most), read off the
-import graph of this repository's files.
+group the root modules by the part roots they reach (none, for most), and by the local
+translations they reach of a standard-library package Perennial also translates (`Code.os`,
+project `bboltfs`: it declares the same names as `Perennial.Code.os`, which raft's
+translation imports), read off the import graph of this repository's files.
 
 The JSON (`.lake/tcb.json` by default) starts with a `{"t":"meta", ...}` line naming the
 modules it was computed from and the commit; `load` refuses one that is not of the
@@ -26,6 +28,7 @@ current modules (the result of an interrupted or failed run, or of an older layo
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -135,8 +138,44 @@ def _imports(mod, memo={}):
     return memo[mod]
 
 
+def _perennial_dir():
+    """Perennial's checkout as Lake resolves it: the `perennial` entry of the manifest Lake reads
+    (`--packages=FILE` in `$LAKE_OPTS`, as `etc/tcb-report.py` passes it to Lake, else
+    `lake-manifest.json`), its `dir` for a `path` dependency, else `<packagesDir>/perennial`."""
+    manifest = os.path.join(ROOT, "lake-manifest.json")
+    opts = shlex.split(os.environ.get("LAKE_OPTS", ""))
+    for i, o in enumerate(opts):
+        if o.startswith("--packages="):
+            manifest = o.split("=", 1)[1]
+        elif o == "--packages" and i + 1 < len(opts):
+            manifest = opts[i + 1]
+    manifest = os.path.join(ROOT, manifest)
+    try:
+        with open(manifest, encoding="utf-8") as f:
+            man = json.load(f)
+    except (OSError, ValueError):
+        man = {}
+    pkgs_dir = os.path.join(ROOT, man.get("packagesDir", os.path.join(".lake", "packages")))
+    for p in man.get("packages", []):
+        if p.get("name") == "perennial" and p.get("type") == "path" and p.get("dir"):
+            return os.path.join(ROOT, p["dir"])
+    return os.path.join(pkgs_dir, "perennial")
+
+
+PERENNIAL = _perennial_dir()
+
+
+def shadows_perennial(mod):
+    """Whether `mod` is this repository's translation `Code.<pkg>` of a package Perennial
+    translates too (`Perennial.Code.<pkg>`): the two declare the same names, so no environment
+    can hold both."""
+    return mod.startswith("Code.") and os.path.exists(
+        os.path.join(PERENNIAL, "Perennial", *mod.split(".")) + ".lean")
+
+
 def parts_reached(mod):
-    """The part roots whose modules `mod` imports, transitively."""
+    """The part roots whose modules `mod` imports, transitively, and the local translations it
+    imports that shadow Perennial's (`shadows_perennial`)."""
     seen, todo, reached = set(), [mod], set()
     while todo:
         m = todo.pop()
@@ -145,6 +184,8 @@ def parts_reached(mod):
         seen.add(m)
         if m.split(".")[0] in PART_ROOTS:
             reached.add(m.split(".")[0])
+        if shadows_perennial(m):
+            reached.add(m)
         todo += _imports(m)
     return tuple(sorted(reached))
 

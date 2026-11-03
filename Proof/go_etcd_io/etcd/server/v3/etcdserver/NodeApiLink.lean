@@ -100,6 +100,11 @@ theorem srvApi_wp_MemTerm : MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
 theorem srvApi_wp_MemEntries : MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
   letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Entries
 
+/-- (2026-10-31, #3) `MemoryStorage.Append`, which the raft loop runs on a snapshot `Ready`'s
+entries: raft's linked result at the server's any-storage model, as above. -/
+theorem srvApi_wp_MemAppend : MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Append
+
 end links
 
 end EtcdGrove

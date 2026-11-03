@@ -34,13 +34,15 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **A `*Barrier`** `b` on the key `key` (persistent): its fields, read-only (the client, the
+/-- **A `*Barrier`** `b` on the key `key` (at most `2 ^ 27` bytes, for its requests'
+sizes: `notes/invoke-size-b.md`; persistent): its fields, read-only (the client, the
 context `context.TODO()`, the key), and the client's contracts at the prefix `key`
 (`isEtcdRecipesClient`). -/
 def isBarrier (b client : Loc) (key : GoString) : IProp GF :=
   iprop(structFieldRef Barrier go!"client" b ↦□ client ∗
     structFieldRef Barrier go!"ctx" b ↦□ GoInterface.ok todoCtxVal ∗
-    structFieldRef Barrier go!"key" b ↦□ key ∗ isEtcdRecipesClient client key)
+    structFieldRef Barrier go!"key" b ↦□ key ∗ isEtcdRecipesClient client key ∗
+    ⌜key.length ≤ 2 ^ 27⌝)
 
 instance isBarrier_persistent (b client : Loc) (key : GoString) :
     Persistent (isBarrier (GF := GF) b client key) := by

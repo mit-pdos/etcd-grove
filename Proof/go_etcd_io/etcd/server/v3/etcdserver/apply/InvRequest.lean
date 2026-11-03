@@ -152,6 +152,18 @@ structure IRRModel where
 `PrevKv` forgotten): the wire transaction's (`txnW`) model. -/
 def IRRModel.txn (rq : IRRModel) : Option TxnModel := rq.txnW.map txn.TxnModelW.toModel
 
+/-- **Every key and value the request `rq` puts is at most `n` bytes** (2026-10-31,
+`notes/vallen.md`): its `Put`'s key and value, and its transaction's puts' at any depth
+(`TxnModel.putsLe`; a put keeping the stored value bounds its key only). -/
+def irrPutsLe (n : Nat) (rq : IRRModel) : Prop :=
+  (∀ o, rq.put = some o → o.key.length ≤ n ∧ o.val.length ≤ n) ∧
+    (∀ t, rq.txn = some t → t.putsLe n)
+
+theorem irrPutsLe.mono {n m : Nat} (h : n ≤ m) {rq : IRRModel} (hk : irrPutsLe n rq) :
+    irrPutsLe m rq :=
+  ⟨fun o ho => ⟨Nat.le_trans (hk.1 o ho).1 h, Nat.le_trans (hk.1 o ho).2 h⟩,
+    fun t ht => TxnModel.putsLe_mono h (hk.2 t ht)⟩
+
 @[simp] theorem IRRModel.txnW_map (rq : IRRModel) :
     rq.txnW.map txn.TxnModelW.toModel = rq.txn := rfl
 
@@ -170,6 +182,26 @@ it): `semver.MustParse` returns a version for it, and panics otherwise (its axio
 `Spec/github_com/Masterminds/semver/v3/MustParse.lean`). Opaque: the premise of a
 `ClusterVersionSet` request (its `Ver` parses: the server proposes only versions it parsed). -/
 opaque semverValid : GoString → Prop
+
+/-- **Trust boundary (semver and the server's version).** The version `semver.MustParse(s)` is
+not above this server's: not greater (`semver.Version.LessThan`, SemVer's order, prerelease below
+release) than the major and minor version of `version.Version` with patch `0` (`3.8.0` at the fork
+pin: `MustDetectDowngrade(lg, MustParse(version.Version), cv)` compares
+`semver.New(sv.Major(), sv.Minor(), 0, "", "")` with `cv` and panics when it is less,
+`server/etcdserver/version/downgrade.go:42-54`). Opaque, as `semverValid`: the premise of a
+`ClusterVersionSet` request, which only the leader's monitor proposes, of the minimum of the
+members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`), or
+`MinClusterVersion` (`3.0.0`) while the cluster has no version and a member does not answer: the
+leader's own `version.Version` is among the versions (`getMembersVersions` records the local
+member's, the local member being in `c.members`), which bounds the proposal by the proposer's
+major.minor. The applying member's bound is the proposer's because every member runs this binary
+(the model's deployment: one program, the verified one); a member restarted on an older binary
+between the proposal and its apply panics, by design (`MustDetectDowngrade`). The monitor's
+downgrade branch (`monitor.go:80-99`, which could propose above the bound: `allowedDowngradeVersion`
+wraps `Minor()-1` at minor `0`) is not reached: no `DowngradeInfoSet` is admitted (`rqOk`), and the
+boot and snapshot images carry no enabled downgrade record. Its axiom is
+`EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
+opaque semverAtMostServer : GoString → Prop
 
 /-- The request's id as `apply.Apply` computes it: `ID`, or the header's if `ID` is 0; `none`
 if neither (`Apply` panics: a pre-3.0 entry without a header). -/

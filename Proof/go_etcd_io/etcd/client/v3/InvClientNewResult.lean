@@ -52,8 +52,8 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
     watchLaws V ∗
     -- (D47) the members run the KV at `V.kst`
     srvKVFacts V ∗
-    -- (M2, the storage side, review round 1's F1) the server's "no compactor" fact
-    mvcc.noCompactor V.R.γ.st)
+    -- (M2, the storage side; watches across a compaction, D8) the server's fact for watches
+    mvcc.watchNoDup V.R.γ.st)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : Persistent (watchAddrFacts V) := by

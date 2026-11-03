@@ -50,7 +50,13 @@ every pointer field is set (`ownSnapS`: its `Metadata`, the metadata's `ConfStat
 `Term`, the conf state's `AutoLeave`) is set too, owned: `mergeMessage` copies every set field,
 scalar (`proto3 optional`, a pointer: presence is the pointer being non-`nil`) or message, into a
 fresh destination field. Raft's log keeps a restored snapshot's clone, and a `Ready` hands out a
-clone of that, which the application applies (`MemoryStorage.ApplySnapshot`, at a fraction). -/
+clone of that, which the application applies (`MemoryStorage.ApplySnapshot`, at a fraction).
+
+Since 2026-10-31 (approved by the user, `notes/axiom-review/savesnap.md`), a fifth: the clone of a
+snapshot whose metadata's `ConfState`, `Index` and `Term` are set (`ownSnapV`; the conf state's
+`AutoLeave` may be `nil`) is such a snapshot, by the same copying of every set field.
+`MemoryStorage.CreateSnapshot` returns such a clone, whose metadata the WAL's `SaveSnapshot`
+validates (`walpb.ValidateSnapshotForWrite`: the index and term pointers set). -/
 abbrev proto.CloneSnapshot.spec : Prop :=
   (∀ (p : Loc) (dq : DFrac) (s : SnapshotM),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownSnapM p dq s }}
@@ -70,7 +76,12 @@ abbrev proto.CloneSnapshot.spec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownSnapS p dq s }}
       (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p)))
     {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p');
-        ownSnapS p dq s ∗ ownSnapS p' (DFrac.own 1) s }})
+        ownSnapS p dq s ∗ ownSnapS p' (DFrac.own 1) s }}) ∧
+  (∀ (p : Loc) (dq : DFrac) (s : SnapshotM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownSnapV p dq s }}
+      (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p)))
+    {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p');
+        ownSnapV p dq s ∗ ownSnapV p' (DFrac.own 1) s }})
 
 end spec
 

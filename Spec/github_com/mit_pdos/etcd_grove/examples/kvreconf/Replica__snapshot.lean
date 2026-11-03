@@ -34,7 +34,7 @@ attribute [local instance] kvrStorageModel
 abbrev Replica.snapshot.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) (q : RSnapReq)
     (known : w64),
-  {{ isReplicaR γr vs id r n st sts ρ ∗ snapReqOk γr id ρ.γs q ∗ memSnapLb ρ.γs (uint.nat known) }}
+  {{ isReplicaR γr vs id r n st sts ρ ∗ snapReqOk γr ρ.key ρ.γs q ∗ memSnapLb ρ.γs (uint.nat known) }}
     (App (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"snapshot")) (Val #q)) (Val #known))
   {{ (known' : w64), RET #known'; memSnapLb ρ.γs (uint.nat known') }}
 

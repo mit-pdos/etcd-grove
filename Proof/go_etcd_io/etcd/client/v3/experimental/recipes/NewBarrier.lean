@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem NewBarrier.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     NewBarrier.spec (GF := GF) (hG := hG) := by
   intro client key
-  wp_start as #Hc
+  wp_start as ⟨#Hc, %Hkl⟩
   iapply wp_fupd
   wp_auto
   wp_apply hTODO
@@ -44,6 +44,7 @@ theorem NewBarrier.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   iapply HΦ
   unfold isBarrier
   iframe #
+  ipureintro; exact Hkl
 
 end proof
 

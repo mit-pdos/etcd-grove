@@ -37,6 +37,7 @@ theorem backend.readTx.RLock.wp_proof : backend.readTx.RLock.spec (GF := GF) (hG
   wp_pure
   unfold rtRes
   icases HP with ⟨%rd, %rv, %H, %L, HP⟩
+  icases rtResAt_live γ P rt rd rv H L qo $$ [$HP $Hopen] with ⟨HP, Hopen, %Hnn⟩
   wp_auto
   iapply HΦ
   iframe
@@ -44,7 +45,7 @@ theorem backend.readTx.RLock.wp_proof : backend.readTx.RLock.spec (GF := GF) (hG
   unfold rtHeld
   iexists rt, rd, H, L
   iframe; iframe #
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, Hnn⟩
 
 end proof
 

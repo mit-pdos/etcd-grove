@@ -54,6 +54,7 @@ abbrev Check.spec : Prop :=
       isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γr γr cid mid) ∗
+      isGrpcRpc ep go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E γr cid mid) ∗
       linkvInv γ γr.kv ∗ linkvState γ (linkv.pInit TS) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.Check))
       (Val #cl)) (Val #clients)) (Val #ops)) (Val #dur))

@@ -6,6 +6,7 @@ the listener's tracker; the notification is sent on `addCh`. Lean-first; phase 4
 module
 
 public import Proof.k8s_io.client_go.tools.cache.ListenerDefs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -29,8 +30,7 @@ notifications so far), with the event's `Q`: the notification sent (it returns o
 it: `addCh` is unbuffered). In an execution of fewer than `2^63` Go steps (the tracker's counter,
 `SingleFileTracker.Start`). -/
 abbrev processorListener.add.spec : Prop :=
-  ∀ (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp GF) (sent : List GoInterface) (e : Ev),
-  receiptBound GF ≤ 2 ^ 63 →
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp GF) (sent : List GoInterface) (e : Ev),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isListener l γ Q ∗
       spscProducer γ.add sent ∗ Q sent.length e }}
     (App (Val (l @!! go.GoType.PointerType processorListener.ty @!! go!"add")) (Val #(notifOf e)))

@@ -62,10 +62,11 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     iframe #
     ipureintro; exact Hk
   iunfold apply.kvPostF at Hpost
-  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls⟩
+  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
   obtain ⟨Hst, Hfl⟩ := Hst0
   ihave Hres := apply.chainRes_quota_in c p (.ok bi) info $$ Hf Hres
   ihave #Hcls := apply.chainClass_quota E.authMode info c rq oc $$ Hcls
+  ihave #Hlc := apply.chainLeaseClass_quota E.authMode info _ c rq oc $$ Hlc
   have hq : apply.quotaChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   rcases err with e | _
   · -- an error: passed on
@@ -76,7 +77,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     · iexact Htrc
     iunfold apply.kvPostF
     iexists oc
-    iframe HR Hkv HPP Hres Hcls
+    iframe HR Hkv HPP Hres Hcls Hlc
     ipureintro
     simp only [apply.chainStep]
     exact ⟨Hst, Hfl⟩
@@ -94,7 +95,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       · iexact Htrc
       iunfold apply.kvPostF
       iexists (.applied log' false)
-      iframe HR Hkv HPP Hres Hcls
+      iframe HR Hkv HPP Hres Hcls Hlc
       ipureintro
       simp only [apply.chainStep]
       exact ⟨Hst, Hfl⟩

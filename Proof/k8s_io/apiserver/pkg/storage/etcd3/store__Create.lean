@@ -66,7 +66,7 @@ theorem store.Create.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hrv
+  intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
   wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
@@ -181,7 +181,7 @@ theorem store.Create.wp_proof
       wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
             #c.kc)) c.ms c.V ci' cd (c.pathPrefix ++ k) vsl v (W64 0)
-          ⟨false, zero_val _⟩ (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) rfl) $$ [Hau']
+          ⟨false, zero_val _⟩ (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) rfl hkl (hosz v Hv)) $$ [Hau']
         as %resp %perr Hput
       · iframe #
         iexact Hau'

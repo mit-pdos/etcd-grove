@@ -31,11 +31,10 @@ theorem apply.NewUberApplier.wp_proof
     (hN : apply.newApplierV3.spec (GF := GF) (hG := hG))
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro opts RD T z Hbuq
-  wp_start as ⟨Hard, #HGet, HT⟩
+  intro opts T z Hbuq
+  wp_start as ⟨#HGet, HT⟩
   wp_auto
-  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base ⟨#Hshape, #Hbase, #HbAuth⟩
-  · iframe
+  wp_apply (hN opts Hbuq) $$ [] as %base ⟨#Hshape, #Hbase, #HbAuth⟩
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu
   ipersist lg
@@ -51,9 +50,9 @@ theorem apply.NewUberApplier.wp_proof
   iexists «$r0_ptr»
   isplitr
   · ipureintro; rfl
-  iintro %E %hRD #Hopts
-  ihave #Hb := Hbase $$ %E %hRD Hopts
-  ihave #HbA := HbAuth $$ %E %hRD Hopts
+  iintro %E #Hopts
+  ihave #Hb := Hbase $$ %E Hopts
+  ihave #HbA := HbAuth $$ %E Hopts
   isplitr
   · iunfold apply.uberIs
     iframe #

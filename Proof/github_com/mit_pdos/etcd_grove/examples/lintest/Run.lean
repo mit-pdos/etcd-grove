@@ -8,6 +8,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.runClient
 public import Spec.github_com.anishathalye.porcupine.CheckOperationsVerbose
+public import Proof.github_com.anishathalye.porcupine.Soundness
 public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
@@ -247,12 +248,14 @@ theorem Run.wp_proof
       have hm' : ((sint.nat ops : Nat) : Int) = sint.Z ops := by word
       have HhistOk := final_histOk Hj.2.2.2 Hhn
         (by simp only [Int.natCast_mul, hn', hm']; exact Hbound)
-      wp_apply wp_CheckOperationsVerbose σ S m osl hs.flatten (DFrac.own 1) dur HhistOk $$ [$Hops]
+      wp_apply wp_CheckOperationsVerbose σ S m osl hs.flatten (DFrac.own 1) dur $$ [$Hops]
         as %r %info %Hr
-      · iframe #
+      · iframe #; ipureintro; exact HhistOk
       iapply HΦ
       ipureintro
-      exact Hr Hlin
+      rcases checkResult_complete Hr Hlin with rfl | ⟨rfl, Hd⟩
+      · exact ⟨by decide, fun _ => rfl⟩
+      · exact ⟨by decide, fun h => absurd Hd (by omega)⟩
 
 end proof
 

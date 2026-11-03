@@ -69,7 +69,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
   · iframe Hctx' Hopts
     ipureintro
-    refine ⟨Hw1, Hw2, Hp.2, ?_⟩
+    refine ⟨Hw1, Hw2, Hp.2.1, ?_, watchSizeOk_keyWatch rev Hp.2.2⟩
     rw [Hw3, Hw4]; exact keyRangeUnder_key pfx key Hp.1
   ihave IH : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
       (v : go_etcd_io.etcd.client.v3.WatchResponse),

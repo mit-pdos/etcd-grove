@@ -604,7 +604,7 @@ theorem EtcdServer.Range.wp_proof
   -- the floor (the vertical slice's unit V2): the read opens at a log extending both the
   -- server's initial log and the caller's floor `F`
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
-  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -843,10 +843,8 @@ theorem EtcdServer.Range.wp_proof
     subst Hau2
     ihave #HLb' : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
         apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) $$ []
-    · have hLb : authStoreLbM (GF := GF) E.authMode w.auth E.RD = iprop(□ ∀ n : Nat,
-          auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) := by
-        rw [hM]; rfl
-      rw [← hLb]; iexact HLb
+    · iapply authStoreLbM_range γa w.auth E.RD
+      rw [← hM]; iexact HLb
     ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
     · rw [← hM]; iexact Hpub
     ihave #HisRead' := HisRead

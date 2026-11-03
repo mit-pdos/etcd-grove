@@ -5,7 +5,7 @@ counterpart).
 
 `tokenNop` (what `NewTokenProvider` returns for an empty token option; etcd's server defaults
 to the simple provider) accepts no token (`info` returns `nil, false`) and issues none (`assign` returns
-`ErrAuthFailed`), so it meets the contract in every mode: the binding holds vacuously. This is the
+`ErrAuthFailed`; `genTokenPrefix` returns `""`), so it meets the contract in every mode: the binding holds vacuously. This is the
 contract's sanity check; the simple and JWT providers are not proved yet.
 -/
 module
@@ -65,6 +65,7 @@ theorem auth.tokenNop_ok (p : Loc) (M : AuthMode) :
     wp_method_call; wp_call
     (try wp_auto)
     iapply HΦ; itrivial
+  isplitr
   · iintro !> %ctx %user %rev %Φ !> - HΦ
     wp_method_call; wp_call
     (try wp_auto)
@@ -77,6 +78,10 @@ theorem auth.tokenNop_ok (p : Loc) (M : AuthMode) :
     iexists eAF
     simp only [AuthErr.var]
     iframe HeAF
+  · iintro !> %Φ !> - HΦ
+    wp_method_call; wp_call
+    (try wp_auto)
+    iapply HΦ; ipureintro; exact ⟨rfl, by simp [tokPrefixOk]⟩
 
 end proof
 

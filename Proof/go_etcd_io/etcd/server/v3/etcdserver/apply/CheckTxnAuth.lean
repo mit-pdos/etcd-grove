@@ -29,10 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.CheckTxnAuth.wp_proof
     (hTxn : apply.checkTxnPermission.spec (GF := GF) (hG := hG)) :
     apply.CheckTxnAuth.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on RW ai info dq rt t
-  wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hrt⟩
+  intro st le γ P f RD on RW ai info dq rt t U
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu, %Hro, #Hrt⟩
   wp_auto
-  wp_apply (hTxn st le γ P f RD on RW ai info dq rt t) $$ [$Hst $Hle $Hai $Hrd $Hrt] as %err Hai
+  wp_apply (hTxn st le γ P f RD on RW ai info dq rt t U) $$ [$Hst $Hle $Hai $Hrd $Hu $Hrt] as %err Hai
+  · ipureintro; exact Hro
   iapply HΦ; iexact Hai
 
 end proof

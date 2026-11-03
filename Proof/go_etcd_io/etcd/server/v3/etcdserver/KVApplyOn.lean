@@ -298,7 +298,7 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
 store's history's tie to the log (`authHistTie`). -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝)
+    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
@@ -399,7 +399,7 @@ theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.A
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, -⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_log_plain_on γr.raft γr.kv st₀ (A ++ [m]) $$ HkI HrI Hlb with %Hpc

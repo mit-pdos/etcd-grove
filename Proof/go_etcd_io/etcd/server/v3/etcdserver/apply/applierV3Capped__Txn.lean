@@ -65,6 +65,8 @@ theorem apply.applierV3Capped.Txn.wp_proof
     · iapply apply.traceRes_null
     ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.capped c) rq (.rejected .noSpace) $$ []
     · iapply apply.chainClass_capped_rejected
+    ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.capped c) rq (.rejected .noSpace) $$ []
+    · iapply apply.chainLeaseClass_capped_rejected
     iunfold apply.kvPostF
     iexists (.rejected .noSpace)
     isplitr
@@ -73,7 +75,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-    iframe Hkv Hres Hcls
+    iframe Hkv Hres Hcls Hlc
     isplitl []
     · isplitl []
       · ipureintro; trivial
@@ -98,11 +100,12 @@ theorem apply.applierV3Capped.Txn.wp_proof
     · iexact Htrc
     iunfold apply.kvPostF at Hpost
     iunfold apply.kvPostF
-    icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
     obtain ⟨Hst, Hfl⟩ := Hst0
     ihave #Hcls := apply.chainClass_capped E.authMode info c rq oc $$ Hcls
+    ihave #Hlc := apply.chainLeaseClass_capped E.authMode info _ c rq oc $$ Hlc
     iexists oc
-    iframe HR Hkv HPP Hcls
+    iframe HR Hkv HPP Hcls Hlc
     isplitr
     · ipureintro
       refine ⟨?_, Hfl⟩

@@ -492,13 +492,17 @@ theorem mvcc.watcherGroup.wp_add :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Insert
 
-theorem mvcc.watcherGroup.wp_chooseAll :
-    mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.chooseAll.wp_proof
+theorem mvcc.watcherSet.wp_delete :
+    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.delete.wp_proof
 
-theorem mvcc.watcherGroup.wp_choose :
-    mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_chooseAll
+theorem mvcc.watcherSetByKey.wp_delete :
+    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSetByKey.delete.wp_proof
+
+theorem mvcc.watcherGroup.wp_delete :
+    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
 
 theorem mvcc.watcherSet.wp_union :
     mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
@@ -515,18 +519,6 @@ theorem mvcc.watcherBatch.wp_add :
 theorem mvcc.wp_newWatcherBatch :
     mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherBatch.wp_proof mvcc.watcherGroup.wp_watcherSetByKey mvcc.watcherBatch.wp_add
-
-theorem mvcc.watcherSet.wp_delete :
-    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.delete.wp_proof
-
-theorem mvcc.watcherSetByKey.wp_delete :
-    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSetByKey.delete.wp_proof
-
-theorem mvcc.watcherGroup.wp_delete :
-    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
 
 theorem mvcc.wp_newKVHasher :
     mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=
@@ -752,6 +744,14 @@ theorem time.Ticker.wp_Stop :
     time.Ticker.Stop.spec (GF := GF) (hG := hG) :=
   time.Ticker.Stop.wp_proof
 
+theorem mvcc.watcherGroup.wp_chooseAll :
+    mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.chooseAll.wp_proof mvcc.watcherGroup.wp_delete
+
+theorem mvcc.watcherGroup.wp_choose :
+    mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_chooseAll
+
 theorem mvcc.wp_rangeEvents :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) :=
   mvcc.rangeEvents.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_kvsToEvents
@@ -872,17 +872,17 @@ theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
 
+theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
+  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
+
 theorem mvcc.store.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.Restore.wp_proof schedule.Scheduler.wp_Stop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.store.wp_restore
+  mvcc.store.Restore.wp_proof schedule.Scheduler.wp_Stop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.store.wp_restore mvcc.store.wp_compactLockfree
 
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.store.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
-
-theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
 
 theorem trace.wp_SpanFromContext :
     trace.SpanFromContext.spec (GF := GF) (hG := hG) :=

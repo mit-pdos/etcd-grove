@@ -9,6 +9,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putgetc.Base
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.time.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.runtime.PkgInitExt
@@ -52,8 +53,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.wp_initialize'_res _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.1))
+  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.wp_initialize'_res _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1))
     $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1))

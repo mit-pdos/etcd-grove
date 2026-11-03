@@ -20,15 +20,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `p.start()` of a pipeline `p` to the peer `to` with its fixed fields, given four of its
-`Raft`'s resources `R`: makes its stop and message channels and starts its four goroutines
-(`handle`), each with an `R`. -/
+/-- `p.start()` of a pipeline `p` to the peer `to` with its fixed fields: makes its stop and
+message channels and starts its four goroutines (`handle`). (Until J8a-6, 2026-11-01, it took four
+of its `Raft`'s resources `R`, one per goroutine, which they never use.) -/
 abbrev rafthttp.pipeline.start.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       pipeFixed Rh p to R ∗ (∃ sc : GoChan, p.[rafthttp.pipeline, go!"stopc"] ↦ sc) ∗
       (∃ mc : GoChan, p.[rafthttp.pipeline, go!"msgc"] ↦ mc) ∗
-      sync.join.ownAdder (p.[rafthttp.pipeline, go!"wg"]) (W32 0) iprop(True) ∗ R ∗ R ∗ R ∗ R }}
+      sync.join.ownAdder (p.[rafthttp.pipeline, go!"wg"]) (W32 0) iprop(True) }}
     (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"start")) (Val #()))
   {{ RET #(); pipeStarted Rh p to R }}
 

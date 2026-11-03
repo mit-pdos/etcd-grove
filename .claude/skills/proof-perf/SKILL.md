@@ -37,7 +37,10 @@ The constraint is checked mechanically. On a cold build of `origin/lean` before 
 statements reach (translations included), and the type of every axiom declared here (about 6
 minutes). `check.py` checks the diff's paths and added text. A change that fails a check is dropped.
 
-**Deliverable:** a branch `perf/<YYYY-MM-DD>` off `origin/lean`, one commit per change with its
-measurement in the message, pushed to `origin`; a line in `notes/STATUS.md`; and a report of the
-build's wall and CPU time before and after, what was changed and what was tried and dropped. Never
-merge it or push to `lean` or `main`; the user reviews it.
+**Deliverable:** the changes landed in `lean`: a branch `perf/<YYYY-MM-DD>` off `origin/lean`,
+one commit per change with its measurement in the message, and a line in `notes/STATUS.md`. Once
+every check above passes, merge `origin/lean` into the branch, `lake build` the merge and rerun
+`check.py` (against the branch's base: `origin/lean` has moved), `etc/tcb-report.py --check` and
+the collections on it; then fast-forward `origin/lean` to it (`git push origin HEAD:lean`, a
+fast-forward only) and delete the branch (local, remote, worktree). Never push to `main`. Report
+the build's wall and CPU time before and after, what was changed and what was tried and dropped.

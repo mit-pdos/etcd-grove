@@ -64,7 +64,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   axioms in place, list for each the collections that now rest on the stronger claim (`--check` does
   not flag a same-name change), and put it to the user. Before strengthening, check what the axiom
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
-  harmlessly. (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+  harmlessly. A post that says a call returns claims it returns on every input the premise admits:
+  check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 
 ## Preferences: strength
 
@@ -85,10 +86,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **A size argument from fresh copies checks every path for aliasing**: an encoding counts each
+  reference, a heap counts each allocation; one fast path that reuses a buffer (etcd's keys-only
+  ranges reuse the index's key slices) turns "Go runs out of memory first" into a reachable panic.
+  (`reply-size.md`, critique 2)
 - **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
   caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
   the condition is there only because a trust-boundary axiom is too weak to give the row
   unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
+- **A new mode redefines the shared predicates in place, not mode-indexed copies**: when a mode widens
+  what a family of predicates admits (compaction entries in the KV invariant), redefine the few that
+  change, keep the text of the specs and predicates that carry them (read under the redefinition), and
+  prove that the old mode means the old statements (laws, not `rfl`). Copies indexed by the mode must
+  cover every carrier, and each review round finds one more that was missed. (`compaction-in-place.md`)
+- **No arm the precondition excludes**: an error case of the code that the caller's premises rule out
+  (`ErrFutureRev` under a certificate of the revision) is a sentence in the docstring, not a disjunct
+  every caller must discharge; its proof branch is a contradiction. (`compaction-in-place.md`)
 
 ## Preferences: abstraction
 
@@ -99,10 +112,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   critique 2; `notes/spec-first-plan.md`, Review)
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
-- **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
-  missing law of the owning package. Find them mechanically (every `unfold`, `iunfold`, `simp only
-  [...]` and positional destructuring in the callers), not from memory. A proof-only definition goes
-  in a module only that proof imports. (`pilot-review-5.md`)
+- **A client does not unfold the spec's definitions, or any other module's**: each unfold is a
+  missing law of the owning module, even when both modules are in one package (a module of the
+  cache unfolding another's predicate, `InvCache` unfolding `InvEtcd`'s `etcdQuiet` or `InvDemux`'s
+  `progressQuiet`, is the same defect: export the intro and elimination laws the consumers need
+  next to the definition). Find them mechanically (every `unfold`, `iunfold`, `simp only [...]` and
+  positional destructuring in the callers), not from memory. A proof-only definition goes in a
+  module only that proof imports. (`pilot-review-5.md`; sharpened from packages to modules by the
+  user, 2026-11-03, on `cache_Watch_delivery`'s `progressQuiet`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
 - **Name the abstraction a definition exposes, not where its argument comes from**: a premise on
@@ -111,6 +128,28 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   stable, persistent fact behind a state-relative condition; it is usually the better
   vocabulary, with laws the user can carry. (The etcd3 store's specs, 2026-11-01:
   `notes/k8s-etcd3-plan.md`, phase 7.)
+- **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
+  reply into a later call (a revision reached) must hold at every member the later call may reach,
+  so build it from what the members share (the cluster's raft log, the KV model), never from one
+  member's ghost state (its store's certificate map); and check the tie it needs against the
+  multi-member allocation, not only today's single-member producers. (`compact-client.md`)
+- **A workload premise about a resource's later operations goes on the resource's only producer**,
+  carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
+  quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
+  statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
+  premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
+  of the results consuming it say they are conditional on it. (`reply-size.md`)
+  The other way round: a premise on an operation must be provable by its callers from what they
+  hold. A property of the whole earlier history (no revision so far writes a key twice) is not a
+  later operation's premise (the compaction's): its callers cannot know it; it is the writers', or
+  that of whoever already reasons about them (a watch client's workload, gated by the mode where
+  only that mode needs it). (`watch-compaction.md`)
+- **A contract between packages states the receiver's need, not the supplier's mechanism**: the
+  server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
+  implies it; the supplier proves the law from its mechanism to the need. The need is weaker to
+  supply and names nothing of the supplier. (`irr-depth.md`, critique 2; the gRPC lease reads' contract keeps the
+  server's header ids inside its answer and leaves the server's bounds premises to the theorem that
+  discharges it, so the handlers' specs inherit neither (`lease-grpc.md`).
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
@@ -125,12 +164,46 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   receiving one gives a witness that it is in the set), and the client keeps whatever invariant it
   wants over it (one client: every snapshot's data is empty; a client that makes none: the set stays
   empty).
+  The departure the user approved: a persistent predicate fixed when the object is created (a saved
+  predicate, `crevPermIs`), which every value of a field satisfies, when the object's own locks
+  already hold the shares a logically atomic spec would hand back and a client only reads the fact;
+  it costs one premise on the writer and no client state. Say that it departs. (`c3-store-law.md`)
 - **Linearizability is the caller's atomic update, written in the triple**, not behind a helper
   definition, and in the shape of the closest sibling spec (a server operation and the client
   operation that calls it). (`put.md`, critique 4)
+- **A commit point the client chooses is an atomic update the library hands out.** When the client
+  decides *when* a library step takes effect (raft's Ready: written to disk first, or at once), the
+  library's spec gives the client an atomic update to fire at that moment, inside its own atomic step
+  or whenever, and what the step permits (sending the batch's messages) is the update's post. The
+  library does not name the client's mechanism: no "disk" predicate in raft, because a client may
+  keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
+  and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
+  critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  The client-owned state is only the part the client's choice is about: for durability, raft's
+  persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
+  Then a restart is no transition of that state, only a fresh library-side half built over it.
+  (Same, the user's answer on candidate 5.)
+- **No identification handles for the proof's bookkeeping** (`nodeInc`, incarnation tokens): key
+  facts by values the client already has (the node object, the storage object). A handle only the
+  proof needs is a resource every caller threads. (Same critique; see also "Do not make callers
+  thread a resource only the proof's bookkeeping needs", `put.md`, critique 3.)
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
+- **Pure premises go in the precondition**, as `⌜P⌝` conjuncts of the triple's `{{ … }}`, not as Lean
+  implications before it (`P → {{ … }} e {{ … }}`): the two are equivalent, but the triple then reads
+  as one contract, everything the caller must establish in one place. Proofs introduce them with
+  `%H` in `wp_start`'s pattern; a caller discharges them in the `wp_apply` premise goal
+  (`ipureintro`). Older specs still use implications; convert one when you change it. (porcupine's
+  `Check*` specs, 2026-11-03, the user's request.)
+- **A hub names each subsystem through its sealed slots, not its facts.** A statement many
+  subsystems feed (`NewServer.spec`, `bootOk`, `bootstrapContract`) takes a subsystem's conditions,
+  resources and results as one sealed predicate each from the subsystem's API module
+  (`<sub>.bootCfg`, `<sub>.bootRes`, `<sub>.bootOk`, `<sub>.srvInv`, with laws), so that a change
+  inside the subsystem changes the slot's body, not the hub's text and its callers. A subsystem moves
+  into its slot when it next changes the hub. Its elimination laws give what their consumer takes,
+  never the slot's body restated, or the hub's proof changes with the body. (`notes/spec-first-plan.md`, "The slot convention",
+  approved 2026-11-03; the WAL the first.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
@@ -141,6 +214,32 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A trusted statement never gives out a counted resource it did not take** (a `threadTok`, a
+  receipt, a reader slot): such a resource is sound only because its total is fixed by the adequacy
+  theorem (`threadToks threadBound ⊢ False`), and one an axiom produces has no such bound. In each
+  post, name the caller that gave every counted resource. Give it back only once the real
+  operation that used it is over, not when the call returns: a call can time out while the work it
+  started goes on. Analogy with a modelled operation ("grpc forks a goroutine, and `wp_fork` gives
+  a token") is no argument when the thing is outside the semantics: grpc's goroutines are not
+  among the threads adequacy counts. (lease-ex's D1, 2026-11-02: the restated `grpc.serve` gave
+  each run a `threadTok` out of nothing, and a blocking service could collect `threadBound` of them;
+  the reviewer, checking against grpc-go, rated it true and left the accounting "uncertain". The
+  first fix, the client lending its token to the run, failed the timeout case.)
+- **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
+  the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
+  workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or
+  counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
+  backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
+  persistent handle, and named size bounds. So a new spec mentions no
+  `threadBound`, `receiptBound`, `actualMaxReaders` or count of reader slots (`List.replicate 64 ...`);
+  `etc/bounds-check.py --check` refuses new ones.
+- **A size bound shared between specs is written with its named constant, not the number**
+  (`opKeyMax`, `etcdKeyMax`, `leasingPfxMax`, ...; the user's, 2026-11-01): the name says why the
+  bound is there, a change of the limit is one edit, and a caller composes named quantities. Define
+  it next to the law that chose it, `@[word_unfold]` so that `word` sees through it. A literal is
+  for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
+  `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
+  two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **A pure fact over the state before new ghost state**: what a proof needs across states is

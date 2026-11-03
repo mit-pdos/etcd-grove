@@ -275,8 +275,9 @@ theorem raft.send.wp_proof
     · getters [Hvt, Hmterm, Hself (.inl Hvt)]
       send_tail ownRaftPhysC_msgs
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
-        %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] []
+        %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inl Hvt) h.symm)
+      · ipureintro; simpa [Hto1] using Hself (.inl Hvt)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
@@ -296,8 +297,9 @@ theorem raft.send.wp_proof
     · getters [Hvt, Hmterm, Hself (.inr Hvt)]
       send_tail ownRaftPhysC_msgs
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
-        %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] []
+        %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inr Hvt) h.symm)
+      · ipureintro; simpa [Hto1] using Hself (.inr Hvt)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
@@ -331,7 +333,7 @@ theorem raft.send.wp_proof
     simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
     getters [Hmterm, Hself, HnProp, HnAR, HnV, HnVR, HnRI, HnPV, HnPVR]
     send_tail ownRaftPhysC_msgs
-    ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] [] []
+    ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] [] [] []
     · ipureintro
       rcases Hlty with Hvt | Hvt | Hvt | Hvt <;>
         exact Or.inr (Or.inl ⟨ty, by tyfact Hvt, Hns, rfl⟩)
@@ -339,6 +341,7 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap Hns _ _ _
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> sent_tac [Hvt] (fun h => Hself h.symm)
+    · ipureintro; simpa [Hto1] using Hself
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> (iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
@@ -349,7 +352,7 @@ theorem raft.send.wp_proof
     obtain ⟨sv, rfl, rfl⟩ := Hsn HSnap
     getters [HSnap, Hmterm, Hself]
     send_tail ownRaftPhysC_msgs
-    ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] [] []
+    ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] [] [] []
     · ipureintro
       exact Or.inr (Or.inr ⟨sv, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, rfl, rfl⟩)
     · ipureintro
@@ -358,6 +361,7 @@ theorem raft.send.wp_proof
     -- (2026-10-20, D22 S-c) `SentMsgOk` past term `0` for good with transfer off, outside the
     -- no-snapshot mode too: a leader's snapshot, stamped, to another node
     · sent_tac [HSnap] (fun h => Hself h.symm)
+    · ipureintro; simpa [Hto1] using Hself
     · iunfold tsSrc at Hsrc
       icases Hsrc with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
@@ -374,7 +378,7 @@ theorem raft.send.wp_proof
     simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
     getters [Hmterm, Hself, HnProp, HnAR, HnV, HnVR, HnRI, HnPV, HnPVR]
     send_tail ownRaftPhysC_msgs
-    ihave Hphys := Hback $$ %q' %ml %_ %none Hf Hq Hq_cap Hm [] [] [] [] []
+    ihave Hphys := Hback $$ %q' %ml %_ %none Hf Hq Hq_cap Hm [] [] [] [] [] []
     · ipureintro
       exact Or.inl ⟨by simp only [Hty1]; exact Hty, rfl⟩
     · ipureintro
@@ -401,6 +405,7 @@ theorem raft.send.wp_proof
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · exact Hxw h
+    · ipureintro; simpa [Hto1] using Hself
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl
@@ -432,20 +437,21 @@ theorem raft.send.wp_proof
     subst Hs
     getters [HProp, Hmterm, Hself]
     send_tail ownRaftPhysC_msgs
-    ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg .propose m1 ents ctx)) Hf Hq Hq_cap Hm [] [] [] [] []
+    ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg .propose m1 ents ctx)) Hf Hq Hq_cap Hm [] [] [] [] [] []
     · ipureintro
       exact Or.inr (Or.inl ⟨.propose, by rw [Hty1, HProp]; rfl, by decide, rfl⟩)
     · ipureintro
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap (by decide) _ _ _
     · sent_tac [HProp, Hmterm] (fun h => Hself h.symm)
+    · ipureintro; simpa [Hto1] using Hself
     · iapply tsSrc_ne; simp only [Hty1, HProp]; tyne
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; simp only [sendMsgs, absMsg, Hmterm]; rfl
   · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal, from `src`
     getters [HRI, Hmterm, Hself]
     send_tail ownRaftPhysC_msgs
-    ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg .readIndex m1 ents ctx)) Hf Hq Hq_cap Hm [] [] [] [] []
+    ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg .readIndex m1 ents ctx)) Hf Hq Hq_cap Hm [] [] [] [] [] []
     · ipureintro
       exact Or.inr (Or.inl ⟨.readIndex, by rw [Hty1, HRI]; rfl, by decide, rfl⟩)
     · ipureintro
@@ -456,6 +462,7 @@ theorem raft.send.wp_proof
         · exact Hidnz
         · assumption
       sent_tac [HRI, Hmterm] (absurd rfl h1)
+    · ipureintro; simpa [Hto1] using Hself
     · iapply tsSrc_ne; simp only [Hty1, HRI]; tyne
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1 Hsrc_eq; simp only [sendMsgs, absMsg, Hmterm]; rfl

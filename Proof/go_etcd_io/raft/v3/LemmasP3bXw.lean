@@ -49,10 +49,12 @@ theorem LoanOk.step_gxw {rs : RNState} {s s' : NState} {b : Bool} (t : w64) (H :
       s'.logst.fl = s.logst.fl ∧
       s'.logst.stored = s.logst.stored ∧ s'.logst.unpersisted = s.logst.unpersisted ∧
       s'.logst.applying = s.logst.applying ∧
-      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    -- (2026-11-02, stage II (u)) the pending snapshot kept (`CapOk`)
+    (hcap : s'.logst.snap = s.logst.snap ∧ uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
     LoanOk { rs with term := t, psnap := rs.psnap || b } s' := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_⟩
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_, H4.keep hcap.1 hcap.2⟩
   · rw [hgh]; exact H2 h
   · have hl : rs.slent = some l := h
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l hl

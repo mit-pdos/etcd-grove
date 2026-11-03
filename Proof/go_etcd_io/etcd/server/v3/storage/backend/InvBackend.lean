@@ -90,8 +90,10 @@ structure BNames where
   /-- `ghostVar`: the writer's contents on the hook's own keys (`hkData`), half the batch
   lock's, half the client's (`hkOwn`) -/
   hkd : GName
-  /-- `ghostVar`: the writer's contents on the tracked buckets (`rbData`, D22, 2026-10-23), half
-  the batch lock's, half the client's (`rbOwn`) -/
+  /-- ghost map over the tracked buckets' names `rbD`: each bucket's contents in the writer's
+  contents (`rbData`, D22, 2026-10-23) and whether a session's write to it is pending (decision 3,
+  2026-11-01); half of each element the batch lock's (`rbSide`), half the client's (`rbPart`,
+  `rbOwnIn`, `rbOwn`), the authority the batch lock's -/
   rbk : GName
   /-- `ghostVar Bool`: whether the read buffer is known clean off the hook's buckets (`rbClean`;
   the restore plan's R5a, 2026-10-23), half the clients' (inside `bView`), half `readTx.mu`'s
@@ -116,6 +118,17 @@ structure BNames where
   and (M2 storage plan, items 27/29, 2026-10-30) the flag's value and the keys' values at the open
   (`fkInit`, `fkVals`) -/
   fkv : GName
+  /-- `ghostVar VData`: **the physical view of the non-hook buckets** (`sData` of the writer's
+  contents: the buckets with `P.HB n = false`; F2's stage 1, `notes/image-cmp-f2-plan.md`), half the
+  batch lock's (`trkHalf`), half the client's (`pvHalf`) -/
+  pv : GName
+  /-- `ghostVar FkVals`: **the compaction keys' values** (`fkVals` of the writer's contents; F2's
+  stage 1), half the batch lock's (`trkHalf`), half the client's (`ckHalf`) -/
+  ck : GName
+  /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
+  bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
+  `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
+  rbD : GMap GoString Unit
 
 section phys
 variable [GooseExts]
@@ -318,27 +331,106 @@ contents being `S`: the client's half if `k` is a hook's own key, else nothing. 
 def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
   if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
 
+/-- A put of a key that is not a hook's own key needs nothing of them. -/
+theorem hkPut_other (γ : BNames) (P : BParams) (n k : GoString) (S : Data) (h : P.hk n k = false) :
+    ⊢ hkPut (GF := GF) γ P n k S := by
+  unfold hkPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- One tracked bucket's ghost element (`γ.rbk`, a ghost map over the tracked buckets' names
+`γ.rbD`), at fraction `q`: the bucket's contents in the writer's contents (absent if absent) and
+whether a write of a session to it is pending since the last `Unlock` that was handed its part
+(decision 3, option (b), `notes/backend-auth-split-plan.md`). -/
+abbrev rbElem (γ : BNames) (n : GoString) (q : Qp) (v : Option BktData × Bool) : IProp GF :=
+  ghostMapElem γ.rbk n (DFrac.own q) v
+
+open Classical in
+/-- The elements of the tracked buckets of `S`, at fraction `q` and values `v`. -/
+def rbEls (γ : BNames) (S : GoString → Prop) (q : Qp) (v : GoString → Option BktData × Bool) :
+    IProp GF :=
+  [∗map] n ↦ _u ∈ γ.rbD, (if S n then rbElem γ n q (v n) else iprop(True))
+
+/-- The client's part of the tracked buckets of `S` at contents `r` and pending flags `F` (the
+names of `S` outside `γ.rbD`, the backend's tracked buckets, absent from `r`). -/
+def rbPartF (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) (F : GoString → Bool) :
+    IProp GF :=
+  iprop(⌜∀ n, S n → γ.rbD.lookup n = none → r.lookup n = none⌝ ∗
+    rbEls γ S (1 : Qp).half (fun n => (r.lookup n, F n)))
+
+/-- **The client's part of the tracked buckets in `S`** (`P.RB`; D22's tracked-bucket token, split
+by bucket set, decision 3): the **writer's contents** hold `r` at the tracked buckets of `S` (each
+absent if `r` has it absent), and only the holder writes them (`UnsafePut`, `UnsafeDelete`,
+`UnsafeCreateBucket`, `UnsafeDeleteBucket` on a bucket of `S` take its part: `rbPut`). A write of
+the holder's own session to `S` may be pending. -/
+def rbPart (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : IProp GF :=
+  iprop(∃ F : GoString → Bool, rbPartF γ S r F)
+
+/-- **The client's idle part of the tracked buckets in `S`**: `rbPart`, and no write to a bucket of
+`S` pending: no session has put in, deleted from, created or deleted one since the last
+`Unlock` that was handed this part (which makes it idle; an `Unlock.bare` makes nothing idle: `batchTxBuffered.Unlock.spec`); a write needs the
+holder's part, so no one else makes it pending. A ghost fact about the session's writes (option
+(b) of the plan note), not about the readers: that a reader begun after it sees `r` on `S`, an
+uncommitted bucket created in the session as empty (`bktOf`), is Go's
+(`batchTxBuffered.Unlock` writes the session's puts back into the read buffer and commits when a
+delete is pending, etcd-io/etcd#17119), argued in the docstring of each trusted reader that takes
+it; the read model's version of it (`rtHeldF_rbOwnIn`) is option (a), a later stage. -/
+def rbOwnIn (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : IProp GF :=
+  rbPartF γ S r (fun _ => false)
+
 /-- **The client's half of the tracked buckets** (D22, 2026-10-23: the backend over every
 bucket): the writer's contents hold `r` there (`rbData`: each tracked bucket's contents, absent
 if absent). Only its holder can put in, delete from, create or delete a tracked bucket
 (`UnsafePut`, `UnsafeDelete`, `UnsafeCreateBucket`, `UnsafeDeleteBucket`), and it agrees with
-every state of the batch lock and with what a snapshot's commit leaves (`backend.Snapshot`). -/
+every state of the batch lock and with what a snapshot's commit leaves (`backend.Snapshot`). Since
+decision 3: the part of every bucket (`rbPart γ ⊤ r`), its text and meaning kept; the batch lock
+holds the same shape (`rbSide`), so a snapshot's observation is handed one. -/
 def rbOwn (γ : BNames) (r : GMap GoString BktData) : IProp GF :=
-  ghostVar γ.rbk (1 : Qp).half r
+  rbPart γ (fun _ => True) r
+
+instance rbEls_timeless (γ : BNames) (S : GoString → Prop) (q : Qp)
+    (v : GoString → Option BktData × Bool) : Timeless (rbEls (GF := GF) γ S q v) := by
+  unfold rbEls
+  refine BigSepM.bigSepM_timeless fun {k} {_} _ => ?_
+  by_cases h : S k
+  · rw [if_pos h]; infer_instance
+  · rw [if_neg h]; infer_instance
+
+instance rbPartF_timeless (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData)
+    (F : GoString → Bool) : Timeless (rbPartF (GF := GF) γ S r F) := by
+  unfold rbPartF; infer_instance
+
+instance rbPart_timeless (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) :
+    Timeless (rbPart (GF := GF) γ S r) := by
+  unfold rbPart; infer_instance
+
+instance rbOwnIn_timeless (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) :
+    Timeless (rbOwnIn (GF := GF) γ S r) := by
+  unfold rbOwnIn; infer_instance
 
 instance rbOwn_timeless (γ : BNames) (r : GMap GoString BktData) :
     Timeless (rbOwn (GF := GF) γ r) := by
   unfold rbOwn; infer_instance
 
 /-- What an operation on bucket `n` needs and gives of the tracked buckets, the writer's contents
-being `S`: the client's half if `n` is tracked, else nothing. -/
+being `S`: the client's part of `n` if `n` is tracked, else nothing (per bucket since decision 3;
+the whole form is `rbPutAll`). -/
 def rbPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
+  if P.RB n then rbPart γ (fun m => m = n) (rbData P S) else iprop(True)
+
+/-- The whole form of `rbPut` (the client's half of every tracked bucket, as until decision 3):
+what a caller holding `rbOwn` splits into its bucket's `rbPut` and the rest (`rbPutAll_split`,
+`TrackedLemmas.lean`; `BackendBridge.lean`'s `bt_leaseDel`). -/
+def rbPutAll (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
   if P.RB n then rbOwn γ (rbData P S) else iprop(True)
 
 /-- An untracked bucket's operation needs nothing of the tracked buckets. -/
 theorem rbPut_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = false) :
     ⊢ rbPut (GF := GF) γ P n S := by
   unfold rbPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- The same, of the whole form. -/
+theorem rbPutAll_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = false) :
+    ⊢ rbPutAll (GF := GF) γ P n S := by
+  unfold rbPutAll; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
 
 /-- **The client's half of the compaction keys' flag** (`γ.fk`, the backend-compaction stage,
 2026-10-29): at `0`, no state of the backend has a compaction key (`fkKey`), not the batch
@@ -415,15 +507,120 @@ theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
     fkPut (GF := GF) γ n k = iprop(True) := by
   unfold fkPut; exact if_neg h
 
+/-! ### The physical view and the compaction keys' values, exact (F2's stage 1, 2026-11-02)
+
+`notes/image-cmp-f2-plan.md`: two backend ghosts whose halves the batch lock holds at the writer's
+contents (`trkHalf`), so that a holder of the client's halves knows the writer's contents there; a
+write that can change them takes and gives back the client's half (`pvPut`, `ckPut`). -/
+
+/-- **The client's half of the physical view** of the non-hook buckets (exclusive): the writer's
+contents' `sData` (the buckets with `P.HB n = false`, `Model2.lean`'s `vData`), the batch lock
+holding the other half. For the server's backend, the `Key` bucket alone. Every write to a non-hook
+bucket (`UnsafePut`, `UnsafeSeqPut`, `UnsafeDelete`, `UnsafeDeleteBucket`) takes and updates it
+(`pvPut`). -/
+def pvHalf (γ : BNames) (vd : VData) : IProp GF :=
+  ghostVar γ.pv (1 : Qp).half vd
+
+/-- **The client's half of the compaction keys' values** (exclusive): `fkVals` of the writer's
+contents, the batch lock holding the other half; a put of a compaction key moves both (`ckPut`). -/
+def ckHalf (γ : BNames) (v : FkVals) : IProp GF :=
+  ghostVar γ.ck (1 : Qp).half v
+
+instance pvHalf_timeless (γ : BNames) (vd : VData) : Timeless (pvHalf (GF := GF) γ vd) := by
+  unfold pvHalf; infer_instance
+
+instance ckHalf_timeless (γ : BNames) (v : FkVals) : Timeless (ckHalf (GF := GF) γ v) := by
+  unfold ckHalf; infer_instance
+
+/-- **The client's halves at the open** of bbolt's data `D` (what the constructor gives the creator,
+beside `hkOwn`): the physical view at `sData P D` and the compaction keys' values at `fkVals D`. -/
+def pvckInit (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
+  iprop(pvHalf γ (sData P D) ∗ ckHalf γ (fkVals D))
+
+/-- **The client's two halves, at some values** (F2's stage 1: what a client threads through the
+batch lock's resource without tracking the values; agreement with a held lock gives them,
+`batchLocked_pv`, `batchLocked_ck`). -/
+def pvckOwn (γ : BNames) : IProp GF :=
+  iprop(∃ (vd : VData) (v : FkVals), pvHalf γ vd ∗ ckHalf γ v)
+
+instance pvckInit_timeless (γ : BNames) (P : BParams) (D : Data) :
+    Timeless (pvckInit (GF := GF) γ P D) := by
+  unfold pvckInit; infer_instance
+
+instance pvckOwn_timeless (γ : BNames) : Timeless (pvckOwn (GF := GF) γ) := by
+  unfold pvckOwn; infer_instance
+
+theorem pvckOwn_of_init (γ : BNames) (P : BParams) (D : Data) :
+    pvckInit (GF := GF) γ P D ⊢ pvckOwn γ := by
+  unfold pvckInit pvckOwn
+  iintro ⟨Hp, Hc⟩
+  iexists sData P D, fkVals D
+  iframe Hp Hc
+
+/-- What a write to bucket `n` needs and gives of the physical view, the writer's contents being
+`S`: the client's half if `n` is not a hook's bucket, else nothing. -/
+def pvPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
+  if P.HB n then iprop(True) else pvHalf γ (sData P S)
+
+/-- What a put of key `k` in bucket `n` needs and gives of the compaction keys' values, the writer's
+contents being `S`: the client's half if `k` is a compaction key, else nothing. -/
+def ckPut (γ : BNames) (n k : GoString) (S : Data) : IProp GF :=
+  if fkKey n k then ckHalf γ (fkVals S) else iprop(True)
+
+/-- A write to a hook's bucket needs nothing of the physical view. -/
+theorem pvPut_hook (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    ⊢ pvPut (GF := GF) γ P n S := by
+  unfold pvPut; rw [h]; simp only [↓reduceIte]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem pvPut_hook_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    pvPut (GF := GF) γ P n S = iprop(True) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A write to a non-hook bucket needs the client's half of the physical view. -/
+theorem pvPut_other_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = false) :
+    pvPut (GF := GF) γ P n S = pvHalf γ (sData P S) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A put of a key that is not a compaction key needs nothing of their values. -/
+theorem ckPut_other (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ⊢ ckPut (GF := GF) γ n k S := by
+  unfold ckPut; rw [if_neg h]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem ckPut_other_eq (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ckPut (GF := GF) γ n k S = iprop(True) := by
+  unfold ckPut; exact if_neg h
+
+/-- A put of a compaction key needs the client's half of their values. -/
+theorem ckPut_fk_eq (γ : BNames) (n k : GoString) (S : Data) (h : fkKey n k) :
+    ckPut (GF := GF) γ n k S = ckHalf γ (fkVals S) := by
+  unfold ckPut; exact if_pos h
+
+/-- **The batch lock's side of the tracked buckets** at contents `r`: the ghost map's authority,
+the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
+observation is handed one), and every tracked bucket of the table among its names (a session's
+write goes to one). Sealed (`@[no_expose]`): its authority is what clears the pending flags, which
+only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, which
+`batchTxBuffered__Unlock.lean` imports with `import all`); `TrackedLemmas.lean` and `NewAlloc.lean`
+`import all` this module. By convention only: no gate checks the `import all`s yet. -/
+@[no_expose] def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData) : IProp GF :=
+  iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗ rbOwn γ r ∗
+    ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
+
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
-(`γ.hkd`) and the tracked buckets (`γ.rbk`). -/
+(`γ.hkd`), the tracked buckets (`rbSide`), and (F2's stage 1, 2026-11-02) the physical view of the
+non-hook buckets (`γ.pv` at `sData P S`) and the compaction keys' values (`γ.ck` at `fkVals S`),
+whose other halves are the client's `pvHalf`/`ckHalf`. -/
 def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ ghostVar γ.rbk (1 : Qp).half (rbData P S))
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S) ∗
+    ghostVar γ.pv (1 : Qp).half (sData P S) ∗ ghostVar γ.ck (1 : Qp).half (fkVals S))
 
 /-- Two contents with the same tracked data have the same halves. -/
 theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
-    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
-  unfold trkHalf; rw [h1, h2]
+    (h2 : rbData P S' = rbData P S) (h3 : sData P S' = sData P S) (h4 : fkVals S' = fkVals S) :
+    trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+  unfold trkHalf; rw [h1, h2, h3, h4]
 
 /-! ## The history of the read side, and the cache's marks -/
 
@@ -1056,19 +1253,24 @@ def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) :
     □ wgInv γ rtx wg γw γo γt ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf⌝)
 
 /-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
-bbolt's transaction `rtx`. -/
+bbolt's transaction `rtx`, **its interval live** (the transaction not nil: the backend-auth-split
+stage's decision 1, 2026-11-01). `RLock` takes an open share to know the backend has not stopped
+(a stopped interval's transaction is nil, `rtIntv`) and gives it back; from then on the interval
+stays live until `RUnlock`, since the stop's commit (`CommitAndStop` → `commit`) takes
+`readTx.Lock()`, which waits for every reader. So a read in progress needs no open share of its
+own (`UnsafeRange`, `rtHeldF_lend'`, `rtHeldF_read'`). -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
-plan's R5b). -/
+plan's R5b), its interval live (`rtHeld`). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl

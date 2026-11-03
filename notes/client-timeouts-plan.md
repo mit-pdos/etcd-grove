@@ -72,7 +72,7 @@ only).
 - **Keepalive** is D28: any `DialKeepAliveTime`/`DialKeepAliveTimeout` in `clientCfgOk`
   (`kaOpts`); the server's `grpc.KeepaliveEnforcementPolicy` an axiom in linkv3p's collection.
 - **A timed-out write is at most once**: the fork's fix of the interceptor
-  (`issues/etcd-client-retry-put-ctx-error.md`) and D29's refusal-free members, both proved.
+  (`nonissues/etcd-client-retry-put-ctx-error.md`) and D29's refusal-free members, both proved.
 
 ## Decisions (recommendations; to confirm)
 

@@ -1,6 +1,7 @@
 /-
 **`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
-auto-compactor on (`common.StartCompactingServer`, revision mode, retention 1); putget's history
+auto-compactor on (`common.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `common.StartCompactingServer`, revision mode, retention 1); putget's history
 below is the original's.
 
 The adequacy example's results (`examples/putgetc/putgetc.go`; item 9), restated, with the trust
@@ -38,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -52,7 +53,7 @@ theorem putgetc_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWi
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The adequacy example is safe, in the operational semantics** (`putgetc_adequate`, see the
@@ -67,9 +68,11 @@ theorem putgetc_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putgetc.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetcProgram [config.walDirOf go!"putgetc.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ putgetc.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
@@ -77,12 +80,12 @@ theorem putgetc_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetcProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putgetc_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem σ g
-    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  putgetc_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs n Hprem σ g
+    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

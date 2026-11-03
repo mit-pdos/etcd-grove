@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 until `apply` fails or a commit succeeds, in a goroutine whose result comes back on a channel:
 `stmResult` (an error: `apply`'s, or a client error, recovered from the abort's panic). -/
 abbrev runSTM.spec : Prop :=
-  ∀ (lvl : w64) (pfx : GoString) (p : Loc) (apply : GoFunc) (Q : STMSt → Prop) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmMethods lvl pfx p ∗ stmStale lvl pfx p ∗ applySpec pfx apply Q ∗
+  ∀ (lvl : w64) (pfx : GoString) (p : Loc) (P : Nat) (apply : GoFunc) (Q : STMSt → Prop) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmMethods lvl pfx p ∗ stmStale lvl pfx p ∗ applySpec pfx P apply Q ∗
       etcdReached lo }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.runSTM))
       (Val #(GoInterface.ok (stmIface lvl p)))) (Val #apply))

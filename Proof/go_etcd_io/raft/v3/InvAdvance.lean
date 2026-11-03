@@ -31,6 +31,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-11-01, durability stage II (n)) The driver's halves back at the rendezvous agree with
+`run`'s half of `bw` (`advDep`'s): the durable state and role `run` recorded, `bw` whole. -/
+theorem bw_back (γ : NodeNames) (W0 : DurMaps) (y0 : RaftState × StateType) :
+    ⊢ dghostVar (GF := GF) γ.bw (DFrac.own (1 : Qp).half) (W0, y0) -∗
+      (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+        dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+        slotFree γ.raft γ.id γ.gen) -∗
+      dghostVar γ.dur (DFrac.own (1 : Qp).half) y0 ∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+      durFrags γ.raft γ.id W0 ∗ slotFree γ.raft γ.id γ.gen := by
+  iintro Hbw ⟨%y, %W, Hdur, Hbw', #Hfr, Hfree⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hbw Hbw'
+  simp only [Prod.mk.injEq] at Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  iframe Hdur Hfr Hfree
+  iexists (W0, y0)
+  icombine Hbw Hbw' as Hbw1
+  iexact Hbw1
+
 /-- **The rendezvous** (whichever side meets the other): the driver's append receipt absorbed,
 the floor raised to the committed log `run` handed out (`ownRawNode_raise_floor`), which the
 driver's lower bound `ds` is a prefix of; its witness, and `run`'s node after it. (D22 S-d4,
@@ -44,10 +63,11 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       advRet γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
   iintro #Hlb Hdep HP
   iunfold advDep at Hdep
-  icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
+  icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, Hbw, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, %ca_d, #Hcamlb, #HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, Hback, %ca_d, #Hcamlb, #HA⟩
+  icases bw_back γ rs.bw (rs.dur, rs.role) $$ Hbw Hback with ⟨Hdur, Hbw1, #Hfr, Hfree⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
@@ -58,7 +78,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hlb with ⟨#Hlb, -⟩
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
   ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
-  obtain ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩ := Hm0
+  obtain ⟨Hmd, Hflw, Hpre, Hsnm⟩ := Hm0
   cases L with
   | none =>
     have Hsl : rs.slent = none := HL
@@ -66,7 +86,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     · iunfold runCfg
       iframe Hdlm Hdk
       isplitr
-      · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩
+      · ipureintro; exact ⟨Hmd, Hflw, Hpre, Hsnm⟩
       iexists ca_r
       iframe Hcap_r Hcam Hinv2
       ipureintro; exact Hinv
@@ -85,7 +105,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     isplitr [Hfw]
     · iunfold advRet
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
-      iframe Hrn Htlb Hcamlb
+      iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
       isplitl [Hcfg]
       · iapply (runCfgR_of_runCfg (GF := GF) γ { { rs with unpersisted := [] } with flw := true }
           (.inl Hsl)).2
@@ -118,7 +138,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     have Hsl : rs.slent = some l := HL
     have Hdp := Hpre l Hsl
     rw [Hsl]
-    simp only [rsDlv, Hsl] at Hpfx Hcap Hinv ⊢
+    simp only [rsDlv, Hsl] at Hpfx Hinv ⊢
     simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_some, capAns, capPay]
     ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
     subst Hx
@@ -135,16 +155,16 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [rsDlv, Hsl]
         iframe Hdlm Hdk
         isplitr
-        · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hpre, Hsnm⟩
+        · ipureintro; exact ⟨Hmd, Hflw, by rw [← Hsl]; exact Hpre, Hsnm⟩
         iexists ca_r
         iframe Hcap_r Hcam Hinv2
         ipureintro; exact Hinv
       rw [loanCfg_static hd]
       imodintro
-      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt]
+      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb
+        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hcfg]
         · iapply (runCfgR_of_runCfg (GF := GF) γ rs (.inr Hst)).2
           iapply (runCfg_congr (GF := GF) γ (rs := rs) (rs' := { rs with flw := false })
@@ -164,7 +184,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       iframe Hpay Hcl
     | true =>
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
-      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv Hcap
+      -- (2026-11-02, stage II (u)) the lent snapshot at or past the configuration index (`CapOk`)
+      icases ownRawNode_capLoan γ.raft rn id rs $$ Hrn with ⟨%Hcl0, Hrn⟩
+      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv.1 (Hcl0 l Hsl)
       imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) γ.cap _ _
         $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
       imod mono_nat_own_update l.dlv.length Hle $$ Hcam with ⟨Hcam, #Hcl⟩
@@ -173,10 +195,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [loanCfg, hd, ↓reduceIte, Hmd]
       rw [Hlc]
       imodintro
-      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt]
+      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb
+        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hdlm Hcap_r Hcam]
         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
           iunfold runCfgLoan

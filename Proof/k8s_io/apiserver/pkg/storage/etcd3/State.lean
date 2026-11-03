@@ -86,7 +86,8 @@ def stAt (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (st : Loc) (err :
 /-- **`getCurrentState`'s closure `f`** (persistent: callable at each retry): given, for the call,
 the caller's single-use maker of a read update at each member for the response's pair
 (`Client.Get.spec`'s, D30n), it reads the key through the client and answers `stAt` at the state
-`σ` the update fired at, with `R` at `σ`'s pair (`rdPair`'s parts), or fails with the client's
+`σ` the update fired at, with `R` at `σ`'s pair (`rdPair`'s parts) and `σ`'s values no longer
+than etcd's request limit (`Client.Get.spec`'s, from `etcdState_vals`), or fails with the client's
 error. -/
 def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)
     (f : GoFunc) : IProp GF :=
@@ -95,7 +96,7 @@ def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVSta
       kvReadAu x.γr.kv (R R0 m)) -∗
     ▷ (∀ (st : Loc) (err : GoInterface),
         (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
-          stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
+          ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})
 
 instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)

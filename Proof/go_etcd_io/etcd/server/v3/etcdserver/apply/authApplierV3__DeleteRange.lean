@@ -98,7 +98,9 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
+    ihave #Hrl : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []
+    · iapply apply.reqLeaseClass_noLease; simp [Hk.2.1]
+    iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc Hrl
   wp_auto
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
@@ -138,7 +140,9 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
+  ihave #Hrl : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []
+  · iapply apply.reqLeaseClass_noLease; simp [Hk.2.1]
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc Hrl
 
 end proof
 

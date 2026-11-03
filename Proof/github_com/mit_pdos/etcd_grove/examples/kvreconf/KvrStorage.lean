@@ -15,8 +15,8 @@ wrapper `s` holds the `MemoryStorage` `ms` with the names `γs`. Then `storLog (
 **Instance discipline.** `kvrStorageModel` is a `def`, not a global instance: a file that needs it
 says `attribute [local instance] kvrStorageModel`; the rest of kvreconf stays generic over
 `[StorageModel GF]`. raft's own `MemStorReg` is never in scope here, so `memStorJ`/`memStorInv` are
-not used: `kvrJ γ id` is `memStorJ`'s fields, and the storage's invariant is `memStorInvP ms γs
-(kvrJ γ id)`.
+not used: `kvrJ γ K` is `memStorJ`'s fields, and the storage's invariant is `memStorInvP ms γs
+(kvrJ γ K)`, at the key `K` raft named the storage by at the attach.
 
 **The registry's authority** is in an invariant (`kvrStorInv`), with half of each registered
 wrapper's `MemoryStorage` field: a wrapper whose field is still wholly owned (just allocated) is not
@@ -435,17 +435,17 @@ variable [sem : go.Semantics]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [StorageModel GF] [AllG GF]
 
-/-- Node `id`'s justifications for its storage's `MemoryStorage` (raft's `memStorJ`, without its
-registry): the stored snapshots valid, compaction within what node `id` applied or a snapshot it
-handed out, a stored snapshot within what was delivered. -/
-def kvrJ (γ : Cluster) (id : w64) : MemJust GF where
+/-- The justifications for the `MemoryStorage` of key `K` (raft's `memStorJ`, without its registry;
+2026-11-01, durability stage I-4: keyed by the storage's key, `snapGiven` merged into
+`nodeAppliedLb`, `storDL` now `nodeCommitLb`). -/
+def kvrJ (γ : Cluster) (K : GName) : MemJust GF where
   SV := snapshotValid γ
-  B k := iprop(nodeAppliedLb γ id k ∨ snapGiven γ id k)
-  DL := storDL γ id
+  B k := nodeAppliedLb γ K k
+  DL := nodeCommitLb γ K
   SV_pers := fun sv => by infer_instance
   B_pers := fun k => by infer_instance
   B_timeless := fun k => by infer_instance
-  DL_pers := fun i => by unfold storDL; infer_instance
+  DL_pers := fun i => by infer_instance
 
 end just
 

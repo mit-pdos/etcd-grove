@@ -27,9 +27,9 @@ abbrev rafthttp.streamWriter.close.spec : Prop :=
     (wk : Bool) (cl : GoInterface) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       swFixed Rh ty lid pid Rr cw ∗ swRunOwn Rh ty lid pid cw mc wk cl ∗
-      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) ∗ Rr }}
+      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) }}
     (App (Val (cw @!! go.GoType.PointerType rafthttp.streamWriter.ty @!! go!"close")) (Val #()))
-  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ Rr ∗ ∃ mc' : GoChan, swRunOwn Rh ty lid pid cw mc' false cl }}
+  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ ∃ mc' : GoChan, swRunOwn Rh ty lid pid cw mc' false cl }}
 
 end spec
 

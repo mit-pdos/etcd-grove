@@ -184,7 +184,7 @@ theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : 
 theorem tokenProviderOk_of_A (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
     tokenProviderOkA (GF := GF) tp M A ⊢ tokenProviderOk tp M := by
   unfold tokenProviderOkA tokenProviderOk
-  iintro ⟨%ti, %Hti, #H1, #H2, #H3, #H4, #H5⟩
+  iintro ⟨%ti, %Hti, #H1, #H2, #H3, #H4, #H5, #H6⟩
   iexists A, ti
   iframe #
   ipureintro; exact Hti
@@ -224,6 +224,8 @@ theorem newAuthStore_on
         ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWRAt stp (.on γa) P f T ab ∗
         tpAdmin stp (.on γa) ∗ Post ∗ authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
+        -- (authkv's Main, 2026-10-30) the cost field, read-only (`BcryptCost()`'s)
+        (∃ c : w64, aF go!"bcryptCost" stp ↦□ c) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
   wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
@@ -389,6 +391,7 @@ theorem newAuthStore_on
   ihave ⟨HcaS, #Gca⟩ := sync.ownRWMutex_slots_guard _ _ $$ HcaS
   ipersist lg
   ipersist tokenProvider
+  ipersist bcryptCost
   -- the revision's invariant
   imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hrq Hpub HfeI HfcI]
     with #Hrev
@@ -426,7 +429,7 @@ theorem newAuthStore_on
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept
   ihave #HtpA' := HtpA
   iunfold tokenProviderOkA at HtpA'
-  icases HtpA' with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases HtpA' with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   (try wp_auto)
   wp_join with [HA «as»]
@@ -529,6 +532,8 @@ theorem newAuthStore_on
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), A; iframe tokenProvider HtpA HA
   isplitr
   · ipureintro; exact Hsta.2.2
+  isplitr
+  · iexists _; iexact bcryptCost
   iapply (slots_rd _ «$r0_ptr» R (.on γa)) $$ [$HenS $HcaS $HbeS]
 
 end proof

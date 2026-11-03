@@ -126,6 +126,29 @@ theorem v3rpc.quotaKV_promotedHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpec
   inext
   iexact HΨ
 
+/-- **A promoted method of `quotaKVServer` that owns its request** (`Compact`: the embedded
+service's; the client's `kv.Compact`, 2026-11-01) meets what the embedded service's meets. -/
+theorem v3rpc.quotaKV_promotedHandlerOwnOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep)
+    (q s : Loc) (kv : GoInterfaceOk) (S : IProp GF) (mn : GoString)
+    (hm : MethodUnfold (go.GoType.PointerType v3rpc.quotaKVServer.ty) mn (LamV "$r"
+      (App (Val (GoInstruction (MethodResolve etcdserverpb.KVServer.ty mn)))
+        (App (Val (GoInstruction (GoLoad etcdserverpb.KVServer.ty)))
+          (App (Val (GoInstruction (StructFieldRef v3rpc.quotaKVServer.ty go!"KVServer")))
+            (Var "$r")))))) :
+    v3rpc.quotaKVServerAt (GF := GF) q kv s ∗ grpcHandlerOwnOk #(methods kv.ty mn kv.v) S Spec ⊢
+      grpcHandlerOwnOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! mn) S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaKVServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hkv, -⟩
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ Hpre HΨ
+  rw [hm.method_unfold]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %ci %cd %r Hpre
+  inext
+  iexact HΨ
+
 /-- **A promoted method of `quotaKVServer`** (`Range`, `DeleteRange`: the embedded service's)
 meets what the embedded service's meets (metadata-indexed). -/
 theorem v3rpc.quotaKV_promotedHandlerOkMd {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)

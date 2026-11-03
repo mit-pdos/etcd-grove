@@ -50,131 +50,90 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames),
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : GName) (w : Nat)
+    (TM : MetaCI → IProp GF) (ρ : ReqNames) (q : Qp),
   E.authOn = false →
   loopOk γ st ai →
+  -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
+  -- `specFull`): the consistent index past `ai`, `Release` not failing
+  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
+  GMap.size γr.raft.raft.cfg < 2 ^ 61 →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
+  storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      srvSnapFrozen γs (uint.nat ai) ∗
+      -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
+      -- entry at `ai` frozen at `at'` (`snapshot`'s)
+      (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node's (on the storage of key `nk`)
+      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x }}
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗
+      rnWalTok (srvRAddr s) q }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 /-- **`spec` with auth on** (a corollary, `spec_on`; the auth plan's E3p, 2026-10-27): the row with the
-auth part at the model's auth state `sa` (`srvApplyKVOn`), kept. -/
+auth part at the model's auth state `sa` (`srvApplyKVOn`), kept (`snapshot` takes only the part both
+rows share, `srvApplyKVCore`). -/
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (sa : auth.AuthState),
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : GName) (w : Nat)
+    (TM : MetaCI → IProp GF) (ρ : ReqNames)
+    (sa : auth.AuthState) (q : Qp),
   E.authOn = true →
   loopOk γ st ai →
+  -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
+  -- `specFull`): the consistent index past `ai`, `Release` not failing
+  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
+  GMap.size γr.raft.raft.cfg < 2 ^ 61 →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
+  storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      srvSnapFrozen γs (uint.nat ai) ∗
+      -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
+      -- entry at `ai` frozen at `at'` (`snapshot`'s)
+      (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node's (on the storage of key `nk`)
+      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa }}
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗
+      rnWalTok (srvRAddr s) q }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 /-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs hoff
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs srvAuthSt0
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ q hoff
+  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ srvAuthSt0 q
   rw [hoff] at this
   exact this
 
 /-- **`specOn`**, `spec` with the mode-`on` row (the auth-mode merge's corollary). -/
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs sa hon
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs sa
-  rw [hon] at this
-  exact this
-
-/-- **`specFull` with auth off** (a corollary, `spec_fullOff`; for the snapshot track): the off row (`srvApplyKV`). -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
-    (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
-    (TM : MetaCI → IProp GF) (ρ : ReqNames) (kv : GoInterface) (RC RC' : IProp GF),
-  E.authOn = false →
-  loopOk γ st ai →
-  -- (D22 J5) the applied index at most the write tokens taken (no snapshot installed)
-  uint.Z ai ≤ w →
-  -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
-  -- `specFull`): the consistent index past `ai`, `Release` not failing
-  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗ srvSnapStor ms γs γr nid ai at' ∗
-      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
-      srvSnapFrozen γs (uint.nat ai) ∗
-      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
-      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
-      (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, (RC ∨ RC') ∗ srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
-
-/-- **`specFull` with auth on** (a corollary, `spec_fullOn`; for the snapshot track; the auth plan's E3p, 2026-10-27): the row with the
-auth part at the model's auth state `sa` (`srvApplyKVOn`), kept (`snapshot` takes only the part both
-rows share, `srvApplyKVCore`). -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
-    (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
-    (TM : MetaCI → IProp GF) (ρ : ReqNames) (kv : GoInterface) (RC RC' : IProp GF)
-    (sa : auth.AuthState),
-  E.authOn = true →
-  loopOk γ st ai →
-  -- (D22 J5) the applied index at most the write tokens taken (no snapshot installed)
-  uint.Z ai ≤ w →
-  -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
-  -- `specFull`): the consistent index past `ai`, `Release` not failing
-  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗ srvSnapStor ms γs γr nid ai at' ∗
-      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
-      srvSnapFrozen γs (uint.nat ai) ∗
-      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
-      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
-      (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, (RC ∨ RC') ∗ srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
-
-/-- **`specFullOff`**, `specFull` with auth off (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_fullOff
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' hoff
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' srvAuthSt0
-  rw [hoff] at this
-  exact this
-
-/-- **`specFullOn`**, `specFull` with the mode-`on` row (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_fullOn
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa hon
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hon
+  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q
   rw [hon] at this
   exact this
 
@@ -215,10 +174,11 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel),
   E.authOn = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids.pfx m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
       srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
+      ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
       ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
       ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
@@ -255,10 +215,11 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
   E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
-      entryRegd ρ.wait ρ.ids.pfx m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
       ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
       ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
       ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
@@ -295,10 +256,10 @@ theorem EtcdServer.applyEntryNormal.spec_off
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
     entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at this
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, Hlog,
-    #Hcm, Hka, HRS, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
+    #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
   iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
   · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
-    ipureintro; exact ⟨Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, fun h => absurd h (by simp)⟩
+    ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, fun h => absurd h (by simp)⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
   iapply HΦ
@@ -316,10 +277,10 @@ theorem EtcdServer.applyEntryNormal.spec_on
   simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
     ↓reduceIte] at this
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
-    #Hcm, Hka, HRS, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
+    #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
   iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
   iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
-  ipureintro; exact ⟨Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, fun _ => Hpre.2.2.2⟩
+  ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, fun _ => Hpre.2.2.2⟩
 
 end variants
 
@@ -378,7 +339,7 @@ abbrev EtcdServer.apply.specOff : Prop :=
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
@@ -391,7 +352,8 @@ abbrev EtcdServer.apply.specOff : Prop :=
       srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
           appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗ srvRest E γr (A ++ ms)) ∗
@@ -423,7 +385,7 @@ abbrev EtcdServer.apply.specOn : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
@@ -440,7 +402,8 @@ abbrev EtcdServer.apply.specOn : Prop :=
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
@@ -485,7 +448,7 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvFS s ∗
@@ -497,6 +460,7 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
       srvApRes s γr (A ++ unapplied ai ms) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗
         srvAppliedOwn γr ai' ∗ srvWTTaken γp (w + (unapplied ai ms).length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
@@ -506,7 +470,8 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           -- (D22 J5) one index per entry applied
           uint.Z ai' = uint.Z ai + (unapplied ai ms).length ∧
-          (ciEff γ st'.k = ciEff γ st.k ∨
+          -- (2026-10-31, the snapshot track: S1) the consistent index unchanged only for an empty batch
+          ((unapplied ai ms = [] ∧ ciEff γ st'.k = ciEff γ st.k) ∨
             uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
@@ -529,7 +494,7 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvFS s ∗
@@ -543,6 +508,7 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
       srvApRes s γr (A ++ unapplied ai ms) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗
         srvAppliedOwn γr ai' ∗ srvWTTaken γp (w + (unapplied ai ms).length) ∗
@@ -553,7 +519,8 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           -- (D22 J5) one index per entry applied
           uint.Z ai' = uint.Z ai + (unapplied ai ms).length ∧
-          (ciEff γ st'.k = ciEff γ st.k ∨
+          -- (2026-10-31, the snapshot track: S1) the consistent index unchanged only for an empty batch
+          ((unapplied ai ms = [] ∧ ciEff γ st'.k = ciEff γ st.k) ∨
             uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
@@ -567,7 +534,7 @@ theorem EtcdServer.apply.spec_off
   unfold EtcdServer.apply.spec at h
   simp only [srvRunH_apply_spec] at h
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
-  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hcv, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
     HWP, HWA0, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   have hm : E.authMode = .off := by
@@ -580,16 +547,16 @@ theorem EtcdServer.apply.spec_off
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
-  iapply h' $$ [Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS Hkb
+  iapply h' $$ [Hbw Hes Hents Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS Hkb
     Hdv Hdvr Hrun HAR] [HΦ]
-  · iframe Hpkg Hsrv Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS
+  · iframe Hpkg Hsrv Hbw Hes Hents Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS
       Hkb Hdv Hdvr Hrun HAR
   iintro !> %appliedt %appliedi %shouldStop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, -,
-    Hbe, Hci, Hcs, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
+    Hbe, Hci, Hcs, Hcv, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
   iapply HΦ
   iframe Hfs Hdv Hrun HAR
   iexists st', a', at', csl
-  iframe Hst Hbe Hci Hcs Hlr Hgr Hao HWT
+  iframe Hst Hbe Hci Hcs Hcv Hlr Hgr Hao HWT
   isplitl [HKV Hlog Hka HRS]
   · iexists x'; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
   ipureintro; exact Hp
@@ -612,12 +579,12 @@ theorem EtcdServer.apply.spec_on
 /-- **`specOff`**, `applyEntries.spec` with auth off (the auth-mode merge's corollary; the mode
 read off the server's view, `authOn_false_of_off`). -/
 theorem EtcdServer.applyEntries.spec_off
-    (h : EtcdServer.applyEntries.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specOff (GF := GF) (hG := hG) := by
-  unfold EtcdServer.applyEntries.spec at h
+  unfold EtcdServer.applyEntries.specBatch at h
   simp only [srvRunH_applyEntries_spec] at h
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
-  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr,
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ, Hlr, Hgr,
     HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   have hm : E.authMode = .off := by
@@ -630,25 +597,25 @@ theorem EtcdServer.applyEntries.spec_off
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
-  iapply h' $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW HWA
+  iapply h' $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW HWA
     Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR] [HΦ]
-  · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW
+  · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW
       HWA Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR
-  iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, -, Hbe,
+  iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hcv, Hst, -, Hbe,
     Hci, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
   iapply HΦ
   iframe Hfs Hdv Hrun HAR
   iexists st', ai', at', a', t', cs'
-  iframe Hai Hat Hcs Hst Hbe Hci Hlr Hgr Hao HWT
+  iframe Hai Hat Hcs Hcv Hst Hbe Hci Hlr Hgr Hao HWT
   isplitl [HKV Hlog Hka HRS]
   · iexists x'; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
   ipureintro; exact Hp
 
 /-- **`specOn`**, `applyEntries.spec` in the mode `on` (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntries.spec_on
-    (h : EtcdServer.applyEntries.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specOn (GF := GF) (hG := hG) := by
-  unfold EtcdServer.applyEntries.spec at h
+  unfold EtcdServer.applyEntries.specBatch at h
   simp only [srvRunH_applyEntries_spec] at h
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB Hms Hai1
     Hok hEok hdv
@@ -699,6 +666,10 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
@@ -739,6 +710,13 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specOff : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
+  -- (2026-11-02, the cluster-rows stage) no attribute request: the monitors' alone propose them
+  -- (`reqPropOkM`'s `attrIdOk`)
+  apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
@@ -762,6 +740,10 @@ abbrev EtcdServer.raftRequest.specM (on : Bool) : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
@@ -792,6 +774,13 @@ abbrev EtcdServer.raftRequest.specOff : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
+  -- (2026-11-02, the cluster-rows stage) no attribute request: the monitors' alone propose them
+  -- (`reqPropOkM`'s `attrIdOk`)
+  apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
@@ -1087,21 +1076,21 @@ theorem EtcdServer.parseProposeCtxErr.spec_M
 theorem EtcdServer.processInternalRaftRequestOnce.spec_M
     (h : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG)) (on : Bool) :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   iintro %Φ ⟨#Hpkg, #Hsrv, Hrest⟩ HΦ
   ihave %hon := isServerReqM_authOn on s E ρ $$ Hsrv
   subst hon
-  iapply (h s E ρ ctx cd p rq Qh F Hid0) $$ [Hrest] HΦ
+  iapply (h s E ρ ctx cd p rq Qh F Hid0 Hdpt) $$ [Hrest] HΦ
   iframe Hpkg Hsrv Hrest
 
 theorem EtcdServer.raftRequest.spec_M
     (h : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) (on : Bool) :
     EtcdServer.raftRequest.specM (GF := GF) (hG := hG) on := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   iintro %Φ ⟨#Hpkg, #Hsrv, Hrest⟩ HΦ
   ihave %hon := isServerReqM_authOn on s E ρ $$ Hsrv
   subst hon
-  iapply (h s E ρ ctx cd p rq Qh F Hid0) $$ [Hrest] HΦ
+  iapply (h s E ρ ctx cd p rq Qh F Hid0 Hdpt) $$ [Hrest] HΦ
   iframe Hpkg Hsrv Hrest
 
 theorem EtcdServer.doSerialize.spec_M
@@ -1120,11 +1109,11 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
     (h : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.specOff (GF := GF) (hG := hG) := by
   have hM := EtcdServer.processInternalRaftRequestOnce.spec_M h false
-  intro s E ρ ctx cd p rq Qr F Hid0
+  intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
-  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
+  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt) $$ [Hpre] [HΦ]
   · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-    ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
+    ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
     rw [isServerReqM_false]
     iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
@@ -1158,12 +1147,12 @@ theorem EtcdServer.raftRequest.spec_off
     (h : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.specOff (GF := GF) (hG := hG) := by
   have hM := EtcdServer.raftRequest.spec_M h false
-  intro s E ρ ctx cd p rq Qr F Hid0
+  intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
   icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-  ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
+  ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
   rw [← isServerReqM_false]
-  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Ha Hb Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
+  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt) $$ [Ha Hb Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
   · iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ

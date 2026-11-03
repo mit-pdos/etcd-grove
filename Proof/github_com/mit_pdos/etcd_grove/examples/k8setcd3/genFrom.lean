@@ -77,6 +77,10 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
   wp_apply wp_load_slice_index _ (sint.Z (n / W64 100 / W64 3 % W64 3)) wvsD _ v hv3.1 $$ [Hv]
     as Hv
   · iframe; ipureintro; exact Hv_lookup
+  have hvb : v.length ≤ 2 ^ 20 := by
+    have h := List.mem_of_getElem? Hv_lookup
+    simp only [wvsD, List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl | rfl <;> decide
   (try wp_auto)
   -- the rejected value, if any: `vals[ri]`
   wp_if_destruct
@@ -91,27 +95,27 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inl rfl⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inl rfl, by first | exact hvb | simp⟩
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inl rfl)⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inl rfl), by first | exact hvb | simp⟩
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inl rfl))⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inl rfl)), by first | exact hvb | simp⟩
     (try wp_auto)
-    iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inr rfl))⟩
+    iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inr rfl)), by first | exact hvb | simp⟩
   · (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inl rfl⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inl rfl, by first | exact hvb | simp⟩
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inl rfl)⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inl rfl), by first | exact hvb | simp⟩
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inl rfl))⟩
+      iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inl rfl)), by first | exact hvb | simp⟩
     (try wp_auto)
-    iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inr rfl))⟩
+    iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inr rfl)), by first | exact hvb | simp⟩
 
 end proof
 

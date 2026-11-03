@@ -73,8 +73,8 @@ theorem store.Restore.wp_proof
     store.Restore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
-  intro s γ cap E R P kvsSl kvs dq rev
-  wp_start as ⟨#His, #Hguard, Hkvs, #HkvsAt, HP0, %Hdom, #HE, #HRr⟩
+  intro s γ cap E R G P kvsSl kvs dq rev
+  wp_start as ⟨#His, #Hguard, Hkvs, #HkvsAt, HP0, %Hdom, #HE, #HRr, #HGr⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -195,6 +195,9 @@ theorem store.Restore.wp_proof
       iframe HRr
       isplitr
       · ipureintro; exact restoreState_synced rev kvs
+      isplitr
+      · unfold gapList; imodintro; iintro %g %hg
+        simp only [gapsOf, List.mem_singleton] at hg; subst hg; iexact HGr
       ipureintro; exact Hinv'
     iapply HΦ
     iframe Hkvs HP0

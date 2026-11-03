@@ -94,15 +94,20 @@ def membership.memberIs (m : Loc) (id : w64) : IProp GF :=
     membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus)
 
 /-- **The member `m` at the fraction `q`, with the value `mm`** (D43 M5b, 2026-10-26): its fields
-and its URL slices' elements at `q` (no `peerURLsOk` since D43 M5e, as `memberIs`). The cluster's lock
-holds half of each member it lists, the apply thread (`clusterMem`) the other half. -/
+and its peer URLs' elements at `q`, its client URLs' elements read-only (2026-11-02, the
+cluster-rows stage, until then at `q`: `UpdateAttributes` stores the request's attributes in the
+member, `m.Attributes = attr`, `cluster.go:472`, so the member's `ClientURLs` is then the request's
+array, which the apply thread holds read-only; no Go code writes the elements of a member's client
+URLs: `Clone` copies them, the writers replace the slice). (No `peerURLsOk` since D43 M5e, as
+`memberIs`.) The cluster's lock holds half of each member it lists (`rcLockInv`, through `memAt`),
+the apply thread (`clusterMem`) the other half; both carry the read-only client URLs. -/
 def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice),
     membership.mIDAddr m ↦{DFrac.own q} mm.id ∗ membership.mPeerURLsAddr m ↦{DFrac.own q} pu ∗
     membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner ∗
     membership.mNameAddr m ↦{DFrac.own q} mm.name ∗
     membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
-    cu ↦*{DFrac.own q} mm.clientURLs)
+    cu ↦*□ mm.clientURLs)
 
 /-- A member record `l` the backend's read made, with its peer URLs `pus`. -/
 def membership.memberURLsAt (l : Loc) (pus : List GoString) : IProp GF :=
@@ -344,21 +349,20 @@ theorem membership.memberAt_split (m : Loc) (q1 q2 : Qp) (mm : apply.MemberM) :
   have hsl := fun {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (sl : GoSlice) (vs : List V) =>
     (ownSlice_fractional (GF := GF) sl vs).fractional q1 q2
   refine ⟨?_, ?_⟩
-  · iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
+  · iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, #Hcus⟩
     icases (hpt _ _).1 $$ Hid with ⟨Hid1, Hid2⟩
     icases (hpt _ _).1 $$ Hpu with ⟨Hpu1, Hpu2⟩
     icases (hpt _ _).1 $$ Hil with ⟨Hil1, Hil2⟩
     icases (hpt _ _).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
     icases (hpt _ _).1 $$ Hcu with ⟨Hcu1, Hcu2⟩
     icases (hsl _ _).1 $$ Hpus with ⟨Hpus1, Hpus2⟩
-    icases (hsl _ _).1 $$ Hcus with ⟨Hcus1, Hcus2⟩
-    isplitl [Hid1 Hpu1 Hil1 Hnm1 Hcu1 Hpus1 Hcus1]
+    isplitl [Hid1 Hpu1 Hil1 Hnm1 Hcu1 Hpus1]
     · isplitr; (ipureintro; exact Hnn)
-      iexists pu, cu; iframe
+      iexists pu, cu; iframe; iframe Hcus
     · isplitr; (ipureintro; exact Hnn)
-      iexists pu, cu; iframe
-  · iintro ⟨⟨%Hnn, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, Hcus1⟩,
-      ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, Hcus2⟩⟩
+      iexists pu, cu; iframe; iframe Hcus
+  · iintro ⟨⟨%Hnn, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, #Hcus1⟩,
+      ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, -⟩⟩
     ihave %Hpu := typedPointsto_agree_wand _ _ _ _ _ $$ Hpu1 Hpu2
     ihave %Hcu := typedPointsto_agree_wand _ _ _ _ _ $$ Hcu1 Hcu2
     subst Hpu Hcu
@@ -370,7 +374,7 @@ theorem membership.memberAt_split (m : Loc) (q1 q2 : Qp) (mm : apply.MemberM) :
     isplitl [Hnm1 Hnm2]; (iapply (hpt _ _).2; iframe)
     isplitl [Hcu1 Hcu2]; (iapply (hpt _ _).2; iframe)
     isplitl [Hpus1 Hpus2]; (iapply (hsl _ _).2; iframe)
-    iapply (hsl _ _).2; iframe
+    iframe Hcus1
 
 /-- Two parts of a member agree on its value. -/
 theorem membership.memberAt_agree (m : Loc) (q1 q2 : Qp) (mm1 mm2 : apply.MemberM) :
@@ -390,22 +394,25 @@ theorem membership.memberAt_agree (m : Loc) (q1 q2 : Qp) (mm1 mm2 : apply.Member
   cases mm1; cases mm2
   simp_all
 
-/-- An owned member with id `id` is a whole member whose value has the id `id`. -/
-theorem membership.memberIs_iff_memberAt (m : Loc) (id : w64) :
-    membership.memberIs (GF := GF) m id ⊣⊢
-      ∃ mm : apply.MemberM, ⌜mm.id = id⌝ ∗ membership.memberAt m 1 mm := by
-  unfold membership.memberIs membership.memberAt
-  refine ⟨?_, ?_⟩
-  · iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
-    iexists ⟨id, pus, il, nm, cus⟩
-    isplitr; (ipureintro; rfl)
-    isplitr; (ipureintro; exact Hnn)
-    iexists pu, cu; iframe
-  · iintro ⟨%mm, %Hmid, %Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
-    subst Hmid
-    isplitr; (ipureintro; exact Hnn)
-    iexists pu, cu, mm.isLearner, mm.name, mm.peerURLs, mm.clientURLs
-    iframe
+/-- **A member's client URLs made read-only** (an update; the cluster-rows stage): a member whose
+fields and URL slices are owned at `q` (`memberAt`'s form until 2026-11-02, as `applyConfChange`
+assembles the unmarshalled member) is a member at `q`. -/
+theorem membership.memberAt_of_owned (m : Loc) (q : Qp) (mm : apply.MemberM) (pu cu : GoSlice)
+    (hnn : m ≠ null) :
+    membership.mIDAddr m ↦{DFrac.own q} mm.id ∗ membership.mPeerURLsAddr m ↦{DFrac.own q} pu ∗
+      membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner ∗
+      membership.mNameAddr m ↦{DFrac.own q} mm.name ∗
+      membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
+      cu ↦*{DFrac.own q} mm.clientURLs ⊢
+    |==> membership.memberAt (GF := GF) m q mm := by
+  unfold membership.memberAt
+  iintro ⟨Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
+  imod ownSlice_persist $$ Hcus with #Hcus
+  imodintro
+  isplitr; (ipureintro; exact hnn)
+  iexists pu, cu
+  iframe
+  iexact Hcus
 
 /-- The members map at `q1 + q2` is two parts. -/
 theorem membership.memAt_split (c : Loc) (q1 q2 : Qp) (ms : GMap w64 Loc)

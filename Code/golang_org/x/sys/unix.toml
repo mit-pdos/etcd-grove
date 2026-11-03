@@ -1,0 +1,7 @@
+# Project bboltfs's `golang.org/x/sys/unix` (etc/goose.py): names only, but the functions minibolt
+# (examples/bboltfs) calls, modeled by the Linux file extension osFsExt
+# (TrustedCode/golang_org/x/sys/unix.lean, GooseLang/Ext/OsFs/Impl.lean).
+translate = ["!*"]
+# syscall.Errno (unix.Errno is an alias of it), the errors the models return
+imports = ["!*", "syscall"]
+trusted = ["Mmap", "Munmap", "Madvise"]

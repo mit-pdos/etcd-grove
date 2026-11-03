@@ -175,7 +175,7 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
   iunfold apply.uberKVC at Hfor
   icases Hfor with ⟨%p, %Hua, #Htr⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p', %Hua', Hown, Hkv⟩
+  icases Hkv with ⟨%p', %Hua', Hown, Hkv, Hco⟩
   subst Hua
   have := apply.mkOk_ptr_inj _ _ _ Hua'
   subst this
@@ -230,8 +230,10 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     · ipureintro; rfl
     iexists x', out
     iframe Hres HRO Hauth
-    isplitl [Hown Hkv]
-    · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
+    isplitl [Hown Hkv Hco]
+    · iunfold apply.applyKV; iexists p
+      rw [apply.applyStep_crev_nonCmp rq v3 x x' out (fun h => by simp [apply.isKVKind, h] at Hx) Hst.1]
+      iframe Hown Hkv Hco; ipureintro; rfl
     isplitr
     · ipureintro; exact ⟨Hst.1, Hst.2.2⟩
     iframe HL
@@ -258,8 +260,8 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     iexists x, .skipped
     simp only [apply.applyResultIs, apply.restOut]
     iframe HRO
-    isplitl [Hown Hkv]
-    · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
+    isplitl [Hown Hkv Hco]
+    · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
     isplitr
     · ipureintro; simp [apply.applyStep, apply.applyFloorOk, hns]
     isplitr

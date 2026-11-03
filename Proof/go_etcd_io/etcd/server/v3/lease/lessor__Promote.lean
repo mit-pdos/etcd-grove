@@ -1,8 +1,8 @@
 /-
 The trust boundary: `(*lessor).Promote` (names only: float arithmetic and the float-to-integer
 conversion `time.Duration(rateDelay)`, which Perennial's semantics does not step; `sort.Sort`
-over `Remaining()`, which read-locks each lease's `expiryMu`, a reader slot the lessor's
-invariant does not keep).
+over `Remaining()`, which read-locks each lease's `expiryMu`: a reader slot each lease's pool now
+keeps (`isLeaseObj`, the lease-read plan), so this reason is gone; the float arithmetic remains).
 -/
 module
 

@@ -38,7 +38,7 @@ theorem apply.authApplierV3.Put.wp_proof
   ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  ihave ⟨Hard, %L, Hu, Hkv⟩ := apply.kvOwn_lend E log $$ Hkv
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -49,8 +49,10 @@ theorem apply.authApplierV3.Put.wp_proof
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
-  wp_apply (hPut st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) r o) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff, #Hcls⟩
-  ihave Hkv := Hkv $$ Hard
+  wp_apply (hPut st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) r o L
+      (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
+    as %err ⟨Hinfo, Hard, Hu, #HeI, %Hoff, #Hcls⟩
+  ihave Hkv := Hkv $$ Hard Hu
   cases err with
   | ok e' =>
     wp_auto
@@ -66,8 +68,9 @@ theorem apply.authApplierV3.Put.wp_proof
       · iframe HeI; ipureintro; simp
   | nil =>
   wp_auto
-  ihave #Hcls := Hcls $$ %rfl
+  ihave ⟨#Hcls, #Hlk⟩ := Hcls $$ %rfl
   ihave #Hrc := apply.reqClass_put E.authMode info rq o Hk.1 Hk.2.1 $$ Hcls
+  ihave #Hrl := apply.reqLeaseClass_put E.authMode info _ rq o Hk.1 Hk.2.1 $$ Hlk
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
@@ -80,7 +83,7 @@ theorem apply.authApplierV3.Put.wp_proof
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc Hrl
 
 end proof
 

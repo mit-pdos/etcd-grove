@@ -53,7 +53,7 @@ theorem rafthttp.pipeline.stop.wp_proof
   iapply wp_fupd
   imod lc_fupd_elim_later $$ Hlc1 HR with ⟨-, HR⟩
   repeat' (first | wp_if_destruct | wp_auto)
-  all_goals try (imodintro; iapply HΦ; iexact HR)
+  all_goals try (imodintro; iapply HΦ; itrivial)
   wp_apply hIDStringPtr _ DFrac.discard lid $$ [$Hlid] as %ls -
   wp_apply hZString as %f1 -
   wp_apply hIDStringPtr _ DFrac.discard to $$ [$Hto] as %ts -
@@ -66,7 +66,7 @@ theorem rafthttp.pipeline.stop.wp_proof
   wp_apply hInfo lg _ _ $$ []
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
-  imodintro; iapply HΦ; iexact HR
+  imodintro; iapply HΦ; itrivial
 
 end proof
 

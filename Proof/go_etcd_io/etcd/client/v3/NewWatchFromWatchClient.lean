@@ -31,8 +31,9 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem NewWatchFromWatchClient.wp_proof
     (wp_GetLogger : Client.GetLogger.spec (GF := GF) (hG := hG)) :
     NewWatchFromWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V c callSl vs
-  wp_start as ⟨#Hf, %Hc, #Hco, #Hvs, #Hok, #Hlg, %Hbd⟩
+  intro _ V c callSl vs
+  wp_start as ⟨#Hf, %Hc, #Hco, #Hvs, #Hok, #Hlg⟩
+  have Hbd : threadBound GF ≤ 2 ^ 31 := ThreadBoundLe.le (GF := GF) _
   wp_auto
   wp_apply wp_map_make1 (K := GoString) (V := Loc) as %mS HS
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hwnn⟩

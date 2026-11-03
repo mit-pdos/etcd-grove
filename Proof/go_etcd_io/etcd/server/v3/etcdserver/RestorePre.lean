@@ -2,7 +2,7 @@
 What the apply thread holds for `watchableStore.Restore` (D22 receiver epochs, S6): the sanity
 check that its precondition's store half is assemblable from the apply thread's resources after S5
 (`apply.kvOwn`) and the server's kept closer (`srvKVCloser`); the new backend's half is S7/S8's
-(the docstring of `restorePre_of_apply`). Not used yet: `applySnapshot` (S8) calls `kv.Restore`.
+(the docstring of `restorePre_of_apply`). Used by `applySnapshot_walk` (S8's `kv.Restore`).
 -/
 module
 
@@ -43,7 +43,7 @@ log: `kvRaftOf_prefix`) with `restoreLogOk R` (the KV model's revisions are non-
 lease-free under the workload); its certificate `certOk E.γ ([[], []] ++ R)` (the server's `cok`
 map element of the image's log); and the new backend's: `storeBackendT b' E.s (E.γ.withPhys p) P'`
 for every physical names of its bucket and instance (`storeBackendT_of_backend` of
-`OpenSnapshotBackend`'s `isBackend` with the late-bound `lateW gx'`), its full view of the `Key`
+`OpenSnapshotBackend`'s `isBackend` with the walked instance's late-bound `lateWD d'`, unset), its full view of the `Key`
 bucket at the image's log (`keyImage`), `kbNoCmp` (`OpenBackend`'s post with `keyImage_noCmp`),
 `kbRegRight` (the creator's half of `gx'`), `nReaders` reader tokens (`newPost`'s `rdTok`s with
 `bOpen` shares). And back from it: the new closer (`srvKVCloser` re-made with the watchable store's
@@ -52,7 +52,7 @@ watchable store's names' `st` replaced: `isWatchableStore` reads only its logica
 `writerOwn`, the old backend's `k + 1` tokens (with the storage-version monitor's, S7, every `bOpen`
 share of the old backend for `oldbe.Close`), the new backend's left over (the monitor's). -/
 theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log)
-    (hwq : E.γ.watchQ = true) :
+    (hwq : E.γ.watchQ = true) (hcm : E.γ.cm = false) :
     apply.kvOwn E log ∗ srvKVCloser s E ⊢
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.storeCloser E.s γw.st ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
@@ -67,6 +67,8 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   iunfold txn.kvWriter at Hkw
   icases Hkw with ⟨Hsw, Hwl, Hfrag⟩
   iunfold txn.wlogOwn at Hwl
+  icases Hwl with ⟨Hwl, Hpin⟩
+  iunfold txn.wlogOwnW at Hwl
   rw [hwq]
   simp only [↓reduceIte]
   icases Hwl with ⟨%ws, %γw, %hγw, #Hws, Hwl, -⟩
@@ -74,10 +76,11 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   icases Hcl with ⟨%wsl, #Hkvf, Hcl⟩
   iunfold mvcc.wsCloser at Hcl
   icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
-  -- (M2, `notes/m2-plan.md`, S1 step 5) the reader no longer carries the frozen fact: `Restore`
-  -- from the compaction right, S1 step 5
+  -- (M2, `notes/m2-plan.md`, S1 steps 4-5) the reader no longer carries the frozen fact; with the
+  -- mode off the watchable store does (`isWatchableStore_frozen`; `restorePre_of_applyM`'s draft)
   ihave #Hfrz : mvcc.crevFrozen E.γ $$ []
-  · sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/etcdserver/RestorePre.lean
+  · rw [← hγw]
+    iapply mvcc.isWatchableStore_frozen ws E.s γw (by rw [hγw]; exact hcm) $$ Hws
   iexists ws, γw
   iunfold mvcc.watchWriter
   rw [hγw]
@@ -93,7 +96,45 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   iunfold txn.soleWriter at Hsw
   icases Hsw with ⟨#Hc, Htoks, -⟩
   simp only [txn.soleBudget, mvcc.wBudget]
-  iframe Hc Htoks Hwl
+  iframe Hc Htoks Hwl Hpin
+
+/-- `noCompactor` reads only the logical names (its body sealed: by its laws). -/
+theorem mvcc.noCompactor_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γs : mvcc.StoreNames) (p : mvcc.PhysNames) :
+    mvcc.noCompactor (GF := GF) (γs.withPhys p) = mvcc.noCompactor γs :=
+  BIBase.BiEntails.to_eq ⟨(mvcc.noCompactor_frozen _).trans
+      (by rw [mvcc.crevFrozen_withPhys]; exact mvcc.noCompactor_of_frozen _),
+    (mvcc.noCompactor_frozen _).trans
+      (by rw [← mvcc.crevFrozen_withPhys γs p]; exact mvcc.noCompactor_of_frozen _)⟩
+
+/-- The create token's store fact reads only the logical names (watches across a compaction). -/
+theorem mvcc.watchNoDup_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γs : mvcc.StoreNames) (p : mvcc.PhysNames) :
+    mvcc.watchNoDup (GF := GF) (γs.withPhys p) = mvcc.watchNoDup γs := by
+  unfold mvcc.watchNoDup mvcc.noDupKeys mvcc.evLog
+  simp only [mvcc.noCompactor_withPhys, mvcc.idxSealed_withPhys, mvcc.certOk_withPhys]
+
+theorem mvcc.wsWatchFrozen_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γ : mvcc.WsNames) (p : mvcc.PhysNames) (σ : mvcc.WsState) :
+    mvcc.wsWatchFrozen (GF := GF) { γ with st := γ.st.withPhys p } σ = mvcc.wsWatchFrozen γ σ := by
+  unfold mvcc.wsWatchFrozen
+  simp only [mvcc.watchNoDup_withPhys]
+
+theorem mvcc.watchStoreBody_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (s : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) (q : Qp) (σ : mvcc.WsState) :
+    mvcc.watchStoreBody (GF := GF) s { γ with st := γ.st.withPhys p } q σ =
+      mvcc.watchStoreBody s γ q σ := by
+  unfold mvcc.watchStoreBody
+  rw [mvcc.wsWatchFrozen_withPhys]
+  rfl
+
+theorem mvcc.watchStoreInv_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (s : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) :
+    mvcc.watchStoreInv (GF := GF) s { γ with st := γ.st.withPhys p } = mvcc.watchStoreInv s γ := by
+  funext q
+  unfold mvcc.watchStoreInv
+  simp only [mvcc.watchStoreBody_withPhys]
+  rfl
 
 /-- **A watchable store reads only its inner store's logical names** (D22 receiver epochs, S6):
 after a restore, the watchable store's names with the inner store's at the new physical ones
@@ -101,7 +142,10 @@ are the same watchable store (what S8's `txn.wlogOwn` at the new names takes). -
 theorem mvcc.isWatchableStore_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (s st : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) :
     mvcc.isWatchableStore (GF := GF) s st { γ with st := γ.st.withPhys p } =
-      mvcc.isWatchableStore s st γ := rfl
+      mvcc.isWatchableStore s st γ := by
+  unfold mvcc.isWatchableStore
+  rw [mvcc.watchStoreInv_withPhys]
+  rfl
 
 end lemmas
 

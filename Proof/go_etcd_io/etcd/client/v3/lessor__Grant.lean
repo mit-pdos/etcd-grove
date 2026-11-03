@@ -48,7 +48,9 @@ theorem lessor.Grant.wp_proof
     simp only
     rw [show (0 : w64) = W64 0 from rfl]
     iframe #
-    ipureintro; exact Hcap
+    isplitl []
+    · ipureintro; exact Hcap
+    ipureintro; trivial
   iunfold leaseGrantCallOut at Hres
   icases Hres with (⟨%Herr, %m, #Hm, HQ⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr

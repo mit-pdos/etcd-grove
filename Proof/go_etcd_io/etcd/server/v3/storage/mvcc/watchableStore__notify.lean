@@ -497,12 +497,27 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
       subst this; simp
     · rw [List.findSome?_append]; simp
   have hWsi : ∀ k, Wsi !! k = if (Bv !! k).isSome then none else σ.Ws !! k := hrel.ws
+  -- a watcher notified was synced, so not compacted; the others' states are unchanged
+  have hcmp : ∀ k, (STi !! k).any (fun st => st.compacted && st.ch != null) =
+      (σ.ST !! k).any (fun st => st.compacted && st.ch != null) := by
+    intro k
+    by_cases hk : k ∈ keys
+    · obtain ⟨st, h1, h2⟩ := hrel.st_done k (by rw [htk]; exact hk)
+      rw [h1, h2]
+      have hws : (σ.Ws !! k).isSome := hBtWs k ((hkeys k).1 hk)
+      have hc : st.compacted = false := by
+        cases hc : st.compacted
+        · rfl
+        · have := ((hok.st_flags k st h1).1 hc).1; rw [this] at hws; cases hws
+      simp [hc]
+    · rw [hrel.st_rest k (by rw [htk]; exact hk)]
   have hlive : ∀ k, (notifyState σ N STi Wsi Bv Out vs' vm).live k ↔ σ.live k := by
     intro k
     unfold WsState.live
     rw [hvo k]
-    show (Wsi !! k).isSome = true ∨ (σ.Wu !! k).isSome = true ∨ ((σ.victimOf k).or (Bv !! k)).isSome = true ↔ _
-    rw [hWsi k]
+    show (Wsi !! k).isSome = true ∨ (σ.Wu !! k).isSome = true ∨ ((σ.victimOf k).or (Bv !! k)).isSome = true ∨
+      (STi !! k).any _ = true ↔ _
+    rw [hWsi k, hcmp k]
     cases hb : Bv !! k with
     | none => simp
     | some B =>
@@ -639,7 +654,8 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
         rw [h] at h2; cases h2
         obtain ⟨hc, hv, hch⟩ := hok.st_flags w st h1
         have hws : (σ.Ws !! w).isSome := hBtWs w ((hkeys w).1 hk)
-        refine ⟨hc, fun _ => ?_, hch⟩
+        refine ⟨fun hc' => ?_, fun _ => ?_, hch⟩
+        · have := ((hc hc').1); rw [this] at hws; cases hws
         rw [hok.ws_v w hws]; simp
       · rw [hrel.st_rest w (by rw [htk]; exact hk)] at h
         obtain ⟨hc, hv, hch⟩ := hok.st_flags w st' h
@@ -648,7 +664,9 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
           | none => rfl
           | some _ => exact absurd (hBvkeys w (by rw [hb]; rfl)) hk
         rw [hb]
-        refine ⟨hc, fun hl => ?_, hch⟩
+        refine ⟨fun hc' => ⟨?_, by rw [Option.or_none]; exact (hc hc').2⟩, fun hl => ?_, hch⟩
+        · show Wsi !! w = none
+          rw [hWsi w, hb]; exact (hc hc').1
         rw [Option.or_none]; exact hv hl
     · exact hok.wo_flags
     · intro w γw ed hw hM hed

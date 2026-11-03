@@ -1,115 +1,75 @@
 ---
-upstream: none
-checked: 2026-10-26
+upstream: known
+checked: 2026-11-01
 links:
+  - etcd-io/etcd#22673 issue open: this bug, filed by someone else 2026-10-30 (with the retained-pending consequence, nonissues/etcd-watch-canceled-pending-retained.md)
+  - etcd-io/etcd#22674 pr open: failing tests for #22673 (no fix)
   - etcd-io/etcd#21880 pr open: grpc-proxy honors the client's WatchId (#12819); related, not a fix: with it the bug would also reach clients behind the proxy
-  - etcd-io/etcd#21065 pr open: in-process watch deadlock when recvLoop blocks (#18879, #20716); related, not a fix: why the candidate's creates wait only on streams with client-chosen ids
-candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
+  - etcd-io/etcd#21065 pr open: in-process watch deadlock when recvLoop blocks (#18879, #20716); related, not a fix: why our fix's creates wait only on streams with client-chosen ids
+blocks-proof: no
 ---
 
-# A reused watch id can deliver the canceled watcher's events on the new watch
+# watch: a watch created with the ID of a canceled watch receives the canceled watch's queued events
 
-- **Status**: bug, reproduced (2026-10-16 at upstream `main` b25719d10; again 2026-10-18 at
-  22cc5d9ac; again 2026-10-21 at bf9cadf04) by the integration test `TestV3WatchReuseCanceledID` on
-  the fork branch `fix/etcd-watch-id-reuse-stale-events` (the upstream candidate): one raw watch
-  stream, watch id 1 on `a`, twenty 50 KiB puts of `a` while the client does not read (gRPC flow
-  control holds them in mvcc's channel), cancel (the test waits for the member's watcher count to
-  drop), re-create id 1 on `b` from the next revision, put `b`: the new watch receives 9-15 events of
-  `a` before `b` (failed 80 of 80 runs at bf9cadf04). The auto-assigned-id variant below is
-  reproduced too (2026-10-21, a scratch copy of the test: 10 of 10 failed).
-- **Where**: `server/etcdserver/api/v3rpc/watch.go` at the pinned revision (`upamanyus/etcd`
-  `bc8b52a50`): `serverWatchStream.sendLoop`, the buffering of a response whose id is not
-  announced (lines 470–476: `pending[wresp.WatchID] = append(...)`), the cancel case
-  (534–537: `delete(ids, wid)`, the id's buffered responses kept), the created case (538–552:
-  `pending[wid]` flushed to the client); `recvLoop`'s create with a client-chosen `WatchId`
-  (`WatchCreateRequest.watch_id`, documented: "If watch_id is provided and non-zero, it will be
-  assigned to this watcher").
-- **What happens**: the mvcc watch stream's channel is shared by all watchers of a gRPC stream,
-  and `sendLoop` takes responses from it and from the control stream in either order (`select`).
-  A client that cancels its watch `X` and creates a new watch with the same explicit id `X`:
-  1. `recvLoop` cancels the mvcc watcher and queues the canceled response; responses of the old
-     watcher already in the mvcc channel stay there;
-  2. `sendLoop` may take the canceled response first: `delete(ids, X)`; it then takes the old
-     watcher's responses: `X` is not announced, so they are buffered in `pending[X]`;
-  3. the new create with id `X` succeeds in mvcc (the old watcher is gone) and its created
-     response is sent; `sendLoop` flushes `pending[X]`: the old watcher's events reach the client
-     on the new watch `X`, after its created response, with revisions that may be below the new
-     watch's start revision and outside its range.
+On one watch stream, a client that cancels watch X and creates a new watch with the same ID X (set by
+the client, or assigned by the member when an earlier explicit ID is reused) can receive, on the new
+watch, events of the canceled watch that were still queued at the member: events of another key, at
+revisions below the new watch's start.
 
-  The client cannot tell them apart (the response carries only the id).
+**Reproduction:** `TestV3WatchReuseCanceledID` in
+[`issues/etcd-watch-id-reuse-stale-events/watch_reuse_canceled_id_test.go`](etcd-watch-id-reuse-stale-events/watch_reuse_canceled_id_test.go),
+copied into `tests/integration/clientv3/watch` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3 linux/amd64. Over one
+raw watch stream: watch 1 on `a`, twenty 50 KiB puts of `a` without reading, cancel 1, create 1 on
+`b` from the next revision, put `b`.
 
-  `sendLoop` buffers a response whose id is not announced under that id, and flushes the
-  buffer when the id's created response goes out. The cancel case removes the id from `ids` but
-  leaves `pending[id]`:
+```
+$ go test ./integration/clientv3/watch/ -run '^TestV3WatchReuseCanceledID$' -count=1
+--- FAIL: TestV3WatchReuseCanceledID (0.19s)
+    watch_reuse_canceled_id_test.go:85:
+        	Error:      	Not equal:
+        	            	actual  : []string{"a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "b"}
+        	Messages:   	events received after watcher 1 was created on b
+FAIL
+```
 
-  ```go
-  // server/etcdserver/api/v3rpc/watch.go:470-476 and 534-552 (etcd main f061acd09)
-  			if wresp.WatchID != clientv3.InvalidWatchID {
-  				if _, okID := ids[wresp.WatchID]; !okID {
-  					// buffer if id not yet announced
-  					wrs := append(pending[wresp.WatchID], wr) // <-
-  					pending[wresp.WatchID] = wrs
-  					continue
-  				}
-  	// ...
-  			if c.Canceled && wid != clientv3.InvalidWatchID {
-  				delete(ids, wid) // <- pending[wid] is kept
-  				continue
-  			}
-  			if c.Created {
-  				// flush buffered events
-  				ids[wid] = struct{}{}
-  				for _, v := range pending[wid] { // <-
-  					mvcc.ReportEventReceived(len(v.Events))
-  					if err := sws.gRPCStream.Send(v); err != nil {
-  	// ...
-  					}
-  				}
-  ```
+## Proof
 
-  **Variant** (2026-10-15, unit W-M; reproduced 2026-10-21): the same reuse happens without a
-  second explicit id (explicit 1 canceled, then two creates without an id get 0 and 1). mvcc's
-  `watchStream.Watch` with `AutoWatchID` skips only the ids live on the stream (`for
-  ws.watchers[ws.nextID] != nil { ws.nextID++ }`), so an explicit id `X` at or above `nextID`
-  that was canceled can later be assigned automatically to a new watch, whose created response
-  then flushes the canceled watcher's buffered responses as above. A stream on which every
-  create uses `AutoWatchID` (etcd's client: `toPB` sets no `WatchId`) never reuses an id: mvcc's
-  `idAssigned_agree` (an assigned id names one watcher for good; `notes/status-history.md`, "W-M").
+no: `sendLoop`'s proof attributes each mvcc response to its watcher, not to its ID
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WatchSendModel.lean`), and the client hop does
+not identify a watch by its ID across a cancel; the Go client never sets `WatchId`.
 
-  ```go
-  // server/storage/mvcc/watcher.go:128-136 (etcd main f061acd09)
-  	if id == clientv3.AutoWatchID {
-  		for ws.watchers[ws.nextID] != nil { // <- skips only live ids
-  			ws.nextID++
-  		}
-  		id = ws.nextID
-  		ws.nextID++
-  	} else if _, ok := ws.watchers[id]; ok { // <- a canceled id is accepted again
-  		return -1, ErrWatcherDuplicateID
-  	}
-  ```
-- **Expected**: the documentation says nothing of id reuse; a client re-creating a watch with
-  the same id expects only the new watch's events after its created response.
-- **How the proof handles it**: nothing is assumed: `sendLoop`'s proof attributes each mvcc
-  response to its watcher, not to its id (`WatchRespM.src`, `mvccOk` over `r.w`;
-  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WatchSendModel.lean`'s `send_claim`
-  orders each watcher's responses, whatever ids they share). A client of `watchStreamSpec` must
-  not identify a watch by its id across a cancel (the client hop, `notes/status-history.md`, "The watch
-  slice").
-- **Possible fixes**: dropping `pending[X]` on a cancel (`delete(pending, X)` with the
-  `delete(ids, X)`) is not enough: tried on the reproduction, it still fails 10 of 10, since most of
-  the old watcher's responses are taken from mvcc's channel after the new created response, when `X`
-  is announced again, and are sent directly. The upstream candidate drops a canceled watcher's
-  responses taken after its canceled response, and, on a stream where some create has set
-  `WatchId`, makes each create in `recvLoop` wait until `sendLoop` has taken the responses queued
-  when the last earlier cancel was taken (at most the channel's 128); a stream with only automatic
-  ids never reuses one, and a wait there would risk the in-process deadlock of etcd-io/etcd#20716
-  (`issues/upstream/etcd-watch-id-reuse-stale-events/meta.md` has the costs and the alternatives:
-  tagging mvcc's responses with the watcher, rejecting a create of a canceled id). Documentation instead
-  (2026-10-23, the user's review: a stream uses either automatic or explicit ids, and never reuses a
-  canceled one): decided against as the fix, since the server breaks what `rpc.proto` already promises
-  and today's text allows the reuse; asked in the issue as questions, with the documentation-only
-  shape ready if the maintainers prefer it (the candidate's `meta.md`, "If a reviewer asks"). Also noticed:
-  [etcd-watch-canceled-pending-retained](nonissues/etcd-watch-canceled-pending-retained.md).
-- **Found**: 2026-10-14, the watch slice's unit W-S (`sendLoop`'s proof: the per-id model of the
-  buffering, `SendInv`).
+## Fix
+
+**Branch**: `fix/etcd-watch-id-reuse-stale-events` in `~/etcd-fixes/etcd-watch-id-reuse-stale-events` (upamanyus/etcd, not pushed; the fork has the older 97aa6191d under this name): d6f96d4cb test, 2e9028084 fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
+
+**PR draft**:
+
+Title: etcdserver: do not send a canceled watcher's events to a reused watch ID
+
+`sendLoop` takes mvcc's watch responses and the created and canceled responses in either order ([L433-L435](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L433-L435), [L514](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L514)). It buffers a response whose watch ID is not announced until that ID's created response ([L470-L476](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L470-L476), [L538-L553](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L538-L553)), assuming, as its comment says, that the ID is "not yet announced". After a cancel ([L534-L537](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/watch.go#L534-L537)), the ID's queued responses are the canceled watcher's, and a new watcher with that ID receives them. This PR drops a canceled watcher's queued responses and, on a stream where the client has set a watch ID, makes a create wait until they are taken.
+
+Fixes #22673
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+This PR changes `sendLoop`, as the fix of the progress-response ordering issue (a progress response overtaken by a created response) does; whichever merges second needs a rebase in which every response taken from the watch channel, including those taken before a created response, is counted and checked for a canceled watcher. I can combine both fixes in one PR if you prefer.
+
+**If a reviewer asks**: dropping `pending[X]` on cancel alone is not enough (still fails 10 of 10:
+most stale responses are taken after the new created response and sent directly). Creates wait only
+on streams where the client has set `WatchId`, because a wait on every stream would bring back the
+in-process deadlock of #20716. Alternatives: tag mvcc responses with the watcher (changes mvcc's
+`WatchStream` API), reject a create of a draining ID (the client cannot know when to retry), or a
+documentation-only rule in `rpc.proto` (a stream sets `watch_id` on every create or on none, and
+never reuses a canceled one), which the user suggested on 2026-10-23 and the issue draft asked the
+maintainers about. The sibling PR is
+[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)'s; the merge resolution
+is the local branch `merge/etcd-watch-progress-and-id-reuse` (`e970b7079`).
+
+## Notes
+
+#22673 was filed by someone else after our draft was ready; our branch can go up as the fix PR for
+it. The Go client and `etcdctl` never set `WatchId`, so Kubernetes is not affected; a stream mixing
+an explicit ID with automatic ones can get the canceled ID reassigned by the member (mvcc's
+`nextID` skips only live IDs), reproduced 10 of 10 on 2026-10-21 with a scratch variant of the test.

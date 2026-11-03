@@ -9,7 +9,7 @@ lessor's KV-facing methods are translated with bodies).
 
 As in those, the package facts are assumptions about package initialization, not proved from
 `initialize'`: `leaseInit` states what the proved methods read: the error variables
-`ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (`errors.New(...)`: each a fixed
+`ErrNotPrimary` (2026-11-01), `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (`errors.New(...)`: each a fixed
 leaf pointer error whose `Error()` returns, `leaseErrVar`, the shape of the apply package's
 `errVarLeaf`; 2026-10-13, unit 9: before, `ErrLeaseNotFound` was only a fixed value), the
 variable `forever` (`time.Time{}`, read-only), and the metrics (`metrics.go`: `leaseGranted` and
@@ -132,7 +132,8 @@ instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (G
 /-- The lessor package's facts: the error variables `ErrLeaseNotFound`, `ErrLeaseExists`,
 `ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
 `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`; `ErrLeaseNotFound`'s message
-cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`). -/
+cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`); `ErrNotPrimary`
+(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it). -/
 abbrev leaseInit : IProp GF :=
   iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
     leaseErrVar ErrLeaseTTLTooLarge ∗
@@ -141,7 +142,7 @@ abbrev leaseInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
-    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found")
+    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗ leaseErrVar ErrNotPrimary)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

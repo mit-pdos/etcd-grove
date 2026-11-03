@@ -65,7 +65,7 @@ enough to hold of the real ones:
 **`correctness.Model` is wrong on that path (2026-10-22, D30g).** On a no-op update of
 non-canonical or stale data the store rewrites the object at a new resource version, as its
 own unit test requires, while the Model skips the write and rejects the response
-(`issues/k8s-correctness-model-noop-rewrite.md`, reproduced). Decided (D30g):
+(`nonissues/k8s-correctness-model-noop-rewrite.md`, reproduced). Decided (D30g):
 - The Lean model's items carry a bit `canon` (the stored value is the codec's current encoding
   and not stale), and `update` writes unless the object is unchanged and `canon` holds. This is
   the store's rule, and the generic specs are stated with it. On states whose items are all
@@ -319,7 +319,7 @@ the server repair's (Stage P), not this plan's.
 Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c and 7d with 7e
 (stale lists are the traffic needing them), 7f, 7g. The specs' statements for 7b are under review
 (2026-11-01, the `spec` skill: a cached object needs a witness of what the key held at its resource
-version, `issues/k8s-etcd3-cached-object-trusted-at-current-rv.md`; preconditions answer the model's
+version, `nonissues/k8s-etcd3-cached-object-trusted-at-current-rv.md`; preconditions answer the model's
 own error).
 
 ## What blocks where

@@ -163,7 +163,8 @@ theorem Cache.get.wp_proof
   · iframe Hctx Hopts HRB
     ipureintro
     refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
-      (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      cacheGet_size Hpfx⟩
     rintro ⟨-, h⟩
     simp [op_simps] at h
   iunfold kvGetResultC at Hres
@@ -199,7 +200,7 @@ theorem Cache.get.wp_proof
       iframe Hreach
       iright; iexact Hlbr
     wp_auto
-    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)
+    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)
       (monoNatAuthOwn cf.γb 1 (sint.nat r)) kvsSl m DFrac.discard r
       $$ [$HisStore $HisStoreW $HKsl $HkvsAt $Ha] as ⟨-, Ha, #Hlb, #Hslb⟩
     · isplitr
@@ -209,7 +210,9 @@ theorem Cache.get.wp_proof
         unfold etcdCert
         rw [restoreMap_sorted m Hsorted]
         iexact Hm
-      iexact HRr
+      isplitr
+      · iexact HRr
+      · imodintro; iapply cacheGap_nil cf.pfx r _ (Int.le_refl _)
     iapply HΦ
     iright
     isplitr

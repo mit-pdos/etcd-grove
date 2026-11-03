@@ -37,6 +37,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "MemberListRequest",
   "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
   "LeaseCheckpoint", "LeaseCheckpointResponse",
+  # the lease-read plan (2026-10-31): `LeaseTimeToLive` reads its request's `ID` and `Keys`,
+  # `LeaseLeases` builds its response; `leaseTimeToLive`'s contract states its response's `Header`
+  "LeaseTimeToLiveRequest", "LeaseTimeToLiveResponse", "LeaseLeasesResponse", "LeaseStatus",
   "AlarmRequest", "AlarmResponse", "AlarmMember", "AlarmRequest_GET", "AlarmRequest_ACTIVATE",
   "AlarmRequest_DEACTIVATE", "AlarmType_NONE", "AlarmType_CORRUPT",
   "AuthEnableResponse", "AuthDisableResponse", "AuthStatusResponse", "AuthenticateResponse",
@@ -79,6 +82,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "KV_Range_FullMethodName",
   # the vertical slice's unit V2: the stub's `DeleteRange` and `Txn` (their method names below)
   "kVClient.DeleteRange", "kVClient.Txn",
+  # the client's `kv.Compact` (2026-11-01): the stub's `Compact`, the server's handler and the
+  # method name
+  "kVClient.Compact", "_KV_Compact_Handler", "KV_Compact_FullMethodName",
   # unit P3b (the server end of the gRPC boundary): the generated server-side handlers of the KV
   # service's unary methods (`rpc_grpc.pb.go`: decode, then the interceptor or the service's
   # method) and their method names; the registration `RegisterKVServer` and its `ServiceDesc`
@@ -123,7 +129,14 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "_Auth_UserAdd_Handler", "_Auth_UserGrantRole_Handler", "_Auth_RoleAdd_Handler",
   "_Auth_RoleGrantPermission_Handler", "_Auth_AuthEnable_Handler",
   # the auth plan's C1 phase 2 (2026-10-28): the stub's `Authenticate` (a user client's token)
-  "authClient.Authenticate", "Auth_Authenticate_FullMethodName"]
+  "authClient.Authenticate", "Auth_Authenticate_FullMethodName",
+  # C1's A5 (2026-10-31): the generated server-side handler of `Authenticate`
+  "_Auth_Authenticate_Handler",
+  # the closed lease example (2026-11-02): the Lease stub's two reads, their method names and
+  # handlers, the request of `Leases` and the getters the client reads
+  "leaseClient.LeaseTimeToLive", "leaseClient.LeaseLeases", "Lease_LeaseTimeToLive_FullMethodName",
+  "Lease_LeaseLeases_FullMethodName", "_Lease_LeaseTimeToLive_Handler", "_Lease_LeaseLeases_Handler",
+  "LeaseLeasesRequest", "LeaseTimeToLiveResponse.GetHeader", "LeaseLeasesResponse.GetHeader"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

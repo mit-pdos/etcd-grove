@@ -33,7 +33,7 @@ theorem NewWatcher.wp_proof
     (wp_NewWatchClient : NewWatchClient.spec (GF := GF) (hG := hG))
     (wp_NewWatchFromWatchClient : NewWatchFromWatchClient.spec (GF := GF) (hG := hG)) :
     NewWatcher.spec (GF := GF) (hG := hG) := by
-  intro V c callSl vs
+  intro _ V c callSl vs
   wp_start as ⟨%Hc, #Hconn, #Hco, #Hvs, #Hok, #Hlg⟩
   wp_auto
   wp_apply wp_NewWatchClient as %v ⟨%wc, %Hv, #Hcc⟩

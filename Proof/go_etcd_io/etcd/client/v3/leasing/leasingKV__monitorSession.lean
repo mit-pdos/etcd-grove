@@ -36,7 +36,7 @@ theorem leasingKV.monitorSession.wp_proof
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, %Hbound⟩
+    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   ihave #Hctx' : iprop(context.isContextDef lctx lcs) $$ [Hlctx]
   · iexact Hlctx
   unfold context.isContextDef

@@ -36,6 +36,7 @@ public import Spec.time.Duration__String_ptr
 public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -190,19 +191,19 @@ local macro "cnt_inc" : tactic => `(tactic| (
 set_option hygiene false in
 /-- A log call's fields and the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hGetIndex pm (DFrac.own 1) sn.Metadata' $$ [Hsm] as Hsm; iframe; iframe #)
-    | (wp_apply hIDStringPtr _ DFrac.discard hv.localID' as %_ ⟨-, %_⟩; iframe #)
-    | (wp_apply hZUint64 as %_ -)
+  repeat' (first_callee
+    | "GetIndex" => (wp_apply hGetIndex pm (DFrac.own 1) sn.Metadata' $$ [Hsm] as Hsm; iframe; iframe #)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard hv.localID' as %_ ⟨-, %_⟩; iframe #)
+    | "zap.Uint64" => (wp_apply hZUint64 as %_ -)
     | (wp_apply hZInt as %_ -)
-    | (wp_apply hZInt64 as %_ -)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
-    | (wp_apply hBytes as %_ -)
+    | "zap.Int64" => (wp_apply hZInt64 as %_ -)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
+    | "go_humanize.Bytes" => (wp_apply hBytes as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Info" => (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Warn" => (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
     | wp_auto)))
 
 set_option hygiene false in

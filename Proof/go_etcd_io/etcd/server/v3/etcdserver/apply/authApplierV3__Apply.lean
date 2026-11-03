@@ -30,7 +30,7 @@ theorem apply.authApplierV3.Apply.wp_proof
     (hNA : apply.needAdminPermission.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.Apply.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq skip v3 af A B
-  wp_start as ⟨#Hauth, #Hinner, #Hw, HA, #Haf⟩
+  wp_start as ⟨#Hauth, #Hinner, #Hw, HA, #Hlend, #Haf⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -46,14 +46,14 @@ theorem apply.authApplierV3.Apply.wp_proof
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApplyI⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApplyI, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
   icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, -, ⟨%hl, #HH, #Hhdr⟩, -⟩
-  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo, Hard⟩
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo⟩
   iunfold apply.authInfoIdle at Hinfo
   wp_join iprop(structFieldRef authApplierV3 go!"authInfo" p ↦ apply.principalOf rq ∗ aa_ptr ↦ p ∗
       r_ptr ↦ r)
@@ -97,6 +97,8 @@ theorem apply.authApplierV3.Apply.wp_proof
     · iframe Hw
       isplitl [HA Hinfo]
       · iframe HA Hinfo
+      isplitr
+      · iapply apply.rdLend_frame; iexact Hlend
       imodintro
       iintro %Φ'' ⟨Hres, HA, Hi⟩ HΦ''
       ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
@@ -120,9 +122,8 @@ theorem apply.authApplierV3.Apply.wp_proof
         iright; iframe; ipureintro; exact h
     icases Hi with ⟨%info2, Hinfo⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; cases info2; rfl) | (congr 1; cases info2; simp [zeroValDef])
@@ -136,7 +137,11 @@ theorem apply.authApplierV3.Apply.wp_proof
       cases h.2
     · iright; iframe; ipureintro; first | rfl | (rw [hna] at h; exact h)
   wp_auto
+  ihave #Hlend' := Hlend
+  iunfold apply.rdLend at Hlend'
+  ihave ⟨Hard, HAb⟩ := Hlend' $$ HA
   wp_apply HAdmin $$ [$Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -, #Hadm⟩
+  ihave HA := HAb $$ Hard
   cases err with
   | nil =>
     wp_auto
@@ -147,6 +152,8 @@ theorem apply.authApplierV3.Apply.wp_proof
     · iframe Hw
       isplitl [HA Hinfo]
       · iframe HA Hinfo
+      isplitr
+      · iapply apply.rdLend_frame; iexact Hlend
       imodintro
       iintro %Φ'' ⟨Hres, HA, Hi⟩ HΦ''
       ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
@@ -170,9 +177,8 @@ theorem apply.authApplierV3.Apply.wp_proof
         iright; iframe; ipureintro; exact h
     icases Hi with ⟨%info2, Hinfo⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; cases info2; rfl) | (congr 1; cases info2; simp [zeroValDef])
@@ -189,9 +195,8 @@ theorem apply.authApplierV3.Apply.wp_proof
     irename «$r0» => Har
     generalize «$r0_ptr» = ar at *
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext
-      iframe Hard
       iunfold apply.authInfoIdle
       iExactEq Hinfo
       first | rfl | (congr 1; simp [zeroValDef])

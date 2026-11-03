@@ -5,6 +5,22 @@
 theorem snapArg_not_null [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s : SnapshotM) :
     snapArg p dq s ⊢ snapArg p dq s ∗ ⌜p ≠ null⌝
 
+def smPtsV (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
+  iprop(∃ pc pi pt uf,
+      "%Hnn" ∷ ⌜p ≠ null ∧ pc ≠ null ∧ pi ≠ null ∧ pt ≠ null⌝ ∗
+        "HC" ∷
+            typedPointsto
+              (structFieldRef raftpb.SnapshotMetadata go!"ConfState" p) pc
+              dq ∗
+          "Hc" ∷ csOptA pc dq md.ConfState' ∗
+            "HI" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Index" p) pi dq ∗
+              "#cI" ∷ cellRO pi md.Index' ∗
+                "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" p) pt dq ∗
+                  "#cT" ∷ cellRO pt md.Term' ∗ "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
+
+theorem ownSnapV_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapV p dq s ⊢ |==> ownSnapV p DFrac.discard s
+
 def csSet (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
   iprop(csPts p dq c true ∨ csPts p DFrac.discard c true)
 
@@ -21,11 +37,24 @@ def smPtsS (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
                 "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" p) pt dq ∗
                   "#cT" ∷ cellRO pt md.Term' ∗ "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
 
+theorem smPtsV_smPts [package_sem : Assumptions] (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPtsV p dq md ⊢ smPts p dq md
+
 def snapArg (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
   iprop(⌜dq = DFrac.own 1⌝ ∗ ownSnapM p dq s ∨ ownSnapS p dq s)
 
 theorem smPtsS_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
     smPtsS p dq md ⊢ |==> smPtsS p DFrac.discard md
+
+def ownSnapV (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
+  iprop(∃ ds pm uf,
+      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot go!"Data" p) ds dq ∗
+          "Hd" ∷ ownSlice ds s.Data' dq ∗
+            "HM" ∷
+                typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" p) pm
+                  dq ∗
+              "Hm" ∷ smPtsV pm dq s.Metadata' ∗ "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
 
 theorem wp_Snapshot_GetMetadata_S [package_sem : Assumptions] (sp : Loc) (dq : DFrac) (sv :
     SnapshotM) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownSnapS sp dq sv -∗ (▷ ∀ pm,
@@ -36,11 +65,16 @@ theorem wp_Snapshot_GetMetadata_S [package_sem : Assumptions] (sp : Loc) (dq : D
 theorem smPtsS_not_null [package_sem : Assumptions] (p : Loc) (dq : DFrac) (md : SnapshotMetadataM)
     : smPtsS p dq md ⊢ smPtsS p dq md ∗ ⌜p ≠ null⌝
 
+theorem smPtsV_persistent (p : Loc) (md : SnapshotMetadataM) : Persistent (smPtsV p DFrac.discard
+    md)
+
 theorem csSet_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) : csSet
     p (dq1 • dq2) c ⊢ csSet p dq1 c ∗ csSet p dq2 c
 
 theorem ownSnapS_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (s : SnapshotM) :
     ownSnapS p (dq1 • dq2) s ⊢ ownSnapS p dq1 s ∗ ownSnapS p dq2 s
+
+theorem ownSnapV_persistent (p : Loc) (s : SnapshotM) : Persistent (ownSnapV p DFrac.discard s)
 
 theorem wp_SnapshotMetadata_GetTerm_S [package_sem : Assumptions] (pm : Loc) (dq : DFrac) (md :
     SnapshotMetadataM) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ smPtsS pm dq md -∗ ▷
@@ -105,6 +139,12 @@ theorem ownSnapS_rest_of_parts [package_sem : Assumptions] (sp pm pc pi pt : Loc
     typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" pm) pt (dq1 • dq2) ∗ cellRO pt
     sv.Metadata'.Term' ∗ pbMsg raftpb.Snapshot sp uf ∗ pbMsg raftpb.SnapshotMetadata pm ufm ∗ csPts
     pc DFrac.discard sv.Metadata'.ConfState' true ⊢ ownSnapS sp dq1 sv ∗ snapRest sp pm pc dq2 sv
+
+theorem smPtsV_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPtsV p dq md ⊢ |==> smPtsV p DFrac.discard md
+
+theorem ownSnapV_M [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s : SnapshotM) : ownSnapV p
+    dq s ⊢ ownSnapM p dq s
 
 theorem csSet_A [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) : csSet p dq c ⊢
     csOptA p dq c

@@ -33,8 +33,8 @@ theorem checkOperations.wp_proof
     (wp_makeEntries : makeEntries.spec (GF := GF) (hG := hG))
     (wp_checkParallel : checkParallel.spec (GF := GF) (hG := hG)) :
     checkOperations.spec (GF := GF) (hG := hG) := by
-  intro σ S m sl ops dq verbose dur Hops
-  wp_start as ⟨#Hcci, #Hm, Hsl, #Hio⟩
+  intro σ S m sl ops dq verbose dur
+  wp_start as ⟨#Hcci, #Hm, Hsl, #Hio, %Hops⟩
   wp_auto
   wp_apply wp_fillDefault σ S m $$ [$Hm] as %m' ⟨#Hmf, #Hpart⟩
   iunfold noPartitionSpec at Hpart
@@ -102,8 +102,10 @@ theorem checkOperations.wp_proof
         · iapply BigSepL.bigSepL_nil.2; iempintro
       iapply HΦ
       ipureintro
-      intro Hlin
-      exact Hr (fun h hh => by simp at hh; subst hh; exact Hlin)
+      have Hone : (∀ h ∈ [histOf ops], Linearizable S.M h) ↔ Linearizable S.M (histOf ops) := by
+        simp
+      rw [Hone] at Hr
+      exact Hr
 
 end proof
 

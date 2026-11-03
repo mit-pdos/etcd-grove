@@ -31,7 +31,7 @@ abbrev rafthttp.Transport.Handler.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (a : GoString),
   (netRh γn).owner a = c.lid → (∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ c.L) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trState γn t c ∗ trOpened c }}
+      trState γn t c }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
   {{ (h : GoInterface), RET #h;
       http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ trTok γn t c) h }}

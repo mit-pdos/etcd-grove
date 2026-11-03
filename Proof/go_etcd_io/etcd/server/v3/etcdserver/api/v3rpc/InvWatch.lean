@@ -236,6 +236,14 @@ theorem isWatchServer_noCompactor_env (p : Loc) (R : WSrv GF) (h : R.E.γ.cm = f
   ihave %hl := isWatchServer_link p R $$ H
   iapply isWatchServer_noCompactor p R (by rw [hl]; exact h) $$ H
 
+/-- **The server's fact for watches, of a store that does not compact** (`watchNoDup`'s first arm;
+watches across a compaction, D7). -/
+theorem isWatchServer_watchNoDup_env (p : Loc) (R : WSrv GF) (h : R.E.γ.cm = false) :
+    isWatchServer p R ⊢ mvcc.watchNoDup R.γ.st := by
+  iintro #H
+  ihave #Hn := isWatchServer_noCompactor_env p R h $$ H
+  iunfold mvcc.watchNoDup; ileft; iexact Hn
+
 /-! ## The client's restrictions and budget -/
 
 /-- **What the client's content of a request gives the server** (persistent): the request is
@@ -243,12 +251,13 @@ restricted (`watchReqOk`) and, for a create request, comes with a watch token of
 (`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends), (G2's
 freeze, 2026-10-30) the client's bound on the auth store's published index in the server's mode `M`
 (`authPubLbM M c.bound`, `watchUp`'s: what `recvLoop` checks the create at), and (M2, the storage
-side, 2026-10-30: review round 1's F1, the user's: no watchers in compaction mode) the "no
-compactor" fact (`mvcc.noCompactor γ.st`, the create token's in mvcc's watch parameters). -/
+side, 2026-10-30; watches across a compaction, D7, 2026-11-01) the store's fact for watches
+(`mvcc.watchNoDup γ.st`: no compactor, or no revision writing a key twice; the create token's in
+mvcc's watch parameters). -/
 def upOk (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound ∗ mvcc.noCompactor γ.st
+     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound ∗ mvcc.watchNoDup γ.st
      | _ => iprop(True)))
 
 instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) :
@@ -259,13 +268,13 @@ instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → W
 gives with each request, `Up` of the registered method): the request is restricted
 (`watchReqOk`) and a create request comes with a watch token of the store, (G2, 2026-10-30) the
 client's bound on the auth store's published index (`authPubLbM` of the create's ghost `bound`,
-at the server's mode: the check is fresh at it), and (M2, the storage side) the "no compactor"
-fact. -/
+at the server's mode: the check is fresh at it), and (M2, the storage side; D7) the store's fact
+for watches (`mvcc.watchNoDup`). -/
 def watchUp (R : WSrv GF) (_i : Nat) (m : WatchReqM) : IProp GF :=
   iprop(⌜watchReqOk m⌝ ∗
     (match m with
      | .create c => mvcc.watchTok R.γ ∗ □ auth.authPubLbM R.E.authMode c.bound ∗
-         mvcc.noCompactor R.γ.st
+         mvcc.watchNoDup R.γ.st
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/

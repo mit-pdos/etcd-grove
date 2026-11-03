@@ -241,9 +241,12 @@ theorem backend.newBackend.wp_proof
   iexists «$r0_ptr», γ
   isplitr
   · ipureintro; rfl
-  unfold newPostK
-  iframe Hb
-  iexact Hpost
+  isplitl
+  · unfold newPostK
+    iframe Hb
+    iexact Hpost
+  unfold hooksAt
+  iexact hooks
 
 end proof
 

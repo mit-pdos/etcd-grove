@@ -65,8 +65,8 @@ theorem newClient.wp_proof
     (wp_Close : Client.Close.spec (GF := GF) (hG := hG))
     (wp_NewBundle : credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
-  intro p cfg eps V P
-  wp_start as ⟨#Hp, #Hcfg, #Hauth, %HV⟩
+  intro _ p cfg eps V P
+  wp_start as ⟨#Hp, #Hcfg, #Hauth⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
@@ -157,8 +157,8 @@ theorem newClient.wp_proof
         · exact hu h
         · exact hp h
       · ipureintro; exact Hrb
+    haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Hrb⟩
     wp_apply wp_NewBundle P $$ [] as %atb #Hb
-    · ipureintro; exact Hrb
     (try wp_auto)
     wp_join_done
     iexists _, _, atb
@@ -246,12 +246,9 @@ theorem newClient.wp_proof
     wp_apply wp_NewLease «$r0_ptr» conn $$ [$Hcore $HkvS] as %vl ⟨%lp, %Hvl, #HlpS⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
-    have Htb := HV
     wp_apply wp_NewWatcher { V with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
-    · isplitr
-      · ipureintro; exact Hcnn
-      ipureintro; exact Htb
+    · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
     wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
     subst Hvkv Hvl Hva
@@ -273,10 +270,12 @@ theorem newClient.wp_proof
       · ileft; ipureintro; exact Hup
       · obtain ⟨rfl, rfl⟩ := Hupc
         iunfold clientAuthPre at Hauth
-        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg⟩)
+        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg, %Hsz⟩)
         · ileft; ipureintro; exact Hup
         · iright
           iframe Hall Hreg
+          isplitl []; rotate_left
+          · ipureintro; exact Hsz
           iapply tokenBundleInv_nn
           iexact Hb
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []

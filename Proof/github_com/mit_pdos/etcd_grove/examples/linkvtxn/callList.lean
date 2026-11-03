@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.linkvtxn go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -71,7 +71,9 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf' Hg; subst Hf' Hg; iexact Hf
     · simp at Hf'
   (try wp_auto)
-  wp_apply (client_List_st cl ms V cctx ccd _ Q) $$ []
+  wp_apply (client_List_st cl ms V cctx ccd _ Q
+      (opSizeOk_opGetModel (K := inMax) (E := inMax) (V := 0)
+        (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide))) $$ []
     as %resp %err Hout
   · iframe #
   -- `cancel()`

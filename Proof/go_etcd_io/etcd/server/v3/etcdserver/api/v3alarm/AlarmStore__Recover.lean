@@ -31,8 +31,8 @@ instance (priority := high) alarmStore_typeRepr_u' :
 theorem v3alarm.AlarmStore.Recover.wp_proof
     (hR : v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG)) :
     v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) := by
-  intro a be0 abl lg be γB P W Pk qo r
-  wp_start as ⟨#Ha, Hon, #Hbb, #Hbl, %Hlgnn, #HB, Ho, Hwb, Hrb, %Hr⟩
+  intro a be0 abl lg be γB P W Pk qo S r hS hRB hhas
+  wp_start as ⟨#Ha, Hon, #Hbb, #Hbl, %Hlgnn, #HB, Ho, Hwb, Hpl, Htk, Hrb, %Hr⟩
   iunfold isAlarmStore at Ha
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -43,9 +43,19 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   iunfold alarmLockInv at HR
   icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
   iunfold alarmBeOn at Hon
-  icases Hon with ⟨%abl0, %lg0, %Hlg0, Hbe', #Hb0, #Hl0⟩
+  icases Hon with ⟨%gm0, Hon⟩
+  iunfold alarmBeOnM at Hon
+  icases Hon with ⟨%abl0, %lg0, %tm0, %Hlg0, Hbe', #Hb0, #Hl0, Htypes', -⟩
   icombine Hbe Hbe' gives %Hab
   subst Hab
+  icombine Htypes Htypes' gives %Htm
+  subst Htm
+  ihave Htypes : alarmTypesAddr a ↦ tm $$ [Htypes Htypes']
+  · have h := ((typedPointsto_dfractional (GF := GF) (alarmTypesAddr a) tm).dfractional
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2
+    rw [DFrac.op_own, Qp.half_add_half] at h
+    iapply h
+    iframe Htypes Htypes'
   ihave Hbe : alarmBeAddr a ↦ alarmBkIface abl0 $$ [Hbe Hbe']
   · have h := ((typedPointsto_dfractional (GF := GF) (alarmBeAddr a) (alarmBkIface abl0)).dfractional
       (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2
@@ -56,13 +66,19 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   wp_apply (wp_map_make1 (K := w32) (V := GoMap)
     go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty v3alarm.alarmSet.ty) as %tm' Hm'
   (try wp_auto)
-  wp_apply hR a abl lg be (DFrac.own 1) γB P W Pk qo r tm' ∅
-    $$ [Hbe Htypes Hm' Ho Hwb Hrb] as %err ⟨%Herr, Hbe, Htypes, Hm', Ho, Hrb⟩
-  · iframe #; iframe Hbe Htypes Hm' Ho Hwb Hrb
+  wp_apply hR a abl lg be (DFrac.own 1) γB P W Pk qo S r tm' ∅ hS hRB hhas
+    $$ [Hbe Htypes Hm' Ho Hwb Hpl Htk Hrb] as %err ⟨%Herr, Hbe, Htypes, Hm', Ho, Hpl, Htk, Hrb⟩
+  · iframe #; iframe Hbe Htypes Hm' Ho Hwb Hpl Htk Hrb
     ipureintro; exact ⟨Hlgnn, Hr⟩
   icases ((typedPointsto_dfractional (GF := GF) (alarmBeAddr a) (alarmBkIface abl)).dfractional
       (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1 $$ [Hbe] with ⟨Hbe, Hbe'⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hbe
+  icases ((typedPointsto_dfractional (GF := GF) (alarmTypesAddr a) tm').dfractional
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1 $$ [Htypes] with ⟨Htypes, Htypes'⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Htypes
+  icases ((ownMap_fractional (GF := GF) (K := w32) (V := GoMap) tm' ∅).fractional
+      (1 : Qp).half (1 : Qp).half).1 $$ [Hm'] with ⟨Hm', Hm''⟩
+  · rw [Qp.half_add_half]; iexact Hm'
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm' Hbe]
   · inext
@@ -73,12 +89,13 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
     itrivial
   (try wp_auto)
   iapply HΦ
-  iframe Ho Hrb
+  iframe Ho Hpl Htk Hrb
   isplitr
   · ipureintro; exact Herr
-  iunfold alarmBeOn
-  iexists abl, lg
-  iframe Hbe' Hbb Hbl
+  iunfold alarmEmpty
+  iunfold alarmBeOnM
+  iexists abl, lg, tm'
+  iframe Hbe' Hbb Hbl Htypes' Hm''
   ipureintro; exact Hlgnn
 
 end proof

@@ -4,7 +4,7 @@
 
 def StartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (hs : HardStateM) (csm : ConfStateM) (Q : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
+    (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -15,31 +15,35 @@ def StartNode.spec : Prop :=
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
                       cv.Applied' = W64 0 →
-                        HsEmpty hs →
-                          csm.Voters' = [] →
-                            csm.VotersOutgoing' = [] →
-                              csm.Learners' = [] →
-                                csm.LearnersNext' = [] →
-                                  csm.AutoLeave' = false →
-                                    vs = List.map Peer.ID' pv →
-                                      ⊢
-                                        ∀ Φ,
-                                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                              typedPointsto c cv (DFrac.own 1) ∗
-                                                isLogger lok ∗
-                                                  bootStorage γ cv.ID' (GoInterface.ok si) hs csm Q ∗
-                                                    ownSlice peers pv dq ∗
-                                                      peersCtx pv ctxs ∗ nodeBoot γ N vs ctxs cv.ID' -∗
-                                            (▷
-                                                ∀ nd,
-                                                  (∃ n,
-                                                      ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                        isNode n γ N cv.ID' ∗
-                                                          nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si)) ∗
-                                                            nodeConfig n γ N
-                                                                { applied := 0,
-                                                                  membership := Membership.simple (listToSet vs) } ∗
-                                                              nodeRunning n γ N 1 ∗ Q ∗ ownSlice peers pv dq) -∗
-                                                    Φ (intoVal nd)) -∗
-                                              WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers))
-                                                {{ Φ }}
+                        csm.Voters' = [] →
+                          csm.VotersOutgoing' = [] →
+                            csm.Learners' = [] →
+                              csm.LearnersNext' = [] →
+                                csm.AutoLeave' = false →
+                                  vs = List.map Peer.ID' pv →
+                                    ⊢
+                                      ∀ Φ,
+                                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                            typedPointsto c cv (DFrac.own 1) ∗
+                                              isLogger lok ∗
+                                                nodeBoot γ N vs ctxs cv.ID' ∗
+                                                  nodeVacant γ cv.ID' ∗
+                                                    AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
+                                                          <{ raftState γ cv.ID' S, COMM Q }> ∗
+                                                      restartStorage γ (GoInterface.ok si)
+                                                          { hs := hsZero, snap := none,
+                                                            base := { term' := W64 0, index' := W64 0 }, ents := [] }
+                                                          csm 0 F ∗
+                                                        ownSlice peers pv dq ∗ peersCtx pv ctxs -∗
+                                          (▷
+                                              ∀ nd,
+                                                (∃ n K,
+                                                    ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                      isNode n γ N cv.ID' ∗
+                                                        nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si) K) ∗
+                                                          nodeConfig n γ N
+                                                              { applied := 0,
+                                                                membership := Membership.simple (listToSet vs) } ∗
+                                                            nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
+                                                  Φ (intoVal nd)) -∗
+                                            WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}

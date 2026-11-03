@@ -138,17 +138,25 @@ theorem view_bound (sn : StorNames) (st : Storage) (σ : StorState) (Bnd : Nat �
       storAuths sn σ -∗ storCompacted st c ={⊤}=∗
       storAuths sn σ ∗ ⌜c ≤ uint.nat σ.fl ∨ c ≤ σ.sg⌝ := by
   unfold storAuths raftBnd
-  iintro #Hb #Hc ⟨Ha, Hg, Hd⟩ #Hcomp
+  iintro #Hb #Hc ⟨Ha, Hg, Hd, #Hcu⟩ #Hcomp
   imod Hb $$ %c Hcomp with HB
-  icases Hc $$ %c HB with ⟨%k, %Hk, (#Hl | #Hl)⟩
+  icases Hc $$ %c HB with (⟨%k, %Hk, (#Hl | #Hl)⟩ | %Hk)
   · icases monoNatLbOwn_valid sn.ga 1 _ _ $$ Ha Hl with ⟨%_, %Hle⟩
     imodintro
-    iframe Ha Hg Hd
+    iframe Ha Hg Hd Hcu
     ipureintro; left; omega
   · icases monoNatLbOwn_valid sn.gg 1 _ _ $$ Hg Hl with ⟨%_, %Hle⟩
     imodintro
-    iframe Ha Hg Hd
+    iframe Ha Hg Hd Hcu
     ipureintro; right; omega
+  · -- (durability stage I-6) the attach record: the floor has caught up with it
+    ihave #Hcu' := Hcu
+    unfold storCaught
+    icases Hcu' with ⟨#Hl, -⟩
+    icases monoNatLbOwn_valid sn.ga 1 _ _ $$ Ha Hl with ⟨%_, %Hle⟩
+    imodintro
+    iframe Ha Hg Hd Hcu
+    ipureintro; left; omega
 
 /-- (U8 v2) The contract's `DL`, read by raft at its view: a valid snapshot at or past the
 compaction point raft holds, of index `i` and term `t`, is one whose term raft certified at `i`
@@ -159,12 +167,20 @@ theorem view_dl (sn : StorNames) (σ : StorState) (i : Nat) (t : w64)
     ⊢ storAuths (GF := GF) sn σ -∗ raftDL sn i t -∗
       storAuths sn σ ∗ ⌜σ.dt.lookup i = some t⌝ := by
   unfold storAuths raftDL
-  iintro ⟨Ha, Hg, Hd⟩ (#Hl | ⟨%k, %Hk, #Hl⟩)
+  iintro ⟨Ha, Hg, Hd, #Hcu⟩ (#Hl | ⟨%k, %Hk, #Hl⟩ | %Hrec)
   · icases ghost_map_lookup $$ Hd Hl with %Hlk
-    iframe Ha Hg Hd
+    iframe Ha Hg Hd Hcu
     ipureintro; exact Hlk
   · icases monoNatLbOwn_valid sn.gg 1 _ _ $$ Hg Hl with ⟨%_, %Hle⟩
     exfalso; omega
+  · -- (durability stage I-6) the attach record: raft certified the recorded terms
+    ihave #Hcu' := Hcu
+    unfold storCaught
+    icases Hcu' with ⟨-, #Hct⟩
+    ihave #Hl := Hct $$ %i %t %Hrec
+    icases ghost_map_lookup $$ Hd Hl with %Hlk
+    iframe Ha Hg Hd Hcu
+    ipureintro; exact Hlk
 
 /-- **The read triples of raft's view, from the contract.** -/
 theorem isStorage_of_V (sn : StorNames) (st : Storage) :

@@ -30,8 +30,8 @@ local macro "else_tail" : tactic => `(tactic| (
     (try wp_method_call)
     (try wp_method_call)
     wp_auto
-    wp_apply wp_toRequestOp v o $$ [] as %p #Hp
-    · iframe #; ipureintro; exact Ht123
+    wp_apply wp_toRequestOp v t $$ [] as %p #Hp
+    · iframe #; ipureintro; exact OpT.txnOp_leaves t op Hto
     wp_apply wp_slice_literal (V := Loc) [p]
     isplitr
     · ipureintro; rfl
@@ -51,14 +51,14 @@ local macro "else_tail" : tactic => `(tactic| (
         List.map_nil]
       iapply reqOpsAt_snoc
       iframe #
-      rw [← leafWire_txnOpOf o op Hto]
+      rw [← OpT.wire_txnOp t op Hto]
       iexact Hp
     ipureintro; constructor <;> word))
 
 theorem txn.Else.wp_proof (wp_isWrite : Op.isWrite.spec (GF := GF) (hG := hG))
     (wp_toRequestOp : Op.toRequestOp.spec (GF := GF) (hG := hG)) :
     txn.Else.spec (GF := GF) (hG := hG) := by
-  intro tp addr ci cd b sl os ops
+  intro tp addr ci cd b sl ts ops
   wp_start as ⟨Htx, #Hos, %Hb⟩
   obtain ⟨Hops, helse⟩ := Hb
   iunfold txnObjAt at Htx
@@ -72,11 +72,11 @@ theorem txn.Else.wp_proof (wp_isWrite : Op.isWrite.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   rw [helse]
   wp_auto
-  iunfold opsAt at Hos
-  icases Hos with ⟨%vs, #Hvss, %Hvl, #Hvsa⟩
+  iunfold opsTAt at Hos
+  icases Hos with ⟨%vs, #Hvss, #Hvsa⟩
+  ihave %Hvl := opListAtC_length false vs ts $$ Hvsa
   ihave %Hsll := ownSlice_len $$ Hvss
-  have Hopl : ops.length = os.length := by
-    have := congrArg List.length Hops; simp at this; omega
+  have Hopl : ops.length = ts.length := OpT.txnOps_length ts ops Hops
   ihave IH : iprop(∃ (n : w64) (ov : go_etcd_io.etcd.client.v3.Op) (iw' : Bool) (fsl' : GoSlice)
       (fps' : List Loc),
       "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ ov ∗ "Hiw" ∷
@@ -95,37 +95,22 @@ theorem txn.Else.wp_proof (wp_isWrite : Op.isWrite.spec (GF := GF) (hG := hG))
   wp_if_destruct
   · have Hlt : sint.nat n < vs.length := by word
     obtain ⟨v, Hvi⟩ : ∃ v, vs[sint.nat n]? = some v := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    obtain ⟨o, Hoi⟩ : ∃ o, os[sint.nat n]? = some o :=
+    obtain ⟨t, Hti⟩ : ∃ t, ts[sint.nat n]? = some t :=
       ⟨_, List.getElem?_eq_getElem (by rw [← Hvl]; exact Hlt)⟩
-    obtain ⟨op, Hopi⟩ : ∃ op, ops[sint.nat n]? = some op :=
-      ⟨_, List.getElem?_eq_getElem (by rw [Hopl, ← Hvl]; exact Hlt)⟩
-    have Hto : txnOpOf o = some op := by
-      have h1 := congrArg (fun l => l[sint.nat n]?) Hops
-      simp only [List.getElem?_map, Hoi, Hopi, Option.map_some] at h1
-      exact Option.some.inj h1
+    obtain ⟨op, Hto, Hopi⟩ := OpT.txnOps_getElem ts ops _ t Hops Hti
     have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len := ⟨Hn.1, by word⟩
     icases ownSlice_elem_acc (sint.Z n) v sl DFrac.discard vs Hn.1 Hvi $$ Hvss
       with ⟨#Hve0, -⟩
-    ihave #Hvo := Hvsa $$ %(sint.nat n) %v %o %Hvi %Hoi
+    ihave ⟨#Hvo, -⟩ := opListAtC_get false vs ts _ v t Hvi Hti $$ Hvsa
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_auto
-    have Ht4 : o.t ≠ W64 4 := txnOpOf_t Hto
-    have Ht123 : o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3 := by
-      unfold txnOpOf at Hto
-      by_cases h1 : o.t = W64 1
-      · exact Or.inl h1
-      · by_cases h2 : o.t = W64 2
-        · exact Or.inr (Or.inl h2)
-        · by_cases h3 : o.t = W64 3
-          · exact Or.inr (Or.inr h3)
-          · rw [if_neg h1, if_neg h2, if_neg h3] at Hto; cases Hto
     cases iw'
     · wp_auto
       wp_method_call
       wp_method_call
       wp_auto
-      wp_apply wp_isWrite v o $$ []
-      · iframe #; ipureintro; exact Ht4
+      wp_apply wp_isWrite v t $$ []
+      · iframe #
       else_tail
     · wp_auto
       else_tail

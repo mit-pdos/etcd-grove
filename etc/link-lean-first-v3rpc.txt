@@ -46,6 +46,12 @@ kvServer__Put: checkPutRequest togRPCError header__fill
 kvServer__DeleteRange: checkDeleteRequest togRPCError header__fill
 kvServer__Txn: checkTxnRequest checkIntervals togRPCError header__fill
 headerFillingRangeStream__Send: header__fillWithoutRevision
+# The lease rows at the gRPC level (notes/lease-grpc-plan.md, 2026-11-01): the unary lease reads,
+# over the contract `raftLeaseRead` (InvLeaseRead.lean; discharged by ServerLeaseRead.lean's
+# `raftLeaseRead_of_server`, Results.lean). Their `errors.Is` is Perennial's, exact over
+# `applyErrIs`'s tree (`applyErrIs_walk`): Go tests `errors.Is(err, ErrLeaseNotFound)` twice.
+LeaseServer__LeaseTimeToLive: =_root_.Perennial.errors.wp_Is togRPCError header__fill
+LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fill
 # Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
 # the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
 # and the server's `Compact`: compaction is out of the model, as in the apply package).
@@ -64,6 +70,7 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # then an axiom), over `utf8.word`.
 _KV_Put_Handler:
 _KV_Range_Handler:
+_KV_Compact_Handler:
 _KV_DeleteRange_Handler:
 _KV_Txn_Handler:
 # The auth plan's E3za: the generated handlers of the Auth service's five admin methods SetUp calls
@@ -73,6 +80,8 @@ _Auth_UserGrantRole_Handler:
 _Auth_RoleAdd_Handler:
 _Auth_RoleGrantPermission_Handler:
 _Auth_AuthEnable_Handler:
+# C1's A5 (2026-10-31): `Authenticate`'s (it clears its decoded request's `Password`).
+_Auth_Authenticate_Handler:
 # Unit W-W (the gRPC stream wire): the generated stream handler of the Watch service
 # (rpc_grpc.pb.go: `srv.(WatchServer).Watch(&grpc.GenericServerStream{ServerStream: stream})`),
 # over the generic server-stream wrapper's methods (stream_interfaces.go), axioms: Goose does not
@@ -232,9 +241,13 @@ authMaintenanceServer__Snapshot: authMaintenanceServer__isPermitted togRPCError
 kvServer__Compact: AuthAdmin__isPermitted togRPCError header__fill
 LeaseServer__LeaseGrant: togRPCError header__fill
 LeaseServer__LeaseRevoke: togRPCError header__fill
+LeaseServer__leaseKeepAlive: errors_Is togRPCError header__fill isClientCtxErr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
+LeaseServer__LeaseKeepAlive: LeaseServer__leaseKeepAlive
 quotaLeaseServer__LeaseGrant: quotaAlarmer__check
 _Lease_LeaseGrant_Handler:
 _Lease_LeaseRevoke_Handler:
+_Lease_LeaseTimeToLive_Handler:
+_Lease_LeaseLeases_Handler:
 NewClusterServer: EtcdServer__Cluster
 NewAuthServer:
 # the auth plan's A3, the API layer (2026-10-24): auth.go's AuthServer wrappers over the server's

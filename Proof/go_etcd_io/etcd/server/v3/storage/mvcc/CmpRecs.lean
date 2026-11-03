@@ -27,42 +27,11 @@ section pure
 variable [GooseExts]
 
 
-/-- **A backend image's compaction records**: `Meta`'s `finishedCompactRev` and
-`scheduledCompactRev`, absent or a revision, what `restore()` reads (`kvstore.go:330-342`). -/
-structure CmpRecs where
-  fin : Option w64
-  sched : Option w64
-  deriving DecidableEq
-
-/-- No record (`kbNoCmp`'s backends). -/
-def CmpRecs.empty : CmpRecs := ⟨none, none⟩
-
-/-- The finished record, `-1` if absent (`restore()`'s first `compactMainRev`). -/
-def CmpRecs.finRev (r : CmpRecs) : Int := (r.fin.map sint.Z).getD (-1)
-
-/-- The scheduled record as `restore()` reads it: `0` if absent (`UnsafeReadScheduledCompact`'s
-`(0, false)`, whose found flag `restore()` drops). -/
-def CmpRecs.schedRev (r : CmpRecs) : Int := (r.sched.map sint.Z).getD 0
-
-/-- **`restore()` resumes the scheduled compaction**: the scheduled record (read as above) is not
-`0` and is past the finished one (`kvstore.go:389-391`, `:411`). A scheduled record of `0` is never
-resumed (`issues/etcd-restore-scheduled-compact-zero.md`). -/
-def CmpRecs.resumes (r : CmpRecs) : Bool := decide (r.schedRev ≠ 0 ∧ r.finRev < r.schedRev)
-
-/-- **The compaction revision `restore()` leaves** (`compactMainRev` after it): the scheduled one if
-it is resumed (`compactLockfree` → `updateCompactRev`, which succeeds: past the finished one, and
-`currentRev` was raised to it), else the finished one, else `-1`. -/
-def CmpRecs.crev (r : CmpRecs) : Int := if r.resumes then r.schedRev else r.finRev
-
 theorem CmpRecs.crev_empty : CmpRecs.empty.crev = -1 := by decide
 
-theorem CmpRecs.resumes_empty : CmpRecs.empty.resumes = false := by decide
+theorem CmpRecs.finRev_empty : CmpRecs.empty.finRev = -1 := by decide
 
-/-- **The records are of the log `L`** (pure): each a revision of `L` (`metaRevVal`'s `0 ≤`; below
-`|L|`, so `restore()`'s raise of `currentRev` to the scheduled one leaves `|L| - 1`). -/
-def recsOk (L : Log) (r : CmpRecs) : Prop :=
-  (∀ x, r.fin = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length) ∧
-  (∀ x, r.sched = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length)
+theorem CmpRecs.resumes_empty : CmpRecs.empty.resumes = false := by decide
 
 /-- **The records' sign** (M2's restore chain, item 30's D2): each record a revision (`≥ 0`), as
 `metaReadSpecR … (some r)` states of what it reads; `recsOk` gives it. -/
@@ -84,12 +53,6 @@ theorem recsOk_crev_lt (L : Log) (r : CmpRecs) (h : recsOk L r) (hL : 2 ≤ L.le
   · have := hs y rfl; split <;> omega
   · have := hf x rfl; split <;> omega
   · have := hf x rfl; have := hs y rfl; split <;> omega
-
-/-- **The records are past revision `0`** (pure; M2's scope restriction, Q7 (a): every committed
-compaction is at a revision `≥ 1`, so the image's records, written by applying them, are;
-`issues/etcd-restore-scheduled-compact-zero.md`). -/
-def recsPos (r : CmpRecs) : Prop :=
-  (∀ x, r.fin = some x → 1 ≤ sint.Z x) ∧ (∀ x, r.sched = some x → 1 ≤ sint.Z x)
 
 /-- **Under the scope restriction the restored revision is none or a compaction's** (`-1` or
 `≥ 1`): the corner of Q7 (a scheduled compaction at `0`, never resumed) cannot arise. -/

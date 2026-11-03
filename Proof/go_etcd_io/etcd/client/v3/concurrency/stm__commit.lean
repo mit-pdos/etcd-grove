@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     stm.commit.spec (GF := GF) (hG := hG) := by
   intro lvl b pfx st lo
-  wp_start as ⟨#Henv, Hrs, Hws, #Hcf, #Hlo⟩
+  wp_start as ⟨#Henv, Hrs, Hws, #Hcf, #Hlo, %Hsz⟩
   iunfold stmEnv at Henv
   icases Henv with ⟨%c, %ctx, %cs, #Hc, #Hcl, #Hctx, #Hcs⟩
   iunfold isEtcdSTMClient at Hcl
@@ -68,7 +68,9 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites
   wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (by simp)
+  · ipureintro
+    exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (by simp),
+      stmCommit_size Hsz Hms Hops.2 (.inl rfl)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
