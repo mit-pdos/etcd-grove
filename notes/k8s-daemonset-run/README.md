@@ -20,8 +20,8 @@ program panics or is stuck (partial correctness: a hang is not excluded).
 
 ## Driver gate 1 (green under stress): fails, as recorded by D51
 
-`TestAmbiguousWritesDetected` (`-race`, 200 runs of `Main(2000)`, 2026-11-03): see "Gate 1 run"
-below. The failing runs are the known bug
+`TestAmbiguousWritesDetected` (`-race`, 200 runs of `Main(2000)`, 2026-11-03): the checker
+panicked in **5 of 200 runs** (628 s). The failing runs are the known bug
 `issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`: a pod create that commits and returns an
 error is never recorded in the consistency store, so a later sync on a stale pod cache creates a
 second pod. The plan's fork-fix gate would decide a fix; here the user reserved that decision (D51:
