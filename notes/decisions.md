@@ -30237,3 +30237,18 @@ at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cac
 are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
 answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
 is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec).
+
+## `cache_Watch_delivery`: progress notifications are quiet (2026-11-03 · the user's go-ahead · a strengthening, no new premise)
+
+The open arm of the `Watch` delivery theorem (`cacheWatch_delivery`, restated in
+`cache_Watch_delivery`) gains `progressQuiet (etcdStepCert pfx) p₀ bs L`: every response of the
+log without events at a positive revision `p` (a progress notification) is quiet, nothing under the
+prefix after the last batch of `bs` at or below `p` (`p₀` if none) up to `p`
+(`etcdQuiet`). With the chain, a `Watch` client knows etcd's events under the prefix in
+`(p₀, p]` are exactly the batches it was sent at or below `p`. Proved from the publication
+(`pub_progressQuiet`, `InvDemux.lean`): the first delivered batch above the notification certifies
+the interval (`cert_quiet`), or, if none, the quiet tail (`quietEnd` is at or above every progress
+notification sent). The `0 < p` premise: an event-less response at or below `0` is not a progress
+notification, and the lock keeps no quiet fact while `maxRev = 0` (`Init` at a non-positive
+`minRev`). The compaction arm keeps none (closed logs; no client needs it). `storeW_quiet` still
+unfolds the publication (its `Y` is the last event received, not a batch filter); left as is.

@@ -1255,20 +1255,31 @@ in order (`SentOrdered`: events increasing from response to response, progress n
 above everything before and below everything after); `bs` are batches of one revision each,
 increasing; each batch is certified by etcd's step from at most the previous batch's revision
 (`certChain (etcdStepCert pfx) p₀ bs`: its events are etcd's, and nothing under the prefix
-changed in between), the first one from `p₀`; and for a start `sr ≠ 0`, `p₀ < sr ≤` every batch's
-revision: nothing etcd did under the prefix from `sr` on was missed. -/
+changed in between), the first one from `p₀`; for a start `sr ≠ 0`, `p₀ < sr ≤` every batch's
+revision: nothing etcd did under the prefix from `sr` on was missed; and each progress
+notification (at a positive revision `p`) is quiet (`progressQuiet`: nothing under the prefix
+after the last batch at or below `p` up to `p`). -/
 theorem cacheWatch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
     demuxPubBody (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr none L ⊢
       ∃ (bs : List Batch) (p₀ : Int),
         ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
           SentOrdered L ∧ StreamOk bs ∧
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
-        certChain (etcdStepCert pfx) p₀ bs := by
+        certChain (etcdStepCert pfx) p₀ bs ∗ progressQuiet (etcdStepCert pfx) p₀ bs L := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -⟩
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -, #Hq⟩
   obtain ⟨hsr, hD, hp₀, -⟩ := Hf
+  ihave #Hpq : progressQuiet (etcdStepCert pfx) p₀ (streamRange s v.n v.stream) L $$ []
+  · iapply pub_progressQuiet _ s v L p₀ hD $$ Hc
+    icases Hq with (%h | #Hq)
+    · ileft; ipureintro
+      rcases h with h | h | h
+      · exact absurd rfl h
+      · exact Or.inl h
+      · exact Or.inr h
+    · iright; iexact Hq
   iexists streamRange s v.n v.stream, p₀
-  iframe Hc
+  iframe Hc Hpq
   ipureintro
   refine ⟨hD.events, hD.ordered, hD.stream_ok.sublist (List.filter_sublist ..), fun h => ?_⟩
   have hs : s = sr := by rcases hsr with h0 | h0; exact absurd h0 h; exact h0

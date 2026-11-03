@@ -2443,6 +2443,102 @@ theorem pub_close (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (s
   · iexact H
   · iexact Hp
 
+/-- A sorted list of batches: those at or below `p`, then those above. -/
+theorem batches_split2 (p : Int) : ∀ (bs : List Batch), RevSorted batchRev bs →
+    bs = bs.filter (fun b => decide (sint.Z (batchRev b) ≤ p)) ++
+      bs.filter (fun b => decide (p < sint.Z (batchRev b)))
+  | [], _ => rfl
+  | b :: bs', hs => by
+    have hs' : RevSorted batchRev bs' := (List.pairwise_cons.1 hs).2
+    have hall : ∀ b' ∈ bs', sint.Z (batchRev b) < sint.Z (batchRev b') := (List.pairwise_cons.1 hs).1
+    have ih := batches_split2 p bs' hs'
+    by_cases h : sint.Z (batchRev b) ≤ p
+    · rw [List.filter_cons_of_pos (by simpa using h),
+        List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega)]
+      simp only [List.cons_append]; exact congrArg (b :: ·) ih
+    · have hlo : bs'.filter (fun b => decide (sint.Z (batchRev b) ≤ p)) = [] := by
+        rw [List.filter_eq_nil_iff]; intro x hx; have := hall x hx
+        simp only [decide_eq_true_eq]; omega
+      have hhi : bs'.filter (fun b => decide (p < sint.Z (batchRev b))) = bs' := by
+        rw [List.filter_eq_self]; intro x hx; have := hall x hx
+        simp only [decide_eq_true_eq]; omega
+      rw [List.filter_cons_of_neg (by simpa using h),
+        List.filter_cons_of_pos (by simp only [decide_eq_true_eq]; omega), hlo, hhi]
+      rfl
+
+/-- **A log's progress notifications are quiet** (for a consumer): every response without events of
+`L` at a positive revision `p` (a progress notification) has the quiet certificate from the last
+batch of `bs` at or below `p` (`p₀` if none) up to `p`: nothing the certificate's user cares about
+happened there that `L`'s consumer was not sent. -/
+def progressQuiet (C : DemuxCert GF) (p₀ : Int) (bs : List Batch) (L : List RespModel) : IProp GF :=
+  iprop(□ ∀ r, ⌜r ∈ L ∧ r.events = [] ∧ 0 < sint.Z r.hdrRev⌝ -∗
+    C.quiet (chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev))))
+      (sint.Z r.hdrRev))
+
+instance progressQuiet_persistent (C : DemuxCert GF) (p₀ : Int) (bs : List Batch)
+    (L : List RespModel) : Persistent (progressQuiet C p₀ bs L) := by
+  unfold progressQuiet; infer_instance
+
+/-- **The publication's progress notifications are quiet** (`progressQuiet` of its segment): the
+first delivered batch above a progress notification certifies the interval up to it
+(`cert_quiet`), or, if none, the quiet tail (`quietEnd`, at or above it, `Delivered.progress`). -/
+theorem pub_progressQuiet (pred : Option (GoString → Bool)) (s : w64) (v : View)
+    (L : List RespModel) (p₀ : Int) (hD : Delivered pred s v L) :
+    certChain (GF := GF) C p₀ (streamRange s v.n v.stream) ⊢
+      (⌜L = [] ∨ v.maxRev = W64 0⌝ ∨
+        □ C.quiet (chainEnd p₀ (streamRange s v.n v.stream)) (quietEnd v)) -∗
+      progressQuiet C p₀ (streamRange s v.n v.stream) L := by
+  iintro #Hc #Hq
+  unfold progressQuiet
+  imodintro
+  iintro %r %hr
+  obtain ⟨hmem, hev, hpos⟩ := hr
+  obtain ⟨hmx, hown⟩ := hD.progress r hmem hev
+  have hsorted : RevSorted batchRev (streamRange s v.n v.stream) :=
+    (hD.stream_ok.sublist (List.filter_sublist ..)).sorted
+  have hsplit := batches_split2 (sint.Z r.hdrRev) _ hsorted
+  generalize hlo : (streamRange s v.n v.stream).filter
+    (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)) = lo at hsplit ⊢
+  generalize hhi : (streamRange s v.n v.stream).filter
+    (fun b => decide (sint.Z r.hdrRev < sint.Z (batchRev b))) = hi at hsplit
+  cases hi with
+  | cons b hi' =>
+    -- the first delivered batch above the notification
+    ihave #Hc' : certChain C p₀ (lo ++ b :: hi') $$ []
+    · rw [← hsplit]; iexact Hc
+    icases (certChain_append (C := C) p₀ lo (b :: hi')).1 $$ Hc' with ⟨-, #Hb⟩
+    rw [certChain_cons]
+    icases Hb with ⟨⟨%q, %hq, #Hcb⟩, -⟩
+    have hb : b ∈ (streamRange s v.n v.stream).filter
+        (fun b => decide (sint.Z r.hdrRev < sint.Z (batchRev b))) := by
+      rw [hhi]; exact List.mem_cons_self
+    have hpb : sint.Z r.hdrRev < sint.Z (batchRev b) := by simpa using (List.mem_filter.1 hb).2
+    iapply C.quiet_mono (chainEnd p₀ lo) (chainEnd p₀ lo) (sint.Z (batchRev b) - 1)
+      (sint.Z r.hdrRev) (Int.le_refl _) (by omega)
+    iapply C.cert_quiet q b _ hq.1 $$ Hcb
+  | nil =>
+    -- none: the segment is at or below it, and the tail covers it
+    rw [List.append_nil] at hsplit
+    icases Hq with (%h | #Hq)
+    · rcases h with h | h
+      · rw [h] at hmem; cases hmem
+      · rw [h] at hmx
+        have : sint.Z (W64 0) = 0 := rfl
+        omega
+    · have hend : sint.Z r.hdrRev ≤ quietEnd v := by
+        unfold quietEnd
+        cases hh : (v.stream.filter (fun b => decide (sint.Z v.n ≤ sint.Z (batchRev b)))).head? with
+        | none => simp only; exact hmx
+        | some b =>
+          simp only
+          have hb := List.mem_filter.1 (List.mem_of_head? hh)
+          have := hown b hb.1 (by simpa using hb.2)
+          omega
+      rw [← hsplit]
+      iapply C.quiet_mono (chainEnd p₀ (streamRange s v.n v.stream))
+        (chainEnd p₀ (streamRange s v.n v.stream)) (quietEnd v) (sint.Z r.hdrRev)
+        (Int.le_refl _) hend $$ Hq
+
 /-- **Progress certificates from a publication**: every response without events of a published
 log (a progress notification) has its revision's certificate (`C.prog`): it is at most the
 view's `maxRev` (`Delivered.progress`), whose certificate the publication holds. -/

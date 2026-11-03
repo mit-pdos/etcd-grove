@@ -272,7 +272,7 @@ theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
   iintro #Hinv #Hlog
   iunfold cacheWatchLog at Hlog
   icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
-  · ihave ⟨%bs, %p₀, %Hf, #Hch⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
+  · ihave ⟨%bs, %p₀, %Hf, #Hch, -⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
       ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
     obtain ⟨hev, -, hst, hsr⟩ := Hf
     obtain ⟨hp0, -⟩ := hsr (by decide)
