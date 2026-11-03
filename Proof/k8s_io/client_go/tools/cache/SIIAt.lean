@@ -1,0 +1,87 @@
+/-
+**The shared index informer as an object** (`shared_informer.go`'s `*sharedIndexInformer`): what
+its own methods' specs are stated with (internal to client-go's proofs; clients see the informer
+through `isInformer`, `InformerApi.lean`). Lean-first; the DaemonSet run's track A. A first cut,
+for the Stage 3 stubs: the proofs of `NewSharedIndexInformerWithOptions` and `RunWithContext` fix
+the lock's resource.
+
+* `syncedChOk ch γi` (persistent): the informer's `synced` channel, closed once its controller has
+  synced (`RunWithContext`'s third goroutine), broadcasting the first list's facts
+  (`syncedFacts γi true`): `HasSynced`'s non-blocking receive.
+* `siiPre I`: the informer invariant's halves its goroutines will own, held until the start: the
+  reflector's last version (none), the processing goroutine's popped deltas (none) and store view,
+  the FIFO's state halves (`I.γf.st`/`sy`, allocated before the FIFO, at the initial queue).
+* `siiLocked s I`: `startedLock`'s resource: `started`, `stopped`, `controller`, and `siiPre I`
+  until the start.
+* `siiAt s γa cfg r I Fam` (persistent): the informer's fixed fields (its store `storeVal I`, its
+  list-watch, of the model server's resource `r` (`lwOk`), its key function, its `synced`
+  channel), its processor and mutation detector (`isSII`), the store and invariant (`infView`), the
+  reader pool (`infReaders`), the lock.
+-/
+module
+
+public import Proof.k8s_io.client_go.tools.cache.InformerApi
+public import Proof.k8s_io.client_go.tools.cache.SIIDefs
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace informer
+
+open Iris Iris.BI apimodel cache k8s_io.client_go.tools.cache
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+/-- **The informer's `synced` channel** (persistent): see the file header. -/
+def syncedChOk (ch : GoChan) (γi : InfNames) : IProp GF :=
+  iprop(∃ γc : ChanNames, ownBroadcastChan ch γc (syncedFacts γi true) .Unknown)
+
+/-- The FIFO's state before its first push. -/
+def FQ.init : FQ := ⟨[], false, 0, false, false⟩
+
+/-- **The invariant's halves the informer's goroutines will own**, held until the start. -/
+def siiPre (I : InfH) : IProp GF :=
+  iprop(reflLast I.γi none ∗
+    ghostVar I.γi.pop (1 : Qp).half (([] : List FD), false) ∗
+    ghostVar I.γi.sw (1 : Qp).half (⟨∅, [], ∅⟩ : cache.St) ∗
+    ghostVar I.γf.st (1 : Qp).half FQ.init ∗ dghostVar I.γf.sy (.own (1 : Qp).half) false)
+
+/-- **`startedLock`'s resource.** -/
+def siiLocked (s : Loc) (I : InfH) : IProp GF :=
+  iprop(∃ (started stopped : Bool) (c : Controller),
+    s.[sharedIndexInformer, go!"started"] ↦ started ∗
+    s.[sharedIndexInformer, go!"stopped"] ↦ stopped ∗
+    s.[sharedIndexInformer, go!"controller"] ↦ c ∗
+    (if started then iprop(True) else siiPre I))
+
+/-- **The informer `s`** (persistent): see the file header. -/
+def siiAt (s : Loc) (γa : ApiNames)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res)
+    (I : InfH) (Fam : Nat → Fn GF) : IProp GF :=
+  iprop(∃ (p : Loc) (sch : GoChan) (lw : GoInterfaceOk) (q : Loc),
+    s.[sharedIndexInformer, go!"indexer"] ↦□ (storeVal I : Indexer) ∗
+    s.[sharedIndexInformer, go!"keyFunc"] ↦□ I.kf ∗
+    s.[sharedIndexInformer, go!"synced"] ↦□ sch ∗ syncedChOk sch I.γi ∗
+    s.[sharedIndexInformer, go!"listerWatcher"] ↦□ (GoInterface.ok lw : ListerWatcher) ∗
+    lwOk lw γa cfg r ∗ keysOk γa ∗
+    s.[sharedIndexInformer, go!"objectType"] ↦□
+      (interface.mkOk (go.GoType.PointerType (resObjTy r)) #q :
+        k8s_io.apimachinery.pkg.runtime.Object) ∗
+    isSII s p ∗ infView γa r I Fam ∗ infReaders I r Fam ∗
+    sync.isMutex (s.[sharedIndexInformer, go!"startedLock"]) (siiLocked s I))
+
+end defs
+
+end informer
+end EtcdGrove
+end Perennial

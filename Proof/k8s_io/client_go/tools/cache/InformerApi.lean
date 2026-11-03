@@ -34,11 +34,15 @@ reflector's `RefInf`) are what its proofs will rest on.
 * `syncedFn f γi` (persistent): the function `f` (an `InformerSynced`, the informer's `HasSynced`
   method value) returns a boolean, `true` with `syncedFacts γi true` (the first list's version `v`,
   `infFirst`, and the store's version at least `v` from then on, `infRvLb`).
+* `infReaders I r Fam` (persistent): the store's reader slots in a thread pool (under the thread
+  bound), borrowed with a thread token: what a reading thread (a worker, a handler) uses.
 * `isInformer x γa r I Fam` (persistent): **the informer as an interface value** (a
   `SharedIndexInformer`, whatever wrapper `x` is: `Informer()` returns a `*typedSharedIndexInformer`
-  around the factory's): `infView`, and the contracts of the methods the controller calls on it
+  around the factory's): `infView`, `infReaders`, and the contracts of the methods the controller calls on it
   (`GetStore`, `GetIndexer`, `HasSynced` called and as a method value, `AddEventHandlerWithOptions`,
   `AddIndexers`).
+* `infRunOk x` (persistent): `x.RunWithContext(ctx)` runs the informer (the factory's `Start`
+  holds it, not the clients).
 
 Scope (marked): handlers without a resync period (`HandlerOptions.ResyncPeriod` `nil`, and the
 factory's default resync `0`): a resyncing handler's synthetic updates are not covered.
@@ -47,6 +51,8 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.RefInf
 public import Proof.k8s_io.client_go.tools.cache.ListenerDefs
+public import Proof.k8s_io.client_go.tools.cache.RefCtx
+public import Perennial.Proof.ThreadPool
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Reader
 
 @[expose] public section
@@ -234,6 +240,21 @@ instance handlerOptsOk_persistent (opts : HandlerOptions) :
     Persistent (handlerOptsOk (GF := GF) opts) := by
   unfold handlerOptsOk; infer_instance
 
+/-- The informers' reader pools' namespace. -/
+def infPoolN : Namespace := nroot.@"informer.readers"
+
+/-- **The store's reader slots, for any thread** (persistent): under the adequacy theorem's thread
+bound, a pool of the store lock's reader slots (`tsReader`), which a thread borrows with its thread
+token (`threadPool.borrow`) for a read and gives back (`threadPool.giveBack`); the owner's pattern
+of `notes/bounds-plan.md` (the lessor's `slotsPool`). -/
+def infReaders (I : InfH) (r : Res) (Fam : Nat → Fn GF) : IProp GF :=
+  iprop(□ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName,
+    threadPool.isThreadPool infPoolN γp (tsReader I.ts I.γt (infObj I.γi r) Fam)))
+
+instance infReaders_persistent (I : InfH) (r : Res) (Fam : Nat → Fn GF) :
+    Persistent (infReaders (GF := GF) I r Fam) := by
+  unfold infReaders; infer_instance
+
 /-- The store as an interface value (`GetStore()`'s and `GetIndexer()`'s result). -/
 def storeVal (I : InfH) : GoInterface :=
   interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #I.ca
@@ -241,7 +262,7 @@ def storeVal (I : InfH) : GoInterface :=
 /-- **The informer as an interface value** (persistent): see the file header. -/
 def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Nat → Fn GF) :
     IProp GF :=
-  iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗ infView γa r I Fam ∗
+  iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗ infView γa r I Fam ∗ infReaders I r Fam ∗
     -- `GetStore()`, `GetIndexer()`: the store
     □ (∀ Φ : val → IProp GF, ▷ Φ #(storeVal I) -∗
         WP (App (Val #(methods i.ty go!"GetStore" i.v)) (Val #())) {{ Φ }}) ∗
@@ -281,7 +302,38 @@ theorem isInformer_view (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
   iintro ⟨%i, -, #Hv, -⟩
   iexact Hv
 
+open Iris.ProofMode in
+/-- **The store's reader pool of an informer.** -/
+theorem isInformer_readers (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
+    (Fam : Nat → Fn GF) : isInformer x γa r I Fam ⊢ infReaders I r Fam := by
+  unfold isInformer
+  iintro ⟨%i, -, -, #Hr, -⟩
+  iexact Hr
+
 end defs
+
+section run
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [ctx_sem : _root_.Perennial.context.Assumptions]
+
+/-- **The informer runs** (persistent; the factory's `Start` runs it on a goroutine of its own):
+`x.RunWithContext(ctx)` under a context whose `Done()` is one channel, returning (once the context
+is done). Not a client's concern: the factory holds it (`informers.facLocked`). -/
+def infRunOk (x : GoInterface) : IProp GF :=
+  iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗
+    □ (∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
+        (γch : ChanNames) (Φ : val → IProp GF),
+        context.isContext ctx cs -∗ stableCtx ctx ch γch -∗ ▷ Φ #() -∗
+        WP (App (Val #(methods i.ty go!"RunWithContext" i.v)) (Val #(GoInterface.ok ctx)))
+          {{ Φ }}))
+
+instance infRunOk_persistent (x : GoInterface) : Persistent (infRunOk (GF := GF) x) := by
+  unfold infRunOk; infer_instance
+
+end run
 
 end informer
 end EtcdGrove
