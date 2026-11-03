@@ -147,8 +147,8 @@ contradicts the claim that issue relies on ("grpc's transports never put a key w
   quantify `∃ P` inside the premise.
 
 ### Q4. Missing laws: callers unfold other packages' definitions
-- `clientAuthPre` is unfolded at `examples/common/NewClients.lean:55` and
-  `examples/k8setcd3/Main.lean:196` (`iunfold clientAuthPre; ileft; …`). Add
+- `clientAuthPre` is unfolded at `examples/lib/etcdstart/NewClients.lean:55` and
+  `examples/k8s/etcd3/Main.lean:196` (`iunfold clientAuthPre; ileft; …`). Add
   `clientAuthPre_anon : cfg.Username' = "" ∨ cfg.Password' = "" → ⊢ clientAuthPre cfg eps P`.
 - `tokenBundleInv` is unfolded at `Proof/.../Client__dial.lean:95`, because
   `perRPCCredentialBundle.PerRPCCredentials.spec` takes the bundle's fields (`b.rc ↦□ rc ∗ credTokInv rc P`)

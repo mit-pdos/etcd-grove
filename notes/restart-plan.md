@@ -1,4 +1,4 @@
-# Plan: restarting a member (`examples/restart3`)
+# Plan: restarting a member (`examples/etcd/restart`)
 
 **Date:** 2026-11-02. **Status:** Scope decided: Q1-Q6 take the recommended options (the user,
 2026-11-02). **R1 done** (2026-11-02): the Go program, its test and translation (below, "R1").
@@ -26,7 +26,7 @@ step can move into linkv3p's schedules.
 
 ## The example
 
-`examples/restart3` is putget3 with a restart:
+`examples/etcd/restart` is putget3 with a restart:
 
 1. Start members 1, 2 and 3 of a new cluster, with linkv3p's snapshot settings (`SnapCount =
    SnapCatchUp = 1`, `common.NewMember`'s parameters).
@@ -225,7 +225,7 @@ shutdown with `Cleanup` in it.
   The goal is the server-level counterpart of `kvdurable_porcupine_safe`: acknowledged writes
   survive a member's crash and restart, and the history stays linearizable across it.
   - **What it builds on.** Raft's durability, proved with no sorry (durability stage II:
-    `StartNode`, `RestartNode`, `node.run`'s persist-before-send, `examples/kvdurable`). R2b-1's WAL
+    `StartNode`, `RestartNode`, `node.run`'s persist-before-send, `examples/raft/kvdurable`). R2b-1's WAL
     model, contract and durability invariant (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`,
     `etcdserver/InvWal.lean`, a failed `Save` leaving `walFailed`). R2-R5's restart boot and
     catch-up.
@@ -272,7 +272,7 @@ durability work comes first.
 
 ## R1 (2026-11-02)
 
-- `examples/restart3` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
+- `examples/etcd/restart` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
   `zap.NewNop()`, so the test counts through `Run` what the proof is about. Two changes to the
   draft above, both from the test:
   - **The stop is `HardStop` alone.** `run`'s deferred shutdown calls `Cleanup`, and a second
@@ -559,7 +559,7 @@ not a named `sorry`:
   Its post gives the `Ready` loop's token at the committed log from `max σ.b Applied`. It also gives
   the configuration view at `(a, m)` and the storage's key.
 - **`node.Stop`** gives the id's vacancy back (`nodeStopped`, `nodeVacant`).
-- **`examples/kvdurable`** is the pattern for a stop and a restart:
+- **`examples/raft/kvdurable`** is the pattern for a stop and a restart:
   - `Replica.stop` returns `nodeVacant` and the replica's durable-state ghost variable (`raftState`).
   - `Cluster.restart` restarts from them, with the crash token held by the cluster.
 
@@ -966,7 +966,7 @@ case of the durability invariant), not a premise that `Save` fails only on I/O: 
 `lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.
 
 **The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
-`examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
+`examples/go.mod`, `examples/k8s/etcd3/go.mod`); the translation changed by the new names-only
 `newestSnapshotEntry`.
 
 ### R2b-1 draft, round 2 (2026-11-03)

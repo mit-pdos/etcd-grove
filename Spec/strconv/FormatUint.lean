@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `strconv.FormatUint(i, base)` of a base in `2..36`: the digits of `i` (`fmtUint`, since
-2026-10-27 for the model API server's resource versions, `examples/k8sdaemonset/apimodel`; until
+2026-10-27 for the model API server's resource versions, `examples/k8s/daemonset/apimodel`; until
 then some string: the read loop's trace field, which the model does not read). (Go panics on any
 other base, `internal/strconv/itoa.go`; the premise since audit B4b, 2026-10-18.) -/
 abbrev strconv.FormatUint.spec : Prop :=

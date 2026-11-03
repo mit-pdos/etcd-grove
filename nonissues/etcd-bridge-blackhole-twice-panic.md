@@ -20,7 +20,7 @@ unblackhole it before the next; no test calls it twice (checked at `3aaab3479b`,
 
 no: the bridge's trust-boundary spec of `Blackhole`
 (`Spec/github_com/mit_pdos/etcd_grove/third_party/bridge/bridge__Blackhole.lean`) takes the bridge
-unblackholed, and `examples/linkv3p`'s partitioner skips a second `Blackhole`.
+unblackholed, and `examples/etcd/partition`'s partitioner skips a second `Blackhole`.
 
 ## Notes
 

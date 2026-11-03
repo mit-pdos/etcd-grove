@@ -3,7 +3,7 @@
 **Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
 the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
 compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
-`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+`kv.Compact` is proved; `examples/etcd/compactwatch`'s closed theorem `compactkv_safe` is proved and `putgetc`
 rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
 the apply side".
 What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
@@ -295,12 +295,12 @@ item 17). Nothing here merges them (the auth merge does, after the snapshot proo
 
 ## The 3-member `putgetc` (scoped, not built)
 
-`examples/common` already runs multi-member programs (`NewMember`, `StartMember`; `putget3`,
+`examples/lib/etcdstart` already runs multi-member programs (`NewMember`, `StartMember`; `putget3`,
 `linkv3p`; `Alloc3.lean` allocates three members' cluster resources), but only with the compactor
 off (`newServer(…, 0, …)`), and `kvreconf` is a membership-change example of its own. The work:
 - **Go**: `common.NewMember`/`StartMember` take the retention (one function each, `0` from
   `putget3` and `linkv3p`, as `newServer` already does); `StartCompactingServer` goes (one-member
-  `putgetc` was its only caller); `examples/putgetc` starts three members as `putget3` does, each
+  `putgetc` was its only caller); `examples/etcd/compacted` starts three members as `putget3` does, each
   with `retention = 1`, and puts and gets through the first. Its Go test; `etc/goose.py --project`
   for the examples; `etc/gen-init.py`.
 - **Lean**: `NewMember.spec`/`StartMember.spec` with the retention (`memberBoot … (decide (retention

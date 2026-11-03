@@ -10,7 +10,7 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.InformerInv
 public import Spec.k8s_io.client_go.tools.cache.RealFIFO__PopBatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.HistLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.HistLemmas
 public import Proof.k8s_io.client_go.tools.cache.InformerDefs
 
 @[expose] public section

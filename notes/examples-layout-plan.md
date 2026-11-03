@@ -182,3 +182,12 @@ compare `verified-code`, commit the move as one commit, fast-forward `lean`. A b
 the move: merge `lean` up to the commit before the move, run the script on it, then merge the move.
 `/tmp` (a tmpfs) fills up under other sessions' tests: run with `GOTMPDIR` on `/shared`, and
 re-run the gates if a check fails on temp files.
+
+## Landed (2026-11-03)
+
+The script on `lean` at `e7e43e1cd9`, with two examples added since the dry run: `leasegrant` to
+`etcd/leasegrant` (namespace `etcd_leasegrant`) and `bbolttest` to `bbolt/bank` (a new layer, the
+part `Bbolt/` added to the script's Lean roots; no hand-written Lean yet). 1,696 files moved, 1,931
+rewritten; `etc/gates.sh` all passed (781 axioms, 6 `sorry`s, 47 collections matching), the counts
+of `etc/verified-code.py` identical before and after, `go vet` clean in every Go module.
+`etc/move-examples.py` stays for branches made before the move (above).

@@ -32,7 +32,7 @@ function's proof file: nothing here is `sorry`.
 Marked **(open)**: premises carried over unchanged from today's specs, for the items not yet
 redesigned (the storage contract, the term budget, the static/dynamic modes, the rest of a `Ready`).
 
-**What the key-value store needs (2026-10-27, `examples/kv` ported onto this draft):** the static
+**What the key-value store needs (2026-10-27, `examples/raft/kv` ported onto this draft):** the static
 cluster (`isStaticCluster`, `cluster_alloc_static`, `RestartNode`), the rest of a `Ready`
 (`readyRest`, `readySnap`), `Advance`, `Step` (`sentMsg`, `msgCredits`, `stepIn`), `Tick`
 (`tickCredit`), `TransferLeadership` (`leaderTransferOn`) and the snapshots' certificates

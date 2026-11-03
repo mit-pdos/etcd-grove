@@ -4,7 +4,7 @@ Status: planning (2026-10-26, branch `daemonset-plan`). Decisions: D49 in `notes
 (the cut: model the API server at the typed clientset, verify client-go's leaf libraries and
 informers). Nothing proved yet. (2026-10-26, branch `k8s-clientgo-leaf`) Phase 1's leaf-library
 half is translated: `notes/k8s-clientgo-goose.md` (gaps C1-C7). (2026-10-27, branch
-`k8s-daemonset-proof`) The pin (`k8s.io/kubernetes` `878cfa6c4cc7`), `Main` (`examples/k8sdaemonset/dsmain`)
+`k8s-daemonset-proof`) The pin (`k8s.io/kubernetes` `878cfa6c4cc7`), `Main` (`examples/k8s/daemonset/dsmain`)
 and phase 1's controller half: `notes/k8s-daemonset-goose.md` (gaps D1, D2; the call graph of `Main`).
 
 ## Goal
@@ -154,19 +154,19 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
 
 ## Phases
 
-0. **The example in Go.** **Model done** (2026-10-26, D50): `examples/k8sdaemonset` (a Go module
-   at the client-go pin of `examples/k8setcd3/go.mod`), package `apimodel`: the model API server,
+0. **The example in Go.** **Model done** (2026-10-26, D50): `examples/k8s/daemonset` (a Go module
+   at the client-go pin of `examples/k8s/etcd3/go.mod`), package `apimodel`: the model API server,
    trusted Go code (`doc.go` states its semantics and deviations), a `kubernetes.Interface` whose
    clients embed client-go's interfaces (nil) and implement what the controller and informers call:
    pods (Create, Get, List, Watch, Delete), nodes (Create, Get, List, Watch), daemonsets (Create,
    Get, List, Watch, UpdateStatus), controllerrevisions (Create, Get, List, Watch, Update, Delete),
    events (dropped). Its tests (`apimodel_test.go`, `-race`) include client-go's real informers
-   converging over it under failures. `examples/k8sdaemonset/smoke` (build tag `k8ssmoke`, its
+   converging over it under failures. `examples/k8s/daemonset/smoke` (build tag `k8ssmoke`, its
    `go.mod` generated from a Kubernetes checkout by `gen-gomod.py`) runs the real controller over it:
    no method the model lacks is called; with failures that have no effect, never two pods (0 of 30
    runs); with ambiguous writes, two pods in 4 of 50 runs (the suspected bug, confirmed).
    **Pin and `Main` done** (2026-10-27, branch `k8s-daemonset-proof`; `notes/k8s-daemonset-goose.md`):
-   `examples/k8sdaemonset/go.mod` requires `k8s.io/kubernetes` at master `878cfa6c4cc7`
+   `examples/k8s/daemonset/go.mod` requires `k8s.io/kubernetes` at master `878cfa6c4cc7`
    (2026-10-21, the commit the repository's apiserver pin was published from), its staging modules
    replaced by their mirrors (the four shared pins, the others at their latest commit by
    2026-10-21T22:14Z; their Go files identical to `878cfa6c4cc7`'s staging). `dsmain.Main(checks)`:

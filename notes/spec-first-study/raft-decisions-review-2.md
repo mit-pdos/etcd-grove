@@ -7,7 +7,7 @@ uncommitted edits to kv and `InvNodeRule`/`InvApiRule`; I ignored them. Sources 
 `unifiedSpec`s of `node.ApplyConfChange`, `node.Advance` and `MemoryStorage.CreateSnapshot`); the interim's
 implementation (`Proof/go_etcd_io/raft/v3/InvApiRule.lean`); the node layer (`InvNodeChan.lean`'s `nodeCfg`/`runCfg`,
 `InvApiDyn.lean`'s `nodeConfig`); the protocol's decisions (`Protocol/CfgOverlap.lean`); kv's proof (`KV__run.lean`,
-`StartCluster.lean`, `Defs.lean`); `examples/kvreconf/kv.go`; `.lake/raft-fork/confchange/confchange.go`. Nothing was
+`StartCluster.lean`, `Defs.lean`); `examples/raft/kvreconf/kv.go`; `.lake/raft-fork/confchange/confchange.go`. Nothing was
 built and nothing in the repository was changed.
 
 ## Verdict
@@ -81,7 +81,7 @@ protocol side ("no safety argument changes"), which I did not re-audit, and how 
   - So an entry decided `.apply` is never passed by `Advance`. By `agree`, an entry decided `.skip` is never applied.
   - This is what raft needs. It does not decode an entry at application, only at proposal, and a skipped entry
     leaves raft's configuration as it was.
-  - kvreconf skips by not calling `ApplyConfChange` (`examples/kvreconf/kv.go:479-487`), which is `.skip`.
+  - kvreconf skips by not calling `ApplyConfChange` (`examples/raft/kvreconf/kv.go:479-487`), which is `.skip`.
   - etcd skips differently: it applies a change with `NodeID` zeroed, which `confchange` ignores
     (`confchange.go:152-157`). So etcd decides `.apply` of a change whose effect is the identity, not `.skip`. The
     API allows either, so this is not a finding, and the server is untouched this stage.

@@ -1,5 +1,5 @@
 # With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the DaemonSet controller's
-# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8sdaemonset/go.mod).
+# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8s/daemonset/go.mod).
 # Names only: the functions that read a node's labels or name (`node.Labels`, `node.Name`, fields
 # promoted from metav1's `ObjectMeta`, a package this file does not import): Goose names the
 # embedded struct through the imported package of the same name, core/v1 (`v1`), which has no

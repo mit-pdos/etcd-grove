@@ -1,17 +1,17 @@
-# linkv3p (examples/linkv3p; the partition plan, notes/partition-plan.md, 2026-10-20): linkvtxn's
+# linkv3p (examples/etcd/partition; the partition plan, notes/partition-plan.md, 2026-10-20): linkvtxn's
 # workload over a three-member cluster whose links are cut and mended on a schedule (etcd's
 # CutPeer/MendPeer), with a client at every member. The results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Results.lean: `linkv3p_Main` (over linkv3p's
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results.lean: `linkv3p_Main` (over linkv3p's
 # own functions, the server's, v3rpc's, the client's and linkvtxn's linked results and the
-# trust-boundary axioms) and the closed theorem `linkv3p_safe`/`linkv3p_adequate`, which also rests
+# trust-boundary axioms) and the closed theorem `etcd_partition_safe`/`etcd_partition_adequate`, which also rests
 # on the package initializers' axioms. Expected: the retired linkv3's axioms (D34) plus rafthttp's `Transport.CutPeer`
 # and `Transport.MendPeer` (D24), no sorry.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/linkv3p.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/linkv3p.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/linkv3p.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_partition.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_partition.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_partition.txt --check --update
 #
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof

@@ -21,7 +21,7 @@ none FALSE-BEH).
 ## What the proofs assume today
 
 - `NewServer`'s premises have the compactor off: `AutoCompactionRetention = 0`
-  (`examples/common/common.go:68`, every example's configuration). etcd's default is also off
+  (`examples/lib/etcdstart/common.go:68`, every example's configuration). etcd's default is also off
   (`embed/config.go:71-72`: mode `periodic`, retention `"0"`).
 - `v3compactor.New` is a trust-boundary axiom whose post is `True`
   (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/New.lean`, with the premise
@@ -73,7 +73,7 @@ reading, `After(d)` fires no earlier than `d`); Draft states it, Test tests it.
 **C2, the server with auto-compaction on** (option A only). The examples' closed theorems hold
 when the server runs with auto-compaction on, in either mode, for any accepted retention (in
 periodic mode at least 10ns: narrowed in Draft's third review round, a negative one busy-loops): starting
-with `putget_safe` (`examples/putget`), whose workload (puts and latest reads) never reads a
+with `putget_safe` (`examples/etcd/putget`), whose workload (puts and latest reads) never reads a
 compacted revision; then the others. With compaction in the model, `KVState.compacted` advances at
 a compaction's apply, reads below it answer `ErrCompacted` (the model has the field already).
 Premise: the workload meets `NoDelPutAt` (no transaction deletes a key from-key and puts it again:
@@ -280,7 +280,7 @@ stale text. And the fork fix's Go regression test, which reproduces the panic at
 **The fork fix, landed on the branch:** the user pushed `goose-lean-compactorstart` (`964dccdb4`); the
 examples' `go.mod` replaces moved to it (`v3.0.0-20261027170615-964dccdb4205`, `go mod tidy`);
 `etc/goose.py --check` passes for every project against the pushed pin; the examples build and
-`examples/kv`'s tests pass.
+`examples/raft/kv`'s tests pass.
 
 **Step 3 of Probe (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
 loop shape as `Periodic.Run`, with no window and no clock bound to chain); the hard one,

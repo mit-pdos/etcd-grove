@@ -1,9 +1,9 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/Link.lean` (all
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean` (all
 # Lean-first), read by `etc/gen-link.py --bboltfs`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `bboltfs`.
 #
-# minibolt's page and meta helpers (`examples/bboltfs/page.go`): pure byte memory
+# minibolt's page and meta helpers (`examples/osfs/bboltfs/page.go`): pure byte memory
 bboltfs_pageAt:
 bboltfs_Page__meta:
 bboltfs_Meta__sum64:
@@ -12,7 +12,7 @@ bboltfs_Meta__write: bboltfs_Meta__sum64 bboltfs_Page__meta
 bboltfs_initPages: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__sum64
 bboltfs_pickMeta: bboltfs_Meta__validate
 #
-# minibolt (`examples/bboltfs/minibolt.go`)
+# minibolt (`examples/osfs/bboltfs/minibolt.go`)
 bboltfs_mmapSize:
 bboltfs_DB__meta: bboltfs_pickMeta
 bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
@@ -44,7 +44,7 @@ os_File__Name:
 os_File__Stat:
 os_fileStat__Size:
 #
-# the programs over minibolt (`examples/bboltfs/programs.go`)
+# the programs over minibolt (`examples/osfs/bboltfs/programs.go`)
 bboltfs_envFailure: =_root_.Perennial.sync.atomic.wp_AddUint64
 bboltfs_valueOk:
 bboltfs_testMinibolt: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure

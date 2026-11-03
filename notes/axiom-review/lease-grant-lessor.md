@@ -77,7 +77,7 @@ creates (`NewLessor`, in whatever cluster or none; a lease granted, or reloaded 
 expires, by the clock its expiry loop reads, while the program runs." With the two corrections:
 "within two `RequestTimeout`s of the grant's apply", and `Renew` (refresh from now) and checkpoints
 (feature off) among the moves. The statement (an opaque `Prop`) is unchanged; the theorems that take
-it (`leasegrant_safe`, `leasegrant_adequate`) are true of `examples/leasegrant` under either
+it (`leasegrant_safe`, `leasegrant_adequate`) are true of `examples/etcd/leasegrant` under either
 wording, since it creates one lessor. (Parametrising the premise by the lessor, `leasesNoExpiry
 lp`, would make the scope checkable, but `srvGrantGuard`'s and `NewServer`'s row would then name
 the lessor before it exists: not worth it.)
@@ -88,7 +88,7 @@ Docstring claims: exercised only with a lease and the feature on; with it off, n
 
 - The server installs the checkpointer only if `features.LeaseCheckpoint` (`server.go:395-407`),
   default `false` (`etcd_features.go:104`); the examples pass the default gate
-  (`examples/common/common.go:96`). With `le.cp == nil`: `scheduleCheckpointIfNeeded` returns at
+  (`examples/lib/etcdstart/common.go:96`). With `le.cp == nil`: `scheduleCheckpointIfNeeded` returns at
   once, so the checkpoint heap stays empty and `checkpointScheduledLeases` finds no due checkpoint
   and never calls `le.cp`; `Renew`'s `clearRemainingTTL` needs `le.cp != nil` (`:412`). Vacuous for
   `leasegrant`. (A non-empty `cps` with `le.cp == nil` would be a nil call; unreachable, since only

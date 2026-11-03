@@ -1,9 +1,9 @@
 # logkv: a log-applied register, proved end to end (2026-10-28, branch `logkv-eval`)
 
-The base of the scalable-proof experiment: `examples/lintest/logkv/logkv.go`, a register whose
+The base of the scalable-proof experiment: `examples/lib/lintest/logkv/logkv.go`, a register whose
 writes go through a lock-protected log that an apply goroutine applies, readers reading the
 applied state, checked by the generic `lintest` driver. Proved end to end: **`logkv_adequate`**
-(`Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Adequacy.lean`): every real
+(`Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/Adequacy.lean`): every real
 execution of `initialize'(); Main()` of fewer than `2^63` steps never gets stuck and no thread
 panics, so porcupine answered `Ok`. Its `#print axioms` (in `Results.lean`) is exactly
 `counter_adequate`'s: 53 entries, the same list (the Go-semantics trust boundary of `fmt`, `os`,
@@ -75,7 +75,7 @@ one above, how the writer gets its result back. The options weighed:
   have seen the value;
 - saved propositions keyed by a ghost index (chosen): the mask stays `∅`, the cost is one
   `▷ (P' ≡ P)`, which `Unlock`'s step pays. The precedent is the kv example's `opSlot`
-  (`examples/kv/Defs.lean`, `savedPredOwn` + `token`).
+  (`examples/raft/kv/Defs.lean`, `savedPredOwn` + `token`).
 
 Splitting the requests into a done prefix and a pending suffix (`take`/`drop` at `applied`)
 instead of one big-sep with a case on `j < applied` kept every step local: applying is a

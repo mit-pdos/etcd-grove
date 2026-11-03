@@ -6,7 +6,7 @@ from a renamed copy of the base proof (phase B). The cost of a feature is what p
 that copy. All agents were fresh, with the `spec` skill as of `lean` `3e99707422`; phase A did not
 see the variants. Details: `notes/logkv-eval.md` (phase A), `notes/logkv-eval-{compact,snap,rw,append}.md`.
 
-## The programs (`examples/lintest/`)
+## The programs (`examples/lib/lintest/`)
 
 `logkv`: a register whose writes go through a lock-protected log that an apply goroutine applies
 (a write takes effect in another goroutine, as in etcd's apply thread), readers reading the applied

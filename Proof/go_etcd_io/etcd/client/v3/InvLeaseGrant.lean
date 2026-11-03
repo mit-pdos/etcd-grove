@@ -23,7 +23,7 @@ no read index), so a lagging member need not list a lease the cluster granted; t
 registered at one member's address with its lessor. A client with several endpoints would need them
 at every member, which no granting cluster gives.
 
-What `Main` of `examples/leasegrant` checks: the lease `Grant` returns is in the `Leases` reply.
+What `Main` of `examples/etcd/leasegrant` checks: the lease `Grant` returns is in the `Leases` reply.
 -/
 module
 

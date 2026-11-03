@@ -30,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
-variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
+variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions]
 
 /-- **What a pod-control create returns** for the template `t` (the pod for some generated name
 `pfx`): `nil` and `Ψ'` (the callback ran); an error and `Ψ` of a create that reported one (no
@@ -46,7 +46,7 @@ def podCreateRet (amb : Bool) (Ψ : Except ApiErr (Bool × Obj) → IProp GF)
 caller's linearization point is for the pod of any of `getPodsPrefix`'s results. -/
 abbrev RealPodControl.CreatePodsWithGenerateName.spec : Prop :=
   ∀ [ApiDeps] (r : RealPodControl) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ctx : GoInterface) (ns : GoString) (tp : Loc) (dq : DFrac) (t : kd.core.PodTemplateSpec)
     (l : Loc) (dd : kd.apps.DaemonSet) (cref : Loc) (ref : kd.meta.OwnerReference)
     (Ψ : Except ApiErr (Bool × Obj) → IProp GF) (Ψ' : kd.core.Pod → IProp GF),

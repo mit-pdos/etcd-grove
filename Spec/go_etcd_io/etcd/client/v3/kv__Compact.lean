@@ -1,6 +1,6 @@
 /-
 `(*clientv3.kv).Compact(ctx, rev, opts...)` (`client/v3/kv.go`; the client's `kv.Compact`,
-2026-11-01, `examples/compactkv`; the approved spec, `.claude/skills/spec/examples/compact-client.md`).
+2026-11-01, `examples/etcd/compactwatch`; the approved spec, `.claude/skills/spec/examples/compact-client.md`).
 Lean-first (no Rocq counterpart).
 -/
 module

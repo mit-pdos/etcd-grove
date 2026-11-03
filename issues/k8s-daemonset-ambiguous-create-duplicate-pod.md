@@ -67,7 +67,7 @@ satisfied, and `manage` creates a pod on a node whose committed pod the cache ha
 
 no: the top-level adequacy proof needs no fix on the goosed fork for it; the planned DaemonSet theorem takes the model API server with `AmbiguousWrites` off (a failed
 write had no effect), a premise real API servers do not meet
-(`examples/k8sdaemonset/apimodel/doc.go`, "Failures"; `ambiguous_create_breaks_S1` in
+(`examples/k8s/daemonset/apimodel/doc.go`, "Failures"; `ambiguous_create_breaks_S1` in
 `Proof/k8s_io/kubernetes/pkg/controller/daemon/S1Model.lean`).
 
 ## Fix
@@ -88,7 +88,7 @@ stalls the node for the 5-minute `ExpectationsTimeout` when the 5xx did not comm
 `FlakyAPIServer`, `Failed*StaleChildWatch`, `TestDaemonSetPodCreateExpectationsError`). Complete but
 larger: a pod name the controller reuses on retry, so a second create gets AlreadyExists.
 
-Found 2026-10-26 running the controller over the model API server (`examples/k8sdaemonset`,
+Found 2026-10-26 running the controller over the model API server (`examples/k8s/daemonset`,
 `smoke/smoke_test.go`'s `TestAmbiguousWrites`: 4 of 50 runs had two pods, each after one ambiguous
 create; 0 of 30 without). The model backend for #139657's matrix (`KUBE_ROBUSTNESS_BACKEND=model`)
 agreed with the real server on 13 of 14 scenarios; it found a model bug (an empty store's list at

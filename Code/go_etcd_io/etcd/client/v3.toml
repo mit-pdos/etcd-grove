@@ -173,7 +173,7 @@ translate = [
   "Op.isWrite",
   "retryKVClient.DeleteRange",
   "retryKVClient.Txn",
-  # the client's `kv.Compact` (2026-11-01, `examples/compactkv`): `kv.go`'s `kv.Compact`,
+  # the client's `kv.Compact` (2026-11-01, `examples/etcd/compactwatch`): `kv.go`'s `kv.Compact`,
   # `compact_op.go`'s `OpCompact`, `CompactOp.applyCompactOpts`, `CompactOp.toRequest`;
   # `retry.go`'s `retryKVClient.Compact`
   "kv.Compact",
@@ -253,11 +253,11 @@ translate = [
   # rules, `ptr_Put_unfold`/`ptr_Get_unfold`, the call through the `KV` field)
   "Client.Put",
   "Client.Get",
-  # linkv-txn stage F: `(*Client).Delete`/`Txn`, promoted likewise (`examples/linkvtxn`'s `call`)
+  # linkv-txn stage F: `(*Client).Delete`/`Txn`, promoted likewise (`examples/etcd/txnlin`'s `call`)
   "Client.Delete",
   "Client.Txn",
   # the client's `kv.Compact` (2026-11-01): `(*Client).Compact`, promoted likewise
-  # (`examples/compactkv`)
+  # (`examples/etcd/compactwatch`)
   "Client.Compact",
   # the client lease (item 1, branch `lease-client`): lease.go's lessor with bodies but
   # `closeRequireLeader` (grpc's `metadata`, not imported: names only), retry.go's lease client,
@@ -269,7 +269,7 @@ translate = [
   "RetryLeaseClient", "retryLeaseClient", "retryLeaseClient.LeaseGrant",
   "retryLeaseClient.LeaseRevoke", "retryLeaseClient.LeaseKeepAlive", "canceledByCaller",
   # the auth plan's E2h (2026-10-26): the client's Auth API for the admin calls
-  # `examples/authkv`'s `SetUp` makes (auth.go's `NewAuth` and `authClient`'s `UserAdd`,
+  # `examples/etcd/auth`'s `SetUp` makes (auth.go's `NewAuth` and `authClient`'s `UserAdd`,
   # `UserGrantRole`, `RoleAdd`, `RoleGrantPermission`, `AuthEnable`, the permission types;
   # retry.go's `RetryAuthClient` and `retryAuthClient`'s same five)
   "NewAuth", "authClient", "authClient.UserAdd", "authClient.UserGrantRole", "authClient.RoleAdd",

@@ -1,0 +1,68 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kv/Storage__InitialState.lean`. Lean-first (no
+Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the two fresh structs, every cell `nil`, are
+frozen (`hsRO_of_struct`, `csPts_of_struct_ro`): the hard state is the zero record, the conf state
+the voters.
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kv.Storage__InitialState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Lemmas
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace raft_kv
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
+variable [KVStor GF]
+
+theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG := hG) := by
+  intro s vsl voters
+  wp_start as ⟨#Hv, #Hvs⟩
+  iapply wp_fupd
+  wp_auto
+  irename «$r0» => Hhp
+  generalize «$r0_ptr» = hp at *
+  -- `&pb.HardState{}`: every cell `nil`, the zero record, frozen
+  imod hsRO_of_struct hp (zero_val raftpb.HardState) (HardStateM.mk (W64 0) (W64 0) (W64 0)) ⊤ rfl
+    $$ [Hhp] with #Hhs
+  · iframe Hhp
+    repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+    iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  irename «$r1» => Hcs
+  generalize «$r1_ptr» = cs at *
+  -- `&pb.ConfState{Voters: s.voters}`: the voters read-only, the other slices `nil`, `AutoLeave`
+  -- `nil`, frozen
+  imod csPts_of_struct_ro cs
+      (⟨zero_val _, vsl, slice.nil, slice.nil, slice.nil, null, slice.nil, 0⟩ : raftpb.ConfState)
+      (kvConfState voters) ⊤ rfl $$ [Hcs] with #Hcs
+  · iframe Hcs
+    simp only [kvConfState]
+    iframe Hvs
+    repeat (isplitr; · iapply ownSlice_nil)
+    iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  imodintro
+  iapply HΦ
+  isplitl []
+  · iunfold hsOpt; iright; iexact Hhs
+  iExactEq Hcs
+  simp
+
+end proof
+
+end raft_kv
+end EtcdGrove
+end Perennial

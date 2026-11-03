@@ -18,8 +18,8 @@ lemma, `client.wp_WithTimeout_bg` (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.l
 
 ## Problem
 
-The etcd examples (`examples/putget`, `putget3`, `linkvtxn`, `linkv3p`, `watchkv`, `cachekv`,
-through `examples/common`) make every client call with `context.Background()`: no request
+The etcd examples (`examples/etcd/putget`, `putget3`, `linkvtxn`, `linkv3p`, `watchkv`, `cachekv`,
+through `examples/lib/etcdstart`) make every client call with `context.Background()`: no request
 timeout. Their `clientv3.Config` sets no `DialTimeout`; only linkv3p's clients have gRPC
 keepalive (D28) and only linkv3p's members the server-side keepalive policy. Nobody uses etcd
 that way:
@@ -76,7 +76,7 @@ only).
 
 ## Decisions (recommendations; to confirm)
 
-**D-T1. One configuration, etcdctl's defaults, in `examples/common`.** Constants
+**D-T1. One configuration, etcdctl's defaults, in `examples/lib/etcdstart`.** Constants
 `DialTimeout = 2s`, `RequestTimeout = 5s`, `KeepAliveTime = 2s`, `KeepAliveTimeout = 6s`
 (etcdctl's: what a person who types `etcdctl put` gets); `common.NewClient(eps []string, lg)`
 builds the `clientv3.Config` from them (endpoints, `DialTimeout`, `DialKeepAliveTime`,
@@ -144,7 +144,7 @@ one more neutral-option axiom (+1): not recommended now; it changes nothing a te
 
 ### T0. The Go change, tested
 
-- `examples/common/common.go`: the constants, `NewClient(eps []string, lg)` as D-T1 (and
+- `examples/lib/etcdstart/common.go`: the constants, `NewClient(eps []string, lg)` as D-T1 (and
   `Serve`'s policy option if D-T5); `common/watch.go`'s `Writer` as D-T2.
 - The call sites of D-T2; linkv3p's `newClient` removed; the examples' doc comments (each lists
   the functions it calls: add `context.WithTimeout` and the cancel).

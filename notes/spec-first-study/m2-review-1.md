@@ -305,7 +305,7 @@ argument); today they are the compaction-off predicates (`newServer.lean:99`,
 `EtcdServer.Compact.wp_proof`'s or `processInternalRaftRequestOnce.wp_proofCompact`'s `sorry`.
 `etc/tcb-collections/m2.txt` lists `sorry common.newServer.wp_proofCompact` but not
 `NewServer.wp_proofCompact`, which looks stale: `newServer.wp_proofCompact` now has no `sorry`
-(`examples/common/newServer.lean:141-`). The fork reported this too. *Fix:* the hypotheses of
+(`examples/lib/etcdstart/newServer.lean:141-`). The fork reported this too. *Fix:* the hypotheses of
 S3-3, then `--collection etc/tcb-collections/m2.txt --check --update`.
 
 **S4-3 (tier 2: weak side of a disjunction, checked).** `compactorOk c := ⌜c = nil⌝ ∨ ∃ T P, …`

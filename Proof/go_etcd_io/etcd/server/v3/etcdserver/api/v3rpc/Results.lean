@@ -1183,7 +1183,7 @@ end endToEnd
 
 /-! ## The Auth service over gRPC (the auth plan's E3za, 2026-10-27)
 
-The five admin methods `examples/authkv`'s `SetUp` calls, as grpc runs them (`etcd_*MethodOk`, from
+The five admin methods `examples/etcd/auth`'s `SetUp` calls, as grpc runs them (`etcd_*MethodOk`, from
 each handler's E3y result, `etcd_*HandlerOk`), and served at an address (`etcd_auth_served`), with
 etcd's specs (`AuthService.lean`). -/
 

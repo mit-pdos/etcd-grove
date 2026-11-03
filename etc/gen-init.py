@@ -46,39 +46,39 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
-         'github_com.mit_pdos.etcd_grove.examples.putget',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
-         'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
-         'github_com.mit_pdos.etcd_grove.examples.compactkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch',
          # the closed lease example (2026-11-02, notes/lease-ex-plan.md)
-         'github_com.mit_pdos.etcd_grove.examples.leasekv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.lease',
          # the closed lease-grant example (2026-11-02, notes/lease-grant-plan.md)
-         'github_com.mit_pdos.etcd_grove.examples.leasegrant',
-         'github_com.mit_pdos.etcd_grove.examples.putget3',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
-         'github_com.mit_pdos.etcd_grove.examples.restart3',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.kv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
          # (2026-11-01) the durable store (its files through the durable-state extension's Go
          # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.kvdurable',
-         'github_com.mit_pdos.etcd_grove.examples.linkv3p',
-         'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
-         'github_com.mit_pdos.etcd_grove.examples.watchkv',
-         'github_com.mit_pdos.etcd_grove.examples.cachekv',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
-         'github_com.mit_pdos.etcd_grove.examples.authkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -560,7 +560,7 @@ def _errVarOk(x, t):
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
 
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
 `errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
@@ -2108,48 +2108,48 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putgetc':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.compactkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.leasekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.leasegrant':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/leasegrant/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkv3p':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkvtxn':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.watchkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.cachekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.authkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.lease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.watch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.cache':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
@@ -2214,7 +2214,7 @@ def gen_table(p, path):
 # has its own copies: the same files, at `RaftWitness/<path>`, whose imports of these modules and
 # of raft's translation are the part's.
 PART_ROOT = 'RaftWitness'
-PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lintest',
+PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
               'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.internal.pragma',
               'google_golang_org.protobuf.reflect.protoreflect',
               'google_golang_org.protobuf.runtime.protoimpl']

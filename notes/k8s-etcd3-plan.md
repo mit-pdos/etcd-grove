@@ -76,7 +76,7 @@ own unit test requires, while the Model skips the write and rejects the response
   some keys in a non-canonical encoding before the traffic starts, as an older API server or a
   different serializer would have left them, and its transformer sometimes reports `stale` (a
   function of the stored value). It checks against a **fixed `correctness.Model`**: a patched
-  copy of the package in `examples/k8setcd3/`, whose items carry their stored form, so that
+  copy of the package in `examples/k8s/etcd3/`, whose items carry their stored form, so that
   `update` compares as the store does. That copy is trusted until upstream fixes the Model. The
   contract's proof for the driver's codec is a real proof (no axiom).
 
@@ -97,7 +97,7 @@ recovery after one); the method specs still cover them (a failed write fired at 
 The driver's Go test should show that runs reach the check in practice.
 
 Upgrade, later: linkvtxn's model already checks over configurations with pending failed writes
-(`examples/linkvtxn/linkvtxn.go`, "The model", `TxnModel.lean`'s `mStep`): a failed write may
+(`examples/etcd/txnlin/linkvtxn.go`, "The model", `TxnModel.lean`'s `mStep`): a failed write may
 take effect at any later time or never. Wrapping `correctness.Model` the same way needs a
 write's effect to be a function of its input; the test's `randomUpdate` fixes its random choices
 when the update function is made, so it is.
@@ -132,14 +132,14 @@ when the update function is made, so it is.
 5. **`GetList`.** `pagedChunks` (an `iter.Seq2`), continue tokens, predicate filtering, limits,
    the resource-version modes (#94002). Needs error identity: `ErrFutureRev` ->
    `TooLargeResourceVersion`, `ErrCompacted` -> 410.
-6. **Driver.** `examples/k8setcd3`: in-process etcd members (as linkv3p), the etcd3 store with
+6. **Driver.** `examples/k8s/etcd3`: in-process etcd members (as linkv3p), the etcd3 store with
    the driver's codec, `RunUnaryTraffic`-style traffic (reused from the test, `math/rand` choices
    nondeterministic), porcupine with `correctness.Model`, `Replay.Validate`; failed writes as
    above. Then faults: partitions and client cuts from linkv3p's schedule.
 
 ## Phase 6: the driver, as carried out (2026-10-22)
 
-`examples/k8setcd3/k8setcd3.go` (translated with project `k8s-apiserver`, package `.`): one
+`examples/k8s/etcd3/k8setcd3.go` (translated with project `k8s-apiserver`, package `.`): one
 in-process member, a `kubernetes.New` client (one attempt per call), two keys seeded through the
 client in an older encoding (non-canonical, D30g), the etcd3 store over the client with the
 driver's `Obj`, codec, versioner, decoder and identity transformer, and `lintest.Run` of the

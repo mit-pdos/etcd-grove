@@ -166,7 +166,7 @@ whole-`bootOk` review".
 F2's second review round found that `lateWB`'s unregistered arm, narrowed to an empty `Key` bucket
 with no compaction records (the fix of round 1's A1), cannot be met by a restart: the backend reopens
 the stopped member's data, which is not empty, so `InvRestart.newPost` cannot hold and
-`bootstrapRestartContract` (under `examples/common/Restart.lean`'s `bootPremiseR`) says `bootstrap`
+`bootstrapRestartContract` (under `examples/lib/etcdstart/Restart.lean`'s `bootPremiseR`) says `bootstrap`
 always fails on a restart, false of Go. F2 landed without fixing it (the user's choice, 2026-11-03):
 it is the first item of the whole-`bootOk` spec-first review. The reviewer's proposed fix: index the
 boot state by the opened data, `lateWB gx γB P D := (dghostVar gx ½ none ∗ backend.pvckInit γB P D) ∨

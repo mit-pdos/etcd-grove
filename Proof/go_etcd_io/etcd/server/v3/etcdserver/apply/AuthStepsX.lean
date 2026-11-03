@@ -6,7 +6,7 @@
 constant `W`, and the step's result is the authority after the step (`auth.adminOut`,
 `auth.adminOutFu`). E2s's tie of the admin side's halves of the flag and the cache to the latest
 state (`auth.X.specT`) depends on the history the step produces, so here the five admin requests
-`examples/authkv`'s `SetUp` sends carry, besides `W`, a resource `X` of the history alongside the
+`examples/etcd/auth`'s `SetUp` sends carry, besides `W`, a resource `X` of the history alongside the
 authority, given back at the history after (`auth.adminOutX`): `isAuthStepsX`, the backend's
 `stepSpecX`, the fueled `fuelSpecX`. The real store meets `isAuthStepsX` with `X = auth.tieRes st M`
 and `W = auth.authWB st M P f T ∗ auth.tpAdmin st M` (`isAuthStepsX_of_authInvT`, from E2s's

@@ -3,7 +3,7 @@
 **Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
 the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
 compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
-`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+`kv.Compact` is proved; `examples/etcd/compactwatch`'s closed theorem `compactkv_safe` is proved and `putgetc`
 rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
 the apply side".
 What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
@@ -32,7 +32,7 @@ the compactor's frozen specs (`v3compactor`) must not change.
   Missing: an **upper** bound on the compaction revision a reader can see (only lower bounds exist).
 - **The examples' theorems** (`putget_safe`, `watch_safe`, `cache_safe`, ...) state no panic and no
   stuck thread; none mentions compaction. They are about a Go program whose compactor is off
-  (`examples/common/common.go`: `AutoCompactionRetention` zero, a `NewServer` premise).
+  (`examples/lib/etcdstart/common.go`: `AutoCompactionRetention` zero, a `NewServer` premise).
 - **`ErrCompacted` as an answer**: a range's error case and the client's `kv.Get` error case are
   unconstrained, so an `ErrCompacted` read already fits as a failed operation; a successful read is
   still answered from the full log (M2's point: compaction drops no value at a revision it keeps).
@@ -51,7 +51,7 @@ the compactor's frozen specs (`v3compactor`) must not change.
 ## Scope: the decisions (the user's, 2026-10-27)
 
 1. **The program.** (a) A new example, `putgetc`: `putget` with the auto-compactor on, leaving every
-   existing example and theorem as is; or (b) turn the compactor on in `examples/common`, changing
+   existing example and theorem as is; or (b) turn the compactor on in `examples/lib/etcdstart`, changing
    every example's program at once. **Taken: (a).**
 2. **The configuration of the first result.** One member; the auto-compactor in **revision mode**
    (no clock trust boundary: the pilot's `revPermit`), a fixed retention; puts and latest gets only;
@@ -108,8 +108,8 @@ depends on the result:
   (the apply's compaction arm).
 
 **The stages** (Scope's S1-S4, refined):
-- **S0, the program**: `examples/putgetc` (Go: `putget` with `AutoCompactionMode: "revision"` and a
-  fixed retention; `examples/common` gains the configuration as a parameter of `newServer`, zero
+- **S0, the program**: `examples/etcd/compacted` (Go: `putget` with `AutoCompactionMode: "revision"` and a
+  fixed retention; `examples/lib/etcdstart` gains the configuration as a parameter of `newServer`, zero
   for every existing caller), its Goose project, and `putgetc_safe`'s statement over it.
 - **S1, the readers**: `storeReader`'s new definition; txn's read specs (`Range`, `Txn`, `Count`,
   `checkRange`, `checkTxn`, `isTxnRead`'s default) over the observed `c`; `rangeEvents`,
@@ -141,9 +141,9 @@ later stage. A scope revision of Scope (decision 4), found in Draft's design, be
 
 ## Draft, S0: the program and the top-level statement (2026-10-27)
 
-- **Go**: `examples/putgetc` (putget with `common.StartCompactingServer(..., retention = 1, ...)`:
+- **Go**: `examples/etcd/compacted` (putget with `common.StartCompactingServer(..., retention = 1, ...)`:
   revision mode, the most aggressive retention, every compaction at the revision before the
-  store's); `examples/common`'s `newServer` takes the retention (`AutoCompactionMode: "revision"`,
+  store's); `examples/lib/etcdstart`'s `newServer` takes the retention (`AutoCompactionMode: "revision"`,
   `AutoCompactionRetention: time.Duration(retention)`), zero from every existing caller. Its Go
   test passes; Goose project `putgetc`; `gen-init.py` roots and package table.
 - **Statements**: `putgetc.Main.spec` and the closed `putgetc_safe` (putget's, at putgetc's

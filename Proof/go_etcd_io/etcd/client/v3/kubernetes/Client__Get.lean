@@ -14,7 +14,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
@@ -31,7 +31,7 @@ namespace EtcdGrove
 namespace kubernetes
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open go_etcd_io.etcd.server.v3.etcdserver linkvtxn
+open go_etcd_io.etcd.server.v3.etcdserver etcd_txnlin
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]

@@ -4,7 +4,7 @@ Status (2026-10-29): **Scope and Draft.** Started at the user's request ("work o
 closed theorem the fixed target, so the rest can be proved in parallel). Runs beside the auth-mode
 merge (`notes/auth-mode-merge-plan.md`, session `etcd-grove-72`, worktree `etcd-grove-abd`), which
 owns `etcdserver/` and `client/v3`'s auth-on stack. This stage touches only
-`examples/authkv/` and this file, except where a row below says "server interface". Those rows are
+`examples/etcd/auth/` and this file, except where a row below says "server interface". Those rows are
 stated here as the interface authkv needs; the merge session changes the server.
 
 ## The target
@@ -107,7 +107,7 @@ of the update (`kvAu1`'s shape, `InvRequest.lean`), and S1 must use a premise st
 terms (`kvRaftOfOn`'s auth state), not authkv's model. Placement: it touches the statements of the
 merge's step 5 (`processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`, `reqPropOkOn`), so
 it lands after step 5, or folded into step 5 if the user approves. **Decided (the user, 2026-10-29): folded into step 5**, on the merge session's branch `auth-req`; that session sends the exact statement after its review, before proving it, so S1 can be checked against it. Until then S1/S2 are drafted
-against a local `kvOpAuG` in `examples/authkv`.
+against a local `kvOpAuG` in `examples/etcd/auth`.
 
 **This is a change to the server's `On` request spec (`reqPropOkOn`) in the middle of the merge.
 That is an escalation trigger (`notes/spec-first-plan.md`, "Who decides").** It goes to the user,
@@ -302,7 +302,7 @@ plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEv
 
 ## Main's callees, draft (2026-10-29)
 
-`Main.wp_proof`'s hypotheses once frozen, in `Main`'s order (`examples/authkv/authkv.go:365`):
+`Main.wp_proof`'s hypotheses once frozen, in `Main`'s order (`examples/etcd/auth/authkv.go:365`):
 
 | Call | Spec | State |
 |---|---|---|

@@ -39,7 +39,7 @@ counter and thread tokens").
 | Earlier verdicts | `notes/audit.md` (per axiom: ok / suspect / false, with the reason); `notes/axiom-review/` (this skill's reports) |
 | The Go code the axiom describes | the pinned source: `.lake/go-src/<project>` or the clone `etc/goose.py` makes in `.lake/goose/<name>`; standard library: the pinned `GO_TOOLCHAIN`'s `$(go env GOROOT)/src` |
 | What an axiom is used by | `etc/tcb-report.py --roots <pattern>` (needs an up-to-date `lake build`), `grep -rn '<name>.wp_proof'` |
-| A program with a closed no-panic theorem | `examples/putget` (Go: `Main` panics unless the `Get` returned the `Put`'s value) and `Proof/github_com/mit_pdos/etcd_grove/examples/putget/` (`Results.lean`: the triple of `Main`; `Adequacy.lean`: the closed theorem over the operational semantics, from `Proof/runtime/Start.lean`) |
+| A program with a closed no-panic theorem | `examples/etcd/putget` (Go: `Main` panics unless the `Get` returned the `Put`'s value) and `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/` (`Results.lean`: the triple of `Main`; `Adequacy.lean`: the closed theorem over the operational semantics, from `Proof/runtime/Start.lean`) |
 | Panics in the logic | `.lake/packages/perennial/docs/PERENNIAL_PROOF_REFERENCE.md`, "Panics": a panic is a value `PanicV p`; a triple `{{ P }} e {{ RET v; Q }}` excludes it; `wp_fork` requires the forked thread not to panic |
 
 ## What counts
@@ -66,7 +66,7 @@ counter and thread tokens").
   the ones under review plus Lean's three and the generic ones every Perennial proof prints (compare
   with `#print axioms` of a small proved function); anything else (another library's axiom, a
   `sorry`) and the counterexample is not clean: remove it or say exactly what it adds. The closed
-  form (an adequacy theorem like `putget_safe`: no thread ends in a panic) is the strongest
+  form (an adequacy theorem like `etcd_putget_safe`: no thread ends in a panic) is the strongest
   statement; do it when the triple is done and the user wants it.
 - **An inconsistent axiom** (one from which `⊢ False`, or `|==> False`, follows) refutes itself: then
   the program is a bare `panic("unreachable")` and the proof is `False.elim`; still give both.

@@ -45,7 +45,7 @@ globs = ["RaftWitness.+"]
 name = "PorcupineDag"
 globs = ["PorcupineDag.+"]
 
-# bbolt's top-level test (examples/bbolttest) and bbolt itself with its bodies (the fork
+# bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
 # into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main
 # tree translates go.etcd.io/bbolt names-only, for etcd, so the two declare the same names;

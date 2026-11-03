@@ -7,9 +7,9 @@ module
 public import Spec.k8s_io.kubernetes.pkg.controller.RealPodControl__createPods
 public import Spec.k8s_io.kubernetes.pkg.controller.RealPodControl__createPods_body
 public import Spec.fmt.Errorf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Clientset__CoreV1
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.coreV1__Pods
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podClient__Create
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Clientset__CoreV1
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.coreV1__Pods
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.podClient__Create
 public import Spec.k8s_io.apimachinery.pkg.api.errors.HasStatusCause
 public import Spec.k8s_io.klog.v2.FromContext
 public import Spec.k8s_io.klog.v2.KObj
@@ -38,7 +38,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
-variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
+variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions]
 
 theorem RealPodControl.createPods.wp_proof
     (h_body : RealPodControl.createPods_body.spec (GF := GF) (hG := hG))

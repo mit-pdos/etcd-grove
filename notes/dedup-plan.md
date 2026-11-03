@@ -64,7 +64,7 @@ compared them (a) textually identical up to binder names, (b) by `difflib` ratio
 `X.spec (GF := GF)` restatements; then each hit was read. A separate pass listed the pure lemmas
 (no `IProp`, `⊢`, `∗`, `WP`) and the generic ones among them (no project noun). The witness part
 was compared file by file (`diff` after renaming `RaftWitness.`/`kvwitness` to `kv`). The Go of
-`examples/linkv3p` was diffed against `examples/common`.
+`examples/etcd/partition` was diffed against `examples/lib/etcdstart`.
 
 ## Findings
 
@@ -72,9 +72,9 @@ was compared file by file (`diff` after renaming `RaftWitness.`/`kvwitness` to `
 
 | Lemma | Copies | Fix |
 |---|---|---|
-| `isProgressNotify_events` (`cache/v3/Cache__watchEvents.lean:61`) | `isProgressNotify_events'` (`examples/common/WatchBase.lean:130`; exported by `watchkv/WatchFacts.lean`, used by `linkv3p/WatchHist.lean`) | The lemma is about `RespModel` (`cache/v3/InvStore.lean:255`): move it to `InvStore.lean`, delete the primed copy and the `export` |
-| `optsAt_nil` (`client/v3/concurrency/InvMutexLemmas.lean:384`) | `examples/linkvtxn/Client.lean:89` (linkvtxn does not import `concurrency`) | Move next to `optsAt` (`client/v3/InvOp.lean:379`), delete both |
-| `kvClientN_mask` (`client/v3/InvServerKV.lean:240`) | `linkvN_mask`, `linkvInvN_mask` (`examples/linkvtxn/Inv.lean:309,315`): the same statement, so `linkvN` is `kvClientN`'s mask; see also D below | Prove from one Perennial lemma (D) |
+| `isProgressNotify_events` (`cache/v3/Cache__watchEvents.lean:61`) | `isProgressNotify_events'` (`examples/lib/etcdstart/WatchBase.lean:130`; exported by `watchkv/WatchFacts.lean`, used by `linkv3p/WatchHist.lean`) | The lemma is about `RespModel` (`cache/v3/InvStore.lean:255`): move it to `InvStore.lean`, delete the primed copy and the `export` |
+| `optsAt_nil` (`client/v3/concurrency/InvMutexLemmas.lean:384`) | `examples/etcd/txnlin/Client.lean:89` (linkvtxn does not import `concurrency`) | Move next to `optsAt` (`client/v3/InvOp.lean:379`), delete both |
+| `kvClientN_mask` (`client/v3/InvServerKV.lean:240`) | `linkvN_mask`, `linkvInvN_mask` (`examples/etcd/txnlin/Inv.lean:309,315`): the same statement, so `linkvN` is `kvClientN`'s mask; see also D below | Prove from one Perennial lemma (D) |
 | `ptsto_w64_halves` (`client/v3/WatchRecon.lean:78`) | `ptsto_split_half` (`client/v3/WatchRun.lean:499`) | Part of family C1 |
 | `readsAt_insert` (`client/v3/concurrency/InvSTMMaps.lean:143`) | `readsAt_insert_rd` (`concurrency/InvSTMReads.lean:348`) | Delete one |
 | `deleteOp_txnOpOf` (`client/v3/concurrency/Election__Resign.lean:27`) | `stm_deleteOp_txnOpOf` (`concurrency/InvSTMMaps.lean:21`) | Delete one; part of family C5 |
@@ -190,7 +190,7 @@ first): `zip_get_snd` (`client/v3/ServerKVGet.lean:216`), `getElem?_of_getLast?`
 (`cache/v3/demux__broadcastEventsLocked.lean:32,40`), `applyEventsLocked_mem_take`, `_split`,
 `_take_succ`, `_drop_cons` (`cache/v3/store__applyEventsLocked.lean:155-176`),
 `demuxUSL_take_subslice`, `demuxUSL_getLast_take` (`cache/v3/demux__updateStoreLocked.lean:25,109`),
-`flatten_length`, `flatten_getElem?` (`examples/lintest/LinTheory.lean:95,104`), `getElem?_inj`
+`flatten_length`, `flatten_getElem?` (`examples/lib/lintest/LinTheory.lean:95,104`), `getElem?_inj`
 (`porcupine/ListLemmas.lean:58`), and the `w8`/`GoStringLt` facts of `client/v3/PrefixRange.lean:23-48`
 (`goStringLt_cons_iff`, `goStringLt_nil_cons`, `goStringLt_not_nil`, `w8_eq_of_Z`, `w8_lt_ff`,
 `w8_succ`; `GoStringLt` is Perennial's, CLAUDE.md names it). 102 pure lemmas mention `List`,
@@ -210,7 +210,7 @@ at all.
   neutral namespace both import, e.g. `Proof/.../examples/common/KVModel.lean` (`common` is already
   imported by both, D36). The `KV__*` method proofs stay copies (they are about each part's own
   translation).
-- **linkv3p's Go** (`examples/linkv3p/linkv3p.go`): `startMember`, `newClient`, `writer` are
+- **linkv3p's Go** (`examples/etcd/partition/linkv3p.go`): `startMember`, `newClient`, `writer` are
   `common.StartMember`, `NewClient`, `Writer` plus the keepalive enforcement policy, the client's
   keepalive options and a client list (`writer` picks a random client). Parameters of common's
   functions would remove them and their proofs (`linkv3p/startMember.lean`, 237 lines); a

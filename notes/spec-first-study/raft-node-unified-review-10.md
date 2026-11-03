@@ -13,7 +13,7 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
   - Also `notes/raft-unified-plan.md` in the worktree, and `nonissues/raft-committedentries-stable-storage-doc.md`.
 - **Go**:
   - raft a2 (`.lake/raft-fork`, `565c2bd`): `storage.go`, `node.go`, `confchange/{confchange,restore}.go`;
-  - kvreconf (`examples/kvreconf/{kv,cluster,reconf}.go`);
+  - kvreconf (`examples/raft/kvreconf/{kv,cluster,reconf}.go`);
   - etcd's server (`~/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261027220749-a20f6760ff43/etcdserver/server.go`).
 - **Clients' proofs**: the server's `SnapTake.lean`, `InvRaftNode.lean:363-371`, `InvRaftLoop.lean:61`, `EtcdServer__run.lean:69`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the worktree has no `spec/` skill).

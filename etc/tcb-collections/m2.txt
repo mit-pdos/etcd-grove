@@ -1,8 +1,8 @@
 # M2, compaction in the server's model (notes/m2-plan.md): its first result, putgetc's
-# (examples/putgetc: putget with the auto-compactor on, revision mode), `putgetc_Main` and the
-# closed theorem `putgetc_safe`, in Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/Results.lean.
+# (examples/etcd/compacted: putget with the auto-compactor on, revision mode), `putgetc_Main` and the
+# closed theorem `etcd_compacted_safe`, in Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Results.lean.
 # Its `sorry`s are M2's remaining work (the skeleton's, phase 1 of notes/spec-first-plan.md).
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof

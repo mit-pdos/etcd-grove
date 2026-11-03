@@ -41,9 +41,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
   `extsGlobalStart`/`extsLocalStart`; this repository's `init_adequate`
-  (`examples/common/Adequacy.lean`), the proposed generic closed theorem, dropped them.
-- **Here.** `init_adequate_start` (`examples/common/AdequacyStart.lean`), any extension list, the
-  body's WP taking both start resources; `durable_init_adequate` (`examples/common/DurableExt.lean`)
+  (`examples/lib/etcdstart/Adequacy.lean`), the proposed generic closed theorem, dropped them.
+- **Here.** `init_adequate_start` (`examples/lib/etcdstart/AdequacyStart.lean`), any extension list, the
+  body's WP taking both start resources; `durable_init_adequate` (`examples/lib/etcdstart/DurableExt.lean`)
   for `[durableExt]`.
 - **Proposal.** Land it in Perennial with `init_adequate` (one theorem, `init_adequate` its
   corollary for resources dropped).
@@ -107,7 +107,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 a mutex and locks it before the invariant holds cannot use it: kvreconf's `StartCluster` locks
 `c.mu` and then inserts the founders, and `clusterLockInv` holds only at the `Unlock`. The lock is
 needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
-workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/MutexFresh.lean`.
+workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/MutexFresh.lean`.
 It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
 `Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
 first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
@@ -122,7 +122,7 @@ first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in
   same to it, although it unfolds another hypothesis. A `curRep` hypothesis (`ghostMapElem`) in
   `Cluster.restart`'s proof went through `wp_auto` unchanged. Unconfirmed guess: something reduces
   the hypotheses' types to weak head normal form, and `token`/`own` unfold all the way there.
-- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__Crash.lean`.
+- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__Crash.lean`.
 - **Workaround here.** `attribute [local irreducible] crasher in` on the theorem. The package
   init comes from `isClusterC` in a subgoal with only that hypothesis.
 - **Proposed.** First a minimal reproduction (a `token` hypothesis through `wp_auto`), then keep
@@ -326,7 +326,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Needed by.** The examples' closed theorems (2026-10-22, D36): kv's, the counter's and
   kvwitness's over `goose_adequacy`; the etcd examples' over this repository's
   `goose_adequacy_start` (`Proof/runtime/Start.lean`), which stays here.
-- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/common/Adequacy.lean`:
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Adequacy.lean`:
   `init_adequate` (over `goose_adequacy`, its WP obligation `progOk0`: the initializer's triple
   and the body's WP from the package's predicate and the main thread's token, at every ghost-state
   instance at the state's local context), `adequate_of_unrecovered`, `ownInitializing_of_empty`;
@@ -677,7 +677,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   has no conversion step.
 - **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
 - **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
-  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom. Also met by
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`); no axiom. Also met by
   client-go's pager (2026-10-28, `k8s-daemonset-proof`): `meta.List` (`type List
   metav1.ListInterface`), two named types deep; a local instance `metaList_underlying`
   (`Proof/k8s_io/client_go/tools/pager/Defs.lean`), no axiom.
@@ -1014,8 +1014,8 @@ elaborate:
   (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
   extension of its own.
 - **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
-  package `examples/durable`) and `examples/durablekv`.
-- **Workaround here.** None (goose treats `examples/durable` as any package); until the pin
+  package `examples/lib/durable`) and `examples/raft/kvfile`.
+- **Workaround here.** None (goose treats `examples/lib/durable` as any package); until the pin
   reached the change, the extension's Lean modules built only against it, so the branch waited.
 - **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
   module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
@@ -1028,7 +1028,7 @@ elaborate:
   review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
   name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
   stutter). In the pin since 2026-10-28 (the bump from `edcadb1e5`; no translation but
-  `examples/durablekv`'s changed).
+  `examples/raft/kvfile`'s changed).
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
@@ -1416,7 +1416,7 @@ Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic up
 (`bag_send_au`) but not the non-blocking one a `select` with a `default` needs. kvreconf's `request`
 sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : £ 1 -∗ isChanBag γ ch
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
-(`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
+(`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
 

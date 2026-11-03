@@ -3,7 +3,7 @@
 **Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
 the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
 compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
-`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+`kv.Compact` is proved; `examples/etcd/compactwatch`'s closed theorem `compactkv_safe` is proved and `putgetc`
 rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
 the apply side".
 What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
@@ -536,7 +536,7 @@ what is not:
   position anyway (for the switch's cost): `client/InvWatch.lean:469` (`⟨-, -, %Hst, -⟩`: unaffected
   when appended last), `client/watcher__Watch.lean:54-55` (`⟨-, -, -, -, #Hkf0⟩`: breaks, `#Hkf0`
   would bind the pair: use a projection), `client/InvClientNewResult.lean:112` (unfolds),
-  `examples/linkv3p/WatchEnv.lean:89` (unfolds); `watchAddrFacts`'s destructuring sites not yet
+  `examples/etcd/partition/WatchEnv.lean:89` (unfolds); `watchAddrFacts`'s destructuring sites not yet
   counted.
 - **S6', in part.** `mvcc.storeWatchParamsD_T`/`_R` dropped; `v3rpc.createArm_T` kept, marked
   Draft-only (dropped at the switch).
@@ -634,7 +634,7 @@ the S-items), and this notes commit. Nothing exported, trusted or D22's switched
 ### N1, drafted end to end
 
 The route decided after round 2 (the mode through the stand-in `E₀`), over the current `NewServer`
-and `examples/common`:
+and `examples/lib/etcdstart`:
 - **Server** (`etcdserver/M2StorageDraft.lean`): `apply.AEnvD` (today's `AEnv` extended by
   `cmp : Bool := false`: at the switch a field of `AEnv` itself), and
   ```lean
@@ -653,7 +653,7 @@ and `examples/common`:
   `0 < sint.Z cfg.AutoCompactionRetention' →`; the merged spec:
   `(E₀.cmp = true ↔ cfg.AutoCompactionRetention' ≠ 0) →`. Their proofs: the anonymous `AEnv`
   constructor at `NewServer.lean:1039` gains `E₀.cmp`, `hγs` becomes `envAgreeD_of_new_off`.
-- **Examples' boot** (`examples/common/M2StorageDraft.lean`, new): `env₀D … (cmp := false)`,
+- **Examples' boot** (`examples/lib/etcdstart/M2StorageDraft.lean`, new): `env₀D … (cmp := false)`,
   `memberBootD … (cmp : Bool := false)` (pure facts gain `E₀.cmp = cmp`, appended),
   `memberBootD_cmp` (a `Main` reads the mode before `newServer` takes the bundle), `memberBootD_of`
   (the allocations' bundle at `env₀D … cmp`), `memberBootD_to` (what `newServer` passes on).
@@ -662,11 +662,11 @@ and `examples/common`:
 - **The watching examples' glue**, proved against the drafted watch-stream registration as a
   hypothesis (`v3rpc.etcd_watch_served_chain.specD`: `etcd_watch_served_chain` over `watchUpD`,
   `isWatchServerD`):
-  - watchkv (`examples/watchkv/M2StorageDraft.lean`): `wk_servedD`, `wk_served` with
+  - watchkv (`examples/etcd/watch/M2StorageDraft.lean`): `wk_servedD`, `wk_served` with
     `(hoff : ¬ mvcc.kbCmpM V.R.E.γ.kb)` and the post's `watchAddrFactsD V`;
   - cache (`cache/v3/M2StorageDraft.lean`): `etcd_cache_servedD`, the same for the exported
     `etcd_cache_served`;
-  - linkv3p (`examples/linkv3p/M2StorageDraft.lean`): `memberWatchD`, `memberAtD` (pure facts gain
+  - linkv3p (`examples/etcd/partition/M2StorageDraft.lean`): `memberWatchD`, `memberAtD` (pure facts gain
     `¬ mvcc.kbCmpM E.γ.kb`, appended), `memberWatchD_facts` (to `client.watchMemberFactsD`),
     `memberWatchD_of_at` (MainWatch's step).
   - At each `Main` (`watchkv/Main.lean`, `cachekv/Main.lean`; linkv3p's `startCluster` from
@@ -728,7 +728,7 @@ module). None is D22's: F2's five are withdrawn, and step 2 lists its own.
 10. **`envAgree`**: `envAgreeD`'s text (the mode clause).
 11. **`NewServer.spec`**, **`NewServer.specM`**: premise `E₀.cmp = false →`;
     **`NewServer.specCompact`**: `E₀.cmp = true →` (trusted until proved: its proof is `sorry`).
-12. **examples/common**: `env₀ … (cmp : Bool := false)`; `memberBoot … (cmp : Bool := false)` with
+12. **examples/lib/etcdstart**: `env₀ … (cmp : Bool := false)`; `memberBoot … (cmp : Bool := false)` with
     `E₀.cmp = cmp`; `newServer.specCompact` and `StartCompactingServer.spec` at `memberBoot … true`
     (their allocation at `env₀ … true`); `memberBootOn` the same argument.
 13. **`etcd_cache_served`** (exported): `(hoff : ¬ mvcc.kbCmpM V.R.E.γ.kb)`; post over the
@@ -1291,8 +1291,8 @@ axiom-backed or not. "mvcc D" = `mvcc/M2StorageDraft.lean`, "Supply" = `mvcc/M2S
 10. `envAgree`: `envAgreeD` (the mode clause; at the switch `E.γ.cm = E.cmp`, item 26). Step 1.
 11. `NewServer.spec`/`specM` (`E₀.cmp = false →`), `specCompact` (`E₀.cmp = true →`; trusted until
     proved: its proof is `sorry`). Text in "Step 1 on the merged lean". Step 1.
-12. examples/common `env₀`, `memberBoot` (`cmp`), `newServer.specCompact`,
-    `StartCompactingServer.spec`, `memberBootOn`: `examples/common/M2StorageDraft.lean`. Step 1.
+12. examples/lib/etcdstart `env₀`, `memberBoot` (`cmp`), `newServer.specCompact`,
+    `StartCompactingServer.spec`, `memberBootOn`: `examples/lib/etcdstart/M2StorageDraft.lean`. Step 1.
 13. `etcd_cache_served` (exported), watchkv's `wk_served`, linkv3p's `memberWatch`/`memberAt`:
     their Drafts. Step 1.
 14. The supply's server source: `kbWTSupplyM_of_poolR`, srv R (over `srvWTPoolR`, D22's). Step 2.
@@ -1641,7 +1641,7 @@ no generated file edited.
   `watchUp_create`; the client's sites destructure one more conjunct.
 - **Items 9-12**: `apply.AEnv.cmp : Bool := false`; `envAgree`'s clause `E.cmp = E'.cmp ∧ E.γ.cm =
   E.cmp` (item 26's reading; laws `envAgree_mode/_off/_on`); `NewServer.spec`/`specM` take
-  `E₀.cmp = false`, `specCompact` `E₀.cmp = true`; examples/common `env₀ … (cmp := false)`,
+  `E₀.cmp = false`, `specCompact` `E₀.cmp = true`; examples/lib/etcdstart `env₀ … (cmp := false)`,
   `memberBoot … (cmp := false)` with `E₀.cmp = cmp` (`memberBoot_cmp`), `memberBootOn` alike,
   `alloc1 … (cmp := false)`, `newServer.specCompact`/`StartCompactingServer.spec` at
   `memberBoot … true` (putgetc's `Main` allocates at `cmp := true`).

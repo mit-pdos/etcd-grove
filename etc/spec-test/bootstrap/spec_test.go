@@ -4,7 +4,7 @@
 // returns.
 //
 // Two kinds of run, each in both compaction modes (a compaction run or none) and both auth modes
-// (auth enabled or not), at the examples' configuration (`examples/common/common.go`'s `newServer`,
+// (auth enabled or not), at the examples' configuration (`examples/lib/etcdstart/common.go`'s `newServer`,
 // `cfgOk`):
 //
 //   - a fresh boot: `bootstrap` on an empty data directory; every conjunct of `bootOk`

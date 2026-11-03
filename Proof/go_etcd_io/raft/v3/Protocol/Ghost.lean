@@ -376,7 +376,7 @@ structure RaftNames where
   node `id`'s directory (rafthttp's `snapSaved γd i`, whose authority the directory's invariant
   holds), `none` for a node that states nothing of it. Pure data (as `reSnapOkRaw`), fixed at
   allocation, so that raft carries a received snapshot's receiver-local fact (`snapLocal`) from
-  `node.Step` to the `Ready` that hands it out. Raft's own results, `examples/kv` and the
+  `node.Step` to the `Ready` that hands it out. Raft's own results, `examples/raft/kv` and the
   no-snapshot clusters keep the default. -/
   reSnapLoc : w64 → Option GName := fun _ => none
   /-- The namespace of the commit invariant (2026-10-27, the node API over an abstract log): every

@@ -1,9 +1,9 @@
-# The client's `kv.Compact` (2026-11-01): examples/compactkv (putgetc under compaction pressure:
+# The client's `kv.Compact` (2026-11-01): examples/etcd/compactwatch (putgetc under compaction pressure:
 # five rounds of a Put of the round's key, a client Compact at the revision before it and a Get;
 # since W4 of watches across a compaction, a watch from revision 2 after the rounds),
-# `compactkv_Main` and the closed theorem `compactkv_safe`, in
-# Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/Results.lean.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/Results\.lean$
+# `compactkv_Main` and the closed theorem `etcd_compactwatch_safe`, in
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Results.lean.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof

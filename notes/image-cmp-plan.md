@@ -113,7 +113,7 @@ srvNet γ` and the examples' specs that name `srvNet` (`Alloc`, `newServerMode`,
 `snapDirInv`. **The restart path reads `imageAt` too** (review round 2): `srvDiskImage`
 (`InvRestart.lean:110`, the post of the drafted `EtcdServer.HardStop.spec` and of restart3's
 `stop`, `startMember`, `BuildServer` specs) and `bootstrapRestartContract` (`InvRestart.lean:354`,
-`examples/common/Restart.lean`): restated in place they need, of a stopped member's disk image, the
+`examples/lib/etcdstart/Restart.lean`): restated in place they need, of a stopped member's disk image, the
 records at `crevOf` of its applied log (believed true: the consistent index is committed with
 `updateCompactRev`'s `ForceCommit`; not checked), and a restart in compaction mode will need the
 receipt there too (`srvDiskImage` has none): an open item of the restart path, not of this stage.

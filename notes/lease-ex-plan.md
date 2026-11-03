@@ -29,7 +29,7 @@ Server side:
    (`grpcHandlerOk` of `*quotaLeaseServer`'s promoted `LeaseTimeToLive`/`LeaseLeases`), from
    `LeaseServer.LeaseTimeToLive`/`LeaseLeases`' specs and `raftLeaseRead_server`.
 3. F4: "The run's thread token" below.
-4. `examples/common`'s `Serve`: the lease methods' registrations into `isGrpcRpcs` (`v3rpc.Server`'s
+4. `examples/lib/etcdstart`'s `Serve`: the lease methods' registrations into `isGrpcRpcs` (`v3rpc.Server`'s
    `leaseRegs`, from lease-src).
 
 Client side:
@@ -39,7 +39,7 @@ Client side:
    `lessor.Grant.spec`'s: over `isGrpcRpcs addr "/etcdserverpb.Lease/LeaseTimeToLive" Spec`).
 
 The example:
-6. `examples/leasekv` (Go, a test), its Goose project, `Init.lean`, `Main`'s proof, the adequacy
+6. `examples/etcd/lease` (Go, a test), its Goose project, `Init.lean`, `Main`'s proof, the adequacy
    theorem.
 
 ## Stages
@@ -69,7 +69,7 @@ literal has `ID: r.ID`; a follower's `leasehttp.TimeToLiveHTTP` returns only a r
 asked one, `lease: TTL id mismatch` otherwise, `http.go:274`), `EtcdServer.LeaseTimeToLive.spec`,
 `ttlAns` and `leaseTTLOut` (proofs updated).
 
-**D4. Served** (`client/v3/LeaseReadServed.lean`, `examples/common/ServedLease.lean`): the
+**D4. Served** (`client/v3/LeaseReadServed.lean`, `examples/lib/etcdstart/ServedLease.lean`): the
 handler meets (`etcd_leaseTTLHandlerOk`, `etcd_leaseLeasesHandlerOk`, at the contract's slot with
 the lower bounds), the generated handlers' (`etcd_leaseTTLMethodOk`, ...), the promotions through
 `quotaLeaseServer` (`QuotaLeaseLemmas.lean`), `etcdLeaseReadAt addr`, and `common.kv_lease_served`
@@ -89,7 +89,7 @@ premises at leasekv's addresses), `leasekv_Main`, `leasekv_safe` (`Adequacy.lean
 **Left `sorry` for Prove**: the handler and method meets, `kv_lease_served`, the client's
 `applyOpts`, `toLeaseTimeToLiveRequest`, `lessor.TimeToLive`, `lessor.Leases`, `Main`.
 
-**Bounds** (for Freeze): `etc/bounds-check.py`'s stock count in `examples/common` goes 23 → 29, all
+**Bounds** (for Freeze): `etc/bounds-check.py`'s stock count in `examples/lib/etcdstart` goes 23 → 29, all
 six from `kv_lease_served`'s statement repeating `kv_served`'s slot premises (the same stocks,
 counted twice). Prove should factor `kv_lease_served` through a `kv_served` generalized over extra
 methods, with the slots in one definition, which brings the count back; else the baseline moves.
@@ -114,13 +114,13 @@ timed-out call's run keeps the slot until it ends. No trusted change. `holdToken
 
 ## Test (2026-11-02)
 
-`examples/leasekv/leasekv_cluster_test.go`: three members whose peer listeners serve the raft and
+`examples/etcd/lease/leasekv_cluster_test.go`: three members whose peer listeners serve the raft and
 lease handlers (as etcd's embed), 12 leases granted through every member (one with a key), then
 from every member `TimeToLive` of each and of an absent ID, with and without keys, and `Leases`.
 Passes (3 of 3 runs): every reply's `ID` the asked one, on both paths (26 answers from the leader,
 52 from followers through `leasehttp.TimeToLiveHTTP`); every listing without a repeat, all 12.
 
-Found on the way: `examples/common`'s members serve only the raft handler on their peer
+Found on the way: `examples/lib/etcdstart`'s members serve only the raft handler on their peer
 listeners, so a follower's `TimeToLive` gets the leader's 404 and answers "not found" (TTL -1, the
 asked ID) for a lease that exists. Main's checks and the specs are unaffected (nothing is stated of
 found or not-found); the trust-boundary `leaseTimeToLive`'s docstring stated its cluster assumption
@@ -139,8 +139,8 @@ triple needs (no 200 without a response; a 404 is an allowed error).
   proofs' patterns changed).
 - New `sorry`s: the handler and method meets, `kv_lease_served`, `LeaseOp.applyOpts`,
   `toLeaseTimeToLiveRequest`, `lessor.TimeToLive`, `lessor.Leases`, `leasekv.Main`.
-- Bounds (`etc/bounds-check.py --check`, 399 against 390): the stock count in `examples/common`
-  23 → 29 (above); `examples/leasekv` new, `spec-thread 1` and `spec-receipt 2`, `Main.spec`'s
+- Bounds (`etc/bounds-check.py --check`, 399 against 390): the stock count in `examples/lib/etcdstart`
+  23 → 29 (above); `examples/etcd/lease` new, `spec-thread 1` and `spec-receipt 2`, `Main.spec`'s
   `threadBound GF ≤ 2 ^ 28` and receipt bounds, as every example's (putget's baseline entries).
 - tcb: `etc/tcb-collections/leasekv.txt` (593 entries; its `sorry`s the five above that `Main`
   reaches, plus the four the server's collections already carry).
@@ -168,7 +168,7 @@ triple needs (no 200 without a response; a 404 is an allowed error).
   its `sorry` line dropped (by hand, without a run of the report).
 - `common.kv_lease_served` proved (branch `lease-ex-served`): Proved, statement as frozen but for the stocks: `kv_served`'s six stock premises are written once,
 in `common.kvServeStocks` (an `abbrev`), which both statements use (`iframe` does not see
-through it: the five `Main`s calling `kv_served` unfold it before framing, one line each); `examples/common`'s stock count is back to 23. The KV path generalized
+through it: the five `Main`s calling `kv_served` unfold it before framing, one line each); `examples/lib/etcdstart`'s stock count is back to 23. The KV path generalized
 over extra methods: `client.etcd_kv_served_with`/`etcd_kv_started_with` (the methods `ms` served by
 the same `grpc.serve`, at a slot `S` holding `etcdGrpcSlot` and giving it back, through
 `grpcMethodOkMd_slot`, moved there from `ServedOn.lean`); `etcd_kv_served`/`etcd_kv_started` their corollaries, statements unchanged.
@@ -180,6 +180,6 @@ invariant from `srvLeaseRd`'s `lessorInv`) and `lessorLb_le`, the auth store's `
   server's collections carry (`merged_image`, `run_job_snap_cmp`, `txn.kvWriter_keyObs`,
   `txn.kvWriter_noCmp`). The collections `leasekv` and `v3rpc` updated: the axioms they now reach were
   behind the stage's `sorry`s, none new to `etc/tcb-baseline.txt`. Bounds: 393 against 390, the three
-  `examples/leasekv` entries of the Freeze list.
+  `examples/etcd/lease` entries of the Freeze list.
 - After merging `lean` (its sole-writer laws proved): `leasekv_safe` rests on two `sorry`s,
   `merged_image` and `run_job_snap_cmp`.

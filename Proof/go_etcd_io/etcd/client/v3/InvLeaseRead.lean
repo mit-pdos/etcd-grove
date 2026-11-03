@@ -20,7 +20,7 @@ Responses are held read-only by the server's response and the client's decoded r
 lease asked (`ID`: on the leader `v3_server.go`'s `ID: r.ID`, or the handler's own not-found reply;
 on a follower the leader's reply, which `leasehttp.TimeToLiveHTTP` checks has the asked ID); a
 `LeaseLeases` reply lists no lease twice (the lessor's map's keys, `leaseIdsAt`). What `Main` of
-`examples/leasekv` checks.
+`examples/etcd/lease` checks.
 -/
 module
 

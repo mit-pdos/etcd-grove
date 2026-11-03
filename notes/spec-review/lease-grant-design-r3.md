@@ -108,7 +108,7 @@ None.
   would want these named too, since their meaning moves at `lg = true`:
   - the auth `EtcdServer.*` specs that name `reqPropOk`/`appliedOkM` (UserAdd, RoleAdd, AuthEnable,
     … : 15 and 6 files under `Spec/go_etcd_io/etcd/server/v3/etcdserver/`);
-  - `NewServer.spec` and `examples/compactkv/checkCompactRev.spec` (`kvInv`'s gated fraction);
+  - `NewServer.spec` and `examples/etcd/compactwatch/checkCompactRev.spec` (`kvInv`'s gated fraction);
   - `apply.newAuthApplierV3.spec` (`isApplyLessor`'s Grant clause);
   - `lease.NewLessor.spec` and `applySnapshot.spec` (`lessorApplyOk`).
 

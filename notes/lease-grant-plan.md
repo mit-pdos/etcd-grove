@@ -7,7 +7,7 @@ cut to what the example needs.
 
 ## Scope (2026-11-02; the user's choice: "Grant, then Leases")
 
-`examples/leasegrant`'s `Main` starts one member, serves it, connects a client,
+`examples/etcd/leasegrant`'s `Main` starts one member, serves it, connects a client,
 `cli.Grant(ctx, 600)` (returns on an error: a server-chosen id can collide, `ErrLeaseExists`, and a
 call can time out), then `cli.Leases(ctx)`, and panics unless the granted ID is listed. Auth off.
 Revocations stay out of the server's workload (`rqOk .leaseRevoke = False`, as on `lean`); expiry
@@ -178,7 +178,7 @@ model's owned `ID`.
   lists all of them. Why true: `EtcdServer.LeaseLeases.spec` already has the per-call bound `m`
   (`lessorLb γl m` → `leaseIdsAt γl i ids`, `m ≤ i`), the grants give `lessorLb` (`leaseGrantedAt_lb`,
   the largest index), `leaseGrantedAt_listed` does the rest.
-- `common.kv_lease_grant_served` (`examples/common/ServedLeaseGrant.lean`): `kv_lease_served`'s
+- `common.kv_lease_grant_served` (`examples/lib/etcdstart/ServedLeaseGrant.lean`): `kv_lease_served`'s
   premises and `srvGrantsLeases E ρ`, giving also `etcdLeaseGrantAt addr E`. **New `sorry`.**
 - The example: `leasegrant.Main.spec` (leasekv's premises and `lease.leasesNoExpiry`; `leasePeersOk`
   kept: the served Lease service's `TimeToLive` handler takes it), **`leasegrant.Main.wp_proof` (new
@@ -221,7 +221,7 @@ skill's review of `ckptEffectsOk` as restated for a granting cluster (S2) and of
 
 `lake build` passes; `etc/gen-init.py --check` and `etc/gen-interface.py --check` (backend, raft)
 pass; `etc/bounds-check.py --check` reports the example's three new matches (`spec-receipt` 2,
-`spec-thread` 1 in `examples/leasegrant`: `Main.spec`'s bounds, as `leasekv`'s), not recorded;
+`spec-thread` 1 in `examples/etcd/leasegrant`: `Main.spec`'s bounds, as `leasekv`'s), not recorded;
 `etc/tcb-report.py --check` reports two new `sorry`s in the trust base, `runSnapLgOk_open` and
 `leasegrant.Main.wp_proof`, both reached by `leasegrant_Main`/`leasegrant_safe` only (`--roots`);
 every `etc/tcb-collections/*.txt` passes `--reuse --collection <c> --check` unchanged (until the
@@ -310,7 +310,7 @@ what changed.
 - **M4.** Done: `EtcdServer.LeaseGrant.spec`'s docstring states the margin (`r.ID` not given back;
   Go's interceptors do not read it).
 - **M5.** Left for Freeze (the coordinator's instruction): the three `bounds-check` matches of
-  `examples/leasegrant`.
+  `examples/etcd/leasegrant`.
 - **M6.** Done: `lessorLb_max`, `leaseGrantedAt_lb_max` (`InvLessor.lean`).
 
 ## Design of the server chain (2026-11-02, final)
@@ -804,7 +804,7 @@ Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
       UserRevokeRole, RoleAdd, RoleDelete, RoleGet, RoleList, RoleGrantPermission,
       RoleRevokePermission, AuthEnable, AuthDisable, AuthStatus}`.
   - over `kvInv` (its gated fraction), directly or through `isServerReq`/`isServerM`:
-    - `NewServer.spec`, `examples/compactkv/checkCompactRev.spec`;
+    - `NewServer.spec`, `examples/etcd/compactwatch/checkCompactRev.spec`;
     - the KV specs `Put`/`DeleteRange`/`Txn`/`Range`/`Compact`;
     - `MemberList`, `Start`/`start`, `HardStop`, `stop`, `Serve`, `serveClient`, `restartCheck`.
   - over `isApplyLessor` (the Grant clause over `RO`): `apply.newAuthApplierV3.spec`,
@@ -881,7 +881,7 @@ axiom reviews (`notes/axiom-review/lessor-apply-ok.md`: `lessorApplyOk` survives
 proposed; `lease-grant-lessor.md`: `NewLessor`'s mode/history/payload, `Recover`'s `lessorRevocable`,
 `ckptEffectsOk`, the wire model survive; `leasesNoExpiry` refuted as worded, its docstring restated to
 "no lease of any lessor the program creates", with two corrections: two `RequestTimeout`s, and
-`Renew`/checkpoints among what moves an expiry later). The bounds' three `examples/leasegrant`
+`Renew`/checkpoints among what moves an expiry later). The bounds' three `examples/etcd/leasegrant`
 entries approved with it. Next: the plumbing, in the design's commit order, then Prove.
 
 **Amendment: (A), the user's, 2026-11-03; axiom review pending.** §2.0's "`restEntry` commutes with

@@ -338,7 +338,7 @@ section tyOk
 variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **The method-set facts of the batch path** (`methodSet` is uninterpreted in the model, so they
-are premises, as `k8setcd3.objTyOk`): `*threadSafeMap` implements `ThreadSafeStoreWithTransaction`
+are premises, as `k8s_etcd3.objTyOk`): `*threadSafeMap` implements `ThreadSafeStoreWithTransaction`
 (its `Transaction`, `thread_safe_store.go:269`), `*cache` implements `TransactionStore` (its
 `Transaction`, `store.go:220`, with `Store`'s methods), and `*RealFIFO` implements `QueueWithBatch`
 (its `PopBatch`, `the_real_fifo.go:486`, with `Queue`'s). All three hold of the Go code (each type

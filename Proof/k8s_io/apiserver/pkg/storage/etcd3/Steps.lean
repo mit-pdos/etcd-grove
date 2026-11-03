@@ -15,8 +15,8 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.FirstRead
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.State
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModelKV
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Enc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TxnModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Enc
 
 @[expose] public section
 
@@ -142,7 +142,7 @@ theorem del_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
       kvOpStep (linkv.opOf [] [] (delTxn pk r true)) σ = σ := by
     intro h1
     have hrev := congrArg linkv.MSt.rev (habs.trans h1)
-    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (delTxn pk r true)) σ (linkv.opOf_isKV _ _ _) with h | h
+    rcases etcd_txnlin.kvOpStep_cases (linkv.opOf [] [] (delTxn pk r true)) σ (linkv.opOf_isKV _ _ _) with h | h
     · exact h
     · simp only [linkv.absSt] at hrev
       omega
@@ -306,7 +306,7 @@ theorem put_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
       kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ = σ := by
     intro h1
     have hrev := congrArg linkv.MSt.rev (habs.trans h1)
-    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ (linkv.opOf_isKV _ _ _) with h | h
+    rcases etcd_txnlin.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ (linkv.opOf_isKV _ _ _) with h | h
     · exact h
     · simp only [linkv.absSt] at hrev
       omega

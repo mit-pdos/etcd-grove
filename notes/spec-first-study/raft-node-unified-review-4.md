@@ -13,8 +13,8 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
     `Protocol/GhostState.lean`, `InvApi.lean`.
 - **Go**:
   - raft a2: `.lake/raft-fork`, `565c2bd`;
-  - kvreconf: `examples/kvreconf/*.go`, read in full;
-  - kv: `examples/kv/kv.go`, and kv's proof `StartCluster.lean`;
+  - kvreconf: `examples/raft/kvreconf/*.go`, read in full;
+  - kv: `examples/raft/kv/kv.go`, and kv's proof `StartCluster.lean`;
   - etcd's server: `server.go` at `a20f6760ff43`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (this worktree has no copy).
 - **Not run**: lake build, `lean-check`, `tcb-report`.
@@ -158,7 +158,7 @@ it is an `issues/` entry (`upstream: unchecked`). The reproduction is the `-race
 - With `boot = []` the premises are therefore contradictory, and no `nodeRestartBoot` is ever handed out.
 
 **Caller**: kv. `StartCluster.lean:231` allocates with `cluster_alloc_static` and starts every voter with
-`RestartNode` from `{1,2,3}` (`examples/kv/kv.go:57-72`). Under candidate 4, kv has no allocation law. A
+`RestartNode` from `{1,2,3}` (`examples/raft/kv/kv.go:57-72`). Under candidate 4, kv has no allocation law. A
 reconfiguring client that starts from an `InitialState` (etcd's restart path) is in the same position.
 
 **Restatement.** Either make `BootLog` conditional, or keep two allocation laws over the one `isCluster`.
@@ -280,7 +280,7 @@ its own votes in other nodes' tallies, and the model change is the one review 3 
   `2^64 - 1`, so `readCredit_receipt` and the allocation cannot both hold with one bound.
 
 **Callers**: kvreconf (receipts); kv and the server (they split `2^48` from the allocation today:
-`examples/common/Defs.lean:187`, `SrvRaftLog.lean:1572`).
+`examples/lib/etcdstart/Defs.lean:187`, `SrvRaftLog.lean:1572`).
 
 **Restatement**:
 - define `readCredit γ := ⧗ 1` (sealed), with `readCredit_receipt : ⧗ 1 ⊢ readCredit γ`;

@@ -257,7 +257,7 @@ cases of a cluster that grants leases** (`srvGrantOpen`, `InvRun.lean`: `run`'s 
 grant's cases as the plan adds them): not proved. `run` does not use it: it takes the case as
 `isServerRun`'s premise `γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen` (from `NewServer`'s precondition), which a
 cluster that grants none discharges by its `lg = false`; only a lease-granting result
-(`leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
+(`etcd_leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
 theorem srvGrantOpen_open : srvGrantOpen (GF := GF) := by
   sorry
 

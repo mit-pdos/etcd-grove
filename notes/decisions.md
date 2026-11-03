@@ -6709,7 +6709,7 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   or its context's Done proposition holds; `checkParallel` picks that proposition to be "this
   thread called `cancel`", minted from a token it holds until then, so a `false` result before it
   cancels refutes linearizability.
-- **The driver is generic** (`examples/lintest`): the library, the inputs and the clock are
+- **The driver is generic** (`examples/lib/lintest`): the library, the inputs and the clock are
   closures with specs (`applySpec` logically atomic, `genSpec` with an input predicate `inOk`
   that `apply` assumes, `clockSpec` logically atomic and monotone); the linearization order is a
   ghost log of the linearization points with the clock value at each. `CounterClock` is proved;
@@ -8510,7 +8510,7 @@ the restriction costs nothing for etcd's server (`StartNode`) and the register e
 **2026-10-18 · proposed (branch `raft-retarget`, open-work item 9); D19a, D19b, D19d, D19e, D19f
 adopted by the user (D19d and D19e by the local route, below)**
 
-The adequacy example (`examples/putget`, `notes/status-history.md`, "Item 9: the adequacy example") was to
+The adequacy example (`examples/etcd/putget`, `notes/status-history.md`, "Item 9: the adequacy example") was to
 keep each undischarged premise of the server's construction as a named hypothesis of the closed
 theorem. A hypothesis of a closed theorem quantifies over every instance of the ghost state
 (`∀ [HeapGS …]`) and every ghost name; if a proof can refute it inside the logic, it is false and
@@ -8724,7 +8724,7 @@ the theorem says nothing.
   *Satisfiable:* with `nameFree`/`netAddrFree` read as `True` (no axiom says either is exclusive)
   and the names-only `MustRegister`/`Listen` as diverging functions, premise and conclusion are
   `goose_adequacy`'s. *The adequacy example's facts* (checked 2026-10-18): over the 499 packages
-  `examples/putget` builds (`go list -deps`), the read package's two metric names occur only in
+  `examples/etcd/putget` builds (`go list -deps`), the read package's two metric names occur only in
   `server/etcdserver/read/metrics.go`, the address `127.0.0.1:23790` only in `putget.go` (and a
   test file of the standard library's `math/rand/v2`, not built); the program's run (`go test`)
   registers each name once (its initializers do not panic). So `Ns` = the read package's two
@@ -8757,7 +8757,7 @@ the theorem says nothing.
   of D16's shapes, unchanged statements) follows (`wp_init_of_lb`, `wp_init_of_res`). `PRE_RES`'s
   "one import leads there" assertion is gone: `R` is spent by the first initializer that runs
   `read` and every later one finds it initialized. `putget` is in the table (`ROOTS`; its fact
-  `True`, `examples/putget/Base.lean`); `putget.wp_initialize'` takes `ownInitializing g ∗
+  `True`, `examples/etcd/putget/Base.lean`); `putget.wp_initialize'` takes `ownInitializing g ∗
   readRegPerm`. *The trust boundary:* Perennial's, raft's and the B-tree's initializers (18,
   the generated `ExternalInit` list, `Proof/runtime/PkgInitExt.lean`) have only Perennial's form;
   their `_lb` forms come from it by the axiom `EtcdGrove.initLb_of_spec`: a listed initializer
@@ -10063,8 +10063,8 @@ collection updated with `--check --update` on purpose; the raft collection uncha
 
 ## Item 9, stage 3: the closed theorem's hypotheses beyond `io.EOF` (D19r, 2026-10-18 · proposed, stopped)
 
-Stage 2 (`Main`'s WP, `examples/putget`) is proved over named premises
-(`Proof/github_com/mit_pdos/etcd_grove/examples/putget/Defs.lean`, `putget.premises`). Stage 3
+Stage 2 (`Main`'s WP, `examples/etcd/putget`) is proved over named premises
+(`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Defs.lean`, `putget.premises`). Stage 3
 was to state the closed theorem through `goose_adequacy_start` with D19a's kinds of hypotheses
 only, plus the one approved exception `EofFromIoInit` (`isPkgInit io ⊢ v3rpc.eofVar`, for the
 proposed Perennial `io` change). Going through every premise `Main` passes on shows five more
@@ -10351,7 +10351,7 @@ closing the channel. Neither affects safety, which is what the specs state.
 **D21a. The closed theorem's shape.** Perennial's Lean port has no distributed adequacy (only
 `grove_ffi_single_node_adequacy`, "distributed adequacy theorems would need a distributed-language
 semantics", `GroveFfi/Adequacy.lean:1-7`).
-- *(A) N servers in one Go program* (`examples/putget3`: `Main` starts three `etcdserver`s on
+- *(A) N servers in one Go program* (`examples/etcd/putget3`: `Main` starts three `etcdserver`s on
   loopback ports, as putget starts one, and runs the client against one of them), through
   `goose_adequacy_start` as `putget_safe` and the register's closed theorem (three in-process
   replicas). The per-member specs are what they would be in any composition; only the closed
@@ -11290,7 +11290,7 @@ not the trust base or any client-facing spec.
 
 ## D21 M5 carried out: putget3 and `putget3_safe` (2026-10-19)
 
-Stage M5 of D21: `examples/putget3`, three members in one Go program (D21a (A)), and its closed
+Stage M5 of D21: `examples/etcd/putget3`, three members in one Go program (D21a (A)), and its closed
 theorem. The stage stopped once, because serving the raft handler over HTTP needs a trust-boundary
 statement. **D21k (the user, 2026-10-19): (A), two new axioms.** (1) `EtcdServer.RaftHandler`
 returns a handler `h` with a persistent `raftHandlerOf γn id h`; the etcdserver translation stays
@@ -11300,7 +11300,7 @@ axioms are where D21b's deployment fact gets stated. That fact is: every peer UR
 served by the raft handler of the transport holding `id`'s slot. `Transport.Start`'s axiom needs it
 (`nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`). Until M5 it was only argued in
 `Start`'s docstring.
-- **The program** (`examples/putget3/putget3.go`): putget's `Main` with a helper,
+- **The program** (`examples/etcd/putget3/putget3.go`): putget's `Main` with a helper,
   `startMember(name, peer, peerAddr, client, cluster, lg)`. The helper runs `NewServer` with putget's
   configuration at the member's name and URLs, then `net.Listen(peerAddr)`, then
   `go http.Serve(l, s.RaftHandler())`, then `s.Start()`. `Main` builds the three peer URL slices and
@@ -11634,7 +11634,7 @@ past a lagging follower forces a `MsgSnap` (raft cannot know the follower is mer
 "compaction on, snapshots off" is not a reachable mode, and a bound on the followers' lag is not
 of D19a's kinds; "the server's trigger off" buys nothing, since the in-memory snapshot ignores
 `SnapshotCount` (D21 M0). The intermediate worth having is on raft's side:
-- *(A) Raft's snapshot path end to end on `examples/kv` first* (stage S-r): the store's Go code
+- *(A) Raft's snapshot path end to end on `examples/raft/kv` first* (stage S-r): the store's Go code
   compacts its raft log every `K` entries and puts its map, encoded, in the snapshot's `Data`;
   `kv_porcupine_safe` keeps its statement with snapshots live. It exercises S-b..S-d with a
   trivial application state, gives a closed theorem with raft's `MsgSnap` verified before any
@@ -11701,7 +11701,7 @@ Each small enough for one agent; dependencies in brackets.
   content certificate; `RNState`'s delivered/applied jump; a handout protocol for the
   application's `MemoryStorage.ApplySnapshot` while raft holds the storage (beside
   `Hhandout`/`Habsorb`); `MemoryStorage`'s cap at `2^64` outside the mode. Large. Unchanged.
-- **S-r. `examples/kv` with snapshots** [S-d] (D22e (A); optional): Go change in the example,
+- **S-r. `examples/raft/kv` with snapshots** [S-d] (D22e (A); optional): Go change in the example,
   its proofs, `kv_porcupine_safe` unchanged in statement. Medium. Unchanged (the example's own
   code).
 - **S-f. The backend boundary** [S-0; parallel with S-b..S-d]: `backend.Snapshot()` and
@@ -13741,7 +13741,7 @@ acknowledgement), here carried through a restore.
 ## D22 S-d4 designed precisely, not carried out: `node.go` over a snapshot `Ready`; stopped after S-d3b (2026-10-21)
 
 A read of `node.go`'s proofs (`node__run.lean`, `InvNodeRun.lean`, `InvNode.lean`, `InvAdvance.lean`)
-and their consumers (`examples/kv/KV__run.lean`, `Cluster.lean`; the server's `NodeBridge`,
+and their consumers (`examples/raft/kv/KV__run.lean`, `Cluster.lean`; the server's `NodeBridge`,
 `InvRaftNode`; putget, putget3) against "D22 S-d3a carried out"'s S-d4 found it several times the
 planned size, with interface facts the design did not settle (item 1); per the brief, stopped at a
 precise design (item 2). No Lean change in this entry.
@@ -13805,7 +13805,7 @@ precise design (item 2). No Lean change in this entry.
 - Consumers: `readyData`/`readyP`/`advanceP`'s new shape, refuted with `snapIn = false` (kv's
   `KV__run`, the server's `NodeBridge`/`InvRaftNode`, putget/putget3's drivers), statements unchanged.
 
-**3. What S-r (snapshots in examples/kv) needs, given S-d3a/S-d3b and this design.** With `snapIn =
+**3. What S-r (snapshots in examples/raft/kv) needs, given S-d3a/S-d3b and this design.** With `snapIn =
 true`, a `Ready` with `rd.Snapshot' ≠ nil` hands out half of the snapshot (`ownSnapM l.ptr ½`), the
 committed log up to it (`isCommitted l.dlv`, `|l.dlv| = l.index`), the storage itself
 (`ownStorage γ.stor σ`, nothing pending, the loan's floor) and the snapshot's certificate, with
@@ -13932,7 +13932,7 @@ No Go bug: the restore-meanwhile case is safe in Go (the storage holds the log u
 item 3's invariant), and `ApplySnapshot`'s `EnsureSnapshot` writes nothing to a `Ready`'s snapshot,
 which is set.
 
-**For S-r (snapshots in `examples/kv`).** The kv example is in the dynamic mode, where raft takes
+**For S-r (snapshots in `examples/raft/kv`).** The kv example is in the dynamic mode, where raft takes
 no snapshot (`DynNoSnap`): S-r needs it in the static mode (or B8). Then, with `RestartNode … true`:
 - *Network*: deliver a `MsgSnap` to `node.Step` only at a `snapIn` node, with `netP`'s `"#Hsnap"`:
   the message's snapshot (index below `2^61`) and `isMessageC γ (absSnap …)`, which the sender's
@@ -14031,7 +14031,7 @@ theorem's statement changed.
   (`rdSnapOut`, `readySnapData`): what `MemoryStorage.ApplySnapshot` takes (`snapArg`'s second case).
   `raftLog.snapshot` reads `pendKsn` through `ownSnapS_M`.
 
-## D22 S-r carried out: the Go change of `examples/kv` made and tested (side branch); the proof designed, not carried out (2026-10-21)
+## D22 S-r carried out: the Go change of `examples/raft/kv` made and tested (side branch); the proof designed, not carried out (2026-10-21)
 
 Stage S-r ("D22e (A)"; the user's design of 2026-10-21). The Go change is made and tested (below);
 it is **not** committed with this entry: re-translated, it changes `KV.run`, `deliverable` and
@@ -14042,7 +14042,7 @@ untranslated, on a side branch (`worktree-agent-a7bb8e7cea7f035db-sr-go`, one co
 entry's): committing it here would leave `etc/goose.py --check` failing, or the proofs of the
 re-translated functions missing.
 
-### The Go change (examples/kv, tested)
+### The Go change (examples/raft/kv, tested)
 
 - `KV.run` installs a `Ready`'s snapshot (`rd.Snapshot != nil`) before appending its entries:
   `decodeState(rd.Snapshot.GetData())` replaces `r.kv` and `r.applied` (under `r.mu`), the applied
@@ -14129,7 +14129,7 @@ floor witness, now unconditional, item 3) and `Compact`.
 
 ## D23: watchkv's watch path: the workload record, the watch run slots, the plan fixed at start (2026-10-20)
 
-**Problem.** `watch_safe` (the closed theorem of `examples/watchkv`: a prefix watch from revision
+**Problem.** `watch_safe` (the closed theorem of `examples/etcd/watch`: a prefix watch from revision
 1 over one member, writer goroutines, a check that the watched events are exactly the writes)
 stopped on three findings (STATUS, "watchkv"): (1) nothing produced the watch service's run slot
 (`v3rpc.watchRunSlot`: two watchable-store readers, an auth reader, a reader slot of v3rpc's
@@ -14522,7 +14522,7 @@ transactions) was the plan's alternative.
 
 ## D24: the partition hooks' axioms and the transport's remotes (2026-10-20, `notes/partition-plan.md` S1/S2)
 
-**Problem.** The partition example (`examples/linkv3p`) cuts and mends links with etcd's own test
+**Problem.** The partition example (`examples/etcd/partition`) cuts and mends links with etcd's own test
 hooks, `EtcdServer.CutPeer`/`MendPeer`, which forward to rafthttp's `Transport.CutPeer`/`MendPeer`
 (names-only: axioms). The plan's S1 stated them over `transportStarted γn t` alone, on the ground
 that pausing a peer only loses messages, which the network model allows. Checking the Go code:
@@ -14629,7 +14629,7 @@ What the swap took: the members keep etcd's `DeleteRange` and `Txn` registration
 server, client or raft proof changed, and the trust base is the same (`etc/tcb-collections/
 linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost-state bundle stays
 linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
-unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
+unchanged. Go: a dependency's `replace` directives do not apply, so `examples/etcd/partition/go.mod`
 repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.
 
 ## Proposals proposed once; unused declarations found from the terms (2026-10-21, branch `clean-up`)
@@ -14944,9 +14944,9 @@ rpctypes' and `client/v3`'s initializer axioms, `bridge.New`). `errDesc_etcdErro
 collection whose results go through the retry interceptor; `etcd_noRefusal` is in linkv3p's
 only.
 
-## D22 S-r carried out (proof): snapshots in `examples/kv`, `kv_porcupine_safe` re-closed (2026-10-22)
+## D22 S-r carried out (proof): snapshots in `examples/raft/kv`, `kv_porcupine_safe` re-closed (2026-10-22)
 
-The proof of stage S-r ("D22 S-r carried out: the Go change of `examples/kv` made and tested (side
+The proof of stage S-r ("D22 S-r carried out: the Go change of `examples/raft/kv` made and tested (side
 branch); the proof designed", above), in four commits (items (3), (1), (2) raft's part, then (2)
 kv's part, (4) and (5) together: the translation of the Go change breaks the old proofs of `run`,
 `deliverable` and `deliver`, so they land with it). The Go change is the side branch's, unchanged
@@ -15551,7 +15551,7 @@ Intermediate specs changed: `NewStore`, `newWatchableStore`, `New` (posts: `wsDe
   `isWatchableStore` reads only `γw.st`'s logical names), `storeCloser s γ'`, `idxCert γ.idx L'`,
   the old backend's tokens; `isStore s γ` unchanged (logical).
 
-## D33: the examples' shared code in one Go package, `examples/common` (2026-10-22)
+## D33: the examples' shared code in one Go package, `examples/lib/etcdstart` (2026-10-22)
 
 **Problem.** The etcd examples repeated Go code verbatim, and with it its translation, specs and
 proofs: the one-member start and client (five `Main`s), the three-member `startMember` and the
@@ -15559,7 +15559,7 @@ cluster's allocation (putget3, linkv3, linkv3p), and the watch workload's functi
 cachekv, linkv3p). A change to the start (D22's contract, D29's clients) had to be made in every
 copy.
 
-**Decision.** One Go package, `examples/common` (its own module, replaced by `../common` in the
+**Decision.** One Go package, `examples/lib/etcdstart` (its own module, replaced by `../common` in the
 examples' `go.mod`; its own Goose project), with what differed among the copies as parameters (the
 member's name and addresses, the cluster's map and token, the keys `Gen` picks from, the panic
 messages' prefix and word). Each example keeps its own configuration constants and its named
@@ -15591,12 +15591,12 @@ added; every collection unchanged.
 hand; a bump to the fork's pin had to edit each). They are now packages of one module,
 `examples/go.mod` (module `github.com/mit-pdos/etcd-grove/examples`), so the import paths, and with
 them the translations, are unchanged; `kv` joined it too (its raft is the same pin). Separate modules
-remain where the module cannot be shared: `examples/kvwitness` (a different raft, the witness
-fork's), `examples/lintest` (which kvwitness also needs: in the examples' module it would bring the
+remain where the module cannot be shared: `examples/raft/kvwitness` (a different raft, the witness
+fork's), `examples/lib/lintest` (which kvwitness also needs: in the examples' module it would bring the
 module's etcd requirements into kvwitness's graph), and `third_party/{porcupine,bridge}` (copies
 whose module paths, `github.com/anishathalye/porcupine` and `.../etcd-grove/third_party/bridge`,
 are not under `examples/`). `etc/goose.py --check` compares the forks' revisions in the replaces of
-`examples/go.mod` and `examples/kvwitness/go.mod` with the projects' pins (`GO_MOD_PINS`): the
+`examples/go.mod` and `examples/raft/kvwitness/go.mod` with the projects' pins (`GO_MOD_PINS`): the
 go.mod files had drifted from the etcd pin before (2026-10-22, `72ca9e5505`). The examples' fixed
 ports overlapped (putget3's and linkv's clients, watchkv's and linkv3p's, cachekv's client and
 linkv3p's first bridge), so the module's tests ran one package at a time (`go test -race -p 1
@@ -15633,7 +15633,7 @@ and no statement is re-spelled):
   `linkvGF_gooseGpreS`, `linkvGF_naInvG`, `linkvHeapAt`), which `linkv3p_safe`'s and
   `linkv3p_watch_safe`'s statements name.
 
-Nothing went to `examples/common`'s Lean side: no other example used these pieces. No Go package
+Nothing went to `examples/lib/etcdstart`'s Lean side: no other example used these pieces. No Go package
 imported `examples/linkv` but `examples/linkv3`.
 
 **Statements.** Every remaining closed theorem's statement is textually unchanged (each
@@ -15694,7 +15694,7 @@ panic conclusion, the call of the adequacy theorem at the bounds `n + 1`, `n + 2
 instance at the state's local context, the package state's `ownInitializing`, program start's
 rights, the initializer's triple.
 
-**Decision.** `examples/common/Adequacy.lean` (common's Lean side; kv, the counter and kvwitness
+**Decision.** `examples/lib/etcdstart/Adequacy.lean` (common's Lean side; kv, the counter and kvwitness
 import it too): `etcd_adequate` (over `goose_adequacy_start`, the read package's two metric names
 for the initializer's `read.readRegPerm`, the addresses `As` for the body) and `init_adequate`
 (over `goose_adequacy`), each parameterized by the program's initializer and body, the result set
@@ -16386,7 +16386,7 @@ read not retried past the deadline), was never exercised.
 
 **Decisions** (the plan's D-T1 to D-T5, the user's choice of T0 and T1):
 
-- **D-T1.** One configuration in `examples/common` with etcdctl's defaults (`DialTimeout` 2s,
+- **D-T1.** One configuration in `examples/lib/etcdstart` with etcdctl's defaults (`DialTimeout` 2s,
   `RequestTimeout` 5s, `KeepAliveTime` 2s, which grpc raises to its 10s floor, `KeepAliveTimeout`
   6s); `common.NewClients(eps, lg)` builds the `clientv3.Config` (`NewClient(addr, lg)` is
   `NewClients({addr}, lg)`); linkv3p's `newClient` (10s / 2s) is gone. *Rejected:* the README's
@@ -16507,7 +16507,7 @@ over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backe
     when it is seeded), and `update` compares as the store does. The rewrite is a write with its
     `Change`, and `NewModelFromStorage` learns which values are non-canonical or stale. The
     transformer's `stale` must be a function of the stored value. The fixed Model lives as a
-    patched copy of the `correctness` package in `examples/k8setcd3/`, its diff against
+    patched copy of the `correctness` package in `examples/k8s/etcd3/`, its diff against
     upstream kept beside it, and it is part of the driver's trusted base until upstream has an
     equivalent fix. A lemma relates the Lean model's `update` to it. No fork of Kubernetes for
     this; a fork of the `kubernetes/apiserver` mirror only if G2 is resolved by rewriting
@@ -19312,12 +19312,12 @@ through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaft
   `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
   top-level statement changed.
 
-## E2b of the auth plan: `examples/authkv`, its client-side contract, the closed theorem stated (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2b`)
+## E2b of the auth plan: `examples/etcd/auth`, its client-side contract, the closed theorem stated (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2b`)
 
 The example side of D-AU5, in parallel with E2a (`NewAuthStore` over provisional schema axioms,
 the user's 2026-10-25 decision to proceed past D22).
 
-**The program** (`examples/authkv/authkv.go`, project `authkv` of `etc/goose.py`). One member
+**The program** (`examples/etcd/auth/authkv.go`, project `authkv` of `etc/goose.py`). One member
 started as `common.StartServer` does but with `AuthToken: "simple"` (etcd's default; with no
 `AuthToken`, `NewTokenProvider` gives the no-op provider, whose tokens no request can use). It
 has its own `startServer` rather than a parameter of `common`'s `newServer`, so the other
@@ -19542,7 +19542,7 @@ under the batch lock, the user chose (b).
   admin side holds its half at `hs`, every recorded state, which the readers' verdicts are
   relative to, is in `hs`): with no admin request applied after the set-up, the apply thread's
   `authOwn M hs` pins the history. What is left is threading that authority through the
-  server's apply thread to `examples/authkv` (with `NewAuthStore`'s server statement).
+  server's apply thread to `examples/etcd/auth` (with `NewAuthStore`'s server statement).
 
 **What D22 must discharge** (the list of "E2a of the auth plan", restated): that schema's
 `authBackend` over the real backend `d` meets, for the auth names `γa` allocated with the store,
@@ -19706,7 +19706,7 @@ the contract), or JWT tokens recorded under names of their own. Recorded, not do
 ## E2d of the auth plan: the client's write path with refusals, and `clientv3.New` with a user name (2026-10-25 · `notes/auth-plan.md`)
 
 **The question.** E2b found D29's refusal-freedom (`noRefusalAt`, the axiom `etcd_noRefusal`)
-false of `examples/authkv`'s member: with auth on, the server refuses the bad principal's KV
+false of `examples/etcd/auth`'s member: with auth on, the server refuses the bad principal's KV
 requests with `"etcdserver: invalid auth token"` and the no-token client's with `"user name is
 empty"`, and a user's write after a revision bump with `"revision of auth store is old"`. Which
 client specs does a client of such a member use?
@@ -19871,7 +19871,7 @@ from `NewTokenProvider` with `"simple"` (names-only today: its spec gives only `
 
 ## E2f of the auth plan: authkv's client side -- the checks proved, the contract over the contexts' metadata (2026-10-26 · `notes/auth-plan.md`)
 
-The parts of `examples/authkv`'s `Main` proof on the client's side that need no D22 and no server
+The parts of `examples/etcd/auth`'s `Main` proof on the client's side that need no D22 and no server
 in the mode `on` (E2e's next step, another fork's).
 
 **The checks, proved and linked** (`Proof/.../authkv/`, `Spec/.../authkv/`): `keyOf`, `refused`,
@@ -20055,7 +20055,7 @@ orchestrator while the user was away (J0).
   which sees only `RaftNames` and `id`. `ownRawNode` keeps `snapLocal` of its pending snapshot;
   `raft.Step`'s spec is unchanged (its post already says how the pending snapshot moves);
   `RawNode.Step`, `netP`, `RawNode.Ready`, `readySnapData` carry it. The members' directory maps are
-  allocated with raft's names (`examples/common/Alloc*`), `NewServer` initializes `snapDirInv` from
+  allocated with raft's names (`examples/lib/etcdstart/Alloc*`), `NewServer` initializes `snapDirInv` from
   the given map. No axiom.
 - **R-tok** (gap 2): `MemoryStorage.{ApplySnapshot, CreateSnapshot, Compact}.spec` become logically
   atomic in the token's ghost part (`memSnapTokG`; the persistent part `memSnapRO`); the old triples
@@ -20166,7 +20166,7 @@ Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
 
 ## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
 
-What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+What `examples/etcd/auth`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
 field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
 the server's Auth service).
 
@@ -20740,7 +20740,7 @@ request delivered several times costs a receipt per application.
 
 **(2), its first part: the apply layer's step triples from the budget** (`apply/AuthFuel.lean`;
 restated `apply_X_fuel`, `etcdserver/Results.lean`): for each of the eleven admin requests (the
-five `examples/authkv`'s `SetUp` sends among them), `applierV3backend.X.fuelSpec` in the mode `on γa`
+five `examples/etcd/auth`'s `SetUp` sends among them), `applierV3backend.X.fuelSpec` in the mode `on γa`
 takes `auth.authOwnFu γa hs` and one receipt
 `⧗ 1` (with `receiptBound GF ≤ 2 ^ 48`) for `AuthSteps.lean`'s `authOwn` and `stepOk` (and
 `UserGrantRole`'s roles bound, `RoleDelete`'s users' names bound, both of the latest state's size),
@@ -20919,7 +20919,7 @@ contracts).** Done: the first two; the rest not.
   links do not name; the shape is pure structure, and the fuel enters where the admin triples are
   used. Not done: the current applier's (`uberOwn`, after `restoreAlarms`' capped and corrupt
   wrappers: their constructors' shapes and `restoreAlarms`' post); with no alarm set, as in
-  `examples/authkv`, the current chain is the base chain.
+  `examples/etcd/auth`, the current chain is the base chain.
 - *`rqOk` for the auth kinds* (`apply.rqOkM`, `Chain.lean`): `rqOk log rq ∨ (M.isOn ∧ adminKindOk
   rq)`, `adminKindOk` the shape only (the name within the key bound) of `UserAdd`, `RoleAdd`,
   `AuthEnable`. *Considered:* `rqOk` indexed by the mode, its off case equal to today's. *Rejected:*
@@ -20995,7 +20995,7 @@ triple. No `sorry`; it rests on `time.Now`'s and the types' axioms only (`#print
   is the base one wrapped by `restoreAlarms`' capped and corrupt (`applierAdmin_capped`,
   `_corrupt` lift the triples through them); recording it (the current value's shape over the base,
   kept by `restoreAlarms` and `Alarm`) changes `uberOwn` and every proof that takes it apart. With
-  no alarm set, as in `examples/authkv`, the current applier is the base one.
+  no alarm set, as in `examples/etcd/auth`, the current applier is the base one.
 - *`W` is a parameter*, so the borrow of the rest's half of `be` (E2m's choice) is the caller's: it
   lends `W` (the store's write resource with that half) for the call and takes it back.
 
@@ -21064,7 +21064,7 @@ wrapper's and the corrupt wrapper's fields read-only, `cappedShape`/`corruptShap
 `applierAdmin_alarm` lifts the base's admin triples through the wrappers (E2m's
 `applierAdmin_capped`/`_corrupt`), `applierAdmin_cur` gives the current applier's from
 `applierAdmin_uber` and the shape (the two `applyV3base` points-to agree). *Considered:* "no alarm
-set" as a premise examples/authkv meets. *Rejected:* it is not smaller — the current applier is
+set" as a premise examples/etcd/auth meets. *Rejected:* it is not smaller — the current applier is
 hidden in `uberOwn`'s existential, so even "no alarm" needs `uberOwn` to say which value the field
 holds; and the shape covers every alarm state, with no premise for the example to discharge.
 *Why it was cheap:* `uberOwn` has three users that take it apart (`uberApplier.Apply`,
@@ -21227,7 +21227,7 @@ which the cache's answer is not stated). Both are the workload's, as `plainLog` 
 three relations functions instead would need the record's order in the model (and Go's `pdqsort`)
 for `RoleGrantPermission`.
 
-**What this leaves for `examples/authkv`** (its `SetUp` must commit determinate entries): `UserAdd`
+**What this leaves for `examples/etcd/auth`** (its `SetUp` must commit determinate entries): `UserAdd`
 is never determinate in today's request model (`ErrNoPasswordUser` or the user added: two
 successors); the request model must carry the password choice (`IRRModel.authUserAdd` the
 `userAddReqIs` fields, as E2n did for the grant requests) and `adminStateR` decide the refusal from
@@ -21333,7 +21333,7 @@ the real backend: the clause above, true of it.
 
 ## E2t of the auth plan: `UserAdd` determinate; the apply thread's mode-`on` KV step (2026-10-26 · `notes/auth-plan.md`)
 
-E2q found `examples/authkv`'s `SetUp` unable to commit a determinate `UserAdd` (the request model
+E2q found `examples/etcd/auth`'s `SetUp` unable to commit a determinate `UserAdd` (the request model
 did not carry the password choice, so `ErrNoPasswordUser` and "added" were both successors), and
 left the mode-`on` counterpart of `kv_applied_step`. E2t does both, and states the committer's
 side as an obligation.
@@ -21505,7 +21505,7 @@ needs a Perennial change; the fourth is the server's whole KV path in the mode `
    round trip; then `EtcdServer.UserAdd`'s proof gives `pwSure` of its request (clientv3 sends
    `NoPassword: false`, the handler clears `Password` and sets `HashedPassword`). No axiom is added
    here for it: until then, `pwSure` of a committed `UserAdd` is the proposer's obligation in
-   `commitOkOn` (E2t), which `examples/authkv`'s workload states.
+   `commitOkOn` (E2t), which `examples/etcd/auth`'s workload states.
 3. **The KV invariant's readers in the mode `on`** (`etcdserver/KVReadOn.lean`, new):
    `kvRaftOfOn_prefix` (the mode-`on` model monotone in the raft log), **`kv_cert_read_on`**
    (`kv_cert_read`'s: a certified store log has at most two revisions or is the mode-`on` model of
@@ -21533,7 +21533,7 @@ needs a Perennial change; the fourth is the server's whole KV path in the mode `
      returns to the client; and the proposer must establish `commitOkOn` (the entry admitted and
      determinate) at the commit, which for a KV request is `kvDet` of the auth state then: the
      permission cache decides the request's shape (E2q). Both are the workload's and the client's
-     (examples/authkv's `Work`), so they are designed with the closed theorem;
+     (examples/etcd/auth's `Work`), so they are designed with the closed theorem;
    - the start fact and `BuildGap`/`BuildAlloc` over `kvInvM on`, the reads (`kv_read_log`'s
      users) over `kv_cert_read_on`.
    `kvInv_ch0_on_false` keeps its role (the mode-`on` `NewServer.specM` is vacuous) until then.
@@ -21653,8 +21653,8 @@ J0's item 1 (`notes/snapshot-sj-plan.md`, "J0 decisions"), implemented. No axiom
 - **`RaftNames.reSnapLoc : w64 → Option GName`** (default `fun _ => none`) and
   `snapLocal γ id i` (`Protocol/Ghost.lean`, its own section with only `[AllG GF]`), as J0 said.
   The allocations take the directories: `ownRaftGhost_alloc_core`/`_boot` a parameter `sl` with the
-  conjunct `γ.reSnapLoc = sl`; `_gen` (raft's own results) and `_snap` (`examples/kv`) fix
-  `fun _ => none`, `_snap` stating it (`examples/kv` needs it: `kvPeerOk` gains
+  conjunct `γ.reSnapLoc = sl`; `_gen` (raft's own results) and `_snap` (`examples/raft/kv`) fix
+  `fun _ => none`, `_snap` stating it (`examples/raft/kv` needs it: `kvPeerOk` gains
   `γn.raft.reSnapLoc id = none`, `stepP_deliverable` builds the new clause by `snapLocal_none`).
 - **Carried by the node as `snapLocOk γ id s.logst.snap`** (`InvRawnode.lean`: `True` with no
   pending snapshot, `snapLocal γ id p.index'` with `some p`), a function of the pending snapshot
@@ -21674,7 +21674,7 @@ J0's item 1 (`notes/snapshot-sj-plan.md`, "J0 decisions"), implemented. No axiom
   it again in the posts adds nothing.
 - **The server.** `srvClusterBoot_alloc` allocates the members' directory maps first
   (`snapDirs_alloc`, from the members' ids distinct) and gives each member
-  `∃ γd, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅` with its share; `examples/common`'s
+  `∃ γd, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅` with its share; `examples/lib/etcdstart`'s
   `memberBoot` carries it to `NewServer.spec`, which gains the binder `γd` and the premises
   `"%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 ∅` and calls `snapDir_init`
   (rafthttp `Net.lean`; `snapDir_alloc` now derived from it, unused). `snapLocal_of_saved`
@@ -21854,12 +21854,12 @@ changed, and no closed theorem proves less:
 - **D44 dropped `SrvWorkload` from the allocations** (`srvBootOut`, `srvRaftBoot_alloc`,
   `memberBoot`, the `wl` conjuncts); J2 had threaded the snapshot directories (`sl`, `Hsd`) through
   the old signatures. Resolved as D44's statements with J2's additions (`sl`, the `reSnapLoc`
-  conjunct, the directory maps), in `NewServerAlloc.lean` and `examples/common/{Alloc,Alloc3,
+  conjunct, the directory maps), in `NewServerAlloc.lean` and `examples/lib/etcdstart/{Alloc,Alloc3,
   newServer}.lean`.
 - **`compactRaftLog`** (proved on `lean` after J3 branched) applied `MemoryStorage.Compact.spec`
   as the token-in-hand triple, which J3 made logically atomic. Its proof now uses J3's corollary
   (`replace hCompact := MemoryStorage.Compact.spec_tok_of hCompact`, importing
-  `Proof/go_etcd_io/raft/v3/MemstorageAU.lean`, as `examples/kv`'s `KV.run` does);
+  `Proof/go_etcd_io/raft/v3/MemstorageAU.lean`, as `examples/raft/kv`'s `KV.run` does);
   `compactRaftLog.wp_proof`'s statement is unchanged (its hypothesis is `Compact.spec`, now the AU).
   J4 replaces it with the shared token (`Compact.wp_shared`). `lean` also dropped the phantom
   `StorageModel` binder from `Compact`: J3's `omit [StorageModel GF] package_sem` in
@@ -21996,7 +21996,7 @@ handlers, registry, admission and serialization are far larger than the controll
 
 **The choice.** D49 left open whether the trusted statement of the API server is a Lean spec
 (with a Go model proved to meet it) or the Go model itself. It is the Go model:
-`examples/k8sdaemonset/apimodel`, a `kubernetes.Interface` over one shared state. The top-level
+`examples/k8s/daemonset/apimodel`, a `kubernetes.Interface` over one shared state. The top-level
 theorem is about a Go test program (the robustness test's scenario: one node, one DaemonSet, the
 real controller and informers over the model, a checker) whose execution includes the model's
 code; the proofs step through that code like any other, and no spec of the model is stated or
@@ -22032,7 +22032,7 @@ it.
 
 ## D51: realistic failures in the theorem's program; a bug is fixed only when a proof is genuinely stuck on it (2026-10-27 · the user: "I want AmbiguousWrites on Main, and for now, leave the thing unfixed. We'll only fix it when we genuinely get stuck in a proof (or I might do it earlier myself)"; "This will cause the test to fail, and that's ok for now")
 
-**The choice.** The DaemonSet theorem's program (`examples/k8sdaemonset/dsmain`) runs the model API
+**The choice.** The DaemonSet theorem's program (`examples/k8s/daemonset/dsmain`) runs the model API
 server with every failure flag, `AmbiguousWrites` included: a write may commit and still report
 failure, as a timeout after the commit does in practice. D50's premise "a failed write had no
 effect" (the flag off) is withdrawn: it removed exactly the behavior that breaks the controller.
@@ -22229,7 +22229,7 @@ hypothesis):
   (`authEndOf`: equal unless a non-`nil` empty `RangeEnd`, which no wire request has: a premise of the
   workload) and, for a transaction, the order and the early exit (`txnChecked`, `txnMay`: the
   refusal is of some permission of `reqPerms`, the pass of all);
-- `lessorNil` for the server's lessor (E2s's `Put`/`Txn` premise; `examples/authkv` grants no lease).
+- `lessorNil` for the server's lessor (E2s's `Put`/`Txn` premise; `examples/etcd/auth` grants no lease).
 
 **Exported statements changed.** Definitions: `kvGranted` (per permission), `apply.AdminReq.result`,
 `apply.adminTriples`, `apply.applierAdmin`, `apply.adminDone`, `apply.adminOut`, `apply.uberAuthSteps`
@@ -22359,7 +22359,7 @@ request's `pwSure` and drop the `noPasswordUser` extra).
 **Left.** The apply thread's use of `apply.Apply.wp_kvL` (`applyEntryNormal` in the mode `on`,
 E2z's), `L hs` (`latestRes`, `latestRes_of_T`) from the apply thread's `authApplyRes`, the
 `uberKVL` of the server's uber-applier (`applierKVL_auth` at its base auth applier, with
-`lessorNil` of the server's lessor: `examples/authkv` grants no lease), the premises `noZeroEnds`,
+`lessorNil` of the server's lessor: `examples/etcd/auth` grants no lease), the premises `noZeroEnds`,
 `kvShapedL` (E2q's `kvDet`) and `txnVerdictOwn` from the workload; with alarms, the capped and
 corrupt wrappers' KV triples at the latest state.
 
@@ -22513,7 +22513,7 @@ changed; trust base unchanged.
      one deterministic `Marshal`. So the server-side tree has to be pinned by the heap like every
      other field.
    - *So the proposers name it.* `irrTxn t` (about 45 uses: `InvProposer`, `InvRead`, `EtcdServer__Txn`,
-     the client's `KVService`/`ServerKVTxn`, `examples/linkvtxn`, v3rpc's `ServerKV`) would take the
+     the client's `KVService`/`ServerKVTxn`, `examples/etcd/txnlin`, v3rpc's `ServerKV`) would take the
      wire tree (`irrTxn tw`, `t = tw.toModel`), changing those statements' text (not their meaning).
      The proposer gets the tree from the heap: `txnRequestIs r t ⊢ ∃ tw, txnRequestIsW r tw ∗
      ⌜tw.toModel = t⌝` is derivable, since `requestOpIs` keeps each put's `OpFull` (existentially).
@@ -22753,7 +22753,7 @@ recorded state stays for the other uses (the class statements, `permVerdict_of_L
   The Go code does not do that (the check reads the store's current fields under their locks), so
   the gap is the spec's. The apply thread's exact form (E2r, `histLast`) needs the admin side's
   authority, which a concurrent reader does not hold; a lower bound is what one can be promised.
-  For `examples/authkv` it suffices: `Work` starts after `SetUp`, and the auth state is fixed
+  For `examples/etcd/auth` it suffices: `Work` starts after `SetUp`, and the auth state is fixed
   from then on (`authHistHalf_lookup`, S4f), so every state no older than the observed one is the
   post-setup state.
 - *The observed state is the published one.* A reader observes an auth state through a reply
@@ -23256,7 +23256,7 @@ apply thread's mode-`on` atomics from `start`'s mode-`on` premise. `isServerM tr
     from its invariant (`isAuthStoreL_of_authInv`, with `E.RD = authRd …` and `L = latestRes …`),
     but the server's rows do not carry the store's invariant yet;
   - `srvLessorNil s`: the server's lessor finds no lease. A premise: the real lessor finds a lease
-    once one is granted; `examples/authkv` grants none.
+    once one is granted; `examples/etcd/auth` grants none.
 - **The admin side** (`uberAuthStepsL`'s `W`, the store's `be` half) stays a hypothesis of
   `srvApplyKVOn`'s users; E3k did not reach it.
 
@@ -23460,7 +23460,7 @@ be any permutation of the old ones with the new one (Go's `permSlice` compares k
 `sort.Sort` is not stable, so the model does not pin the order), and also allows the append where
 Go updates an existing permission in place. Its successor is unique only when that list has one
 element. No invariant of the states gives that; the proposer must know it of the state its entry
-meets (`examples/authkv`'s `SetUp`: one grant to the role `r` it just added). The options: tighten
+meets (`examples/etcd/auth`'s `SetUp`: one grant to the role `r` it just added). The options: tighten
 `roleGrantPermissionR` (sorted by key, Go's update branch; then still ambiguous for two permissions
 with one key and different range ends), or the client's knowledge of the auth state (a ghost
 variable of the model's auth state in `kvInvOn`, which the sequential `SetUp` would hold).
@@ -23625,7 +23625,7 @@ post), `commitOkOn_plain` (`irrNoZeroEnd`). New: `entryOkOn`, `EtcdServer.applyE
 **Not done (in order).** `applyAll`, `run`, `start` with auth on (over `specOn`; the readers'
 published lower bound `authPublishT` at the apply thread's admin steps is not in `specOn`'s post and
 is for them); then the admin proposers over `raftRequest.specM true`, the Auth handlers,
-`setupAuthOk`; then `examples/authkv` and the closed theorem.
+`setupAuthOk`; then `examples/etcd/auth` and the closed theorem.
 
 ## E3p of the auth plan: the apply loop with auth on; `snapshot`'s contract over the row's shared part (2026-10-27 · `notes/auth-plan.md`, E3o's first left item)
 
@@ -23674,7 +23674,7 @@ proofs above. No closed theorem changed.
 over `srvApplyKVOn`/`kvAppliedOn`, the boot's `applyBuiltOn`), `run`'s loop over `applyAll.specOn`,
 `start` from `isServerBuiltOn`; the readers' published lower bound `authPublishT` at the apply
 thread's admin steps is not in these posts yet. Then the admin proposers over `raftRequest.specM
-true`, the Auth handlers, `setupAuthOk`; then `examples/authkv` and the closed theorem.
+true`, the Auth handlers, `setupAuthOk`; then `examples/etcd/auth` and the closed theorem.
 
 ## E3q of the auth plan: `run` with auth on; `start` left for the mode-`on` read path (2026-10-27 · `notes/auth-plan.md`, E3p's first left item)
 
@@ -23704,7 +23704,7 @@ over `kvInvOn`, the discharge over both), a stage of its own; `start.specOn`'s a
 
 **Not done (in order).** The mode-`on` read path and `start.specOn`; the readers' published lower
 bound `authPublishT` at the apply thread's admin steps; the admin proposers over `raftRequest.specM
-true`, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem. `srvLessorNil` is
+true`, the Auth handlers, `setupAuthOk`; `examples/etcd/auth` and the closed theorem. `srvLessorNil` is
 a premise from `applyEntryNormal.specOn` up to `run.specOn`.
 
 ## D22 J6a: the raft node's payload with a snapshot; J7b's raft part (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
@@ -23719,7 +23719,7 @@ snapshot's term to its last entry's). Parametric in raft's mode: every new case 
   node's log is at the pending snapshot (`LogStoreOk`: `prev` is its id), the node's full prefix
   ends at its base (`FullOk`) and is committed through the commit index (`ownRaftGhost_cmt`), and
   the loan's committed log has the snapshot's length, so it is that prefix (`isCommitted_agree`).
-  `node.run` supplies it (as J2's `snapLocal`); `examples/kv`'s `readyDataL_split` skips it. No
+  `node.run` supplies it (as J2's `snapLocal`); `examples/raft/kv`'s `readyDataL_split` skips it. No
   axiom. For J8a: with `snapId sv = ⟨Term, Index⟩`, `plogLast base0 L = snapId sv` gives the term of
   the entry at the snapshot's index (what `hmeta` needs once `imageAt` states the image's term as its
   last entry's: J8a's sender side, "D22 J7").
@@ -23816,7 +23816,7 @@ unchanged: `ReadIndex`, the rest of a `Ready`, `Step`/the network, `Tick`/the te
 
 ## The key-value store on raft's draft node API (2026-10-27 · branch `kv-port`; completes "Raft's node API over an abstract log")
 
-**What:** `examples/kv` ported onto `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`: kv's files import
+**What:** `examples/raft/kv` ported onto `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`: kv's files import
 from raft's tree the draft, raft's Go-value/protobuf models (`Base`, `Init`, `InvPbSnapSet`, raftpb's
 getters), the storage API (below) and two tactic helpers (`FrameH`, `raft__Step/Dispatch`), and name
 no raft-internal definition (`rLog`, `isCommitted`, `entDataIs`, `propIs`, `RaftNames`, `NodeNames`,
@@ -24243,7 +24243,7 @@ results' premise (at `on = true` only).
 
 **Not done (in order).** The readers with auth on (`Range`, the read-only `Txn`, over
 `isServerReadM true` with deposits at `kvStM true`, and the published lower bound `authPublishT`); the
-admin proposers, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+admin proposers, the Auth handlers, `setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 `srvLessorNil` is a premise from `applyEntryNormal.specOn` up to `start.specOn`.
 
 
@@ -24289,7 +24289,7 @@ publication (`authPublishT`, whose call site in the apply loop is not done) and 
 client needs at least `authPubLb γa 0` (the server could keep one in `srvAuthLb`) and, for freshness
 that means something, a bound from a write it saw. The read-only `Txn` with auth on (`Txn.specOn`'s
 read branch over E3m's `apply_check_txn_auth_lb`); the admin proposers, the Auth handlers,
-`setupAuthOk`; `examples/authkv` and the closed theorem.
+`setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 
 ## D22 J4b: `EtcdServer.snapshot` translated and proved, not linked (2026-10-27 · decided by the orchestrator while the user was away (J5/J4))
 
@@ -24396,7 +24396,7 @@ conjunct each).
 **Not done (in order).** A server-kept bound for a reader that saw no write (`srvAuthLb` could carry
 `authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
 over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
-the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+the Auth handlers, `setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 
 ## E3u of the auth plan: the server-kept lower bound, a linearizable read's floor (2026-10-27 · `notes/auth-plan.md`, E3t's first left item)
 
@@ -24437,7 +24437,7 @@ the read-index lemmas' posts, `Range.specOn`'s post.
 
 **Not done (in order).** The read-only `Txn` with auth on (`Txn.specOn`'s read branch over E3m's
 `apply_check_txn_auth_lb`, which can take the same floor); the admin proposers, the Auth handlers,
-`setupAuthOk`; `examples/authkv` and the closed theorem.
+`setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 
 ## D22 J-T: the transport handed over unfrozen, with W8 (2026-10-27 · decided by the orchestrator while the user was away (J-T))
 
@@ -24563,7 +24563,7 @@ through the `wp_join`), as the code checks after `linearizableReadNotify`; the r
 `readServed_logRM true`/`readWit_fireOn`. No statement of an existing result changed.
 
 **Not done (in order).** The admin proposers (their answer, and `pubAfterM`), the Auth handlers,
-`setupAuthOk`; `examples/authkv` and the closed theorem.
+`setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 
 ## E3w of the auth plan: the admin proposers with auth on (2026-10-27 · `notes/auth-plan.md`, E3v's first left item)
 
@@ -24595,7 +24595,7 @@ at the model's state there (`adminQh`).
 
 **Not done (in order).** An admin answer tied to the model (`authTie` covers KV requests only: a
 success says the entry was applied, not yet that the model's step admitted it; the client can
-unfold `kvRaftOfOn` at `L ++ [e]`); the Auth handlers, `setupAuthOk`; `examples/authkv` and the
+unfold `kvRaftOfOn` at `L ++ [e]`); the Auth handlers, `setupAuthOk`; `examples/etcd/auth` and the
 closed theorem.
 
 ## E3x of the auth plan: an admin answer tied to the model (2026-10-27 · `notes/auth-plan.md`, E3w's first left item)
@@ -24622,7 +24622,7 @@ dispatched admin request `∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk
 points-to agreement). Mode off unchanged (`adminTieM false`, `adminDoneM false` are `True`); no
 statement of a mode-off result changed; the mode-`on` statements gained the conjuncts.
 
-**Not done (in order).** The Auth handlers, `setupAuthOk`; `examples/authkv` and the closed
+**Not done (in order).** The Auth handlers, `setupAuthOk`; `examples/etcd/auth` and the closed
 theorem.
 
 ## E3y of the auth plan: the Auth handlers with auth on (2026-10-27 · `notes/auth-plan.md`, E3x's first left item)
@@ -24653,12 +24653,12 @@ hash comes with `err = nil` (before, the post did not exclude a hash and an erro
 (`applyErrIs_leaf`/`applyErrIs_valLeaf`). The handler's answer `userAddAnsOn`: the hashing's
 error with nothing proposed (`adminPreOn` back), or `userAddOutOn`.
 
-**Not done (in order).** `setupAuthOk`; `examples/authkv` and the closed theorem.
+**Not done (in order).** `setupAuthOk`; `examples/etcd/auth` and the closed theorem.
 
 
 ## E3z of the auth plan: `RoleGrantPermission` admitted with auth on (2026-10-27 · `notes/auth-plan.md`, E3y's first left item, `setupAuthOk`'s first prerequisite)
 
-`setupAuthOk` (`examples/authkv`'s `SetUp` with auth on) proposes a `RoleGrantPermission`, which
+`setupAuthOk` (`examples/etcd/auth`'s `SetUp` with auth on) proposes a `RoleGrantPermission`, which
 `adminPropOk` excluded: the model's step `roleGrantPermissionR` was a relation (the role's
 permissions after the append and `sort.Sort`, any order `sort.Sort` may leave; and on an update,
 the first of the role's permissions with the key, wherever the search landed), determinate only at
@@ -24704,7 +24704,7 @@ up to order.**
 
 **Not done (in order).** The gRPC Auth layer (`_Auth_X_Handler`, the gRPC specs,
 `etcd_auth_served`); a member started with auth on (`grpcUp`'s Auth registration); `setupAuthOk`;
-`examples/authkv` and the closed theorem.
+`examples/etcd/auth` and the closed theorem.
 
 ## E3za of the auth plan: the gRPC Auth layer (2026-10-27 · `notes/auth-plan.md`, E3z's first left item, `setupAuthOk`'s second prerequisite)
 
@@ -24974,7 +24974,7 @@ chain's auth layer on and `kvInvM true`). Three things it needed:
 - *A finding in authkv's own Go, fixed:* its configuration left `TokenTTL` at `0`, its comment
   saying the provider has a default; `ServerConfig` has none (`embed` sets `300`), and the simple
   provider's tokens with TTL `0` expire at its keeper's next tick. `NewServer.specM true` asks
-  a positive TTL. `examples/authkv` now sets `300` (etcd's `--auth-token-ttl` default).
+  a positive TTL. `examples/etcd/auth` now sets `300` (etcd's `--auth-token-ttl` default).
 
 **Done (5g): `setupAuthOk`.** `authkv/SetupServed.lean`'s `setupAuthOk_of_served`
 (`authkv_setup_auth_served`): at etcd's specs of the five Auth methods, which
@@ -25398,7 +25398,7 @@ the `RawNode`, the snapshot's `ConfState` no auto-leave one), which `runCfg_adva
 
 **Why.** Stages U2-U3d taught the dynamic half to take snapshots, but every dynamic cluster was
 allocated in the no-snapshot mode (`DynNames.reNoSnap = true`), so none of it was reachable. The
-user wants an adequacy check of that path: examples/kv's `kv_porcupine_safe` re-proved over a
+user wants an adequacy check of that path: examples/raft/kv's `kv_porcupine_safe` re-proved over a
 dynamic cluster with snapshots.
 
 **The cluster (`InvNodeRule.lean`, importable; definitions and proofs in `InvApiRule.lean`,
@@ -25735,7 +25735,7 @@ name is the static cluster's); `D.insert k d` for `insert k d D`; new instances 
 `confDecided_timeless` (`ConfPolicy`'s invariant), `skippedIn_persistent`; `confPolicy_decide` takes
 the cluster's `N` explicitly.
 
-**Clients that break** (not built, by the user's scope): examples/kv (`cluster_alloc_rule`, raft's
+**Clients that break** (not built, by the user's scope): examples/raft/kv (`cluster_alloc_rule`, raft's
 `confPolicy`, `Membership.fold`, `opsOfRule`, the `unifiedSpec`s' `NoConfChangeIn` premises);
 etcd's server where it states or proves over `DynCCPreOp` (`EtcdServer.applyConfChange`'s spec and
 proof: its fifth clause is `NoUndecConfIn dec`), destructures `readyP`/`nodeDriverBusy`
@@ -25781,7 +25781,7 @@ term being a campaign's, `CampOk.term_nz`), and a full log's terms are at most t
 left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
 
 Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
-the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
+the user's scope): examples/raft/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
 `stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
 
 ## kvreconf-final: Go changes and the storage instance
@@ -25824,7 +25824,7 @@ the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s
 
 **2026-10-29 · in progress (track C of the raft-unified effort, branch `raft-unified-kvreconf`)**
 
-`examples/kvreconf`'s proof (`notes/raft-unified-plan.md`, U11) runs beside raft's tracks A and B,
+`examples/raft/kvreconf`'s proof (`notes/raft-unified-plan.md`, U11) runs beside raft's tracks A and B,
 over the frozen designs (`notes/spec-first-study/raft-node-unified-candidate.md`,
 `raft-decisions-spec.md`) and the coordinator's approved changes (U5: `opsOf` drops empty
 `ConfChangeV2`s; no `autoLeave = false` premises).
@@ -25955,7 +25955,7 @@ only by `StepR.propose`/`win`, the sites to touch), the fold of the entry's pref
 witnessed decisions (`decLb`) joint, then `confAt`'s agreement (`fold_agree`, `decLb_compat`) at the
 API. Not started.
 
-Clients that break (not built, by the user's scope): examples/kv (`ProposeConfChange`'s post now
+Clients that break (not built, by the user's scope): examples/raft/kv (`ProposeConfChange`'s post now
 `opsOf`, `opsOf`'s definition: proofs over `opsOf` of conf entries; the `ApplyConfChange`/`Advance`
 calls pass one premise fewer), etcd's server where it calls `RawNode.Advance`/`raft.Step` with the
 removed premises or destructures `DynCCPreOp`/`ownRawNode` (`InvRaftNode.lean`, `SrvRaftLog.lean`),
@@ -26237,7 +26237,7 @@ Drafted before any proof (the user's instruction). What changed in existing stat
 **2026-10-28 · accepted; approved by the user 2026-10-28** (branch `logkv-eval`)
 
 `lintest.genSpec gen inOk` was `∀ id, {{ True }} gen id {{ i, □ inOk i }}`: every `id`, negative
-ones included. logkv's generator (`examples/lintest/logkv`) indexes `vals[id%4]`; Go's `%` is
+ones included. logkv's generator (`examples/lib/lintest/logkv`) indexes `vals[id%4]`; Go's `%` is
 negative for a negative `id`, so it panics there and cannot meet that spec, though `Run` only ever
 calls `gen` with `0, ..., clients - 1` (`runClient.spec` already has `0 ≤ sint.Z id`). Now
 `{{ ⌜0 ≤ sint.Z id⌝ }}`: `Run.spec` is strictly stronger (a weaker premise; the PRINCIPLES' "no
@@ -26683,7 +26683,7 @@ not `.spec`s:
   Dead code: `apply.Apply.adminSpec` (`ApplyFnAdmin.lean`), `uberApplier.Apply.adminSpec`.
 ## kvreconf's snapshots in a goroutine of their own (2026-10-30, kvreconf-snapshot-thread)
 
-**The Go change** (`examples/kvreconf/kv.go`; the user's request, etcd's structure: its apply thread
+**The Go change** (`examples/raft/kvreconf/kv.go`; the user's request, etcd's structure: its apply thread
 takes snapshots and compacts while the raft goroutine appends and installs, `server.go:2102-2108`
 tolerating `ErrSnapOutOfDate`). Each replica has a snapshot goroutine (`snapshotter`, started by
 `newReplica`, waited for by `stop` on `snapDone`, like `run`/`ticker`). `run` no longer calls
@@ -28214,13 +28214,13 @@ snapshot case would undo it. The proofs pass it through with `E' = E` and `srvSn
 **`srvKVCloser` and the backend file's `pathOwn`: in the built part (the user's decision,
 2026-11-01).** The first commit left them out. `NewServer.spec`'s post had them as conjuncts of
 their own, beside `srvBuilt` and `srvBuildGap`, and the examples dropped them
-(`examples/common/newServer.lean`, the `-, -`). Every route to `isServerBuilt` changed the text of
+(`examples/lib/etcdstart/newServer.lean`, the `-, -`). Every route to `isServerBuilt` changed the text of
 an exported statement. The user chose to move them into the built part. `srvSnapRes`'s body now
 also holds `srvKVCloser s E ∗ srvCfgFieldAddr s "DataDir" ↦□ dd ∗ backend.pathOwn
 (config.backendPathOf dd)`, so it travels with the rest: `srvSnapBoot` (in `srvBuilt`), then
 `applyStart`, `applyRes` and `applyAll`.
 - `NewServer.spec`, `specM` and `specCompact` lose the two conjuncts (approved text change).
-- The examples' glue (`examples/common/newServer.lean` twice, `examples/authkv/startServer.lean`)
+- The examples' glue (`examples/lib/etcdstart/newServer.lean` twice, `examples/etcd/auth/startServer.lean`)
   no longer drops them.
 - `srvKVCloser` moved from `InvWatchBuilt.lean` to `SnapRO.lean`, unchanged (`InvWatchBuilt`
   imports `SnapRO` through `InvBuild`).
@@ -28421,7 +28421,7 @@ go ahead with item 14" (Q4: merge once the compaction-on case is proved, done th
 
 ## The client's `kv.Compact`: the KV's revision reached, one for the cluster (2026-11-01 · accepted, the user's approval of candidate 3 · branch `m2-kvcompact`)
 
-For `examples/compactkv` (a client compacting at the revision before its `Put`'s). Candidates and
+For `examples/etcd/compactwatch` (a client compacting at the revision before its `Put`'s). Candidates and
 reviews: `.claude/skills/spec/examples/compact-client.md` (the approved spec and its history).
 
 - **The user's design (a), 2026-10-31**: the server keeps excluding `ErrFutureRev` by a premise
@@ -29480,7 +29480,7 @@ one thread); a per-call slot handed down from `NewServer` (it would bound the nu
 
 ## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · accepted, the user's Freeze · branch `lease-ex`)
 
-`examples/leasekv` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
+`examples/etcd/lease` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
 twice (`notes/lease-ex-plan.md`). Three changes to trusted or frozen statements, each the user's
 choice:
 
@@ -29560,7 +29560,7 @@ parameter (`newServerMode.spec`, in the compaction mode `cmp`, as `NewServer`'s 
 `compactkv` covers): its test now also checks that the compactor compacts during a run (a read at
 the revision before the Put's fails with `ErrCompacted` within 5s). `putgetc_safe`'s statement is
 unchanged. The two new specs repeat their siblings' `threadBound`/`receiptBound` premises, raising
-`examples/common`'s bounds baseline (spec-thread 8 → 10, spec-receipt 12 → 16), as the family's
+`examples/lib/etcdstart`'s bounds baseline (spec-thread 8 → 10, spec-receipt 12 → 16), as the family's
 others are until the bounds plan moves them.
 ## The writer's pin: M2's item 37, the sole writer's two laws proved (2026-11-02 · the user's approval · branch `m2-item37`)
 
@@ -30025,7 +30025,7 @@ compaction's write-back stock), a hypothesis of the closed theorem `cache_safe`,
 
 ## cachekv's check of the cache's `Get`: proved, not wired; the cache's `Get` spec answers below the requested revision (2026-11-02 · the user's choices · branch `cachekv-get`)
 
-**The check** (`examples/cachekv`): after the watch is read gap-free from revision `2` up to
+**The check** (`examples/etcd/cache`): after the watch is read gap-free from revision `2` up to
 `r = MaxRev(oks)`, a `Get` of the prefix at `r` (`WithRev(r)`) must answer each key's last
 watched value at or below `r`, and every key watched at or below `r` (`checkGet`, over `lastVal`
 and `hasKey`; `TestCheckGet` shows it rejects a stale value, a missing and an extra key). At `r`,
@@ -30735,7 +30735,7 @@ lower bound is committed (`deliveredLogLb`), so it agrees with the snapshot's co
 index is the applied log's length only at a fresh start (the restart, R2d, revisits it); `run` has it
 (`isServerRun`'s fresh start).
 ## The lease-grant stage's choices (2026-11-02 · the user's decisions; frozen 2026-11-02 · branch `lease-grant`)
-`examples/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
+`examples/etcd/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
 order:
 - **S1 (scope): the narrow stage, then the tie.** The grant through the request path and the apply
   thread, the client's grant fact, the listing; not leased puts, nor the results at the committed

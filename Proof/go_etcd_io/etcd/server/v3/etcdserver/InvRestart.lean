@@ -2,7 +2,7 @@
 **A member's stop and restart: the server's vocabulary, drafted** (the restart plan's R2a,
 2026-11-02, `notes/restart-plan.md`). Lean-first (no Rocq counterpart).
 
-R2a states what the example (`examples/restart3`) needs of the server at a stop and a restart, over
+R2a states what the example (`examples/etcd/restart`) needs of the server at a stop and a restart, over
 the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
 until then, so that no statement over them can be proved by unfolding them.
 
@@ -16,7 +16,7 @@ until then, so that no statement over them can be proved by unfolding them.
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
   (L2): the ghost image handed from one incarnation to the next; graceful stops only (the plan's
   Q4). It holds what the restarted member's `NewServer` takes of the ghost state in place of a
-  first start's `memberBoot` (`examples/common/Defs.lean`): the node API's restart token in place
+  first start's `memberBoot` (`examples/lib/etcdstart/Defs.lean`): the node API's restart token in place
   of `nodeBoot` (R2e, raft's restart from a durable state), the cluster's invariants at the
   recorded names. (R2c, 2026-11-02: no id state. A restart makes its incarnation's id share anew,
   at a fresh incarnation key, `idutil/Incarnations.lean`'s `idIncarnation_alloc`, with its new

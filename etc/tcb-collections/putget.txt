@@ -1,20 +1,20 @@
-# The adequacy example (examples/putget; item 9): the results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/putget/Results.lean: `putget_Main` (stage 2,
+# The adequacy example (examples/etcd/putget; item 9): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Results.lean: `putget_Main` (stage 2,
 # 2026-10-18; over the server's, v3rpc's and the client's linked results and four trust-boundary
-# axioms) and the closed theorem `putget_safe`/`putget_adequate` (stage 3, after D19r), which also
+# axioms) and the closed theorem `etcd_putget_safe`/`etcd_putget_adequate` (stage 3, after D19r), which also
 # rest on the package initializers' axioms (until 2026-10-19 also on six `sorry`s of Perennial's
-# initializer proofs, done at the pin `5fab1f144`). `#print axioms putget_safe` lists 3308: Lean's
+# initializer proofs, done at the pin `5fab1f144`). `#print axioms etcd_putget_safe` lists 3308: Lean's
 # 3, the 463 below, 2837 generated declarations of untranslated types and values (2627 here, 210
 # in Perennial) and Perennial's 5 trusted specs (`errors.As`, `time.Now`, `time.NewTimer`,
 # `Timer.Reset`, `Timer.Stop`).
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/putget.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/putget.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/putget.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putget/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof

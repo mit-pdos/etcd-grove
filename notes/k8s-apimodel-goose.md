@@ -1,15 +1,15 @@
 # The model API server's translation and proof (DaemonSet plan phase 3)
 
-The model API server (`examples/k8sdaemonset/apimodel`, trusted Go, D50) translated by Goose and
+The model API server (`examples/k8s/daemonset/apimodel`, trusted Go, D50) translated by Goose and
 given specs it is proved to meet. The specs are an internal layer of the controller's proof (D50's
 last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset-plan.md`, phase 3.
 
 ## The translation
 
-- **Project `k8s-daemonset`** in `etc/goose.py`: the local module `examples/k8sdaemonset`, package
-  `./apimodel`, with bodies (`Code/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel.lean`).
-  `etc/goose.py --check` also checks that `examples/k8sdaemonset/go.mod`'s `k8s.io/{api,
-  apimachinery,client-go}` are those of `examples/k8setcd3/go.mod` (`CLIENT_GO_PINS`), so the two
+- **Project `k8s-daemonset`** in `etc/goose.py`: the local module `examples/k8s/daemonset`, package
+  `./apimodel`, with bodies (`Code/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel.lean`).
+  `etc/goose.py --check` also checks that `examples/k8s/daemonset/go.mod`'s `k8s.io/{api,
+  apimachinery,client-go}` are those of `examples/k8s/etcd3/go.mod` (`CLIENT_GO_PINS`), so the two
   projects translate one client-go.
 - **Project `k8s-apiserver`, names and types only** (what the model's clients name): client-go's
   `kubernetes`, its 56 `kubernetes/typed/*` packages, `rest`, `discovery`, `applyconfigurations`'

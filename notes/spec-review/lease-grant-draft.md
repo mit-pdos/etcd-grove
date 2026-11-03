@@ -226,7 +226,7 @@ needed.**
   - After 300 s the loop calls the checkpointer, which proposes `LeaseCheckpoint` through
     `raftRequest` (`server.go:394-406`). That is outside the verified request path, now live in a
     granting cluster.
-  - In the example the feature gate is the default (`examples/common/common.go:96`,
+  - In the example the feature gate is the default (`examples/lib/etcdstart/common.go:96`,
     `features.LeaseCheckpoint` off), so `le.cp == nil` and no checkpoint is ever proposed.
   - The premise is opaque; its docstring is its only meaning, and it is now stale.
 - *Restatement:* rewrite the docstring. It is exercised in a granting cluster with the
@@ -251,7 +251,7 @@ terms.**
 - *Restatement:* "No lease granted in the cluster expires, by the clock the lessor's loop reads, while
   the program runs. The program's run ends when `Main` returns (Go exits); the theorem's executions
   that continue the other goroutines after that are not Go's, and the premise is read over them too.
-  True of `examples/leasegrant`: the only lease is granted with TTL 600 s, and the read that must list
+  True of `examples/etcd/leasegrant`: the only lease is granted with TTL 600 s, and the read that must list
   it runs within `RequestTimeout` of the grant's apply (the expiry is set to at least the grant's
   apply plus the TTL, and `Promote`, `Demote` and `minLeaseTTL` only move it later,
   `lessor.go:301-303, 480-553`)." Keep the exclusions.

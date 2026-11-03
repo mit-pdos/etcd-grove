@@ -180,7 +180,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   library does not name the client's mechanism: no "disk" predicate in raft, because a client may
   keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
   and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
-  critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  critique of candidate 4: `notes/STATUS.md`, "examples/raft/kvdurable and the durable node API")
   The client-owned state is only the part the client's choice is about: for durability, raft's
   persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
   Then a restart is no transition of that state, only a fresh library-side half built over it.

@@ -9,7 +9,7 @@ the model's API types (`apimodel.objAt`): it reads the object's `GetName()` and 
 module
 
 public import Proof.k8s_io.klog.v2.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Defs
 
 @[expose] public section
 

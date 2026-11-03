@@ -2,7 +2,7 @@
 Package initialization instance of Go's `math/rand` (names only in Perennial; generated `Init.lean`
 beside). Its fact is `True`. Lean-first (no Rocq counterpart). (Until 2026-10-27 in the gRPC
 server's `v3rpc/Base.lean`, the watch slice's unit W-S: `GetProgressReportInterval`'s jitter; moved
-here so that the model API server's proofs, `examples/k8sdaemonset/apimodel`, do not import the
+here so that the model API server's proofs, `examples/k8s/daemonset/apimodel`, do not import the
 server.)
 -/
 module

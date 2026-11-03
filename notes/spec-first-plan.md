@@ -183,7 +183,7 @@ so later reviews in the repository start from it.
 - Readings: `Post` violated: the spec is false. `Pre` violated on a trace of a normal workload:
   the spec is stronger than its real callers allow. `Pre` never satisfied: vacuous.
 - Lock invariants (`Inv*`) asserted at each `Unlock`; concurrent objects checked by porcupine
-  against the spec's pure model (`examples/lintest` exists); protocol-level properties keep their
+  against the spec's pure model (`examples/lib/lintest` exists); protocol-level properties keep their
   model checkers (`notes/reconfiguration-model-check.md`).
 - The trust-boundary specs of other packages (bbolt, grpc, zap, the standard library) get the
   same treatment: random call sequences against the real library, checked against the axiom's pure
@@ -628,7 +628,7 @@ vocabulary settles: the models of Go types (`EntryM`, `LogEntry`, `EtcdKv`, `OpF
    17 directories; 22 changes), `snapWalkPost` (15; 19), `srvSnapRO`, `applyAll.spec` (35),
    `applyEntries.spec` (31).
 4. **The example entry points** (`startMember`, `Main`, `newServer`, `StartServer` in
-   `examples/common`, `linkv3p`, `putget3`: 11-15 directories, 6-13 changes each), downstream of 1.
+   `examples/lib/etcdstart`, `linkv3p`, `putget3`: 11-15 directories, 6-13 changes each), downstream of 1.
 5. **The raft core** (`raft.Step.spec` 47, `ownRawNode` 39, `ownRawNodeReady` 33, `RNState` 31,
    `NodeStartSpec` 34): high churn, but fan-out 3-5, mostly inside raft.
 
@@ -753,8 +753,8 @@ premises with slots.
      specG false cmp`, or a thin wrapper if the callers need `spec`'s three-way compaction
      disjunction as it reads today;
    - `wp_proofM` and `wp_proof` become one-line instances;
-   - the callers that use the triples in code, not in comments, migrate: `examples/common/
-     newServerMode`, `examples/authkv/startServer`, the server's `Results` and `Link`, v3rpc's
+   - the callers that use the triples in code, not in comments, migrate: `examples/lib/etcdstart/
+     newServerMode`, `examples/etcd/auth/startServer`, the server's `Results` and `Link`, v3rpc's
      `Server` and `Link`. They get `specG`'s postcondition, which is at least as strong.
    **When:** the hub quiet, after auth-on's P5 lands (it edits `NewServer`), between two stages that
    edit it. The same applies to the other twin families (`applySnapshot.specSnap`/`specSnapM`,
@@ -765,7 +765,7 @@ premises with slots.
    and 22 more spec files (25 in all), next to `netAddrFree` and `httpProtoFree` (61 lines in 24 spec
    files), which came the same way. Each new start resource has been threaded through every example (hub 4), and a
    restart's `walFiles` would be another round. The step: **the starter owns the boundary.**
-   `examples/common`'s API exports a sealed per-member bundle, `common.memberStartRes name addrs`,
+   `examples/lib/etcdstart`'s API exports a sealed per-member bundle, `common.memberStartRes name addrs`,
    with its intro from the adequacy theorem's items (`startRights`'s `walDirFresh d`,
    `netAddrFree a`, `httpProtoFree a` of the member's directory and addresses) and its narrow
    elimination into what the starter hands `NewServer` (`wal.bootRes_intro`'s premise, the

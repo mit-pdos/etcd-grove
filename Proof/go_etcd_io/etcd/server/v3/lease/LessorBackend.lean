@@ -63,7 +63,7 @@ adequacy theorem's executions also continue the other goroutines after that (ste
 and the premise is read over them too: as used (the payload of `expiredC` refutes it, below), it
 says no slice is ever sent on `expiredC`, in any of the theorem's executions.
 
-True of `examples/leasegrant`: its only lease is granted with TTL 600 s, and the read that must list
+True of `examples/etcd/leasegrant`: its only lease is granted with TTL 600 s, and the read that must list
 it runs within two `RequestTimeout`s of the grant's apply (the expiry is set to at least the grant's
 apply plus the TTL, and `Promote`, `Demote`, `Renew`, checkpoints and `minLeaseTTL` only move it
 later, `lessor.go:301-303, 480-553`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
