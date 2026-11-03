@@ -338,7 +338,8 @@ abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
       lease.leaseOwn (mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvccN, ∅
-        <{ ⌜σ.pending = none⌝ ∗ mvccState γ (σ.notify [.put k vv leaseID]), COMM
+        <{ ⌜σ.pending = none⌝ ∗ mvccState γ (σ.notify [.put k vv leaseID]) ∗
+            ⧖ (logCh (σ.log ++ [[.put k vv leaseID]])), COMM
             AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
               <{ ⌜σ' = σ.notify [.put k vv leaseID]⌝ ∗ mvccState γ σ'.commitPending,
                  COMM Q σ }> }> }}
@@ -358,7 +359,7 @@ abbrev KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
       lease.leaseOwn (mvccLeases γ) L I ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvccN, ∅
-        <{ ⌜σ.pending = none⌝ ∗ mvccState γ (σ.notify (ds σ)), COMM
+        <{ ⌜σ.pending = none⌝ ∗ mvccState γ (σ.notify (ds σ)) ∗ ⧖ (logCh (σ.log ++ [ds σ])), COMM
             AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
               <{ ⌜σ' = σ.notify (ds σ)⌝ ∗ mvccState γ σ'.commitPending, COMM Q σ }> }> }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
@@ -402,7 +403,9 @@ abbrev KV.Commit.contract (ty : go.GoType) (v : val) : Prop :=
 caller's update, at a state whose history `σ'`'s extends (the compaction revision not lowered), the
 state `σ'`; the store's backend now `B'`, the old one's reader slots' open shares back (`Restore` waits out
 every transaction, the scheduler and the sync loops); the lessor's items re-attached (the restored history's receipt is inside `mvccBackendFor`, from
-the image `mvccImage`, round 16). When the image
+the image `mvccImage`, round 16, and the update is given it, as at every step that changes the
+history; the history's length bound follows from it, a committed revision never being empty). When
+the image
 records an unfinished compaction (`u`), `Restore` resumes it: under the new backend's batch lock,
 running its post-lock hook `f` once (from `Pre` to `Q'`, giving the lock's invariant `Pk'` back), and
 committing once (the new backend's commit request, `X` to `Y`); otherwise neither, and `Pre`, `X`
@@ -414,14 +417,14 @@ abbrev KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
       mvccBackendFor B' Pk' σ'.log σ'.crev u ∗
-      ⌜MvccReachable σ' ∧ σ'.pending = none ∧ σ'.log.length + receiptBound GF + 3 ≤ 2 ^ 63⌝ ∗
+      ⌜MvccReachable σ' ∧ σ'.pending = none⌝ ∗
       backend.plHookAt B'.γB dq f ∗ Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
       X ∗ backend.commitReq B'.γB B'.P Pk' B'.b X Y ∗
       lease.leaseOwn (mvccLeases γ) L ∅ ∗
       ⌜∀ it lid, (pendItems σ'.log []).lookup it = some lid →
         lid ∈ L ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ }>
-          @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ', COMM Q σ }> }}
+          @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ' ∗ ⧖ (logCh σ'.log), COMM Q σ }> }}
     (App (Val #(methods ty go!"Restore" v))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #B'.b)))
@@ -522,7 +525,10 @@ abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
       ⌜uint.nat chs.len = k.pend.length⌝ }}
 
 /-- A read transaction's gives the thread token back; a write transaction's commits in two steps of
-the caller's updates at the state it began at (`σ₀`), with the batch lock's invariant `P` back. -/
+the caller's updates at the state it began at (`σ₀`), with the batch lock's invariant `P` back. The
+notify step gives the update the receipt of the history it makes (`⧖ (logCh ..)`, round 16: what the
+caller's model of the history needs, client/v3's `kvLogOk`, at the step that makes it; `Put`,
+`DeleteRange` and `Restore` too). -/
 abbrev Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (k : MTxn) (q : Qp) (B : BkRef) (P Q : IProp GF),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace k ∗
@@ -530,7 +536,7 @@ abbrev Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
       | .read _ => iprop(True)
       | .write σ₀ pend => iprop(mvccBackend γ q B P ∗ P ∗
           AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
-            <{ ⌜σ = σ₀⌝ ∗ mvccState γ (σ.notify pend), COMM
+            <{ ⌜σ = σ₀⌝ ∗ mvccState γ (σ.notify pend) ∗ ⧖ (logCh (σ.log ++ [pend])), COMM
                 AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
                   <{ ⌜σ' = σ₀.notify pend⌝ ∗ mvccState γ σ'.commitPending, COMM Q }> }>) }}
     (App (Val #(methods ty go!"End" v)) (Val #()))

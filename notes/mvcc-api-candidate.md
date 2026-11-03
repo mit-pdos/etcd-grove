@@ -740,5 +740,12 @@ sender's law making an `mvccImage` of a snapshot of a store's backend (G3) is de
 server's draft, over `backend.Snapshot`'s spec. The value facts move to the results: `kvSortOk` is
 now positivity (creation and modification revision, version: what the comparators and client/v3's
 `0 < version` need), and `wsRecvOk` says each event's revision positive, a put's creation revision
-and version too. No size bound on the history is exported.
+and version too. No state-level size law is exported; but client/v3's exported results state
+`LogSmall` of the whole history (`kvLogOk`, `etcdserver/KVLogOk.lean`), which the server must keep
+of its model's log, so (the cross-review's §1, by "a fact the caller needs of a result belongs at the
+call that returns it"; decided by me, the user: "fix specs in minor ways on your own" when the skill
+is clear) every step that changes the history gives its update the receipt of the history it makes:
+the notify step of `Txn.End`, `Put`, `DeleteRange` (`⧖ (logCh (σ.log ++ [pend]))`) and `Restore`'s
+step (`⧖ (logCh σ'.log)`). `Restore`'s length premise is dropped: a committed revision is never
+empty (`commitLog`), so the receipt inside `mvccBackendFor` bounds the length.
 
