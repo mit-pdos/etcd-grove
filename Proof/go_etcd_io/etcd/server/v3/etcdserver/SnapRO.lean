@@ -119,12 +119,15 @@ tracked bucket, D22) with the lease bucket's part (`backend.rbPart d.γB (· = "
 the lessor's put writes `Lease` only; 2026-11-01, the backend-auth-split stage: until then the
 whole client half `backend.rbOwn`), given back with the record put (leases T3, L3c, 2026-10-27:
 until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
-real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
+real backend's `LockInsideApply` does not need it, its `UnsafePut` does). (The lease-grant stage,
+2.12, 2026-11-02, the user's freeze) The counted write-back token is spent and the lent part `RW`
+given back (until then spent with it): true of Go, `persistTo(le.b)` reads the field before
+`BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
+    lease.lessorBackend lp Pk #f (backend.wbTok d.γB) RW (mvcc.bkRTx d.γB d.P d.be)
       (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by

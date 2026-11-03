@@ -38,13 +38,13 @@ history (`leaseLiveFrom γl 0 id l`: the snapshot `Grant` appends under `le.mu`,
 which a monotone lessor keeps (`leaseGrantedAt_of_live`). -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap LeaseItem w64) (P : IProp GF)
-    (f : val) (T R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
+    (f : val) (T Ln R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
     (rb : GMap GoString backend.BktData) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorCfg lp ∗ lessorBackend lp P f T R Rb ∗ leaseOwn γl L I ∗ leaseRevokers γl L ∗ mvcc.csContract P f Pre Q Post ∗
-      T ∗ R ∗ Rb rb ∗ leaseGranted γl id }}
+      lessorCfg lp ∗ lessorBackend lp P f T Ln R Rb ∗ leaseOwn γl L I ∗ leaseRevokers γl L ∗ mvcc.csContract P f Pre Q Post ∗
+      T ∗ Ln ∗ R ∗ Rb rb ∗ leaseGranted γl id }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Grant")) (Val #id)) (Val #ttl))
-  {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗
+  {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗ Ln ∗
       ((⌜err ≠ GoInterface.nil ∧ (id = W64 0 ∨ 9000000000 < sint.Z ttl ∨ id ∈ L)⌝ ∗ lessorErrIs err ∗
         leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre ∗ Rb rb) ∨
       (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) I ∗ leaseRevokers γl (L ++ [id]) ∗ Post ∗

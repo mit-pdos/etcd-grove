@@ -240,8 +240,9 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
 /-- **The apply package's lessor contract, of the real lessor** at `lp`, for a store whose lessor
 ghost map is the lessor's: its `isTxnLessor`, `Grant` and `Checkpoint` from the proofs, its
 `Revoke` and `Lookup` clauses (not yet proved of the real lessor) given. The lessor's backend
-contract takes, per write, the write token `storeWT γ ∗ RW₀` and, for its put, the right `Rb r` to
-the tracked buckets, both of which the write right `RW` holds (leases T3, L3c, 2026-10-27); the
+contract takes, per write, the write token `storeWT γ`, the lent part `RW₀` (given back: the
+lease-grant stage, 2.12, 2026-11-02; until then part of the token) and, for its put, the right
+`Rb r` to the tracked buckets, the last two of which the write right `RW` holds (leases T3, L3c, 2026-10-27); the
 contract's clauses do not state the put's effect yet (the apply layer's step, L3b). -/
 theorem isApplyLessor_of_lessorInv
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
@@ -263,7 +264,7 @@ theorem isApplyLessor_of_lessorInv
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
+      lease.lessorBackend lp P f (mvcc.storeWT γ) RW₀ (mvcc.storeRT γ) Rb ∗
       □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
@@ -280,10 +281,10 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, Hrw⟩ HΦ
     icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
-    iapply (hGrant lp γ.leases id ttl L I P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
+    iapply (hGrant lp γ.leases id ttl L I P f (mvcc.storeWT γ) RW₀ (mvcc.storeRT γ) Rb r
       Pre Q Post) $$ [Hcs Hown Hrvk Hwt Hrt Hrw HRb]
     · iframe; iframe #
-    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, Hrvk, HPre, -⟩ |
+    iintro !> %l %err ⟨Hrt, -, (⟨%Hne, #Herr, Hown, Hrvk, HPre, -⟩ |
       ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, -⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
@@ -324,10 +325,10 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, Hrw⟩ HΦ
     icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
-    iapply (hCk lp γ.leases id rem P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
+    iapply (hCk lp γ.leases id rem P f (mvcc.storeWT γ) RW₀ (mvcc.storeRT γ) Rb r
       Pre Q Post) $$ [Hcs Hwt Hrt Hrw HRb]
     · iframe; iframe #
-    iintro !> %err ⟨Hrt, %He, HPP⟩
+    iintro !> %err ⟨Hrt, -, %He, HPP⟩
     subst He
     iapply HΦ
     iframe Hrt

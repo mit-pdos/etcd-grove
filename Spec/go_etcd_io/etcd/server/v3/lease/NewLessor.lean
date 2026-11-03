@@ -69,7 +69,7 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
   predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
   bucket; `Recover`, not called, would reload it).
-* The backend's contract (`lessorBackend lp Pk f T R Rb`, used by `Grant` and `Checkpoint` through
+* The backend's contract (`lessorBackend lp Pk f T Ln R Rb`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
@@ -85,7 +85,8 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
   reads it under the lock, so the writes go to the backend the caller's half names: the contract
   (`lessorApplyOk`) is for whichever backend that is (its contract at some `W`, `Pk`, its frozen
-  hook), given a write right lending that half of `le.b` (`rwLens`); `Recover`
+  hook), given a write right lending that half of `le.b` (`rwLens`), which a write gives back (the
+  lease-grant stage, 2026-11-02: the lent part `Ln`, apart from the spent token); `Recover`
   (names-only) replaces both halves under the lock. Until S7c `le.b` was `↦□` and the contract for
   `d` only, which `Recover` refutes.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of

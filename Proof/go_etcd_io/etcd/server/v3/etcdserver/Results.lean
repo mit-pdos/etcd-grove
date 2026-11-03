@@ -1139,7 +1139,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
+      lease.lessorBackend lp P f (mvcc.storeWT γ) RW₀ (mvcc.storeRT γ) Rb ∗
       □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty

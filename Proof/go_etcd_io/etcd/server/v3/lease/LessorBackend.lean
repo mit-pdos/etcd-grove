@@ -118,17 +118,20 @@ instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R
     (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBackend b P f T R Rb) := by
   unfold leaseBackend; infer_instance
 
-/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the write token `T` lends a
+/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the lent part `Ln` lends a
 fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23: the field is no
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
-the writes read `le.b` under the lessor's lock, holding the token. -/
-def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
+the writes read `le.b` under the lessor's lock, holding it. (The lease-grant stage, 2.12,
+2026-11-02) The lent part is apart from the write token `T`, which the write spends: `Grant` and
+`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) -/
+def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗
-    □ (T -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ T)))
+    □ (Ln -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ Ln)))
 
-instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (lessorBackend lp P f T R Rb) := by
+instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) :
+    Persistent (lessorBackend lp P f T Ln R Rb) := by
   unfold lessorBackend; infer_instance
 
 /-- **The lessor `lp` is on the backend at `be`** (D22 receiver epochs, S7c, 2026-10-23; not
