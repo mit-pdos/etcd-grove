@@ -91,6 +91,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **No disjunction of alternative specs** (a precondition "trivial result, or the caller's atomic
   update"): keep the stronger, the other is a layer. A case split on the input is not one.
   (`range.md`, critique 2)
+- **No disjunction a proof must handle twice**: a condition a guarantee holds under is one
+  condition, not "this case or that case" each of which the implementation's proof, or a client's,
+  would establish by a near-copy of the other's argument. Find the single condition the code's
+  behavior turns on (the mvcc watch guarantee under compaction: "every revision from the watcher's
+  first up to the compaction revision changes each key at most once", which is vacuous below the
+  compaction revision, in place of "the compaction revision is below the watcher's first, or no
+  revision changes a key twice"). An assumption is acceptable when it does not split the proof.
+  (The mvcc API, round 11, the user, 2026-11-03.)
 - **No vacuous guarantee.** For each disjunction, ask whether its weak side is ever false: one that
   always holds makes the statement say nothing (`put.md`, critique 1). A parameter that appears only
   in a precondition, chosen by the caller per call, constrains nothing (`pilot-review-3.md`). If every
@@ -128,6 +136,16 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   critique 2; `notes/spec-first-plan.md`, Review)
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
+- **Canonical specs are per (concrete type, method); an interface value gets a bundle.** The
+  canonicity that matters is a plain mapping from a concrete type and a method name (a promoted
+  method included: Go puts it in the type's method set) to its one spec, in its spec file. A client
+  holding an interface value whose dynamic type it does not track gets a separate predicate for it
+  that bundles its interface's method triples, as Perennial's `sync.isLocker`
+  (`Perennial/Proof/sync/Base.lean`), proved once from the concrete specs (as `Mutex_is_Locker`).
+  Stating the API's specs on interface calls instead breaks the mapping; stating them on concrete
+  methods and making clients unwrap fields (dispatch laws) costs glue in every client. One way to
+  keep the text single: write each interface method's contract once at a receiver `(ty, v)` and make
+  each concrete spec its instance. (The mvcc API, round 11, the user, 2026-11-03.)
 - **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
   missing law of the owning package. Find them mechanically (every `unfold`, `iunfold`, `simp only
   [...]` and positional destructuring in the callers), not from memory. A proof-only definition goes

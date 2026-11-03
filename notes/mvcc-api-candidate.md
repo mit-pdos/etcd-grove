@@ -548,3 +548,46 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
    whether to fix upstream, and its cost. Found while answering: on upstream `main` (without
    etcd-io/etcd#22395) the bug is likely reachable through gRPC (`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`).
 6. **The backend precondition designed now, against M2's model: accepted.**
+
+### The user's third answers (2026-11-03)
+
+2. **Canonical specs are per (concrete type, method)**, a plain mapping from (type, method name) to
+   spec; an interface value gets a separate predicate bundling its interface's contracts, as
+   Perennial's `sync.isLocker` (now a principle of the `spec` skill).
+4. **A condition is acceptable if it does not bifurcate the proof**: no disjunction whose sides a
+   proof would establish by near-copies (now a principle). Round 12's single condition:
+   `onceUpTo L w.lo σ.crev`, every revision from the watcher's first up to the compaction revision
+   changes each key at most once (vacuous below the compaction revision). One proof path: a catch-up
+   read after a compaction at `c` returns revision `c`'s last change per key, which is all of it
+   under the condition.
+
+## Round 12 (2026-11-03): every verified method, canonical (type, method) specs, the backend
+
+The candidate: `~/mvcc-api-candidates/MvccApiR12.lean` (typechecked; its header lists the
+changes). In short:
+
+- **Contracts per interface method** at a receiver `(ty, v)` (`KV.Read.contract`, ...,
+  `Txn.End.contract`, `WatchStream.Watch.contract`); each (concrete type, method)'s canonical spec
+  is its contract at the type (`store.Read.spec := ∀ s, KV.Read.contract PS #s`;
+  `watchableStore.Read.spec`, promoted, likewise). Pure bundles `isKV`, `isWatchableKV`, `isTxn`,
+  `isWatchStream` (the contracts at a value's type) and the law `bundles.law` (a handle, a
+  transaction, a stream meet them), as `Mutex_is_Locker`.
+- **Back**: `NewStore` (no mode needed: clients only hold the stores the constructors return),
+  `Restore` (both stores), the store's own `Range`/`Rev`/`FirstRev`/`Put`/`DeleteRange` (one-shot
+  transactions), `txnReadWrite.Put`/`DeleteRange` (their contract needs a write view, which no
+  read-only transaction has), filters (`WInfo.fs`, `filtersImpl`), a store without a hook
+  (`hookRun`'s `nil` row; the hook fact the backend's `plHookRO`, freezable at `nil`).
+- **The backend is a fractional token** `mvccBackend γ q B Pk` (`Restore` replaces the backend, so
+  round 11's persistent `mvccBackendIs` could not stay).
+- **The backend boundary** (`mvccW gx`, `mvccWReg gx`, `mvccBackendFor B Pk L c`, `backendRest`,
+  sealed; laws `mvccW_alloc`, `mvccBackendFor_open`): `New`, `NewStore` and `Restore` take what
+  `backend.New`'s post (or `storage.OpenSnapshotBackend`'s) gives at the store's write invariant,
+  always the compacting form (every opened backend carries what compaction needs: no compaction
+  mode in the API). From a survey of the server's boot and snapshot paths (`BootBackend.lean`,
+  `BuildLemmas.lean`, `SnapApplyWalk.lean`).
+- **This branch is far behind `lean`** (866 commits, 2026-11-03; 68 ahead): M2 (compaction over
+  the real backend, a compaction-mode `Restore`) is merged there, so the boundary's body and the
+  proof are to be built on `lean`.
+- Found on the way: this worktree's Perennial checkout was at `c4a24e3` (not the manifest's pin
+  `d62b13a`) from 2026-11-02 19:40; `lake env lean` (the scratch typecheck) checked out the pin,
+  and the build's artifacts are `c4a24e3`'s. Left for the user.
