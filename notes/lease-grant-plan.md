@@ -884,9 +884,36 @@ proposed; `lease-grant-lessor.md`: `NewLessor`'s mode/history/payload, `Recover`
 `Renew`/checkpoints among what moves an expiry later). The bounds' three `examples/leasegrant`
 entries approved with it. Next: the plumbing, in the design's commit order, then Prove.
 
+**Amendment: (A), the user's, 2026-11-03; axiom review pending.** §2.0's "`restEntry` commutes with
+`restGrantT`" was false as stated for a conf change (the "Plumbing" section's problem). The trusted
+`membership.membersOfBk` becomes a definition over an opaque `membership.membersOf` of the `members`
+and `members_removed` buckets only, and the axiom `membership.membersOfBk_empty` is restated over
+`membersOf` (old → new text in "Plumbing", "(A)"). No other frozen statement changes.
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
+
+**(A), the user's, 2026-11-03** (the conf-change commutation below; a trusted change, one commit of
+its own before commit 3; axiom review pending). In `InvRest.lean`:
+- old: `opaque membership.membersOfBk : GMap GoString BktData → GMap w64 (List GoString) × GMap w64
+  Bool` (opaque over the whole tracked-bucket map);
+  new: `opaque membership.membersOf : Option BktData → Option BktData → GMap w64 (List GoString) ×
+  GMap w64 Bool` and `def membership.membersOfBk bk := membership.membersOf (bk.lookup "members")
+  (bk.lookup "members_removed")`. Every use of `membersOfBk` (`ccValidOn`,
+  `MustReadMembersFromBackend.spec`, `applyConfChange`'s proof) keeps its text.
+- old: `axiom membership.membersOfBk_empty (bk : GMap GoString BktData) (hm : (bk.lookup
+  "members").getD ∅ = ∅) (hr : (bk.lookup "members_removed").getD ∅ = ∅) : membersOfBk bk = (∅, ∅)`;
+  new (same name): `axiom membership.membersOfBk_empty (bm br : Option BktData) (hm : bm.getD ∅ = ∅)
+  (hr : br.getD ∅ = ∅) : membership.membersOf bm br = (∅, ∅)`. Its one use (`ccValidOn_boot`)
+  unfolds `membersOfBk` first.
+- Derived (`RestLeased.lean`): `ccValidOn_restGrantT` (a lease record leaves the verdict), so
+  `ccRest_restGrantT` and `restEntry_restGrantT` lose their premise.
+- The trust base: no new axiom, no new opaque other than `membersOf` (the opaque moved inward);
+  the collections list `axiom membership.membersOfBk_empty` by name, so their text does not change,
+  but the statement under that name does (to review with the `axiom` skill: it is weaker in what it
+  quantifies over and says the same of Go, `notes/axiom-review/members-empty.md` already found
+  `readMembersFromBackend` reads only those two buckets and suggested this definition).
 
 **Commit 1 (pure, new modules)** `d65faf5aa1`: `apply/GrantRest.lean` (`restGrantT`, `restGrant_eq`, `grantIdsOk`,
 `grantGoes`, `grantIds`, `grantRest`, `restLeasesWith` with `_nil`/`_mem`/`_congr`/`_snoc`, and the

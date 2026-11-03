@@ -70,12 +70,21 @@ def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMa
     else (mems !! m.nodeId).isSome = true)
 
 /-- **The members and the removed members the `members` and `members_removed` buckets decode to**
-(opaque, a function of the tracked buckets; D43 M5b′, 2026-10-26, the user's decision):
-`MustReadMembersFromBackend`'s answer -- each member's id (its key, `mustParseMemberIDFromBytes`)
-with the peer URLs its JSON value unmarshals to, and the ids under `members_removed` -- as its
-read contract states it (`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
-opaque membership.membersOfBk [GooseExts] :
-    GMap GoString backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+(opaque, a function of those two buckets' contents, `none` for an absent bucket; D43 M5b′,
+2026-10-26, the user's decision; a function of the two buckets only since 2026-11-03, the user's
+(A), `notes/lease-grant-plan.md`, "Plumbing": `readMembersFromBackend`,
+`server/storage/schema/membership.go:91-123`, reads no other bucket): `MustReadMembersFromBackend`'s
+answer -- each member's id (its key, `mustParseMemberIDFromBytes`) with the peer URLs its JSON value
+unmarshals to, and the ids under `members_removed` -- as its read contract states it
+(`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
+opaque membership.membersOf [GooseExts] :
+    Option backend.BktData → Option backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+
+/-- **What the tracked buckets `bk` decode to** (`membersOf` of their `members` and
+`members_removed` buckets; until 2026-11-03 itself opaque over the whole map). -/
+def membership.membersOfBk [GooseExts] (bk : GMap GoString backend.BktData) :
+    GMap w64 (List GoString) × GMap w64 Bool :=
+  membership.membersOf (bk.lookup go!"members") (bk.lookup go!"members_removed")
 
 open Classical in
 /-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (D43 M5b′, 2026-10-26, the
@@ -85,14 +94,15 @@ def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : C
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
 /-- **Buckets with no records decode to no members** (2026-10-31, the user's decision; a trust-boundary
-axiom on the opaque `membersOfBk`, `notes/axiom-review/members-empty.md`: survives). `readMembersFromBackend`
+axiom on the opaque `membersOf`, `notes/axiom-review/members-empty.md`: survives; restated
+2026-11-03 over `membersOf`, the user's (A), axiom review pending). `readMembersFromBackend`
 (`server/storage/schema/membership.go:91-123`) makes both maps and writes them only in the
 `UnsafeForEach` callbacks over the `members` and `members_removed` buckets, so over buckets with no
 keys (or absent ones, which read empty) it returns two empty maps and no error. What makes a fresh
 backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
-axiom membership.membersOfBk_empty [GooseExts] (bk : GMap GoString backend.BktData)
-    (hm : (bk.lookup go!"members").getD ∅ = ∅) (hr : (bk.lookup go!"members_removed").getD ∅ = ∅) :
-    membership.membersOfBk bk = (∅, ∅)
+axiom membership.membersOfBk_empty [GooseExts] (bm br : Option backend.BktData)
+    (hm : bm.getD ∅ = ∅) (hr : br.getD ∅ = ∅) :
+    membership.membersOf bm br = (∅, ∅)
 
 /-- The membership buckets `MustReadMembersFromBackend` reads: `members`, `members_removed`. -/
 def membership.memberBkts [GooseExts] (n : GoString) : Prop :=
@@ -320,8 +330,8 @@ theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
 (`membersOfBk_empty`), so no member, no removed one, no peer URL taken. -/
 theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0) :
     membership.ccValidOn restBootBk m = true := by
-  unfold membership.ccValidOn
-  rw [membership.membersOfBk_empty restBootBk (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
+  unfold membership.ccValidOn membership.membersOfBk
+  rw [membership.membersOfBk_empty _ _ (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
     (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])]
   simp only [decide_eq_true_eq]
   refine ⟨by simp, ?_⟩

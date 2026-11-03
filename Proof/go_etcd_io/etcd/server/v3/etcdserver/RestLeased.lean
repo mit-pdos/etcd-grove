@@ -4,7 +4,7 @@ of the server chain", 2.0 and 2.14): in a cluster that grants leases, a snapshot
 are those of the committed log `L` with a record in `lease` for each id of `L`'s lease table, at
 some TTL (`bkRestAtL`; the TTLs under `∃ f`, since each member's `minLeaseTTL` is its own, B1). The
 send window's law (`bkRestAtL_of_rb`, as `bkRestAt_of_rb`), and how a committed entry's effect
-commutes with a lease record (`restEntry_restGrantT`). Lean-first (no Rocq counterpart).
+commutes with a lease record (`restEntry_restGrantT`, through `ccValidOn_restGrantT`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -41,16 +41,23 @@ theorem bkRestAtL_of_rb {P : BParams} (hRB : ∀ n ∈ mvcc.restBuckets, P.RB n 
   simp only [rbData_lookup, hRB n hn, ↓reduceIte] at this
   exact this
 
-/-- **A conf change commutes with a lease record** when the record leaves its validation (the
-verdict `ccValidOn` reads the tracked buckets through the opaque `membersOfBk`, so whether a lease
-record changes it is not known here: `notes/lease-grant-plan.md`, "Plumbing"). -/
-theorem ccRest_restGrantT [GooseExts] (v3 : Bool) (cc : ConfChangeM) (id t : w64) (r : apply.RestM)
-    (hv : membership.ccValidOn (apply.restGrantT id t r).bk cc = membership.ccValidOn r.bk cc) :
+/-- **A lease record leaves a conf change's verdict**: `ccValidOn` reads only the `members` and
+`members_removed` buckets (`membersOfBk`, since 2026-11-03 the user's (A)), and the record is in
+`lease`. -/
+theorem ccValidOn_restGrantT [GooseExts] (cc : ConfChangeM) (id t : w64) (r : apply.RestM) :
+    membership.ccValidOn (apply.restGrantT id t r).bk cc = membership.ccValidOn r.bk cc := by
+  have hm : mvcc.leaseName ≠ go!"members" := by decide
+  have hr : mvcc.leaseName ≠ go!"members_removed" := by decide
+  unfold membership.ccValidOn membership.membersOfBk apply.restGrantT
+  rw [putIn_other _ _ _ _ _ hm, putIn_other _ _ _ _ _ hr]
+
+/-- **A conf change commutes with a lease record**. -/
+theorem ccRest_restGrantT [GooseExts] (v3 : Bool) (cc : ConfChangeM) (id t : w64) (r : apply.RestM) :
     ccRest v3 cc (apply.restGrantT id t r) = apply.restGrantT id t (ccRest v3 cc r) := by
   have hm : go!"members" ≠ mvcc.leaseName := by decide
   have hr : go!"members_removed" ≠ mvcc.leaseName := by decide
   unfold ccRest
-  rw [hv]
+  rw [ccValidOn_restGrantT]
   split
   · split
     · rw [apply.restGrantT_putIn _ _ _ _ _ _ hm]; rfl
@@ -59,11 +66,9 @@ theorem ccRest_restGrantT [GooseExts] (v3 : Bool) (cc : ConfChangeM) (id t : w64
       · rfl
   · rfl
 
-/-- **A committed entry commutes with a lease record**: a normal entry always
-(`restAfter_restGrantT`), a conf change when the record leaves its validation. -/
-theorem restEntry_restGrantT [GooseExts] (c0 : w64) (m : EntryModel) (id t : w64) (r : apply.RestM)
-    (hv : ∀ cc, membership.ccValidOn (apply.restGrantT id t r).bk cc =
-      membership.ccValidOn r.bk cc) :
+/-- **A committed entry commutes with a lease record**: a normal entry (`restAfter_restGrantT`) and
+a conf change (`ccRest_restGrantT`). -/
+theorem restEntry_restGrantT [GooseExts] (c0 : w64) (m : EntryModel) (id t : w64) (r : apply.RestM) :
     restEntry c0 m (apply.restGrantT id t r) = apply.restGrantT id t (restEntry c0 m r) := by
   unfold restEntry
   split
@@ -73,7 +78,7 @@ theorem restEntry_restGrantT [GooseExts] (c0 : w64) (m : EntryModel) (id t : w64
       · exact apply.restAfter_restGrantT _ _ _ _ _
       · rfl
   · split
-    · exact ccRest_restGrantT _ _ _ _ _ (hv _)
+    · exact ccRest_restGrantT _ _ _ _ _
     · rfl
 
 end EtcdGrove
