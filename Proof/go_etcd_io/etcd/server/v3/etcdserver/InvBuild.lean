@@ -202,13 +202,6 @@ def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.A
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
     iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
-/-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
-theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S) ⊢ rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S') := by
-  unfold rnTickerOk isRNTicker srvEr
-  exact .rfl
-
 /- (2026-10-30, the repair: snapshots allowed) `rnSnapMsg_false` is gone: `msgSnapC` delivers raft's
 `MsgSnap`s (`rnSnapMsg`). -/
 

@@ -30447,6 +30447,10 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 
 ## The whole-`bootOk` review: `bootstrap`'s contracts restated (2026-11-03 · the user's approval of candidate 3 and its seven recommendations · branch `bootok-review`)
 
+*Superseded in part (2026-11-03, "The boot premises"): `bootCfgOk` no longer has `TickMs ≠ 0`
+(`Hraft` states the heartbeat Go computes, `NewServer` takes its sign); `Hdirps` left `bootOk` for
+`NewServer`'s `srvBootEnvOk`; the final round's S1, S2, M1, M2 are repaired there.*
+
 `bootOk` (`InvBoot.lean`), the trusted stand-in for etcd's untranslated `bootstrap`, changed in five
 stages since 2026-11-01, each reviewed for its own part. Reviewed as a whole (three fresh
 spec-reviewer rounds; a Go test at the pinned fork checking each Go-checkable conjunct of `bootOk`
@@ -30695,3 +30699,126 @@ the grant's answer beside `dispatchAnswer`; the lessor tied to the table by ghos
 (`notes/axiom-review/lessor-apply-ok.md`, `lease-grant-lessor.md`): five restated trusted statements
 survive; `leasesNoExpiry` was refuted as worded ("the cluster's leases"; `NewLessor` reads it for
 every lessor) and is restated to every lessor the program creates.
+
+## The trust-base report, faster (2026-11-03 · the user's "go ahead with 1": the gates' time)
+
+`etc/tcb-report.py --check` took 529s of a gate run (measured 2026-11-03, 32 cores); now 246s, its
+JSON byte-identical (sorted lines). Measured first: in the largest run (87 root modules), import
+27s, listing the roots ~110s (every constant of the environment against the module list), the
+trust-base closure 194s, the output 43s, tearing the environment down at exit ~40s. Three changes
+in `etc/tcb-report.lean`: the roots from the given modules' own constants (`moduleData`, keeping
+only those attributed to the module: a `congr_simp` lemma is listed in two); each constant's
+dependencies computed once, when the DFS expands it (it walked every proof term twice); exit
+without freeing the environment. *Rejected:* an incremental report caching each root module's
+result by the hashes of its dependencies' `.olean`s: one end-to-end result (`putget_safe`'s
+module) alone costs 125s of closure (its cone is most of the development), and almost every
+change reaches one, so the cache would rarely save anything.
+
+## The boot premises: the final whole-`bootOk` review's S1, S2, M1, M2 repaired (2026-11-03 · the user's approval of candidate 3 and its six recommendations · branch `boot-premises`)
+
+The final review round of "The whole-`bootOk` review" (above) found four defects outside that
+stage's repairs. Each was confirmed against Go at the pin (`etc/spec-test/bootstrap/`:
+`TestSpecBootstrapMemberOrder`, `TestSpecBootstrapHeartbeat`, `TestSpecBootstrapDisk`); all four
+made premises false or missing, and two of them made adequacy theorems vacuous.
+
+- **S1 (putget3's and restart3's premises false): the peers in the names' order.** `bootOk`'s
+  `γ.vs = ps` is `MemberIDs()`, sorted; putget3 passed `[id₁, id₂, id₃]` with `idᵢ` member `-i`'s
+  id, measured `-1, -3, -2` sorted (restart3 `-2, -3, -1`; linkv3p happens to be in order). **Repair
+  (Q1):** the peers are a parameter `ps` of `BootFacts` (putget3's, restart3's; linkv3p's is
+  putget3's, its `ids` gone), tied to the names' ids by `perm : ps.Perm [id₁, id₂, id₃]`; the boot
+  log, the conf-change policy, `premises`, `common.alloc3` (the cluster's big-seps permuted back to
+  the names' order, `bigSepL_perm`) are at `ps`, and `Main`/`Run`/`startCluster` and the adequacy
+  theorems bind it. Rejected: renaming the ids into sorted order (the order is a computed fact of the
+  token and URLs; a parameter states only what the proof needs, and needs no test to keep in sync).
+- **S2 (every example's premises unprovable): `rnTickerOk`'s `d ≠ 0`, `bootCfgOk`'s `TickMs ≠ 0`.**
+  Go's `time.NewTicker` (and Perennial's model) panics for `d ≤ 0`, so a triple with pre `d ≠ 0`
+  was a triple of a stuck expression at `d = -1`, and the examples' `commonPremises`, holding it,
+  were false: every adequacy result over them was vacuous. And the heartbeat `TickMs *
+  Millisecond` wraps (measured: `TickMs = 2 ^ 58` gives `0`; `2 ^ 63 / 10 ^ 6 + 1` a negative one),
+  so `TickMs ≠ 0` did not give `Hraft`'s `heartbeat ≠ 0`. **Repair:** `rnTickerOk`'s pre is
+  `0 < sint.Z d` and (Q2) it is a theorem, `rnTickerOk_of_time` (`InvNodeStart.lean`, over the
+  `time.NewTicker`/`Ticker.Stop` specs as hypotheses, at `E.T = True`): `NewServer`'s three proofs
+  take the two specs and prove it; `#Htkok` left the three specs and every example's
+  `commonPremises`. (S2b) `bootOk`'s and `bootOkR`'s `Hraft` state the heartbeat Go computes,
+  `bv.heartbeat' = cfg.TickMs' * W64 1000000`, true at every `TickMs` (`bootstrap.go:574`), and
+  `bootCfgOk` drops `TickMs ≠ 0`. `newRaftNode`'s, `bootstrappedRaft.newRaftNode`'s and
+  `NodeStartSpec`'s heartbeat implication became a pure precondition `0 < sint.Z heartbeat` (Q5).
+  **Scope restriction (Q3):** `NewServer` takes `0 < sint.Z (TickMs * 10^6)`: at a zero heartbeat
+  Go does not panic (`newRaftNode` makes `&time.Ticker{}`, which never fires: a member that never
+  ticks) but the spec does not cover it. Go's `embed.Config.Validate` checks only `5 * TickMs >
+  ElectionMs`, itself wrapping (`nonissues/etcd-heartbeat-interval-wrap.md`).
+- **M1 (no disk premise for `bootstrap`'s own panics).** `backend.New` panics on a failed
+  `bolt.Open` (measured), `bootstrapNewWAL` on a failed `wal.Create` (measured; `Fatal` on a failed
+  snapshot directory needs no premise, `zap.Logger.Fatal`'s post is `False`). **Repair (Q4):**
+  `storage.dbOpensOk`'s doc widened to bootstrap's own open (and `MemoryMlock`), a new opaque
+  `storage.walCreateOk`, `storage.diskOk` their conjunction with the others; the first-start
+  contract's precondition takes `dbOpensOk ∧ walCreateOk`, the restart contract's premise
+  `dbOpensOk`. No new axiom: `diskOk` is already every example's premise.
+- **M2 (`Hdirps` in the post).** A fact of the caller's `dir` and `ps` stated in a trusted post,
+  the shape `%HN` had. **Repair:** gone from `bootOk`/`bootOkR`; `NewServer` takes it.
+- **Q6 (minor):** `srvFiles`' and `rnWalClosed`'s docs name the newest valid snapshot record
+  (`ValidSnapshotEntries` with the highest index at most the last hard state's commit), as
+  `recoverSnapshot` reads it (`bootstrap.go:437-482`).
+
+**Hubs** (`notes/spec-first-plan.md`, "Hubs"; `etc/spec-hubs.py`): the statements touched are the
+boot hub's widest: `NewServer.spec` (fan-out 15, 79 past changes), `specM`, `specG`, `bootOk`
+(13, 59), `bootOkR`, `bootstrapContract`, `NodeStartSpec`, and the examples' start chain
+(`newServer`, `newServerMode`, `BuildServer`, `NewMember`, `StartMember`, `Start*Server`, the
+three-member `Main`/`Run`/`startCluster`/`startMember`s). So the new boot-environment premises
+are **one named premise** of the three `NewServer` specs, `srvBootEnvOk cfg γ dir` (`InvBoot.lean`:
+`hb`, the heartbeat positive; `dirs : srvDirsOk γ.vs dir`, the directory names the peers, at most
+`peersMax = 2 ^ 20`, `@[word_unfold]`, `Net.lean`), which a later need extends in place of three
+statements; the examples' start chain carries `srvDirsOk ps dir` (one premise each, with no `cfg`
+to state `hb` over; the configuration is built inside `newServerMode`). Laws, so no example
+unfolds them: `srvDirsOk_dirOne` (one-member directories), `srvDirsOk_of` (from the directory's
+members, at most three), `srvBootEnvOk_of` (at `TickMs = 100`), and each three-member example's
+`dir3_dirsOk` from `BootFacts.perm`. `bootCfgOk`/`bootCfgFresh` stay named clauses. M1's
+conditions stay in `diskOk`, which `NewServer` already takes. `applySnapshot.specSnap` (fan-out 17)
+is unchanged: it takes the directory fact `hps` as its own premise already, from its caller.
+
+Supersedes in part "The whole-`bootOk` review" (C: `bootCfgOk`'s `TickMs ≠ 0`; I/J/K: `Hraft`'s
+bound now from `srvBootEnvOk`, not `Hdirps`).
+
+**The final fresh review round** (one spec-reviewer, the changed texts): no T1; S1, S2, M1, M2
+repaired. Applied: the dead `rnTickerOk_srvEr_S`/`rnTickerOk_srvErM_S` deleted, `BootFacts.perm`'s
+doc no longer claims sortedness (only `bootstrap`'s sorted order meets the premises; a `sorted`
+field would be a premise no proof needs), stale docs (`walCreateOk`'s `cleanupWAL` panic,
+`InvRestart`'s restart `NewServer` not yet stated, `NodeStart`'s header). **Open, for the user:**
+(T2) `rnTickerOk` is discharged in `NewServer`'s proofs, which take the `time` specs though
+`newRaftNode` is the caller of `NewTicker`; the cleaner shape is `newRaftNode.wp_proof` taking them
+and `rnTickerOk`, and `RNEnv`'s `T` (now `True` for the server), leaving `newRaftNode`'s,
+`bootstrappedRaft.newRaftNode`'s and `NodeStartSpec`'s statements, a further restatement of three
+specs not in the approved scope. (T2) the reviewer reads `srvBootEnvOk` as a bundle of two
+subsystems' facts (raft's timing, rafthttp's directory) against **Local**, preferring two premises;
+it is the one named premise the hubs addendum asked for, its constructor is the general law
+(`srvBootEnvOk_of` the examples' instance). (T3) the `newRaftNode` specs keep `lg ≠ null →` as an
+implication beside the converted heartbeat premise. The trust base could shrink: Perennial now
+proves `time.NewTicker.spec` over its model, while `rnTickerOk_of_time` rests on this repository's
+copies (`Proof/time/`, axioms).
+
+**Into the slot convention** (2026-11-03, the coordinator's request after the WAL's slots landed on
+`lean`, `notes/spec-first-plan.md`, "The slot convention"). `srvBootEnvOk` bundled two subsystems'
+facts (the reviewer's T2 above); the convention, approved since, says each subsystem names its
+part of the hub through its own sealed slot. So `srvBootEnvOk` and `srvDirsOk` are gone, and the
+three `NewServer` specs take two premises, beside the other configuration premises:
+- `raftNode.bootCfg cfg` (`etcdserver/RaftNodeApi.lean`, new, sealed in `etc/import-all.txt`): the
+  raft node's condition on the configuration, the heartbeat Go computes positive. Laws:
+  `raftNode.bootCfg_of` (at `TickMs = 100`, the examples'), `raftNode.bootCfg_heartbeat` (the narrow
+  elimination: what `newRaftNode`'s spec takes). The subsystem is the raft node (`etcdserver`'s
+  `raftNode`, which starts the ticker), not raft (whose `Config` has no clock).
+- `rafthttp.bootCfg dir γ.vs` (`api/rafthttp/Net.lean`, now sealed too; `dirOne` moved there from
+  `InvBoot.lean`): the transport's condition on its URL directory, of raft's peers. A coupling,
+  stated by the convention's first form: the transport owns the relation (its `AddPeer`s and its
+  handler's sender lookup need the directory to name exactly raft's peers, and it serves at most
+  `peersMax`), raft's peers are a parameter. It takes no `cfg`, a departure from the table's
+  `<sub>.bootCfg cfg`: the directory is the network's name (`NetNames.dir`), not configuration, and
+  an unused `cfg` would only add noise. Laws: `rafthttp.bootCfg_dirOne`, `rafthttp.bootCfg_of` (the
+  former `srvDirsOk_dirOne`/`srvDirsOk_of`), and the narrow eliminations `rafthttp.bootCfg_mem` and
+  `rafthttp.bootCfg_len`, what the server's proof uses. The examples' start chain carries
+  `rafthttp.bootCfg dir ps` in place of `srvDirsOk ps dir`; no example unfolds either slot.
+Both are `→` premises, as the table puts `bootCfg`, not conjuncts of the precondition (where
+`%Henv` was). Neither is a premise of `bootstrapContract`: `bootstrap` neither starts the ticker
+nor the transport, and the convention's "a slot is added only when its subsystem must change the
+hub" applies to the contract too. The reviewer's other open points (T2's ticker placement, T3's
+`lg ≠ null`, the trust-base reduction through Perennial's `NewTicker`) stay open, as the
+coordinator asked. Supersedes "Hubs" above in so far as it named `srvBootEnvOk` the one premise.

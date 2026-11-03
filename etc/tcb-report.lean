@@ -118,35 +118,39 @@ partial def closure (env : Environment) (roots : Array Name) :
   let mut t : Interned := {}
   for r in roots do
     if memo.contains r then continue
-    let mut stack : Array (Name × Bool) := #[(r, false)]
+    -- a constant's dependencies are computed once, when it is first expanded (walking a
+    -- proof term is the closure's main cost), and kept on the stack until it is finished
+    let mut stack : Array (Name × Option NameSet) := #[(r, none)]
     while stack.size > 0 do
       let (n, expanded) := stack.back!
       if memo.contains n then
         stack := stack.pop; continue
-      match env.find? n with
-      | none => memo := memo.insert n 0; stack := stack.pop
-      | some ci =>
-        let deps := ci.getUsedConstantsAsSet
-        if !expanded then
-          stack := stack.set! (stack.size - 1) (n, true)
+      match expanded with
+      | none =>
+        match env.find? n with
+        | none => memo := memo.insert n 0; stack := stack.pop
+        | some ci =>
+          let deps := ci.getUsedConstantsAsSet
+          stack := stack.set! (stack.size - 1) (n, some deps)
           onStack := onStack.insert n
           for d in deps do
             if !memo.contains d && !onStack.contains d then
-              stack := stack.push (d, false)
-        else
-          let mut own : Array Item := #[]
-          if ci matches .axiomInfo _ then own := own.push (.inl n)
-          if deps.contains ``sorryAx then own := own.push (.inr n)
-          let (t', i0) := t.intern own
+              stack := stack.push (d, none)
+      | some deps =>
+        let isAx := match env.find? n with | some (.axiomInfo _) => true | _ => false
+        let mut own : Array Item := #[]
+        if isAx then own := own.push (.inl n)
+        if deps.contains ``sorryAx then own := own.push (.inr n)
+        let (t', i0) := t.intern own
+        t := t'
+        let mut acc := i0
+        for d in deps do
+          let (t', u) := t.union acc (memo.getD d 0)
           t := t'
-          let mut acc := i0
-          for d in deps do
-            let (t', u) := t.union acc (memo.getD d 0)
-            t := t'
-            acc := u
-          memo := memo.insert n acc
-          onStack := onStack.erase n
-          stack := stack.pop
+          acc := u
+        memo := memo.insert n acc
+        onStack := onStack.erase n
+        stack := stack.pop
   IO.eprintln s!"tcb: {t.sets.size} distinct trust bases, {t.unions.size} unions"
   return roots.foldl (init := {}) fun m r => m.insert r t.sets[memo.getD r 0]!
 
@@ -220,10 +224,18 @@ def main (args : List String) : IO UInt32 := do
     IO.eprintln "usage: etc/tcb-report.lean [--part=ROOT]... MODULE..."
     return 2
   let env ← importModules (mods.map fun m => { module := m }) {}
+  -- the given modules' own theorems, from their module data (walking every constant of the
+  -- environment took most of a run's time outside the closure); a constant listed in a
+  -- module's data but attributed to another (a `congr_simp` lemma realized in both) is the
+  -- other's
   let mut roots : Array Name := #[]
-  for (n, ci) in env.constants.map₁.toList do
-    if mods.contains (modOf env n) && ci matches .thmInfo _ && !n.isInternalDetail then
-      roots := roots.push n
+  for i in [0:env.header.moduleNames.size] do
+    let m := env.header.moduleNames[i]!
+    if mods.contains m then
+      for n in env.header.moduleData[i]!.constNames do
+        if let some ci := env.find? n then
+          if ci matches .thmInfo _ && !n.isInternalDetail && modOf env n == m then
+            roots := roots.push n
   roots := roots.qsort (·.toString < ·.toString)
   IO.eprintln s!"tcb: {roots.size} root theorems in {mods.toList}"
   let memo ← closure env roots
@@ -268,4 +280,6 @@ def main (args : List String) : IO UInt32 := do
     let (l0, l1) := match declRangeExt.find? env d (level := .private) with
       | some r => (r.range.pos.line, r.range.endPos.line) | none => (0, 0)
     out.putStrLn s!"\{\"t\":\"def\",\"name\":{jstr d.toString},\"module\":{jstr (modOf env d).toString},\"line\":{l0},\"endLine\":{l1},\"kind\":{jstr (kindOf ci)}}"
-  return 0
+  -- exit without freeing the environment (tearing it down took a minute of the largest run)
+  out.flush
+  IO.Process.exit 0

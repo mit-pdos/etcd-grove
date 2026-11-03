@@ -59,9 +59,36 @@ theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
   · right; right; simpa using hm
   · simp at hm
 
+/-- **`Run`'s directory names the peers** (`rafthttp.bootCfg`, `NewServer`'s premise; 2026-11-03, the final
+whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
+theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : rafthttp.bootCfg (dir3 id₁ id₂ id₃) ps := by
+  refine rafthttp.bootCfg_of _ ps (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
+  rw [Hbf.perm.mem_iff]
+  unfold dir3
+  constructor
+  · intro h
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    by_cases h1 : f = id₁
+    · exact Or.inl h1
+    by_cases h2 : f = id₂
+    · exact Or.inr (Or.inl h2)
+    by_cases h3 : f = id₃
+    · exact Or.inr (Or.inr h3)
+    rw [if_neg h1, if_neg h2, if_neg h3] at h
+    exact absurd rfl h
+  · intro hm
+    split
+    · simp
+    split
+    · simp
+    split
+    · simp
+    · simp_all
+
 /-- **`Run`'s directory is well formed** (putget3's `dir3_ok`). -/
-theorem dir3_ok (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry)
-    (Hbf : BootFacts id₁ id₂ id₃ ctxs bl) :
+theorem dir3_ok (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) :
     netDirOk (dir3 id₁ id₂ id₃) := by
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
@@ -110,7 +137,7 @@ theorem Run.wp_proof
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC lg N id₁ id₂ id₃ ctxs boot ThB RcB RcN HwbN Hlg Hp Hms hAs
+  intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hlg Hp Hms hAs
   obtain ⟨Hbf, Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -121,7 +148,7 @@ theorem Run.wp_proof
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
   iunfold common.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -203,9 +230,9 @@ theorem Run.wp_proof
     isplitr; · iexact Hu₁
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
-  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1]; rfl
-  imod (common.alloc3 id₁ id₂ id₃ ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc
-      (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ctxs boot Hbf).1
+  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
+  imod (common.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc
+      (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
@@ -223,9 +250,10 @@ theorem Run.wp_proof
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (urlsOk peerAddr₁ clientAddr₁) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
+      (urlsOk peerAddr₁ clientAddr₁) ps (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
-      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
+        (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁]
     as %m₁ %err₁ Hr₁
   · iframe; iframe #
@@ -245,9 +273,10 @@ theorem Run.wp_proof
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (urlsOk peerAddr₂ clientAddr₂) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
+      (urlsOk peerAddr₂ clientAddr₂) ps (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
-      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
+        (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂]
     as %m₂ %err₂ Hr₂
   · iframe; iframe #
@@ -266,9 +295,10 @@ theorem Run.wp_proof
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (urlsOk peerAddr₃ clientAddr₃) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
+      (urlsOk peerAddr₃ clientAddr₃) ps (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
-      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
+      HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
+        (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃]
     as %m₃ %err₃ Hr₃
   · iframe; iframe #
@@ -360,9 +390,10 @@ theorem Run.wp_proof
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-        (urlsOk peerAddr₂ clientAddr₂) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
+        (urlsOk peerAddr₂ clientAddr₂) ps (LogEntry.toEntries boot 0) ctxs
         (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } γn HwbN hst₂
-        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
+        (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hac₂ Htok2]
     · iframe; iframe #
@@ -374,9 +405,10 @@ theorem Run.wp_proof
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-        (urlsOk peerAddr₃ clientAddr₃) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
+        (urlsOk peerAddr₃ clientAddr₃) ps (LogEntry.toEntries boot 0) ctxs
         (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } γn HwbN hst₃
-        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
+        (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hac₃ Htok2]
     · iframe; iframe #

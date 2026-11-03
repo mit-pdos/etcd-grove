@@ -779,7 +779,7 @@ Approved by the user as drafted (draft 1), with the WAL as its first slot.
 | name | kind | in the hub | what it holds |
 |---|---|---|---|
 | `<sub>.Names` | structure | `NewServer.spec`'s binders, one per subsystem | the subsystem's ghost names, allocated by its own initialization (never a field of `RaftNames`/`AEnv`/`KVNames`) |
-| `<sub>.bootCfg cfg` | `Prop`, sealed | a premise of `NewServer.spec` and `bootstrapContract` | the subsystem's conditions on the configuration |
+| `<sub>.bootCfg …` | `Prop`, sealed | a premise of `NewServer.spec` (and of `bootstrapContract` when `bootstrap` needs it) | the subsystem's pure boot premise; its arguments are what it reads (amended 2026-11-03, below) |
 | `<sub>.bootRes cfg` | `IProp`, sealed | a conjunct of `NewServer.spec`'s and `bootstrapContract`'s precondition | the resources the caller hands in (program-start tokens, ...) |
 | `<sub>.bootOk cfg … b` | `IProp`, sealed | a conjunct of `bootOk` | what `bootstrap` gives the subsystem |
 | `<sub>.srvInv s γ` | `IProp`, sealed | a conjunct of `NewServer`'s postcondition (`srvBuilt`) | the subsystem's part of the running server |
@@ -820,6 +820,30 @@ purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.b
 `wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
 WAL conjuncts. The examples still thread one token per member from program start (a new resource
 is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
+
+**The raft node's and the transport's slots** (2026-11-03, branch `boot-premises`, the final
+whole-`bootOk` review's S2 and M2; `notes/decisions.md`, "The boot premises"): `raftNode.bootCfg
+cfg` (`etcdserver/RaftNodeApi.lean`: the heartbeat positive; `raftNode.bootCfg_of` at `TickMs =
+100`, `raftNode.bootCfg_heartbeat`), and `rafthttp.bootCfg dir ps` (`api/rafthttp/Net.lean`: the
+directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`, the eliminations
+`_mem`, `_len`), a coupling the transport owns with raft's peers as its parameter, and no `cfg`
+(the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
+triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
+
+**`bootCfg`'s arguments** (amended 2026-11-03, the user's approval; prompted by `rafthttp.bootCfg`).
+The table first read `<sub>.bootCfg cfg`, "the subsystem's conditions on the configuration". That
+mixed up what the slot is with what it reads. `<sub>.bootCfg` is the subsystem's pure boot premise,
+a sealed `Prop`. Its arguments are what it reads: `cfg` if it reads the configuration, the
+subsystem's `<sub>.Names` (or a field of it, until the subsystem has a `Names`), and a coupled
+subsystem's parameter (raft's peers for the transport). An argument it does not read is left out.
+`raftNode.bootCfg cfg` and `rafthttp.bootCfg dir ps` both fit.
+
+**Follow-up: the transport's names.** `rafthttp.bootCfg` takes the bare directory `dir`, a field of
+the network's names (`NetNames.dir`). When the transport converts its names (step 4: `NetNames`
+becomes `rafthttp.Names`), the slot takes the record, `rafthttp.bootCfg γn ps`, not the field. A
+later condition on another field then changes only the sealed body, not every caller's arguments.
+The same applies to any slot that takes a field of a names record before its subsystem has a
+`Names`.
 
 From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
 boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.

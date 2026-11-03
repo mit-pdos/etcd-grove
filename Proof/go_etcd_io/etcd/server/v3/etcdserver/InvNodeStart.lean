@@ -10,8 +10,8 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
   `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
   dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
-  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (Perennial models no
-  ticker: `isRNTicker`, the tick credits with the ticks, D10; `rnTickerOk`); the server's package
+  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`, the
+  tick credits with the ticks, D10; `rnTickerOk`, at `E.T = True` a theorem of the `time` specs); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
@@ -39,6 +39,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Spec.time.Ticker__Stop
 
 @[expose] public section
 
@@ -94,15 +95,45 @@ def rnTimeoutDetectorOk : IProp GF :=
 instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
   unfold rnTimeoutDetectorOk; infer_instance
 
-/-- **`time.NewTicker(d)`** (Perennial models no ticker): for a non-zero `d`, a ticker meeting
-`isRNTicker E` (its ticks carry `E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the
-ticker; now `True` for the server, `raftNode.tick` taking the credit, a time receipt, itself). -/
+/-- **`time.NewTicker(d)`**: for a positive `d` (Go panics for `d ≤ 0`, `time/tick.go`, and so does
+Perennial's model, `TrustedCode/time.lean`), a ticker meeting `isRNTicker E` (its ticks carry
+`E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the ticker; now `True` for the server,
+`raftNode.tick` taking the credit, a time receipt, itself). (2026-11-03, the final whole-`bootOk`
+review's S2: until then `d ≠ 0`, false at a negative `d`, so that every example's premises, which
+held it, were unprovable.) At `E.T = True` a theorem of the `time` specs (`rnTickerOk_of_time`; `Spec/time/NewTicker.lean`'s,
+trust-boundary axioms here, `Proof/time/`). -/
 def rnTickerOk (E : RNEnv GF) : IProp GF :=
-  iprop(□ ∀ d : time.Duration, {{ ⌜d ≠ W64 0⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
+  iprop(□ ∀ d : time.Duration, {{ ⌜0 < sint.Z d⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
     {{ (tk : Loc), RET #tk; isRNTicker E tk }})
 
 instance rnTickerOk_persistent (E : RNEnv GF) : Persistent (rnTickerOk E) := by
   unfold rnTickerOk; infer_instance
+
+/-- **`rnTickerOk` at ticks carrying nothing, from the `time` specs** (2026-11-03, the final
+whole-`bootOk` review's S2): `isTicker`'s channel bag is `isRNTicker`'s at `E.T = True`, and its
+`Stop` returns. Over the specs as hypotheses (callee specs: a client imports spec files only). -/
+theorem rnTickerOk_of_time (wpN : time.NewTicker.spec (GF := GF) (hG := hG))
+    (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (E : RNEnv GF) (h : E.T = iprop(True)) :
+    ⊢ rnTickerOk E := by
+  iunfold rnTickerOk
+  iintro !> %d %Φ %Hd !> HΦ
+  wp_apply wpN as %t #Ht
+  · ipureintro; exact Hd
+  iapply HΦ
+  ihave #Ht' := Ht
+  iunfold time.isTicker at Ht'
+  icases Ht' with ⟨%Htn, %ch, %γ, #HC, #Hbag⟩
+  iunfold isRNTicker
+  iexists ch
+  isplitr
+  · iexact HC
+  isplitr
+  · iright; iexists γ; rw [h]; iexact Hbag
+  iintro !> %Ψ !> - HΨ
+  wp_apply wpS t
+  · iexact Ht
+  iapply HΨ
+  ipureintro; trivial
 
 /-- **The package globals `raftStatus` and `raftStatusMu`** (`raft.go`): the mutex owns the
 function value (`raftStatus` is read by the `expvar` closure registered at init, under the

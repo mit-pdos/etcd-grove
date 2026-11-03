@@ -63,7 +63,7 @@ theorem Main.wp_proof
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leasekvDir id)
       go!"leasekv" go!"leasekv"
@@ -103,7 +103,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
       (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasekvDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
+      (by simp [leasekvDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

@@ -9,12 +9,14 @@ and the client addresses `127.0.0.1:2383{1,2,3}` (every one served, to its clien
 bootstrap facts (`putget3.BootFacts`), the URL builder (`putget3.httpURL`), the premises shared by
 the members (`putget3.commonPremises`) are putget3's, which name no configuration.
 
-**The member ids' order** (`BootFacts`): `id₁ id₂ id₃` are the ids of `linkv3p-1`, `-2`, `-3`.
-`bootstrap` sorts the members by id, and for linkv3p's names and token the order is the names'
-(`0x77e2…`, `0xcc14…`, `0xecbe…`: `TestMemberIDs` in `examples/linkv3p/linkv3p_test.go` prints
-them; their 16 low bits `0x2126`, `0x3ef6`, `0xf29c` are distinct and not `0`, D21e (A)), unlike
-linkv3's. So the cluster's list (`ids`: the bootstrap log's order, one conf change per member) is
-`[id₁, id₂, id₃]`, and `BootFacts` is putget3's in that order.
+**The member ids' order** (`BootFacts`): `id₁ id₂ id₃` are the ids of `linkv3p-1`, `-2`, `-3`,
+and the peers `ps` (the bootstrap log's order, one conf change per member) are them in
+`bootstrap`'s order, sorted by id: putget3's `BootFacts`. For linkv3p's names and token that order
+is the names' (`0x77e2…`, `0xcc14…`, `0xecbe…`: `TestMemberIDs` in
+`examples/linkv3p/linkv3p_test.go` prints them; their 16 low bits `0x2126`, `0x3ef6`, `0xf29c` are
+distinct and not `0`, D21e (A)), but the premises do not depend on it (2026-11-03, the final
+whole-`bootOk` review's S1: until then the list `ids id₁ id₂ id₃ = [id₁, id₂, id₃]`, which putget3's
+and restart3's ids do not meet).
 
 **What a started member gives** (`memberServed`) and **what a client's `Apply` takes**
 (`clientOk`) are at the end, with **what a bridge's start gives** (`forwards`: the bridge's
@@ -48,13 +50,11 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 section pure
 variable [GooseExts]
 
-/-- **The cluster's members in `bootstrap`'s order** (by id; see the file header). -/
-def ids (id₁ id₂ id₃ : w64) : List w64 := [id₁, id₂, id₃]
-
-/-- **`bootstrap`'s results, as Go computes them**: putget3's, in the members' id order (see the
-file header). -/
-abbrev BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
-  putget3.BootFacts id₁ id₂ id₃ ctxs bl
+/-- **`bootstrap`'s results, as Go computes them**: putget3's, the peers `ps` in `bootstrap`'s
+order (see the file header). -/
+abbrev BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) :
+    Prop :=
+  putget3.BootFacts id₁ id₂ id₃ ps ctxs bl
 
 /-- The members' names. -/
 abbrev name₁ : GoString := go!"linkv3p-1"
@@ -127,25 +127,25 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
   unfold bootPremise; infer_instance
 
 /-- **`Main`'s named premises** (persistent; putget3's at linkv3p's configuration): `bootstrap`'s
-contract for each member, at the cluster `ids id₁ id₂ id₃` and the directory `dir3`,
+contract for each member, at the cluster's peers `ps` and the directory `dir3`,
 `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27, the
 server port: the cluster's allocation's premise; until then `bootstrap`'s contract gave it), and
 the premises the members share. -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
-    IProp GF :=
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) : IProp GF :=
   iprop(
-    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N (ids id₁ id₂ id₃) (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₃ peerAddr₃ clientAddr₃ id₃ ∗
-    bootMarshal (ids id₁ id₂ id₃) ctxs (LogEntry.toEntries boot 0) ∗
+    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
     putget3.commonPremises)
 
-instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
+instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) :
-    Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
+    Persistent (premises (GF := GF) N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
 /-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s

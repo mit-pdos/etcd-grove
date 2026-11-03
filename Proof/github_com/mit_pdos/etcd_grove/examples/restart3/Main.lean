@@ -30,12 +30,12 @@ theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_Run : Run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CR CE N id₁ id₂ id₃ ctxs boot ThB RcB RcN HwbN Hp Hms Has
+  intro CS CR CE N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hp Hms Has
   wp_start as Hres
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_apply wp_NewNop as %lg %Hlg
-  wp_apply (wp_Run lg N id₁ id₂ id₃ ctxs boot HwbN Hlg Hp Hms Has) $$ [Hres]
+  wp_apply (wp_Run lg N id₁ id₂ id₃ ps ctxs boot HwbN Hlg Hp Hms Has) $$ [Hres]
   · iframe
   iapply HΦ; itrivial
 

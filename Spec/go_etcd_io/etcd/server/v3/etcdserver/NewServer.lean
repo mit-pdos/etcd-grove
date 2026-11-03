@@ -49,8 +49,8 @@
   peers) shorter than `2 ^ 60` (D19b stage 5) it also bounds every index raft's `Ready`s hand out
   below `MemoryStorage.Append`'s `2 ^ 61` (until then the premise `rnLogFits`, an Iris statement
   on every `Ready`).
-* `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
-  server's raft environment `srvEr`; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
+* `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; since 2026-11-03 not
+  `rnTickerOk`, a theorem of the `time` specs, `NewServer.wp_proof`'s callees; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
   until then of every location, false of Go), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
   facts `start` needs (`context`'s `closedchan`; since D19r (C), (D) the raft status's mutex and
@@ -201,6 +201,12 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -278,7 +284,6 @@ abbrev NewServer.spec : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -397,6 +402,12 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
@@ -478,7 +489,6 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -613,6 +623,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
@@ -696,7 +712,6 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
