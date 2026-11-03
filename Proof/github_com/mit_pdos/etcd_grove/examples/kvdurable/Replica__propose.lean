@@ -140,7 +140,7 @@ theorem Replica.propose.wp_proof
     case' ok i =>
       try wp_auto
       ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU $$ [] as %err' -
+      wp_apply HErrU $$ [] as %err' - -
       try wp_auto
       cases err'
       case' nil =>

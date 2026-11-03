@@ -2,5 +2,11 @@
 # (upamanyus/bbolt), with bodies. Its `os`, `io/fs`, `syscall` and `golang.org/x/sys/unix` are
 # this repository's (project bboltfs's: the file calls are modeled by the Linux file extension
 # osFsExt); notes/bbolt-v2-infra.md.
-translate = ["*"]
+#
+# But `Options` stays an axiomatized type, and `DefaultOptions`' initializer (a literal of it)
+# untranslated: the backend's constructor and every example's `newBackend` rest on the
+# trust-boundary axioms over an abstract `Options` (`storage/backend/BboltOptions.lean`), which a
+# translated struct would bypass. To translate it with `Open`'s proof, those axioms become
+# lemmas.
+translate = ["*", "!Options", "!DefaultOptions"]
 imports = ["*"]

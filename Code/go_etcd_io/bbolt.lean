@@ -164,6 +164,8 @@ noncomputable def hexKvStringer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] hexKvStringer.ty
 
+axiom Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
 @[reducible] noncomputable def MaxKeySize [GooseExts] [GoGlobalContext] : val :=
   #(32768 : Int)
 
@@ -196,6 +198,8 @@ noncomputable def trySolo [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def DefaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.DefaultOptions"
+
+axiom DefaultOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDatabaseNotOpen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.ErrDatabaseNotOpen"
@@ -14733,14 +14737,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"batch function returned an error and should be re-run solo"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc Options.ty))) (Let "$v0" (Val #(W64 0))
-  (Let "$v1" (Val #false)
-  (Let "$v2" (Val FreelistArrayType)
-  (App (Val (GoInstruction (CompositeLiteral Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Timeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NoGrowSync")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"FreelistType")) (ElementExpression FreelistType.ty (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrDatabaseNotOpen))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -14818,7 +14817,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrDatabaseNotOpen))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Options.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val DefaultOptions.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr trySolo))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -14861,8 +14860,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.encoding.hex.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc trySolo go.error)) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc DefaultOptions (go.GoType.PointerType Options.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrDatabaseNotOpen go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -15903,123 +15900,21 @@ attribute [instance] panicked.TypeAssumptions.type_repr
   panicked.TypeAssumptions.Error_unfold
   panicked.TypeAssumptions.ptr_Error_unfold
 
-structure Options [GooseExts] where
-  mk ::
-  Timeout' : _root_.Perennial.time.Duration
-  NoGrowSync' : Bool
-  NoFreelistSync' : Bool
-  PreLoadFreelist' : Bool
-  FreelistType' : FreelistType
-  ReadOnly' : Bool
-  MmapFlags' : w64
-  InitialMmapSize' : w64
-  PageSize' : w64
-  MaxSize' : w64
-  NoSync' : Bool
-  OpenFile' : GoFunc
-  Mlock' : Bool
-  Logger' : Logger
-  NoStatistics' : Bool
-
-noncomputable instance Options.zero_val [GooseExts] : ZeroVal Options :=
-  ⟨Options.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def Options.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Timeout" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"NoGrowSync" go.bool),
-(go.field_decl.FieldDecl go!"NoFreelistSync" go.bool),
-(go.field_decl.FieldDecl go!"PreLoadFreelist" go.bool),
-(go.field_decl.FieldDecl go!"FreelistType" FreelistType.ty),
-(go.field_decl.FieldDecl go!"ReadOnly" go.bool),
-(go.field_decl.FieldDecl go!"MmapFlags" go.int),
-(go.field_decl.FieldDecl go!"InitialMmapSize" go.int),
-(go.field_decl.FieldDecl go!"PageSize" go.int),
-(go.field_decl.FieldDecl go!"MaxSize" go.int),
-(go.field_decl.FieldDecl go!"NoSync" go.bool),
-(go.field_decl.FieldDecl go!"OpenFile" (go.GoType.FunctionType (go.signature.Signature [go.string, go.int, _root_.Perennial.os.FileMode.ty] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))),
-(go.field_decl.FieldDecl go!"Mlock" go.bool),
-(go.field_decl.FieldDecl go!"Logger" Logger.ty),
-(go.field_decl.FieldDecl go!"NoStatistics" go.bool)]
-
-@[irreducible] noncomputable def Options.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Options.fieldsUnsealed
-
-noncomputable instance equals_unfold_Options [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Options.fields Options.fieldsUnsealed :=
-  ⟨by unfold Options.fields; rfl⟩
-
-@[reducible] noncomputable def Options.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Options.fields)
+axiom Options : Type
+axiom Options.zero_val : ZeroVal Options
+attribute [instance] Options.zero_val
 
 class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Options.underlying Options
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
-  get_Timeout : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Timeout") #x (Val #(x.Timeout'))
-  set_Timeout : ∀ (x : Options) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : Options)))
-  get_NoGrowSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoGrowSync") #x (Val #(x.NoGrowSync'))
-  set_NoGrowSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoGrowSync") (PairV #x #y) (Val #(({ x with NoGrowSync' := y } : Options)))
-  get_NoFreelistSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoFreelistSync") #x (Val #(x.NoFreelistSync'))
-  set_NoFreelistSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoFreelistSync") (PairV #x #y) (Val #(({ x with NoFreelistSync' := y } : Options)))
-  get_PreLoadFreelist : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"PreLoadFreelist") #x (Val #(x.PreLoadFreelist'))
-  set_PreLoadFreelist : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"PreLoadFreelist") (PairV #x #y) (Val #(({ x with PreLoadFreelist' := y } : Options)))
-  get_FreelistType : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"FreelistType") #x (Val #(x.FreelistType'))
-  set_FreelistType : ∀ (x : Options) (y : FreelistType), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"FreelistType") (PairV #x #y) (Val #(({ x with FreelistType' := y } : Options)))
-  get_ReadOnly : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : Options)))
-  get_MmapFlags : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"MmapFlags") #x (Val #(x.MmapFlags'))
-  set_MmapFlags : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"MmapFlags") (PairV #x #y) (Val #(({ x with MmapFlags' := y } : Options)))
-  get_InitialMmapSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"InitialMmapSize") #x (Val #(x.InitialMmapSize'))
-  set_InitialMmapSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"InitialMmapSize") (PairV #x #y) (Val #(({ x with InitialMmapSize' := y } : Options)))
-  get_PageSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"PageSize") #x (Val #(x.PageSize'))
-  set_PageSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"PageSize") (PairV #x #y) (Val #(({ x with PageSize' := y } : Options)))
-  get_MaxSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"MaxSize") #x (Val #(x.MaxSize'))
-  set_MaxSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"MaxSize") (PairV #x #y) (Val #(({ x with MaxSize' := y } : Options)))
-  get_NoSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoSync") #x (Val #(x.NoSync'))
-  set_NoSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoSync") (PairV #x #y) (Val #(({ x with NoSync' := y } : Options)))
-  get_OpenFile : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"OpenFile") #x (Val #(x.OpenFile'))
-  set_OpenFile : ∀ (x : Options) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"OpenFile") (PairV #x #y) (Val #(({ x with OpenFile' := y } : Options)))
-  get_Mlock : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Mlock") #x (Val #(x.Mlock'))
-  set_Mlock : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Mlock") (PairV #x #y) (Val #(({ x with Mlock' := y } : Options)))
-  get_Logger : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Options) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Options)))
-  get_NoStatistics : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoStatistics") #x (Val #(x.NoStatistics'))
-  set_NoStatistics : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoStatistics") (PairV #x #y) (Val #(({ x with NoStatistics' := y } : Options)))
+  isUnderlying : go.IsUnderlying Options.underlying Options.underlying
   method_set : go.MethodSetIs Options.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Options.ty) go!"String" Options.String.impl
 
 attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.underlying
-  Options.TypeAssumptions.get_Timeout
-  Options.TypeAssumptions.set_Timeout
-  Options.TypeAssumptions.get_NoGrowSync
-  Options.TypeAssumptions.set_NoGrowSync
-  Options.TypeAssumptions.get_NoFreelistSync
-  Options.TypeAssumptions.set_NoFreelistSync
-  Options.TypeAssumptions.get_PreLoadFreelist
-  Options.TypeAssumptions.set_PreLoadFreelist
-  Options.TypeAssumptions.get_FreelistType
-  Options.TypeAssumptions.set_FreelistType
-  Options.TypeAssumptions.get_ReadOnly
-  Options.TypeAssumptions.set_ReadOnly
-  Options.TypeAssumptions.get_MmapFlags
-  Options.TypeAssumptions.set_MmapFlags
-  Options.TypeAssumptions.get_InitialMmapSize
-  Options.TypeAssumptions.set_InitialMmapSize
-  Options.TypeAssumptions.get_PageSize
-  Options.TypeAssumptions.set_PageSize
-  Options.TypeAssumptions.get_MaxSize
-  Options.TypeAssumptions.set_MaxSize
-  Options.TypeAssumptions.get_NoSync
-  Options.TypeAssumptions.set_NoSync
-  Options.TypeAssumptions.get_OpenFile
-  Options.TypeAssumptions.set_OpenFile
-  Options.TypeAssumptions.get_Mlock
-  Options.TypeAssumptions.set_Mlock
-  Options.TypeAssumptions.get_Logger
-  Options.TypeAssumptions.set_Logger
-  Options.TypeAssumptions.get_NoStatistics
-  Options.TypeAssumptions.set_NoStatistics
+  Options.TypeAssumptions.isUnderlying
   Options.TypeAssumptions.method_set
   Options.TypeAssumptions.ptr_method_set
   Options.TypeAssumptions.ptr_String_unfold

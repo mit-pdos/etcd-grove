@@ -325,7 +325,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply _root_.Perennial.context.wp_New_errorString as %_ #_)
+    | (wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu

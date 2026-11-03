@@ -85,7 +85,7 @@ theorem Cache.WaitForRevision.wp_proof
     iintro ⟨#HPD, #Hcl⟩
     wp_auto
     ihave #HErrD := HErr $$ %Broadcast.Done
-    wp_apply HErrD $$ [] as %err' %herr'
+    wp_apply HErrD $$ [] as %err' %herr' -
     · iexact Hcl
     wp_for_post
     iapply HΦ

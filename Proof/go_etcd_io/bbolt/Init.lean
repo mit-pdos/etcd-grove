@@ -4,9 +4,11 @@ Package initialization of `go_etcd_io.bbolt`
 
 Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
-`errors.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
+`errors.wp_New_errorString`), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
 0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).
+And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
+`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.
 -/
 module
 
@@ -50,6 +52,24 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
+section opaqueInits
+namespace go_etcd_io.bbolt
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The trust boundary: `go_etcd_io.bbolt`'s untranslated variable initializers run.**
+Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
+runs them at program start, and etcd starts, so each returns without panicking.
+Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([DefaultOptions.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+end go_etcd_io.bbolt
+end opaqueInits
+
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -91,7 +111,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidMapping _ as HErrInvalidMapping
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalid _ as HErrInvalid
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDatabaseNotOpen _ as HErrDatabaseNotOpen
-  wp_apply wp_GlobalAlloc (V := Loc) DefaultOptions _ as HDefaultOptions
   wp_apply wp_GlobalAlloc (V := GoInterface) trySolo _ as HtrySolo
   wp_apply (_root_.Perennial.encoding.hex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd19⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
@@ -126,7 +145,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of trySolo))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS
-  -- translated initializer of DefaultOptions))
+  wp_apply (opaqueInitsOk DefaultOptions.init (by mem_tac))
   -- translated initializer of ErrDatabaseNotOpen))
   try wp_auto
   ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []

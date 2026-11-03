@@ -104,7 +104,7 @@ theorem leasingKV.waitSession.wp_proof : leasingKV.waitSession.spec (GF := GF) (
     iintro ⟨#HPD, #HCC⟩
     (try wp_auto)
     ihave #HErrD := HErrL $$ %Broadcast.Done
-    wp_apply HErrD $$ [$HCC] as %cerr %Hcerr
+    wp_apply HErrD $$ [$HCC] as %cerr %Hcerr -
     iapply HΦ
     iframe
     ileft; ipureintro; exact Hcerr
@@ -120,7 +120,7 @@ theorem leasingKV.waitSession.wp_proof : leasingKV.waitSession.spec (GF := GF) (
     iintro ⟨#HPD, #HCC⟩
     (try wp_auto)
     ihave #HErrD := HErrC $$ %Broadcast.Done
-    wp_apply HErrD $$ [$HCC] as %cerr %Hcerr
+    wp_apply HErrD $$ [$HCC] as %cerr %Hcerr -
     iapply HΦ
     iframe
     ileft; ipureintro; exact Hcerr

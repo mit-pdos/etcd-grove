@@ -299,13 +299,15 @@ _BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'Er
 SPECIAL['go_etcd_io.bbolt'] = dict(
     doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
-`errors.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
+`errors.wp_New_errorString`), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
-0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).''',
+0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).
+And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
+`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
     imports=['Perennial.Proof.errors.NewVar', 'Proof.log.NewModel'],
     vars=['[_root_.Perennial.log.NewModel]'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     DefaultOptions='Loc', discardLogger='Loc'),
+                     discardLogger='Loc'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
