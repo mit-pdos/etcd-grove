@@ -78,6 +78,48 @@ def siiAt (s : Loc) (γa : ApiNames)
     isSII s p ∗ infView γa r I Fam ∗ infReaders I r Fam ∗
     sync.isMutex (s.[sharedIndexInformer, go!"startedLock"]) (siiLocked s I))
 
+/-- **The informer's listeners' contract on their `i`-th event** (the processor's `QP`, one for
+all listeners): the informer's `i`-th event (`notifQ`), with its facts (`evFacts`). (Its delivery
+from the informer's handling of a delta, `handleDeltas`, is the next step: the run's report.) -/
+def infEvQ (γa : ApiNames) (r : Res) (γi : InfNames) (γe : GName) (i : Nat) (e : Ev) : IProp GF :=
+  iprop(notifQ γe i e ∗ □ evFacts γa r γi e)
+
+open Iris.ProofMode in
+/-- **A listener's contract weakens with its events' contract.** -/
+theorem lhOk_mono (h : GoInterface) (H : List Ev → IProp GF) (Q Q' : Nat → Ev → IProp GF)
+    (hQ : ∀ i e, Q i e ⊢ Q' i e) : lhOk h H Q' ⊢ lhOk h H Q := by
+  unfold lhOk
+  iintro ⟨%i, %hi, #HA, #HU, #HD⟩
+  iexists i
+  isplitr
+  · ipureintro; exact hi
+  isplitr
+  · iintro !> %evs %o %b %Φ !> ⟨HH, HQ⟩ HΦ
+    ihave HQ' := (hQ _ _) $$ HQ
+    iapply HA $$ [HH HQ'] HΦ
+    iframe
+  isplitr
+  · iintro !> %evs %old %new %Φ !> ⟨HH, HQ⟩ HΦ
+    ihave HQ' := (hQ _ _) $$ HQ
+    iapply HU $$ [HH HQ'] HΦ
+    iframe
+  · iintro !> %evs %o %Φ !> ⟨HH, HQ⟩ HΦ
+    ihave HQ' := (hQ _ _) $$ HQ
+    iapply HD $$ [HH HQ'] HΦ
+    iframe
+
+open Iris.ProofMode in
+/-- **A handler meeting the informer API's contract is a listener's handler** of the informer's
+events with their facts. -/
+theorem handlerSpec_lhOk (γa : ApiNames) (r : Res) (γi : InfNames) (γe : GName) (h : GoInterface)
+    (H : List Ev → IProp GF) : handlerSpec γa r γi h H ⊢ lhOk h H (infEvQ γa r γi γe) := by
+  unfold handlerSpec
+  apply lhOk_mono
+  intro i e
+  unfold infEvQ
+  iintro ⟨-, #He⟩
+  iexact He
+
 end defs
 
 end informer
