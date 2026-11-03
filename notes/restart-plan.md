@@ -1078,3 +1078,16 @@ contract in `isRaftNode`, `rnNewStorageOk`; (b) the start: `NewServer` allocates
 `NodeStart`'s first driver holds the initial view (`RaftState.init`, `walFresh`; `γ.pre = []`);
 (c) the loop: receive without *enter*, `SaveSnap`/`Save` with the invariant, both branches of
 `raftNode.start`; (d) the apply thread's `SaveSnap`; (e) `onStop`'s `Close`.
+
+**Where it stands (2026-11-03, branch `r2b1-s3c`, built, not landed):** the vocabulary and the
+pure halves are done: `RNNames.wal`; the driver predicates name their durable state; `rnDur_alloc`
+and `wal.bootOk_start` (NewServer allocates; the names reach `newRaftNode`); the loop's `Save` and
+`SaveSnap` as the contract's atomic updates (`rnDur_save_au`, `rnDur_saveSnap_au`, over the pure
+`WalSaveStep`/`WalSnapStep`); a received batch is such a step, proved from raft's `ReadyRestFacts`
+(`walSaveStep_ready`, `walSnapSteps_ready`), and `rn_ready_recv` hands the steps to the loop
+(`rnReadyData`, `rnReadySnap`). Left, as one change: the view's half and "not failed" token in the
+loop's token (`rnLoopTokP`, from `NodeStartSpec`); `isWalStorage` in place of `isRNWal`
+(`rnNewStorageOk`, `isRaftNode` with `rnDurInv`); the loop's `SaveSnap`/`Save` over the lemmas; the
+apply thread's `SaveSnap` (its token `ν.app` with its half of the open token, review M3: `rnWalTok`
+takes the wrapper's names, or the apply side's half becomes its own predicate); `onStop`'s `Close`
+(the records from `rnDurTake`, with the metadata and purge right the loop keeps from the start).
