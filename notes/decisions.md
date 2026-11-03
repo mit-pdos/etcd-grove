@@ -30655,3 +30655,17 @@ or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) ch
 laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
 starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
 
+
+## The trust-base report, faster (2026-11-03 · the user's "go ahead with 1": the gates' time)
+
+`etc/tcb-report.py --check` took 529s of a gate run (measured 2026-11-03, 32 cores); now 246s, its
+JSON byte-identical (sorted lines). Measured first: in the largest run (87 root modules), import
+27s, listing the roots ~110s (every constant of the environment against the module list), the
+trust-base closure 194s, the output 43s, tearing the environment down at exit ~40s. Three changes
+in `etc/tcb-report.lean`: the roots from the given modules' own constants (`moduleData`, keeping
+only those attributed to the module: a `congr_simp` lemma is listed in two); each constant's
+dependencies computed once, when the DFS expands it (it walked every proof term twice); exit
+without freeing the environment. *Rejected:* an incremental report caching each root module's
+result by the hashes of its dependencies' `.olean`s: one end-to-end result (`putget_safe`'s
+module) alone costs 125s of closure (its cone is most of the development), and almost every
+change reaches one, so the cache would rarely save anything.
