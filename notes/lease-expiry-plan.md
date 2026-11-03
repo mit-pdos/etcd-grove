@@ -218,6 +218,7 @@ no leased put), then `ForceCommit`.
   frame fix; the `axiom` skill before Freeze. The new spec, either way: the history gets the
   snapshot `(L' ↦ leases, ∅)`; in the monotone mode only if every live lease is in `L'` (premise
   `⌜L ⊆ L'⌝`), else `lessorRevocable`.
+  **Decided (the user, 2026-11-03): (a), translate and prove `Recover`.**
 - **S2. The mode question, settled by S1.** With S1's monotone case, the monotone lessor (X2:
   `mono := lg && leasesNoExpiry`) can be restored too: under `leasesNoExpiry` no revocation is ever
   applied (X7), so a snapshot at index `j` above the member's applied index has every lease the
