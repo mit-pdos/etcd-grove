@@ -1304,9 +1304,52 @@ quota passes it, capped/corrupt and the applied arm refute the premise; `dispatc
 - The grant case of `applyResultIs_notNoSpace_M` (a separate lemma taking `grantResA`, since
   `applyResultIs` holds no grant fact) waits on it, with the rest of commit 4 and commit 5.
 
-**Where the plumbing stopped** (2026-11-03): 3b, 4a and 4b done (above); stopped at the problem
-above (the user's decision); then `applyResultIs_notNoSpace_M`'s grant case, the rest of commit 4,
-and commit 5.
+**The problem: (E') is false at a capped or corrupt chain** (found 2026-11-03, before any code of
+(E'); stops (E'), hence `applyResultIs_notNoSpace_M`'s grant case, `applyEntryNormal`'s grant arm and
+everything that admits a grant: the rest of commit 4 and commit 5).
+- *What.* (E')'s `grantRes` conjunct `⌜v.Err' ≠ nil⌝ -∗ ⌜o = .rejected .backend⌝ ∗ lessorErrIs
+  v.Err'` must be proved in `dispatch` (`uberApplier__dispatch.lean`, the grant arm, `iunfold
+  apply.grantRes`) at **any** chain `c`: `dispatch.spec` and `Apply.spec` do not fix the chain. At a
+  capped chain (`.capped _`: `cappedRejects .leaseGrant = true`, `Chain.lean:143`) the grant triple's
+  post is `o = .rejected .noSpace` with `err` `ErrNoSpace`'s (`applierV3Capped__LeaseGrant.lean:44`,
+  `applyErrVars_noSpace`; Go: `capped.go`'s `LeaseGrant` returns `nil, errors.ErrNoSpace`), so
+  `v.Err' ≠ nil` and `o ≠ .rejected .backend`: the conjunct is false there. Likewise at a corrupt
+  chain (`.rejected .corrupt`, `ErrCorrupt`). Neither is reached by the apply thread's start chain
+  (`alarmChain false false false`), but `grantRes` is stated at every chain.
+- *Options.*
+  (1) 4b's option (a): keep (E)'s conjunct as 4b has it (`⌜o = .rejected .backend⌝ -∗ lessorErrIs
+  v.Err'`) and add `⌜(∃ l ns, o = .applied l ns) → v.Err' = nil⌝` (from `grantPost`'s tie, which
+  `dispatch` has: `Hst.2.1.mp`). True at every chain. The grant case of `applyResultIs_notNoSpace_M`
+  is then: at the start's chain `dispatchStep` gives applied (so `err = nil`) or `.rejected .backend`
+  (so `lessorErrIs err`, hence `notNoSpaceErr`). **Recommended**: one pure conjunct, and (E) stays.
+  (2) (E') with the rejection's kind left open: `⌜v.Err' ≠ nil⌝ -∗ (∃ k, ⌜o = .rejected k⌝) ∗
+  (⌜o = .rejected .backend⌝ -∗ lessorErrIs v.Err')`: the same content as (1), less direct.
+  (3) (E') under the chain's `grantGoes`: needs the chain as a new argument of `grantRes`/`grantResA`
+  (a larger text change for the same use).
+- Nothing of (E') is on `lease-grant`; 4b's (E) text stands.
+
+**Commit 4c: 2.6's answer through the waiter** (2026-11-03; independent of (E'), a full build with
+the checks). `grantArM E ar rq out` (`InvRequest.lean`: for a dispatched grant `∃ v, ar ↦□ v ∗
+apply.grantAnswer E rq v.Resp' v.Err'`, else `True`; `grantArM_not_grant`, `grantArM_of_res` from
+`Apply`'s `grantResA` at `ar ≠ null`, and their wand forms) in `resultIsW`, `resultIsWOn`,
+`resPostM`; `grantAnsM E rq resp` (`grantAnswer` at `nil` for a grant) in `appliedOkM`,
+`grantAnsM_of_ar` in `raftRequest`. `applyEntryNormal` hands it to the waiter: from `Apply`'s
+`grantResA` at the two `Apply` calls with `v3`, by `grantArM_not_grant` at the auth-on KV and admin
+arms (`adminKindOk_nonGrant`, new in `ApplyNormalOn.lean`).
+- *Mechanical adaptation (the design missed it):* `srvC_agree`/`srvCM_agree` (`InvBuild`,
+  `ServerOn`: the raft contract is stated at the stand-in `E₀` and moved to the server's `E` by
+  `envAgree`, which ties `E.γ.idx`/`cok`/`γrev`/`cmp` only) unfolded `resultΨ`, which now reads
+  `E.γ.leases` through `grantAnswer`; the lessor's names are allocated inside `NewServer`
+  (`NewLessor`), so no `envAgree` clause can tie them. But the contract reads `resultΨ` only in
+  `entryWaitOk`'s conf-change arm, `□ ∀ Ψ, reqWaitR ρ E id Ψ -∗ False`, whose content is free of
+  `Ψ`. That arm is now `reqWaitNone ρ id` (the same refutation over the claims, without `Ψ`;
+  `reqWaitNone_none`/`_of` convert), so `srvC`/`srvCM` read no name of `E` and both laws are `rfl`.
+  The four conf-change sites of `EtcdServer.apply` convert by `reqWaitNone_none`; the two producers
+  (`batchWaitOk_of_claims`, `BuildGap`) prove `reqWaitNone` directly. No frozen text changes.
+
+**Where the plumbing stopped** (2026-11-03): 3b, 4a and 4b done (above); (E') found false (above),
+waiting on the user's decision; then `applyResultIs_notNoSpace_M`'s grant case, the rest of commit
+4, and commit 5.
 
 **`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
 argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's

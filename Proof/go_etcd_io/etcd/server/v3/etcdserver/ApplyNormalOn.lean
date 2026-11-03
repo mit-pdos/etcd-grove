@@ -143,6 +143,15 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × m
     · rfl
   · rw [hk]
 
+/-- **An admitted admin request is no grant** (the lease-grant plan's 2.6: nothing to carry,
+`grantArM_not_grant`). -/
+theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseGrant := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
 /-- An admitted admin request sets neither cluster field (`dispatchKind` tries them first). -/
 theorem adminKindOk_noCluster (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
     rq.clusterVersionSet = none ∧ rq.clusterMemberAttrSet = none := by

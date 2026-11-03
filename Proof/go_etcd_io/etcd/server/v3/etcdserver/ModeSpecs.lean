@@ -1120,14 +1120,14 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
       isplitr
       · ipureintro; exact Hw
       iunfold resPostM at Hp
-      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -⟩
+      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -, -, Hr6⟩
       iexists y.log
       iunfold resultIsW
-      isplitl [Hr1 Hr2 Hr3 Hr4 Hr5]
+      isplitl [Hr1 Hr2 Hr3 Hr4 Hr5 Hr6]
       · isplitr
         · ipureintro; exact Hnn
         iexists y, y', out
-        iframe Hr1 Hr2 Hr3 Hr4 Hr5
+        iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr6
         ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
       iexists L
       iframe HL HQ

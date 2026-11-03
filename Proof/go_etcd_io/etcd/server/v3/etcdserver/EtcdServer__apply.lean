@@ -519,11 +519,13 @@ theorem EtcdServer.apply.wp_proofOff
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
             ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
-              iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
+              iprop(reqWaitNone ρ (ccIdOf m.data) ∗
                 ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
-          iexact Hewo
+          icases Hewo with ⟨#Hn, %Hp⟩
+          iframe %Hp
+          iapply reqWaitNone_none $$ Hn
         icases Hccw with ⟨#Hccf, %Hcb⟩
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -849,11 +851,13 @@ theorem EtcdServer.apply.wp_proofOff
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
             ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
-              iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
+              iprop(reqWaitNone ρ (ccIdOf m.data) ∗
                 ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
-          iexact Hewo
+          icases Hewo with ⟨#Hn, %Hp⟩
+          iframe %Hp
+          iapply reqWaitNone_none $$ Hn
         icases Hccw with ⟨#Hccf, %Hcb⟩
         (try wp_auto)
         -- (2026-10-30, the repair: one mode) a replayed conf entry has no view (the view excludes
@@ -1400,11 +1404,13 @@ theorem EtcdServer.apply.wp_proofOn
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
             ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
-              iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
+              iprop(reqWaitNone ρ (ccIdOf m.data) ∗
                 ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
-          iexact Hewo
+          icases Hewo with ⟨#Hn, %Hp⟩
+          iframe %Hp
+          iapply reqWaitNone_none $$ Hn
         icases Hccw with ⟨#Hccf, %Hcb⟩
         ihave #HccfM := reqWaitRM_none true ρ E (ccIdOf m.data) $$ Hccf
         (try wp_auto)
@@ -1742,11 +1748,13 @@ theorem EtcdServer.apply.wp_proofOn
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
             ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
-              iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
+              iprop(reqWaitNone ρ (ccIdOf m.data) ∗
                 ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
-          iexact Hewo
+          icases Hewo with ⟨#Hn, %Hp⟩
+          iframe %Hp
+          iapply reqWaitNone_none $$ Hn
         icases Hccw with ⟨#Hccf, %Hcb⟩
         ihave #HccfM := reqWaitRM_none true ρ E (ccIdOf m.data) $$ Hccf
         (try wp_auto)

@@ -401,15 +401,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`srvC` reads only the names** (D13a): two environments that agree on them give the same
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr, -, -⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  funext L
-  unfold srvC batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
+    (_h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
+  -- (the lease-grant plan's 2.6) the contract reads no name of `E`: a conf change's waiters are
+  -- refuted by `reqWaitNone`, free of the environment
+  rfl
 
 end lemmas
 

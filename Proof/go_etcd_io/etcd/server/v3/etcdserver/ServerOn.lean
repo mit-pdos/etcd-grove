@@ -652,16 +652,10 @@ open Iris.ProofMode in
 
 /-- `srvCM` does not read the environment's names but through `envAgree` (`srvC_agree`'s). -/
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (h : envAgree E E') :
+    (x₀ : apply.ApplyKV) (_h : envAgree E E') :
     srvCM on ρ E ai₀ c₀ x₀ = srvCM on ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr, -, -⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  funext L
-  unfold srvCM batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
+  -- (the lease-grant plan's 2.6) the contract reads no name of `E` (`reqWaitNone`)
+  rfl
 
 /-- The ticker's contract does not read the transport's borrow (`rnTickerOk_srvEr_S`'s). -/
 theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -710,9 +704,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 

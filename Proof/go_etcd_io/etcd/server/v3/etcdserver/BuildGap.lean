@@ -77,9 +77,8 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 

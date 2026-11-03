@@ -86,7 +86,7 @@ theorem appliedOkM_authn (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNam
   unfold appliedOkM authnAnsM
   simp only [hγa]
   iintro H
-  icases H with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, Ha⟩
+  icases H with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, Ha, -⟩
   icases Ha with (%Hn | ⟨%am, %rp, %v, %Hp, Hrp, #Ht⟩)
   · exact absurd hk Hn
   iexists am, rp, v
