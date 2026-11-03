@@ -1348,43 +1348,41 @@ theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
   unfold srvAuthAtLog
   rw [← He]
 
-/-- **`run`'s auth-on snapshot-payload job** (`EtcdServer__run.lean` ~:1413, statement only, **a
-schematic outline**: it does not yet take what `applyAll.specSnapOn` needs beyond `applyResOn`
-(review round 3's C: the fresh start's facts `γr.raft = ⟨_, [], 0⟩`, `c0 = 0`, `ch0`, `log0`,
-`E.cmp = false`, `|boot| ≤ i`, the term bound; the payload's `notifyc`, `rnAdvChan`, `rnRtOk`; the
-meta reads), which J8b's mode-off job takes from `isServerRun` and the payload; the auth-on twin
-of J8b's mode-off job): from the loop's resources at `A` (`applyResOn`) and the
-payload's (`rnApplyTok_recv`'s snapshot branch, at a fresh start), with the store's snapshot clause
-(`srvAuthSnapOk`, which `isServerRunOn` does not carry today: a finding, the line `run` needs from
-`NewServer`), `applyAll.specSnapOn` gives the loop's resources at the image's log `A'`. Besides
-what J8b's mode-off job takes of `isServerRun` (`γr.kv.log0 = [[], []]`, `#HmetaSnap`'s premise,
-`|boot| ≤ i`), the mode-on start's chain (`γr.kv.ch0 = alarmChain true false false`) and the
-snapshot directory's image in the mode (`srvSnapRO`'s `snapDirInv … (srvImage …)` is the mode-off
-certificate: `srvImageOn`, #7-on). On J8b (`snap-j8b`, uncommitted when drafted): `isServerRunOn`
-carries `srvMemberIDAddr s ↦□ γn.id` and `srvMetaSnap γ` in both modes, so the free `nid` here
-becomes `γn.id` (taken from `isServerRunOn`), the meta premise `srvMetaSnap C.γ` comes from it,
-`|boot| ≤ i` from `rnApSnap` (J8b's `rnReadySnap_bootLen`), and the job splits on `C.E.cmp` as
-`run_job_snap` does (`run_job_snap_cmp`); `srvAuthSnapOk` joins them as an `isServerRunOn` fact
-(decision 8). -/
+/-- **`run`'s auth-on snapshot-payload job** (review R1's F6: restated as the twin of J8b's
+`run_job_snap`, `EtcdServer__run.lean`, statement only): its premises and resources, with the loop's
+resources in the mode `on` (`applyResOn`) and the store's snapshot clause (`srvAuthSnapOk`, decision
+8: an `isServerRunOn` fact in the merge, as `srvMetaSnap` is; `isServerRunOn` does not carry it
+today); `applyAll.specSnapOn` takes the loop from `A` to the image's log `A'`. -/
 theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapOn (GF := GF) (hG := hG))
-    (C : ApplyCtx GF) (A : List EntryModel) (γa : auth.AuthNames)
-    (hM : C.E.authMode = .on γa) (apL : Loc) (sv : SnapshotM) (γs : schedule.SchedNames)
-    (γn : RNNames) (nid : w64) (hγn : γn.node = C.γr.raft.raft) :
+    (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
+    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
+    (γn : RNNames) (rt : w64) (γa : auth.AuthNames) (hM : C.E.authMode = .on γa)
+    (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
+    (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
+    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
+    (hlt : A.length < A'.length)
+    (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
+    (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ nid ∗ schedule.schedRunning γs ∗
-        applyResOn C A ∗ srvAuthSnapOk C.s γa C.E.RD ∗
-        ⌜(γn.pre ++ A).length < uint.nat sv.Metadata'.Index' ∧
-          uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
-        taEntriesAddr apL ↦□ (GoSlice.mk null (W64 0) (W64 0)) ∗
-        (∃ sn : Loc, taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv) ∗
-        (letI := srvStor (GF := GF) γn.node
-         snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
-        nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index' }}
+        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
+        srvAuthSnapOk C.s γa C.E.RD ∗
+        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
+        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γn.node; iprop(
+          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
+        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+        taRaftAdvancedCAddr apL ↦□ rac ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
+          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length)) ∗
+        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
+        schedule.schedRunning γs ∗ applyResOn C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ ∃ A' : List EntryModel, applyResOn C A' ∗
-        srvRLogLb C.γr.raft A' ∗
-        ⌜A <+: A' ∧ (γn.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ }} := by
+    {{ RET #(); schedule.schedRunning γs ∗ applyResOn C A' }} := by
   sorry
 
 end install
