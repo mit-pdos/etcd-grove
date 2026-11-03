@@ -98,23 +98,24 @@ section's header line and the first record of R1).
   `run.wp_proofOn`'s gap and the sender's #7-on (`EtcdServer__applyAll.lean:811`), the sender proving
   `srvImageOn` of an auth-on member's database (a mode-on `merged_image`, over a mode-on `mergedObs`:
   to state at the Prove step).
-- **F9**, packaging: decision 6's trigger (J8b) has landed. One `specSnap`/`applyAll.specSnap` over
-  `E.authMode` (the mode-off text a corollary), or the twins.
-- **R2's N4**: with only `authRdLoan R`, no proof builds the copies of `RD` (which contains `R`) that
-  the server's readers get today (`authStoreKit`'s post, `AuthSrv.lean:95`; `NewServer`'s splits,
-  `NewServer.lean:831-836`): the kit's post, `NewServer`'s supply of `E.RD` and the request/serve
-  paths become loans too (mode off keeps copies from `NewAuthStore.spec`). Not yet in "Impact on the
-  base"; to decide with the boot premise.
-- **F5's boot half**: the restated boot premise takes the idle `rbOwnIn … authBkts`, while lean's kit
-  and `NewAuthStore.spec` take a part at boot; where the boot caller gets the idle form is to check
-  (or the boot clause takes `rbPart`).
+- ~~F9~~ **Decided (2026-11-03): one spec over `E.authMode`.** Drafted: `applySnapshot.specSnapM`,
+  `applyAll.specSnapM` (in place of the twins; mode-indexed `snapAuthImgM`, `snapRestImgM`,
+  `snapAuthResM`, `srvSnapAppliedM`), lean's `specSnap`/`applyAll.specSnap` their `off` cases
+  (`specSnap_of_M`, `applyAll.specSnap_of_M`, proved). `applyAll.specSnapM` takes `E.authOn = true →
+  ∃ γa, E.authMode = .on γa` (lean's has no mode premise: its rows force `off`).
+- ~~R2's N4~~ **Decided (2026-11-03): the loans in this stage.** Drafted: `AonDraft.authRdSupply M
+  stl RD` (the kit's post in place of the `actualMaxReaders` copies of `RD`: the copies off; on, the
+  lock slots `authRdSlot` and `authRdLoan R`) and `authRdSlot_borrow` (proved: a slot and a thread
+  token give a call's `RD` and back). In "Impact on the base".
+- ~~F5's boot half~~ **Checked (2026-11-03): the idle form.** The boot caller has the auth buckets idle
+  (the lessor's `rbOwnIn ⊤`, `NewServer.lean:586-587`; `AuthSrv.lean:236` weakens it to a part only
+  for today's axiom), so the boot clause keeps `rbOwnIn … authBkts`.
 - F12's rest: `.any` falls into the mode-off arms of `srvImageM`/`AonDraft.srvRestOwn`/`srvOpenQ`;
   `srvImageOn` exports no laws yet.
-- Not a spec finding (R1's; unverified, no test): `authStore.Recover` (`store.go:399-418`) enables the
-  token provider when the image's store is enabled but never disables it when the image's is
-  disabled, as `AuthDisable` does (`simple_token.go:191-200`): a member installing a snapshot across
-  an `AuthDisable` may keep simple tokens the others dropped. Possibly security-relevant: by the
-  user's 2026-11-01 decision such findings go to `etcd-grove-private`, not `issues/`; left to the user.
+- Not a spec finding (R1's; unverified, no test): `authStore.Recover` never drops simple tokens the
+  snapshot's entries revoked. Written up (2026-11-03, the user's request) as
+  `issues/etcd-auth-snapshot-stale-simple-tokens.md` in the main checkout, uncommitted; its test is
+  another agent's.
 
 What the Draft's author (etcd-grove-83, 2026-11-03) flagged for the rebase:
 
@@ -721,6 +722,16 @@ No Go program found against the repaired statements beyond finding 31 (a gap in 
 not a false claim about Go) and the reader-slot count (S9).
 
 ### Impact on the base (users of the restated names; none changed in this stage)
+
+- F9: `Spec/.../EtcdServer__applySnapshot.lean` and `EtcdServer__applyAll.lean` (`specSnap` restated
+  as `specSnapM`, `spec` over it; the mode-off text by `specSnap_of_M`), their proofs
+  (`ApplyAllSnap.lean`, `SnapApply*.lean`: one proof, the mode split inside), `EtcdServer__run.lean`
+  (`run_job_snap` and the auth-on site through `applyAll.specSnapM`), `Link.lean`; the interface diff.
+- N4: `AuthSrv.lean` (`authStoreKit`'s post: `authRdSupply M stl RD` for the copies; `authStoreKit_on`
+  builds the slots and the loan), `NewServer.lean` (`:831-836`, the slots the auth applier, the KV, the
+  64 request goroutines and the compactor take: on, slots, each call borrowing `RD` with
+  `authRdSlot_borrow`), the J8a reader stock and the request/serve paths that hold `E.RD`
+  (`etc/importers.py --uses E.RD` to list them at the Prove step).
 
 - `authSchemaSrv`: `etcdserver/AuthSrv.lean` (`authStoreKit_on`, `newAuthStore_on`, `authSrvTP_on`:
   re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn` (idle), `authSucc`, the

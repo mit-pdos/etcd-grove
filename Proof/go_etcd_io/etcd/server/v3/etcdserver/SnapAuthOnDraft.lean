@@ -22,8 +22,11 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
 6. **`Recover` at the install**: `authRecoverOn.spec` and its glue `authRecoverOn_glue` (proved
    from the restated `Recover.spec`, `authSchemaSnap`, `authBkLife`, `srvHist_wf`).
 7. **The install and its callers**: `srvAuthSnapOk`, `srvImageM`, `AonDraft.srvRestOwn`,
-   `AonDraft.srvSnapROAuth`, `srvSnapAppliedOn`, `applySnapshot.specSnapOn` (standalone, decision
-   6), `applyAll.specSnapOn`, `kvRunAtOn_sa` (proved), `run_snap_jobOn` (sorry).
+   `AonDraft.srvSnapROAuth`, `srvSnapAppliedOn`; F9 (2026-11-03): one spec over `E.authMode`,
+   `applySnapshot.specSnapM` and `applyAll.specSnapM` (the mode-indexed `snapAuthImgM`,
+   `snapRestImgM`, `snapAuthResM`, `srvSnapAppliedM`), lean's specs their `off` cases
+   (`specSnap_of_M`, `applyAll.specSnap_of_M`, proved); `kvRunAtOn_sa` (proved), `run_snap_jobOn`
+   (sorry).
 -/
 module
 
@@ -221,7 +224,7 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
     ((backend.rbData d.P D).lookup go!"cluster").isSome
   /-- the image's membership buckets the model's (review round 2's F5, as `SnapImageFacts`') -/
   himg : membership.clusterImageOk cl (backend.rbData d.P D) memI
-  /-- the rest model's buckets the image's but the auth ones, its members `memI` (`specSnapOn`'s
+  /-- the rest model's buckets the image's but the auth ones, its members `memI` (`specSnapM`'s
   `hA'`) -/
   hA' : (∀ n, ¬ auth.authBkts n →
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
@@ -727,6 +730,46 @@ def authRdLoan (R : IProp GF) : IProp GF :=
 instance authRdLoan_persistent (R : IProp GF) : Persistent (authRdLoan (GF := GF) R) := by
   unfold authRdLoan; infer_instance
 
+/-- **A reader slot of the auth store's locks** (N4): `authRd` without the backend's `R`, the
+three `RWMutex` reader slots (`enabledMu`, `rangePermCacheMu`, `beMu`). -/
+def AonDraft.authRdSlot (stl : Loc) (R : IProp GF) (M : auth.AuthMode) : IProp GF :=
+  iprop(auth.enabledRd stl M ∗ auth.cacheRd stl M ∗ auth.beRd stl R M)
+
+/-- **The auth store's reader supply, by the mode** (R2's N4, the user's decision of 2026-11-03: the
+loans in this stage): what `authStoreKit`'s post gives the server in place of today's
+`actualMaxReaders` copies of `RD`. Off, the copies (as today: no snapshot moves `R`). On, `RD` is a
+lock slot and the backend's `R` (`authRd`), and the server gets the slots and the loan of `R`
+against thread tokens (`authRdLoan`): no reader keeps `R` across a call, so a snapshot install can
+take it (decision 2). `NewServer`'s supply of `E.RD` and the request, serve and compactor paths then
+borrow `RD` per call (`authRdSupply_borrow`). -/
+def AonDraft.authRdSupply (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ R : IProp GF, ⌜RD = auth.authRd stl R (.on γa)⌝ ∗ authRdLoan R ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        AonDraft.authRdSlot stl R (.on γa))
+  | _ => iprop([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD)
+
+/-- **A call's `RD`, borrowed** (N4): a lock slot and a thread token give `RD` for the call, and
+`RD` back gives the slot and the token. -/
+theorem AonDraft.authRdSlot_borrow (stl : Loc) (R : IProp GF) (γa : auth.AuthNames) :
+    authRdLoan R ⊢ AonDraft.authRdSlot stl R (.on γa) -∗ threadTok ={⊤}=∗
+      auth.authRd stl R (.on γa) ∗
+      (auth.authRd stl R (.on γa) ={⊤}=∗ AonDraft.authRdSlot stl R (.on γa) ∗ threadTok) := by
+  iintro #Hl Hs Ht
+  iunfold authRdLoan at Hl
+  imod Hl $$ Ht with ⟨HR, Hback⟩
+  iunfold AonDraft.authRdSlot at Hs
+  icases Hs with ⟨He, Hc, Hb⟩
+  imodintro
+  isplitl [He Hc Hb HR]
+  · iunfold auth.authRd; iframe He Hc Hb HR
+  iintro Hrd
+  iunfold auth.authRd at Hrd
+  icases Hrd with ⟨He, Hc, Hb, HR⟩
+  imod Hback $$ HR with Ht
+  imodintro
+  iunfold AonDraft.authRdSlot; iframe He Hc Hb Ht
+
 /-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
 lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
@@ -1024,7 +1067,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
 
 end glue
 
-/-! ## The install with auth on (`specSnapOn`) and its caller -/
+/-! ## The install in the server's auth mode (`specSnapM`) and its caller -/
 
 section install
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1085,7 +1128,7 @@ theorem AonDraft.srvNetM_off (γ : SrvRaft) : AonDraft.srvNetM (GF := GF) false 
 /-- **The apply thread's share of a server backend's open token, by the mode** (decision 5; review
 R1's F1, R2's N1): a quarter in `on`, the auth realization keeping `authOpenQ`; the half otherwise.
 In the merge `srvSnapRes` holds `bOpen d.γB (AonDraft.srvOpenQ E.authMode)` in place of its half
-(and `NewServer`'s boot bundle with it), so that `srvSnapOwn` in `applyAll.specSnapOn`/`applyResOn`
+(and `NewServer`'s boot bundle with it), so that `srvSnapOwn` in `applyAll.specSnapM`/`applyResOn`
 is at the quarter in `on`. -/
 def AonDraft.srvOpenQ (M : auth.AuthMode) : Qp :=
   match M with
@@ -1131,20 +1174,72 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
 
-/-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot, auth on** (Q4: a standalone triple
-beside `specSnap`; how it is packaged with `spec`/`specSnap` is open): `specSnap`'s statement with
-the mode `on γa` (`hon` for `hoff`), the server's and the applier's rows in the mode
-(`isServerM true`, `srvApplyKVOn` at the applied log's auth state), the image's auth buckets
-at the state after its log `A'` (`hauthI` for `hauthb`; `A <+: A'` and the committed `A'`, the
-catch-up's), `Recover`'s premise the store's invariant at the server's `E.RD` with the snapshot clause
-(`authSchemaSnap`, for `authRecoverOk`), the apply contract in the mode. After: `srvSnapAppliedOn`,
-the applier at the image's auth state.
+/-- **`specSnapM`'s post, by the mode** (F9): lean's `srvSnapApplied` off, `srvSnapAppliedOn`
+on. -/
+def srvSnapAppliedM (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) :
+    IProp GF :=
+  match on with
+  | false => srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl
+  | true => srvSnapAppliedOn s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl
+
+/-- **The image's auth facts by the auth mode** (F9, the user's decision of 2026-11-03: one
+`specSnap` over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
+the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, which
+extends the applied log `A`, below raft's bound (`snapRecv_imageOn`'s); `any`, no image (the server
+never runs in it). -/
+def snapAuthImgM (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
+    (A A' : List EntryModel) : Prop :=
+  match M with
+  | .off => ((backend.rbData P D).lookup go!"auth").getD ∅ = authBoot ∧
+      ((backend.rbData P D).lookup go!"authUsers").getD ∅ = ∅ ∧
+      ((backend.rbData P D).lookup go!"authRoles").getD ∅ = ∅
+  | .on _ => (P.has mvcc.authBI ∧ P.has mvcc.authUsersBI ∧ P.has mvcc.authRolesBI) ∧
+      authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData P D) ∧
+      A <+: A' ∧ A'.length < 2 ^ 61
+  | .any => False
+
+/-- **The rest model's buckets after the snapshot's entries `A'`, by the mode** (F9; S8d's named
+premise): the image's rest buckets (with the lessor's and the alarm store's emptied by their
+`Recover`); with auth on, all but the auth ones (the rest model does not model the admin writes:
+its auth buckets stay `authBoot`). -/
+def snapRestImgM (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
+    (A' : List EntryModel) : Prop :=
+  match on with
+  | false => (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
+      <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData P D))
+  | true => ∀ n, ¬ auth.authBkts n →
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData P D))).lookup n
+
+/-- **The auth store's `Recover` facts, by the mode** (F9): `off`, lean's `authRecoverOk`; `on`,
+the store's invariant at the server's read resource with the snapshot clause (`srvAuthSnapOk`) and
+the image's committed log (`srvRLogLb … A'`); `any`, none to give. -/
+def snapAuthResM (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF) (γr : ReadNames)
+    (A' : List EntryModel) : IProp GF :=
+  match M with
+  | .off => authRecoverOk ast
+  | .on γa => iprop(srvAuthSnapOk s γa RD ∗ srvRLogLb γr.raft A')
+  | .any => iprop(False)
+
+/-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot, in the server's auth mode** (F9, the
+user's decision of 2026-11-03: one spec over `E.authMode`, in place of the twin `specSnapOn`; lean's
+`specSnap` is its `off` case, `specSnap_of_M`): `specSnap`'s statement with the mode-dependent
+parts indexed by `E.authMode`: the server's and the applier's rows (`isServerM E.authOn`,
+`srvApplyKVM` at the applied log's auth state), the rest model's buckets (`snapRestImgM`: on, all
+but the auth ones), the image's auth facts (`snapAuthImgM`: off, `hauthb`; on, the auth buckets at
+the state after the image's log `A'`, `A <+: A'`), `Recover`'s facts (`snapAuthResM`: off,
+`authRecoverOk`; on, the store's invariant at the server's `E.RD` with the snapshot clause
+`authSchemaSnap` and the committed `A'`), the apply contract in the mode, the open share
+(`srvOpenQ`). After: `srvSnapAppliedM` (on, the applier at the image's auth state).
 
 Read under the merge's redefinitions (review round 1's F4): `srvApplyKVOn`'s auth part,
 `authApplyResB (.on γa)`, is `AonDraft.authApplyResB`'s form (the fuel at a base, the token's
 retirement, the hook clause), which `Recover`'s glue needs and gives back; today's form
 (`authOwnFu`, no retirement) cannot be carried over a jump (the plan note's findings 1 and 2). -/
-abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
+abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
   ∀
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
@@ -1175,9 +1270,6 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     -- (as `specSnap`'s, the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI)
-    -- (review R2's N3) the auth buckets in the table, which `authRecoverOn.spec` takes (in the
-    -- merge also among `srvSnapRO`'s facts beside `alarmBI`; `NewServer` has them)
-    (hauthbi : d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)
@@ -1193,24 +1285,16 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
     -- image's rest buckets (with the lessor's and the alarm store's emptied by their `Recover`)
     -- and the decoded members
     (A' : List EntryModel)
-    -- (auth on) the rest model's buckets but the auth ones (the rest model does not model the
-    -- admin writes: its auth buckets stay `authBoot`, a finding, see the file's notes)
-    (hA' : (∀ n, ¬ auth.authBkts n →
-        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
-        (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))).lookup n) ∧
+    (hA' : snapRestImgM E.authOn γr d.P D A' ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
-    -- (auth on, `snapRecv_imageOn`'s) the image's auth buckets hold the state after `A'`, which
-    -- extends the applied log `A` (whose state is the store's latest, `sa`), below raft's bound
-    (hauthI : authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData d.P D))
-    (hpreA : A <+: A') (hlenA' : A'.length < 2 ^ 61)
-    -- (S8d's named premise, S-j1's: `NewServer`'s environment, kept by `beSucc`) the auth store's
-    -- contract mode is `.on γa`, the mode `authApplyOkM` gives the store's contract in
-    (γa : auth.AuthNames) (hon : E.authMode = .on γa)
+    -- (F9) the image's auth facts by the mode (`off`: lean's `hauthb`; `on`: `snapRecv_imageOn`'s;
+    -- `any`: none), in place of `hoff`
+    (hauthI : snapAuthImgM E.authMode γr d.P D A A')
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
     (γnc : NotifyNames),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-       isServerM true s γ ci TM E ρ γr ∗
+       isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
@@ -1225,7 +1309,7 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
        storage.isBackendHooks hk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
-       srvApplyKVOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
+       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
        srvKVCloserW s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
@@ -1253,12 +1337,12 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        -- (review R1's F1, decision 5) the apply thread's quarter
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (AonDraft.srvOpenQ E.authMode) ∗
-       -- (auth on: Q2's candidate (ii)) the store's invariant at the server's read resource
-       -- `E.RD`, the snapshot clause at it (carried from `NewServer`'s generalized premise), the
-       -- image's committed log
-       srvAuthSnapOk s γa E.RD ∗ srvRLogLb γr.raft A' ∗
+       -- (F9) the auth store's `Recover` facts by the mode (`off`: `authRecoverOk`; `on`, Q2's
+       -- candidate (ii): the store's invariant at the server's `E.RD` with the snapshot clause,
+       -- and the image's committed log)
+       snapAuthResM E.authMode s ast E.RD γr A' ∗
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
-       alarmApplyOk al ∗ authApplyOkM (.on γa) ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
+       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
        lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
        -- a backend the apply thread opens at the protocol's names `π` over an image whose meta keys
@@ -1275,26 +1359,29 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
              (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapAppliedOn s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
+    {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 ∗ threadTok }}
 
-/-- **`s.applyAll(ep, ap)` on a snapshot payload, auth on** (the caller of
-`applySnapshot.specSnapOn`; `applyAll.specSnap`'s statement in the mode `on γa`: the server's,
-the applier's and the KV's rows in the mode at the applied log's auth state `sa`, the start's
-chain the mode-on one, and the store's snapshot clause, `srvAuthSnapOk`; after, at the image's
-auth state). Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
+/-- **`s.applyAll(ep, ap)` on a snapshot payload, in the server's auth mode** (F9: one spec over
+`E.authMode`, in place of the twin `specSnapOn`; lean's `applyAll.specSnap` is its `off` case,
+`applyAll.specSnap_of_M`; the caller of `applySnapshot.specSnapM`): `applyAll.specSnap`'s statement
+with the server's, the applier's and the KV's rows in the mode (`isServerM`/`srvApplyKVM`/
+`kvAppliedM` at `E.authOn`, on at the applied log's auth state `sa`), the start's chain the mode's;
+the store's snapshot clause, `srvAuthSnapOk`, is `srvSnapRO`'s gated row; after, at the image's auth
+state. Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
 `srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
 false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
-mode `on`, from which `snapRecv_imageOn` gives `specSnapOn`'s `hauthI`/`hkI`), and under
-`authApplyResB`'s redefinition as `specSnapOn` is. -/
-abbrev EtcdServer.applyAll.specSnapOn : Prop :=
+mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), and under
+`authApplyResB`'s redefinition as `specSnapM` is. -/
+abbrev EtcdServer.applyAll.specSnapM : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (A : List EntryModel) (mst : Loc) (γs : MemStorNames) (γp : GName)
     (γnc : NotifyNames) (w : Nat) (nid : w64) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat)
-    (γa : auth.AuthNames) (sa : auth.AuthState),
-  E.authMode = .on γa →
+    (sa : auth.AuthState),
+  -- (F9) on, the mode is a history's (`.on γa`, not `.any`); off is the rows' (`authOn_false_of_off`)
+  (E.authOn = true → ∃ γa, E.authMode = .on γa) →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
   uint.Z ai < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
@@ -1303,11 +1390,11 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
   -- a fresh cluster's start (`snapRecv_image`'s), in either compaction mode (review R1's F7: a
   -- mode-on committed log has no compaction, `plainLogOn`, so its records are at `-1` in both)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
-  γr.kv.ch0 = apply.alarmChain true false false → γr.kv.log0 = [[], []] →
+  γr.kv.ch0 = apply.alarmChain E.authOn false false → γr.kv.log0 = [[], []] →
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
+      isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
       -- the payload (`rnApSnap`'s)
       taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
       taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -1325,8 +1412,8 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
-      srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      srvWTPool E γp ∗ srvWTTaken γp w ∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
+      srvWTPool E γp ∗ srvWTTaken γp w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
       rnWalTok (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
@@ -1350,7 +1437,7 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
   {{ RET #();
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
         srvRLogLb γr.raft A' ∗
         epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
@@ -1359,17 +1446,17 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
         srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
         srvWTTaken γp w ∗
-        (∃ x' : apply.ApplyKV, srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
+        (∃ x' : apply.ApplyKV, srvApplyKVM E.authOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
+          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
         srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
           lastTermIs A' sv.Metadata'.Term'⌝ }}
 
-/-- **The glue at `run`: the applied log's auth state** (what `specSnapOn`'s applied auth state and
-`applyAll.specSnapOn`'s `kvAppliedOn` take, from `applyResOn`'s `kvRunAtOn`): the KV row's model
+/-- **The glue at `run`: the applied log's auth state** (what `specSnapM`'s applied auth state and
+`applyAll.specSnapM`'s `kvAppliedM` take, on,, from `applyResOn`'s `kvRunAtOn`): the KV row's model
 pins the applier's auth state to the state after `A`. -/
 theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV)
     (sa : auth.AuthState) :
@@ -1393,9 +1480,9 @@ theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
 /-- **`run`'s auth-on snapshot-payload job** (review R1's F6: restated as the twin of J8b's
 `run_job_snap`, `EtcdServer__run.lean`, statement only): its premises and resources, with the loop's
 resources in the mode `on` (`applyResOn`; the store's snapshot clause is its `srvSnapOwn`'s
-`srvSnapRO` row, review R2's N6); `applyAll.specSnapOn` takes the loop from `A` to the image's log
+`srvSnapRO` row, review R2's N6); `applyAll.specSnapM` takes the loop from `A` to the image's log
 `A'`. -/
-theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapOn (GF := GF) (hG := hG))
+theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
     (γn : RNNames) (rt : w64) (γa : auth.AuthNames) (hM : C.E.authMode = .on γa)
@@ -1425,6 +1512,46 @@ theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapOn (GF := GF) (hG := h
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResOn C A' }} := by
   sorry
+
+/-- **Lean's `specSnap` is `specSnapM`'s `off` case** (F9): in the mode `off` every mode-indexed
+part is lean's by `rfl`. -/
+theorem EtcdServer.applySnapshot.specSnap_of_M
+    (h : EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG)) :
+    EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
+  intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl
+    hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hcc hkI hbr hlp γp hrbw
+    stp γd γt img nt hstp hnt halarm halbi hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok
+    hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
+  have hon : E.authOn = false := by simp [apply.AEnv.authOn, hoff, auth.AuthMode.isOn]
+  have H := h s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP
+    hcfgl hmmap tI hmeta st b hle al ast lp cl x A (by rw [hoff]; exact hRO) hlease hwq R hpre
+    hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs
+    dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' (by rw [hon]; exact hA')
+    (by rw [hoff]; exact hauthb) γnc
+  rw [hon, hoff] at H
+  exact H
+
+/-- **Lean's `applyAll.specSnap` is `applyAll.specSnapM`'s `off` case** (F9). -/
+theorem EtcdServer.applyAll.specSnap_of_M
+    (h : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)) :
+    EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
+  intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn
+    rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
+  cases hon : E.authOn with
+  | false =>
+    have H := h s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk
+      q γn rt n srvAuthSt0 (fun h' => by rw [hon] at h'; cases h') hai hi61 hboot hAL hcia hraft hc0
+      (by rw [hon]; exact hch) hlog0 hγn hnI
+    rw [hon] at H
+    exact H
+  | true =>
+    -- lean's rows are the mode `off`'s: its precondition refutes `authOn`
+    wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
+      #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
+      #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
+    imod (authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A) $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, -, -⟩
+    rw [hon] at Hoff
+    cases Hoff
 
 end install
 

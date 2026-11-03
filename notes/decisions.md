@@ -30456,3 +30456,25 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 (it closes the watch). `cache_safe`'s statement unchanged. Laws instead of unfolds:
 `common.collectOk_elim`/`_intro`, `cacheWatchSlot_parts`. Open: `Main`'s unfolds of the cache's
 `cacheGetResult`/`cacheGetOk` (the `Get` wiring of 2026-11-02).
+
+## The auth-on snapshot install: one spec over the mode, the readers' `R` lent, the boot buckets idle (2026-11-03 · the user's decisions on F9, N4, F5 · `notes/snapshot-auth-on-plan.md`)
+
+Three questions the review rounds R1/R2 left for the user before the Freeze. **F9**: decision 6 of
+2026-11-01 (one spec per function over the mode) waited for J8b, which has landed: the Draft's
+mode-on twins become `applySnapshot.specSnapM` and `applyAll.specSnapM` over `E.authMode`. Each
+mode-dependent piece is a definition indexed by the mode (`snapAuthImgM`, `snapRestImgM`,
+`snapAuthResM`, `srvSnapAppliedM`, the existing `isServerM`/`srvApplyKVM`/`kvAppliedM`/
+`authApplyOkM`/`srvOpenQ`). Lean's specs are their `off` cases (`specSnap_of_M`,
+`applyAll.specSnap_of_M`, proved in the Draft). The two texts cannot drift apart, and a proof is
+written once. `applyAll.specSnap` has no mode premise: its rows force `off` (`authOn_false_of_off`).
+So the unified spec takes `E.authOn = true → ∃ γa, E.authMode = .on γa`, which is vacuous off; the
+corollary refutes the `on` case from lean's precondition. **N4**: with auth on, the readers'
+`R` is lent against thread tokens (`authRdLoan`), so nothing can build today's `actualMaxReaders`
+copies of `RD = authRd stl R`. The kit's post gives `AonDraft.authRdSupply M stl RD` instead:
+copies off, the lock slots and the loan on. `NewServer`'s supply of `E.RD` and the request, serve and
+compactor paths borrow `RD` per call (`authRdSlot_borrow`). The cost is a wider ripple (the plan's
+"Impact on the base"), taken in this stage rather than a search for a copyable fragment of `R`, which
+may not exist. **F5's boot half**: checked, not chosen. The boot caller holds the auth buckets idle:
+the lessor returns every tracked bucket idle (`NewServer.lean:586-587`, `rbOwnIn ⊤`), and the kit
+weakens it to a part only for today's axiom (`AuthSrv.lean:236`, `rbOwnIn_part`). So the restated
+boot clause keeps the idle `rbOwnIn … authBkts`.
