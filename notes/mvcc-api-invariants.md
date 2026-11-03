@@ -60,7 +60,14 @@ client's halves inside `isStore`/`isWatchableStore` (a legacy mode, thrown away 
 the internals' statements and every client at once); or (c) the new internal lemmas are written
 beside today's proofs (§4.10's variants), with today's specs as their corollaries where they can
 be (a corollary needs (a)'s holder). (b) is what M1 says; it makes stage 1's ghost carry-through
-part of stage 2 and of the migration.
+part of stage 2 and of the migration. **Decided 2026-11-03 (the coordinator): (c) without the
+holder**: parallel modules (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/`), copies of only
+what changes (the invariants `revMuBody`, `writerL`/`writerInv`, `watchStoreBody`, the stream's
+mutex invariant, and the proofs whose statements change: `storeTxnWrite.End`,
+`store.updateCompactRev`, `store.Restore`, `watchableStore.watch`, `NewStore`), carrying §1's ghost
+state, the share token and the frozen writer state; unchanged modules reused by import; today's
+specs and proofs untouched and green until the M1 switch deletes them and moves every client at
+once.
 
 ## 2. The predicates
 

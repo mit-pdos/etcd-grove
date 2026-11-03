@@ -30368,3 +30368,16 @@ with no need left open, and the independent review's findings were repaired (F1 
 above) or recorded (F4, `keySized` derivable, kept). Next: the proofs, stage 1 (the vocabulary's
 re-exports, the ghost state, the definitions in a sealed `ApiImpl.lean`), then the contracts and
 laws in parallel, then the clients (M1: all at once).
+
+## mvcc's API proof: parallel internals, today's untouched (2026-11-03 · the coordinator · branch `mvcc-api`)
+
+**The question.** Carrying the API's new ghost state (`notes/mvcc-api-invariants.md` §1) through
+today's proofs cannot keep today's statements for the steps that change the store's state: each
+must update the client's half, which today's specs do not give their callers. **Decision:** (c)
+without a holder: the new internals are new modules beside today's
+(`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/`), copies of only the invariants and proofs
+whose statements change, the rest reused by import; today's specs and proofs stay untouched and
+green; the M1 switch deletes them and moves every client at once. **Not chosen:** (a) a legacy
+holder of the client's halves inside `isStore` (work thrown away at M1), (b) changing the internals
+in place with every client at once (the whole build red until the end).
+
