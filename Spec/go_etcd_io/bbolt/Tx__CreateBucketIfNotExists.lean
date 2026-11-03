@@ -39,7 +39,7 @@ abbrev Tx.CreateBucketIfNotExists.spec : Prop :=
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"CreateBucketIfNotExists")) (Val #name))
   {{ (b : Loc) (err : GoInterface), RET (PairV #b #err); name ↦*{dq} n ∗
       (if n.length = 0 then iprop(⌜err ≠ GoInterface.nil⌝ ∗ boltTx tx γ 1 T)
-       else iprop(⌜err = GoInterface.nil⌝ ∗ boltBkt tx b n (T.gen n) ∗
+       else iprop(⌜err = GoInterface.nil⌝ ∗ boltBkt tx γ b n (T.gen n) ∗
          boltTx tx γ 1 (if T.cur.lookup n = none then T.setBkt n ∅ else T))) }}
 
 end spec

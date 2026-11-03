@@ -41,7 +41,7 @@ abbrev Tx.CreateBucket.spec : Prop :=
       (if n.length = 0 then iprop(⌜err ≠ GoInterface.nil⌝)
        else if T.cur.lookup n ≠ none then
          iprop(globalAddr go_etcd_io.bbolt.errors.ErrBucketExists ↦□ err)
-       else iprop(⌜err = GoInterface.nil⌝ ∗ boltBkt tx b n (T.gen n))) }}
+       else iprop(⌜err = GoInterface.nil⌝ ∗ boltBkt tx γ b n (T.gen n))) }}
 
 end spec
 

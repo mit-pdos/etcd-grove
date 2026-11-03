@@ -17,6 +17,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Heap: allocation returns a meta token (2026-11-03, bbolt's invariant design)
+
+- **Limitation.** GooseLang's allocation specs give the points-to of a fresh location but no
+  `metaToken l ⊤` (iris-lean's `GenHeap` has `metaToken`/`metaInfo`; Iris HeapLang's `wp_alloc`
+  hands out the token). Without it a library cannot attach ghost data to an object it allocates
+  (`metaInfo l N x`: timeless, persistent, agreeing), so a predicate keyed by the object alone
+  (`txBytes tx s b`, `boltBkt tx b n g`) cannot be tied to the ghost names of the object's owner
+  in a pure law; a package fact cannot carry such a registry either (a fixed proposition: a ghost
+  name inside it does not agree between two copies).
+- **Needed by.** bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`): `txBytes_acc`, `boltTx_fill`,
+  `boltCur_timeless` (the design `bbolt-inv/design.md`, D-C).
+- **Here.** The γ-free predicates take the database's ghost name instead (`txBytes tx γ s b`,
+  `boltBkt tx γ b n g`, `boltCur tx γ c …`, `curAt tx γ …`; decided by the coordinator, 2026-11-03;
+  `notes/decisions.md`, "bbolt's API spec"). The backend carries `γ.db` already.
+- **Proposal.** Every GooseLang allocation spec (`wp_alloc`, `GoAlloc`, composite literals'
+  addresses) also gives `metaToken l ⊤`, as HeapLang's does; a general change, not shaped by
+  bbolt. With it the extra `γ` could be dropped again (an API change then).
+- **Status.** Not started.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof

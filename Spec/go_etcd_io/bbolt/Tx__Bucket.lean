@@ -38,7 +38,7 @@ abbrev Tx.Bucket.spec : Prop :=
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Bucket")) (Val #name))
   {{ (b : Loc), RET #b; boltTx tx γ q T ∗ name ↦*{dq} n ∗
       ((⌜T.cur.lookup n = none ∧ b = Loc.null⌝) ∨
-       (⌜T.cur.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ boltBkt tx b n (T.gen n))) }}
+       (⌜T.cur.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ boltBkt tx γ b n (T.gen n))) }}
 
 end spec
 

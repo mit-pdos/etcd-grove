@@ -34,10 +34,10 @@ cursor then is). -/
 abbrev Cursor.Seek.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
     (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx c T es pos ∗ key ↦*{dk} kb }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos ∗ key ↦*{dk} kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Seek")) (Val #key))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗ key ↦*{dk} kb ∗
-      boltCur tx c T es (some (seekIdx es kb)) ∗ curAt tx es (seekIdx es kb) k v }}
+      boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }}
 
 end spec
 

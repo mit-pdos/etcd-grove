@@ -111,19 +111,19 @@ opaque txDone [HasExt osFsExt] (tx : Loc) : IProp GF
 /-- `b` is `tx`'s handle of the bucket named `n` at generation `g` (persistent). Its operations
 need `n` at generation `g` in the transaction's view: a deleted bucket's handle is never current
 again (a re-created bucket of the name gets a new generation). -/
-opaque boltBkt [HasExt osFsExt] (tx b : Loc) (n : GoString) (g : Nat) : IProp GF
+opaque boltBkt [HasExt osFsExt] (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF
 
 /-- `c` is a cursor of `tx`, made at the view `T`, over the entries `es`, at position `pos`
 (`none`: not positioned; `some i`, `i ≤ es.length`: at the `i`-th entry, or past the last at
 `es.length`, see `Cursor.Next.spec`). Exclusive. Its moves need `tx` at the view `T`: after a
 change of the transaction, a cursor made before it is not usable (Go: "You must reposition your
 cursor after mutating data"; the spec does not let it be repositioned). -/
-opaque boltCur [HasExt osFsExt] (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF
+opaque boltCur [HasExt osFsExt] (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF
 
 /-- The slice `s` holds `b` while `tx` is live (persistent; read with `txBytes_acc`): a key or
 value bbolt returned, pointing into the memory map (unmapped by a remap or `Close`, which wait
 for the transaction) or into the transaction's nodes. -/
-opaque txBytes [HasExt osFsExt] (tx : Loc) (s : GoSlice) (b : GoString) : IProp GF
+opaque txBytes [HasExt osFsExt] (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) : IProp GF
 
 /-- **The file at `path` holds a database with the data `D`** (exclusive): what `Open` reads.
 Defined over the Linux file extension (`GooseLang/Ext/OsFs`: the file's whole `osMeta`, with no
@@ -174,6 +174,10 @@ page cache, and durability is out of scope), and either
   - **no empty non-root page** (round 2: else `Prev` and `Last` misread or hang,
     `issues/bbolt-cursor-prev-empty-leaf.md`), and (round 3) **every branch page with at least two
     elements** (`rebalance` asserts `parent.numChildren() > 1`);
+  - (D-E, the coordinator after the invariant design) **every leaf at the same depth**
+    (`rebalance` merges a node with a sibling without checking that both are leaves or both
+    branches; bbolt's own writes keep it: `spill` splits a node into siblings of its kind, and
+    `rebalance` collapses only the root);
   - (round 6, replacing round 3's clause) **every page's element headers and key/value bytes lie
     within the page's own extent** (`(overflow + 1) * pageSize` bytes from its start), and end
     below `MaxAllocSize` from the page start (bbolt never bounds-checks them: bytes read through
@@ -204,10 +208,10 @@ into a buffer sized by `node.size()`); without `NoFreelistSync` the commit write
 pending ids, each in `[2, hwm)` and unique, into a freelist-type page sized for them, and with it
 (etcd) the meta's freelist is `PgidNoFreelist` and the clause is vacuous. With these, the check `freepages` runs in a failed
 commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
--- Round 9: `fileHolds` also holds OsFs's (persistent) `osInv`, which `Open` used to take
--- separately (D8's "fold `osInv` into `fileHolds`"); so the bbolt triples, stated over OsFs's
--- default semantics (`[HasExt osFsExt]`), mention no OsFs resource, and `fileHolds_new` takes
--- `osInv`.
+-- Round 9 folded OsFs's `osInv` into `fileHolds`; the coordinator unfolded it after the
+-- invariant design (D-B: `osInv` is an invariant, so `fileHolds` was not timeless, and the fold's
+-- reason went with D22 = (b)): `Open` takes `osInv` separately, and `fileHolds` is `osMeta`,
+-- `osBytes` and pure facts.
 opaque fileHolds [HasExt osFsExt] (path : GoString) (D : Data) : IProp GF
 
 /-! ## Laws -/
@@ -215,7 +219,8 @@ opaque fileHolds [HasExt osFsExt] (path : GoString) (D : Data) : IProp GF
 @[instance] theorem isBolt_persistent (db : Loc) (γ : BoltName) :
     Persistent (isBolt (GF := GF) db γ) := by sorry
 -- Round 3: round 2's `isBolt_agree`/`boltTx_isBolt` are dropped (review 2, finding 6: a pure
--- entailment between two handles needs a registry `db ↦ γ` in bbolt's package initialization).
+-- entailment between two handles needs a registry `db ↦ γ`, and none can be had: a package fact
+-- is a fixed proposition, so a ghost name inside it does not agree between two copies; D-E).
 -- The clients carry `γ` instead: the backend already has it (`BNames`' `γ.db`, beside every
 -- `isDB db`), so its layer is `isDB db := isBolt db γ.db` (`notes/bbolt-spec-decisions.md`, D19).
 @[instance] theorem boltState_timeless (γ : BoltName) (q : Qp) (D : Data) :
@@ -227,8 +232,12 @@ theorem boltState_agree (γ : BoltName) (q1 q2 : Qp) (D1 D2 : Data) :
 theorem boltState_valid (γ : BoltName) (q : Qp) (D : Data) :
     boltState (GF := GF) γ q D ⊢ ⌜q ≤ 1⌝ := by sorry
 
-@[instance] theorem boltTx_timeless (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
-    Timeless (boltTx (GF := GF) tx γ q T) := by sorry
+/-- **A later transaction is a transaction, given its database** (decided by the coordinator after
+the invariant design, D-A, in place of `boltTx_timeless`: `boltTx` holds the transaction's locks'
+and bbolt's invariants, which are not timeless; the timeless rest is stripped, and the invariants
+come from `isBolt`). -/
+theorem boltTx_later (db tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
+    isBolt (GF := GF) db γ ⊢ ▷ boltTx tx γ q T -∗ ◇ boltTx tx γ q T := by sorry
 @[instance] theorem boltTx_fractional (tx : Loc) (γ : BoltName) (T : TxView) :
     Fractional (fun q => boltTx (GF := GF) tx γ q T) := by sorry
 /-- Two fractions of one transaction of one database agree on its view (round 6: over one name;
@@ -248,18 +257,19 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
 
 @[instance] theorem txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db) := by sorry
 @[instance] theorem txDone_persistent (tx : Loc) : Persistent (txDone (GF := GF) tx) := by sorry
-@[instance] theorem boltBkt_persistent (tx b : Loc) (n : GoString) (g : Nat) :
-    Persistent (boltBkt (GF := GF) tx b n g) := by sorry
-@[instance] theorem txBytes_persistent (tx : Loc) (s : GoSlice) (b : GoString) :
-    Persistent (txBytes (GF := GF) tx s b) := by sorry
-@[instance] theorem boltCur_timeless (tx c : Loc) (T : TxView) (es : List BoltEnt)
-    (pos : Option Nat) : Timeless (boltCur (GF := GF) tx c T es pos) := by sorry
+@[instance] theorem boltBkt_persistent (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
+    (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by sorry
+@[instance] theorem txBytes_persistent (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) :
+    Persistent (txBytes (GF := GF) tx γ s b) := by sorry
+@[instance] theorem boltCur_timeless (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView)
+    (es : List BoltEnt) (pos : Option Nat) : Timeless (boltCur (GF := GF) tx γ c T es pos) := by
+  sorry
 @[instance] theorem fileHolds_timeless (path : GoString) (D : Data) :
     Timeless (fileHolds (GF := GF) path D) := by sorry
 
 /-- A slice the transaction returned is read while the transaction is live (any fraction). -/
 theorem txBytes_acc (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (s : GoSlice) (b : GoString) :
-    txBytes (GF := GF) tx s b ∗ boltTx tx γ q T ⊢
+    txBytes (GF := GF) tx γ s b ∗ boltTx tx γ q T ⊢
       ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ boltTx tx γ q T) := by sorry
 
 /-- **A bucket handle's `FillPercent` field** (exported, written by clients: the backend's
@@ -268,9 +278,13 @@ and written back with any value but a NaN (a NaN passes `node.splitTwo`'s clamp 
 `Commit` panic on a large leaf: `nonissues/bbolt-fillpercent-nan.md`; every other value is
 clamped into `[0.1, 1.0]`). The repair of the refuted `backend.ownWTxG_fill`. Round 3: in the
 model the premise matters only through `splitThresholdOk` (D17); without the trusted helper no
-premise on the field could bound the threshold. -/
-theorem boltTx_fill (tx b : Loc) (γ : BoltName) (T : TxView) (n : GoString) (g : Nat) :
-    boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx b n g ⊢
+premise on the field could bound the threshold. For a write transaction only (decided by the
+coordinator after the invariant design, D-D: a reader's `Tx.Bucket` runs at any fraction and
+allocates a fresh handle each call, which no entailment from `boltTx … 1` can find; the backend
+writes `FillPercent` in write transactions only). -/
+theorem boltTx_fill (tx b : Loc) (γ : BoltName) (T : TxView) (n : GoString) (g : Nat)
+    (hrw : T.rw = true) :
+    boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n g ⊢
       ∃ f : w64, structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f ∗
         (∀ f' : w64, ⌜¬ float64IsNaN f'⌝ -∗
           structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f' -∗ boltTx tx γ 1 T) := by
@@ -278,13 +292,13 @@ theorem boltTx_fill (tx b : Loc) (γ : BoltName) (T : TxView) (n : GoString) (g 
 
 /-- What a cursor move to the `i`-th entry returns: its key (never nil: bbolt's keys are not
 empty) and value, valid while `tx` is live; nil and nil past the end. -/
-def curAt (tx : Loc) (es : List BoltEnt) (i : Nat) (k v : GoSlice) : IProp GF :=
+def curAt (tx : Loc) (γ : BoltName) (es : List BoltEnt) (i : Nat) (k v : GoSlice) : IProp GF :=
   match es[i]? with
-  | some e => iprop(⌜k ≠ slice.nil⌝ ∗ txBytes tx k e.1 ∗ txBytes tx v e.2)
+  | some e => iprop(⌜k ≠ slice.nil⌝ ∗ txBytes tx γ k e.1 ∗ txBytes tx γ v e.2)
   | none => iprop(⌜k = slice.nil ∧ v = slice.nil⌝)
 
-instance curAt_persistent (tx : Loc) (es : List BoltEnt) (i : Nat) (k v : GoSlice) :
-    Persistent (curAt (GF := GF) tx es i k v) := by
+instance curAt_persistent (tx : Loc) (γ : BoltName) (es : List BoltEnt) (i : Nat)
+    (k v : GoSlice) : Persistent (curAt (GF := GF) tx γ es i k v) := by
   unfold curAt; split <;> infer_instance
 
 /-- **A client holding the committed data** (all of it, not in an invariant) can supply any read
@@ -309,10 +323,10 @@ opaque dbCloseOk : Prop
 
 /-- **A fresh file holds the empty database** (round 2; the concurrent test's start, a path in a
 fresh directory): no file at `path`, or an empty one with no mapping, in OsFs's terms
-(`GooseLang/Ext/OsFs/Specs.lean`). It takes `osInv`, which `fileHolds` holds (round 9). Round 11:
-stated again, at the default semantics (D22). -/
+(`GooseLang/Ext/OsFs/Specs.lean`). Round 11: stated again, at the default semantics (D22). (D-B,
+the coordinator: no `osInv` here, which `fileHolds` no longer holds.) -/
 theorem fileHolds_new (path : GoString) (mo : Option OsMeta) :
-    osInv (GF := GF) ∗ osMeta (GF := GF) path (DFrac.own 1) mo ∗
+    osMeta (GF := GF) path (DFrac.own 1) mo ∗
       (match mo with
        | none => iprop(emp)
        | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))

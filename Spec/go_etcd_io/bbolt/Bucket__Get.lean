@@ -35,12 +35,12 @@ value was put as nil also reads back nil; Go's `Get` cannot tell them apart.) -/
 abbrev Bucket.Get.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx b n (T.gen n) ∗ key ↦*{dk} kb ∗ ⌜T.cur.lookup n = some m⌝ }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ ⌜T.cur.lookup n = some m⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Get")) (Val #key))
   {{ (v : GoSlice), RET #v; boltTx tx γ q T ∗ key ↦*{dk} kb ∗
       (match m.lookup kb with
        | none => iprop(⌜v = slice.nil⌝)
-       | some vb => txBytes tx v vb) }}
+       | some vb => txBytes tx γ v vb) }}
 
 end spec
 

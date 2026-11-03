@@ -37,10 +37,10 @@ true (a WP is partial: a call that never returns meets any post), but its "nil, 
 bucket" is no promise there. etcd never calls `Last`. -/
 abbrev Cursor.Last.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx c T es pos }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Last")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
-      boltCur tx c T es (some (es.length - 1)) ∗ curAt tx es (es.length - 1) k v }}
+      boltCur tx γ c T es (some (es.length - 1)) ∗ curAt tx γ es (es.length - 1) k v }}
 
 end spec
 

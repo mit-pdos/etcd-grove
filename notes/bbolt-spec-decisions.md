@@ -1309,6 +1309,9 @@ resources, which would let `wp_Options_String` become a proof once `Options` is 
   isBolt db γ.db`.
 - Alternative: the registry. It is provable (the package fact holds an authoritative `ghost_map`,
   and `Open` inserts `db ↦ γ`) but adds a package-initialization fact.
+- *(Corrected after the invariant design, D-E: the registry is **not** provable this way. A package
+  fact is a fixed proposition, so an existential ghost name inside it does not agree between two
+  copies; see "Corrections after the invariant design" at the end.)*
 - **Recommend: drop the laws.**
 
 **D14 (new in round 2): `Cursor.Prev` is specified for read transactions only.**
@@ -1754,3 +1757,37 @@ Also trusted:
 - **Not specified:** `View`, `Update`, `Batch`, `ForEach`, `WriteTo`, nested buckets, crash
   durability.
 - **Reviewed:** rounds 1–11 (`review-11.md`: nothing blocks). Round 12 is documentation only.
+
+## Corrections after the invariant design (2026-11-03, decided by the coordinator)
+
+The invariant design (`bbolt-inv/design.md`, section 1, D-A..D-E) found four laws unprovable
+under every representation consistent with the triples, and one documentation error. Decided by
+the coordinator after the invariant design and landed with the spec; `candidate.lean` (scratch)
+is unchanged, so the text above describes the frozen candidate, and these override it:
+
+- **D-A.** `boltTx_timeless` is false of any representation: `Rollback`/`Commit` take only
+  `boltTx`, and their code takes `rwlock`, `metalock`, `mmaplock`, so `boltTx` carries Iris
+  invariants, which are not timeless. Replaced by `boltTx_later : isBolt db γ ⊢ ▷ boltTx tx γ q
+  T -∗ ◇ boltTx tx γ q T`.
+- **D-B.** `osInv` (an invariant) folded into `fileHolds` made `fileHolds_timeless` false; the
+  fold's reason (no OsFs resource in the restricted-semantics statements) went with D22 = (b).
+  `Open` takes `osInv` separately again (round 8's form), `fileHolds_new` no longer takes it.
+- **D-C.** `txBytes`, `boltBkt`, `boltCur` (and so `curAt`) did not name the database, and
+  nothing reached from `tx` alone can agree with the ghost names `boltTx tx γ` knows (Perennial's
+  allocation gives no meta token; a package fact cannot hold a registry). They take `γ` after
+  `tx`: `txBytes tx γ s b`, `boltBkt tx γ b n g`, `boltCur tx γ c T es pos`, `curAt tx γ es i k v`,
+  in every law and triple. The general fix, allocation returning a meta token as Iris HeapLang's
+  does, is proposed in `notes/perennial-changes.md`.
+- **D-D.** `boltTx_fill` holds only for write transactions (`T.rw = true`): a reader's
+  `Tx.Bucket` runs at any fraction and allocates a fresh handle each call, which no entailment
+  from `boltTx … 1` finds. The backend writes `FillPercent` only in write transactions.
+- **D-E.** D19's "the registry is provable" was wrong (above). The backend's corollary counts in
+  "Good for etcd" and "Backend impact" are of the frozen candidate: with D-C the backend's handle,
+  cursor and slice predicates (`wBkt`, `rBkt`, the cursors, returned slices) gain `γ.db`, which
+  every `_kv` statement over them has in scope, so the "exact corollary" rows stay corollaries of
+  restated backend predicates; with D-B `Open_kv` takes `osInv` as before round 9; with D-A the
+  backend's `txLive_timeless` axiom has no counterpart (its users take `isBolt db γ.db` for
+  `boltTx_later`). The rows are to be re-counted at the backend switch. `fileHolds`' docstring
+  gains "every leaf at the same depth" (`rebalance` merges siblings without checking `isLeaf`;
+  bbolt's own writes keep it); the statement does not change.
+

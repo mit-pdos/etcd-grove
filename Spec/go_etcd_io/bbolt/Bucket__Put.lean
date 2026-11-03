@@ -37,7 +37,7 @@ cannot store are not `Put`'s (`notes/bbolt-spec-decisions.md`, D4). -/
 abbrev Bucket.Put.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx b n (T.gen n) ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
+  {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
       ⌜T.rw = true ∧ T.cur.lookup n = some m ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
   {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗

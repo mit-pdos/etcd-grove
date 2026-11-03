@@ -40,13 +40,13 @@ well-formedness, kept by every commit's rebalance), so there the spec holds. etc
 `Prev`. -/
 abbrev Cursor.Prev.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx c T es pos ∗ ⌜T.rw = false⌝ }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos ∗ ⌜T.rw = false⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Prev")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
       (match pos with
-       | none => iprop(boltCur tx c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
-       | some 0 => iprop(boltCur tx c T es (some 0) ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
-       | some (i + 1) => iprop(boltCur tx c T es (some i) ∗ curAt tx es i k v)) }}
+       | none => iprop(boltCur tx γ c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
+       | some 0 => iprop(boltCur tx γ c T es (some 0) ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
+       | some (i + 1) => iprop(boltCur tx γ c T es (some i) ∗ curAt tx γ es i k v)) }}
 
 end spec
 

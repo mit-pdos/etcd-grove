@@ -32,10 +32,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.First()`: the first entry (nil, nil for an empty bucket). -/
 abbrev Cursor.First.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx c T es pos }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"First")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
-      boltCur tx c T es (some 0) ∗ curAt tx es 0 k v }}
+      boltCur tx γ c T es (some 0) ∗ curAt tx γ es 0 k v }}
 
 end spec
 

@@ -36,12 +36,12 @@ false`: a key a cursor of the same transaction returned, as mvcc's compaction de
 abbrev Bucket.Delete.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx b n (T.gen n) ∗
-      (if own then key ↦*{dk} kb else txBytes tx key kb) ∗
+  {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n (T.gen n) ∗
+      (if own then key ↦*{dk} kb else txBytes tx γ key kb) ∗
       ⌜T.rw = true ∧ T.cur.lookup n = some m⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Delete")) (Val #key))
   {{ RET #GoInterface.nil; boltTx tx γ 1 (T.setBkt n (m.delete kb)) ∗
-      (if own then key ↦*{dk} kb else txBytes tx key kb) }}
+      (if own then key ↦*{dk} kb else txBytes tx γ key kb) }}
 
 end spec
 

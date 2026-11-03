@@ -55,7 +55,7 @@ abbrev Open.spec : Prop :=
   ∀ [HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
     (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM)
     (D : Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ⌜↑N ## ↑osN⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗
       fileHolds path D ∗
       optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))

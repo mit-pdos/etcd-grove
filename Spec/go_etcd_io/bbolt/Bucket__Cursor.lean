@@ -33,9 +33,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 the bucket's entries in the view now, not positioned. -/
 abbrev Bucket.Cursor.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (n : GoString) (m : BktData),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx b n (T.gen n) ∗ ⌜T.cur.lookup n = some m⌝ }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx γ b n (T.gen n) ∗ ⌜T.cur.lookup n = some m⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Cursor")) (Val #()))
-  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ boltCur tx c T (bktEnts m) none }}
+  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ boltCur tx γ c T (bktEnts m) none }}
 
 end spec
 

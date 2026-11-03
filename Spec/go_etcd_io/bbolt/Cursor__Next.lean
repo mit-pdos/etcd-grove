@@ -37,13 +37,13 @@ whose trailing leaves deletes emptied, Go's stack ends on an empty leaf instead,
 `Prev` could tell apart, and the spec of `Prev` is for read transactions only. -/
 abbrev Cursor.Next.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx c T es pos }}
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Next")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
       (match pos with
-       | none => iprop(boltCur tx c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
-       | some i => iprop(boltCur tx c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
-           curAt tx es (i + 1) k v)) }}
+       | none => iprop(boltCur tx γ c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
+       | some i => iprop(boltCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
+           curAt tx γ es (i + 1) k v)) }}
 
 end spec
 
