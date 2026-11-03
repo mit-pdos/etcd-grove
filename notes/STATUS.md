@@ -571,10 +571,13 @@ the importable list `etc/api/mvcc.txt` (the API, its vocabulary still in 12 inte
 modules of debt today's clients import), its interfaces and layout baseline; the vocabulary's
 lemmas (`notify_notifiedLog`, the `logCh` rewrites, `pendItems_nil`) and `reach_logWf` proved; the
 watch stream's saved filters (`ApiGhost.lean`: ghost values must be countable, so a watcher's
-filters are saved as a discrete code, agreeing with no later). Blocked: carrying the new ghost state
-through today's proofs conflicts with keeping today's statements for the steps that change the
-state (`notes/mvcc-api-invariants.md`, §1, "Open": a legacy holder, the internals and clients
-together, or variants beside) (2026-11-03,
+filters are saved as a discrete code, agreeing with no later); the parallel internals decided ((c)
+without a holder, `notes/decisions.md`, "parallel internals") and begun: `Api/Ghost.lean`, the
+store's API ghost state (view, pending revision, compaction lower bound, share token) with its
+allocation, agreement and update lemmas. Next: the copies under `Api/` of the writer's and
+`s.revMu`'s invariants (`InvStore.lean`'s `writerL`/`writerInv`/`revMuBody` and the lemmas over them,
+about half of its 6655 lines depend on them), `watchStoreBody` and the stream's mutex invariant,
+then the five proofs whose statements change, then `ApiImpl.lean` (2026-11-03,
 `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, `ApiState.lean`, namespace `mvcc.api`, beside
 today's specs; the design and every decision in `notes/mvcc-api-candidate.md`, "Rounds 10-11" on,
 "The freeze"); **the invariants frozen** (`notes/mvcc-api-invariants.md`, round 3, after two
