@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (38)
+## Not reported (41)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -28,9 +28,12 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
+| [bbolt: `Cursor.Last` never returns after deleting every key of a bucket in the same transaction](bbolt-cursor-last-empty-leaves-hang.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
+| [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
+| [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
