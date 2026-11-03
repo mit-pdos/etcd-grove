@@ -631,3 +631,16 @@ whole open token in; nothing about the backend out; kept because etcd's linked `
 `kv.Close()` on its error path), no proof closes the backend after the store, and the tester's
 adequacy stops before its final `kv.Close()`, `le.Stop()`, `be.Close()` (to be shaped when the
 tester's proof is planned: proved up to them, or `Main` without them).
+
+### Decision 2, settled (the user, 2026-11-03): the backend law over the store's needs
+
+`Restore`'s contract frozen as round 13 has it. The law making the store's backend resources
+(`mvccBackendFor_open`) takes what any opener returns (`backend.newPostK` at the caller's `K`:
+`bFresh` at boot, `snapOpenK` when applying a snapshot), plus the store's part of the backend's
+payment rights in the backend's own terms: write-back tokens (two for `NewStore`'s own writes and
+the receipt-paid supply's stock; the count to settle on adoption) and half the clients' open token.
+Correction to round 12's review (H1): the snapshot proof does hold the new backend's write-back
+tokens (`SnapApplyWalk.lean:352`); `snapOpenK` deposits the open token's close half and a futures
+entry. Wiring the snapshot path to the law, and its proof of `Restore`'s length bound (today from
+the old store's revision tokens and `restoreLogOk`; under the API from the model of raft's applied
+log), wait for etcd's snapshot proof to be linked.
