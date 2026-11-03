@@ -164,6 +164,30 @@ batches only, `crev` also after a restore that resumed a compaction), mixed-mode
 (a mode-off member's `kvInv` rules out committed compactions), the receipt in the certificate (a
 receiver's own `idxCert` covers only its shorter log), the permits derived.
 
+## An example after the Prove phase: `linkv3p` with the compactor on (2026-11-02, the user's request)
+
+No closed theorem combines compaction with a snapshot sent to a follower: the compacting examples
+(`compactkv`, `putgetc`, `cachekv`) are one member with `NoSnapCatchUp`, and `linkv3p` (three
+members, partitions, `SnapCount = SnapCatchUp = 1`, its Go test checks a snapshot is sent) runs
+with the compactor off (`common.NewMember` passes retention 0). Once `merged_image_cmp` and
+`run_job_snap_cmp` are proved, add a step that turns the compactor on in `linkv3p`:
+
+- Go: a retention parameter on `common.NewMember` (or a `NewCompactingMember`), `linkv3p` with the
+  revision-mode compactor at a small retention; its Go test also requires a compaction before a
+  snapshot is sent (the test already counts what a run exercised).
+- `linkv3p_safe`: linkvtxn's workload reads only the latest revision ("without leases and stale
+  reads"), so porcupine's model does not change; the work is `Main`'s proof with the compactor on,
+  as `compactkv`/`putgetc` did.
+- `linkv3p_watch_safe` watches from an old revision, which a compaction can now cancel
+  (`ErrCompacted`): decide (user) between keeping that theorem's run with the compactor off and
+  teaching its model the cancellation (the watch's compaction response is already specified, C3's
+  watch side: `cmpOkOf`).
+- Collections: `linkv3p`'s baseline should not gain an axiom or a `sorry`.
+
+Why `linkv3p` and not a new example: it already sends snapshots for real, and compaction is
+invisible to its model. Auth on is not added here (a separate example, `notes/snapshot-auth-on-plan.md`,
+"An example").
+
 ## Questions (for the user; recommendations)
 
 1. **Freeze the certificate as drafted** (`imageAt`'s key view `∃ r, keyImageM γk.cmp (kvModel γk A)
