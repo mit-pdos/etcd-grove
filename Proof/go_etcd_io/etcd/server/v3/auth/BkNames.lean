@@ -188,6 +188,13 @@ def authPubRes (M : AuthMode) (γc : AuthBkNames) (K : IProp GF) : IProp GF :=
   | .on γa => iprop(authBkLife γa γc K ∗ authWTok γc ∗ authPubTok γa)
   | _ => iprop(True)
 
+open Iris.ProofMode in
+/-- `authPubRes` in the mode `on γa`. -/
+theorem authPubRes_on (γa : AuthNames) (γc : AuthBkNames) (K : IProp GF) :
+    authPubRes (GF := GF) (.on γa) γc K ⊣⊢ iprop(authBkLife γa γc K ∗ authWTok γc ∗ authPubTok γa) := by
+  simp only [authPubRes]
+  constructor <;> iintro H <;> iexact H
+
 
 end life
 

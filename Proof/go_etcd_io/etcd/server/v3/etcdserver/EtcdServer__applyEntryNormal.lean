@@ -1361,13 +1361,16 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · -- a KV request: the latest-state triple (`kvSpecL`), the verdict at the row's history
           icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf,
             #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-          ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM $$ []
+          ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM T $$ []
           · iframe Huon Hb Hlnil
           icombine Hasf Hasf' gives %Hst
           have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
           subst Hst'
           ihave ⟨HL, HLback⟩ := auth.ownFuT_lend stl γa hs $$ [Hfu Htie]
           · iframe Hfu Htie
+          -- (the auth-on snapshot plan's Prove step) the checks take the write token too
+          ihave HL : auth.latestResC stl (.on γa) T hs $$ [HL HT]
+          · iunfold auth.latestResC; iframe HL; simp only [auth.authWHeldM]; iexact HT
           ihave #HcpW : apply.certPreVW true E x.chain rq x.log
               (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend)
                 rq x.log) $$ []
@@ -1385,7 +1388,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
-            _ (.quota .backend) (auth.latestRes stl (.on γa)) hs
+            _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs
             $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS HL Hhk] as %ar %id
               ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HRS, %Hstep0, HRes, -, HL, %HXo,
                 #Hdel⟩
@@ -1413,6 +1416,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           have Htie : authTie sa rq out := authTie_of_kvOutL γa hs sa Hhl rq x.log out hz HXo'
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
+          iunfold auth.latestResC at HL
+          icases HL with ⟨HL, HT⟩
+          simp only [auth.authWHeldM]
           ihave ⟨Hfu, Htie'⟩ := HLback $$ HL
           ihave HAR := Hcl $$ %hs %sa Hfu Htie' %Hhl HT Htp
           ihave HFS : srvFS s $$ [HFS]

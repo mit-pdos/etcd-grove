@@ -14,11 +14,11 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
    `auth.revFresh`, `AonDraft.authPublishM`; one spec each: `AonDraft.auth.authStore.
    setRevision.spec`, `auth.authStore.Recover.spec` (over `auth.authOwnPM M hs N`);
    `auth.authCatchUpFirst` (proved), `auth.stepOk_of_fuelB` (proved).
-4. **The premise** (trusted; one premise for boot and every snapshot): `AonDraft.authSchemaSrv`
+4. **The premise** (trusted; one premise for boot and every snapshot): `authSchemaSrv`
    (boot's, changed in place) with the snapshot clause `authSchemaSnap`; `backend.rbOwnIn` (the
    backend's own idle part of a bucket set, `InvBackend.lean`); `authWAtHook`; N4 (2026-11-03, `R` a
    ticket): `authRdN`, `authRdSlots` (the store's share of a backend's reader slots, which both
-   clauses take), `AonDraft.authRdSupply` (the kit's post).
+   clauses take), `authRdSupply` (the kit's post).
 5. **The apply thread's auth resource, redefined**: `AonDraft.authApplyResPre`/`authApplyResB`
    (the fuel at a base `authFuelB`, the lifecycle, the hook clause, `authStepsAny`).
 6. **`Recover` at the install**: `authRecoverOn.spec` and its glue `authRecoverOn_glue` (proved
@@ -128,48 +128,6 @@ theorem catchup_list (γk : KVNames) (A' : List EntryModel) (hs : List auth.Auth
   exact ⟨rfl, srvHist_last γk A'⟩
 
 /-! ## Q3 (b): the auth buckets of a backend's data, and the mode-on image (`srvImageOn`) -/
-
-/-- **The auth buckets of the buckets `r`** (a backend's data, or the tracked view of it,
-`backend.rbData P D`): what the decoding `schema.authBucketsAre` reads. -/
-def authDataOf (r : GMap GoString backend.BktData) : schema.AuthData :=
-  ⟨(r.lookup go!"auth").getD ∅, (r.lookup go!"authUsers").getD ∅,
-    (r.lookup go!"authRoles").getD ∅⟩
-
-/-- **The auth buckets of `r` hold the state `st`** (`schema.authBucketsAre` of `authDataOf r`),
-its revision a `uint64` (the bucket stores `u64Be (W64 st.revision)`, which alone does not bound
-`st.revision`: the read contract's `uint.nat x = st.revision` needs it; review round 1's F2).
-(Q3 (b)'s boot form, "empty buckets at the boot state", is not needed: what `NewAuthStore` leaves
-holds `bump bootState`, `authBucketsAt_after`, so every image decodes with this one form.) -/
-def authBucketsAt (st : auth.AuthState) (r : GMap GoString backend.BktData) : Prop :=
-  schema.authBucketsAre st (authDataOf r) ∧ st.revision < 2 ^ 64
-
-/-- **What `NewAuthStore` leaves holds the start's state** `bump bootState` (its buckets created,
-the revision `1` committed): so an image taken before any admin entry decodes to `srvAuthSt0`. -/
-theorem authBucketsAt_after (r : GMap GoString backend.BktData) :
-    authBucketsAt (auth.bump auth.bootState) (authBucketsAfter r) := by
-  have hA : ((authBucketsAfter r).lookup go!"auth").getD ∅ = authBoot := by
-    simp [authBucketsAfter, GMap.lookup_insert_eq_iff]
-  have hU : ((authBucketsAfter r).lookup go!"authUsers").getD ∅ = ∅ := by
-    simp [authBucketsAfter, GMap.lookup_insert_eq_iff]
-  have hR : ((authBucketsAfter r).lookup go!"authRoles").getD ∅ = ∅ := by
-    simp [authBucketsAfter, GMap.lookup_insert_eq_iff]
-  unfold authBucketsAt
-  refine ⟨?_, by simp [auth.bump, auth.bootState]⟩
-  unfold authDataOf schema.authBucketsAre
-  rw [hA, hU, hR]
-  refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro n v h; simp at h
-  · intro n v h; simp at h
-  · intro v h
-    simp [authBoot, schema.authRevisionKey, GMap.lookup_insert_eq_iff] at h
-    subst h; exact u64Be_length _
-  · simp [schema.enabledOf, authBoot, schema.authEnabledKey, schema.authRevisionKey,
-      GMap.lookup_insert_eq_iff, auth.bump, auth.bootState]
-  · simp [authBoot, schema.authRevisionKey, GMap.lookup_insert_eq_iff, auth.bump, auth.bootState]
-  · intro n; simp [auth.bump, auth.bootState]
-  · intro n v h; simp at h
-  · intro n; simp [auth.bump, auth.bootState]
-  · intro n v h; simp at h
 
 /-- **`D` is the mode-`on` image at index `i` of the server's entries `A`, the raft log being `L`**
 (`imageAt` with the model in the mode `on` from the start's auth state `st₀`): the `Key` bucket
@@ -431,137 +389,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-/-- **The auth realization's share of a backend's open token** (a quarter). -/
-def authOpenQ : Qp := (1 : Qp).half.half
-
-/-- The auth buckets: lean's `auth.authBkts` (the backend-auth-split stage). -/
-abbrev authBkts : GoString → Prop := auth.authBkts
-
--- `backend.rbOwnIn` (decision 1's per-bucket idleness) is the backend's own (`InvBackend.lean`,
--- landed with the backend stage, `a43af91055`); the Draft's opaque stand-in and its split law are gone
--- (the real split is `rbOwn_split`'s into two `rbPart`s, of which only a written-back one is idle).
-
-/-- The schema auth backend `abl` over the backend `be`, with the logger `lg` (read-only). -/
-def ablOn (abl : Loc) (be lg : Loc) : IProp GF :=
-  iprop(structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-        #be : GoInterface) ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg)
-
-instance ablOn_persistent (abl be lg : Loc) : Persistent (ablOn (GF := GF) abl be lg) := by
-  unfold ablOn; infer_instance
-
-/-- **The write contract at every schema auth backend on `d`'s backend, at its frozen hook**
-(`authSchemaSrv`'s E3l/E3n clause), at the backend `γc`'s write token. -/
-def authWAtHook (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) : IProp GF :=
-  iprop(□ ∀ (abl' lg' : Loc) (W' Pk' : IProp GF) (f' : GoFunc),
-    ablOn abl' d.be lg' -∗ backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗
-    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' #f' (auth.authWTok γc))
-
-instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) :
-    Persistent (authWAtHook (GF := GF) γa d γc) := by
-  unfold authWAtHook; infer_instance
-
-/-- **The auth store's reader slots of the backend `d`** (N4): its auth share (`backend.rdAuth`,
-`backend.authRdN` slots, a part of the constructor's partition, P1), which
-the boot premise and the snapshot clause hand the realization for good (review R4's F1: a permission
-check's read transaction may outlive `beMu`, `store.go:941-947`, so the release cannot give them
-back; `backend.Close` takes only the open token, which the slots carry no share of). A ticket `R` is
-redeemed against a slot of the backend current at `lockedReadTx` (with a share of its currency
-`Cu`, which the release takes whole), so the same `R` works on every backend. -/
-def authRdSlots (d : mvcc.KBReal) : IProp GF :=
-  backend.rdAuth d.γB d.P d.be
-
-/-- **The auth store's reader supply** (N4; review R4's F2 and N2): what `authStoreKit`'s post gives
-the server in place of today's `actualMaxReaders` copies of `RD`, in every mode: `authRdN - 1` plain
-copies of the ticket, which the readers keep as long as they like (a gRPC slot, the apply thread's
-`kvOwn`, the compactor), as today; the `authRdN`-th is the auth applier's, in `authApplyResPre`
-(`Recover` reads with it). `NewServer` takes 66 of them. -/
-def AonDraft.authRdSupply (RD : IProp GF) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate (backend.authRdN - 1) (), RD)
-
-/-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
-thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
-lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
-recorded and at an index no smaller than the published one), its open share `authOpenQ`, the
-succession right (the previous backend retired), the client's idle half of the auth buckets
-(`rbOwnIn … authBkts`: `r` is what its readers see), the auth buckets in its table and the store's
-share of its reader slots (`authRdSlots`): schema's
-auth backend `abl` over it meets, for fresh names `γc`, the guarded read contract at `R`, the write
-contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
-the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share until
-the release, and the slots for good). The readers' copies of `R` (tickets, the boot premise's) work on it
-unchanged. The client keeps the other tracked buckets. -/
-def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
-  iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
-      (r : GMap GoString backend.BktData) (st : auth.AuthState),
-    ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ablOn abl d.be lg -∗
-    -- (review R1's F5) the auth buckets in the backend's table, as `NewAuthStore.spec` takes them
-    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    backend.rbOwnIn d.γB authBkts r -∗ authRdSlots d -∗
-    backend.bOpen d.γB authOpenQ -∗
-    auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗
-    |={⊤}=> ∃ γc : auth.AuthBkNames,
-      auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
-      authWAtHook γa d γc ∗ auth.authWTok γc ∗
-      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ))
-
-instance authSchemaSnap_persistent (γa : auth.AuthNames) (R : IProp GF) :
-    Persistent (authSchemaSnap (GF := GF) γa R) := by
-  unfold authSchemaSnap; infer_instance
-
-/-- **`authSchemaSrv`, restated** (the premise of `NewServer.specM true`; one trusted premise for
-boot and every snapshot): for any auth names, given what `NewAuthStore`'s axiom takes of the
-server's backend, its open share `authOpenQ`, the batch lock's share of the history at the boot
-state and **half the published index's authority** (decision 2), schema's auth backend `abl` over
-`d` meets, for fresh names `γc`: the guarded read contract at a reader resource `R`, with the whole
-currency; the write contract (with the hook `P f`) and at every schema auth backend on `d` at its
-frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
-and the lifecycle (its realization keeping the open share and a quarter of the published index's
-authority); `authRdN` copies of `R` (tickets, backed by the store's share of the backend's reader
-slots, `authRdSlots`, taken; N4); the constructor's critical section, whose `Post`
-gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
-half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
-client keeps the others') and the succession right (one live backend).
-
-Today's five refutations, against this text: (1) the latest clause takes `T`; (2) the published
-index's authority is shared with the realization, publication needs `T`; (3) no `rbOwn` of the auth
-buckets comes back; (4) `Cu`/`T` stand for an open share the realization keeps until both are
-surrendered; (5) `T` and `Cu` are functions of `γc`, which `beP` and the apply thread share. Review
-rounds A1/A2: the auth buckets taken idle (no pending write: the readers see `r`); the succession
-right taken (one live backend). -/
-def AonDraft.authSchemaSrv : IProp GF :=
-  iprop(□ ∀ (γa : auth.AuthNames) (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
-      (r : GMap GoString backend.BktData),
-    ⌜lg ≠ null⌝ -∗
-    ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-      (r.lookup go!"authRoles").getD ∅ = ∅⌝ -∗
-    ablOn abl d.be lg -∗
-    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
-    backend.bOpen d.γB authOpenQ -∗ authRdSlots d -∗
-    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
-    auth.authSucc γa -∗
-    auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
-    |={⊤}=> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
-      auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) ∗
-      authWAtHook γa d γc ∗
-      □ ({{ auth.authWTok γc }} (App (Val #(methods
-          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-          go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
-      auth.authWTok γc ∗ auth.authPubTok γa ∗
-      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      mvcc.csContract P f Pre Q Post ∗
-      ([∗list] _x ∈ List.replicate backend.authRdN (), R) ∗
-      (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
-      authSchemaSnap γa R)
-
-instance AonDraft.authSchemaSrv_persistent : Persistent (AonDraft.authSchemaSrv (GF := GF)) := by
-  unfold AonDraft.authSchemaSrv; infer_instance
 
 /-! ## The apply thread's auth resource, redefined (decision 7) -/
 

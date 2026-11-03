@@ -360,20 +360,22 @@ instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF)
 contracts, with auth on** (persistent): for every environment with auth on and every uber-applier
 the server holds (`applySnapshot` replaces it) with its base applier's auth layer (`srvUberBase`),
 its KV contract (`apply.uberKVC`) given that the lessor finds no lease, and its admin contract
-(`apply.uberAdmC`) at every admin row's store, backend and write token. Whoever constructs the
+(`apply.uberAdmC`) at every admin row's store, backend and write token. (Since the auth-on snapshot
+plan's Prove step, 2026-11-03, at the current backend's names `γc`: the latest-state family
+`auth.latestResC` carries the write token, the admin steps' resource is `adminWC`.) Whoever constructs the
 uber-applier establishes its contract: `NewServer` with auth on (`uberKitM`); `applyEntryNormal`
 reads it (`srvKVInvsM_uberOn`). -/
 def srvUberOn (s : Loc) : IProp GF :=
   iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
     srvUberBase s ua E -∗
-    (srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa))) ∗
-    (∀ (stl bel : Loc) (T : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
+    (∀ γc : auth.AuthBkNames, srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc)) ∗
+    (∀ (stl bel : Loc) (T : auth.AuthBkNames), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
         apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-          (adminW stl bel (.on γa) E.P E.f T) E.RD -∗
-        apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+          (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD -∗
+        apply.uberAdmC ua E (adminWC stl bel γa E.P E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-          (auth.latestRes stl (.on γa))))
+          (auth.latestResC stl (.on γa) T)))
 
 instance srvUberOn_persistent (s : Loc) : Persistent (srvUberOn (GF := GF) s) := by
   unfold srvUberOn; infer_instance
@@ -407,25 +409,25 @@ theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 /-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
 lessor finds no lease. -/
 theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (hM : E.authMode = .on γa) :
+    (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) := by
   iintro ⟨#H, #Hb, #Hln⟩
   iunfold srvUberOn at H
   ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
-  iapply Hkv $$ Hln
+  iapply Hkv $$ %γc Hln
 
 /-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
 row's store, backend and write token. -/
 theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (stl bel : Loc) (T : IProp GF) (hM : E.authMode = .on γa) :
+    (stl bel : Loc) (T : auth.AuthBkNames) (hM : E.authMode = .on γa) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
-      apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+        (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD ⊢
+      apply.uberAdmC ua E (adminWC stl bel γa E.P E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-        (auth.latestRes stl (.on γa)) := by
+        (auth.latestResC stl (.on γa) T) := by
   iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberOn at H
   ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb
