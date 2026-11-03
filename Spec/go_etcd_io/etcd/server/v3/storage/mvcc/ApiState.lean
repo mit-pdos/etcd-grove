@@ -183,9 +183,12 @@ non-negative, so that Go's comparators, which subtract (`txn/range.go:214-226`),
 def kvSortOk (e : EtcdKv) : Prop :=
   0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version
 
-/-- **A state safe to sort** (round 15): at most `2 ^ 62` key-values (the sort's own premise, its
-heapsort fallback's), each safe to sort. What a range's results need, stated where they are
-produced (the `Range` contracts), not as a law of the state. -/
+/-- **A state safe to sort** (round 15): at most `2 ^ 62` key-values (the premise of Perennial's
+sort spec, its heapsort fallback's index arithmetic), each safe to sort. **A temporary, local
+assumption**: it exists only because of that limitation of Perennial's spec, to go when Perennial's
+sort spec drops its size premise, so it is stated at the one place a range's results are produced
+(the `Range` contracts), not as a law of the store's state that every client would thread (the
+user, 2026-11-03). -/
 def stateOk (s : List EtcdKv) : Prop := s.length ≤ 2 ^ 62 ∧ ∀ e ∈ s, kvSortOk e
 
 /-- **A backend, as the store sees it**: its ghost names, parameters and location. -/
