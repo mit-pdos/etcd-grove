@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.bbolt
 public import Perennial.GeneratedProof.bytes
 public import GeneratedProof.encoding.hex
 public import Perennial.GeneratedProof.errors

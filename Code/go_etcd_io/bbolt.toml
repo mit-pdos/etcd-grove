@@ -8,5 +8,9 @@
 # trust-boundary axioms over an abstract `Options` (`storage/backend/BboltOptions.lean`), which a
 # translated struct would bypass. To translate it with `Open`'s proof, those axioms become
 # lemmas.
-translate = ["*", "!Options", "!DefaultOptions"]
+translate = ["*", "!Options", "!DefaultOptions", "!splitThreshold"]
 imports = ["*"]
+# `splitThreshold` (`node.go`, the fork's `goose-lean-v2`: `splitTwo`'s float threshold factored
+# out): Perennial gives float multiplication and float-to-int conversion no meaning, so its model,
+# `TrustedCode/go_etcd_io/bbolt.lean`, states the bounds Go's computation has (D17).
+trusted = ["splitThreshold"]

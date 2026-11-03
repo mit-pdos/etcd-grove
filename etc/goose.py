@@ -151,13 +151,15 @@ PROJECTS = [
         # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
         # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
         # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
-        # label. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # label; then branch `goose-lean-v2` (b30879b2): `getPageSize` returns a meta read error
+        # instead of probing further (D18), and `splitTwo`'s float threshold factored out as
+        # `splitThreshold`, trusted (D17). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
+        rev="b30879b2f90a9b3bdd0dbb0f397be4f1477eb90f",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -1162,7 +1164,8 @@ PROJECTS = [
 # examples' module, kvwitness's, whose raft is the witness experiment's, and k8setcd3's. `--check` fails on a
 # mismatch, so that a fork-pin bump cannot leave the examples on the old code.
 GO_MOD_PINS = {
-    os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
+                                         "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8setcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
