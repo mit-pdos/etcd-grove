@@ -313,7 +313,7 @@ one, `p` before); the read states, each answering the registrations of its reque
 (`srvReadStateOk E.RQ`); no snapshot. (2026-10-27: raft's commit witness of the hard state,
 `hsWit`, is gone: the snapshot sender that needed it is unreachable, `rnSnapMsg`.) -/
 def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List EntryModel)
-    (p p' : HardStateM) : IProp GF :=
+    (p p' : HardStateM) (S S' : RaftState) : IProp GF :=
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (d ++ ce) ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es ∗
@@ -323,7 +323,11 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
     ⌜rd.Snapshot' = null⌝ ∗
     -- (2026-10-30, the repair, stage P) the committed entries as the node API freezes them
-    rnCeFrozen γ d ce es)
+    rnCeFrozen γ d ce es ∗
+    -- (2026-11-03, R2b-1 stage 4) the batch a WAL `Save` step, from the loop's view at the driver's
+    -- durable state `S` to the entered one `S'` (`walSaveStep_ready`)
+    ⌜WalSaveStep ⟨S, p, none, srvLE γ.srv d⟩ ⟨S', p', none, srvLE γ.srv (d ++ ce)⟩ hs.toM
+      (es.map EntryModel.toM)⌝)
 
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
 the repair: raft's one mode, the old dynamic one's): the view after `pre ++ L`, every conf entry of
@@ -502,13 +506,19 @@ right to, the messages, soft state, hard state (`p'` after `p`) and read states 
 `A'` the snapshot's (its certificate's, `snapshotValid`: the loop's `srvFrozenTerms` after it),
 and the snapshot valid (`ApplySnapshot`'s `J.SV`). -/
 def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
-    (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
+    (p p' : HardStateM) (l : SnapLoan) (S S' : RaftState) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     -- (2026-11-01, durability layer 4) at the driver's state at receipt, whatever its durable
     -- state and role (`readySnap` reads the storage, the delivered log and the key)
-    (∃ (S : RaftState) (r : StateType),
-      readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p S r) [] (es.map EntryModel.toM) (some l)) ∗
+    (∃ (S0 : RaftState) (r : StateType),
+      readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p S0 r) [] (es.map EntryModel.toM) (some l)) ∗
+    -- (2026-11-03, R2b-1 stage 4) the snapshot a WAL `SaveSnap` step and the batch a `Save` step,
+    -- from the loop's view at the driver's durable state `S` to the entered one `S'`
+    -- (`walSnapSteps_ready`)
+    ⌜WalSnapStep ⟨S, p, none, srvLE γ.srv d⟩ l.snap.Metadata' ∧
+      WalSaveStep ⟨S, p, some l.snap.Metadata', srvLE γ.srv d⟩ ⟨S', p', none, srvLE γ.srv A'⟩
+        hs.toM (es.map EntryModel.toM)⌝ ∗
     -- (2026-10-31, #3) no committed entries
     rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL [] ∗
     ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length ∧
@@ -529,8 +539,8 @@ past it. From raft's `readySnap_bootLen` and the server's cluster at its bootstr
 (`srvClusterOk`, through `rnEnvOk`). What `applyAll.specSnap` takes (`|boot| ≤ i`, through
 `rnApSnap`). -/
 theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
-    (p p' : HardStateM) (l : SnapLoan) :
-    ⊢ rnEnvOk E γ -∗ rnReadySnap E γ rd d es A' p p' l -∗ rnReadySnap E γ rd d es A' p p' l ∗
+    (p p' : HardStateM) (l : SnapLoan) (S S' : RaftState) :
+    ⊢ rnEnvOk E γ -∗ rnReadySnap E γ rd d es A' p p' l S S' -∗ rnReadySnap E γ rd d es A' p p' l S S' ∗
       ⌜(γ.node.boot.length : Int) ≤ uint.Z l.snap.Metadata'.Index'⌝ := by
   iintro #Henv H
   iunfold rnEnvOk at Henv
@@ -541,13 +551,13 @@ theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' 
   icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl⟩
   rw [Hn.1] at Hbl
   iunfold rnReadySnap at H
-  icases H with ⟨%ceL, %esL, %msL, %hs, ⟨%S, %r, HrS⟩, Hrest⟩
+  icases H with ⟨%ceL, %esL, %msL, %hs, ⟨%S0, %r, HrS⟩, Hrest⟩
   ihave ⟨%Hb, HrS⟩ := (letI := srvStor (GF := GF) γ.node; readySnap_bootLen _ _ _ _ _ _ _ _) $$ HrS
   isplitl
   · iunfold rnReadySnap
     iexists ceL, esL, msL, hs
     iframe Hrest
-    iexists S, r
+    iexists S0, r
     iexact HrS
   ipureintro
   rw [Hbl] at Hb
@@ -784,12 +794,12 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       raftState γ.node.cl γ.id S -∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half -∗
       readyGot γ.nl γ.node.cl srvClusterN γ.id (rnDrvSt γ L p S r) rd ={⊤}=∗
       nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
-      ((∃ ce' es' p' S', rnReadyData E γ rd L ce' es' p p' ∗ rnBusy γ L ce' es' p' S' ∗
+      ((∃ ce' es' p' S', rnReadyData E γ rd L ce' es' p p' S S' ∗ rnBusy γ L ce' es' p' S' ∗
         deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
         ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝) ∨
       -- (2026-10-30, the repair: snapshots allowed) a `Ready` with a snapshot
       (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan) (S' : RaftState),
-        rnReadySnap E γ rd L es' A' p p' l ∗ rnBusyS γ L A' es' p' l S' ∗
+        rnReadySnap E γ rd L es' A' p p' l S S' ∗ rnBusyS γ L A' es' p' l S' ∗
         ⌜srvIdxOkW E.γr.raft.ai0 A'⌝)) := by
   letI := srvStor (GF := GF) γ.node
   iintro #Henv #Hbr Hcfg HrS Hrun Hgot
@@ -816,7 +826,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     · iframe Hfits Hrest
     simp only [readyRest, readySnap]
     icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
-      Hgiv⟩, -⟩
+      Hgiv⟩, %Hrrf⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
     subst Hce0
     obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
@@ -930,6 +940,25 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         iframe Hown Hcom2 Hcert Hold Hgiv
         ipureintro; exact ⟨Hdlv, Hptr, trivial, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩
       isplitr
+      · ipureintro
+        rw [HardStateModel.toM_ofM]
+        have Hst := walSnapSteps_ready (rnDrvSt γ L p S r) [] es h l (srvLE γ.srv A') Hrrf
+          ?Hcons ?Hpfx ?Hlen ?Hlast
+        · simpa only [rnDrvSt] using Hst
+        · intro j e he
+          have := Hli j e he
+          simp only [snapId] at this
+          word
+        · simpa only [rnDrvSt, hA'] using Hpfx
+        · rw [hA']; simpa only [strip, List.length_map] using Hdl
+        · have hne : A' ≠ [] := by intro h0; simp [h0] at hLA
+          simp only [srvLE, List.getLast?_map, List.getLast?_append, hne] at hlastA ⊢
+          obtain ⟨m, hm, ht⟩ : ∃ m, A'.getLast? = some m ∧ m.term = l.snap.Metadata'.Term' := by
+            cases h1 : A'.getLast? with
+            | none => rw [h1] at hlastA; cases hlastA
+            | some m => rw [h1] at hlastA; exact ⟨m, rfl, Option.some.inj hlastA⟩
+          simp [hm, ht, EntryModel.toLE]
+      isplitr
       · have h0 : (LogEntry.toEntries [] (srvLE γ.srv L).length).map EntryModel.ofM = [] := by
           simp [LogEntry.toEntries]
         rw [← h0]
@@ -969,7 +998,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, -⟩
+  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
@@ -1085,7 +1114,13 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iunfold rnCeFrozen
     rw [EntryModel.map_toM_ofM, Hce'LE]
     iframe Hcf
-    ipureintro; exact Hidx
+    ipureintro
+    refine ⟨Hidx, ?_⟩
+    -- (R2b-1 stage 4) the batch a WAL `Save` step (`walSaveStep_ready`)
+    rw [HardStateModel.toM_ofM, Hdel]
+    have Hst := walSaveStep_ready (rnDrvSt γ L p S r) ce es h Hrrf
+      (fun j e e0 he0 hj => (Hidx e0 he0).1 j e hj)
+    simpa only [rnDrvSt] using Hst
   isplitl [Hcfg Hdrv HrS]
   · iunfold rnBusy
     iframe Hcfg
