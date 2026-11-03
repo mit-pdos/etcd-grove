@@ -671,3 +671,18 @@ could queue their jobs out of order; out of scope, marked); and the statements b
 Frozen as `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` and `ApiState.lean`, namespace
 `mvcc.api` (the stream's record renamed `StreamState`: `lean` has a `mvcc.WsState`; the names
 `MvccName`, `WsName`, `mvccLeases`, `wsChanOf` opaque until the invariants define them).
+
+## Reopened before the proof: what the clients need (2026-11-03)
+
+The user: every spec and invariant first. The assessments of etcd's proofs over the frozen API
+(`~/mvcc-api-candidates/assess-{watch,txn,server}.md`) find API changes; they are applied together
+once all three are in.
+
+From the watch path (`assess-watch.md`):
+- **G1** a persistent `wsSentLb ι n` (the stream has sent at least `n` responses), given by `Watch`
+  at the watcher's stamp `k`: else no client can establish `w.k ≤ j` for a `-1` response, and
+  `wsRecvOk`'s stream-wide progress is unusable (the tester's too). Today: the drain before a
+  created response (`v3rpc/serverWatchStream__sendLoop.lean:1464`, `watch_tryrecv_au_alt`).
+- **G2** a non-blocking receive law (the drain is a `select` with a default), whose empty case gives
+  `n ≤ rs.length` for every `wsSentLb ι n`.
+- **G3** a compaction response's revision is `0` (true of the code; client/v3 relies on it).
