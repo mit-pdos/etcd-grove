@@ -177,7 +177,7 @@ def imageAtOn (γk : KVNames) (st₀ : auth.AuthState) (bootLog : List EntryM) (
   (∃ r : mvcc.CmpRecs, mvcc.keyImageM γk.cmp (kvModelOn γk st₀ A) r D ∧ r.crev = crevOf γk A) ∧
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-    (∀ n ∈ restBuckets, n ≠ go!"auth" → n ≠ go!"authUsers" → n ≠ go!"authRoles" →
+    (∀ n ∈ restBuckets, ¬ auth.authBkts n →
       D.lookup n = bkRestOf γk.c0 bootLog L n) ∧
     authBucketsAt (srvAuthAtLog γk st₀ A) D ∧ mvcc.IdxWf (kvModelOn γk st₀ A) []
 
@@ -223,10 +223,43 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
   himg : membership.clusterImageOk cl (backend.rbData d.P D) memI
   /-- the rest model's buckets the image's but the auth ones, its members `memI` (`specSnapOn`'s
   `hA'`) -/
-  hA' : (∀ n, n ≠ go!"auth" → n ≠ go!"authUsers" → n ≠ go!"authRoles" →
+  hA' : (∀ n, ¬ auth.authBkts n →
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))).lookup n) ∧
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI
+
+/-- The buckets of `srvRestOwn`'s part but the auth ones: neither the cluster's nor the auth
+store's. -/
+def restNonAuth (n : GoString) : Prop :=
+  ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
+
+/-- **The rest buckets' owner, redefined over the mode** (rebased on the backend-auth-split stage:
+lean's owner, the cluster's buckets idle and the others a part, with the auth buckets left out of the
+part in `on`; decision 1, "the mode-on `srvRest` holds
+the auth buckets at the log's auth state"): in `on`, the client's half of the **non-auth** tracked
+buckets at the rest model (the auth buckets' write authority is the auth realization's, their
+contents the history's last state, which `authHistTie`/`kvRunAtOn` make the log's auth state;
+finding 5's gap, the rest model's auth buckets staying `authBoot`, no longer reaches `srvRest`); in
+the other modes today's `srvRestOwn` (`rbOwn` of every tracked bucket). `srvRestOwnH`, `E.RO`'s
+equation in `srvSnapRO`/`specSnap`, takes the mode with it. -/
+def AonDraft.srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) :
+    IProp GF :=
+  match M with
+  | .on _ => iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗ backend.rbPart γB restNonAuth r.bk ∗
+      membership.clusterMem c r.mem ∗ ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
+  | _ => Perennial.EtcdGrove.srvRestOwn γB c r
+
+theorem AonDraft.srvRestOwn_off (γB : backend.BNames) (c : Loc) :
+    AonDraft.srvRestOwn (GF := GF) .off γB c = Perennial.EtcdGrove.srvRestOwn γB c := rfl
+
+/-- **`srvRestOwnH` over the mode** (review R1's F3: the statements name it, so that in `on` the
+auth buckets, which the install hands to the auth realization, are not counted in `E.RO`). -/
+def AonDraft.srvRestOwnH (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (H : IProp GF)
+    (r : apply.RestM) : IProp GF :=
+  iprop(AonDraft.srvRestOwn M γB c r ∗ H)
+
+theorem AonDraft.srvRestOwnH_off (γB : backend.BNames) (c : Loc) (H : IProp GF) :
+    AonDraft.srvRestOwnH (GF := GF) .off γB c H = Perennial.EtcdGrove.srvRestOwnH γB c H := rfl
 
 /-- **`snapRecv_image` in the mode `on`** (the receiver's use of `srvImageOn`; statement only). -/
 theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
@@ -236,7 +269,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     (hch : γr.kv.ch0 = apply.alarmChain true false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H) :
+    (hRO : E.RO = AonDraft.srvRestOwnH E.authMode d.γB cl H) :
     ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
@@ -654,11 +687,6 @@ def authOpenQ : Qp := (1 : Qp).half.half
 /-- The auth buckets: lean's `auth.authBkts` (the backend-auth-split stage). -/
 abbrev authBkts : GoString → Prop := auth.authBkts
 
-/-- The buckets of `srvRestOwn`'s part but the auth ones: neither the cluster's nor the auth
-store's. -/
-def restNonAuth (n : GoString) : Prop :=
-  ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
-
 -- `backend.rbOwnIn` (decision 1's per-bucket idleness) is the backend's own (`InvBackend.lean`,
 -- landed with the backend stage, `a43af91055`); the Draft's opaque stand-in and its split law are gone
 -- (the real split is `rbOwn_split`'s into two `rbPart`s, of which only a written-back one is idle).
@@ -1025,25 +1053,6 @@ def srvImageM (M : auth.AuthMode) (γ : SrvRaft) (i : w64) (D : backend.Data) : 
 
 theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) .off γ = srvImage γ := rfl
 
-/-- **The rest buckets' owner, redefined over the mode** (rebased on the backend-auth-split stage:
-lean's owner, the cluster's buckets idle and the others a part, with the auth buckets left out of the
-part in `on`; decision 1, "the mode-on `srvRest` holds
-the auth buckets at the log's auth state"): in `on`, the client's half of the **non-auth** tracked
-buckets at the rest model (the auth buckets' write authority is the auth realization's, their
-contents the history's last state, which `authHistTie`/`kvRunAtOn` make the log's auth state;
-finding 5's gap, the rest model's auth buckets staying `authBoot`, no longer reaches `srvRest`); in
-the other modes today's `srvRestOwn` (`rbOwn` of every tracked bucket). `srvRestOwnH`, `E.RO`'s
-equation in `srvSnapRO`/`specSnap`, takes the mode with it. -/
-def AonDraft.srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) :
-    IProp GF :=
-  match M with
-  | .on _ => iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗ backend.rbPart γB restNonAuth r.bk ∗
-      membership.clusterMem c r.mem ∗ ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
-  | _ => Perennial.EtcdGrove.srvRestOwn γB c r
-
-theorem AonDraft.srvRestOwn_off (γB : backend.BNames) (c : Loc) :
-    AonDraft.srvRestOwn (GF := GF) .off γB c = Perennial.EtcdGrove.srvRestOwn γB c := rfl
-
 /-- **`srvSnapRO`'s two mode-dependent clauses, redefined** (decision 7 and 8): `srvSnapRO` is
 today's with `snapDirInv ss γd (srvImage γr.raft.raft) …` replaced by `snapDirInv ss γd (srvImageM
 E.authMode γr.raft.raft) …`, `E.RO = srvRestOwnH d.γB cl …` by its mode-indexed owner
@@ -1065,7 +1074,7 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
     ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = d.cm ∧ d'.P = d.P ∧
-      E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
+      E'.RO = AonDraft.srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
       loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
       x'.log = [[], []] ++ R ∧ x'.crev = r.crev ∧ x'.chain = apply.alarmChain E.authOn false false ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
@@ -1075,7 +1084,9 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
     epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    -- (review R1's F1, decision 5) the apply thread's open share a quarter in `on`: the auth
+    -- realization keeps `authOpenQ`
+    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half.half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
     trLive γn t c L ∗
@@ -1108,7 +1119,7 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hRO : E.RO = AonDraft.srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
@@ -1142,7 +1153,7 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
     (A' : List EntryModel)
     -- (auth on) the rest model's buckets but the auth ones (the rest model does not model the
     -- admin writes: its auth buckets stay `authBoot`, a finding, see the file's notes)
-    (hA' : (∀ n, n ≠ go!"auth" → n ≠ go!"authUsers" → n ≠ go!"authRoles" →
+    (hA' : (∀ n, ¬ auth.authBkts n →
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
         (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))).lookup n) ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
@@ -1198,7 +1209,8 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
+       -- (review R1's F1, decision 5) the apply thread's quarter
+       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half.half ∗
        -- (auth on: Q2's candidate (ii)) the store's invariant at the server's read resource
        -- `E.RD`, the snapshot clause at it (carried from `NewServer`'s generalized premise), the
        -- image's committed log
@@ -1246,10 +1258,10 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
   -- the applied log `A` through `ai`, the consistent index at most the applied one
   uint.Z ai = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z ai →
-  -- a fresh cluster's start (`snapRecv_image`'s), compaction off: with auth on, no server spec
-  -- runs the compactor (`NewServer.specG`'s `cmp → on = false`; the apply plan's stage 5 drops it)
+  -- a fresh cluster's start (`snapRecv_image`'s), in either compaction mode (review R1's F7: a
+  -- mode-on committed log has no compaction, `plainLogOn`, so its records are at `-1` in both)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
-  γr.kv.ch0 = apply.alarmChain true false false → γr.kv.log0 = [[], []] → E.cmp = false →
+  γr.kv.ch0 = apply.alarmChain true false false → γr.kv.log0 = [[], []] →
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -1280,7 +1292,6 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
       srvSnapOwn s ci E γr ai ∗
       -- (auth on) the store's invariant at the server's `E.RD` and the snapshot clause (Q2's candidate (ii)),
       -- carried from `NewServer` as `#HmetaSnap` is
-      srvAuthSnapOk s γa E.RD ∗
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
