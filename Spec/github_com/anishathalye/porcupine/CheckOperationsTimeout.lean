@@ -31,9 +31,8 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 abbrev CheckOperationsTimeout.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (sl : GoSlice) (ops : List Operation)
     (dq : DFrac) (dur : w64),
-  HistOk ops →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit ∗
-      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
+      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops ∗ ⌜HistOk ops⌝ }}
     (App (App (App (Val (@! github_com.anishathalye.porcupine.CheckOperationsTimeout))
       (Val #m)) (Val #sl)) (Val #dur))
   {{ (r : GoString), RET #r;

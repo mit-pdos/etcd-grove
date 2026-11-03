@@ -30,9 +30,8 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 abbrev CheckOperations.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (sl : GoSlice) (ops : List Operation)
     (dq : DFrac),
-  HistOk ops →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit ∗
-      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
+      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops ∗ ⌜HistOk ops⌝ }}
     (App (App (Val (@! github_com.anishathalye.porcupine.CheckOperations))
       (Val #m)) (Val #sl))
   {{ (b : Bool), RET #b; ⌜b = true ↔ Linearizable S.M (histOf ops)⌝ }}
