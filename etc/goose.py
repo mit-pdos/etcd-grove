@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
                k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -139,6 +139,32 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="bbolt",
+        # bbolt as etcd links it (go.etcd.io/bbolt v1.5.0 in etcd's go.mod: etcd-io/bbolt
+        # e7a8b2d), from the fork upamanyus/bbolt, branch `goose-lean` (3207bacf): its branch
+        # `goose` (e353cbe, the forms Perennial's byte memory follows: `unsafe.Add`/`unsafe.Slice`
+        # helpers, whole-struct copies through a local; Perennial's
+        # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
+        # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
+        # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
+        # label. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os` is
+        # Perennial's (names only); `syscall`, `golang.org/x/sys/unix` (project bboltfs), `hash`
+        # and `encoding/hex` (project etcd) are this repository's translations. Modules
+        # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
+        repo="https://github.com/upamanyus/bbolt",
+        rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
+        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
+                    "encoding/hex="],
+        packages=[
+            "go.etcd.io/bbolt",
+            "go.etcd.io/bbolt/errors",
+            "go.etcd.io/bbolt/internal/common",
+            "go.etcd.io/bbolt/internal/freelist",
+        ],
+        owned=[os.path.join("go_etcd_io", "bbolt")],
+        counted_modules=["go.etcd.io/bbolt"],
     ),
     Project(
         name="etcd",
@@ -322,11 +348,8 @@ PROJECTS = [
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
-            "go.etcd.io/bbolt",
-            # names only: bbolt's errors (the backend's UnsafeDeleteBucket compares with one)
-            "go.etcd.io/bbolt/errors",
-            # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
-            "go.etcd.io/bbolt/internal/common",
+            # (go.etcd.io/bbolt, etcd's go.mod: v1.5.0, is the bbolt project's translation, from
+            # the fork: not translated here)
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             # names only: what mvcc's watchStream.Watch calls (SpanFromContext, Span.End)
             "go.opentelemetry.io/otel/trace",
@@ -429,7 +452,7 @@ PROJECTS = [
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
         ],
-        owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
+        owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",

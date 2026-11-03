@@ -1,10 +1,6 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-# time and internal/common: the types of TxStats' and Bucket's fields, so that they are
-# translated as structs (the backend reads tx.Stats()'s fields and writes a bucket's
-# FillPercent). Options stays axiomatized: its OpenFile field's type names os.FileMode, an alias
-# Perennial axiomatizes.
-imports = ["!*", "time", "go.etcd.io/bbolt/internal/common"]
-
-# translate the definitions of all type declarations goose supports
-translate_types = true
+# Project bbolt (etc/goose.py): bbolt v1.5.0 as etcd links it, from the fork's `goose-lean`
+# (upamanyus/bbolt), with bodies. Its `os` is Perennial's (names only: the file calls are
+# axiomatized), its `syscall` and `golang.org/x/sys/unix` this repository's (project bboltfs,
+# modeled by the Linux file extension osFsExt); notes/bbolt-v2-infra.md.
+translate = ["*"]
+imports = ["*"]
