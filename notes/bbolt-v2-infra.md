@@ -95,6 +95,37 @@ The 20 bbolt axioms (`Spec/go_etcd_io/bbolt/*_kv.lean`) and the `BboltOptions.le
 unchanged (`Options` is kept axiomatized for them, above). `batchTx.UnsafeDeleteBucket`'s proof
 takes one more component of `bboltErrorsInit`.
 
+### Repairs the bump and the `os` move needed
+
+- **Context's `Err()`** now also gives `isCtxErr err` (Go's contract: `Canceled` or
+  `DeadlineExceeded`). About 40 call sites of `HErr`/`HErrDone` take one more `-` in their
+  `wp_apply … as` pattern (cache, client, leasing, v3rpc, mvcc, rafthttp, porcupine, kvdurable,
+  kvreconf). `schedule.WithCancel` passes `isCtxErr_of_Canceled` to `cancel`.
+- **`context.wp_New_errorString`** now persists the `s` cell, so its post changed. The generated
+  initializers, and raft's `Init.lean`, use `errors.wp_New_errorString` instead, which has the old
+  post and needs only `errors.Assumptions`.
+- **`runtime`** (`GOOS`/`GOARCH`, which bbolt imports) and `internal/runtime/{atomic,sys}` get
+  their `wp_initialize'` here (`PERENNIAL_HERE`), with opaque-initializer axioms, since Perennial
+  proves none of them.
+- `unsafe` is a Lean keyword: `ExternalInit.unsafe_`, module `Perennial.Code.«unsafe»`.
+- `osFsExt`'s `inRange` is now in scope everywhere: authkv's `Model.lean` writes `auth.inRange`.
+- kvwitness's hand-written package table gains `io/fs` and `syscall`, which are now `os`'s imports.
+- `RaftWitness/` gets its copies of `os`'s, `syscall`'s and `io/fs`'s `Init.lean` (`PART_INITS`).
+
+### Trust base (`etc/tcb-report.py --check`, baseline updated)
+
+New:
+- `os.Getpagesize.wp_proof` (4096);
+- the opaque-initializer axioms of the packages whose `wp_initialize'` is now generated:
+  `syscall`, `golang.org/x/sys/unix`, `io/fs`, `runtime`, `internal/runtime/sys`
+  (`opaqueInitsOk`, `initFuncsOk`).
+
+Gone:
+- `bbolt.errors.errorsNewVarsInit` (its `errors.New`s are translated and proved);
+- `bbolt.internal.common.opaqueInitsOk`.
+
+`os`'s three axioms keep their names, now in the generated `Proof/os/Init.lean`.
+
 ## 2. What bbolt calls, and what models it
 
 | Callee | Model | Spec |
