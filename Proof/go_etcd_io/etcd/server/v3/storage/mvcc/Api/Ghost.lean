@@ -13,6 +13,9 @@ untouched.
   compaction right, ¼ `s.revMu`'s resource.
 * `γ.tok`: the backend share token, of total 1 (round 16, the review's F2): `mvccBackend γ q`
   holds `q` of it, so the whole share excludes every step that changes the history.
+* `γ.frz`: the writer's frozen flag (a `Bool` ghost variable): whole at `false` in the writer's
+  invariant while not frozen, half at `true` there and half the freezer's while frozen
+  (`Api/InvStoreX.lean`, `writerInvBodyX`).
 -/
 module
 
@@ -38,6 +41,7 @@ structure AbsNames where
   pnd : GName
   crevLb : GName
   tok : GName
+  frz : GName
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
 def crevN (c : Int) : Nat := (c + 1).toNat
@@ -158,16 +162,17 @@ theorem crevAtLeast_valid (γ : AbsNames) (q : Qp) (c c0 : Int) (hc : -1 ≤ c) 
   omega
 
 /-- **The store's API ghost state at a new store** (`NewStore`, at `mvccStart`): the view, the
-pending revision, the compaction authority and the whole share token. -/
+pending revision, the compaction authority, the whole share token and the frozen flag (down). -/
 theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) :
     ⊢ |==> ∃ γ : AbsNames, absPart (GF := GF) γ 1 L c ∗ pndPart γ 1 p ∗ crevAuth γ 1 c ∗
-      crevAtLeast γ c ∗ shareTok γ 1 := by
+      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false := by
   imod ghostVar_alloc (GF := GF) (L, c) with ⟨%ga, Ha⟩
   imod ghostVar_alloc (GF := GF) p with ⟨%gp, Hp⟩
   imod mono_nat_own_alloc (GF := GF) (crevN c) with ⟨%gc, Hc, Hlb⟩
   imod dghostVar_alloc (GF := GF) () with ⟨%gt, Ht⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%gf, Hf⟩
   imodintro
-  iexists ⟨ga, gp, gc, gt⟩
+  iexists ⟨ga, gp, gc, gt, gf⟩
   unfold absPart pndPart crevAuth crevAtLeast shareTok
   iframe
 
