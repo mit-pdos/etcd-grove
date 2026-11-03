@@ -30309,3 +30309,26 @@ The PR #46 work (branch `worktree-agent-ac37901483259dd26`, "Porcupine PR #46: t
 specified and verified in a part" above) merged into `lean` with the user's approval of its
 premises. Its two bug reports moved from `issues/` to `notes/pr-verify/porcupine-46.md`, as
 `issues/README.md` asks for bugs only in an unmerged pull request's code.
+
+## mvcc's API, frozen (2026-11-03 · the user delegated the freeze, the `spec` skill's criteria · branch `mvcc-api`)
+
+**What it was.** mvcc's specs were written in its implementation's terms (reader slots, revision
+tokens, index certificates, the caller's certificate map, the writer's fragments, `StoreNames`),
+one spec per concrete function, the clients reaching promoted methods through dispatch laws
+(`kvOver_*`, `tw_wp*`); round 9 of a candidate API (on branch `worktree-mvcc-rand-tester`, never
+merged) had 17 opaque predicates.
+
+**Decision.** The API in `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` and `ApiState.lean`
+(namespace `mvcc.api`), designed with the `spec` skill over 13 rounds and the user's decisions
+(`notes/mvcc-api-candidate.md`): the client owns the store's abstract state (`mvccState γ σ`,
+linearizability as its atomic updates, a commit in two steps for the watchers' sake) and each
+stream's state; 8 opaque predicates; canonical specs per (concrete type, method), each its interface
+method's contract at the type, interface values getting `isLocker`-style bundles; every method with
+a proof before kept; one pure watch guarantee, with compaction under one per-watcher condition; the
+backend's resources from any opener (`mvccBackendFor_open`); shutdown out of scope (etcd's is buggy:
+a read during it crashes the process). Frozen when every user decision was applied, the
+`spec-reviewer` found nothing unsound or incomplete after the last repair but two it proposed or
+that only restrict (the thread bound at the store's reader slots; the open token exclusive:
+concurrent compactions out of scope), and the modules built against `lean`. Beside today's specs
+until the proofs are done and the clients move onto it (each `api.<T>.<M>.spec` then replaces
+`<T>.<M>.spec`). Next: the invariants, `notes/mvcc-api-invariants.md`.

@@ -658,3 +658,16 @@ recorded an unfinished compaction (`if u then Post ∗ Y else Pre ∗ X`): (L) i
 and `nil` with trivial `Pre`/`Post`/`X`/`Y`, (G) at the discarded fraction. So `mvccBackendFor` and
 `imageOf` carry `u` (`New`, `NewStore`: `false`). New principle of the `spec` skill (look for the
 common generalization of incomparable specs) and a memory (show specs, not prose).
+
+## The freeze (2026-11-03)
+
+The user delegated the decision to freeze, by the `spec` skill's criteria: every decision of the
+user applied; the `spec-reviewer`'s passes after the last repairs (`review-r13b.md`,
+`review-r13c.md` in `~/mvcc-api-candidates/`) with nothing unsound or incomplete left but its own
+proposed repair (the thread bound `threadBound GF ≤ backend.rdStockN`: the store has the backend's
+counted reader slots only) and one restriction found by the survey of `lean`'s internals (the open
+token exclusive: a compaction schedules its job after releasing `s.mu`, so concurrent compactions
+could queue their jobs out of order; out of scope, marked); and the statements built against `lean`.
+Frozen as `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` and `ApiState.lean`, namespace
+`mvcc.api` (the stream's record renamed `StreamState`: `lean` has a `mvcc.WsState`; the names
+`MvccName`, `WsName`, `mvccLeases`, `wsChanOf` opaque until the invariants define them).
