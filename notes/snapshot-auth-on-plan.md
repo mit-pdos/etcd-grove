@@ -899,3 +899,34 @@ when it is made (`notes/spec-first-plan.md`, "The change log after the freeze, c
 F (false or unprovable) and R (redesign) are the review's misses. This log is the spec-first half of
 the comparison in `notes/spec-first-study/snapshot-proof-first.md`: its F and R entries per frozen
 statement, and the `Proof/` lines they cost, against the proof-first half's table there.
+
+Entries (P3-P5, 2026-11-03). Each marks **hub** where it edits an existing clause of `NewServer`'s
+spec or `bootOk` (the before-measurement for `notes/spec-first-plan.md`'s "Incremental adoption",
+step 5; the user's request through etcd-grove-56):
+
+- `[D, user, internal, approved]` `authPublishM`'s view shift at `⊤ ∖ authRev` in place of `⊤`
+  (the publication opens the revision invariant itself). (P4, `a9aa4ebfc3`)
+- `[A, proof, trusted, approved]` `auth_store_new_on` (Results) gains the backend's names `γc` and
+  `authBkCur γa ½ γc ∗ authCur γc 1`; the boot result's `authSchemaBoot` read side becomes
+  `∃ γc, authBackendOk ab R (.on γa) γc ∗ authCur γc 1` ("minimal adaptations"). (P3/P5, `44695a6328`)
+- `[A, proof, trusted, approved]` three Results restatements over the per-backend names:
+  `apply_auth_store_latest` at `∀ γc, latestResC … γc`, `server_uber_kvl_on (γc)` at
+  `latestResC stl (.on γa) γc`, `server_uber_auth_steps_on` at `∃ γc, adminWC … γc` /
+  `latestResC … γc`: the checks' write token is the current backend's (`authWHeldM M γc`), which the
+  Freeze's `authWHeldM` left existential and so not one the admin steps' lend could return.
+  (P4/P5, `44695a6328`)
+- `[F, proof, trusted, approved]` **hub** (`bootOk`) `clusterApplyOk c`: `∀ M`, the lens target
+  `srvRestOwn M γB c r ∗ clusterBeOn` in place of the mode-free `srvRestOwn γB c r`. The Freeze
+  made `srvRestOwn` mode-indexed without listing this premise of `bootstrapContract`, which a mode-on
+  rest resource (no auth buckets) cannot lend at the old target. True of Go: the cluster's rows write
+  only the cluster's buckets and members. (P5, `44695a6328`)
+- `[C, proof, internal, approved]` **hub** (`NewServer`'s post, through `srvSnapBoot`) `srvSnapRes`
+  holds `bOpen d.γB (srvOpenQ E.authMode)` in place of the half: the Freeze's `srvOpenQ`, as decided
+  (decision 5), the meaning unchanged off. (P5, `44695a6328`)
+- `[F, proof, internal, —]` `mergedCreate_window` (internal) observes `mergedObsM E.authMode` (the
+  rest buckets but the auth ones in `on`, `bkRestAtM`) in place of `mergedObs`: on, the rest
+  resource no longer holds the auth buckets, and the old observation (them at the rest model's
+  `authBoot`) was finding 5's false claim. Off callers recover `mergedObs` (`mergedObs_of_M`);
+  `merged_image` unchanged; the on sender passes it to #7-on's `sorry`. (P5, `44695a6328`)
+- `[A, proof, internal, —]` `applySnapshot_walk` takes `E.authMode = .off` (its caller `specSnap`
+  has it): the old backend's rest part back at every non-cluster bucket. (P5, `44695a6328`)

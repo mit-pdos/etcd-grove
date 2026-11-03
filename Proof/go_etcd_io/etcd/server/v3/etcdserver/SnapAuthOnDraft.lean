@@ -23,7 +23,7 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
    (the fuel at a base `authFuelB`, the lifecycle, the hook clause, `authStepsAny`).
 6. **`Recover` at the install**: `authRecoverOn.spec` and its glue `authRecoverOn_glue` (proved
    from the restated `Recover.spec`, `authSchemaSnap`, `authBkLife`, `srvHist_wf`).
-7. **The install and its callers**: `srvAuthSnapOk`, `srvImageM`, `AonDraft.srvRestOwn`,
+7. **The install and its callers**: `srvAuthSnapOk`, `srvImageM`, `srvRestOwn`,
    `AonDraft.srvSnapROAuth`, `srvSnapAppliedOn`; F9 (2026-11-03): one spec over `E.authMode`,
    `applySnapshot.specSnapM` and `applyAll.specSnapM` (the mode-indexed `snapAuthImgM`,
    `snapRestImgM`, `snapAuthResM`, `srvSnapAppliedM`), lean's specs their `off` cases
@@ -196,33 +196,8 @@ store's. -/
 def restNonAuth (n : GoString) : Prop :=
   ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
 
-/-- **The rest buckets' owner, redefined over the mode** (rebased on the backend-auth-split stage:
-lean's owner, the cluster's buckets idle and the others a part, with the auth buckets left out of the
-part in `on`; decision 1, "the mode-on `srvRest` holds
-the auth buckets at the log's auth state"): in `on`, the client's half of the **non-auth** tracked
-buckets at the rest model (the auth buckets' write authority is the auth realization's, their
-contents the history's last state, which `authHistTie`/`kvRunAtOn` make the log's auth state;
-finding 5's gap, the rest model's auth buckets staying `authBoot`, no longer reaches `srvRest`); in
-the other modes today's `srvRestOwn` (`rbOwn` of every tracked bucket). `srvRestOwnH`, `E.RO`'s
-equation in `srvSnapRO`/`specSnap`, takes the mode with it. -/
-def AonDraft.srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) :
-    IProp GF :=
-  match M with
-  | .on _ => iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗ backend.rbPart γB restNonAuth r.bk ∗
-      membership.clusterMem c r.mem ∗ ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
-  | _ => Perennial.EtcdGrove.srvRestOwn γB c r
-
-theorem AonDraft.srvRestOwn_off (γB : backend.BNames) (c : Loc) :
-    AonDraft.srvRestOwn (GF := GF) .off γB c = Perennial.EtcdGrove.srvRestOwn γB c := rfl
-
-/-- **`srvRestOwnH` over the mode** (review R1's F3: the statements name it, so that in `on` the
-auth buckets, which the install hands to the auth realization, are not counted in `E.RO`). -/
-def AonDraft.srvRestOwnH (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (H : IProp GF)
-    (r : apply.RestM) : IProp GF :=
-  iprop(AonDraft.srvRestOwn M γB c r ∗ H)
-
-theorem AonDraft.srvRestOwnH_off (γB : backend.BNames) (c : Loc) (H : IProp GF) :
-    AonDraft.srvRestOwnH (GF := GF) .off γB c H = Perennial.EtcdGrove.srvRestOwnH γB c H := rfl
+/- (P5, 2026-11-03) The Draft's mode-indexed owner is now lean's `srvRestOwn`/`srvRestOwnH`,
+mode-indexed in place (`InvRest.lean`, `restSet`). -/
 
 /-- **`snapRecv_image` in the mode `on`** (the receiver's use of `srvImageOn`; statement only). -/
 theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
@@ -232,7 +207,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     (hch : γr.kv.ch0 = apply.alarmChain true false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = AonDraft.srvRestOwnH E.authMode d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) :
     ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
@@ -665,20 +640,12 @@ def AonDraft.srvNetM (on : Bool) (γ : SrvRaft) : NetPayload GF :=
 /-- Mode off, today's payload. -/
 theorem AonDraft.srvNetM_off (γ : SrvRaft) : AonDraft.srvNetM (GF := GF) false γ = srvNet γ := rfl
 
-/-- **The apply thread's share of a server backend's open token, by the mode** (decision 5; review
-R1's F1, R2's N1): a quarter in `on`, the auth realization keeping `authOpenQ`; the half otherwise.
-In the merge `srvSnapRes` holds `bOpen d.γB (AonDraft.srvOpenQ E.authMode)` in place of its half
-(and `NewServer`'s boot bundle with it), so that `srvSnapOwn` in `applyAll.specSnapM`/`applyResOn`
-is at the quarter in `on`. -/
-def AonDraft.srvOpenQ (M : auth.AuthMode) : Qp :=
-  match M with
-  | .on _ => (1 : Qp).half.half
-  | _ => (1 : Qp).half
+/- (P5) The Draft's `srvOpenQ` is now lean's (`InvRest.lean`). -/
 
 /-- **`srvSnapRO`'s two mode-dependent clauses, redefined** (decision 7 and 8): `srvSnapRO` is
 today's with `snapDirInv ss γd (srvImage γr.raft.raft) …` replaced by `snapDirInv ss γd (srvImageM on
 γr.raft.raft) …` at the cluster's mode `on` (`γr.raft.raft.authOn` in the merge), `E.RO = srvRestOwnH d.γB cl …` by its mode-indexed owner
-(`AonDraft.srvRestOwn E.authMode`), and, beside `□ (⌜E.authMode = off⌝ → authRecoverOk ast)`, the
+(`srvRestOwn E.authMode`), and, beside `□ (⌜E.authMode = off⌝ → authRecoverOk ast)`, the
 mode-`on` row `□ ∀ γa, ⌜E.authMode = .on γa⌝ → srvAuthSnapOk s γa E.RD` (the gated `Recover` facts
 of decision 5), and (review R3's N2, R2's N3) among its facts beside `alarmBI` (`SnapRO.lean:394`)
 the auth buckets in the table (`d.P.has authBI ∧ authUsersBI ∧ authRolesBI`, `NewServer`'s), which
@@ -698,7 +665,7 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
     ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = d.cm ∧ d'.P = d.P ∧
-      E'.RO = AonDraft.srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
+      E'.RO = srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
       loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
       x'.log = [[], []] ++ R ∧ x'.crev = r.crev ∧ x'.chain = apply.alarmChain E.authOn false false ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
@@ -710,7 +677,7 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
     srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
     -- (review R1's F1, decision 5) the apply thread's open share a quarter in `on`: the auth
     -- realization keeps `authOpenQ`
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (AonDraft.srvOpenQ E'.authMode) ∗
+    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
     trLive γn t c L ∗
@@ -795,7 +762,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = AonDraft.srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
@@ -878,7 +845,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        -- (review R1's F1, decision 5) the apply thread's quarter
-       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (AonDraft.srvOpenQ E.authMode) ∗
+       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (F9) the auth store's `Recover` facts by the mode (`off`: `authRecoverOk`; `on`, Q2's
        -- candidate (ii): the store's invariant at the server's `E.RD` with the snapshot clause,
        -- and the image's committed log)
@@ -1066,7 +1033,7 @@ theorem EtcdServer.applySnapshot.specSnap_of_M
     hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
   have hon : E.authOn = false := by simp [apply.AEnv.authOn, hoff, auth.AuthMode.isOn]
   have H := h s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP
-    hcfgl hmmap tI hmeta st b hle al ast lp cl x A (by rw [hoff]; exact hRO) hlease hwq R hpre
+    hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre
     hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs
     dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' (by rw [hon]; exact hA')
     (by rw [hoff]; simp) (by rw [hoff]; exact hauthb) γnc
