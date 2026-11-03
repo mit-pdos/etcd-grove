@@ -5,7 +5,7 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
 1. **The history's catch-up** (Q1 (b), proved): `authHistTie_catchup`, `catchup_list`.
 2. **Q3 (b), the image**: `authDataOf`, `authBucketsAt` (over `schema.authBucketsAre`, with the
    revision's `uint64` bound), `authBucketsAt_after` (proved), `imageAtOn`/`dbImageOn`/`srvImageOn`,
-   `SnapImageFactsOn`, `snapRecv_imageOn` (sorry), `srvHist_wf` (pure model facts, sorry: to check).
+   `SnapImageFactsOn`, `snapRecv_imageOn` (`SnapRecvOn.lean`, proved), `srvHist_wf` (pure model facts, sorry: to check).
 3. **The restated premise and contracts** (the user's decisions of 2026-11-01; candidate (ii),
    "record first", candidate (i) dropped): the per-backend names `auth.AuthBkNames` (`authWTok`,
    `authCur`, `authRetired`, the tie `authBkCur` at `γa.bk`, `authWHeld`), the published index's
@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRecvOn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyAll
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Recover
@@ -131,38 +132,7 @@ theorem catchup_list (γk : KVNames) (A' : List EntryModel) (hs : List auth.Auth
 
 -- (P5, F8) `imageAtOn`, `dbImageOn`, `srvImageOn` are `ImageOn.lean`'s.
 
-/-- **The receiver's facts of a mode-on image** (`SnapImageFacts`, its `hauthb` replaced by the
-auth buckets' state, its KV log the mode-on model's; rebased on #7-cmp's: the image's compaction
-records `r`). -/
-structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data)
-    (cl : Loc) (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log)
-    (r : mvcc.CmpRecs) (memI : GMap w64 apply.MemberM) : Prop where
-  pre : A <+: A'
-  len : uint.Z i = A'.length
-  log : [[], []] ++ R = kvModelOn γr.kv srvAuthSt0 A'
-  hpre : x.log <+: [[], []] ++ R
-  hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D
-  /-- the records at the image's committed log's compaction revision -/
-  crev : r.crev = crevOf γr.kv A'
-  hmetaI : ∃ t : w64, metaIs D (i, t)
-  hRok : mvcc.restoreLogOk R
-  /-- the image's KV model short enough (the KV jump's bound; review round 1's F7) -/
-  hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63
-  hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅
-  halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
-  /-- the auth buckets hold the state after the image's log -/
-  hauthI : authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData d.P D)
-  hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
-    ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
-    ((backend.rbData d.P D).lookup go!"cluster").isSome
-  /-- the image's membership buckets the model's (review round 2's F5, as `SnapImageFacts`') -/
-  himg : membership.clusterImageOk cl (backend.rbData d.P D) memI
-  /-- the rest model's buckets the image's but the auth ones, its members `memI` (`specSnapM`'s
-  `hA'`) -/
-  hA' : (∀ n, ¬ auth.authBkts n →
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
-      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))).lookup n) ∧
-    (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI
+-- (P6.1) `SnapImageFactsOn` is `SnapRecvOn.lean`'s.
 
 /-- The buckets of `srvRestOwn`'s part but the auth ones: neither the cluster's nor the auth
 store's. -/
@@ -172,25 +142,7 @@ def restNonAuth (n : GoString) : Prop :=
 /- (P5, 2026-11-03) The Draft's mode-indexed owner is now lean's `srvRestOwn`/`srvRestOwnH`,
 mode-indexed in place (`InvRest.lean`, `restSet`). -/
 
-/-- **`snapRecv_image` in the mode `on`** (the receiver's use of `srvImageOn`; statement only). -/
-theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
-    (D : backend.Data) (d : mvcc.KBReal) (A : List EntryModel) (x : apply.ApplyKV) (cl : Loc)
-    (H : IProp GF) (sa : auth.AuthState) (hkb : E.γ.kb = some d)
-    (hraft : γr.raft = ⟨γ, [], W64 0⟩) (hc0 : γr.kv.c0 = W64 0)
-    (hch : γr.kv.ch0 = apply.alarmChain true false false) (hlog0 : γr.kv.log0 = [[], []])
-    (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
-    (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) :
-    ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
-      membership.isRaftCluster cl ={⊤}=∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
-      ∃ (A' : List EntryModel) (R : mvcc.Log) (r : mvcc.CmpRecs), srvRLogLb γr.raft A' ∗
-        ⌜SnapImageFactsOn γr d D cl i A A' x R r
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ ∗
-        mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗
-        mvcc.crevPermAt E.γ r.crev := by
-  sorry
+-- (P6.1) `snapRecv_imageOn` is `SnapRecvOn.lean`'s (proved).
 
 /-- **The states of the committed log's history are well formed** (pure; the catch-up needs them:
 `authHist` keeps `permKeysOk` of every state, `Recover` the image state's `permsFit`, the fuel

@@ -105,6 +105,10 @@ def dbImageOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (i
     ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAtOn γk st₀ γ.raft.boot i (γ.pre ++ A) A D⌝ ∗
     ⧖ (mvcc.logCh (kvModelOn γk st₀ A)))
 
+instance dbImageOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (i : w64) (D : backend.Data) : Persistent (dbImageOn (GF := GF) γ γk st₀ i D) := by
+  unfold dbImageOn; infer_instance
+
 /-- **The image certificate of a cluster with auth on** (Q3 (b); the network's when the cluster
 runs auth on, `srvImageM`): `srvImage`'s, the
 start's chain the mode `on`'s and the model's start state `srvAuthSt0`. -/
@@ -125,13 +129,17 @@ def srvImageM (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF
   | true => srvImageOn γ i D
   | false => srvImage γ i D
 
+instance srvImageOn_persistent (γ : SrvRaft) (i : w64) (D : backend.Data) :
+    Persistent (srvImageOn (GF := GF) γ i D) := by
+  unfold srvImageOn; infer_instance
+
 theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) false γ = srvImage γ := rfl
 
 instance srvImageM_persistent (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) :
     Persistent (srvImageM (GF := GF) on γ i D) := by
   cases on
   · simp only [srvImageM]; infer_instance
-  · simp only [srvImageM]; unfold srvImageOn dbImageOn; infer_instance
+  · simp only [srvImageM]; infer_instance
 
 theorem srvImageM_on (γ : SrvRaft) : srvImageM (GF := GF) true γ = srvImageOn γ := rfl
 
