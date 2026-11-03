@@ -644,3 +644,17 @@ tokens (`SnapApplyWalk.lean:352`); `snapOpenK` deposits the open token's close h
 entry. Wiring the snapshot path to the law, and its proof of `Restore`'s length bound (today from
 the old store's revision tokens and `restoreLogOk`; under the API from the model of raft's applied
 log), wait for etcd's snapshot proof to be linked.
+
+### Decision 3, settled (the user, 2026-11-03): `Restore` at any share of the new backend's hook
+
+Three candidate statements were compared (the user asked for the specs side by side): (L) the loan
+of the new backend's unset hook (`plHook B'.γB nil`, given back); (G) a hook contract as
+`Compact`'s over a frozen hook (`hookIs B' f`); neither implies the other (freezing is permanent;
+a frozen hook's holder has no owned `nil`). (U), chosen: the hook at any share `dq`
+(`backend.plHookAt B'.γB dq f`, given back) with `Compact`'s hook contract and commit request
+(`backend.commitReq`, the backend's existing contract for a commit, `X` to `Y`, which the backend's
+pre-commit hooks may serve: etcd's consistent-index save), the post split on whether the image
+recorded an unfinished compaction (`if u then Post ∗ Y else Pre ∗ X`): (L) is (U) at the owned half
+and `nil` with trivial `Pre`/`Post`/`X`/`Y`, (G) at the discarded fraction. So `mvccBackendFor` and
+`imageOf` carry `u` (`New`, `NewStore`: `false`). New principle of the `spec` skill (look for the
+common generalization of incomparable specs) and a memory (show specs, not prose).

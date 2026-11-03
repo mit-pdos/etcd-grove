@@ -91,6 +91,13 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **No disjunction of alternative specs** (a precondition "trivial result, or the caller's atomic
   update"): keep the stronger, the other is a layer. A case split on the input is not one.
   (`range.md`, critique 2)
+- **Two incomparable specs often have a common generalization: look for it before choosing.** When
+  two candidates differ in which share of a resource they take (an owned half that can still change,
+  a frozen persistent fraction), one spec over the share, given back unchanged, has both as
+  instances and is stronger than each. Put the options to the user as statements side by side,
+  checked, with which is stronger by the layering test. (mvcc's `Restore` and the new backend's
+  post-lock hook, `plHookAt B'.γB dq f`, 2026-11-03: the user chose it over the owned-`nil` loan and
+  a frozen-hook contract.)
 - **No disjunction a proof must handle twice**: a condition a guarantee holds under is one
   condition, not "this case or that case" each of which the implementation's proof, or a client's,
   would establish by a near-copy of the other's argument. Find the single condition the code's
