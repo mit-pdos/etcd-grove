@@ -223,8 +223,9 @@ def main():
                 def ren(code):
                     code = re.sub(r"^(namespace|end) ((?:Perennial\.)?(?:EtcdGrove\.)?)"
                                   + re.escape(old) + r"$", r"\1 \2" + ns, code, flags=re.M)
-                    code = re.sub(r"^((?:open|export)[^\n]*?)(?<![\w.])" + re.escape(old) + r"(?![\w.])",
-                                  r"\1" + ns, code, flags=re.M)
+                    code = re.sub(r"^(?:open|export)\b[^\n]*(?:\n[ \t]+[^\n]*)*",
+                                  lambda m: re.sub(r"(?<![\w.])" + re.escape(old) + r"(?![\w.])",
+                                                   ns, m.group(0)), code, flags=re.M)
                     code = re.sub(r"(?<![\w.'«])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
                                   ns + ".", code)
                     return re.sub(r"(?<=EtcdGrove\.)" + re.escape(old) + r"\.(?=[A-Za-z_«])",
@@ -250,6 +251,13 @@ def main():
             for old, new, ns, _ in MOVES:
                 if ns and ns != old:
                     out = re.sub(r'(":\s*)"' + re.escape(old) + r'"', r'\1"' + ns + '"', out)
+        # namespace-qualified names in gen-link's tables and the link configs
+        # (`kvreconf.kvrStorageModel`, `=common.wp_ServeOn`)
+        if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py)$", f):
+            for old, new, ns, _ in MOVES:
+                if ns and ns != old and old not in AMBIGUOUS:
+                    out = re.sub(r"(?<![\w.'«-])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
+                                 ns + ".", out)
         # the link configs' function ids, `<last directory of the spec>_<function>`
         if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py)$", f):
             for old, new, _, _ in MOVES:
