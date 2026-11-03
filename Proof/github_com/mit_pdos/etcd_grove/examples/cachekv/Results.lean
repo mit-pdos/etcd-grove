@@ -6,14 +6,16 @@ of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterp
   etcd member started in process (since 2026-11-02 with the auto-compactor on, periodic mode
   at 10ms: a compaction of the cache's watch makes the cache re-list), a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
-  revision, and a check that panics unless the watched events are exactly the writes -- does not
-  panic and returns `Ok`, `Failed` or `WatchEnded`. From `isPkgInit cachekv`, the right to listen
+  revision, a check that panics unless the watched events are exactly the writes, then the cache's
+  `Get` of the prefix at that revision and a check that panics unless it answers each key's last
+  watched value (`checkGet`) -- does not panic and returns `Ok`, `Failed`, `WatchEnded` or
+  `GetFailed`. From `isPkgInit cachekv`, the right to listen
   on `127.0.0.1:23873`, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/cachekv/Main.lean`).
 * **`cache_safe`** (`Adequacy.lean`'s `cache_adequate`): the closed theorem. Every real execution
   of `n` steps of `cachekv`'s initialization followed by `Main(nw, nops)`, from a fresh state with
   one thread, has no stuck thread, no thread ended in a panic (so the check never failed), and the
-  main thread's result, if any, is `0`, `1` or `2`; under `watch_safe`'s hypotheses at cachekv's
+  main thread's result, if any, is `0`, `1`, `2` or `3`; under `watch_safe`'s hypotheses at cachekv's
   configuration.
 -/
 module
@@ -81,7 +83,7 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
+    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   cache_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul

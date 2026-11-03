@@ -178,7 +178,7 @@ def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (r : mvc
   if d'.cm then
     iprop(∃ ents : List mvcc.KvEnt, mvcc.kbViewC (some d') γb' 1 (mvcc.bucketOfEnts ents) ∗
       mvcc.kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
-      ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧ mvcc.NoDelPutAt L r.crev⌝)
+      ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents⌝)
   else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗
     ⌜r = mvcc.CmpRecs.empty⌝)
 

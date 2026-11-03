@@ -27,8 +27,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 S-j1's; review round 4): off, today's `keyImage` (the `Key` bucket the restored log's, no
 compaction record) and no record; on, the `Key` bucket the entries `ents` cut at the records'
 revision (a finished compaction or a leader's bucket mid-job), the `Meta` bucket's two compaction
-keys holding the records' bytes, the records of `L` and past revision `0` (`recsPos`) and
-`r.crev` safe for readers (`NoDelPutAt`). -/
+keys holding the records' bytes, the records of `L` and past revision `0` (`recsPos`). (Until
+#7-cmp's Freeze, 2026-11-02, also `NoDelPutAt L r.crev`: false of a legitimate image, a revision
+deleting a key and putting it again compacted at itself, and used by no proof.) -/
 def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) : Prop :=
   if cm then ∃ ents : List mvcc.KvEnt,
       (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketOfEnts ents).lookup k) ∧
@@ -36,13 +37,104 @@ def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Da
         mvcc.recBytes r.fin ∧
       backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes =
         mvcc.recBytes r.sched ∧
-      mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧
-      mvcc.NoDelPutAt L r.crev
+      mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents
   else mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty
 
 theorem mvcc.keyImageM_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) :
     mvcc.keyImageM false L r D ↔ mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty := by
   unfold mvcc.keyImageM; simp
+
+/-! ### The image between the modes (#7-cmp's Freeze, 2026-11-02) -/
+
+section modes
+variable [GooseExts]
+
+/-- The finished record is at most the restored revision. -/
+theorem mvcc.CmpRecs.finRev_le_crev (r : mvcc.CmpRecs) : r.finRev ≤ r.crev := by
+  unfold mvcc.CmpRecs.crev mvcc.CmpRecs.resumes
+  split
+  · rename_i h; simp only [decide_eq_true_eq] at h; omega
+  · exact Int.le_refl _
+
+/-- **No record at revision `-1`** (under `recsPos`, which `keyImageM` on gives). -/
+theorem mvcc.CmpRecs.empty_of_crev (r : mvcc.CmpRecs) (hp : mvcc.recsPos r) (hc : r.crev = -1) :
+    r = mvcc.CmpRecs.empty := by
+  have hf : ∀ x, r.fin = some x → 1 ≤ sint.Z x := hp.1
+  have hs : ∀ x, r.sched = some x → 1 ≤ sint.Z x := hp.2
+  unfold mvcc.CmpRecs.crev mvcc.CmpRecs.resumes mvcc.CmpRecs.schedRev mvcc.CmpRecs.finRev at hc
+  rcases r with ⟨_ | x, _ | y⟩ <;>
+    simp only [Option.map_none, Option.map_some, Option.getD_none, Option.getD_some] at hf hs hc
+  · rfl
+  · have := hs y rfl
+    have h0 : sint.Z y ≠ 0 := by omega
+    have h1 : (-1 : Int) < sint.Z y := by omega
+    simp [h0, h1] at hc; omega
+  · have := hf x rfl; simp at hc; omega
+  · have := hf x rfl; have := hs y rfl
+    have h0 : sint.Z y ≠ 0 := by omega
+    by_cases h : sint.Z x < sint.Z y <;> simp [h0, h] at hc <;> omega
+
+/-- The mode on's records are past revision `0`. -/
+theorem mvcc.keyImageM_recsPos (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data)
+    (h : mvcc.keyImageM true L r D) : mvcc.recsPos r := by
+  unfold mvcc.keyImageM at h; simp only [↓reduceIte] at h
+  obtain ⟨-, -, -, -, -, h, -⟩ := h; exact h
+
+/-- **The mode off's image is the mode on's** (the whole bucket, no record: the cut at `-1`). -/
+theorem mvcc.keyImageM_on_of_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data)
+    (h : mvcc.keyImageM false L r D) : mvcc.keyImageM true L r D := by
+  obtain ⟨⟨hk, hs, hf⟩, rfl⟩ := (mvcc.keyImageM_off L r D).1 h
+  unfold mvcc.keyImageM
+  simp only [↓reduceIte]
+  refine ⟨mvcc.logEnts L 0 L.length, fun k => by rw [mvcc.bucketOfEnts_logEnts]; exact hk k,
+    hf, hs, ⟨(fun x hx => by simp [mvcc.CmpRecs.empty] at hx),
+      (fun x hx => by simp [mvcc.CmpRecs.empty] at hx)⟩,
+    ⟨(fun x hx => by simp [mvcc.CmpRecs.empty] at hx),
+      (fun x hx => by simp [mvcc.CmpRecs.empty] at hx)⟩, ?_⟩
+  exact mvcc.entsCutAt_full _ _
+
+/-- **The mode on's image at no compaction is the mode off's**: records at `-1` are none
+(`recsPos`), and the cut at `-1` deletes nothing (`KeyDel_neg`), so the bucket is the log's. -/
+theorem mvcc.keyImageM_off_of_on (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data)
+    (hb : mvcc.LogB L) (h : mvcc.keyImageM true L r D) (hc : r.crev = -1) :
+    mvcc.keyImageM false L r D := by
+  have hpos := mvcc.keyImageM_recsPos L r D h
+  unfold mvcc.keyImageM at h
+  simp only [↓reduceIte] at h
+  obtain ⟨ents, hk, hfin, hsched, -, -, hcut⟩ := h
+  have hr := mvcc.CmpRecs.empty_of_crev r hpos hc
+  subst hr
+  rw [mvcc.keyImageM_off]
+  refine ⟨⟨fun k => ?_, hsched, hfin⟩, rfl⟩
+  rw [hk k, ← mvcc.bucketOfEnts_logEnts]
+  have hall : ∀ e ∈ mvcc.logEnts L 0 L.length, e ∈ ents := by
+    intro e he
+    exact Classical.byContradiction fun hn => mvcc.KeyDel_neg (by decide) (hcut.2.1 e he hn)
+  apply Option.ext
+  intro v
+  have h1 := mvcc.bucketOfEnts_lookup_iff L hb hcut.1 k v
+  have h2 := mvcc.bucketOfEnts_lookup_iff L hb (List.Sublist.refl (mvcc.logEnts L 0 L.length)) k v
+  change (mvcc.bucketOfEnts ents).lookup k = some v ↔ _ at h1
+  change (mvcc.bucketOfEnts (mvcc.logEnts L 0 L.length)).lookup k = some v ↔ _ at h2
+  rw [h1, h2]
+  constructor
+  · intro hm
+    exact (hcut.1.map mvcc.KvEnt.pair).subset hm
+  · intro hm
+    obtain ⟨e, he, hpe⟩ := List.mem_map.1 hm
+    exact List.mem_map.2 ⟨e, hall e he, hpe⟩
+
+/-- **An image moves between the modes** when, for the mode off, the records' revision is `-1`. -/
+theorem mvcc.keyImageM_mode (b b' : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data)
+    (hb : mvcc.LogB L) (h : mvcc.keyImageM b L r D) (hc : b = true → b' = false → r.crev = -1) :
+    mvcc.keyImageM b' L r D := by
+  cases b <;> cases b'
+  · exact h
+  · exact mvcc.keyImageM_on_of_off L r D h
+  · exact mvcc.keyImageM_off_of_on L r D hb h (hc rfl rfl)
+  · exact h
+
+end modes
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -87,7 +179,7 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
       mvcc.restoreImageM (GF := GF) d' γb L r := by
   unfold mvcc.keyImageM at h
   simp only [↓reduceIte] at h
-  obtain ⟨ents, hk, hfin, hsched, hok, hpos, hcut, hnd⟩ := h
+  obtain ⟨ents, hk, hfin, hsched, hok, hpos, hcut⟩ := h
   have hfin' : backend.dget D go!"meta" go!"finishedCompactRev" = mvcc.recBytes r.fin := hfin
   have hsched' : backend.dget D go!"meta" go!"scheduledCompactRev" = mvcc.recBytes r.sched := hsched
   have hfv : backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched) := by
@@ -139,7 +231,7 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     icases Hw with ⟨%n, %v, Hw⟩
     iexists n, v
     iexact Hw
-  ipureintro; exact ⟨hok, hpos, hcut, hnd⟩
+  ipureintro; exact ⟨hok, hpos, hcut⟩
 
 /-- **Off, the image `Restore` takes, from the backend's open** (what the walk built inline until
 stage B): the whole bucket of the restored log and the no-compaction token. -/

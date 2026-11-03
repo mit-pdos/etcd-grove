@@ -225,7 +225,7 @@ theorem restoreImageM_on (d' : KBReal) (γb' : GName) (L : Log) (r : CmpRecs) (h
     restoreImageM (GF := GF) d' γb' L r ⊣⊢
       ∃ ents : List KvEnt, kbViewC (some d') γb' 1 (bucketOfEnts ents) ∗
         kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
-        ⌜recsOk L r ∧ recsPos r ∧ entsCutAt L r.crev ents ∧ NoDelPutAt L r.crev⌝ := by
+        ⌜recsOk L r ∧ recsPos r ∧ entsCutAt L r.crev ents⌝ := by
   unfold restoreImageM; simp only [h, ↓reduceIte]; exact .rfl
 
 theorem kbSRM_on (kb : Option KBReal) (h : kbCmpM kb) :

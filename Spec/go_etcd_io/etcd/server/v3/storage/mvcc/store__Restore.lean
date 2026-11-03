@@ -59,7 +59,8 @@ some member's sealed log's). The received image is at compaction records `r` (`r
 L' r`): off, a clean view (a fresh backend's read buffer is empty: `kbViewC`, R5a) of the `Key`
 bucket holding all of `L'`, no record (`kbNoCmp`); on, a clean view of the entries the cut of `L'`
 at `r.crev` keeps (`entsCutAt`), the records with the compaction-key write right (`kbRecs`), the
-compaction keys well formed, and no key put at or below `r.crev` deleted by `L'` (`NoDelPutAt`).
+compaction keys well formed (until #7-cmp's Freeze also `NoDelPutAt`, false of a legitimate image
+and needed by no proof: dropped).
 The restored compaction revision is what `restore()` computes from the records, `r.crev`, at least
 the store's (`c ≤ r.crev`), and the store's compaction permit holds of both records (`crevPermAt γ
 r.finRev ∗ crevPermAt γ r.crev`: the restore raises the compaction revision to them, and every

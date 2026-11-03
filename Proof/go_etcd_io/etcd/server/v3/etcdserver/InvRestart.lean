@@ -98,7 +98,13 @@ opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.Con
 - the files holding `σ` and `D` (`srvFiles`) and the backend file's directory entry (`pathOwn`,
   which a first start's `bootOk` gives and the stop returns), in the directory `dd` the right to
   stop records (`srvStopRight`; R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
-  `restModel (W64 0)` reads the image's buckets.) -/
+  `restModel (W64 0)` reads the image's buckets.)
+
+(#7-cmp's Freeze, 2026-11-02, the user's approval: `imageAt` restated in place, by the KV names'
+compaction mode at records of the committed log's compaction revision. **Open, the restart path's
+(RESTART-RCPT, `notes/image-cmp-plan.md`):** in compaction mode a restart restores the image, whose
+`restoreRcptM` needs the image's KV log's receipt `⧖ (logCh (kvModel ρ.rd.kv A))`, which `dbImage`
+carries and this predicate does not yet.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
@@ -441,7 +447,9 @@ directory's files holding the WAL's records `σ` and the backend's data `D` (`sr
 entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
 commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
 (`bootOkR`). As a first start's, the contract may always return an error, after which `restart3`
-does nothing more: it does not promise the restart succeeds (R2c review, second tier 6). -/
+does nothing more: it does not promise the restart succeeds (R2c review, second tier 6).
+(#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
+`srvDiskImage`'s.) -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
