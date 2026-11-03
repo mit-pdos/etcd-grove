@@ -30473,7 +30473,8 @@ convention's `E.authMode ≠ .any`). **N4**: the user first chose to lend the re
 thread tokens (`authRdLoan`). Review R3 refuted that the same day. The readers that hold `E.RD` for
 good (the serving slots in `NewServer.specM`'s post, the apply thread's `kvOwn`, the compactor) have
 no token to lend, and the loans' counted stocks failed the bounds gate. The user's decision: **`R` is a
-ticket**. Readers keep plain copies, as today. A realization backs `authRdN` copies (`2 ^ 7`, at least
+ticket**, which supersedes decision 2 of 2026-11-01 (readers backed by thread tokens, not by a
+partition of the backend's reader slots). Readers keep plain copies, as today. A realization backs `authRdN` copies (`2 ^ 7`, at least
 the 67 `NewServer` hands out) with as many reader slots of each backend (`authRdSlots`, a part of the
 backend's slot partition carved from the counted stock). The boot premise and the snapshot clause
 take those slots for good: review R4 showed a permission check's read transaction can outlive
