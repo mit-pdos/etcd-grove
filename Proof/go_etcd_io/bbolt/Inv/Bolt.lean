@@ -1,0 +1,133 @@
+/-
+The persistent database predicate (U0a of `notes/bbolt-proof-plan.md`; design §3.4, §3.8):
+`isBoltCore` (everything `Open`'s core phase builds: the fixed fields, `metalock`, `mmaplock`,
+`statlock`, the page store and the transactions) and `isBolt` (the core, `rwlock` and the reader
+pool), over the names `B` and the client's namespace `N` (`Inv/Names.lean`).
+
+The database's location and the receipts' base are pinned by discarded ghost-map fragments
+(`dblAt`, `t0At`), so that two `isBolt`s of one name agree on the database (D-A's
+`boltTx_later`).
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Inv.Txs
+public import Proof.go_etcd_io.bbolt.PkgInit
+public import Spec.go_etcd_io.bbolt.Logger
+public import Perennial.Proof.sync.PoolDefs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt
+
+section bolt
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- `B` is the database at `db` (persistent, agreeing). -/
+def dblAt (B : BNs) (db : Loc) : IProp GF := iprop(ghostMapElem B.dbl () DFrac.discard db)
+
+/-- `B`'s receipts' base (the opened file's txid) is `t0` (persistent, agreeing). -/
+def t0At (B : BNs) (t0 : Nat) : IProp GF := iprop(ghostMapElem B.t0 () DFrac.discard t0)
+
+/-- The database's logger: a `boltLogger`, or bbolt's `discardLogger` (`Open` sets it when the
+option's is nil). -/
+def dbLogger (lg : GoInterface) : IProp GF :=
+  iprop(boltLogger lg ∨ globalAddr discardLogger ↦□ lg)
+
+/-- What the page pool holds: zeroed page buffers. -/
+def pageBuf (v : GoAny) : IProp GF :=
+  iprop(∃ s : GoSlice, ⌜v = interface.mkOk (go.GoType.SliceType go.byte) #s⌝ ∗
+    s ↦* List.replicate 4096 (W8 0))
+
+/-- **`db`'s fields written only by `Open`** (persistent, design §3.4): the page size, the
+statistics pointer, the logger, `readOnly`, the exported options (`StrictMode` and `Mlock` off),
+`openFile`, the page pool, the never-used batch fields. (Not `freelistLoad`'s `sync.Once`:
+Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
+`hlc`; U11 decides how `loadFreelist`'s `Once.Do` is covered, `notes/bbolt-proof-plan.md`.) -/
+def dbFixed (db sp : Loc) : IProp GF :=
+  iprop(db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ db.[DB, go!"stats"] ↦□ sp ∗
+    (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ dbLogger lg) ∗
+    db.[DB, go!"readOnly"] ↦□ false ∗ db.[DB, go!"StrictMode"] ↦□ false ∗
+    db.[DB, go!"Mlock"] ↦□ false ∗
+    (∃ x : Bool, db.[DB, go!"NoSync"] ↦□ x) ∗ (∃ x : Bool, db.[DB, go!"NoGrowSync"] ↦□ x) ∗
+    (∃ x : Bool, db.[DB, go!"NoFreelistSync"] ↦□ x) ∗
+    (∃ x : Bool, db.[DB, go!"PreLoadFreelist"] ↦□ x) ∗
+    (∃ x : FreelistType, db.[DB, go!"FreelistType"] ↦□ x) ∗
+    (∃ x : w64, db.[DB, go!"MmapFlags"] ↦□ x) ∗ (∃ x : w64, db.[DB, go!"MaxBatchSize"] ↦□ x) ∗
+    (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
+    (∃ x : w64, db.[DB, go!"AllocSize"] ↦□ x) ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
+    (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
+    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf) ∗
+    sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null)
+
+/-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
+statistics pointer `sp` and receipts' base `t0`. -/
+def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
+    IProp GF :=
+  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62⌝ ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
+    sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
+    sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗
+    sync.isRWMutexGuard db.[DB, go!"statlock"] (Ps sp) ∗
+    inv (pagesN N) (pagesInv B p) ∗ inv (txsN N) (txsInv B p sp t0))
+
+/-- The core of an open database (what `beginTx`, `removeTx`, `freepages` and `loadFreelist`
+need). -/
+def isBoltCore (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
+  iprop(∃ (p : GoString) (sp : Loc) (t0 : Nat), isBoltCoreP B N db p sp t0)
+
+/-- The full database at `db`, with its parameters. -/
+def isBoltP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
+    IProp GF :=
+  iprop(isBoltCoreP B N db p sp t0 ∗ sync.isMutex db.[DB, go!"rwlock"] (rwR B db p sp t0) ∗
+    threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp))
+
+/-- **`db` is the database `B`/`N`** (design §3.8): what `isBolt db γ` is sealed to, with
+`B = bnsOf γ.gs`, `N = γ.ns`. -/
+def isBoltDef (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
+  iprop(∃ (p : GoString) (sp : Loc) (t0 : Nat), isBoltP B N db p sp t0)
+
+/-! ## Lemma statements (U5) -/
+
+instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
+  sorry
+
+instance isBoltCore_persistent (B : BNs) (N : Namespace) (db : Loc) :
+    Persistent (isBoltCore (GF := GF) B N db) := by
+  sorry
+
+instance isBoltDef_persistent (B : BNs) (N : Namespace) (db : Loc) :
+    Persistent (isBoltDef (GF := GF) B N db) := by
+  sorry
+
+/-- The full database has its core. -/
+theorem isBolt_core (B : BNs) (N : Namespace) (db : Loc) :
+    isBoltDef (GF := GF) B N db ⊢ isBoltCore B N db := by
+  sorry
+
+/-- Two databases of one name are one database. -/
+theorem isBolt_db_agree (B : BNs) (N : Namespace) (db db' : Loc) :
+    isBoltDef (GF := GF) B N db ∗ isBoltCore B N db' ⊢ ⌜db = db'⌝ := by
+  sorry
+
+/-- The core's parameters agree with the full database's. -/
+theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : GoString) (sp sp' : Loc)
+    (t0 t0' : Nat) :
+    isBoltP (GF := GF) B N db p sp t0 ∗ isBoltCoreP B N db p' sp' t0' ⊢ ⌜sp = sp' ∧ t0 = t0'⌝ := by
+  sorry
+
+end bolt
+
+end bbolt
+end EtcdGrove
+end Perennial
