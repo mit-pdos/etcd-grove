@@ -14,7 +14,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/putget 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/putget3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/putgetc 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/watchkv 1
-spec-thread go_etcd_io/etcd/server/v3/etcdserver 11
+spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/kvwitness 4
@@ -42,7 +42,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/putget 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/putget3 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/putgetc 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/watchkv 2
-spec-receipt go_etcd_io/etcd/server/v3/etcdserver 19
+spec-receipt go_etcd_io/etcd/server/v3/etcdserver 15
 spec-receipt go_etcd_io/etcd/server/v3/lease 1
 spec-readers go_etcd_io/etcd/cache/v3 6
 spec-readers go_etcd_io/etcd/pkg/v3/notify 1
@@ -56,7 +56,7 @@ spec-readers go_etcd_io/etcd/server/v3/storage/mvcc 1
 spec-readers k8s_io/client_go/tools/cache 2
 spec-readers k8s_io/client_go/util/consistency 2
 spec-readers k8s_io/kubernetes/pkg/controller 1
-spec-cfg go_etcd_io/etcd/server/v3/etcdserver 6
+spec-cfg go_etcd_io/etcd/server/v3/etcdserver 2
 spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3election 4
 spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3lock 1
 spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 2
@@ -69,7 +69,7 @@ stock go_etcd_io/etcd/cache/v3 12
 stock go_etcd_io/etcd/client/v3 20
 stock go_etcd_io/etcd/pkg/v3/notify 1
 stock go_etcd_io/etcd/server/v3/auth 7
-stock go_etcd_io/etcd/server/v3/etcdserver 40
+stock go_etcd_io/etcd/server/v3/etcdserver 38
 stock go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp 5
 stock go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 4
 stock go_etcd_io/etcd/server/v3/etcdserver/read 1
