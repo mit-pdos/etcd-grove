@@ -338,7 +338,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -, %Hlgk, -⟩
   ihave #Hdb : dbImage γr.raft γr.kv i D $$ []
   · rw [hraft]; iapply (dbImage_of_srvImage hc0 hch hlog0); iexact Himg
   iunfold dbImage at Hdb
@@ -358,7 +358,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
-  have Hpl := Hpl0.1
+  have Hpl : plainLogM γr.kv.cmp false A' := by rw [← hlg, ← Hlgk.2]; exact Hpl0.1
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
   iunfold srvRestOwnH at Hrest

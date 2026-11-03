@@ -1493,3 +1493,43 @@ loses `ho` for the chain premise `hch : x.chain = alarmChain false false false` 
 `applyResultIs_notNoSpace_M`'s). Mechanical: two proofs that unfolded `dispatchStep` at a covered or
 admin request (`dispatchStep_plain` in `KVModel.lean`, `applyStep_admin_keep` in `ApplyTieOn.lean`)
 refute the new disjunct (the kind is not a grant). No frozen text changes.
+
+**Commit 4g: the KV invariant admits a grant; `applyEntryNormal`'s grant arm** (2026-11-03, a full
+build with the checks). Ported from `lease-grant-4-wip` (`09d0835656`, then deleted): `kvInv`'s plain
+log `plainLogM γk.cmp γk.lg` (and `kvInv_alloc_boot`'s); `reqPropOk`'s third disjunct `⌜grantPropOk
+γk.lg rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧ Qr = fun _ => True⌝` (2.7); `kv_prop_au_grant` and
+`kv_prop_au`'s grant case; `kv_log_plain`/`kv_applied_step` at `γk.lg`/`E.lg` (`kv_applied_step`
+reads `srvKVInvs`' `γr.kv.lg = E.lg`); `kvInv_facts_snoc`, `reqPropOk_shape`, `reqPropOk_wire`,
+`kv_fire_reads`, `srvKVCoreM_fire`/`ReadOn` (a client's half refutes `lg`), `SnapRecvFacts` (at
+`E.lg = false`) adapted; `reqPropOk_off`/`kv_log_plain_off` take `γk.lg = false` (no callers). M1's
+lemmas at `lg` (`ApplyCmpArm.lean`, new beside the old ones, which the auth-on arm keeps):
+`plainOrCmpG lg rq := plainOrCmp rq ∨ grantPropOk lg rq`, `plainOrCmpG_of_entryM`,
+`restOut_grant`/`restOut_plainOrCmpG`, `applyStep_grant`, `kvEntry_grant`, `batchStep_plainMG`,
+`kv_certPre_G`, `srvRest_applyPG` (over `srvRest_applyG`), `srvGrantIf_permPG`,
+`applyResultIs_notNoSpace_G` (over `_M` and 4f's `_grant`). `applyEntryNormal`'s auth-off arm uses
+them (`Hpl : plainOrCmpG E.lg rq`; the lessor's `leaseInit` by `iPkgInit`; `grantArM_of_res` after
+the `ErrNoSpace` lemma, which hands `grantResA` back). Mechanical: `EtcdServer.Compact`'s proposal
+picks the compaction disjunct by `iright; ileft`. No frozen text changes.
+
+**The problem: `EtcdServer.LeaseGrant.spec`'s pre cannot call `requireAuthInfo`** (found 2026-11-03,
+before any code of the proof; stops `EtcdServer.LeaseGrant.wp_proof`, hence a sorry-free
+`lessorGrantOkL_of_server` chain and `leasegrant.Main.wp_proof`).
+- *What.* Go's `LeaseGrant` calls `s.requireAuthInfo(ctx)` (`v3_server.go:447`), which reads
+  `s.authStore.IsAuthEnabled()` (`:1278`). `EtcdServer.requireAuthInfo.spec` (frozen, the auth
+  stage's) takes `srvAuthAt s E` (`AuthGuard.lean:180`: the auth store's field with `isReqAuth`, and
+  the store's contract `apply.isAuthStore`, which only the reader's view `isServerRead` holds).
+  `EtcdServer.LeaseGrant.spec`'s pre (2.5, frozen, D4's text) has `isServerReq s E ρ` only, whose
+  `srvReqFieldsAt` has the field and `isReqAuth` but not `isAuthStore`; nothing else in the pre
+  gives it, so `srvAuthAt s E` (hence the call) is not derivable. (`LeaseTimeToLive`,
+  `checkLeaseLeases` take `srvAuthAt` in their pres for the same call.)
+- *Options.* (a) `EtcdServer.LeaseGrant.spec`'s pre gains `srvAuthAt s E` (persistent), and
+  `v3rpc.lessorGrantOkL_of_server` (5a) the same premise: its one user, the served lemma, holds
+  `isServerReq` and `isServerRead` (`srvAuthAt_of_views`); a frozen text change, true of Go.
+  **Recommended.** (b) `isServerRead s E ρ.rd` in place of `srvAuthAt`: the same, more than needed.
+  (c) A second `requireAuthInfo` spec over `isServerReq` at auth off: against one spec per function.
+- *Also found (mechanical, not done):* `LeaseGrant`'s span attribute calls `r.GetTTL()` (`:443`),
+  which the etcd translation does not translate (`Code/go_etcd_io/etcd/api/v3/etcdserverpb.toml`
+  lists `CompactionRequest.GetRevision` and the like, not `LeaseGrantRequest.GetTTL`): the proof needs
+  it added to `translate`, `etc/goose.py --project etcd` rerun, and a `Spec`/`Proof` pair as
+  `CompactionRequest__GetRevision`'s, linked in `etc/link-lean-first-server.txt` with
+  `EtcdServer__LeaseGrant` itself (not linked yet).

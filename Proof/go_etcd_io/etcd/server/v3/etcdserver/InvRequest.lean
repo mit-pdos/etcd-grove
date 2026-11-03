@@ -372,12 +372,11 @@ scope admitted in compaction mode; and, last, each committed compaction's claims
 2026-11-03, the user's (C): in a cluster that grants leases, `γk.lg`, the invariant owns the KV
 state's ghost variable whole, `kvStQ`. No client's `etcdKV` can then exist, so every KV result is
 true there vacuously: a granting cluster makes no claim about etcd's KV service. At `γk.lg = false`
-it means what it meant. The plain log is still `plainLogM γk.cmp false`: admitting a grant,
-`γk.lg`, waits on `applyEntryNormal`'s grant arm, `notes/lease-grant-plan.md`, "Plumbing".) -/
+it means what it meant. A grant is plain there, `plainLogM γk.cmp γk.lg`.) -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
-    ⌜plainLogM γk.cmp false L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+    ⌜plainLogM γk.cmp γk.lg L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log⌝ ∗
       kvWork γ.raft γk L)
@@ -763,26 +762,33 @@ theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
 /-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
 (`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
 revision at least the cluster's retention behind a reached one (`kvRevLbZ`, C3's server stage),
-its result trivial. -/
+its result trivial. (The lease-grant stage's §2.7, 2026-11-03, the user's (C):) or, in a cluster
+that grants leases, a grant (`grantPropOk`), its result trivial and no client's update: the KV
+invariant owns the KV state whole there. At `γk.lg = false` the grant form is refuted
+(`grantPropOk_false`). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
     (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)) ∨
+    ⌜grantPropOk γk.lg rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧ Qr = fun _ => iprop(True)⌝)
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     reqPropOkW (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr := by
   iintro H; iunfold reqPropOk; ileft; iexact H
 
-/-- **Off, only the write forms** (the compaction form needs the mode on). -/
+/-- **Off, only the write forms** (the compaction form needs the mode on, the grant form a cluster
+that grants leases). -/
 theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
-    (h : γk.cmp = false) : reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
+    (h : γk.cmp = false) (hl : γk.lg = false) :
+    reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
   unfold reqPropOk
-  iintro (H | ⟨%hc, -⟩)
+  iintro (H | ⟨%hc, -⟩ | %hg)
   · iexact H
   · rw [h] at hc; exact absurd hc.1 (by decide)
+  · rw [hl] at hg; exact absurd hg.1 (grantPropOk_false rq)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 

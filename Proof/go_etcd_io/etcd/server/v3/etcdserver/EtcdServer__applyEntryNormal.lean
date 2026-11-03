@@ -283,8 +283,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   -- (M2's apply side, 2026-10-31) the entry: a covered request (D22: its rest buckets' effect is
   -- `dispatch`'s), or, in the cluster's compaction mode, a compaction in M2's scope
-  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmp rq :=
-    fun rq hd hdec => plainOrCmp_of_entryM _ m Hpe Htyp hd rq hdec
+  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmpG E.lg rq :=
+    fun rq hd hdec => plainOrCmpG_of_entryM _ _ m Hpe Htyp hd rq hdec
   -- a compaction's facts (`cmpAdmit`): its claim from the KV invariant's (`kv_entry_claim`, S3-3),
   -- the store compacting in the server's mode (`srvEnvOk`), the KV names' mode the server's
   have hkbE := srvEnvOk_kbCmp s γ ci E fv.cluster HEo
@@ -378,7 +378,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre_M E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false
+      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false E.lg
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
@@ -387,7 +387,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iapply wp_fupd
       ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr A $$ HRS
-      ihave #Hgpq := srvGrantIf_permP E rq (Hpl rq hdata hdec) $$ HGI
+      ihave #Hgpq := srvGrantIf_permPG E rq (Hpl rq hdata hdec) $$ HGI
       (try wp_auto)
       wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
@@ -410,7 +410,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
-      ihave HRS := srvRest_applyP E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
+      ihave HRS := srvRest_applyPG E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
         (Hpl rq hdata hdec) Hstep $$ [HLt HRS]
       · iframe HGI HLt HRS; ipureintro; exact Hgo
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
@@ -419,7 +419,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       (try wp_auto)
       have hes : entryStep m false x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plainM γr.kv.c0 (kvLeases γr.kv A) _ m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plainMG γr.kv.c0 (kvLeases γr.kv A) _ _ m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m false x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -508,7 +508,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre_M E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true
+      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lg
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
@@ -582,7 +582,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       · simp only [↓reduceIte]; iexact HSp
       (try wp_auto)
       ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr A $$ HRS
-      ihave #Hgpq := srvGrantIf_permP E rq (Hpl rq hdata hdec) $$ HGI
+      ihave #Hgpq := srvGrantIf_permPG E rq (Hpl rq hdata hdec) $$ HGI
       wp_apply hA fv.lg e m ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -626,7 +626,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
-      ihave HRS := srvRest_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
+      ihave HRS := srvRest_applyPG E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
         (Hpl rq hdata hdec) Hstep $$ [HLt HRS]
       · iframe HGI HLt HRS; ipureintro; exact Hgo
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
@@ -642,7 +642,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plainM γr.kv.c0 (kvLeases γr.kv A) _ m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plainMG γr.kv.c0 (kvLeases γr.kv A) _ _ m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -676,7 +676,6 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icases Har with (%Hnull | ⟨%err, #Herr, #HerrIs⟩)
       · exact absurd Hnull Hif
       have Har0 : ar ≠ null := Hif
-      ihave HGA := grantArM_of_res E ar rq out Har0 $$ HGr
       ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Perrs
       icases Hei with ⟨⟨%ens, #Hens, %Hensp⟩, -⟩
@@ -685,8 +684,13 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Papp
       icases Hai with ⟨-, -, #Hev⟩
-      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace_M rq x x' ar out (Hpl rq hdata hdec)
-        (Hxch.trans Hch0) Hstep $$ Hev HRes
+      ihave #Plea : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
+      · iPkgInit
+      ihave #Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Plea
+      ihave ⟨HGr, HRes, #Hnn⟩ := applyResultIs_notNoSpace_G E E.lg rq x x' ar out
+        (Hpl rq hdata hdec) (Hxch.trans Hch0) Hstep $$ Hev Hli HGr HRes
+      ihave HGA := grantArM_of_res E ar rq out Har0 $$ HGr
       icases Hnn with (%Hn0 | ⟨%err', #Herr', #Hnn⟩)
       · exact absurd Hn0 Har0
       icombine Herr Herr' gives %Heq

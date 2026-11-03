@@ -357,7 +357,7 @@ theorem EtcdServer.Compact.wp_proof
   · iframe # Hlt Hrd
     isplitr
     · iunfold reqPropOk
-      iright
+      iright; ileft
       isplitr
       · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, rqShape_mono _ _ hsh.1, hsh.2, rfl⟩
       iexists rv.Revision'

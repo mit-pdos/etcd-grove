@@ -196,11 +196,11 @@ theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
 mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLogM γk.cmp false L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+    (hok : plainLogM γk.cmp γk.lg L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLogM γk.cmp false (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    plainLogM γk.cmp γk.lg (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
       cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log := by
@@ -351,7 +351,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       unfold kvModel at h1 ⊢
       omega
     -- plain in the mode: a compaction in M2's scope
-    have hplain : plainEntryM γk.cmp false e := by
+    have hplain : plainEntryM γk.cmp γk.lg e := by
       intro _ _ rq' h
       rw [hed, hdec] at h
       cases h
@@ -518,7 +518,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
-      rw [← kvModelSt_plain γk L Hok.1, Hag]
+      rw [← kvModelSt_plain γk L (Hlg ▸ Hok.1), Hag]
       iexact HQ
   · -- (D21 M6) a plain write, with its client's update fired at most once, the result left at
     -- its token
@@ -584,14 +584,94 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
-      rw [← kvModelSt_plain γk L Hok.1, Hag]
+      rw [← kvModelSt_plain γk L (Hlg ▸ Hok.1), Hag]
       iexact HQ
 
+
+/-- **A grant proposal's update, from the KV invariant** (the lease-grant stage's §2.7, 2026-11-03,
+the user's (C)): in a cluster that grants leases, the invariant owns the KV state's ghost variable
+whole (`kvStQ`), so it steps it to the model of the log with the entry (no client's update); the
+entry is plain in the modes (`plainEntryM`'s grant disjunct), of a good shape, claims nothing
+(`cmpEntryOk`: no compaction). The result is `True`. -/
+theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
+    (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq) (hk : apply.irrPutsLe etcdKeyMax rq)
+    (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
+    (E : CoPset) (hE : ↑kvN ⊆ E)
+    (hform : grantPropOk γk.lg rq ∧ rqShape γk.lg rq) :
+    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id ={E}=∗
+      srvPropAu1 γ d (fun _ => iprop(True)) := by
+  have Hdisj := kvN_raftN
+  have hlg : γk.lg = true := hform.1.1
+  iintro #Hinv #Hcl #Hreg
+  imodintro
+  unfold srvPropAu1
+  iauintro
+  unfold atomic_acc
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  rw [kvStQ_true γk hlg]
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists L
+  iframe HL
+  isplit
+  · iintro HL
+    imod Hmask with -
+    imod Hclose $$ [HL Hσ] with -
+    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro %e ⟨%He, HL⟩
+    imod Hmask with -
+    obtain ⟨het, hed, hidx⟩ := He
+    have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx (Or.inl het)
+    imod ghostVar_update (kvModelSt γk (L ++ [e])) γk.st _ $$ Hσ with Hσ
+    -- no compaction: the entry claims nothing
+    have hclaim : cmpEntryOk γk γk.cmp L e := by
+      intro _ _ rq' h hkd
+      rw [hed, hdec] at h
+      cases h
+      rw [hform.1.2.1] at hkd
+      cases hkd
+    -- plain in the modes: a grant in a granting cluster
+    have hplain : plainEntryM γk.cmp γk.lg e := by
+      intro _ _ rq' h
+      rw [hed, hdec] at h
+      cases h
+      exact Or.inr (Or.inr hform.1)
+    have hsh : entryShape γk.lg e :=
+      ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2⟩, fun h => absurd het h⟩
+    ihave #Hecl : entryClaim γk.ids e $$ []
+    · iunfold entryClaim
+      iright
+      iexists rq, id, γf, γk.ids.key
+      rw [hed]
+      iunfold idClaim at Hcl
+      iframe Hcl Hreg
+      ipureintro; exact ⟨hdec, hid⟩
+    ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
+      (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw Hecl
+    imod Hclose $$ [HL Hσ] with -
+    · inext
+      iexists L ++ [e]
+      iframe HL Hσ Hw'
+      ipureintro
+      obtain ⟨hpl, -, hc0, hch, h0, hcl, htie⟩ := Hok
+      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim, htie⟩
+      rw [List.mem_append, List.mem_singleton] at hm
+      rcases hm with hm | hm
+      · exact hpl m hm
+      · subst hm; exact hplain
+    imodintro
+    iintro !>
+    itrivial
 
 /-- **A proposal's update, from the KV invariant** (M2's apply side, item 6): a write proposal's
 (`kv_prop_auW`), or a compaction's (`kv_prop_au_cmp`: its revision read through the certificates'
 invariant and the server's raft log's before the atomic update, so the mask holds `kvcN` and
-`srvRaftN` too). -/
+`srvRaftN` too); (the lease-grant stage, §2.7) or a grant's (`kv_prop_au_grant`). -/
 theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
     (hk : apply.irrPutsLe etcdKeyMax rq) (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
@@ -600,12 +680,15 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗ srvPropAu1 γ d Qr := by
   iintro #Hinv #Hci #Hrl #Hcl #Hreg Hok
   iunfold reqPropOk at Hok
-  icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩)
+  icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩ | %Hg)
   · iapply (kv_prop_auW γ γk d rq Qr hd hdec hk id γf hid E hE) $$ Hinv Hcl Hreg Hok
   · obtain ⟨hc, hcp, hs, -, hQ⟩ := Hc
     subst hQ
     iapply (kv_prop_au_cmp γ γk d rq hdec hk id γf hid E hE1 hE2 r hr ⟨hc, hcp, hs⟩)
       $$ Hinv Hci Hrl Hcl Hreg Hr
+  · obtain ⟨hg, hs, -, hQ⟩ := Hg
+    subst hQ
+    iapply (kv_prop_au_grant γ γk d rq hdec hk id γf hid E hE ⟨hg, hs⟩) $$ Hinv Hcl Hreg
 
 /-- **A result predicate of the KV model of the log is one the server's two logs agree on**
 (2026-10-27): the KV invariant keeps the start's consistent index at most the start index
@@ -630,9 +713,10 @@ theorem reqPropOk_shape (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMo
     reqPropOk (GF := GF) γk rq Qr ⊢ ⌜∃ Q : mvcc.Log → IProp GF, Qr = fun L => Q (kvModel γk L)⌝ := by
   iintro Hok
   iunfold reqPropOk at Hok
-  icases Hok with (Hok | ⟨%Hc, -⟩)
+  icases Hok with (Hok | ⟨%Hc, -⟩ | %Hg)
   rotate_left
   · ipureintro; exact ⟨fun _ => iprop(True), Hc.2.2.2.2⟩
+  · ipureintro; exact ⟨fun _ => iprop(True), Hg.2.2.2⟩
   iunfold reqPropOkW at Hok
   icases Hok with (%Hno | ⟨%op, %Q, %Hop, -⟩ | ⟨%op, %Q, %γc, %Hop, -⟩)
   · ipureintro; exact ⟨fun _ => iprop(True), Hno.2.2.2.2⟩
@@ -653,7 +737,7 @@ theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRMod
 
 /-- Firing every registered read update at the state of `L`'s model, the KV authority's half
 agreeing. -/
-theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp false L) :
+theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp γk.lg L) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (kvStQ γk) (kvModelSt γk L) -∗
         ([∗list] g ∈ gs, regOk γk g) -∗
@@ -696,6 +780,7 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : 
     icases Hacc with ⟨%σ, Hc, Hucl⟩
     iunfold etcdKV at Hc
     ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+    ihave %Hlg := kvSt_client_lg γk _ _ $$ Hσ Hc
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc] with #HQ0
@@ -711,7 +796,7 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : 
       iframe HQ
       rw [HQeq]
       iintro !> !>
-      rw [kvStOff, ← kvModelSt_plain γk L hpl, Hag]
+      rw [kvStOff, ← kvModelSt_plain γk L (Hlg ▸ hpl), Hag]
       iexact HQ0
     · iexact Hrest
 
@@ -845,10 +930,10 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
   obtain ⟨-, -, hk, hrq⟩ := hw
   rw [dispatchKind_withHeader] at hk
   unfold reqPropOk
-  iintro (H | ⟨%Hc, %r, %hr, #Hr⟩)
+  iintro (H | ⟨%Hc, %r, %hr, #Hr⟩ | %Hg)
   rotate_left
   · -- (M2's apply side, item 6) a compaction: the header is all the wire changes
-    iright
+    iright; ileft
     obtain ⟨hc, hcp, hs, hnz, hQ⟩ := Hc
     have he := hrq hnz
     subst he
@@ -857,6 +942,12 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     iexists r
     iframe Hr
     ipureintro; exact hr
+  · -- (the lease-grant stage) a grant: likewise
+    iright; iright
+    obtain ⟨hg, hs, hnz, hQ⟩ := Hg
+    have he := hrq hnz
+    subst he
+    ipureintro; exact ⟨hg, hs, hnz, hQ⟩
   ileft
   unfold reqPropOkW
   irevert H
