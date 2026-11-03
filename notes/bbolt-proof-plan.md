@@ -14,7 +14,110 @@ records the change here.
   `sorry`'d statement (inventory below); `Spec/go_etcd_io/bbolt/Api.lean`'s nine predicates are
   sealed (`@[no_expose] def`s over a non-public import of `Inv/FileHolds.lean`), each law proved by
   `exact` from its `…Def` statement in `Inv/`.
-- **Next: U0b** (the internal function specs of §4.2's table, over these names).
+- **U0b done** (2026-11-03): every internal function spec one unit uses and another proves is
+  stated (`sorry` proof stubs), over three new modules (`Model/PageAt`, `Model/WOps`, `Inv/Ctx`);
+  the cross-unit table, per unit, is "U0b: the internal specs" below.
+- **Next: wave 1** (U1, U2, U3, U6; U8's and U9a's local specs need nothing else either), then the
+  schedule of §4.2. The open-time specs wait for the fork commit `fork-open.diff`.
+
+## U0b: the internal specs (the frozen cross-unit contracts)
+
+Every spec is one file `Spec/go_etcd_io/bbolt/<T>__<M>.lean` (the main package; a variant's suffix:
+`_r` reader, `_w` writer, `_i` any transaction, `_s` the spare reader pair, `_err` the internal
+`Begin`/`Commit`), `Spec/go_etcd_io/bbolt/internal/{common,freelist}/<T>__<M>.lean`, with its stub
+`Proof/…/<same>.lean` (`theorem <T>.<M>.wp_proof : <T>.<M>.spec := by sorry`; the proving unit adds
+its callees' specs as hypotheses). A unit **proves** the specs listed for it and **may assume**
+every other spec below (and U0a's `sorry`'d lemmas of other units), never another unit's proof.
+
+### The contexts (`Inv/Ctx.lean`; pure relations in `Model/WOps.lean`, `Model/PageAt.lean`)
+
+- `BC` (a database's parameters: names, namespace, location, path, stats pointer, receipts' base),
+  `BC.core`/`BC.full` (`isBoltCoreP`/`isBoltP`).
+- `statsTok r m q` (the statistics' token: `ex` at `q`, or with `m = false` the exclusive part's
+  `done` half, inside `Commit`/`Rollback`/`DeleteBucket` once `txExcl` is out).
+- **`wtxW K tx r m X`**: the writer's working state (`wtxFrac` at 1 without its facts and the
+  data's quarter, plus the core and the stats token): what every writer internal spec runs over,
+  through `rebalance` and `spill`. `wtxLost` after a failed remap. `boltTxDef_wtxW` opens a whole
+  writer's `boltTx` into it (U5).
+- **`wdbW K tx v w`**: the writer's database side in its exclusive part (`wdbLive` on the view `v`
+  of `w.C`, with `wdbOK`); `wdbLost` after a failed remap. **`wtxEnd`**: a writer ready to close.
+- **`rdTxK K tx src q T v`**: a reader with its view exposed (`rdTx_rdTxK`, U6); `rBkt v tx b dq bv`
+  a reader's bucket (the root's at `rootVal v`, `rdTxK_root`); `pairBack` what its close gives back.
+- Relations: `nodeAdded`/`matGrow` (materialization), `matReady` (a page position can be
+  materialized), `lPath`/`lRoutes`/`lLeaf`/`bktLocalOK` (the writer's search, any bucket of `X`,
+  the root included), `bktOpened`, `nodeRootIn`, `wsIdx`/`wsPutAt`/`wsDelAt`/`pageWsAs`/`insSize`,
+  `positions`/`extents`/`bktFreed`/`FLPg.freeAll` (frees), `rebalOK` (rebalance's post) and
+  `spillPre` (spill's pre), `spillC`/`spillOK` (spill's post), `FLStep`/`applySteps` (a failed
+  spill's freelist), `allocRes` (allocation), `derefRel`/`liveReach`/`liveFresh` (the coverage
+  contract), `wdbRemap`, `wdbGrown`, `bktNames`/`bktEntry`/`pageWalk`/`freeIdsOf` (readers),
+  `pageInodesAt`/`pageReadable` (`ReadInodeFromPage`).
+- Lemma statements (`sorry`): `ltree_nodeAdded`, `wtxData_matGrow`, `wOK_nodeAdded` (U7);
+  `lRoutes_found`, `lRoutes_leafFor` (U6, the search lemmas); `viewCells_page_acc`,
+  `viewCells_loc_acc`, `viewCells_slices_acc`, `rdTx_rdTxK`, `rdTxK_root`, `rdTxK_view` (U6);
+  `wtxHeap_node_acc`, `wtxHeap_bkt_acc`, `boltTxDef_wtxW` (U5).
+
+### Per unit: the specs it proves (it may assume all the others)
+
+| unit | proves | its users |
+|---|---|---|
+| U1 | `internal/common/*` (81 specs: `Page`, `leafPageElement`, `branchPageElement`, `Inode`, `InBucket`, `Meta` accessors and setters, `Meta.{Validate,Copy,Write,Sum64}`, `ReadInodeFromPage`, `WriteInodeToPage`, `Unsafe*`, `Assert`, `NewInBucket`, `Pgids.Merge`) | U2, U4–U11 |
+| U2 | `internal/freelist/Interface__{Free,Allocate,Rollback,ReleasePendingPages,AddReadonlyTXID,RemoveReadonlyTXID,FreeCount,PendingCount,EstimatedWritePageSize,Write,Reload,NoSyncReload,Init,Read}`, `newFreelist` | U4, U5, U7–U11 |
+| U3 | (no function spec: `Inv/Store`'s and `Model/Store`'s lemmas, U0a) | U4, U5, U10, U11 |
+| U4 | `Tx__page`, `DB__page`, `DB__pageInBuffer`, `DB__meta`, `DB__hasSyncedFreelist`, `Tx__allocate`, `DB__grow`, `fdatasync` | U5–U11 |
+| U5 | `TxStats__{Inc*,GetRebalance}` (13), `DB__beginTx_s`, `Tx__Rollback_r`, `Tx__close_r`, `Tx__close_w`, `DB__Begin_err`; lemmas `wtxHeap_node_acc`, `wtxHeap_bkt_acc`, `boltTxDef_wtxW` | U4, U6–U11 |
+| U6 | `Tx__page_r`, `Bucket__Cursor_i`, `Cursor__seek_w`, `Bucket__pageNode_w`, `Bucket__Bucket_w`, `Bucket__ForEachBucket_w`, `Bucket__Bucket_r`, `Bucket__ForEachBucket_r`, `Tx__forEachPage_r`; lemmas `lRoutes_found`, `lRoutes_leafFor`, `viewCells_*_acc`, `rdTx_rdTxK`, `rdTxK_root`, `rdTxK_view` | U7, U9, U10, U11 |
+| U7 | `node__put`, `node__del`, `node__read`, `Bucket__node`, `Cursor__node`, `Bucket__free`; lemmas `ltree_nodeAdded`, `wtxData_matGrow`, `wOK_nodeAdded` | U8, U9 |
+| U8 | `node__childAt`, `node__childIndex`, `node__numChildren`, `node__removeChild`, `node__root`, `node__nextSibling`, `node__prevSibling`, `node__free`, `Bucket__rebalance` | U7, U9, U10 |
+| U9a | `node__size`, `node__write` | U8, U9b |
+| U9b | `Bucket__write`, `Bucket__dereference`, `Bucket__spill` | U4, U7, U10 |
+| U10 | `DB__freepages`, `Tx__Commit_err` | U11 |
+| U11 | (the open-time specs, once the fork lands: below) | — |
+
+Unit-internal functions (`Cursor.search`/`searchPage`/`searchNode`/`nsearch`/`first`/`next`/
+`keyValue`, the reader's `pageNode`/`seek`, `Bucket.openBucket`, `_forEachPageNode`,
+`node.dereference`, `node.split*`/`spill`, `DB.allocate`, `DB.mmap`'s remap, `beginRWTx`,
+`removeTx`, `commitFreelist`, `Tx.write`/`writeMeta`/`rollback`, …) are each unit's own business:
+it states and proves them in its own files.
+
+**Waiting for the fork commit (`fork-open.diff`)**: `DB.mmapUnlocked`, `DB.close` on `Open`'s
+error paths (`close_owned`), `loadFreelist` (its local freelist published under `metalock`),
+`DB.mmap`'s open-time case, `Open`'s internal specs. Their callees above (`newFreelist`,
+`Interface.Read`/`Init`, `DB.freepages`, `DB.hasSyncedFreelist`, `DB.meta`, `DB.page`) are stated.
+
+### U0b: deviations and findings
+
+1. **U0a fixes** (minimal, the definitions made a contract unstatable):
+   - `objOwn`'s bucket `tx` field is persistent (`↦□`) but the root bucket's: `boltBktDef` holds a
+     handle's `b.tx ↦□ tx`, while the heap held it at `dq`; `Tx.close` writes the root bucket
+     whole, so the root's stays owned.
+   - `rtxFrac` pins the reader's root bucket (`tx.root`: its header a persistent copy of the
+     view's root, no caches, no page, no root node) and its nil page cache: every read starts
+     there, and the existential `t` left it unknown.
+2. **Reader handles** (U0a's gap 17): the reader internal specs carry a reader bucket as `rBkt`
+   (fields at a fraction, persistent for an opened one); `boltBktDef`'s reader branch does not hold
+   it yet (U6 adds it: `rBkt … DFrac.discard`).
+3. **Specs over local resources where the caller's state varies**: `node.put`/`del`/`read`/
+   `size`/`write`/`childIndex`/`numChildren`/`removeChild`, `Bucket.write`, `Tx.page`, `DB.page`,
+   `DB.meta` are stated over the points-tos they touch (and `viewCells` at any fraction to read view
+   bytes), so that `Put`, `rebalance`, `spill` and `CreateBucket`'s stack-allocated bucket all use
+   them; the heap-level ones over `wtxW`. `wtxHeap_node_acc`/`_bkt_acc` move between the two.
+4. **The writer's search is over the logical tree of any bucket** (`lPath`/`lRoutes`), not over
+   `wStackAt` (which is a named top-level bucket's): `Bucket.spill`, `CreateBucket` and
+   `DeleteBucket` search the root bucket.
+5. **Iris parsing**: a multi-field record update does not parse inside `iprop` (nor a `p ↦ {…}`);
+   the posts use `NRec.withEnts`, `nodeAfterRead`, `hdrWritten`, `WDb.withFl`.
+6. **Findings for the owning units**:
+   - U1: `Meta.Validate`'s "not valid → non-nil error" needs `ErrInvalid`/`ErrVersionMismatch`/
+     `ErrChecksum` non-nil in `PkgInit.lean`'s `bboltErrorsVars` (today only `∃ e, … ↦□ e`).
+     `WriteInodeToPage`'s spec takes any bytes after the header (`node.write`'s zeros are a case).
+     `Verify`/`getEnvVerify` stay unstated (§5 item 4).
+   - U5: `txs_close` (U0a) takes `ghostVar r.n.ex 1` from the caller, which a holder of `txExcl` has
+     given to the invariant; restate it when proving `Tx.close_w`.
+   - U6: the reader's `boltBktDef` branch must carry `rBkt` (item 2).
+   - The only cross-unit specs with a callback are `Bucket.ForEachBucket_r` and
+     `Tx.forEachPage_r` (an invariant indexed by the iteration's position); the writer's
+     `ForEachBucket_w` is stated where it never calls back (`rootShape`: no nested bucket below a
+     top-level one).
 
 ## The modules (as built by U0a)
 
