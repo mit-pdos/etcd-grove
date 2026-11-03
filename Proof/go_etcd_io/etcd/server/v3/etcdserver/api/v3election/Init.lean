@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3election`
 Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
 2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
 initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
-Perennial's `context.wp_New_errorString`).
+Perennial's `errors.wp_New_errorString`).
 -/
 module
 
@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Init
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -65,7 +66,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrMissingLeaderKey))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xM #MM
   try wp_auto
   ipersist HErrMissingLeaderKey
   iframe Hown

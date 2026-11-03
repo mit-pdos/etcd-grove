@@ -33,7 +33,7 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
 public import Proof.log.NewModel
-public import Proof.os.Init
+public import RaftWitness.Proof.os.Init
 public import RaftWitness.Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import RaftWitness.Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 

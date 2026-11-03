@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.errors.NewVarCell
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -151,10 +152,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
   -- translated initializer of ErrLeaseTTLTooLarge))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #MNP
   wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xEx #MEx
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xTL #MTL
   wp_apply leaseGranted_init as ⟨%cleaseGranted, HleaseGranted, #SleaseGranted⟩
   wp_apply leaseRevoked_init as ⟨%cleaseRevoked, HleaseRevoked, #SleaseRevoked⟩
   wp_apply (opaqueInitsOk leaseRenewed.init (by mem_tac))

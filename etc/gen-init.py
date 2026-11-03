@@ -367,11 +367,11 @@ SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
     doc='''Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
 hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
 translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
-`context.wp_New_errorString`).''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+`errors.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x, _ in _CC},
     before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
-        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
            [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
            [f'iexists _; iexact H{_CCF[-1]}'],
@@ -381,11 +381,11 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
     doc='''Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
 2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
 initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
-Perennial's `context.wp_New_errorString`).''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+Perennial's `errors.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
     before={'$end': ['try wp_auto',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xM #MM', 'try wp_auto']},
     finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
            ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
 )
@@ -541,7 +541,7 @@ six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everyth
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
 trust-boundary axioms `labels.Everything.wp_proof` and `fields.Everything.wp_proof`), initializes
 its imports and runs the translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
              'Proof.k8s_io.apimachinery.pkg.fields.Everything'],
     alloc_types={'Everything': 'SelectionPredicate', 'RangeStream': 'GoString',
                  'RequestWatchProgress': 'GoString', 'tooLargeResourceVersionCauseMsg': 'GoString',
@@ -550,7 +550,7 @@ its imports and runs the translated initializers.''',
                  'ErrUnrecognizedEncodedVersion': 'GoInterface', 'ErrGenericInvalidKey': 'GoInterface',
                  'ErrEmptyStartKey': 'GoInterface', 'ErrInvalidStartRV': 'GoInterface'},
     before={'$end': [
-        'try wp_auto'] + ['wp_apply _root_.Perennial.context.wp_New_errorString as %_ -', 'try wp_auto'] * 6 + [
+        'try wp_auto'] + ['wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -', 'try wp_auto'] * 6 + [
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
@@ -663,7 +663,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
          '',
          'end toLoggerV2',
          ''],
-    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.sync.atomic.Link',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Perennial.Proof.sync.atomic.Link',
              'Proof.google_golang_org.grpc.grpclog.SetLoggerV2', 'Proof.os.Getenv',
              'Proof.strconv.ParseBool'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
@@ -671,7 +671,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
     before={'$inits': [
         'try wp_auto',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %_ -',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -',
         'try wp_auto',
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
@@ -866,7 +866,7 @@ without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.''',
-    imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString'],
+    imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     custom={'leaseGranted': counter_inc('leaseGranted'), 'leaseRevoked': counter_inc('leaseRevoked'),
             'leaseTotalTTLs': dict(
                 doc='/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
@@ -876,10 +876,10 @@ other untranslated initializers run.''',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #MNP',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xEx #MEx',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xTL #MTL']},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
@@ -1046,14 +1046,14 @@ SPECIAL['go_etcd_io.etcd.cache.v3'] = dict(
 their message) and `ErrNotReady` (a translated `fmt.Errorf` call), each a fixed non-nil error,
 the first two with `errorStringSpec`. Its initializer allocates them, initializes its imports and
 runs their translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.fmt.Link'],
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.fmt.Link'],
     vars=['[_root_.Perennial.fmt.Assumptions]'],
     alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
                  'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
     before={'$end': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xUR #MUR',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xKR #MKR',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xCT #MCT',
         'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
         '    $$ [] as %eNR -',
         '· isplitl',
@@ -1091,7 +1091,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString',
+    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar',
              'Perennial.Proof.sync.RWMutexGuard'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
@@ -1300,7 +1300,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
 metrics (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`; a counter's `Add` only
 of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). `opaqueInitsOk` states its other untranslated initializers run.""",
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVarCell',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.errors.NewVarCell',
              'Perennial.Proof.sync.RWMutexGuard'],
     custom=_mv_custom,
     alloc_types={**{f'{x}Mu': '_root_.Perennial.sync.RWMutex' for x in _MV_REPORT},
@@ -1310,10 +1310,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
                  'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
-    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
+    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.errors.wp_New_errorString as %xRNF #MRNF'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
+            '$inits': [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #M{t}'
                        for t in ['WNE', 'EWR', 'WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
@@ -2267,7 +2267,9 @@ PART_ROOT = 'RaftWitness'
 PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lintest',
               'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.internal.pragma',
               'google_golang_org.protobuf.reflect.protoreflect',
-              'google_golang_org.protobuf.runtime.protoimpl']
+              'google_golang_org.protobuf.runtime.protoimpl',
+              # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
+              'os', 'syscall', 'io.fs']
 PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
 PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
 

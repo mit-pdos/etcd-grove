@@ -33,6 +33,7 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.errors.NewVar
 public import Proof.errors.NewVarCell
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.runtime.PkgInitExt
 

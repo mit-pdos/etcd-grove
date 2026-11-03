@@ -18,12 +18,20 @@ section 3 says what of it carries over.
 - a named type for `DB.ops` and no `retry:` label (the two goose blockers).
 
 Packages `go.etcd.io/bbolt`, `errors`, `internal/common` and `internal/freelist` are all
-translated with bodies (`translate = ["*"]`, `Code/go_etcd_io/bbolt{,/errors,/internal/*}.toml`).
+translated with bodies (`translate = ["*"]`, `Code/go_etcd_io/bbolt{,/errors,/internal/*}.toml`),
+with two exceptions in the root package: the type `Options` stays axiomatized, and so does
+`DefaultOptions`' initializer (`translate = ["*", "!Options", "!DefaultOptions"]`). The backend's
+constructor and every example's `newBackend` go through `Options` by trust-boundary axioms over an
+abstract value (`storage/backend/BboltOptions.lean`: `optsAt`, `wp_optsLit`, ...). A translated
+struct makes `wp_auto` run the literal itself, which bypasses those axioms. Translating `Options`
+belongs with `Open`'s proof, when those axioms become lemmas.
 The etcd project no longer translates bbolt. Its lean root `go.etcd.io/bbolt=` stays, so that the
 backend names the same modules.
 
 **Goose reports nothing it cannot translate**, with Perennial `b3e996d84`. Nothing of bbolt is
-`trusted`, and there is no `TrustedCode/go_etcd_io/bbolt`.
+`trusted`, and there is no `TrustedCode/go_etcd_io/bbolt`. The only axioms are goose's, for the two
+names left out (`Options`' generated instances are `sorry -- axiomatized type`, as before, and no
+result uses them).
 
 **The pin bump to Perennial `b3e996d84`** (origin/lean; it was `c4a24e323`) was necessary.
 `c4a24e323`'s goose crashes on bbolt: it emits a nil `BinaryExpr` for `x++` on a `uint16`.
@@ -83,10 +91,9 @@ raft, mvcc, k8s or the backend for one:
 
 ### The backend
 
-The 20 bbolt axioms (`Spec/go_etcd_io/bbolt/*_kv.lean`) are unchanged. `Options` is now a
-translated struct rather than an axiomatized type. The backend's `BboltOptions.lean` axioms
-(`optsAt`, `optsVal`, ...) still type-check over it, and could now be proved. That is not done.
-`batchTx.UnsafeDeleteBucket`'s proof takes one more component of `bboltErrorsInit`.
+The 20 bbolt axioms (`Spec/go_etcd_io/bbolt/*_kv.lean`) and the `BboltOptions.lean` axioms are
+unchanged (`Options` is kept axiomatized for them, above). `batchTx.UnsafeDeleteBucket`'s proof
+takes one more component of `bboltErrorsInit`.
 
 ## 2. What bbolt calls, and what models it
 
