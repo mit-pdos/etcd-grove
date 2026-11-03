@@ -43,6 +43,11 @@ taking lean's change:
   F4, the spare `bkRTx` being the mvcc writer's reader.) Checked, unchanged: `srvSnapROAuth`'s delta;
   the Draft names none of cluster-rows' rows or `request_delivered`.
 
+**F2 merged (2026-11-03, lean `b28007bd7c`, 83's `lateWB` body, `KBReal`'s tie ghosts and snapshot
+flag, the mvcc backend contract):** the Draft builds over it unchanged; of the texts its twins
+follow, F2 changed only `snapWalkPost`'s internals (`lateW gx` → `lateWD d'`), which no twin names.
+(83's T1-B, `lateWB`'s boot arm allowing only an empty `Key` bucket, is the whole-`bootOk` review's.)
+
 **Review R1 (2026-11-03, `spec-reviewer`, read-only, at `983e807d73`)** and its repairs (commits on the
 branch; the Draft builds, the glue proved again):
 - F1 (the apply thread's open share still the mode-off half while the realization keeps
