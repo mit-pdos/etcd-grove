@@ -18433,6 +18433,7 @@ Moved 2026-11-02 (stage II (t)) from the "Last updated" line, which repeated mer
 millions of characters by duplicating its entries: each distinct entry once (those not already
 in "Last updated entries (all 164, until 2026-10-22)"), newest first.
 
+- 2026-11-02 (M2's item 15, stage B2: the server restores a snapshot in either mode: `applySnapshot.specSnap` drops `d.cm = false` and takes the image's records `r` (`keyImageM d.cm L r D`, `d.cm = true → x.crev ≤ r.crev`), the receipt `restoreRcptM` and the permits `crevPermAt` as premises, its post `d'.cm = d.cm`, `x'.crev = r.crev`, the closer `srvKVCloserW`; the walk by the mode (`SnapRestoreM.lean`, `restorePre_of_applyW`); `applyAll` calls it with the mode off; branch `m2-item15`, `notes/decisions.md`, "Restore in compaction mode at the server")
 - 2026-10-31 (`examples/kvdurable`, kvreconf made durable, and a spec candidate for raft's node API for durable clients, not adopted; see "examples/kvdurable and the durable node API")
 - 2026-10-31 (the durability planning pass's findings checked in, `notes/raft-durability-plan.md`: kept for its findings, not as the plan the proof follows; no proof)
 - 2026-10-30 (G2's repair: `srvKVFacts` in either auth mode, so `watcher.Watch.spec` is usable at an auth-on member; branch `g2-kvfacts-on`, see "G2, the watch with auth on")
