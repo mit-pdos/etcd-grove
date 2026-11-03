@@ -46,15 +46,16 @@ theorem isKeyBackendGR_of_G (bi : GoInterfaceOk) (View : Qp → Bucket → IProp
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) :
+    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop)
+    (CK : backend.FkVals → IProp GF) :
     isKeyBackendG (GF := GF) (GoInterface.ok bi) View RT WT NC' PutOk Del W Wi Dep Cmp P HF Req
-        Rb Bt SR SRh MW HN ∗
+        Rb Bt SR SRh MW HN PV PVx CK ∗
       □ (∀ (q : Qp) (m : Bucket),
         {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
             ∃ L : IProp GF, L ∗ keyReadSnapR View RT NC r Del true rt m L }}) ⊢
     isKeyBackendGR (GoInterface.ok bi) View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR
-      SRh MW HN := by
+      SRh MW HN PV PVx CK := by
   iintro ⟨#H, #HR⟩
   iunfold isKeyBackendG at H
   icases H with ⟨%bi', %hb, #HC, -, #HB, #HFC, #HS, #HSU, #HCmp⟩
@@ -207,7 +208,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
     (r : CmpRecs) (hpos : recsSign r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend d.γB d.P (lateWB d.gx d.γB) Pk d.be ∗ keySized d.γB d.P d.be ∗
+      isBackend d.γB d.P (lateWD d) Pk d.be ∗ keySized d.γB d.P d.be ∗
         storeDlReg d.γB γi ∗ fkV d.γB true ⊢
       ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         storeBackendTR
@@ -221,7 +222,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
   have hreg : storeDlReg (GF := GF) d.γB γi = storeDlReg d.γB γ.idx := by rw [hi]
   rw [hreg] at *
   icases storeDlReg_congr d.γB γ (storeCmp γ) $$ Hreg with ⟨#Hd, -⟩
-  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateWB d.gx d.γB) Pk d.be r hpos
+  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateWD d) Pk d.be r hpos
     (delKey γ) $$ [$Hpkg $Hsch $Hb $Hsz $Hd]
   have hv : bucketView (GF := GF) γ = bkView d.γB := by
     funext q m; unfold bucketView kbView; rw [hk]

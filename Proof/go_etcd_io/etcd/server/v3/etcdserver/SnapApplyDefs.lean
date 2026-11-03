@@ -63,11 +63,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
-      mvcc.KBReal).P = d.P := rfl
+    ({ d with γB := a, be := b, gx := g, cm := false } : mvcc.KBReal).P = d.P := rfl
 theorem kbgx_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
-      mvcc.KBReal).gx = g := rfl
+    ({ d with γB := a, be := b, gx := g, cm := false } : mvcc.KBReal).gx = g := rfl
 
 theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
     ownToks (GF := GF) γ n ⊢ ownToks γ (n - k) ∗ ownToks γ k := by
@@ -106,12 +104,12 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       opts'.RaftStatus' = interface.mkOk EtcdServer.ty.PointerType #s ∧
       opts'.SnapshotServer' = interface.mkOk EtcdServer.ty.PointerType #s⌝ ∗
     -- the snapshot's backend and what reads and writes it (persistent)
-    backend.isBackend d'.γB d'.P (mvcc.lateWB d'.gx d'.γB)
+    backend.isBackend d'.γB d'.P (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
     -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
     backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     backend.isStopChans γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
-    backend.hooksOk d.P (fun γB => mvcc.lateWB gx γB)
+    backend.hooksOk d.P (fun γB => mvcc.lateWD { d' with γB := γB })
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 γB))) ∗

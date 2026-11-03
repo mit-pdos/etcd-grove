@@ -825,10 +825,13 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 instance `d` gives a store `s` of that instance (`γ.kb = some d`) that is the txn package's
 `isKV`, with its reader slots, the sole writer of `NewStore`'s log `[[], []]` and `N` write
 tokens: with the store's lessor's leases (none in the empty state), the apply thread's
-`apply.kvOwn` and `applyEntries`' write budget, for a server whose environment is the store's. -/
+`apply.kvOwn` and `applyEntries`' write budget, for a server whose environment is the store's.
+(F2's Freeze, stage 2; review round 2's T2-1) Of a backend `bootstrap` opened (`d.snap = false`:
+`NewStore`'s scope); off compaction mode the instance's ties are nothing (`kbTieInit_off`). -/
 theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (γb γl : GName) (Pk : IProp GF)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
+    (γb γl : GName) (Pk : IProp GF)
     (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -866,9 +869,10 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some d) $$ []
   · iapply hsr.2; itrivial
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb (fun _ => iprop(True)))
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright, -⟩
+  ihave Htie := mvcc.kbTieInit_off (GF := GF) d hcm
+  wp_apply (mvcc_NewStore_backend lg le cfg d hP hs γb γl Pk f hf rd0 hcfg hrb (fun _ => iprop(True)))
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro]
+    as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright, -, -⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm
     isplitr
     · iintro !> %h; rw [hcm] at h; cases h
@@ -904,10 +908,13 @@ it at itself), the KV's writer at `NewStore`'s log `[[], []]` (`kvWriter`: the s
 the writer's half of the notified log), `N` write tokens, the recorded batch-lock invariant
 (`hookInit`: `hookIs` once the server freezes the hook, `hookIs_of_init`), the certificate map's
 authority; and the watch side's (the watchable store, its watch tokens, its readers but the two
-loops', the right to close it). The index's names `γi` and the map `γok` are the caller's (D13a). -/
+loops', the right to close it). The index's names `γi` and the map `γok` are the caller's (D13a).
+(F2's Freeze, stage 2) Of a backend `bootstrap` opened (`d.snap = false`: `NewStore`'s scope, as
+`server_kv_backend`); off compaction mode the instance's ties are nothing. -/
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (γb γl : GName) (Pk : IProp GF) (f : val)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
+    (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -955,7 +962,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
       backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
       backend.batchTxBuffered.wp_UnsafeCreateBucket
       backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-      schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f rd0 N γi γok M hcfg hrb) $$ [Hpre]
+      schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f rd0 N γi γok M hcfg hrb hs) $$ [Hpre]
   · iexact Hpre
   inext
   -- (question 5's core stage, part (1)) `d` does not compact (`hcm`): it is the store's instance
@@ -1050,10 +1057,12 @@ the backend's constructor is not proved), the hooks' resource the server's batch
 consistent index (`isCI`) and the apply thread's invariant (`consInv`); and the parameters'
 facts (`ciKeys`, `hooksParams`). The lessor is the real one at `lp` (`lease.lessorInv`: mvcc's
 `isLessor` derived from its proofs, `lease.isLessor_of_lessorInv`; unit 8), with a reader slot of
-its lock for the store. The other premises are `server_kv_backend`'s. -/
+its lock for the store. The other premises are `server_kv_backend`'s (with, F2's stage 2, its scope
+`d.snap = false`). -/
 theorem server_kv_backend_hooks (lg lp : Loc)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hci : ciKeys d.P)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hs : d.snap = false)
+    (hci : ciKeys d.P)
     (hH : storage.hooksParams d.P) (γb γl : GName) (γA : ApplyNames) (ci bh lgh : Loc)
     (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
@@ -1097,7 +1106,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
     [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
-  iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP hcm γb γl
+  iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP hcm hs γb γl
     (batchLockInv γA (metaTM d.γB d.P)) f hf rd0 N hcfg hrb) $$ [Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro] HΦ
   iframe #
   iframe Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro

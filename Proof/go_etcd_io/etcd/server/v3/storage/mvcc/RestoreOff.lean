@@ -44,11 +44,12 @@ bound), so the clients' view of their watchers (`chanWatcher`, `isClientWatcher`
 The rest as `store.Restore`'s: the caller's parts of the inner store's current objects and names
 (its closer, the writer's fragment and retired token, never compacted), the new backend's, and
 back the new closer, fragment, token, the old backend's tokens and the new one's left over; no
-restore in compaction mode (`store.Restore`'s two `cm = false` premises, Q5-3/Q5-4). -/
+restore in compaction mode (`store.Restore`'s two `cm = false` premises, Q5-3/Q5-4). (F2, stage 2)
+The scope restriction of `spec`: a backend the snapshot walk opened (`d'.snap = true`). -/
 abbrev mvcc.watchableStore.Restore.specOff : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R →
+  L <+: [[], []] ++ R → mvcc.restoreLogOk R → d'.snap = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
       mvcc.storeCloser st γ.st ∗ mvcc.writerFrag γ.st ∗ mvcc.writerOwn γ.st ∗
@@ -76,7 +77,7 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
 theorem mvcc.watchableStore.Restore.specOff_of_spec
     (h : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.specOff (GF := GF) (hG := hG) := by
-  intro s st γ b' d' γb' P' L R hpre hR
+  intro s st γ b' d' γb' P' L R hpre hR hsn
   iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, Hww, #Hok, Hbk, Hkc, Hv, Hnc, #Hnd, Hrr,
     Hrts⟩ HΦ
   obtain ⟨d, hγd, hdcm⟩ := Hd
@@ -84,7 +85,7 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
   obtain ⟨hoffd, hj0d, -, -, -⟩ := mvcc.cmOff_true (GF := GF) d hdcm
   have hoffγ : ¬ mvcc.kbCmpM γ.st.kb := by rw [hγd]; exact hoffd
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
-  iapply (h s st γ b' d' γb' P' L R (-1) mvcc.CmpRecs.empty hpre hR hc) $$
+  iapply (h s st γ b' d' γb' P' L R (-1) mvcc.CmpRecs.empty hpre hR hc hsn) $$
     [Hcl Hwf Hwo Hww Hbk Hkc Hv Hnc Hrr Hrts]
   · iframe Hpkg Hws Hwf Hwo Hww Hok Hrr Hrts
     simp only [mvcc.kbNoDelOff, hoff, ↓reduceIte]
@@ -117,6 +118,8 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
     · iapply (mvcc.restoreImageM_off d' γb' _ mvcc.CmpRecs.empty Hd').2
       iframe Hv Hnc; ipureintro; rfl
     rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
+    isplitr; · itrivial
+    isplitr; · iapply mvcc.restoreTie_off d' Hd'
     isplitr <;> try isplitr
     all_goals itrivial
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl

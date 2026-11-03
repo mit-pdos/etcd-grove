@@ -8,7 +8,8 @@ the backend's clients' view (`bkView d.γB`), its reader slots carry a reader's 
 backend and a share of it open (`bkRTx`), its writes spend a write-back's budget (`wbTok`), its
 puts meet the safe-range condition (`keyPutOk`: proved of mvcc's revision keys,
 `storePutOk_next`), and the backend's batch lock holds the store's writer's resource through the
-late-bound `lateW d.gx`, registered by `NewStore`'s first `Unlock`. The other mvcc results are
+late-bound `lateWD d` (the boot backend's `lateWB d.gx d.γB` when `d.snap = false`, `lateWD_boot`),
+registered by `NewStore`'s first `Unlock`. The other mvcc results are
 generic in the instance: at `γ.kb = some d` they are over the real backend. The compaction's
 (units 5a-5c) are not: they need a backend that supports it (`storeCmp`, false of the real
 instance: its model forbids deleting from the safe-range `Key` bucket; `notes/decisions.md`, "The
@@ -44,7 +45,7 @@ variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 /-- **`NewStore` over the real backend**: on a fresh backend made for the real instance `d`
-(`isBackend d.γB d.P (lateWB d.gx d.γB) Pk d.be`, with schema's buckets, its post-lock hook `f` set
+(`isBackend d.γB d.P (lateWD d) Pk d.be`, with schema's buckets, its post-lock hook `f` set
 for good, and the size premise `keySized` of its range reads), given what the backend's creator
 holds (the clients' view of the empty `Key` bucket, the right to register the store's lock
 resource, two write-back tokens, one reader token per reader slot), and a batch limit not
@@ -59,7 +60,11 @@ whose half lets the creator retire a reader for its own reader token: Probe P2, 
 (`storeDlReg`) and its contract has the compaction (`storeCmp`, part (4): the new bridge,
 `storeBackend_of_backendC`); the write-back supply is `store.Compact`'s (M2's Q1 (a)). Otherwise
 the slot is `True` (`cmOff_res`), the
-registration is "nothing deletable" (`dlNoDel`) and the contract the old bridge's. -/
+registration is "nothing deletable" (`dlNoDel`) and the contract the old bridge's. (F2, stage 2;
+review round 2's T2-1) Of a backend `bootstrap` opened (`d.snap = false`: its lock resource is
+`bootOk`'s, `lateWD_boot`), with the instance's ties whole at the fresh log (`kbTieInit`, from
+`kbTie_alloc`); the revision tie's half comes back (`kbCrev`, which `compactRightR_of_closer`
+takes). -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -88,13 +93,13 @@ theorem mvcc.NewStore_backend
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
-    (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
+    (hP : mvcc.bridgeParams d.P) (hs : d.snap = false) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
     (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        backend.isBackend d.γB d.P (mvcc.lateWD d) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
@@ -103,7 +108,7 @@ theorem mvcc.NewStore_backend
         -- (the backend's constructor's `fkCl`)
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbTieInit (some d) ∗
         ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -125,9 +130,10 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
+        mvcc.kbCrev (some d) (-1) ∗
         mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm ∗
         mvcc.writerPin γ [[], []] }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Htie, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   -- the deletable keys fixed by the mode (question 5's core stage, part (4)): a compacting store's
@@ -165,9 +171,9 @@ theorem mvcc.NewStore_backend
   imod Hbk with ⟨#Hbk, #Hnd⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok Perm hcfg)
-    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
-  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hnd
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok Perm hcfg (by exact hs))
+    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro Hifresh Hok0]
+  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Htie Hnd
     isplitr
     · iexact Hbk
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
@@ -177,12 +183,12 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hret,
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hkc, Hret,
     #HcpIs⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret HcpIs Hpin
+  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hkc Hret HcpIs Hpin
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real

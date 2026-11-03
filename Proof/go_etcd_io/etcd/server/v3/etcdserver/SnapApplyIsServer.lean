@@ -53,7 +53,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
       isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ∗
       -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
       backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateWB d'.gx d'.γB) (batchLockInv (snapγ γ π0 γB) (metaTM γB P))
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d') (batchLockInv (snapγ γ π0 γB) (metaTM γB P))
         d'.be ⊢
     isServer s (snapγ γ π0 γB) ci (metaTM γB P)
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ γr := by

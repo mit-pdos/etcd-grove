@@ -114,96 +114,29 @@ theorem backend.backend.Snapshot.spec_of_specF2
 
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **The `Key` bucket of a physical view** as the store's bucket. -/
-def mvcc.keyOfView (vd : backend.VData) : mvcc.Bucket → Prop :=
-  fun m => ∀ k, vd.lookup (mvcc.keyName, k) = m.lookup k
+-- (F2, stage 2, 2026-11-03) `keyOfView`, `physCut`, `cursorDone` and the tracking (`cmpFacts`,
+-- `cmpTrackOn`, `cmpTrack`, with the tie ghosts `KBReal.ties` in place of this Draft's
+-- placeholders `jcG`/`schG`) are real definitions now: `InvStore.lean`.
 
-/-- **The physical image is cut at the records** (pure): the physical view's `Key` bucket is the
-log's entries `ents` cut per key at a prefix of the deletable ones at the records' revision, the
-records of the log and past revision `0`. -/
-def mvcc.physCut (L : mvcc.Log) (r : mvcc.CmpRecs) (vd : backend.VData) : Prop :=
-  ∃ ents : List mvcc.KvEnt, mvcc.keyOfView vd (mvcc.bucketOfEnts ents) ∧
-    mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents
-
-/-- **The running job's cursor** (Draft placeholder for a `PhysNames` field and its ghost: jobs die
-at a restore, review F2-C6): the job at revision `c` has deleted every entry below the revision
-`(pm, ps)` (a whole revision, main and sub: Go's `last` is `(rev.Main, rev.Sub+1)`, so a batch may
-end between two sub-revisions of one main; review F2-C1) that compaction at `c` deletes. The
-authority is `cmpTrack`'s; the job's fragment is handed from job to job in `compactTok` (not
-`compactJobPre`, which is persistent; review F2-C3). -/
-opaque mvcc.StoreNames.jcG (γ : mvcc.StoreNames) : GName
-
-/-- The job's cursor (the job's half: the job's revision `c` and the revision `p` below which it
-has deleted). -/
-def mvcc.jobCursor (γ : mvcc.StoreNames) (c : Int) (p : mvcc.Rev) : IProp GF :=
-  ghostVar γ.jcG (1 : Qp).half (c, p.main, p.sub)
-
-/-- **Every entry below the cursor deletable at the job's revision is gone** (pure). -/
-def mvcc.cursorDone (L : mvcc.Log) (c : Int) (p : mvcc.Rev) (vd : backend.VData) : Prop :=
-  ∀ e ∈ mvcc.logEnts L 0 L.length, mvcc.KeyDel L c (mvcc.revBytes e.rev e.tomb) →
-    mvcc.Rev.lt e.rev p → vd.lookup (mvcc.keyName, mvcc.revBytes e.rev e.tomb) = none
-
-/-- Draft placeholder for a `PhysNames` field (renewed by `store.Restore`, review F2-C2): the
-scheduled record's ghost, the tie between the records and the apply thread's revision. -/
-opaque mvcc.StoreNames.schG (γ : mvcc.StoreNames) : GName
-
-/-- **A half of the scheduled record** (exclusive): `cmpTrack` (the batch lock's resource) holds
-one, the store's restorable compaction right (`compactRightR`, so the apply thread's `cmpOwn`) the
-other; only `updateCompactRev` (holding the right, then the batch lock) and `restore` move it. The
-job writes `finishedCompactRev` only, so the right's half is not disturbed by it. -/
-def mvcc.schedHalf (γ : mvcc.StoreNames) (sched : Option w64) : IProp GF :=
-  ghostVar γ.schG (1 : Qp).half sched
-
-/-- **mvcc's tracking of the compaction records and the job's cut** (in `compactRes` at the
-switch, so in the batch lock's resource `W`, for the real backend in compaction mode; `L` is
-`writerRes`'s log): the client's halves of the physical view (`pvHalf`; in either mode at the
-switch, every writer of a non-hook bucket moves it) and of the compaction keys' values (the
-records' bytes), the scheduled record's half (`schedHalf`; until review round 1 a quarter of
-`crevUB`, a logical share a restore would strand in the old backend, F2-C2), the cursor's authority
-with what it has done, and the physical cut, with the finished record not past the scheduled one
-(F2-C3: so the job's write of `finishedCompactRev` keeps `r.crev`). -/
-def mvcc.cmpTrack (γ : mvcc.StoreNames) (d : mvcc.KBReal) (L : mvcc.Log) (r : mvcc.CmpRecs) :
-    IProp GF :=
-  iprop(∃ (vd : backend.VData) (c : Int) (p : mvcc.Rev),
-    backend.pvHalf d.γB vd ∗ backend.ckHalf d.γB (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∗
-    mvcc.schedHalf γ r.sched ∗ ghostVar γ.jcG (1 : Qp).half (c, p.main, p.sub) ∗
-    ⌜mvcc.physCut L r vd ∧ r.finRev ≤ r.schedRev ∧ c ≤ r.crev ∧ mvcc.cursorDone L c p vd⌝)
-
-/-! ## The image from the tracked facts (proved) -/
-
-/-- **The observation suffices** (pure): a committed `D` whose `Key` bucket is a cut physical view
-and whose compaction keys hold the records' bytes is the image `keyImageM true`. -/
-theorem mvcc.keyImageM_of_tracked (d : mvcc.KBReal) (L : mvcc.Log) (r : mvcc.CmpRecs)
-    (D : backend.Data) (hcut : mvcc.physCut L r (backend.sData d.P D))
-    (hv : backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched)) :
-    mvcc.keyImageM true L r D := by
-  obtain ⟨ents, hk, hok, hpos, hc⟩ := hcut
-  unfold mvcc.keyImageM
-  simp only [↓reduceIte]
-  refine ⟨ents, fun k => ?_, ?_, ?_, hok, hpos, hc⟩
-  · rw [← hk k, backend.sData_lookup]; simp [mvcc.KBReal.P]
-  · have := congrArg Prod.fst hv
-    simp only [backend.fkVals] at this
-    exact this
-  · have := congrArg Prod.snd hv
-    simp only [backend.fkVals] at this
-    exact this
+/-! ## The image from the tracked facts: `mvcc.keyImageM_of_tracked` (proved, moved to
+`RestoreImageOpen.lean` with its converse `mvcc.tracked_of_keyImageM`, F2's stage 2) -/
 
 /-! ## The Prove phase's statements -/
 
-/-- **The writer's observation** (the Prove phase's lemma, replacing `srvBeSnapOk_cmpRecs`): in
-`srvBeSnapOk_window`'s observation, the KV's sole writer at `log` and the apply thread's
-compaction resources at `crev` (the frame), the batch lock's resource (its `cmpTrack`) and the
-batch lock's two halves give the physical cut at records `r` of revision `crev` with the
-compaction keys' values the records'. Review round 1 (F2-D1, D2): as stated it needs (a) the
-backend's `lateW` to carry `cmpTrack` in either state (unregistered too: after a restore no writer
-may have taken the batch lock yet, `writerReg`), and (b) the writer's log `L` of `cmpTrack` to be
-`kvWriter`'s `log` (a share of `γ.wv` in the writer's pin); both are the Prove phase's changes,
-open (`notes/image-cmp-f2-plan.md`, questions 5 and 6). -/
+/-- **The writer's observation** (the Prove phase's lemma, replacing `srvBeSnapOk_cmpRecs`; restated
+at F2's stage 2 over the real tracking): in `srvBeSnapOk_window`'s observation, the KV's sole writer
+at `log` (its pin's quarter of the log tie), the apply thread's compaction resources at `crev` (the
+compaction right's half of the revision tie), the batch lock's resource (`lateWD d`: its tracking,
+`cmpTrack`) and the backend's two halves (`pvHalf`/`ckHalf`, as `Snapshot.specF2` hands them) give the physical
+cut at records `r` of revision `crev` with the compaction keys' values the records'. Its mvcc half
+is the law `mvcc.lateWD_cmpObsP` (proved, `InvCompact.lean`; over its footprint `lateWD_cmpObs`), at
+the writer's pin (`writerPin`, in `kvWriter`, which since review round 2 carries the registration
+fact `pinRegd`: no separate `storeRegd` frame) and the compaction right (`compactRightR`, in
+`cmpOwn`); what stage 4 adds is opening `kvWriter` and `cmpOwn` to those two. -/
 def apply.cmpObs_stmt : Prop :=
   ∀ (E : apply.AEnv GF) (d : mvcc.KBReal), E.γ.kb = some d → d.cm = true →
   ∀ (log : mvcc.Log) (crev : Int) (vd : backend.VData) (v : backend.FkVals),
-    txn.kvWriter E.s E.γ log ∗ apply.cmpOwn E crev ∗ mvcc.lateW d.gx ∗
+    txn.kvWriter E.s E.γ log ∗ apply.cmpOwn E crev ∗ mvcc.lateWD d ∗
       backend.pvHalf d.γB vd ∗ backend.ckHalf d.γB v ⊢
     ⌜∃ r : mvcc.CmpRecs, mvcc.physCut log r vd ∧
       v = (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∧ r.crev = crev⌝

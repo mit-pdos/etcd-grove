@@ -30269,3 +30269,34 @@ at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cac
 are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
 answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
 is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec).
+
+**2026-11-03 · accepted (the user's approval of F2 stage 2's three proposals) · `lateWB`'s meaning**
+1. **`lateWB gx γB`'s body changes** (its signature and `bootOk`'s text stay): the backend's client
+   halves (`pvckOwn`) move inside `lateW`'s two arms, unregistered (the bootstrap's deposit, literally
+   `dghostVar gx ½ none ∗ pvckOwn γB`, or, for a backend the snapshot walk opened, the restore's
+   tracking) and registered (the store's `writerRes`, whose `compactRes` holds `cmpTrack` with the
+   exact halves). So `bootOk`/`bootstrapContract`, `InvRestart.newPost` and `mvcc_backend_bridge`
+   change meaning. **Why the client halves must sit with the facts**: the snapshot's observation is
+   a pure wand over the batch lock's resource `W` (no update, so no invariant opened: not
+   `writerReg`); what it learns of the physical view `vd` the lock's half agrees with can only come
+   from what sits beside the client's half inside `W`. With the halves outside `lateW` (stage 1's
+   `lateW ∗ pvckOwn`, an existential value), no fact about `vd` is reachable.
+2. **`KBReal` gains the tie ghosts** `lg` (the writer's log), `sg` (the records' revision), `jg` (the
+   job cursor) and a flag for backends the snapshot walk opened; `NewServer` sets them as it sets
+   `cm`, `SnapApplyWalk` allocates fresh ones with `gx'` (renewed at a restore through
+   `PhysNames.kb`: the approved "physical names renewed at a restore").
+3. **`cmpTrack` corrected**: the tie ghost holds `r.crev` (not `r.sched`), with "once a job has run,
+   `schedRev = crev`"; `fin ≤ sched` dropped (an image with odd records, `sched < fin`, would break
+   a `sched` tie at a restore).
+Condition: a fresh spec review of the new `lateWB` body and the widened mvcc backend contract
+(`batchTxSpecG`, `isKeyBackendG`, `mvcc_backend_bridge`, `store.Restore`) before the Freeze.
+
+**2026-11-03 · F2 stage 2, scope restrictions (filed per "No unneeded premise"; review round 3)**
+- `kbBoot kb` on `NewStore`/`New`/`newWatchableStore`: the store is made over a backend `bootstrap`
+  opened (`snap := false`); the snapshot walk's backends get their store only through
+  `store.Restore`. The server always meets it.
+- `d'.snap = true` on `store.Restore`/`watchableStore.Restore`: a restore installs over a backend the
+  snapshot walk opened (the only caller is `applySnapshot`).
+- `1 ≤ rev` on `store.Compact`/`updateCompactRev`/`compactLockfree` in compaction mode (Q7, approved):
+  from `compactPropOk` through `apply.cmpAdmitRev`; `compactLockfree`'s caller is Go's own resume
+  guard (`scheduledCompact != 0`). `nonissues/etcd-restore-scheduled-compact-zero.md`.

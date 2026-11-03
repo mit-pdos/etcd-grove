@@ -49,24 +49,30 @@ theorem keySized_cmOff (d : mvcc.KBReal) :
         mvcc.keySized γB ({ d with cm := false } : mvcc.KBReal).P b := by
   exact .rfl
 
-/-- The same facts at the instance in either mode (`{ d with cm := c }`: M2's server). -/
-theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (Pk : IProp GF) :
+/-- The same facts at the instance in either mode with its ties (`{ d with cm := c, ties := t, snap :=
+false }`: M2's server; F2, stage 2: the lock's resource `bootstrap`'s, `lateWD_boot`). -/
+theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (Pk : IProp GF) :
     backend.isBackend (GF := GF) d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ⊢
-      backend.isBackend ({ d with cm := c } : mvcc.KBReal).γB ({ d with cm := c } : mvcc.KBReal).P
-        (mvcc.lateWB ({ d with cm := c } : mvcc.KBReal).gx ({ d with cm := c } : mvcc.KBReal).γB) Pk ({ d with cm := c } : mvcc.KBReal).be := by
+      backend.isBackend ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).γB
+        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).P
+        (mvcc.lateWD ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)) Pk
+        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).be := by
+  rw [mvcc.lateWD_boot _ rfl]; exact .rfl
+
+theorem plHookRO_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (f : GoFunc) :
+    backend.plHookRO (GF := GF) d.γB f ⊢
+      backend.plHookRO ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).γB f := by
   exact .rfl
 
-theorem plHookRO_withCm (d : mvcc.KBReal) (c : Bool) (f : GoFunc) :
-    backend.plHookRO (GF := GF) d.γB f ⊢ backend.plHookRO ({ d with cm := c } : mvcc.KBReal).γB f := by
-  exact .rfl
-
-theorem keySized_withCm (d : mvcc.KBReal) (c : Bool) :
+theorem keySized_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) :
     (□ ∀ (γB : backend.BNames) (b : Loc), mvcc.keySized (GF := GF) γB d.P b) ⊢
       □ ∀ (γB : backend.BNames) (b : Loc),
-        mvcc.keySized γB ({ d with cm := c } : mvcc.KBReal).P b := by
+        mvcc.keySized γB ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).P b := by
   exact .rfl
 
-/-- `server_kv_watchable` (`Results.lean`) from the specs it uses. -/
+/-- `server_kv_watchable` (`Results.lean`) from the specs it uses. (F2, stage 2) Of a backend
+`bootstrap` opened (`d.snap = false`, `NewStore`'s scope); off compaction mode the instance's ties
+are nothing (`kbTieInit_off`), so none is allocated. -/
 theorem server_kv_watchable_of
     (hNew : mvcc.New.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -96,7 +102,7 @@ theorem server_kv_watchable_of
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (hs : d.snap = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -141,7 +147,7 @@ theorem server_kv_watchable_of
   -- no supply, no reader kept back (`cmOff_res`)
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal) hP rfl Pk γb $$ []
-  · simp only [mvcc.KBReal.P_withCm]; iframe #
+  · rw [mvcc.lateWD_boot ({ d with cm := false } : mvcc.KBReal) hs]; simp only [mvcc.KBReal.P_withCm]; iframe #
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
@@ -149,10 +155,11 @@ theorem server_kv_watchable_of
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
   · iapply hsr.2; itrivial
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  ihave Htie := mvcc.kbTieInit_off (GF := GF) ({ d with cm := false } : mvcc.KBReal) rfl
   iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
-      (fun _ => iprop(True)) hcfg)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm
+      (fun _ => iprop(True)) hcfg (by exact hs))
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Htie
     isplitr
     · iintro %s %γ %hγ
       iapply Hsb
@@ -215,7 +222,10 @@ storage side's Draft `server_kv_watchable_ofD`, at the instance `{ d with cm := 
 `server_kv_watchable_of` (nothing deletable); on, the store's keys deletable (`storeDlReg`), the
 backend's fixed-keys fact and its safe-range slot given to the store, which keeps a reader back for
 its compaction job (`nJobRd`) and gives the compaction's right (`crevRightM`). The specs only the
-compacting store's backend contract uses are needed only on. -/
+compacting store's backend contract uses are needed only on. (F2, stage 2; review round 2's T2-1)
+The store's instance has fresh compaction-tracking ties (`t`, allocated here by `kbTie_alloc`: the
+server names none) and is `bootstrap`'s (`snap := false`: the backend's lock resource is `bootOk`'s
+`lateWB`, `lateWD_boot`). -/
 theorem server_kv_watchable_ofM (c : Bool)
     (hNew : mvcc.New.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -267,8 +277,9 @@ theorem server_kv_watchable_ofM (c : Bool)
         (Val #le)) (Val #cfg))
     {{ (ws : Loc), RET #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws);
-        ∃ (st : Loc) (γw : mvcc.WsNames),
-        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some ({ d with cm := c } : mvcc.KBReal) ∧
+        ∃ (st : Loc) (γw : mvcc.WsNames) (t : mvcc.CmpTies),
+        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧
+          γw.st.kb = some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal) ∧
           γw.st.idx = γi ∧ γw.st.cok = γok ∧ γw.st.cm = c⌝ ∗
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) st γw.st ∗
@@ -280,28 +291,36 @@ theorem server_kv_watchable_ofM (c : Bool)
         ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN -
-            mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal)) - 2) (),
+            mvcc.nJobRd (some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)) - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
         mvcc.crevPermIs γw.st Perm ∗
-        mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal))) ∗
+        mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c, ties := t, snap := false } :
+          mvcc.KBReal))) ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif,
     Hok, #Hfv, Hsr⟩ HΦ
+  -- (F2, stage 2) the instance's ties, fresh (`kbTie_alloc`)
+  imod mvcc.kbTieInit_alloc (GF := GF) d c false with ⟨%t, Htie⟩
+  have hPd : ∀ c' : Bool, ({ d with cm := c', ties := t, snap := false } : mvcc.KBReal).P = d.P :=
+    fun _ => rfl
   -- the backend's deletable keys fixed by the mode, and the store's contract the bridge's of it
   ihave Hsb : iprop(|==> ((□ ∀ (s : Loc) (γ : mvcc.StoreNames),
-      ⌜γ.bucket = γb ∧ γ.kb = some ({ d with cm := c } : mvcc.KBReal) ∧ γ.idx = γi⌝ →
+      ⌜γ.bucket = γb ∧ γ.kb = some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal) ∧
+        γ.idx = γi⌝ →
         mvcc.storeBackend (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) ∗
-      mvcc.kbNoDelOff (some ({ d with cm := c } : mvcc.KBReal)))) $$ [Hdl]
+      mvcc.kbNoDelOff (some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)))) $$ [Hdl]
   · cases c with
     | true =>
       imod mvcc.storeDlReg_fix d.γB γi $$ Hdl with #Hreg
       ihave #Hfk := Hfv $$ %rfl
       ihave #Hsb := mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe (hLSR rfl) (hUSR rfl) (hUP rfl)
-        ({ d with cm := true } : mvcc.KBReal) hP Pk γb γi $$ []
-      · simp only [mvcc.KBReal.P_withCm]; iframe #
+        ({ d with cm := true, ties := t, snap := false } : mvcc.KBReal) hP Pk γb γi $$ []
+      · rw [mvcc.lateWD_boot ({ d with cm := true, ties := t, snap := false } : mvcc.KBReal) rfl]
+        simp only [hPd]
+        iframe #
       imodintro
       isplitl []
       · imodintro
@@ -310,9 +329,11 @@ theorem server_kv_watchable_ofM (c : Bool)
     | false =>
       imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
       ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
-        hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal)
-        hP rfl Pk γb $$ []
-      · simp only [mvcc.KBReal.P_withCm]; iframe #
+        hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe
+        ({ d with cm := false, ties := t, snap := false } : mvcc.KBReal) hP rfl Pk γb $$ []
+      · rw [mvcc.lateWD_boot ({ d with cm := false, ties := t, snap := false } : mvcc.KBReal) rfl]
+        simp only [hPd]
+        iframe #
       imodintro
       isplitl []
       · imodintro
@@ -326,14 +347,14 @@ theorem server_kv_watchable_ofM (c : Bool)
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c } : mvcc.KBReal) $$ Hsr
+  ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal) $$ Hsr
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
-      Perm hcfg)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb Hnd
+  iapply (hNew lg _ le cfg (some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)) γb γl
+      Pk f rd0 γi γok γtag Perm hcfg (by exact rfl))
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Htie Hsb Hnd
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
-      mvcc.kbRT_some, mvcc.KBReal.P_withCm]
+      mvcc.kbRT_some, hPd]
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
@@ -345,7 +366,7 @@ theorem server_kv_watchable_ofM (c : Bool)
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
   iNamed Hws'
   iapply HΦ
-  iexists st, γw
+  iexists st, γw, t
   rw [ht]
   iframe Hws Hhk Hwt Hcok Hrds Hcl Hcr Hro Hret HcpIs
   iframe Htag

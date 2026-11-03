@@ -91,7 +91,7 @@ theorem snap_restoreBackendM [backend_sem : go_etcd_io.etcd.server.v3.storage.ba
     (hkI : mvcc.keyImageM d'.cm L r D) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateWB d'.gx d'.γB) Pk d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
       backend.dlInit d'.γB ∗ backend.bViewC d'.γB 1 (backend.vData d'.P (D, ⟨∅, W64 0⟩)) true ∗
       backend.fkCl d'.γB d'.P D ⊢ |==> (
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb ∧ p.kb = some d'⌝ →

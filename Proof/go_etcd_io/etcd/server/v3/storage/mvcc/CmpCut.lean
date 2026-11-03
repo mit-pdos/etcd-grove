@@ -311,6 +311,94 @@ theorem entsCutAt_del {L : Log} (hb : LogB L) (hwf : LogWf' L) {c crev : Int} (h
 
 end pure
 
+section facts
+open Iris
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : Iris.HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-! ## The tracking's facts, kept by a commit -/
+
+/-- The records' revision is one of the log's (or `-1`), for a log not empty. -/
+theorem recsOk_crev_lt1 (L : Log) (r : CmpRecs) (h : recsOk L r) (hL : 1 ≤ L.length) :
+    r.crev < L.length := by
+  have hf : ∀ x, r.fin = some x → sint.Z x < L.length := fun x hx => (h.1 x hx).2
+  have hs : ∀ x, r.sched = some x → sint.Z x < L.length := fun x hx => (h.2 x hx).2
+  unfold CmpRecs.crev CmpRecs.resumes CmpRecs.schedRev CmpRecs.finRev
+  rcases r with ⟨_ | x, _ | y⟩ <;>
+    simp only [Option.map_none, Option.map_some, Option.getD_none, Option.getD_some] at hf hs ⊢
+  · split <;> simp_all <;> omega
+  · have := hs y rfl; split <;> omega
+  · have := hf x rfl; split <;> simp_all
+  · have := hf x rfl; have := hs y rfl; split <;> omega
+
+/-- The appended revision's entries are the pending puts. -/
+theorem snocEnts_pair (L : Log) (cs : List Change) (hne : L ≠ []) :
+    (snocEnts L cs).map KvEnt.pair = pendPuts L cs := by
+  have hpos := List.length_pos_iff.2 hne
+  unfold snocEnts pendPuts
+  rw [stateAt_append_lt _ _ (by omega), stateAt_last]
+  simp only [bucketOfRev, entsOfRev, List.map_filterMap]
+  congr 1
+  funext p
+  cases changeKv (W64 L.length) (stateAfter L) cs p.2 <;> rfl
+
+theorem bucketOfEnts_append (ents ents' : List KvEnt) :
+    bucketOfEnts (ents ++ ents') = putsOnto (ents'.map KvEnt.pair) (bucketOfEnts ents) := by
+  unfold bucketOfEnts putsOnto; rw [List.map_append, List.foldl_append]
+
+/-- **A commit keeps the tracking's facts**: the physical view, the session's opening view `vd0`
+with the committed revision's puts on its `Key` bucket, is cut at the same records in the longer
+log (`entsCutAt_snoc`), and the job's cursor stays done (the new entries are above every
+compaction's revision). -/
+theorem cmpFacts_snoc {L : Log} {cs : List Change} {r : CmpRecs} {vd0 vd : backend.VData}
+    {v : backend.FkVals} {c : Int} {p : Rev} (hf : cmpFacts L r vd0 v c p)
+    (hb : LogB (L ++ [cs])) (hwf : LogWf' (L ++ [cs])) (hne : L ≠ [])
+    (hk : keyOfView vd (putsOnto (pendPuts L cs) (keyBucket vd0))) :
+    cmpFacts (L ++ [cs]) r vd v c p := by
+  obtain ⟨⟨ents, hk0, hrok, hpos, hcut⟩, hv, hcc, hsc, hdone, -, -⟩ := hf
+  have hbL := hb.prefix
+  have hlen := List.length_pos_iff.2 hne
+  have hcr := recsOk_crev_ge L r hrok
+  have hcrL := recsOk_crev_lt1 L r hrok hlen
+  have hkb : keyBucket vd0 = bucketOfEnts ents := GMap.ext fun k => hk0 k
+  have hpp := snocEnts_pair L cs hne
+  -- a key of an old entry is no pending put's
+  have hnotin : ∀ e ∈ logEnts L 0 L.length,
+      ∀ q ∈ pendPuts L cs, q.1 ≠ revBytes e.rev e.tomb := by
+    intro e he q hq heq
+    rw [← hpp, List.mem_map] at hq
+    obtain ⟨e', he', rfl⟩ := hq
+    obtain ⟨-, hr⟩ := revBytes_inj _ _ _ _ heq
+    have h1 := snocEnts_main hb he'
+    have h2 := logEnts_main_le L hbL e he
+    rw [hr] at h1
+    omega
+  refine ⟨⟨ents ++ snocEnts L cs, ?_, ?_, hpos, entsCutAt_snoc hb hcr hcrL hcut⟩, hv, hcc, hsc,
+    ?_, hb, hwf⟩
+  · intro k
+    rw [hk k, bucketOfEnts_append, hpp, hkb]
+  · unfold recsOk
+    simp only [List.length_append, List.length_singleton]
+    exact ⟨fun x hx => by have := hrok.1 x hx; omega, fun x hx => by have := hrok.2 x hx; omega⟩
+  · intro e he hd hlt
+    rw [logEnts_snoc'] at he
+    obtain ⟨hcl, r', t, hkey, h0, h1, hkeep⟩ := hd
+    rcases List.mem_append.1 he with he | he
+    · have hd' : KeyDel L c (revBytes e.rev e.tomb) :=
+        (KeyDel_prefix L (L ++ [cs]) (List.prefix_append L [cs]) hb c (by omega) (by omega) _).1
+          ⟨hcl, r', t, hkey, h0, h1, hkeep⟩
+      rw [hk, putsOnto_lookup_notin _ _ _ (hnotin e he)]
+      exact hdone e he hd' hlt
+    · obtain ⟨-, hr⟩ := revBytes_inj _ _ _ _ hkey
+      have := snocEnts_main hb he
+      rw [hr] at this
+      omega
+
+end facts
+
 end mvcc
 end EtcdGrove
 end Perennial

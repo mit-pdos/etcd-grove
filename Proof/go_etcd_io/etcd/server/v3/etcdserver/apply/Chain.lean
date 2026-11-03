@@ -364,9 +364,11 @@ S-8): the store compacting (its backend in compaction mode: the KV invariant adm
 entries only in the cluster's compaction mode, and `envAgree`/`srvEnvOkD` tie the store's mode to
 it) and the revision one of the log's (the committed log's claim, `cmpLogOk`). No `NoDelPutAt`:
 the fork has etcd-io/etcd#22377 (review round 1's F-5; mvcc's specs drop the premise before the
-switch). -/
+switch). (F2, stage 2; the user's Q7, approved 2026-11-03) The revision at least `1`: the store's
+compaction's scope restriction (`store.Compact.spec`, `nonissues/etcd-restore-scheduled-compact-zero.md`),
+which the server's `EtcdServer.Compact.spec` (`1 ≤ r`) supplies. -/
 def cmpAdmitRev (kb : Option mvcc.KBReal) (log : mvcc.Log) (rev : w64) : Prop :=
-  mvcc.kbCmpM kb ∧ sint.Z rev < log.length
+  mvcc.kbCmpM kb ∧ sint.Z rev < log.length ∧ 1 ≤ sint.Z rev
 
 theorem chainCompacts_auth (on : Bool) (c : Chain) : chainCompacts (.auth on c) = chainCompacts c := rfl
 theorem chainCompacts_quota (c : Chain) : chainCompacts (.quota c) = chainCompacts c := rfl

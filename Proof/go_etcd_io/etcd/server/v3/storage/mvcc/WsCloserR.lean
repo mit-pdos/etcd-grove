@@ -54,10 +54,10 @@ theorem wsCloserR_of_wsCloser (s st : Loc) (γs : StoreNames) (h : γs.cm = true
     ⊢ wsCloser (GF := GF) s st γs -∗ crevRightM γs ={E}=∗ wsCloserR s st γs (-1) := by
   unfold crevRightM
   simp only [h, ↓reduceIte]
-  iintro Hcl Hcr
+  iintro Hcl ⟨Hcr, Hk⟩
   iunfold wsCloser at Hcl
   icases Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hcl⟩
-  imod compactRightR_of_closer st γs E $$ Hcl Hcr with Hr
+  imod compactRightR_of_closer st γs E $$ Hcl Hcr Hk with Hr
   imodintro
   iunfold wsCloserR
   iexists stc

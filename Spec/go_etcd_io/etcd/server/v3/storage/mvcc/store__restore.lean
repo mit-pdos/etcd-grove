@@ -77,6 +77,7 @@ abbrev mvcc.store.restore.spec : Prop :=
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
     (Rb : GMap GoString backend.BktData → IProp GF)
     (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
+    (PV : mvcc.Bucket → IProp GF) (PVx : Prop) (CK : backend.FkVals → IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
     (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool),
@@ -86,7 +87,8 @@ abbrev mvcc.store.restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       (if ns then mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep
-        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) ∗
+        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) (PV := PV) (PVx := PVx)
+        (CK := CK) else iprop(True)) ∗
       RT ∗ NC ∗ mvcc.restoreViewR b γ RT q ns (mvcc.bucketOfEnts ents) NC r ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
