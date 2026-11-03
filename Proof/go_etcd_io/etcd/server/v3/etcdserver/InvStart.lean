@@ -23,7 +23,7 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
   KV's log (`revAuth E x₀.log`: a ghost allocation at `E.γrev`, an empty map does, `revAuth_empty`;
   the vertical slice's unit V1);
 * the contracts of the names-only parts (`clusterVersionOk`: `ClusterVersion()`, monotone from
-  `nil` to non-`nil`; `□ |==> idCred ρ.ids 1`: the read loop's ids; `□ |==> Er.T`: the ticks);
+  `nil` to non-`nil`; `□ |==> idCred ρ.ids 1`: the read loop's ids; (until D19b `□ |==> Er.T`: the ticks; since then `True`, no contract);
 * the fields `start` sets (any values), `wg` and `wgMu` at their zero values;
 * the reader slots `start` hands on: `s.lgMu`'s for `run` and for the read loop, and
   `s.firstCommitInTerm`'s for the read loop;

@@ -11,7 +11,8 @@ node contract is to be discharged from raft's specs.
   names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
   `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
   answer (`srvReadStateOk`, `read/Inv.lean`). What the discharge needs of `E` is `rnEnvOk E γ`
-  (persistent, in `isRaftNode`): `E.T` raft's tick credit, `E.M` of a message raft handed out
+  (persistent, in `isRaftNode`): `E.T` a tick's resource (raft's tick credit until D19b; `True`
+  since, which `rnEnvOk` pins), `E.M` of a message raft handed out
   (with its read credit, D21 stage M1),
   `E.C` from the committed log (and back: the log prefix and the indices), `E.RQ` raft's read
   registration (`srvRQ`), and the names tied (`E.γr.raft.raft = γ.node`, ...).
@@ -32,7 +33,7 @@ node contract is to be discharged from raft's specs.
   the node's delivered log `L`.
 - **The other components** are persistent predicates of triples (the WAL, the
   `MemoryStorage`, the transport, the timeout detector, the ready handler's closures, the
-  ticker, whose ticks carry `E.T`), and the wrapper's fields are read-only after `start` but
+  ticker, whose ticks carry `E.T`, `True` since D19b), and the wrapper's fields are read-only after `start` but
   `latestTickTs`, under `tickMu` (`rnTickInv`).
 -/
 module
@@ -1263,7 +1264,8 @@ instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) (γr : ReadNames) :
     Persistent (isReadyHandler (GF := GF) rh R γr) := by
   unfold isReadyHandler; infer_instance
 
-/-- **The ticker `tk`** (what `rnTickerOk` gives; at `E.T = True` from the `time` specs, `time.isTicker`): its `C`
+/-- **The ticker `tk`** (what `newRaftNode` makes: since 2026-11-03 from Perennial's proved
+`time.NewTicker`, `isRNTicker_of_time`, at `E.T = True`): its `C`
 is a channel on which a receive yields some time **with a tick's resource `E.T`** (2026-10-16,
 stage R7b: raft's tick credit came with the tick, "fewer than `2^64 - 1` ticks in a run" the
 ticker's premise; since D19b, 2026-10-18, `E.T` is `True` for the server, `raftNode.tick` taking

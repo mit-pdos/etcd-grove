@@ -17,6 +17,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
+
+- **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
+  initTicker ↦□ true ∗ bag`, with no unforgeability token like `isTimer`'s `newTimerMade`. A copy
+  `u := new(time.Ticker); *u = *t` meets it (both fields are read through `t`'s persistent
+  points-tos and written into `u`), and the proved `Ticker.Reset` spec says `u.Reset(d)` returns,
+  while Go fails: measured with go1.27.3, "fatal error: unlock of unlocked lock" (the runtime's timer
+  state after the `Ticker` header is not copied). `u.Stop()` returned in the same experiment, but
+  also runs the runtime's `stopTimer` on memory that is not a timer.
+- **Needed by.** Nothing here copies a ticker; every client gets its ticker from `NewTicker`
+  (`serverWatchStream.sendLoop`, `streamWriter.run`, `syncWatchersLoop`, `newRaftNode`, the auth
+  token keeper, kvdurable's and kvreconf's replicas). The concern is the spec's soundness as a
+  library spec.
+- **Here.** Nothing: since 2026-11-03 this repository's own ticker axioms are gone (their `Reset`
+  admitted a forged `v.C = t.C`, false of Go, `notes/decisions.md`, "The ticker where it is made")
+  and the clients use Perennial's proved specs.
+- **Proposal.** An opaque `newTickerMade t` in `isTicker`, given only by `NewTicker`'s spec, as
+  `newTimerMade` for timers.
+- **Status.** Not proposed yet.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof

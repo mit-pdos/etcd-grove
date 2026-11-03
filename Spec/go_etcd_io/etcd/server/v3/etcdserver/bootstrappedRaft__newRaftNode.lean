@@ -30,8 +30,8 @@ storage's certificate link (a static cluster) or its cap (a dynamic one), as `St
 `nodeConfig` at the peers' membership), and the wrapper as `newRaftNode`
 leaves it (`rnBuilt`, over the config built here: the closure meets `isRNIDRemoved`, the WAL
 `isRNWal`; `transport` nil, owned) with the wrapper's names tied to the node's (`node`, `id`,
-`nl`, `ms = b.storage`, `γs`, `reg`, and `pre` the caller's). The receiver and the peers' slice
-come back at their fraction.
+`nl`, `ms = b.storage`, `γs`, `reg`, and `pre` the caller's). The receiver comes back at its
+fraction; the peers' slice does not (the node API's `StartNode` keeps it).
 -/
 module
 
@@ -61,8 +61,6 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (pre : List EntryModel)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
-  -- `newRaftNode`'s premises: a logger (and a positive heartbeat, in the precondition)
-  bv.lg' ≠ null →
   -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
   -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
   ConfigValid cv →
@@ -84,9 +82,11 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
   storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- (2026-11-03, the final whole-`bootOk` review's S2: until then the implication
-      -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction (`newRaftNode.spec`'s)
-      "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗
+      -- `newRaftNode`'s premises: (2026-11-03: until then the implication `bv.lg' ≠ null →`) a
+      -- logger; (the final whole-`bootOk` review's S2: until then the implication
+      -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction; (2026-11-03) ticks carrying
+      -- nothing (`newRaftNode.spec`'s)
+      "%Hlg" ∷ ⌜bv.lg' ≠ null⌝ ∗ "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗ "%HT" ∷ ⌜E.T = iprop(True)⌝ ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
       -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the
@@ -103,9 +103,10 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
       "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗
       "Hrst" ∷ raftState γr.cl cv.ID' RaftState.init ∗
-      -- the contracts (`InvNodeStart.lean`)
+      -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, `newRaftNode`'s
+      -- proof calls the ticker's spec)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
+      "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
       "#Hcl" ∷ rnClusterOk cl }}
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))

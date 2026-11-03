@@ -50,7 +50,8 @@
   below `MemoryStorage.Append`'s `2 ^ 61` (until then the premise `rnLogFits`, an Iris statement
   on every `Ready`).
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; since 2026-11-03 not
-  `rnTickerOk`, a theorem of the `time` specs, `NewServer.wp_proof`'s callees; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
+  `rnTickerOk`, since proved where the ticker is made: Perennial's `time` specs are
+  `newRaftNode.wp_proof`'s callees; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
   until then of every location, false of Go), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
   facts `start` needs (`context`'s `closedchan`; since D19r (C), (D) the raft status's mutex and

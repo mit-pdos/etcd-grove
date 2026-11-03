@@ -1,13 +1,17 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean`. Lean-first (no Rocq
-counterpart). Its one translated callee with a spec is `time.Now` (Perennial's linked result,
-used directly, as `raftNode.tick`'s proof does); the rest are the contracts the spec takes
-(`InvNodeStart.lean`).
+counterpart). Its translated callees with specs are `time.Now` (Perennial's linked result,
+used directly, as `raftNode.tick`'s proof does) and (2026-11-03, until then the contract
+`rnTickerOk` in the spec's precondition) `time.NewTicker` and the ticker's `Stop`, Perennial's
+proved specs, taken as callee specs (`isRNTicker_of_time`; linked to Perennial's results,
+`etc/link-lean-first-server.txt`): `time.Now` predates the layout's callee-spec convention and is
+left as it was; the rest are the contracts the spec takes (`InvNodeStart.lean`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Perennial.Proof.time
+public import Perennial.Spec.time.NewTicker
 
 @[expose] public section
 
@@ -37,14 +41,15 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
   rw [h, hγs, hpre, hn, hnl, hid, hkey]
 
 set_option maxHeartbeats 0 in
-theorem newRaftNode.wp_proof :
+theorem newRaftNode.wp_proof
+    (wp_NewTicker : time.NewTicker.spec (GF := GF) (hG := hG))
+    (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs key cv Hlg
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok, %Hhb⟩
+  intro E node id nl pre ms γs key cv
+  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, %Hlg, %Hhb, %HT⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
-  iunfold rnTickerOk at Htkok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -109,8 +114,9 @@ theorem newRaftNode.wp_proof :
   rw [show (decide (cv.heartbeat' = W64 0) = false) from
     decide_eq_false (fun h0 => by rw [h0] at Hhb; exact absurd Hhb (by decide))]
   (try wp_auto)
-  wp_apply Htkok $$ %cv.heartbeat' [] as %tk #Htki
+  wp_apply (wp_NewTicker cv.heartbeat') as %tk %tch %γt #Htk
   · ipureintro; exact Hhb
+  ihave #Htki := isRNTicker_of_time wp_TStop E HT tk tch γt $$ Htk
   (try wp_auto)
   iapply HΦ
   iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩

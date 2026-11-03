@@ -30739,7 +30739,8 @@ it is the one named premise the hubs addendum asked for, its constructor is the 
 (`srvBootEnvOk_of` the examples' instance). (T3) the `newRaftNode` specs keep `lg ≠ null →` as an
 implication beside the converted heartbeat premise. The trust base could shrink: Perennial now
 proves `time.NewTicker.spec` over its model, while `rnTickerOk_of_time` rests on this repository's
-copies (`Proof/time/`, axioms).
+copies (`Proof/time/`, axioms). *(Superseded in part, 2026-11-03: T2's ticker placement, T3 and the trust base,
+"The ticker where it is made", below.)*
 
 **Into the slot convention** (2026-11-03, the coordinator's request after the WAL's slots landed on
 `lean`, `notes/spec-first-plan.md`, "The slot convention"). `srvBootEnvOk` bundled two subsystems'
@@ -30767,3 +30768,79 @@ nor the transport, and the convention's "a slot is added only when its subsystem
 hub" applies to the contract too. The reviewer's other open points (T2's ticker placement, T3's
 `lg ≠ null`, the trust-base reduction through Perennial's `NewTicker`) stay open, as the
 coordinator asked. Supersedes "Hubs" above in so far as it named `srvBootEnvOk` the one premise.
+
+## The ticker where it is made: Perennial's proved `time` specs, `newRaftNode`'s pure premises (2026-11-03 · the user's approval of the boot premises' three follow-ups · branch `ticker-followups`)
+
+The final review of "The boot premises" (above) left three points open; the user approved all three.
+
+**1. The trust base: this repository's `time` ticker axioms retired.** `Spec/time/{NewTicker,
+Ticker__Stop,Ticker__Reset}.lean` and their `Proof/time/` axioms (`time.NewTicker.wp_proof`,
+`time.Ticker.Stop.wp_proof`, `time.Ticker.Reset.wp_proof`) predate Perennial's ticker models
+(`13a60f492`, `notes/perennial-changes.md`); Perennial now proves the three specs over its trusted
+models (`Perennial/Proof/time/{NewTicker,Ticker__Stop,Ticker__Reset}.lean`). Compared:
+- `NewTicker`: the same precondition (`0 < sint.Z d`); our post was `isTicker t` (one argument:
+  `t ≠ null ∗ ∃ ch γ, C ↦□ ch ∗ bag`), Perennial's `isTicker t ch γ` (`C ↦□ ch ∗ initTicker ↦□ true ∗
+  bag`, the channel and its names bound in the post). Ours claimed `t ≠ null`, which Perennial's does
+  not state (true of Go; no client used it); Perennial's gives `initTicker`, which ours lacked.
+- `Stop`/`Reset`: ours took the one-argument `isTicker` (no `initTicker`), Perennial's
+  `∃ ch γ, isTicker t ch γ`. So ours claimed more: Stop and Reset of *any* `*Ticker` whose `C` is a
+  bag. **Finding: our `Reset` axiom was false of Go.** A forged ticker, `v := new(time.Ticker); v.C
+  = t.C` (persisting `v`'s `C` points-to gives our `isTicker v`), panics in Go's `Reset`
+  ("time: Reset called on uninitialized Ticker", measured, go1.27.3); the axiom said it returns.
+  (`Stop` of the forgery returns in Go, so that axiom was true.) No proof forged a ticker; the
+  axiom is gone.
+So the local copies are retired, not re-derived: every client (`serverWatchStream.sendLoop`,
+`streamWriter.run`, `syncWatchersLoop`, and `newRaftNode` below) takes Perennial's specs as callee
+specs, linked to Perennial's results (`=_root_.Perennial.time.wp_NewTicker`, `.Ticker.wp_Stop`,
+`.Ticker.wp_Reset` in `etc/link-lean-first-{v3rpc,server,mvcc}.txt`, as kvdurable's and
+kvreconf's tickers already were); the auth token keeper already used them. Each client rewraps the
+post once (`ihave #Htk : ∃ ch γ, time.isTicker tk ch γ`) for its `Stop`/`Reset`. Every collection
+whose results reach a ticker loses the three axioms. `clock.realTicker.Stop` (k8s's clock) stays an
+axiom: `k8s.io/utils/clock` is translated names-only (`Code/k8s_io/utils/clock.toml`,
+`translate = ["!*"]`), so `realTicker.Stop` has no body to prove over `time.Ticker.Stop`'s spec; it
+already states its ticker in Perennial's `isTicker`.
+
+A Perennial observation (`notes/perennial-changes.md`): Perennial's `isTicker` has no
+unforgeability token, unlike `isTimer`'s `newTimerMade`, so a copy `*u = *t` of a ticker meets it,
+and Go's `u.Reset(d)` then fails (measured: "fatal error: unlock of unlocked lock", the runtime's
+timer state is not copied), while Perennial's proved `Reset` spec says it returns. No proof here
+copies a ticker.
+
+**2. The ticker proved where it is made.** Until now `newRaftNode.spec`,
+`bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` took the contract `rnTickerOk E`, and
+`NewServer`'s three proofs (`wp_proofG`, `wp_proofM`, `wp_proof`) took the two `time` specs to
+prove it (`rnTickerOk_of_time`). Now `newRaftNode.wp_proof`, which calls `time.NewTicker`, takes
+Perennial's `NewTicker` and `Ticker.Stop` specs as callee specs; `rnTickerOk` and
+`rnTickerOk_of_time` are gone, replaced by the law `isRNTicker_of_time` (`InvNodeStart.lean`: a
+ticker of Perennial's `isTicker` is the wrapper's at `E.T = True`). The three internal specs
+restated: `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`, `NodeStartSpec` (`rnTickerOk E`
+out of each precondition, `⌜E.T = iprop(True)⌝` in: the ticks carry nothing, as the server's `E`,
+`srvEr`/`srvErM`, has had since D19b; `NewServer` discharges it by `rfl`). `NewServer`'s three
+proofs lose the two hypotheses and `Results.lean`'s `server_new_auth_on` its two arguments; no
+exported statement and no example changes. Rejected: dropping `RNEnv.T` altogether (vestigial since
+D19b: `rnEnvOk` pins it to `True`), which would remove the new premise but changes the record that
+`EtcdServer.Start`'s and `start`'s exported specs bind (`Er : RNEnv GF`): a follow-up for the user.
+
+**3. `lg ≠ null` a pure precondition.** `newRaftNode.spec`'s `cv.lg' ≠ null →`,
+`bootstrappedRaft.newRaftNode.spec`'s and `NodeStartSpec`'s `bv.lg' ≠ null →` became `⌜…⌝`
+conjuncts of the precondition, beside the heartbeat's (PRINCIPLES, "Pure premises go in the
+precondition"). `NodeStartSpec` is converted with the two because it is the same function's spec
+(the composition's) and changed anyway.
+
+**The fresh review round** (one spec-reviewer, the three specs): no T; the ticker's callee specs used
+correctly. Applied: the `first` hedge in `NewServer`'s discharge removed (the `simp` closes `E.T =
+True`, so the goal is the logger and the heartbeat), stale docs (`InvRaftNode`'s and `InvStart`'s
+`E.T`, the examples' `rnTickerOk_of_time`, `bootstrappedRaft.newRaftNode`'s header on the peers'
+slice), a sentence on `time.Now` used directly. **Open, for the user:** (S1) the premise `⌜E.T =
+iprop(True)⌝` exists only because `isRNTicker`'s bag carries `E.T`, which nothing reads (the tick
+receive in `raftNode.start` drops it; `rnEnvOk` pins `E.T = True`); the reviewer proposes
+`isRNTicker`'s bag at `True`, which drops the premise from the three specs without touching the
+`RNEnv` record. Not done: `isRNTicker` is inside `isRaftNode`, in the vocabulary of exported
+statements (`NewServer.spec`'s post, `EtcdServer.Start`'s), a definition body change beyond this
+round's approval (equivalent wherever `E.T = True`). (M1) `bootstrappedRaft.newRaftNode.spec` and
+`NodeStartSpec` still take about 18 configuration and peer premises as implications beside the
+three pure conjuncts; converting them all (one `⌜…⌝` conjunction, close to `InvBoot`'s `Hraft`) is
+its own step.
+
+Supersedes in part "The boot premises" (its Q2, `rnTickerOk_of_time` in `NewServer`'s proofs, and
+the open T2/T3 points).

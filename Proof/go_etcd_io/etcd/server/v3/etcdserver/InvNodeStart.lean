@@ -10,8 +10,9 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
   `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
   dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
-  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`, the
-  tick credits with the ticks, D10; `rnTickerOk`, at `E.T = True` a theorem of the `time` specs); the server's package
+  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
+  since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
+  callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
@@ -39,7 +40,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
-public import Spec.time.Ticker__Stop
+public import Perennial.Spec.time.Ticker__Stop
 
 @[expose] public section
 
@@ -95,34 +96,18 @@ def rnTimeoutDetectorOk : IProp GF :=
 instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
   unfold rnTimeoutDetectorOk; infer_instance
 
-/-- **`time.NewTicker(d)`**: for a positive `d` (Go panics for `d ≤ 0`, `time/tick.go`, and so does
-Perennial's model, `TrustedCode/time.lean`), a ticker meeting `isRNTicker E` (its ticks carry
-`E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the ticker; now `True` for the server,
-`raftNode.tick` taking the credit, a time receipt, itself). (2026-11-03, the final whole-`bootOk`
-review's S2: until then `d ≠ 0`, false at a negative `d`, so that every example's premises, which
-held it, were unprovable.) At `E.T = True` a theorem of the `time` specs (`rnTickerOk_of_time`; `Spec/time/NewTicker.lean`'s,
-trust-boundary axioms here, `Proof/time/`). -/
-def rnTickerOk (E : RNEnv GF) : IProp GF :=
-  iprop(□ ∀ d : time.Duration, {{ ⌜0 < sint.Z d⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
-    {{ (tk : Loc), RET #tk; isRNTicker E tk }})
-
-instance rnTickerOk_persistent (E : RNEnv GF) : Persistent (rnTickerOk E) := by
-  unfold rnTickerOk; infer_instance
-
-/-- **`rnTickerOk` at ticks carrying nothing, from the `time` specs** (2026-11-03, the final
-whole-`bootOk` review's S2): `isTicker`'s channel bag is `isRNTicker`'s at `E.T = True`, and its
-`Stop` returns. Over the specs as hypotheses (callee specs: a client imports spec files only). -/
-theorem rnTickerOk_of_time (wpN : time.NewTicker.spec (GF := GF) (hG := hG))
-    (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (E : RNEnv GF) (h : E.T = iprop(True)) :
-    ⊢ rnTickerOk E := by
-  iunfold rnTickerOk
-  iintro !> %d %Φ %Hd !> HΦ
-  wp_apply wpN as %t #Ht
-  · ipureintro; exact Hd
-  iapply HΦ
+/-- **A ticker of `time.NewTicker` is the wrapper's ticker** at ticks carrying nothing (2026-11-03;
+until then `rnTickerOk`, a contract `newRaftNode`'s spec took, and from the final whole-`bootOk`
+review's S2 to here a theorem of this repository's `time` axioms, `rnTickerOk_of_time`): Perennial's
+`isTicker`'s channel bag is `isRNTicker`'s at `E.T = True`, and its `Stop` returns. Over `Stop`'s
+spec as a hypothesis (a callee spec: `newRaftNode`'s proof takes it). -/
+theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (E : RNEnv GF)
+    (h : E.T = iprop(True)) (tk ch : Loc) (γ : ChanNames) :
+    time.isTicker (GF := GF) tk ch γ ⊢ isRNTicker E tk := by
+  iintro #Ht
   ihave #Ht' := Ht
   iunfold time.isTicker at Ht'
-  icases Ht' with ⟨%Htn, %ch, %γ, #HC, #Hbag⟩
+  icases Ht' with ⟨#HC, -, #Hbag⟩
   iunfold isRNTicker
   iexists ch
   isplitr
@@ -130,8 +115,8 @@ theorem rnTickerOk_of_time (wpN : time.NewTicker.spec (GF := GF) (hG := hG))
   isplitr
   · iright; iexists γ; rw [h]; iexact Hbag
   iintro !> %Ψ !> - HΨ
-  wp_apply wpS t
-  · iexact Ht
+  wp_apply wpS tk
+  · iexists ch, γ; iexact Ht
   iapply HΨ
   ipureintro; trivial
 

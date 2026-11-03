@@ -20,8 +20,8 @@ public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__Wi
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
-public import Spec.time.NewTicker
-public import Spec.time.Ticker__Stop
+public import Perennial.Spec.time.NewTicker
+public import Perennial.Spec.time.Ticker__Stop
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
@@ -506,7 +506,7 @@ theorem rafthttp.streamWriter.run.wp_proof
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply +noauto hNewTicker _ $$ [] as %tk #Htk
+  wp_apply +noauto hNewTicker _ $$ [] as %tk %tch %γt #Htk0
   · ipureintro; decide
   wp_auto_lc 2
   -- the start's log
@@ -524,9 +524,11 @@ theorem rafthttp.streamWriter.run.wp_proof
   wp_apply hInfo lg _ _ $$ []
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
-  ihave #Htk' := Htk
+  ihave #Htk : iprop(∃ (ch : Loc) (γ : ChanNames), time.isTicker (GF := GF) tk ch γ) $$ []
+  · iexists tch, γt; iexact Htk0
+  ihave #Htk' := Htk0
   iunfold time.isTicker at Htk'
-  icases Htk' with ⟨%Htknn, %tch, %γt, #HtC, #Htbag⟩
+  icases Htk' with ⟨#HtC, -, #Htbag⟩
   -- the loop's invariant: not working, both channels nil; or working on a live connection
   ihave HI : (∃ (hbc mcl : GoChan) (tv : GoString) (encv flv : GoInterface) (bat unf : w64)
       (mcw : GoChan) (wk : Bool) (cl : GoInterface),
