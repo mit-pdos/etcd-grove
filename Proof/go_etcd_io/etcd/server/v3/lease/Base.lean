@@ -142,7 +142,9 @@ abbrev leaseInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
-    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗ leaseErrVar ErrNotPrimary)
+    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗
+    EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" ∗
+    EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" ∗ leaseErrVar ErrNotPrimary)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

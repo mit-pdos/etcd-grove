@@ -42,7 +42,7 @@ theorem lease.lessor.Revoke.wp_proof
     (hEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     lease.lessor.Revoke.spec (GF := GF) (hG := hG) := by
   intro lp γl id rd ws st γw log L d r P Pre Q Post f
-  wp_start as ⟨#Hinv, %Hγ, Hro, #Hrd, Hrdr, Hwt, Hww, %Hlen, Hhook, Hcs, Hown, Hrvk, Hrb, Hbeon, #Hcok⟩
+  wp_start as ⟨#Hinv, #Hrev, %Hγ, Hro, #Hrd, Hrdr, Hwt, Hww, %Hlen, Hhook, Hcs, Hown, Hrvk, Hrb, Hbeon, #Hcok⟩
   obtain ⟨hγl, hkb⟩ := Hγ
   subst hγl
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -433,8 +433,10 @@ theorem lease.lessor.Revoke.wp_proof
         intro x; simp [List.mem_filter]
       -- the history: the snapshot without the lease appended
       iapply fupd_wp
+      -- (the lease-grant plan's D2) the lessor revocable: its history need not be monotone
+      ihave %Hmode := lessorModeIs_pin _ false γr $$ [$Hrev $Hpr]
       imod hist_append _ γr hs Sm (C4.delete id, _) ⊤ (fun _ _ => CoPset.mem_full)
-        (fun hok hh => setsOk_delete Hlast hok hh) $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
+        (fun hok hh => setsOk_delete Hlast hok hh) (fun h => by rw [Hmode] at h; cases h) $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
       imodintro
       have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems log (ks'.map mvcc.Change.del))]).getLast? =
           some (C4.delete id, mvcc.pendItems log (ks'.map mvcc.Change.del)) := by simp

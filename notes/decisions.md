@@ -30659,6 +30659,61 @@ or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) ch
 laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
 starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
 
+## The lease-grant stage's choices (2026-11-02 · the user's decisions; frozen 2026-11-02 · branch `lease-grant`)
+
+`examples/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
+order:
+
+- **S1 (scope): the narrow stage, then the tie.** The grant through the request path and the apply
+  thread, the client's grant fact, the listing; not leased puts, nor the results at the committed
+  model `kvModelSt γk Lq` (both later, the leases plan's L3b part 2). Revised by the tie below.
+- **S2 (expiry): a deployment premise.** `lease.leasesNoExpiry` (no lease the cluster grants
+  expires while the program runs), taken by `Main.spec` and, since the review, by `NewServer` in its
+  row gated on `KVNames.lg = true`; the expiry loop's payload refutes it, so `run`'s receive is dead.
+- **B1 (the review): in place, gated.** No mode-indexed sibling predicates or second specs: `rqOk`,
+  `reqPropOk(W)` and `dispatchAnswer` are redefined in place, the grant admitted only in a cluster
+  that grants (`lg = true`), `False`/unchanged otherwise, so a non-granting server's statements mean
+  what they did (the compaction stage's precedent). An open case of a granting cluster is a named
+  hypothesis of `NewServer`'s gated row (`runSnapLgOk`'s pattern), so no other result's trust base
+  moves.
+- **B2 (the review): tie the lessor to the table.** The leases plan's L3b invariant brought
+  forward: the lessor's live set is the KV model's lease table (`L = lt.ids`), so a grant's success
+  is a function of the applied log and the server's rest model steps exactly by `restGrant`.
+  (Rejected: the lease bucket out of the exact rest model in a granting cluster, which would lose the
+  rest image's exactness there.)
+- **S6 (the review): replace, derive the old.** `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` are the
+  stronger contracts (the grant's `leaseGrantedAt`; the listing of the caller's grants), the old
+  statements kept as `etcdLeaseGrantSpecAny`/`etcdLeaseLeasesSpecAny` with laws deriving them from a
+  registration at the new ones (`isGrpcRpc_leaseGrant_any`, `isGrpcRpc_leaseLeases_any`); their
+  callers (leasekv, the client's results) keep the old contracts under the new names.
+
+
+**Frozen (the user, 2026-11-02)**, after the stage stepped back to design before plumbing
+(`notes/spec-first-plan.md`, "Design before plumbing"): the server chain's design
+(`notes/lease-grant-plan.md`, "Design of the server chain"), three review rounds
+(`notes/spec-review/lease-grant-design{,-r2,-r3}.md`), with Q1-Q6 as recommended: (C) at `lg = true`
+the KV invariant owns the KV state whole, so the KV results hold vacuously there (the user's (c));
+the grant's answer beside `dispatchAnswer`; the lessor tied to the table by ghost halves through
+`Apply`/`dispatch`; `lessorApplyOk` returning the lent part; the snapshot image gated on `lg`
+(TTL-free: members' minimum TTLs differ); auth on requires `lg = false`. The axiom reviews
+(`notes/axiom-review/lessor-apply-ok.md`, `lease-grant-lessor.md`): five restated trusted statements
+survive; `leasesNoExpiry` was refuted as worded ("the cluster's leases"; `NewLessor` reads it for
+every lessor) and is restated to every lessor the program creates.
+
+## The trust-base report, faster (2026-11-03 · the user's "go ahead with 1": the gates' time)
+
+`etc/tcb-report.py --check` took 529s of a gate run (measured 2026-11-03, 32 cores); now 246s, its
+JSON byte-identical (sorted lines). Measured first: in the largest run (87 root modules), import
+27s, listing the roots ~110s (every constant of the environment against the module list), the
+trust-base closure 194s, the output 43s, tearing the environment down at exit ~40s. Three changes
+in `etc/tcb-report.lean`: the roots from the given modules' own constants (`moduleData`, keeping
+only those attributed to the module: a `congr_simp` lemma is listed in two); each constant's
+dependencies computed once, when the DFS expands it (it walked every proof term twice); exit
+without freeing the environment. *Rejected:* an incremental report caching each root module's
+result by the hashes of its dependencies' `.olean`s: one end-to-end result (`putget_safe`'s
+module) alone costs 125s of closure (its cone is most of the development), and almost every
+change reaches one, so the cache would rarely save anything.
+
 ## The boot premises: the final whole-`bootOk` review's S1, S2, M1, M2 repaired (2026-11-03 · the user's approval of candidate 3 and its six recommendations · branch `boot-premises`)
 
 The final review round of "The whole-`bootOk` review" (above) found four defects outside that

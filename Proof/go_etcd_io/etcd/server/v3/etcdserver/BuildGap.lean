@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft L)
+    {lg : Bool} (hs : logShape lg L) (hcl : ccLogOk ρ.raft.raft L)
     (ha : attrLogOk ρ.raft.raft.cfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
@@ -78,9 +78,8 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
@@ -146,7 +145,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
-  have hshL : logShape L := by
+  have hshL : logShape ρ.kv.lg L := by
     intro m hm
     rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
@@ -261,7 +260,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
@@ -282,6 +281,8 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   · ipureintro; exact HEr
   isplitr
   · ipureintro; exact Hdisk
+  isplitr
+  · ipureintro; exact Hslg
   isplitr
   · ipureintro; exact Hρrd
   isplitr

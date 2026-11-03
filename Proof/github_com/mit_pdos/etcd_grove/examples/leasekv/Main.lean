@@ -92,9 +92,9 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leasekvDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh
+      (by omega) (by omega) false 0 false (fun h => by cases h)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlg0⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("leasekv", peerAddr, clientAddr, lg)`
@@ -134,8 +134,8 @@ theorem Main.wp_proof
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
-    imod (common.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
-      mid R Hrb48 (by omega) Hrf HlP rfl) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
+    imod (common.kv_lease_served_false srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
+      mid R Hrb48 (by omega) Hrf HlP rfl hlg0) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
       with ⟨Htk, -, #Hlr⟩
     · unfold common.kvServeStocks
       iframe; iframe #
@@ -175,11 +175,11 @@ theorem Main.wp_proof
     as %lctx %lcd %lcancel ⟨#Hlcancel, #Hlctx, #Hlce, -⟩
   (try wp_auto)
   -- `cli.Lease.Leases(lctx)`, `Q`: the IDs have no duplicate
-  wp_apply (wp_Leases lp [go!"127.0.0.1:23936"] etcdLeaseLeasesSpec
+  wp_apply (wp_Leases lp [go!"127.0.0.1:23936"] etcdLeaseLeasesSpecAny
       (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpec
+    iunfold etcdLeaseLeasesSpecAny
     iintro %m %Hm
     ipureintro; exact Hm
   -- `lcancel()`

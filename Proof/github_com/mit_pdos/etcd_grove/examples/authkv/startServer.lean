@@ -49,7 +49,7 @@ theorem startServer.wp_proof
   iunfold common.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -100,7 +100,7 @@ theorem startServer.wp_proof
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
-      (fun _ => ⟨rfl, by word, by word⟩)
+      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
@@ -131,6 +131,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact hslg
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
@@ -142,6 +143,8 @@ theorem startServer.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Herr
   wp_auto
+  -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
+  ihave #HLnil := HLnil $$ %(by trivial)
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on, the monitors off

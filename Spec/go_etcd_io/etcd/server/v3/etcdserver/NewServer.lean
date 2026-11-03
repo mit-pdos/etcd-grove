@@ -275,6 +275,9 @@ abbrev NewServer.spec : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -410,6 +413,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -474,6 +480,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -520,8 +529,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv ∗
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
+          -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
+          □ (⌜on = true⌝ → srvLessorNil srv) ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
@@ -624,6 +634,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -690,6 +703,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -736,8 +752,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv ∗
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
+          -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
+          □ (⌜on = true⌝ → srvLessorNil srv) ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its

@@ -57,9 +57,9 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩, Hrr⟩
   iunfold apply.revokeRes at Hrr
-  icases Hrr with ⟨Hrdat, HRO⟩
+  icases Hrr with ⟨Hrdat, #Hrev, HRO, %Hlgf⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, -⟩
   iunfold lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hlrd, Hrvk⟩
   ihave #Hb' := Hb
@@ -90,7 +90,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     have hlog : apply.revokeLog log id = log := by
       unfold apply.revokeLog; rw [Hnf.2]; rfl
     (try wp_auto)
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
@@ -116,19 +116,20 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
         iunfold apply.leasesLive
         iexists L
         iframe Hknown
+        rw [apply.ltHalf_false E L Hlgf]
         iunfold lease.lessorUser
         iframe
       isplitr
       · simp only [apply.chainRes]; itrivial
       iright; iexact HPre
     · iunfold apply.revokeResAfter
-      iframe Hrdat
+      iframe Hrdat Hrev
       subst Hee
       simp only [reduceCtorEq, ↓reduceIte]
       iexact HRO
   · -- live: the lease's keys deleted, the lease gone
     (try wp_auto)
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
@@ -153,13 +154,14 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
         iunfold apply.leasesLive
         iexists (L.filter (· != id))
         iframe Hknown'
+        rw [apply.ltHalf_false E _ Hlgf]
         iunfold lease.lessorUser
         iframe
       isplitr
       · simp only [apply.chainRes]; itrivial
       ileft; iexact HPost
     · iunfold apply.revokeResAfter
-      iframe Hrdat
+      iframe Hrdat Hrev
       rw [if_pos Hok.2]
       iexact HRO
 
