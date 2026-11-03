@@ -83,9 +83,6 @@ def lent (σ : StoreSt) (s : Nat) : Option Qp :=
 def pagesFromBytes (bytes : Nat → List w8) (P : Pages) : Prop :=
   ∀ id pg, P !! id = some pg → pg = (List.range' id (1 + pageOverflow pg)).flatMap bytes
 
-/-- A view is a committed state's at its mapping (so its tree is `treeOK`). -/
-def viewWF (v : View) : Prop := ∃ C, treeOK C ∧ View.ofC v.base C = v
-
 /-- The view's slots are store slots. -/
 def viewInStore (σ : StoreSt) (v : View) : Prop :=
   ∀ s, coversSlot v.pages s → s ∈ storeSlots σ

@@ -43,6 +43,9 @@ proj_simps View.ofC
 def View.data (v : View) : Data :=
   GMap.ofList ((treeEntries v.pages v.root).map fun e => (e.1, bktOfPage v.pages e.2))
 
+/-- A view is a committed state's at its mapping (so its tree is `treeOK`). -/
+def viewWF (v : View) : Prop := ∃ C, treeOK C ∧ View.ofC v.base C = v
+
 /-- A registered reader (`pagesInv`'s registry): its view. -/
 structure RdInfo where
   v : View
