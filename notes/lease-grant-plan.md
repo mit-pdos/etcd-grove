@@ -1347,6 +1347,12 @@ arms (`adminKindOk_nonGrant`, new in `ApplyNormalOn.lean`).
   The four conf-change sites of `EtcdServer.apply` convert by `reqWaitNone_none`; the two producers
   (`batchWaitOk_of_claims`, `BuildGap`) prove `reqWaitNone` directly. No frozen text changes.
 
+**Commit 4d: `srvClusterBoot_alloc lg`** (2.3; 2026-11-03, a full build with the checks): a new last
+argument `lg` (default `false`, so the two callers, `common.alloc1` and `alloc3`, pass nothing), the
+KV names at `lg`, the post `γk.lg = lg` and `if lg then True else etcdKV …` (from
+`kvInv_alloc_boot`'s gated post); the callers simplify it at `false`. Mechanical: a default
+argument rather than a `_false` corollary (the callers' text is unchanged).
+
 **Where the plumbing stopped** (2026-11-03): 3b, 4a and 4b done (above); (E') found false (above),
 waiting on the user's decision; then `applyResultIs_notNoSpace_M`'s grant case, the rest of commit
 4, and commit 5.

@@ -148,7 +148,9 @@ invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the
 read contexts, and each member's share: its prefix's entry of the claims (2026-10-30: no read credits), the
 its boot token and its snapshot directory. The pure premises (D21e (A),
 `issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
-`0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
+`0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). (The lease-grant
+plan's 2.3, the user's (C):) in a cluster that grants leases (`lg`), the KV invariant takes the KV
+state's ghost variable whole and no client's `etcdKV` is returned; at `lg = false` as before. -/
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → mvcc.IdxNames) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
@@ -156,15 +158,16 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) (cmp : Bool) (cret : Nat := 0) :
+    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) (cmp : Bool) (cret : Nat := 0) (lg : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lg = false⌝ ∗
+          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lg = lg⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
-        kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvModelSt γk (bootEntries γ.boot)) ∗
+        kvInv ⟨γ, [], W64 0⟩ γk ∗
+        (if lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
         idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
@@ -271,7 +274,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     ipureintro; exact ⟨ps, Hne, by rw [hbt]; exact hboot⟩
   -- the KV invariant at the bootstrap log
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, 0, wn, 0, fs⟩, 0, cmp, γ.log, cret, false⟩
+    ⟨issued, cnt, 0, 0, wn, 0, fs⟩, 0, cmp, γ.log, cret, lg⟩
   imod ghostVar_alloc (GF := GF) (kvModelSt γk0 (bootEntries γ.boot)) with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
   have hm : kvModelSt γk (bootEntries γ.boot) = kvModelSt γk0 (bootEntries γ.boot) := rfl
@@ -286,8 +289,6 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     $$ [HL] [Hstv] with ⟨#Hkv, Hetcd⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
-  have hlg0 : γk.lg = false := rfl
-  isimp only [hlg0, Bool.false_eq_true, ↓reduceIte] at Hetcd
   -- the mints
   imod (srvPropMint_alloc ⟨γ, [], W64 0⟩ γk.ids ⊤) $$ Hfresh with #Hpm
   imod (srvRdCtxInv_alloc ⟨γ, [], W64 0⟩ issued ⊤) $$ Hrdf [Hctxs] with #Hrc

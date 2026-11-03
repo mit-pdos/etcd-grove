@@ -217,6 +217,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, -, hklg⟩ := Hγ
+  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₁ issued cnt wn fs γk Φs id₁ idx₁ cok₁ rev₁
