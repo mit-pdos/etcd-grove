@@ -17,6 +17,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
+
+- **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
+  initTicker ↦□ true ∗ bag`, with no unforgeability token like `isTimer`'s `newTimerMade`. A copy
+  `u := new(time.Ticker); *u = *t` meets it (both fields are read through `t`'s persistent
+  points-tos and written into `u`), and the proved `Ticker.Reset` spec says `u.Reset(d)` returns,
+  while Go fails: measured with go1.27.3, "fatal error: unlock of unlocked lock" (the runtime's timer
+  state after the `Ticker` header is not copied). `u.Stop()` returned in the same experiment, but
+  also runs the runtime's `stopTimer` on memory that is not a timer.
+- **Needed by.** Nothing here copies a ticker; every client gets its ticker from `NewTicker`
+  (`serverWatchStream.sendLoop`, `streamWriter.run`, `syncWatchersLoop`, `newRaftNode`, the auth
+  token keeper, kvdurable's and kvreconf's replicas). The concern is the spec's soundness as a
+  library spec.
+- **Here.** Nothing: since 2026-11-03 this repository's own ticker axioms are gone (their `Reset`
+  admitted a forged `v.C = t.C`, false of Go, `notes/decisions.md`, "The ticker where it is made")
+  and the clients use Perennial's proved specs.
+- **Proposal.** An opaque `newTickerMade t` in `isTicker`, given only by `NewTicker`'s spec, as
+  `newTimerMade` for timers.
+- **Status.** Not proposed yet.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
@@ -1491,6 +1511,16 @@ carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructor
 `errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
 (small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
 `errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.
+
+## `isChanBag` has no law for changing its payload (2026-11-02, the lease-grant review's M1)
+
+`Perennial/Golang/Theory/Chan/Idioms/Bag.lean`'s `isChanBag γ ch P` (irreducible, over an `inv` of
+`chanBagInv γ P`) has no law replacing `P` by an equivalent payload, though `inv_iff` makes it
+immediate. **Workaround here**: `chanBagInv_mono` and `isChanBag_iff` (`P v ⊢ Q v` and `Q v ⊢ P v`
+for every `v`), in `Proof/go_etcd_io/etcd/server/v3/etcdserver/LessorOk.lean`, used to restate the
+lessor's `expiredC` as a bag of `False`. **The change** (proposed, not started): the two lemmas in
+`Bag.lean` (and the same for the other channel idioms' payloads).
+
 
 ## A cell owned whole is no cell's read-only points-to (2026-11-02, restart plan R2c stage 2)
 

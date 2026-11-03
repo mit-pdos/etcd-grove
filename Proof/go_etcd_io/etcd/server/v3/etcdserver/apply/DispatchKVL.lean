@@ -164,7 +164,7 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwn E log ∗ apply.certPreVW v3 E c rq log (apply.kvOutL E.authMode hs (auth.authInfoM info) ci rq log) ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜apply.rqOk false log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.applierKVL E c ci a L ∗ L hs ∗
       ⌜apply.isKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs rq⌝ }}
@@ -476,7 +476,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   icases Hsp with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster, -⟩
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster, -⟩
   iunfold apply.applierKVL at HKV
   icases HKV with ⟨%ai', %Hai', #HPutL, #HDelL, #HRangeL, #HTxnL⟩
   injection Hai' with Hai'

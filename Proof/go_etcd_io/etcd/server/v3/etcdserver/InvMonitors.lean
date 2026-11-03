@@ -69,7 +69,7 @@ def monitorReq (lid : w64) (rq : apply.IRRModel) : Prop :=
 
 /-- A monitor's request has a good shape. -/
 theorem rqShape_of_monitorReq (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
-    rqShape rq := by
+    rqShape false rq := by
   obtain ⟨⟨-, -, -, hk⟩, -, hsv⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk

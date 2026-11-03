@@ -159,6 +159,10 @@ watchkv.
 
 ## Open after landing: T1-B, `lateWB` at a restart (2026-11-03)
 
+**Fixed (2026-11-03, branch `bootok-review`)**: `bootOkR` holds `lateWBR` (unregistered arm at
+`pvckOwn`, option B3 of the whole-`bootOk` review); B1 at R2d. `notes/decisions.md`, "The
+whole-`bootOk` review".
+
 F2's second review round found that `lateWB`'s unregistered arm, narrowed to an empty `Key` bucket
 with no compaction records (the fix of round 1's A1), cannot be met by a restart: the backend reopens
 the stopped member's data, which is not empty, so `InvRestart.newPost` cannot hold and

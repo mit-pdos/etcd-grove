@@ -123,6 +123,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       (fun hok hh hS => setsOk_items Hlastl hok hh HMl hS (itemsFor_attach I id S ys)
         (fun id' hne it => attach_other I id id' ys Hxs0 hne it)
         (fun h => itemKeysShort_insertAll I ys id h Hshort))
+      (fun _ => histMono_snoc Hlastl (fun _ h => by subst hCM; exact h))
       $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
     imodintro
     have hlast' : (hs ++ [(M, insertAll I ys id)]).getLast? = some (M, insertAll I ys id) := by

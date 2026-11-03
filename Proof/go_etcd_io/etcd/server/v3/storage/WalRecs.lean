@@ -4,8 +4,8 @@ storage part, approved by the user: `notes/decisions.md`, "The WAL's API"; the c
 server's storage is `etcdserver/WalApi.lean`). Lean-first.
 
 The model of the WAL's records (`walFresh`, `walSave`, `walSaveSnap`, `WalSaveOk`), the records
-(`walRecs`) and their base's lower bounds (`walBaseLb`), a WAL directory's state (`walDirFresh`,
-`walFiles`), the purge's right (`walPurgeRight`), the WAL's directory and metadata (`walDirOf`,
+(`walRecs`) and their base's lower bounds (`walBaseLb`), a closed WAL's files (`walFiles`,
+axiomatized, as a fresh directory's `walDirFresh`, `WalDir.lean`), the purge's right (`walPurgeRight`), the WAL's directory and metadata (`walDirOf`,
 `walMetaIs`, `config.walDirOf`). The ghost variables' meaning is trusted (see each docstring); the
 module is sealed (`etc/import-all.txt`): no `import all` of it, so no proof updates them except
 through the trusted contracts (`isWalStorage`, `bootstrap`'s, `purgeFile`'s).
@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.RaftState
 public import Proof.go_etcd_io.raft.v3.PbModel
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
 
@@ -168,40 +169,19 @@ theorem walRecs_baseLb_le (w : Loc) (σ : StorContents) (i : Nat) :
 /-- **The WAL `w`'s directory** (opaque; `w.dir`). -/
 opaque walDirOf (w : Loc) : GoString
 
-/-- The ghost name of the WAL directory `dir`'s state (opaque: one per directory). -/
-opaque walDirGName (dir : GoString) : GName
-
-/-- **The WAL directory `dir`'s state** (sealed; exclusive, timeless; only its meaning is trusted):
-`none`, the directory holds no WAL (a first start's `bootstrap` creates one); `some (id, cid, σ)`,
-it holds a closed WAL whose files a restart reads back as the records `σ` with the metadata
-`{NodeID: id, ClusterID: cid}`. -/
-@[no_expose] def walDirState (dir : GoString) (s : Option (w64 × w64 × StorContents)) :
-    IProp GF :=
-  ghostVar (walDirGName dir) 1 s
-
-/-- **The WAL directory `dir` holds no WAL** (what a first start's `bootstrap` takes). -/
-def walDirFresh (dir : GoString) : IProp GF := walDirState dir none
-
 /-- **The files of a closed WAL in the directory `dir` hold the records `σ`, its metadata the
-member `id` of the cluster `cid`**: `wal.Open(dir, s)` at the snapshot record `recoverSnapshot`
-picks (the highest valid one), then `ReadAll`, returns `σ` and the metadata. Made by `Close`;
-consumed by a restart's `bootstrap` (its contract). A graceful stop in one process. -/
-def walFiles (dir : GoString) (id cid : w64) (σ : StorContents) : IProp GF :=
-  walDirState dir (some (id, cid, σ))
+member `id` of the cluster `cid`** (axiomatized, timeless; a trust-boundary token, as `walDirFresh`,
+`WalDir.lean`: the user's choice, 2026-11-03): `wal.Open(dir, s)` at the snapshot record
+`recoverSnapshot` picks (the highest valid one), then `ReadAll`, returns `σ` and the metadata.
+Made by `Close`; consumed by a restart's `bootstrap` (its contract). A graceful stop in one
+process. No axiom says it is exclusive: read as `True`, every axiom about it holds. -/
+axiom walFiles {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
+    (σ : StorContents) : IProp GF
 
-instance walDirState_timeless (dir : GoString) (s : Option (w64 × w64 × StorContents)) :
-    Timeless (walDirState (GF := GF) dir s) := by
-  unfold walDirState; infer_instance
+axiom walFiles_timeless {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
+    (σ : StorContents) : Timeless (walFiles (GF := GF) dir id cid σ)
 
-/-- One state per directory. -/
-theorem walDirState_excl (dir : GoString) (s s' : Option (w64 × w64 × StorContents)) :
-    walDirState (GF := GF) dir s ∗ walDirState dir s' ⊢ False := by
-  unfold walDirState
-  iintro ⟨H1, H2⟩
-  icases ghostVar_valid_2 (walDirGName dir) s 1 s' 1 $$ H1 H2 with %H
-  exfalso
-  have : (1 : Rat) + 1 ≤ 1 := H.1
-  grind
+attribute [instance] walFiles_timeless
 
 /-- **The right to close the WAL in the directory `dir` with its files kept** (opaque, exclusive;
 trust boundary): the server's purge of old WAL files there (`purgeFile`, which removes the

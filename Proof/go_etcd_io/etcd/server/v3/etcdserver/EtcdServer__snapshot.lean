@@ -72,6 +72,22 @@ theorem stLoaded_facts_snap (γ : ApplyNames) (st : ApplyState) :
     split <;> rfl
   · exact ⟨rfl, rfl, rfl⟩
 
+/-- (2026-11-03, R2b-1 stage 5) A committed log `L` of length `n` ending at the term `t`, a prefix of
+the handed log `lw`: `lw`'s entry at `n` has the term `t` (what the apply thread's `SaveSnap` at
+`n` takes, `rnDur_ownSnap_au`). -/
+theorem snap_handed_entry (L lw : List LogEntry) (n : Nat) (tm : w64) (hlen : L.length = n)
+    (hpos : 0 < n) (hlast : L.getLast?.map LogEntry.term = some tm) (hpfx : L <+: lw) :
+    ∃ e : LogEntry, lw[n - 1]? = some e ∧ e.term = tm := by
+  obtain ⟨u, rfl⟩ := hpfx
+  cases hl : L.getLast? with
+  | none => rw [hl] at hlast; cases hlast
+  | some x =>
+    rw [hl] at hlast
+    refine ⟨x, ?_, Option.some.inj hlast⟩
+    rw [List.getElem?_append_left (by omega)]
+    rw [List.getLast?_eq_getElem?, hlen] at hl
+    exact hl
+
 set_option maxHeartbeats 1600000 in
 theorem EtcdServer.snapshot.wp_proof
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -90,12 +106,17 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q Hloop Hci Hrel
-    Hpos Hsz Hwso
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q γn Hloop Hci Hrel
+    Hpos Hsz Hwso Hγn Hpre
   cases toDisk
   all_goals (
   wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv⟩, #Hwp, Hai,
-    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt⟩
+    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh⟩
+  -- (R2b-1 stage 5) the applied log's committed lower bound, kept from `srvSnapStor`
+  iunfold srvSnapStor at Hstor
+  icases Hstor with ⟨Hmsi, #Hncl, #Hrli, ⟨%Aw, #HAw, %HAwp⟩⟩
+  ihave Hstor : srvSnapStor ms γs γr nk ai at' $$ [Hmsi]
+  · iunfold srvSnapStor; iframe Hmsi Hncl Hrli; iexists Aw; iframe HAw; ipureintro; exact HAwp
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl'⟩, #Hat0, -, #Hrn⟩
   ihave #Hsci' := Hsci
@@ -325,12 +346,14 @@ theorem EtcdServer.snapshot.wp_proof
       iunfold ownSnapV at Hsnap'
       icases Hsnap' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd', #HM, #HmV, #Hpb⟩
       -- (2026-10-31) the WAL contract's `SaveSnap`, at the apply thread's share of the WAL
-      iunfold isRNWal at Hsave
-      icases Hsave with ⟨%si, %Hsieq, -, -, #HSaveSnap, -⟩
+      ihave %Hsok := isWalStorage_ok _ $$ Hsave
+      obtain ⟨si, Hsieq⟩ := Hsok
+      ihave #HSaveSnap := walSaveSnap_spec _ si Hsieq q snap' pm DFrac.discard DFrac.discard
+        (memSnapMade ai at' c []).Metadata' (token γn.wal.app) $$ Hsave
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
       subst Hsieq
-      iunfold rnWalTok at Hwt
-      icases Hwt with ⟨%st0, #Hst0, Hwo⟩
+      iunfold rnWalTokA at Hwt
+      icases Hwt with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur⟩
       icombine Hstf Hst0 gives %Hsteq
       have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
@@ -338,22 +361,46 @@ theorem EtcdServer.snapshot.wp_proof
       subst Hsteq'
       ihave #Hm' : smOpt pm DFrac.discard (memSnapMade ai at' c []).Metadata' $$ []
       · iunfold smOpt; iright; iapply smPtsV_smPts $$ HmV
-      ihave HSS := HSaveSnap
-      ispecialize HSS $$ %q %snap' %pm %DFrac.discard %DFrac.discard
-        %(memSnapMade ai at' c []).Metadata'
+      -- (R2b-1 stage 5) the `SaveSnap` as the WAL contract's atomic update (`rnDur_ownSnap_au`):
+      -- the handed log holds the snapshot's index at its term (the applied log's, committed)
+      iunfold rnWalHanded at Hwh
+      icases Hwh with ⟨%lw, #Hwlb, #Hwc, %Hwn⟩
+      iunfold srvRLogLb at HAw
+      icases HAw with ⟨#HAc, -⟩
+      ihave %Hag := isCommittedLogLb_agree γr.raft.raft.cl _ lw $$ [HAc Hwc]
+      · rw [← Hγn]; iframe HAc Hwc
+      obtain ⟨HAlen, HAlast⟩ := HAwp
+      have hLlen : (srvLE γr.raft Aw).length = uint.nat ai := by
+        simp only [srvLE, Hpre, List.nil_append, List.length_map]; word
+      have hpos' : 0 < uint.nat ai := by word
+      have hLpfx : srvLE γr.raft Aw <+: lw := by
+        rcases Hag with h | h
+        · exact h
+        · have := h.length_le
+          have hq : lw = srvLE γr.raft Aw := h.eq_of_length (by omega)
+          rw [hq]; exact List.prefix_refl _
+      have hAne : Aw ≠ [] := by intro h0; rw [h0] at HAlen; simp at HAlen; word
+      have hLlast : (srvLE γr.raft Aw).getLast?.map LogEntry.term = some at' := by
+        rcases HAlast with h0 | h0
+        · exact absurd h0 hAne
+        · simp only [srvLE, Hpre, List.nil_append, List.getLast?_map, Option.map_map]
+          simpa [EntryModel.toLE, Function.comp_def] using h0
+      obtain ⟨e, He, Het⟩ := snap_handed_entry _ lw _ at' hLlen hpos' hLlast hLpfx
+      ihave HAU := rnDur_ownSnap_au γn.wal _ (memSnapMade ai at' c []).Metadata' lw e
+        (by simpa [memSnapMade] using hpos') (by simpa [memSnapMade] using He)
+        (by simpa [memSnapMade] using Het) $$ Hdur Hwap Hwlb
       wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
         go!"SaveSnap" #stp)) (Val #snap'))
-      iapply HSS $$ [Hwo]
-      · iframe Hwo; iframe #
+      iapply HSaveSnap $$ [Hwo HAU]
+      · iframe Hwo HAU; iframe #
       inext
-      iintro %serr ⟨Hwo, -, -, %Hserr⟩
-      have hserr : serr = GoInterface.nil := by
-        rcases Hserr with h | h
-        · exact h
-        · exact absurd Hwso h
-      subst hserr
-      ihave Hwt : rnWalTok (srvRAddr s) q $$ [Hwo]
-      · iunfold rnWalTok; iexists _; iframe Hst0 Hwo
+      iintro %serr ⟨Hwo, -, -, Hres⟩
+      icases Hres with (⟨%Hserr, Hwap⟩ | %Hbad)
+      rotate_left
+      · exact absurd Hwso Hbad
+      subst Hserr
+      ihave Hwt : rnWalTokA γn (srvRAddr s) q $$ [Hwo Hwap]
+      · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur
       (try wp_auto)
       wp_apply hRel stp ss snap' pm DFrac.discard DFrac.discard
           (memSnapMade ai at' c []).Metadata' γd img Rm Hstp $$ [] as %rerr ⟨-, -, %Hrerr⟩

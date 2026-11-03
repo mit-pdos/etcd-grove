@@ -22,7 +22,9 @@ verdict lifted through `Apply`, beside the existing triples (none of which chang
   (`applierAdmL_auth`), of the current applier with no alarm set (`applierAdmL_cur`).
 - `uberApplier.Apply.adminSpecL`/`wp_adminL`: E2o's admin triple of the uber-applier with the
   current chain the base one (no alarm set), the authority family `Own` lending `L hs` to the
-  check (`Own γa h ⊢ L h ∗ (L h -∗ Own γa h)`, the tie-carrying instance's `auth.latestRes_of_T`),
+  check (`Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)`, the tie-carrying instance's `auth.latestRes_of_T`;
+  with the admin steps' resource `W`, which holds the write token, since the auth-on snapshot plan's
+  Prove step),
   and the latest-state verdict in the postcondition.
 -/
 module
@@ -191,7 +193,7 @@ abbrev apply.authApplierV3.Apply.specL : Prop :=
 /-- **`a.Apply(r, shouldApplyV3)` on an admitted admin request with no alarm set, the admin check
 at the latest state** (see the file header): E2o's `adminSpec` with the current chain the base one,
 the base applier's latest-state `Apply` (`applierAdmL`), the latest-state resource `L` lent by the
-authority family `Own` (`hsplit`); besides `adminSpec`'s postcondition (but for `applyAuthRes`, whose
+authority family `Own` with the admin steps' resource `W` (`hsplit`); besides `adminSpec`'s postcondition (but for `applyAuthRes`, whose
 recorded-state verdict the latest one replaces), a dispatched request's check passed at the latest
 state and a rejected one's refused there. -/
 abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
@@ -199,7 +201,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
     (x : apply.ApplyKV) (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool)
     (Pre Q Post : IProp GF) (W : IProp GF) (γa : auth.AuthNames) (hs : List auth.AuthState)
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) (L : List auth.AuthState → IProp GF),
-  (∀ h, Own γa h ⊢ L h ∗ (L h -∗ Own γa h)) →
+  (∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.cPre v3 E.P E.f Pre Q Post ∗
@@ -530,24 +532,25 @@ theorem apply.uberApplier.Apply.wp_adminL
   iunfold apply.applierAdmL at HAL
   icases HAL with ⟨%ai', %Hai', #HApply⟩
   cases Hai'
-  ihave ⟨HL, Hback⟩ := hsplit hs $$ Ho
+  ihave ⟨HL, Hback⟩ := hsplit hs $$ [Ho HW]
+  · iframe Ho HW
   wp_auto
   iapply wp_fupd
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
-        apply.cPre v3 E.P E.f Pre Q Post ∗ (L hs -∗ Own γa hs) ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True))))
+        apply.cPre v3 E.P E.f Pre Q Post ∗ (L hs -∗ Own γa hs ∗ W) ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True))))
       %(fun ar => iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
           ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗
           apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
-      %hs [Ha Hkv Hcs Hback Hrc HW Hx HL] as %ar Hpost
-  · iframe Hw Ha Hkv Hcs Hback Hrc HW Hx HL
+      %hs [Ha Hkv Hcs Hback Hrc Hx HL] as %ar Hpost
+  · iframe Hw Ha Hkv Hcs Hback Hrc Hx HL
     isplitr
     · iapply apply.rdLend_kvOwn
     imodintro
-    iintro %Φ' ⟨Hres, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW, Hx⟩, HL, %Hpass⟩ HΦ'
-    ihave Ho := Hback $$ HL
+    iintro %Φ' ⟨Hres, ⟨Ha, Hkv, Hcs, Hback, Hrc, Hx⟩, HL, %Hpass⟩ HΦ'
+    ihave ⟨Ho, HW⟩ := Hback $$ HL
     -- (H5) the check passed: the guarded extra's
     ihave Hx : iprop(if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) $$ [Hx]
     · cases v3
@@ -568,7 +571,7 @@ theorem apply.uberApplier.Apply.wp_adminL
     simp only []
     iframe Hres Ha Hrest
   icases Hpost with (⟨⟨Ha', %o, Hkv, HPP, %Hst', Htr, Hres, HW, Hdone⟩, %Hpass⟩ |
-    ⟨%Hrj, ⟨Ha, Hkv, Hcs, Hback, Hrc, HW, -⟩, HL, Hrej⟩)
+    ⟨%Hrj, ⟨Ha, Hkv, Hcs, Hback, Hrc, -⟩, HL, Hrej⟩)
   · imodintro
     iapply HΦ
     iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
@@ -582,7 +585,7 @@ theorem apply.uberApplier.Apply.wp_adminL
         (fun h => by have := Hok.2.1; simp [apply.adminKindOk, h] at this)).symm⟩, Or.inr ⟨o, rfl⟩⟩
     ipureintro
     refine ⟨fun h => (by cases h), fun _ _ => Hpass⟩
-  · ihave Ho := Hback $$ HL
+  · ihave ⟨Ho, HW⟩ := Hback $$ HL
     iunfold apply.rejectResultIsA at Hrej
     icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeA⟩
     ihave #HeI := authApplyErrIs_apply _ $$ HeA

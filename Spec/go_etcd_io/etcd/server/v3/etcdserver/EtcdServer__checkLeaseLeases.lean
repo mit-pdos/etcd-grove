@@ -31,7 +31,9 @@ the lease of its id (`x.2`) at a lessor index no older than `m` (what `Leases()`
 `notes/lease-keys-plan.md`), with the resources of `checkLeaseTimeToLive.spec`: on `nil`, auth
 disabled at a state no older than `n`, or the request's principal an admin at one or allowed to read
 every key of each lease `x.1` of `x.2` at a lessor index no older than `m`; on an error, an error the gRPC
-layer can take. The revision re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
+layer can take, and only with auth on (`nil` at once when `IsAuthEnabled` answers `false`,
+`v3_server.go:754-756`; the lease-grant plan's amendment (F3)). The revision re-check is not stated
+(`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.checkLeaseLeases.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (ls : List (Loc × w64)) (dq : DFrac) (n m : Nat),
@@ -43,7 +45,7 @@ abbrev EtcdServer.checkLeaseLeases.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (err : GoInterface), RET #err; E.RD ∗ threadTok ∗ sl ↦*{dq} ls.map Prod.fst ∗
-      applyErrIs err ∗
+      ⌜E.authOn = false → err = GoInterface.nil⌝ ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
         (fun info => iprop([∗list] x ∈ ls,
           leaseOfKeysVerdictFrom E.authMode n info γl m x.2 x.1 .read))) }}

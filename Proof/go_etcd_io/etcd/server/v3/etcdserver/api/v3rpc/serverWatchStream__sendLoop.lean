@@ -13,8 +13,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestPr
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Assert
-public import Spec.time.NewTicker
-public import Spec.time.Ticker__Stop
+public import Perennial.Spec.time.NewTicker
+public import Perennial.Spec.time.Ticker__Stop
 public import Spec.time.Duration__Seconds
 public import Spec.time.Duration__Seconds_ptr
 public import Spec.go_uber_org.zap.Logger__Debug
@@ -1776,11 +1776,13 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty))) as %pendL Hpend
   wp_apply hGPI $$ [$Htt] as %d ⟨%Hd, Htt⟩
   · iframe #; ipureintro; exact Hiv
-  wp_apply hNT d $$ [] as %tk #Htk
+  wp_apply hNT d $$ [] as %tk %tch %γt #Htk0
   · ipureintro; exact Hd
-  ihave #Htk' := Htk
+  ihave #Htk : iprop(∃ (ch : Loc) (γ : ChanNames), time.isTicker (GF := GF) tk ch γ) $$ []
+  · iexists tch, γt; iexact Htk0
+  ihave #Htk' := Htk0
   iunfold time.isTicker at Htk'
-  icases Htk' with ⟨-, %tch, %γt, #HC, #Hbag⟩
+  icases Htk' with ⟨#HC, -, #Hbag⟩
   ipersist sws
   ipersist ids
   ipersist pending

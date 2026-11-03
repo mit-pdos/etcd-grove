@@ -363,12 +363,12 @@ local macro "piro_tail" : tactic => `(tactic| (
             rotate_left
             · unfold pubAfterM; itrivial
             iunfold resultIsW at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, Hr6⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
             iexists y, y', out
-            iframe Hr1 Hr2 Hr3 Hr4 Hr5
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr6
             isplitr
             · ipureintro
               refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
@@ -425,12 +425,12 @@ local macro "piro_tail" : tactic => `(tactic| (
               · ipureintro; exact ⟨het, by rw [Hdd]; exact Hbsne (by simp [apply.withHeader]), hdecw⟩
               rw [htk]; iexact HpA
             iunfold resultIsWOn at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7, Hr8⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
             iexists y, y', out
-            iframe Hr1 Hr2 Hr3 Hr4 Hr5
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8
             isplitr
             · ipureintro
               refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ?_, Hst.2.2.2.2⟩

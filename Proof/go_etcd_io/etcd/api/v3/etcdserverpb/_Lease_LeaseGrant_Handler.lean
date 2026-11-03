@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `Lease.LeaseGrant`: decode a `*LeaseGrantRequest`, call `srv.LeaseGrant` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.Lease/LeaseGrant"`), as every
-generated unary handler (`wp_unaryHandler`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerOwnMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._Lease_LeaseGrant_Handler.wp_proof :
     etcdserverpb._Lease_LeaseGrant_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandler etcdserverpb._Lease_LeaseGrant_Handler etcdserverpb.LeaseServer.ty
+  wp_unaryHandlerOwnMd etcdserverpb._Lease_LeaseGrant_Handler etcdserverpb.LeaseServer.ty
     etcdserverpb.LeaseGrantRequest.ty etcdserverpb.LeaseGrantResponse.ty go!"LeaseGrant" go!"/etcdserverpb.Lease/LeaseGrant"
 
 end proof

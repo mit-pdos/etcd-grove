@@ -25,18 +25,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.setRevision(rev)`** (`atomic.StoreUint64`) from the authority `hs`, appending the
-states `opt` (none, or one: `Recover`'s new state; `AuthEnable` appends its state before and
-passes none) whose latest state's revision is `rev`: the atomic holds the latest state's revision
-again. -/
+/-- **`as.setRevision(rev)`** (`atomic.StoreUint64`; one spec, the auth-on snapshot plan's
+decision 5, 2026-11-03): from the pending authority at `hs ++ N` (`Recover`'s case: `N` caught up
+before, `opt = []`) or the authority with the lock's share (`AuthEnable`'s case, inside a batch:
+`N = []`, `opt` the one state appended here, or none), the latest state moved to the last of
+`hs ++ N ++ opt`, whose revision `rev` is: the atomic holds the latest state's revision again. -/
 abbrev auth.authStore.setRevision.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (rev : w64) (hs opt : List AuthState) (stl : AuthState),
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (rev : w64) (hs N opt : List AuthState)
+    (stl : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwnF M hs ∗ (□ ∀ x, ⌜x ∈ opt⌝ -∗ capNext M hs x) ∗
-      ⌜histLast M (hs ++ opt) stl ∧ uint.nat rev = stl.revision ∧ opt.length ≤ 1 ∧
+      authOwnPM M hs N ∗ (if opt.isEmpty then iprop(True) else authLockShare M (hs ++ N)) ∗
+      (□ ∀ x, ⌜x ∈ opt⌝ -∗ capNext M (hs ++ N) x) ∗
+      ⌜histLast M (hs ++ N ++ opt) stl ∧ uint.nat rev = stl.revision ∧ opt.length ≤ 1 ∧
+        (N ≠ [] → opt = []) ∧
         (∀ x ∈ opt, (M.isOn = true → M ≠ .any → permKeysOk x) ∧ (M = .off → x.enabled = false))⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"setRevision")) (Val #rev))
-  {{ RET #(); authOwnF M (hs ++ opt) }}
+  {{ RET #(); authOwn M (hs ++ N ++ opt) ∗
+      (if opt.isEmpty then iprop(True) else authLockShare M (hs ++ N ++ opt)) }}
 
 end spec
 

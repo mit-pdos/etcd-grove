@@ -179,9 +179,6 @@ theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : Resp
       · iapply tailOk_of_le; omega
     ipureintro; omega
 
-theorem etcdStepCert_cert (pfx : GoString) :
-    (etcdStepCert (GF := GF) pfx).cert = etcdStepCertBody pfx := rfl
-
 /-- An exact chain from the watch: each batch certified from the previous one's revision. -/
 theorem watchChain_certChain (pfx : GoString) (p : w64) (bs : List Batch) :
     watchChain (GF := GF) pfx p bs ⊢ certChain (etcdStepCert pfx) (sint.Z p) bs := by

@@ -135,8 +135,8 @@ put's revision of the changes after it. -/
 theorem okFactKM_of_write (γ : client.KMNames) (k v : GoString) (σ : KVState) :
     client.kmWriteQ (GF := GF) γ [[]] (.put (client.putKeyOp k v)) σ -∗
       ⌜σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝ -∗ okFactKM γ ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩ := by
-  unfold client.kmWriteQ
-  iintro ⟨#Hlb, -, %Hl0, -⟩ %Hok
+  iintro H %Hok
+  icases client.kmWriteQ_lb $$ H with ⟨#Hlb, -, %Hl0⟩
   obtain ⟨h63, hok⟩ := Hok
   have hc : σ.compacted = 0 := by rw [hok.1]; rfl
   have hrev : σ.rev = σ.changes.length := by simp [KVState.rev, hc]
@@ -163,8 +163,8 @@ theorem checkOk_of_km
     (hup : ∀ p ∈ oks, sint.Z p.Rev' ≤ sint.Z upTo) :
     common.collectOk (kmRevAt (GF := GF) γ) (trs.map pairOf) upTo evs ∗ □ ([∗list] p ∈ oks, okFactKM γ p) ⊢
       ⌜CheckOk evs trs oks⌝ := by
-  unfold common.collectOk
-  iintro ⟨⟨%Hc, #Hrevs⟩, #Hoks⟩
+  iintro ⟨Hco, #Hoks⟩
+  icases common.collectOk_elim $$ Hco with ⟨%Hc, #Hrevs⟩
   obtain ⟨hup0, hlen, hevs⟩ := Hc
   ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.Rev' ∧ ∃ e, evs[(sint.Z p.Rev' - 2).toNat]? = some e ∧
       e.Key' = p.Key' ∧ e.Val' = p.Val'⌝ $$ []

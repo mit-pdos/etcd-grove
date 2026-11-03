@@ -48,6 +48,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestLeased
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 
@@ -85,6 +86,23 @@ def bkRestAt [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel
     Prop :=
   ∀ n ∈ restBuckets, D.lookup n = bkRestOf c0 bootLog L n
 
+/-- **The leased image of a log that grants nothing is the plain one** (the lease-grant plan's
+Freeze, amendment (D)): with no live lease, `bkRestAtL`'s records are none. -/
+theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
+    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAtL γk bootLog L D) :
+    bkRestAt γk.c0 bootLog L D := by
+  obtain ⟨f, hf⟩ := h
+  intro n hn'
+  rw [hf n hn', hn, apply.restLeasesWith_nil]; rfl
+
+/-- **The plain image of a log that grants nothing is the leased one** (`bkRestAt_of_L`'s converse):
+with no live lease, `bkRestAtL`'s records are none. -/
+theorem bkRestAtL_of_nil [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
+    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAt γk.c0 bootLog L D) :
+    bkRestAtL γk bootLog L D := by
+  refine ⟨fun _ => W64 0, fun n hn' => ?_⟩
+  rw [h n hn', hn, apply.restLeasesWith_nil]; rfl
+
 /-! ## The image -/
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
@@ -98,7 +116,7 @@ def imageAt [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A :
   (∃ r : mvcc.CmpRecs, mvcc.keyImageM γk.cmp (kvModel γk A) r D ∧ r.crev = crevOf γk A) ∧
     dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
+    bkRestAtL γk bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
 
 /-- **Off, at a log with no compaction, the image is `keyImage`'s** (`keyImageM_off`). -/
 theorem imageAt_off [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64)
@@ -106,7 +124,7 @@ theorem imageAt_off [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64
     imageAt γk bootLog i L A D ↔
       (mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
         (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-        bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []) ∧ crevOf γk A = -1 := by
+        bkRestAtL γk bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []) ∧ crevOf γk A = -1 := by
   unfold imageAt
   rw [hcm]
   constructor
@@ -129,7 +147,9 @@ theorem imageAt_kv_congr [GooseExts] {γk γk' : KVNames} {bootLog : List EntryM
   have hcr : crevOf γk A = crevOf γk' A := by simp only [crevOf, h0, h1]
   rintro ⟨⟨r, hkI, hr⟩, h2', h3, h4, h5⟩
   have hb : mvcc.LogB (kvModel γk A) := ⟨by have := h5.2.1; omega, h5.2.2.2⟩
-  refine ⟨⟨r, ?_, by rw [← hcr]; exact hr⟩, h2', h3, by rw [← h0]; exact h4, by rw [← hk]; exact h5⟩
+  have hl : kvLeases γk L = kvLeases γk' L := by simp only [kvLeases, h0, h1]
+  refine ⟨⟨r, ?_, by rw [← hcr]; exact hr⟩, h2', h3,
+    by unfold bkRestAtL at h4 ⊢; rw [← hl, ← h0]; exact h4, by rw [← hk]; exact h5⟩
   rw [← hk]
   exact mvcc.keyImageM_mode _ _ _ r D hb hkI (fun h h' => by rw [hr]; exact hc h h')
 

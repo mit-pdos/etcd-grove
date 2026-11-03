@@ -63,6 +63,33 @@ theorem dir3_ok (id₁ id₂ id₃ : w64) (h1 : id₁ ≠ W64 0) (h2 : id₂ ≠
     · simp at hs; subst hs; decide
     · simp at hs
 
+/-- **`Main`'s directory names the peers** (`rafthttp.bootCfg`, `NewServer`'s premise; 2026-11-03, the final
+whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
+theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃]) :
+    rafthttp.bootCfg (dir3 id₁ id₂ id₃) ps := by
+  refine rafthttp.bootCfg_of _ ps (fun f => ?_) (by rw [hperm.length_eq]; simp)
+  rw [hperm.mem_iff]
+  unfold dir3
+  constructor
+  · intro h
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    by_cases h1 : f = id₁
+    · exact Or.inl h1
+    by_cases h2 : f = id₂
+    · exact Or.inr (Or.inl h2)
+    by_cases h3 : f = id₃
+    · exact Or.inr (Or.inr h3)
+    rw [if_neg h1, if_neg h2, if_neg h3] at h
+    exact absurd rfl h
+  · intro hm
+    split
+    · simp
+    split
+    · simp
+    split
+    · simp
+    · simp_all
+
 /-- **The instance's invariant at another member's KV names**: `linkvInv γ γk` reads `γk`'s state
 variable (through `etcdKV`) only, which a cluster's members share (D21 M4;
 `common.alloc3`'s equalities), so the invariant allocated at one member's names

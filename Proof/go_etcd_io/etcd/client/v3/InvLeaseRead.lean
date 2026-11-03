@@ -16,7 +16,7 @@ Lean-first (no Rocq counterpart).
   in order (each a `*LeaseStatus` the client reads the `ID` of).
 Responses are held read-only by the server's response and the client's decoded reply alike.
 
-**etcd's specs** (`etcdLeaseTTLSpec`, `etcdLeaseLeasesSpec`): a `LeaseTimeToLive` reply is about the
+**etcd's specs** (`etcdLeaseTTLSpec`, `etcdLeaseLeasesSpecAny`): a `LeaseTimeToLive` reply is about the
 lease asked (`ID`: on the leader `v3_server.go`'s `ID: r.ID`, or the handler's own not-found reply;
 on a follower the leader's reply, which `leasehttp.TimeToLiveHTTP` checks has the asked ID); a
 `LeaseLeases` reply lists no lease twice (the lessor's map's keys, `leaseIdsAt`). What `Main` of
@@ -205,10 +205,13 @@ def etcdLeaseTTLSpec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeT
   fun (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) =>
     iprop(∀ m : LeaseTTLRespM, ⌜m.id = req.1⌝ -∗ Φ m)
 
-/-- **etcd's spec of `LeaseLeases`**: the reply lists no lease twice. The weakest spec `leasekv`
+/-- **etcd's old spec of `LeaseLeases`**: the reply lists no lease twice. Since the lease-grant
+review's S6 (2026-11-02) a corollary of the contract `etcdLeaseLeasesSpec`
+(`client/v3/InvLeaseGrant.lean`, which also lists the caller's grants: `isGrpcRpc_leaseLeases_any`);
+kept for its callers. The weakest spec `leasekv`
 needs: nothing of which leases (the server's answer, `v3rpc.leaseLeasesOut`, gives the lessor's at an
 index of its history). -/
-def etcdLeaseLeasesSpec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+def etcdLeaseLeasesSpecAny : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup⌝ -∗ Φ m)
 

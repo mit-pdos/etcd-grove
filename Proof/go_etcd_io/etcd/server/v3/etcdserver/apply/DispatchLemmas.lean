@@ -132,6 +132,32 @@ def cmpOutcome (c : Chain) (log : mvcc.Log) : Outcome :=
 theorem cmpOutcome_logAfter (c : Chain) (log : mvcc.Log) : (cmpOutcome c log).logAfter log = log := by
   unfold cmpOutcome; split <;> rfl
 
+/-- **A grant leaves the KV log** (the lease-grant stage): whatever the chain's outcome. -/
+theorem chainStep_grant_logAfter (rq : IRRModel) (hk : dispatchKind rq = .leaseGrant)
+    (log : mvcc.Log) : ∀ (c : Chain) (o : Outcome), chainStep backendStep c rq log o →
+      o.logAfter log = log
+  | .backend, o, h => by
+    simp only [chainStep, backendStep, hk] at h
+    rcases h with rfl | rfl <;> rfl
+  | .auth _ c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · rcases h with ⟨-, rfl⟩ | h
+      · rfl
+      · exact chainStep_grant_logAfter rq hk log c o h
+    · exact chainStep_grant_logAfter rq hk log c o h
+  | .quota c, o, h => by
+    simp only [chainStep] at h
+    exact chainStep_grant_logAfter rq hk log c o h
+  | .capped c, o, h => by
+    simp only [chainStep, cappedRejects, hk, ↓reduceIte] at h
+    subst h; rfl
+  | .corrupt c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · subst h; rfl
+    · exact chainStep_grant_logAfter rq hk log c o h
+
 /-- **A compaction's step through the chain is `cmpOutcome`** (the auth and capped layers pass it
 on: no check, not capped). -/
 theorem chainStep_cmpOutcome (rq : IRRModel) (hk : dispatchKind rq = .compaction) (log : mvcc.Log) :

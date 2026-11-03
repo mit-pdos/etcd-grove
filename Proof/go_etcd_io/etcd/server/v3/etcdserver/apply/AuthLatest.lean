@@ -226,15 +226,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The real store's checks at the latest state** (`auth/Latest.lean`, `auth/LatestAdmin.lean`),
-with the reader resource `auth.authRd st R M` and the apply thread's `auth.latestRes st M`. -/
+with the reader resource `auth.authRd st R M` and the apply thread's `auth.latestResC st M γc` (its
+write token on the backend names `γc`). -/
 theorem isAuthStoreL_of_authInv
     (hPut : auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG))
     (hRange : auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG))
     (hDel : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdmin : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isAuthStoreL (auth.authIface st) (auth.authRd st R M) M (auth.latestRes st M) := by
+      isAuthStoreL (auth.authIface st) (auth.authRd st R M) M (auth.latestResC st M γc) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthStoreL
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
@@ -243,16 +244,18 @@ theorem isAuthStoreL_of_authInv
   isplitr
   · iunfold permCheck2L
     iintro !> %a %info %dq %key %k %dk %hs %Φ !> ⟨Ha, Hk, Hrd, HL, %Hlen⟩ HΦ
+    iunfold auth.latestResC at HL
+    icases HL with ⟨HL, Hw⟩
     iunfold auth.latestRes at HL
     icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
-    iapply (hPut st R M hs b sc a info dq key k dk) $$ [Ha Hk Hrd Hown Hfl Hca]
+    iapply (hPut st R M hs γc b sc a info dq key k dk) $$ [Ha Hk Hrd Hown Hw Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
-    iintro !> %err ⟨Hrd, Ha, Hk, #Herr, Hown, Hfl, Hca, %Hv⟩
+    iintro !> %err ⟨Hrd, Ha, Hk, #Herr, Hown, Hw, Hfl, Hca, %Hv⟩
     iapply HΦ
     iframe
-    isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
+    isplitl [Hown Hw Hfl Hca]
+    · iunfold auth.latestResC; iframe Hw; iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
@@ -261,16 +264,18 @@ theorem isAuthStoreL_of_authInv
   isplitr
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
+    iunfold auth.latestResC at HL
+    icases HL with ⟨HL, Hw⟩
     iunfold auth.latestRes at HL
     icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
-    iapply (hRange st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
+    iapply (hRange st R M hs γc b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hw Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
-    iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, Hown, Hfl, Hca, %Hv⟩
+    iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, Hown, Hw, Hfl, Hca, %Hv⟩
     iapply HΦ
     iframe
-    isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
+    isplitl [Hown Hw Hfl Hca]
+    · iunfold auth.latestResC; iframe Hw; iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
@@ -279,34 +284,38 @@ theorem isAuthStoreL_of_authInv
   isplitr
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
+    iunfold auth.latestResC at HL
+    icases HL with ⟨HL, Hw⟩
     iunfold auth.latestRes at HL
     icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
-    iapply (hDel st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
+    iapply (hDel st R M hs γc b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hw Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
-    iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, Hown, Hfl, Hca, %Hv⟩
+    iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, Hown, Hw, Hfl, Hca, %Hv⟩
     iapply HΦ
     iframe
-    isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
+    isplitl [Hown Hw Hfl Hca]
+    · iunfold auth.latestResC; iframe Hw; iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
   iintro !> %a %info %dq %hs %Φ !> ⟨Ha, Hrd, HL⟩ HΦ
+  iunfold auth.latestResC at HL
+  icases HL with ⟨HL, Hw⟩
   iunfold auth.latestRes at HL
   icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
   ihave Ha' : auth.authInfoAt a dq (some info) $$ [Ha]
   · iunfold auth.authInfoAt; iexact Ha
-  iapply (hAdmin st R M hs b sc a (some info) dq) $$ [Ha' Hrd Hown Hfl]
+  iapply (hAdmin st R M hs γc b sc a (some info) dq) $$ [Ha' Hrd Hown Hw Hfl]
   · iframe; iframe #; ipureintro; exact Htie
-  iintro !> %err ⟨Hrd, Ha', #Herr, Hown, Hfl, %Hv⟩
+  iintro !> %err ⟨Hrd, Ha', #Herr, Hown, Hw, Hfl, %Hv⟩
   iunfold auth.authInfoAt at Ha'
   iapply HΦ
   iframe
-  isplitl [Hown Hfl Hca]
-  · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
+  isplitl [Hown Hw Hfl Hca]
+  · iunfold auth.latestResC; iframe Hw; iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
   isplitl []
   · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
   · ipureintro; exact Hv

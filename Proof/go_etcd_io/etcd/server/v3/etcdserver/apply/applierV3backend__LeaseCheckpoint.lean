@@ -112,7 +112,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       ipureintro; decide
     | ok ei =>
       wp_auto
-      wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+      wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
       · iexact Hb
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
@@ -128,7 +128,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     · icases Hst with (⟨-, Hcs, -, -⟩ | ⟨-, HPP⟩)
       · iright; iapply apply.csContract_pre $$ Hcs
       · iexact HPP
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *

@@ -126,6 +126,7 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
       (fun hok hh hS => setsOk_items Hlastl hok hh HMl hS (itemsFor_detach I id S ys)
         (fun id' hne it => detach_other I id id' ys Hxs0 hne it)
         (fun h => itemKeysShort_deleteAll I ys h))
+      (fun _ => histMono_snoc Hlastl (fun _ h => by subst hCM; exact h))
       $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
     imodintro
     have hlast' : (hs ++ [(M, deleteAll I ys)]).getLast? = some (M, deleteAll I ys) := by
