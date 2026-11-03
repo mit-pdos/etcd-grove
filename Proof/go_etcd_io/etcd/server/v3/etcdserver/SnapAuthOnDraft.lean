@@ -16,7 +16,7 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
    `auth.authCatchUpFirst` (proved), `auth.stepOk_of_fuelB` (proved).
 4. **The premise** (trusted; one premise for boot and every snapshot): `AonDraft.authSchemaSrv`
    (boot's, changed in place) with the snapshot clause `authSchemaSnap`; `backend.rbOwnIn` (the
-   split of the tracked buckets' token, opaque, its law `rbOwn_split_in` a statement); `authWAtHook`.
+   backend's own idle part of a bucket set, `InvBackend.lean`); `authWAtHook`.
 5. **The apply thread's auth resource, redefined**: `AonDraft.authApplyResPre`/`authApplyResB`
    (the fuel at a base `authFuelB`, the lifecycle, the hook clause, `authStepsAny`).
 6. **`Recover` at the install**: `authRecoverOn.spec` and its glue `authRecoverOn_glue` (proved
@@ -648,23 +648,9 @@ def authBkts (n : GoString) : Prop :=
 def restNonAuth (n : GoString) : Prop :=
   n ≠ go!"auth" ∧ n ≠ go!"authUsers" ∧ n ≠ go!"authRoles"
 
-/-- **The client's half of the tracked buckets in `S`, idle** (decision 1: `rbOwn` split by bucket
-set; review rounds A1's C and A2's 4: idleness scoped to `S`): a backend-level change, the
-tracked-bucket token `γ.rbk` becoming a map per bucket, and a put into a bucket of `S` moving the
-holder's share into the batch's state until `Unlock`'s write-back: the writer's contents hold `r`
-at the tracked buckets of `S`, **and so do the readers' (no write to `S` pending)**. Only the writers
-of `S` see the change (for the auth buckets, the auth realization; not mvcc, compaction or the
-cluster's writers). Opaque in the draft: its laws are obligations of that change (the split below;
-restriction, `rbOwnIn γ S r ⊣⊢ rbOwnIn γ S r'` when `r`, `r'` agree on `S`; a per-bucket `rbPut`;
-agreement with `batchLocked`; timelessness). -/
-opaque backend.rbOwnIn (γ : backend.BNames) (S : GoString → Prop)
-    (r : GMap GoString backend.BktData) : IProp GF := iprop(True)
-
-/-- **The split** (the backend-level change's law; statement only). -/
-theorem backend.rbOwn_split_in (γ : backend.BNames) (S : GoString → Prop)
-    (r : GMap GoString backend.BktData) :
-    backend.rbOwn (GF := GF) γ r ⊣⊢ backend.rbOwnIn γ S r ∗ backend.rbOwnIn γ (fun n => ¬ S n) r := by
-  sorry
+-- `backend.rbOwnIn` (decision 1's per-bucket idleness) is the backend's own (`InvBackend.lean`,
+-- landed with the backend stage, `a43af91055`); the Draft's opaque stand-in and its split law are gone
+-- (the real split is `rbOwn_split`'s into two `rbPart`s, of which only a written-back one is idle).
 
 /-- The schema auth backend `abl` over the backend `be`, with the logger `lg` (read-only). -/
 def ablOn (abl : Loc) (be lg : Loc) : IProp GF :=
