@@ -156,6 +156,12 @@ def roots(config):
             if l.startswith("root ")]
 
 
+def vocab(config):
+    """The API modules of vocabulary (`vocab MODULE`): not a function's spec file."""
+    return {l.split()[1] for l in pathlib.Path(config).read_text().splitlines()
+            if l.startswith("vocab ")}
+
+
 def fn_of(mod, rts):
     """The function a `Spec`/`Proof` module is of: its path below the package's root, `__` as `.`."""
     rest = mod.split(".", 1)[1]
@@ -175,11 +181,12 @@ def layout(config, mods):
             f = pathlib.Path(tmp, *m.split(".")).with_suffix(".names")
             decls[m] = [l.split() for l in f.read_text().splitlines() if l.strip()]
     bad = []
+    voc = vocab(config)
     spec_mods = {m for m in mods if m.startswith("Spec.")}
     for m in mods:
         top, rest = m.split(".", 1)
         fn = fn_of(m, rts)
-        if fn is None or fn in ("Api",):
+        if fn is None or fn in ("Api",) or "Spec." + rest in voc:
             continue
         if top == "Spec":
             want = PREFIX + fn + ".spec"

@@ -1,0 +1,7 @@
+# Layout violations known (etc/gen-interface.py --layout --update); remove them,
+# don't add to them.
+Proof.go_etcd_io.bbolt.internal.common.Mergepgids Perennial.EtcdGrove.bbolt.Mergepgids.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.bbolt.internal.common.Mergepgids Perennial.EtcdGrove.bbolt.internal.common.Mergepgids.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.bbolt.internal.common.Mergepgids Perennial.EtcdGrove.bbolt.mergeInv  # exposed by a proof file (def)
+Spec.go_etcd_io.bbolt.internal.common.Mergepgids Perennial.EtcdGrove.bbolt.Mergepgids.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.bbolt.internal.common.Mergepgids Perennial.EtcdGrove.bbolt.internal.common.Mergepgids.spec  # missing: a spec file declares its spec
