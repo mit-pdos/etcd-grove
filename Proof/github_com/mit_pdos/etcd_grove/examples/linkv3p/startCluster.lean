@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/startCluster.lean
 counterpart).
 
 The three peer URL slices and the initial cluster's map; the ghost state of the cluster and its
-members (`common.alloc3`, the ids in the names' order, the client's `etcdKV`
+members (`common.alloc3`, the peers in `bootstrap`'s order, a permutation of the ids, the client's `etcdKV`
 at the first member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what
 `memberAt` records); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`), its watch server kept; the servers' slice; `startBridge` for each
@@ -52,7 +52,7 @@ theorem startCluster.wp_proof
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
+  intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -116,15 +116,14 @@ theorem startCluster.wp_proof
       (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅)) $$ []
   · iExactEq Hpm; rfl
-  -- the ghost state of the cluster and its members (`common.alloc3`, in `bootstrap`'s order,
-  -- which is the names'; the client's `etcdKV` at `linkv3p-1`'s names)
+  -- the ghost state of the cluster and its members (`common.alloc3`, the peers in `bootstrap`'s
+  -- order; the client's `etcdKV` at `linkv3p-1`'s names)
   -- (2026-10-24, rafthttp stage 6d) the directory well formed, its hosts the peer addresses
   have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
     dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
-  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1]; rfl
-  iunfold ids at Hmarsh
-  imod (common.alloc3 id₁ id₂ id₃ ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc (dir3 id₁ id₂ id₃)
+  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
+  imod (common.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc (dir3 id₁ id₂ id₃)
       peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega) (by omega))
       $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
@@ -140,10 +139,11 @@ theorem startCluster.wp_proof
   · iunfold memberBoot; iframe; ipureintro; exact Hp₁
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (slice.mk peer₃ (W64 1) (W64 1)) ps
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
+      Hdok (by simp [dir3])
+      (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -164,10 +164,11 @@ theorem startCluster.wp_proof
   · iunfold memberBoot; iframe; ipureintro; exact Hp₂
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (slice.mk peer₃ (W64 1) (W64 1)) ps
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
+      Hdok (by simp [dir3, Ne.symm hn12])
+      (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -189,10 +190,11 @@ theorem startCluster.wp_proof
   · iunfold memberBoot; iframe; ipureintro; exact Hp₃
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (slice.mk peer₃ (W64 1) (W64 1)) ps
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
+      Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
+      (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)

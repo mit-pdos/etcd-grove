@@ -51,6 +51,12 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
+/-- **The most peers a member's transport serves** (2026-11-03, named by the final whole-`bootOk`
+review's M2; the bound since rafthttp stage 6d, 2026-10-24): each peer's goroutines borrow eight of
+`lgMu`'s reader slots, so `peersMax` peers borrow `2 ^ 23`. `NewServer`'s premise
+(`srvBootEnvOk`). -/
+@[word_unfold] def peersMax : Nat := 2 ^ 20
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs

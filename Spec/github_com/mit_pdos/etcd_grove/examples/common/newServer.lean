@@ -55,6 +55,8 @@ abbrev newServer.spec : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  srvDirsOk ps dir →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
@@ -92,6 +94,8 @@ abbrev newServer.specCompact : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  srvDirsOk ps dir →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition

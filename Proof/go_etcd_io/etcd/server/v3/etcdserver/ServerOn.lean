@@ -661,14 +661,6 @@ theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c�
   unfold srvCM batchWaitOk entryWaitOk reqWaitR
   rw [hres]
 
-/-- The ticker's contract does not read the transport's borrow (`rnTickerOk_srvEr_S`'s). -/
-theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S) ⊢
-      rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S') := by
-  unfold rnTickerOk isRNTicker srvErM
-  exact .rfl
-
 /-- **The claims give a batch's ids** (`batchWaitOk_of_work`, from the conf changes' ids alone:
 what both modes' shapes give, `logShapeM_cc`). -/
 theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)

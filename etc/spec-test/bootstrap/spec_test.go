@@ -170,7 +170,9 @@ func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 
 	r.add("HwalR/Hwalo", b.storage.wal.w != nil, "wal opened")
 	r.add("Hss", b.ss != nil, "snapshotter")
 	cv := b.raft.config
-	r.add("Hraft(lg, heartbeat)", b.raft.lg != nil && b.raft.heartbeat != 0, "heartbeat %v", b.raft.heartbeat)
+	// (S2) the heartbeat Go computes: `cfg.TickMs' * W64 1000000`, wrapping
+	r.add("Hraft(lg, heartbeat)", b.raft.lg != nil && uint64(b.raft.heartbeat) == uint64(cfg.TickMs)*1000000,
+		"heartbeat %v", b.raft.heartbeat)
 	r.add("Hraft(config fields)",
 		cv.MaxInflightMsgs < 1<<62 && !cv.DisableProposalForwarding && cv.ReadOnlyOption == raft.ReadOnlySafe &&
 			!cv.DisableConfChangeValidation && (cv.MaxCommittedSizePerReady != 0 || cv.MaxSizePerMsg != 0) &&
@@ -225,7 +227,9 @@ func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 
 	r.add("Hnew.newPostK(read buffer clean)", nb == 0, "read buffer buckets %d", nb)
 	// the contracts' configuration premises (`bootCfgOk`), which the examples' configuration meets
 	r.add("bootCfgOk", cfg.Logger != nil && cfg.QuotaBackendBytes == 0 && cfg.BackendBatchLimit == 0 &&
-		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1 && cfg.TickMs != 0, "")
+		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1, "")
+	// `NewServer`'s `srvBootEnvOk.hb`: the heartbeat positive
+	r.add("srvBootEnvOk.hb", int64(uint64(cfg.TickMs)*1000000) > 0, "")
 	return cv.ID
 }
 
@@ -607,12 +611,12 @@ func TestSpecBootstrapMemberOrder(t *testing.T) {
 	}
 }
 
-// TestSpecBootstrapHeartbeat (S2): `time.NewTicker` panics for every `d ≤ 0` (`rnTickerOk`'s
-// `d ≠ 0` admits a negative `d`); `bootstrap`'s heartbeat is `time.Duration(cfg.TickMs) *
-// time.Millisecond`, wrapping: `bootCfgOk`'s `TickMs ≠ 0` admits a `TickMs` whose heartbeat is 0
-// (`2 ^ 58`: `Hraft`'s `heartbeat ≠ 0` false) or negative (`newRaftNode`'s `NewTicker` then
-// panics). The restated `bootCfgOk`'s condition, `0 < sint.Z (TickMs * 10^6)` (`int64`, wrapping),
-// is checked to decide each.
+// TestSpecBootstrapHeartbeat (S2): `time.NewTicker` panics for every `d ≤ 0` (the old `rnTickerOk`'s
+// `d ≠ 0` admitted a negative `d`; now `0 < d`); `bootstrap`'s heartbeat is `time.Duration(cfg.TickMs)
+// * time.Millisecond`, wrapping (`Hraft`'s equality, checked at each `TickMs`): the old `bootCfgOk`'s
+// `TickMs ≠ 0` admitted a `TickMs` whose heartbeat is 0 (`2 ^ 58`: the old `Hraft`'s `heartbeat ≠ 0`
+// false) or negative (`newRaftNode`'s `NewTicker` then panics). `NewServer`'s `srvBootEnvOk.hb`,
+// `0 < sint.Z (TickMs * 10^6)` (`int64`, wrapping), is checked to decide each.
 func TestSpecBootstrapHeartbeat(t *testing.T) {
 	for _, d := range []time.Duration{-1, 0, -time.Hour} {
 		if !panics(func() { time.NewTicker(d) }) {
@@ -630,7 +634,10 @@ func TestSpecBootstrapHeartbeat(t *testing.T) {
 		}
 		hb := b.raft.heartbeat
 		restated := int64(uint64(ms)*1000000) > 0
-		t.Logf("TickMs %d: heartbeat %d; TickMs ≠ 0: %v, restated bootCfgOk: %v", ms, int64(hb), ms != 0, restated)
+		t.Logf("TickMs %d: heartbeat %d; TickMs ≠ 0: %v, srvBootEnvOk.hb: %v", ms, int64(hb), ms != 0, restated)
+		if uint64(hb) != uint64(ms)*1000000 {
+			t.Errorf("TickMs %d: heartbeat %d, not Hraft's TickMs * 10^6", ms, int64(hb))
+		}
 		if (hb > 0) != restated {
 			t.Errorf("TickMs %d: heartbeat %d, restated condition %v", ms, int64(hb), restated)
 		}

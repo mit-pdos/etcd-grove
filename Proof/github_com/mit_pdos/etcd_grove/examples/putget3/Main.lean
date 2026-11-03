@@ -63,8 +63,8 @@ theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
 
 /-- **`Main`'s directory is well formed** (`netDirOk`, `NewServer`'s premise; rafthttp stage 6d):
 no member `0`, each peer address one member's, plain `http://` URLs. -/
-theorem dir3_ok (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry)
-    (Hbf : BootFacts id₁ id₂ id₃ ctxs bl) :
+theorem dir3_ok (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) :
     netDirOk (dir3 id₁ id₂ id₃) := by
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
@@ -87,6 +87,33 @@ theorem dir3_ok (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List Log
     · simp at hs; subst hs; decide
     · simp at hs
 
+/-- **`Main`'s directory names the peers** (`srvDirsOk`, `NewServer`'s premise; 2026-11-03, the final
+whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
+theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : srvDirsOk ps (dir3 id₁ id₂ id₃) := by
+  refine srvDirsOk_of ps _ (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
+  rw [Hbf.perm.mem_iff]
+  unfold dir3
+  constructor
+  · intro h
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    by_cases h1 : f = id₁
+    · exact Or.inl h1
+    by_cases h2 : f = id₂
+    · exact Or.inr (Or.inl h2)
+    by_cases h3 : f = id₃
+    · exact Or.inr (Or.inr h3)
+    rw [if_neg h1, if_neg h2, if_neg h3] at h
+    exact absurd rfl h
+  · intro hm
+    split
+    · simp
+    split
+    · simp
+    split
+    · simp
+    · simp_all
+
 set_option maxHeartbeats 1000000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -97,7 +124,7 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -105,15 +132,15 @@ theorem Main.wp_proof
   iunfold bootPremise at Hb₁
   iunfold bootPremise at Hb₂
   iunfold bootPremise at Hb₃
-  ihave #Hc₁ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₁ := common.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₁
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) id₁ (cfgOk name₁)
       (urlsOk peerAddr₁ clientAddr₁) (fun _ h => h) (fun _ h => h) $$ Hb₁
-  ihave #Hc₂ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₂ := common.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₂
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) id₂ (cfgOk name₂)
       (urlsOk peerAddr₂ clientAddr₂) (fun _ h => h) (fun _ h => h) $$ Hb₂
-  ihave #Hc₃ := common.bootPremise_of N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+  ihave #Hc₃ := common.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₃
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) id₃ (cfgOk name₃)
       (urlsOk peerAddr₃ clientAddr₃) (fun _ h => h) (fun _ h => h) $$ Hb₃
@@ -121,7 +148,7 @@ theorem Main.wp_proof
   · iunfold common.commonPremises; iunfold putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -209,9 +236,9 @@ theorem Main.wp_proof
     isplitr; · iexact Hu₁
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
-  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1]; rfl
-  imod (common.alloc3 id₁ id₂ id₃ ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc
-      (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ctxs boot Hbf).1
+  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
+  imod (common.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc
+      (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
@@ -228,10 +255,11 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) [id₁, id₂, id₃]
+      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) ps
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN HwbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
+      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
@@ -254,10 +282,11 @@ theorem Main.wp_proof
       (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) [id₁, id₂, id₃]
+      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) ps
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN HwbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
+      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
@@ -279,10 +308,11 @@ theorem Main.wp_proof
       (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
-      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) [id₁, id₂, id₃]
+      (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) ps
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN HwbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
+      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃

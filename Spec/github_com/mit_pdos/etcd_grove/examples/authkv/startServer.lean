@@ -48,6 +48,8 @@ abbrev startServer.spec : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://127.0.0.1:23926" ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  srvDirsOk [id] dir →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗

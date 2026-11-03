@@ -221,14 +221,55 @@ otherwise), a batch limit the backend's model admits (`openLimit cfg` positive a
 `bootOk`'s `Hbe`, `d.P.Wf`; Go takes any `BackendBatchLimit`, `storage/backend.go:36-41`), no
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes = 0`, `bootstrap.go:267-272`: `Defrag`
 is not modeled, and `bootWB` counts no defrag session), and raft's timing (`1 < ElectionTicks`,
-which `Hraft`'s `ConfigValid` needs; `TickMs ≠ 0`, for `heartbeat ≠ 0`). Until then the last two
-came only from the examples' `cfgOk`. The examples' configuration (`examples/common/common.go`)
+which `Hraft`'s `ConfigValid` needs). Until then the last came only from the examples' `cfgOk`.
+(2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
+`heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
+states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
+takes its sign, `srvBootEnvOk`.) The examples' configuration (`examples/common/common.go`)
 meets all. -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
-    1 < sint.Z cfg.ElectionTicks' ∧ cfg.TickMs' ≠ W64 0
+    1 < sint.Z cfg.ElectionTicks'
+
+/-- **The URL directory of raft's peers** (2026-11-03, the final whole-`bootOk` review's M2; until
+then `bootOk`'s `Hdirps`, a fact of the caller's parameters stated in the contract's post): the
+members `dir` names are exactly the peers `ps` (a member's transport adds every other as a peer, so
+its handler finds the sender of any request), at most `peersMax` of them. A fact of the caller's
+cluster, which the specs between an example's `Main` and `NewServer` carry. -/
+def srvDirsOk (ps : List w64) (dir : w64 → List GoString) : Prop :=
+  (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ peersMax
+
+/-- `srvDirsOk` of a one-member directory (`dirOne`) and its member. -/
+theorem srvDirsOk_dirOne (id : w64) (url : GoString) : srvDirsOk [id] (dirOne id url) := by
+  refine ⟨fun f => ?_, by unfold peersMax; simp⟩
+  unfold dirOne
+  by_cases h : f = id <;> simp [h]
+
+/-- `srvDirsOk` from the directory's members (`hdir`), at most three (the examples' clusters). -/
+theorem srvDirsOk_of (ps : List w64) (dir : w64 → List GoString)
+    (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ 3) : srvDirsOk ps dir :=
+  ⟨hdir, by unfold peersMax; omega⟩
+
+/-- **The environment `NewServer` boots in, beyond `bootstrap`'s** (2026-11-03, the final
+whole-`bootOk` review: one named premise of `NewServer.spec`/`specM`/`specG`, the boot hub's, which
+a later need extends in place of the three statements; `notes/spec-first-plan.md`, "Hubs"):
+* `hb` (S2): the heartbeat Go computes from the configuration (`TickMs` milliseconds,
+  `time.Duration`, wrapping: `bootOk`'s `Hraft`) positive: `newRaftNode`'s `time.NewTicker` panics
+  for a negative one, and a zero one (Go's `&time.Ticker{}`, which never fires) is not covered, a
+  scope restriction (`notes/decisions.md`);
+* `dirs` (M2): the URL directory names raft's peers `γ.vs` (`srvDirsOk`). -/
+structure srvBootEnvOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
+    (dir : w64 → List GoString) : Prop where
+  hb : 0 < sint.Z (cfg.TickMs' * W64 1000000)
+  dirs : srvDirsOk γ.vs dir
+
+/-- `srvBootEnvOk` at the examples' clock (`TickMs = 100`), of a directory of raft's peers. -/
+theorem srvBootEnvOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
+    (dir : w64 → List GoString) (ps : List w64) (htk : cfg.TickMs' = W64 100) (hvs : γ.vs = ps)
+    (hd : srvDirsOk ps dir) : srvBootEnvOk cfg γ dir :=
+  ⟨by rw [htk]; decide, by rw [hvs]; exact hd⟩
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -263,7 +304,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
+    -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
+    -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
+    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
       sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
@@ -309,11 +352,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
     -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
-    -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
-    -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
-    -- any request), at most `2 ^ 20` of them (each peer's goroutines borrow eight of `lgMu`'s
-    -- reader slots)
-    "%Hdirps" ∷ ⌜(∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20⌝ ∗
+    -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, the directory's
+    -- members raft's peers, at most `2 ^ 20`, a fact of the caller's `dir` and `γ.vs`, now
+    -- `NewServer`'s premise `srvBootEnvOk`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
@@ -487,11 +528,17 @@ new `MemoryStorage` joins it; until then the contract gave its registration with
 which no update can), an error, or the record with `bootOk` (at the write-back budget
 `N + 7`). (2026-11-03, the whole-`bootOk` review, A and C) For the configurations it covers
 (`bootCfgOk`, `bootCfgFresh`: until then every configuration, including ones where Go panics or
-does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`). -/
+does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`).
+(2026-11-03, the final whole-`bootOk` review's M1) On a disk that cooperates with `bootstrap`'s own
+I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
+`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
+(`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
+call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
-  iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit⌝ ∗
+  iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
+          storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
