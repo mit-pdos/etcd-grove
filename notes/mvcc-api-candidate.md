@@ -591,3 +591,24 @@ changes). In short:
 - Found on the way: this worktree's Perennial checkout was at `c4a24e3` (not the manifest's pin
   `d62b13a`) from 2026-11-02 19:40; `lake env lean` (the scratch typecheck) checked out the pin,
   and the build's artifacts are `c4a24e3`'s. Left for the user.
+
+## Round 13 (2026-11-03): the review of round 12
+
+`~/mvcc-api-candidates/MvccApiR13.lean` (typechecked); the review: `~/mvcc-api-candidates/review-r12.md`.
+Nothing unsound in the specs; two laws unprovable and three gaps, repaired:
+
+- **The open law at `backend.newPost`** (the backend's payment rights kept): at `newPostK`'s
+  arbitrary `K` the store's write-back tokens are not there. **The snapshot path cannot make a
+  `mvccBackendFor` as it stands**: `storage.OpenSnapshotBackend` deposits the payment rights with
+  the apply protocol (`K := snapOpenK`, `SnapApplyWalk.lean:270`). A server-side question for the
+  user (give them back for the store, or a law at that `K`).
+- **`Restore`'s length bound** `σ'.log.length + receiptBound GF + 3 ≤ 2 ^ 63` (today's carries it in
+  its revision tokens).
+- **The shape laws** (`shapes.law`): a handle, a transaction, a stream are an `interface.mkOk ty v`
+  of a type meeting its contracts (a client can make its first call on what `Read` returned).
+- **`Close` and `Restore` give back the store's half of the backend's open token**
+  (`backend.bOpen B.γB ½`): the client closes the old backend (etcd after a restore, the tester at
+  its end).
+- **`Restore` from a compacted image** (`imageOf L c D`), resuming an unfinished compaction under the
+  new backend's `nil` hook (lent: the server sets that backend's hook after `Restore`) and a commit
+  request that keeps `X`.
