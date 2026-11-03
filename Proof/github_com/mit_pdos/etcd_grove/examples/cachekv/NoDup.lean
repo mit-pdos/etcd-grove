@@ -6,7 +6,7 @@
 
 * `oneChange_of_wk` (pure): a sealed log (`LogWf'`: its revision `0` empty) that is a prefix of a
   log whose revisions after `0` are a watchkv log's changes changes each key at most once a revision.
-* `kmWAu`: the adapter's invariant (`kmInv`) gives a read update of its plan's fact.
+* the adapter's `client.kmWAu` (its invariant gives a read update of its plan's fact).
 * `noDupKeys_of_wk`: that read update fires at every watched log (`srvKVCoreM_fire`, from the
   member's KV facts), at a committed log it is a prefix of.
 
@@ -59,41 +59,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **The adapter's plan's fact, read** (persistent): a read update whose result is the plan's
-fact of the state's changes (`kmInv`'s `γ.W`). -/
-theorem kmWAu (γ : client.KMNames) :
-    client.kmInv (GF := GF) γ ⊢ kvReadAu γ.kv (fun σ => iprop(⌜γ.W σ.changes⌝)) := by
-  have Hm := client.kmN_mask
-  iintro #Hinv
-  iunfold kvReadAu
-  iunfold kvAu
-  iintro !>
-  iauintro
-  unfold atomic_acc
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %m, Hσ, Hch, Htok, %Hok⟩
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-  iintro Hmask
-  iexists σ
-  iframe Hσ
-  isplit
-  · iintro Hσ
-    imod Hmask with -
-    imod Hclose $$ [Hσ Hch Htok] with -
-    · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
-    imodintro
-    itrivial
-  · iintro Hσ
-    imod Hmask with -
-    imod Hclose $$ [Hσ Hch Htok] with -
-    · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
-    imodintro
-    iintro !>
-    ipureintro
-    exact Hok.2
 
 /-- See the file header. -/
 theorem noDupKeys_of_wk [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]

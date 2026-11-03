@@ -132,6 +132,18 @@ def evFactR (R : Nat → GoString → GoString → IProp GF) (P : List (GoString
   iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
     kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ R r e.key v)
 
+theorem evFactR_elim {R : Nat → GoString → GoString → IProp GF} {P : List (GoString × GoString)}
+    {r : Nat} {e : EvModel} :
+    evFactR R P r e ⊢ ⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
+      kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ R r e.key v := by
+  unfold evFactR; iintro H; iexact H
+
+theorem evFactR_intro {R : Nat → GoString → GoString → IProp GF} {P : List (GoString × GoString)}
+    {r : Nat} {e : EvModel} :
+    (⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
+      kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ R r e.key v) ⊢ evFactR R P r e := by
+  unfold evFactR; iintro H; iexact H
+
 /-- **The `Event` `Collect` appends** for the event `e` whose key-value's value is `v`: its
 revision (the key-value's `ModRevision`), key, value, and whether it is a put. -/
 def evWev (e : EvModel) (v : GoString) : wev :=

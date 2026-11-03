@@ -72,8 +72,7 @@ theorem awaitProgress.wp_proof
     iintro %h; cases h
   simp only [↓reduceIte]
   icases H with ⟨%r, #Hr, Hcons⟩
-  iunfold respAt at Hr
-  icases Hr with ⟨#Hevs, #Hhdr, %Hrf⟩
+  icases respAt_elim $$ Hr with ⟨#Hevs, #Hhdr, %Hrf⟩
   (try wp_auto)
   -- a cancel (`Canceled`, or a compaction's revision): the watch ended
   cases hcv : v.Canceled'
@@ -120,8 +119,7 @@ theorem awaitProgress.wp_proof
       ihave H := Hall $$ %((eventsOf rs).length + j) %e %he
       rw [show 2 + evs0.length + j = 2 + ((eventsOf rs).length + j) by rw [Hc.2.1]; omega]
       iexact H
-    iunfold eventsAt at Hevs
-    icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
+    icases eventsAt_elim $$ Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
     ihave %Hlsl := ownSlice_len $$ Hls
     (try wp_auto)
     ihave IJ : (∃ (j : w64) (e0 : Loc) (sl' : GoSlice) (ws : List cev),
@@ -154,13 +152,9 @@ theorem awaitProgress.wp_proof
       · iframe #; ipureintro; exact Hev_lookup
       ihave #Hea := Hev $$ %(sint.nat j) %ev %e %Hev_lookup %he
       ihave #Hf := Hevf $$ %(sint.nat j) %e %he
-      iunfold eventAt at Hea
-      icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-      iunfold evFact at Hf
-      iunfold common.evFactR at Hf
-      icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
-      iunfold kvValAt at Hkvv
-      icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
+      icases eventAt_elim $$ Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
+      icases common.evFactR_elim $$ Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
+      icases kvValAt_elim $$ Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
       (try wp_auto)
       wp_apply wp_bytes_to_string keySl e.key DFrac.discard $$ [HkeyS] as -
       · iframe #
@@ -269,8 +263,7 @@ theorem awaitProgress.wp_proof
       unfold RespModel.isProgressNotify at hpn
       simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at hpn
       exact hpn.2
-    iunfold hdrAt at Hhdr
-    icases Hhdr with (%hn | ⟨%hnn, #Hrev⟩)
+    icases hdrAt_cases $$ Hhdr with (%hn | ⟨%hnn, #Hrev⟩)
     · exact absurd hn.2 h0
     (try wp_auto)
     wp_for_post

@@ -52,8 +52,7 @@ theorem hasKey.wp_proof : hasKey.spec (GF := GF) (hG := hG) := by
     wp_apply wp_load_slice_index sl (sint.Z j) ps DFrac.discard p Hj.1 $$ [Hs] as -
     · iframe #; ipureintro; exact Hp_lookup
     ihave #Hv := Hkv $$ %(sint.nat j) %p %v %Hp_lookup %hv
-    iunfold kvValAt at Hv
-    icases Hv with ⟨%keySl, %valSl, #HkF, #HkS, -, -, -, -, -, -⟩
+    icases kvValAt_elim $$ Hv with ⟨%keySl, %valSl, #HkF, #HkS, -, -, -, -, -, -⟩
     (try wp_auto)
     wp_apply wp_bytes_to_string keySl v.key DFrac.discard $$ [HkS] as -
     · iframe #

@@ -96,10 +96,8 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     rintro (h' | h' | h') <;> simp_all
   imod (Hresp evs0.length c c' v r hnw Hc.1) $$ HA Hok
     with ⟨%Hcur', #Hevf⟩
-  iunfold respAt at Hr
-  icases Hr with ⟨#Hevs, -, -⟩
-  iunfold eventsAt at Hevs
-  icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
+  icases respAt_elim $$ Hr with ⟨#Hevs, -, -⟩
+  icases eventsAt_elim $$ Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
   ihave %Hlsl := ownSlice_len $$ Hls
   (try wp_auto)
   ihave IJ : (∃ (j : w64) (e0 : Loc) (sl' : GoSlice) (lv' : w64) (ws : List wev),
@@ -130,11 +128,9 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     · iframe #; ipureintro; exact Hev_lookup
     ihave #Hea := Hev $$ %(sint.nat j) %ev %e %Hev_lookup %he
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
-    iunfold eventAt at Hea
-    icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
+    icases eventAt_elim $$ Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
     icases Hf with ⟨%kvv, #Hkvv, #Hra⟩
-    iunfold kvValAt at Hkvv
-    icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
+    icases kvValAt_elim $$ Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
     (try wp_auto)
     wp_apply wp_bytes_to_string keySl e.key DFrac.discard $$ [HkeyS] as -
     · iframe #

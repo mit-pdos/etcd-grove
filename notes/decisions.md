@@ -30837,3 +30837,25 @@ nor the transport, and the convention's "a slot is added only when its subsystem
 hub" applies to the contract too. The reviewer's other open points (T2's ticker placement, T3's
 `lg ≠ null`, the trust-base reduction through Perennial's `NewTicker`) stay open, as the
 coordinator asked. Supersedes "Hubs" above in so far as it named `srvBootEnvOk` the one premise.
+
+## Laws in place of cross-module unfolds, part 2: the cache's response and certificate predicates, `common`, the adapter (2026-11-03 · the user's "go ahead with 2a and 2b")
+
+The examples (`cachekv`, `linkv3p`, `common`) no longer unfold these predicates of other modules;
+each has a law beside its definition:
+
+- the store's response predicates (`InvStore`): `eventAt_elim`, `eventsAt_elim`, `hdrAt_cases`,
+  `respAt_elim` (a reader's fields, read-only);
+- `InvEtcd`: `kvValAt_elim`, `evsMatch_elim`, `etcdStepCertBody_elim`, `etcdStepCert_cert` (moved
+  from `Cache.watchEvents`), `watchChain_cons`/`watchChain_cons_elim`, `watchRespOk_cases`;
+- `InvCache`: `cacheWatchLog_cases`; `cacheWatchConsumer_log` moved from `cachekv/collect.lean`;
+- `common/WatchBase`: `evFactR_elim`, `evFactR_intro`; `collectOk_elim`/`_intro` (existing) now
+  used by `collect`, `CollectPlan` and the three `CheckOk` lemmas (`Writes`, `WritesKM`,
+  `linkv3p/MainWatch`);
+- the client's adapter (`EtcdModelKV`): `kmWriteQ_lb` (used by `okFactKM_of_write`,
+  `okFactK_of_put`); `kmWAu` moved from `cachekv/NoDup.lean` (it opens `kmInv`, beside `km_read_au`).
+
+Most laws restate the body (an elimination or introduction in its shape): what changes is who
+owns the statement. Not covered: pure functions (`txn.revEvs`, `chainEnd`, `kvRange`, the config
+definitions), an example's own modules (`linkv3p`'s `Defs` in its `Main`), and the server's
+predicates in `cachekv/NoDup.lean` (`kvAu`, `srvKVFacts`, `mvcc`'s `idxSealed`, `evLog`,
+`noDupKeys`; 2c, in other sessions' areas).
