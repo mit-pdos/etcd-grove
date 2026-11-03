@@ -237,9 +237,10 @@ def hashStoreOk (h : GoInterface) : IProp GF :=
   iprop(□ ∀ (ty : go.GoType) (v : val) (kh : KeyValueHash), ⌜h = interface.mkOk ty v⌝ -∗
     {{ True }} (App (Val #(methods ty go!"Store" v)) (Val #kh)) {{ RET #(); True }})
 
-/-- The lessor's range deleter `rd` is the store's `Write(traceutil.TODO())`. -/
+/-- The lessor's range deleter `rd` is the store's `Write(traceutil.TODO())`, not `nil` (the
+server draft's S2: `lessor.Revoke` checks it). -/
 def mvccDeleter (rd : GoFunc) (γ : MvccName) : IProp GF :=
-  iprop(□ ∀ (q : Qp) (B : BkRef) (P Pre Q : IProp GF) (f : GoFunc) (R : MvccState → IProp GF),
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ ∀ (q : Qp) (B : BkRef) (P Pre Q : IProp GF) (f : GoFunc) (R : MvccState → IProp GF),
     {{ threadTok ∗ mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q ∗
         AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
           <{ ⌜σ.pending = none⌝ ∗ mvccState γ σ, COMM R σ }> }}
@@ -805,6 +806,10 @@ abbrev mvccBackend_agree.law : Prop :=
 
 abbrev mvccState_reachable.law : Prop :=
   ∀ kv γ σ, isMvcc (GF := GF) kv γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝
+
+/-- **The names are inhabited** (the server draft's S3: a client builds a stand-in environment
+before the store exists). -/
+abbrev names_nonempty.law : Prop := Nonempty MvccName ∧ Nonempty WsName
 
 /-- **The shapes and the bundles**, from the concrete specs (an implementation proves them as
 `sync`'s `Mutex_is_Locker`): a store's handle, a transaction, a stream are an `interface.mkOk ty v`

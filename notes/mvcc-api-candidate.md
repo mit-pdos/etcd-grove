@@ -706,3 +706,14 @@ triple, not `mvccTxn` (the backend's batch session admits only `Unlock` after an
 Found while checking the watch path's gap W1: the gRPC handler contract's per-run resource `S` is
 the server's choice (`InvGrpc.lean:151`), and the lease read already passes `threadTok` through it
 (`InvLeaseRead.lean:17`): the KV and watch handlers do the same, no trust-base change.
+
+**The client drafts** (`~/mvcc-api-candidates/clients-{txn,server,watch}.md`, Lean in
+`clients/{txn,server,watch}/*.lean`, each typechecked): `txn` keeps no invariant (its entry specs
+pass the API's updates through, the sole writer's pin the caller's); the server's `kvStoreInv`
+holds `mvccState` with the committed and notified logs' monotone lists, raft witnesses and the
+compaction permit, and states the update builders apply uses; v3rpc's `wsInv` holds `wsState`, the
+registry, the cancel requests and the close token, and its send loop applies `wsRecv_ok` after each
+receive. API changes from them: `shapes.law` restored (deleted by accident with round 14's channel
+law); the range deleter not `nil` (S2); the names inhabited (S3, `names_nonempty`). Open, for the
+user: the size bounds the hidden time receipts gave (the write path's sort margin, `Revoke`'s sort,
+non-negative versions, the watch path's `LogSmall`).
