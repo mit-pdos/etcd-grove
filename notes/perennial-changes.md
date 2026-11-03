@@ -1503,3 +1503,13 @@ registered generator's is persistently readable.
 Local: `w64_pointsto_excl` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), for `w64`, through the
 first byte's heap points-to. The general change: `typedPointsto_valid_2` for any `TypedPointsto` type
 whose points-to owns at least one byte, giving `✓ (dq1 • dq2)`.
+
+## Loading a struct field through a fractional points-to (2026-11-02, porcupine PR #46)
+
+`wp_load`/`wp_auto` do not load a field of a struct held by a fractional points-to
+(`p ↦{dq} v`, `dq ≠ own 1`), although the generated `AccessStrict` load instances take any `dq`;
+applying the instance by hand works. Met proving the oracles of porcupine PR #46 (`RealTime` reads
+`a.Call`, `b.Return` through pointers the caller holds fractionally). Local: split the struct with
+`iStructNamed` and put it back with `typedPointsto_combine` (`op_split`/`op_join` in
+`PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
+field-load automation finding the instance at any fraction.

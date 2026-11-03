@@ -184,6 +184,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
+- **Pure premises go in the precondition**, as `⌜P⌝` conjuncts of the triple's `{{ … }}`, not as Lean
+  implications before it (`P → {{ … }} e {{ … }}`): the two are equivalent, but the triple then reads
+  as one contract, everything the caller must establish in one place. Proofs introduce them with
+  `%H` in `wp_start`'s pattern; a caller discharges them in the `wp_apply` premise goal
+  (`ipureintro`). Older specs still use implications; convert one when you change it. (porcupine's
+  `Check*` specs, 2026-11-03, the user's request.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 

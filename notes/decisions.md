@@ -30288,6 +30288,78 @@ work, to be replaced by laws): `GetFacts.lean`'s `getCheck_km` (the adapter's `k
 `kmRevAt`, as `km_step_log` does; the cache's `isEtcdKvs`, `cacheGetErr`), `storeW_quiet`/
 `storeW_chain` (`demuxPubBody`).
 
+## Porcupine PR #46: the DAG search, specified and verified in a part (2026-11-02 · the task "verify PR #46's checker, the v1.3.1 spec or the closest true one" · this worktree's branch)
+
+porcupine's open pull request #46 (`practical-systems-iitd/porcupine` `29a6b8e6c`) replaces
+v1.3.1's Wing–Gong search by a DAG search over per-client chains. Vendored in
+`third_party/porcupine-dag/` (the same `done`-flag rewrite as v1.3.1's), translated by
+`etc/goose.py`'s project `porcupine-dag` into the part `PorcupineDag/` (the Go path is v1.3.1's,
+so the modules must not meet the main tree's; nothing outside the part imports it). The plans,
+their reviews and checks, frozen: `notes/porcupine-dag-plan.md`.
+
+- **The spec is not v1.3.1's: the PR decides linearizability respecting the client order.** Its
+  search linearizes each client's operations only in the order listed, so what it decides is
+  `LinearizableCO` (an order respecting real time and `clientOrder`), and only when along each
+  client the returns do not decrease (`MonoReturns`: `computeFirstUnk` takes the operations
+  preceding an operation in real time to be a prefix of each other chain). Without it the PR is
+  unsound, even for `LinearizableCO`; with overlapping or equal-timestamp clients it is incomplete
+  for `Linearizable` (`notes/pr-verify/porcupine-46.md`). So the public specs are
+  `b = true ↔ LinearizableCO S.M (histOf ops) (clientOrder ops)` (and the three outcomes) under
+  `HistOk` and `ClientsOk` (`ClientIdsOk ∧ MonoReturns`); v1.3.1's statement is the corollary
+  `X.spec_seq` under sequential clients (`ClientsSeq`: `ret_i < call_j` in a client's order), and
+  `true → Linearizable` holds under `ClientsOk` alone (`X.spec_sound`). *Rejected:* candidate 1's
+  strict premise (`ClientsSeq`) on the specs themselves: weaker than what is true, and a tracer
+  whose clock gives `ret_i ≤ call_{i+1}` could not meet it (review round 1, F2). *Rejected:*
+  calls non-decreasing too (the reviewer's proposal): not needed, since the previous operation's
+  bound over-counts only operations the client order forces anyway; the price is that
+  `firstUnk` holds `FUe` (the running maximum of `FU` along the chain) and `cand_iff` needs the
+  linearized set closed under `Before`, which a stack of candidates is.
+- **Client ids bounded by gc's `maxAlloc`, not only by `int`.** The PR allocates by the client
+  count (`8·n·numClients` bytes of `firstUnk`s): a single operation with `ClientId` 2^50 panics in
+  Go (`makeslice: len out of range`) while Perennial, which does not model the limit, would run
+  it. `ClientIdsOk` bounds the largest such allocation (`AllocOk`) by `maxAllocBytes = 2^48`; the
+  proofs use it only for `int` overflow. A negative id panics (index out of range):
+  `notes/pr-verify/porcupine-46.md`.
+- **The suspected skip after a pop is not there.** `liftFrom = frontierIdx - 1` is right because
+  the frontier is always the candidates sorted by `KeyGt` (later call, then larger client;
+  candidates are unrelated in real time, so `Check` never answers a hard order among them), hence
+  a function of the linearized set (`candList_unique`): after `unlift` it is the list the popped
+  frame was lifted from. Made an invariant (`ChainsInv`'s `CandList`), checked by an instrumented
+  copy of the PR before any proof.
+- **The package fact names the closures.** `Linearizability` (what the entry points pass) holds
+  `{Oracles: [RealTime, GeneralLikely], Valid: RVal}`; the fact `linInit` is a read-only
+  points-to with the oracles slice read-only (it is shared with `LinearizabilityOracles`); the
+  closures are the translation's func literals, extracted into `Closures.lean` by
+  `etc/gen-init.py` (part mode, `DAG_*`), whose `Init.lean` it also generates; their specs are
+  lemmas. *Rejected:* Hoare triples inside the fact (quantifying over model specs inside
+  `isPkgInit`).
+- **The search theory is v1.3.1's with the order as a parameter.** `Theory.Completes`/`Good`
+  take the order `R` (one more argument than v1.3.1's), `DagTheory` states the search's lemmas
+  for any irreflexive `R` on the history's operations, and `Chains` instantiates it at
+  `Before = Prec ∨ chainOrder`. `Struct` (kept on a cancelled step) and `Bad` (under `∨ □ Done`)
+  split the invariant as v1.3.1's `Sound`/`Inv`.
+- **Process**: three spec reviews (fresh `spec-reviewer`s; round 1 found the `maxAlloc` panic and
+  the stronger spec, round 2 a false `makeEntries` spec, round 3 wording), two exhaustive
+  invariant checks (agents; four false lemma statements and a false loop invariant found and
+  fixed before any proof), executable checks of the invariants on random and exhaustive small
+  histories against v1.3.1 and a brute-force `LinearizableCO` checker.
+
+## Porcupine: pure premises in the precondition; PR #46 merged as a part (2026-11-03 · the user's request)
+
+The `Check*` specs took their pure premises as Lean implications before the triple
+(`HistOk ops → {{ … }}`, and PR #46's `HistOk ops → ClientsOk ops →`); the user asked for them in
+the precondition. Now `{{ … ∗ opsIoOk S ops ∗ ⌜HistOk ops⌝ }}` (PR #46: `∗ ⌜HistOk ops⌝ ∗
+⌜ClientsOk ops⌝`; its corollaries `spec_seq`/`spec_sound` the same with their own premises), in
+`CheckOperations`, `CheckOperationsTimeout`, `CheckOperationsVerbose` and `checkOperations`, in
+both trees. Equivalent statements; the internal specs (`checkParallel`, `checkSingle`, the
+search's helpers) keep their implications (not changed, convert when touched). The convention is
+the `spec` skill's "Pure premises go in the precondition".
+
+The PR #46 work (branch `worktree-agent-ac37901483259dd26`, "Porcupine PR #46: the DAG search,
+specified and verified in a part" above) merged into `lean` with the user's approval of its
+premises. Its two bug reports moved from `issues/` to `notes/pr-verify/porcupine-46.md`, as
+`issues/README.md` asks for bugs only in an unmerged pull request's code.
+
 ## cachekv checks a progress notification of the cache's watch (2026-11-03 · the user's choice of the cheaper check)
 
 `Main`, after `collect`, asks the cache for a progress notification (`RequestProgress`), reads
