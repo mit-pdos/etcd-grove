@@ -43,7 +43,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.applyAll.wp_proofSnap
-    (hASnap : EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG))
+    (hASnap : EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG))
     (hAE : EtcdServer.applyEntries.specNil (GF := GF) (hG := hG))
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -146,10 +146,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- the backend's own resources
   iunfold srvSnapRes at Hsres
   icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath⟩
-  -- (P5) the mode off: the apply thread's share of the open token is the half
-  have hq : srvOpenQ E.authMode = (1 : Qp).half := by rw [hoff]; rfl
-  ihave Hbo : backend.bOpen (GF := GF) d0.γB (1 : Qp).half $$ [Hbo]
-  · rw [← hq]; iexact Hbo
   rw [hkb] at Hkb0
   cases Hkb0
   icombine Half Hal0 gives %Hale
@@ -180,21 +176,24 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- thread's token (`srvGoRes`'s)
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨HgrW, HthT⟩
-  wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
+  -- (F9, 2026-11-03) `specSnapM` in the mode `off`: the auth store's `Recover` facts `authRecoverOk`
+  ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
+  · rw [hoff]; simp only [snapAuthResM]; iapply HauR; ipureintro; first | trivial | rfl | exact hoff
+  have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
       al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r (fun _ => hcc) Hif.hkI hbr hlp γp hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
-      Hif.hauthb Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
-      cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
-      γnc)
+      Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
+      cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
+      (by rw [Hoff]; exact Hif.hA') (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
+  rw [Hoff] at hS
+  simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
+  wp_apply hS
     $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS HKC Hγt Htlive Hsm0 Hcs Hstopc
       Hbo HthT]
     as ⟨Hsapp, Hnr1, HthT⟩
   · iframe #; iframe
-    isplitr
-    · iapply HauR; ipureintro; exact hoff
-    rw [authApplyOk_eq, ← hoff]; iexact HauOk
   (try wp_auto)
   ihave Hgr : srvGoRes s $$ [HgrW HthT]
   · iunfold srvGoRes; iframe HgrW HthT

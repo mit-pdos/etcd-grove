@@ -142,136 +142,8 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
     iexact Hpost
 
-/-- **Lean's `specSnap` is `specSnapM`'s `off` case** (F9): in the mode `off` every mode-indexed
-part is lean's by `rfl`. -/
-theorem EtcdServer.applySnapshot.specSnap_of_M
-    (h : EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG)) :
-    EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
-  intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl
-    hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hcc hkI hbr hlp γp hrbw
-    stp γd γt img nt hstp hnt halarm halbi hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok
-    hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
-  have hon : E.authOn = false := by simp [apply.AEnv.authOn, hoff, auth.AuthMode.isOn]
-  have H := h s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP
-    hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre
-    hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs
-    dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' (by rw [hon]; exact hA')
-    (by rw [hoff]; simp) (by rw [hoff]; exact hauthb) γnc
-  rw [hon, hoff] at H
-  exact H
-
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 2000000 in
-/-- **`applySnapshot` with a non-empty snapshot** (S8d): lean's `specSnap`, from its callees' specs.
-Since P6.2 (2026-11-03) over the mode-generic walk and post in the mode `off`, which takes no auth
-store `Recover` glue (`specSnap_of_M` would bring `wp_proof_snapM`'s). -/
-theorem EtcdServer.applySnapshot.wp_proof_snap
-    (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
-    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
-    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
-    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
-    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (hOSB : storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG))
-    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
-    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
-    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
-    (hBUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
-    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
-    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
-    (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
-    (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
-    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
-    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
-    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
-    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
-    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
-    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
-    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
-    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
-    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
-    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
-    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
-    (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
-    (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
-    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (hRel : storage.storage.Release.spec (GF := GF) (hG := hG))
-    (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
-    (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
-    (hNAuB : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
-    (hNMB : schema.NewMembershipBackend.spec (GF := GF) (hG := hG))
-    (hCSB : membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG))
-    (hClose : backend.backend.Close.spec (GF := GF) (hG := hG))
-    (hCRec : membership.RaftCluster.Recover.spec (GF := GF) (hG := hG))
-    (hRAP : rafthttp.Transport.RemoveAllPeers.spec (GF := GF) (hG := hG))
-    (hAP : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
-    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
-    (hNUA : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
-    (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
-    (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
-    (hDt : lease.lessor.Detach.spec (GF := GF) (hG := hG))
-    (hSRD : lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG))
-    (hLk : lease.lessor.Lookup.spec (GF := GF) (hG := hG))
-    (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
-    (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
-    (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
-    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
-    (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
-    (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
-    (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
-    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
-    have hon : E.authOn = false := by simp [apply.AEnv.authOn, hoff, auth.AuthMode.isOn]
-    have hany : E.authMode ≠ .any := by rw [hoff]; simp
-    iintro %Φ Hpre HΦ
-    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, #Hkvex, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
-    -- the mode `off`'s rows as the generic walk's
-    ihave #HsrvM : isServerM E.authOn s γ ci TM E ρ γr $$ []
-    · rw [hon, isServerM_false]; iexact Hsrv
-    ihave HKVM : srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) $$ [HKV]
-    · rw [hon, srvApplyKVM_false]; iexact HKV
-    ihave HoOhM : backend.bOpen d.γB (srvOpenQ E.authMode) $$ [HoOh]
-    · rw [hoff, srvOpenQ_off]; iexact HoOh
-    ihave HauRM : snapAuthResM E.authMode s ast E.RD γr A' $$ []
-    · rw [hoff]; simp only [snapAuthResM]; iexact HauR
-    ihave #HauAM : authApplyOkM E.authMode ast E.RD $$ []
-    · rw [hoff, ← authApplyOk_eq]; iexact HauA
-    iclear Hsrv HauA
-    iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun h => by rw [hon] at h; cases h) hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' (by rw [hoff]; exact hauthb) hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKVM HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOhM Htk HauRM]
-    · iframe #
-      iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKVM HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOhM Htk HauRM
-    iintro !> ⟨Hw, Hrcv, Htk⟩
-    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' (by rw [hon]; exact hA') hany) $$ [Hw]
-    · iframe #
-      iframe Hw
-    imod Hpost
-    imodintro
-    iapply HΦ
-    iframe Hrcv Htk
-    have key : ∀ on : Bool, on = false →
-        (srvSnapAppliedG (GF := GF) on s ep sv γ ci E ρ γr d R r A' ss
-          (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ⊢
-        srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c
-          rs idm lp al ast cl) := by
-      rintro on rfl
-      exact srvSnapAppliedG_off s ep sv γ ci E ρ γr d R r A' ss _ γt γn t c rs idm lp al ast cl hoff
-    iapply (key E.authOn hon)
-    iexact Hpost
-
-/-- **`applySnapshot.spec`** (J8b, 2026-11-01): `wp_proofEmpty` and `wp_proof_snap`. -/
+/-- **`applySnapshot.spec`** (J8b, 2026-11-01): `wp_proofEmpty` and `wp_proof_snapM` (since
+2026-11-03; until then the mode-off `wp_proof_snap`). -/
 theorem EtcdServer.applySnapshot.wp_proof
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -337,10 +209,11 @@ theorem EtcdServer.applySnapshot.wp_proof
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hRec : auth.authStore.Recover.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applySnapshot.wp_proofEmpty hIES,
-    EtcdServer.applySnapshot.wp_proof_snap hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hLSR hUSR⟩
+    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hLSR hUSR hRec⟩
 
 end proof
 

@@ -1814,44 +1814,12 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
     schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
-/-- **A snapshot's install in the server's auth mode** (the auth-on snapshot plan's P6, F9:
-`applySnapshot.specSnapM`), every callee linked, the auth store's `Recover` among them. -/
-theorem server_apply_snapshot_m [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) :=
-  EtcdServer.applySnapshot.wp_proof_snapM
-    wp_IsEmptySnap EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_Uint64
-    raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm
-    storage.wp_OpenSnapshotBackend storage.BackendHooks.wp_OnPreCommitUnsafe
-    consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
-    backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket consistentIndex.wp_SetBackend lease.lessor.wp_Recover
-    mvcc.watchableStore.wp_Restore backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
-    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
-    backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
-    backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange
-    backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange
-    backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
-    backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
-    backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_UnsafeDelete
-    EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook
-    consistentIndex.wp_ConsistentIndex storage.storage.wp_Release schema.wp_NewAlarmBackend
-    v3alarm.AlarmStore.wp_Recover schema.wp_NewAuthBackend schema.wp_NewMembershipBackend
-    membership.RaftCluster.wp_SetBackend backend.backend.wp_Close
-    membership.RaftCluster.wp_Recover rafthttp.Transport.wp_RemoveAllPeers
-    rafthttp.Transport.wp_AddPeer EtcdServer.wp_MemberID EtcdServer.wp_NewUberApplier
-    lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach
-    lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant
-    lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke EtcdServer.wp_Leader
-    EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot v3alarm.AlarmStore.wp_Get
-    backend.backend.wp_LockForSafeRangeDelete backend.backend.wp_UnlockForSafeRangeDelete
-    auth.authStore.wp_Recover
-
 /-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
 `ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
-mode (`server_apply_snapshot_m`). -/
+mode (the linked `applySnapshot`'s `specSnapM`). -/
 theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proofSnapM EtcdServer.wp_applyAll.2 server_apply_snapshot_m
+  EtcdServer.applyAll.wp_proofSnapM EtcdServer.wp_applyAll.2 EtcdServer.wp_applySnapshot.2
     EtcdServer.wp_applyEntries.2 EtcdServer.wp_Backend EtcdServer.wp_Logger
     backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog.2
     raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata

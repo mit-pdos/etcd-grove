@@ -1165,6 +1165,22 @@ theorem schema.wp_UnsafeDeleteLease :
     schema.UnsafeDeleteLease.spec (GF := GF) (hG := hG) :=
   schema.UnsafeDeleteLease.wp_proof
 
+theorem auth.wp_getMergedPerms :
+    auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
+  auth.getMergedPerms.wp_proof adt.wp_NewIntervalTree adt.wp_NewBytesAffineInterval adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_refreshRangePermCache :
+    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
+  auth.authStore.refreshRangePermCache.wp_proof zap.Logger.wp_Debug zap.wp_String zap.Logger.wp_Error auth.wp_getMergedPerms
+
+theorem auth.authStore.wp_setRevision :
+    auth.authStore.setRevision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.setRevision.wp_proof
+
+theorem auth.authStore.wp_Recover :
+    auth.authStore.Recover.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Recover.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision
+
 theorem zap.wp_Stringer :
     zap.Stringer.spec (GF := GF) (hG := hG) :=
   zap.Stringer.wp_proof
@@ -1289,18 +1305,6 @@ theorem auth.authStore.wp_AuthDisable :
     auth.authStore.AuthDisable.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthDisable.wp_proof auth.authStore.wp_commitRevision zap.Logger.wp_Info
 
-theorem auth.wp_getMergedPerms :
-    auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
-  auth.getMergedPerms.wp_proof adt.wp_NewIntervalTree adt.wp_NewBytesAffineInterval adt.wp_NewBytesAffinePoint
-
-theorem auth.authStore.wp_refreshRangePermCache :
-    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
-  auth.authStore.refreshRangePermCache.wp_proof zap.Logger.wp_Debug zap.wp_String zap.Logger.wp_Error auth.wp_getMergedPerms
-
-theorem auth.authStore.wp_setRevision :
-    auth.authStore.setRevision.spec (GF := GF) (hG := hG) :=
-  auth.authStore.setRevision.wp_proof
-
 theorem auth.wp_hasRootRole :
     auth.hasRootRole.spec (GF := GF) (hG := hG) :=
   auth.hasRootRole.wp_proof
@@ -1408,10 +1412,6 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
-
-theorem auth.authStore.wp_Recover :
-    auth.authStore.Recover.spec (GF := GF) (hG := hG) :=
-  auth.authStore.Recover.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision
 
 theorem auth.authStore.wp_RoleAdd :
     auth.authStore.RoleAdd.spec (GF := GF) (hG := hG) :=
@@ -2406,7 +2406,7 @@ theorem lease.lessor.wp_Revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem EtcdServer.wp_applySnapshot [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_Uint64 raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm storage.wp_OpenSnapshotBackend storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket consistentIndex.wp_SetBackend lease.lessor.wp_Recover mvcc.watchableStore.wp_Restore backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_UnsafeDelete EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook consistentIndex.wp_ConsistentIndex storage.storage.wp_Release schema.wp_NewAlarmBackend v3alarm.AlarmStore.wp_Recover schema.wp_NewAuthBackend schema.wp_NewMembershipBackend membership.RaftCluster.wp_SetBackend backend.backend.wp_Close membership.RaftCluster.wp_Recover rafthttp.Transport.wp_RemoveAllPeers rafthttp.Transport.wp_AddPeer EtcdServer.wp_MemberID EtcdServer.wp_NewUberApplier lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot v3alarm.AlarmStore.wp_Get backend.backend.wp_LockForSafeRangeDelete backend.backend.wp_UnlockForSafeRangeDelete
+  EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_Uint64 raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm storage.wp_OpenSnapshotBackend storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket consistentIndex.wp_SetBackend lease.lessor.wp_Recover mvcc.watchableStore.wp_Restore backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_UnsafeDelete EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook consistentIndex.wp_ConsistentIndex storage.storage.wp_Release schema.wp_NewAlarmBackend v3alarm.AlarmStore.wp_Recover schema.wp_NewAuthBackend schema.wp_NewMembershipBackend membership.RaftCluster.wp_SetBackend backend.backend.wp_Close membership.RaftCluster.wp_Recover rafthttp.Transport.wp_RemoveAllPeers rafthttp.Transport.wp_AddPeer EtcdServer.wp_MemberID EtcdServer.wp_NewUberApplier lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot v3alarm.AlarmStore.wp_Get backend.backend.wp_LockForSafeRangeDelete backend.backend.wp_UnlockForSafeRangeDelete auth.authStore.wp_Recover
 
 theorem notify.Notifier.wp_Notify :
     notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=

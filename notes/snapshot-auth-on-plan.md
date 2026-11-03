@@ -994,3 +994,9 @@ Entries (P6, 2026-11-03):
   token rights `srvTokRights` framed across the install, at the snapshot's index after). Results:
   `server_apply_snapshot_m` (`wp_proof_snapM` with the linked `auth.authStore.wp_Recover`) and
   `server_apply_all_snap_m` feed `server_run_on`. `run.wp_proofOn` has no `sorry`.
+- `[C, user, public, approved (the user, 2026-11-03)]` `applySnapshot.spec` is `specEmpty ∧
+  specSnapM` (F9's one spec, now the linked one); the mode-off `specSnap`, `specSnap_of_M` and
+  `wp_proof_snap` deleted. `wp_proof` over `wp_proof_snapM` takes `auth.authStore.Recover` (a new
+  callee in `etc/link-lean-first-server.txt`; `Link.lean` regenerated); `applyAll.wp_proofSnap`
+  calls `specSnapM` in the mode `off`. The spec file's twin `receiptBound` premise goes (bounds
+  back at the baseline).

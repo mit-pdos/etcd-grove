@@ -637,6 +637,11 @@ def snapAuthResM (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF) (γr : ReadNa
   | .on γa => iprop(srvAuthSnapOk s γa RD ∗ srvRLogLb γr.raft A')
   | .any => iprop(True)
 
+instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF)
+    (γr : ReadNames) (A' : List EntryModel) :
+    Persistent (snapAuthResM (GF := GF) M s ast RD γr A') := by
+  cases M <;> unfold snapAuthResM <;> infer_instance
+
 end install
 
 end EtcdGrove

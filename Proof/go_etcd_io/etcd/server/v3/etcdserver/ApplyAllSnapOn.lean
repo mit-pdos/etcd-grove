@@ -49,11 +49,6 @@ theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyK
   unfold srvAuthAtLog
   rw [← He]
 
-instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF)
-    (γr : ReadNames) (A' : List EntryModel) :
-    Persistent (snapAuthResM (GF := GF) M s ast RD γr A') := by
-  cases M <;> unfold snapAuthResM <;> infer_instance
-
 /-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
 (`authSnapKitM`) and the image's committed log. -/
 theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
