@@ -1,10 +1,26 @@
 # Plan: the snapshot install with auth on (`applySnapshot` in mode `on`; spec-first)
 
-**Status (2026-11-01): Draft, in Review** (branch `snap-auth-on-draft`, worktree
-`/shared/etcd-grove-aon`, off `snap-j8a` `6683c4e982`). Scope's output below (Q1-Q4, with two
-corrections of 2026-11-01 marked **Corrected**); the Draft is `etcdserver/SnapAuthOnDraft.lean`
-(imported by nothing), section "The Draft" at the end; Q2's premise and the timing fix are the
-user's after the Review.
+**Status (2026-11-03): taken up by etcd-grove-56 (the user's decision), branch `snap-auth-on-apply`,
+worktree `/shared/etcd-grove-aon2`**, off `m2-item15-c` (stage C of item 15, merged with lean
+`d9d2e617f8`), with 83's `snap-auth-on-draft` merged in. Until then: Draft, in Review (branch
+`snap-auth-on-draft`, worktree `/shared/etcd-grove-aon`, off `snap-j8a` `6683c4e982`); Scope's output
+below (Q1-Q4, with two corrections of 2026-11-01 marked **Corrected**); the Draft is
+`etcdserver/SnapAuthOnDraft.lean` (imported by nothing).
+
+The plan from here (2026-11-03):
+1. **Rebase the Draft** onto lean as it now is: the backend stage's real names in place of the
+   Draft's stand-ins (`rbOwnIn` and its laws, the reader pool, `Close` waiting for readers:
+   `notes/backend-auth-split-plan.md`), image-cmp's image certificate by the compaction mode
+   (`imageAt` over `keyImageM`, `kvApplied`'s `crevOf`) under the auth mode's, J8b's five changes
+   ("J8b's changes the Draft depends on"), stage C's `applyAll.specSnap` (no `E.cmp = false`). The
+   Draft builds, its glue proved again.
+2. **Freeze**: the restated trusted texts (`authSchemaSrv`, `NewServer.specM true`'s premise, the
+   exported results that restate it) and the specs (`Recover.spec`, `setRevision.spec`,
+   `applySnapshot.specSnapOn`, `applyAll.specSnapOn`) to the user.
+3. **Prove**: the redefinitions applied in place ("Impact on the base"), then `specSnapOn`,
+   `applyAll.specSnapOn` (the twin of `ApplyAllSnap.lean`), `run_snap_jobOn`: `applyAll.wp_proofOn` and
+   `run.wp_proofOn` lose their `sorry`. The receiver rests on the mode-on image certificate
+   (`snapRecv_imageOn`); the sender's side (#7-on) stays a named `sorry` unless taken in this stage.
 
 ## The target
 
