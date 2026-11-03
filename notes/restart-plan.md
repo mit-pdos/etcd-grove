@@ -967,3 +967,28 @@ was not keepable; round 3:
 - **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
   `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
   record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).
+
+### R2b-1 review, round 3, and the draft's round 4 (2026-11-03)
+
+The reviewer walked every step (a `Ready` with and without a snapshot, commit-only, empty hard
+state, paged entries, a failed `Save`, the apply thread's own snapshot at every point, the stop):
+most keep `rnDurInv`, and `DurAgrees` survives each loop step. Taken:
+- **H1:** the loop could not rule out the taken case: it now holds the loop's "not failed" token.
+- **H2:** the apply thread could not get its snapshot's term: `walCommitLb` is now a prefix of the
+  handed log (a monotone list), not a length.
+- **M1:** firing *enter* inside the `Save`'s update would need a later credit: `raftState` is the
+  loop's own again (beside its view half), not the invariant's.
+- **L1–L3:** `SaveSnap` keeps its I/O premise (the apply thread panics on its error), said so;
+  the records' ghost name is the storage's WAL identity (`MinimalEtcdVersion` reopens the WAL
+  behind it); `readyGotR` drops the conjunct `deliveredLogLb` implies.
+Recorded for R2b-1's proof (docstring of `rnDurTake_stmt`): **M2**, the order is at the view's
+handed log, the stop's post at the apply side's `pre ++ A`; equating them needs every sent batch
+received (`applyc` is unbuffered; the spsc idiom's spec admits a buffer). **M3**, the apply
+thread's token travels with its half of `rnWalTok`. **L4**, `Close` and `rnWalClosed` are R2b-3's.
+
+The draft is ready for R2b-1's proof. Its stages: (1) raft's receive gives `readyGotR`
+(`readyRecv_open`, `node.readyRecv.spec`, `readyGot`'s users); (2) the pure laws; (3) the WAL
+contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs` (fresh:
+`walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
+(`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
+snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).

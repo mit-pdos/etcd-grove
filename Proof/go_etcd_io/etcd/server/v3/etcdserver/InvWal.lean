@@ -139,7 +139,10 @@ instance storContents_countable : Pos.Countable StorContents :=
       have h := Pos.encode_inj h
       simp_all)
 
-/-- (DRAFT, R2b-1) The ghost name of the WAL `w`'s records (opaque: one per WAL, as `walGName`). -/
+/-- (DRAFT, R2b-1) The ghost name of the WAL `w`'s records (opaque: one per WAL, as `walGName`;
+round 3 review L2: `storage.MinimalEtcdVersion` closes and reopens the WAL behind the storage,
+`st.w`, on a downgrade, keeping its records; the name is the storage's WAL identity, `walOf st`,
+not the field's current value). -/
 opaque walRecGName (w : Loc) : GName
 
 /-- (DRAFT, R2b-1; round 2 review F5: a ghost variable, so timeless and exclusive by proof, only its
@@ -159,8 +162,9 @@ so the records live in an invariant; `Save` holds `w.mu` across its records), `S
 the server uses (`WalSaveOk`), with any error as today: one of two updates fires, the records
 saved or, on an error, some records (the user's choice, 2026-11-02: no premise that `Save` fails
 only on I/O; round 2 review F4: "some records", not a token without them, so that the apply
-thread's snapshot can still update them while the loop is in `lg.Fatal`). `Close` and `Sync` as
-`isRNWal`'s. -/
+thread's snapshot can still update them while the loop is in `lg.Fatal`). `SaveSnap` keeps today's
+premise that it fails only on I/O (`walSaveOk`, already in `diskOk`: the apply thread panics on
+its error, round 3 review L1). `Close` and `Sync` as `isRNWal`'s. -/
 def isRNWalR (st : GoInterface) : IProp GF :=
   letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
@@ -191,8 +195,7 @@ def isRNWalR (st : GoInterface) : IProp GF :=
 /-- (DRAFT, R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
 variable, half in the invariant, half the raft loop's: the durable state, the records' hard state,
 the received snapshot whose `Save` is pending if any, the log handed at the last `Save`; round 2
-review F1/F2, as kvdurable's writer variable), the handed log's length (a monotone counter:
-`walCommitLb`), the "not failed" token (in the invariant once a `Save` failed), the stop's claim
+review F1/F2, as kvdurable's writer variable), the handed log (a monotone list: `walCommitLb`), the "not failed" token (in the invariant once a `Save` failed), the stop's claim
 and the apply thread's token (both in the invariant once the stop took the contents; round 2 review
 F4: the apply thread's `SaveSnap` excludes the taken state with its token). -/
 structure WalNames where
@@ -227,6 +230,15 @@ theorem logEntries_enc_inj [GooseExts] {l1 l2 : List LogEntry}
       simp only at h1 h2 h3; subst h1 h2 h3
       rw [ih h4]
 
+/-- A log entry is countable (raft's own instance, `InvApi.lean`'s, is not exported to the
+server). -/
+instance logEntry_countable_wal [GooseExts] : Pos.Countable LogEntry :=
+  .ofInjective (fun e => Pos.Countable.encode (e.term, e.type, e.data))
+    (by
+      rintro ⟨_, _, _⟩ ⟨_, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp_all)
+
 instance walView_countable : Pos.Countable WalView :=
   .ofInjective (fun v => Pos.Countable.encode
       ((v.S.term, v.S.vote, v.S.base, v.S.ents, v.S.commit, v.S.wcommit), v.hs,
@@ -240,11 +252,13 @@ instance walView_countable : Pos.Countable WalView :=
         cases p1 <;> cases p2 <;> simp_all
       subst h1 h2 h3 h4 h5 h6 h7 h8'; rw [logEntries_enc_inj h9])
 
-/-- (DRAFT, R2b-1) **The handed log is at least `n` long** (persistent): a lower bound of the
-invariant's counter. What the raft loop's `notifyc` hands the apply thread after a `Save` (it
-snapshots only after it, `applyAll`'s `<-apply.notifyc`): its snapshot's index, at most its
-applied index, is at most the handed log's length, so within the saved commit. -/
-def walCommitLb (ν : WalNames) (n : Nat) : IProp GF := monoNatLbOwn ν.cm n
+/-- (DRAFT, R2b-1, round 4; round 3 review H2: a prefix, not a length, so that the apply thread
+learns the handed log's terms) **The handed log extends `l`** (persistent): a lower bound of the
+invariant's monotone list. What the raft loop's `notifyc` hands the apply thread after a `Save`
+(it snapshots only after it, `applyAll`'s `<-apply.notifyc`): the log it applied is a prefix, so
+its snapshot's index is within the saved commit and its term the durable log's there
+(`DurAgrees`). -/
+def walCommitLb (ν : WalNames) (l : List LogEntry) : IProp GF := monoListLbOwn ν.cm l
 
 /-- **The durable log agrees with the committed log `l`** from its base on (round 2 review F8: the
 base included): what the apply thread's own snapshot needs of the durable state at its index
@@ -271,30 +285,41 @@ def walAsViewed (w : Loc) (v : WalView) : IProp GF :=
     ⌜StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
       DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')⌝)
 
-/-- (DRAFT, R2b-1, round 3; round 2 review F1-F5) **The durability invariant** of the raft wrapper
-of names `γ` over its WAL `w`, with ghost names `ν`: until the stop takes the contents (its claim
-and the apply thread's token), the loop's view `v` (half of it), the node's durable state
-(`raftState`, the view's; no extra later: the invariant's own suffices) and either the records as
-the view says (`walAsViewed`; the raft loop fires *enter* and the records' update in one step at
-its `Save`, the apply thread's own snapshot moves the records only), or, once a `Save` failed, some
-records and the "not failed" token (the loop is in `lg.Fatal` for good). The counter is at the
-handed log's length. -/
-def rnDurInv (γ : RNNames) (ν : WalNames) (w : Loc) : IProp GF :=
+/-- (DRAFT, R2b-1, round 4; round 2 review F1-F5, round 3 H1, M1) **The durability invariant** of
+the raft wrapper's WAL `w`, with ghost names `ν`: until the stop takes the
+contents (its claim, the apply thread's token and the loop's "not failed" token: the loop, which
+holds the latter at every access while it runs, rules the taken case out), the loop's view `v`
+(half of it), the handed log as a monotone list (`walCommitLb`'s authority), and either the
+records as the view says (`walAsViewed`; the raft loop fires *enter* and the records' update in
+one step at its `Save`, the apply thread's own snapshot moves the records only), or, once a `Save`
+failed, some records and the "not failed" token (the loop is in `lg.Fatal` for good). The node's
+durable state (`raftState`) is the loop's own, beside its view half (as `rnDrv` holds it today),
+not the invariant's: the loop fires *enter* without a later to strip, and the apply thread needs
+only the pure `StorageHolds`. -/
+def rnDurInv (ν : WalNames) (w : Loc) : IProp GF :=
   inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
-      raftState γ.node.cl γ.id v.S ∗ monoNatAuthOwn ν.cm 1 v.l.length ∗
+      monoListAuthOwn ν.cm 1 v.l ∗
       (walAsViewed w v ∨ ((∃ σ : StorContents, walRecs w σ) ∗ token ν.ok))) ∨
-    (token ν.stop ∗ token ν.app))
+    (token ν.stop ∗ token ν.app ∗ token ν.ok))
 
-/-- (DRAFT, R2b-1, round 3) **The stop takes the contents out** (R2b-2's `raftNode.stop.specStop`:
+/-- (DRAFT, R2b-1, round 4) **The stop takes the records out** (R2b-2's `raftNode.stop.specStop`:
 `onStop`, the loop idle and not failed): with the claim, the apply thread's token (which `stopped`
-brings), the loop's view at no pending snapshot (its half) and its "not failed" token, the durable
-state and the records holding it, between whose base and commit the handed log ends. -/
-def rnDurTake_stmt (γ : RNNames) (ν : WalNames) (w : Loc) : Prop :=
+brings), the loop's view at no pending snapshot (its half) and its "not failed" token, the records
+holding the view's durable state (which the loop holds itself, `raftState`), between whose base
+and commit the handed log ends.
+
+For `raftNode.stop.specStop` (round 3 review M2, open): the order is at the view's handed log
+`v.l`, the stop's post at the apply side's `pre ++ A` (`rnApplyTok γ A`); the loop's token must
+carry `v.l = srvLE γ.srv (pre ++ L)` for the log `L` it handed, and `L = A` needs that every sent
+batch was received: `applyc` is unbuffered, but the spsc idiom's spec admits a buffer, so where
+`rcv = sent` comes from is R2b-1's proof's to settle. (M3: the apply thread's token travels with
+its half of the WAL's open token, `rnWalTok`, and `rnStopBag`'s payload, so that no spec gains a
+conjunct. L4: `Close` and `rnWalClosed` are R2b-3's, from these records.) -/
+def rnDurTake_stmt (ν : WalNames) (w : Loc) : Prop :=
   ∀ (v : WalView), v.pend = none →
-    rnDurInv (GF := GF) γ ν w ∗ token ν.stop ∗ token ν.app ∗
+    rnDurInv (GF := GF) ν w ∗ token ν.stop ∗ token ν.app ∗
       ghostVar ν.view (1 : Qp).half v ∗ token ν.ok ⊢
-    |={⊤}=> ▷ raftState γ.node.cl γ.id v.S ∗
-      ∃ σ : StorContents, walRecs w σ ∗
+    |={⊤}=> ∃ σ : StorContents, walRecs w σ ∗
         ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝
 
 /-- (DRAFT, R2b-1, round 3; round 2 review F6: in place of a law over today's `readyGot`, which
@@ -303,13 +328,14 @@ cannot be proved) **What receiving a `Ready` gives, with the facts the server ne
 delivered log after the `Ready` (`deliveredLogLb`) and its hard state's committed fact
 (`committedAtTerm`), which raft's proof has, persistent, where it builds *enter* (round 2 review:
 `readyRecv_open`). The server hands the batch on `applyc` (`rnApN`: `deliveredLogLb (F ++ ce)`, the
-new term's `rnRtOk`) before its `Save` fires *enter*. -/
+new term's `rnRtOk`) before its `Save` fires *enter*. (Round 3 review L3: today's
+`isCommittedLogLb (delivered ++ ce)` dropped, a consequence of `deliveredLogLb` by
+`deliveredLogLb_committed` and `deliveredLogLb_mono`.) -/
 def readyGotR [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-    isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
       [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
     readyRest γ N id rd st ce es h L ms ss ∗
