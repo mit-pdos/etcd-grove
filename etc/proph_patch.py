@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prophecy patches: changes to a project's Go code, applied before translation, that only add
-prophecy variables (`primitive.NewProph`) and their resolutions (`ResolveBool`, `ResolveU64`).
+prophecy variables (`primitive.NewProph`), their resolutions (`ResolveBool`, `ResolveU64`) and
+read-only expressions.
 
 usage: etc/proph_patch.py [--project NAME]... [--src NAME=DIR]...
 
@@ -12,26 +13,19 @@ A proof sometimes needs a prophecy the Go code does not have (to know at a read 
 is the one returned).  Until prophecy erasure is settled in Lean (`notes/perennial-changes.md`,
 "Prophecies in Lean only"), the prophecy goes in the Go code, as a patch kept here rather than as
 a commit of the fork: `etc/proph-patches/<project>/*.patch`, unified diffs relative to the
-checkout's root (`git diff` output), applied in name order to a copy of the checkout
+project's source root (`git diff` output), applied in name order to a copy of the source
 (`.lake/goose/<project>.proph`) that etc/goose.py translates and etc/verified-code.py reads.  The
 proof is of the patched code.
 
-A patch must not change what the program does.  `primitive.NewProph()` returns an empty struct and
-`ResolveBool`/`ResolveU64` are empty methods (goose-lang/primitive, `proph.go`), so a patch that
-only adds such calls is a no-op in Go, provided that the calls' arguments can neither panic nor
-have an effect and that the new names hide no existing one.  The check (`patch_errors`) enforces
-exactly that, line by line; anything else is rejected:
-
-- a patch only adds lines (context lines are fine; no line is removed or changed), in `.go` files
-  and in `go.mod`/`go.sum` (lines of the module `github.com/goose-lang/primitive` only);
-- an added Go line is blank, a `//` comment, the import `"github.com/goose-lang/primitive"`
-  (alone, or `import "..."`), `NAME := primitive.NewProph()`, or `NAME.ResolveBool(ARG)` /
-  `NAME.ResolveU64(ARG)`, where NAME starts with `proph` and ARG is an identifier, a literal
-  (`true`, `false`, a decimal integer) or `uint64(IDENT)`;
-- every NAME a patch declares or resolves occurs nowhere in the file before the patch (so it hides
-  nothing, and a resolution only uses the patch's own prophecies), and a patch that adds the
-  import adds it to a file that does not mention `primitive` (a file that already imports it, as
-  `"github.com/goose-lang/primitive"` without a name, needs no import).
+What a patch may do, and why a proof of the patched program covers the original: the patched Go
+file, with its prophecy statements erased, must be the original file as a syntax tree, and the
+prophecy statements only create prophecies, resolve them with read-only expressions, and branch
+on read-only conditions (etc/prophcheck/main.go, which checks it; its doc comment gives the
+argument).  In short, Go's prophecy operations do nothing and a read-only expression has no
+effect but may fail, so the patched program has every behavior of the original plus possibly
+failing ones (a nil dereference in a resolution's argument, say), which its proof rules out.
+Besides the Go files, a patch may only add the `github.com/goose-lang/primitive` lines a
+`go.mod`/`go.sum` needs; it creates, deletes and renames no file.
 
 The patched code must still compile and translate (goose reports otherwise).  A resolution's
 argument is evaluated where the patch puts it: the proof sees the value at that point.
@@ -47,11 +41,8 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 PATCH_DIR = os.path.join(ROOT, "etc", "proph-patches")
 PRIM = "github.com/goose-lang/primitive"
+GO_TOOLCHAIN = "go1.27.3"  # etc/goose.py's
 
-IMPORT_RE = re.compile(r'^(import\s+)?"github\.com/goose-lang/primitive"$')
-NEW_RE = re.compile(r"^(proph\w*)\s*:=\s*primitive\.NewProph\(\)$")
-ARG = r"(?:[A-Za-z_]\w*|true|false|\d+|uint64\([A-Za-z_]\w*\))"
-RESOLVE_RE = re.compile(r"^(proph\w*)\.Resolve(?:Bool|U64)\((" + ARG + r")\)$")
 GOMOD_RE = re.compile(r"^(require\s+)?github\.com/goose-lang/primitive\s+v\S+(\s*//\s*indirect)?$")
 GOSUM_RE = re.compile(r"^github\.com/goose-lang/primitive\s+v\S+\s+h1:\S+$")
 
@@ -96,56 +87,55 @@ def parse(text):
 
 
 def patch_errors(patch_path, src):
-    """What is wrong with the patch `patch_path` for the checkout `src` (empty: nothing)."""
+    """What is wrong with the patch `patch_path` for the source `src` as a diff (empty: nothing);
+    the Go files it changes are checked after it applies (`go_errors`)."""
     errs = []
     name = os.path.relpath(patch_path, ROOT)
     files, structural = parse(open(patch_path, encoding="utf-8").read())
-    errs += [f"{name}: {l!r}: a patch only adds lines to existing files" for l in structural]
+    errs += [f"{name}: {l!r}: a patch only changes existing files" for l in structural]
     for path, (added, removed) in files.items():
-        errs += [f"{name}: {path}: removes or changes the line {l!r}" for l in removed]
         base = os.path.basename(path)
-        lines = [l.strip() for l in added]
         if base in ("go.mod", "go.sum"):
             pat = GOMOD_RE if base == "go.mod" else GOSUM_RE
-            errs += [f"{name}: {path}: adds {l!r}, not a line of {PRIM}"
-                     for l in lines if l and not pat.match(l)]
-            continue
-        if not path.endswith(".go"):
+            errs += [f"{name}: {path}: removes or changes the line {l!r}" for l in removed]
+            errs += [f"{name}: {path}: adds {l.strip()!r}, not a line of {PRIM}"
+                     for l in added if l.strip() and not pat.match(l.strip())]
+        elif not path.endswith(".go"):
             errs.append(f"{name}: {path}: not a Go file, go.mod or go.sum")
-            continue
-        try:
-            orig = open(os.path.join(src, path), encoding="utf-8").read()
-        except OSError:
+        elif not os.path.isfile(os.path.join(src, path)):
             errs.append(f"{name}: {path}: no such file in {src}")
-            continue
-        declared, used, imports = set(), set(), False
-        for l in lines:
-            if l == "" or l.startswith("//"):
-                continue
-            if IMPORT_RE.match(l):
-                imports = True
-            elif m := NEW_RE.match(l):
-                declared.add(m.group(1))
-            elif m := RESOLVE_RE.match(l):
-                used.add(m.group(1))
-            else:
-                errs.append(f"{name}: {path}: adds {l!r}, not a prophecy's creation or "
-                            "resolution (see etc/proph_patch.py)")
-        for v in sorted(declared | used):
-            if re.search(r"\b" + re.escape(v) + r"\b", orig):
-                errs.append(f"{name}: {path}: the name {v} already occurs in the file")
-        for v in sorted(used - declared):
-            errs.append(f"{name}: {path}: resolves {v}, which the patch does not create")
-        mentions = re.search(r"\bprimitive\b", orig) is not None
-        imported = re.search(r'^\s*(import\s+)?"github\.com/goose-lang/primitive"\s*$', orig,
-                             re.M) is not None
-        if imports and mentions:
-            errs.append(f"{name}: {path}: adds the import of primitive to a file that already "
-                        "mentions `primitive`")
-        if declared and not imports and not imported:
-            errs.append(f"{name}: {path}: uses primitive without importing it "
-                        f"(as \"{PRIM}\", unnamed)")
     return errs
+
+
+def go_files(project):
+    """The Go files the patches of `project` change (relative to the source root)."""
+    out = set()
+    for p in patches(project):
+        files, _ = parse(open(p, encoding="utf-8").read())
+        out |= {f for f in files if f.endswith(".go")}
+    return sorted(out)
+
+
+def prophcheck():
+    """etc/prophcheck, built into .lake/goose/bin."""
+    bindir = os.path.join(ROOT, ".lake", "goose", "bin")
+    os.makedirs(bindir, exist_ok=True)
+    exe = os.path.join(bindir, "prophcheck")
+    env = dict(os.environ, GOTOOLCHAIN=GO_TOOLCHAIN)
+    subprocess.run(["go", "build", "-o", exe, "."], cwd=os.path.join(ROOT, "etc", "prophcheck"),
+                   check=True, env=env)
+    return exe
+
+
+def go_errors(project, src, out):
+    """What is wrong with the Go files of `out` (the patched copy of `src`) the patches change."""
+    pairs = [a for f in go_files(project) for a in (os.path.join(src, f), os.path.join(out, f))]
+    if not pairs:
+        return []
+    r = subprocess.run([prophcheck()] + pairs, capture_output=True, text=True)
+    if r.returncode not in (0, 1):
+        return [f"prophcheck failed: {r.stderr.strip()}"]
+    return [l for l in r.stdout.splitlines() if l]
 
 
 def patched_copy(project, src, dest, quiet=False):
@@ -181,6 +171,9 @@ def patched_copy(project, src, dest, quiet=False):
         if r.returncode != 0:
             sys.exit(f"proph_patch: {os.path.relpath(p, ROOT)} does not apply to {project}: "
                      f"{r.stderr.strip()}")
+    errs = go_errors(project, src, out)
+    if errs:
+        sys.exit("proph_patch: " + "\nproph_patch: ".join(errs))
     return out
 
 

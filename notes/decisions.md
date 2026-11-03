@@ -27230,11 +27230,19 @@ be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
 A proof that needs a prophecy the Go code does not have (a read whose answer may be the one
 returned: `prophkv`'s `GetAny`, the etcd3 store's `Get`) gets it from a **prophecy patch**,
 `etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the project's
-source before translation (`etc/proph_patch.py`). A patch may only add `primitive.NewProph()`
-declarations and `ResolveBool`/`ResolveU64` calls (no-ops in Go: `goose-lang/primitive`'s
-`proph.go`) with identifier or literal arguments and fresh names, and the `primitive` import; the
-checker enforces this line by line, so a patch cannot change the program's behavior. The proofs
-are of the patched code.
+source before translation (`etc/proph_patch.py`). A patch may only add prophecy statements:
+`primitive.NewProph()` declarations with fresh names, `ResolveBool`/`ResolveU64` calls (no-ops in
+Go: `goose-lang/primitive`'s `proph.go`) on read-only expressions, and `if`s on read-only
+conditions holding only such statements, plus the `primitive` import. `etc/prophcheck` checks
+this on syntax trees: the patched file with its prophecy statements erased must be the original.
+The proofs are of the patched code.
+
+Read-only expressions in general (field reads, dereferences, indexing, comparisons, arithmetic,
+`len`, conversions; no calls, channel operations or assignments) rather than only those that
+cannot fail (the user, 2026-11-03): a read-only expression has no effect but may fail (a nil
+dereference, a race), so the patched program has every behavior of the original plus possibly
+failing ones, and a proof that the patched program does not fail rules those out. This admits
+the fork's `Client.Get` prophecy as written (nil-guarded field reads).
 
 Why: proving prophecy erasure in Lean was too much machinery for now. Perennial branch
 `proph-erasure` (not landed) has two proved theorems: `goose_adequacy_withProph` (a prophecy of
