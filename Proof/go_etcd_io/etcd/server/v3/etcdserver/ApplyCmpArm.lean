@@ -440,15 +440,30 @@ theorem lessorErrIs_notNoSpace (err : GoInterface) :
       iexact VTL
     iexists e; iframe He; ipureintro; exact heq
 
+/-- **A grant dispatched at the start's chain** (with `v3`; the lease-grant plan's amendment (F1):
+`dispatchStep`'s grant arm is the chain's): applied, or the backend's rejection. -/
+theorem dispatchStep_start_grant (rq : apply.IRRModel) (hg : apply.grantKindOk rq)
+    (log : mvcc.Log) (o : apply.Outcome)
+    (h : apply.dispatchStep (apply.alarmChain false false false) rq true log o) :
+    (∃ l ns, o = .applied l ns) ∨ o = .rejected .backend := by
+  obtain ⟨hk, hna, -, -⟩ := hg
+  unfold apply.dispatchStep at h
+  rw [if_neg (by simp [hk, apply.preV3Kind]), if_pos (Or.inr hk)] at h
+  simp only [apply.alarmChain, apply.baseChain, apply.chainStep, apply.authChecks, hk, hna,
+    Bool.false_eq_true, ↓reduceIte, _root_.or_self, apply.backendStep] at h
+  rcases h with h | h
+  · exact Or.inl ⟨_, _, h⟩
+  · exact Or.inr h
+
 /-- **`apply.Apply`'s result for a grant** (given back; the lease-grant plan's amendment (E) and
-the tie of `grantRes`): `nil`, or its `Err` is not `ErrNoSpace`'s, when the dispatched outcome is
-applied (then `Err` is `nil`) or the backend's rejection (then the lessor's error). A separate
-lemma from `applyResultIs_notNoSpace_M`, as `applyResultIs` holds no grant fact: the answer is
-`Apply`'s `grantResA`. The outcome premise `ho` is the caller's. -/
+the tie of `grantRes`): `nil`, or its `Err` is not `ErrNoSpace`'s, at the start's chain: the
+dispatched outcome is applied (then `Err` is `nil`) or the backend's rejection (then the lessor's
+error), by `dispatchStep_start_grant` (amendment (F1)). A separate lemma from
+`applyResultIs_notNoSpace_M`, as `applyResultIs` holds no grant fact: the answer is `Apply`'s
+`grantResA`. -/
 theorem applyResultIs_notNoSpace_grant (E : apply.AEnv GF) (rq : apply.IRRModel)
     (x x' : apply.ApplyKV) (ar : Loc) (out : apply.ApplyOut) (hg : apply.grantKindOk rq)
-    (ho : ∀ o sk, out = .dispatched o sk →
-      (∃ l ns, o = .applied l ns) ∨ o = .rejected .backend)
+    (hch : x.chain = apply.alarmChain false false false)
     (hs : apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
       go_etcd_io.etcd.server.v3.lease.leaseInit -∗
@@ -457,13 +472,14 @@ theorem applyResultIs_notNoSpace_grant (E : apply.AEnv GF) (rq : apply.IRRModel)
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) := by
+  have hg' := hg
   obtain ⟨hk, hna, hns, -⟩ := hg
   iintro #Hv #Hli Hg H
   cases out with
   | skipped => exact absurd hs.1 (by rw [hns]; decide)
   | rejected => exact absurd hs.1 (by rw [hna]; decide)
   | dispatched o skip =>
-    have hoo := ho o skip rfl
+    have hoo := dispatchStep_start_grant rq hg' x.log o (hch ▸ hs.2.1)
     simp only [apply.applyResultIs, apply.dispatchResult, _root_.or_true, ↓reduceIte]
     icases H with ⟨%hnn, %v, #Hvv, Hans, #HeI⟩
     simp only [apply.grantResA]

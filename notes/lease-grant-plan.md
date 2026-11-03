@@ -1482,3 +1482,14 @@ receive; Go's `Recover` rebuilds the lessor from exactly those records, so its l
 table again and stays monotone (only `Revoke`/`Recover` remove, and `Recover` reloads the same set).
 It is a `sorry` (`srvGrantOpen_open`) because `Recover.spec` takes a revocable lessor, not because it
 is false. Restoring a snapshot with leases (a `Recover` spec for a monotone lessor) is its own stage.
+
+**Commit 4f: (F1), `dispatchStep`'s grant arm is the chain's** (2026-11-03, a full build with the
+checks). `apply.dispatchStep` (`InvUber.lean`): `else if storeKind (dispatchKind rq) = true ∨
+dispatchKind rq = .leaseGrant then chainStep backendStep c rq log o` (`dispatchLog`, `storeKind`
+unchanged). `dispatch`'s grant arm proves it by the triple's `Hst.1` (where it proved `o.logAfter
+log = log`). In `ApplyCmpArm.lean`: `dispatchStep_start_grant` (at the start's chain a grant
+dispatched with `v3` is applied or the backend's rejection), and `applyResultIs_notNoSpace_grant`
+loses `ho` for the chain premise `hch : x.chain = alarmChain false false false` (as
+`applyResultIs_notNoSpace_M`'s). Mechanical: two proofs that unfolded `dispatchStep` at a covered or
+admin request (`dispatchStep_plain` in `KVModel.lean`, `applyStep_admin_keep` in `ApplyTieOn.lean`)
+refute the new disjunct (the kind is not a grant). No frozen text changes.

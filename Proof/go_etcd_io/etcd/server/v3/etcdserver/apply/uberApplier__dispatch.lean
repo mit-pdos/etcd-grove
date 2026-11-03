@@ -616,9 +616,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
-      · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
-          Bool.false_eq_true, ↓reduceIte]
-        exact hlog
+      · rw [apply.dispatchStep, if_neg (by simp [hk, apply.preV3Kind]), if_pos (Or.inr hk)]
+        exact Hst.1
       · simp [apply.kvFloorOk, apply.isFloorKind, hk]
     isplitl []
     · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))

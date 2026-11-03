@@ -69,7 +69,8 @@ def dispatchOk (on : Bool) (rq : IRRModel) : Prop :=
 /-- **What `dispatch(rq, v3)` does to the KV** through the chain `c` at the log `log`. -/
 def dispatchStep (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (o : Outcome) : Prop :=
   if preV3Kind (dispatchKind rq) = true ∨ v3 = false then o = .applied log false
-  else if storeKind (dispatchKind rq) = true then chainStep backendStep c rq log o
+  else if storeKind (dispatchKind rq) = true ∨ dispatchKind rq = .leaseGrant then
+    chainStep backendStep c rq log o
   else o.logAfter log = log
 
 /-- The request kinds whose triples take a floor (the vertical slice's unit V2): the KV writes. -/
