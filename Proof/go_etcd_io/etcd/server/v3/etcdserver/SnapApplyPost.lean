@@ -67,7 +67,7 @@ theorem srvSnapApplied_of_walk
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
@@ -154,7 +154,11 @@ theorem srvSnapApplied_of_walk
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
     cl _ memI A' rfl hA' $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
-  · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb
+  · iframe Hrb Hcm Halb Haub Hclb Hleb
+    -- (P5) the mode off: the rest part of every non-cluster bucket is `restSet`'s
+    iapply (backend.rbPart_set (GF := GF) d'.γB (fun n => ¬ membership.clusterBkts n) _ _
+      (fun n => by rw [hoff]; exact Iff.rfl)).1
+    iexact Hrn
   -- step 7: the rest, framed
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso

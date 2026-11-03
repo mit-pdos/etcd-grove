@@ -495,8 +495,8 @@ theorem rwLens_authBeOn (γB : backend.BNames) (al stl lp cl bel : Loc) :
 
 /-- **The server's rest resource lends the store's half on its backend** (E3n): of
 `srvRestOwnH`'s objects (`srvObjsOn`), as the server builds `E.RO`. -/
-theorem roLends_authBeOn (γB : backend.BNames) (c al stl lp cl bel : Loc) :
-    ⊢ roLendsAuthBe (GF := GF) (srvRestOwnH γB c (srvObjsOn al stl lp cl bel)) stl bel := by
+theorem roLends_authBeOn (M : auth.AuthMode) (γB : backend.BNames) (c al stl lp cl bel : Loc) :
+    ⊢ roLendsAuthBe (GF := GF) (srvRestOwnH M γB c (srvObjsOn al stl lp cl bel)) stl bel := by
   iunfold roLendsAuthBe
   iintro !> %r HRO
   iunfold srvRestOwnH at HRO

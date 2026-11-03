@@ -521,7 +521,7 @@ interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in
 (`isWatchableStore_frozen`) for `Restore`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
-    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
+    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH E.authMode γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
 

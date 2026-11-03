@@ -65,7 +65,8 @@ theorem applySnapshot_walk
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hoff : E.authMode = auth.AuthMode.off)
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
@@ -363,6 +364,9 @@ theorem applySnapshot_walk
   icases HRS with ⟨HoRO, HoObj⟩
   iunfold srvRestOwn at HoRO
   icases HoRO with ⟨HoRC, HoRN, HoMem, -⟩
+  -- (P5) the mode off: the rest part is of every non-cluster bucket
+  ihave HoRN := (backend.rbPart_set (GF := GF) d.γB _ (fun n => ¬ membership.clusterBkts n) _
+    (fun n => by rw [hoff]; exact Iff.rfl)).1 $$ HoRN
   -- (2026-11-02, the backend-auth-split stage) the old backend's buckets, whole again
   ihave HoRB := (backend.rbOwn_split (GF := GF) d.γB membership.clusterBkts _).2 $$ [HoRC HoRN]
   · isplitl [HoRC]

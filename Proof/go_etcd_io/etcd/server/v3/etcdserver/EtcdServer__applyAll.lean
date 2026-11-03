@@ -378,7 +378,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+                (mergedObsM E.authMode γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
@@ -413,7 +413,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave Hmi : |={⊤}=> kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
             · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0)
-              iframe Hsrv Hka Hrcx; ipureintro; exact HQd
+              iframe Hsrv Hka Hrcx; ipureintro
+              exact mergedObs_of_M ((auth.AuthMode.isOn_false_iff _).1 Hoff) HQd
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -774,7 +775,7 @@ theorem EtcdServer.applyAll.wp_proofOn
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+                (mergedObsM E.authMode γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn

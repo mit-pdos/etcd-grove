@@ -106,6 +106,38 @@ backend-auth-split stage). -/
 def auth.authBkts [GooseExts] (n : GoString) : Prop :=
   n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
 
+/-- **The buckets of the rest resource's part in the mode `M`** (the auth-on snapshot plan's Prove
+step, P5, 2026-11-03; the Freeze's "`srvRestOwn` mode-indexed"): the tracked buckets not the
+cluster's; in `on` also not the auth store's, whose write authority and contents are the auth
+realization's (the history's last state, `authHistTie`), not the rest model's (which keeps them at
+`authBoot`). -/
+def restSet [GooseExts] (M : auth.AuthMode) (n : GoString) : Prop :=
+  match M with
+  | .on _ => ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
+  | _ => ¬ membership.clusterBkts n
+
+/-- **The apply thread's share of a server backend's open token, by the mode** (the auth-on
+snapshot plan's decision 5; review R1's F1, R2's N1; P5, 2026-11-03): a quarter in `on`, the auth
+realization keeping the other quarter of the constructors' half (`authOpenQ`); the half otherwise. -/
+def srvOpenQ (M : auth.AuthMode) : Qp :=
+  match M with
+  | .on _ => (1 : Qp).half.half
+  | _ => (1 : Qp).half
+
+theorem srvOpenQ_off : srvOpenQ .off = (1 : Qp).half := rfl
+
+theorem restSet_off [GooseExts] : restSet .off = fun n => ¬ membership.clusterBkts n := rfl
+
+theorem restSet_ncl [GooseExts] (M : auth.AuthMode) (n : GoString) (h : restSet M n) :
+    ¬ membership.clusterBkts n := by
+  cases M <;> simp only [restSet] at h <;> first | exact h | exact h.1
+
+/-- The rest part's buckets include every tracked bucket neither the cluster's nor the auth
+store's (the lessor's, the alarm store's, ...). -/
+theorem restSet_of [GooseExts] (M : auth.AuthMode) (n : GoString) (hc : ¬ membership.clusterBkts n)
+    (ha : ¬ auth.authBkts n) : restSet M n := by
+  cases M <;> simp only [restSet] <;> first | exact hc | exact ⟨hc, ha⟩
+
 /-- **The membership buckets of `bk` are as the apply thread writes them** (defined, 2026-11-01:
 the backend-auth-split stage's review, in place of an opaque decoding premise): every entry of
 `members` is a member's key and encoding (`memberKey id ↦ memberEnc mm`: `BackendMemberKey`'s
@@ -462,10 +494,12 @@ under `BackendMemberKey(m.ID)`, the model's `restUpdateAttrs` under `memberKey a
 agree because the member under `a.memberID` has that id; true of Go: `c.members` is keyed by each
 member's `ID`), and **the rest buckets present** (`restPresent r.bk`, 2026-11-02, the cluster-rows
 stage: the rows' `MustSave…`s are fatal on a missing bucket; every rest state of the model has
-them, `restModel_present`). Until 2026-11-01 the whole writer's half `rbOwn γB r.bk`. -/
-def srvRestOwn (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
+them, `restModel_present`). Until 2026-11-01 the whole writer's half `rbOwn γB r.bk`. Indexed by
+the auth mode `M` since the auth-on snapshot plan's P5 (2026-11-03): the part is over `restSet M`,
+which in `on` leaves out the auth store's buckets. -/
+def srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
   iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
-    backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMem c r.mem ∗
+    backend.rbPart γB (restSet M) r.bk ∗ membership.clusterMem c r.mem ∗
     ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
 
 
@@ -485,8 +519,9 @@ backend (the alarm store's `alarmBeOn`, the auth store's `authBeOn`): the apply 
 with the rest buckets; the objects' writers' contracts take them in their write right
 (`srvRestRWH`), so that each names the backend the object is on, and their `Recover`s replace
 them. -/
-def srvRestOwnH (γB : backend.BNames) (c : Loc) (H : IProp GF) (r : apply.RestM) : IProp GF :=
-  iprop(srvRestOwn γB c r ∗ H)
+def srvRestOwnH (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (H : IProp GF)
+    (r : apply.RestM) : IProp GF :=
+  iprop(srvRestOwn M γB c r ∗ H)
 
 /-- **The server's `AEnv.RW` with its objects' backend parts `H`** (S7c). -/
 def srvRestRWH (γB : backend.BNames) (H : IProp GF) : IProp GF := iprop(srvRestRW γB ∗ H)

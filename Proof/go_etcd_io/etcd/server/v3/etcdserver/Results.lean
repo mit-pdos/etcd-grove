@@ -1432,12 +1432,14 @@ theorem auth_admin_permitted_latest :
 
 /-- **The real store's checks at the latest state, as the apply package states them** (the auth
 plan's E2s, `apply/AuthLatest.lean`): `isAuthStoreL` of the store's interface, with the reader
-resource `authRd` and the apply thread's `latestRes`. -/
-theorem apply_auth_store_latest (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+resource `authRd` and the apply thread's `latestResC` (with its write token on the backend names
+`γc`; the auth-on snapshot plan's Prove step, 2026-11-03, the user's approval). -/
+theorem apply_auth_store_latest (st : Loc) (R : IProp GF) (M : auth.AuthMode) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      EtcdGrove.apply.isAuthStoreL (auth.authIface st) (auth.authRd st R M) M (auth.latestRes st M) :=
+      EtcdGrove.apply.isAuthStoreL (auth.authIface st) (auth.authRd st R M) M
+        (auth.latestResC st M γc) :=
   EtcdGrove.apply.isAuthStoreL_of_authInv auth_put_permitted_latest auth_range_permitted_latest
-    auth_delete_range_permitted_latest auth_admin_permitted_latest st R M
+    auth_delete_range_permitted_latest auth_admin_permitted_latest st R M γc
 
 /-- **The auth applier's KV methods on the apply thread** (the auth plan's E2s,
 `apply/AuthApplyLatest*.lean`): the outcome decided at the latest state, a rejection with a checked
@@ -1657,29 +1659,30 @@ theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv G
 
 /-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
 `UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
-invariant), at the family `auth.latestRes stl` of the store the server's `authStore` field holds;
-the lessor finding no lease stays a named premise. -/
+invariant), at the family `auth.latestResC stl (.on γa) γc` of the store the server's `authStore`
+field holds (at any backend's names `γc`); the lessor finding no lease stays a named premise. -/
 theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvLessorNil s ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) :=
+        EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) :=
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
-    s ua E γa hM
+    s ua E γa hM γc
 
 /-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
 plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
-thread's auth row, at the admin steps' resource `adminW` (blocker 1's row). -/
+thread's auth row, at the admin steps' resource `adminWC` (blocker 1's row; at the current
+backend's names `γc` since the auth-on snapshot plan's Prove step). -/
 theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames),
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa E.P E.f γc)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-          (auth.latestRes stl (.on γa)) :=
+          (auth.latestResC stl (.on γa) γc) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
     apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
     (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
@@ -1967,13 +1970,16 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
 `auth/NewAuthStoreOn.lean`): over the store's backend contracts and the token provider's, the
 store's invariant, the admin side's write resource, the provider's share, the authority (the
-first revision committed if the backend's state had none) and the readers' slots. -/
+first revision committed if the backend's state had none) and the readers' slots. (The auth-on
+snapshot plan's Prove step, 2026-11-03, the user's approval: at the backend's names `γc`, with the
+lock's half of the current backend and its whole currency.) -/
 theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γa : auth.AuthNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
+    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
     (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) γc ∗
+        auth.authBkCur γa (1 : Qp).half γc ∗ auth.authCur γc 1 ∗
         auth.authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
@@ -1992,7 +1998,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
   iintro %Φ Hpre HΦ
   iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
-    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa γc R P f T A Pre Q Post hs stl hlast
     hfit hempty) $$ Hpre
   iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, Hr⟩
   iapply HΦ

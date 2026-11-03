@@ -171,22 +171,24 @@ part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until
 client half, given back at any buckets.) -/
 theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
-    (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
-    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
+    (hlp : mvcc.leaseParams d.P) (M : auth.AuthMode) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) M d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
           ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
           mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
-          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+          srvRestOwnH M d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
-  have hset : ∀ n, (¬ membership.clusterBkts n) ↔
-      (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
+  have hls : restSet M mvcc.leaseName := restSet_of M _ hlc (by
+    simp [auth.authBkts, mvcc.leaseName, go_etcd_io.etcd.server.v3.storage.schema.leaseName])
+  have hset : ∀ n, restSet M n ↔
+      (n = mvcc.leaseName ∨ (restSet M n ∧ n ≠ mvcc.leaseName)) := by
     intro n
     by_cases h : n = mvcc.leaseName
-    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hlc⟩
+    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hls⟩
     · exact ⟨fun hc => Or.inr ⟨hc, h⟩, fun hx => hx.elim (fun e => absurd e h) And.left⟩
   have hd : ∀ n, n = mvcc.leaseName →
-      (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
+      (restSet M n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
   iintro !> %rs Hro
   iunfold srvRestOwnH at Hro
   iunfold srvObjsOn at Hro
@@ -195,7 +197,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   icases Hro with ⟨Hcl, Hnc, Hmem, %Hmi⟩
   ihave Hnc := (backend.rbPart_set (GF := GF) d.γB _ _ rs.bk hset).1 $$ Hnc
   icases (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
-    (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
+    (fun n => restSet M n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
   iexists d
   unfold mvcc.storeRb
   rw [hk]
@@ -216,7 +218,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   isplitl [Hl Hnc]
   · iapply (backend.rbPart_set (GF := GF) d.γB _ _ bk hset).2
     iapply (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
-      (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
+      (fun n => restSet M n ∧ n ≠ mvcc.leaseName) bk hd).2
     iframe Hl
     iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
   · ipureintro; exact ⟨Hmi.1, restPresent_lens _ _ hbk hl Hmi.2⟩
@@ -241,13 +243,15 @@ the rows' premises, the version not above the server's and `UpdateAttributes`' m
 `SetVersion`'s callback fixed with its package initializations; the rest resource and the write
 right hold the rest buckets present, and the members' client URLs are read-only. Until then the
 rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
-`isCluster` says.) -/
+`isCluster` says.) (The auth-on snapshot plan's P5, 2026-11-03, the user's approval: at every auth
+mode `M`, the rest resource's part `srvRestOwn M` mode-indexed; true of Go: the rows write only the
+cluster's buckets and in-memory members, never the part's buckets.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
+  iprop(□ ∀ (M : auth.AuthMode) (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
     ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
+    roLens RO (fun r => iprop(srvRestOwn M d.γB c r ∗ clusterBeOn c d.be)) -∗
     rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
     apply.isCluster c γ' Pk #f RO RW)
 
@@ -393,7 +397,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       -- store's `Recover` takes (`bootOk`'s)
       d.P.has mvcc.alarmBI ∧
       E.γ.watchQ = true ∧
-      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
+      E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
@@ -454,7 +458,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
     (γt : GName) (d d' : mvcc.KBReal) (al ast lp cl : Loc)
     (hb : beSucc γ E γ' E') (hkb : E.γ.kb = some d) (hkb' : E'.γ.kb = some d')
     (hcm' : d'.cm = E.cmp) (hP : d'.P = d.P)
-    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
+    (hRO : E'.RO = srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
     srvSnapRO s ci E γr γt ∗ srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ⊢
     srvSnapRO s ci E' γr γt := by
@@ -525,8 +529,8 @@ theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.
 
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
-the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
-token (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
+the new one (`srvSnapApplied`): the backend's stop channels and the apply thread's share of its open
+token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, P5) (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
 2026-11-01, J8a-5, also its `Get` under a resource `Tal`, `zal`: `specSnap` now gets `Get` with no
 alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
 `store.Restore`) and the backend file's directory entry at the configuration's data directory
@@ -534,7 +538,7 @@ alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.γ.kb = some d⌝ ∗
-    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
+    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))

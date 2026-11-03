@@ -376,7 +376,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         · iexact Hrb
         isplitl [Hnc]
         · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
-            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
         ipureintro
@@ -452,7 +452,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         · iexact Hrb
         isplitl [Hnc]
         · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
-            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
         ipureintro

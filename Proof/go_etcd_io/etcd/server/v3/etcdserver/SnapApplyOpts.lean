@@ -123,7 +123,7 @@ theorem snap_backendOptsOk
   · ihave #Hhok : mvcc.hookOk (E.γ.withPhys p') _ #g $$ []
     · rw [← hγw]
       iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
-    iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv al ast lp cl E.s d'
+    iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv _ al ast lp cl E.s d'
       (E.γ.withPhys p') hk _ g hgnn (by simp only [mvcc.StoreNames.withPhys_watchQ]; exact hwq) hlp
     iframe Hpkg HleA Hlcfg Hllk HB Hhook Hhok
     rw [mvcc.StoreNames.withPhys_leases]; iexact Hlinv
@@ -134,7 +134,7 @@ theorem snap_backendOptsOk
   · iapply snap_isAlarmStore al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
     iframe HalA HB Hhook
   isplitr
-  · iapply snap_isCluster al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
+  · iapply snap_isCluster _ al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
     iframe HclA HB Hhook Hvcn
   isplitr
   · iapply snap_isRaftStatus hMID hLead hTerm s γ ci TM E ρ γr $$ [$Hpkg $HS]

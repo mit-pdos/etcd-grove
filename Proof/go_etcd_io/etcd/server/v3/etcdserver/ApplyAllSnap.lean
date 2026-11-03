@@ -142,6 +142,10 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- the backend's own resources
   iunfold srvSnapRes at Hsres
   icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath⟩
+  -- (P5) the mode off: the apply thread's share of the open token is the half
+  have hq : srvOpenQ E.authMode = (1 : Qp).half := by rw [hoff]; rfl
+  ihave Hbo : backend.bOpen (GF := GF) d0.γB (1 : Qp).half $$ [Hbo]
+  · rw [← hq]; iexact Hbo
   rw [hkb] at Hkb0
   cases Hkb0
   icombine Half Hal0 gives %Hale
@@ -195,6 +199,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
     Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,
     ⟨%kv', #Hkvf', #Hkvi'⟩⟩
   obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, hxcr, hxch, hL⟩ := Hsa1
+  have hoff' : E'.authMode = auth.AuthMode.off := by
+    obtain ⟨-, _, _, _, _, _, _, hE⟩ := hbs; rw [hE]; exact hoff
   -- `s.applyEntries(ep, apply)`: no entries
   wp_apply hAE s ep ap es $$ []
   · iframe #
@@ -278,6 +284,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (hcm'.trans hcm) hP'
     hRO' $$ [Hro Half Hauf Hlpf Hclf]
   · iframe Hro Half Hauf Hlpf Hclf
+  ihave Hbo : backend.bOpen (GF := GF) d'.γB (srvOpenQ E'.authMode) $$ [Hbo]
+  · rw [hoff', srvOpenQ_off]; iexact Hbo
   ihave Hso' : srvSnapOwn s ci E' γr sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
   · iunfold srvSnapOwn
     iexists γt, uint.nat sv.Metadata'.Index'
@@ -454,7 +462,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' (mergedObs γr E'.cmp sv.Metadata'.Index' A' x'.log x'.crev))
+                RS RS' (mergedObsM E'.authMode γr E'.cmp sv.Metadata'.Index' A' x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
@@ -484,7 +492,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
             -- (S2's `merged_image`) the image's certificate
             imod merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ ⟨hc0, hlog0⟩
               $$ [Hka] with ⟨Hka, #Himg'⟩
-            · iframe Hsrv1 Hka Hrcx; ipureintro; exact HQd
+            · iframe Hsrv1 Hka Hrcx; ipureintro; exact mergedObs_of_M hoff' HQd
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                 sv.Metadata'.Term' Dm Hty
               $$ [Hml Hsm' Hrs Himg'] with Hbun

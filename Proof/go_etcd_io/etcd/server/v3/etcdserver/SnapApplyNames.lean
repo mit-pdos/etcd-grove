@@ -70,7 +70,7 @@ def snapE (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (al ast lp cl be : Loc) :
     apply.AEnv GF :=
   E.onBe p' (batchLockInv γ' TM') #g (srvCiC γ' ci)
-    (srvRestOwnH γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
+    (srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
 
 section snapE
 variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
@@ -90,7 +90,7 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_FS : (snapE E γ' TM' ci p' g γB al ast lp cl be).FS = E.FS := rfl
 @[simp] theorem snapE_ciC : (snapE E γ' TM' ci p' g γB al ast lp cl be).ciC = srvCiC γ' ci := rfl
 @[simp] theorem snapE_RO : (snapE E γ' TM' ci p' g γB al ast lp cl be).RO =
-    srvRestOwnH γB cl (srvObjsOn al ast lp cl be) := rfl
+    srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_RW : (snapE E γ' TM' ci p' g γB al ast lp cl be).RW =
     srvRestRWH γB (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_γbe : (snapE E γ' TM' ci p' g γB al ast lp cl be).γbe = E.γbe := rfl

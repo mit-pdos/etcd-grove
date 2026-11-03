@@ -41,7 +41,7 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
-      backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n) bk ∗ membership.clusterMem cl memI ∗
+      backend.rbPart d'.γB (restSet E.authMode) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
   subst hγB

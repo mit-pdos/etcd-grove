@@ -690,6 +690,94 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn Hsucc $Hbk $HpubQ]
   unfold auth.authSucc; iexact Hsucc
 
+/-! ### The kit's resources at `NewServer` (the Prove step's P5), by the mode -/
+
+/-- **The buckets the constructing thread holds idle after the store's construction, by the
+mode**: in `on γa` all but the auth ones (which the realization keeps), in the others all. -/
+def kitSet (M : auth.AuthMode) (n : GoString) : Prop :=
+  match M with
+  | .on _ => ¬ authBkts n
+  | _ => True
+
+theorem kitSet_of (M : auth.AuthMode) (n : GoString) (h : ¬ authBkts n) : kitSet M n := by
+  cases M <;> simp only [kitSet] <;> first | trivial | exact h
+
+/-- **The kit's pre from the constructors' half of the open token and the auth share of the
+reader slots**: in `on` a quarter of the token and the slots to the kit, the apply thread keeping
+`srvOpenQ` (a quarter); in the others the half kept, the slots dropped. -/
+theorem authKitIn_take (M : auth.AuthMode) (d : mvcc.KBReal) :
+    backend.bOpen (GF := GF) d.γB (1 : Qp).half ∗ authRdSlots d ⊢
+      authKitIn M d ∗ backend.bOpen d.γB (srvOpenQ M) := by
+  cases M with
+  | on γa =>
+    simp only [authKitIn, srvOpenQ, authOpenQ]
+    iintro ⟨Ho, Hs⟩
+    icases (backend.bOpen_add (GF := GF) d.γB (1 : Qp).half.half (1 : Qp).half.half).1 $$ [Ho]
+      with ⟨Ho1, Ho2⟩
+    · rw [Qp.half_add_half]; iexact Ho
+    iframe Ho1 Hs Ho2
+  | _ =>
+    simp only [authKitIn, srvOpenQ]
+    iintro ⟨Ho, -⟩
+    iframe Ho
+
+/-- **The idle buckets after the store's construction, by the mode**: the other buckets the
+constructing thread kept, with what the kit gives back (`authKitOut`), at the buckets after
+`NewAuthStore` (`authBucketsAfter`, which changes only the auth ones). -/
+theorem authKitOut_join (M : auth.AuthMode) (d : mvcc.KBReal) (r : GMap GoString backend.BktData) :
+    backend.rbOwnIn (GF := GF) d.γB (fun n => ¬ authBkts n) r ∗ authKitOut M d r ⊢
+      backend.rbOwnIn d.γB (kitSet M) (authBucketsAfter r) := by
+  have hag : ∀ n, ¬ authBkts n → r.lookup n = (authBucketsAfter r).lookup n := by
+    intro n hn
+    simp only [authBkts, auth.authBkts, not_or] at hn
+    simp [authBucketsAfter]
+    rw [if_neg (Ne.symm hn.2.2), if_neg (Ne.symm hn.2.1), if_neg (Ne.symm hn.1)]
+  iintro ⟨Hn, Hk⟩
+  ihave Hn := (backend.rbOwnIn_congr (GF := GF) d.γB _ r (authBucketsAfter r) hag).1 $$ Hn
+  cases M with
+  | on γa =>
+    iapply (backend.rbOwnIn_set (GF := GF) d.γB (fun n => ¬ authBkts n) (kitSet (.on γa)) _
+      (fun n => Iff.rfl)).1
+    iexact Hn
+  | off =>
+    simp only [authKitOut]
+    ihave H := (backend.rbOwnIn_split_compl (GF := GF) d.γB authBkts _).2 $$ [Hk Hn]
+    · iframe Hk Hn
+    iapply (backend.rbOwnIn_set (GF := GF) d.γB (fun _ => True) (kitSet .off) _
+      (fun n => Iff.rfl)).1
+    iexact H
+  | any =>
+    simp only [authKitOut]
+    ihave H := (backend.rbOwnIn_split_compl (GF := GF) d.γB authBkts _).2 $$ [Hk Hn]
+    · iframe Hk Hn
+    iapply (backend.rbOwnIn_set (GF := GF) d.γB (fun _ => True) (kitSet .any) _
+      (fun n => Iff.rfl)).1
+    iexact H
+
+/-- **The idle buckets after the constructors, as the rest resource holds them**: the cluster's
+idle, the others of the mode's rest set (`restSet`) a part. -/
+theorem rbOwnIn_kit_rest (M : auth.AuthMode) (γB : backend.BNames) (r : GMap GoString backend.BktData) :
+    backend.rbOwnIn (GF := GF) γB (kitSet M) r ⊢
+      backend.rbOwnIn γB membership.clusterBkts r ∗ backend.rbPart γB (restSet M) r := by
+  have hcl : ∀ n, membership.clusterBkts n → ¬ authBkts n := by
+    intro n hc ha
+    simp only [membership.clusterBkts, membership.memberBkts] at hc
+    simp only [authBkts, auth.authBkts] at ha
+    rcases hc with (h | h) | h <;> rcases ha with h' | h' | h' <;> rw [h] at h' <;> exact absurd h' (by decide)
+  have hset : ∀ n, kitSet M n ↔ (membership.clusterBkts n ∨ restSet M n) := by
+    intro n
+    cases M <;> simp only [kitSet, restSet]
+    all_goals first
+      | exact ⟨fun _ => Classical.em _ |>.elim Or.inl Or.inr, fun _ => trivial⟩
+      | exact ⟨fun h => (Classical.em (membership.clusterBkts n)).elim Or.inl
+          (fun hc => Or.inr ⟨hc, h⟩), fun h => h.elim (hcl n) And.right⟩
+  iintro H
+  ihave H := (backend.rbOwnIn_set (GF := GF) γB _ _ r hset).1 $$ H
+  icases (backend.rbOwnIn_split (GF := GF) γB _ _ r (fun n h1 h2 => restSet_ncl M n h2 h1)).1 $$ H
+    with ⟨Hc, Hr⟩
+  iframe Hc
+  iapply backend.rbOwnIn_part $$ Hr
+
 end proof
 
 end EtcdGrove
