@@ -925,3 +925,7 @@ On the draft:
 **Decision (the user, 2026-11-02): a failed `Save` leaves the records unknown** (`walFailed`, a
 case of the durability invariant), not a premise that `Save` fails only on I/O: the loop then calls
 `lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.
+
+**The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
+`examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
+`newestSnapshotEntry`.
