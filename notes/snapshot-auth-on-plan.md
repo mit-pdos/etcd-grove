@@ -22,6 +22,20 @@ The plan from here (2026-11-03):
    `run.wp_proofOn` lose their `sorry`. The receiver rests on the mode-on image certificate
    (`snapRecv_imageOn`); the sender's side (#7-on) stays a named `sorry` unless taken in this stage.
 
+What the Draft's author (etcd-grove-83, 2026-11-03) flagged for the rebase:
+- Stale: the Draft predates J8b and the backend split (`a43af91055`): `rtHeldF` now carries
+  `rtx ≠ null`; the per-bucket `rbOwnIn`/`rbLock` and the reader pool; J8b's `srvClusterOk`/`srvEnvOk`
+  shifts (83's scratch note, copied to this session's scratchpad as `j8b-run_job_snap.md`). The user's
+  seven decisions on the restated Draft (`775c36de45`, below) stand; where the Draft's text predates
+  them, the decisions win. cluster-rows (`8fdf7c6f36`) changed `isCluster`'s rows, `memberAt` and
+  `request_delivered` (`srvMemCover`): recheck any statement naming them.
+- Moving under this stage (F2, on `image-cmp`, not landed): `lateWB`'s body (the client halves inside
+  `lateW`), `KBReal` (the tie ghosts `lg`/`sg`/`jg`, a snapshot-walk flag), the mvcc backend contract
+  (`batchTxSpecG`, `isKeyBackendG`, `mvcc_backend_bridge`, `store.Restore`). Whichever lands second
+  merges.
+- #7-on (the sender's auth-on image, `srvBeSnapOk`'s auth-on certificate) is the image half of the
+  pair; `merged_image` already covers both compaction modes.
+
 ## The target
 
 `run`'s snapshot-payload job in mode `on` (`EtcdServer__run.lean:1413`, the auth-on twin of
