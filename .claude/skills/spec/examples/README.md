@@ -27,6 +27,7 @@ principles match your target.
 | [writer-pin.md](writer-pin.md) | a client's observation law over a share the implementation held behind a lock's late-registered resource | rest the law on a share the client holds, not on a resource registered later (check the pending window); lend a token the implementation would drop; thread a piece at its owner's layer, fold it into the definitions above |
 | [restore-modes.md](restore-modes.md) | a function whose spec excluded a mode (restore without compaction), generalized to both | one statement for both modes with mode-indexed pieces whose off value is the old resource, and the old text by a lemma for callers that stay off; a newly landed law on a field reaches every writer of it, restores included |
 | [porcupine-dag-check.md](porcupine-dag-check.md) | a public result whose old statement is false of new code (porcupine PR #46's search) | the closest true spec with the old statement a corollary; pure premises in the precondition |
+| [bbolt-api.md](bbolt-api.md) | a whole library API over client-owned state replacing a trust boundary (bbolt: `Open`, transactions, buckets, cursors), with trusted model rules | a trusted assumption states the physical fact (no axiom that is false somewhere; check what a restriction removes); explain a finding in plain terms before a decision; instance binders inside the statement |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

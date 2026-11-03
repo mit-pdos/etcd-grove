@@ -21,6 +21,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 - **Sound: true of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
+- **An assumption states the physical fact the code relies on, never a universal that is false
+  somewhere.** A Lean axiom "FNV-64a has no collisions" is false (it has them), so the logic becomes
+  inconsistent and proves everything. Find what the code really relies on and state that, in the
+  model of the environment, with its environment hypothesis: bbolt's meta write is one aligned OS
+  page, which Linux's `pwrite` writes all or nothing in-process (if `RLIMIT_FSIZE` is unlimited or
+  page-aligned), so OsFs's rule says that and no collision premise is needed. Before proposing a
+  restriction instead, check it is what it is claimed to be: bbolt's P2 ("no torn meta that
+  validates") was described as a collision premise, yet removed no real execution and excluded
+  constructible ones. (`bbolt-api.md`, D22)
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
   changes, the callers as restated. A contract an implementation must meet (an environment's
@@ -66,6 +75,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
   harmlessly. A post that says a call returns claims it returns on every input the premise admits:
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+
+## Asking the user
+
+- **Explain a finding in plain terms before asking for a decision**: what the code does, when it
+  goes wrong and what a user would see, then the options with what each costs; not the predicate
+  names and round numbers. A decision taken on a wrong picture comes back (bbolt's D22: chosen as
+  "a probabilistic premise", then re-asked when it turned out not to be one; D21's write-up, "two
+  copies of the table of contents", is the shape). (`bbolt-api.md`)
 
 ## Preferences: strength
 
@@ -187,6 +204,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`ipureintro`). Older specs still use implications; convert one when you change it. (porcupine's
   `Check*` specs, 2026-11-03, the user's request.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
+- **An instance binder a statement must carry goes inside the statement** (`∀ [HasExt osFsExt] …`
+  at the head of the triple, and in each vocabulary predicate's signature): Lean drops a section
+  variable from a definition that does not use it, so a section `variable [HasExt …]` silently
+  states the triple for every semantics. Check with `#check`/`#print` that it is there.
+  (`bbolt-api.md`, round 10)
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
 ## Preferences: resources

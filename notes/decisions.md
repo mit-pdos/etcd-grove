@@ -30329,3 +30329,77 @@ data.length`, whatever `err`) and `Tests.lean`. No axiom changes (the extension'
 definitions); every result over the extension claims what it claimed. The crash relation is
 unchanged (a torn page on disk after a crash stays possible). `notes/osfs-ext-plan.md`, D9;
 `notes/bbolt-spec-decisions.md`, D22.
+
+## bbolt's API spec (frozen 2026-11-03 · the user's decisions D1, D3-D5, D7, D13, D17, D18, D20, D22)
+
+**What.** bbolt's public API as etcd uses it, specified over the translation with bodies (the
+fork `upamanyus/bbolt` `goose-lean-v2` `b3e06648`), to replace the backend's 20 `_kv`
+trust-boundary axioms once proved: `Spec/go_etcd_io/bbolt/Api.lean` (nine sealed predicates,
+`opaque` until the invariants are designed, and their laws, `sorry` until then), `Data.lean`,
+`Logger.lean`, `Options.lean`, `Spec/fmt/ErrorOk.lean`, 23 one-function spec files and
+`Options__String`, with `sorry` stubs in `Proof/go_etcd_io/bbolt/` and the option axioms in
+`Proof/go_etcd_io/bbolt/Options.lean`. Designed in 12 rounds with 11 reviews; every statement,
+the design and each decision's alternatives are in `notes/bbolt-spec-decisions.md`, the rounds'
+story in `.claude/skills/spec/examples/bbolt-api.md`. The backend keeps the `_kv` axioms until a
+separate backend-switch stage (the `_kv` statements become corollaries, three are restated).
+
+**Why this shape** (in short; the user's decisions marked):
+- *D7 (the user)*: a persistent handle `isBolt db γ` and client-owned, fractional `boltState γ q
+  D`, reached by logically atomic updates at the two linearization points (a read transaction's
+  meta copy, `Commit`'s meta write); no `ownDB`/`wrTok`: concurrent clients, `backend.Snapshot`
+  provable.
+- *D6*: one fractional `boltTx tx γ q T` over a view `TxView` for both transaction kinds: one
+  spec per function.
+- *D1, D3 (the user)*: a read transaction holds the caller's `threadTok` (its `mmaplock` reader
+  slot); `Open` takes `ThreadBoundLe GF (2^29)` (a spare slot for a failed commit's `freepages`)
+  and `ReceiptBoundLe GF (2^62)` (txids do not wrap). *D2*: `DB.Stats` pays `statlock`'s slot
+  (`statSlot`).
+- *D4, D5 (the user)*: `Put` takes the entry bound `bboltEntryMax = 2^28` (bbolt accepts values it
+  cannot store); `FillPercent` is written back only non-NaN.
+- *D13 (the user)*: `OptsM.ok` excludes `Mlock` and `MmapFlags` other than `0`/`MAP_POPULATE`
+  (scope restrictions of the file model); the option axioms restated over `bbolt.OptsM`.
+- *D17 (the user)*: `splitTwo`'s float threshold through the fork's trusted helper
+  `splitThreshold` (`TrustedCode/go_etcd_io/bbolt.lean`), since Perennial's floats are
+  uninterpreted; the general Perennial fix proposed separately.
+- *D18 (the user)*: the fork's `getPageSize` returns meta read errors (so `fileHolds` assumes
+  nothing of user values; `nonissues/bbolt-getpagesize-probes-user-data.md`).
+- *D20 (the user, in principle) as D20′*: `boltLogger`, the exposed contract of the logger bbolt
+  calls, restricted to the format strings and argument kinds for which Go's `fmt` calls exactly the
+  methods it names; the fork logs with `%v` and has a no-op default logger.
+- *D21*: the fork's `WriteTo` writes the current meta at page `txid % 2`
+  (`issues/bbolt-writeto-meta-parity.md`).
+- *D22 (the user)*: one aligned OS page is written all-or-nothing in-process (the entry "bbolt
+  D22" above), so `Commit`'s error post holds with no collision premise.
+- *D8-D12, D14-D16, D19* (the agent's): over OsFs (`[HasExt osFsExt]` in every statement);
+  `Close`'s post `True`; `View`/`Update` not yet; the fork's code; `CreateBucket`'s name bound;
+  `Cursor.Prev` for read transactions only (`issues/bbolt-cursor-prev-empty-leaf.md`); a
+  caller-chosen namespace; `fileHolds`' well-formedness; no `γ`-agreement laws (clients carry `γ`).
+
+**The landing** (branch `worktree-bbolt-v2`): statements copied verbatim (checked: the elaborated
+types equal the candidate's); `noArgStringSig`/`fmtErrorOk` in namespace `EtcdGrove` (a
+`fmt`-level predicate, not bbolt's); `statSlot` in `Api.lean` (the backend's `begin` needs it); the
+predicates `opaque` (no axiom; each becomes a `@[no_expose]` definition when the invariants land);
+`etc/api/bbolt.txt` with `root go_etcd_io` (the specs are `bbolt.<T>.<M>.spec`) and the new
+directive `vocab` for the API modules under `Spec/` that are not a function's spec
+(`etc/gen-interface.py --layout` skips them).
+
+**Corrections after the invariant design (2026-11-03, decided by the coordinator after the
+invariant design** found four laws unprovable under every representation consistent with the
+triples; `bbolt-inv/design.md`, D-A..D-E). The frozen candidate text is otherwise unchanged:
+- *D-A*: `boltTx_timeless` is gone (`boltTx` holds Iris invariants: the locks', bbolt's), replaced
+  by `boltTx_later : isBolt db γ ⊢ ▷ boltTx tx γ q T -∗ ◇ boltTx tx γ q T`.
+- *D-B*: `osInv` is no longer folded into `fileHolds` (an invariant, so `fileHolds_timeless` was
+  false; the fold's reason went with D22 = (b)): `Open` takes `osInv` separately (round 8's form),
+  `fileHolds_new` no longer takes it; `fileHolds` is `osMeta`/`osBytes` plus pure facts, timeless.
+- *D-C*: `txBytes`, `boltBkt`, `boltCur` and `curAt` take the database's `γ` (after `tx`), in
+  every law and triple: nothing reached from `tx` alone can agree with `boltTx tx γ`'s ghost names.
+  The general alternative, allocation returning a meta token, is proposed in
+  `notes/perennial-changes.md`, "Heap: allocation returns a meta token".
+- *D-D*: `boltTx_fill` only for `T.rw = true` (a reader's handles are allocated at any fraction,
+  outside what `boltTx … 1` can find); the backend uses it in write transactions only.
+- *D-E*: D19's remark that a `db ↦ γ` registry "is provable" from a package fact was wrong (a
+  package fact is a fixed proposition; a ghost name inside it does not agree between copies);
+  the backend's corollary counts are restated in `notes/bbolt-spec-decisions.md`; `fileHolds`'
+  docstring gains "every leaf at the same depth" (`rebalance` merges siblings without checking
+  `isLeaf`; bbolt's own writes keep it), documentation only.
+
