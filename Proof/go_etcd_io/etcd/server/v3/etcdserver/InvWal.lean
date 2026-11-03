@@ -1,8 +1,9 @@
 /-
-**The WAL's records, drafted** (the restart plan's R2b-1, 2026-11-02; `notes/restart-plan.md`,
-"R2b-1: the WAL's records"). Lean-first (no Rocq counterpart). DRAFT: nothing proved imports this
-module yet; R2b-1's proof moves its pieces into the WAL contract (`isRNWal`), the raft loop's
-invariant and the receive (`rn_ready_recv`).
+**The WAL's durability for the raft loop, drafted** (the restart plan's R2b-1, 2026-11-02;
+`notes/restart-plan.md`, "R2b-1: the WAL's records"). Lean-first (no Rocq counterpart). DRAFT:
+nothing proved imports this module yet. (2026-11-03: the WAL's records, model and contract moved to
+the WAL's API, `storage/WalRecs.lean` and `etcdserver/WalApi.lean`; here the laws tying the model
+to raft's `Ready`, the durability invariant and the receive's new postcondition.)
 
 What a stopped member's image needs of raft (`srvDiskImage`: `StorageHolds S σ`) is that the
 WAL's records hold the node's durable state. Today the server's proof enters each `Ready`'s batch
@@ -36,6 +37,7 @@ into the durable state (`raftState`) at its receive, and the WAL has an open tok
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 
 @[expose] public section
 
@@ -48,38 +50,6 @@ open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section model
 variable [GooseExts]
-
-/-- **The records of a fresh WAL** (`wal.Create`'s initial snapshot record at `⟨0, 0⟩`, no
-entries, the zero hard state): what `bootstrap`'s first start leaves. -/
-def walFresh : StorContents :=
-  ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-
-/-- **The records after `Save(h, es)`** (the fork's `ReadAll`): the hard state replaced unless `h`
-is empty (`phsNext`: an empty `HardState` is not written), the entries truncate-appended
-(`appendEnts`, as raft's `MemoryStorage.Append`; for entries above the base, `ReadAll`'s
-`append(ents[:offset], e)`). -/
-def walSave (σ : StorContents) (h : HardStateM) (es : List EntryM) : StorContents :=
-  { σ with hs := phsNext σ.hs h, ents := appendEnts σ.base σ.ents es }
-
-/-- **The records after `SaveSnap(m)`** (the fork's `ReadAll` and `recoverSnapshot`, `ce3dbc097`):
-a record below the records' base changes nothing (the restart opens the WAL at the record of the
-highest index; R2b-1 review G1); otherwise they start at `m`'s index and term, with the snapshot
-`m` (no data: the WAL keeps the metadata only), the entries above it kept when `m` is within the
-saved commit (a snapshot of the applied log) and dropped when above it (a received snapshot: raft
-discarded its log; review G2). The hard state kept. -/
-def walSaveSnap (σ : StorContents) (m : SnapshotMetadataM) : StorContents :=
-  if uint.nat m.Index' < σ.b then σ else
-  { σ with
-    base := entryID.mk m.Term' m.Index'
-    snap := some (SnapshotM.mk [] m)
-    ents := if uint.nat m.Index' ≤ σ.commit then σ.ents.drop (uint.nat m.Index' - σ.b) else [] }
-
-/-- `Save`'s case the server uses: consecutive entries above the records' base, the first at most
-one past their last (else `ReadAll` fails, `ErrSliceOutOfRange`, or truncates where `walSave` does
-not; R2b-1 review F2: until then the first entry only). -/
-def WalSaveOk (σ : StorContents) (es : List EntryM) : Prop :=
-  ∀ e0, es.head? = some e0 → σ.b < uint.nat e0.Index' ∧ uint.nat e0.Index' ≤ σ.last + 1 ∧
-    ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j
 
 /-- (DRAFT, R2b-1's proof) **A fresh WAL holds a fresh node** (as `kvBoot_holds`). -/
 def walFresh_holds_stmt : Prop := StorageHolds RaftState.init walFresh
@@ -131,66 +101,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-instance storContents_countable : Pos.Countable StorContents :=
-  .ofInjective (fun σ => Pos.Countable.encode (σ.hs, σ.snap, σ.base, σ.ents))
-    (by
-      rintro ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h
-      have h := Pos.encode_inj h
-      simp_all)
-
-/-- (DRAFT, R2b-1) The ghost name of the WAL `w`'s records (opaque: one per WAL, as `walGName`;
-round 3 review L2: `storage.MinimalEtcdVersion` closes and reopens the WAL behind the storage,
-`st.w`, on a downgrade, keeping its records; the name is the storage's WAL identity, `walOf st`,
-not the field's current value). -/
-opaque walRecGName (w : Loc) : GName
-
-/-- (DRAFT, R2b-1; round 2 review F5: a ghost variable, so timeless and exclusive by proof, only its
-meaning trusted, as `storage.walOpen`) **The WAL `w`'s records are `σ`**: see the file header.
-`bootstrap`'s contract gives it (a first start's at `walFresh`, a restart's at the image's), `Save`
-and `SaveSnap` update it (`isRNWalR`); `Close` leaves it (R2b-3: the closes' axioms make `srvFiles`
-of it). The records a restart reads are those from the snapshot record of the highest index at
-or below the saved commit (`recoverSnapshot`, `validSnapshotEntries`): `walSaveSnap σ m` once a
-hard state commits `m` (round 2 review F9; no image is taken before). -/
-def walRecs (w : Loc) (σ : StorContents) : IProp GF :=
-  ghostVar (walRecGName w) 1 σ
-
-/-- (DRAFT, R2b-1) **The WAL contract with its records** (`isRNWal`'s replacement, trust boundary;
-one spec per function: R2b-1's proof puts it in `isRNWal`'s place, round 2 review F10): `Save` and
-`SaveSnap` as atomic updates of the records (the raft loop and the apply thread both write the WAL,
-so the records live in an invariant; `Save` holds `w.mu` across its records), `Save` in the case
-the server uses (`WalSaveOk`), with any error as today: one of two updates fires, the records
-saved or, on an error, some records (the user's choice, 2026-11-02: no premise that `Save` fails
-only on I/O; round 2 review F4: "some records", not a token without them, so that the apply
-thread's snapshot can still update them while the loop is in `lg.Fatal`). `SaveSnap` keeps today's
-premise that it fails only on I/O (`walSaveOk`, already in `diskOk`: the apply thread panics on
-its error, round 3 review L1). `Close` and `Sync` as `isRNWal`'s. -/
-def isRNWalR (st : GoInterface) : IProp GF :=
-  letI w := storage.walOf st
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-        (es : List EntryModel) (Q Qf : IProp GF),
-      {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          (AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
-            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅
-             <{ ∃ σ' : StorContents, walRecs w σ', COMM Qf }>) }}
-        (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }}) ∗
-    □ ({{ storage.walOpen w 1 }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ storage.walCloseOk⌝ }}) ∗
-    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
-      {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          smPtsV mp dq' md ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs w σ }>
-            @ ⊤, ∅ <{ walRecs w (walSaveSnap σ md), COMM Q }> }}
-        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
-    □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q }}))
 
 /-- (DRAFT, R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
 variable, half in the invariant, half the raft loop's: the durable state, the records' hard state,

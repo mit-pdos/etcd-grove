@@ -30470,3 +30470,45 @@ Left (not in the follow-ups; the same kind): unfolds of other modules' predicate
 examples (`linkv3p/WatchKV.lean`'s `watchChain`, `etcdStepCertBody`, `evsMatch`, `kmWriteQ`;
 `cachekv`'s `CacheFacts`, `collect`, `awaitProgress`, `NoDup`, `Main`), and pure functions'
 unfolds, which the principle does not cover.
+
+## The WAL's API (2026-11-03 · the user's request for a spec-first pass, and approval of candidate 3)
+
+**Before:** the WAL's contract grew one piece at a time: `isRNWal` (`InvRaftNode.lean`: `Save`, then
+`SaveSnap`, `Sync`, the open token and `Close`'s I/O premise, 2026-10-31), the tokens and premises in
+`storage/InvOpen.lean`, `bootOk`'s open WAL, `Release`'s own spec, and R2b-1's draft records
+(`InvWal.lean`). None of it said what the WAL holds, which a restart reads. The user asked for the
+whole API through the spec-first approach before R2b-1's proof.
+
+**The API** (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`, both sealed by `etc/import-all.txt`):
+the records `walRecs w σ` (what `ReadAll` returns at the restart's snapshot record) and their model
+(`walSave`, `walSaveSnap`, `walFresh`), the base's lower bounds (`walBaseLb`), a WAL directory's
+state (`walDirFresh`, `walFiles`: one ghost variable per directory), the purge's right
+(`walPurgeRight`), the contract `isWalStorage` over the server's storage (sealed, one law per
+operation: `Save` as two atomic updates, saved or on an error some records; `SaveSnap`; `Sync`;
+`Close` making the files), and `walOpened`, what `bootstrap` gives.
+
+**Reviews:** round 1, a `spec-reviewer` and the `axiom` skill, which refuted candidate 1 with Go
+tests: a restart at a received snapshot named its next WAL file below the snapshot, and a later
+restart could fail once the purge removed the file with the record (fixed on the fork, `323320bb8`;
+`nonissues/etcd-wal-restart-file-below-snapshot.md`), and two cases the server never issues
+(`Close` with a received snapshot's `Save` pending; `SaveSnap` at the base's index with another
+term), now excluded by premises. Round 2 (a `spec-reviewer`): the WAL directory is opaque
+(`config.walDirOf dataDir dedicated`: a concatenated string was false), `Close` needs the purge
+stopped (`walPurgeRight`: `Close` releases every lock), the directory's state is a ghost variable
+(timeless, one per directory), the module sealed mechanically, and every change to a trusted
+statement listed.
+
+**Approved by the user (2026-11-03), to land with R2b-1's proof:** (1) `NewStorage`'s contract
+(`rnNewStorageOk`) gives `isWalStorage` in place of `isRNWal`; (2) `bootstrap`'s first start takes
+`walDirFresh` and gives `walOpened … walFresh` and `walPurgeRight`, the restart contract takes
+`walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope: `ForceNewCluster` off, a decision:
+with it `bootstrap` writes conf entries to the WAL itself); (3) `srvFiles` is `∃ cid, walFiles
+(config.walDirOf dd "") id cid σ ∗` the backend file; (4) `storage.Release` takes `walBaseLb` (the
+received snapshot's `notifyc` then carries it); (5) `purgeFile` takes and returns `walPurgeRight`;
+(6) the examples' members start with their WAL directories fresh (`walDirFresh`, a new premise).
+Out of the API: `MinimalEtcdVersion` (a downgrade's check; its `Reopen` also opens a purge window,
+code reading), `wal.Repair`, `UnsafeNoFsync`.
+
+**Why not incremental:** each piece added alone had been reviewed against its one client; together
+they said nothing about the files a restart reads, and three of the WAL's own bugs (two found while
+drafting R2b-1, one by the API's axiom review) were invisible until the records were modelled.
