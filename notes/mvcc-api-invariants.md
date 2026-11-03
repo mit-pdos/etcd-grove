@@ -39,6 +39,29 @@ proofs that name them; the first step of stage 1.
 
 Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, no mode.
 
+**Superseded in part (2026-11-03, stage 1):** `ι.sst` and `ι.reg` cannot hold a `StreamState` or a
+`WInfo` as written: a watcher's filters (`fs : List (EvM → Bool)`) are functions, and Perennial's
+ghost values are of small countable types only (`ghostVar` needs `Pos.Countable`). Saved
+propositions would hold them, but agree only under a later, which `wsRecv_ok.law`'s plain
+entailment cannot strip. So `ι.sst` and `ι.reg` hold the countable part (ids, ranges, `lo`, `k`,
+`live`, `closed`), each watcher with the ghost name of its **saved filters** (`savedFilters γf fs`,
+`Proof/.../mvcc/ApiGhost.lean`: the filters' code `fsCode fs : Pos → DiscreteO (Option Bool)`, a
+discrete function, so its agreement is pure equality, `savedFilters_agree`, and the code is
+injective, `fsCode_inj`); `wsState ι S` relates `S`'s `fs` to the saved filters of `ι.sst`'s names.
+The frozen API is unchanged.
+
+**Open (2026-11-03, stage 1): the carry-through and today's specs.** §4.2 has the new ghost state
+carried through today's proofs, and stage 1 was to keep today's statements. The two do not fit for
+the steps that change the state (`storeTxnWrite.End`, `store.updateCompactRev`, `store.Restore`,
+`watchableStore.watch`, `NewStore`): each must update `γ.abs`/`γ.pnd`/`ι.reg` with the client's half,
+which today's specs do not give their callers. Either (a) today's specs keep a holder of the
+client's halves inside `isStore`/`isWatchableStore` (a legacy mode, thrown away at the migration);
+(b) the internal specs change to the API's shapes together with their clients (M1 as one change:
+the internals' statements and every client at once); or (c) the new internal lemmas are written
+beside today's proofs (§4.10's variants), with today's specs as their corollaries where they can
+be (a corollary needs (a)'s holder). (b) is what M1 says; it makes stage 1's ghost carry-through
+part of stage 2 and of the migration.
+
 ## 2. The predicates
 
 - **`mvccState γ σ`**: `ghostVar γ.abs ½ (σ.log, σ.crev) ∗ ghostVar γ.pnd ½ σ.pending` ∗ the
