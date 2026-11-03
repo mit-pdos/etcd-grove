@@ -574,6 +574,103 @@ theorem fkOkG_init {P : BParams} {D : Data} {st : BSess} (hC : st.C = D) (hS : s
   · rw [hS]; exact fkValD_fkVals D
   · rw [hW]; exact fkAbsB_empty P
 
+/-! ## The physical view and the compaction keys' values under the session's operations
+
+(F2's stage 1, 2026-11-02: the batch lock's halves `γ.pv`, `γ.ck` are at `sData P st.S` and
+`fkVals st.S`; these say when an operation leaves them.) -/
+
+/-- Two contents whose views agree off the hook's buckets have one `sData`. -/
+theorem sData_eq_of_dget {P : BParams} {S S' : Data}
+    (h : ∀ n, P.HB n = false → ∀ k, dget S' n k = dget S n k) : sData P S' = sData P S := by
+  unfold sData
+  apply vData_eq_of_agree
+  rw [vOf_emptyR, vOf_emptyR]
+  exact h
+
+/-- A change of a hook's bucket leaves the physical view. -/
+theorem sData_insert_hook {P : BParams} {S : Data} {n : GoString} (x : BktData)
+    (h : P.HB n = true) : sData P (S.insert n x) = sData P S := by
+  apply sData_eq_of_dget
+  intro n' hn' k'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  rw [dget_insert, if_neg this]
+
+/-- A deletion of a hook's bucket leaves the physical view. -/
+theorem sData_delete_hook {P : BParams} {S : Data} {n : GoString} (h : P.HB n = true) :
+    sData P (S.delete n) = sData P S := by
+  apply sData_eq_of_dget
+  intro n' hn' k'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  unfold dget
+  rw [GMap.lookup_delete_ne _ this]
+
+/-- A bucket's creation leaves the physical view. -/
+theorem sData_create (P : BParams) (S : Data) (n : GoString) :
+    sData P (if S.lookup n = none then S.insert n ∅ else S) = sData P S := by
+  apply sData_eq_of_dget
+  intro n' _ k'
+  rw [dget_create]
+
+/-- Two contents that agree at the compaction keys have one `fkVals`. -/
+theorem fkVals_eq_of_dget {S S' : Data}
+    (h : ∀ n k, fkKey n k → dget S' n k = dget S n k) : fkVals S' = fkVals S := by
+  unfold fkVals
+  rw [h _ _ ⟨rfl, Or.inr rfl⟩, h _ _ ⟨rfl, Or.inl rfl⟩]
+
+/-- A change of a bucket at keys none of which is a compaction key leaves their values. -/
+theorem fkVals_insert_other {S : Data} {n : GoString} (x : BktData)
+    (h : ∀ k, fkKey n k → x.lookup k = (bktOf S n).lookup k) : fkVals (S.insert n x) = fkVals S := by
+  apply fkVals_eq_of_dget
+  intro n' k' hf
+  rw [dget_insert]
+  split
+  · rename_i hn
+    subst hn
+    rw [h k' hf, dget_eq_bktOf]
+  · rfl
+
+/-- A put of a key that is not a compaction key leaves their values. -/
+theorem fkVals_put_other {S : Data} {n k : GoString} (v : GoString) (hk : ¬ fkKey n k) :
+    fkVals (S.insert n ((bktOf S n).insert k v)) = fkVals S := by
+  apply fkVals_insert_other
+  intro k' hf
+  rw [GMap.lookup_insert_eq_iff]
+  split
+  · rename_i e; subst e; exact absurd hf hk
+  · rfl
+
+/-- A delete of a key that is not a compaction key leaves their values. -/
+theorem fkVals_del_other {S : Data} {n k : GoString} (hk : ¬ fkKey n k) :
+    fkVals (S.insert n ((bktOf S n).delete k)) = fkVals S := by
+  apply fkVals_insert_other
+  intro k' hf
+  rw [GMap.lookup_delete_iff]
+  split
+  · rename_i e; subst e; exact absurd hf hk
+  · rfl
+
+/-- A deletion of a bucket without compaction keys leaves their values. -/
+theorem fkVals_delete_other {S : Data} {n : GoString} (hk : ∀ k, ¬ fkKey n k) :
+    fkVals (S.delete n) = fkVals S := by
+  apply fkVals_eq_of_dget
+  intro n' k' hf
+  have : n ≠ n' := fun e => by subst e; exact hk k' hf
+  unfold dget
+  rw [GMap.lookup_delete_ne _ this]
+
+/-- A bucket's creation leaves the compaction keys' values. -/
+theorem fkVals_create (S : Data) (n : GoString) :
+    fkVals (if S.lookup n = none then S.insert n ∅ else S) = fkVals S := by
+  apply fkVals_eq_of_dget
+  intro n' k' _
+  rw [dget_create]
+
+/-- A put into a non-hook bucket: the physical view is `sData` of the new contents (stated for
+symmetry; no lemma needed). A put of a key into a hook's bucket leaves the physical view. -/
+theorem sData_put_hook {P : BParams} {S : Data} {n : GoString} (k v : GoString)
+    (h : P.HB n = true) : sData P (S.insert n ((bktOf S n).insert k v)) = sData P S :=
+  sData_insert_hook _ h
+
 end backend
 end EtcdGrove
 end Perennial

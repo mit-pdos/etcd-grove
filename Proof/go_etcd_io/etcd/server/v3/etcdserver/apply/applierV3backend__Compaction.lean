@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 private theorem kvOver_Compact (hCompact : mvcc.store.Compact.spec (GF := GF) (hG := hG))
     (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int)
     (P : IProp GF) (f : val) (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool)
-    (ht : trace ≠ null) (hc : mvcc.storeCmp γ) (hc1 : -1 ≤ c) :
+    (ht : trace ≠ null) (hc : mvcc.storeCmp γ) (hc1 : -1 ≤ c) (hr1 : 1 ≤ sint.Z rev) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.kvOver (interface.mkOk ty v) s ∗
         mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗ mvcc.crevPermAt γ (sint.Z rev) ∗
@@ -56,7 +56,7 @@ private theorem kvOver_Compact (hCompact : mvcc.store.Compact.spec (GF := GF) (h
   iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hr, #Hperm, #Hc, %Hl, Hhi, Hcs, Htrc, Hrt, #Hsup⟩ HΦ
   iapply mvcc.kvOver_compact_wp ty v s trace rev
   iframe Hk
-  iapply (hCompact s γ trace rev c P f Pre Q Post log te ht hc hc1) $$ [Hr Hhi Hcs Htrc Hrt] HΦ
+  iapply (hCompact s γ trace rev c P f Pre Q Post log te ht hc hc1 hr1) $$ [Hr Hhi Hcs Htrc Hrt] HΦ
   iframe Hr Hhi Hcs Htrc Hrt; iframe #; ipureintro; exact Hl
 
 /-- `readView.Range.spec` at a KV over the store (`kvOver_range_wp`, through the store's
@@ -156,8 +156,8 @@ theorem apply.applierV3backend.Compaction.wp_proof
   ihave #Hmi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   wp_apply (kvOver_Compact hCompact kty kvv E.s E.γ trc rev crev E.P E.f Pre Q Post log false
-      Htrcnn Hadm.1 Hc1) $$ [$Hr $Hhi $Hcs $Htrc $Hrt] as %ch %err ⟨Htrc, Hrt, Hhi, Hout⟩
-  · iframe #; ipureintro; exact Hadm.2
+      Htrcnn Hadm.1 Hc1 Hadm.2.2) $$ [$Hr $Hhi $Hcs $Htrc $Hrt] as %ch %err ⟨Htrc, Hrt, Hhi, Hout⟩
+  · iframe #; ipureintro; exact Hadm.2.1
   icases Hout with (⟨%Herr, Hr, #Hlb, HPost, -⟩ | ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hr, HPre, -⟩)
   · -- compacted: `KV.Range(context.TODO(), "compaction", nil, {})` for the header
     obtain ⟨Herr, Hlt⟩ := Herr

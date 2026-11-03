@@ -118,6 +118,13 @@ structure BNames where
   and (M2 storage plan, items 27/29, 2026-10-30) the flag's value and the keys' values at the open
   (`fkInit`, `fkVals`) -/
   fkv : GName
+  /-- `ghostVar VData`: **the physical view of the non-hook buckets** (`sData` of the writer's
+  contents: the buckets with `P.HB n = false`; F2's stage 1, `notes/image-cmp-f2-plan.md`), half the
+  batch lock's (`trkHalf`), half the client's (`pvHalf`) -/
+  pv : GName
+  /-- `ghostVar FkVals`: **the compaction keys' values** (`fkVals` of the writer's contents; F2's
+  stage 1), half the batch lock's (`trkHalf`), half the client's (`ckHalf`) -/
+  ck : GName
   /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
@@ -324,6 +331,11 @@ contents being `S`: the client's half if `k` is a hook's own key, else nothing. 
 def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
   if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
 
+/-- A put of a key that is not a hook's own key needs nothing of them. -/
+theorem hkPut_other (γ : BNames) (P : BParams) (n k : GoString) (S : Data) (h : P.hk n k = false) :
+    ⊢ hkPut (GF := GF) γ P n k S := by
+  unfold hkPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
 /-- One tracked bucket's ghost element (`γ.rbk`, a ghost map over the tracked buckets' names
 `γ.rbD`), at fraction `q`: the bucket's contents in the writer's contents (absent if absent) and
 whether a write of a session to it is pending since the last `Unlock` that was handed its part
@@ -495,6 +507,96 @@ theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
     fkPut (GF := GF) γ n k = iprop(True) := by
   unfold fkPut; exact if_neg h
 
+/-! ### The physical view and the compaction keys' values, exact (F2's stage 1, 2026-11-02)
+
+`notes/image-cmp-f2-plan.md`: two backend ghosts whose halves the batch lock holds at the writer's
+contents (`trkHalf`), so that a holder of the client's halves knows the writer's contents there; a
+write that can change them takes and gives back the client's half (`pvPut`, `ckPut`). -/
+
+/-- **The client's half of the physical view** of the non-hook buckets (exclusive): the writer's
+contents' `sData` (the buckets with `P.HB n = false`, `Model2.lean`'s `vData`), the batch lock
+holding the other half. For the server's backend, the `Key` bucket alone. Every write to a non-hook
+bucket (`UnsafePut`, `UnsafeSeqPut`, `UnsafeDelete`, `UnsafeDeleteBucket`) takes and updates it
+(`pvPut`). -/
+def pvHalf (γ : BNames) (vd : VData) : IProp GF :=
+  ghostVar γ.pv (1 : Qp).half vd
+
+/-- **The client's half of the compaction keys' values** (exclusive): `fkVals` of the writer's
+contents, the batch lock holding the other half; a put of a compaction key moves both (`ckPut`). -/
+def ckHalf (γ : BNames) (v : FkVals) : IProp GF :=
+  ghostVar γ.ck (1 : Qp).half v
+
+instance pvHalf_timeless (γ : BNames) (vd : VData) : Timeless (pvHalf (GF := GF) γ vd) := by
+  unfold pvHalf; infer_instance
+
+instance ckHalf_timeless (γ : BNames) (v : FkVals) : Timeless (ckHalf (GF := GF) γ v) := by
+  unfold ckHalf; infer_instance
+
+/-- **The client's halves at the open** of bbolt's data `D` (what the constructor gives the creator,
+beside `hkOwn`): the physical view at `sData P D` and the compaction keys' values at `fkVals D`. -/
+def pvckInit (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
+  iprop(pvHalf γ (sData P D) ∗ ckHalf γ (fkVals D))
+
+/-- **The client's two halves, at some values** (F2's stage 1: what a client threads through the
+batch lock's resource without tracking the values; agreement with a held lock gives them,
+`batchLocked_pv`, `batchLocked_ck`). -/
+def pvckOwn (γ : BNames) : IProp GF :=
+  iprop(∃ (vd : VData) (v : FkVals), pvHalf γ vd ∗ ckHalf γ v)
+
+instance pvckInit_timeless (γ : BNames) (P : BParams) (D : Data) :
+    Timeless (pvckInit (GF := GF) γ P D) := by
+  unfold pvckInit; infer_instance
+
+instance pvckOwn_timeless (γ : BNames) : Timeless (pvckOwn (GF := GF) γ) := by
+  unfold pvckOwn; infer_instance
+
+theorem pvckOwn_of_init (γ : BNames) (P : BParams) (D : Data) :
+    pvckInit (GF := GF) γ P D ⊢ pvckOwn γ := by
+  unfold pvckInit pvckOwn
+  iintro ⟨Hp, Hc⟩
+  iexists sData P D, fkVals D
+  iframe Hp Hc
+
+/-- What a write to bucket `n` needs and gives of the physical view, the writer's contents being
+`S`: the client's half if `n` is not a hook's bucket, else nothing. -/
+def pvPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
+  if P.HB n then iprop(True) else pvHalf γ (sData P S)
+
+/-- What a put of key `k` in bucket `n` needs and gives of the compaction keys' values, the writer's
+contents being `S`: the client's half if `k` is a compaction key, else nothing. -/
+def ckPut (γ : BNames) (n k : GoString) (S : Data) : IProp GF :=
+  if fkKey n k then ckHalf γ (fkVals S) else iprop(True)
+
+/-- A write to a hook's bucket needs nothing of the physical view. -/
+theorem pvPut_hook (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    ⊢ pvPut (GF := GF) γ P n S := by
+  unfold pvPut; rw [h]; simp only [↓reduceIte]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem pvPut_hook_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    pvPut (GF := GF) γ P n S = iprop(True) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A write to a non-hook bucket needs the client's half of the physical view. -/
+theorem pvPut_other_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = false) :
+    pvPut (GF := GF) γ P n S = pvHalf γ (sData P S) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A put of a key that is not a compaction key needs nothing of their values. -/
+theorem ckPut_other (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ⊢ ckPut (GF := GF) γ n k S := by
+  unfold ckPut; rw [if_neg h]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem ckPut_other_eq (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ckPut (GF := GF) γ n k S = iprop(True) := by
+  unfold ckPut; exact if_neg h
+
+/-- A put of a compaction key needs the client's half of their values. -/
+theorem ckPut_fk_eq (γ : BNames) (n k : GoString) (S : Data) (h : fkKey n k) :
+    ckPut (GF := GF) γ n k S = ckHalf γ (fkVals S) := by
+  unfold ckPut; exact if_pos h
+
 /-- **The batch lock's side of the tracked buckets** at contents `r`: the ghost map's authority,
 the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
 observation is handed one), and every tracked bucket of the table among its names (a session's
@@ -507,14 +609,18 @@ only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, wh
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
-(`γ.hkd`) and the tracked buckets (`rbSide`). -/
+(`γ.hkd`), the tracked buckets (`rbSide`), and (F2's stage 1, 2026-11-02) the physical view of the
+non-hook buckets (`γ.pv` at `sData P S`) and the compaction keys' values (`γ.ck` at `fkVals S`),
+whose other halves are the client's `pvHalf`/`ckHalf`. -/
 def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S))
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S) ∗
+    ghostVar γ.pv (1 : Qp).half (sData P S) ∗ ghostVar γ.ck (1 : Qp).half (fkVals S))
 
 /-- Two contents with the same tracked data have the same halves. -/
 theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
-    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
-  unfold trkHalf; rw [h1, h2]
+    (h2 : rbData P S' = rbData P S) (h3 : sData P S' = sData P S) (h4 : fkVals S' = fkVals S) :
+    trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+  unfold trkHalf; rw [h1, h2, h3, h4]
 
 /-! ## The history of the read side, and the cache's marks -/
 

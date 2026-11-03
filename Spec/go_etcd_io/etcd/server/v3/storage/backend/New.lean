@@ -32,7 +32,7 @@ abbrev backend.New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
-      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
     (App (Val (@! New)) (Val #cfg))
   {{ (r : val), RET r;
       (∃ (b : Loc) (γ : BNames),

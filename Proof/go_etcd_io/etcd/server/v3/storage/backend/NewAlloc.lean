@@ -459,7 +459,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames)
     (γrw : sync.rwmutex.RWMutexNames) (D : Data) (sc dc : GoChan) (γsc γdc : ChanNames)
     (hP : P.Wf) (hlg : lg ≠ Loc.null) :
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗
@@ -529,9 +529,12 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (items 27/29 of the M2 storage plan) with the flag's value and `D`'s compaction-key values
   imod dghostVar_alloc ((fkWInit P D, fkInit D, fkVals D) : FkG) with ⟨%gfkv, Hfkv⟩
   imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
+  -- (F2's stage 1) the physical view and the compaction keys' values, at `D`'s
+  imod ghostVar_alloc (sData P D) with ⟨%gpv, Hpv⟩
+  imod ghostVar_alloc (fkVals D) with ⟨%gck, Hck⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    rbDomOf P D⟩
+    gpv, gck, rbDomOf P D⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
   have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
     fkOkG_init rfl rfl rfl rfl
@@ -559,6 +562,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   icases gv_halves gcvw _ $$ Hcvw with ⟨Hcvwc, Hcvwi⟩
   icases gv_halves gused _ $$ Hused with ⟨Husedb, Husedr⟩
   icases gv_halves ghkd _ $$ Hhkd with ⟨Hhkdb, Hhkdc⟩
+  icases gv_halves gpv _ $$ Hpv with ⟨Hpvb, Hpvc⟩
+  icases gv_halves gck _ $$ Hck with ⟨Hckb, Hckc⟩
   ihave Hrbk := rbEls_top_of γ 1 (fun n => ((rbData P D).lookup n, false)) $$ Hrbk
   icases (rbEls_halves γ (fun _ => True) _).2 $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
   ihave Hrbkc : rbOwn γ (rbData P D) $$ [Hrbkc]
@@ -626,11 +631,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   · unfold hkOwn; iexact Hhkdc
   ihave Hfr : bFresh γ $$ [Hwbt Hopnc Hcls]
   · unfold bFresh bOpen; iframe Hwbt Hopnc Hcls
-  ispecialize Hmk $$ %γ [$Hko $Hfr]
+  ihave Hpk : pvckInit γ P D $$ [Hpvc Hckc]
+  · unfold pvckInit pvHalf ckHalf; iframe Hpvc Hckc
+  ispecialize Hmk $$ %γ [$Hko $Hpk $Hfr]
   imod Hmk with ⟨HW, HPk, HK⟩
   imod sync.init_Mutex (batchFree γ P (W γ) (Pk γ) b t) ⊤ (muOf t) $$ [Hmx]
     [Htxf Hpend Hdel Hwb Hphk Hhookb Hown Hwtx Hmus Hviewb Hrvsb Hwba Hwbc Husedb Hopnb Hhkdb Hrbkb
-      Hfkb HW HPk]
+      Hfkb Hpvb Hckb HW HPk]
     with #Hbl
   · iexact Hmx
   · inext

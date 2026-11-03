@@ -207,16 +207,19 @@ theorem srvRest_apply_M (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
 the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
-the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`). -/
+the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`), the revision positive
+(the proposal's `compactPropOk`). -/
 theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (kb : Option mvcc.KBReal) (log : mvcc.Log) (hl : log = kvModel γk A)
     (hkb : cmp = true → mvcc.kbCmpM kb) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
     apply.cmpAdmit kb log rq := by
   intro hk r hr
-  obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
+  obtain ⟨hc, ⟨⟨-, r', hr', h1⟩, -⟩, hrl⟩ := h ht hd rq hdec hk
+  rw [hr] at hr'
+  cases hr'
   subst hl
-  exact ⟨hkb hc, by have := hrl r hr; omega⟩
+  exact ⟨hkb hc, by have := hrl r hr; omega, h1⟩
 
 
 /-- **A revision of the KV model of a committed prefix is reached** (C3's server stage, 2026-11-02):

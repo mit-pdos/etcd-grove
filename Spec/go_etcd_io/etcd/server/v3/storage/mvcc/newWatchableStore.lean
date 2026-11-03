@@ -43,17 +43,20 @@ takes it). (C3's store law, 2026-11-02) The store's compaction permit is the cal
 (`crevPermIs`).
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
 counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
-until then all `actualMaxReaders` of them. -/
+until then all `actualMaxReaders` of them.
+(F2's Freeze, stage 2, 2026-11-03) The compaction tracking's ties of the instance, whole at the
+fresh log (`kbTieInit kb`, `NewStore`'s; `kbTie_alloc` makes them); the revision tie's half comes
+back in `crevRightM` (compaction mode). -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
     (Perm : Int → IProp GF),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' → mvcc.kbBoot kb →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗
+      mvcc.kbSRM kb ∗ mvcc.kbTieInit kb ∗
       ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

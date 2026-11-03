@@ -51,7 +51,7 @@ Brief for the prover: as `NewServer.lean:1040-1110` (the lessor's and the auth s
   (`hγB`). (`mvcc.hookOk_of_init` is the boot's form, for the `none`-hook case.)
 - `isApplyLessor`: `apply.isApplyLessor_of_lessorInv` (the eight lease specs; `iPkgInit` for the
   lease package; `lessorLookupOk lp` unfolds to its `Lookup` clause) with `lessorApplyOk lp`
-  applied at `d'`, `W := mvcc.lateW d'.gx`, `Pk := E'.P`, `g`, `RW := E'.RW`, its `rwLens` as at
+  applied at `d'`, `W := mvcc.lateWD d'`, `Pk := E'.P`, `g`, `RW := E'.RW`, its `rwLens` as at
   boot (`srvRestRWH`, `srvObjsOn` taken apart and put back); `mvcc.storeWT`/`storeRT` of `E'.γ`
   are `backend.wbTok d'.γB`/`bkRTx d'.γB d'.P d'.be` (`hkb'`, `rfl`).
 - `isAuthStore … E'.RD E'.authMode E'.RW`: `authApplyOk ast E.RD` at `d'` (mode `.off`: `hoff`).
@@ -93,7 +93,7 @@ theorem snap_backendOptsOk
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
       isServerCI s (snapγ γ π0 γB) ci ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d')
         (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
       backend.plHookRO γB g ∗
       mvcc.hookP (γw.st.withPhys p') (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) ∗

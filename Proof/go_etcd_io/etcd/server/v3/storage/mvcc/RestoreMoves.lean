@@ -490,15 +490,16 @@ backend's registration pending (`writerReg`: the right to register, the batch lo
 the new key, half the new view log, half the new bucket's view, the certificate, the compaction's
 fresh record). `s.mu`'s deposit ghost back. -/
 theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNames) (L' : Log)
-    (hwf : IdxWf L' []) (hne : L' ≠ []) :
+    (hwf : IdxWf L' []) (hne : L' ≠ []) (hsn : kbSnap p'.kb) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
         IProp GF) -∗ ⧖ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
       bucketViewL (γ.withPhys p') (1 : Qp).half.half L' -∗ compactRes (γ.withPhys p') -∗
+      kbLog p'.kb (1 : Qp).half.half L' -∗
       kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
-  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
+  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hlg Hrr
   iunfold restoreWriter at Hw
   icases Hw with ⟨%ntok, Hw⟩
   iNamed Hw
@@ -533,19 +534,23 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
   · iframe Hh Hhist
   icases ghostVar_halves p'.wv L' $$ Hwv with ⟨Hwv, HwvR⟩
   -- the registration, pending (M2's item 15: an invariant, `storeW_open`)
-  imod writerReg_allocP s (γ.withPhys p') _ $$ [Hwk HwvR Hbv Hcres Hrr] with #Hrg
+  imod writerReg_allocP s (γ.withPhys p') _ $$ [Hwk HwvR Hbv Hcres Hrr Hlg] with #Hrg
   · isplitl [Hrr]
     · simp only [StoreNames.withPhys_kb]; iexact Hrr
-    iunfold writerRes
-    iexists L'
-    simp only [named, idxCert_withPhys]
-    iframe Hbv Hcres
-    iframe #
-    isplitl [Hwk]
-    · iunfold writerKey; simp only [StoreNames.withPhys_wk]; iexact Hwk
-    isplitl [HwvR]
-    · simp only [StoreNames.withPhys_wv]; iexact HwvR
-    ipureintro; exact hne
+    isplitl [Hwk HwvR Hbv Hcres Hlg]
+    · iunfold writerResP
+      iexists L'
+      simp only [named, idxCert_withPhys]
+      iframe Hbv Hcres
+      iframe #
+      isplitl [Hwk]
+      · iunfold writerKey; simp only [StoreNames.withPhys_wk]; iexact Hwk
+      isplitl [HwvR]
+      · simp only [StoreNames.withPhys_wv]; iexact HwvR
+      isplitr
+      · ipureintro; exact hne
+      simp only [StoreNames.withPhys_kb]; iexact Hlg
+    ipureintro; simp only [StoreNames.withPhys_kb]; exact hsn
   imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd] with -
   · inext
     iunfold writerInvBody
