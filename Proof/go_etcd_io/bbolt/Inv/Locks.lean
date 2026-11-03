@@ -159,16 +159,18 @@ def wdbOK (w : WDb) : Prop :=
   -- F4.2: the synced freelist page can be reloaded
   (∀ f, w.C.flpg = some f → flCurOK w.fl w.C (extentBytes w.wb f))
 
-/-- The writer side but its freelist object, spare pair and receipts (`wdbOpen`'s part too). -/
-def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
+/-- The writer side but its share of the data, its freelist object, spare pair and receipts:
+`db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,
+`wdbLive`). -/
+def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (w : WDb) : IProp GF :=
   iprop(∃ wa : GoFunc,
-    ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+    ghostVar B.cur (1 : Qp).half.half w.C ∗
     ghostVar B.fl (1 : Qp).half w.fl ∗ ghostVar B.map (1 : Qp).half w.ms ∗
-    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half ws ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
-    db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p ∗
+    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own (1 : Qp).half) w.ms ∗
     osMeta p (DFrac.own 1) (some w.m) ∗ fileOwn w.f w.fd p (DFrac.own 1) ∗
@@ -179,15 +181,29 @@ def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
      | some (jb, jl) => iprop(∃ vf, cellsR jb 0 jl vf)
      | none => iprop(emp)))
 
-/-- **The writer side's resources** (design §3.5): `wdbCore`, the freelist object but its reader
-part, the spare reader-token pair, and the receipts `⧗ (C.txid - t0)`. -/
-def wdbOwn (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ flPgOwn w.fli w.fl ∗ rdPair B db sp ∗ receipt (w.C.txid - t0))
+/-- The idle writer side's core: no `rwtx`, no live writer. -/
+def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
+  wdbCoreG B db p null wIdle w
 
-/-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` with
-no freelist (`fl = ∅`, `db.freelist` nil). -/
+/-- **The writer side's resources** (design §3.5): `wdbCore`, its quarter of the data, the
+freelist object but its reader part, the spare reader-token pair, and the receipts
+`⧗ (C.txid - t0)`. -/
+def wdbOwn (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+    flPgOwn w.fli w.fl ∗ rdPair B db sp ∗ receipt (w.C.txid - t0))
+
+/-- **A live writer's database side** (in its exclusive part, `txExcl`): `db.rwtx` is the
+transaction `tx`, the store's writer state `ws`; its quarter of the data is in `wtxFrac`. -/
+def wdbLive (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
+    (w : WDb) : IProp GF :=
+  iprop(wdbCoreG B db p tx ws w ∗ flPgOwn w.fli w.fl ∗ rdPair B db sp ∗
+    receipt (w.C.txid - t0))
+
+/-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the
+data's quarter, with no freelist (`fl = ∅`, `db.freelist` nil). -/
 def wdbOpen (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+    ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
 `Close` wrote. -/
