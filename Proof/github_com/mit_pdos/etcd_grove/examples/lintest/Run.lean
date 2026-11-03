@@ -248,9 +248,9 @@ theorem Run.wp_proof
       have hm' : ((sint.nat ops : Nat) : Int) = sint.Z ops := by word
       have HhistOk := final_histOk Hj.2.2.2 Hhn
         (by simp only [Int.natCast_mul, hn', hm']; exact Hbound)
-      wp_apply wp_CheckOperationsVerbose σ S m osl hs.flatten (DFrac.own 1) dur HhistOk $$ [$Hops]
+      wp_apply wp_CheckOperationsVerbose σ S m osl hs.flatten (DFrac.own 1) dur $$ [$Hops]
         as %r %info %Hr
-      · iframe #
+      · iframe #; ipureintro; exact HhistOk
       iapply HΦ
       ipureintro
       rcases checkResult_complete Hr Hlin with rfl | ⟨rfl, Hd⟩
