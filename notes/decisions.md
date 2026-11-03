@@ -30309,3 +30309,23 @@ The PR #46 work (branch `worktree-agent-ac37901483259dd26`, "Porcupine PR #46: t
 specified and verified in a part" above) merged into `lean` with the user's approval of its
 premises. Its two bug reports moved from `issues/` to `notes/pr-verify/porcupine-46.md`, as
 `issues/README.md` asks for bugs only in an unmerged pull request's code.
+
+## bbolt D22: one aligned OS page written all-or-nothing in-process (2026-11-03 · the user's decision)
+
+bbolt's `Tx.Commit` error post ("the commit took effect or it did not") and `fileHolds`' meta
+clauses need a failed meta write to leave the meta page either untouched or wholly new. OsFs's
+`pwrite` let a failed write leave any prefix. The spec rounds first stated a run restriction (P2:
+"no torn meta whose checksum happens to validate"), which turned out to remove no Linux execution
+and was not the collision premise it was described as. The user chose instead to make the
+trusted model say what Linux does: a buffered `pwrite` within one aligned OS page writes all of
+it or nothing in-process (`generic_perform_write` copies a page-sized range into one page-cache
+folio; its failures come before the copy, and a short copy is retried within the page; a fatal
+signal in between is a crash). The environment hypothesis it needs, approved with it:
+**`RLIMIT_FSIZE` unlimited or a multiple of the OS page size** (Linux shortens a write crossing
+the limit, and Go ignores `SIGXFSZ`). Landed in `GooseLang/Ext/OsFs/Impl.lean` (`PWriteFinish`,
+the header's soundness discipline and environment), `Write.lean` (`wp_osPWriteFinish`'s post),
+`Spec/os/File__WriteAt.lean` (`off % osPageSize = 0 ∧ data.length ≤ osPageSize → j = 0 ∨ j =
+data.length`, whatever `err`) and `Tests.lean`. No axiom changes (the extension's rules are
+definitions); every result over the extension claims what it claimed. The crash relation is
+unchanged (a torn page on disk after a crash stays possible). `notes/osfs-ext-plan.md`, D9;
+`notes/bbolt-spec-decisions.md`, D22.

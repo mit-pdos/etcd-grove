@@ -12,7 +12,10 @@ After it, the file is as a write of the first `j` bytes of `b` left it (each att
 from the start, and a failed one may have written a prefix): its size `pwSize m.size off j`, the
 bytes of the range `pwBytes` (the zero gap past the old end, then `b`'s first `j` bytes, then the
 old bytes), not clean. On success `j = n` and the result is `(n, nil)`; on failure, `(0, err)`
-with a non-nil `err`. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
+with a non-nil `err`. A write within one aligned OS page (`off % osPageSize = 0`, at most
+`osPageSize` bytes) wrote all of `b` or nothing, whatever it returns (`j = 0 ∨ j = n`: OsFs's
+all-or-nothing in-page `pwrite`, bbolt D22; each attempt writes `0` or all of the same data, and
+`j` is the largest of them). Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -53,6 +56,7 @@ abbrev os.File.WriteAt.spec : Prop :=
       ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat),
         ⌜j ≤ data.length ∧
           ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
+          (off.toNat % osPageSize = 0 ∧ data.length ≤ osPageSize → j = 0 ∨ j = data.length) ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
         osMeta d.path (DFrac.own q) (some { m with size := pwSize m.size off.toNat j, hi := h }) ∗

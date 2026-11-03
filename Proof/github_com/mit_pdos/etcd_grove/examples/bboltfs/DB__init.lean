@@ -140,7 +140,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %Hres, Hm, Hw, Hc⟩
   · rw [hw00, Nat.zero_min]; iframe Hf Hm Hw Hc Hfirst Hfd; iframe #
   rw [hw00, Nat.zero_min] at *
-  obtain ⟨hj, hys, hh, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, hh, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -244,7 +244,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       (by omega) (by omega) he2 (fun _ => rfl) $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
     as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Hw, Hc⟩
   · rw [hm4]; iframe Hf Hm HbW Hc Hbuf1 Hfd; iframe #
-  obtain ⟨hj2, hys2, hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨hj2, hys2, hh2, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · cases err2 with
     | nil => exact absurd rfl hne2
@@ -345,7 +345,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %h3, %Hres3, Hm, Hw, Hc⟩
   · rw [hw0z, Nat.zero_min]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
   rw [hw0z, Nat.zero_min] at *
-  obtain ⟨hj3, hys3, hh3, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
+  obtain ⟨hj3, hys3, hh3, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
   rotate_left
   · cases err3 with
     | nil => exact absurd rfl hne3

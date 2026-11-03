@@ -55,7 +55,7 @@ theorem osStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : O
   · obtain ⟨_, _, _, _, _, -, -, -, -, -, -, hs⟩ := hs
     rcases hs with rfl | ⟨_, _, -, -, rfl⟩ <;> rfl
   · obtain ⟨_, _, _, _, _, -, -, -, -, -, rfl⟩ := hs; rfl
-  · obtain ⟨_, _, _, _, _, _, _, -, -, -, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, _, _, _, _, _, -, -, -, -, -, -, -, rfl⟩ := hs; rfl
   · obtain ⟨_, _, _, -, -, -, -, hs⟩ := hs
     rcases hs with rfl | ⟨_, -, rfl⟩ <;> rfl
   · obtain ⟨_, _, _, _, -, -, -, -, -, -, -, rfl⟩ := hs; rfl

@@ -46,8 +46,10 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   -- the invariant: the file as a write of the first `j` bytes left it
   have hm0 : m = { m with size := pwSize m.size off.toNat 0, hi := m.hi } := by
     simp [pwSize]
-  generalize hj0 : (0 : Nat) = j
+  obtain ⟨j, hj0⟩ : ∃ j : Nat, (0 : Nat) = j := ⟨_, rfl⟩
   have hj : j ≤ data.length := by omega
+  have hal : off.toNat % osPageSize = 0 ∧ data.length ≤ osPageSize → j = 0 ∨ j = data.length :=
+    fun _ => .inl hj0.symm
   have hys : xs.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst := by
     rw [← hj0, pwBytes_zero _ _ _ _ hxl]
   have hh : m.hi ≤ m.hi := Nat.le_refl _
@@ -69,7 +71,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   replace hh : m.hi ≤ h := by omega
   clear hhe
   clear hj0
-  iloeb as IH generalizing %j %ys %h %hj %hys %hh Hm Hbs Hc Hosfd Hsl Hfd HΦ
+  iloeb as IH generalizing %j %ys %h %hj %hal %hys %hh Hm Hbs Hc Hosfd Hsl Hfd HΦ
   -- one attempt
   wp_auto
   have hslz : sint.Z sl.len = data.length := by
@@ -117,7 +119,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     { m with size := pwSize m.size off.toNat j, hi := h }
     (ys.drop (min off.toNat (pwSize m.size off.toNat j) - min off.toNat m.size))
     CoPset.subseteq_top $$ Hinv Ht as %k %e %hke Hm Hbs2 Hc2
-  obtain ⟨hk, hke⟩ := hke
+  obtain ⟨hk, hke, hkal⟩ := hke
   -- the file as a write of the first `max j k` bytes left it
   ihave Hm := (show osMeta (GF := GF) d.path (DFrac.own q)
       (some { pwMeta { m with size := pwSize m.size off.toNat j, hi := h } off.toNat data.length with
@@ -146,11 +148,14 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   · iframe
   have hys' := pwBytes_retry m.size off.toNat data j k xs ys hj hk hxl hys
   have hj' : max j k ≤ data.length := by omega
+  have hal' : off.toNat % osPageSize = 0 ∧ data.length ≤ osPageSize →
+      max j k = 0 ∨ max j k = data.length := fun hc => by
+    rcases hal hc with h1 | h1 <;> rcases hkal hc with h2 | h2 <;> omega
   have hh' : m.hi ≤ max h (off.toNat + data.length) := by omega
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %(max j k) %_ %(max h (off.toNat + data.length)) %hj' %hys' %hh' Hm Hbs Hc Hosfd
+    iapply IH $$ %(max j k) %_ %(max h (off.toNat + data.length)) %hj' %hal' %hys' %hh' Hm Hbs Hc Hosfd
       Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
@@ -165,7 +170,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
       iframe
       isplitl []
       · isplitl [] <;> iassumption
-      · ipureintro; exact ⟨hj', hys', hh', .inl ⟨by omega, hsln, rfl⟩⟩
+      · ipureintro; exact ⟨hj', hys', hh', hal', .inl ⟨by omega, hsln, rfl⟩⟩
     · have he0' : ¬ e = W64 0 := he0
       by_cases hkl : W64 0 + W64 ↑k = sl.len
       · rw [decide_eq_true hkl]
@@ -180,7 +185,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hh', hal', .inr ⟨rfl, by intro h; cases h⟩⟩
       · rw [decide_eq_false hkl]
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
@@ -191,7 +196,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hh', hal', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 
