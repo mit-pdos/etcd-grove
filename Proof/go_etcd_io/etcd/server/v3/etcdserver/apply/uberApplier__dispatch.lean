@@ -629,7 +629,8 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe H0
       isplitl [Hans]
       · iexact Hans
-      iexact HlE
+      iframe HlE
+      ipureintro; exact Hst.2.1.mp
     isplitl []
     · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]

@@ -415,6 +415,79 @@ theorem applyResultIs_notNoSpace_M (rq : apply.IRRModel) (x x' : apply.ApplyKV) 
     iapply apply.result_err_ro
     iexact Hvv
 
+/-- **A lessor's error is not `ErrNoSpace`'s** (the lease-grant plan's amendment (E)): the lessor's
+three error variables hold leaf errors (`leaseInit`'s `leaseErrVar`s) apart from `ErrNoSpace`'s
+(`applyErrVars`). -/
+theorem lessorErrIs_notNoSpace (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      go_etcd_io.etcd.server.v3.lease.leaseInit -∗ lease.lessorErrIs err -∗ notNoSpaceErr err := by
+  iintro #Hv #Hli #Hle
+  iunfold lease.lessorErrIs at Hle
+  icases Hle with ⟨%g, %e, %hg, #He, %heq⟩
+  icases Hv with ⟨-, -, -, #LNF, -, -, -, #ANF, -, -, -, #AEx, #ATL⟩
+  icases Hli with ⟨#VNF, #VEx, #VTL, -⟩
+  rcases hg with rfl | rfl | rfl
+  · iapply errVarIs_notNoSpace _ err $$ LNF ANF
+    iexists e; iframe He; ipureintro; exact heq
+  · iapply errVarIs_notNoSpace _ err $$ [] AEx
+    · unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk
+      iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at VEx
+      iexact VEx
+    iexists e; iframe He; ipureintro; exact heq
+  · iapply errVarIs_notNoSpace _ err $$ [] ATL
+    · unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk
+      iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at VTL
+      iexact VTL
+    iexists e; iframe He; ipureintro; exact heq
+
+/-- **`apply.Apply`'s result for a grant** (given back; the lease-grant plan's amendment (E) and
+the tie of `grantRes`): `nil`, or its `Err` is not `ErrNoSpace`'s, when the dispatched outcome is
+applied (then `Err` is `nil`) or the backend's rejection (then the lessor's error). A separate
+lemma from `applyResultIs_notNoSpace_M`, as `applyResultIs` holds no grant fact: the answer is
+`Apply`'s `grantResA`. The outcome premise `ho` is the caller's. -/
+theorem applyResultIs_notNoSpace_grant (E : apply.AEnv GF) (rq : apply.IRRModel)
+    (x x' : apply.ApplyKV) (ar : Loc) (out : apply.ApplyOut) (hg : apply.grantKindOk rq)
+    (ho : ∀ o sk, out = .dispatched o sk →
+      (∃ l ns, o = .applied l ns) ∨ o = .rejected .backend)
+    (hs : apply.applyStep rq true x x' out) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      go_etcd_io.etcd.server.v3.lease.leaseInit -∗
+      apply.grantResA E rq out ar -∗ apply.applyResultIs rq true x.log ar out -∗
+      apply.grantResA E rq out ar ∗ apply.applyResultIs rq true x.log ar out ∗
+      (⌜ar = null⌝ ∨ ∃ err : GoInterface,
+        structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
+        notNoSpaceErr err) := by
+  obtain ⟨hk, hna, hns, -⟩ := hg
+  iintro #Hv #Hli Hg H
+  cases out with
+  | skipped => exact absurd hs.1 (by rw [hns]; decide)
+  | rejected => exact absurd hs.1 (by rw [hna]; decide)
+  | dispatched o skip =>
+    have hoo := ho o skip rfl
+    simp only [apply.applyResultIs, apply.dispatchResult, _root_.or_true, ↓reduceIte]
+    icases H with ⟨%hnn, %v, #Hvv, Hans, #HeI⟩
+    simp only [apply.grantResA]
+    unfold apply.grantRes
+    rw [if_pos ⟨hk, hnn⟩]
+    icases Hg with ⟨%v', #Hvv', Hga, Hwb, %Hap⟩
+    icombine Hvv Hvv' gives %Hvv''
+    subst Hvv''
+    ihave ⟨Hwb, #Hn⟩ : iprop((⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs v.Err') ∗
+        notNoSpaceErr v.Err') $$ [Hwb]
+    · rcases hoo with ha | hb
+      · iframe Hwb; rw [Hap ha]; iunfold notNoSpaceErr; ileft; ipureintro; rfl
+      · ihave #HL := Hwb $$ %hb
+        isplitl []
+        · iintro -; iexact HL
+        iapply lessorErrIs_notNoSpace $$ Hv Hli HL
+    isplitl [Hga Hwb]
+    · iexists v; iframe Hvv Hga Hwb; ipureintro; exact Hap
+    isplitl [Hans]
+    · isplitr
+      · ipureintro; exact hnn
+      iexists v; iframe Hvv Hans HeI
+    iright; iexists v.Err'; iframe Hn; iapply apply.result_err_ro; iexact Hvv
+
 end nospace
 
 end EtcdGrove

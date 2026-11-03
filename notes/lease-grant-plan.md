@@ -1378,6 +1378,91 @@ grant case; the rest of commit 4 (`kvInv` at `plainLogM γk.cmp γk.lg`, `reqPro
 `EtcdServer.LeaseGrant.wp_proof`); commit 5's rest (the Lease service's grant/listing handlers at
 the lessor's history, `kv_lease_served lg`, `alloc1 true`, `leasegrant.Main.wp_proof`).
 
+**Commit 4e: `grantRes`'s applied tie and the grant's `ErrNoSpace` lemma** (2026-11-03, a full
+build with the checks). The user's decision superseding (E'): `grantRes` (`InvUber.lean`) gains
+`⌜(∃ l ns, o = .applied l ns) → v.Err' = nil⌝` after (E)'s wand, proved in `dispatch`'s grant arm
+from `grantPost`'s tie (`Hst.2.1.mp`); `grantArM_of_res`' pattern drops it (`-`). In
+`ApplyCmpArm.lean`: `lessorErrIs_notNoSpace` (a lessor error is not `ErrNoSpace`'s: `leaseInit`'s
+`leaseErrVar`s give the leaves, `applyErrVars`' three `errVarApart`s the difference) and
+`applyResultIs_notNoSpace_grant` (the separate lemma taking `grantResA`, for a request of
+`grantKindOk`: skipped and rejected refuted, the dispatched result's `Err` is `nil` or not
+`ErrNoSpace`'s), **with the outcome as a premise** `ho : ∀ o sk, out = .dispatched o sk → (∃ l ns, o
+= .applied l ns) ∨ o = .rejected .backend`, because nothing gives it (the problem below).
+Mechanical: the lemma takes `leaseInit` (the lessor's error variables' leaf facts; `applyErrVars`
+has `errVarLeaf` of `ErrLeaseNotFound` only), which `applyEntryNormal` gets by `iPkgInit`.
+
+**The problem: at the start's chain nothing says a grant's outcome is applied or the backend's
+rejection** (found 2026-11-03; stops `applyEntryNormal`'s grant arm, hence the rest of commit 4:
+the KV invariant at `plainLogM γk.cmp γk.lg`, which lets a grant entry reach `applyEntryNormal`,
+`reqPropOk`'s grant disjunct, `kv_prop_au_grant`, `EtcdServer.LeaseGrant.wp_proof`).
+- *What.* (E) and the user's decision say "at the start's chain `dispatchStep` gives applied (so
+  `err = nil`) or `.rejected .backend` (so `lessorErrIs err`)". False of the model: a grant is not a
+  `storeKind` (`apply/InvUber.lean:57`), so `dispatchStep c rq true log o` (`InvUber.lean:70-73`) at
+  a grant is only `o.logAfter log = log`; `dispatch`'s grant arm proves exactly that
+  (`uberApplier__dispatch.lean`, the `LeaseGrant` arm, `exact hlog`) and drops the triple's
+  `chainStep backendStep c rq log o` (`grantPost`'s `Hst.1`). `Apply.spec`'s other grant facts do
+  not fill the gap: `grantOutOkA` ties only `applied ↔ grantGoes ∧ grantIdsOk` (at the start's
+  chain: a non-applied outcome is `¬ grantIdsOk`, of any kind), `grantResA` gives an error fact
+  only at `applied` and `.rejected .backend`, and `chainClass`/`kvFloorOk` are silent. So for a
+  failed grant `applyEntryNormal` cannot rule out `.rejected .noSpace` (or `.corrupt`, `.auth`) and
+  has no fact on `ar.Err`: the `ErrNoSpace` branch (`server.go:1975`) stays open.
+- *Checked at every chain.* `grantPost`'s `chainStep backendStep c rq log o` is proved by all four
+  layers at every chain (capped: `.rejected .noSpace`; corrupt: `.rejected .corrupt`; quota and
+  backend: the backend's arm `applied log false ∨ rejected .backend`). So a `dispatchStep` that
+  states it for a grant is true at every chain; at the start's chain (`alarmChain false false
+  false`: auth off, quota, backend; `authChecks .leaseGrant = false`, `grantKindOk` excludes admin)
+  it gives `ho`.
+- *Options.*
+  (1) `dispatchStep`'s grant arm is the chain's: `else if storeKind (dispatchKind rq) = true ∨
+  dispatchKind rq = .leaseGrant then chainStep backendStep c rq log o` (`dispatchLog` and
+  `storeKind` unchanged: a grant still writes no log, `chainStep_grant_logAfter`). Proved in
+  `dispatch` by `Hst.1`; the text of `dispatch.spec`/`Apply.spec` is unchanged, their meaning
+  strengthened at a grant (`dispatchStep` sits in both posts and in `applyStep`). Then
+  `ho` is a pure lemma (`dispatchStep_start_grant`). **Recommended**: the model then says what the
+  triple already proves.
+  (1') The same by `storeKind .leaseGrant = true`: also moves `dispatchLog` (a grant's `chainLog`,
+  equal to the log, one lemma more); no gain over (1).
+  (2) `grantOutOk` (amendment (C)'s text) gains `∨`-arm `(∃ l ns, o = .applied l ns) ∨ (∃ k, o =
+  .rejected k ∧ (grantGoes c rq = true → k = .backend))` (pure, has `c`; true at every chain by the
+  same `chainStep`): a change to an amendment's text instead of the model.
+  (3) `grantRes` gains the outcome's kind: needs the chain as an argument (a larger change).
+
+**The problem: commit 5's handlers cannot meet `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` through
+the frozen handler specs** (found 2026-11-03, before any code; stops `kv_lease_served lg`, `alloc1
+true`'s use, `leasegrant.Main.wp_proof`).
+- *Grant.* `v3rpc.LeaseServer.LeaseGrant.spec` (frozen, D4's wire model) takes `raftLessor s E S`
+  (the grant and the revoke contracts, `InvLease.lean:155`) and posts `leaseGrantOut`, which has no
+  lessor fact. `etcdLeaseGrantSpec γl` needs the reply's `∃ i, leaseGrantedAt γl i m.id`, which only
+  `lessorGrantOkL`'s post carries (`InvLeaseGrant.lean:41`); the handler spec drops it, and its
+  `raftLessor` premise also asks for `lessorRevokeOk`, which a granting cluster has no proof of
+  (revocations are out, `rqOk E.lg`). A frame through the run slot `S` does not help (`S` cannot
+  name the response). Options: (a) the handler spec over the grant contract alone with a success
+  fact parameter (`lessorGrantOkG s E S G`: `lessorGrantOk`'s post `∗ (⌜err ≠ nil⌝ ∨ ∃ id, ID ↦□ id
+  ∗ G id)`, the post passing `G id` on; `raftLessor`'s conjunct at `G := True`, `lessorGrantOkL` at
+  `G id := ∃ i, leaseGrantedAt E.γ.leases i id`): a frozen text change, **recommended**; (b) a
+  second spec of `LeaseServer.LeaseGrant` at `lessorGrantOkL` (S6's one-spec rule); (c) re-run the
+  handler's code (94 lines of proof) inside the served lemma (outside the spec/proof layout).
+- *Listing.* `v3rpc.LeaseServer.LeaseLeases.spec` (frozen) posts `leaseLeasesOut`, whose second arm
+  (the server's `ErrLeaseNotFound` turned into an empty listing, `InvLeaseRead.lean:162-170`) cannot
+  be refuted: the contract's error arm (`leasesAns`, from `EtcdServer.LeaseLeases.spec`'s) is any
+  `applyErrIs err`. `etcdLeaseLeasesSpec γl` with a non-empty `G` is then unprovable at that arm.
+  (The `m` bound is fine: the handler proof can take `lessorLb γl m` from `G`'s grants,
+  `leaseGrantedAt_lb`, and call the spec at that `m`.) Options: (a) `EtcdServer.LeaseLeases.spec`'s
+  (and `leasesAns`') error arm excludes `ErrLeaseNotFound` (an error variable apart, as
+  `applyErrVars` does for `ErrNoSpace`), or exists only with auth on (Go: `LeaseLeases` errs only
+  through `checkLeaseLeases`, which returns `nil` with auth off, `v3_server.go:737-756`; a granting
+  cluster has auth off, `srvGrantsLeases`), so `LeaseServer.LeaseLeases`' proof refutes the empty
+  arm there; **recommended** (the auth errors are already apart from the lessor's: `authErrsApart`
+  is of `ErrNoSpace`, so the first form needs one more fact, the second none); (b) `leaseLeasesOut`'s empty arm kept and `etcdLeaseLeasesSpec` weakened
+  to allow an empty reply (a frozen client spec; the example's `Leases` check would fail).
+
+**Where the plumbing stopped** (2026-11-03, after 4e): left, waiting on the two problems above: the
+rest of commit 4 (`kvInv` at `plainLogM γk.cmp γk.lg`, `reqPropOk`'s grant disjunct,
+`kv_prop_au_grant`: still on `lease-grant-4-wip`, which predates 4a and is kept; M1's lemmas at
+`lg`; `applyEntryNormal`'s grant arm, which needs `ho` for `applyResultIs_notNoSpace_grant`;
+`EtcdServer.LeaseGrant.wp_proof`) and commit 5's rest (the handlers at `etcdLeaseGrantSpec`/
+`etcdLeaseLeasesSpec`, `kv_lease_served lg`, `alloc1 true`, `leasegrant.Main.wp_proof`).
+
 **`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
 argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's
 index holds a record for exactly each id of the committed table (TTLs as each granting member
