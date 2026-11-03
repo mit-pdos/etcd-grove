@@ -2319,7 +2319,7 @@ replaced by the restorable `compactRightR s γ c`, `InvCompact.lean`: M2, the st
 approval's item 17, 2026-10-30.) -/
 
 /-- The invariant's name of a frozen compaction revision. -/
-abbrev crevFrozenN : Namespace := nroot.@"mvcc_crevFrozen"
+abbrev crevFrozenN : Namespace := (nroot .@ "mvcc") .@ "crevFrozen"
 
 /-- **No compaction, ever** (persistent): the compaction right at `-1`, given up into an
 invariant (its half of the revision's authority; the jobs' queue dropped), so the revision stays
@@ -2996,7 +2996,7 @@ instance storeRegd_persistent (s : Loc) (γ : StoreNames) :
   unfold storeRegd; cases γ.kb <;> simp only <;> infer_instance
 
 /-- **The write right's invariant's name** (question 5's core stage, part (1)). -/
-abbrev mwN : Namespace := nroot.@"mvcc_mw"
+abbrev mwN : Namespace := (nroot .@ "mvcc") .@ "mw"
 
 /-- **The write right's invariant** (the Draft's `mwInvW`; review round 15's N1/N3; persistent, in
 `physOk` through `physCmp` when the store compacts, allocated by `NewStore` after `restore` gives the
@@ -3063,7 +3063,7 @@ instance storeRegd_timeless (s : Loc) (γ : StoreNames) : Timeless (storeRegd (G
   unfold storeRegd; split <;> infer_instance
 
 /-- The registration's invariant's name. -/
-abbrev regN : Namespace := nroot.@"mvcc_reg"
+abbrev regN : Namespace := (nroot .@ "mvcc") .@ "reg"
 
 /-- **The store's registration in its backend, done or pending** (persistent; D22 receiver epochs,
 S6, 2026-10-22; an invariant since M2's item 15, 2026-11-02): the store `(s, γ)` registered in its
@@ -3208,7 +3208,7 @@ theorem storeW_register (s : Loc) (γ : StoreNames) :
       cases Hc
 
 /-- The writer's invariant's name. -/
-abbrev writerN : Namespace := nroot.@"mvcc_writer"
+abbrev writerN : Namespace := (nroot .@ "mvcc") .@ "writer"
 
 /-- **The writer's invariant** (persistent; D22 receiver epochs, S2, 2026-10-22): the writer's
 state checked in, or the batch lock's key with a reader's part of `s.mu`'s deposit ghost (a writer,
@@ -4277,7 +4277,7 @@ it has a slot out. -/
 def wsDep (γ : StoreNames) : IProp GF := ghostVar γ.wsd 1 ()
 
 /-- The readers' pool's invariant name. -/
-abbrev poolN : Namespace := nroot.@"mvcc_readers"
+abbrev poolN : Namespace := (nroot .@ "mvcc") .@ "readers"
 
 /-- **The readers' pool** (D22 receiver epochs, S4, 2026-10-22: until then each reader held its slot
 of the index's lock for good, `storeReaderC`, so a restore, which builds a new index, could not

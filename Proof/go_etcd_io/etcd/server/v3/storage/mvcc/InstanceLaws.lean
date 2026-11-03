@@ -75,7 +75,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The write-back supply's invariant name (`kbWTSupplyM_alloc`). -/
-abbrev wtSupplyN : Namespace := nroot.@"mvcc_wtSupply"
+abbrev wtSupplyN : Namespace := (nroot .@ "mvcc") .@ "wtSupply"
 
 /-- **The write-back supply from a stock** (Probe S1; persistent): `n` write-back tokens of the real
 backend `d`, under `receiptBound GF ≤ n + 1`, make the compaction's supply (`kbWTSupplyM`: a token for

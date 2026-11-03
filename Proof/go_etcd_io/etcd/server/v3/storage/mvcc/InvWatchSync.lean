@@ -87,10 +87,10 @@ abbrev wsWgAddr (s : Loc) : Loc := structFieldRef watchableStore go!"wg" s
 end addrs
 
 /-- The namespace of the store's wait group (Perennial's `isWaitGroup`). -/
-def wsWgWGN : Namespace := nroot.@"mvccWaitGroup"
+def wsWgWGN : Namespace := (nroot .@ "mvcc") .@ "waitGroup"
 
 /-- The namespace of the store's wait-group counter invariant (`wsWgInv`). -/
-def wsWgN : Namespace := nroot.@"mvccWgCounter"
+def wsWgN : Namespace := (nroot .@ "mvcc") .@ "wgCounter"
 
 section reprs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -144,10 +144,10 @@ def wsCloser (s st : Loc) (γs : StoreNames) : IProp GF :=
     storeCloser st γs)
 
 theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
-  sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "waitGroup" "wgCounter" (by decide)
 
 theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
-  sync.wg_mask_ndot_ne nroot "mvccWgCounter" "mvccWaitGroup" (by decide)
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "wgCounter" "waitGroup" (by decide)
 
 /-- `s.wg.Done()` with a done token. -/
 theorem wp_wsDone (s : Loc) :

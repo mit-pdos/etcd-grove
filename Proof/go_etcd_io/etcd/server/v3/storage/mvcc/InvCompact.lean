@@ -185,7 +185,7 @@ invariant free (leased or reclaimed would make the run token more than whole) an
 the other two the run token's fractions, which the running job or the stopper holds. -/
 
 /-- The jobs' invariant's name. -/
-abbrev jobFieldsN : Namespace := nroot.@"mvcc_jobFields"
+abbrev jobFieldsN : Namespace := (nroot .@ "mvcc") .@ "jobFields"
 
 /-- An eighth (the closer's quarter, halved). -/
 abbrev q8 : Qp := (1 : Qp).half.half.half

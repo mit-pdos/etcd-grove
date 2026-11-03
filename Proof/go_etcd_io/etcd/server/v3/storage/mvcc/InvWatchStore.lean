@@ -279,7 +279,7 @@ abbrev victimsAddr (s : Loc) : Loc := structFieldRef watchableStore go!"victims"
 end addrs
 
 /-- The channel invariants' namespace. -/
-def watchN : Namespace := nroot.@"mvccwatch"
+def watchN : Namespace := (nroot .@ "mvcc") .@ "watch"
 
 /-! ## The store's state record -/
 
@@ -1450,7 +1450,7 @@ theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
 
 /-! ### The watch tokens backed by time receipts (D19b's method, 2026-10-18) -/
 
-def watchTokN : Namespace := nroot .@ "mvcc.watchTok"
+def watchTokN : Namespace := (nroot .@ "mvcc") .@ "watchTok"
 
 /-- **The watch-token pool** (persistent): an invariant holding, for the `a` tokens taken so
 far, `a` time receipts, and the `n` tokens left, with `receiptBound GF ≤ a + n + 1`. A token
