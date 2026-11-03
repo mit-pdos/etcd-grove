@@ -166,6 +166,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrValueTooLarge))
   -- translated initializer of ErrIncompatibleValue))
   -- translated initializer of discardLogger))
+  try wp_auto
+  wp_alloc lg as Hlg
+  try wp_auto
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrIncompatibleValue))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrValueTooLarge))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrKeyTooLarge))
