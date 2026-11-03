@@ -89,7 +89,7 @@ theorem newRaftNode.wp_proof :
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
-      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half)) _ stc γst (by trivial)
+      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩

@@ -32,11 +32,15 @@ unit 4c), and (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrow
 #3) the `MemoryStorage`'s invariant, for a snapshot `Ready`'s `ApplySnapshot`. -/
 abbrev raftNode.start.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
+  -- (2026-11-03, R2b-1 stage 4) the WAL's writes not failing (I/O: a failed `Save`, the user's
+  -- choice), as `SaveSnap`'s
+  storage.walSaveOk →
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) `onStop`'s `Close` not failing (I/O)
   storage.walCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗ E.S ∗
-      -- (2026-10-31) the loop's half of the WAL's open token (its `Save`s, `onStop`'s `Close`)
-      rnWalTok r (1 : Qp).half ∗
+      -- (2026-10-31) the loop's half of the WAL's open token (its `Save`s, `onStop`'s `Close`);
+      -- (2026-11-03, R2b-1 stage 6) with the stop's claim, the metadata and the purge's right
+      rnWalTokL γ r ∗
       -- (2026-10-31, #3) the `MemoryStorage`'s invariant and its stored snapshot's index at least
       -- `0` (a snapshot `Ready`'s `ApplySnapshot`)
       (letI : MemStorReg GF := ⟨γ.reg⟩; memStorInv γ.ms γ.γs γ.node.cl γ.key) ∗ memSnapLb γ.γs 0 }}

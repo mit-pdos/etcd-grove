@@ -237,6 +237,8 @@ structure ApplyCtx (GF : BundledGFunctors) where
   wt : GName
   /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
   ρ : ReqNames
+  /-- (2026-11-03, R2b-1 stage 5) the raft wrapper's names (its WAL's, `rnWalTokA`) -/
+  rn : RNNames
 
 /-- **The apply thread's current backend** (D22 receiver epochs, S7f, 2026-10-23): the protocol's
 names at its physical names, its batch lock's meta-keys resource, the apply environment on it and
@@ -267,7 +269,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
+    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
     -- index, which no proof read and a snapshot's jump breaks)
@@ -461,7 +463,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗

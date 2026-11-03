@@ -47,7 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.Ghost.MonoList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 
 @[expose] public section
 
@@ -1145,46 +1145,6 @@ instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
     Persistent (isRNMemStor (GF := GF) γ ms) := by
   unfold isRNMemStor; infer_instance
 
-/-- **The WAL `st`** (`serverstorage.Storage` over the WAL `w`, trust boundary: names-only; the
-contract `rnNewStorageOk`'s): while its WAL `w` (`storage.walOf st`) is open (some fraction of
-`storage.walOpen w`, which every storage over `w` shares), `Save` of a hard state and entries returns some error (on which the loop
-exits the process, `lg.Fatal`), `SaveSnap` of a snapshot's metadata whose conf state, index and term
-pointers are set (`smPtsV`: `walpb.ValidateSnapshotForWrite` rejects a nil index or term and a nil
-conf state at a non-zero index, `walpb/record.go:45-57`; 2026-10-31, approved by the user: until
-then over the model, the index and term non-zero, the conf state not the empty one, which nothing
-proved of the term) fails only on I/O (`storage.walSaveOk`), and `Sync` returns
-some error; `Close` takes the whole token and fails only on I/O (`storage.walCloseOk`; `onStop`
-panics otherwise). (2026-10-31, `notes/axiom-review/savesnap.md`: until then no token, `Close` at
-`True` always `nil`, `SaveSnap` over any metadata with any error.) -/
-def isRNWal (st : GoInterface) : IProp GF :=
-  letI w := storage.walOf st
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-        (es : List EntryModel),
-      {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es }}
-        (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q }}) ∗
-    □ ({{ storage.walOpen w 1 }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ storage.walCloseOk⌝ }}) ∗
-    -- (D22 J1a, 2026-10-26) `SaveSnap(snap)`: reads the snapshot's metadata (`snap.Metadata.Index`,
-    -- `.Term`, `GetConfState()`: the metadata pointer must be set) and writes the WAL's snapshot
-    -- record (`storage.go`: `st.w.SaveSnapshot`; at the pin it no longer writes a `.snap` file),
-    -- for the raft loop's snapshot branch and the apply thread's disk snapshot
-    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
-      {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          smPtsV mp dq' md }}
-        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
-          ⌜err = GoInterface.nil ∨ ¬ storage.walSaveOk⌝ }}) ∗
-    -- (D22 J1a) `Sync()`: syncs the WAL
-    □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; storage.walOpen w q }}))
-
-instance isRNWal_persistent (st : GoInterface) :
-    Persistent (isRNWal (GF := GF) st) := by
-  unfold isRNWal; infer_instance
-
 /-- (2026-10-31) **The wrapper `r`'s WAL open, at the fraction `q`**: the open token
 (`storage.walOpen`) of the WAL of `r`'s storage. The raft loop holds a half, the apply thread the
 other (for its disk snapshot's `SaveSnap`), which `stopped` brings back to the loop for `Close`. -/
@@ -1238,6 +1198,22 @@ theorem rnWalTok_split (r : Loc) :
   isplitl [T1]
   · iexists st; iframe H T1
   · iexists st; iframe H T2
+
+/-- (2026-11-03, R2b-1 stage 5; review M3) **The apply side's share of the WAL** at the fraction `q`
+(its disk snapshot's `SaveSnap`): the open token's share, the apply thread's token `ν.app` (which
+rules out the stop's taken state), and the durability invariant; `run` gives it to the loop with
+`raftNode.stop` (`rnStopBag`). -/
+def rnWalTokA (γ : RNNames) (r : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen (storage.walOf st) q ∗
+    token γ.wal.app ∗ rnDurInv γ.wal (storage.walOf st))
+
+/-- (2026-11-03, R2b-1 stage 6) **The loop's share of the WAL**: half the open token, the stop's
+claim (`ν.stop`) and what `Close` takes besides the records (the member's metadata, the purge's
+right), from `bootstrap` (`wal.bootOk_start`), kept until `onStop`. -/
+def rnWalTokL (γ : RNNames) (r : Loc) : IProp GF :=
+  iprop(rnWalTok r (1 : Qp).half ∗ token γ.wal.stop ∗
+    ∃ (st : GoInterface) (id cid : w64), rnStorageAddr r ↦□ st ∗
+      walMetaIs (storage.walOf st) id cid ∗ walPurgeRight (walDirOf (storage.walOf st)))
 
 /-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
 raft may send, borrowing `E.S` (2026-10-24); `Stop` returns, taking `E.ST` (D43 M5c). -/
@@ -1341,7 +1317,9 @@ the loop's makes the whole `Close` takes (etcd closes the WAL only once the appl
 `server.go:819-831`). -/
 def rnStopBag (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-    storage.walOpen w (1 : Qp).half)))
+    storage.walOpen w (1 : Qp).half ∗
+    -- (2026-11-03, R2b-1 stage 6; review M3) the apply thread's WAL token, with its half
+    token γ.wal.app)))
 
 instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) :
     Persistent (rnStopBag E γ w c) := by
@@ -1456,6 +1434,26 @@ def ccIn [GooseExts] (ce : List EntryModel) : Bool := ce.any (fun m => decide (m
 repair: in every cluster; until then only in raft's dynamic mode.) -/
 def rnHands (_γ : RNNames) (ce : List EntryModel) : Bool := ccIn ce
 
+/-- (2026-11-03, R2b-1 stage 5) **The handed log is at least `n` long** (persistent): a committed log
+of length at least `n` the loop handed at a `Save` (`walCommitLb`); what the apply thread's own
+snapshot at an applied index `n` takes (the batch's `raftAdvancedC`, closed after the `Save`). -/
+def rnWalHanded (γ : RNNames) (n : Nat) : IProp GF :=
+  iprop(∃ l : List LogEntry, walCommitLb γ.wal l ∗ isCommittedLogLb γ.node.cl l ∗ ⌜n ≤ l.length⌝)
+
+instance rnWalHanded_persistent (γ : RNNames) (n : Nat) : Persistent (rnWalHanded (GF := GF) γ n) := by
+  unfold rnWalHanded; infer_instance
+
+/-- `rnWalHanded` at the server's log `L` handed at a `Save` (its lower bound, committed). -/
+theorem rnWalHanded_intro (γ : RNNames) (L : List EntryModel) :
+    walCommitLb (GF := GF) γ.wal (srvLE γ.srv L) -∗ isCommittedLogLb γ.node.cl (srvLE γ.srv L) -∗
+      rnWalHanded γ (γ.pre ++ L).length := by
+  iintro #Hlb #Hc
+  iunfold rnWalHanded
+  iexists srvLE γ.srv L
+  iframe Hlb Hc
+  ipureintro
+  simp [srvLE, RNNames.srv]
+
 /-- (D43 M3) What the apply thread's `notifyc` receive deposits: the view after the batch, if it
 went along. -/
 def rnApR (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
@@ -1490,7 +1488,10 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
         srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1) ∗
         -- (2026-10-31, the snapshot track: #11's S3) with their terms
-        srvFrozenTerms γ.γs (γ.pre.length + 1) (F ++ ce))) ∗
+        srvFrozenTerms γ.γs (γ.pre.length + 1) (F ++ ce) ∗
+        -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save` (`Advance` is after
+        -- it), which the apply thread's own snapshot takes
+        rnWalHanded γ (γ.pre ++ F ++ ce).length)) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
     rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
@@ -1529,7 +1530,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
-      srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) ∗
+      srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length ∗
+      -- (2026-11-03, R2b-1 stage 5) the snapshot's log handed at its WAL `Save`
+      rnWalHanded γ (γ.pre ++ A').length) ∗
     committedAtLeast E.γr sv.Metadata'.Index' ∗
     rnRtOk γ ap.raftTerm' (rnLogOf γ A').length)
 
@@ -1582,12 +1585,19 @@ instance isRNApplyc_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
     Persistent (isRNApplyc E γ c) := by
   unfold isRNApplyc; infer_instance
 
+/-- (2026-11-03, R2b-1 stage 4) **The loop's view of the WAL's durability** at `v` (its half of the
+view, `rnDurInv`'s the other), with its "not stopped" token (`ν.ok`). -/
+def rnWalView (γ : RNNames) (v : WalView) : IProp GF :=
+  iprop(ghostVar γ.wal.view (1 : Qp).half v ∗ token γ.wal.ok)
+
 /-- The loop's ghost state: the driver at the node's delivered log `L`, `applyc`'s producer
 half, and `cum`'s authority, one element per payload sent after the first, ending at `L`; and
 (2026-10-30, the repair) the loop's half of the node's running token. -/
 def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   iprop(∃ (sent : List toApply) (cums : List (List EntryModel)) (S : RaftState),
-    rnDrv γ L p S ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
+    rnDrv γ L p S ∗
+    -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL's durability, at the driver's state
+    rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
     ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
     ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝ ∗
@@ -1638,7 +1648,9 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hn" ∷ rnNodeAddr r ↦□ n ∗ "#Hni" ∷ isRaftNodeIfc E γ n ∗
     "#Hidr" ∷ rnIsIDRemovedAddr r ↦□ idr ∗ "#Hidri" ∷ isRNIDRemoved idr ∗
     "#Hms" ∷ rnRaftStorageAddr r ↦□ ms ∗ "%Hmsγ" ∷ ⌜ms = γ.ms⌝ ∗ "#Hmsi" ∷ isRNMemStor γ ms ∗
-    "#Hst" ∷ rnStorageAddr r ↦□ st ∗ "#Hsti" ∷ isRNWal st ∗
+    "#Hst" ∷ rnStorageAddr r ↦□ st ∗ "#Hsti" ∷ isWalStorage st ∗
+    -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
+    "#Hdur" ∷ rnDurInv γ.wal (storage.walOf st) ∗
     "#Hhb" ∷ rnHeartbeatAddr r ↦□ hb ∗
     "#Htr" ∷ rnTransportAddr r ↦□ tr ∗ "#Htri" ∷ isRNTransport E tr ∗
     "#Hmsc" ∷ rnMsgSnapCAddr r ↦□ msc ∗

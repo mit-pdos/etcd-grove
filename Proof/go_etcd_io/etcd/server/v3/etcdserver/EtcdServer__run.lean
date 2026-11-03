@@ -878,7 +878,7 @@ theorem EtcdServer.run.wp_proof
   ihave #Hmsinv0 : (letI : MemStorReg GF := ⟨γn.reg⟩; memStorInv γn.ms γn.γs γn.node.cl γn.key)
     $$ []
   · iExactEq Hmsinv; rw [← Hmsγ]
-  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.2
+  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.1 Hdisk.2.2.2
     $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn Hmsinv0 Hslb0; iframe
   (try wp_auto)
@@ -934,7 +934,7 @@ theorem EtcdServer.run.wp_proof
   icases Henv' with ⟨-, %Hnm, %Hmd, -⟩
   have Hpre0 : uint.Z ai₀ = (γn.pre.length : Int) := by
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
-  ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
+  ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
         HKV Hao Hkr HRS HAR Hwth Hso]
   · iunfold applyRes
@@ -971,8 +971,8 @@ theorem EtcdServer.run.wp_proof
   ihave HI : iprop(∃ (A : List EntryModel) (Ps : List GName) (pl : GName) (Q R : IProp GF),
       "Happly" ∷ rnApplyTok γn A ∗ "Hq" ∷ schedule.schedQueue γs (Ps ++ [pl]) ∗
       "#Hpl" ∷ schedule.savedProp pl Q ∗ "HR" ∷ R ∗
-      "#HQR" ∷ □ (Q ∗ R -∗ applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))) $$ [Happly Hq HR0 Hrunh]
-  · iexists [], [n₀], p₀, iprop(True), iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ [] ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))
+      "#HQR" ∷ □ (Q ∗ R -∗ applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))) $$ [Happly Hq HR0 Hrunh]
+  · iexists [], [n₀], p₀, iprop(True), iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ [] ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))
     simp only [List.cons_append, List.nil_append, List.length_nil, Nat.sub_zero]
     iframe
     iframe Hp0
@@ -1039,10 +1039,10 @@ theorem EtcdServer.run.wp_proof
       ihave #HC'' := HC'
       iunfold srvC at HC''
       icases HC'' with ⟨-, -, #Hlbr⟩
-      imod (schedule.savedProp_alloc iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
+      imod (schedule.savedProp_alloc iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
         with ⟨%post, #Hpost⟩
       wp_apply hNJ γs _ _ iprop(R ∗ notifyRcvN γnc 0) Q
-          iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
+          iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
       · iframe #
         iunfold schedule.jobFnSpec
         iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc⟩, HQ, -, -⟩ HΦj
@@ -1051,7 +1051,7 @@ theorem EtcdServer.run.wp_proof
         wp_auto
         wp_bind (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll"))
           (Val #ep_ptr)) (Val #ap_ptr))
-        iapply (run_job_snap hAA.2 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A A' ap_ptr apv.entries' apv.snapshot' sv
+        iapply (run_job_snap hAA.2 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A A' ap_ptr apv.entries' apv.snapshot' sv
           apv.raftAdvancedC' apv.notifyc' γs γnc γn apv.raftTerm' ha0 Hc0a.1 hp0 hgn hρC
           (by rw [← hρC, hρ]; exact Hnm.2.1) rfl rfl hlt hlenA h61 hboot) $$ [Hrun Hres Hnrc]
         · iframe #
@@ -1062,7 +1062,7 @@ theorem EtcdServer.run.wp_proof
         iapply HΦj
         iframe
       wp_apply hSch sci γs j iprop(R ∗ notifyRcvN γnc 0) Q
-          iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
+          iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
         $$ [HR Hnrc Hq] as Hq
       · iframe #
         iframe
@@ -1074,7 +1074,7 @@ theorem EtcdServer.run.wp_proof
       (try wp_auto)
       wp_for_post
       iframe
-      iexists A', Ps ++ [pl], post, iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
+      iexists A', Ps ++ [pl], post, iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
       simp only [List.append_assoc, List.cons_append, List.nil_append]
       iframe
       iframe #
@@ -1126,10 +1126,10 @@ theorem EtcdServer.run.wp_proof
     ihave #Hbc : iprop(batchCommittedIdx γr ce) $$ []
     · rw [← HEγr]
       iapply batchCommittedIdx_of_last Er.γr ai₀ A ce hidx $$ Hcl
-    imod (schedule.savedProp_alloc iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
+    imod (schedule.savedProp_alloc iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
       with ⟨%post, #Hpost⟩
     wp_apply hNJ γs _ _ iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
-        iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
+        iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
       iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -, -⟩ HΦj
@@ -1152,7 +1152,7 @@ theorem EtcdServer.run.wp_proof
           show uint.nat ai₀ + 1 = γn.pre.length + 1 by simp [hp0, ha0]]
         iexact Hrac
       have hgn : γr.raft.raft = γn.node := by rw [← HEγr, ← hρ]; exact hnd0
-      have hJ := run_job_body hAA.1 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce ap_ptr
+      have hJ := run_job_body hAA.1 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A ce ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs
         γn.key ha0 Hdisk γn apv.raftTerm' hgn.symm Hc0a.1
       ihave #Hmsinv' : (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩;
@@ -1171,7 +1171,7 @@ theorem EtcdServer.run.wp_proof
       iframe
     -- `sched.Schedule(f)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
     wp_apply hSch sci γs j iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
-        iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
+        iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
       $$ [HR Hnrc Hdv Hq] as Hq
     · iframe #
       iframe
@@ -1184,7 +1184,7 @@ theorem EtcdServer.run.wp_proof
     wp_for_post
     iframe
     iexists (A ++ ce), Ps ++ [pl], post,
-      iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
+      iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
     simp only [List.append_assoc, List.cons_append, List.nil_append]
     iframe
     iframe #
@@ -1479,7 +1479,7 @@ theorem EtcdServer.run.wp_proofOn
   ihave #Hmsinv0 : (letI : MemStorReg GF := ⟨γn.reg⟩; memStorInv γn.ms γn.γs γn.node.cl γn.key)
     $$ []
   · iExactEq Hmsinv; rw [← Hmsγ]
-  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.2
+  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.1 Hdisk.2.2.2
     $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn Hmsinv0 Hslb0; iframe
   (try wp_auto)
@@ -1535,7 +1535,7 @@ theorem EtcdServer.run.wp_proofOn
   icases Henv' with ⟨-, %Hnm, %Hmd, -⟩
   have Hpre0 : uint.Z ai₀ = (γn.pre.length : Int) := by
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
-  ihave HR0 : iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
+  ihave HR0 : iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
         HKV Hao Hkr HRS HAR HtokR Hwth Hso]
   · iunfold applyResOn
@@ -1572,8 +1572,8 @@ theorem EtcdServer.run.wp_proofOn
   ihave HI : iprop(∃ (A : List EntryModel) (Ps : List GName) (pl : GName) (Q R : IProp GF),
       "Happly" ∷ rnApplyTok γn A ∗ "Hq" ∷ schedule.schedQueue γs (Ps ++ [pl]) ∗
       "#Hpl" ∷ schedule.savedProp pl Q ∗ "HR" ∷ R ∗
-      "#HQR" ∷ □ (Q ∗ R -∗ applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))) $$ [Happly Hq HR0 Hrunh]
-  · iexists [], [n₀], p₀, iprop(True), iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ [] ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))
+      "#HQR" ∷ □ (Q ∗ R -∗ applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))) $$ [Happly Hq HR0 Hrunh]
+  · iexists [], [n₀], p₀, iprop(True), iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ [] ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half))
     simp only [List.cons_append, List.nil_append, List.length_nil, Nat.sub_zero]
     iframe
     iframe Hp0
@@ -1664,10 +1664,10 @@ theorem EtcdServer.run.wp_proofOn
     ihave #Hbc : iprop(batchCommittedIdx γr ce) $$ []
     · rw [← HEγr]
       iapply batchCommittedIdx_of_last Er.γr ai₀ A ce hidx $$ Hcl
-    imod (schedule.savedProp_alloc iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
+    imod (schedule.savedProp_alloc iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)))
       with ⟨%post, #Hpost⟩
     wp_apply hNJ γs _ _ iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
-        iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
+        iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
       iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -, -⟩ HΦj
@@ -1690,7 +1690,7 @@ theorem EtcdServer.run.wp_proofOn
           show uint.nat ai₀ + 1 = γn.pre.length + 1 by simp [hp0, ha0]]
         iexact Hrac
       have hgn : γr.raft.raft = γn.node := by rw [← HEγr, ← hρ]; exact hnd0
-      have hJ := run_job_bodyOn hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce
+      have hJ := run_job_bodyOn hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ A ce
         γa hM hRB ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs
         γn.key ha0 Hdisk γn apv.raftTerm' hgn.symm Hc0a.1
@@ -1710,7 +1710,7 @@ theorem EtcdServer.run.wp_proofOn
       iframe
     -- `sched.Schedule(f)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
     wp_apply hSch sci γs j iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
-        iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
+        iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) (some (Ps, pl, post))
       $$ [HR Hnrc Hdv Hq] as Hq
     · iframe #
       iframe
@@ -1723,7 +1723,7 @@ theorem EtcdServer.run.wp_proofOn
     wp_for_post
     iframe
     iexists (A ++ ce), Ps ++ [pl], post,
-      iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
+      iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)), iprop(True)
     simp only [List.append_assoc, List.cons_append, List.nil_append]
     iframe
     iframe #

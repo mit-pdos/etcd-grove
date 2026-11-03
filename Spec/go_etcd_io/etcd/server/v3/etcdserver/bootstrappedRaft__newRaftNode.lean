@@ -121,7 +121,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- (2026-10-30, the repair) the node's whole running token (`StartNode`'s)
         nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
-        isRNIDRemoved f ∗ isRNWal st ∗
+        isRNIDRemoved f ∗ isWalStorage st ∗
         -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
         -- over the WAL `wal`
         ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗

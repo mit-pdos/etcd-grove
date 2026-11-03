@@ -126,7 +126,9 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       isRaftNodeIfc E γ rv.raftNodeConfig'.Node' ∗
       isRNIDRemoved rv.raftNodeConfig'.isIDRemoved' ∗
       ⌜rv.raftNodeConfig'.raftStorage' = γ.ms⌝ ∗ isRNMemStor γ γ.ms ∗
-      isRNWal rv.raftNodeConfig'.storage' ∗
+      isWalStorage rv.raftNodeConfig'.storage' ∗
+      -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
+      rnDurInv γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗
@@ -135,7 +137,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
-  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Htri, #Hparts,
+  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
     #Hfix, transportC, latestTickTsR, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
@@ -183,11 +185,13 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
         nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
-      monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
+      monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
+      -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL at the start (`wal.bootOk_start`)
+      ghostVar γ.wal.view (1 : Qp).half walView0 ∗ token γ.wal.ok ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
-  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum]
+  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv, Hwok⟩
+  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
   · iunfold rnLoopTok
     iexists hsZero
     iunfold rnLoopTokP
@@ -206,6 +210,12 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
       ipureintro
       simp only [RNNames.srv, hpre, List.append_nil]
       exact hcfg
+    isplitl [Hwv Hwok]
+    · iunfold rnWalView
+      have h0 : (⟨RaftState.init, hsZero, none, srvLE γ.srv []⟩ : WalView) = walView0 := by
+        simp [srvLE, RNNames.srv, hpre, walView0]
+      rw [h0]
+      iframe Hwv Hwok
     iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
@@ -391,7 +401,11 @@ abbrev NodeStartSpec : Prop :=
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
-        "#Hcl" ∷ rnClusterOk cl }}
+        "#Hcl" ∷ rnClusterOk cl ∗
+        -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
+        -- loop's view at the start and its token
+        "#Hdur" ∷ rnDurInv ν wal ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
+        "Hwok" ∷ token ν.ok }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
@@ -521,9 +535,9 @@ theorem raftNode_of_StartNode
         refine srvCfgOk_nil _ (fun h0 => H0 ((GMap.elem_of_list_to_set _ _).1 h0)) ?_
         rw [GMap.size_list_to_set ps Hnodup]
         omega)
-    $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0]
-  · rw [Hwnode, Hwnl, Hwms, Hwid]
-    iframe Hdrv HrS Hrun1 Hprod Hcons Hcum Hcum0
+    $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok]
+  · rw [Hwnode, Hwnl, Hwms, Hwid, Hwwal]
+    iframe Hdrv HrS Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok
     unfold SrvRaft.cfg
     rw [Hvs]
     iexact Hncfg
@@ -568,6 +582,8 @@ theorem raftNode_of_StartNode
       iexact Hni
     isplitr
     · ipureintro; exact Hwms.symm
+    isplitr
+    · rw [Hwwal, Hstss.2]; iexact Hdur
     -- the components are the same (`transport` is no component)
     iunfold rnParts at Hparts
     iunfold rnParts
