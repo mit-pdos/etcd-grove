@@ -131,6 +131,8 @@ theorem putgetc_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetcProgram [config.walDirOf go!"putgetc.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ putgetc.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
@@ -145,7 +147,7 @@ theorem putgetc_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putgetcGF) github_com.mit_pdos.etcd_grove.examples.putgetc.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putgetc.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) [config.walDirOf go!"putgetc.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetcGF := heapAtC hG lctx
   haveI := Hctx hG
@@ -153,11 +155,12 @@ theorem putgetc_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putgetc.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putgetc.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -⟩
+  iintro #Hinit Htok ⟨Has, -, Hds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putgetc.wp_Main (GF := putgetcGF) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok]
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   ipureintro
   rfl

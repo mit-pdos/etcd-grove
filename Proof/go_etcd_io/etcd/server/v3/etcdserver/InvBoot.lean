@@ -57,6 +57,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Code.net.http
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
 
@@ -237,10 +239,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
     -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
     -- which `NewStorage`'s contract takes
-    "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
-    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
-    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
-    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
+    -- (2026-11-03, the WAL's API, approved change 2) the new WAL opened in the configuration's WAL
+    -- directory: open (`walOpen`, whole), read (`walReady`), its records fresh (`walRecs`), its
+    -- metadata the member's, and the right to close it with its files kept (the purge's)
+    "Hwal" ∷ walOpened bw.w' (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
+    "Hpurge" ∷ walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
@@ -461,7 +464,8 @@ which no update can), an error, or the record with `bootOk` (at the write-back b
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
-  iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
+  iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+        walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

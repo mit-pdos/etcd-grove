@@ -137,26 +137,28 @@ theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 /-- **An etcd example's closed theorem over `goose_adequacy_start`** (see the file header): as
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
-rafthttp stage 6a, D39a). -/
+rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' WAL directories `Ds` fresh
+(`walDirFresh`). -/
 theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (As : List GoString) (hAs : As.Nodup)
+    (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
-    (HAs : addrsUnclaimed (init #() ;; body) As)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
-        iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a)) init body φ) :
+        iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
+          ([∗list] d ∈ Ds, walDirFresh d)) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
   refine goose_adequacy_start (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw
-    [read.slowReadIndexName, read.readIndexFailedName] As (by decide) hAs HNs HAs ?_
+    [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
@@ -168,8 +170,8 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   rw [Hinit]
   iintro - - Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, Has, Hps⟩
-  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [$Has $Hps]
+  icases Hrights with ⟨Hns, Has, Hps, Hds⟩
+  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [$Has $Hps $Hds]
   iunfold read.readRegPerm
   icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
   icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩

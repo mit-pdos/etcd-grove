@@ -50,7 +50,11 @@ def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : L
     netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
     httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
     httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ threadTok ∗
-    premises N id₁ id₂ id₃ ctxs boot)
+    premises N id₁ id₂ id₃ ctxs boot ∗
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+    walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+    walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+    walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!""))
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=

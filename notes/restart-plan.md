@@ -1020,3 +1020,16 @@ changes).
 committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
 hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
 changes) and stage 4 (the raft loop entering at the `Save`), which go together.
+
+### R2b-1 stage 3a-3b: a member's WAL directory fresh at start, `bootstrap` gives the opened WAL (2026-11-03)
+
+The user's choice for change 6: an axiomatized token. `walDirFresh dir` (`storage/WalDir.lean`) and
+`walFiles` (`storage/WalRecs.lean`) are axiomatized, timeless only (no exclusivity: read as `True`
+every axiom holds, the start axiom's satisfiability argument). Program start gives `walDirFresh`
+for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new environment premise,
+`walDirsAbsent e Ds`; `etcd_adequate` and `k8setcd3`'s adequacy pass the members' directories.
+`bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
+`walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
+theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The trust
+base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.

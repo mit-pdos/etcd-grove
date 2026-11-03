@@ -68,7 +68,9 @@ abbrev newServer.spec : Prop :=
       memberBoot γ ctxs ρ E₀ Φs id ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
@@ -108,7 +110,9 @@ abbrev newServer.specCompact : Prop :=
       memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))

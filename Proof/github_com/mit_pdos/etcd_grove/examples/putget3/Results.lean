@@ -62,6 +62,10 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent putget3Program [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -73,7 +77,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget3_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs n Hprem σ g
+  putget3_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDsNd HDs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

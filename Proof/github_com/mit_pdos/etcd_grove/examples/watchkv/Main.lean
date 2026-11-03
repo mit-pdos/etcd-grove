@@ -99,7 +99,7 @@ theorem Main.wp_proof
   intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN Hck Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
@@ -193,7 +193,7 @@ theorem Main.wp_proof
       (wkDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [wkDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb] as %srv %err Hr
+    $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
   · cases err with

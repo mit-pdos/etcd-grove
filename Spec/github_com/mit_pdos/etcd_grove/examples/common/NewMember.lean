@@ -56,7 +56,9 @@ abbrev NewMember.spec : Prop :=
       memberBoot γ ctxs ρ E₀ Φs id ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it and the right to serve its peer address with the raft protocol
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.NewMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #token))

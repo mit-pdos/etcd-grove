@@ -40,7 +40,7 @@ theorem StartPeriodicServer.wp_proof
     StartPeriodicServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client period lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
     hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hname8 Hlg Hper Hcret Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -78,7 +78,7 @@ theorem StartPeriodicServer.wp_proof
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
       (by simp only [↓reduceIte]; exact Or.inr ⟨trivial, Hper, Hcret⟩) Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb] as %s %err Hres
+      Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `newServer` failed: the error returned, with the thread token

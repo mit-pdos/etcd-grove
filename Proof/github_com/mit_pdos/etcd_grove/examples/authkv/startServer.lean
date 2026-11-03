@@ -43,7 +43,7 @@ theorem startServer.wp_proof
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold common.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
@@ -98,7 +98,7 @@ theorem startServer.wp_proof
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       (fun _ => ⟨rfl, by word, by word⟩))
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr

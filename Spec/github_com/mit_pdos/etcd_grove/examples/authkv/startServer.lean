@@ -56,7 +56,9 @@ abbrev startServer.spec : Prop :=
         letI : MemStorReg GF := ⟨γ'.reg⟩; bootstrapContract cfg U γ' id ctxs N dir) ∗
       common.commonPremises ∗ context.isClosedchanInit ∗
       common.memberBootOn γ ctxs ρ E₀ Φs id ∗
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf go!"authkv.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.startServer)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨

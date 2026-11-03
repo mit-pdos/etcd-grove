@@ -63,7 +63,9 @@ abbrev newServerMode.spec : Prop :=
       bootPremise N ps bootLog ctxs dir token name Uok id ∗
       commonPremises ∗ context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServerMode))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))

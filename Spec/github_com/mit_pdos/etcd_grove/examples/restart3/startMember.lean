@@ -55,7 +55,9 @@ abbrev startMember.spec : Prop :=
       common.bootPremise N ps bootLog ctxs dir token name Uok id ∗ common.commonPremises ∗
       context.isClosedchanInit ∗
       common.memberBoot γ ctxs ρ E₀ Φs id ∗
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))

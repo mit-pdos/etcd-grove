@@ -47,7 +47,7 @@ theorem newServerMode.wp_proof
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
     HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
@@ -98,7 +98,7 @@ theorem newServerMode.wp_proof
       v3rpc.maxTxnOpsOk_default Hacr Hdec
       (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr

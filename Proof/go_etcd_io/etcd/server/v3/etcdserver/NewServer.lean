@@ -360,7 +360,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   ihave #Hboot' := Hboot
   iunfold bootstrapContract at Hboot'
-  wp_apply Hboot' $$ [Hrauth] as %b %err Hb
+  wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
@@ -382,6 +382,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
+  -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
+  -- are not used yet: R2b-1's stage 4)
+  icases walOpened_elim _ _ _ _ _ $$ Hwal with ⟨Hwalo, -, -, %HwalRD⟩
+  have HwalR := HwalRD.1
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
     Hmsmeta

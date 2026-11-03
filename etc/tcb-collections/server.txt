@@ -304,6 +304,7 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
+axiom walDirFresh
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof

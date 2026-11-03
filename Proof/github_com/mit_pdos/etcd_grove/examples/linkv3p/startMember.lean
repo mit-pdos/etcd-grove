@@ -66,7 +66,7 @@ theorem startMember.wp_proof
     Φs γn
     Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
-    #Hnet, Hpown⟩
+    #Hnet, Hpown, Hwdf⟩
   -- the premises in the shared start's form
   iunfold bootPremise at Hboot
   ihave #Hb := common.bootPremise_of N ps bootLog ctxs dir go!"linkv3p" name
@@ -108,7 +108,7 @@ theorem startMember.wp_proof
       (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
-        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown] as %srv %err Hres
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

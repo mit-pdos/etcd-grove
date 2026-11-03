@@ -120,6 +120,10 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent putget3Program [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -134,7 +138,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget3.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""] HDsNd σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putget3GF := heapAt3 hG lctx
   haveI := Hctx hG
@@ -142,13 +146,14 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget3.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget3.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, Hps⟩
+  iintro #Hinit Htok ⟨Has, Hps, Hds⟩
   simp only [putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩
   icases Hps with ⟨Hf₁, Hf₂, Hf₃, -, -⟩
+  icases Hds with ⟨Hw₁, Hw₂, Hw₃, -⟩
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]
+  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃]
   · iframe; iframe #
   ipureintro
   rfl

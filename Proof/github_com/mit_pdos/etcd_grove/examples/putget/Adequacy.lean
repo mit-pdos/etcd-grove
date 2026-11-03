@@ -125,6 +125,8 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetProgram [config.walDirOf go!"putget.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -139,7 +141,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.putget.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) [config.walDirOf go!"putget.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
@@ -147,11 +149,12 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -⟩
+  iintro #Hinit Htok ⟨Has, -, Hds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putget.wp_Main (GF := putgetGF) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok]
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   ipureintro
   rfl

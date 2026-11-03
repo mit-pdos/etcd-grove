@@ -66,7 +66,11 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
       netAddrFree (GF := GF) bridgeAddr₃ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

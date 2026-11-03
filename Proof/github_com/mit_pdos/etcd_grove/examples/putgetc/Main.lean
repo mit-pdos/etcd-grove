@@ -66,7 +66,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -115,7 +115,7 @@ theorem Main.wp_proof
       (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [putgetcDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
