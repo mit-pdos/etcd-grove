@@ -249,9 +249,11 @@ def main():
             for old, new, ns, _ in MOVES:
                 if ns and ns != old:
                     out = re.sub(r'(":\s*)"' + re.escape(old) + r'"', r'\1"' + ns + '"', out)
-        # namespace-qualified names in gen-link's tables and the link configs
+        # namespace-qualified names in gen-link's tables, the link configs and the trust-base
+        # baselines
         # (`kvreconf.kvrStorageModel`, `=common.wp_ServeOn`)
-        if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py)$", f):
+        if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py|tcb-baseline\.txt"
+                    r"|tcb-collections/[\w-]+\.txt)$", f):
             for old, new, ns, _ in MOVES:
                 if ns and ns != old and old not in AMBIGUOUS:
                     out = re.sub(r"(?<![\w.'«-])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
