@@ -231,6 +231,12 @@ def main():
                 if re.search(r'^\s*(import\s+)?"github\.com/mit-pdos/etcd-grove/examples/'
                              + re.escape(new) + r'"', out, re.M):
                     out = re.sub(r"(?<![\w.])" + op + r"\.(?=[A-Z])", np_ + ".", out)
+        # the link configs' function ids, `<last directory of the spec>_<function>`
+        if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py)$", f):
+            for old, new, _, _ in MOVES:
+                last = new.split("/")[-1]
+                if last != old:
+                    out = re.sub(r"(?<![\w.])" + re.escape(old) + r"_(?=\w)", last + "_", out)
         # the headline theorems
         thm_scope = (f.endswith(".lean") or f.startswith(("etc/", ".claude/"))
                      or f in ("notes/STATUS.md", "CLAUDE.md"))
