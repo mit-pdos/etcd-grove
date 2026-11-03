@@ -211,6 +211,76 @@ structure BkRef where
 masks": a library with invariants must reserve one). -/
 def mvccN : Namespace := nroot .@ "mvcc"
 
+/-! ## Lemmas of the vocabulary (stage 1; the clients' rewrites) -/
+
+/-- A commit's first step sends the history its commit makes (`commitLog`: nothing new for no
+changes). -/
+theorem MvccState.notify_notifiedLog (σ : MvccState) (p : List Change) :
+    (σ.notify p).notifiedLog = commitLog σ.log p := by
+  unfold MvccState.notify MvccState.notifiedLog commitLog
+  by_cases h : p = [] <;> simp [h]
+
+/-- A revision's changes count once. -/
+theorem logCh_append (L : Log) (p : List Change) : logCh (L ++ [p]) = logCh L + p.length := by
+  simp [logCh]
+
+/-- An empty revision adds no change. -/
+theorem logCh_append_nil (L : Log) : logCh (L ++ [[]]) = logCh L := by
+  simp [logCh_append]
+
+/-- A commit's history counts the changes of the revision it adds (none when there are none). -/
+theorem logCh_commitLog (L : Log) (p : List Change) : logCh (commitLog L p) = logCh (L ++ [p]) := by
+  unfold commitLog
+  by_cases h : p = [] <;> simp [h, logCh_append]
+
+/-- The lessor's item map of the committed state. -/
+theorem pendItems_nil [GooseExts] (L : Log) : pendItems L [] = leaseItemsOf (stateAfter L) := rfl
+
+/-- The invariant `reach_logWf` follows from. -/
+private theorem reach_logWf_aux : ∀ σ : MvccState, MvccReachable σ →
+    LogWf σ.log ∧ LogWf σ.notifiedLog := by
+  intro σ h
+  induction h with
+  | start =>
+    have : LogWf mvccStart.log := by
+      refine ⟨rfl, fun r cs i k hr hi => ?_⟩
+      simp only [mvccStart] at hr
+      rcases r with _ | _ | r
+      · simp at hr; subst hr; simp at hi
+      · simp at hr; subst hr; simp at hi
+      · simp at hr
+    exact ⟨this, this⟩
+  | notify σ pend _ hp hwf ih =>
+    refine ⟨ih.1, ?_⟩
+    rw [MvccState.notify_notifiedLog]
+    unfold commitLog
+    split
+    · exact ih.1
+    · exact hwf
+  | commit σ _ ih =>
+    have hc : σ.commitPending.notifiedLog = σ.commitPending.log := by
+      simp [MvccState.commitPending, MvccState.notifiedLog]
+    have hl : LogWf σ.commitPending.log := by
+      have h2 := ih.2
+      simp only [MvccState.commitPending]
+      unfold MvccState.notifiedLog at h2
+      unfold commitLog
+      cases hpd : σ.pending with
+      | none => simpa [hpd] using ih.1
+      | some p =>
+        rw [hpd] at h2
+        by_cases hp : p = []
+        · simpa [hp] using ih.1
+        · simpa [hp] using h2
+    exact ⟨hl, hc ▸ hl⟩
+  | compact σ r _ _ _ _ ih =>
+    exact ih
+
+/-- **A reachable state's history is well formed, its notified history too** (`reach_logWf.law`). -/
+theorem reach_logWf (σ : MvccState) (h : MvccReachable σ) :
+    LogWf' σ.log ∧ LogWf' σ.notifiedLog :=
+  ⟨LogWf'.of_wf (reach_logWf_aux σ h).1, LogWf'.of_wf (reach_logWf_aux σ h).2⟩
+
 
 end api
 end mvcc

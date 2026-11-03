@@ -920,6 +920,10 @@ server's read path and the watch path take their clients' `LogWf'` from it). -/
 abbrev reach_logWf.law : Prop :=
   ∀ σ : MvccState, MvccReachable σ → LogWf' σ.log ∧ LogWf' σ.notifiedLog
 
+/-- `reach_logWf.law` holds: a fact of the vocabulary (`ApiState.reach_logWf`), no obligation of the
+implementation. -/
+theorem reach_logWf.law_holds : reach_logWf.law := reach_logWf
+
 end laws
 
 section snapshot
