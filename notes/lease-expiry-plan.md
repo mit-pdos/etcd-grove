@@ -203,7 +203,7 @@ multi-member cluster (a lagging follower, `raft.go`'s `maybeSendSnapshot`), but 
 generic over clusters, so the case is not vacuous.
 
 What Go does: `lessor.Recover(b, rd)` (`lessor.go:600`) under `le.mu` stores `b` and `rd`, fresh
-`leaseMap`/`itemMap`, and `initAndRecover` (`:770`) reads every record of the new backend's `lease`
+`leaseMap`/`itemMap`, and `initAndRecover` (`:808`) reads every record of the new backend's `lease`
 bucket (`schema.MustUnsafeGetAllLeases`) into the map: TTL raised to the minimum, expiry forever
 (refreshed at `Promote`), empty item sets (mvcc's restore re-attaches the leased keys: none here,
 no leased put), then `ForceCommit`.
