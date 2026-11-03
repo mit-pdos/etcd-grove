@@ -6,7 +6,7 @@ public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_etcd_io.bbolt.errors
 public import GeneratedProof.hash.fnv
 public import Perennial.GeneratedProof.io
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strings

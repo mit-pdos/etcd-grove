@@ -5,7 +5,7 @@ counterpart).
 -/
 module
 
-public import Perennial.Code.os
+public import Code.os
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 
 @[expose] public section

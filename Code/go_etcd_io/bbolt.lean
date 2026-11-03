@@ -12,7 +12,7 @@ public import Perennial.Code.bytes
 public import Perennial.Code.sort
 public import Perennial.Code.errors
 public import Perennial.Code.io
-public import Perennial.Code.os
+public import Code.os
 public import Perennial.Code.runtime
 public import Perennial.Code.sync
 public import Code.go_etcd_io.bbolt.internal.freelist

@@ -1,6 +1,6 @@
 # Project bbolt (etc/goose.py): bbolt v1.5.0 as etcd links it, from the fork's `goose-lean`
-# (upamanyus/bbolt), with bodies. Its `os` is Perennial's (names only: the file calls are
-# axiomatized), its `syscall` and `golang.org/x/sys/unix` this repository's (project bboltfs,
-# modeled by the Linux file extension osFsExt); notes/bbolt-v2-infra.md.
+# (upamanyus/bbolt), with bodies. Its `os`, `io/fs`, `syscall` and `golang.org/x/sys/unix` are
+# this repository's (project bboltfs's: the file calls are modeled by the Linux file extension
+# osFsExt); notes/bbolt-v2-infra.md.
 translate = ["*"]
 imports = ["*"]

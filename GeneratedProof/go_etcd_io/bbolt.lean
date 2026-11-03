@@ -12,7 +12,7 @@ public import GeneratedProof.go_etcd_io.bbolt.internal.freelist
 public import GeneratedProof.golang_org.x.sys.unix
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strings

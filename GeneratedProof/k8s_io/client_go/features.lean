@@ -8,7 +8,7 @@ public import GeneratedProof.k8s_io.apimachinery.pkg.util.naming
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.runtime
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.version
 public import GeneratedProof.k8s_io.klog.v2
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic

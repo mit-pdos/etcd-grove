@@ -6,7 +6,7 @@ public import Perennial.Code.«unsafe»
 public import Code.hash.fnv
 public import Perennial.Code.io
 public import Code.go_etcd_io.bbolt.errors
-public import Perennial.Code.os
+public import Code.os
 public import Perennial.Code.sort
 public import Perennial.Code.runtime
 public import Perennial.Code.time

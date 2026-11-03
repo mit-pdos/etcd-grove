@@ -129,7 +129,9 @@ PROJECTS = [
         rev="565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
-        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
+        # (`os`, `io/fs`: this repository's translations, project bboltfs's, not Perennial's; every
+        # project is on them since 2026-11-03, so that bbolt's `os.FileMode` fields translate)
+        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org=", "os=", "io/fs="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -149,14 +151,15 @@ PROJECTS = [
         # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
         # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
         # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
-        # label. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os` is
-        # Perennial's (names only); `syscall`, `golang.org/x/sys/unix` (project bboltfs), `hash`
-        # and `encoding/hex` (project etcd) are this repository's translations. Modules
+        # label. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
+        # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
+        # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
         rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
-                    "encoding/hex="],
+                    "encoding/hex=", "os=", "io/fs="],
         packages=[
             "go.etcd.io/bbolt",
             "go.etcd.io/bbolt/errors",
@@ -240,7 +243,7 @@ PROJECTS = [
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
-                    "go.etcd.io/bbolt=", "go.opentelemetry.io=",
+                    "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=",
@@ -863,7 +866,7 @@ PROJECTS = [
         rev="99cb9e2d98d40d423aa7e7ec1f12f0877a45570e",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
-        lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org="],
+        lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -888,7 +891,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8setcd3"),
-        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
@@ -1101,7 +1104,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8sdaemonset"),
-        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=",
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=", "os=", "io/fs=",
                     "github.com/go-logr="],
         packages=[
             "./apimodel",
