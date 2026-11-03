@@ -2345,12 +2345,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   · simp only [↓reduceIte]; iexact Hlt1
 
--- (2026-10-22) the unused-variables linter walks the proof's info tree: 30s of this module's
--- CPU (on the build's critical path)
-set_option linter.unusedVariables false in
-set_option maxRecDepth 100000 in
-set_option pp.maxSteps 200000 in
-set_option maxHeartbeats 0 in
 /-- **`NewServer` with auth on or off** (`NewServer.specM`), the compaction mode off. -/
 theorem NewServer.wp_proofM (on : Bool)
     -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
@@ -2470,14 +2464,15 @@ theorem NewServer.wp_proofM (on : Bool)
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
-    NewServer.specM (GF := GF) (hG := hG) on := by
-  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
+    NewServer.specM (GF := GF) (hG := hG) on :=
+  -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
+  NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
+    h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46
+    h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
+    h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
+    h89 h90 h91 h92 h93 h94 h95 hAG
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
     (fun h => nomatch h)
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlgon Hbco Hbcf Hbwb
-  exact h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb
-    Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlgon Hbco Hbcf Hbwb
 
 theorem NewServer.wp_proof
     -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
@@ -2600,53 +2595,14 @@ theorem NewServer.wp_proof
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
-    NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto
-    Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hbco Hbcf Hbwb
-  -- (M2, item 14) the general proof at auth off, in the configuration's compaction mode
-  have h := NewServer.wp_proofG false E₀.cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
-    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
-    h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
+    NewServer.spec (GF := GF) (hG := hG) := fun cmp =>
+  -- `specG` at auth off, in the caller's compaction mode
+  NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
+    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35
+    h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
-  have Hmode : (if E₀.cmp = true then
-      ((cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
-          (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention') ∨
-        (cfg.AutoCompactionMode' = go!"periodic" ∧ 10 ≤ sint.Z cfg.AutoCompactionRetention' ∧
-          ρ.rd.kv.cret = 0)) ∧ false = false
-    else cfg.AutoCompactionRetention' = 0) := by
-    rw [Hcmp0]
-    rcases Hacr with h0 | ⟨hm, hr, hcr⟩ | ⟨hm, hr, hcr⟩
-    · simp [h0]
-    · have hne : cfg.AutoCompactionRetention' ≠ 0 := by intro h0; rw [h0] at hr; simp at hr
-      simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
-      exact ⟨Or.inl ⟨hm, hr, hcr⟩, trivial⟩
-    · have hne : cfg.AutoCompactionRetention' ≠ 0 := by intro h0; rw [h0] at hr; simp at hr
-      simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
-      exact ⟨Or.inr ⟨hm, hr, hcr⟩, trivial⟩
-  have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn
-    Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs
-    (fun h => absurd h (by decide)) (fun h => absurd h (by decide)) Hbco Hbcf Hbwb
-  rw [bootKVOf_false] at h'
-  -- (the auth plan's E2w) the mode-indexed rows at `false` are today's
-  simp only [kvInvM_false, srvErM_false, srvBuiltG_false] at h'
-  iintro %Φ Hpre HΦ
-  iapply h' $$ Hpre
-  iintro !> %srv %err Hpost
-  iapply HΦ
-  icases Hpost with (Hl | ⟨%He, Htk, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, -, -, -, #H13, #H14⟩)
-  · ileft; iexact Hl
-  iright
-  isplitr
-  · ipureintro; exact He
-  iframe Htk
-  iexists γA, ci, TM, E, γrn, b, γk, τ
-  isplitr
-  · ipureintro; exact ⟨H1.1, H1.2.1⟩
-  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-
 
 
 end proof

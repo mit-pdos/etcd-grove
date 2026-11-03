@@ -55,23 +55,6 @@ theorem newServerMode.wp_proof
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
-  -- `NewServer`'s compactor premise and the store's mode, from the mode's
-  have Hacr : retention = W64 0 ∨
-      (mode = go!"revision" ∧ 0 < sint.Z retention ∧ (ρ.rd.kv.cret : Int) ≤ sint.Z retention) ∨
-      (mode = go!"periodic" ∧ 10 ≤ sint.Z retention ∧ ρ.rd.kv.cret = 0) := by
-    cases cmp
-    · exact Or.inl (by simpa using Hmode)
-    · exact Or.inr (by simpa using Hmode)
-  have Hdec : E₀.cmp = decide (retention ≠ W64 0) := by
-    rw [hcmp0]
-    cases cmp
-    · have h0 : retention = W64 0 := by simpa using Hmode
-      simp [h0]
-    · have h0 : retention ≠ W64 0 := by
-        rintro rfl
-        simp only [↓reduceIte] at Hmode
-        rcases Hmode with ⟨-, h, -⟩ | ⟨-, h, -⟩ <;> simp at h
-      exact (decide_eq_true h0).symm
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -91,16 +74,21 @@ theorem newServerMode.wp_proof
   letI : MemStorReg GF := ⟨γ.reg⟩
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
-  wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
+  -- (step 6 of the hubs, 2026-11-03) `NewServer.specG` at auth off, in the member's mode `cmp`; its
+  -- mode-indexed rows at `false` are today's (by definition)
+  have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
+  simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
+  wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
+      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
-      v3rpc.maxTxnOpsOk_default Hacr Hdec
-      (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
+      v3rpc.maxTxnOpsOk_default (by cases cmp <;> simpa using Hmode) hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
+      -- auth off: the auth mode's premises hold vacuously
+      (fun h => absurd h (by decide)) (fun h => absurd h (by decide))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ Hlg rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
@@ -132,7 +120,7 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact hslg
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -, -, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
@@ -160,7 +148,7 @@ theorem newServerMode.wp_proof
   iframe
   iframe #
   ipureintro
-  exact ⟨HE.1, HE.2, rfl, rfl, rfl⟩
+  exact ⟨HE.1, HE.2.1, rfl, rfl, rfl⟩
 
 end proof
 

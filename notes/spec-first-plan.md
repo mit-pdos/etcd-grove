@@ -735,6 +735,11 @@ premises with slots.
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
 6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
+   **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
+   out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
+   on), `specM on := specG on false`; the code callers were four (`newServerMode`, authkv's
+   `startServer`, the server's `Results` and `Link`; v3rpc's are gRPC's `NewServer`, another
+   function). The text below is the step as planned.
    `NewServer` has three hand-written triples: `spec` (N0, 10-16: auth off, compaction off or on),
    `specM on` (E2i, 10-26: auth on or off, compaction off) and `specG on cmp` (M2, 10-31: both).
    Each mode was added as a more general twin so that the older callers kept their names, and the
