@@ -51,10 +51,10 @@ open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 section model
 variable [GooseExts]
 
-/-- (DRAFT, R2b-1's proof) **A fresh WAL holds a fresh node** (as `kvBoot_holds`). -/
+/-- **A fresh WAL holds a fresh node** (proved: `walFresh_holds`) (as `kvBoot_holds`). -/
 def walFresh_holds_stmt : Prop := StorageHolds RaftState.init walFresh
 
-/-- (DRAFT, R2b-1's proof) **A batch without a snapshot, saved, keeps the WAL holding the durable
+/-- (proved: `walSave_holds`) **A batch without a snapshot, saved, keeps the WAL holding the durable
 state**: records `σ` holding `S`, whose hard state is the loop's last handed one (`σ.hs = st`'s);
 the batch's facts (`ReadyRestFacts` at no snapshot); then the records after `Save(h, es)` hold the
 durable state after the batch (`readyDurable`), and `Save` is in its case. -/
@@ -68,7 +68,7 @@ def walSave_holds_stmt : Prop :=
     WalSaveOk σ es ∧
       StorageHolds (readyDurable st.durable (phsNext st.hardState h) none es) (walSave σ h es)
 
-/-- (DRAFT, R2b-1's proof) **A batch with a snapshot, saved** (`SaveSnap` of its snapshot, then
+/-- (proved: `walSnapSave_holds`) **A batch with a snapshot, saved** (`SaveSnap` of its snapshot, then
 `Save`): as `walSave_holds_stmt`, through the snapshot's records. -/
 def walSnapSave_holds_stmt : Prop :=
   ∀ (st : NodeDriverState) (σ : StorContents) (ce : List LogEntry) (es : List EntryM)
@@ -82,7 +82,7 @@ def walSnapSave_holds_stmt : Prop :=
       StorageHolds (readyDurable st.durable (phsNext st.hardState h) (some l) es)
         (walSave (walSaveSnap σ l.snap.Metadata') h es)
 
-/-- (DRAFT, R2b-1's proof) **The apply thread's own snapshot keeps the WAL holding the durable
+/-- (proved: `walOwnSnap_holds`) **The apply thread's own snapshot keeps the WAL holding the durable
 state**: a snapshot at an index `k` within the saved commit, whose term is the durable log's at
 `k` when at or above its base (the applied log is the committed log; the durability invariant
 must carry that `S`'s log agrees with the committed log delivered, R2b-1 review F5). Below the
@@ -94,6 +94,204 @@ def walOwnSnap_holds_stmt : Prop :=
     StorageHolds S (walSaveSnap σ m)
 
 end model
+
+/-! ### The pure laws, proved (R2b-1's stage 2, 2026-11-03) -/
+
+section laws
+variable [GooseExts]
+
+theorem walFresh_holds : walFresh_holds_stmt := by
+  unfold walFresh_holds_stmt StorageHolds walFresh
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [plogTermAt, RaftState.init]
+  · rfl
+  · simp [StorContents.b, StorContents.commit]
+  · simp [StorContents.commit, RaftState.init]
+  · simp [StorContents.commit, RaftState.init]
+  · intro sv h; cases h
+  · intro h; exact absurd rfl h
+
+theorem appendEnts_nil (b : entryID) (old : List EntryM) : appendEnts b old [] = old := rfl
+
+theorem appendEnts_cons (b : entryID) (old : List EntryM) (e0 : EntryM) (rest : List EntryM)
+    (hb : uint.Z b.index' < uint.Z e0.Index') :
+    appendEnts b old (e0 :: rest) =
+      old.take ((uint.Z e0.Index' - uint.Z b.index' - 1).toNat) ++ (e0 :: rest) := by
+  have h0 : (uint.Z b.index' + 1 - uint.Z e0.Index').toNat = 0 := by omega
+  show plogTruncateAppend b old (List.drop (uint.Z b.index' + 1 - uint.Z e0.Index').toNat
+    (e0 :: rest)) = _
+  rw [h0, List.drop_zero]
+  rfl
+
+/-- A term found in a log is at an index within it. -/
+theorem plogTermAt_some_le (b : entryID) (es : List EntryM) (i t : w64)
+    (h : plogTermAt b es i = some t) :
+    uint.Z b.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z b.index' + es.length := by
+  unfold plogTermAt at h
+  split at h
+  · cases h
+  · next h1 =>
+    split at h
+    · next h2 => constructor <;> omega
+    · next h2 =>
+      have hlt : (uint.Z i - uint.Z b.index' - 1).toNat < es.length := by
+        rcases Nat.lt_or_ge (uint.Z i - uint.Z b.index' - 1).toNat es.length with hlt | hge
+        · exact hlt
+        · rw [List.getElem?_eq_none hge] at h; cases h
+      constructor <;> omega
+
+/-- Appending entries from `e0` on (truncating there) keeps the terms below `e0`. -/
+theorem plogTermAt_take_append (b : entryID) (old new : List EntryM) (e0 : EntryM) (i : w64)
+    (hi : uint.Z i ≤ uint.Z b.index' + old.length) (he : uint.Z i < uint.Z e0.Index') :
+    plogTermAt b (old.take ((uint.Z e0.Index' - uint.Z b.index' - 1).toNat) ++ new) i =
+      plogTermAt b old i := by
+  unfold plogTermAt
+  split
+  · rfl
+  · split
+    · rfl
+    · next h1 h2 =>
+      congr 1
+      rw [List.getElem?_append_left (by rw [List.length_take]; omega)]
+      rw [List.getElem?_take_of_lt (by omega)]
+
+/-- Dropping to a later base commutes with a truncate-append past it. -/
+theorem drop_take_append (l new : List EntryM) (d k : Nat) (hd : d ≤ k) (hl : d ≤ l.length) :
+    (l.take k ++ new).drop d = (l.drop d).take (k - d) ++ new := by
+  rw [List.drop_append_of_le_length (by rw [List.length_take]; omega), List.drop_take]
+
+theorem walSave_holds : walSave_holds_stmt := by
+  intro st σ ce es h Hh Hhs Hr Hcons
+  unfold StorageHolds at Hh
+  obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+  simp only [ReadyRestFacts] at Hr
+  obtain ⟨R1, R2, R3, R4, R5, R6, R7⟩ := Hr
+  have Hc : σ.commit = uint.nat st.hardState.Commit' := by
+    simp only [StorContents.commit, Hhs]
+  cases es with
+  | nil =>
+    refine ⟨?_, ?_⟩
+    · intro e0 he; simp at he
+    unfold StorageHolds
+    simp only [walSave, appendEnts_nil, readyDurable, RaftState.next, Option.map_none,
+      Option.isSome_none, List.isEmpty_nil, Bool.not_true, Bool.or_false, Bool.false_eq_true,
+      ↓reduceIte, StorContents.b, StorContents.commit, Hhs] at *
+    refine ⟨H1, H2, H3, trivial, trivial, by omega, by omega, Nat.le_refl _, ?_, H9⟩
+    intro sv hsv
+    have := H8 sv hsv
+    omega
+  | cons e0 rest =>
+    have R6' := R6 e0 rfl
+    have R3' := R3 e0 rfl
+    have h6 := H6
+    have hc := Hc
+    unfold StorContents.b StorContents.commit at h6 hc
+    have hσe : uint.Z σ.base.index' < uint.Z e0.Index' := by word
+    have hSe : uint.Z st.durable.base.index' < uint.Z e0.Index' := by word
+    have hlen := (plogTermAt_some_le _ _ _ _ H2).2
+    unfold RaftState.entsFrom at H3
+    refine ⟨?_, ?_⟩
+    · intro e1 he1
+      simp only [List.head?_cons, Option.some.injEq] at he1
+      subst he1
+      refine ⟨by unfold StorContents.b; word, ?_, fun j e hj => Hcons j e e0 rfl hj⟩
+      unfold StorContents.last StorContents.b
+      unfold RaftState.last at R3'
+      rw [H3, List.length_drop]
+      word
+    · unfold StorageHolds
+      simp only [walSave, readyDurable, RaftState.next, Option.map_none, Option.isSome_none,
+        List.isEmpty_cons, Bool.not_false, Bool.or_true, ↓reduceIte, StorContents.b,
+        StorContents.commit, Hhs]
+      rw [appendEnts_cons _ _ _ _ hσe, appendEnts_cons _ _ _ _ hSe]
+      refine ⟨H1, ?_, ?_, trivial, trivial, ?_, ?_, ?_, ?_, ?_⟩
+      · rw [plogTermAt_take_append _ _ _ _ _ hlen hσe]; exact H2
+      · unfold RaftState.entsFrom
+        simp only
+        rw [H3, drop_take_append _ _ _ _ (by omega) (by omega)]
+        congr 2
+        omega
+      · simp only [StorContents.b, StorContents.commit] at H6 Hc ⊢
+        omega
+      · exact Nat.le_refl _
+      · exact Nat.le_refl _
+      · intro sv hsv
+        have := H8 sv hsv
+        simp only [StorContents.b, StorContents.commit] at this Hc ⊢
+        omega
+      · simpa using H9
+theorem walOwnSnap_holds : walOwnSnap_holds_stmt := by
+  intro S σ m Hh Hk Ht
+  unfold walSaveSnap
+  split
+  · exact Hh
+  · next hlt =>
+    have hk : σ.b ≤ uint.nat m.Index' := by omega
+    have Ht' := Ht hk
+    have hc : uint.nat m.Index' ≤ σ.commit := Hk
+    unfold StorageHolds at Hh ⊢
+    obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+    unfold RaftState.entsFrom at H3 ⊢
+    simp only [StorContents.b, StorContents.commit] at *
+    refine ⟨by word, Ht', ?_, H4, H5, by omega, Hw, H7, ?_, fun _ => rfl⟩
+    · rw [H3, List.drop_drop]
+      congr 1
+      word
+    · intro sv hsv
+      simp only [Option.some.injEq] at hsv
+      subst hsv
+      simp only
+      omega
+
+theorem walSnapSave_holds : walSnapSave_holds_stmt := by
+  intro st σ ce es h l Hh Hhs Hr Hcons
+  unfold StorageHolds at Hh
+  obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+  simp only [ReadyRestFacts] at Hr
+  obtain ⟨R1, R2, R3, R4, R5⟩ := Hr
+  have h6 := H6
+  unfold StorContents.b StorContents.commit at h6
+  rw [Hhs] at h6
+  have hnlt : ¬ uint.nat l.snap.Metadata'.Index' < σ.b := by
+    unfold StorContents.b; omega
+  have hnle : ¬ uint.nat l.snap.Metadata'.Index' ≤ σ.commit := by
+    unfold StorContents.commit; rw [Hhs]; omega
+  have hσ1 : walSaveSnap σ l.snap.Metadata' =
+      { σ with base := entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index',
+               snap := some (SnapshotM.mk [] l.snap.Metadata'), ents := [] } := by
+    unfold walSaveSnap; simp only [hnlt, hnle, ↓reduceIte]
+  rw [hσ1]
+  -- the entries start right past the snapshot
+  have hA : appendEnts (entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index') [] es = es := by
+    cases es with
+    | nil => rfl
+    | cons e0 rest =>
+      have h0 := Hcons 0 e0 rfl
+      rw [appendEnts_cons _ _ _ _ (by simp only; word)]
+      simp
+  refine ⟨?_, ?_⟩
+  · intro e0 he0
+    have h0 := Hcons 0 e0 (by cases es <;> simp_all)
+    refine ⟨by unfold StorContents.b; simp only; omega, by
+      unfold StorContents.last StorContents.b; simp only; omega, ?_⟩
+    intro j e hj
+    have := Hcons j e hj
+    omega
+  · unfold StorageHolds
+    simp only [walSave, readyDurable, RaftState.next, Option.map_some, Option.isSome_some,
+      Bool.true_or, ↓reduceIte, StorContents.b, StorContents.commit, Hhs]
+    rw [hA]
+    refine ⟨Int.le_refl _, ?_, ?_, trivial, trivial, ?_, Nat.le_refl _, Nat.le_refl _, ?_, ?_⟩
+    · unfold plogTermAt; simp
+    · unfold RaftState.entsFrom; simp
+    · exact R4
+    · intro sv hsv
+      simp only [Option.some.injEq] at hsv
+      subst hsv
+      simp only
+      omega
+    · intro hne; exact absurd rfl hne
+end laws
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

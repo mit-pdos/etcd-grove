@@ -1003,3 +1003,13 @@ etcd-wal-restart-file-below-snapshot.md`), fixed on the fork in `323320bb8` (wit
 `goose-lean-walsnap`**. The API landed as modules no proof uses yet (`storage/WalRecs.lean`,
 `etcdserver/WalApi.lean`, sealed); `InvWal.lean` keeps the durability invariant over it. R2b-1's
 stage 3 puts it in place, with the six approved changes to trusted statements.
+
+### R2b-1 stage 2: the pure laws, proved (2026-11-03)
+
+`walFresh_holds`, `walSave_holds`, `walSnapSave_holds`, `walOwnSnap_holds` (`InvWal.lean`), over
+three list lemmas (`appendEnts_cons`, `plogTermAt_take_append`, `drop_take_append`) and
+`plogTermAt_some_le`: the WAL's records keep holding the durable state across a saved batch with or
+without a received snapshot and across the member's own snapshot. The etcd pin moved to the fork's
+`323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
+Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
+changes).
