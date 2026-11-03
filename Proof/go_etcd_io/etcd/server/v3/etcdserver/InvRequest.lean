@@ -385,13 +385,15 @@ facts of `L` (`kvWork`), which every update the server hands raft checks of its 
 that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
 2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
 scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
-`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) (2026-11-03, the auth-on pair's F8)
+And the cluster's auth mode off (`SrvRaft.authOn`, the image certificate its snapshots carry): the
+member runs in its cluster's mode (`kvInv_authOn`). -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
     ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
-      γk.rlog = γ.raft.log⌝ ∗
+      γk.rlog = γ.raft.log ∧ γ.raft.authOn = false⌝ ∗
       kvWork γ.raft γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -840,7 +842,7 @@ theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
   iunfold kvRevLbZ at Hlb
   icases Hlb with ⟨%L₀, #H0, %Hn⟩
-  have hrl := Hok.2.2.2.2.2.2
+  have hrl := Hok.2.2.2.2.2.2.1
   iunfold srvRLog at HL
   ihave #H0' : monoListLbOwn γ.raft.log L₀ $$ []
   · iExactEq H0; rw [hrl]

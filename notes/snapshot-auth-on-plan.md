@@ -934,3 +934,19 @@ step 5; the user's request through etcd-grove-56):
   the auth buckets (`bootOk`'s, as `NewServer`'s kit takes them). (P5)
 - `[A, proof, internal, —]` `applySnapshot_walk` takes `E.authMode = .off` (its caller `specSnap`
   has it): the old backend's rest part back at every non-cluster bucket. (P5, `44695a6328`)
+- `[F, proof, internal, user's choice (b), 2026-11-03]` (F8, the Freeze's item 4) the tie of a
+  member's mode to its cluster's (`SrvRaft.authOn`, set by `srvLogInv_alloc`'s new parameter): in
+  place of the Freeze's `NewServer` premise `γr.raft.raft.authOn = E.authOn`, the KV invariants carry
+  it (`kvInv`: `γ.raft.authOn = false`, `kvInvOn`: `= true`; `kvInv_authOn`, `kvInvOn_authOn`,
+  `kvInvM_authOn`), which the cluster allocators create: no exported statement's text changes
+  (option (a), the premise, would have added `γ.authOn = true` to `server_cluster_alloc_on`'s post
+  and to the examples' `memberBoot`). `srvNet`'s image `srvImageM γ.authOn`, `srvSnapRO`'s snapshot
+  directory at it; the mode-on image (`imageAtOn`, `dbImageOn`, `srvImageOn`, `srvImageM`) and its
+  dependencies (`srvAuthSt0`, `authDataOf`, `authBucketsAt`) moved to `ImageOn.lean`. (P5)
+- `[C, proof, internal, approved (Freeze item 3)]` **hub** (`NewServer`'s post and `bootOk`/
+  `isServerRunOn`, through `srvSnapRO`) the snapshot clause with auth on: `srvSnapRO` gains
+  `authSnapKitM E.authMode ast E.RD` (in `on γa`: the store's invariant at its read resource `R`,
+  `authSchemaSnap γa R`, `E.RD = authRd ast R`; `True` otherwise), from the kit's post (which gains
+  the same clause, `authStoreKit`). The Freeze's separate `srvAuthSnapOk` in the three posts is this
+  one named clause inside the bundle they already carry; the Draft's `srvAuthSnapOk` is its `on` case.
+  `authSchemaSnap` and its vocabulary moved to `AuthSnapKit.lean` (below `SnapRO`). (P5)

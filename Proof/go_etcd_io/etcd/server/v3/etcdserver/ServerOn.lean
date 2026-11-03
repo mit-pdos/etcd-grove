@@ -26,6 +26,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
@@ -47,10 +48,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-- **The auth state the mode-`on` KV model starts from**: the store's latest at the server's
-start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
-once). -/
-def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
+-- `srvAuthSt0` is `ImageOn.lean`'s (moved there with the mode-on image, the auth-on pair's F8).
 
 section pure
 variable [GooseExts]
@@ -919,7 +917,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
+    (hao : γs.raft.authOn = true) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
@@ -956,8 +955,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
-    refine ⟨?_, ?_, ?_, ?_, hch, hlog⟩
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true := by
+    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao⟩
     · intro m hm h0
       rw [hty m hm] at h0
       exact absurd h0 (by decide)
@@ -996,7 +995,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true⌝ ∗
+        kvWorkOn γs.raft γk L))
     $$ [HL Hv1 Hh] with #Hinv
   · inext
     iexists bootEntries bootLog

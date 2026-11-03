@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSnapKit
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
@@ -419,14 +420,18 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    -- the member's snapshot directory, at raft's names for the member (D22 J2)
+    -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
+    -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (srvSnapRm γt γr)) ∗
+    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (srvSnapRm γt γr)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗
     isAlarmStore al ∗ alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗
     □ (⌜E.authMode = auth.AuthMode.off⌝ → authRecoverOk ast) ∗
+    -- (the auth-on snapshot plan's decision 8) with auth on, the store's invariant and snapshot
+    -- clause at the server's `E.RD` (`authSnapKitM`)
+    authSnapKitM E.authMode ast E.RD ∗
     lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗
     membership.isRaftCluster cl ∗ clusterApplyOk cl ∗
     (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗ srvMembersDir cl ps dir ∗
@@ -474,7 +479,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3

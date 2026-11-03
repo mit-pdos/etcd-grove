@@ -144,11 +144,11 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   · inext; iexists []; iexact Hsm
   -- the server's raft names over it, its log of requested entries at the bootstrap log
   imod (srvLogInv_alloc (GF := GF) cl ps (srvRule (W64 0) (LogEntry.toEntries boot 0))
-      (LogEntry.toEntries boot 0) reg sl (bootEntries (LogEntry.toEntries boot 0)) ⊤
+      (LogEntry.toEntries boot 0) reg sl true (bootEntries (LogEntry.toEntries boot 0)) ⊤
       hidx hnf hnn hccL) $$ [Hops]
     with ⟨%γ, %Hγ, #Hli, HL, #Hlb0, Hfresh, Hrdf⟩
   · rw [bootEntries_toLE]; iexact Hops
-  obtain ⟨hcl, hvs, hrule, hbt, hreg, hsl⟩ := Hγ
+  obtain ⟨hcl, hvs, hrule, hbt, hreg, hsl, hao⟩ := Hγ
   ihave #Hfits : iprop(letI := srvStor (GF := GF) γ; readyFits (GF := GF) cl srvClusterN) $$ []
   · iapply readyFits_intro
     rw [Hbl]; exact Hrb2
@@ -190,7 +190,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         unfold SrvRaft.cfg
         rw [hvs]
         exact hcc e (by rw [← hbt]; exact he))
-      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _))
+      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _) hao)
     $$ [HL] [Hstv] Hh with ⟨#Hkv, Hetcd, Hhv⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv

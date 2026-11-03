@@ -129,34 +129,7 @@ theorem catchup_list (γk : KVNames) (A' : List EntryModel) (hs : List auth.Auth
 
 /-! ## Q3 (b): the auth buckets of a backend's data, and the mode-on image (`srvImageOn`) -/
 
-/-- **`D` is the mode-`on` image at index `i` of the server's entries `A`, the raft log being `L`**
-(`imageAt` with the model in the mode `on` from the start's auth state `st₀`): the `Key` bucket
-`kvModelOn`'s, the meta keys, the rest buckets but the auth ones the rest model's, and the auth
-buckets the auth state after `A` (`srvAuthAtLog`). (Rebased on #7-cmp's Freeze, as `imageAt`:) the
-`Key` bucket and the compaction records by the KV names' mode at records `r` of the committed log's
-compaction revision. -/
-def imageAtOn (γk : KVNames) (st₀ : auth.AuthState) (bootLog : List EntryM) (i : w64)
-    (L A : List EntryModel) (D : backend.Data) : Prop :=
-  (∃ r : mvcc.CmpRecs, mvcc.keyImageM γk.cmp (kvModelOn γk st₀ A) r D ∧ r.crev = crevOf γk A) ∧
-    backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
-    (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-    (∀ n ∈ restBuckets, ¬ auth.authBkts n →
-      D.lookup n = bkRestOf γk.c0 bootLog L n) ∧
-    authBucketsAt (srvAuthAtLog γk st₀ A) D ∧ mvcc.IdxWf (kvModelOn γk st₀ A) []
-
-/-- `dbImage` in the mode `on` (with `dbImage`'s KV log receipt, #7-cmp's). -/
-def dbImageOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (i : w64)
-    (D : backend.Data) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAtOn γk st₀ γ.raft.boot i (γ.pre ++ A) A D⌝ ∗
-    ⧖ (mvcc.logCh (kvModelOn γk st₀ A)))
-
-/-- **The image certificate of a cluster with auth on** (Q3 (b): a Draft `srvImageOn` beside
-`srvImage`, switched with #7-on, when the cluster's mode moves into `SrvRaft`): `srvImage`'s, the
-start's chain the mode `on`'s and the model's start state `srvAuthSt0`. -/
-def srvImageOn (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
-  iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧
-    γk.log0 = [[], []]⌝ ∗ dbImageOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 i D)
+-- (P5, F8) `imageAtOn`, `dbImageOn`, `srvImageOn` are `ImageOn.lean`'s.
 
 /-- **The receiver's facts of a mode-on image** (`SnapImageFacts`, its `hauthb` replaced by the
 auth buckets' state, its KV log the mode-on model's; rebased on #7-cmp's: the image's compaction
@@ -608,37 +581,9 @@ instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp G
     Persistent (srvAuthSnapOk (GF := GF) s γa RD) := by
   unfold srvAuthSnapOk; infer_instance
 
-/-- **The image certificate in the cluster's auth mode** (decision 7; #7-on (b), the user's go-ahead
-of 2026-11-03 after review R1's F8): `srvImageOn` when the cluster runs auth on, `srvImage`
-otherwise (by `rfl`). Keyed on the **cluster's** mode, not a member's `E.authMode`: the certificate
-travels in the cluster's network payload (`srvNet`), which every member's transport and snapshot
-directory share. In the merge the mode is a field of `SrvRaft` (`authOn`, set by the allocator
-`srvLogInv_alloc`, whose callers `NewServerAlloc`/`NewServerAllocOn` know it), and `NewServer` ties
-it to the member's (`γr.raft.raft.authOn = E.authOn`): every member of a cluster boots in its mode. -/
-def srvImageM (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
-  match on with
-  | true => srvImageOn γ i D
-  | false => srvImage γ i D
+-- (P5, F8) `srvImageM` is `ImageOn.lean`'s.
 
-theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) false γ = srvImage γ := rfl
-
-instance srvImageM_persistent (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) :
-    Persistent (srvImageM (GF := GF) on γ i D) := by
-  cases on
-  · simp only [srvImageM]; infer_instance
-  · simp only [srvImageM]; unfold srvImageOn dbImageOn; infer_instance
-
-/-- **The network payload in the cluster's auth mode** (#7-on (b)): `srvNet` with the image
-certificate by the mode (`srvImageM`). In the merge `srvNet γ` is this at `γ.authOn`; the sender
-(`applyAll`'s merge branch, `EtcdServer__applyAll.lean`'s #7-on) proves `srvImageOn` of an auth-on
-member's database, the receiver (`snapRecv_imageOn`) reads it from the snapshot directory. -/
-def AonDraft.srvNetM (on : Bool) (γ : SrvRaft) : NetPayload GF :=
-  { srvNet γ with
-    img := fun i D => srvImageM on γ i D
-    img_pers := fun i D => by infer_instance }
-
-/-- Mode off, today's payload. -/
-theorem AonDraft.srvNetM_off (γ : SrvRaft) : AonDraft.srvNetM (GF := GF) false γ = srvNet γ := rfl
+/- (P5, F8) The Draft's `srvNetM` is lean's `srvNet`, whose image is `srvImageM γ.authOn`. -/
 
 /- (P5) The Draft's `srvOpenQ` is now lean's (`InvRest.lean`). -/
 

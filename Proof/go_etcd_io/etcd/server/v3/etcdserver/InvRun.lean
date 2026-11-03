@@ -508,7 +508,7 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iNamed Hrn
   icombine HSt Hst gives %Heq
   iunfold srvSnapDisk
-  iexists stp, ss, γd, srvImage γr.raft.raft, srvSnapRm γt γr
+  iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, srvSnapRm γt γr
   iframe HSt Hinv
   isplitr
   · ipureintro; exact Hp.2.2.1

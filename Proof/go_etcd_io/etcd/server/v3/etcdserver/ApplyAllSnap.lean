@@ -86,7 +86,9 @@ theorem EtcdServer.applyAll.wp_proofSnap
   icases Hatm' with ⟨#Hainv, -, #Hkvi⟩
   ihave #Hkvi2 := Hkvi
   iunfold srvKVInvs at Hkvi2
-  icases Hkvi2 with ⟨-, -, #Hrli, -⟩
+  icases Hkvi2 with ⟨#HkI0, -, #Hrli, -⟩
+  -- (the auth-on pair's F8) the cluster runs auth off, the member's KV invariant says
+  imod (kvInv_authOn γr.raft γr.kv) $$ HkI0 with %hao
   -- the snapshot path's resources: the bundle, the counter, the backend's own
   iunfold srvSnapOwn at Hso
   icases Hso with ⟨%γt, %nt, #Hro, %Hnt, Hγt, Hsres⟩
@@ -94,7 +96,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   iunfold srvSnapRO at Hro'
   icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
     %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
-    #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HlpOk, #HlpCfg, #HlpL, #Hrc,
+    #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
@@ -117,8 +119,10 @@ theorem EtcdServer.applyAll.wp_proofSnap
     have : uint.nat ai < uint.nat sv.Metadata'.Index' := by word
     omega
   wp_auto_lc 1
+  ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (srvSnapRm γt γr)) $$ []
+  · rw [← srvImageM_off, ← hao]; iexact Hdinv
   imod snapDir_take ss γd γt γr (srvImage γr.raft.raft) sv.Metadata'.Index' ai nt hnt' hai
-    $$ Hlc1 Hdinv Hsaved Hγt Hao with ⟨Hγt, Hao, %D, Hfile, #Himg⟩
+    $$ Hlc1 Hdinv' Hsaved Hγt Hao with ⟨Hγt, Hao, %D, Hfile, #Himg⟩
   -- the image's facts (`snapRecv_image`): its committed log `A'` extending `A`
   have hai0 : uint.Z ai = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word

@@ -856,14 +856,16 @@ the server's half of the committed log `L` (after `ai0`, consecutive, every entr
 log and determinate at the state it is applied at, every entry above the start's consistent index)
 and the other half of the state's ghost variable at the state of `L`'s mode-`on` model; the start's
 chain the base chain with auth **enabled** and no alarm, the start log not empty; the workload
-facts (`kvWorkOn`); (5b) the other half of the auth history along `L` (`authHistView`). -/
+facts (`kvWorkOn`); (5b) the other half of the auth history along `L` (`authHistView`); (the
+auth-on pair's F8) the cluster's auth mode on (`SrvRaft.authOn`, `kvInvOn_authOn`). -/
 def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft γk L)
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true⌝ ∗
+    kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
     Persistent (kvInvOn (GF := GF) γ γk st₀) := by
@@ -932,6 +934,40 @@ theorem kvInvOn_ch0 (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
   ipureintro
   exact Hok.2.2.2.2.1
 
+/-- **The mode-`on` KV invariant's cluster runs auth on** (the auth-on pair's F8): the member's mode
+the cluster's (`SrvRaft.authOn`, the image certificate the network carries). -/
+theorem kvInvOn_authOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ ={⊤}=∗ ⌜γ.raft.authOn = true⌝ := by
+  iintro #Hinv
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  exact Hok.2.2.2.2.2.2
+
+/-- **The KV invariant's cluster runs auth off** (the auth-on pair's F8; `kvInvOn_authOn`'s). -/
+theorem kvInv_authOn (γ : ServerRaftNames) (γk : KVNames) :
+    ⊢ kvInv (GF := GF) γ γk ={⊤}=∗ ⌜γ.raft.authOn = false⌝ := by
+  iintro #Hinv
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  exact Hok.2.2.2.2.2.2.2
+
+/-- **The member's KV invariant in the mode `on` ties the cluster's mode to it**. -/
+theorem kvInvM_authOn (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
+    ⊢ kvInvM (GF := GF) on γ γk st₀ ={⊤}=∗ ⌜γ.raft.authOn = on⌝ := by
+  cases on
+  · exact kvInv_authOn γ γk
+  · exact kvInvOn_authOn γ γk st₀
+
 /-- **The mode-`on` KV invariant can be allocated** at the empty committed log (as `kvInv`'s, at
 the server's start): the server's half of the empty log, the state's half at the start log, the
 start chain with auth on, the start log not empty and the consistent index within the start's; (5b)
@@ -940,7 +976,7 @@ the history's half at the start's state. So
 theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
     (hch : γk.ch0 = apply.alarmChain true false false) (hlog : γk.log0 ≠ [])
     (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
-    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) :
+    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) (hao : γ.raft.authOn = true) :
     ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) -∗
       monoListAuthOwn γk.hist (1 : Qp).half [st₀] ={E}=∗ kvInvOn γ γk st₀ := by
   iintro HL Hσ Hh
@@ -957,7 +993,7 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · rw [show admStates γk st₀ [] = [st₀] from rfl]; iexact Hh
   isplitr
   · ipureintro
-    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog⟩
+    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog, hao⟩
     intro n m hm; simp at hm
   · iunfold kvWorkOn
     isplitr

@@ -241,7 +241,7 @@ theorem kv_revLbZ_of_rlogLb (γ : ServerRaftNames) (γk : KVNames) (A : List Ent
   iunfold kvRevLbZ
   iexists L₀
   isplitr
-  · rw [Hok.2.2.2.2.2.2]; iunfold srvReqLogLb at HL0; iexact HL0
+  · rw [Hok.2.2.2.2.2.2.1]; iunfold srvReqLogLb at HL0; iexact HL0
   ipureintro; rw [← hm]; exact hn
 
 /-- **The apply package's `cmpPermRq` from the entry's claim** (C3's server stage): a compaction's

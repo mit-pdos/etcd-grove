@@ -749,7 +749,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa HrbA HkIn]
     as %ast ⟨Hopen, Hhook, HkOut, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HauR, #Hbc⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HauR, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn
     ipureintro
@@ -1502,7 +1502,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [← Hstp, ← Hastl, Hfgi]
       iframe LoggerS DataDirS ServerFeatureGateS Hfg QuotaBackendBytesS WarningApplyDurationS
       iframe snapshotter Hss beHooks Hbh' storageC memberID alarmStore authStore lessor cluster
-      iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc HszS
+      iframe HalS HalA HisAuth HauR HauSK Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
         refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, Hcmp0.symm, HbP,

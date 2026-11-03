@@ -538,7 +538,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           have := Hok.2.2.2.1
           omega
         have hst : kvStateOf (kvModelOn γk st₀ (L ++ [e])) = kvOpStep op σ := by
-          rw [kvModelOn_snoc_granted γk st₀ L e (apply.withHeader rq₀ hm) Hok.2.2.2.2.1 Hok.2.2.2.2.2 het hdata
+          rw [kvModelOn_snoc_granted γk st₀ L e (apply.withHeader rq₀ hm) Hok.2.2.2.2.1 Hok.2.2.2.2.2.1 het hdata
             (by rw [hed]; exact hdec) hidxe hna hg
             hplain.1, Hag]
           unfold kvReqStep; rw [hop]

@@ -198,12 +198,12 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
     (e : EntryModel)
     (hok : plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
-      γk.rlog = γ.raft.log)
+      γk.rlog = γ.raft.log ∧ γ.raft.authOn = false)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
     plainLogM γk.cmp (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
-      cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log := by
+      cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log ∧ γ.raft.authOn = false := by
   obtain ⟨hplog, -, hc0, hch, h0, hcl, htie⟩ := hok
   refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl), htie⟩
   rw [plainLogM_append]
@@ -313,7 +313,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   -- the revision's bound, on the cluster's requested log (the invariant's tie), below the log
-  have hrl : γk.rlog = γ.raft.log := Hok.2.2.2.2.2.2
+  have hrl : γk.rlog = γ.raft.log := Hok.2.2.2.2.2.2.1
   ihave #HL0' : srvReqLogLb γ L₀ $$ []
   · unfold srvReqLogLb; rw [← hrl]; iexact HL0
   icases srvReqLogLb_prefix γ L L₀ $$ [$HL $HL0'] with ⟨HL, %Hpre⟩

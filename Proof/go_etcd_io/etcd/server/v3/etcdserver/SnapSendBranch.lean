@@ -914,6 +914,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
+  imod (kvInv_authOn γr.raft γr.kv) $$ Hki with %hao
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, %hx⟩
   iunfold kvAppliedL at Hka
@@ -929,6 +930,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   · rw [← hraft]; iexact HA
   iintro !>
   simp only [srvNet]
+  rw [hao, srvImageM_off]
   iapply (srvImage_of_dbImage (γk := γr.kv) h0.1 hch h0.2)
   iunfold dbImage
   iexists A
