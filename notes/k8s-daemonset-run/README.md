@@ -59,3 +59,13 @@ Then: review rounds (fresh `spec-reviewer`), the freeze, the invariant walk-thro
   names the stuck point.
 - R2 (2026-11-03): agents share this worktree, each owning its files; `lake build` of shared
   modules only by the coordinating session; agents check with `etc/lean-check.py`.
+- R3 (2026-11-03): the translation gaps on the path (C2's `typedSharedIndexInformer` exclusions,
+  D2's exclusions, now fixed in the pinned Perennial; the names-only factory interfaces
+  `informers.SharedInformerFactory`, `informers/{apps,core}.Interface`) are closed by regenerating
+  the translation at the start of Stage 5, by the coordinator: a Goose configuration change that
+  only moves functions from names-only to translated (less trusted surface). Until then their
+  proofs stay stubs; spec statements do not depend on it.
+- R4 (2026-11-03, track A's questions): the informer invariant is allocated at the informer's
+  construction (the FIFO's ghost names pre-allocated), not at `Start`; handler events carry their API
+  facts (`evFacts`) through the processor; `reflect.TypeOf`'s stronger (deterministic, injective on
+  the four resources' pointer types) statement is a separate trust-boundary proposal for Stage 4.
