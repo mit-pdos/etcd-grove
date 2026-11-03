@@ -962,6 +962,11 @@ only grant fact `Apply.spec`'s post carries). Option (b): `grantRes`'s (E) conju
 `⌜v.Err' ≠ nil⌝ -∗ ⌜o = .rejected .backend⌝ ∗ lessorErrIs v.Err'` (one conjunct: a failed grant was
 rejected by the backend, with the lessor's error). True of Go; no new axiom or hypothesis.
 
+*Superseded the same day, the user's:* (E') as worded is false. `dispatch.spec` holds at every chain,
+and a capped chain rejects a grant at `.noSpace` with `ErrNoSpace` (`capped.go`), a corrupt one with
+`ErrCorrupt`. Instead, (E)'s conjunct stays and `grantRes` gains `⌜(∃ l ns, o = .applied l ns) →
+v.Err' = nil⌝`, true at every chain (`dispatch` has it from `grantPost`).
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
