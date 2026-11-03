@@ -658,12 +658,30 @@ theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : cr
       exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
   exact key A h c₀
 
+/-- With the compaction mode off, a log plain in the modes has no compaction (`crevOf_plain`'s,
+at `plainLogM false lg`: a grant leaves the revision, the lease-grant stage). -/
+theorem crevOf_plainM_off (γk : KVNames) (lg : Bool) (A : List EntryModel)
+    (h : plainLogM false lg A) : crevOf γk A = -1 := by
+  unfold crevOf kvCrevOf
+  generalize hc : (-1 : Int) = c₀
+  have key : ∀ (B : List EntryModel), plainLogM false lg B → ∀ c,
+      B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
+    intro B
+    induction B with
+    | nil => intro _ c; rfl
+    | cons m B ih =>
+      intro hB c
+      simp only [List.foldl_cons]
+      rw [kvCrevEntry_plainM_off _ _ lg _ _ (hB m (List.mem_cons_self))]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
+  exact key A h c₀
+
 /-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
 the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
-theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp A) :
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp false A) :
     crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
   unfold crevOf kvCrevOf
-  have key : ∀ (B : List EntryModel), plainLogM cmp B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+  have key : ∀ (B : List EntryModel), plainLogM cmp false B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
       B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
     intro B
     induction B with

@@ -312,7 +312,7 @@ theorem isApplyLessor_of_lessorInv
         · exact h1 h
         · omega
         · exact h3 h
-      iapply Hcl $$ %rs.bk %(fun _ _ => rfl) [Hrb Hbe]
+      iapply Hcl $$ %rs.bk %(fun _ _ => rfl) %(fun h => h) [Hrb Hbe]
       unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]
       iframe Hrb Hbe; ipureintro; exact hlp
     · obtain ⟨Herr, Hln, Hid0, Httl, Hnin⟩ := Hok
@@ -338,7 +338,8 @@ theorem isApplyLessor_of_lessorInv
       rw [show restGrantT id (lease.grantTTL mt ttl) rs = { rs with bk := (mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0))) } from rfl]
       iapply Hcl $$ %(mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse
           (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0)))
-        %(fun n hn => by unfold mvcc.rbSet; rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)]) [Hrb Hbe]
+        %(fun n hn => by unfold mvcc.rbSet; rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)])
+        %(fun _ => by simp [mvcc.rbSet]) [Hrb Hbe]
       unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]
       iframe Hrb Hbe; ipureintro; exact hlp
   isplitr

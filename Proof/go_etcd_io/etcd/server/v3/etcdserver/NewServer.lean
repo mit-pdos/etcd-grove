@@ -1354,7 +1354,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iintro !> Hrw
       ihave #Hl := srvRestRWH_lessor (GF := GF) d.γB alst astl lp bc.cl' d.be
       ihave ⟨Hbe, Hr⟩ := Hl $$ Hrw
-      iexists ({ d with cm := cmp } : mvcc.KBReal)
+      iexists ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)
       rw [show mvcc.leaseName = go!"lease" from rfl]
       iframe Hbe Hr
       ipureintro; exact Hγw.2.2.1
@@ -1653,7 +1653,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave ⟨Hkvw, #Hc0⟩ := txn.kvWriter_cert _ _ _ $$ Hkvw
   -- (M2's item 15, stage B3) the stores' write budget, made here (by `start` until then), and from
   -- its stock the compaction's write-back supply (`True` off): one count for both
-  ihave HWS : srvWTStock (GF := GF) (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) N $$ [Hwts HγbW HrtSV]
+  ihave HWS : srvWTStock (GF := GF) (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lg, γlt⟩ : apply.AEnv GF) N $$ [Hwts HγbW HrtSV]
   · iunfold srvWTStock; iexists ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)
     isplitr
     · ipureintro; exact Hγw.2.2.1

@@ -412,7 +412,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iframe Hcx
         ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
         iframe Hcpq
-        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec, Hrr⟩
+        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec, by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -637,7 +637,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         · iframe Hst Happ Hbe HcF
           ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
           iframe Hcpq
-          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec, Hrr⟩
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec, by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -1185,7 +1185,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iframe Hcx
           ihave #Hcpq := apply.cmpPermRq_nonCmp E rq (plainCover_nonCmp rq hp)
           iframe Hcpq
-          ipureintro; exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp), Hrr⟩
+          ipureintro; exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
         have Hstep := Hstep0.1
         ihave HRS := srvRest_applyP E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
           (Or.inl hp) Hstep $$ [HLt HRS]
@@ -1478,7 +1478,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iframe Hst Happ Hbe HcF
             ihave #Hcpq := apply.cmpPermRq_nonCmp E rq (plainCover_nonCmp rq hp)
             iframe Hcpq
-            ipureintro; exact ⟨hpre, hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp), Hrr⟩
+            ipureintro; exact ⟨hpre, hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
           have hkeep := applyStep_keep rq true x x' out hp hw Hstep0.1
           have hc' := hkeep.2
           have hmod : (sa, x'.log) = kvEntryOn γr.kv.c0 x.chain (sa, x.log) m := by

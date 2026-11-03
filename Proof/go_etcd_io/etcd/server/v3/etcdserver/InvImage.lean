@@ -95,6 +95,14 @@ theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : L
   intro n hn'
   rw [hf n hn', hn, apply.restLeasesWith_nil]; rfl
 
+/-- **The plain image of a log that grants nothing is the leased one** (`bkRestAt_of_L`'s converse):
+with no live lease, `bkRestAtL`'s records are none. -/
+theorem bkRestAtL_of_nil [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
+    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAt γk.c0 bootLog L D) :
+    bkRestAtL γk bootLog L D := by
+  refine ⟨fun _ => W64 0, fun n hn' => ?_⟩
+  rw [h n hn', hn, apply.restLeasesWith_nil]; rfl
+
 /-! ## The image -/
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
@@ -116,7 +124,7 @@ theorem imageAt_off [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64
     imageAt γk bootLog i L A D ↔
       (mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
         (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-        bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []) ∧ crevOf γk A = -1 := by
+        bkRestAtL γk bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []) ∧ crevOf γk A = -1 := by
   unfold imageAt
   rw [hcm]
   constructor

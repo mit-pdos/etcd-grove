@@ -35,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -49,7 +49,7 @@ theorem leasegrant_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.Dia
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The adequacy example is safe, in the operational semantics** (`leasegrant_adequate`, see the
@@ -68,6 +68,8 @@ theorem leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasegrantProgram leasegrantNames)
     (HAs : addrsUnclaimed leasegrantProgram [go!"127.0.0.1:23956"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent leasegrantProgram [config.walDirOf go!"leasegrant.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasegrantGF,
       ⊢ leasegrant.premises (GF := leasegrantGF) (hG := heapAtLgr hG lctx) n id ctxs boot)
@@ -79,7 +81,7 @@ theorem leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  leasegrant_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs n Hprem σ g
+  leasegrant_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs HDs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

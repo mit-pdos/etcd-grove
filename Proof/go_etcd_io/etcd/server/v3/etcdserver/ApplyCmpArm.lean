@@ -497,8 +497,8 @@ theorem crevOf_off (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) 
   imod kv_log_plain γ γk A $$ Hinv Hr HA with %Hp
   imodintro
   ipureintro
-  rw [hcm, plainLogM_false] at Hp
-  exact crevOf_plain γk A Hp.1
+  rw [hcm] at Hp
+  exact crevOf_plainM_off γk _ A Hp.1
 
 /-- The mode-off fact for a committed log, in either mode. -/
 theorem crevOf_offM (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :

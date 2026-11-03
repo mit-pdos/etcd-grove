@@ -897,7 +897,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, -⟩
+  icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, %Hlgk, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
   iunfold kvApplied at Hka
@@ -905,6 +905,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold kvAppliedL at Hka
   icases Hka with ⟨#HA, Hhi, Hcert, %hlog⟩
   imod crevOf_offM γr.raft γr.kv A $$ Hki Hrl HA with %Hoff
+  imod kv_log_plain γr.raft γr.kv A $$ Hki Hrl HA with %Hpl0
   imodintro
   isplitl [Hhi Hcert]
   · iunfold kvApplied
@@ -933,7 +934,17 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     · rw [hr hc, hx.2]
   refine ⟨by simp only []; omega, ⟨⟨r, ?_, hrc⟩, hci, hterm, ?_, hwf⟩⟩
   · rw [Hcm.1]; exact hkI
-  · simpa [hpre] using hrest
+  · cases hlg : E.lg
+    · -- (the lease-grant stage) a cluster that grants none: its log grants nothing, the plain image
+      rw [hlg] at hrest
+      simp only [Bool.false_eq_true, ↓reduceIte] at hrest
+      have hpl : plainLogM γr.kv.cmp false A := by
+        have := Hpl0.1; rw [Hlgk.2, hlg] at this; exact this
+      have hn : (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
+        rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl
+      simpa [hpre] using bkRestAtL_of_nil hn hrest
+    · rw [hlg] at hrest
+      simpa [hpre] using hrest
 
 end proof
 

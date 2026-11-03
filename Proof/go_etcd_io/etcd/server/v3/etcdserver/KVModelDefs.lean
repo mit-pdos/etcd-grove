@@ -1215,10 +1215,29 @@ theorem kvCrevEntry_plain (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : Entr
       · rfl
   · rfl
 
+/-- With the compaction mode off, an entry plain in the modes (a grant included, the lease-grant
+stage) leaves the compaction revision as it is (`kvCrevEntry_plain`'s, at `plainEntryM false lg`). -/
+theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lg : Bool) (crev : Int)
+    (m : EntryModel) (h : plainEntryM false lg m) : kvCrevEntry c₀ ch crev m = crev := by
+  unfold kvCrevEntry
+  split
+  · split
+    · rfl
+    · rename_i ht hd
+      split
+      · rename_i rq hrq
+        apply apply.dispatchCrev_nonCmp
+        rcases h ht hd rq hrq with hp | ⟨hc, -⟩ | hg
+        · exact plainReq_nonCmp rq hp
+        · cases hc
+        · rw [hg.2.1]; intro hk; cases hk
+      · rfl
+  · rfl
+
 /-- An admitted entry leaves the compaction revision at `-1` or at least `1` (a compaction in M2's
 scope is at a revision `≥ 1`). -/
 theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int) (m : EntryModel)
-    (hm : plainEntryM cmp m) (hc : crev = -1 ∨ 1 ≤ crev) :
+    (hm : plainEntryM cmp false m) (hc : crev = -1 ∨ 1 ≤ crev) :
     kvCrevEntry c₀ ch crev m = -1 ∨ 1 ≤ kvCrevEntry c₀ ch crev m := by
   unfold kvCrevEntry
   split
@@ -1227,7 +1246,7 @@ theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int
     · rename_i ht hd
       split
       · rename_i rq hrq
-        rcases hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
+        rcases plainEntryM_lg_false cmp m hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
         · rw [apply.dispatchCrev_nonCmp _ _ _ _ (plainReq_nonCmp rq hp)]; exact hc
         · unfold apply.dispatchCrev
           split

@@ -654,7 +654,8 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       iframe Hcl Hreg
       ipureintro; exact ⟨hdec, hid⟩
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
-      (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw Hecl
+      (entryPutsOk_of_data e d rq hed hdec hk)
+      (attrEntryOk_of _ e d rq hed hdec (attrIdOk_of_kind _ rq (by rw [hform.1.2.1]; decide))) $$ Hw Hecl
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]

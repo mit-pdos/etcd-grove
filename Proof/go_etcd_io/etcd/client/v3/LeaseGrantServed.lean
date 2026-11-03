@@ -36,7 +36,7 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section grants
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -107,7 +107,7 @@ theorem grants_listed (γl : GName) (G : List w64) (m i : Nat) (ids : List w64) 
 end grants
 
 section served
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

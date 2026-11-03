@@ -187,6 +187,10 @@ theorem EtcdServer.LeaseGrant.wp_proof
     · rw [isServerReqM_false]; iexact Hsrv
     isplitr
     · iunfold reqPropOkM
+      try dsimp only
+      isplitl
+      rotate_left
+      · ipureintro; exact attrIdOk_of_kind _ rq (by rw [Hgk.1]; intro hk; cases hk)
       iexists (fun _ => iprop(True))
       isplitl
       · iunfold reqPropOk
