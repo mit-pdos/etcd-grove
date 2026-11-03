@@ -183,6 +183,42 @@ theorem walOpened_elim (w : Loc) (dir : GoString) (id cid : w64) (σ : StorConte
         ⌜storage.walReady w ∧ walDirOf w = dir⌝ := by
   unfold walOpened; iintro H; iexact H
 
+/-! ### The WAL's slots in the boot hub
+
+(2026-11-03, the first slots of the convention the user approved: `notes/spec-first-plan.md`, "The
+slot convention".) `bootstrap`'s contract, `bootOk` and `NewServer.spec` name the WAL only through
+these, sealed: a change to what the WAL takes or gives at boot changes their bodies and laws, not
+the hub's text. No `wal.bootCfg` (the WAL places no condition on the configuration); `wal.Names`
+and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
+
+/-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL**: the configuration's WAL
+directory (`cfg.WALDir()`) fresh, a first start's (from program start, `startRights`). -/
+@[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+  iprop(walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and dedicated WAL
+directory `w` takes the token of `config.walDirOf d w`. -/
+theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d w : GoString)
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = w) :
+    walDirFresh (GF := GF) (config.walDirOf d w) ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; subst hw; iintro H; iexact H
+
+/-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
+configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
+and the right to close it with its files kept (the purge's, `walPurgeRight`). -/
+@[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) : IProp GF :=
+  iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
+    walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- `wal.bootOk`'s parts (what `NewServer`'s proof uses). -/
+theorem wal.bootOk_elim (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) :
+    wal.bootOk (GF := GF) cfg id cid w ⊢
+      walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
+        walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') := by
+  unfold wal.bootOk; iintro H; iexact H
+
 end defs
 
 end EtcdGrove

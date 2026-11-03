@@ -30638,3 +30638,19 @@ builds *enter* (`readyRecv_open`: `isCommittedLogLb`, `hsCommitted`, the busy dr
 The four clients that destructure `readyGot` (the server's `rn_ready_recv`, `kv`, `kvreconf`,
 `kvdurable`) drop the two new conjuncts. The `isCommittedLogLb (delivered ++ ce)` conjunct, which
 the new `deliveredLogLb` implies, stays (dropping it would move every client's pattern for nothing).
+
+## The WAL in the boot hub through its slots (2026-11-03 · the user's approval of the slot convention)
+
+**Before:** R2b-1 stage 3a-3b (branch `r2b1-s3`, built, not landed) put the WAL into the boot hub
+inline: `NewServer.spec`'s three triples and `bootstrapContract` took `walDirFresh (config.walDirOf
+cfg.DataDir' cfg.DedicatedWALDir')`, `bootOk` had `walOpened … walFresh ∗ walPurgeRight …`.
+`notes/spec-first-plan.md` ("Hubs", "Incremental adoption") makes the WAL the first subsystem to
+enter the hub through sealed slots, after a convention reviewed once.
+
+**Now:** the convention (`notes/spec-first-plan.md`, "The slot convention") approved as drafted;
+`WalApi.lean` exports `wal.bootRes cfg` and `wal.bootOk cfg id cid w`, sealed, with
+`wal.bootRes_intro` and `wal.bootOk_elim`; the hub names them. A later change to what the WAL takes
+or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) changes those bodies and
+laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
+starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
+

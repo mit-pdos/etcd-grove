@@ -255,11 +255,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "%Hprt" ∷ ⌜∃ t : Loc, bs.prt' =
       GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
     -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL, which `NewStorage`'s contract takes
-    -- (2026-11-03, the WAL's API, approved change 2) the new WAL opened in the configuration's WAL
-    -- directory: open (`walOpen`, whole), read (`walReady`), its records fresh (`walRecs`), its
-    -- metadata the member's, and the right to close it with its files kept (the purge's)
-    "Hwal" ∷ walOpened bw.w' (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
-    "Hpurge" ∷ walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗
+    -- (2026-11-03, the WAL's API, approved change 2; its slot, the slot convention) the new WAL
+    -- opened in the configuration's WAL directory, and the purge's right (`wal.bootOk`)
+    "Hwal" ∷ wal.bootOk cfg id cid bw.w' ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
@@ -494,7 +492,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-        walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') }}
+        wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

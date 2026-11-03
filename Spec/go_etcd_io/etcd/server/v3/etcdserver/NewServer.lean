@@ -222,8 +222,8 @@ abbrev NewServer.spec : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      "Hwdf" ∷ walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -416,8 +416,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      "Hwdf" ∷ walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -627,8 +627,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      "Hwdf" ∷ walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant

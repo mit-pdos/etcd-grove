@@ -1031,5 +1031,5 @@ for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new env
 `bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
 `walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
 theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
-directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The trust
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
 base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.

@@ -719,3 +719,43 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+
+### The slot convention (approved 2026-11-03, step 1)
+
+Approved by the user as drafted (draft 1), with the WAL as its first slot.
+
+**Names**, per subsystem `<sub>`, in `<sub>`'s API module:
+
+| name | kind | in the hub | what it holds |
+|---|---|---|---|
+| `<sub>.Names` | structure | `NewServer.spec`'s binders, one per subsystem | the subsystem's ghost names, allocated by its own initialization (never a field of `RaftNames`/`AEnv`/`KVNames`) |
+| `<sub>.bootCfg cfg` | `Prop`, sealed | a premise of `NewServer.spec` and `bootstrapContract` | the subsystem's conditions on the configuration |
+| `<sub>.bootRes cfg` | `IProp`, sealed | a conjunct of `NewServer.spec`'s and `bootstrapContract`'s precondition | the resources the caller hands in (program-start tokens, ...) |
+| `<sub>.bootOk cfg … b` | `IProp`, sealed | a conjunct of `bootOk` | what `bootstrap` gives the subsystem |
+| `<sub>.srvInv s γ` | `IProp`, sealed | a conjunct of `NewServer`'s postcondition (`srvBuilt`) | the subsystem's part of the running server |
+
+A slot a subsystem does not need is omitted, not defined as `True`.
+
+**Where a slot lives:** the subsystem's API module (its importable list, or sealed by
+`etc/import-all.txt`; `@[no_expose]` bodies; on its generated interface). Callers use its laws only
+(`<sub>.bootCfg_of …`, `<sub>.bootRes_intro …`, the elimination laws the server's proof needs). A law
+states a client's fact in the client's terms: no body leaks.
+
+**Couplings:** one slot exports a fact the other consumes (a law of the owner's API, taken as a
+premise by the other's slot or proof); only when neither subsystem owns the relation, a named
+cross-slot predicate in the hub's module (`<a>_<b>.couple …`), reviewed with the hub.
+
+**Name records:** `RaftNames`, `AEnv`, `KVNames`, ... are split one field group per subsystem when
+that subsystem converts (step 4), into `<sub>.Names`; until then they stay as they are.
+
+**Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
+added only when its subsystem must change the hub anyway.
+
+**The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
+configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
+w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
+purge's right; `wal.bootOk_elim`). No `wal.bootCfg` (no condition on the configuration);
+`wal.Names` and `wal.srvInv` come at stages 3c/4. `NewServer.spec`'s three triples take
+`wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
+WAL conjuncts. The examples still thread one token per member from program start (a new resource
+is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.

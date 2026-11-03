@@ -119,6 +119,9 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
+    isplitl [Hwdf]
+    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck
