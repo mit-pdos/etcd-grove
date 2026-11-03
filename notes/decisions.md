@@ -30188,4 +30188,4 @@ with it (their lower bounds comparable), and applies the pure law `checkGetOk_of
 at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cache's `Get` errors
 are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
 answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
-was already in cachekv's trust base (`common.Writer`'s).
+is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec).
