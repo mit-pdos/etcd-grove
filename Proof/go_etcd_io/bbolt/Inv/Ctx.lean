@@ -117,6 +117,14 @@ def rdTxK (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
      else emp))
 
+/-- Bytes at `p` (a page, an inline page) from the source `src`: in a page of the view `v`, or
+persistent heap bytes (never stale). -/
+def srcLoc (v : View) (p : Loc) (src : Src) (bs : List w8) : IProp GF :=
+  match src with
+  | .view => iprop(⌜inViewLoc v p bs⌝)
+  | .own _ => iprop(bytesPointsto p DFrac.discard bs)
+  | .stale => iprop(False)
+
 /-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
 def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
   iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)

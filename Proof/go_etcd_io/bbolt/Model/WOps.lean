@@ -74,6 +74,29 @@ def pageWsAs (pg : List w8) (src : Src) : List WEntry :=
 def insSize (ins : List Inode) : Nat :=
   16 + (ins.map fun it => 16 + it.key'.len.toNat + it.value'.len.toNat).sum
 
+/-! ## Updates of records (what the specs' posts name; a multi-field update does not parse
+inside `iprop`) -/
+
+/-- A node's record with the inodes slice `s`, the inodes `ins` and the entries `ws`. -/
+def NRec.withEnts (r : NRec) (s : GoSlice) (ins : List Inode) (ws : List WEntry) : NRec :=
+  { r with nv := { r.nv with inodes' := s }, ins := ins, ws := ws }
+
+/-- The same, and the `unbalanced` flag `u` (`node.del`). -/
+def NRec.withEntsU (r : NRec) (s : GoSlice) (ins : List Inode) (ws : List WEntry) (u : Bool) :
+    NRec :=
+  { r with nv := { r.nv with inodes' := s, unbalanced' := u }, ins := ins, ws := ws }
+
+/-- A node's struct after `n.read(p)` of the page `pg`: its page id and kind the header's, its
+inodes the slice `s`, its key `k`. -/
+def nodeAfterRead (nv : node) (pg : List w8) (s k : GoSlice) : node :=
+  { nv with pgid' := (pageHdr pg).id', isLeaf' := decide (pageFlags pg = leafPageFlag),
+            inodes' := s, key' := k }
+
+/-- A page header after `node.write`: a leaf's or a branch's flags, `n` elements. -/
+def hdrWritten (hdr : Page) (leaf : Bool) (n : Nat) : Page :=
+  { hdr with flags' := W16 ((if leaf then leafPageFlag else branchPageFlag : Nat) : Int),
+             count' := W16 (n : Int) }
+
 /-! ## Updates of a bucket's records -/
 
 /-- `X` with bucket `bl`'s record `B'`. -/
