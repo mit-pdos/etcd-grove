@@ -7,10 +7,12 @@ logger contract (`Logger.lean`), the options (`Options.lean`) and the one-functi
 and who took them: `notes/bbolt-spec-decisions.md`; `notes/decisions.md`, "bbolt's API spec".
 
 **The predicates** (`isBolt`, `boltState`, `boltTx`, `txDB`, `txDone`, `boltBkt`, `boltCur`,
-`txBytes`, `fileHolds`) are `opaque` until bbolt's invariants are designed: each then becomes a
-`@[no_expose]` definition over a non-public import of `Proof/go_etcd_io/bbolt/Inv*.lean`, with
-the same statements. Each takes OsFs's `[HasExt osFsExt]` in its signature. **The laws** are
-theorems whose `sorry`s are the invariants stage's planned proofs.
+`txBytes`, `fileHolds`) are sealed: each is a `@[no_expose]` definition over a non-public import
+of `Proof/go_etcd_io/bbolt/Inv/` (U0a, `notes/bbolt-proof-plan.md`: `isBolt db γ` is
+`isBoltDef (bnsOf γ.gs) γ.ns db`, and so on), with the statements they had as `opaque`s (their
+ambient instance arguments now include the heap's, which their bodies use). Each takes OsFs's
+`[HasExt osFsExt]` in its signature. **The laws** are proved from their `…Def` versions in
+`Inv/`, whose `sorry`s are the proof's planned work.
 -/
 module
 
@@ -22,6 +24,7 @@ public import Iris.BI.Lib.Atomic
 public import GooseLang.Ext.OsFs.Specs
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
+import Proof.go_etcd_io.bbolt.Inv.FileHolds
 
 @[expose] public section
 
@@ -85,45 +88,53 @@ It also owns **`DB`'s exported fields** (`StrictMode`, `NoSync`, `NoGrowSync`, `
 must not write them after `Open` (Go lets it; the specs do not, since no client holds their
 points-to). `StrictMode = true` alone would change `Commit` (it runs `tx.Check()`: goroutines,
 read transactions, a panic on any report). etcd writes none of them. -/
-opaque isBolt [HasExt osFsExt] (db : Loc) (γ : BoltName) : IProp GF
+@[no_expose] def isBolt [HasExt osFsExt] (db : Loc) (γ : BoltName) : IProp GF :=
+  isBoltDef (bnsOf γ.gs) γ.ns db
 
 /-- **The committed data of `γ` is `D`**, at fraction `q`: the client's view, which the
 atomic updates of `Begin(false)` and `Commit` act on (fractional: a read needs some fraction, a
 commit all of it). Survives `Close` (the data then stays `D`). -/
-opaque boltState [HasExt osFsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF
+@[no_expose] def boltState [HasExt osFsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF :=
+  boltStateDef (bnsOf γ.gs) q D
 
 /-- **`tx` is a transaction of `γ`, live, with the view `T`**, at fraction `q`. A read
 transaction's whole (`q = 1`) holds the reader slot `Begin(false)` took for the caller's
 `threadTok` (given back by `Rollback`); its fractions may be shared between goroutines for
 reads. A write transaction's operations that change it need all of it. -/
-opaque boltTx [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) : IProp GF
+@[no_expose] def boltTx [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) : IProp GF :=
+  boltTxDef (bnsOf γ.gs) γ.ns tx q T
 
 -- Round 6: `txSnap` (and `boltTx_snap`, `txSnap_agree`) dropped (review 5, finding 5): with no
 -- name it needs a registry keyed by `tx`, which D19 rejected, and no caller needs it (the backend
 -- keeps `boltTx tx γ q (ro D)` where it kept `rtxSnap tx D`).
 
 /-- `tx` is a transaction of the database `db` (persistent; what `Tx.DB` returns). -/
-opaque txDB [HasExt osFsExt] (tx db : Loc) : IProp GF
+@[no_expose] def txDB [HasExt osFsExt] (tx db : Loc) : IProp GF :=
+  txDBDef tx db
 
 /-- `tx` was committed or rolled back (persistent): its statistics can be read. -/
-opaque txDone [HasExt osFsExt] (tx : Loc) : IProp GF
+@[no_expose] def txDone [HasExt osFsExt] (tx : Loc) : IProp GF :=
+  txDoneDef tx
 
 /-- `b` is `tx`'s handle of the bucket named `n` at generation `g` (persistent). Its operations
 need `n` at generation `g` in the transaction's view: a deleted bucket's handle is never current
 again (a re-created bucket of the name gets a new generation). -/
-opaque boltBkt [HasExt osFsExt] (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF
+@[no_expose] def boltBkt [HasExt osFsExt] (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
+  boltBktDef (bnsOf γ.gs) tx b n g
 
 /-- `c` is a cursor of `tx`, made at the view `T`, over the entries `es`, at position `pos`
 (`none`: not positioned; `some i`, `i ≤ es.length`: at the `i`-th entry, or past the last at
 `es.length`, see `Cursor.Next.spec`). Exclusive. Its moves need `tx` at the view `T`: after a
 change of the transaction, a cursor made before it is not usable (Go: "You must reposition your
 cursor after mutating data"; the spec does not let it be repositioned). -/
-opaque boltCur [HasExt osFsExt] (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF
+@[no_expose] def boltCur [HasExt osFsExt] (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF :=
+  boltCurDef (bnsOf γ.gs) tx c T es pos
 
 /-- The slice `s` holds `b` while `tx` is live (persistent; read with `txBytes_acc`): a key or
 value bbolt returned, pointing into the memory map (unmapped by a remap or `Close`, which wait
 for the transaction) or into the transaction's nodes. -/
-opaque txBytes [HasExt osFsExt] (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) : IProp GF
+@[no_expose] def txBytes [HasExt osFsExt] (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) : IProp GF :=
+  txBytesDef (bnsOf γ.gs) tx s b
 
 /-- **The file at `path` holds a database with the data `D`** (exclusive): what `Open` reads.
 Defined over the Linux file extension (`GooseLang/Ext/OsFs`: the file's whole `osMeta`, with no
@@ -212,65 +223,83 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 -- invariant design (D-B: `osInv` is an invariant, so `fileHolds` was not timeless, and the fold's
 -- reason went with D22 = (b)): `Open` takes `osInv` separately, and `fileHolds` is `osMeta`,
 -- `osBytes` and pure facts.
-opaque fileHolds [HasExt osFsExt] (path : GoString) (D : Data) : IProp GF
+@[no_expose] def fileHolds [HasExt osFsExt] (path : GoString) (D : Data) : IProp GF :=
+  fileHoldsDef path D
 
 /-! ## Laws -/
 
 @[instance] theorem isBolt_persistent (db : Loc) (γ : BoltName) :
-    Persistent (isBolt (GF := GF) db γ) := by sorry
+    Persistent (isBolt (GF := GF) db γ) := by
+  unfold isBolt; infer_instance
 -- Round 3: round 2's `isBolt_agree`/`boltTx_isBolt` are dropped (review 2, finding 6: a pure
 -- entailment between two handles needs a registry `db ↦ γ`, and none can be had: a package fact
 -- is a fixed proposition, so a ghost name inside it does not agree between two copies; D-E).
 -- The clients carry `γ` instead: the backend already has it (`BNames`' `γ.db`, beside every
 -- `isDB db`), so its layer is `isDB db := isBolt db γ.db` (`notes/bbolt-spec-decisions.md`, D19).
 @[instance] theorem boltState_timeless (γ : BoltName) (q : Qp) (D : Data) :
-    Timeless (boltState (GF := GF) γ q D) := by sorry
+    Timeless (boltState (GF := GF) γ q D) := by
+  unfold boltState; infer_instance
 @[instance] theorem boltState_fractional (γ : BoltName) (D : Data) :
-    Fractional (fun q => boltState (GF := GF) γ q D) := by sorry
+    Fractional (fun q => boltState (GF := GF) γ q D) := by
+  unfold boltState; exact boltStateDef_fractional _ _
 theorem boltState_agree (γ : BoltName) (q1 q2 : Qp) (D1 D2 : Data) :
-    boltState (GF := GF) γ q1 D1 ∗ boltState γ q2 D2 ⊢ ⌜D1 = D2⌝ := by sorry
+    boltState (GF := GF) γ q1 D1 ∗ boltState γ q2 D2 ⊢ ⌜D1 = D2⌝ := by
+  unfold boltState; exact boltStateDef_agree _ _ _ _ _
 theorem boltState_valid (γ : BoltName) (q : Qp) (D : Data) :
-    boltState (GF := GF) γ q D ⊢ ⌜q ≤ 1⌝ := by sorry
+    boltState (GF := GF) γ q D ⊢ ⌜q ≤ 1⌝ := by
+  unfold boltState; exact boltStateDef_valid _ _ _
 
 /-- **A later transaction is a transaction, given its database** (decided by the coordinator after
 the invariant design, D-A, in place of `boltTx_timeless`: `boltTx` holds the transaction's locks'
 and bbolt's invariants, which are not timeless; the timeless rest is stripped, and the invariants
 come from `isBolt`). -/
 theorem boltTx_later (db tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
-    isBolt (GF := GF) db γ ⊢ ▷ boltTx tx γ q T -∗ ◇ boltTx tx γ q T := by sorry
+    isBolt (GF := GF) db γ ⊢ ▷ boltTx tx γ q T -∗ ◇ boltTx tx γ q T := by
+  unfold isBolt boltTx; exact boltTxDef_later _ _ _ _ _ _
 @[instance] theorem boltTx_fractional (tx : Loc) (γ : BoltName) (T : TxView) :
-    Fractional (fun q => boltTx (GF := GF) tx γ q T) := by sorry
+    Fractional (fun q => boltTx (GF := GF) tx γ q T) := by
+  unfold boltTx; exact boltTxDef_fractional _ _ _ _
 /-- Two fractions of one transaction of one database agree on its view (round 6: over one name;
 across names it needed a registry keyed by `tx`, D19). Provable from `isBolt γ`'s ghost map of
 transactions `tx ↪ γtx` and `γtx`'s fractional view. -/
 theorem boltTx_agree (tx : Loc) (γ : BoltName) (q1 q2 : Qp) (T1 T2 : TxView) :
-    boltTx (GF := GF) tx γ q1 T1 ∗ boltTx tx γ q2 T2 ⊢ ⌜T1 = T2⌝ := by sorry
+    boltTx (GF := GF) tx γ q1 T1 ∗ boltTx tx γ q2 T2 ⊢ ⌜T1 = T2⌝ := by
+  unfold boltTx; exact boltTxDef_agree _ _ _ _ _ _ _
 theorem boltTx_valid (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
-    boltTx (GF := GF) tx γ q T ⊢ ⌜q ≤ 1⌝ := by sorry
+    boltTx (GF := GF) tx γ q T ⊢ ⌜q ≤ 1⌝ := by
+  unfold boltTx; exact boltTxDef_valid _ _ _ _ _
 /-- A live transaction is a non-nil `*Tx` (the backend's `tx != nil` checks). -/
 theorem boltTx_nonnull (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
-    boltTx (GF := GF) tx γ q T ⊢ ⌜tx ≠ Loc.null⌝ := by sorry
+    boltTx (GF := GF) tx γ q T ⊢ ⌜tx ≠ Loc.null⌝ := by
+  unfold boltTx; exact boltTxDef_nonnull _ _ _ _ _
 /-- **While a write transaction is live, the committed data is the one it began at** (it holds
 `rwlock`; only it can commit). How a client learns the data `Begin(true)` began at. -/
 theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Data) :
-    boltTx (GF := GF) tx γ q T ∗ boltState γ q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by sorry
+    boltTx (GF := GF) tx γ q T ∗ boltState γ q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by
+  unfold boltTx boltState; exact boltTxDef_base _ _ _ _ _ _ _
 
-@[instance] theorem txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db) := by sorry
-@[instance] theorem txDone_persistent (tx : Loc) : Persistent (txDone (GF := GF) tx) := by sorry
+@[instance] theorem txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db) := by
+  unfold txDB; infer_instance
+@[instance] theorem txDone_persistent (tx : Loc) : Persistent (txDone (GF := GF) tx) := by
+  unfold txDone; infer_instance
 @[instance] theorem boltBkt_persistent (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
-    (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by sorry
+    (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by
+  unfold boltBkt; infer_instance
 @[instance] theorem txBytes_persistent (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) :
-    Persistent (txBytes (GF := GF) tx γ s b) := by sorry
+    Persistent (txBytes (GF := GF) tx γ s b) := by
+  unfold txBytes; infer_instance
 @[instance] theorem boltCur_timeless (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView)
     (es : List BoltEnt) (pos : Option Nat) : Timeless (boltCur (GF := GF) tx γ c T es pos) := by
-  sorry
+  unfold boltCur; infer_instance
 @[instance] theorem fileHolds_timeless (path : GoString) (D : Data) :
-    Timeless (fileHolds (GF := GF) path D) := by sorry
+    Timeless (fileHolds (GF := GF) path D) := by
+  unfold fileHolds; infer_instance
 
 /-- A slice the transaction returned is read while the transaction is live (any fraction). -/
 theorem txBytes_acc (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (s : GoSlice) (b : GoString) :
     txBytes (GF := GF) tx γ s b ∗ boltTx tx γ q T ⊢
-      ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ boltTx tx γ q T) := by sorry
+      ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ boltTx tx γ q T) := by
+  unfold txBytes boltTx; exact txBytesDef_acc _ _ _ _ _ _ _
 
 /-- **A bucket handle's `FillPercent` field** (exported, written by clients: the backend's
 `0.9`), of any handle the transaction gave out, current or not, with the whole transaction: read,
@@ -288,7 +317,7 @@ theorem boltTx_fill (tx b : Loc) (γ : BoltName) (T : TxView) (n : GoString) (g 
       ∃ f : w64, structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f ∗
         (∀ f' : w64, ⌜¬ float64IsNaN f'⌝ -∗
           structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f' -∗ boltTx tx γ 1 T) := by
-  sorry
+  unfold boltTx boltBkt; exact boltTxDef_fill _ _ _ _ _ _ _ hrw
 
 /-- What a cursor move to the `i`-th entry returns: its key (never nil: bbolt's keys are not
 empty) and value, valid while `tx` is live; nil and nil past the end. -/
@@ -306,13 +335,15 @@ update over it: the layer the backend's batch lock uses (it holds `boltState γ 
 theorem boltState_read_au (γ : BoltName) (D : Data) :
     boltState (GF := GF) γ 1 D ⊢
       AU <{ ∃∃ (q : Qp) (D' : Data), boltState γ q D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ boltState γ q D', COMM boltState γ 1 D ∗ ⌜D' = D⌝ }> := by sorry
+        <{ boltState γ q D', COMM boltState γ 1 D ∗ ⌜D' = D⌝ }> := by
+  unfold boltState; exact boltState_read_au' _ _ _
 
 /-- The same for a commit from `D` to `S`. -/
 theorem boltState_commit_au (γ : BoltName) (D S : Data) :
     boltState (GF := GF) γ 1 D ⊢
       AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ⌜D' = D⌝ ∗ boltState γ 1 S, COMM boltState γ 1 S }> := by sorry
+        <{ ⌜D' = D⌝ ∗ boltState γ 1 S, COMM boltState γ 1 S }> := by
+  unfold boltState; exact boltState_commit_au' _ _ _ _
 
 /-- **bbolt's `Close` succeeds** (opaque, a named premise about the program's environment, moved
 from the backend's `InvBbolt.lean`): `db.Close()` does not fail for the environment's reasons
@@ -330,7 +361,8 @@ theorem fileHolds_new (path : GoString) (mo : Option OsMeta) :
       (match mo with
        | none => iprop(emp)
        | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))
-    ⊢ fileHolds path ∅ := by sorry
+    ⊢ fileHolds path ∅ := by
+  unfold fileHolds; exact fileHoldsDef_new _ _
 
 end vocab
 
