@@ -57,8 +57,8 @@ open Iris Iris.BI Iris.ProofMode apimodel informer consistency workqueue
 structure S1Names where
   /-- the API state's mirror (a ghost variable: `apiInv`'s half and `s1Inv`'s) -/
   mirror : GName
-  /-- the owners' bounds: owner ↦ a version the pod informer has reached (halves: the
-  invariant's, the sync token holder's) -/
+  /-- the owners' bounds: owner ↦ a version the pod informer has reached and whether the owner
+  is ready (halves: the invariant's, the sync token holder's) -/
   lb : GName
   /-- the claims: (owner, node) ↦ the claimant's pod, once created -/
   claim : GName
@@ -84,16 +84,18 @@ instance apiInv_persistent (γa : ApiNames) (γ : S1Names) :
     Persistent (apiInv (GF := GF) γa γ) := by
   unfold apiInv; infer_instance
 
-/-- **The owner's half of its bound** `L`. -/
-def seenTok (γ : S1Names) (o : Owner) (L : Nat) : IProp GF :=
-  ghostMapElem γ.lb o (DFrac.own (1 : Qp).half) L
+/-- **The owner's half of its bound and ready flag** `Lr`. -/
+def seenTok (γ : S1Names) (o : Owner) (Lr : Nat × Bool) : IProp GF :=
+  ghostMapElem γ.lb o (DFrac.own (1 : Qp).half) Lr
 
 /-- **The sync token of owner `o`**: see the file header. -/
 def syncTok (γ : S1Names) (c : DscComp) (o : Owner) : IProp GF :=
-  iprop(ownerTok c o 1 ∗ ∃ L, seenTok γ o L)
+  iprop(ownerTok c o 1 ∗ ∃ Lr, seenTok γ o Lr)
 
-/-- **A claim** of node `n` for owner `o` (the create goroutine's): `v` its pod, once created. -/
-def claimTok (γ : S1Names) (o : Owner) (n : GoString) (v : Option (Key × Nat)) : IProp GF :=
+/-- **A claim** of node `n` for owner `o` (the create goroutine's): `v` its pod, once created
+(`S1Steps.lean`'s `Claims`). -/
+def claimTok (γ : S1Names) (o : Owner) (n : GoString) (v : Option (Bool × Key × Nat)) :
+    IProp GF :=
   ghostMapElem γ.claim (o, n) (DFrac.own 1) v
 
 /-- **S1's invariant's content**: the mirror's half at `σ`, the consistency store's state `M`,
@@ -101,12 +103,12 @@ the owner tokens' authority and the bounds `Lm` (each registered owner: the inva
 its bound, a lower bound of the pod informer's version, and its sync token or the work queue's
 token of its key), the claims `C` (each with a fraction of its owner's token), and `s1Ok`. -/
 def s1Res (γ : S1Names) (c : DscComp) : IProp GF :=
-  iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner Nat) (C : Claims)
+  iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool)) (C : Claims)
       (D : GMap Owner Unit),
     apiMirror γ σ ∗ consState c.γc M ∗
     ghostMapAuth c.tok 1 D ∗ ⌜∀ o, (D !! o).isSome = (Lm !! o).isSome⌝ ∗
     ghostMapAuth γ.lb 1 Lm ∗
-    ([∗map] o ↦ L ∈ Lm, seenTok γ o L ∗ infRvLb c.podI.γi L ∗
+    ([∗map] o ↦ Lr ∈ Lm, seenTok γ o Lr ∗ infRvLb c.podI.γi Lr.1 ∗
       (syncTok γ c o ∨ keyTok c.γq.tq (ownerKey o))) ∗
     ghostMapAuth γ.claim 1 C ∗ ([∗map] on ↦ _v ∈ C, ∃ q, ownerTok c on.1 q) ∗
     ⌜s1Ok σ M Lm C⌝)
