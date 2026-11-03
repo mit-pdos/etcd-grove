@@ -39,16 +39,65 @@ taking lean's change:
   the two permits; `applySnapshot.specSnapOn` without `d.cm = false`, with `r`/`hcc`/`keyImageM`,
   `halbi`, `threadTok` (pre and post), `srvKVCloserW`, the receipt and the permits;
   `srvSnapAppliedOn` at `r` (`d'.cm = d.cm`, `x'.crev = r.crev`, `srvKVCloserW`).
-- Kept: `applyAll.specSnapOn`'s `E.cmp = false` (with auth on no server spec runs the compactor:
-  `NewServer.specG`'s `cmp → on = false`, the apply plan's stage 5 drops both). `imageAtOn`'s
-  records at `crevOf` then need, in the mode off, `crevOf = -1` of an auth-on log, which the auth-on KV
-  invariants must give as `srvKVInvs` gives it (`imageAt_off`): a proof obligation of
-  `snapRecv_imageOn`, to check.
-- Checked, unchanged: `authSchemaSrv`'s restatement (lean's boot premise has the same shape; the
-  `NewAuthStore` axiom now takes a part of a bucket set and the auth buckets in the table, which the
-  server's proof passes); the snapshot clause's `bkRTx` (after the install `snapWalkPost` still gives
-  one spare `bkRTx` beside the pool, `SnapApplyDefs.lean:138`); `srvSnapROAuth`'s delta; the Draft
-  names none of cluster-rows' rows or `request_delivered`.
+- (Superseded by review R1, below: `E.cmp = false` dropped, F7; the snapshot clause's `bkRTx` replaced,
+  F4, the spare `bkRTx` being the mvcc writer's reader.) Checked, unchanged: `srvSnapROAuth`'s delta;
+  the Draft names none of cluster-rows' rows or `request_delivered`.
+
+**Review R1 (2026-11-03, `spec-reviewer`, read-only, at `983e807d73`)** and its repairs (commits on the
+branch; the Draft builds, the glue proved again):
+- F1 (the apply thread's open share still the mode-off half while the realization keeps
+  `authOpenQ`): `AonDraft.srvOpenQ E.authMode` (a quarter in `on`, decision 5) in `specSnapOn`'s pre
+  and `srvSnapAppliedOn`; R2's N1: also `srvSnapRes` (so `srvSnapOwn`, `applyResOn`) and `NewServer`'s
+  boot bundle in the merge (the Impact list).
+- F2 (`srvHist_wf` false: the model's `userAddF` refuses only the empty name, `authSmall` bounds
+  names): takes `plainLogOn A'`, which `authRecoverOn.spec` takes (from `kvInvOn`).
+- F3 (the statements named lean's mode-free `srvRestOwnH`, which keeps the auth buckets the install
+  hands to the realization): `AonDraft.srvRestOwnH E.authMode` in every `E.RO` equation.
+- F4 (decision 2 missing from the trusted text: `actualMaxReaders` copies of `R`, `R` lent against
+  `bkRTx`): `authRdLoan R := □ (threadTok ={⊤}=∗ R ∗ (R ={⊤}=∗ threadTok))`, given by the boot premise,
+  carried in `srvAuthSnapOk`; both premises take the backend's `rdPool`; `authRecoverOn.spec` takes
+  and gives back `threadTok` (its post a fancy update). R2: realizable with `R` independent of the
+  backend (e.g. the token itself, the slot borrowed inside `RLock` from the then-current pool).
+- F5 (the auth buckets not required in the table): both premises and `authRecoverOn.spec` take
+  `d.P.has authBI ∧ authUsersBI ∧ authRolesBI`; R2's N3: `specSnapOn` takes them (`hauthbi`), and in the
+  merge `srvSnapRO`'s facts beside `alarmBI`. **The same gap is in lean's trusted mode-off
+  `authRecoverOk`** (`SnapRO.lean`, no `d.P.has` for `dn`; unreachable with the server's parameters,
+  false at others): this repository's spec bug, to fix with the merge.
+- F6: `run_snap_jobOn` the exact twin of `run_job_snap` (`applyResOn`, `hM`). F7:
+  `applyAll.specSnapOn` without `E.cmp = false` (a mode-on log has no compaction, `plainLogOn`; this
+  settles `imageAtOn`'s `crevOf`). F10 (and R2's N6): `srvAuthSnapOk` only as `srvSnapRO`'s row.
+  F11: `CatchUpDraft.lean` reduced to `authHist_appendL`. F12: `¬ auth.authBkts n`.
+
+**Review R2 (2026-11-03, at `48758c7180`)**: the repairs right but F1 (N1, above), F5 (N3), F10 (N6);
+new: **N2** (trusted): `authBkLife`'s three clauses and both premises' updates were basic (`==∗`,
+`|==>`), which cannot open the invariant the released exclusive `bOpen` share must live in: now
+`={⊤}=∗`. N5: stale docstrings fixed. N7: this record (a scripted edit had dropped the next
+section's header line and the first record of R1).
+
+**Open, for the user before the Freeze:**
+- **F8**: `srvSnapROAuth`'s `srvImageM E.authMode` cannot be built while the network's certificate
+  (`srvNet`'s `img`, which feeds the snapshot directory) has no mode: step 3 would move #7-on's gap
+  into `NewServer`. Either the mode in `SrvRaft` with `srvNet`'s image by it (#7-on (b)) in this stage,
+  or step 3 states the dependency.
+- **F9**, packaging: decision 6's trigger (J8b) has landed. One `specSnap`/`applyAll.specSnap` over
+  `E.authMode` (the mode-off text a corollary), or the twins.
+- **R2's N4**: with only `authRdLoan R`, no proof builds the copies of `RD` (which contains `R`) that
+  the server's readers get today (`authStoreKit`'s post, `AuthSrv.lean:95`; `NewServer`'s splits,
+  `NewServer.lean:831-836`): the kit's post, `NewServer`'s supply of `E.RD` and the request/serve
+  paths become loans too (mode off keeps copies from `NewAuthStore.spec`). Not yet in "Impact on the
+  base"; to decide with the boot premise.
+- **F5's boot half**: the restated boot premise takes the idle `rbOwnIn … authBkts`, while lean's kit
+  and `NewAuthStore.spec` take a part at boot; where the boot caller gets the idle form is to check
+  (or the boot clause takes `rbPart`).
+- F12's rest: `.any` falls into the mode-off arms of `srvImageM`/`AonDraft.srvRestOwn`/`srvOpenQ`;
+  `srvImageOn` exports no laws yet.
+- Not a spec finding (R1's; unverified, no test): `authStore.Recover` (`store.go:399-418`) enables the
+  token provider when the image's store is enabled but never disables it when the image's is
+  disabled, as `AuthDisable` does (`simple_token.go:191-200`): a member installing a snapshot across
+  an `AuthDisable` may keep simple tokens the others dropped. Possibly security-relevant: by the
+  user's 2026-11-01 decision such findings go to `etcd-grove-private`, not `issues/`; left to the user.
+
+What the Draft's author (etcd-grove-83, 2026-11-03) flagged for the rebase:
 
 
 - Stale: the Draft predates J8b and the backend split (`a43af91055`): `rtHeldF` now carries

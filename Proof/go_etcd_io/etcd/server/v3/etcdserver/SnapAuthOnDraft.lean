@@ -420,14 +420,16 @@ def auth.authPubTok (γa : auth.AuthNames) : IProp GF :=
   back) does not state: a backend-level change (review round A1's 3);
 - **publish**: with `T` (no batch open, the backend holds the history's last state), the
   publication quarter, the history's half at `hs` and the store's half at `p`, the published index
-  raised to `hs`'s last. -/
+  raised to `hs`'s last.
+Fancy updates at `⊤` (review R2's N2: the released share `K` is exclusive and its ghost names are
+not `bOpen`'s, so the realization keeps it in an invariant, which a basic update cannot open). -/
 def auth.authBkLife (γa : auth.AuthNames) (γc : auth.AuthBkNames) (K : IProp GF) : IProp GF :=
-  iprop(□ (auth.authWTok γc ∗ auth.authPubTok γa ==∗
+  iprop(□ (auth.authWTok γc ∗ auth.authPubTok γa ={⊤}=∗
         (∃ st : auth.AuthState, auth.authLockI (.on γa) st) ∗ auth.authRetired γc ∗
           auth.authSucc γa) ∗
-    □ (auth.authRetired γc ∗ auth.authCur γc 1 ==∗ K ∗ auth.authPubTok γa) ∗
+    □ (auth.authRetired γc ∗ auth.authCur γc 1 ={⊤}=∗ K ∗ auth.authPubTok γa) ∗
     □ (∀ (hs : List auth.AuthState) (p : Nat), auth.authWTok γc -∗ auth.authPubTok γa -∗
-        auth.authHistHalf γa hs -∗ auth.authPubQ γa (1 : Qp).half p -∗ ⌜p + 1 ≤ hs.length⌝ ==∗
+        auth.authHistHalf γa hs -∗ auth.authPubQ γa (1 : Qp).half p -∗ ⌜p + 1 ≤ hs.length⌝ ={⊤}=∗
       auth.authWTok γc ∗ auth.authPubTok γa ∗ auth.authHistHalf γa hs ∗
         auth.authPubQ γa (1 : Qp).half (hs.length - 1)))
 
@@ -715,8 +717,10 @@ instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : 
 /-- **The auth store's readers backed by thread tokens** (decision 2 on the restated Draft, review
 R1's F4; in place of `actualMaxReaders` copies of `R` and of `R` lent against a backend reader's
 `bkRTx`): a thread's token lends it one reader resource `R` of the store, given back for the token.
-The realization borrows the current backend's reader slot from its pool (`backend.rdPool`, which
-the boot premise and the snapshot clause take). -/
+`R` does not depend on the backend (it is fixed at boot): a realization can take `R` to be the
+token itself, the reader's slot borrowed inside the store's `RLock` from the pool of the backend
+current then (`backend.rdPool`, persistent, which the boot premise and the snapshot clause hand it),
+so that an `R` lent before an install is given back after it (review R2). -/
 def authRdLoan (R : IProp GF) : IProp GF :=
   iprop(□ (threadTok ={⊤}=∗ R ∗ (R ={⊤}=∗ threadTok)))
 
@@ -727,12 +731,14 @@ instance authRdLoan_persistent (R : IProp GF) : Persistent (authRdLoan (GF := GF
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
 lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
 recorded and at an index no smaller than the published one), its open share `authOpenQ`, the
-succession right (the previous backend retired) and the client's idle half of the auth buckets
-(`rbOwnIn … authBkts`: `r` is what its readers see): schema's
+succession right (the previous backend retired), the client's idle half of the auth buckets
+(`rbOwnIn … authBkts`: `r` is what its readers see), the auth buckets in its table and its reader
+pool (`rdPool`): schema's
 auth backend `abl` over it meets, for fresh names `γc`, the guarded read contract at `R`, the write
 contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
-the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share); one
-`R` lent against the backend's read token. The client keeps the other tracked buckets. -/
+the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share). The
+readers' `R` are lent against thread tokens (`authRdLoan`, the boot premise's). The client keeps the
+other tracked buckets. -/
 def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
       (r : GMap GoString backend.BktData) (st : auth.AuthState),
@@ -743,7 +749,7 @@ def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
     backend.rbOwnIn d.γB authBkts r -∗ backend.rdPool d.γB d.P d.be -∗
     backend.bOpen d.γB authOpenQ -∗
     auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗
-    |==> ∃ γc : auth.AuthBkNames,
+    |={⊤}=> ∃ γc : auth.AuthBkNames,
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ auth.authWTok γc ∗
@@ -761,7 +767,8 @@ state and **half the published index's authority** (decision 2), schema's auth b
 currency; the write contract (with the hook `P f`) and at every schema auth backend on `d` at its
 frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
 and the lifecycle (its realization keeping the open share and a quarter of the published index's
-authority); `actualMaxReaders` copies of `R`; the constructor's critical section, whose `Post`
+authority); the loan of `R` against thread tokens (`authRdLoan`, decision 2: the backend's reader
+pool taken); the constructor's critical section, whose `Post`
 gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
 half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
 client keeps the others') and the succession right (one live backend).
@@ -785,7 +792,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
     backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
     auth.authSucc γa -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
-    |==> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
+    |={⊤}=> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗
@@ -1053,6 +1060,16 @@ def srvImageM (M : auth.AuthMode) (γ : SrvRaft) (i : w64) (D : backend.Data) : 
 
 theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) .off γ = srvImage γ := rfl
 
+/-- **The apply thread's share of a server backend's open token, by the mode** (decision 5; review
+R1's F1, R2's N1): a quarter in `on`, the auth realization keeping `authOpenQ`; the half otherwise.
+In the merge `srvSnapRes` holds `bOpen d.γB (AonDraft.srvOpenQ E.authMode)` in place of its half
+(and `NewServer`'s boot bundle with it), so that `srvSnapOwn` in `applyAll.specSnapOn`/`applyResOn`
+is at the quarter in `on`. -/
+def AonDraft.srvOpenQ (M : auth.AuthMode) : Qp :=
+  match M with
+  | .on _ => (1 : Qp).half.half
+  | _ => (1 : Qp).half
+
 /-- **`srvSnapRO`'s two mode-dependent clauses, redefined** (decision 7 and 8): `srvSnapRO` is
 today's with `snapDirInv ss γd (srvImage γr.raft.raft) …` replaced by `snapDirInv ss γd (srvImageM
 E.authMode γr.raft.raft) …`, `E.RO = srvRestOwnH d.γB cl …` by its mode-indexed owner
@@ -1086,7 +1103,7 @@ def srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) 
     srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
     -- (review R1's F1, decision 5) the apply thread's open share a quarter in `on`: the auth
     -- realization keeps `authOpenQ`
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half.half ∗
+    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (AonDraft.srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
     trLive γn t c L ∗
@@ -1136,6 +1153,9 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     -- (as `specSnap`'s, the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI)
+    -- (review R2's N3) the auth buckets in the table, which `authRecoverOn.spec` takes (in the
+    -- merge also among `srvSnapRO`'s facts beside `alarmBI`; `NewServer` has them)
+    (hauthbi : d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)
@@ -1210,7 +1230,7 @@ abbrev EtcdServer.applySnapshot.specSnapOn : Prop :=
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        -- (review R1's F1, decision 5) the apply thread's quarter
-       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half.half ∗
+       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (AonDraft.srvOpenQ E.authMode) ∗
        -- (auth on: Q2's candidate (ii)) the store's invariant at the server's read resource
        -- `E.RD`, the snapshot clause at it (carried from `NewServer`'s generalized premise), the
        -- image's committed log
@@ -1289,9 +1309,9 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
       rnWalTok (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
       -- `isServerApplyAll`'s two fields)
+      -- (auth on: the store's invariant and snapshot clause, `srvAuthSnapOk`, are `srvSnapRO`'s
+      -- gated row, `AonDraft.srvSnapROAuth`)
       srvSnapOwn s ci E γr ai ∗
-      -- (auth on) the store's invariant at the server's `E.RD` and the snapshot clause (Q2's candidate (ii)),
-      -- carried from `NewServer` as `#HmetaSnap` is
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
@@ -1350,9 +1370,9 @@ theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
 
 /-- **`run`'s auth-on snapshot-payload job** (review R1's F6: restated as the twin of J8b's
 `run_job_snap`, `EtcdServer__run.lean`, statement only): its premises and resources, with the loop's
-resources in the mode `on` (`applyResOn`) and the store's snapshot clause (`srvAuthSnapOk`, decision
-8: an `isServerRunOn` fact in the merge, as `srvMetaSnap` is; `isServerRunOn` does not carry it
-today); `applyAll.specSnapOn` takes the loop from `A` to the image's log `A'`. -/
+resources in the mode `on` (`applyResOn`; the store's snapshot clause is its `srvSnapOwn`'s
+`srvSnapRO` row, review R2's N6); `applyAll.specSnapOn` takes the loop from `A` to the image's log
+`A'`. -/
 theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapOn (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
@@ -1366,7 +1386,6 @@ theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapOn (GF := GF) (hG := h
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
-        srvAuthSnapOk C.s γa C.E.RD ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
         taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γn.node; iprop(
