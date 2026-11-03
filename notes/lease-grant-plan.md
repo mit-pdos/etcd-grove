@@ -1550,3 +1550,13 @@ before any code of the proof; stops `EtcdServer.LeaseGrant.wp_proof`, hence a so
   `raftLessor s E S`, its post adding the same disjunction (the error arm by `togRPCError`'s non-nil
   error). `etcd_leaseGrantHandlerOk` (`client/v3/Results.lean`, statement unchanged) calls it at
   `True` through `raftLessor_grantG`.
+
+**Stopped after 5b (2026-11-03, out of context).** Left of commit 5, none started:
+`EtcdServer.LeaseGrant.wp_proof` (blocked: its pre lacks `srvAuthAt`, above; and `GetTTL`'s
+translation), the Lease service's `LeaseGrant`/`LeaseLeases` handlers at
+`etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` (the grant's over `lessorGrantOkG_of_L` and
+`lessorGrantOkL_of_server`, as `etcd_leaseGrantHandlerOk`; the listing's needs every grant at an
+index up to the lessor's bound in the listed map), `kv_lease_grant_served` (`kv_lease_served` at
+`lg`), `alloc1 true`, `leasegrant.Main.wp_proof`. `leasegrant_safe`/`leasegrant_Main` reach 4
+`sorry`s: `leasegrant.Main.wp_proof` and the three intended (`srvGrantOpen_open`, `merged_image`,
+`run_job_snap_cmp`).
