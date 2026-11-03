@@ -45,6 +45,8 @@ public import Proof.k8s_io.client_go.tools.cache.Keys
 
 @[expose] public section
 
+set_option autoImplicit false
+
 noncomputable section
 
 namespace Perennial

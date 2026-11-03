@@ -22,8 +22,11 @@ module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Inv
 public import Spec.fmt.Errorf
+public import Proof.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Defs
 
 @[expose] public section
+
+set_option autoImplicit false
 
 set_option linter.unusedSectionVars false
 
@@ -54,6 +57,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [workqueue.QItem (GF := GF) GoString go.string]
+
+/-- **An `*int64`**: `nil` for `none`, else a pointer to the value (at `dq`). -/
+def int64PtrD (p : Loc) (dq : DFrac) (g : Option w64) : IProp GF :=
+  ownPtrD (fun (x : w64) (_ : DFrac) (y : w64) => iprop(⌜x = y⌝)) p dq g
+
+/-- **An `*int32`**: `nil` for `none`, else a pointer to the value (at `dq`). -/
+def int32PtrD (p : Loc) (dq : DFrac) (g : Option w32) : IProp GF :=
+  ownPtrD (fun (x : w32) (_ : DFrac) (y : w32) => iprop(⌜x = y⌝)) p dq g
 
 /-- **The controller's environment** (persistent). -/
 def dscEnv (dsc : Loc) (c : DscComp)

@@ -48,6 +48,8 @@ public import Proof.k8s_io.kubernetes.pkg.controller.daemon.RvLemmas
 
 @[expose] public section
 
+set_option autoImplicit false
+
 noncomputable section
 
 namespace Perennial

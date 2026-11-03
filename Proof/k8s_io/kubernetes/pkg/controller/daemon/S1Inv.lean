@@ -41,6 +41,8 @@ public import Proof.k8s_io.kubernetes.pkg.controller.daemon.Defs
 
 @[expose] public section
 
+set_option autoImplicit false
+
 set_option linter.unusedSectionVars false
 
 noncomputable section
