@@ -17,7 +17,7 @@ the member id and bootstrap log Go computes (`leasegrant.BootFacts`); the thread
 bounds; the named workload and effect premises of the server's construction (`ckptEffectsOk`,
 `authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`); the deployment's
 peers answering the lease handler's path (`leasePeersOk`: the served Lease service's `TimeToLive`
-handler takes it, `common.kv_lease_grant_served`); **no lease the cluster grants expires while
+handler takes it, `common.kv_lease_served`); **no lease the cluster grants expires while
 the program runs** (`lease.leasesNoExpiry`, the lease-grant plan's S2 (a): the lease is granted for
 600 s, the read that lists it runs within the request timeout; a deployment fact, not a fact of the
 Go code: the lessor's expiry loop could revoke it; read also over the theorem's steps after `Main`

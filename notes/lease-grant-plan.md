@@ -1652,6 +1652,35 @@ already deleted (4g).
   proof unfolds both. `lessorGrantOk` (`raftLessor`'s conjunct) unchanged: making it the `G := True`
   instance would strengthen it.
 
+**Commit 5e: the rest of commit 5** (2026-11-03, a full build with the checks).
+- *The handlers (2.2's served side).* `client/v3/LeaseGrantServed.lean` (new, as `LeaseReadServed`):
+  `etcd_leaseGrantHandlerOkL` (`LeaseServer.LeaseGrant` at `G id := ∃ i, leaseGrantedAt E.γ.leases i
+  id` over `lessorGrantOkL`, meeting `etcdLeaseGrantSpec`), `etcd_leaseLeasesHandlerOkL` (meeting
+  `etcdLeaseLeasesSpec γl` at auth off: the call made at a bound no older than the caller's grants,
+  `grants_lb` over `leaseGrantedAt_lb_max`; the listing has each, `grants_listed` over
+  `leaseGrantedAt_listed`; the empty and error arms refuted or passed by (F3)'s `authOn = true`),
+  `etcdLeaseGrantMethods` (`LeaseTimeToLive`, `LeaseLeases`, `LeaseGrant`) and
+  `etcd_leaseGrantMethodsOk` (the analogue of `etcd_leaseReadMethodsOk`; the grant at
+  `etcdRunSlot ∗ threadTok`, rearranged into the gRPC slot by `grpcMethodOkMd_slot`).
+- *`kv_lease_served` (2.2), one lemma taking `lg`:* post `grpcServeTok ∗ client.etcdLeaseReadAt addr ∗
+  (if ρ.rd.kv.lg then etcdLeaseGrantAt addr E else etcdKVAt addr E ρ γr cid mid)`; at `lg = true` the
+  grant contract from `v3rpc.lessorGrantOkL_server` (`srvGrantsLeases` from `lg` and
+  `isServerReq_authOff`), the three methods registered beside the KV's (whose registrations are not
+  passed on), `LeaseLeases`' old registration derived (`isGrpcRpc_leaseLeases_any`). Law
+  `kv_lease_served_false` (the old post, premise `ρ.rd.kv.lg = false`), used by `leasekv`.
+  `etcdLeaseGrantAt` moved into `ServedLease.lean`; `ServedLeaseGrant.lean` (the draft
+  `kv_lease_grant_served`) deleted.
+- *`alloc1` (2.3), taking `lg`* (and `hlg : lg = true → leasesNoExpiry ∧ srvGrantOpen`, for
+  `memberBoot`'s row): `srvClusterBoot_alloc … lg`, post `… ∧ ρ.rd.kv.lg = lg` and `if lg then True else
+  etcdKV …`. `alloc1_false`: the old statement; the seven callers at `false` renamed to it.
+  Mechanical: `leasekv` calls `alloc1 … false` itself, for the `ρ.rd.kv.lg = false` that
+  `kv_lease_served_false` takes (its `etcdKV` was dropped anyway).
+- *`leasegrant.Main.wp_proof`* (as `leasekv`'s): `alloc1 … true (fun _ => ⟨leasesNoExpiry, hslg⟩)`,
+  `StartServer`, `go holdToken()`, `Serve` with `kv_lease_served` at `lg = true`, `NewClient`; `Grant`
+  at `etcdLeaseGrantSpec` with `Q m := ∃ i, leaseGrantedAt E.γ.leases i m.id`; `Leases` at
+  `etcdLeaseLeasesSpec` handing in `[g.ID]`, `Q m := g.ID ∈ m.ids`; the loop's invariant `found = true
+  ∨ g.ID ∉ ids.take i`, so `found` at its end.
+
 ### Hubs touched
 
 (2026-11-03, `notes/spec-first-plan.md`, "Hubs", "Modes generalize, no twins".)
