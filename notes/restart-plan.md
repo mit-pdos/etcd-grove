@@ -992,3 +992,14 @@ contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs
 `walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
 (`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
 snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).
+
+### The WAL's API, spec-first (2026-11-03, the user's request; approved)
+
+Before R2b-1's proof, the user asked for the WAL's whole API through the spec-first approach
+(`notes/decisions.md`, "The WAL's API"). Three review rounds; the axiom review found a third WAL bug
+(a restart at a received snapshot names the next file below it; `nonissues/
+etcd-wal-restart-file-below-snapshot.md`), fixed on the fork in `323320bb8` (with
+`LatestSnapshotEntry` at the highest record); **the pin moves to it once the user pushes
+`goose-lean-walsnap`**. The API landed as modules no proof uses yet (`storage/WalRecs.lean`,
+`etcdserver/WalApi.lean`, sealed); `InvWal.lean` keeps the durability invariant over it. R2b-1's
+stage 3 puts it in place, with the six approved changes to trusted statements.
