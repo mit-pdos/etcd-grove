@@ -206,7 +206,7 @@ def main():
             out = rx.sub(rep, out)
         own = owner(f)
         if f.endswith(".lean"):
-            # the hand-written namespaces: in every example's own files and in those importing one
+            # the hand-written namespaces: in every hand-written Lean file (`kv` only in its own and importers)
             # (not inside string literals: `go!"putget.etcd"` is a directory)
             in_examples = "etcd_grove/examples/" in f
             for old, new, ns, _ in MOVES:
@@ -217,9 +217,7 @@ def main():
                             r"^(public )?import \S*etcd_grove\.examples\."
                             + re.escape(new.replace("/", ".")) + r"\b", out, re.M):
                         continue
-                elif not in_examples and not re.search(
-                        r"^(public )?import \S*etcd_grove\.examples\.", out, re.M):
-                    continue
+
                 def ren(code):
                     code = re.sub(r"^(namespace|end) ((?:Perennial\.)?(?:EtcdGrove\.)?)"
                                   + re.escape(old) + r"$", r"\1 \2" + ns, code, flags=re.M)
