@@ -326,6 +326,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   `HashStorage().Hash()` reads `currentRev` without `revMu`, racing with every write (reported by
   the race detector); reachable through the maintenance `Hash` RPC. Harmless on 64-bit in practice
   (the TODO already says the revision may not match the hash), a one-line fix.
+- **[etcd-read-after-backend-close-panic](etcd-read-after-backend-close-panic.md)** (2026-11-03):
+  a read still in flight when the server stops crashes the process (nil dereference in the closed
+  backend's read transaction). Reachable through the public API when a member is removed or stops
+  on an error while clients read from it, and in `embed.Close` when `grpc.Stop` leaves handlers
+  running; reproduced on an embedded server. A crash at shutdown, small fixes.
 - **[etcd-mvcc-progress-lock-order-deadlock](etcd-mvcc-progress-lock-order-deadlock.md)** (2026-11-02):
   a watch progress request takes the store's two locks in the reverse of their documented order and
   deadlocks with a write transaction's `End` and a waiting `Commit` or `Compact`. A hang only for
