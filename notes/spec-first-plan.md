@@ -627,6 +627,62 @@ that a new subsystem adds a clause instead of editing existing ones:
   subsystem's own initialization;
 - the apply and snapshot aggregators over the same per-subsystem predicates.
 
+**What a sealed slot is.** Today `NewServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`)
+carries each subsystem's details in its own text; every dated comment in it marks an edit:
+
+```lean
+∀ cfg U γ id ctxs ρ E₀ N Φs
+  (γn : NetNames GF) (dir : …)   -- D21 M2, 10-19
+  (γd : GName),                  -- D22 J2, 10-26
+  …
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →                    -- N1, 10-17
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →    -- keylen, 10-30
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →                      -- txn-nested, 10-31
+  (cfg.AutoCompactionRetention' = 0 ∨
+    (cfg.AutoCompactionMode' = go!"revision" ∧ …) ∨                 -- M2 item 14, 10-31
+    (cfg.AutoCompactionMode' = go!"periodic" ∧ …)) →                -- periodic, 11-02
+  E₀.cmp = decide (…) → ρ.rd.kv.cmp = E₀.cmp → …
+```
+
+The compactor's periodic mode changed `NewServer.spec`, its proof, `bootOk` and every caller
+(`startMember`, `newServer`, `StartServer` in each example): one subsystem's change surfaced in
+all of them. A slot: each subsystem's API module exports one sealed predicate for its
+configuration and names, with laws,
+
+```lean
+-- the compactor's API module, sealed (@[no_expose])
+def compactor.bootCfg (cfg : ServerConfig) (γ : compactor.Names) : Prop := …  -- modes, retention, …
+theorem compactor.bootCfg_off : cfg.AutoCompactionRetention' = 0 → compactor.bootCfg cfg γ
+```
+
+and the hub names each subsystem once, by its predicates:
+
+```lean
+∀ cfg (γr : raft.Names) (γk : mvcc.Names) (γc : compactor.Names) (γn : net.Names) …,
+  raft.bootCfg cfg γr → mvcc.bootCfg cfg γk → compactor.bootCfg cfg γc → net.bootCfg cfg γn →
+  ⦃…⦄ NewServer cfg ⦃s, raft.srvInv s γr ∗ mvcc.srvInv s γk ∗ compactor.srvInv s γc ∗ …⦄
+```
+
+Periodic mode then changes only `compactor.bootCfg`'s sealed body: not `NewServer.spec`, not its
+callers. A caller that relies on a mode proves the premise through a law (`bootCfg_off`, a new
+`bootCfg_periodic`), as raft's `Api.lean` does for the node. The name records the same way:
+`RaftNames`, `AEnv`, `KVNames` become a tuple of per-subsystem records, so a field added to the
+compactor's names leaves the others' structures alone.
+
+What it does not fix:
+- A new subsystem still adds a slot (a parameter and a conjunct): an addition, which callers
+  that pass slots through generically survive.
+- Coupling between subsystems is real design work: `ρ.rd.kv.cret ≤ retention` ties the KV
+  invariant to the compactor's configuration. Some slot must own the relation (one exports a fact
+  the other consumes) or a small explicit cross-slot predicate states it. Finding these couplings
+  up front is what mapping the hubs is for.
+- Sealing moves the review, it does not remove it: a reviewer of `NewServer.spec` no longer sees
+  the compactor's premises inline; they are in the compactor's generated interface, as
+  `bootCfg`'s laws, and must be reviewed there.
+
+So the hub's text changes only when a subsystem is added or two become newly coupled, not when one
+changes inside.
+
 Caveats: fan-out is partly a proxy for statement size; the history includes the proof-first era;
 many of `NewServer`'s changes added subsystems not planned at the time, which no hub map would have
 foreseen; the claim is that they would have been additions, not rewrites. **Test** it as
