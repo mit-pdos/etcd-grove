@@ -883,3 +883,71 @@ proposed; `lease-grant-lessor.md`: `NewLessor`'s mode/history/payload, `Recover`
 "no lease of any lessor the program creates", with two corrections: two `RequestTimeout`s, and
 `Renew`/checkpoints among what moves an expiry later). The bounds' three `examples/leasegrant`
 entries approved with it. Next: the plumbing, in the design's commit order, then Prove.
+
+## Plumbing (2026-11-02)
+
+The design's §3 commits, as done, with their deviations and the problem found.
+
+**Commit 1 (pure, new modules)** `d65faf5aa1`: `apply/GrantRest.lean` (`restGrantT`, `restGrant_eq`, `grantIdsOk`,
+`grantGoes`, `grantIds`, `grantRest`, `restLeasesWith` with `_nil`/`_mem`/`_congr`/`_snoc`, and the
+commutations `restGrantT_putIn`/`_delIn`, `restAfter_restGrantT`), `AppliedTable.lean`
+(`appliedTable`, `kvLeases_pre`), `RestLeased.lean` (`bkRestAtL`, `bkRestAtL_of_rb`,
+`ccRest_restGrantT`, `restEntry_restGrantT`). Mechanical adaptations:
+- three modules, not one per side: `srvRest` (in `InvRest`) needs `appliedTable` and
+  `restLeasesWith`, so these sit below `InvRest`; `bkRestAtL` needs `restModel`, so above it, and
+  `InvImage` will import `RestLeased`.
+- `Function.update` is not available (no Mathlib): `updFn f id t` in its place.
+- `grantIds`/`grantRest` are over the chain's `Outcome` (`dispatch`'s); `Apply`'s outcome is an
+  `ApplyOut`, so `grantIdsA`/`grantRestA` (a dispatched request's) for `Apply.spec`'s post.
+- `ltHalf`/`AEnv.γlt` are not pure (a field of `AEnv` rebuilds the server): left to commit 3.
+- The law `(dispatchTable c rq v3 lt).ids = grantIds rq o lt.ids` needs the triple's facts: left to
+  commit 3, where they are.
+
+**Commit 2 (lease package)** `a8470c1775`: `lessorBackend lp P f T Ln R Rb` (the lens over `Ln`), `lessorApplyOk`'s
+new text (`(wbTok d.γB) RW`), `Grant.spec`/`Checkpoint.spec` with `Ln` in and back, their proofs.
+Deviation (mechanical): `isApplyLessor_of_lessorInv`'s premise is `lessorBackend lp P f (storeWT γ)
+RW₀ (storeRT γ) Rb`, not yet the design's `∀ d, ⌜γ.kb = some d⌝ → … (lessorBeOn lp d.be) …` (m2):
+in commit 2 the Grant clause still takes the write right `RW`, which lends `RW₀` (`lessorBeOn lp
+d.be` at both instantiations, `NewServer` and `SnapApplyOptsLemmas`, unchanged), and the returned
+`Ln` is dropped. The `d`-named form belongs with the clause over `RO` (commit 3), whose lens gives
+`d`.
+
+**The problem: a conf change does not commute with a lease record (blocks commit 3).**
+- *What.* §2.0 says "`restEntry` commutes with `restGrantT` (`restEntry_keep`, GMap
+  extensionality)". It does for a normal entry (`restAfter_restGrantT`, proved), but not for a conf
+  change: `ccRest v3 cc r` branches on `membership.ccValidOn r.bk cc`, which is `ccValidM` of
+  `membership.membersOfBk r.bk`, and `membersOfBk` is **opaque over the whole tracked-bucket map**
+  (`InvRest.lean:79`). Nothing says it ignores the `lease` bucket, so `ccValidOn (restGrantT id t
+  r).bk cc = ccValidOn r.bk cc` is not provable. `RestLeased.lean`'s `ccRest_restGrantT` and
+  `restEntry_restGrantT` are proved under exactly that premise.
+- *Where it is needed.* `applyConfChange.spec` (frozen) takes `E.RO rs` to `E.RO (ccRest v3 m rs)`.
+  With `srvRest`'s leased arm, `rs = restLeasesWith f T (restModel … (pre ++ A))`, and reclosing
+  `srvRest E γr (A ++ [m])` (`srvRest_snoc` in `EtcdServer.apply`'s conf-change arm) needs
+  `ccRest v3 m (restLeasesWith f T r) = restLeasesWith f T (ccRest v3 m r)`. The server's policy
+  (`ccApplyOk`: an `AddNode` of a configured member) does not help: the verdict is still
+  `membersOfBk` of a different map. Every later commit (3-5) rests on the gated `srvRest`.
+- *Options.*
+  (A) Make `membersOfBk` a function of the two membership buckets:
+  `membersOfBk bk := membersOfBkM (bk.lookup "members") (bk.lookup "members_removed")`, the opaque
+  moved inward, and `membersOfBk_empty` restated over it. True of Go (`readMembersFromBackend` reads
+  only those buckets, as the axiom's docstring already says); then `ccValidOn` ignores `lease` and
+  the commutation is proved. A change to a trusted (opaque) definition and to an axiom's statement,
+  so the `axiom` skill's pass and the user's approval; no new axiom.
+  (B) Interleave the records: the leased image `restModelL f` folds each applied grant's record at
+  its entry (`restEntryL`: `restEntry`, then the record if the entry is a grant that succeeds at the
+  table before it), so a conf change is validated on the leased buckets and no commutation is needed.
+  No trust change, but `srvRest`'s leased arm, `bkRestAtL` and `imageAt` (2.9, 2.14) are restated.
+  (C) A trust-boundary axiom that `membersOfBk` ignores the `lease` bucket: excluded (no new axiom).
+  Recommended: (A), the smallest change and true of Go; (B) if the trust base must not move.
+
+**Checks after each of commits 1 and 2**: the full build; `tcb-report.py --check` reports as new only
+the two `sorry`s already on the branch (`srvGrantOpen_open`, `leasegrant.Main.wp_proof`); all 46
+collections unchanged; `gen-init.py --check` and `gen-interface.py --check` (backend, raft) clean.
+
+**Where the plumbing stopped**: after commit 2. Commit 3 (and 4-5, which rest on it) is held for the
+user's choice above: its server side gates `srvRest`, and the conf-change arm of `EtcdServer.apply`
+cannot reclose the leased arm without the commutation. Next, once chosen: with (A), restate
+`membersOfBk` (and `membersOfBk_empty`), prove `ccValidOn` ignores `lease`, drop the premise of
+`ccRest_restGrantT`/`restEntry_restGrantT`, then commit 3 as designed (with `isApplyLessor_of_lessorInv`'s
+`d`-named premise, deferred from commit 2); with (B), restate 2.0/2.9/2.14 first.
+
