@@ -155,6 +155,8 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.bytes, isPkgInit pkg_id.bytes),
    (pkg_id.time, isPkgInit pkg_id.time),
    (pkg_id.os, isPkgInit pkg_id.os),
+   (pkg_id.io.fs, isPkgInit pkg_id.io.fs),
+   (pkg_id.syscall, isPkgInit pkg_id.syscall),
    (pkg_id.log, isPkgInit pkg_id.log)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/

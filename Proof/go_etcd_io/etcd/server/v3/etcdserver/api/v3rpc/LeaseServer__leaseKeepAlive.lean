@@ -55,7 +55,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrU $$ [] as %cerr -
+    wp_apply +noauto HErrU $$ [] as %cerr - -
     wp_auto
     wp_apply hICE as %bc -
     wp_if_destruct

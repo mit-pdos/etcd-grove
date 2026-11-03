@@ -149,7 +149,7 @@ covered. -/
 theorem not_coversRange_past (rev : Nat) (op : PermType) :
     ¬ coversRange (setupSt rev) [go!"r"] op lo go!"d" := by
   intro h
-  have hin : inRange lo go!"d" hi := by
+  have hin : auth.inRange lo go!"d" hi := by
     simp only [auth.inRange, isOpenEnded]
     refine ⟨?_, Or.inr ?_⟩ <;> decide
   obtain ⟨p, hp, hc⟩ := h hi hin
@@ -163,7 +163,7 @@ the prefix `c/` is not covered. -/
 theorem not_coversRange_c (rev : Nat) (op : PermType) :
     ¬ coversRange (setupSt rev) [go!"r"] op go!"c/" go!"c0" := by
   intro h
-  have hin : inRange go!"c/" go!"c0" go!"c/" := by
+  have hin : auth.inRange go!"c/" go!"c0" go!"c/" := by
     simp only [auth.inRange, isOpenEnded]
     refine ⟨?_, Or.inr ?_⟩ <;> decide
   obtain ⟨p, hp, hc⟩ := h _ hin
