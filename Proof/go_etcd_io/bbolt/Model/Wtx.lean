@@ -231,6 +231,8 @@ def wsLive (ws : List WEntry) : Prop := ∀ w ∈ ws, w.ks ≠ Src.stale ∧ w.v
 /-- A nested bucket's flag (`BucketLeafFlag`). -/
 def isBktFlag (f : w32) : Prop := f &&& W32 1 ≠ W32 0
 
+instance (f : w32) : Decidable (isBktFlag f) := by unfold isBktFlag; infer_instance
+
 /-- The `InBucket` of a nested bucket's value. -/
 def ibOf (v : List w8) : InBucket := inBucketOf v
 
