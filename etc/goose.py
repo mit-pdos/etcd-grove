@@ -201,12 +201,16 @@ PROJECTS = [
         # nonissues/etcd-cfg-watch-progress-interval-race.md). Then (#8's J8a-7, 2026-11-01) branch
         # `goose-lean-remotepause` (on 7cf3644ec): a remote paused by a flag under its own mutex,
         # as a peer, so that `CutPeer`/`MendPeer` may be repeated (ab3c28d9a; the nonissue
-        # nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md).
+        # nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md). Then (the restart plan's R2b-1,
+        # 2026-11-02) branch `goose-lean-walsnap` (on ab3c28d9a): `wal.ReadAll` returns the log the
+        # records write, not entries a received snapshot discarded (6293455e0, revised ce3dbc097,
+        # nonissues/etcd-wal-stale-entries-above-snapshot.md), and `recoverSnapshot` opens the WAL at
+        # the snapshot record of the highest index (nonissues/etcd-wal-snapshot-record-order.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="ab3c28d9a12a41bff370b78791b9eafb14d07f60",
+        rev="ce3dbc097fff9d24d43f3f4f7fee799713bfc013",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -773,6 +777,22 @@ PROJECTS = [
         rev=None,
         local=os.path.join("third_party", "porcupine"),
         lean_roots=["github.com/anishathalye/porcupine="],
+        packages=["."],
+        owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="porcupine-dag",
+        # porcupine's open pull request #46 (practical-systems-iitd/porcupine 29a6b8e6c, "Support
+        # system-specific consistency models via DAG-based execution"), vendored beside v1.3.1
+        # with the one change that makes it translatable (third_party/porcupine-dag/UPSTREAM.md).
+        # Translated into the parallel tree PorcupineDag (modules PorcupineDag.Code.github_com.
+        # anishathalye.porcupine, ...), which nothing outside it imports: the same Go path as
+        # project porcupine; configured by PorcupineDag/Code/**.toml.
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "porcupine-dag"),
+        root="PorcupineDag",
+        lean_roots=["github.com/anishathalye/porcupine=PorcupineDag"],
         packages=["."],
         owned=[os.path.join("github_com", "anishathalye")],
     ),

@@ -272,7 +272,7 @@ theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
   iintro #Hinv #Hlog
   iunfold cacheWatchLog at Hlog
   icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
-  · ihave ⟨%bs, %p₀, %Hf, #Hch⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
+  · ihave ⟨%bs, %p₀, %Hf, #Hch, -⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
       ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
     obtain ⟨hev, -, hst, hsr⟩ := Hf
     obtain ⟨hp0, -⟩ := hsr (by decide)
@@ -306,6 +306,90 @@ theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
     ihave H := Hb $$ %j %e %hj
     rw [show 2 + j = 2 + 0 + j by omega]
     iexact H
+  · exfalso
+    have := hc (cancelModel n) (by rw [HL]; simp)
+    simp [cancelModel] at this
+  · exfalso
+    obtain ⟨r, hL, hcr, -⟩ := H
+    have := hc r (by rw [hL]; simp)
+    rw [hcr] at this
+    cases this
+
+/-- **A progress notification of a cache watch from revision `2` at a watchkv server is not past
+its events** (see the file header): a log `L` with no cancel and a progress notification `r` in
+it, at revision `p`, has `p ≤ 1 + (eventsOf L).length`. The delivery theorem's quiet fact
+(`watchProgressQuiet`): `p` is at most the last batch at or below it, which is an event of `L`
+(at revision `2 + j`), or ends a step without events under the prefix, impossible at a revision
+`≥ 2` of a watchkv log (`km_step_log`, `revEvs_hi`: every such revision is a put under it). -/
+theorem log_ck_progress (γ : client.KMNames) (P : List (GoString × GoString))
+    (hW : γ.W = watchkv.wkW P) (hpk : ∀ kv ∈ P, ckPfx <+: kv.1) (rangeEnd : GoString)
+    (hkeys : ∀ kv ∈ P, keyPredForRange ckPfx rangeEnd kv.1 = true) (L : List RespModel)
+    (hc : ∀ r ∈ L, r.canceled = false) (r : RespModel) (hr : r ∈ L ∧ r.events = []) :
+    ⊢ client.kmInv (GF := GF) γ -∗
+      cacheWatchLog (etcdStepCert (EM := client.etcdModelOfKV γ) ckPfx)
+        (some (keyPredForRange ckPfx rangeEnd)) (W64 2) L ={⊤}=∗
+      ⌜sint.Z r.hdrRev ≤ 1 + (eventsOf L).length⌝ := by
+  iintro #Hinv #Hlog
+  iunfold cacheWatchLog at Hlog
+  icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
+  · ihave ⟨%bs, %p₀, %Hf, #Hch, #Hpq⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
+      ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
+    obtain ⟨hev, -, hst, hsr⟩ := Hf
+    obtain ⟨hp0, -⟩ := hsr (by decide)
+    have hp0' : p₀ ≤ 1 := by
+      have : sint.Z (W64 2) = 2 := by decide
+      omega
+    by_cases hpos : sint.Z r.hdrRev ≤ 0
+    · imodintro; ipureintro; omega
+    imod certChain_ck γ P hW hpk bs p₀ 0 (Or.inl ⟨rfl, hp0'⟩) hst.batches
+      $$ Hinv Hch with #Hb
+    -- the batches' events: puts of the plan (the key filter keeps them), at revisions `2 + j`
+    ihave %Hk : ⌜∀ (j : Nat) (e : EvModel), bs.flatten[j]? = some e →
+        keyPredForRange ckPfx rangeEnd e.key = true ∧ sint.Z e.rev = 2 + j⌝ $$ []
+    · iapply BI.pure_forall.2
+      iintro %j
+      iapply BI.pure_forall.2
+      iintro %e
+      by_cases hj : bs.flatten[j]? = some e
+      · ihave Hf := Hb $$ %j %e %hj
+        iunfold evFact at Hf
+        iunfold common.evFactR at Hf
+        icases Hf with ⟨%Hr, %v, %kvv, -, %Hv, -⟩
+        ipureintro; intro _; exact ⟨hkeys _ Hv.2, by rw [Hr.2]; push_cast; omega⟩
+      · ipureintro; intro h; exact absurd h hj
+    have hid : bs.flatten.filter (fun e => keyPredForRange ckPfx rangeEnd e.key) = bs.flatten := by
+      rw [List.filter_eq_self]
+      intro e he
+      obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp he
+      exact (Hk j e hj).1
+    rw [hid] at hev
+    -- the last batch at or below the notification is at most `1 + (eventsOf L).length`
+    have hcle : chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev))) ≤
+        1 + (eventsOf L).length := by
+      unfold chainEnd
+      cases hl : (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev))).getLast? with
+      | none => simp only; omega
+      | some b =>
+        simp only
+        have hb : b ∈ bs := (List.mem_filter.1 (List.mem_of_getLast? hl)).1
+        obtain ⟨e, he⟩ := List.exists_mem_of_ne_nil b (hst.batches b hb).1
+        have hef : e ∈ bs.flatten := List.mem_flatten.2 ⟨b, hb, he⟩
+        obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp hef
+        have hjl : j < bs.flatten.length := (List.getElem?_eq_some_iff.1 hj).1
+        rw [← (hst.batches b hb).2 e he, (Hk j e hj).2, hev]
+        omega
+    icases watchProgressQuiet_at (EM := client.etcdModelOfKV γ) ckPfx p₀ bs L r ⟨hr.1, hr.2, by omega⟩ $$ Hpq
+      with (%hle | ⟨%q, %hq, #Hs⟩)
+    · imodintro; ipureintro; omega
+    · by_cases hfin : sint.Z r.hdrRev ≤ 1 + (eventsOf L).length
+      · imodintro; ipureintro; exact hfin
+      -- a step without events under the prefix to a revision `≥ 2` of a watchkv log: impossible
+      imod km_step_log γ P hW q r.hdrRev ckPfx [] $$ Hinv Hs with ⟨%L', %HL', -⟩
+      obtain ⟨hwk, -, -, hlen, -, hnil⟩ := HL'
+      obtain ⟨k, v, -, -, he⟩ := revEvs_hi hwk ckPfx hpk (sint.Z r.hdrRev).toNat (by omega)
+        (by omega)
+      rw [he] at hnil
+      cases hnil
   · exfalso
     have := hc (cancelModel n) (by rw [HL]; simp)
     simp [cancelModel] at this

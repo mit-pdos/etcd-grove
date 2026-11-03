@@ -851,3 +851,144 @@ Smaller:
   example for one line of glue).
 - **Scope:** `run.specStop` covers first starts (`isServerRun`'s `HEr`); a restarted member's
   right is R2d's. The `errorc` path stays closed (its bag's `False`).
+
+### R2b-1: the WAL's records (2026-11-02, blocked on a finding)
+
+Drafting the WAL's records model found that etcd's WAL does not hold the durable state raft's
+restart checks. `wal.ReadAll` returns every entry record above its start snapshot's index,
+whatever its place relative to the snapshot record. A follower that installs a received snapshot
+at `k` over a conflicting log keeps the old entries above `k` in its WAL; if it stops before any
+entry above `k` reaches it, its restarted log is the snapshot followed by entries of lower terms
+(`nonissues/etcd-wal-stale-entries-above-snapshot.md`, with a failing WAL-level test). Raft's
+durable state (`RaftState.next`) has no entries above an installed snapshot, so the image's
+`StorageHolds S σ` is false of such a member, and so is `raftNode.stop.specStop`'s post.
+
+Options:
+1. **A fix on the goosed fork** (as the three raft fixes): `ReadAll`, at a snapshot record at `k`
+   whose term differs from the entry it holds at `k`, drops the entries from `k` on (a received
+   snapshot that conflicts; the server's own snapshots match their entry, and raft puts a received
+   snapshot in a `Ready` only when it conflicts or the log is shorter). The model of `ReadAll`
+   then matches `RaftState.next`, and R2b-1 goes on as planned. Upstream-worthy if the stale tail
+   can be shown to matter at the raft level.
+2. **Model the WAL as it is:** `StorageHolds` (raft's restart, the durability work) admits a stale
+   tail of lower terms above the snapshot. A change to raft's restart spec and its proof (the
+   restarted log is not a log raft ever had).
+3. **A scope premise** on the stopped member (no received snapshot since its last appended entry):
+   nothing in `restart3` can check it.
+
+**Decision (the user, 2026-11-02): option 1, the fork's fix.** Branch `goose-lean-walsnap` of the
+etcd fork (`6293455e0`, on the pin `ab3c28d9a`; in `/shared/etcd-goose-lean-walsnap`): `ReadAll`
+reads the records as the log they write (an entry at or below the start index truncates the
+entries above it; at the start snapshot's record the entries above it go unless the log holds the
+snapshot's entry). The WAL and server tests pass; two new tests fail without it. The pin moves to it
+once the branch is pushed (`etc/goose.py`, `examples/go.mod`); the Go code is the trust boundary
+(the `wal` package is names-only), so the translation does not change.
+
+**The draft** (`etcdserver/InvWal.lean`, imported by nothing proved yet): the records `walRecs`
+(trust-boundary token), their model (`walSave`: hard state by `phsNext`, entries by `appendEnts`;
+`walSaveSnap`: the entries above the snapshot kept only when the log holds its entry; `walFresh`),
+the contract `isRNWalR` (`Save`/`SaveSnap` as atomic updates in the cases the server uses,
+`WalSaveOk`/`WalSnapOk`, failing only on I/O), the durability invariant `rnDurInv`, the pure laws
+as statements (`walSave_holds_stmt`, `walSnapSave_holds_stmt`, `walOwnSnap_holds_stmt`,
+`walFresh_holds_stmt`), and the receive keeping *enter* unfired (`rnReadyRecvR_stmt`).
+
+### R2b-1 review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+Code reading found a second etcd problem and a flaw in the first fork fix:
+- **G1** (`nonissues/etcd-wal-snapshot-record-order.md`): the apply thread's own `SaveSnap(i)`
+  can land after the raft loop's `SaveSnap(k)` of a received snapshot, `i < k`, and
+  `recoverSnapshot` opens the WAL at the *last* record: the restart reads back the old log above
+  `i` with the commit `k` (a panic if it ends below `k`). Fork fix: open at the highest index.
+- **G2**: the first fix decided by the WAL's entry at the snapshot's index, but raft decides on its
+  in-memory log. Fork fix revised: drop the entries above the start snapshot iff it is above the
+  commit index saved before its record (exactly a received snapshot).
+- **G3**: `ReadAll` did not restore `w.state`, which a cut repeats at a file's head (the G2 rule
+  needs it). Fixed.
+The fork's branch is now `6293455e0` + `ce3dbc097`; the WAL and server tests pass, four new WAL
+tests fail without it.
+
+On the draft:
+- **F1, F5** (false laws): `walSaveSnap` follows the commit rule and ignores a record below the
+  base; `walSnapSave_holds_stmt` and `walSave_holds_stmt` take the entries consecutive, which
+  raft's `ReadyRestFacts` does not state yet (a raft API law to add); `walOwnSnap_holds_stmt`
+  needs the durable log's term at the snapshot's index, which the invariant must carry.
+- **F2**: `WalSaveOk` requires consecutive entries. `Save` failing only on I/O widens the
+  environment premise `walSaveOk` (today `SaveSnap`'s only): **open, the user's choice**.
+- **F3**: `rnDurInv` needs a "snapshot pending" state, the hard-state agreement, the
+  `walCommitLb` authority, the log's agreement with the committed log, an exit for the stop, and
+  credits for `walRecs`: listed in its docstring, for the next draft.
+- **F4**: entering at the `Save` needs a raft API change: `readyGot` must give
+  `deliveredLogLb (delivered ++ ce)` and the new hard state's term fact without *enter* (the
+  hand-off on `applyc` precedes the `Save`).
+- **F6**: `isRNWalR` replaces `isRNWal`'s `Save`/`SaveSnap` in the proof.
+
+**Decision (the user, 2026-11-02): a failed `Save` leaves the records unknown** (`walFailed`, a
+case of the durability invariant), not a premise that `Save` fails only on I/O: the loop then calls
+`lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.
+
+**The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
+`examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
+`newestSnapshotEntry`.
+
+### R2b-1 draft, round 2 (2026-11-03)
+
+In `etcdserver/InvWal.lean`, after review round 1:
+- **Raft's receive** (`readyGotFacts_stmt`, a raft API change): `readyGot` also gives
+  `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed fact
+  (`committedAtTerm`), without *enter*. Raft's proof has both, persistent, where it builds
+  *enter* (`isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`).
+- **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the contents (its claim), the durable state and either the records holding it (`walHolds`: the
+  committed log they are within, with which the durable log agrees, `DurAgrees`; the hard state's
+  half; the commit counter) with the pending token, or a received snapshot's records with its
+  `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
+  counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
+  loop's two tokens.
+
+### R2b-1 review, round 2, and the draft's round 3 (2026-11-03)
+
+The model half holds: the pure laws are true as stated (checked by hand against `StorageHolds`,
+`RaftState.next`, `appendEnts`), `walSaveSnap`/`WalSaveOk` match the fork's `ReadAll`, and raft's
+receive can give the facts the server needs before *enter* (in `readyRecv_open` they are
+persistent before `api_enter`), which are enough for the hand-off on `applyc`. The invariant half
+was not keepable; round 3:
+- **F1, F2:** the pending token excluded the wrong case, and nothing tied the invariant's durable
+  state to the loop's. Now a ghost variable, half the loop's, holds the loop's view (`WalView`:
+  the durable state, the records' hard state, the pending received snapshot, the handed log), as
+  kvdurable's writer variable; the records are as the view says (`walAsViewed`).
+- **F3:** `σ.commit ≤ |committed log|` was not keepable (raft pages committed entries). Now the
+  handed log `l`: `σ.b ≤ |l| ≤ σ.commit`, `DurAgrees S l`; `walCommitLb` bounds `|l|`.
+- **F4:** a failed `Save` now leaves some records (`∃ σ'`), not `walFailed`, so that the apply
+  thread's `SaveSnap` can still update them; the taken state holds the apply thread's token.
+- **F5:** `walRecs` is a ghost variable at an opaque per-WAL name (timeless, exclusive by proof),
+  and the invariant holds `raftState` without an extra later.
+- **F6:** the receive statement became `readyGotR`, the receive's new postcondition (a law over
+  today's `readyGot` could not be proved).
+- **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
+  `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
+  record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).
+
+### R2b-1 review, round 3, and the draft's round 4 (2026-11-03)
+
+The reviewer walked every step (a `Ready` with and without a snapshot, commit-only, empty hard
+state, paged entries, a failed `Save`, the apply thread's own snapshot at every point, the stop):
+most keep `rnDurInv`, and `DurAgrees` survives each loop step. Taken:
+- **H1:** the loop could not rule out the taken case: it now holds the loop's "not failed" token.
+- **H2:** the apply thread could not get its snapshot's term: `walCommitLb` is now a prefix of the
+  handed log (a monotone list), not a length.
+- **M1:** firing *enter* inside the `Save`'s update would need a later credit: `raftState` is the
+  loop's own again (beside its view half), not the invariant's.
+- **L1–L3:** `SaveSnap` keeps its I/O premise (the apply thread panics on its error), said so;
+  the records' ghost name is the storage's WAL identity (`MinimalEtcdVersion` reopens the WAL
+  behind it); `readyGotR` drops the conjunct `deliveredLogLb` implies.
+Recorded for R2b-1's proof (docstring of `rnDurTake_stmt`): **M2**, the order is at the view's
+handed log, the stop's post at the apply side's `pre ++ A`; equating them needs every sent batch
+received (`applyc` is unbuffered; the spsc idiom's spec admits a buffer). **M3**, the apply
+thread's token travels with its half of `rnWalTok`. **L4**, `Close` and `rnWalClosed` are R2b-3's.
+
+The draft is ready for R2b-1's proof. Its stages: (1) raft's receive gives `readyGotR`
+(`readyRecv_open`, `node.readyRecv.spec`, `readyGot`'s users); (2) the pure laws; (3) the WAL
+contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs` (fresh:
+`walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
+(`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
+snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).

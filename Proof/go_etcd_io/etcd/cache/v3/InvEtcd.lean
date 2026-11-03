@@ -604,6 +604,38 @@ theorem etcdQuiet_nil (pfx : GoString) (a b : Int) (h : b ≤ a) : ⊢ etcdQuiet
   unfold etcdQuiet
   imodintro; iintro %x %hx; exfalso; omega
 
+/-- **Elimination**: a revision of a quiet interval ends a step without events from at or below its
+start. -/
+theorem etcdQuiet_at (pfx : GoString) (a b : Int) (x : w64) (hx : a < sint.Z x ∧ sint.Z x ≤ b) :
+    etcdQuiet (GF := GF) pfx a b ⊢ ∃ q : w64, ⌜sint.Z q ≤ a⌝ ∗ EtcdStep q x pfx [] := by
+  unfold etcdQuiet
+  iintro #H
+  iapply H $$ %x %hx
+
+/-- **Elimination at the end**: a quiet interval up to `p` is empty, or `p` ends a step without
+events from at or below its start (the shape of etcd's watch contract, `watchRespOk`). -/
+theorem etcdQuiet_step (pfx : GoString) (c : Int) (p : w64) :
+    etcdQuiet (GF := GF) pfx c (sint.Z p) ⊢
+      ⌜sint.Z p ≤ c⌝ ∨ ∃ q : w64, ⌜sint.Z q ≤ c⌝ ∗ EtcdStep q p pfx [] := by
+  iintro #H
+  by_cases h : sint.Z p ≤ c
+  · ileft; ipureintro; exact h
+  · iright; iapply etcdQuiet_at pfx c (sint.Z p) p ⟨by omega, Int.le_refl _⟩ $$ H
+
+/-- **Introduction from a step**: a step from at or below `a` to `B` is quiet before `B`
+(`etcdStep_restrict`). -/
+theorem etcdQuiet_of_step (pfx : GoString) (p B : w64) (cs : List EtcdEv) (a : Int)
+    (hp : sint.Z p ≤ a) :
+    EtcdStep (GF := GF) p B pfx cs ⊢ etcdQuiet pfx a (sint.Z B - 1) := by
+  unfold etcdQuiet
+  iintro #Hs
+  imodintro; iintro %x %hx
+  iexists p
+  isplitr
+  · ipureintro; exact hp
+  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
+  iexact Hs
+
 /-- A batch's step is quiet before the batch (`etcdStep_restrict`). -/
 theorem etcdQuiet_of_cert (pfx : GoString) (p : w64) (b : Batch) (a : Int) (hp : sint.Z p ≤ a) :
     etcdStepCertBody (GF := GF) pfx p b ⊢ etcdQuiet pfx a (sint.Z (batchRev b) - 1) := by
@@ -637,6 +669,9 @@ def etcdStepCert (pfx : GoString) : DemuxCert GF where
 
 theorem etcdStepCert_prog (pfx : GoString) :
     (etcdStepCert (GF := GF) pfx).prog = etcdReached := rfl
+
+theorem etcdStepCert_quiet (pfx : GoString) :
+    (etcdStepCert (GF := GF) pfx).quiet = etcdQuiet pfx := rfl
 
 /-- The cache's store certificate: a snapshot `(r, m)` is etcd's state at `r`, restricted to the
 cache's prefix. -/
