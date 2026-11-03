@@ -2,7 +2,6 @@
 Proof of `Spec/k8s_io/client_go/tools/cache/sharedIndexInformer__RunWithContext.lean`: a `sorry` stub (Stage 3 of the DaemonSet autoverify run,
 track A), its hypotheses the specs of the callees its Go body calls.
 Missing callee specs (next round): `utilruntime.HandleCrashWithContext`, `HasStarted`,
-`newQueueFIFO` (and `NewRealFIFOWithOptions`, taking the preallocated FIFO names),
 `NewShardedListWatch`, `New` (the controller), `context.WithCancelCause`/`WithoutCancel`,
 `errors.New`, `wait.Group.StartWithChannel`/`StartWithContext`, `HasSyncedChecker`, the
 mutation detector's `Run`.
@@ -13,6 +12,7 @@ public import Spec.k8s_io.client_go.tools.cache.sharedIndexInformer__RunWithCont
 public import Spec.k8s_io.apimachinery.pkg.util.wait.Group__Start
 public import Spec.k8s_io.client_go.tools.cache.controller__RunWithContext
 public import Spec.k8s_io.client_go.tools.cache.sharedProcessor__run
+public import Spec.k8s_io.client_go.tools.cache.newQueueFIFO
 public import Spec.k8s_io.klog.v2.FromContext
 
 @[expose] public section
@@ -39,6 +39,7 @@ theorem sharedIndexInformer.RunWithContext.wp_proof
     (wp_FromContext : klog.FromContext.spec (GF := GF) (hG := hG))
     (wp_Group_Start : wait.Group.Start.spec (GF := GF) (hG := hG))
     (wp_processor_run : cache.sharedProcessor.run.spec (GF := GF) (hG := hG))
+    (wp_newQueueFIFO : cache.newQueueFIFO.spec (GF := GF) (hG := hG))
     (wp_controller_RunWithContext : cache.controller.RunWithContext.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.RunWithContext.spec (GF := GF) (hG := hG) := by
   sorry

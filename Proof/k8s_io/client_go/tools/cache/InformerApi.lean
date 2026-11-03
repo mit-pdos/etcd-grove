@@ -9,14 +9,16 @@ reflector's `RefInf`) are what its proofs will rest on.
   thread-safe store `ts`, key function `kf`, names `γt`), the names of its FIFO's state (`γf`: the
   informer invariant reads only its `st`/`sy` components, which the informer's constructor
   allocates before the FIFO exists, `RunWithContext` creating the FIFO over them), the informer
-  invariant's names `γi`, and its index registry `γx` (index name to the id of its relation in the
-  store's family `Fam`).
+  invariant's names `γi` (among them the store's index registry `γi.ix`: index name to the id of
+  its relation in the store's family `Fam`, authoritative in the invariant over the store's
+  `fnIds`).
 * `infView γa r I Fam` (persistent): the store (`isCache` over the registered objects `infObj`, with
   indices `Fam`) and the informer invariant `infInv` (the store is the server's log's table at its
   version, versions monotone). It is the body of the controller's `dsctl.infAt` (track B):
   `infAt γa r ⟨…⟩ Fam` is `infView γa r I Fam` for the `InfLoc` with `I`'s fields.
 * `infIdx I n j` (persistent): the store's index named `n` is relation `Fam j`, for good (an
-  index is never removed; `AddIndexers` adds).
+  index is never removed; `AddIndexers` adds): a store read through the invariant sees
+  `σs.fnIds !! n = some j` (`InformerAlloc.lean`, `infInv_readIdxAU`).
 * `infObjIs γi r x o`: the Go object `x` is registered with the model object `o` of resource `r`
   (owned read-only, `objAt x DFrac.discard o`); `infObj γi r x` is `∃ o, infObjIs γi r x o`.
 * **The handler contract** `handlerSpec γa r γi h H`: the handler `h` (a `ResourceEventHandler`)
@@ -75,7 +77,6 @@ structure InfH [GooseExts] where
   γf : FifoNames
   γt : TsNames
   γi : InfNames
-  γx : GName
 
 /-! ### Encodings (the factory's registry of its informers is a ghost map of `InfH`) -/
 
@@ -105,18 +106,18 @@ theorem chanCode_inj {c c' : ChanNames} (h : chanCode c = chanCode c') : c = c' 
 def InfH.code [GooseExts] (I : InfH) :
     (Loc × Loc × GoFunc) × (List Nat × List Nat) × (Loc × Loc) × List Nat :=
   ((I.ca, I.ts, I.kf),
-   ([I.γf.st, I.γf.tok, I.γf.sy, I.γf.ex, I.γt.st, I.γt.ph, I.γx], chanCode I.γf.ch),
+   ([I.γf.st, I.γf.tok, I.γf.sy, I.γf.ex, I.γt.st, I.γt.ph], chanCode I.γf.ch),
    (I.γt.idx, I.γt.im),
-   [I.γi.reg, I.γi.last, I.γi.pop, I.γi.sw, I.γi.rvlb, I.γi.first])
+   [I.γi.reg, I.γi.last, I.γi.pop, I.γi.sw, I.γi.rvlb, I.γi.first, I.γi.ix])
 
 theorem InfH.code_inj [GooseExts] {I I' : InfH} (h : I.code = I'.code) : I = I' := by
   obtain ⟨ca, ts, kf, ⟨fst, ftok, fsy, fex, fch⟩, ⟨tst, tph, tidx, tim⟩,
-    ⟨r1, r2, r3, r4, r5, r6⟩, x⟩ := I
+    ⟨r1, r2, r3, r4, r5, r6, r7⟩⟩ := I
   obtain ⟨ca', ts', kf', ⟨fst', ftok', fsy', fex', fch'⟩, ⟨tst', tph', tidx', tim'⟩,
-    ⟨r1', r2', r3', r4', r5', r6'⟩, x'⟩ := I'
+    ⟨r1', r2', r3', r4', r5', r6', r7'⟩⟩ := I'
   simp only [InfH.code, Prod.mk.injEq, List.cons.injEq, and_true] at h
-  obtain ⟨⟨rfl, rfl, rfl⟩, ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, hch⟩, ⟨rfl, rfl⟩,
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩ := h
+  obtain ⟨⟨rfl, rfl, rfl⟩, ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, hch⟩, ⟨rfl, rfl⟩,
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩⟩ := h
   rw [chanCode_inj hch]
 
 instance InfH.countable [GooseExts] : Pos.Countable InfH :=
@@ -141,7 +142,7 @@ instance infView_persistent (γa : ApiNames) (r : Res) (I : InfH) (Fam : Nat →
   unfold infView; infer_instance
 
 /-- **The store's index `n` is relation `Fam j`**, for good (persistent). -/
-def infIdx (I : InfH) (n : GoString) (j : Nat) : IProp GF := n ↪[I.γx]□ j
+def infIdx (I : InfH) (n : GoString) (j : Nat) : IProp GF := n ↪[I.γi.ix]□ j
 
 instance infIdx_persistent (I : InfH) (n : GoString) (j : Nat) :
     Persistent (infIdx (GF := GF) I n j) := by
@@ -153,7 +154,7 @@ theorem infIdx_agree (I : InfH) (n : GoString) (j j' : Nat) :
     infIdx (GF := GF) I n j ∗ infIdx I n j' ⊢ ⌜j = j'⌝ := by
   iintro ⟨H1, H2⟩
   unfold infIdx
-  iapply (ghostMapElem_agree n I.γx DFrac.discard DFrac.discard j j') $$ H1 H2
+  iapply (ghostMapElem_agree n I.γi.ix DFrac.discard DFrac.discard j j') $$ H1 H2
 
 /-- **`x` is registered with the model object `o` of resource `r`** (persistent). -/
 def infObjIs (γi : InfNames) (r : Res) (x : GoInterface) (o : Obj) : IProp GF :=

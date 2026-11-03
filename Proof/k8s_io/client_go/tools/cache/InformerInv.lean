@@ -8,7 +8,7 @@ one informer of one resource (all namespaces). Lean-first.
   model object, registered once: `infObj`), the reflector's last version (`last`, halves: the
   invariant's and the reflector's), the deltas popped and not yet applied (`pop`, halves: the
   invariant's and the processing goroutine's, with their Go deltas), the store's state as its writer
-  knows it (`sw`), a lower bound of the store's version (`rvlb`, a mono counter: the contract's
+  knows it (`sw`), the store's index registry (`ix`, authoritative over the store's `fnIds`), a lower bound of the store's version (`rvlb`, a mono counter: the contract's
   monotonicity, persistent), and the first list's version (`first`, persistent once set).
 * `infObj γi r x`: the FIFO's and the store's object contract `OK`: `x` registered with a model
   object `o` of resource `r`, owned read-only (`objAt x DFrac.discard o`).
@@ -45,6 +45,9 @@ structure InfNames where
   sw : GName
   rvlb : GName
   first : GName
+  /-- the store's index registry (index name to the id of its relation): the store's `fnIds`,
+  authoritative here, its elements persistent once registered (`InformerApi.infIdx`) -/
+  ix : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -82,6 +85,7 @@ def infRes (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames) (γi : I
     ghostVar γi.last (1 : Qp).half s.last ∗
     ghostVar γi.pop (1 : Qp).half (pd, ap) ∗
     monoNatAuthOwn γi.rvlb 1 (rvNat s.store.rv) ∗ dghostVar γi.first (firstDq f) f ∗
+    ghostMapAuth γi.ix 1 σs.fnIds ∗
     ⌜s.ok (σp.tbl r).log ∧ rvLe s.last (some σp.rev.toNat) ∧
       List.Forall₂ (fdRel R) q.items s.fifo ∧ poppedRel R σs pd ap s.popped ∧
       storeRel R σs s.store ∧ (∀ x o, R !! x = some o → o.res = r) ∧

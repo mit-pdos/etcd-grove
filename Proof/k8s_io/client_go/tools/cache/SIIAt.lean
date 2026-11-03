@@ -10,7 +10,8 @@ the lock's resource.
   (`syncedFacts γi true`): `HasSynced`'s non-blocking receive.
 * `siiPre I`: the informer invariant's halves its goroutines will own, held until the start: the
   reflector's last version (none), the processing goroutine's popped deltas (none) and store view,
-  the FIFO's state halves (`I.γf.st`/`sy`, allocated before the FIFO, at the initial queue).
+  the FIFO's lock halves (`fifoPre`: `I.γf.st`/`sy`, allocated before the FIFO, at the initial
+  queue), as `infInv_alloc` (`InformerAlloc.lean`) gives them.
 * `siiLocked s I`: `startedLock`'s resource: `started`, `stopped`, `controller`, and `siiPre I`
   until the start.
 * `siiAt s γa cfg r I Fam` (persistent): the informer's fixed fields (its store `storeVal I`, its
@@ -20,7 +21,7 @@ the lock's resource.
 -/
 module
 
-public import Proof.k8s_io.client_go.tools.cache.InformerApi
+public import Proof.k8s_io.client_go.tools.cache.InformerAlloc
 public import Proof.k8s_io.client_go.tools.cache.SIIDefs
 
 @[expose] public section
@@ -46,15 +47,12 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 def syncedChOk (ch : GoChan) (γi : InfNames) : IProp GF :=
   iprop(∃ γc : ChanNames, ownBroadcastChan ch γc (syncedFacts γi true) .Unknown)
 
-/-- The FIFO's state before its first push. -/
-def FQ.init : FQ := ⟨[], false, 0, false, false⟩
-
 /-- **The invariant's halves the informer's goroutines will own**, held until the start. -/
 def siiPre (I : InfH) : IProp GF :=
   iprop(reflLast I.γi none ∗
     ghostVar I.γi.pop (1 : Qp).half (([] : List FD), false) ∗
-    ghostVar I.γi.sw (1 : Qp).half (⟨∅, [], ∅⟩ : cache.St) ∗
-    ghostVar I.γf.st (1 : Qp).half FQ.init ∗ dghostVar I.γf.sy (.own (1 : Qp).half) false)
+    (∃ fn : GMap GoString Nat, ghostVar I.γi.sw (1 : Qp).half (⟨∅, [], fn⟩ : cache.St)) ∗
+    fifoPre I.γf.st I.γf.sy)
 
 /-- **`startedLock`'s resource.** -/
 def siiLocked (s : Loc) (I : InfH) : IProp GF :=

@@ -23,6 +23,29 @@ namespace informer
 
 open Iris Iris.BI Iris.ProofMode apimodel cache
 
+section fnIds
+variable [GooseExts] [GoGlobalContext]
+
+/-- A delta's store step keeps the store's index registry. -/
+theorem storeStepFD_fnIds (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString)
+    (σ : cache.St) (d : cache.FD) : (cache.storeStepFD KF rvOf σ d).fnIds = σ.fnIds := by
+  cases d with
+  | obj t o =>
+    simp only [cache.storeStepFD]
+    by_cases ht : t = go!"Deleted"
+    · rw [if_pos ht]; rfl
+    · rw [if_neg ht]; rfl
+  | replaced objs rv => rfl
+  | bookmark rv => rfl
+
+/-- A batch's store step keeps the store's index registry. -/
+theorem batchStore_fnIds (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString)
+    (σ : cache.St) (ds : List cache.FD) : (cache.batchStore KF rvOf σ ds).fnIds = σ.fnIds := by
+  unfold cache.batchStore
+  split <;> rfl
+
+end fnIds
+
 section glue
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -40,7 +63,7 @@ theorem infInv_readAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsName
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb, Hfst,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb, Hfst, Hix,
     %Hok⟩
   ihave #Hlb' := monoNatLbOwn_get γi.rvlb 1 (rvNat s.store.rv) $$ Hlb
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
@@ -49,7 +72,7 @@ theorem infInv_readAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsName
   iframe Hst
   iintro Hst
   imod Hclose2 with -
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σp, s, q, σs, R, pd, ap, f
@@ -83,7 +106,7 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb, Hfst,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb, Hfst, Hix,
     %Hok⟩
   iunfold procIdle at Hidle
   icombine Hpop Hidle gives % ⟨_, hpd⟩
@@ -96,7 +119,7 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
   isplit
   · iintro %hcl Hq
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, [], false, f
@@ -118,7 +141,7 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
     obtain ⟨m1, m2, hm, h1, h2⟩ := forall₂_append_split _ _ _ hfifo
     imod ghostVar_update_halves (q.batch, false) $$ Hpop Hidle with ⟨Hpop, Hidle⟩
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, ⟨s.store, m1, m2, s.last⟩, { q with items := q.items.drop q.batch.length }, σs, R,
@@ -176,7 +199,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
-    Hlb, Hfst, %Hok⟩
+    Hlb, Hfst, Hix, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
   icombine Hpop Hpop' gives % ⟨_, hpd⟩
@@ -196,7 +219,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   · -- a read
     rw [h]
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, pd, ap, f
@@ -218,7 +241,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
           popStep_batch _ _ _ _ hlen, cache.batchStore_idem]
       rw [hfix]
       imod Hclose2 with -
-      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
       · inext
         unfold infRes
         iexists σp, s, q, σs, R, pd, true, f
@@ -253,11 +276,12 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
       imod ghostVar_update_halves (pd, true) $$ Hpop Hpop' with ⟨Hpop, Hpop'⟩
       imod mono_nat_own_update _ hrvle $$ Hlb with ⟨Hlb, -⟩
       imod Hclose2 with -
-      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
       · inext
         unfold infRes
         iexists σp, ⟨s.store.applyAll s.popped, [], s.fifo, s.last⟩, q,
           cache.batchStore (regKF R0) (regRv R0) σs pd, R, pd, true, f
+        rw [batchStore_fnIds]
         iframe
         iframe #
         ipureintro
@@ -290,7 +314,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
-    Hlb, Hfst, %Hok⟩
+    Hlb, Hfst, Hix, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
   icombine Hpop Hpop' gives % ⟨_, hpd⟩
@@ -304,7 +328,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regRv, ho, hsub x o ho]
   cases ap with
   | true =>
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, pd, true, f
@@ -337,7 +361,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     have hrvle := rvNat_mono (InfP.apply_rv_le _ hsorted s hok)
     imod ghostVar_update_halves (pd, true) $$ Hpop Hpop' with ⟨Hpop, Hpop'⟩
     imod mono_nat_own_update _ hrvle $$ Hlb with ⟨Hlb, -⟩
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, ⟨s.store.applyAll s.popped, [], s.fifo, s.last⟩, q, σs, R, pd, true, f
@@ -369,7 +393,7 @@ theorem infInv_doneBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
-    Hlb, Hfst, %Hok⟩
+    Hlb, Hfst, Hix, %Hok⟩
   iunfold procDone at Hdone
   icombine Hpop Hdone gives % ⟨_, hpd⟩
   simp only [Prod.mk.injEq] at hpd
@@ -393,7 +417,7 @@ theorem infInv_doneBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iintro Hq
   imod ghostVar_update_halves (([] : List cache.FD), false) $$ Hpop Hdone with ⟨Hpop, Hdone⟩
   imod Hclose2 with -
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σp, s, q.popDoneN pd.length, σs, R, [], false, f
@@ -444,7 +468,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
-    Hlb, Hfst, %Hok⟩
+    Hlb, Hfst, Hix, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
   icombine Hpop Hpop' gives % ⟨_, hpd⟩
@@ -463,7 +487,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   rcases hRw with h | h
   · rw [h]
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, [d], ap, f
@@ -484,7 +508,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
         exact cache.storeStepFD_idem _ _ _ _
       rw [hfix]
       imod Hclose2 with -
-      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+      imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
       · inext
         unfold infRes
         iexists σp, s, q, σs, R, [d], true, f
@@ -517,11 +541,12 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
         imod ghostVar_update_halves ([d], true) $$ Hpop Hpop' with ⟨Hpop, Hpop'⟩
         imod mono_nat_own_update _ hrvle $$ Hlb with ⟨Hlb, -⟩
         imod Hclose2 with -
-        imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+        imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
         · inext
           unfold infRes
           iexists σp, ⟨s.store.applyAll s.popped, [], s.fifo, s.last⟩, q,
             cache.storeStepFD (regKF R0) (regRv R0) σs d, R, [d], true, f
+          rw [storeStepFD_fnIds]
           iframe
           iframe #
           ipureintro
@@ -548,7 +573,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
-    Hlb, Hfst, %Hok⟩
+    Hlb, Hfst, Hix, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
   icombine Hpop Hpop' gives % ⟨_, hpd⟩
@@ -562,7 +587,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regRv, ho, hsub x o ho]
   cases ap with
   | true =>
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, [d], true, f
@@ -592,7 +617,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
     have happ : s.store.applyAll s.popped = s.store.apply a := by rw [hpa]; rfl
     imod ghostVar_update_halves ([d], true) $$ Hpop Hpop' with ⟨Hpop, Hpop'⟩
     imod mono_nat_own_update _ hrvle $$ Hlb with ⟨Hlb, -⟩
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, ⟨s.store.applyAll s.popped, [], s.fifo, s.last⟩, q, σs, R, [d], true, f
@@ -623,7 +648,7 @@ theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   obtain ⟨hok, hlast, hfifo, hpop, hst, hres', hgood, hfq, hpr, hsy⟩ := Hok
   cases hx : R !! x with
   | some o' =>
@@ -635,7 +660,7 @@ theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
     imod ghost_map_insert_persist (γ := γi.reg) x o hx $$ Hreg with ⟨Hreg, #Hel⟩
     imod objAt_persist x (DFrac.own 1) o $$ Hx with #Hx
     have hle := regLe_insert R x o hx
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, <[x := o]> R, pd, ap, f
@@ -694,7 +719,7 @@ theorem infInv_pushChangeAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr, hsy⟩ := Hok
   iunfold reflLast at Hl
   icombine Hlast Hl gives % ⟨_, hu⟩
@@ -735,7 +760,7 @@ theorem infInv_pushChangeAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   imod ghostVar_update_halves (some c.rv.toNat) $$ Hlast Hl with ⟨Hlast, Hl⟩
   imod Hclose2 with -
   have hpush := ok_push_change (σq.tbl r).log ⟨s.store, s.popped ++ s.fifo, s.last⟩ u c hokq hu hnq
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σq, ⟨s.store, s.popped, s.fifo ++ [.change c], some c.rv.toNat⟩,
@@ -809,7 +834,7 @@ theorem infInv_pushBookmarkAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt 
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr, hsy⟩ := Hok
   iunfold reflLast at Hl
   icombine Hlast Hl gives % ⟨_, hu⟩
@@ -826,7 +851,7 @@ theorem infInv_pushBookmarkAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt 
   imod Hclose2 with -
   have hpush := ok_push_bookmark (σq.tbl r).log ⟨s.store, s.popped ++ s.fifo, s.last⟩ u w.toNat
     hokq hu hqq
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σq, ⟨s.store, s.popped, s.fifo ++ [.bookmark w.toNat], some w.toNat⟩,
@@ -912,7 +937,7 @@ theorem infInv_pushReplaceAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt :
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr, hsy⟩ := Hok
   iunfold reflLast at Hl
   icombine Hlast Hl gives % ⟨_, hu'⟩
@@ -961,7 +986,7 @@ theorem infInv_pushReplaceAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt :
       rw [hu', hn] at hl; exact absurd rfl hl
   imod first_update γi.first f q.populated w.toNat (fun h => (hsy.1 h).2.2.2.2.2) $$ Hfst
     with ⟨Hfst, #Hfirst⟩
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σq, ⟨s.store, s.popped,
@@ -1019,7 +1044,7 @@ theorem infInv_hasSyncedAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   have hsy := Hok.2.2.2.2.2.2.2.2.2
   ihave #Hlb' := monoNatLbOwn_get γi.rvlb 1 (rvNat s.store.rv) $$ Hlb
   -- the synced flag's facts, from the first list's ghost variable (persistent once set)
@@ -1041,7 +1066,7 @@ theorem infInv_hasSyncedAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     iframe Hq
     iintro Hq
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, pd, ap, f
@@ -1071,7 +1096,7 @@ theorem infInv_hasSyncedAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     iframe Hq
     iintro Hq
     imod Hclose2 with -
-    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb] with -
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hix] with -
     · inext
       unfold infRes
       iexists σp, s, q, σs, R, pd, ap, some v
@@ -1113,7 +1138,7 @@ theorem infInv_readLbAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
   icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, %f, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
-    Hpop, Hlb, Hfst, %Hok⟩
+    Hpop, Hlb, Hfst, Hix, %Hok⟩
   ihave ⟨%hn, Hlb, -⟩ := auth_lb_le γi.rvlb (rvNat s.store.rv) n $$ [$Hlb $Hn]
   ihave #Hlb' := monoNatLbOwn_get γi.rvlb 1 (rvNat s.store.rv) $$ Hlb
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
@@ -1122,7 +1147,7 @@ theorem infInv_readLbAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
   iframe Hst
   iintro Hst
   imod Hclose2 with -
-  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst] with -
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb Hfst Hix] with -
   · inext
     unfold infRes
     iexists σp, s, q, σs, R, pd, ap, f
