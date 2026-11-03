@@ -1217,8 +1217,8 @@ abbrev EtcdServer.applyAll.specSnapOn : Prop :=
       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
       taRaftAdvancedCAddr ap ↦□ rac ∗
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        iprop(nodeAppliedLb ρ.raft.raft.cl nid (uint.nat sv.Metadata'.Index') ∗
-          storDL ρ.raft.raft.cl nid (uint.nat sv.Metadata'.Index') ∗
+        iprop(nodeAppliedLb ρ.raft.raft.cl γn.key (uint.nat sv.Metadata'.Index') ∗
+          nodeCommitLb ρ.raft.raft.cl γn.key (uint.nat sv.Metadata'.Index') ∗
           srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
           srvFrozenBelow γs (uint.nat sv.Metadata'.Index'))) ∗
       taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
