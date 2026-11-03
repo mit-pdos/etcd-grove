@@ -946,6 +946,16 @@ conjunct is the leased image at every `lg`.
 - `mergedObs` stays gated on `E.lg` (S-1); `merged_image` (the S2 `sorry`) converts both arms to
   the ungated image, still true.
 
+**Amendment: (E), the user's, 2026-11-03** (plumbing of commit 4, "Commit 4a" below: the grant arm of
+`applyEntryNormal` must pass `server.go:1975`'s `ErrNoSpace` check, and nothing gave `notNoSpaceErr`
+for a failed grant). Option (1): the grant's outcome carries the backend's error.
+- The four `LeaseGrant.spec`s' post (`grantPost`) and `grantRes`: on `o = .rejected .backend`,
+  `lessorErrIs err` (the backend layer has it from `Grant.spec`'s error arm; quota passes it; a capped
+  or corrupt chain rejects at `.capped`/`.corrupt`).
+- `applyErrVars` (generated: `etc/gen-init.py`'s `SPECIAL` for the apply package) gains
+  `errVarApart ErrNoSpace` for `ErrLeaseExists` and `ErrLeaseTTLTooLarge`, as for `ErrLeaseNotFound`.
+- `applyResultIs_notNoSpace_M` gains a grant case. No new axiom or hypothesis.
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
