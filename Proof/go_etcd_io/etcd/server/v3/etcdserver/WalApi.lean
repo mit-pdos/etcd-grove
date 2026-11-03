@@ -183,6 +183,50 @@ theorem walOpened_elim (w : Loc) (dir : GoString) (id cid : w64) (σ : StorConte
         ⌜storage.walReady w ∧ walDirOf w = dir⌝ := by
   unfold walOpened; iintro H; iexact H
 
+/-! ### The WAL's slots in the boot hub
+
+(2026-11-03, the first slots of the convention the user approved: `notes/spec-first-plan.md`, "The
+slot convention".) `bootstrap`'s contract, `bootOk` and `NewServer.spec` name the WAL only through
+these, sealed: a change to what the WAL takes or gives at boot changes their bodies and laws, not
+the hub's text. No `wal.bootCfg` (the WAL places no condition on the configuration); `wal.Names`
+and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
+
+/-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL**: the configuration's WAL
+directory (`cfg.WALDir()`) fresh, a first start's (from program start, `startRights`). -/
+@[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+  iprop(walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and dedicated WAL
+directory `w` takes the token of `config.walDirOf d w`. -/
+theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d w : GoString)
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = w) :
+    walDirFresh (GF := GF) (config.walDirOf d w) ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; subst hw; iintro H; iexact H
+
+/-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
+configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
+and the right to close it with its files kept (the purge's, `walPurgeRight`). -/
+@[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) : IProp GF :=
+  iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
+    walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+
+/-- **What `NewServer` takes from `wal.bootOk`**: the WAL open, whole, and read, which
+`NewStorage`'s contract takes today (`rnNewStorageOk`). Narrow on purpose (the slot convention: an
+elimination law gives what its consumer takes, never the slot's body), so that `NewServer`'s proof
+does not change with the body. The rest (the records, the metadata, the purge's right) is dropped
+until a consumer needs it: R2b-1 stages 3c/4 replace this law by one into the raft loop's
+durability invariant (`wal.bootOk ⊢ |==> wal.srvInv …`). -/
+theorem wal.bootOk_storage (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) :
+    wal.bootOk (GF := GF) cfg id cid w ⊢ storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ := by
+  unfold wal.bootOk
+  iintro ⟨Hw, -⟩
+  icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, -, -, %Hr⟩
+  isplitl [Ho]
+  · iexact Ho
+  · ipureintro; exact Hr.1
+
 end defs
 
 end EtcdGrove

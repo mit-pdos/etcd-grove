@@ -43,7 +43,7 @@ theorem startServer.wp_proof
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold common.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
@@ -97,13 +97,16 @@ theorem startServer.wp_proof
       v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
+      -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
+      -- literal's clock, the directory of the peers
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
       ⟨rfl, common.discoveryZero_len, common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty⟩
       HwbN)
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -111,9 +114,6 @@ theorem startServer.wp_proof
       ipureintro
       refine ⟨?_, ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩, hvs, hrule, hboot⟩
       unfold cfgOk; simp
-    -- (2026-11-03, the final whole-`bootOk` review) the environment: the literal's clock, the
-    -- directory of the peers
-    isplitr; · ipureintro; exact srvBootEnvOk_of _ _ _ _ rfl hvs Hdirps
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
@@ -122,6 +122,9 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
+    isplitl [Hwdf]
+    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck

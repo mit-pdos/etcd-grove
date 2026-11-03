@@ -116,7 +116,7 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
 /-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
 whole-`bootOk` review, C) from the fields a configuration literal sets: a logger, the default quota,
 batch limit and bootstrap defragmentation (zero), raft's `10` ticks (2026-11-03, the boot premises:
-the clock no longer `bootCfgOk`'s; `srvBootEnvOk_of` takes it). -/
+the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (hlg : cfg.Logger' ≠ null) (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)

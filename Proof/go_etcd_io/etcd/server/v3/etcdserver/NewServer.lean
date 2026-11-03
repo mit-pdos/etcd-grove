@@ -341,7 +341,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
@@ -364,7 +364,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   ihave #Hboot' := Hboot
   iunfold bootstrapContract at Hboot'
-  wp_apply Hboot' $$ [Hrauth] as %b %err Hb
+  wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro
     ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
@@ -387,6 +387,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
+  -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
+  -- are not used yet: R2b-1's stage 4)
+  icases wal.bootOk_storage _ _ _ _ $$ Hwal with ⟨Hwalo, %HwalR⟩
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
     Hmsmeta
@@ -431,10 +434,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (2026-11-03, the whole-`bootOk` review, K) from the directory's bound (`Hdirps`); until then a
   -- conjunct of `bootOk`'s `Hraft`
-  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory's facts, from the premise
-  -- `srvBootEnvOk` (until then `bootOk`'s `Hdirps`)
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory's facts, from the
+  -- transport's slot `rafthttp.bootCfg` (until then `bootOk`'s `Hdirps`)
   have Hdirps : (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20 :=
-    ⟨fun f => by rw [← Hrvs]; exact Henv.dirs.1 f, by rw [← Hrvs]; exact Henv.dirs.2⟩
+    ⟨fun f => by rw [← Hrvs]; exact rafthttp.bootCfg_mem Hdirs f,
+      by rw [← Hrvs]; exact rafthttp.bootCfg_len Hdirs⟩
   have Hrpslen : (ps.length : Int) < 2 ^ 62 := by have := Hdirps.2; omega
   -- (rafthttp stage 6d) the raft loop's key to the transport's `Send` (`srvTrKey`), its name
   -- allocated now: the raft node's environment is built before the transport
@@ -455,7 +459,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     simp only [srvErM]
     iframe #
     (try ipureintro)
-    (try (rw [Hrhb]; exact Henv.hb))
+    (try (rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc))
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
@@ -2374,9 +2378,9 @@ theorem NewServer.wp_proofM (on : Bool)
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
     (fun h => nomatch h)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
   exact h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb
-    Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
 
 theorem NewServer.wp_proof
     -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
@@ -2505,7 +2509,7 @@ theorem NewServer.wp_proof
     (hTkS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto
-    Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hbco Hbcf Hbwb
+    Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hbco Hbcf Hbwb
   -- (M2, item 14) the general proof at auth off, in the configuration's compaction mode
   have h := NewServer.wp_proofG false E₀.cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
@@ -2529,7 +2533,7 @@ theorem NewServer.wp_proof
       simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
       exact ⟨Or.inr ⟨hm, hr, hcr⟩, trivial⟩
   have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn
-    Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
+    Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs
     (fun h => absurd h (by decide)) Hbco Hbcf Hbwb
   rw [bootKVOf_false] at h'
   -- (the auth plan's E2w) the mode-indexed rows at `false` are today's

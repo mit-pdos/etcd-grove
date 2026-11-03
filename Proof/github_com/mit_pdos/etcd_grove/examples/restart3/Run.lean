@@ -59,11 +59,11 @@ theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
   · right; right; simpa using hm
   · simp at hm
 
-/-- **`Run`'s directory names the peers** (`srvDirsOk`, `NewServer`'s premise; 2026-11-03, the final
+/-- **`Run`'s directory names the peers** (`rafthttp.bootCfg`, `NewServer`'s premise; 2026-11-03, the final
 whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
 theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
-    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : srvDirsOk ps (dir3 id₁ id₂ id₃) := by
-  refine srvDirsOk_of ps _ (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : rafthttp.bootCfg (dir3 id₁ id₂ id₃) ps := by
+  refine rafthttp.bootCfg_of _ ps (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
   rw [Hbf.perm.mem_iff]
   unfold dir3
   constructor
@@ -143,7 +143,7 @@ theorem Run.wp_proof
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   wp_start as Hres
   iunfold runRes at Hres
-  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem⟩
+  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
@@ -254,7 +254,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁]
     as %m₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₁, %pl₁, Hup₁, Hst₁⟩)
@@ -277,7 +277,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂]
     as %m₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₂, %pl₂, Hup₂, Hst₂⟩)
@@ -299,7 +299,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃]
     as %m₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₃, %pl₃, Hup₃, Hst₃⟩)

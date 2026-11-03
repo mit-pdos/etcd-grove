@@ -65,7 +65,9 @@ abbrev Main.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.leasekv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23936" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23936" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"leasekv.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.leasekv.Main)) (Val #()))
   {{ RET #(); True }}
 

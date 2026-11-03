@@ -53,7 +53,7 @@ theorem startCluster.wp_proof
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -143,7 +143,7 @@ theorem startCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁ Hw₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -169,7 +169,7 @@ theorem startCluster.wp_proof
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
       (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
-    $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
+    $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂ Hw₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
   · cases err₂ with
@@ -195,7 +195,7 @@ theorem startCluster.wp_proof
       Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
       (dir3_dirsOk id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
-    $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
+    $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃ Hw₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
   · cases err₃ with

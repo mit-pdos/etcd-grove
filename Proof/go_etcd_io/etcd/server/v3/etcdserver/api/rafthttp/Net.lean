@@ -54,7 +54,7 @@ namespace EtcdGrove
 /-- **The most peers a member's transport serves** (2026-11-03, named by the final whole-`bootOk`
 review's M2; the bound since rafthttp stage 6d, 2026-10-24): each peer's goroutines borrow eight of
 `lgMu`'s reader slots, so `peersMax` peers borrow `2 ^ 23`. `NewServer`'s premise
-(`srvBootEnvOk`). -/
+(`rafthttp.bootCfg`). -/
 @[word_unfold] def peersMax : Nat := 2 ^ 20
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
@@ -372,6 +372,50 @@ theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm :
   iexact Hi
 
 end lemmas
+
+/-! ### The transport's slot in the boot hub
+
+(2026-11-03, the final whole-`bootOk` review's M2; the slot convention the user approved,
+`notes/spec-first-plan.md`, "The slot convention".) `NewServer.spec` names what it asks of a
+member's URL directory only through `rafthttp.bootCfg`, sealed (`etc/import-all.txt`). It is a
+coupling with raft's peers, which the transport owns (the convention's first form): the transport
+adds every other peer of raft's configuration to itself, so its handler finds the sender of any
+request only if the directory names exactly raft's peers, and it serves at most `peersMax` of them;
+raft's peers are the slot's parameter. Not a condition on the configuration (the directory is the
+network's name, `NetNames.dir`), so it takes none. -/
+
+/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
+peer URL `url`, no other member. -/
+def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
+
+/-- **The transport's condition on its URL directory `dir`, of raft's peers `ps`** (sealed): the
+members `dir` names are exactly `ps`, at most `peersMax` of them. -/
+@[no_expose] def rafthttp.bootCfg (dir : w64 → List GoString) (ps : List w64) : Prop :=
+  (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ peersMax
+
+/-- `rafthttp.bootCfg` of a one-member directory (`dirOne`) and its member. -/
+theorem rafthttp.bootCfg_dirOne (id : w64) (url : GoString) :
+    rafthttp.bootCfg (dirOne id url) [id] := by
+  unfold rafthttp.bootCfg
+  refine ⟨fun f => ?_, by unfold peersMax; simp⟩
+  unfold dirOne
+  by_cases h : f = id <;> simp [h]
+
+/-- `rafthttp.bootCfg` from the directory's members (`hdir`), at most three (the examples'
+clusters). -/
+theorem rafthttp.bootCfg_of (dir : w64 → List GoString) (ps : List w64)
+    (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ 3) : rafthttp.bootCfg dir ps :=
+  ⟨hdir, by unfold peersMax; omega⟩
+
+/-- **What the server's proof takes from `rafthttp.bootCfg`**: the directory's members are raft's
+peers (the transport's `AddPeer`s and its handler's sender lookup). -/
+theorem rafthttp.bootCfg_mem {dir : w64 → List GoString} {ps : List w64}
+    (h : rafthttp.bootCfg dir ps) (f : w64) : dir f ≠ [] ↔ f ∈ ps := h.1 f
+
+/-- **What the server's proof takes from `rafthttp.bootCfg`**: at most `peersMax` peers (the
+transport's reader slots; raft's peer count within `int`). -/
+theorem rafthttp.bootCfg_len {dir : w64 → List GoString} {ps : List w64}
+    (h : rafthttp.bootCfg dir ps) : ps.length ≤ peersMax := h.2
 
 end EtcdGrove
 end Perennial

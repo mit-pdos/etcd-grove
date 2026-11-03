@@ -627,8 +627,193 @@ that a new subsystem adds a clause instead of editing existing ones:
   subsystem's own initialization;
 - the apply and snapshot aggregators over the same per-subsystem predicates.
 
+**What a sealed slot is.** Today `NewServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`)
+carries each subsystem's details in its own text; every dated comment in it marks an edit:
+
+```lean
+∀ cfg U γ id ctxs ρ E₀ N Φs
+  (γn : NetNames GF) (dir : …)   -- D21 M2, 10-19
+  (γd : GName),                  -- D22 J2, 10-26
+  …
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →                    -- N1, 10-17
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →    -- keylen, 10-30
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →                      -- txn-nested, 10-31
+  (cfg.AutoCompactionRetention' = 0 ∨
+    (cfg.AutoCompactionMode' = go!"revision" ∧ …) ∨                 -- M2 item 14, 10-31
+    (cfg.AutoCompactionMode' = go!"periodic" ∧ …)) →                -- periodic, 11-02
+  E₀.cmp = decide (…) → ρ.rd.kv.cmp = E₀.cmp → …
+```
+
+The compactor's periodic mode changed `NewServer.spec`, its proof, `bootOk` and every caller
+(`startMember`, `newServer`, `StartServer` in each example): one subsystem's change surfaced in
+all of them. A slot: each subsystem's API module exports one sealed predicate for its
+configuration and names, with laws,
+
+```lean
+-- the compactor's API module, sealed (@[no_expose])
+def compactor.bootCfg (cfg : ServerConfig) (γ : compactor.Names) : Prop := …  -- modes, retention, …
+theorem compactor.bootCfg_off : cfg.AutoCompactionRetention' = 0 → compactor.bootCfg cfg γ
+```
+
+and the hub names each subsystem once, by its predicates:
+
+```lean
+∀ cfg (γr : raft.Names) (γk : mvcc.Names) (γc : compactor.Names) (γn : net.Names) …,
+  raft.bootCfg cfg γr → mvcc.bootCfg cfg γk → compactor.bootCfg cfg γc → net.bootCfg cfg γn →
+  ⦃…⦄ NewServer cfg ⦃s, raft.srvInv s γr ∗ mvcc.srvInv s γk ∗ compactor.srvInv s γc ∗ …⦄
+```
+
+Periodic mode then changes only `compactor.bootCfg`'s sealed body: not `NewServer.spec`, not its
+callers. A caller that relies on a mode proves the premise through a law (`bootCfg_off`, a new
+`bootCfg_periodic`), as raft's `Api.lean` does for the node. The name records the same way:
+`RaftNames`, `AEnv`, `KVNames` become a tuple of per-subsystem records, so a field added to the
+compactor's names leaves the others' structures alone.
+
+What it does not fix:
+- A new subsystem still adds a slot (a parameter and a conjunct): an addition, which callers
+  that pass slots through generically survive.
+- Coupling between subsystems is real design work: `ρ.rd.kv.cret ≤ retention` ties the KV
+  invariant to the compactor's configuration. Some slot must own the relation (one exports a fact
+  the other consumes) or a small explicit cross-slot predicate states it. Finding these couplings
+  up front is what mapping the hubs is for.
+- Sealing moves the review, it does not remove it: a reviewer of `NewServer.spec` no longer sees
+  the compactor's premises inline; they are in the compactor's generated interface, as
+  `bootCfg`'s laws, and must be reviewed there.
+
+So the hub's text changes only when a subsystem is added or two become newly coupled, not when one
+changes inside.
+
 Caveats: fan-out is partly a proxy for statement size; the history includes the proof-first era;
 many of `NewServer`'s changes added subsystems not planned at the time, which no hub map would have
 foreseen; the claim is that they would have been additions, not rewrites. **Test** it as
 `etc/spec-churn.py` tests the stages: after the hubs are reshaped, rerun both scripts and compare
 the hubs' changes per new subsystem, and how many existing clauses each one edits, before and after.
+
+### Incremental adoption (2026-11-03, the user's)
+
+No big rewrite: a subsystem moves into a slot the next time it must change the hub anyway, and a
+subsystem that never changes again is never converted. In the meantime the hub mixes inline
+premises with slots.
+
+1. **The convention first, once.** A short note, reviewed once (a Draft and Review of the hub
+   alone): the names (`<sub>.Names`, `<sub>.bootCfg cfg γ`, `<sub>.srvInv s γ`, the laws callers
+   use); where a slot lives (the subsystem's API module, sealed, on the generated interface);
+   how a coupling is stated (one slot exports a fact the other consumes, or a named cross-slot
+   predicate); and the name records' split (one field group per subsystem). Without it each
+   subsystem invents its own shape.
+2. **No retrofit under an approved Freeze.** Stages already proving against a frozen `NewServer`
+   (on 2026-11-03: `snap-auth-on-apply`'s P5, `lease-grant`) land as frozen; reshaping under them
+   reopens their review and delays their sorries.
+3. **The first slot: the WAL**, in restart R2b-1 (`notes/restart-plan.md`). Its API is already a
+   slot's shape (`etcdserver/WalApi.lean`: the sealed `isWalStorage`, one law per operation,
+   approved 2026-11-03, not yet in use), and R2b-1's stage 3 brings it into `NewServer` and the
+   restart contracts: `wal.bootCfg`, `wal.Names`, `wal.srvInv` over that API, a conjunct of the hub
+   rather than its facts inline. It tests "an addition, not a rewrite" on a new subsystem. The
+   R2b-1 session must know before its stage 3 touches `NewServer` (the user's call).
+4. **Then each subsystem when it next touches the hub**: auth at its first stage after auth-on,
+   lease at lease expiry (after `lease-grant`), the compactor and mvcc when next changed; the name
+   records (`RaftNames`, `AEnv`, `KVNames`, ...) a field group at a time with their subsystem.
+   A stage's Scope step says whether it converts its subsystem, from `etc/spec-hubs.py`'s
+   aggregator and cost tables.
+5. **Check after two or three slots**: rerun `etc/spec-hubs.py` and `etc/spec-churn.py`; did a
+   slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
+   stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
+   2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
+   `NewServer` has three hand-written triples: `spec` (N0, 10-16: auth off, compaction off or on),
+   `specM on` (E2i, 10-26: auth on or off, compaction off) and `specG on cmp` (M2, 10-31: both).
+   Each mode was added as a more general twin so that the older callers kept their names, and the
+   older triple became its corollary. Only `specG` is proved (`NewServer.wp_proofG`); `wp_proofM`
+   and `wp_proof` are derived from it, the latter by naming and passing on 35 hypotheses. The three
+   are about 80 lines each (190 with comments), equal but for the mode's points (the alarm chain,
+   the compaction premise, the token TTL, `kvInv`/`kvInvM on`, `srvEr`/`srvErM on`,
+   `srvBuilt`/`srvBuiltG on`, a few auth and lessor post clauses). So every edit to a shared clause
+   is made three times (the WAL's slot was), and a missed copy breaks the derivations. The step:
+   - `specG` is the one statement written out; `specM on := specG on false`, and `spec := ∀ cmp,
+     specG false cmp`, or a thin wrapper if the callers need `spec`'s three-way compaction
+     disjunction as it reads today;
+   - `wp_proofM` and `wp_proof` become one-line instances;
+   - the callers that use the triples in code, not in comments, migrate: `examples/common/
+     newServerMode`, `examples/authkv/startServer`, the server's `Results` and `Link`, v3rpc's
+     `Server` and `Link`. They get `specG`'s postcondition, which is at least as strong.
+   **When:** the hub quiet, after auth-on's P5 lands (it edits `NewServer`), between two stages that
+   edit it. The same applies to the other twin families (`applySnapshot.specSnap`/`specSnapM`,
+   `applyAll.specSnapOn`, ...), each when next touched.
+7. **The program-start boundary** (R2b-1's review, suggestion 2). The examples' statements name the
+   program-start resources of each member themselves: `walDirFresh (config.walDirOf (name ++
+   go!".etcd") go!"")` in `putget3`'s `Main`, `common`'s `StartMember`, `linkv3p`'s `startMember`
+   and 22 more spec files (25 in all), next to `netAddrFree` and `httpProtoFree` (61 lines in 24 spec
+   files), which came the same way. Each new start resource has been threaded through every example (hub 4), and a
+   restart's `walFiles` would be another round. The step: **the starter owns the boundary.**
+   `examples/common`'s API exports a sealed per-member bundle, `common.memberStartRes name addrs`,
+   with its intro from the adequacy theorem's items (`startRights`'s `walDirFresh d`,
+   `netAddrFree a`, `httpProtoFree a` of the member's directory and addresses) and its narrow
+   elimination into what the starter hands `NewServer` (`wal.bootRes_intro`'s premise, the
+   network's tokens). An example's `Main` takes one bundle per member; a new start resource changes
+   the bundle and its laws, not the examples. A restart's resources are a different bundle
+   (`common.memberRestartRes`, with the WAL's files), since a restart is a different precondition,
+   not an extension of a fresh start. **When:** with the restart contracts' stage 2 (`walFiles`),
+   the next change that would thread a start resource through the examples.
+
+### The slot convention (approved 2026-11-03, step 1)
+
+Approved by the user as drafted (draft 1), with the WAL as its first slot.
+
+**Names**, per subsystem `<sub>`, in `<sub>`'s API module:
+
+| name | kind | in the hub | what it holds |
+|---|---|---|---|
+| `<sub>.Names` | structure | `NewServer.spec`'s binders, one per subsystem | the subsystem's ghost names, allocated by its own initialization (never a field of `RaftNames`/`AEnv`/`KVNames`) |
+| `<sub>.bootCfg cfg` | `Prop`, sealed | a premise of `NewServer.spec` and `bootstrapContract` | the subsystem's conditions on the configuration |
+| `<sub>.bootRes cfg` | `IProp`, sealed | a conjunct of `NewServer.spec`'s and `bootstrapContract`'s precondition | the resources the caller hands in (program-start tokens, ...) |
+| `<sub>.bootOk cfg … b` | `IProp`, sealed | a conjunct of `bootOk` | what `bootstrap` gives the subsystem |
+| `<sub>.srvInv s γ` | `IProp`, sealed | a conjunct of `NewServer`'s postcondition (`srvBuilt`) | the subsystem's part of the running server |
+
+A slot a subsystem does not need is omitted, not defined as `True`.
+
+**Where a slot lives:** the subsystem's API module (its importable list, or sealed by
+`etc/import-all.txt`; `@[no_expose]` bodies; on its generated interface). Callers use its laws only
+(`<sub>.bootCfg_of …`, `<sub>.bootRes_intro …`, the elimination laws the server's proof needs). A law
+states a client's fact in the client's terms: no body leaks.
+
+**Elimination laws are narrow** (2026-11-03, the review of the WAL's slots, suggestion 1, which the
+user took): a law out of a slot gives what its consumer takes (`wal.bootOk_storage`: the open token
+and `walReady`, what `NewStorage` takes), or turns the slot into the consumer's slot (`wal.bootOk ⊢
+|==> wal.srvInv …`), never the slot's body restated: a body-restating law keeps the hub's text stable
+but makes the hub's proof change with the body.
+
+**Couplings:** one slot exports a fact the other consumes (a law of the owner's API, taken as a
+premise by the other's slot or proof); only when neither subsystem owns the relation, a named
+cross-slot predicate in the hub's module (`<a>_<b>.couple …`), reviewed with the hub.
+
+**Name records:** `RaftNames`, `AEnv`, `KVNames`, ... are split one field group per subsystem when
+that subsystem converts (step 4), into `<sub>.Names`; until then they stay as they are.
+
+**Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
+added only when its subsystem must change the hub anyway.
+
+**Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
+compaction on, a restart) generalizes the one written-out statement with a parameter; it does not
+add a twin statement with the older one as its corollary (step 6). A caller that needs the old form
+gets an abbreviation at the old mode, not a copy.
+
+**The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
+configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
+w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
+purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.bootCfg` (no condition on the configuration);
+`wal.Names` and `wal.srvInv` come at stages 3c/4. `NewServer.spec`'s three triples take
+`wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
+WAL conjuncts. The examples still thread one token per member from program start (a new resource
+is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
+
+**The raft node's and the transport's slots** (2026-11-03, branch `boot-premises`, the final
+whole-`bootOk` review's S2 and M2; `notes/decisions.md`, "The boot premises"): `raftNode.bootCfg
+cfg` (`etcdserver/RaftNodeApi.lean`: the heartbeat positive; `raftNode.bootCfg_of` at `TickMs =
+100`, `raftNode.bootCfg_heartbeat`), and `rafthttp.bootCfg dir ps` (`api/rafthttp/Net.lean`: the
+directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`, the eliminations
+`_mem`, `_len`), a coupling the transport owns with raft's peers as its parameter, and no `cfg`
+(the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
+triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
+
+From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
+boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.

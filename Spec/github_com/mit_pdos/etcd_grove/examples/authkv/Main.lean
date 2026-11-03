@@ -62,7 +62,9 @@ abbrev Main.spec : Prop :=
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23916" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"authkv.etcd" go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Main)) (Val #()))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}
 

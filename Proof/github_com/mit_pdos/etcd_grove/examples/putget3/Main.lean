@@ -87,11 +87,11 @@ theorem dir3_ok (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)
     · simp at hs; subst hs; decide
     · simp at hs
 
-/-- **`Main`'s directory names the peers** (`srvDirsOk`, `NewServer`'s premise; 2026-11-03, the final
+/-- **`Main`'s directory names the peers** (`rafthttp.bootCfg`, `NewServer`'s premise; 2026-11-03, the final
 whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
 theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry)
-    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : srvDirsOk ps (dir3 id₁ id₂ id₃) := by
-  refine srvDirsOk_of ps _ (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
+    (Hbf : BootFacts id₁ id₂ id₃ ps ctxs bl) : rafthttp.bootCfg (dir3 id₁ id₂ id₃) ps := by
+  refine rafthttp.bootCfg_of _ ps (fun f => ?_) (by rw [Hbf.perm.length_eq]; simp)
   rw [Hbf.perm.mem_iff]
   unfold dir3
   constructor
@@ -125,7 +125,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `Main`'s premises in the shared start's form
@@ -262,7 +262,7 @@ theorem Main.wp_proof
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
+      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -289,7 +289,7 @@ theorem Main.wp_proof
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
+      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -315,7 +315,7 @@ theorem Main.wp_proof
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
         (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃
+      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)

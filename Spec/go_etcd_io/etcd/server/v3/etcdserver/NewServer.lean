@@ -201,6 +201,12 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -219,13 +225,11 @@ abbrev NewServer.spec : Prop :=
       -- supply draws on the write budget's stock (until then `N + N` in compaction mode, `N` more for
       -- the compaction's own stock, `srvCmpStock`)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
-      -- (2026-11-03, the final whole-`bootOk` review's S2 and M2) the environment the server
-      -- boots in beyond `bootstrap`'s: a positive heartbeat (a scope restriction), the URL
-      -- directory's members raft's peers, at most `peersMax` (`srvBootEnvOk`)
-      "%Henv" ∷ ⌜srvBootEnvOk cfg γ dir⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -395,6 +399,12 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
@@ -414,13 +424,11 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
-      -- (2026-11-03, the final whole-`bootOk` review's S2 and M2) the environment the server
-      -- boots in beyond `bootstrap`'s: a positive heartbeat (a scope restriction), the URL
-      -- directory's members raft's peers, at most `peersMax` (`srvBootEnvOk`)
-      "%Henv" ∷ ⌜srvBootEnvOk cfg γ dir⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -605,6 +613,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
@@ -626,13 +640,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (M2's item 15, stage B3) at `N` write tokens in both modes (until then `N + N` in
       -- compaction mode, `N` more for the compaction's own stock, `srvCmpStock`)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
-      -- (2026-11-03, the final whole-`bootOk` review's S2 and M2) the environment the server
-      -- boots in beyond `bootstrap`'s: a positive heartbeat (a scope restriction), the URL
-      -- directory's members raft's peers, at most `peersMax` (`srvBootEnvOk`)
-      "%Henv" ∷ ⌜srvBootEnvOk cfg γ dir⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant

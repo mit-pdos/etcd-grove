@@ -61,7 +61,9 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"cachekv.etcd" go!"") }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main)) (Val #nw))
       (Val #nops))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2 ∨ r = W64 3⌝ }}

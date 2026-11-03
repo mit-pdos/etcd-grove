@@ -331,7 +331,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- calls `AddRemote` never
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
     -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, a fact of the
-    -- caller's `dir` and `γ.vs`; a restart's `NewServer`, when one is stated, will take it as a premise, `srvBootEnvOk`)
+    -- caller's `dir` and `γ.vs`; a restart's `NewServer`, when one is stated, will take it as a premise, `rafthttp.bootCfg`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s

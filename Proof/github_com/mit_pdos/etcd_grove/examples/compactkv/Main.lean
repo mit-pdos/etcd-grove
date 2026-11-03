@@ -101,7 +101,7 @@ theorem Main.wp_proof
     (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -168,8 +168,8 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, dirOne]) (srvDirsOk_dirOne id _) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
-      $$ [Htok Hmb]
+      (by simp [compactkvDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

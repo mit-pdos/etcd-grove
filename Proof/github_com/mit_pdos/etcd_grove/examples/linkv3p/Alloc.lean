@@ -63,11 +63,11 @@ theorem dir3_ok (id₁ id₂ id₃ : w64) (h1 : id₁ ≠ W64 0) (h2 : id₂ ≠
     · simp at hs; subst hs; decide
     · simp at hs
 
-/-- **`Main`'s directory names the peers** (`srvDirsOk`, `NewServer`'s premise; 2026-11-03, the final
+/-- **`Main`'s directory names the peers** (`rafthttp.bootCfg`, `NewServer`'s premise; 2026-11-03, the final
 whole-`bootOk` review's M2): its members are the ids, which the peers permute. -/
 theorem dir3_dirsOk (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃]) :
-    srvDirsOk ps (dir3 id₁ id₂ id₃) := by
-  refine srvDirsOk_of ps _ (fun f => ?_) (by rw [hperm.length_eq]; simp)
+    rafthttp.bootCfg (dir3 id₁ id₂ id₃) ps := by
+  refine rafthttp.bootCfg_of _ ps (fun f => ?_) (by rw [hperm.length_eq]; simp)
   rw [hperm.mem_iff]
   unfold dir3
   constructor

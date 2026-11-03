@@ -56,7 +56,7 @@ abbrev newServer.spec : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  srvDirsOk ps dir →
+  rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
@@ -72,7 +72,9 @@ abbrev newServer.spec : Prop :=
       memberBoot γ ctxs ρ E₀ Φs id ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
@@ -95,7 +97,7 @@ abbrev newServer.specCompact : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  srvDirsOk ps dir →
+  rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
@@ -116,7 +118,9 @@ abbrev newServer.specCompact : Prop :=
       memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
-      netHttpOk γn id }}
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))

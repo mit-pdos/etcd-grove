@@ -53,7 +53,11 @@ abbrev startCluster.spec : Prop :=
       netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
       netAddrFree (GF := GF) bridgeAddr₃ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster)) (Val #lg))
   {{ (srvs brs clis : GoSlice) (ok : Bool), RET (PairV (PairV (PairV #srvs #brs) #clis) #ok);
       ⌜ok = false⌝ ∨

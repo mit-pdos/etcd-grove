@@ -129,6 +129,8 @@ theorem leasekv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent leasekvProgram [config.walDirOf go!"leasekv.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ leasekv.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
@@ -142,7 +144,7 @@ theorem leasekv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate (GF := leasekvGF) github_com.mit_pdos.etcd_grove.examples.leasekv.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.leasekv.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) [config.walDirOf go!"leasekv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC leasekvGF := heapAtLkv hG lctx
   haveI := Hctx hG
@@ -150,11 +152,12 @@ theorem leasekv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.leasekv.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.leasekv.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -⟩
+  iintro #Hinit Htok ⟨Has, -, Hds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := leasekv.wp_Main (GF := leasekvGF) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo Hlp inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok]
+  wp_apply hM $$ [Haddr Htok Hwd]
   · iframe; iframe #
   ipureintro
   rfl

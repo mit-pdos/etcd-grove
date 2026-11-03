@@ -58,6 +58,9 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Code.net.http
 public import Proof.unicode.utf8.Valid
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
 
@@ -86,10 +89,6 @@ peer's handler may add a remote for. -/
 def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
-
-/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
-peer URL `url`, no other member. -/
-def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
 
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
@@ -225,51 +224,13 @@ which `Hraft`'s `ConfigValid` needs). Until then the last came only from the exa
 (2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
 `heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
 states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
-takes its sign, `srvBootEnvOk`.) The examples' configuration (`examples/common/common.go`)
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/common/common.go`)
 meets all. -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
     1 < sint.Z cfg.ElectionTicks'
-
-/-- **The URL directory of raft's peers** (2026-11-03, the final whole-`bootOk` review's M2; until
-then `bootOk`'s `Hdirps`, a fact of the caller's parameters stated in the contract's post): the
-members `dir` names are exactly the peers `ps` (a member's transport adds every other as a peer, so
-its handler finds the sender of any request), at most `peersMax` of them. A fact of the caller's
-cluster, which the specs between an example's `Main` and `NewServer` carry. -/
-def srvDirsOk (ps : List w64) (dir : w64 → List GoString) : Prop :=
-  (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ peersMax
-
-/-- `srvDirsOk` of a one-member directory (`dirOne`) and its member. -/
-theorem srvDirsOk_dirOne (id : w64) (url : GoString) : srvDirsOk [id] (dirOne id url) := by
-  refine ⟨fun f => ?_, by unfold peersMax; simp⟩
-  unfold dirOne
-  by_cases h : f = id <;> simp [h]
-
-/-- `srvDirsOk` from the directory's members (`hdir`), at most three (the examples' clusters). -/
-theorem srvDirsOk_of (ps : List w64) (dir : w64 → List GoString)
-    (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ 3) : srvDirsOk ps dir :=
-  ⟨hdir, by unfold peersMax; omega⟩
-
-/-- **The environment `NewServer` boots in, beyond `bootstrap`'s** (2026-11-03, the final
-whole-`bootOk` review: one named premise of `NewServer.spec`/`specM`/`specG`, the boot hub's, which
-a later need extends in place of the three statements; `notes/spec-first-plan.md`, "Hubs"):
-* `hb` (S2): the heartbeat Go computes from the configuration (`TickMs` milliseconds,
-  `time.Duration`, wrapping: `bootOk`'s `Hraft`) positive: `newRaftNode`'s `time.NewTicker` panics
-  for a negative one, and a zero one (Go's `&time.Ticker{}`, which never fires) is not covered, a
-  scope restriction (`notes/decisions.md`);
-* `dirs` (M2): the URL directory names raft's peers `γ.vs` (`srvDirsOk`). -/
-structure srvBootEnvOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
-    (dir : w64 → List GoString) : Prop where
-  hb : 0 < sint.Z (cfg.TickMs' * W64 1000000)
-  dirs : srvDirsOk γ.vs dir
-
-/-- `srvBootEnvOk` at the examples' clock (`TickMs = 100`), of a directory of raft's peers. -/
-theorem srvBootEnvOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
-    (dir : w64 → List GoString) (ps : List w64) (htk : cfg.TickMs' = W64 100) (hvs : γ.vs = ps)
-    (hd : srvDirsOk ps dir) : srvBootEnvOk cfg γ dir :=
-  ⟨by rw [htk]; decide, by rw [hvs]; exact hd⟩
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -293,13 +254,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- forwards a follower's renewal through (`srvPeerRt`)
     "%Hprt" ∷ ⌜∃ t : Loc, bs.prt' =
       GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
-    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL ready (a first start's
-    -- `bootstrapNewWAL` creates it; 2026-11-03: until then the comment cited a restart's
-    -- `ReadAll`), which `NewStorage`'s contract takes
-    "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
-    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
-    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
-    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
+    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL, which `NewStorage`'s contract takes
+    -- (2026-11-03, the WAL's API, approved change 2; its slot, the slot convention) the new WAL
+    -- opened in the configuration's WAL directory, and the purge's right (`wal.bootOk`)
+    "Hwal" ∷ wal.bootOk cfg id cid bw.w' ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
@@ -354,7 +312,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
     -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, the directory's
     -- members raft's peers, at most `2 ^ 20`, a fact of the caller's `dir` and `γ.vs`, now
-    -- `NewServer`'s premise `srvBootEnvOk`)
+    -- `NewServer`'s premise, the transport's slot `rafthttp.bootCfg dir γ.vs`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
@@ -539,7 +497,8 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
           storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
-        bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
+        bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+        wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

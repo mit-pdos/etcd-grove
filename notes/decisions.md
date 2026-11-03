@@ -30643,6 +30643,22 @@ The four clients that destructure `readyGot` (the server's `rn_ready_recv`, `kv`
 `kvdurable`) drop the two new conjuncts. The `isCommittedLogLb (delivered ++ ce)` conjunct, which
 the new `deliveredLogLb` implies, stays (dropping it would move every client's pattern for nothing).
 
+## The WAL in the boot hub through its slots (2026-11-03 · the user's approval of the slot convention)
+
+**Before:** R2b-1 stage 3a-3b (branch `r2b1-s3`, built, not landed) put the WAL into the boot hub
+inline: `NewServer.spec`'s three triples and `bootstrapContract` took `walDirFresh (config.walDirOf
+cfg.DataDir' cfg.DedicatedWALDir')`, `bootOk` had `walOpened … walFresh ∗ walPurgeRight …`.
+`notes/spec-first-plan.md` ("Hubs", "Incremental adoption") makes the WAL the first subsystem to
+enter the hub through sealed slots, after a convention reviewed once.
+
+**Now:** the convention (`notes/spec-first-plan.md`, "The slot convention") approved as drafted;
+`WalApi.lean` exports `wal.bootRes cfg` and `wal.bootOk cfg id cid w`, sealed, with
+`wal.bootRes_intro` and `wal.bootOk_storage` (narrow: what `NewStorage` takes; a review's
+suggestion, replacing a law that restated the body); the hub names them. A later change to what the WAL takes
+or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) changes those bodies and
+laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
+starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
+
 ## The boot premises: the final whole-`bootOk` review's S1, S2, M1, M2 repaired (2026-11-03 · the user's approval of candidate 3 and its six recommendations · branch `boot-premises`)
 
 The final review round of "The whole-`bootOk` review" (above) found four defects outside that
@@ -30724,3 +30740,30 @@ it is the one named premise the hubs addendum asked for, its constructor is the 
 implication beside the converted heartbeat premise. The trust base could shrink: Perennial now
 proves `time.NewTicker.spec` over its model, while `rnTickerOk_of_time` rests on this repository's
 copies (`Proof/time/`, axioms).
+
+**Into the slot convention** (2026-11-03, the coordinator's request after the WAL's slots landed on
+`lean`, `notes/spec-first-plan.md`, "The slot convention"). `srvBootEnvOk` bundled two subsystems'
+facts (the reviewer's T2 above); the convention, approved since, says each subsystem names its
+part of the hub through its own sealed slot. So `srvBootEnvOk` and `srvDirsOk` are gone, and the
+three `NewServer` specs take two premises, beside the other configuration premises:
+- `raftNode.bootCfg cfg` (`etcdserver/RaftNodeApi.lean`, new, sealed in `etc/import-all.txt`): the
+  raft node's condition on the configuration, the heartbeat Go computes positive. Laws:
+  `raftNode.bootCfg_of` (at `TickMs = 100`, the examples'), `raftNode.bootCfg_heartbeat` (the narrow
+  elimination: what `newRaftNode`'s spec takes). The subsystem is the raft node (`etcdserver`'s
+  `raftNode`, which starts the ticker), not raft (whose `Config` has no clock).
+- `rafthttp.bootCfg dir γ.vs` (`api/rafthttp/Net.lean`, now sealed too; `dirOne` moved there from
+  `InvBoot.lean`): the transport's condition on its URL directory, of raft's peers. A coupling,
+  stated by the convention's first form: the transport owns the relation (its `AddPeer`s and its
+  handler's sender lookup need the directory to name exactly raft's peers, and it serves at most
+  `peersMax`), raft's peers are a parameter. It takes no `cfg`, a departure from the table's
+  `<sub>.bootCfg cfg`: the directory is the network's name (`NetNames.dir`), not configuration, and
+  an unused `cfg` would only add noise. Laws: `rafthttp.bootCfg_dirOne`, `rafthttp.bootCfg_of` (the
+  former `srvDirsOk_dirOne`/`srvDirsOk_of`), and the narrow eliminations `rafthttp.bootCfg_mem` and
+  `rafthttp.bootCfg_len`, what the server's proof uses. The examples' start chain carries
+  `rafthttp.bootCfg dir ps` in place of `srvDirsOk ps dir`; no example unfolds either slot.
+Both are `→` premises, as the table puts `bootCfg`, not conjuncts of the precondition (where
+`%Henv` was). Neither is a premise of `bootstrapContract`: `bootstrap` neither starts the ticker
+nor the transport, and the convention's "a slot is added only when its subsystem must change the
+hub" applies to the contract too. The reviewer's other open points (T2's ticker placement, T3's
+`lg ≠ null`, the trust-base reduction through Perennial's `NewTicker`) stay open, as the
+coordinator asked. Supersedes "Hubs" above in so far as it named `srvBootEnvOk` the one premise.

@@ -56,7 +56,7 @@ abbrev restartCheck.spec : Prop :=
   bootLog.length ≤ 3 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  srvDirsOk ps dir →
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ →
   plainEndpoint caddr → lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →

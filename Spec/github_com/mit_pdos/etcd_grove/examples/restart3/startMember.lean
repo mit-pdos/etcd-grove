@@ -49,7 +49,7 @@ abbrev startMember.spec : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  srvDirsOk ps dir →
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
@@ -59,7 +59,9 @@ abbrev startMember.spec : Prop :=
       common.bootPremise N ps bootLog ctxs dir token name Uok id ∗ common.commonPremises ∗
       context.isClosedchanInit ∗
       common.memberBoot γ ctxs ρ E₀ Φs id ∗
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
+      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))
@@ -81,7 +83,7 @@ abbrev startMember.specRestart : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  srvDirsOk ps dir →
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →

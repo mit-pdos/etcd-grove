@@ -163,7 +163,7 @@ theorem Main.wp_proof
   intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN HwbN Hck Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
@@ -268,8 +268,8 @@ theorem Main.wp_proof
       (W64 10000000) lg (LogEntry.toEntries boot 0) ctxs
       (ckDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [ckDir, dirOne]) (srvDirsOk_dirOne id _) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb] as %srv %err Hr
+      (by simp [ckDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
+    $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
   · cases err with

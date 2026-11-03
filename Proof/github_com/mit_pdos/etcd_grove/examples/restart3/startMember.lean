@@ -47,7 +47,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
+  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown, Hwdf⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #Pcom : isPkgInit (PROP := IProp GF)
@@ -62,7 +62,7 @@ theorem startMember.wp_proof
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
+      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
