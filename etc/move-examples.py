@@ -66,6 +66,9 @@ MOVES = [
     ("crashlog", "osfs/crashlog", "osfs_crashlog", ["crashlog", "crash"]),
 ]
 OLD = {m[0]: m for m in MOVES}
+# old namespaces that are also ordinary identifiers (`kv`, a variable's name): renamed only in the
+# example's own files and in those importing its modules
+AMBIGUOUS = {"kv"}
 
 LEAN_KINDS = ("Code", "GeneratedProof", "Spec", "Proof", "TrustedCode", "ManualProof")
 LEAN_ROOTS = ("", "RaftWitness/", "PorcupineDag/")
@@ -209,13 +212,18 @@ def main():
             for old, new, ns, _ in MOVES:
                 if not ns or ns == old:
                     continue
-                imports = re.search(r"^(public )?import \S*etcd_grove\.examples\.", out, re.M)
-                if not in_examples and not imports:
+                if old in AMBIGUOUS:  # also an ordinary identifier: its own files and importers
+                    if own != old and not re.search(
+                            r"^(public )?import \S*etcd_grove\.examples\."
+                            + re.escape(new.replace("/", ".")) + r"\b", out, re.M):
+                        continue
+                elif not in_examples and not re.search(
+                        r"^(public )?import \S*etcd_grove\.examples\.", out, re.M):
                     continue
                 def ren(code):
-                    code = re.sub(r"^(namespace|end) " + re.escape(old) + r"$", r"\1 " + ns, code,
-                                  flags=re.M)
-                    code = re.sub(r"^(open[^\n]*?)(?<![\w.])" + re.escape(old) + r"(?![\w.])",
+                    code = re.sub(r"^(namespace|end) ((?:Perennial\.)?(?:EtcdGrove\.)?)"
+                                  + re.escape(old) + r"$", r"\1 \2" + ns, code, flags=re.M)
+                    code = re.sub(r"^((?:open|export)[^\n]*?)(?<![\w.])" + re.escape(old) + r"(?![\w.])",
                                   r"\1" + ns, code, flags=re.M)
                     code = re.sub(r"(?<![\w.'«])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
                                   ns + ".", code)
@@ -259,7 +267,8 @@ def main():
                         r"etcd_grove\.examples\." + re.escape(new.replace("/", ".")) + r"\b", out):
                     continue
                 for a, b in thm[old].items():
-                    out = re.sub(r"(?<![\w.])" + re.escape(a) + r"(?!\w)", b, out)
+                    out = re.sub(r"(?:(?<![\w.])|(?<=EtcdGrove\.))" + re.escape(a) + r"(?!\w)",
+                                 b, out)
         if out != src:
             open(p, "w", encoding="utf-8").write(out)
             changed += 1
