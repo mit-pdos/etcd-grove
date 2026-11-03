@@ -95,7 +95,9 @@ def poolN (N : Namespace) : Namespace := N .@ "pool"
 - `nl`: `ghostMap Loc (Loc × Nat)`, the writer's node-location registry (persistent
   fragments, N3);
 - `done`: `ghostVar Bool`, the transaction is closed (½ `txsInv`, ½ the exclusive part);
-- `pg`: `ghostMap Nat Unit`, the writer's page tokens (`txShape`, `Inv/Shape.lean`). -/
+- `pg`: `ghostMap Nat Unit`, the writer's page tokens (`txShape`, `Inv/Shape.lean`);
+- `vw`: `ghostMap Loc View`, discarded fragments: the transaction's view at each base it had
+  (`viewOf`, what `txBytes` and `boltCur` are relative to). -/
 structure TxNames where
   v : GName
   ex : GName
@@ -104,11 +106,13 @@ structure TxNames where
   nl : GName
   done : GName
   pg : GName
+  vw : GName
   deriving Inhabited, DecidableEq
 
 instance TxNames.countable : Pos.Countable TxNames :=
-  countableOfLeftInverse (fun n => (n.v, n.ex, n.bk, n.rbk, n.nl, n.done, n.pg))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+  countableOfLeftInverse (fun n => (n.v, n.ex, n.bk, n.rbk, n.nl, n.done, n.pg, n.vw))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 /-- Where a read transaction's (`mmaplock`, `statlock`) reader-token pair comes from (round 4,

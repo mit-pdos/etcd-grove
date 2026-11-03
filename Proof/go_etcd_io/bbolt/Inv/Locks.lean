@@ -161,8 +161,10 @@ def wdbOK (w : WDb) : Prop :=
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,
-`wdbLive`). -/
-def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (w : WDb) : IProp GF :=
+`wdbLive`), and its share `mq` of the mapping fields (½ idle; ¼ live, the writer's fractions
+holding the other quarter, `wtxFrac`). -/
+def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (mq : Qp) (w : WDb) :
+    IProp GF :=
   iprop(∃ wa : GoFunc,
     ghostVar B.cur (1 : Qp).half.half w.C ∗
     ghostVar B.fl (1 : Qp).half w.fl ∗ ghostVar B.map (1 : Qp).half w.ms ∗
@@ -172,7 +174,7 @@ def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (w : WDb)
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
-    mapFields db (DFrac.own (1 : Qp).half) w.ms ∗
+    mapFields db (DFrac.own mq) w.ms ∗
     osMeta p (DFrac.own 1) (some w.m) ∗ fileOwn w.f w.fd p (DFrac.own 1) ∗
     osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ ∗
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
@@ -183,7 +185,7 @@ def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (w : WDb)
 
 /-- The idle writer side's core: no `rwtx`, no live writer. -/
 def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
-  wdbCoreG B db p null wIdle w
+  wdbCoreG B db p null wIdle (1 : Qp).half w
 
 /-- **The writer side's resources** (design §3.5): `wdbCore`, its quarter of the data, the
 freelist object but its reader part, the spare reader-token pair, and the receipts
@@ -196,7 +198,7 @@ def wdbOwn (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (w : WDb) :
 transaction `tx`, the store's writer state `ws`; its quarter of the data is in `wtxFrac`. -/
 def wdbLive (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
     (w : WDb) : IProp GF :=
-  iprop(wdbCoreG B db p tx ws w ∗ flPgOwn w.fli w.fl ∗ rdPair B db sp ∗
+  iprop(wdbCoreG B db p tx ws (1 : Qp).half.half w ∗ flPgOwn w.fli w.fl ∗ rdPair B db sp ∗
     receipt (w.C.txid - t0))
 
 /-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the

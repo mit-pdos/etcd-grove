@@ -31,20 +31,7 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 /-! ## Countable instances (the records live in ghost state) -/
 
-instance Qp.countable : Pos.Countable Qp :=
-  .ofInjective (fun q => Pos.Countable.encode ((q.val.num, q.val.den) : Int × Nat))
-    (fun a b h => by
-      have h' := Pos.encode_inj h
-      simp only [Prod.mk.injEq] at h'
-      exact Qp.ext_iff.2 (Rat.ext h'.1 h'.2))
-
-instance DFrac.countable : Pos.Countable DFrac :=
-  countableOfLeftInverse
-    (fun d => match d with
-      | .own q => (0, some q) | .discard => (1, none) | .ownDiscard q => (2, some q))
-    (fun p => match p with
-      | (0, some q) => .own q | (2, some q) => .ownDiscard q | _ => .discard)
-    (fun d => by cases d <;> rfl)
+-- `Qp` and `DFrac` are countable by Iris's and Perennial's instances (`Std/Qextra.lean`).
 
 section wtx
 variable [GooseExts]
