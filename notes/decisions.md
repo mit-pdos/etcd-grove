@@ -30202,3 +30202,23 @@ compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
    pre-registration state).
 6. A share of the writer's log ghost `γ.wv` in the writer's pin.
 7. `updateCompactRev` takes `1 ≤ rev` from its caller (the source of `recsPos`).
+
+**2026-11-03 · accepted (the user's approval, F2's Freeze, stage 1)**
+1. `storage.OpenBackend`'s `openPre`: the creator callback also receives `pvckInit γ P D` (the two new
+   ghosts' client halves at the opened data), as `backend.New` (proved) gives them; the axiom's
+   docstring argues it from `backend.New` as it does `hkOwn`.
+2. The widened meaning of the axioms that mention `isBackend` (its batch-lock invariant now holds
+   the batch lock's halves of `pv`/`ck`): `auth.NewAuthStore`, `lease.NewLessor`, `lessor.Recover`,
+   membership `Recover`/`SetBackend`/`MustSave`/`MustDelete`/`MustRead`, `NewBackendQuota`, alarm
+   `restore`/`NewAlarmStore`, `MustUnsafeSaveConfStateToBackend`, `backend.Snapshot`: accepted on the
+   condition that a fresh spec review confirms each writes only hook buckets and non-compaction keys
+   (so `pvPut`/`ckPut` are `True` and neither ghost moves).
+   Review (2026-11-03, a fresh spec reviewer): all thirteen preserve the invariant, and so do the
+   three others whose specs reach `isBackend` (`storage.OpenBackend`, `EtcdServer.monitorStorageVersion`,
+   `v3alarm.AlarmStore.restore`): no write, delete or bucket removal in `key`, none of `meta`'s two
+   compaction keys. `AlarmStore.restore`, generic in `P`, only creates `alarm` (creation keeps
+   `sData`/`fkVals`); widening it later needs a `pvPut` premise. The condition holds.
+3. (The user, directly, 2026-11-03) confirmed item 1 (`openPre` and its docstring edit), and approved
+   the exported `mvcc_backend_bridge` restated with the lock resource `iprop(W ∗ backend.pvckOwn γ)`
+   (`isBackend … iprop(W ∗ backend.pvckOwn γ)`), and `bootOk`'s `Hnew` and `InvRestart`'s `newPost`
+   stating the boot backend's lock resource as `lateWB` (`lateW ∗ pvckOwn`).

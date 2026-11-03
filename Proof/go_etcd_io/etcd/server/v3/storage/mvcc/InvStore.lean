@@ -228,14 +228,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.rbD, (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+    (fun x : backend.BNames => ((x.pv, x.ck), x.rbD, (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
       x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk)))
-    (fun pr => let r0' := pr.2; let r := r0'.2; let r' := r.2; let r0 := r'.2; let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+    (fun pr0 => let pr := pr0.2; let r0' := pr.2; let r := r0'.2; let r' := r.2; let r0 := r'.2; let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1, pr.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1, pr0.1.1, pr0.1.2, pr.1⟩)
     (fun _ => rfl)
 
 /-- A real instance's parameters are its record's, whatever its compaction mode (the server's
@@ -2968,6 +2968,12 @@ its writer's resource. -/
 def lateW (gx : GName) : IProp GF :=
   iprop(dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × StoreNames)) ∨
     ∃ (s : Loc) (γ : StoreNames), dghostVar gx DFrac.discard (some (s, γ)) ∗ writerRes s γ)
+
+/-- The real backend's batch-lock resource: `lateW gx` and the client halves of the backend's
+exact ghosts (`backend.pvckOwn`: the non-hook buckets' data and the compaction keys' values; F2's
+stage 1), which the bridge moves into the lock's tokens. -/
+abbrev lateWB (gx : GName) (γB : backend.BNames) : IProp GF :=
+  iprop(lateW gx ∗ backend.pvckOwn γB)
 
 /-- The right to register the store (the backend's creator's half of `gx`, unset). -/
 def lateReg (gx : GName) : IProp GF :=

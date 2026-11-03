@@ -44,7 +44,7 @@ variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 /-- **`NewStore` over the real backend**: on a fresh backend made for the real instance `d`
-(`isBackend d.γB d.P (lateW d.gx) Pk d.be`, with schema's buckets, its post-lock hook `f` set
+(`isBackend d.γB d.P (lateWB d.gx d.γB) Pk d.be`, with schema's buckets, its post-lock hook `f` set
 for good, and the size premise `keySized` of its range reads), given what the backend's creator
 holds (the clients' view of the empty `Key` bucket, the right to register the store's lock
 resource, two write-back tokens, one reader token per reader slot), and a batch limit not
@@ -94,7 +94,7 @@ theorem mvcc.NewStore_backend
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)

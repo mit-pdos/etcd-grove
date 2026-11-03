@@ -834,7 +834,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
@@ -913,7 +913,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
         backend.dlInit d.γB ∗
@@ -1062,7 +1062,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        backend.isBackendNH d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be
+        backend.isBackendNH d.γB d.P (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) d.be
           (storage.hooksIface bh) ∗
         storage.isBackendHooks bh
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
@@ -1093,7 +1093,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hrl, #Hhk, #Hsz, Hdl, Hv,
     Hncmp, Hrg, Hw, Hrts, #Hlpkg, #Hlinv, Hlrd, Hro⟩ HΦ
-  ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateW d.gx) d.be bh lgh hci hH $$
+  ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateWB d.gx d.γB) d.be bh lgh hci hH $$
     [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]

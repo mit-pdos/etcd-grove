@@ -52,7 +52,8 @@ def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : 
 
 /-- **The creation step of the backend `applySnapshot` opens** (`openPre`'s wand): the fresh
 backend's own keys (at the image `D`, whose meta keys are `π0.m0`) and payment rights give the
-store's late registration slot `lateW gx`, the batch lock's resource at the announced names
+store's late registration slot `lateW gx` with the client halves of the backend's exact ghosts
+(`lateWB gx γB`, from `pvckInit`: F2's stage 1), the batch lock's resource at the announced names
 (`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
 2026-11-01) with `applySnapshot.specSnap`'s meta premise `HmS`, applied to the fresh keys and
 payment rights before they go, the new backend's meta reads. -/
@@ -69,10 +70,12 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
           (readView (γA.withPh π))) ⊢
     inv applyN (consInv (GF := GF) γA) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
       mvcc.lateW gx -∗
-      ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
-        mvcc.lateW gx ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
+      ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.pvckInit γB P D ∗
+          backend.bFresh γB ={⊤}=∗
+        mvcc.lateWB gx γB ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
         snapOpenK γA π0 P γB := by
-  iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
+  iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hpv, Hfr⟩
+  ihave Hpv := backend.pvckOwn_of_init γB P D $$ Hpv
   have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ (futPhys π0 γB).bwb = γB.wb ∧
       (futPhys π0 γB).bopn = γB.opn := ⟨hP, hm, rfl, rfl⟩
   icases HmS $$ %(futPhys π0 γB) %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
@@ -81,7 +84,9 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
   imod ci_announce γA (futPhys π0 γB) γB (metaTM γB P) π0.m0 rfl rfl rfl $$ Hinv Hfr Hpend Hmt HTM
     with ⟨Hbl, Hcls, %j, %γc, Htc, #Hidx⟩
   imodintro
-  iframe HW Hbl
+  iframe Hbl
+  isplitl [HW Hpv]
+  · iunfold mvcc.lateWB; iframe HW Hpv
   iunfold snapOpenK
   iframe Hcls HmB
   iexists j, γc

@@ -559,7 +559,7 @@ def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IPr
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
       lgh ∗
     backend.hooksAt d.be (storage.hooksIface bh) ∗
-    backend.isBackend d.γB d.P (mvcc.lateW d.gx) (batchLockInv γ (metaTM d.γB d.P)) d.be)
+    backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) (batchLockInv γ (metaTM d.γB d.P)) d.be)
 
 instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
     Persistent (srvBeHooked (GF := GF) s γ ci E) := by
@@ -639,7 +639,7 @@ abbrev srvBeIface (be : Loc) : GoInterface :=
 (`backend.isBackend`), what the storage-version monitor writes it through. True of every backend
 the server ever holds, so it is kept in `s.bemu`'s lock invariant with the field (`bemuP`). -/
 def srvBeRO (d : mvcc.KBReal) : IProp GF :=
-  iprop(∃ Pk : IProp GF, backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be)
+  iprop(∃ Pk : IProp GF, backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be)
 
 instance srvBeRO_persistent (d : mvcc.KBReal) : Persistent (srvBeRO (GF := GF) d) := by
   unfold srvBeRO; infer_instance

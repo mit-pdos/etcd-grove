@@ -259,7 +259,7 @@ theorem keyCleanRead_of_backendC
     (hpos : recsSign r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ⊢
+      isBackend d.γB d.P (lateWB d.gx d.γB) Pk d.be ∗ keySized d.γB d.P d.be ⊢
       ∀ (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         keyCleanReadR
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -275,7 +275,7 @@ theorem keyCleanRead_of_backendC
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
   isplitr
   · ipureintro; rfl
-  iapply bridge_rt_cleanR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateW d.gx) Pk d.be r hpos
+  iapply bridge_rt_cleanR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateWB d.gx d.γB) Pk d.be r hpos
     $$ [$Hpkg $Hsch $Hb $Hsafe]
 
 end recs

@@ -322,7 +322,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- entries, seven for the construction); and what `bootstrap` adds: the store's registration
     -- right, `keySized` (`bootBackend_of_newPost` turns `newPost` into the resources `NewServer`
     -- uses)
-    "Hnew" ∷ backend.newPost d.γB d.P (fun _ => mvcc.lateW d.gx)
+    "Hnew" ∷ backend.newPost d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the

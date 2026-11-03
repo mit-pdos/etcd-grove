@@ -207,7 +207,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
     (r : CmpRecs) (hpos : recsSign r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
+      isBackend d.γB d.P (lateWB d.gx d.γB) Pk d.be ∗ keySized d.γB d.P d.be ∗
         storeDlReg d.γB γi ∗ fkV d.γB true ⊢
       ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         storeBackendTR
@@ -221,7 +221,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
   have hreg : storeDlReg (GF := GF) d.γB γi = storeDlReg d.γB γ.idx := by rw [hi]
   rw [hreg] at *
   icases storeDlReg_congr d.γB γ (storeCmp γ) $$ Hreg with ⟨#Hd, -⟩
-  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateW d.gx) Pk d.be r hpos
+  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateWB d.gx d.γB) Pk d.be r hpos
     (delKey γ) $$ [$Hpkg $Hsch $Hb $Hsz $Hd]
   have hv : bucketView (GF := GF) γ = bkView d.γB := by
     funext q m; unfold bucketView kbView; rw [hk]

@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- The real backend's facts of the instance `d` are those of `d` not compacting (question 5's core
 stage, part (1): the server's store at `{ d with cm := false }`). -/
 theorem isBackend_cmOff (d : mvcc.KBReal) (Pk : IProp GF) :
-    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateW d.gx) Pk d.be ⊢
-      backend.isBackend ({ d with cm := false } : mvcc.KBReal).γB ({ d with cm := false } : mvcc.KBReal).P (mvcc.lateW ({ d with cm := false } : mvcc.KBReal).gx) Pk ({ d with cm := false } : mvcc.KBReal).be := by
+    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ⊢
+      backend.isBackend ({ d with cm := false } : mvcc.KBReal).γB ({ d with cm := false } : mvcc.KBReal).P (mvcc.lateWB ({ d with cm := false } : mvcc.KBReal).gx ({ d with cm := false } : mvcc.KBReal).γB) Pk ({ d with cm := false } : mvcc.KBReal).be := by
   exact .rfl
 
 theorem plHookRO_cmOff (d : mvcc.KBReal) (f : GoFunc) :
@@ -51,9 +51,9 @@ theorem keySized_cmOff (d : mvcc.KBReal) :
 
 /-- The same facts at the instance in either mode (`{ d with cm := c }`: M2's server). -/
 theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (Pk : IProp GF) :
-    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateW d.gx) Pk d.be ⊢
+    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ⊢
       backend.isBackend ({ d with cm := c } : mvcc.KBReal).γB ({ d with cm := c } : mvcc.KBReal).P
-        (mvcc.lateW ({ d with cm := c } : mvcc.KBReal).gx) Pk ({ d with cm := c } : mvcc.KBReal).be := by
+        (mvcc.lateWB ({ d with cm := c } : mvcc.KBReal).gx ({ d with cm := c } : mvcc.KBReal).γB) Pk ({ d with cm := c } : mvcc.KBReal).be := by
   exact .rfl
 
 theorem plHookRO_withCm (d : mvcc.KBReal) (c : Bool) (f : GoFunc) :
@@ -100,7 +100,7 @@ theorem server_kv_watchable_of
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
         backend.dlInit d.γB ∗
@@ -252,7 +252,7 @@ theorem server_kv_watchable_ofM (c : Bool)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗

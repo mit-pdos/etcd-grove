@@ -215,13 +215,16 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The bridge, linked**: `mvcc.isKeyBackendG_of_backend` with the backend's results
-(`backend/Link.lean`) and schema's `bucket` methods' (mvcc's `Link.lean`). -/
+(`backend/Link.lean`) and schema's `bucket` methods' (mvcc's `Link.lean`). The backend's lock
+resource is the client's `W` with the client halves of the backend's exact ghosts
+(`backend.pvckOwn`, F2's stage 1), which the bridge moves into the lock's tokens. -/
 theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
     (γ : backend.BNames) (W Pk : IProp GF) (b : Loc)
     (Del : GoString → IProp GF) (Cmp : Prop) (hC : ¬ Cmp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend γ P W Pk b ∗ mvcc.keySized γ P b ∗ backend.dlNoDel γ ⊢
+      backend.isBackend γ P iprop(W ∗ backend.pvckOwn γ) Pk b ∗ mvcc.keySized γ P b ∗
+        backend.dlNoDel γ ⊢
       mvcc.isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk Del W W
@@ -265,7 +268,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
         -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
@@ -346,7 +349,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗ backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
@@ -418,7 +421,7 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
     (hcm : d.cm = false) (Pk : IProp GF) (γb : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+      backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         backend.dlNoDel d.γB ⊢
       ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         mvcc.storeBackend

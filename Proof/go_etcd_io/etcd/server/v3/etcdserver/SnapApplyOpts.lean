@@ -93,7 +93,7 @@ theorem snap_backendOptsOk
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
       isServerCI s (snapγ γ π0 γB) ci ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
+      backend.isBackend d'.γB d'.P (mvcc.lateWB d'.gx d'.γB)
         (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
       backend.plHookRO γB g ∗
       mvcc.hookP (γw.st.withPhys p') (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) ∗

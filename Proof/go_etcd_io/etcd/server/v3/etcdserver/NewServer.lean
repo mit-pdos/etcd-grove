@@ -568,7 +568,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the counted stock (`backend.newPost_pool`), for the thread bound
   imod backend.newPost_pool Hbnd ⊤ d.γB d.P _ _ d.be D $$ Hnew with Hnew
   ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP⟩ := bootBackend_of_newPost d.γB d.P
-    (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN HnoCmp $$ Hnew
+    (fun γB => mvcc.lateWB d.gx γB) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN HnoCmp $$ Hnew
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
@@ -577,7 +577,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
-  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (fun _ => True) (backend.rbData d.P D) trivial HlP)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
@@ -740,7 +740,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
   ihave Hrbo : backend.rbOwn (GF := GF) d.γB _ $$ [Hrbo]
   · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ Hrbo
-  ihave HKt' := HKt $$ %cfg.Logger' %ab %abl %d %(mvcc.lateW d.gx)
+  ihave HKt' := HKt $$ %cfg.Logger' %ab %abl %d %(mvcc.lateWB d.gx d.γB)
     %(batchLockInv γA (metaTM d.γB d.P)) %(1 : Qp).half %((backend.rbData d.P D).insert go!"lease" ∅)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
@@ -837,7 +837,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
-  wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half _
+  wp_apply (h32 s cfg.Logger' d (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half _
       (DFrac.own 1) (fun _ => True) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
         go!"authUsers" ∅).insert go!"authRoles" ∅) trivial HalB)
     $$ [Hopen Hwal alarmStore be Hrbo HbkP Htok]
@@ -903,7 +903,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply (h34 s γA cil (metaTM d.γB d.P)) as %hook ⟨%Hhknn, #Hhks⟩
   · iframe HsCI
   (try wp_auto)
-  wp_apply (h35 d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be (1 : Qp).half func.nil hook)
+  wp_apply (h35 d.γB d.P (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) d.be (1 : Qp).half func.nil hook)
     $$ [Hopen Hhook Hwb] as ⟨Hopen, Hhook⟩
   · iframe HB
     unfold backend.wbTok
@@ -1329,7 +1329,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [Hγw.2.2.1]
       simp only [mvcc.kbWT_some, mvcc.kbRT_some, mvcc.KBReal.P_withCm]
       iunfold lessorApplyOk at Hlbe
-      iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
+      iapply Hlbe $$ %d %(mvcc.lateWB d.gx d.γB) %(batchLockInv γA (metaTM d.γB d.P)) %hook
         %(lease.lessorBeOn lp d.be) HB Hhook [] []
       · ipureintro; exact Hhknn
       · iapply lessorBeOn_lens
@@ -1338,7 +1338,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
   · rw [Hastl]
     iunfold authApplyOkM at HisAuth
-    iapply HisAuth $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
+    iapply HisAuth $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateWB ({ d with cm := cmp } : mvcc.KBReal).gx ({ d with cm := cmp } : mvcc.KBReal).γB) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
       %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
     · ipureintro; exact Hγw.2.2.1
     · ipureintro; exact Hhknn
@@ -1581,7 +1581,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Hwrx
   -- (E3n) the construction's resource at the server's frozen hook, and (C1's A1) the token rights'
   -- empty authority
-  ihave HABfi := authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
+  ihave HABfi := authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateWB d.gx d.γB)
       (batchLockInv γA (metaTM d.γB d.P)) RD hook $$ [HAres]
   · iframe HB Hhook
     isplitl [HAres]
@@ -2045,7 +2045,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iexact Hast
     isplitr
     · iunfold alarmApplyOk at HalA
-      iapply HalA $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
+      iapply HalA $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateWB ({ d with cm := cmp } : mvcc.KBReal).gx ({ d with cm := cmp } : mvcc.KBReal).γB) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
         %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
       · ipureintro; exact Hγw.2.2.1
       · ipureintro; exact Hhknn
@@ -2062,7 +2062,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         iframe Hrw Hal Hau Hle Hcb
     isplitr
     · iunfold clusterApplyOk at Hisc
-      iapply Hisc $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
+      iapply Hisc $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateWB ({ d with cm := cmp } : mvcc.KBReal).gx ({ d with cm := cmp } : mvcc.KBReal).γB) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
         %(srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be))
         %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] [] [] []
       · ipureintro; exact Hγw.2.2.1

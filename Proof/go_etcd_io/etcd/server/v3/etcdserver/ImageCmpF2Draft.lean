@@ -63,23 +63,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-! ## The backend's two exact ghosts (Draft: `BNames` fields at the switch) -/
+/-! ## The backend's two exact ghosts
 
-/-- Draft placeholder for the new `BNames` field `pv` (the physical view's ghost). -/
-opaque backend.BNames.pvG (γ : backend.BNames) : GName
-/-- Draft placeholder for the new `BNames` field `ck` (the compaction keys' values' ghost). -/
-opaque backend.BNames.ckG (γ : backend.BNames) : GName
-
-/-- **The client's half of the physical view** of the non-hook buckets (exclusive): the writer's
-contents' `vData`, the batch lock holding the other half. For the server's backend, the `Key`
-bucket alone; mvcc's batch-lock resource holds it (`cmpTrack`). -/
-def backend.pvHalf (γ : backend.BNames) (vd : backend.VData) : IProp GF :=
-  ghostVar γ.pvG (1 : Qp).half vd
-
-/-- **The client's half of the compaction keys' values** (exclusive): `fkVals` of the writer's
-contents, the batch lock holding the other half; a put of a compaction key moves both. -/
-def backend.ckHalf (γ : backend.BNames) (v : backend.FkVals) : IProp GF :=
-  ghostVar γ.ckG (1 : Qp).half v
+Now real (F2's stage 1): `backend.BNames`' fields `pv` and `ck`, `backend.pvHalf` and
+`backend.ckHalf` (`InvBackend.lean`), the batch lock holding the other halves at the writer's
+contents. -/
 
 /-! ## The restated trust boundary -/
 

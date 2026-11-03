@@ -150,7 +150,7 @@ def mvcc.keyCleanRead_of_backendC_stmt : Prop :=
     (r : mvcc.CmpRecs), mvcc.recsSign r →
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
+      backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
       ∀ (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         mvcc.keyCleanReadR
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)

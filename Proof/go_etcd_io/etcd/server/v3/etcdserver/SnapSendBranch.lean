@@ -604,12 +604,12 @@ theorem mergedCreate_window
   · iPkgInit
   ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  ihave #Hnh := isBackendNH_of_hooksAt d.γB d.P (mvcc.lateW d.gx)
+  ihave #Hnh := isBackendNH_of_hooksAt d.γB d.P (mvcc.lateWB d.gx d.γB)
     (batchLockInv γ (metaTM d.γB d.P)) d.be (storage.hooksIface bh) $$ [HB HhkAt]
   · iframe #
   -- the commit's request: the window opened (`storeReq_freeze`)
   ihave #Hreq := storeReq_freeze hOn hSave hPut hUR hID hName hSafe γ ci E.γ d hkb
-    (mvcc.lateW d.gx) bh lgh hcK hhP st hok.1 $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
+    (mvcc.lateWB d.gx d.γB) bh lgh hcK hhP st hok.1 $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
   · iframe #
   -- the apply thread's KV resources
   iunfold srvApplyKVCore at HKV
@@ -684,7 +684,7 @@ theorem mergedCreate_window
         isplitl [Hcmo]
         · iexact Hcmo
         itrivial
-      iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
+      iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateWB d.gx d.γB) d.be backend.rdOpen st
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk
         iprop(txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
           mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)
