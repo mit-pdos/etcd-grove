@@ -620,3 +620,14 @@ Nothing unsound in the specs; two laws unprovable and three gaps, repaired:
   commit request lent for it vacuous; dropped.
 - Open, from the review: where the server gets `Restore`'s length bound for a snapshot another
   member made (bounded by that member's writes, not this process's receipts).
+
+### Decision 1, settled (the user, 2026-11-03): closing and shutdown out of scope
+
+Asked whether etcd is buggy when it shuts down concurrently with reads: yes, a read still running
+when the server stops crashes the process (`issues/etcd-read-after-backend-close-panic.md`,
+reproduced on an embedded server). The user: do the proof without verifying closing and shutdown,
+out of scope for now, since the code is buggy. So `Close` keeps round 13's minimal contract (the
+whole open token in; nothing about the backend out; kept because etcd's linked `NewServer` calls
+`kv.Close()` on its error path), no proof closes the backend after the store, and the tester's
+adequacy stops before its final `kv.Close()`, `le.Stop()`, `be.Close()` (to be shaped when the
+tester's proof is planned: proved up to them, or `Main` without them).
