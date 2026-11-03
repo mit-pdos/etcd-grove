@@ -2,8 +2,9 @@
 Package initialization of `go_etcd_io.bbolt.internal.common`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates `DefaultPageSize`, initializes its imports and
-runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`page.go`), whose callee is
+Its fact (`bboltCommonInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `DefaultPageSize` holds
+4096, for good. Its initializer allocates `DefaultPageSize`, initializes its imports and
+runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`types.go`), whose callee is
 names-only in Perennial: the trust-boundary axiom `os.Getpagesize.wp_proof` (4096 on linux/amd64).
 -/
 module
@@ -59,6 +60,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := w64) DefaultPageSize _ as HDefaultPageSize
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
@@ -80,7 +82,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply EtcdGrove.os.Getpagesize.wp_proof
   try wp_auto
+  ipersist HDefaultPageSize
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

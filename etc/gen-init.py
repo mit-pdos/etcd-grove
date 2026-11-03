@@ -281,13 +281,15 @@ Perennial's `errors.wp_New_errorString`).''',
 )
 
 SPECIAL['go_etcd_io.bbolt.internal.common'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates `DefaultPageSize`, initializes its imports and
-runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`page.go`), whose callee is
+    doc='''Its fact (`bboltCommonInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `DefaultPageSize` holds
+4096, for good. Its initializer allocates `DefaultPageSize`, initializes its imports and
+runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`types.go`), whose callee is
 names-only in Perennial: the trust-boundary axiom `os.Getpagesize.wp_proof` (4096 on linux/amd64).''',
     imports=['Proof.os.Getpagesize'],
     alloc_types={'DefaultPageSize': 'w64'},
     before={'DefaultPageSize': ['try wp_auto', 'wp_apply EtcdGrove.os.Getpagesize.wp_proof'],
             '$end': ['try wp_auto']},
+    finish=['ipersist HDefaultPageSize'] + FIN_PRE[:6]
 )
 
 # the deprecated aliases of bbolt's root package (`errors.go`)
