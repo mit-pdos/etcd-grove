@@ -75,6 +75,7 @@ LEAN_ROOTS = ("", "RaftWitness/", "PorcupineDag/")
 EXPATH = "github_com/mit_pdos/etcd_grove/examples/"
 # never rewritten: append-only history and vendored code
 FROZEN = ("notes/status-history.md", "notes/examples-layout-plan.md", "etc/move-examples.py",
+          "etc/move-examples-README.md",
           "old/", "third_party/", ".lake/")
 # rewritten later by their generators (moved, not edited)
 GENERATED_KINDS = ("Code/", "GeneratedProof/")
@@ -303,6 +304,11 @@ def main():
         out = re.sub(r"(=>\s*)(\.\.?(?:/[^\s]*)?)", fix, src)
         if out != src:
             open(p, "w").write(out)
+
+    # the index (`examples/README.md`), from its template
+    tpl = os.path.join(ROOT, "etc", "move-examples-README.md")
+    if os.path.exists(tpl):
+        os.replace(tpl, os.path.join(ROOT, "examples", "README.md"))
 
     git("add", "-A")
     print(f"move-examples: {len(moved)} files moved, {changed} rewritten. Now regenerate:")
