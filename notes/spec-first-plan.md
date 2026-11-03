@@ -578,3 +578,113 @@ The cross-stage churn suggests ordering stages that share specs instead of runni
 parallel, as M2 and backend-cmp did. **Revisit** when the lease stages' windows are complete
 (after 2026-11-04): rerun the script and compare the own-stage counts with the stages' "Change
 log after the freeze".
+
+## Hubs: the statements that churn (2026-11-03)
+
+`etc/spec-hubs.py` (`python3 -I etc/spec-hubs.py`, about a minute) ranks the declarations of the
+statement surface (the unit of `etc/spec-churn.py`) by **fan-out**, the other directories whose
+declarations a statement mentions; **fan-in**, the other directories whose statements mention it;
+and **changes**, the commits in the whole history that changed it. Mentions are matched by name,
+not resolved by Lean, so the counts are approximate.
+
+First run (2026-11-03, `lean` at 3fe0d5a4ef; 34,634 declarations, 17,346 changes):
+
+| fan-out (dirs) | decls | changed | changes/decl |
+|---|---|---|---|
+| 0 | 14,593 | 9% | 0.17 |
+| 1-2 | 15,313 | 21% | 0.47 |
+| 3-5 | 4,421 | 41% | 1.4 |
+| 6-10 | 276 | 63% | 3.9 |
+| >10 | 31 | 100% | 11.9 |
+
+By fan-in the rate only goes from 17% to 34%. **Churn follows fan-out, not fan-in.** Widely used
+vocabulary settles: the models of Go types (`EntryM`, `LogEntry`, `EtcdKv`, `OpFull`, `Perm`, used by
+25-41 other directories) changed 0-2 times. The 307 declarations reaching 6 or more directories
+(0.9%) carry 8% of all changes. The hubs, by kind:
+
+1. **The boot hub.** `NewServer.spec` (78 changes, the most of any declaration; 14 directories;
+   about 25 workstreams changed it, 17 times on 10-18 alone), `bootOk` (58), `NewServer.specM` (35),
+   `srvBuilt` (35), `isServerBuilt` (32), `bootstrapContract`. Every subsystem that adds state edits it.
+2. **Ghost-name and environment records**, hubs both ways: a subsystem adds a field, every user
+   rebuilds. `RaftNames` (29 changes, 16 directories), `StoreNames` (23), `NodeNames` (18), `AEnv`
+   (16, 22 directories), `NState`, `RNEnv`, `KVNames`, `BNames`, `KVState`, `SrvRaft`: 48 such
+   records, 234 changes. They top the cost ranking (changes x fan-in).
+3. **The apply and snapshot aggregators.** `EtcdServer.applySnapshot.specSnap` (the widest fan-out,
+   17 directories; 22 changes), `snapWalkPost` (15; 19), `srvSnapRO`, `applyAll.spec` (35),
+   `applyEntries.spec` (31).
+4. **The example entry points** (`startMember`, `Main`, `newServer`, `StartServer` in
+   `examples/common`, `linkv3p`, `putget3`: 11-15 directories, 6-13 changes each), downstream of 1.
+5. **The raft core** (`raft.Step.spec` 47, `ownRawNode` 39, `ownRawNodeReady` 33, `RNState` 31,
+   `NodeStartSpec` 34): high churn, but fan-out 3-5, mostly inside raft.
+
+**Proposal: map the hubs before the per-module plans.** A stage's Scope step names the hubs it
+will touch (the script's aggregator and cost tables); the shape of hubs 1-3 is designed once, so
+that a new subsystem adds a clause instead of editing existing ones:
+- `NewServer`'s postcondition and `bootOk` as a conjunction of one sealed predicate per subsystem,
+  each owned by that subsystem's API (as `Spec/go_etcd_io/raft/v3/Api.lean` is for raft): a change
+  inside a subsystem stays behind its API;
+- the name and environment records split into one sub-record per subsystem, allocated by the
+  subsystem's own initialization;
+- the apply and snapshot aggregators over the same per-subsystem predicates.
+
+**What a sealed slot is.** Today `NewServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`)
+carries each subsystem's details in its own text; every dated comment in it marks an edit:
+
+```lean
+∀ cfg U γ id ctxs ρ E₀ N Φs
+  (γn : NetNames GF) (dir : …)   -- D21 M2, 10-19
+  (γd : GName),                  -- D22 J2, 10-26
+  …
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →                    -- N1, 10-17
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →    -- keylen, 10-30
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →                      -- txn-nested, 10-31
+  (cfg.AutoCompactionRetention' = 0 ∨
+    (cfg.AutoCompactionMode' = go!"revision" ∧ …) ∨                 -- M2 item 14, 10-31
+    (cfg.AutoCompactionMode' = go!"periodic" ∧ …)) →                -- periodic, 11-02
+  E₀.cmp = decide (…) → ρ.rd.kv.cmp = E₀.cmp → …
+```
+
+The compactor's periodic mode changed `NewServer.spec`, its proof, `bootOk` and every caller
+(`startMember`, `newServer`, `StartServer` in each example): one subsystem's change surfaced in
+all of them. A slot: each subsystem's API module exports one sealed predicate for its
+configuration and names, with laws,
+
+```lean
+-- the compactor's API module, sealed (@[no_expose])
+def compactor.bootCfg (cfg : ServerConfig) (γ : compactor.Names) : Prop := …  -- modes, retention, …
+theorem compactor.bootCfg_off : cfg.AutoCompactionRetention' = 0 → compactor.bootCfg cfg γ
+```
+
+and the hub names each subsystem once, by its predicates:
+
+```lean
+∀ cfg (γr : raft.Names) (γk : mvcc.Names) (γc : compactor.Names) (γn : net.Names) …,
+  raft.bootCfg cfg γr → mvcc.bootCfg cfg γk → compactor.bootCfg cfg γc → net.bootCfg cfg γn →
+  ⦃…⦄ NewServer cfg ⦃s, raft.srvInv s γr ∗ mvcc.srvInv s γk ∗ compactor.srvInv s γc ∗ …⦄
+```
+
+Periodic mode then changes only `compactor.bootCfg`'s sealed body: not `NewServer.spec`, not its
+callers. A caller that relies on a mode proves the premise through a law (`bootCfg_off`, a new
+`bootCfg_periodic`), as raft's `Api.lean` does for the node. The name records the same way:
+`RaftNames`, `AEnv`, `KVNames` become a tuple of per-subsystem records, so a field added to the
+compactor's names leaves the others' structures alone.
+
+What it does not fix:
+- A new subsystem still adds a slot (a parameter and a conjunct): an addition, which callers
+  that pass slots through generically survive.
+- Coupling between subsystems is real design work: `ρ.rd.kv.cret ≤ retention` ties the KV
+  invariant to the compactor's configuration. Some slot must own the relation (one exports a fact
+  the other consumes) or a small explicit cross-slot predicate states it. Finding these couplings
+  up front is what mapping the hubs is for.
+- Sealing moves the review, it does not remove it: a reviewer of `NewServer.spec` no longer sees
+  the compactor's premises inline; they are in the compactor's generated interface, as
+  `bootCfg`'s laws, and must be reviewed there.
+
+So the hub's text changes only when a subsystem is added or two become newly coupled, not when one
+changes inside.
+
+Caveats: fan-out is partly a proxy for statement size; the history includes the proof-first era;
+many of `NewServer`'s changes added subsystems not planned at the time, which no hub map would have
+foreseen; the claim is that they would have been additions, not rewrites. **Test** it as
+`etc/spec-churn.py` tests the stages: after the hubs are reshaped, rerun both scripts and compare
+the hubs' changes per new subsystem, and how many existing clauses each one edits, before and after.

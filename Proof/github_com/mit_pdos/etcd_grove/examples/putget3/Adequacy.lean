@@ -135,7 +135,6 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget3.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [config.walDirOf (putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (putget3.name₃ ++ go!".etcd") go!""] HDsNd σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
@@ -152,7 +151,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   icases Hps with ⟨Hf₁, Hf₂, Hf₃, -, -⟩
   icases Hds with ⟨Hw₁, Hw₂, Hw₃, -⟩
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ctxs boot Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃]
   · iframe; iframe #
   ipureintro

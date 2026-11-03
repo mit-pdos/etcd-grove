@@ -232,13 +232,29 @@ vocabulary (`memLog`, `memEnd`, `memStorMeta`, `memStorFresh` at the snapshot) a
 opaque memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) :
     IProp GF
 
+/-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
+the whole-`bootOk` review, T1-B, option B3): `mvcc.lateWB`'s arms, the unregistered one with the
+client's halves of the backend's exact ghosts at some values (`backend.pvckOwn`), not the empty ones
+of a first start (`pvckEmpty`, false here: the `Key` bucket holds the stopped member's revisions,
+and after a compaction its compaction keys are set; measured, `etc/spec-test/bootstrap/`). A
+restart's `NewStore` (R2d) learns the values under the lock. Nothing on the restart path uses it
+yet: `lateWD`, `KBReal.snap`, `kbBoot` take a backend `bootstrap` opened to carry `lateWB`, so R2d
+merges the two (B1: `lateWB`'s arm at `pvckOwn`, `NewStore` deriving `pvckEmpty` by agreement) when
+the two contracts merge. -/
+def lateWBR (gx : GName) (γB : backend.BNames) : IProp GF :=
+  iprop((dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × mvcc.StoreNames)) ∗
+      backend.pvckOwn γB) ∨ mvcc.lateWR gx)
+
 /-- **The bootstrapped record of a restart** (DRAFT, R2c; `bootOk`'s restart case, L3): `bootOk`
 with the changes marked `[R2c]`: no peers (so `RestartNode`), the storage rebuilt from the WAL's
 records `σ` (`memStorRestarted`), the cluster's members recovered from the image's buckets at its
 committed log `L`, the consistent index loaded at the image's `i` (`γA.m0`, `ciApplying`), the
-backend file's data the image `D` (no fresh file's facts: `HD`, `HDr`, `HmEmpty` gone). Kept as a
-first start's: the remotes (`Hrms0`: `bootstrapClusterWithWAL` sets none either), the directory's
-members (a static cluster, the plan's scope). -/
+backend file's data the image `D` (no fresh file's facts: `HD`, `HDr`, `HmEmpty` gone), the
+batch lock's resource `lateWBR` (2026-11-03, the whole-`bootOk` review, T1-B: until then `lateWB`,
+whose unregistered arm, an empty `Key` bucket, a restart does not meet). Kept as a first start's:
+the remotes (`Hrms0`: `bootstrapClusterWithWAL` sets none either), the directory's members (a
+static cluster, the plan's scope: the restart contract's premise). (2026-11-03, the whole-`bootOk`
+review: the write-back stock `bootLeft N`, the hooks stated once, as `bootOk`.) -/
 def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
     (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64) (L : List EntryModel)
     (D : backend.Data) (M : GMap Loc MemStorNamesRec) (b : Loc) : IProp GF :=
@@ -277,7 +293,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
       cv.ID' = id ∧
       -- [R2c] no peers: `bootstrapRaftFromWAL` sets none, so `newRaftNode` calls `RestartNode`
       -- (`len(b.peers) == 0`); `ps` is the cluster's members (`Hdirps`, `Hmembers`), not peers
-      pv = [] ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
+      pv = [] ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
@@ -285,12 +301,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- [R2c] (review F3) the registry's authority given at `M`, back with the new storage, a
     -- location not registered before
     "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple M) ∗ "%HMn" ∷ ⌜M !! bv.storage' = none⌝ ∗
-    -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs) the fresh storage as
-    -- `NewMemoryStorage` leaves it: its lock, dummy entry and end, the "no snapshot taken yet"
-    -- token (which `run`'s `Snapshot()` reads), its hard state and fresh state (which
-    -- `StartNode`'s `bootStorage` takes, `srvMem_bootStorage`). Until then the storage's
-    -- `isStorage`/`ownStorage`, the trusted `InitialState` closure, the snapshot token, the
-    -- certificate registry's authority and the cap `1`.
+    -- the storage's lock
     "#Hmlock" ∷ memStorLock bv.storage' γs ∗
     -- [R2c] the storage `bootstrappedWAL.MemoryStorage` rebuilds from the WAL's records `σ`
     -- (`ApplySnapshot` of the WAL snapshot with the backend's `ConfState`, `SetHardState`,
@@ -302,20 +313,16 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
-    -- (`NewClusterFromURLsMap` sets `lg` from the configuration's logger): what `AddMember` and
-    -- `RemoveMember` log through, `applyConfChange`'s
+    -- (`bootstrapClusterWithWAL`'s `NewCluster` sets `lg` from the configuration's logger): what
+    -- `AddMember` and `RemoveMember` log through, `applyConfChange`'s
     "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
     "Hvcn" ∷ (∃ v : Loc, membership.rcVersionChangedAddr bc.cl' ↦ v) ∗
     "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO dir m) ∗
-    -- (the partition plan's S1, 2026-10-20) no remotes: the contract describes a new cluster's
-    -- bootstrap (`Hnosnap`: raft started by `StartNode` with the members as peers, which
-    -- `bootstrapRaft` does only for `!haveWAL && cfg.NewCluster`, where `bootstrapCluster` is
-    -- `bootstrapNewClusterNoWAL`, whose `remotes` is nil; `remotes` is set only for a member
-    -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
-    -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
+    -- no remotes: `bootstrapClusterWithWAL` sets none (`bootstrap.go:430-433`), so `NewServer`
+    -- calls `AddRemote` never
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
     -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
     -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
@@ -356,7 +363,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
-    -- `SetConfState` `applyConfChange` calls
+    -- `SetConfState` `applyConfChange` calls, and (D22 J1a) which the snapshot path's
+    -- `OpenSnapshotBackend` installs on each new backend (stated once, 2026-11-03)
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
@@ -383,12 +391,6 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π))) ∗
-    -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
-    -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
-    -- `OpenSnapshotBackend` installs on each new backend
-    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
-      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
-      lgh) ∗
     -- the backend of the real instance, with the server's hooks (2026-11-01, J8a-1, approved: and
     -- its parameters `newBackend` configures, well-formed with the batch limit `openLimit cfg`, as
     -- `OpenSnapshotBackend`'s `openPre` requires of a snapshot's backend)
@@ -411,21 +413,19 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "#HhkAt" ∷ backend.hooksAt d.be (storage.hooksIface bk.beHooks') ∗
 
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
-    -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
-    -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty
-    -- key bucket (a new cluster's), the budget within its `wbInit` write-backs (`N` for the
-    -- entries, seven for the construction); and what `bootstrap` adds: the store's registration
-    -- right, `keySized` (`bootBackend_of_newPost` turns `newPost` into the resources `NewServer`
-    -- uses)
-    "Hnew" ∷ backend.newPost d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
-      (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
+    -- `newPostK`, at the server's batch-lock resources: its hooks the server's, so its
+    -- `isBackend` names the apply protocol's batch lock), over the image's data `D`, the stopped
+    -- file; (2026-11-03, the whole-`bootOk` review) `N + 7` write-back tokens and the open token
+    -- (`bootLeft`, A), the batch lock's resource `lateWBR` (T1-B); and what `bootstrap` adds: the
+    -- store's registration right, `keySized`
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => lateWBR d.gx γB)
+      (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
-    "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
     -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
     "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
@@ -446,7 +446,15 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
 directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, its path's
 entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
 commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
-(`bootOkR`). As a first start's, the contract may always return an error, after which `restart3`
+(`bootOkR`). (2026-11-03, the whole-`bootOk` review) For the configurations it covers (`bootCfgOk`,
+not forcing a new cluster, `bootstrapWALFromSnapshot`'s `ForceNewCluster` rewriting the WAL's log,
+`bootstrap.go:628-650`; the WAL in the data directory, `DedicatedWALDir` empty: `cfg.WALDir()`,
+`config.go:302-307`, is the dedicated directory when set, while `srvFiles` places the WAL at
+`<dd>/member/wal`), a write budget `bootstrap`'s own sessions leave (`N + 7 + bootWB ≤ wbInit`),
+and (G, a scope restriction: the restart plan's static cluster) the image's members the boot log's,
+at the same peer URLs (what `Members()`, `Hmembers`, reports through `memberDirIs dir`; their names
+and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a member has
+started). As a first start's, the contract may always return an error, after which `restart3`
 does nothing more: it does not promise the restart succeeds (R2c review, second tier 6).
 (#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
 `srvDiskImage`'s.) -/
@@ -455,7 +463,11 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
     ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
-      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ -∗
+      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
+      bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
+      N + 7 + bootWB ≤ backend.wbInit ∧
+      (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
+        ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
     {{ bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))
