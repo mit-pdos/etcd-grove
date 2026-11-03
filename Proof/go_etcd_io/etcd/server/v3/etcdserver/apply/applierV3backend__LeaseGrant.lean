@@ -64,7 +64,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_apply HGrant $$ [$Hcs $HRO $Hown $Hrvk $Hwt $Hrt $Hgr] as %l %err
     ⟨Hrt, #HeI, Hres'⟩
   ihave Hwo := Hrdb $$ Hrt
-  icases Hres' with (⟨%Hne, HPre, Hown, Hrvk, HRO⟩ |
+  icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO⟩ |
     ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, ⟨%t, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
     · iright; iexact HPre
@@ -87,6 +87,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
         iunfold apply.kvOwn
         iframe
       iframe HeI
+      isplitr
+      · iintro %_; iexact HlE
       isplitr
       · ipureintro
         refine ⟨?_, ?_, ?_⟩
@@ -148,6 +150,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iframe
     isplitr
     · iapply applyErrIs_nil
+    isplitr
+    · iintro %h; cases h
     isplitr
     · ipureintro
       refine ⟨?_, ?_, ?_⟩

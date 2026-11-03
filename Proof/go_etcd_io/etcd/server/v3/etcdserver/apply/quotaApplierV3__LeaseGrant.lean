@@ -59,7 +59,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     iunfold apply.mPre
     iframe
   iunfold apply.grantPost at Hpost
-  icases Hpost with ⟨Hpm, #HeI, %Hst, Hlt, HRO, Hans⟩
+  icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, Hans⟩
   iunfold apply.mPost at Hpm
   icases Hpm with ⟨Hkv, Hres, HPP⟩
   ihave Hres := apply.chainResAny_quota_in c p (.ok bi) $$ Hf Hres
@@ -67,7 +67,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   · iapply HΦ
     iexists o
     iunfold apply.grantPost
-    iframe HeI Hlt HRO Hans
+    iframe HeI HlE Hlt HRO Hans
     isplitl [Hkv Hres HPP]
     · iunfold apply.mPost; iframe
     ipureintro; exact Hst

@@ -363,10 +363,13 @@ def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (a
 /-- **A dispatched grant's answer through `dispatch`'s result `ar`** (the lease-grant plan's 2.6,
 2.10): `grantAnswer` of the result's `Resp` and `Err`, for a request dispatched as a grant; `True`
 otherwise, and when `ar` is `nil` (`dispatch` without `v3` returns `nil`, `dispatchResult`). The
-outcome `o` is the spec's argument (2.10's text); the answer does not depend on it. -/
-def grantRes (E : AEnv GF) (rq : IRRModel) (_o : Outcome) (ar : Loc) : IProp GF :=
+outcome `o` is the spec's argument (2.10's text); (amendment (E)) at `.rejected .backend` the
+error is the lessor's (`lease.lessorErrIs`). -/
+def grantRes (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc) : IProp GF :=
   if dispatchKind rq = .leaseGrant ∧ ar ≠ null then
-    iprop(∃ v : Result, ar ↦□ v ∗ grantAnswer E rq v.Resp' v.Err')
+    iprop(∃ v : Result, ar ↦□ v ∗ grantAnswer E rq v.Resp' v.Err' ∗
+      -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
+      (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs v.Err'))
   else iprop(True)
 
 theorem grantRes_not_grant (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc)

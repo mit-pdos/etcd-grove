@@ -376,7 +376,7 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
           lease.leaseGranted γ.leases id ∗ RO rs }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); mvcc.storeRT γ ∗ applyErrIs err ∗
-          ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ Pre ∗
+          ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ lease.lessorErrIs err ∗ Pre ∗
               lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗ RO rs) ∨
             (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
               lease.leaseOwn γ.leases (L ++ [id]) I ∗ lease.leaseRevokers γ.leases (L ++ [id]) ∗

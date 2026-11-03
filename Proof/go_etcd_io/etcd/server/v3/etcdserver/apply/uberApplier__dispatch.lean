@@ -595,7 +595,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.mPre
       iframe
     iunfold apply.grantPost at Hpost
-    icases Hpost with ⟨Hmp, #HeI, %Hst, HLt, HRO, Hans⟩
+    icases Hpost with ⟨Hmp, #HeI, HlE, %Hst, HLt, HRO, Hans⟩
     iunfold apply.mPost at Hmp
     icases Hmp with ⟨Hkv, Hres, HPP⟩
     have hlog : o.logAfter log = log := apply.chainStep_grant_logAfter rq hk log c o Hst.1
@@ -622,12 +622,14 @@ theorem apply.uberApplier.dispatch.wp_proof
       · simp [apply.kvFloorOk, apply.isFloorKind, hk]
     isplitl []
     · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
-    isplitl [Hans]
+    isplitl [Hans HlE]
     · iunfold apply.grantRes
       rw [if_pos ⟨hk, hn⟩]
       iexists _
       iframe H0
-      iexact Hans
+      isplitl [Hans]
+      · iexact Hans
+      iexact HlE
     isplitl []
     · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]

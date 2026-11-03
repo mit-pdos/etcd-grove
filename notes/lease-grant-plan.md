@@ -1273,8 +1273,34 @@ commit 5).
   the review's M1 list missed), `appliedOkM`/`grantArM` (2.6; its `grantAnswer` may gain (1)'s
   conjunct), `srvClusterBoot_alloc lg`, `EtcdServer.LeaseGrant.wp_proof`, and commit 5.
 
-**Where the plumbing stopped** (2026-11-03): 3b and 4a done (above); stopped at the problem above
-(the user's decision); then the rest of commit 4, and commit 5.
+**Commit 4b: (E)'s texts** (2026-11-03). `lease.leaseInit` gains the message cells of `ErrLeaseExists`
+and `ErrLeaseTTLTooLarge` (`etc/gen-init.py`'s lease `SPECIAL`: `wp_New_errorString_cell` for both),
+from which `applyErrVars` gains `errVarApart ErrNoSpace` for both (appended after `authErrsApart`;
+the two patterns that named it last take a `-`). `grantPost` and `grantRes` gain
+`⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err`; the backend's from `isApplyLessor`'s `Grant`
+error arm, which now carries `lease.lessorErrIs err` (mechanical: `LessorDerive` has it); the
+quota passes it, capped/corrupt and the applied arm refute the premise; `dispatch` passes it to
+`grantRes`.
+
+**The problem: (E) does not reach `applyResultIs_notNoSpace_M`'s grant case** (found 2026-11-03).
+- *What.* At the start's chain a grant's outcome is `.applied _ false` or `.rejected .backend`.
+  The second now gives `lessorErrIs err`, hence `notNoSpaceErr`. The first does not give
+  `err = nil`: `grantRes` carries only `grantAnswer` (`err = nil ∗ … ∨ err ≠ nil`, either arm at
+  any outcome) and the new wand, and `dispatchResult`'s `dispatchAnswer` is `True` for a grant.
+  The tie (`(∃ l ns, o = .applied l ns) ↔ err = nil`) is in `grantPost`, but `dispatch` drops it on
+  the way to `grantRes`, the only grant fact `Apply.spec`'s post (and so `applyEntryNormal`) sees.
+- *Options.* (a) `grantRes` also carries `⌜(∃ l ns, o = .applied l ns) → v.Err' = nil⌝` (from
+  `grantPost`, which has it; `dispatch` passes it): one more conjunct in a frozen text, true of Go.
+  (b) Phrase (E)'s `grantRes` conjunct as `⌜v.Err' ≠ nil⌝ -∗ ⌜o = .rejected .backend⌝ ∗
+  lessorErrIs v.Err'` (one conjunct, carrying both; `grantPost`'s as in (E)). (c) `dispatchAnswer`'s
+  grant arm states the tie (it is `True` by 2.6's design). Recommended: (b), or (a) if (E)'s text is
+  to stay as approved.
+- The grant case of `applyResultIs_notNoSpace_M` (a separate lemma taking `grantResA`, since
+  `applyResultIs` holds no grant fact) waits on it, with the rest of commit 4 and commit 5.
+
+**Where the plumbing stopped** (2026-11-03): 3b, 4a and 4b done (above); stopped at the problem
+above (the user's decision); then `applyResultIs_notNoSpace_M`'s grant case, the rest of commit 4,
+and commit 5.
 
 **`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
 argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's

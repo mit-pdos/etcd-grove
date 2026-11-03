@@ -301,7 +301,7 @@ theorem isApplyLessor_of_lessorInv
       isplitr
       · iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
       ileft
-      iframe HPre Hown Hrvk
+      iframe HPre Hown Hrvk Herr
       isplitr
       · ipureintro
         refine ⟨Hne.1, ?_⟩

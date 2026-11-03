@@ -51,6 +51,8 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
     iright
     iapply apply.csContract_pre $$ Hcs
   isplitr
+  · iintro %h; cases h
+  isplitr
   · ipureintro
     refine ⟨?_, ?_, ?_⟩
     · simp [apply.chainStep, Hk, apply.cappedRejects]

@@ -161,11 +161,11 @@ theorem apply.newAuthApplierV3.wp_proof
     iapply HΦ'
     iexists o
     iunfold apply.grantPost at Hpost
-    icases Hpost with ⟨Hpm, #HeI, %Hst, Hlt, HRO, Hans⟩
+    icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, Hans⟩
     iunfold apply.mPost at Hpm
     icases Hpm with ⟨Hkv, Hres, HPP⟩
     iunfold apply.grantPost
-    iframe HeI Hlt HRO Hans
+    iframe HeI HlE Hlt HRO Hans
     isplitl [Hkv Hres HPP Hi]
     · iunfold apply.mPost
       iframe Hkv HPP

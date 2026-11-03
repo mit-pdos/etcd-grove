@@ -815,8 +815,8 @@ other untranslated initializers run.''',
     before={'leaseGranted': [
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL']},
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩',
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩']},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
@@ -825,7 +825,12 @@ other untranslated initializers run.''',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',
             'ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL',
             'ihave #VNF : (EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" : IProp GF) $$ []',
-            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF'] + FIN_PRE[:6] + [
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF',
+            # (lease-grant amendment (E), 2026-11-03) the grant's errors' cells, for `ErrNoSpace`'s apartness
+            'ihave #VEx : (EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx',
+            'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
 )
@@ -1341,6 +1346,9 @@ def _noSpaceApart():
             cell('ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart(f'{E}.ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound', 'lease not found', 'LNF'),
+            # (lease-grant amendment (E)) the grant's backend errors
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseExists', 'lease already exists', 'LEx'),
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge', 'too large lease TTL', 'LTL'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev',
                   'mvcc: required revision is a future revision', 'MF'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted',
@@ -1359,7 +1367,7 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd10',
-             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩',
+             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, #CLEx, #CLTL, -⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',

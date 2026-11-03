@@ -1591,6 +1591,8 @@ def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : L
     (log : mvcc.Log) (T : List w64) (rs : RestM) (Pre Post : IProp GF) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
   iprop(mPost E c a log Pre Post ∗ applyErrIs err ∗
+    -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
+    (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err) ∗
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
       (err = GoInterface.nil ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)⌝ ∗
     ltHalf E (grantIds rq true o T) ∗ (∃ t : w64, E.RO (grantRest t rq true o rs)) ∗
