@@ -30481,3 +30481,19 @@ code reading), `wal.Repair`, `UnsafeNoFsync`.
 **Why not incremental:** each piece added alone had been reviewed against its one client; together
 they said nothing about the files a restart reads, and three of the WAL's own bugs (two found while
 drafting R2b-1, one by the API's axiom review) were invisible until the records were modelled.
+
+## Raft's receive gives the delivered log and the committed hard state before *enter* (2026-11-03 · the restart plan's R2b-1 stage 1)
+
+`readyGot` (raft's API, `InvNode.lean`; `readyPost` in `InvApi.lean`) gains two persistent
+conjuncts: `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed
+fact (`⌜phsNext … = hsZero⌝ ∨ committedAtTerm …`). Until now a client got both only from the
+entered driver (`nodeDriver_deliveredLogLb`, `nodeDriver_hardStateCommitted`), after *enter*. A
+client that enters a batch at its disk write needs them before: etcd's server hands the committed
+entries to its apply thread (`applyc`, `rnApN`: `deliveredLogLb (F ++ ce)`, the new term's
+`rnRtOk`) before the WAL `Save`, where R2b-1 moves *enter* so that a stop between the receive and
+the `Save` leaves the node's durable state the WAL's. Raft's proof had both, persistent, where it
+builds *enter* (`readyRecv_open`: `isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`);
+`deliveredLogLb`'s implementation moved from `InvApiView` to `InvApi` for `readyPost` to name it.
+The four clients that destructure `readyGot` (the server's `rn_ready_recv`, `kv`, `kvreconf`,
+`kvdurable`) drop the two new conjuncts. The `isCommittedLogLb (delivered ++ ce)` conjunct, which
+the new `deliveredLogLb` implies, stays (dropping it would move every client's pattern for nothing).

@@ -788,7 +788,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   letI := srvStor (GF := GF) γ.node
   iintro #Henv #Hbr Hcfg HrS Hrun Hgot
   iunfold readyGot at Hgot
-  icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, -, Henter⟩
+  icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, -, Henter, -, -⟩
   iunfold readyEnter at Henter
   simp only [committedEntriesAt, rnDrvSt]
   imod Henter $$ %⊤ %((1 : Qp).half) %(by simp) [$HrS $Hrun] with ⟨HrS, Hrun, Hdrv, #Hsent⟩

@@ -1013,3 +1013,10 @@ without a received snapshot and across the member's own snapshot. The etcd pin m
 `323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
 Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
 changes).
+
+### R2b-1 stage 1: raft's receive gives its facts before *enter* (2026-11-03)
+
+`readyGot` gains `deliveredLogLb` of the delivered log after the `Ready` and its hard state's
+committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
+hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
+changes) and stage 4 (the raft loop entering at the `Save`), which go together.

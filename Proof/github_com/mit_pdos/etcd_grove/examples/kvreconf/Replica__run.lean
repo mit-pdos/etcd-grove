@@ -132,7 +132,7 @@ theorem Replica.run.wp_proof
     inext
     iintro %rdv Hgot
     iunfold readyGot at Hgot
-    icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, -, Henter⟩
+    icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, -, Henter, -, -⟩
     iunfold readyEnter at Henter
     imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
     ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
