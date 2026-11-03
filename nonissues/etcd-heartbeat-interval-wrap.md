@@ -19,7 +19,8 @@ heartbeat tick", `node.go:256`). The heartbeat itself (`time.Duration(TickMs) * 
 **Why not an issue:** an absurd configuration (a heartbeat interval of about 10^8 years); the
 validation failure is a crash at startup, not a wrong result. Found while repairing `bootCfgOk`
 (the whole-`bootOk` review's S2, 2026-11-03), whose restatement (proposed, branch `boot-premises`)
-takes the exact Go condition on `TickMs` as a premise of `bootstrap`'s contracts.
+has `bootstrap`'s contracts state the heartbeat Go computes and `NewServer`'s specs take the exact
+Go condition on it (positive, `int64`, wrapping) as a premise.
 
 `TestHeartbeatIntervalWrap` in
 [`nonissues/etcd-heartbeat-interval-wrap/heartbeat_wrap_test.go`](etcd-heartbeat-interval-wrap/heartbeat_wrap_test.go),
@@ -36,8 +37,8 @@ The heartbeat's wrap is measured by `TestSpecBootstrapHeartbeat` (`etc/spec-test
 ## Proof
 
 no: the examples' configuration (`TickMs = 100`, `ElectionTicks = 10`) is far from the wrap;
-`bootCfgOk` (`InvBoot.lean`) requires `1 < ElectionTicks` and (as restated, S2) the heartbeat
-`TickMs * 10^6` (as `int64`, wrapping) positive.
+`bootCfgOk` (`InvBoot.lean`) requires `1 < ElectionTicks`, and (as restated, S2) `NewServer.spec`
+the heartbeat `TickMs * 10^6` (as `int64`, wrapping) positive.
 
 ## Notes
 
