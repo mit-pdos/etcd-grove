@@ -821,12 +821,13 @@ abbrev mvccBackendFor_open.law : Prop :=
     mvccBackendFor ⟨γB, P, b⟩ (Pk γB) L c u ∗ backendRest γB P K b D
 
 /-- **A fresh backend's data is the image of the empty history** (round 16: `New`'s and
-`NewStore`'s backend, `mvccBackendFor_open` at `mvccStart`): no change, so no receipt to carry. -/
+`NewStore`'s backend, `mvccBackendFor_open` at `mvccStart`): no change, so the receipt `⧖ 0`,
+which Perennial allocates under an update (`preceipt_zero`; the review of round 16, F3). -/
 abbrev mvccImage_fresh.law : Prop :=
   ∀ D : backend.Data, (∀ k, backend.dget D mvcc.keyName k = none) →
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none →
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none →
-    ⊢ mvccImage (GF := GF) D mvccStart.log mvccStart.crev false
+    ⊢ |==> mvccImage (GF := GF) D mvccStart.log mvccStart.crev false
 
 /-- The backend's shares agree. -/
 abbrev mvccBackend_agree.law : Prop :=
@@ -937,18 +938,25 @@ pending; the state unchanged), the snapshot's data `D` is the image of that stat
 compaction, with the store's receipt inside (`mvccImage`), recording an unfinished compaction iff
 `u`; and the caller's own observation `Q` of the backend's hook keys `d` and tracked buckets `r`,
 from its `R` and the batch lock's invariant `Pk`, as `backend.Snapshot`'s. Not a pin predicate (the
-server draft's proposal): the update at the state is the API's one shape for reading it. -/
+server draft's proposal): the update at the state is the API's one shape for reading it.
+
+**For a store that never compacted** (`σ.crev = -1`; the review of round 16, F1): `backend.Snapshot`'s
+triple reports nothing of the compaction keys once a `Compact` has written them, so the image of a
+compacted store's snapshot needs a stronger backend axiom (`notes/mvcc-api-candidate.md`, round 16,
+"F1"); the premise is that axiom's temporary limitation, kept at this one law (today's sender proof
+covers the same: `txn/KeyObs.lean`, the no-compaction token), and dropping it later breaks no
+client. The image's `u` stays existential for that. -/
 abbrev mvccImage_snapshot.law : Prop :=
   backend.backend.Snapshot.spec (GF := GF) (hG := hG) →
-  ∀ (γ : MvccName) (B : BkRef) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
+  ∀ (kv : GoInterface) (γ : MvccName) (B : BkRef) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
     (Φ : MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗ R ∗
+      isMvcc kv γ ∗ mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗ R ∗
       □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvccN, ∅
-        <{ mvccState γ σ, COMM Φ σ }> }}
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none ∧ σ.crev = -1⌝ }>
+        @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Φ σ }> }}
     (App (Val (B.b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
       @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : backend.Data),

@@ -62,7 +62,24 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
   `writerOwn`/`retiredAt`).
 - **`mvccBackend γ q B Pk`**: a fraction `q` of the writer's fragment (`writerFrag`/`curAt`) at the
   store's physical names (`γ.withPhys p`, `p.bucket = B.γB`, `B.b`, `B.P`) and the batch lock's
-  invariant `Pk`.
+  invariant `Pk`, **and a fraction `q` of a share token of total 1** (round 16, the review's F2: the
+  writer's fragment alone excludes nothing, being one of several `dghostVar` parts), with
+  `isBackend B.γB B.P (mvccW gx) Pk B.b`. Every step that changes the history (`End`, `Put`,
+  `DeleteRange`, `Compact`, `Restore`, the lease delete) holds its share across the step.
+- **The frozen writer state** (F2, for `mvccImage_snapshot.law`): `writerInvBody` gains a state that
+  the whole share's holder enters and leaves: it deposits the whole token, and takes a half of a
+  ghost value at `(σ.log, σ.crev)` paired with `W`'s half of `γ.wv` (and a `crevUB` at `σ.crev` for
+  the deletable keys' `crevLb`), so that every commit inside the call finds `W`'s log `σ.log`; a
+  writer that finds the frozen state contradicts its own share. A write transaction left open: the
+  holder takes the deposited `writerKey`, so every commit's `W` contradicts it (the observation is
+  vacuous; that transaction cannot `End` without a share). The snapshot's no-compaction case
+  (`σ.crev = -1`, the law's premise) gives `fkOwn γ 0`, hence no compaction key (`fkRd_abs`).
+- **`mvccImage D L c u`**: the image facts (`keyImage L D` when `c = -1`, else the restore image:
+  `Api.lean`'s docstring) ∗ `⧖ (logCh L)`. **`mvccBackendFor B Pk L c u`**: the opened backend's
+  store part (`mvccBackendFor_open`'s post), with the image's receipt kept for `Restore`'s
+  `idxCert`. `isMvcc` records `receiptBound ≤ 2 ^ 48` (`New`'s premise), from which `Restore`
+  derives the length bound it no longer takes (a committed revision is never empty, `commitLog`;
+  `preceipt_lt`).
 - **`mvccTxn t γ trace k`**: `.read σ`: today's read transaction at `σ.log`, `σ.crev`, with the
   pool's loan. `.write σ pend`: today's write transaction (`isTxnWrite σ.log pend`), the store's or
   the watchable wrapper over one, holding the writer's state: `γ.abs ¼` at `(σ.log, σ.crev)`,
@@ -105,7 +122,7 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
 | a plain store's `End` | both at the bump, one atomic step | as the bump; the certificate minted there |
 | `Compact` | `compactMainRev` written (`store__updateCompactRev.lean:220`), under `s.mu`, `s.revMu` exclusively, with `writerInv` open (under `mvccN`, §0) | `γ.abs`: the client's, `revMuBody`'s, the writer's; `γ.pnd` (`none`); `γ.crevLb` raised |
 | `Compact`'s `ErrCompacted`, `ErrFutureRev` | at the checks under `s.revMu` (U1) | agreement |
-| `Restore` | between `restore_takeover` and `restore_switch` (`store__Restore.lean:154-398`) | `γ.abs` whole, `γ.pnd`, `γ.crevLb` raised; the budget re-based at `σ'.log.length` |
+| `Restore` | between `restore_takeover` and `restore_switch` (`store__Restore.lean:154-398`) | `γ.abs` whole, `γ.pnd`, `γ.crevLb` raised; the receipt `⧖ (logCh σ'.log)`, from `mvccBackendFor`, into `idxCert` and to the update (round 16) |
 | the store's own `Put`/`DeleteRange` | one transaction: `Write`'s begin, then `End`'s two steps; the lessor's map `I` learnt by peeking the update, pinned by the transaction's ¼ (U1) | as those |
 | `Watch`'s registration | inside `watchableStore.watch` after the current revision's read (`watchableStore__watch.lean:716`), the update fired after closing `watchN` (M6); the stream holds its mutex | the store's shares (agreement; `pending = none`), `ι.sst`, `ι.reg` (insert, element minted) |
 | `Watch` on a closed stream | the `closed` check (`watchStream__Watch.lean:77`) | `ι.sst`: agreement |
@@ -158,7 +175,21 @@ contracts' proofs per (type, method) (the store's thirteen for both store types;
 seven for each of the three types; the stream's seven), the constructors' (`New`, `NewStore`,
 `NewReadOnlyTxnWrite`), §4.4-§4.6 and §4.8 inside them, and the laws (`persistent`, `excl`,
 `mvccBackend_agree`, `mvccState_reachable`, `shapes`, `wsChan_recv`, `wsRecv_ok`, `mvccW_alloc`,
-`mvccBackendFor_open`).
+`mvccBackendFor_open`, `mvccImage_fresh`, `mvccImage_snapshot`, `reach_logWf` (pure: better a theorem
+in `ApiState`), `mvccTxn_leaseDelete`, `wsSentLb_zero`, `names_nonempty`).
+
+**Round 16's obligations** (the review, `~/mvcc-api-candidates/review-r16.md`):
+- The receipts at the notify step (`Txn.End`, `Put`, `DeleteRange`, the lease delete): from the open
+  transaction's writer state, `⧖ (logCh ilog + pend.length)`; at `Restore`'s step, from
+  `mvccBackendFor`.
+- `wsRecvOk`'s event positivity is recorded per received response, unconditionally (not under the
+  `onceUpTo →` implication: a lossy compaction's events are still positive): at the send, the
+  index's version facts; for a delete, `watchableStoreTxnWrite.End`'s `ModRevision = rev` and
+  `kvsToEvents`' tombstones.
+- The vocabulary exports two rewrites the clients keeping `⧖ (logCh σ.notifiedLog)` need:
+  `(σ.notify p).notifiedLog = σ.log ++ [p]` (`σ.pending = none`), and `logCh (L ++ [[]]) = logCh L`.
+- Not done (F4, kept as today; dropping it later is a strengthening no client breaks on):
+  `keySized`'s premise of `mvccBackendFor_open`, derivable from the receipts.
 
 ## Clients (from the review; the size facts superseded by round 15)
 

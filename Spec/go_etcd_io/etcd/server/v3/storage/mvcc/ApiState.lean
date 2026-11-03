@@ -184,9 +184,10 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
 
 /-- **A live key-value's values are positive** (round 16: its creation and modification revisions
 and its version, a count of its puts since its creation, none wrapped): what makes etcd's own
-comparators, which subtract (`txn/range.go:214-226`), order it, and what the clients' models of a
-key-value assume (client/v3's `0 < version`). True of every live key-value of the store's states:
-mvcc's own receipt bounds the changes it ever made. -/
+comparators, which subtract (`txn/range.go:214-226`), order it (non-negative is what they need);
+positive is what is true, and what a model of a key-value says (etcd's client model's `0 < version`,
+which client/v3 takes from the history's receipt today). True of every live key-value of the store's
+states: mvcc's own receipt bounds the changes it ever made. -/
 def kvSortOk (e : EtcdKv) : Prop :=
   0 < sint.Z e.createRev ∧ 0 < sint.Z e.modRev ∧ 0 < sint.Z e.version
 

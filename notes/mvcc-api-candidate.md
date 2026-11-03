@@ -760,3 +760,21 @@ and needs neither (the law's proof commits it before the call, and the whole sha
 step that changes the history out until the share comes back). The lease-delete law's `End` triple
 gets the notify receipt as `Txn.End`'s.
 
+**Round 16, the review (`~/mvcc-api-candidates/review-r16.md`, 2026-11-03).** F1 (blocking):
+`mvccImage_snapshot.law` is unprovable for a store that compacted on its backend:
+`backend.Snapshot`'s axiom (`Spec/.../backend/backend__Snapshot.lean`) reports nothing of the two
+compaction keys once a write after the open has put them (they are in no part of its observation,
+and `fkRd` gives their values only before the first such write). Decided by me for now: the law is
+stated for a store that never compacted (`σ.crev = -1` in the update's access), today's sender
+coverage (`txn/KeyObs.lean`'s no-compaction token; the compacting sender is G3's deferred `sorry`),
+the premise local to the law, and dropping it later breaks no client. **For the user** (a
+trust-base change): to cover a compacting sender, strengthen `backend.Snapshot`'s axiom in place,
+its observation also given the compaction keys' committed values, tracked by the backend as the
+hook's own keys are (a new `fkdAt γ v` half, `UnsafePut`'s proved `fkPut` updating it); the
+review's alternative, a second stronger `Snapshot` spec only this law takes, is against one spec
+per function. F2: `isMvcc` added to the law's precondition; the exclusion it needs is internal
+(the invariants note, §2: a share token of total 1 behind `mvccBackend`, a frozen writer state).
+F3: `mvccImage_fresh.law` under `|==>` (`⧖ 0` is allocated). F4 (`keySized` derivable) kept as
+today. F5: the invariants note completed. F6: `kvSortOk`'s docstring names its real consumers. F7:
+the receipt rewrites go into the vocabulary at stage 1; `reach_logWf` a theorem there.
+
