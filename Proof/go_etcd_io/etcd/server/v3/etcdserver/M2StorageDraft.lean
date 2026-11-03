@@ -81,7 +81,7 @@ theorem server_kv_watchable_ofD
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hs : d.snap = false) (γb γl : GName)
     (Pk : IProp GF) (f : val) (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName)
     (M : auth.AuthMode)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
@@ -89,10 +89,10 @@ theorem server_kv_watchable_ofD
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        backend.isBackend d.γB d.P (mvcc.lateWB d.gx d.γB) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         backend.dlInit d.γB ∗ □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        ownToks d.γB.wb (N + 2) ∗ backend.srSlot d.be ∗
+        ownToks d.γB.wb (N + 2) ∗ backend.srSlot d.be ∗ mvcc.kbTieInit (some d) ∗
         ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
@@ -119,7 +119,7 @@ theorem server_kv_watchable_ofD
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some d)) ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Hrts, Hlrd,
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Htie, Hrts, Hlrd,
     #Hle, Hro, Hif, Hok⟩ HΦ
   -- the backend's deletable keys fixed by the mode, and the store's contract the bridge's of it
   ihave Hsb : iprop(|==> ((□ ∀ (s : Loc) (γ : mvcc.StoreNames),
@@ -132,7 +132,7 @@ theorem server_kv_watchable_ofD
       ihave #Hfk := Hfv $$ %hcm
       ihave #Hsb := mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi $$ []
-      · iframe #
+      · rw [mvcc.lateWD_boot d hs]; iframe #
       imodintro
       isplitl []
       · imodintro
@@ -142,7 +142,7 @@ theorem server_kv_watchable_ofD
       imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
       ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP hcm' Pk γb $$ []
-      · iframe #
+      · rw [mvcc.lateWD_boot d hs]; iframe #
       imodintro
       isplitl []
       · imodintro
@@ -158,9 +158,9 @@ theorem server_kv_watchable_ofD
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   ihave Hsrm := mvcc.kbSRM_some d $$ Hsr
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag (fun _ => iprop(True)) hcfg)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb Hnd
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag (fun _ => iprop(True)) hcfg hs)
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Htie Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Htie Hsb Hnd
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
       mvcc.kbRT_some]
     unfold backend.wbTok

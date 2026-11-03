@@ -117,12 +117,12 @@ theorem snap_lg_nn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
 
 theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (γs : mvcc.StoreNames)
     (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) :
-    alarmApplyOk al ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
+    alarmApplyOk al ∗ backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗
       backend.plHookRO d'.γB g ⊢
     apply.isAlarmStore al γs Pk #g (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HalA, #HB, #Hhook⟩
   iunfold alarmApplyOk at HalA
-  iapply HalA $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
+  iapply HalA $$ %d' %(mvcc.lateWD d') %Pk %γs %g
     %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] []
   · ipureintro; exact hk
   · ipureintro; exact hgnn
@@ -131,13 +131,13 @@ theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (γs : mvcc.St
 theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
     (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) :
-    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
+    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗
       backend.plHookRO d'.γB g ⊢
     apply.isAuthStore (auth.authIface ast) γs Pk #g RD .off
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HisAuth, #HB, #Hhook⟩
   iunfold authApplyOk at HisAuth
-  iapply HisAuth $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
+  iapply HisAuth $$ %d' %(mvcc.lateWD d') %Pk %γs %g
     %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] []
   · ipureintro; exact hk
   · ipureintro; exact hgnn
@@ -146,13 +146,13 @@ theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
 theorem snap_isCluster (al ast lp cl : Loc) (d' : mvcc.KBReal)
     (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) :
-    clusterApplyOk cl ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
+    clusterApplyOk cl ∗ backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗
       backend.plHookRO d'.γB g ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ⊢
     apply.isCluster cl γs Pk #g (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#Hisc, #HB, #Hhook, #Hvcn⟩
   iunfold clusterApplyOk at Hisc
-  iapply Hisc $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
+  iapply Hisc $$ %d' %(mvcc.lateWD d') %Pk %γs %g
     %(srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
     %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] [] [] []
   · ipureintro; exact hk
@@ -176,7 +176,7 @@ theorem snap_isApplyLessor
     (hgnn : g ≠ func.nil) (hwq : γs.watchQ = true) (hlp : mvcc.leaseParams d'.P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗ lease.lessorInv lp γs.leases ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗ backend.plHookRO d'.γB g ∗
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗ backend.plHookRO d'.γB g ∗
       mvcc.hookOk γs Pk #g ⊢
     apply.isApplyLessor (lease.lessorIface lp) sst γs Pk #g
       (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
@@ -200,7 +200,7 @@ theorem snap_isApplyLessor
     rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
     iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %d' %(mvcc.lateW d'.gx) %Pk %g
+    iapply Hlbe $$ %d' %(mvcc.lateWD d') %Pk %g
       %(lease.lessorBeOn lp d'.be) HB Hhook [] []
     · ipureintro; exact hgnn
     · iapply lessorBeOn_lens

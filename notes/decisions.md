@@ -30240,6 +30240,38 @@ compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
    `imageAt` in place; their compaction-mode receipt is the restart path's (marked RESTART-RCPT in
    their docstrings and `notes/image-cmp-plan.md`).
 
+**2026-11-02 · accepted (the user's approval of F2's seven questions, `notes/image-cmp-f2-plan.md`)**
+1. `backend.backend.Snapshot.spec` restated as `specF2` (the plan's text, verbatim): the observation
+   also gets the batch lock's exact halves of the physical non-hook view (`pvHalf`) and of `Meta`'s
+   compaction keys (`ckHalf`), the post their values (`fkVals D`); today's spec kept as the proved
+   corollary `spec_of_specF2`. Restated only after the backend's invariant holds the two halves.
+2. Two exact client halves (not the hook's own keys widened, not a gone set).
+3. The cut kept by a job cursor in mvcc, at a whole revision, handed on in `compactTok`.
+4. `srvBeSnapOk_cmpRecs` replaced by the proved observation (`srvBeSnapOk_window`'s), not proved.
+5. `cmpTrack` carried across a restore before any writer registers (the new backend's
+   pre-registration state).
+6. A share of the writer's log ghost `γ.wv` in the writer's pin.
+7. `updateCompactRev` takes `1 ≤ rev` from its caller (the source of `recsPos`).
+
+**2026-11-03 · accepted (the user's approval, F2's Freeze, stage 1)**
+1. `storage.OpenBackend`'s `openPre`: the creator callback also receives `pvckInit γ P D` (the two new
+   ghosts' client halves at the opened data), as `backend.New` (proved) gives them; the axiom's
+   docstring argues it from `backend.New` as it does `hkOwn`.
+2. The widened meaning of the axioms that mention `isBackend` (its batch-lock invariant now holds
+   the batch lock's halves of `pv`/`ck`): `auth.NewAuthStore`, `lease.NewLessor`, `lessor.Recover`,
+   membership `Recover`/`SetBackend`/`MustSave`/`MustDelete`/`MustRead`, `NewBackendQuota`, alarm
+   `restore`/`NewAlarmStore`, `MustUnsafeSaveConfStateToBackend`, `backend.Snapshot`: accepted on the
+   condition that a fresh spec review confirms each writes only hook buckets and non-compaction keys
+   (so `pvPut`/`ckPut` are `True` and neither ghost moves).
+   Review (2026-11-03, a fresh spec reviewer): all thirteen preserve the invariant, and so do the
+   three others whose specs reach `isBackend` (`storage.OpenBackend`, `EtcdServer.monitorStorageVersion`,
+   `v3alarm.AlarmStore.restore`): no write, delete or bucket removal in `key`, none of `meta`'s two
+   compaction keys. `AlarmStore.restore`, generic in `P`, only creates `alarm` (creation keeps
+   `sData`/`fkVals`); widening it later needs a `pvPut` premise. The condition holds.
+3. (The user, directly, 2026-11-03) confirmed item 1 (`openPre` and its docstring edit), and approved
+   the exported `mvcc_backend_bridge` restated with the lock resource `iprop(W ∗ backend.pvckOwn γ)`
+   (`isBackend … iprop(W ∗ backend.pvckOwn γ)`), and `bootOk`'s `Hnew` and `InvRestart`'s `newPost`
+   stating the boot backend's lock resource as `lateWB` (`lateW ∗ pvckOwn`).
 ## cachekv checks the cache's `Get` (2026-11-02 · the user's go-ahead · `cache_safe` gains `GetFailed`)
 
 `Main`, after the watch's check, does a `Get` of the prefix at the highest revision `r` a `Put`
@@ -30274,6 +30306,37 @@ of the published index's authority into the realization (publication needs the w
 backend ghost names carrying an open share, the history recorded before `Recover` (candidate (ii)),
 and one spec per function over the mode. The restated statements are in the Draft
 (`SnapAuthOnDraft.lean`), to be approved before they replace today's.
+
+**2026-11-03 · accepted (the user's approval of F2 stage 2's three proposals) · `lateWB`'s meaning**
+1. **`lateWB gx γB`'s body changes** (its signature and `bootOk`'s text stay): the backend's client
+   halves (`pvckOwn`) move inside `lateW`'s two arms, unregistered (the bootstrap's deposit, literally
+   `dghostVar gx ½ none ∗ pvckOwn γB`, or, for a backend the snapshot walk opened, the restore's
+   tracking) and registered (the store's `writerRes`, whose `compactRes` holds `cmpTrack` with the
+   exact halves). So `bootOk`/`bootstrapContract`, `InvRestart.newPost` and `mvcc_backend_bridge`
+   change meaning. **Why the client halves must sit with the facts**: the snapshot's observation is
+   a pure wand over the batch lock's resource `W` (no update, so no invariant opened: not
+   `writerReg`); what it learns of the physical view `vd` the lock's half agrees with can only come
+   from what sits beside the client's half inside `W`. With the halves outside `lateW` (stage 1's
+   `lateW ∗ pvckOwn`, an existential value), no fact about `vd` is reachable.
+2. **`KBReal` gains the tie ghosts** `lg` (the writer's log), `sg` (the records' revision), `jg` (the
+   job cursor) and a flag for backends the snapshot walk opened; `NewServer` sets them as it sets
+   `cm`, `SnapApplyWalk` allocates fresh ones with `gx'` (renewed at a restore through
+   `PhysNames.kb`: the approved "physical names renewed at a restore").
+3. **`cmpTrack` corrected**: the tie ghost holds `r.crev` (not `r.sched`), with "once a job has run,
+   `schedRev = crev`"; `fin ≤ sched` dropped (an image with odd records, `sched < fin`, would break
+   a `sched` tie at a restore).
+Condition: a fresh spec review of the new `lateWB` body and the widened mvcc backend contract
+(`batchTxSpecG`, `isKeyBackendG`, `mvcc_backend_bridge`, `store.Restore`) before the Freeze.
+
+**2026-11-03 · F2 stage 2, scope restrictions (filed per "No unneeded premise"; review round 3)**
+- `kbBoot kb` on `NewStore`/`New`/`newWatchableStore`: the store is made over a backend `bootstrap`
+  opened (`snap := false`); the snapshot walk's backends get their store only through
+  `store.Restore`. The server always meets it.
+- `d'.snap = true` on `store.Restore`/`watchableStore.Restore`: a restore installs over a backend the
+  snapshot walk opened (the only caller is `applySnapshot`).
+- `1 ≤ rev` on `store.Compact`/`updateCompactRev`/`compactLockfree` in compaction mode (Q7, approved):
+  from `compactPropOk` through `apply.cmpAdmitRev`; `compactLockfree`'s caller is Go's own resume
+  guard (`scheduledCompact != 0`). `nonissues/etcd-restore-scheduled-compact-zero.md`.
 
 ## `cache_Watch_delivery`: progress notifications are quiet (2026-11-03 · the user's go-ahead · a strengthening, no new premise)
 

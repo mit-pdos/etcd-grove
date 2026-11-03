@@ -45,11 +45,13 @@ fragment and retired tokens, the new backend's image, contract, clean read and t
 records, and back the inner store's right at `r.crev` at the new names (`storeCloserM`), fragment,
 tokens, the unset hook lent (`resumeHookM`), the old job's budgets (`compactJobResM`), the old
 backend's readers and the new one's left over; off, as before compaction mode
-(`watchableStore.Restore.specOff_of_spec`). -/
+(`watchableStore.Restore.specOff_of_spec`). (F2, stage 2) As `store.Restore`'s: the scope
+restriction `d'.snap = true` (a backend the snapshot walk opened) and what the walk's open kept of
+the tracking's ties (`restoreTie`), passed through. -/
 abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev →
+  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev → d'.snap = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ.st r.finRev ∗
       mvcc.crevPermAt γ.st r.crev ∗
@@ -65,7 +67,8 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
           (mvcc.kbRecs (γ.st.withPhys p).kb (γ.st.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
       mvcc.kbRegRight (some d') ∗
-      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.restoreTie d' ([[], []] ++ R) r ∗
+      mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,

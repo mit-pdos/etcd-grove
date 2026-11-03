@@ -25,11 +25,16 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof [go_etcd_io.bbolt.Assumptions
                                 ownSlice key kb DFrac.discard ∗
                                   ownSlice value vb DFrac.discard ∗
                                     backend.hkPut γ P bi.name kb st.S ∗
-                                      backend.rbPut γ P bi.name st.S ∗ backend.fkPut γ bi.name kb -∗
+                                      backend.rbPut γ P bi.name st.S ∗
+                                        backend.fkPut γ bi.name kb ∗
+                                          backend.pvPut γ P bi.name st.S ∗ backend.ckPut γ bi.name kb st.S -∗
                       ▷
                           (backend.batchLocked γ P b (st.put bi kb vb false) ∗
                               backend.hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
-                                backend.rbPut γ P bi.name (st.put bi kb vb false).S ∗ backend.fkPut γ bi.name kb -∗
+                                backend.rbPut γ P bi.name (st.put bi kb vb false).S ∗
+                                  backend.fkPut γ bi.name kb ∗
+                                    backend.pvPut γ P bi.name (st.put bi kb vb false).S ∗
+                                      backend.ckPut γ bi.name kb (st.put bi kb vb false).S -∗
                             Φ (intoVal ())) -∗
                         WP
                           ((((intoVal

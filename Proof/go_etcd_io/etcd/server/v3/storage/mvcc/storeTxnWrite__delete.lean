@@ -77,7 +77,8 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ)
-      (mvcc.kbMW γ.kb γ.bucket) $$ []
+      (mvcc.kbMW γ.kb γ.bucket) (PV := mvcc.storePV γ) (PVx := mvcc.storePVx γ)
+      (CK := mvcc.storeCK γ) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
@@ -132,19 +133,26 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   iunfold mvcc.bucketViewL at Hbv
   icases Hbv with ⟨%m, Hbv, #Hbl⟩
   ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m
+  -- the session's physical view (F2, stage 2): the put moves it
+  icases Hcres with ⟨Hcres, Hloan, Htrk⟩
+  icases mvcc.writerTrk_put γ ilog pend (pend ++ [.del k]) $$ Htrk with ⟨%pv, Hpv, Hpvk⟩
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m %pv
     %bK %ib' %d %_ %_
   -- (by hand: `wp_apply` loses the context here)
   wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
-  iapply HSeqPut' $$ [Hlocked Hbv]
-  · iframe Hlocked Hbv HKeyG Hib Hd
+  iapply HSeqPut' $$ [Hlocked Hbv Hpv]
+  · iframe Hlocked Hbv HKeyG Hib Hd Hpv
     ipureintro
     exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
       (mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm)
   inext
-  iintro ⟨Hlocked, Hbv⟩
+  iintro ⟨Hlocked, Hbv, Hpv⟩
   ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
   · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
+  ihave Htrk := Hpvk $$ %_ %_ Hpv []
+  · ipureintro
+    rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
+    rfl
   icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
@@ -171,14 +179,14 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
       mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z : IProp GF)
-      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hkv]
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hloan Htrk Hkv]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hloan Htrk Hlrd
     iframe #
     isplitl []
     · ipureintro; exact Hbudget
