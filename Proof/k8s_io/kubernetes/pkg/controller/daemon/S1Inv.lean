@@ -1,34 +1,43 @@
 /-
-**S1's invariant, in Iris** (phase 5 of `notes/k8s-daemonset-plan.md`, first round). Lean-first.
+**S1's invariant, in Iris** (phase 5 of `notes/k8s-daemonset-plan.md`; restated in Stage 3 of the
+autoverify run, `notes/k8s-daemonset-run/design.md`, "S1's invariant"). Lean-first.
 
-For the DaemonSet `d` (its owner key `d.o`, UID `d.u`), the invariant `s1Inv` owns the API
-state's clients' half (`apiState`: every client's logically atomic operation opens it; reads
-change nothing), the consistency store's abstract state (`consState`), and the bookkeeping of
-the pure invariant (`s1Ok`, `S1Steps.lean`):
-* `L`, a version the pod informer's store has reached for good (`infRvLb`, persistent);
-* the **pending creates** (`P : GMap (Key × Nat) (Nat × GoString)`, a ghost map `γ.pend`): a pod
-  of `d.u` (key and version) the sync holding the owner's token created and has not accounted for
-  yet, with the index of the create goroutine that made it and its node; the goroutine's
-  **permit** (`permit γ i`, an exclusive token) the entry holds;
-* the **claimed nodes** (`C : GMap GoString Nat`, `γ.claim`): a node the sync found with no pod
-  of `d.u` (in a pod cache covering the API state, `acct`) and will create one on, by the
-  goroutine `i`: every pod of `d.u` there is that goroutine's pending one (`claimsOk`).
+**Two invariants.** The consistency store's abstract state and the work queue's tokens, which S1's
+accounting needs, are allocated by `NewDaemonSetsController` (`NewConsistencyStore` allocates its
+ghost names), after the informers (whose list-watch closures need read access to the API state)
+and after the admin's node create. So:
+* `apiInv γa γ` (allocated by `Main` right after `apimodel.NewServer`): the API state's clients'
+  half `apiState γa σ` and one half of its mirror (`apiMirror γ σ`, a ghost variable of the same
+  state). A read (the informers' list and watch, the checker's list) opens it alone and closes it
+  unchanged; a write needs the mirror's other half, which `Main` holds until it allocates `s1Inv`,
+  and `s1Inv` from then on.
+* `s1Inv γ c` (allocated by `Main` after `NewDaemonSetsController`, before the controller runs and
+  the admin's DaemonSet create): the mirror's other half and S1's bookkeeping over that state, for
+  the controller's components `c` (its consistency store's state, its owner tokens' authority, its
+  work queue's tokens).
 
-So a create for a claimed node keeps S1 and leaves its pod pending (`create_step`), and the
-goroutine gets its permit back only when the pod is accounted for, by `WroteAt` (`wrote_step`). A sync's worker hands out the permits (it owns their ghost
-map's authority, `permitAuth`, with its token) and gets them back from the goroutines at
-`createWait.Wait()`: with every permit back no create is pending (`pend_empty`).
+**The sync token** `syncTok γ c o`: what the sync of owner `o` holds from its start to its end: the
+consistency store's permission for `o` whole (`ownerTok c o 1`, which `EnsureReady(o)` needs and
+whose fractions the create goroutines' `WroteAt`s take) and the owner's half of its bound
+(`seenTok γ o L`: the other half is the invariant's, so the bound changes only with both, at the
+sync's `EnsureReady`). The worker trades the work queue's `keyTok` of the owner's canonical key
+(`ownerKey o`) for it at `processNextWorkItem`, inside `s1Inv` (for each registered owner,
+`syncTok ∨ keyTok`; an owner is registered at its first sync), and trades it back before `Done`.
 
-**The ambiguous create**: a create that commits and returns the timeout leaves its pod pending,
-its permit in the invariant: the goroutine cannot return it (`syncNodes`' proof, the create
+**The claims** (`claimTok γ o n v`, the create goroutine's for node `n`; `S1Steps.lean`'s `Claims`):
+each claim in the invariant holds a fraction of the owner's `ownerTok`, so the holder of
+`ownerTok c o 1` knows `o` has no claim: at a sync's start nothing of its owner is pending.
+
+**The ambiguous create**: a create that commits and returns the timeout leaves its claim with the
+pod pending and the claim's fraction of `ownerTok` in the invariant: the worker cannot reassemble
+`ownerTok c o 1`, so `syncNodes` cannot give back `syncTok` (`syncNodes`' proof, the create
 goroutine's ambiguous branch; `ambiguous_create_breaks_S1` shows no proof can: the next sync
 duplicates the pod).
 -/
 module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Steps
-public import Proof.k8s_io.client_go.tools.cache.InformerInv
-public import Proof.k8s_io.client_go.util.consistency.Defs
+public import Proof.k8s_io.kubernetes.pkg.controller.daemon.Defs
 
 @[expose] public section
 
@@ -40,75 +49,76 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI Iris.ProofMode apimodel informer consistency
+open Iris Iris.BI Iris.ProofMode apimodel informer consistency workqueue
 
-/-! ## The ghost state and the invariant -/
+/-! ## The ghost state and the invariants -/
 
-/-- The ghost names of S1's invariant. -/
+/-- The ghost names of S1's invariant (allocated by `Main`). -/
 structure S1Names where
-  api : ApiNames
-  cons : ConsNames
-  podInf : InfNames
-  /-- the pending creates: (pod key, version) ↦ (permit index, node) -/
-  pend : GName
-  /-- the claimed nodes: node name ↦ permit index -/
+  /-- the API state's mirror (a ghost variable: `apiInv`'s half and `s1Inv`'s) -/
+  mirror : GName
+  /-- the owners' bounds: owner ↦ a version the pod informer has reached (halves: the
+  invariant's, the sync token holder's) -/
+  lb : GName
+  /-- the claims: (owner, node) ↦ the claimant's pod, once created -/
   claim : GName
-  /-- the create goroutines' permits -/
-  permit : GName
-  /-- the per-owner sync tokens (the consistency store's permissions `T`) -/
-  tok : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [QItem (GF := GF) GoString go.string]
 
-/-- **The sync token of owner `o`** at fraction `q` (the consistency store's `T`): the work
-queue's per-key token, traded at the sync's start (`processNextWorkItem`). -/
-def syncTok (γ : S1Names) (o : Owner) (q : Qp) : IProp GF := ghostMapElem γ.tok o (DFrac.own q) ()
+/-- **The API state's writers' half** (`Main`'s, then `s1Inv`'s). -/
+def apiMirror (γ : S1Names) (σ : St) : IProp GF := ghostVar γ.mirror (1 : Qp).half σ
 
-/-- **A create goroutine's permit** `i`. -/
-def permit (γ : S1Names) (i : Nat) : IProp GF := ghostMapElem γ.permit i (DFrac.own 1) ()
+/-- The API invariant's namespace. -/
+def apiN : Namespace := nroot.@"daemonset_api"
 
-/-- **The permits' authority** (the syncing worker's): the permits handed out are `R`'s. -/
-def permitAuth (γ : S1Names) (R : GMap Nat Unit) : IProp GF := ghostMapAuth γ.permit 1 R
+/-- **The API invariant**: the API state's clients' half and the mirror's readers' half. -/
+def apiInv (γa : ApiNames) (γ : S1Names) : IProp GF :=
+  inv apiN iprop(∃ σ : St, apiState γa σ ∗ ghostVar γ.mirror (1 : Qp).half σ)
 
-/-- **A pending create** (the goroutine `i`'s pod at key `k` and version `c`, on node `n`): its
-receipt. -/
-def pendTok (γ : S1Names) (k : Key) (c : Nat) (i : Nat) (n : GoString) : IProp GF :=
-  ghostMapElem γ.pend (k, c) (DFrac.own 1) (i, n)
+instance apiInv_persistent (γa : ApiNames) (γ : S1Names) :
+    Persistent (apiInv (GF := GF) γa γ) := by
+  unfold apiInv; infer_instance
 
-/-- **A claimed node** `n`, by the goroutine `i`. -/
-def claimTok (γ : S1Names) (n : GoString) (i : Nat) : IProp GF :=
-  ghostMapElem γ.claim n (DFrac.own 1) i
+/-- **The owner's half of its bound** `L`. -/
+def seenTok (γ : S1Names) (o : Owner) (L : Nat) : IProp GF :=
+  ghostMapElem γ.lb o (DFrac.own (1 : Qp).half) L
 
-/-- **S1's invariant's content.** -/
-def s1Res (γ : S1Names) (d : DsId) : IProp GF :=
-  iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (L : Nat)
-      (P : GMap (Key × Nat) (Nat × GoString)) (C : GMap GoString Nat),
-    apiState γ.api σ ∗ consState γ.cons M ∗ infRvLb γ.podInf L ∗
-    ghostMapAuth γ.pend 1 P ∗ ([∗map] _k ↦ v ∈ P, permit γ v.1) ∗
-    ghostMapAuth γ.claim 1 C ∗
-    ⌜s1Ok d σ M L P C⌝)
+/-- **The sync token of owner `o`**: see the file header. -/
+def syncTok (γ : S1Names) (c : DscComp) (o : Owner) : IProp GF :=
+  iprop(ownerTok c o 1 ∗ ∃ L, seenTok γ o L)
+
+/-- **A claim** of node `n` for owner `o` (the create goroutine's): `v` its pod, once created. -/
+def claimTok (γ : S1Names) (o : Owner) (n : GoString) (v : Option (Key × Nat)) : IProp GF :=
+  ghostMapElem γ.claim (o, n) (DFrac.own 1) v
+
+/-- **S1's invariant's content**: the mirror's half at `σ`, the consistency store's state `M`,
+the owner tokens' authority and the bounds `Lm` (each registered owner: the invariant's half of
+its bound, a lower bound of the pod informer's version, and its sync token or the work queue's
+token of its key), the claims `C` (each with a fraction of its owner's token), and `s1Ok`. -/
+def s1Res (γ : S1Names) (c : DscComp) : IProp GF :=
+  iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner Nat) (C : Claims)
+      (D : GMap Owner Unit),
+    apiMirror γ σ ∗ consState c.γc M ∗
+    ghostMapAuth c.tok 1 D ∗ ⌜∀ o, (D !! o).isSome = (Lm !! o).isSome⌝ ∗
+    ghostMapAuth γ.lb 1 Lm ∗
+    ([∗map] o ↦ L ∈ Lm, seenTok γ o L ∗ infRvLb c.podI.γi L ∗
+      (syncTok γ c o ∨ keyTok c.γq.tq (ownerKey o))) ∗
+    ghostMapAuth γ.claim 1 C ∗ ([∗map] on ↦ _v ∈ C, ∃ q, ownerTok c on.1 q) ∗
+    ⌜s1Ok σ M Lm C⌝)
 
 /-- The invariant's namespace. -/
 def s1N : Namespace := nroot.@"daemonset_s1"
 
 /-- **S1's invariant.** -/
-def s1Inv (γ : S1Names) (d : DsId) : IProp GF := inv s1N (s1Res γ d)
+def s1Inv (γ : S1Names) (c : DscComp) : IProp GF := inv s1N (s1Res γ c)
 
-instance s1Inv_persistent (γ : S1Names) (d : DsId) : Persistent (s1Inv (GF := GF) γ d) := by
+instance s1Inv_persistent (γ : S1Names) (c : DscComp) : Persistent (s1Inv (GF := GF) γ c) := by
   unfold s1Inv; infer_instance
-
-/-- The sync tokens exclude each other (the consistency store's `tokExcl`). -/
-theorem syncTok_excl (γ : S1Names) : ⊢ tokExcl (GF := GF) (syncTok γ) := by
-  unfold tokExcl syncTok
-  iintro !> %o %q H1 H2
-  ihave %Hv := ghostMapElem_valid_2 (K := Owner) (V := Unit) o γ.tok (DFrac.own 1) (DFrac.own q)
-    () () $$ H1 H2
-  exfalso
-  exact absurd (DFrac.valid_own_op Hv.1) (by simp)
 
 end defs
 
