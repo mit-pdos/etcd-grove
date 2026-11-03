@@ -151,3 +151,34 @@ run. Most of the effort is the script and its checks, a day or so.
   `etcd_cache_safe`, `watch_adequate` -> `etcd_watch_adequate`, `kv_porcupine_safe` ->
   `raft_kv_porcupine_safe`, `putgetc_safe` -> `etcd_compacted_safe`, `crash_safe` ->
   `osfs_crashlog_safe`; the shared code's (`etcd_adequate`, `init_adequate`) unchanged.
+
+## Dry run (2026-11-03, branch `examples-move`, worktree `/shared/etcd-grove-exmove`)
+
+`etc/move-examples.py` on `lean` at `d572444cb6` (plus the branch's two preparatory changes below):
+1,673 files moved, 1,901 rewritten, `examples/README.md` written (from `etc/move-examples-README.md`).
+Then `etc/goose.py`, `etc/gen-init.py`, every `etc/gen-link.py` mode, `lake build` (12,020 jobs) and
+`etc/gates.sh`: all passed, the trust base as on `lean` (781 axioms, 7 `sorry`s), 47 collections
+matching; `etc/verified-code.py`'s summary identical before and after for all 29 projects; `go vet`
+clean in all five Go modules. Five passes; each failure was fixed in the script, never in the
+moved tree. What they taught the script:
+
+- a namespace rename skips string literals (`go!"putget.etcd"` is a directory);
+- `kv` is also an ordinary identifier (variables, fields, a nested `namespace kv` in `txnlin`): it is
+  renamed only in its own files and their importers; the other old namespaces are unique and are
+  renamed in every hand-written Lean file (the client's `kubernetes` proofs `open linkvtxn`);
+- namespaces are also opened as `namespace EtcdGrove.kvdurable`, in multi-line `open`s, in `export`,
+  and qualified as `EtcdGrove.<ns>.`; theorems as `Perennial.EtcdGrove.<name>` (`#print axioms`);
+- `gen-link.py` hard-codes namespaces (its mode table, `LOCAL_INSTANCES`) and the link configs
+  name functions `<last spec directory>_<fn>` and results `<ns>.wp_F`: both rewritten;
+- the trust-base baselines name `sorry`s by namespace (`k8setcd3.revRoom` -> `k8s_etcd3.revRoom`).
+
+Preparatory changes on the branch, landed with the move: `etc/verified-code.py` resolves a name
+qualified by its package's spec namespace (it assumed the namespace was the package's last path
+segment; after the move it is `<layer>_<dir>`); the index template. Found on the way and fixed on
+`lean` (`d572444cb6`): `leasekv`'s cluster test called the renamed `common.NewServer`.
+
+**Landing**, at a quiet moment: merge `lean` into `examples-move`, run the script, regenerate, gate,
+compare `verified-code`, commit the move as one commit, fast-forward `lean`. A branch made before
+the move: merge `lean` up to the commit before the move, run the script on it, then merge the move.
+`/tmp` (a tmpfs) fills up under other sessions' tests: run with `GOTMPDIR` on `/shared`, and
+re-run the gates if a check fails on temp files.
