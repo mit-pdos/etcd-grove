@@ -421,6 +421,9 @@ EtcdServer__Done:
 EtcdServer__Stopping:
 # the watch slice's unit W-W: the stream interceptor's leader monitor selects on it
 EtcdServer__StoppingNotify:
+# The stop (the restart plan's R2b-2, 2026-11-02): `HardStop` over the stop right
+# (`srvStopRight`, `InvRestart.lean`).
+EtcdServer__HardStop:
 EtcdServer__LeaderChanged: Notifier__Receive
 EtcdServer__FirstCommitInTermNotify: Notifier__Receive
 EtcdServer__NextRequestID: idutil_Generator__Next

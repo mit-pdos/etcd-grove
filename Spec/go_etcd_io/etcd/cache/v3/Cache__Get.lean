@@ -30,8 +30,9 @@ transformers `gs` (`optsAt`; `OpGet` must not panic): for the request's `Op`
 unsupported option, a range outside the prefix, the client's error, a future revision, a
 timeout, or the store's error), or a fresh response with `nil` (`cacheGetOk`): the key-values
 in `[key, o.rangeEnd)` of the cached snapshot `(r, m)` that `snapModel` picks for `o.rev`, where
-`m` is etcd's state at `r` (`isEtcdKvs`), the header revision the store's latest revision
-(`≥ r`, `snapModel_ok_spec`), and, unless the request is serializable, the store's latest
+`m` is etcd's state under the prefix at the revision asked for (`o.rev`, or the header revision
+for `o.rev = 0`; `isEtcdKvs`: etcd had no event under the prefix after the snapshot), the header
+revision the store's latest revision (`≥ r`, `snapModel_ok_spec`), and, unless the request is serializable, the store's latest
 revision at least an etcd revision `serverRev ≥ o.rev` observed during the call. -/
 abbrev Cache.Get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat) (r0 : w64)

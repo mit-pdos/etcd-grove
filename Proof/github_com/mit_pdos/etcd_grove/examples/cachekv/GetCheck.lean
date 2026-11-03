@@ -207,6 +207,58 @@ theorem checkGetOk_of (L : mvcc.Log) (evs : List common.wev) (r : w64) (pfx : Go
       have := List.find?_some hkv; simpa using this
     refine ⟨kv, txn.mem_underPfx.2 ⟨mvcc.findKey_mem hkv, by rw [hkk]; exact hpfx e hev⟩, hkk⟩
 
+/-- Only the events at or below `r` matter to `CheckGetOk`: with events at revisions `2, 3, ...`,
+the first `r - 1`. -/
+theorem checkGetOk_take (evs : List common.wev) (r : w64) (s : List EtcdKv)
+    (hrev : ∀ (i : Nat) (e : common.wev), evs[i]? = some e → sint.Z e.Rev' = 2 + i)
+    (h : CheckGetOk (evs.take ((sint.Z r).toNat - 1)) r s) : CheckGetOk evs r s := by
+  have hlv : ∀ k, lastValL evs k r = lastValL (evs.take ((sint.Z r).toNat - 1)) k r := by
+    intro k
+    unfold lastValL
+    have hrev' : ∀ (i : Nat) (e : common.wev), (evs.take ((sint.Z r).toNat - 1))[i]? = some e →
+        sint.Z e.Rev' = 2 + i := by
+      intro i e he
+      rw [List.getElem?_take] at he
+      split at he
+      · exact hrev i e he
+      · cases he
+    have h1 := filter_revs (fun e => decide (e.Key' = k)) (sint.Z r) evs 2 (by omega) hrev
+    have h2 := filter_revs (fun e => decide (e.Key' = k)) (sint.Z r)
+      (evs.take ((sint.Z r).toNat - 1)) 2 (by omega) hrev'
+    simp only [Bool.decide_and] at h1 h2 ⊢
+    rw [h1, h2, List.take_take,
+      show min (sint.Z r + 1 - 2).toNat ((sint.Z r).toNat - 1) = (sint.Z r + 1 - 2).toNat by omega]
+  refine ⟨fun kv hkv => by rw [hlv]; exact h.1 kv hkv, fun e hev hle => ?_⟩
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem hev
+  have := hrev i e hi
+  refine h.2 e ?_ hle
+  apply List.mem_of_getElem? (i := i)
+  rw [List.getElem?_take, if_pos (by omega)]
+  exact hi
+
+/-- **`checkGetOk_of` for any events after the watch's gap-free read**: the log need only hold the
+events at or below `r`. -/
+theorem checkGetOk_of' (L : mvcc.Log) (evs : List common.wev) (r : w64) (pfx : GoString)
+    (hL : OnePuts L) (h0 : ∀ j cs, j < 2 → L[j]? = some cs → cs = [])
+    (hrev : ∀ (i : Nat) (e : common.wev), evs[i]? = some e → sint.Z e.Rev' = 2 + i)
+    (hput : ∀ (i : Nat) (e : common.wev), evs[i]? = some e → 2 + i < L.length →
+      L[2 + i]? = some [mvcc.Change.put e.Key' e.Val' (W64 0)])
+    (hpfx : ∀ e ∈ evs, pfx <+: e.Key')
+    (hr1 : 1 ≤ sint.Z r) (hrL : sint.Z r < L.length) (hre : sint.Z r ≤ 1 + evs.length) :
+    CheckGetOk evs r (txn.underPfx pfx (mvcc.stateAt L (sint.Z r).toNat)) := by
+  apply checkGetOk_take evs r _ hrev
+  apply checkGetOk_of L _ r pfx hL h0
+  · intro i e he
+    have hi : i < (sint.Z r).toNat - 1 := by
+      have := (List.getElem?_eq_some_iff.1 he).1
+      simp only [List.length_take] at this; omega
+    rw [List.getElem?_take, if_pos hi] at he
+    exact ⟨hput i e he (by omega), hrev i e he⟩
+  · intro e he; exact hpfx e (List.mem_of_mem_take he)
+  · exact hr1
+  · exact hrL
+  · simp only [List.length_take]; omega
+
 end pure
 
 end cachekv

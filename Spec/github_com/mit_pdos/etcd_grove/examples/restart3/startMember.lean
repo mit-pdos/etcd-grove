@@ -62,7 +62,7 @@ abbrev startMember.spec : Prop :=
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface),
-        common.memberUp s ρ E₀ lg γn id ∗ memberStop m s pl γ id peerAddr γn (name ++ go!".etcd")) }}
+        common.memberUp s ρ E₀ lg γn id ∗ memberStop m s pl γ id peerAddr γn ρ (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev startMember.specRestart : Prop :=
@@ -91,7 +91,7 @@ abbrev startMember.specRestart : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface) (ρ' : ReqNames)
         (E₀' : apply.AEnv GF), ⌜restartNames ρ ρ'⌝ ∗
-        common.memberUp s ρ' E₀' lg γn id ∗ memberStop m s pl γ id peerAddr γn (name ++ go!".etcd")) }}
+        common.memberUp s ρ' E₀' lg γn id ∗ memberStop m s pl γ id peerAddr γn ρ' (name ++ go!".etcd")) }}
 
 end spec
 

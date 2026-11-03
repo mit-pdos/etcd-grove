@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnab
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__HardStop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
@@ -1758,6 +1759,10 @@ theorem EtcdServer.wp_ForceSnapshot :
 theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
   EtcdServer.GoAttach.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Warn
+
+theorem EtcdServer.wp_HardStop :
+    EtcdServer.HardStop.spec (GF := GF) (hG := hG) :=
+  EtcdServer.HardStop.wp_proof
 
 theorem EtcdServer.wp_IsIDRemoved :
     EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG) :=

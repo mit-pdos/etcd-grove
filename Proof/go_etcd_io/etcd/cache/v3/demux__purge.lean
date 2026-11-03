@@ -296,6 +296,8 @@ theorem demux.purge.wp_proof
     iapply (certChain_nil (GF := GF) (C := C) 0)
   isplitr
   · iapply (prog_init (GF := GF) (C := C))
+  isplitr
+  · ileft; ipureintro; rfl
   ipureintro
   refine ⟨⟨fun w => (Hok.dom w).trans (Hdom w).symm, ?_, ?_⟩, RegsStart.unmapped Hstart.sr_ok Hunm⟩
   · intro w v hv hm; rw [Hunm w v hv] at hm; cases hm
