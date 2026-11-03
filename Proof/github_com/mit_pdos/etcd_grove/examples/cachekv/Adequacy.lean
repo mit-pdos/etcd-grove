@@ -90,15 +90,16 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
+    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.cachekv.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main) #nw #nops)
-    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23873"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
+        (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+          (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
@@ -115,10 +116,11 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro
-  rcases Hr with rfl | rfl | rfl
+  rcases Hr with rfl | rfl | rfl | rfl
   · exact Or.inl rfl
   · exact Or.inr (Or.inl rfl)
-  · exact Or.inr (Or.inr rfl)
+  · exact Or.inr (Or.inr (Or.inl rfl))
+  · exact Or.inr (Or.inr (Or.inr rfl))
 
 end adequacy
 

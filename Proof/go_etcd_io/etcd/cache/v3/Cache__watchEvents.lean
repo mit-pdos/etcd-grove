@@ -295,6 +295,25 @@ theorem errStrOk_of_ctx (err : GoInterface) :
   iintro #H
   iexact H
 
+/-- `TailOk` is quiet: nothing under the prefix after `last` up to the cursor
+(`etcdStep_restrict`). -/
+theorem tailOk_quiet (pfx : GoString) (last : Int) (p : w64) :
+    TailOk (GF := GF) pfx last p ⊢ etcdQuiet pfx last (sint.Z p) := by
+  unfold TailOk
+  iintro (%h | ⟨%q, %hq, #Hs⟩)
+  · iapply etcdQuiet_nil pfx last _ h
+  · unfold etcdQuiet
+    imodintro
+    iintro %x %hx
+    iexists q
+    isplitr
+    · ipureintro; exact hq
+    iapply (etcdStep_restrict q q x p pfx [] (Int.le_refl _) (by omega)
+      (by rcases Int.lt_or_eq_of_le hx.2 with h | h
+          · exact Or.inl h
+          · exact Or.inr ⟨by word, rfl⟩))
+    iexact Hs
+
 /-- What `Broadcast` asks of the caller: the response's certificate, from the stream's state
 `c` continuing the watch at the cursor `k`. -/
 theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : RespModel)
@@ -302,9 +321,10 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     (hcase : WatchCase pfx k k' r) :
     CursorOk (GF := GF) pfx c k ⊢ watchChain pfx k (splitBatches r.events) -∗
       □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) -∗
+      □ (⌜r.isProgressNotify = true⌝ -∗ ⌜k = r.hdrRev⌝ ∨ EtcdStep k r.hdrRev pfx []) -∗
       ⌜c.minRev ≠ W64 0 ∧ validRevisions r c.maxRev = true⌝ -∗
         respCert (etcdStepCert pfx) c r := by
-  iintro #Hk #Hc #Hpr %Hv
+  iintro #Hk #Hc #Hpr #Hps %Hv
   ihave %Hkp := cursorOk_pure pfx c k $$ Hk
   iunfold CursorOk at Hk
   icases Hk with ⟨-, #Ht⟩
@@ -320,10 +340,19 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     · ipureintro
       have := Hkp.2
       omega
-    rw [etcdStepCert_prog]
+    isplitr
+    · rw [etcdStepCert_prog]
+      imodintro
+      iapply Hpr
+      ipureintro; trivial
+    ihave #Ht' : TailOk pfx c.lastRev r.hdrRev $$ []
+    · icases Hps $$ %trivial with (%he | #Hs)
+      · rw [← he]; iexact Ht
+      · iapply tailOk_step pfx c.lastRev k r.hdrRev $$ [$Ht $Hs]
+    rw [show (etcdStepCert (GF := GF) pfx).quiet c.lastRev (sint.Z r.hdrRev) =
+      etcdQuiet pfx c.lastRev (sint.Z r.hdrRev) from rfl]
     imodintro
-    iapply Hpr
-    ipureintro; trivial
+    iapply tailOk_quiet pfx c.lastRev r.hdrRev $$ Ht'
   · obtain ⟨hne, -, hrevs, -⟩ := hc
     unfold respCert
     rw [isProgressNotify_false_of_events hne]
@@ -523,7 +552,7 @@ theorem Cache.watchEvents.wp_proof
     unfold cacheWriter
     icases Hw with ⟨Hdw, #Hwo, %B, Hbd⟩
     icases demuxWriter_inv $$ Hdw with ⟨Hdw, %Hinv⟩
-    ihave #Hcert0 := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hcase $$ Hkc Hch Hpr
+    ihave #Hcert0 := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hcase $$ Hkc Hch Hpr Hps
     imod respCert_cacheCert_cond cf cc r B _ $$ [$Hcert0 $Hbd] with ⟨%B', #Hcert, Hbd⟩
     wp_auto
     wp_apply wp_Broadcast cf.demux γd cap (cacheCert cf) cc v r

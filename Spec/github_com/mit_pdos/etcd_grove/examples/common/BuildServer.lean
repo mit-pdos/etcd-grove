@@ -7,14 +7,18 @@ example that keeps its listeners (`examples/restart3`). Lean-first (no Rocq coun
 **The triple:** `newServer.spec`'s at retention `0` (a first start: `bootstrap`'s contract describes
 a new cluster's first start), at any snapshot settings.
 
-**`specStop`** (DRAFT, R2b): `spec`'s, with the right to stop the server once started
-(`srvStopRight`, `NewServer`'s to give).
+**`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
+the name's `.etcd`) and what it keeps for the stop (`srvStopKeep`), from which `Start` gives the
+right to stop it (`common.Start_builtS_spec`;
+R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
+makes the channels it names).
 
 **`specRestart`** (DRAFT, R2c and R2d): member `id` started again on the data directory its last
 stop left (`srvDiskImage`, at the stopped incarnation's names `ρ`), `bootstrap`'s restart contract
 (`bootPremiseR`) in place of a first start's: the member built at its image's starting index
 (`memberBuiltR`) at new names `ρ'` that agree with `ρ` where the cluster sees them
-(`restartNames`) and a new stand-in environment `E₀'`, with the right to stop it again.
+(`restartNames`) and a new stand-in environment `E₀'`, with its data directory recorded, from
+which `Start` gives the right to stop it again (R2b-2).
 -/
 module
 
@@ -100,7 +104,7 @@ abbrev BuildServer.specStop : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false ∗
-          srvStopRight s γ id (name ++ go!".etcd")) }}
+          srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -129,7 +133,7 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvStopRight s γ id (name ++ go!".etcd")) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
 
 end spec
 

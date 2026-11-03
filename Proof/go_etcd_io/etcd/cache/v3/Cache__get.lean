@@ -212,7 +212,7 @@ theorem Cache.get.wp_proof
         iexact Hm
       isplitr
       · iexact HRr
-      · imodintro; unfold cacheGap; ipureintro; trivial
+      · imodintro; iapply cacheGap_nil cf.pfx r _ (Int.le_refl _)
     iapply HΦ
     iright
     isplitr

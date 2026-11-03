@@ -385,6 +385,20 @@ instance evsMatch_persistent (evs : List EvModel) (cs : List EtcdEv) :
     Persistent (evsMatch (GF := GF) evs cs) := by
   unfold evsMatch; infer_instance
 
+/-- etcd's state is the same after a step without events. -/
+theorem isEtcdKvs_quiet (Y r : w64) (pfx : GoString) (m : KvMap) (hY : sint.Z Y < sint.Z r) :
+    EtcdStep (GF := GF) Y r pfx [] ∗ isEtcdKvs Y pfx m ⊢ isEtcdKvs r pfx m := by
+  unfold isEtcdKvs
+  iintro ⟨#Hstep, ⟨%s, #Hs, %Hk, %Hwf, #Hv⟩⟩
+  iexists s
+  isplitl []
+  · imodintro
+    have ht := etcdStep_transfer (GF := GF) Y Y r pfx s [] ⟨Int.le_refl _, hY⟩
+    rw [show applyEvsState s [] = s from rfl] at ht
+    iapply ht $$ [$Hstep $Hs]
+  iframe Hv
+  ipureintro; exact ⟨Hk, Hwf⟩
+
 /-- **The bridge**: a map that is etcd's state at `Y`, and a step `p → r` with `p ≤ Y < r` whose
 events the store's batch `evs` matches, give, when the store applies the batch without failing,
 etcd's state at `r` (puts under the prefix keep the map's keys under it). This certifies the
@@ -564,8 +578,46 @@ instance etcdStepCertBody_persistent (pfx : GoString) (p : w64) (b : Batch) :
     Persistent (etcdStepCertBody (GF := GF) pfx p b) := by
   unfold etcdStepCertBody; infer_instance
 
+/-- **etcd was quiet under the prefix after `a` up to `b`**: every revision `x` in `(a, b]` ends a
+step without events (under the prefix `pfx`) from some revision at or below `a`. The cache's
+quiet certificate (`DemuxCert.quiet`): what a progress notification says of the revisions since
+the stream's last batch. -/
+def etcdQuiet (pfx : GoString) (a b : Int) : IProp GF :=
+  iprop(□ ∀ x : w64, ⌜a < sint.Z x ∧ sint.Z x ≤ b⌝ -∗ ∃ q : w64, ⌜sint.Z q ≤ a⌝ ∗ EtcdStep q x pfx [])
+
+instance etcdQuiet_persistent (pfx : GoString) (a b : Int) :
+    Persistent (etcdQuiet (GF := GF) pfx a b) := by
+  unfold etcdQuiet; infer_instance
+
+instance etcdQuiet_timeless (pfx : GoString) (a b : Int) :
+    Timeless (etcdQuiet (GF := GF) pfx a b) := by
+  unfold etcdQuiet; infer_instance
+
+theorem etcdQuiet_mono (pfx : GoString) (a a' b b' : Int) (ha : a ≤ a') (hb : b' ≤ b) :
+    etcdQuiet (GF := GF) pfx a b ⊢ etcdQuiet pfx a' b' := by
+  unfold etcdQuiet
+  iintro #H; imodintro; iintro %x %hx
+  icases H $$ %x %(⟨by omega, by omega⟩ : a < sint.Z x ∧ sint.Z x ≤ b) with ⟨%q, %hq, #Hs⟩
+  iexists q; iframe Hs; ipureintro; omega
+
+theorem etcdQuiet_nil (pfx : GoString) (a b : Int) (h : b ≤ a) : ⊢ etcdQuiet (GF := GF) pfx a b := by
+  unfold etcdQuiet
+  imodintro; iintro %x %hx; exfalso; omega
+
+/-- A batch's step is quiet before the batch (`etcdStep_restrict`). -/
+theorem etcdQuiet_of_cert (pfx : GoString) (p : w64) (b : Batch) (a : Int) (hp : sint.Z p ≤ a) :
+    etcdStepCertBody (GF := GF) pfx p b ⊢ etcdQuiet pfx a (sint.Z (batchRev b) - 1) := by
+  unfold etcdStepCertBody etcdQuiet
+  iintro ⟨%cs, -, #Hs, -, -⟩
+  imodintro; iintro %x %hx
+  iexists p
+  isplitr
+  · ipureintro; exact hp
+  iapply (etcdStep_restrict p p x (batchRev b) pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
+  iexact Hs
+
 /-- The cache's demux certificate (`DemuxCert`): batches by `etcdStepCertBody`, progress
-notifications' revisions by `etcdReached`. -/
+notifications' revisions by `etcdReached`, quiet intervals by `etcdQuiet`. -/
 def etcdStepCert (pfx : GoString) : DemuxCert GF where
   cert := etcdStepCertBody pfx
   timeless := fun _ _ => inferInstance
@@ -577,6 +629,11 @@ def etcdStepCert (pfx : GoString) : DemuxCert GF where
     unfold etcdStepCertBody
     iintro ⟨%cs, -, -, -, H⟩
     iexact H
+  quiet := etcdQuiet pfx
+  quiet_timeless := fun _ _ => inferInstance
+  quiet_mono := etcdQuiet_mono pfx
+  quiet_nil := etcdQuiet_nil pfx
+  cert_quiet := fun p b a hp => etcdQuiet_of_cert pfx p b a hp
 
 theorem etcdStepCert_prog (pfx : GoString) :
     (etcdStepCert (GF := GF) pfx).prog = etcdReached := rfl

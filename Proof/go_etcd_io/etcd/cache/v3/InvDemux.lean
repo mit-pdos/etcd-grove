@@ -431,7 +431,19 @@ And a certificate for the revisions progress notifications report, `prog r` (the
 etcd has reached `r`, `etcdReached`): downward closed, true of `0`, and implied by a batch's
 certificate for the batch's revision. The lock holds `□ prog maxRev` (a progress
 notification's revision comes with it, `respCert`; a batch's from its certificate), and a
-watcher's publication gives it of every progress notification sent (`demuxPubBody_prog`). -/
+watcher's publication gives it of every progress notification sent (`demuxPubBody_prog`).
+
+And a certificate for the revisions between the stream's batches that have none, `quiet a b`
+(the cache's: etcd had no event under the prefix after `a` up to `b`, `etcdQuiet`): monotone
+(a sub-interval of a quiet interval is quiet), true of an empty interval, and implied by a
+batch's certificate for the revisions before the batch. The lock holds `□ quiet lastRev maxRev`
+unless `maxRev = 0` (`Init` takes any `minRev`, a non-positive one included, after which
+`lastRev = minRev - 1` may be below `0`; a progress notification at or below `0` is stale to any
+consumer at a non-negative revision); a progress notification's comes with it (`respCert`). Like
+the other certificates, the laws hold of `True`: the parameter is the user's (the cache's says
+something). An open watcher's publication gives
+it from its last delivered batch to the first batch still owed (`quietEnd`), so that its
+consumer knows a progress notification sent leaves nothing undelivered below it. -/
 structure DemuxCert (GF : BundledGFunctors) where
   cert : w64 → Batch → IProp GF
   timeless : ∀ p b, Timeless (cert p b)
@@ -440,6 +452,11 @@ structure DemuxCert (GF : BundledGFunctors) where
   prog_mono : ∀ r r', sint.Z r' ≤ sint.Z r → prog r ⊢ prog r'
   prog_zero : ⊢ prog (W64 0)
   cert_prog : ∀ p b, cert p b ⊢ prog (batchRev b)
+  quiet : Int → Int → IProp GF
+  quiet_timeless : ∀ a b, Timeless (quiet a b)
+  quiet_mono : ∀ a a' b b', a ≤ a' → b' ≤ b → quiet a b ⊢ quiet a' b'
+  quiet_nil : ∀ a b, b ≤ a → ⊢ quiet a b
+  cert_quiet : ∀ p bt a, sint.Z p ≤ a → cert p bt ⊢ quiet a (sint.Z (batchRev bt) - 1)
 
 instance DemuxCert.cert_timeless {GF : BundledGFunctors} (C : DemuxCert GF) (p : w64)
     (b : Batch) : Timeless (C.cert p b) := C.timeless p b
@@ -447,12 +464,25 @@ instance DemuxCert.cert_timeless {GF : BundledGFunctors} (C : DemuxCert GF) (p :
 instance DemuxCert.prog_timeless' {GF : BundledGFunctors} (C : DemuxCert GF) (r : w64) :
     Timeless (C.prog r) := C.prog_timeless r
 
+instance DemuxCert.quiet_timeless' {GF : BundledGFunctors} (C : DemuxCert GF) (a b : Int) :
+    Timeless (C.quiet a b) := C.quiet_timeless a b
+
+/-- The end of a view's quiet interval: one below the first stream batch still owed (revision at
+least `n`), or `maxRev` if none. Every progress notification sent is at most it
+(`Delivered.progress`). -/
+def quietEnd (v : View) : Int :=
+  match (v.stream.filter (fun b => decide (sint.Z v.n ≤ sint.Z (batchRev b)))).head? with
+  | some b => sint.Z (batchRev b) - 1
+  | none => sint.Z v.maxRev
+
 /-- The revision a certificate chain through `bs` from `last` ends at: the last batch's, `last`
 if there is none. -/
 def chainEnd (last : Int) (bs : List Batch) : Int :=
   match bs.getLast? with
   | some b => sint.Z (batchRev b)
   | none => last
+
+theorem chainEnd_base_stream (c : DemuxCore) : chainEnd c.base c.stream = c.lastRev := rfl
 
 /-! ## Predicates -/
 
@@ -565,9 +595,10 @@ instance certChain_timeless (C : DemuxCert GF) (last : Int) (bs : List Batch) :
 /-- What `Broadcast`'s caller certifies of an accepted response `r` (state `c`): its batches
 chained from the stream's last batch (`base` for an empty stream); for a progress notification,
 that it is at or above `base` (so that `maxRev` stays at or above it), with its revision's
-certificate (`C.prog`). -/
+certificate (`C.prog`) and the quiet one from the stream's last batch (`C.quiet`). -/
 def respCert (C : DemuxCert GF) (c : DemuxCore) (r : RespModel) : IProp GF :=
-  if r.isProgressNotify then iprop(⌜c.base ≤ sint.Z r.hdrRev⌝ ∗ □ C.prog r.hdrRev)
+  if r.isProgressNotify then
+    iprop(⌜c.base ≤ sint.Z r.hdrRev⌝ ∗ □ C.prog r.hdrRev ∗ □ C.quiet c.lastRev (sint.Z r.hdrRev))
   else if r.events = [] then iprop(True)
   else certChain C c.lastRev (splitBatches r.events)
 
@@ -582,13 +613,17 @@ has had (`oc = none`), and for the log it was closed after (`oc = some c`, the c
 delivery facts for some start `s` (the one `Register` was given, `sr`, unless that was `0`) and
 view `v` (a compaction cancel at `v.n`), and **the certificates** of the delivered stream
 segment, chained from a revision `p₀` below `s` (for `s ≠ 0`), and the certificate of the view's
-`maxRev` (`C.prog`), which is at or above every progress notification sent. -/
+`maxRev` (`C.prog`), which is at or above every progress notification sent; and, while it is
+open (`oc = none`) and has sent something (and `maxRev ≠ 0`), the quiet certificate from the
+segment's end (its last batch's revision, `p₀` for an empty segment) to the first batch still owed
+(`quietEnd`), which is at or above every progress notification sent. -/
 def demuxPubBody (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) : IProp GF :=
   iprop(∃ (s : w64) (v : View) (p₀ : Int),
     ⌜(sr = W64 0 ∨ s = sr) ∧ Delivered pred s v L ∧ (s = W64 0 ∨ p₀ < sint.Z s) ∧
       (∀ m, oc = some (some m) → m = v.n)⌝ ∗
-    certChain C p₀ (streamRange s v.n v.stream) ∗ □ C.prog v.maxRev)
+    certChain C p₀ (streamRange s v.n v.stream) ∗ □ C.prog v.maxRev ∗
+    (⌜oc ≠ none ∨ L = [] ∨ v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd p₀ (streamRange s v.n v.stream)) (quietEnd v)))
 
 instance demuxPubBody_timeless (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
@@ -649,6 +684,7 @@ def demuxLockRest (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (q
       (DFrac.own q) ∗
     "#Hcerts" ∷ certChain C c.base c.stream ∗
     "#Hprog" ∷ □ C.prog c.maxRev ∗
+    "#Hquiet" ∷ (⌜c.maxRev = W64 0⌝ ∨ □ C.quiet c.lastRev (sint.Z c.maxRev)) ∗
     "%Hinv" ∷ ⌜DemuxInv cap c⌝ ∗
     "%Hok" ∷ ⌜RegsOk c c.stream.length regs views⌝ ∗
     "%Hstart" ∷ ⌜RegsStart c regs views⌝)
@@ -752,6 +788,7 @@ def demuxLocked (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c :
     "Hres" ∷ ([∗map] w ↦ ri ∈ regs, regRes C γd w ri) ∗
     "#Hcerts" ∷ certChain C c.base c.stream ∗
     "#Hprog" ∷ □ C.prog c.maxRev ∗
+    "#Hquiet" ∷ (⌜c.maxRev = W64 0⌝ ∨ □ C.quiet c.lastRev (sint.Z c.maxRev)) ∗
     "%Hok" ∷ ⌜RegsOk c k regs views⌝ ∗
     "%Hstart" ∷ ⌜RegsStart c regs views⌝)
 
@@ -1781,7 +1818,7 @@ def demuxRestBody (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF)
     x.2.2.2.1 ↦${DFrac.own q} (actOf x.2.2.1) ∗ x.2.2.2.2 ↦${DFrac.own q} (lagOf x.2.2.1) ∗
     ownRingBuffer (demuxHistAddr d) cap (batchAt (hG := hG)) batchRev x.1.history (DFrac.own q) ∗
     certChain C x.1.base x.1.stream ∗ □ C.prog x.1.maxRev ∗
-    ⌜DemuxInv cap x.1⌝ ∗ ⌜RegsOk x.1 x.1.stream.length x.2.1 x.2.2.1⌝ ∗
+    (⌜x.1.maxRev = W64 0⌝ ∨ □ C.quiet x.1.lastRev (sint.Z x.1.maxRev)) ∗ ⌜DemuxInv cap x.1⌝ ∗ ⌜RegsOk x.1 x.1.stream.length x.2.1 x.2.2.1⌝ ∗
     ⌜RegsStart x.1 x.2.1 x.2.2.1⌝)
 
 theorem demuxLockRest_equiv (d : Loc) (γd : DemuxNames) (cap : Nat) (q : Qp) :
@@ -1798,7 +1835,7 @@ theorem demuxLockRest_equiv (d : Loc) (γd : DemuxNames) (cap : Nat) (q : Qp) :
   · iintro ⟨%x, H⟩
     unfold demuxRestBody
     icases H with ⟨Hcore, Hregs, Hviews, HminRev, HmaxRev, HactF, HlagF, Hact, Hlag, Hhist,
-      #Hcerts, #Hprog, %Hinv, %Hok, %Hstart⟩
+      #Hcerts, #Hprog, #Hquiet, %Hinv, %Hok, %Hstart⟩
     unfold demuxLockRest
     iexists x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2
     simp only [named]
@@ -2186,6 +2223,114 @@ theorem certChain_mono_start (last last' : Int) (bs : List Batch) (h : last ≤ 
     ipureintro
     exact ⟨by omega, habove b rfl⟩
 
+/-- `chainEnd` of an append: the second part's from the first's. -/
+theorem chainEnd_append (last : Int) (bs1 bs2 : List Batch) :
+    chainEnd last (bs1 ++ bs2) = chainEnd (chainEnd last bs1) bs2 := by
+  unfold chainEnd
+  cases h2 : bs2.getLast? with
+  | none =>
+    rw [List.getLast?_eq_none_iff] at h2; subst h2; simp
+  | some b => rw [List.getLast?_append, h2]; simp
+
+/-- A sorted stream in three parts, for `s ≤ n`: the batches below `s`, the segment `[s, n)`,
+those at or above `n`. -/
+theorem stream_split3 (s n : w64) (hsn : sint.Z s ≤ sint.Z n) :
+    ∀ (st : List Batch), RevSorted batchRev st →
+      st = st.filter (fun b => decide (sint.Z (batchRev b) < sint.Z s)) ++ streamRange s n st ++
+        st.filter (fun b => decide (sint.Z n ≤ sint.Z (batchRev b)))
+  | [], _ => rfl
+  | b :: bs, hs => by
+    have hs' : RevSorted batchRev bs := (List.pairwise_cons.1 hs).2
+    have hall : ∀ b' ∈ bs, sint.Z (batchRev b) < sint.Z (batchRev b') := (List.pairwise_cons.1 hs).1
+    have ih := stream_split3 s n hsn bs hs'
+    unfold streamRange at ih ⊢
+    by_cases h1 : sint.Z (batchRev b) < sint.Z s
+    · rw [List.filter_cons_of_pos (by simpa using h1),
+        List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega),
+        List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega)]
+      simp only [List.cons_append]; exact congrArg (b :: ·) ih
+    · have hp : bs.filter (fun b => decide (sint.Z (batchRev b) < sint.Z s)) = [] := by
+        rw [List.filter_eq_nil_iff]; intro x hx; have := hall x hx; simp only [decide_eq_true_eq]
+        omega
+      by_cases h2 : sint.Z (batchRev b) < sint.Z n
+      · rw [List.filter_cons_of_neg (by simpa using h1),
+          List.filter_cons_of_pos (by simp only [decide_eq_true_eq]; omega),
+          List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega)]
+        rw [hp] at ih ⊢
+        simp only [List.nil_append, List.cons_append] at ih ⊢
+        exact congrArg (b :: ·) ih
+      · have hr : bs.filter (fun b => decide (sint.Z s ≤ sint.Z (batchRev b) ∧
+            sint.Z (batchRev b) < sint.Z n)) = [] := by
+          rw [List.filter_eq_nil_iff]; intro x hx; have := hall x hx
+          simp only [decide_eq_true_eq, not_and, Int.not_lt]; intro; omega
+        have hq : bs.filter (fun b => decide (sint.Z n ≤ sint.Z (batchRev b))) = bs := by
+          rw [List.filter_eq_self]; intro x hx; have := hall x hx
+          simp only [decide_eq_true_eq]; omega
+        rw [List.filter_cons_of_neg (by simpa using h1),
+          List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega),
+          List.filter_cons_of_pos (by simp only [decide_eq_true_eq]; omega), hp, hr, hq]
+        rfl
+
+/-- **An open watcher's segment and its quiet tail**: the stream's chain from `base` and the
+quiet certificate from its last batch to `maxRev` give the segment `[s, n)`'s chain from the last
+batch below `s` (or `base`), and the quiet certificate from the segment's end to `quietEnd`: the
+first batch still owed's certificate (`cert_quiet`), or the stream's quiet tail if none. -/
+theorem certChain_seg_open (base : Int) (v : View) (s : w64)
+    (hsorted : RevSorted batchRev v.stream) (hsn : sint.Z s ≤ sint.Z v.n)
+    (hcond : s = W64 0 ∨ base < sint.Z s) :
+    certChain (GF := GF) C base v.stream ⊢
+      (⌜v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd base v.stream) (sint.Z v.maxRev)) -∗
+      ∃ p₀ : Int, ⌜s = W64 0 ∨ p₀ < sint.Z s⌝ ∗ certChain C p₀ (streamRange s v.n v.stream) ∗
+        (⌜v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd p₀ (streamRange s v.n v.stream)) (quietEnd v)) := by
+  iintro #H #Hq
+  have hsplit := stream_split3 s v.n hsn v.stream hsorted
+  have hce := congrArg (chainEnd base) hsplit
+  rw [chainEnd_append, chainEnd_append] at hce
+  generalize hpre : v.stream.filter (fun b => decide (sint.Z (batchRev b) < sint.Z s)) = pre
+    at hsplit hce
+  generalize hpost : v.stream.filter (fun b => decide (sint.Z v.n ≤ sint.Z (batchRev b))) = post
+    at hsplit hce
+  ihave H' : certChain C base (pre ++ (streamRange s v.n v.stream ++ post)) $$ [H]
+  · rw [← List.append_assoc, ← hsplit]; iexact H
+  icases (certChain_append (C := C) base pre (streamRange s v.n v.stream ++ post)).1 $$ H'
+    with ⟨-, H2⟩
+  icases (certChain_append (C := C) (chainEnd base pre) (streamRange s v.n v.stream) post).1 $$ H2
+    with ⟨#Hc, #Hpost⟩
+  iexists chainEnd base pre
+  isplitr
+  · ipureintro
+    cases hp : pre.getLast? with
+    | none =>
+      simp only [chainEnd, hp]
+      rcases hcond with h | h
+      · exact Or.inl h
+      · exact Or.inr h
+    | some b =>
+      right
+      simp only [chainEnd, hp]
+      have hb : b ∈ pre := List.mem_of_getLast? hp
+      rw [← hpre] at hb
+      simpa using (List.mem_filter.1 hb).2
+  isplitr
+  · iexact Hc
+  unfold quietEnd
+  rw [hpost]
+  cases post with
+  | nil =>
+    simp only [List.head?_nil]
+    have hce' : chainEnd base v.stream =
+        chainEnd (chainEnd base pre) (streamRange s v.n v.stream) := by rw [hce]; rfl
+    rw [← hce']
+    iexact Hq
+  | cons b post' =>
+    simp only [List.head?_cons]
+    rw [certChain_cons]
+    icases Hpost with ⟨⟨%p, %hp, #Hcb⟩, -⟩
+    iright
+    imodintro
+    iapply (C.cert_quiet p b _ hp.1)
+    iexact Hcb
+
 /-- The certificates of the stream batches in `[s, n)`: a chain from a revision below `s`
 (for `s ≠ 0`), when the range does not start at the stream's first batch with `s` at or below the
 stream's `base` (`hcond`). -/
@@ -2229,7 +2374,7 @@ theorem demuxPub_intro (pred : Option (GoString → Bool)) (sr : w64) (oc : Opti
     (s : w64) (v : View) (L : List RespModel) (base : Int)
     (hsr : sr = W64 0 ∨ s = sr) (hD : Delivered pred s v L)
     (hcond : s = W64 0 ∨ base < sint.Z s ∨ streamRange s v.n v.stream = [])
-    (hoc : ∀ m, oc = some (some m) → m = v.n) :
+    (hoc : ∀ m, oc = some (some m) → m = v.n) (hcl : oc ≠ none) :
     certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗ demuxPubBody C pred sr oc L := by
   iintro #H #Hp
   icases certChain_seg (C := C) base v.stream s v.n hD.stream_ok.sorted hcond $$ H
@@ -2237,8 +2382,32 @@ theorem demuxPub_intro (pred : Option (GoString → Bool)) (sr : w64) (oc : Opti
   unfold demuxPubBody
   iexists s, v, p₀
   iframe Hc Hp
-  ipureintro
-  exact ⟨hsr, hD, Hp₀, hoc⟩
+  isplitr
+  · ipureintro
+    exact ⟨hsr, hD, Hp₀, hoc⟩
+  · ileft; ipureintro; exact Or.inl hcl
+
+/-- **Publishing** an open registration's log: also the quiet tail (`certChain_seg_open`), from
+the stream's quiet certificate. -/
+theorem demuxPub_intro_open (pred : Option (GoString → Bool)) (sr : w64)
+    (s : w64) (v : View) (L : List RespModel) (base : Int)
+    (hsr : sr = W64 0 ∨ s = sr) (hD : Delivered pred s v L)
+    (hcond : s = W64 0 ∨ base < sint.Z s) :
+    certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗
+      (⌜v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd base v.stream) (sint.Z v.maxRev)) -∗
+      demuxPubBody C pred sr none L := by
+  iintro #H #Hp #Hq
+  icases certChain_seg_open (C := C) base v s hD.stream_ok.sorted hD.start_le hcond $$ H Hq
+    with ⟨%p₀, %Hp₀, #Hc, #Hqt⟩
+  unfold demuxPubBody
+  iexists s, v, p₀
+  iframe Hc Hp
+  isplitr
+  · ipureintro
+    exact ⟨hsr, hD, Hp₀, fun m h => by cases h⟩
+  · icases Hqt with (%h | #Hqt)
+    · ileft; ipureintro; exact Or.inr (Or.inr h)
+    · iright; iexact Hqt
 
 /-- **A send's publication** (`enqueueResponse`'s premise): if every response the filter makes
 of `r` gives delivery facts for the new log (with the view's next revision updated), the log is
@@ -2248,18 +2417,16 @@ theorem pub_send (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (se
     (hnext : ∀ r', filterResp pred r = some r' →
       ∃ n' : w64, Delivered pred s { v with n := n' } (sent ++ [r'])) :
     certChain (GF := GF) C base v.stream ⊢ □ C.prog v.maxRev -∗
+      (⌜v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd base v.stream) (sint.Z v.maxRev)) -∗
       □ (∀ r', ⌜filterResp pred r = some r'⌝ -∗ demuxPubBody C pred sr none (sent ++ [r'])) := by
-  iintro #H #Hp
+  iintro #H #Hp #Hq
   imodintro
   iintro %r' %Hr'
   obtain ⟨n', Hn'⟩ := hnext r' Hr'
-  iapply demuxPub_intro pred sr none s { v with n := n' } (sent ++ [r']) base hsr Hn'
-    (by rcases hcond with h | h
-        · exact Or.inl h
-        · exact Or.inr (Or.inl h))
-    (fun m h => by cases h)
+  iapply demuxPub_intro_open pred sr s { v with n := n' } (sent ++ [r']) base hsr Hn' hcond
   · iexact H
   · iexact Hp
+  · iexact Hq
 
 /-- **A close's publication** (`Stop`/`Compact`'s premise, `watcherClosePub`): the delivery facts
 of the closed log, a compaction cancel at the view's `n`. -/
@@ -2272,7 +2439,7 @@ theorem pub_close (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (s
   iintro #H #Hp
   imodintro
   iapply demuxPub_intro pred sr (some c) s v sent base hsr hD hcond
-    (fun m h => by simp only [Option.some.injEq] at h; exact hc m h)
+    (fun m h => by simp only [Option.some.injEq] at h; exact hc m h) (by simp)
   · iexact H
   · iexact Hp
 
@@ -2284,7 +2451,7 @@ theorem demuxPubBody_prog (pred : Option (GoString → Bool)) (sr : w64) (oc : O
     demuxPubBody (GF := GF) C pred sr oc L ⊢
       □ ∀ r, ⌜r ∈ L ∧ r.events = []⌝ -∗ C.prog r.hdrRev := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hd, -, #Hp⟩
+  iintro ⟨%s, %v, %p₀, %Hd, -, #Hp, -⟩
   obtain ⟨-, hD, -, -⟩ := Hd
   imodintro
   iintro %r %Hr
