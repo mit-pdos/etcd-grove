@@ -26,6 +26,13 @@ gives a reader's lower bound of the compaction keys' flag over `D` with an empty
 (`fkRd`, what a commit gives the backend's readers, `batchTxBuffered.unsafeCommit`): with the
 client's half at `0` (`fkOwn γ 0`, a store that does not compact), `D` has no compaction key
 (`fkRd_abs`).
+
+(F2, stage 3, 2026-11-03: the user's approved restatement, `notes/image-cmp-f2-plan.md`) The
+observation is also handed the batch lock's halves of the backend's two exact ghosts: the physical
+view of the non-hook buckets (`pvHalf`, at the observed `vd` itself) and the compaction keys'
+values (`ckHalf` at `v`), and `Q` takes `v`: the post's `Q` is at `fkVals D`, the values `D` holds
+at `Meta`'s compaction keys. Today's statement (without them) is the corollary
+`backend.backend.Snapshot.spec_of_specF2` (`etcdserver/SnapSendBranch.lean`).
 -/
 module
 
@@ -53,15 +60,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 says of every commit (see the file header). -/
 abbrev backend.backend.Snapshot.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
-    (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → Prop),
+    (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ R ∗
-      □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData),
-        R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ ⌜Q vd d r⌝) }}
+      □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
+          (v : FkVals),
+        R -∗ W -∗ Pk -∗ viewAt γ vd -∗ pvHalf γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ ckHalf γ v -∗
+          ⌜Q vd d r v⌝) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
       snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
-      ⌜Q (sData P D) (hkData P D) (rbData P D)⌝ }}
+      ⌜Q (sData P D) (hkData P D) (rbData P D) (fkVals D)⌝ }}
 
 end spec
 

@@ -243,9 +243,9 @@ theorem mvcc.watchableStore.Restore.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
-  intro s st γ b' d' γb' P' L R c r hLR hR hcr
+  intro s st γ b' d' γb' P' L R c r hLR hR hcr hsn
   wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, Hww, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
-    Hreg, Hsr, Hwts, Hres, Hrts⟩
+    Hreg, Htie, Hsr, Hwts, Hres, Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -280,12 +280,12 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
-      Hown Htoks HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts Hpin]
+  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr hsn) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
+      Hown Htoks HlogQ HbkT Himg Hnd Hrr Hreg Htie Hsr Hwts Hres Hrts Hpin]
     as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hres, Hjob, Hold,
       Hnew'⟩
   · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
-    iframe Hrc HpF HpC Hright Hfs Hfrag Hown Htoks HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts Hpin
+    iframe Hrc HpF HpC Hright Hfs Hfrag Hown Htoks HbkT Himg Hnd Hrr Hreg Htie Hsr Hwts Hres Hrts Hpin
     iframe #
     isplitr
     · ipureintro; exact Hkb

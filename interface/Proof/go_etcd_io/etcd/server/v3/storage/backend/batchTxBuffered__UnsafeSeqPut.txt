@@ -26,8 +26,12 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof [go_etcd_io.bbolt.Assumpti
                                     DFrac.discard ∗
                                   backend.batchLocked γ P b st ∗
                                     backend.isBucket bk bi ∗
-                                      ownSlice key kb DFrac.discard ∗ ownSlice value vb DFrac.discard -∗
-                            ▷ (backend.batchLocked γ P b (st.put bi kb vb true) -∗ Φ (intoVal ())) -∗
+                                      ownSlice key kb DFrac.discard ∗
+                                        ownSlice value vb DFrac.discard ∗ backend.pvPut γ P bi.name st.S -∗
+                            ▷
+                                (backend.batchLocked γ P b (st.put bi kb vb true) ∗
+                                    backend.pvPut γ P bi.name (st.put bi kb vb true).S -∗
+                                  Φ (intoVal ())) -∗
                               WP
                                 ((((intoVal
                                         (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType

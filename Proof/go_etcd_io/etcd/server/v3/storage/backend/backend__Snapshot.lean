@@ -50,7 +50,19 @@ committed data; the flag only grows, so a later put of a compaction key cannot f
 would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
 commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
 in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
-rather than the batch lock's alone. -/
+rather than the batch lock's alone. (F2, stage 3, 2026-11-03; `notes/image-cmp-f2-plan.md`) Why the
+observation may also take `pvHalf γ vd` and `ckHalf γ v`, with the post's `Q` at `fkVals D`: the
+two ghosts beside `hkOwn`/`rbOwn` are the batch lock's halves at the writer's contents (the
+physical view of the non-hook buckets, `sData`, and the compaction keys' values, `fkVals`; every
+write to a non-hook bucket and every put of a compaction key moves both halves, the client's and
+the lock's, `batchGhostAt`), and a commit makes the writer's contents committed, so at the end of
+that last commit, with the lock free, they are at `sData P D` and `fkVals D`. `Snapshot` commits
+first, so a write made before the call, committed or only pending in the writer's contents, is in
+`D`, and a session holding the lock during the call is in it whole or not at all. Go tests:
+`TestSnapshotPendingWrites` (an unlocked, uncommitted put of a compaction key and a delete in `Key`
+are in the snapshot), `TestSnapshotWaitsForSession` (a session holding the lock during `Snapshot`
+is in it whole), `TestImageCmpMidJob` (the records and the job's cut, mid-job and with a second
+compaction queued). -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof

@@ -147,7 +147,7 @@ theorem restoreRightM_openOn (s : Loc) (γ : StoreNames) (c : Int) (h : kbCmpM �
       fieldShareAt s γ q8 o ∗ storeStopR s γ o ∗ crevUB γ.idx (1 : Qp).half c := by
   iintro H
   icases (restoreRightM_on s γ c h).1 $$ H with H
-  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcu, Hq, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #HsR⟩
+  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcu, Hq, -, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #HsR⟩
   iexists o
   iframe Hsc Hstc Htok Hq Hcu Hf HsR
 

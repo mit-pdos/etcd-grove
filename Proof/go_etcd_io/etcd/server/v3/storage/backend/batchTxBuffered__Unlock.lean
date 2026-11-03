@@ -288,7 +288,7 @@ private theorem unlock_idle (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (
     (r : GMap GoString BktData) :
     ⊢ batchLocked (GF := GF) γ P b st -∗ rbPart γ S r ==∗ batchLocked γ P b st ∗ rbOwnIn γ S r := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt trkHalf
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩, %Hwf⟩
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb, Hpv, Hck⟩, Hfk, %Hok⟩, %Hwf⟩
     Hc
   imod rbSide_idle (hG := hG) γ P (rbData P st.S) S r $$ [$Hb $Hc] with ⟨Hb, Hc⟩
   imodintro

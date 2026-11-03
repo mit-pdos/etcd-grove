@@ -1792,6 +1792,7 @@ theorem noCompactor_of_new (s st : Loc) (γ : WsNames) (E : CoPset) :
   by_cases h : γ.st.cm = true
   · unfold crevRightM
     simp only [h, ↓reduceIte]
+    icases Hcr with ⟨Hcr, -⟩
     imod crevFrozen_alloc γ.st E $$ Hcr with #Hf
     imodintro
     iapply noCompactor_of_frozen $$ Hf

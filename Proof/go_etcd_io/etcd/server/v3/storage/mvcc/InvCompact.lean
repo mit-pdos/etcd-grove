@@ -346,16 +346,17 @@ of the quarter and without the queue, which the right holds at its revision). -/
 /-- **The compaction right at `c`, restorable** (the approval's item 17; in place of step 1's
 `compactRight`, which discarded the closer): the compaction revision's half of the authority, the
 jobs' queue at `c`, the closer's half (`storeCloserR`) and the jobs' share of the fields
-(`storeStopR`), at the same objects. Nothing is discarded, so `store.Close` (and, in compaction
-mode, `store.Restore`) take it back. -/
+(`storeStopR`), at the same objects, and (F2's Freeze, stage 2, the user's approval 2026-11-03) the
+tie of `c` with the batch lock's compaction tracking (`kbCrev`: its records' revision is `c`).
+Nothing is discarded, so `store.Close` (and, in compaction mode, `store.Restore`) take it back. -/
 @[no_expose] def compactRightR (s : Loc) (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗
+  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗ kbCrev γ.kb c ∗
     ∃ o : StoreObjs, storeCloserR s γ o ∗ storeStopR s γ o)
 
 /-- **The right, opened** (for the store's own proofs: `store.Compact`'s chain and `store.Close`). -/
 theorem compactRightR_iff (s : Loc) (γ : StoreNames) (c : Int) :
     compactRightR (GF := GF) s γ c ⊣⊢
-      crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗
+      crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗ kbCrev γ.kb c ∗
         ∃ o : StoreObjs, (fieldShareAt s γ q8 o ∗ isStopChan o.sstop ∗ stopCloser o.sstop ∗
           schedule.schedStopTok γ.sch) ∗ storeStopR s γ o := by
   unfold compactRightR storeCloserR; exact .rfl
@@ -366,12 +367,12 @@ theorem compactRightR_take (s : Loc) (γ : StoreNames) (c : Int) :
     compactRightR (GF := GF) s γ c ⊢ ∃ o : StoreObjs, fieldShareAt s γ q8 o ∗ compactQueue γ c ∗
       (fieldShareAt s γ q8 o -∗ compactQueue γ c -∗ compactRightR s γ c) := by
   iintro H
-  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcr, Hq, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #Hstop⟩
+  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcr, Hq, Hk, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #Hstop⟩
   iexists o
   iframe Hf Hq
   iintro Hf Hq
   iapply (compactRightR_iff s γ c).2
-  iframe Hcr Hq
+  iframe Hcr Hq Hk
   iexists o
   iframe Hf Hsc Hstc Htok Hstop
 
@@ -381,19 +382,139 @@ theorem compactRightR_crev (s : Loc) (γ : StoreNames) (c : Int) :
     compactRightR (GF := GF) s γ c ⊢ crevUB γ.idx (1 : Qp).half c ∗
       (crevUB γ.idx (1 : Qp).half c -∗ compactRightR s γ c) := by
   iintro H
-  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcr, Hq, Ho⟩
+  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcr, Hq, Hk, Ho⟩
   iframe Hcr
   iintro Hcr
   iapply (compactRightR_iff s γ c).2
-  iframe Hcr Hq Ho
+  iframe Hcr Hq Hk Ho
+
+/-- **The lock's resource holds the tracking** (either arm), given the writer's pin's registration
+fact (`pinRegd`): for a walked backend, the unregistered arm's own or the registered store's (of an
+instance agreeing on `trk`, `lateWRd`); for `bootstrap`'s, the registered store's, which the
+registration names (`γ`'s, of the instance `d`). -/
+theorem lateWD_track (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) :
+    pinRegd (GF := GF) γ ∗ lateWD d ⊢
+      ∃ L : Log, cmpTrack d L ∗ (cmpTrack d L -∗ lateWD d) := by
+  unfold pinRegd lateWD lateWU lateWUc lateWR lateWRd storeRegd kbSnap
+  rw [hk]
+  cases hs : d.snap
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨(%hf | ⟨%s, #Hr⟩), (⟨Hg, -⟩ | ⟨%s', %γ', #Hr', HW⟩)⟩
+    · exact absurd hf (by simp [hs])
+    · exact absurd hf (by simp [hs])
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr Hg
+      cases Hc
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr Hr'
+      cases Hc
+      icases writerRes_track s γ d hk $$ HW with ⟨%L, Ht, Hb⟩
+      iexists L
+      iframe Ht
+      iintro Ht
+      iright
+      iexists s, γ
+      iframe Hr'
+      iapply Hb $$ Ht
+  · simp only [↓reduceIte]
+    iintro ⟨-, (⟨Hg, %L, Ht⟩ | ⟨%s', %γ', %d0, #Hr', %hk', HW⟩)⟩
+    · iexists L
+      iframe Ht
+      iintro Ht
+      ileft
+      iframe Hg
+      iexists L
+      iexact Ht
+    · obtain ⟨hk0, htrk⟩ := hk'
+      icases writerRes_track s' γ' d0 hk0 $$ HW with ⟨%L, Ht, Hb⟩
+      iexists L
+      ihave Ht : cmpTrack (GF := GF) d L $$ [Ht]
+      · rw [← cmpTrack_congr d d0 htrk L]; iexact Ht
+      iframe Ht
+      iintro Ht
+      iright
+      iexists s', γ', d0
+      iframe Hr'
+      isplitr
+      · ipureintro; exact ⟨hk0, htrk⟩
+      iapply Hb
+      rw [cmpTrack_congr d d0 htrk L]
+      iexact Ht
+
+/-- **The writer's pin, lent to an observation** (review round 2's T2-4): its quarter of the log tie
+and its registration fact. -/
+theorem writerPin_lend (γ : StoreNames) (L : Log) :
+    writerPin (GF := GF) γ L ⊢ kbLog γ.kb (1 : Qp).half.half L ∗ pinRegd γ ∗
+      (kbLog γ.kb (1 : Qp).half.half L -∗ writerPin γ L) := by
+  iunfold writerPin
+  iintro ⟨Hbv, Hloan, Hlg, #Hreg⟩
+  iframe Hlg
+  isplitr
+  · iexact Hreg
+  iintro Hlg
+  iframe Hbv Hloan Hlg
+  iexact Hreg
+
+/-- **The compaction right, lent to an observation** (review round 2's T2-4): its half of the
+revision tie. -/
+theorem compactRightR_lend (s : Loc) (γ : StoreNames) (c : Int) :
+    compactRightR (GF := GF) s γ c ⊢ kbCrev γ.kb c ∗ (kbCrev γ.kb c -∗ compactRightR s γ c) := by
+  iintro H
+  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcr, Hq, Hk, Ho⟩
+  iframe Hk
+  iintro Hk
+  iapply (compactRightR_iff s γ c).2
+  iframe Hcr Hq Hk Ho
+
+/-- **A snapshot's observation of the compaction tracking** (F2's Freeze, stage 2; review round 1's
+second tier: the observation as an mvcc law; review round 2's T2-4: over its footprint): in
+compaction mode, a share of the log tie at `L` (the writer's pin's, `writerPin_lend`), the
+revision tie's half at `c` (the compaction right's, `compactRightR_lend`), the pin's registration
+fact, the batch lock's resource (`lateWD d`) and the backend's own halves of the physical view and
+of the compaction keys' values (in the form `pvHalf`/`ckHalf`, as the backend's snapshot spec hands
+them to its observer: `backend.backend.Snapshot.spec`, restated at F2's stage 3) give the physical cut of `L` at records of revision `c` with the keys'
+values the records' (`keyImageM_of_tracked` turns it into the image), everything kept. -/
+theorem lateWD_cmpObs (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) (hcm : d.cm = true)
+    (L : Log) (c : Int) (q : Qp) (vd : backend.VData) (v : backend.FkVals) :
+    kbLog (GF := GF) γ.kb q L ∗ kbCrev γ.kb c ∗ pinRegd γ ∗ lateWD d ∗
+      backend.pvHalf d.γB vd ∗ backend.ckHalf d.γB v ⊢
+    kbLog γ.kb q L ∗ kbCrev γ.kb c ∗ lateWD d ∗ backend.pvHalf d.γB vd ∗
+      backend.ckHalf d.γB v ∗
+      ⌜∃ r : CmpRecs, physCut L r vd ∧ v = (recBytes r.fin, recBytes r.sched) ∧ r.crev = c⌝ := by
+  iintro ⟨Hlg, Hk, #Hreg, HW, Hp, Hc⟩
+  icases lateWD_track γ d hk $$ [$Hreg $HW] with ⟨%L', Ht, HWb⟩
+  unfold kbLog kbCrev
+  rw [hk]
+  simp only [hcm, ↓reduceIte]
+  icases cmpTrack_obs d hcm L L' c _ _ vd v $$ [$Ht $Hlg $Hk $Hp $Hc] with ⟨Ht, Hlg, Hk, Hp, Hc, %ho⟩
+  ihave HW := HWb $$ Ht
+  iframe HW Hp Hc Hlg Hk
+  ipureintro; exact ho
+
+/-- **The observation at the writer's pin and the compaction right** (`lateWD_cmpObs`'s corollary:
+what `apply.cmpObs` opens `kvWriter` and `cmpOwn` to). -/
+theorem lateWD_cmpObsP (s : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d)
+    (hcm : d.cm = true) (L : Log) (c : Int) (vd : backend.VData) (v : backend.FkVals) :
+    writerPin (GF := GF) γ L ∗ compactRightR s γ c ∗ lateWD d ∗
+      backend.pvHalf d.γB vd ∗ backend.ckHalf d.γB v ⊢
+    writerPin γ L ∗ compactRightR s γ c ∗ lateWD d ∗ backend.pvHalf d.γB vd ∗
+      backend.ckHalf d.γB v ∗
+      ⌜∃ r : CmpRecs, physCut L r vd ∧ v = (recBytes r.fin, recBytes r.sched) ∧ r.crev = c⌝ := by
+  iintro ⟨Hpin, Hcr, HW, Hp, Hc⟩
+  icases writerPin_lend γ L $$ Hpin with ⟨Hlg, #Hreg, Hpb⟩
+  icases compactRightR_lend s γ c $$ Hcr with ⟨Hk, Hcb⟩
+  icases lateWD_cmpObs γ d hk hcm L c _ vd v $$ [$Hlg $Hk $Hreg $HW $Hp $Hc]
+    with ⟨Hlg, Hk, HW, Hp, Hc, %ho⟩
+  ihave Hpin := Hpb $$ Hlg
+  ihave Hcr := Hcb $$ Hk
+  iframe Hpin Hcr HW Hp Hc
+  ipureintro; exact ho
 
 /-- **The right from the closer** (in place of step 1's `compactRight_of_closer`, which
 discarded): the closer's quarter split, one eighth into the jobs' invariant; the stop token and
 the stop channel's close kept. -/
 theorem compactRightR_of_closer (s : Loc) (γ : StoreNames) (E : CoPset) :
-    ⊢ storeCloser (GF := GF) s γ -∗ crevUB γ.idx (1 : Qp).half (-1) ={E}=∗
+    ⊢ storeCloser (GF := GF) s γ -∗ crevUB γ.idx (1 : Qp).half (-1) -∗ kbCrev γ.kb (-1) ={E}=∗
       compactRightR s γ (-1) := by
-  iintro Hcl Hcu
+  iintro Hcl Hcu Hk
   iunfold storeCloser at Hcl
   icases Hcl with ⟨%o, Hf, #Hsc, Hstc, Htok, Hq⟩
   have hs := (fieldShareAt_split (GF := GF) s γ q8 q8 o).1
@@ -402,7 +523,7 @@ theorem compactRightR_of_closer (s : Loc) (γ : StoreNames) (E : CoPset) :
   imod storeStopR_alloc s γ o E $$ Hf2 Hsc with #Hi
   imodintro
   iapply (compactRightR_iff s γ (-1)).2
-  iframe Hcu Hq
+  iframe Hcu Hq Hk
   iexists o
   iframe Hf1 Hsc Hstc Htok Hi
 
@@ -460,7 +581,7 @@ theorem storeCloserM_close (s : Loc) (γ : StoreNames) (c : Int) :
   iintro H
   by_cases hm : kbCmpM γ.kb
   · icases (storeCloserM_on s γ c hm).1 $$ H with H
-    icases (compactRightR_iff s γ c).1 $$ H with ⟨-, Hq, %o, ⟨Hf, -, Hstc, Htok⟩, -⟩
+    icases (compactRightR_iff s γ c).1 $$ H with ⟨-, Hq, -, %o, ⟨Hf, -, Hstc, Htok⟩, -⟩
     iexists o, q8, c
     iframe Hf Hstc Htok Hq
   · icases (storeCloserM_off s γ c hm).1 $$ H with H
@@ -478,12 +599,16 @@ compaction revision (`Compact` set it), a certified log with revision `rev` (unt
 receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's physical bound;
 now the job derives it, `CompactSmall_of_cert`.) And (M2, the storage side, Q1 (a), 2026-10-30) the
 write-back supply (`kbWTSupplyM γ.kb`, persistent), which `store.Compact`'s caller gave and the
-job's write sessions spend. -/
+job's write sessions spend. (F2, stage 2) The backend's records at or above `rev` (`kbCrevLb`:
+`updateCompactRev` raised them to `rev` before scheduling the job; the job's deletes and its
+finished record keep the tracking's cut only below the records' revision), and `rev` at least `1`
+(`updateCompactRev`'s scope restriction: the finished record the job writes is a positive
+revision, `recsPos`). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ (∃ o : StoreObjs, storeStopR s γ o) ∗ ⌜storeCmp γ⌝ ∗
-    crevLb γ.idx (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗
+    crevLb γ.idx (sint.Z rev) ∗ kbCrevLb γ.kb (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗
     ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
-      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
+      ⌜1 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
     Persistent (compactJobPre (GF := GF) s γ rev) := by

@@ -68,10 +68,19 @@ reader of the permit relies on it). The new backend: its contract at every physi
 bucket and instance at the records (`storeBackendTR … r`, given its deletable keys fixed,
 `restoreFixM`) and its clean-view `ReadTx` at the records (`keyCleanReadR`, lent the reader's token
 and, on, the new backend's unfixed registration `restoreRegM`: `dlInit`), off nothing deletable
-(`kbNoDelOff`), the right to register a store in it (`kbRegRight`: its batch lock holds `lateW`
-unregistered), its readers' tokens (`nReaders`, `backend.newPost`'s), and, on, the new job's
+(`kbNoDelOff`), the right to register a store in it (`kbRegRight`: its batch lock holds `lateWD d'`
+unregistered, `lateWU`), its readers' tokens (`nReaders`, `backend.newPost`'s), and, on, the new job's
 safe-range slot (`kbSRM`), the write-back supply (`kbWTSupplyM`) and, when the records resume a
-compaction, the new backend's unset hook (`resumeHookM`, lent and given back).
+compaction, the new backend's unset hook (`resumeHookM`, lent and given back). (F2, stage 2, the
+user's approval 2026-11-03) On, what the walk's open kept of the tracking's ties (`restoreTie d' L'
+r`, `lateWU_of_open`, `snap_create`: the restored log, the records' revision, the job cursor).
+
+**The scope restriction** (F2, stage 2; review round 2): the new backend is one the snapshot walk
+opened (`d'.snap = true`). Its batch lock's unregistered resource then holds the restore's tracking
+at `L'`, so the registration `Restore` leaves pending (`writerReg`) needs only the writer's resource
+without it (`writerResP`). Go's `Restore` takes any backend; a backend `bootstrap` opened (whose lock
+resource, `bootOk`'s `lateWB`, holds no tracking) is outside the statement. The server's only caller,
+`applySnapshot`, restores to the backend it just opened (`snapWalkPost`'s `d'`).
 
 **Why it is true of the Go code** (`kvstore.go:292-314` at the etcd pin, `188113160`; the proofs'
 steps, `store__Restore.lean` off, `RestoreOn.lean` on):
@@ -122,7 +131,7 @@ they are current, and no fact names a field `Restore` writes (`b`, `kvindex`, `f
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev →
+  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev → d'.snap = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
@@ -139,7 +148,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
           (mvcc.kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
       mvcc.kbRegRight (some d') ∗
-      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.restoreTie d' ([[], []] ++ R) r ∗
+      mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
