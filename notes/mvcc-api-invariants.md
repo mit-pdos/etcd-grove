@@ -177,3 +177,12 @@ corollaries over a legacy invariant, M2; not a mode flag, M3). **First** (the us
 assessment that etcd's proofs can work over the new specs (three, by client group:
 `~/mvcc-api-candidates/assess-{txn,server,watch}.md`); if it holds, the mvcc proofs, then the proofs
 on top of them.
+
+**The order (the user, 2026-11-03): every spec and invariant first, then the proofs.** To keep the
+proofs from backtracking (a stronger spec found needed halfway, the proof redone), all the new specs
+and invariants are designed and checked against each other before any proof: the mvcc API (frozen)
+and its invariants (frozen, this note); then each client package's specs restated over the API
+(`txn`, `apply`, `lease`, the server, `v3rpc`, client/v3's watch proofs, the examples' closed
+theorems) and their invariants (the server's holding `mvccState`, `v3rpc`'s sharing `wsState`), each
+reviewed; a gap found there that needs a stronger mvcc spec reopens the API before the proof, not
+during it. Then the proofs, mvcc first.
