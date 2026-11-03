@@ -7,13 +7,16 @@ with etcd's default configuration (its default retries; D29), a cache of the pre
 client (`cache.New`, the default options), the cache's watch of the prefix from revision `2`,
 `nw` writer goroutines, then, after they are done, the successful Puts' log, the watch read up to
 their highest revision (`collect`) and the check (`check`, which panics if the watch did not
-report exactly the writes).
+report exactly the writes); then (2026-11-02) the cache's `Get` of the prefix at that revision
+(`WithRev`, under a timeout) and its check (`checkGet`, which panics unless it answers each key's
+last watched value at or below the revision, and every key watched).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
 `127.0.0.1:23873`, the main thread's token and `Main`'s named premises (`cachekv.premises`,
 watchkv's at `cachekv`'s configuration), `Main(nw, nops)` does not panic and returns `Ok` (`0`:
-the check ran and passed), `Failed` (`1`: a step of the start failed) or `WatchEnded` (`2`: the
-watch ended before it reported every successful Put). The premises are watchkv's: the cache needs
+the checks ran and passed), `Failed` (`1`: a step of the start failed), `WatchEnded` (`2`: the
+watch ended before it reported every successful Put) or `GetFailed` (`3`: the cache's `Get`
+returned an error). The premises are watchkv's: the cache needs
 none of its own (its thread bound, `threadBound GF + 3 ≤ 2 ^ 31`, follows from the server's
 `2 ^ 28`).
 -/
@@ -56,7 +59,7 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main)) (Val #nw))
       (Val #nops))
-  {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}
+  {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2 ∨ r = W64 3⌝ }}
 
 end spec
 
