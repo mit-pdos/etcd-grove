@@ -450,19 +450,30 @@ theorem authStoreKit_on
     · iexists (backend.bOpen d.γB authOpenQ); iexact Hlife
     isplitr
     · ipureintro; rfl
-    iunfold authStepsAtHook
-    iintro !> %W' %Pk' %f' #HB' #Hhk' %Hf'
     isplitr
-    · iunfold authWBackendAt
-      iintro !> %abl' %lg' #Hb #Hl
-      iapply auth.authWBackendOk_of_R
-      iunfold authWAtHook at HwAt
-      iapply HwAt $$ %abl' %lg' %W' %Pk' %f' [] HB' Hhk' []
-      · iunfold ablOn; iframe Hb Hl
-      ipureintro; exact Hf'
+    · iunfold authStepsAtHook
+      iintro !> %W' %Pk' %f' #HB' #Hhk' %Hf'
+      isplitr
+      · iunfold authWBackendAt
+        iintro !> %abl' %lg' #Hb #Hl
+        iapply auth.authWBackendOk_of_R
+        iunfold authWAtHook at HwAt
+        iapply HwAt $$ %abl' %lg' %W' %Pk' %f' [] HB' Hhk' []
+        · iunfold ablOn; iframe Hb Hl
+        ipureintro; exact Hf'
+      iunfold adminW
+      iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
+        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' #f' (auth.authWTok γc) (beOn d.be)
+        $$ [$Hpkg $Hinv]
+    -- (P6.2) what an install needs: the lifecycle at the backend's open share, the hook clause,
+    -- the admin steps at any backend
+    iunfold authInstallPre
+    iframe Hlife HwAt
+    iunfold authStepsAny
+    iintro !> %bel %Pk' %f' %T'
     iunfold adminW
     iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' #f' (auth.authWTok γc) (beOn d.be)
+      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' T' (beOn bel)
       $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook

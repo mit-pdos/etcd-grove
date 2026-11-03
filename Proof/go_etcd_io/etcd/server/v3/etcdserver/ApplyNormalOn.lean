@@ -530,25 +530,28 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
         auth.tpAdmin stl (.on γa) -∗ srvAuthApplyResB s E st') := by
   iintro HR
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl, %bel, #Hf, HB, #Hlens, #Hro⟩
-  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f E.RD := by intro; rw [hM]
+  icases HR with ⟨%stl, %d, %hkb, #Hf, HB, #Hlens, #Hro⟩
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' d E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' d E.P E.f E.RD := by intro; rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
-  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, #Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps⟩
-  iexists stl, bel, T, hs
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, #Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps, #Hins,
+    HRD⟩
+  iexists stl, d.be, T, hs
   iframe Hf Hro Hwa Hsteps Ho HX HT Htp
   isplitr
   · ipureintro; exact Hl
   iintro %hs' %st' Ho' HX' %Hl' HT' Htp'
   iunfold srvAuthApplyResB
-  iexists stl, bel
+  iexists stl, d
+  isplitr
+  · ipureintro; exact hkb
   iframe Hf Hlens Hro
   rw [hB]
   unfold authApplyResB
   iexists hs', P0, f0, T, be
-  iframe Ho' HX' Hw HT' Hlife Hpt Htp' Hwa Hsteps
+  iframe Ho' HX' Hw HT' Hlife Hpt Htp' Hwa Hsteps Hins HRD
   ipureintro; exact Hl'
 
 /-- **Publication at the apply thread's auth row** (the auth plan's E3t): with the built part's
@@ -560,7 +563,7 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
       srvAuthApplyResB s E st ∗ authPubAt E.authMode st := by
   iintro #Hb HR
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl, %bel, #Hf, HB, #Hlens, #Hro⟩
+  icases HR with ⟨%stl, %d, %hkb, #Hf, HB, #Hlens, #Hro⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl', %Hau, #HPub, -⟩
   subst Hau
@@ -569,12 +572,13 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
   subst Hst'
   ihave #HPub' : authPublishM (GF := GF) (.on γa) stl $$ []
   · rw [← hM]; iexact HPub
-  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f E.RD := by intro; rw [hM]
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' d E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' d E.P E.f E.RD := by intro; rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
-  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, ⟨%K, #Hlife⟩, Hpt, Htp, %Hl, #Hwa, #Hsteps⟩
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, ⟨%K, #Hlife⟩, Hpt, Htp, %Hl, #Hwa, #Hsteps,
+    #Hins, HRD⟩
   iunfold auth.authOwnFu at Ho
   icases Ho with ⟨Ho, Hfuel⟩
   iunfold auth.authWHeld at HT
@@ -585,15 +589,17 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
   imod authPubAt_publish γa stl hs st Hl T K $$ HPub' HR Ho HX with ⟨HR, Ho, HX, #Hpa⟩
   icases (auth.authPubRes_on γa T K).1 $$ HR with ⟨-, Htok, Hpt⟩
   imodintro
-  isplitl [Ho Hfuel HX Htok Hbk Hpt Htp]
+  isplitl [Ho Hfuel HX Htok Hbk Hpt Htp HRD]
   · iunfold srvAuthApplyResB
-    iexists stl, bel
+    iexists stl, d
+    isplitr
+    · ipureintro; exact hkb
     iframe Hf Hlens Hro
     rw [hB]
     unfold authApplyResB
     iexists hs, P0, f0, T, be
     iunfold auth.authOwnFu
-    iframe Ho Hfuel HX Hw Hpt Htp Hwa Hsteps
+    iframe Ho Hfuel HX Hw Hpt Htp Hwa Hsteps Hins HRD
     isplitl [Htok Hbk]
     · iunfold auth.authWHeld; iframe Htok Hbk
     isplitr

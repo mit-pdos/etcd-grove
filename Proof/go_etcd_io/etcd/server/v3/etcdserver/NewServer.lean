@@ -832,8 +832,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · ipureintro; rfl
     iexists T, γf
     iframe Hcpo HT
-  -- the auth store's reader slots: one for the auth applier (2026-11-01, J8a: unused, `Apply` borrows
-  -- the KV's), one for the KV's (D14i)
+  -- the auth store's reader slots: one for the auth applier (2026-11-01, J8a; since P6.2 the apply
+  -- thread's auth row's, what the store's `Recover` reads a snapshot's backend with), one for the
+  -- KV's (D14i)
   -- (P1/N4) of the auth store's supply, `authRdN - 1` tickets
   have hAN : backend.authRdN = 128 := rfl
   iunfold authRdSupply at HRDs
@@ -1593,12 +1594,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (E3n) the construction's resource at the server's frozen hook, and (C1's A1) the token rights'
   -- empty authority
   ihave HABfi := authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateWB d.gx d.γB)
-      (batchLockInv γA (metaTM d.γB d.P)) RD hook $$ [HAres]
+      (batchLockInv γA (metaTM d.γB d.P)) RD hook $$ [HAres HRD]
   · iframe HB Hhook
     isplitl [HAres]
     · iExactEq HAres
       rfl
-    ipureintro; exact Hhknn
+    isplitr
+    · ipureintro; exact Hhknn
+    -- (P6.2) the auth store's first reader ticket, the apply thread's (`Recover`'s at an install)
+    iapply authRdM_of $$ HRD
   icases HABfi with ⟨HAresB, HFI⟩
   ihave HTR : srvTokRights (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF)
       (ciEff γA (⟨W64 0, W64 0, W64 0, false⟩ : ApplyState).k) $$ [HFI]
@@ -1608,11 +1612,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave HAR : srvAuthApplyResB s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAresB]
   · unfold srvAuthApplyResB
-    iexists astl, d.be
+    iexists astl, ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
     rw [← Hastl]
     iframe authStore
     isplitl [HAresB]
-    · iexact HAresB
+    · rw [authApplyResB_kb_congr _ _ _ d ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)
+        _ _ _ rfl rfl rfl]
+      iexact HAresB
     -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
     isplitr
     · iapply rwLens_authBeOn

@@ -950,3 +950,25 @@ step 5; the user's request through etcd-grove-56):
   the same clause, `authStoreKit`). The Freeze's separate `srvAuthSnapOk` in the three posts is this
   one named clause inside the bundle they already carry; the Draft's `srvAuthSnapOk` is its `on` case.
   `authSchemaSnap` and its vocabulary moved to `AuthSnapKit.lean` (below `SnapRO`). (P5)
+
+Entries (P6, 2026-11-03):
+
+- `[F, proof, internal, —]` (P6.1) `snapRecv_imageOn` proved (`SnapRecvOn.lean`), the Draft's
+  `SnapImageFactsOn` moved there unchanged; `dbImageOn`/`srvImageOn` get their persistence instances
+  (`ImageOn.lean`). (`393e80e6d8`)
+- `[F, proof, trusted (definition under exported results), user's choice (a), 2026-11-03]` the
+  admin side's fuel at a base: `auth.fuelOk hs k` is `∃ b ≤ 2^61, latest revision ≤ k + b + 1 ∧
+  small` (was `≤ k + 1`). An install catches the apply thread's history up by the image's admin
+  entries, for which it holds no receipts: the Freeze's item 7 put the base in `authApplyResB`
+  (`authFuelB`), which would have twinned the fuel chain (`apply/AuthFuel`, `AuthStepsX`,
+  `AdminChain`, `UberOn`, `AdminEntryOn`); in `fuelOk` it changes no statement's text (`authFuel`,
+  `authOwnFu`, the exported `apply_admin_backendX`/`server_uber_auth_steps_on` hold the weaker
+  fuel). `fuelOk_last` bounds the revision by `k + 2^61 + 1`; `fuelOk_of_base` builds it.
+- `[C, proof, trusted (kit post, Freeze item 7), approved]` `authApplyResB`/`authApplyResPre`
+  redefined in place for the install: the backend `d : KBReal` in place of its location `bel`
+  (`srvAuthApplyResB` holds `⌜E.γ.kb = some d⌝`), and a new last conjunct `authInstallPre stl γa T d
+  RD` (the lifecycle at `bOpen d.γB authOpenQ`, the hook clause `authWAtHook`, the admin steps at
+  any backend `authStepsAny`), with, in `authApplyResB`, the apply thread's reader ticket `RD`
+  (`NewServer`'s first ticket of the kit's supply, unused until then; `authApplyResB_of_pre` takes
+  it, `authRdM`). The Freeze's `authFuelB`, `AonDraft.authApplyResPre`/`authApplyResB` are
+  superseded (the fuel entry above). `authOpenQ`, `ablOn`, `authWAtHook` moved to `AuthBkHook.lean`.

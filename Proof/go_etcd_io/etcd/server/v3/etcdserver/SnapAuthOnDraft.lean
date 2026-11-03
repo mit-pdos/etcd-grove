@@ -13,7 +13,7 @@ nothing. Statements top-down, proofs `sorry` but the glue and the ghost lemmas.
    redefined in place: `auth.authReadTxOk`/`authBackendOk` (guarded), `auth.beP`,
    `auth.revFresh`, `AonDraft.authPublishM`; one spec each: `AonDraft.auth.authStore.
    setRevision.spec`, `auth.authStore.Recover.spec` (over `auth.authOwnPM M hs N`);
-   `auth.authCatchUpFirst` (proved), `auth.stepOk_of_fuelB` (proved).
+   `auth.authCatchUpFirst` (proved).
 4. **The premise** (trusted; one premise for boot and every snapshot): `authSchemaSrv`
    (boot's, changed in place) with the snapshot clause `authSchemaSnap`; `backend.rbOwnIn` (the
    backend's own idle part of a bucket set, `InvBackend.lean`); `authWAtHook`; N4 (2026-11-03, `R` a
@@ -258,20 +258,7 @@ def AonDraft.authPublishM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
         auth.tieRes stl (.on γa) hs ∗ auth.authPubLb γa (hs.length - 1))
   | _ => iprop(True)
 
-/-- **The fuel's step bound at a base** (finding 1's `stepOk_of_fuel` variant, review round 2's S4):
-`fuelOk hs K` with `K + 2 < 2^63` (the fuel at a base: `K = k + b`, `k` below the receipts' bound,
-`b ≤ 2^61`). -/
-theorem auth.stepOk_of_fuelB (γa : auth.AuthNames) (hs : List auth.AuthState) (R : auth.StepRel)
-    (K : Nat) (hR : auth.StepSmall R) (hf : auth.fuelOk hs K) (hk : K + 2 < 2 ^ 63) :
-    auth.stepOk (.on γa) hs R := by
-  intro st hst
-  simp only [auth.histLast] at hst
-  obtain ⟨h1, h2⟩ := hf st hst
-  refine ⟨by omega, ?_⟩
-  intro o st' hro ho
-  subst ho
-  obtain ⟨h3, h4⟩ := hR st st' h2 hro
-  exact auth.permsFit_of_small st' h4 (by omega)
+-- (P6.2) `auth.stepOk_of_fuelB` is superseded: `auth.fuelOk` carries the base, `stepOk_of_fuel`.
 
 end bk
 
@@ -290,65 +277,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-! ## The apply thread's auth resource, redefined (decision 7) -/
-
-/-- The admin side's fuel at a base `b` (finding 1). -/
-def authFuelB (hs : List auth.AuthState) (b : Nat) : IProp GF :=
-  iprop(∃ k : Nat, ⧗ k ∗ ⌜auth.fuelOk hs (k + b) ∧ b ≤ 2 ^ 61⌝)
-
-theorem authFuelB_of_fuel (hs : List auth.AuthState) :
-    auth.authFuel (GF := GF) hs ⊢ authFuelB hs 0 := by
-  iintro H
-  iunfold auth.authFuel at H
-  icases H with ⟨%k, Hk, %Hf⟩
-  iunfold authFuelB
-  iexists k
-  iframe Hk
-  ipureintro
-  exact ⟨by simpa using Hf, by decide⟩
-
-/-- **The store's admin steps at every hook and backend** (persistent; what boot's construction
-gives from the admin steps' specs, `isAuthStepsX_of_authInvTB`, for all `bel Pk f T`), so that an
-install can rebuild `authApplyResB`'s hook facts at the new backend. -/
-def authStepsAny (stl : Loc) (γa : auth.AuthNames) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (bel : Loc) (Pk : IProp GF) (f : val) (T : IProp GF),
-    apply.isAuthStepsX (auth.authIface stl) Pk f (.on γa) (auth.tieRes stl (.on γa))
-      (adminW stl bel (.on γa) Pk f T) RD)
-
-instance authStepsAny_persistent (stl : Loc) (γa : auth.AuthNames) (RD : IProp GF) :
-    Persistent (authStepsAny (GF := GF) stl γa RD) := by
-  unfold authStepsAny; infer_instance
-
-/-- **`authApplyResPre`, redefined** (decision 7: the hook-generic form, on the backend `d`): in
-`on γa`, the authority with **its fuel at a base** (`authFuelB`), the tie, the write contract and
-the apply thread's write token on the current backend `γc` (`authWHeld`: `T` and the share of the
-name), the publication quarter, the backend's **lifecycle** (its retirement), the **hook clause**
-(`authWAtHook`), the admin steps at any hook (`authStepsAny`), the provider's admin share and the
-auth applier's copy of `RD` (N4: what `Recover` reads the new backend with; `NewServer.lean:831`'s
-first copy).
-(Boot's form adds the token rights' empty authority, `ghostMapAuth γa.fresh`, as today's.) -/
-def AonDraft.authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.KBReal) (RD : IProp GF) : IProp GF :=
-  match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (γc : auth.AuthBkNames)
-      (be : GoInterface) (b : Nat),
-      auth.authOwn (.on γa) hs ∗ authFuelB hs b ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f0 (auth.authWTok γc) ∗ auth.authWHeld γa γc ∗
-      auth.authPubTok γa ∗ auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      authWAtHook γa d γc ∗ authStepsAny stl γa RD ∗ auth.tpAdmin stl (.on γa) ∗ RD ∗
-      ⌜hs.getLast? = some st⌝)
-  | _ => iprop(True)
-
-/-- **`authApplyResB`, redefined** (decision 7): `authApplyResPre` at the server's hook `Pk f`, which
-the backend `d` has frozen; today's hook facts (`authWBackendAt d.be … Pk f T`,
-`isAuthStepsX … (adminW …)`) are its laws, from `authWAtHook` and `authStepsAny`. -/
-def AonDraft.authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.KBReal) (Pk : IProp GF) (f : val) (RD : IProp GF) : IProp GF :=
-  match M with
-  | .on γa => iprop(AonDraft.authApplyResPre (.on γa) stl st d RD ∗
-      ∃ (W : IProp GF) (f' : GoFunc), ⌜f = #f' ∧ f' ≠ func.nil⌝ ∗
-        backend.isBackend d.γB d.P W Pk d.be ∗ backend.plHookRO d.γB f')
-  | _ => iprop(True)
+/- (P6.2, 2026-11-03) The Draft's `authFuelB`, `authStepsAny`, `AonDraft.authApplyResPre`/
+`authApplyResB` are superseded: the fuel's base is `auth.fuelOk`'s (the user's choice (a)), and lean's
+`authApplyResB` carries what the install needs (`authInstallPre`, the reader ticket; `StoreLatest`). -/
 
 /-! ## `Recover` at the install, with auth on (the server-level triple, and its glue) -/
 
@@ -363,12 +294,12 @@ after `Recover`, the store on the new backend (`authBeOn`), the apply thread's a
 `A'`'s state, and **the old backend's open share** (after an update: its release, for the close
 goroutine; decision 3c; its reader slots stay the realization's, R4's F1). -/
 abbrev authRecoverOn.spec : Prop :=
-  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
+  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk PkO : IProp GF) (f : GoFunc) (fO : val)
     (r : GMap GoString backend.BktData) (γa : auth.AuthNames) (R RD : IProp GF) (E : apply.AEnv GF)
     (γr : ReadNames) (A A' : List EntryModel) (sa : auth.AuthState),
   E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
-      authBeOn ast dO.be ∗ AonDraft.authApplyResPre (.on γa) ast sa dO RD ∗
+      authBeOn ast dO.be ∗ authApplyResB (.on γa) ast sa dO PkO fO RD ∗
       auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ ⌜RD = auth.authRd ast R (.on γa)⌝ ∗
       authHistTie E γr srvAuthSt0 ∗ srvRLogLb γr.raft A' ∗
       -- (review R1's F2) the image's committed log a mode-on log (`kvInvOn`'s), whose admin entries
@@ -382,7 +313,7 @@ abbrev authRecoverOn.spec : Prop :=
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |={⊤}=> (authBeOn ast dn.be ∗
-      AonDraft.authApplyResPre (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn RD ∗
+      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk #f RD ∗
       backend.bOpen dO.γB authOpenQ) }}
 
 end premise
@@ -403,14 +334,18 @@ backend released (its whole currency from `Recover`, the retired token: its open
 publication quarter back); the fuel moved to the image's base. -/
 theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG := hG)) :
     authRecoverOn.spec (GF := GF) (hG := hG) := by
-  intro ast abl lg dO dn W Pk f r γa R RD E γr A A' sa hM
-  simp only [AonDraft.authApplyResPre]
+  intro ast abl lg dO dn W Pk PkO f fO r γa R RD E γr A A' sa hM
+  simp only [authApplyResB]
   iintro %Φ ⟨#Hpkg, Hbeon, Hres, #Hinv, #Hsnap, %HRD, #Htie, #HA', %Hp, %Hlg, #Habl, %Hhas,
     #HisB, #Hhk, %Hf, Hrb, Hslots, HbO, %Hbk⟩ HΦ
   obtain ⟨hpre, hsa, hlen, hplain⟩ := Hp
   obtain ⟨hk, hfit, hsmall, hrev⟩ := srvHist_wf γr.kv A' hlen hplain
-  icases Hres with ⟨%hs, %P0, %f0, %γc₀, %be, %b, Hown, Hfu, Htr, -, HTh, Hpub,
-    #Hlife, -, #Hsteps, Htp, Hrd, %Hlast⟩
+  icases Hres with ⟨%hs, %P0, %f0, %γc₀, %be, Hfu, Htr, -, HTh, -, Hpub, Htp, %Hlast, -, -, #Hins,
+    Hrd⟩
+  iunfold auth.authOwnFu at Hfu
+  icases Hfu with ⟨Hown, Hfu⟩
+  iunfold authInstallPre at Hins
+  icases Hins with ⟨#Hlife, -, #Hsteps⟩
   iunfold auth.authWHeld at HTh
   icases HTh with ⟨HT, Hbk0⟩
   -- the tie's half: the history a prefix of the image's, the cap at it
@@ -484,26 +419,44 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
     icases Habl with ⟨#H1, #H2⟩
     iframe Hbe H1 H2; ipureintro; exact Hlg
   ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) $$ HwR
-  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, #f, γc, authBkIface abl,
-    (srvAuthAtLog γr.kv srvAuthSt0 A').revision
-  iframe Hown Htr Hw Hpub Hlife' HwH Hsteps Htp
-  isplitl [Hfu]
-  · iunfold authFuelB at Hfu
+  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, #f, γc, authBkIface abl
+  -- the fuel at the image's base: its admin entries, never paid for with receipts
+  isplitl [Hown Hfu]
+  · iunfold auth.authOwnFu
+    iframe Hown
+    iunfold auth.authFuel at Hfu
     icases Hfu with ⟨%k, Hk, -⟩
-    iunfold authFuelB
+    iunfold auth.authFuel
     iexists k
     iframe Hk
     ipureintro
-    refine ⟨?_, by omega⟩
+    refine auth.fuelOk_of_base _ k A'.length (by omega) ?_
     intro x hx
     rw [hcl] at hx
     cases hx
     exact ⟨by simp only [srvAuthSt0] at *; omega, hsmall⟩
+  iframe Htr Hw Hpub Htp
   isplitl [HT' Hbk']
   · iunfold auth.authWHeld; iframe HT' Hbk'
-  isplitl [Hrd1 Hrd2 Hrd3 HR]
-  · iunfold auth.authRd; iframe Hrd1 Hrd2 Hrd3 HR
-  ipureintro; exact hcl
+  isplitr
+  · iexists _; iexact Hlife'
+  isplitr
+  · ipureintro; exact hcl
+  -- the hook facts at the new backend's frozen hook: its clause and the admin steps at any backend
+  isplitr
+  · iunfold authWBackendAt
+    iintro !> %abl' %lg' #Hb #Hl
+    iapply auth.authWBackendOk_of_R
+    iunfold authWAtHook at HwH
+    iapply HwH $$ %abl' %lg' %W %Pk %f [] HisB Hhk []
+    · iunfold ablOn; iframe Hb Hl
+    ipureintro; exact Hf
+  isplitr
+  · iunfold authStepsAny at Hsteps
+    iapply Hsteps
+  isplitr
+  · iunfold authInstallPre; iframe Hlife' HwH Hsteps
+  iunfold auth.authRd; iframe Hrd1 Hrd2 Hrd3 HR
 
 end glue
 

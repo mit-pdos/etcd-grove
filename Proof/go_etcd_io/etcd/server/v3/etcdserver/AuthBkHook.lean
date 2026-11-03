@@ -1,0 +1,64 @@
+/-
+**The auth store's view of a backend** (the auth-on snapshot plan's P6.2, 2026-11-03; moved out of
+`AuthSnapKit.lean` so that the apply thread's auth row, `StoreLatest.lean`, can name it): the
+realization's open share `authOpenQ`, the schema auth backend `ablOn`, and the write contract at a
+frozen hook `authWAtHook`. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The auth realization's share of a backend's open token** (a quarter). -/
+def authOpenQ : Qp := (1 : Qp).half.half
+
+/-- The auth buckets: lean's `auth.authBkts` (the backend-auth-split stage). -/
+abbrev authBkts : GoString → Prop := auth.authBkts
+
+-- `backend.rbOwnIn` (decision 1's per-bucket idleness) is the backend's own (`InvBackend.lean`,
+-- landed with the backend stage, `a43af91055`); the Draft's opaque stand-in and its split law are gone
+-- (the real split is `rbOwn_split`'s into two `rbPart`s, of which only a written-back one is idle).
+
+/-- The schema auth backend `abl` over the backend `be`, with the logger `lg` (read-only). -/
+def ablOn (abl : Loc) (be lg : Loc) : IProp GF :=
+  iprop(structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        #be : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg)
+
+instance ablOn_persistent (abl be lg : Loc) : Persistent (ablOn (GF := GF) abl be lg) := by
+  unfold ablOn; infer_instance
+
+/-- **The write contract at every schema auth backend on `d`'s backend, at its frozen hook**
+(`authSchemaSrv`'s E3l/E3n clause), at the backend `γc`'s write token. -/
+def authWAtHook (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) : IProp GF :=
+  iprop(□ ∀ (abl' lg' : Loc) (W' Pk' : IProp GF) (f' : GoFunc),
+    ablOn abl' d.be lg' -∗ backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗
+    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' #f' (auth.authWTok γc))
+
+instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) :
+    Persistent (authWAtHook (GF := GF) γa d γc) := by
+  unfold authWAtHook; infer_instance
+
+end defs
+
+end EtcdGrove
+end Perennial

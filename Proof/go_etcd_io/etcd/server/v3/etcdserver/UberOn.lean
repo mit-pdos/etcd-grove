@@ -215,33 +215,36 @@ theorem srv_uberAuthStepsL_on
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩
+  icases HR with ⟨%stl', %d, %hkb, #Hf, HB, #Hlens, #Hro⟩
   icombine Hauf Hf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
-  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f E.RD := by rw [hM]
+  have hB : authApplyResB (GF := GF) E.authMode stl st d E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st d E.P E.f E.RD := by rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
-  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps⟩
-  isplitl [Ho HX HT Hlife Hpt Htp]
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps, #Hins,
+    HRD⟩
+  isplitl [Ho HX HT Hlife Hpt Htp HRD]
   · iunfold srvAuthApplyResB
-    iexists stl, bel
+    iexists stl, d
+    isplitr
+    · ipureintro; exact hkb
     iframe Hf Hlens Hro
     rw [hB]
     unfold authApplyResB
     iexists hs, P0, f0, T, be
-    iframe Ho HX Hw HT Hlife Hpt Htp Hwa Hsteps
+    iframe Ho HX Hw HT Hlife Hpt Htp Hwa Hsteps Hins HRD
     ipureintro; exact Hl
-  iexists stl, bel, T
+  iexists stl, d.be, T
   iframe Hauf
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode
         (auth.latestResC stl (.on γa) γc)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminWC stl bel γa E.P E.f T) (auth.latestResC stl (.on γa) T))
+    le (auth.tieRes stl (.on γa)) (adminWC stl d.be γa E.P E.f T) (auth.latestResC stl (.on γa) T))
   iframe Hpkg Hub
   isplitr
   · ihave #HLc : iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD
