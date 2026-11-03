@@ -2444,14 +2444,14 @@ theorem pub_close (pred : Option (GoString → Bool)) (sr s : w64) (v : View) (s
   · iexact Hp
 
 /-- A sorted list of batches: those at or below `p`, then those above. -/
-theorem batches_split2 (p : Int) : ∀ (bs : List Batch), RevSorted batchRev bs →
+theorem batches_splitAt (p : Int) : ∀ (bs : List Batch), RevSorted batchRev bs →
     bs = bs.filter (fun b => decide (sint.Z (batchRev b) ≤ p)) ++
       bs.filter (fun b => decide (p < sint.Z (batchRev b)))
   | [], _ => rfl
   | b :: bs', hs => by
     have hs' : RevSorted batchRev bs' := (List.pairwise_cons.1 hs).2
     have hall : ∀ b' ∈ bs', sint.Z (batchRev b) < sint.Z (batchRev b') := (List.pairwise_cons.1 hs).1
-    have ih := batches_split2 p bs' hs'
+    have ih := batches_splitAt p bs' hs'
     by_cases h : sint.Z (batchRev b) ≤ p
     · rw [List.filter_cons_of_pos (by simpa using h),
         List.filter_cons_of_neg (by simp only [decide_eq_true_eq]; omega)]
@@ -2479,6 +2479,16 @@ instance progressQuiet_persistent (C : DemuxCert GF) (p₀ : Int) (bs : List Bat
     (L : List RespModel) : Persistent (progressQuiet C p₀ bs L) := by
   unfold progressQuiet; infer_instance
 
+/-- **Elimination**: a progress notification of the log has its quiet certificate. -/
+theorem progressQuiet_at (C : DemuxCert GF) (p₀ : Int) (bs : List Batch) (L : List RespModel)
+    (r : RespModel) (hr : r ∈ L ∧ r.events = [] ∧ 0 < sint.Z r.hdrRev) :
+    progressQuiet C p₀ bs L ⊢
+      C.quiet (chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev))))
+        (sint.Z r.hdrRev) := by
+  unfold progressQuiet
+  iintro #H
+  iapply H $$ %r %hr
+
 /-- **The publication's progress notifications are quiet** (`progressQuiet` of its segment): the
 first delivered batch above a progress notification certifies the interval up to it
 (`cert_quiet`), or, if none, the quiet tail (`quietEnd`, at or above it, `Delivered.progress`). -/
@@ -2496,7 +2506,7 @@ theorem pub_progressQuiet (pred : Option (GoString → Bool)) (s : w64) (v : Vie
   obtain ⟨hmx, hown⟩ := hD.progress r hmem hev
   have hsorted : RevSorted batchRev (streamRange s v.n v.stream) :=
     (hD.stream_ok.sublist (List.filter_sublist ..)).sorted
-  have hsplit := batches_split2 (sint.Z r.hdrRev) _ hsorted
+  have hsplit := batches_splitAt (sint.Z r.hdrRev) _ hsorted
   generalize hlo : (streamRange s v.n v.stream).filter
     (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)) = lo at hsplit ⊢
   generalize hhi : (streamRange s v.n v.stream).filter

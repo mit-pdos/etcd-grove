@@ -112,10 +112,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   critique 2; `notes/spec-first-plan.md`, Review)
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
-- **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
-  missing law of the owning package. Find them mechanically (every `unfold`, `iunfold`, `simp only
-  [...]` and positional destructuring in the callers), not from memory. A proof-only definition goes
-  in a module only that proof imports. (`pilot-review-5.md`)
+- **A client does not unfold the spec's definitions, or any other module's**: each unfold is a
+  missing law of the owning module, even when both modules are in one package (a module of the
+  cache unfolding another's predicate, `InvCache` unfolding `InvEtcd`'s `etcdQuiet` or `InvDemux`'s
+  `progressQuiet`, is the same defect: export the intro and elimination laws the consumers need
+  next to the definition). Find them mechanically (every `unfold`, `iunfold`, `simp only [...]` and
+  positional destructuring in the callers), not from memory. A proof-only definition goes in a
+  module only that proof imports. (`pilot-review-5.md`; sharpened from packages to modules by the
+  user, 2026-11-03, on `cache_Watch_delivery`'s `progressQuiet`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
 - **A client's certificate is the cluster's**: a persistent fact a client takes from one call's

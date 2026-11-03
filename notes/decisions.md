@@ -30241,14 +30241,29 @@ is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec)
 ## `cache_Watch_delivery`: progress notifications are quiet (2026-11-03 · the user's go-ahead · a strengthening, no new premise)
 
 The open arm of the `Watch` delivery theorem (`cacheWatch_delivery`, restated in
-`cache_Watch_delivery`) gains `progressQuiet (etcdStepCert pfx) p₀ bs L`: every response of the
-log without events at a positive revision `p` (a progress notification) is quiet, nothing under the
-prefix after the last batch of `bs` at or below `p` (`p₀` if none) up to `p`
-(`etcdQuiet`). With the chain, a `Watch` client knows etcd's events under the prefix in
-`(p₀, p]` are exactly the batches it was sent at or below `p`. Proved from the publication
+`cache_Watch_delivery`) gains `watchProgressQuiet pfx p₀ bs L`: every response of the log without
+events at a positive revision `p` (a progress notification) is at most `c`, the last batch of
+`bs` at or below `p` (`p₀` if none), or ends a step without events under the prefix from at most
+`c` (`∃ q ≤ c, EtcdStep q p pfx []`, the shape of etcd's own watch contract, `watchRespOk`: the
+spec-reviewer's round, which found the first form, the demux's `progressQuiet` at
+`(etcdStepCert pfx).quiet`, internal vocabulary without laws). With the chain, a `Watch` client
+knows etcd's events under the prefix in `(p₀, p]` are exactly the batches of `bs` at or below
+`p` (for a filtered watch, `bs` is the unfiltered segment). The internal form `progressQuiet` stays
+the demux's (`watchProgressQuiet_of` converts). Proved from the publication
 (`pub_progressQuiet`, `InvDemux.lean`): the first delivered batch above the notification certifies
 the interval (`cert_quiet`), or, if none, the quiet tail (`quietEnd` is at or above every progress
 notification sent). The `0 < p` premise: an event-less response at or below `0` is not a progress
 notification, and the lock keeps no quiet fact while `maxRev = 0` (`Init` at a non-positive
-`minRev`). The compaction arm keeps none (closed logs; no client needs it). `storeW_quiet` still
-unfolds the publication (its `Y` is the last event received, not a batch filter); left as is.
+`minRev`). The compaction arm keeps none (closed logs drop the tail; the facts were true
+there too, round 2's finding 3, left: no client needs them). Open (round 2's finding 2): derive
+`storeW_quiet` from `pub_progressQuiet` (for an unfiltered watch with the notification last, the
+anchor is the last event received) instead of unfolding the publication.
+
+The user (2026-11-03): consumers do not unfold predicates from other modules (the spec skill's
+principle sharpened from packages to modules). Applied to this change: `etcdQuiet_at`,
+`etcdQuiet_step`, `etcdQuiet_of_step`, `etcdStepCert_quiet` (`InvEtcd`), `progressQuiet_at`
+(`InvDemux`), `cacheGap_at`, `watchProgressQuiet_at` (`InvCache`); `watchProgressQuiet_of`,
+`cacheGap_of_step` and `Cache.Get`'s gap step use them. Open (unfolds across modules in earlier
+work, to be replaced by laws): `GetFacts.lean`'s `getCheck_km` (the adapter's `kmLog`, `kmInv`,
+`kmRevAt`, as `km_step_log` does; the cache's `isEtcdKvs`, `cacheGetErr`), `storeW_quiet`/
+`storeW_chain` (`demuxPubBody`).
