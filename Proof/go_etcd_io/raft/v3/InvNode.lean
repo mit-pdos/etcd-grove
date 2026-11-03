@@ -1117,7 +1117,16 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
       [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
     readyRest γ N id rd st ce es h L ms ss ∗
     readyLeaderMsgs γ N id st ms ss ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    -- (2026-11-03, the restart plan's R2b-1 stage 1) the delivered log after the `Ready` and its
+    -- hard state's committed fact, without *enter* (as `nodeDriver_deliveredLogLb` and
+    -- `nodeDriver_hardStateCommitted` give them after it): a client that enters the batch at its
+    -- disk write (etcd's server, at the WAL's `Save`) hands the committed entries on before
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝))
 
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's

@@ -45,9 +45,9 @@ theorem newServerMode.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
-    bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
+    bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
     HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
@@ -97,14 +97,17 @@ theorem newServerMode.wp_proof
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hacr Hdec
       (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
-      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
+      -- literal, and the write budget
+      (bootCfgOk_of _ Hlg rfl rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, HU, HU8, hvs, hrule, hboot⟩
+      refine ⟨?_, HU, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
@@ -114,6 +117,9 @@ theorem newServerMode.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
+    isplitl [Hwdf]
+    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck

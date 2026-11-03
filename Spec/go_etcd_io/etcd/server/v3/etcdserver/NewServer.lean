@@ -201,6 +201,12 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -216,6 +222,8 @@ abbrev NewServer.spec : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -390,6 +398,12 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -402,6 +416,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
@@ -591,6 +607,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
+  -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
+  -- write budget past `bootstrap`'s own write-backs (`bootWB`)
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -605,6 +627,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- (2026-11-03, the WAL's API, change 6; its slot) the member's WAL directory fresh: a first start
+      "Hwdf" ∷ wal.bootRes cfg ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
       -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant

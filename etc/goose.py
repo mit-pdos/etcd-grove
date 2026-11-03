@@ -205,12 +205,15 @@ PROJECTS = [
         # 2026-11-02) branch `goose-lean-walsnap` (on ab3c28d9a): `wal.ReadAll` returns the log the
         # records write, not entries a received snapshot discarded (6293455e0, revised ce3dbc097,
         # nonissues/etcd-wal-stale-entries-above-snapshot.md), and `recoverSnapshot` opens the WAL at
-        # the snapshot record of the highest index (nonissues/etcd-wal-snapshot-record-order.md).
+        # the snapshot record of the highest index (nonissues/etcd-wal-snapshot-record-order.md);
+        # then (the WAL API's axiom review, 2026-11-03, 323320bb8) a restart at a received snapshot
+        # names its next WAL file after it, and `LatestSnapshotEntry` takes the highest record
+        # (nonissues/etcd-wal-restart-file-below-snapshot.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="ce3dbc097fff9d24d43f3f4f7fee799713bfc013",
+        rev="323320bb8909744ca4420f8156f4fd2972303ddb",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

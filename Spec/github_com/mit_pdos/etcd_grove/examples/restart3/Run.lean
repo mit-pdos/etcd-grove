@@ -50,7 +50,11 @@ def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : L
     netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
     httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
     httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ threadTok ∗
-    premises N id₁ id₂ id₃ ctxs boot)
+    premises N id₁ id₂ id₃ ctxs boot ∗
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
+    walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
+    walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
+    walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!""))
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
@@ -59,6 +63,8 @@ abbrev Run.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (lg : Loc) (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   lg ≠ null → runPure id₁ id₂ id₃ ctxs boot →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

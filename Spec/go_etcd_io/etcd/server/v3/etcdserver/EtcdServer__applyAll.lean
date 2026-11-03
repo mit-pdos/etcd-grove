@@ -250,7 +250,8 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
 
 /-- **`s.applyAll(ep, ap)` on a snapshot payload** (2026-11-01, J8a-5, step 5e; `rnApSnap`'s:
 `notes/snapshot-j8a-plan.md`, item 4), by the apply thread of a fresh cluster's member (the start
-values of `NewServer.spec`: `γr.raft` the raft names with no prefix, the KV's start, compaction off):
+values of `NewServer.spec`: `γr.raft` the raft names with no prefix, the KV's start; either compaction
+mode since M2's item 15, stage C):
 the snapshot `sv` at the index `i` past the applied index `ai` (below `2^61`, at least the boot
 log), certified (`snapshotCert`), in the member's snapshot directory (`nodeSnapLocal`, the member
 `nid` the server's), with no entries, its two-receive `notifyc` and `raftAdvancedC` (the node's
@@ -274,9 +275,10 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
   -- the applied log `A` through `ai`, the consistent index at most the applied one
   uint.Z ai = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z ai →
-  -- a fresh cluster's start (`snapRecv_image`'s), compaction off
+  -- a fresh cluster's start (`snapRecv_image`'s), in either compaction mode (M2's item 15, stage C;
+  -- until then `E.cmp = false`)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
-  γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] → E.cmp = false →
+  γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] →
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

@@ -43,7 +43,7 @@ log: `kvRaftOf_prefix`) with `restoreLogOk R` (the KV model's revisions are non-
 lease-free under the workload); its certificate `certOk E.γ ([[], []] ++ R)` (the server's `cok`
 map element of the image's log); and the new backend's: `storeBackendT b' E.s (E.γ.withPhys p) P'`
 for every physical names of its bucket and instance (`storeBackendT_of_backend` of
-`OpenSnapshotBackend`'s `isBackend` with the late-bound `lateW gx'`), its full view of the `Key`
+`OpenSnapshotBackend`'s `isBackend` with the walked instance's late-bound `lateWD d'`, unset), its full view of the `Key`
 bucket at the image's log (`keyImage`), `kbNoCmp` (`OpenBackend`'s post with `keyImage_noCmp`),
 `kbRegRight` (the creator's half of `gx'`), `nReaders` reader tokens (`newPost`'s `rdTok`s with
 `bOpen` shares). And back from it: the new closer (`srvKVCloser` re-made with the watchable store's

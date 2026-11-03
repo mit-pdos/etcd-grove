@@ -21,7 +21,9 @@ with the adapter's write update, which keeps the plan's fact, `wk_put_W`, its lo
 `okFactKM_of_write`), the
 log's Puts `oks` taken under the lock, `maxRev`, `collect` (the cache watch's log, `log_ck`), the
 cancel, and the check: `CheckOk` from `collectOk` and the Puts' `okFactKM`s
-(`common.checkOk_of_km`). Then (2026-11-02) the cache's `Get` of the prefix at the highest
+(`common.checkOk_of_km`), after (2026-11-03) a progress notification (`RequestProgress` with a
+second watch slot's demux handle, `awaitProgress`: not past the events, `log_ck_progress`) and
+`checkProgress`. Then (2026-11-02) the cache's `Get` of the prefix at the highest
 revision `m` (`Cache.Get.spec` with one of `New`'s readers, `WithTimeout(Background())`'s context):
 its error is non-nil (`cacheGetErr_ne_nil`) and ends `Main` with `GetFailed`; its answer is
 etcd's state under the prefix at `m` (`cacheGetOk`), which passes `checkGet` (`getCheck_km`, over
@@ -56,6 +58,9 @@ public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.checkGet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.GetFacts
+public import Spec.go_etcd_io.etcd.cache.v3.Cache__RequestProgress
+public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.awaitProgress
+public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.checkProgress
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.context.Link
@@ -126,6 +131,7 @@ theorem ckWatch_opts :
     simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, h]
 
 set_option maxHeartbeats 1600000 in
+set_option maxRecDepth 8192 in
 theorem Main.wp_proof
     (wp_GenAll : common.GenAll.spec (GF := GF) (hG := hG))
     (wp_Writer : common.Writer.spec (GF := GF) (hG := hG))
@@ -148,12 +154,16 @@ theorem Main.wp_proof
     (wp_CGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
       Cache.Get.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_checkGet : checkGet.spec (GF := GF) (hG := hG)) :
+    (wp_checkGet : checkGet.spec (GF := GF) (hG := hG))
+    (wp_CRP : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
+      Cache.RequestProgress.spec (GF := GF) (hG := hG))
+    (wp_awaitProgress : awaitProgress.spec (GF := GF) (hG := hG))
+    (wp_checkProgress : checkProgress.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN Hck Haf
+  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN HwbN Hck Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
-  wp_start as ⟨Haddr, Htok, #Hprem⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
@@ -257,9 +267,9 @@ theorem Main.wp_proof
   wp_apply (wp_StartPeriodicServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873"
       (W64 10000000) lg (LogEntry.toEntries boot 0) ctxs
       (ckDir id) id γ ρ E₀ Φs γn Htb
-      Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
+      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [ckDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb] as %srv %err Hr
+    $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
   · cases err with
@@ -445,17 +455,21 @@ theorem Main.wp_proof
     simp only [List.replicate_succ]
     icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hr, -⟩
     iframe Hr
-  ihave ⟨Hslot, -⟩ : cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
+  -- two of `New`'s watch slots: the watch's, and the demux handle `RequestProgress` needs
+  ihave ⟨Hslot, Hslot2, -⟩ : cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
+      (sint.nat (cfgApply [] defaultConfigVal).HistoryWindowSize') ∗
+    cacheWatchSlot (EM := client.etcdModelOfKV γk) cf γd
       (sint.nat (cfgApply [] defaultConfigVal).HistoryWindowSize') ∗ True $$ [Hslots]
-  · have hmr : maxReaders - 2 = (maxReaders - 3) + 1 := by
-      have := sync.actualMaxReaders_ge_2
+  · have hmr : maxReaders - 2 = (maxReaders - 4) + 1 + 1 := by
       unfold maxReaders
-      rw [sync.rwmutex.actualMaxReaders_unseal] at *
-      omega
+      rw [sync.rwmutex.actualMaxReaders_unseal]
+      decide
     rw [hmr]
     simp only [List.replicate_succ]
-    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs, -⟩
-    iframe Hs
+    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs, Hslots⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hslots with ⟨Hs2, -⟩
+    iframe Hs Hs2
+  icases cacheWatchSlot_parts (EM := client.etcdModelOfKV γk) _ _ _ $$ Hslot2 with ⟨Hdh, -⟩
   -- the main thread's token, back from the server's start (`srvGoRes`)
   iunfold srvGoRes at Hgo2
   icases Hgo2 with ⟨-, Htok⟩
@@ -624,26 +638,46 @@ theorem Main.wp_proof
   · iframe
   wp_apply (wp_collect γk (trs.map pairOf) wch γw (prefixRangeEnd ckPfx) m hγW hpk
       hkeys) $$ [Hcons]
-    as %esl %ok Hcol
+    as %esl0 %ok0 Hcol
+  · iframe; iframe #
+  (try wp_auto)
+  cases ok0
+  · -- the watch ended before it reported every successful Put: `cancel()`
+    (try wp_auto)
+    wp_apply Hcancel $$ [] as -
+    · itrivial
+    (try wp_auto)
+    iapply HΦ; ipureintro; right; right; left; rfl
+  ihave ⟨%evs0, %rs, %Hrs, Hes0, Hecap0, Hcons, Hcok0⟩ := Hcol $$ %rfl
+  (try wp_auto)
+  -- `c.RequestProgress(wctx)`
+  wp_apply (wp_CRP (EM := client.etcdModelOfKV γk) c cf γrd γd _ _) $$ [Hdh] as Hdh
+  · iframe; iframe #
+  (try wp_auto)
+  -- `p, evs, ok := awaitProgress(wch, evs)`, then `cancel()`
+  wp_apply (wp_awaitProgress γk (trs.map pairOf) wch γw (prefixRangeEnd ckPfx) m esl0 evs0 rs
+      hγW hpk hkeys Hrs.1 Hrs.2) $$ [Hcons Hes0 Hecap0 Hcok0]
+    as %p %esl %ok Hap
   · iframe; iframe #
   (try wp_auto)
   wp_apply Hcancel $$ [] as -
   · itrivial
   (try wp_auto)
   cases ok
-  · -- the watch ended before it reported every successful Put
+  · -- the watch ended before a progress notification
     (try wp_auto)
     iapply HΦ; ipureintro; right; right; left; rfl
-  ihave ⟨%evs, Hes, Hcok⟩ := Hcol $$ %rfl
-  iunfold collectOk at Hcok
-  iunfold common.collectOk at Hcok
-  icases Hcok with ⟨%Hcp, #Hcr⟩
+  ihave ⟨%evs, Hes, Hcok, %Hp⟩ := Hap $$ %rfl
+  icases common.collectOk_elim _ _ _ _ $$ Hcok with ⟨%Hcp, #Hcr⟩
+  imod ownSlice_persist _ _ _ $$ Hes with #Hes
+  (try wp_auto)
+  -- `checkProgress(evs, p)`
+  wp_apply (wp_checkProgress esl evs p (fun i e h => (Hcp.2.2 i e h).2.1) Hp) $$ []
+  · iframe #
+  (try wp_auto)
   ihave %HCk := common.checkOk_of_km γk trs m evs oks Hm.2 $$ []
   · iframe Hoks
-    iunfold common.collectOk
-    iframe Hcr
-    ipureintro; exact Hcp
-  imod ownSlice_persist _ _ _ $$ Hes with #Hes
+    iapply (common.collectOk_intro _ _ _ _ Hcp) $$ Hcr
   imod ownSlice_persist _ _ _ $$ Hos with #Hos
   (try wp_auto)
   wp_apply (wp_Check go!"cachekv" go!"Put" esl tsl osl evs trs oks HCk) $$ []
@@ -706,8 +740,7 @@ theorem Main.wp_proof
     -- `gcancel()`
     wp_apply Hgcancel
     (try wp_auto)
-    unfold cacheGetResult
-    icases Hgres with (⟨%Hnull, Hgerr⟩ | ⟨%Hgnil, Hgok⟩)
+    icases cacheGetResult_cases (EM := client.etcdModelOfKV γk) _ _ _ _ _ _ _ $$ Hgres with (⟨%Hnull, Hgerr⟩ | ⟨%Hgnil, Hgok⟩)
     · -- an error: `GetFailed`
       ihave #Prpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
       · iPkgInit
@@ -720,10 +753,8 @@ theorem Main.wp_proof
         iapply HΦ; ipureintro; right; right; right; rfl
     · -- the answer: etcd's state under the prefix at `r`, which passes `checkGet`
       subst Hgnil
-      unfold cacheGetOk
-      icases Hgok with ⟨%hdr, %kvsSl, %st, %r', %m', Hresp, Hhdr, Hkvs, Hkcap, #HkvsAt, Hst, -, %Hpure, -⟩
+      icases cacheGetOk_rev (EM := client.etcdModelOfKV γk) _ _ _ _ _ hm0 $$ Hgok with ⟨%hdr, %kvsSl, %m', Hresp, Hkvs, Hkcap, Hst⟩
       irevert Hst
-      simp only [if_neg hm0]
       rw [Hcfe.1]
       iintro Hst
       imod getCheck_km γk (trs.map pairOf) hγW evs m m'

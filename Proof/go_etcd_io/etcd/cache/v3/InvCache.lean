@@ -356,13 +356,6 @@ theorem initCore_ok (pfx : GoString) (cap : Nat) (c : DemuxCore) (rev : w64)
 
 end tail
 
-/-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
-watcher's consumer is in the stream. -/
-def lastEvRevOr (L : List RespModel) (dflt : Int) : Int :=
-  match (eventsOf L).getLast? with
-  | some e => sint.Z e.rev
-  | none => dflt
-
 /-- The ghost names of the channel `Cache.Watch` returns: the channel's (an SPSC channel:
 `Watch`'s goroutine produces, the caller consumes) and the log of the responses sent on it
 (`fwd`, a monotone list). -/
@@ -845,13 +838,17 @@ theorem cacheGap_of_quiet (pfx : GoString) (a' : Int) (a : w64) (b : Int) (h : a
 /-- A batch's step from at or below the snapshot's revision makes the gap up to the batch. -/
 theorem cacheGap_of_step (pfx : GoString) (p a B : w64) (cs : List EtcdEv) (h : sint.Z p ≤ sint.Z a) :
     EtcdStep (GF := GF) p B pfx cs ⊢ cacheGap pfx a (sint.Z B - 1) := by
-  unfold cacheGap etcdQuiet
-  iintro #H; imodintro; iintro %x %hx
-  iexists p
-  isplitr
-  · ipureintro; exact h
-  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
-  iexact H
+  unfold cacheGap; exact etcdQuiet_of_step pfx p B cs _ h
+
+/-- **Elimination**: a revision of a snapshot's gap ends a step without events from the
+snapshot's revision (`etcdStep_restrict`). -/
+theorem cacheGap_at (pfx : GoString) (a : w64) (b : Int) (x : w64)
+    (hx : sint.Z a < sint.Z x ∧ sint.Z x ≤ b) :
+    cacheGap (GF := GF) pfx a b ⊢ EtcdStep a x pfx [] := by
+  unfold cacheGap
+  iintro #H
+  icases etcdQuiet_at pfx _ b x hx $$ H with ⟨%q, %hq, #Hs⟩
+  iapply (etcdStep_restrict q a x x pfx [] hq hx.1 (Or.inr ⟨rfl, rfl⟩)) $$ Hs
 
 /-- **The store's revision certificate** in the cache (its `R`): etcd has reached `r`, and `r` is
 at most the cache's revision bound. -/
@@ -1172,6 +1169,13 @@ group (both kept by the goroutine). -/
 def cacheWatchSlot (cf : CacheFields) (γd : DemuxNames) (cap : Nat) : IProp GF :=
   iprop(demuxHandle cf.demux γd cap (cacheCert cf) ∗ cacheWgSlot cf)
 
+/-- A watch slot's two parts: one of the demux's handles (`RequestProgress` takes one too), and a
+slot of the cache's wait group. -/
+theorem cacheWatchSlot_parts (cf : CacheFields) (γd : DemuxNames) (cap : Nat) :
+    cacheWatchSlot (GF := GF) cf γd cap ⊢ demuxHandle cf.demux γd cap (cacheCert cf) ∗ cacheWgSlot cf := by
+  unfold cacheWatchSlot
+  iintro H; iexact H
+
 /-- A log published by the demux with nothing in it (`newWatcher`'s premise, for the watcher
 `Watch` registers with start `sr`). -/
 theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64) :
@@ -1248,6 +1252,50 @@ theorem wp_cacheWatch_receive (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert G
     · ipureintro; simp [Hlen]
     iright; iexact HlogL
 
+/-- **A watch's progress notifications are quiet** (the client's form of the demux's
+`progressQuiet`, as etcd's own watch states a progress notification, `watchRespOk`): each response
+of `L` without events at a positive revision `p` is at most `c`, the revision of the last batch of
+`bs` at or below `p` (`p₀` if none), or ends a step without events under the prefix from at most
+`c`: etcd had no event under the prefix after `c` up to `p`. -/
+def watchProgressQuiet (pfx : GoString) (p₀ : Int) (bs : List Batch) (L : List RespModel) :
+    IProp GF :=
+  iprop(□ ∀ r, ⌜r ∈ L ∧ r.events = [] ∧ 0 < sint.Z r.hdrRev⌝ -∗
+    ⌜sint.Z r.hdrRev ≤
+      chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)))⌝ ∨
+    ∃ q : w64, ⌜sint.Z q ≤
+      chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)))⌝ ∗
+      EtcdStep q r.hdrRev pfx [])
+
+instance watchProgressQuiet_persistent (pfx : GoString) (p₀ : Int) (bs : List Batch)
+    (L : List RespModel) : Persistent (watchProgressQuiet (GF := GF) pfx p₀ bs L) := by
+  unfold watchProgressQuiet; infer_instance
+
+/-- The demux's quiet certificate at etcd's (`etcdQuiet`), at the notification's own revision. -/
+theorem watchProgressQuiet_of (pfx : GoString) (p₀ : Int) (bs : List Batch) (L : List RespModel) :
+    progressQuiet (GF := GF) (etcdStepCert pfx) p₀ bs L ⊢ watchProgressQuiet pfx p₀ bs L := by
+  iintro #H
+  unfold watchProgressQuiet
+  imodintro
+  iintro %r %hr
+  have h := progressQuiet_at (etcdStepCert (GF := GF) pfx) p₀ bs L r hr
+  rw [etcdStepCert_quiet] at h
+  ihave #Hq := h $$ H
+  iapply etcdQuiet_step pfx _ r.hdrRev $$ Hq
+
+/-- **Elimination**: a progress notification of the log at `p` is at most the last batch of `bs`
+at or below it (`p₀` if none), or ends a step without events from at most that batch. -/
+theorem watchProgressQuiet_at (pfx : GoString) (p₀ : Int) (bs : List Batch) (L : List RespModel)
+    (r : RespModel) (hr : r ∈ L ∧ r.events = [] ∧ 0 < sint.Z r.hdrRev) :
+    watchProgressQuiet (GF := GF) pfx p₀ bs L ⊢
+      ⌜sint.Z r.hdrRev ≤
+        chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)))⌝ ∨
+      ∃ q : w64, ⌜sint.Z q ≤
+        chainEnd p₀ (bs.filter (fun b => decide (sint.Z (batchRev b) ≤ sint.Z r.hdrRev)))⌝ ∗
+        EtcdStep q r.hdrRev pfx [] := by
+  unfold watchProgressQuiet
+  iintro #H
+  iapply H $$ %r %hr
+
 /-- **The `Watch` delivery theorem** (for one log, `Cache.Watch`'s certificates and key filter): the
 events of a log the demux delivered to a watch on `[key, rangeEnd)` from `sr` are exactly the events
 of etcd's batches `bs` whose keys the filter accepts, in order (no gap, no duplicate); the log is
@@ -1255,20 +1303,32 @@ in order (`SentOrdered`: events increasing from response to response, progress n
 above everything before and below everything after); `bs` are batches of one revision each,
 increasing; each batch is certified by etcd's step from at most the previous batch's revision
 (`certChain (etcdStepCert pfx) p₀ bs`: its events are etcd's, and nothing under the prefix
-changed in between), the first one from `p₀`; and for a start `sr ≠ 0`, `p₀ < sr ≤` every batch's
-revision: nothing etcd did under the prefix from `sr` on was missed. -/
+changed in between), the first one from `p₀`; for a start `sr ≠ 0`, `p₀ < sr ≤` every batch's
+revision: nothing etcd did under the prefix from `sr` on was missed; and each progress
+notification (at a positive revision `p`) is quiet (`watchProgressQuiet`: nothing under the prefix
+after the last batch of `bs` at or below `p` up to `p`). -/
 theorem cacheWatch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
     demuxPubBody (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr none L ⊢
       ∃ (bs : List Batch) (p₀ : Int),
         ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
           SentOrdered L ∧ StreamOk bs ∧
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
-        certChain (etcdStepCert pfx) p₀ bs := by
+        certChain (etcdStepCert pfx) p₀ bs ∗ watchProgressQuiet pfx p₀ bs L := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -⟩
+  iintro ⟨%s, %v, %p₀, %Hf, #Hc, -, #Hq⟩
   obtain ⟨hsr, hD, hp₀, -⟩ := Hf
+  ihave #Hpq : watchProgressQuiet pfx p₀ (streamRange s v.n v.stream) L $$ []
+  · iapply watchProgressQuiet_of
+    iapply pub_progressQuiet _ s v L p₀ hD $$ Hc
+    icases Hq with (%h | #Hq)
+    · ileft; ipureintro
+      rcases h with h | h | h
+      · exact absurd rfl h
+      · exact Or.inl h
+      · exact Or.inr h
+    · iright; iexact Hq
   iexists streamRange s v.n v.stream, p₀
-  iframe Hc
+  iframe Hc Hpq
   ipureintro
   refine ⟨hD.events, hD.ordered, hD.stream_ok.sublist (List.filter_sublist ..), fun h => ?_⟩
   have hs : s = sr := by rcases hsr with h0 | h0; exact absurd h0 h; exact h0
@@ -1499,6 +1559,60 @@ def cacheGetResult (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp
     (key : GoString) (o : OpModel) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜resp = null⌝ ∗ cacheGetErr cf r0 s key o err) ∨
     (⌜err = GoInterface.nil⌝ ∗ cacheGetOk cf r0 key o resp))
+
+/-- **`Cache.Get`'s result, by cases**: an error (with a `nil` response), or an answer (with a
+`nil` error). -/
+theorem cacheGetResult_cases (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF))
+    (key : GoString) (o : OpModel) (resp : Loc) (err : GoInterface) :
+    cacheGetResult (GF := GF) cf r0 s key o resp err ⊢
+      (⌜resp = null⌝ ∗ cacheGetErr cf r0 s key o err) ∨
+      (⌜err = GoInterface.nil⌝ ∗ cacheGetOk cf r0 key o resp) := by
+  unfold cacheGetResult
+  iintro H
+  iexact H
+
+/-- **`Cache.Get`'s errors are non-nil**: each is a fixed non-nil error of the cache's or
+`rpctypes`' package (their facts), or one the spec says is non-nil. -/
+theorem cacheGetErr_ne_nil (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF))
+    (key : GoString) (o : OpModel) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes -∗
+      cacheGetErr cf r0 s key o err -∗ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #Hpkg #Hrpc Herr
+  ihave Hci : (cacheInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
+  ihave Hri : (rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hrpc
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, -, -⟩
+  unfold cacheGetErr
+  icases Herr with (⟨%h, -⟩ | %h | ⟨-, #H⟩ | %h | ⟨-, #H, -⟩ | ⟨-, #H⟩ | ⟨%st, -, #Hse, %Hno⟩)
+  · ipureintro; exact h
+  · ipureintro; exact h.2
+  · icombine H HeKR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · ipureintro; exact h.2
+  · icombine H HeFR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · icombine H HeCT gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  · iapply snapErr_ne_nil _ err Hno $$ Hpkg Hrpc Hse
+
+/-- **`Cache.Get`'s answer at a revision asked for** (`o.rev ≠ 0`): the response's `Kvs` are the
+key-values of etcd's state at `o.rev` under the cache's prefix (`isEtcdKvs`), in the range asked
+for. -/
+theorem cacheGetOk_rev (cf : CacheFields) (r0 : w64) (key : GoString) (o : OpModel) (resp : Loc)
+    (h : o.rev ≠ W64 0) :
+    cacheGetOk cf r0 key o resp ⊢
+      ∃ (hdr : Loc) (kvsSl : GoSlice) (m : KvMap),
+        resp ↦ getRespVal hdr kvsSl (W64 (kvRange key o.rangeEnd m).length) ∗
+        kvsSl ↦* ((kvRange key o.rangeEnd m).map Prod.snd) ∗
+        ownSliceCap Loc kvsSl (DFrac.own 1) ∗ isEtcdKvs (GF := GF) o.rev cf.pfx m := by
+  unfold cacheGetOk
+  iintro ⟨%hdr, %kvsSl, %st, %r, %m, Hresp, -, Hkvs, Hcap, -, Hst, -⟩
+  rw [if_neg h]
+  iexists hdr, kvsSl, m
+  iframe
 
 end cache
 

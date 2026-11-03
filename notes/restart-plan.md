@@ -929,3 +929,107 @@ case of the durability invariant), not a premise that `Save` fails only on I/O: 
 **The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
 `examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
 `newestSnapshotEntry`.
+
+### R2b-1 draft, round 2 (2026-11-03)
+
+In `etcdserver/InvWal.lean`, after review round 1:
+- **Raft's receive** (`readyGotFacts_stmt`, a raft API change): `readyGot` also gives
+  `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed fact
+  (`committedAtTerm`), without *enter*. Raft's proof has both, persistent, where it builds
+  *enter* (`isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`).
+- **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the contents (its claim), the durable state and either the records holding it (`walHolds`: the
+  committed log they are within, with which the durable log agrees, `DurAgrees`; the hard state's
+  half; the commit counter) with the pending token, or a received snapshot's records with its
+  `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
+  counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
+  loop's two tokens.
+
+### R2b-1 review, round 2, and the draft's round 3 (2026-11-03)
+
+The model half holds: the pure laws are true as stated (checked by hand against `StorageHolds`,
+`RaftState.next`, `appendEnts`), `walSaveSnap`/`WalSaveOk` match the fork's `ReadAll`, and raft's
+receive can give the facts the server needs before *enter* (in `readyRecv_open` they are
+persistent before `api_enter`), which are enough for the hand-off on `applyc`. The invariant half
+was not keepable; round 3:
+- **F1, F2:** the pending token excluded the wrong case, and nothing tied the invariant's durable
+  state to the loop's. Now a ghost variable, half the loop's, holds the loop's view (`WalView`:
+  the durable state, the records' hard state, the pending received snapshot, the handed log), as
+  kvdurable's writer variable; the records are as the view says (`walAsViewed`).
+- **F3:** `σ.commit ≤ |committed log|` was not keepable (raft pages committed entries). Now the
+  handed log `l`: `σ.b ≤ |l| ≤ σ.commit`, `DurAgrees S l`; `walCommitLb` bounds `|l|`.
+- **F4:** a failed `Save` now leaves some records (`∃ σ'`), not `walFailed`, so that the apply
+  thread's `SaveSnap` can still update them; the taken state holds the apply thread's token.
+- **F5:** `walRecs` is a ghost variable at an opaque per-WAL name (timeless, exclusive by proof),
+  and the invariant holds `raftState` without an extra later.
+- **F6:** the receive statement became `readyGotR`, the receive's new postcondition (a law over
+  today's `readyGot` could not be proved).
+- **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
+  `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
+  record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).
+
+### R2b-1 review, round 3, and the draft's round 4 (2026-11-03)
+
+The reviewer walked every step (a `Ready` with and without a snapshot, commit-only, empty hard
+state, paged entries, a failed `Save`, the apply thread's own snapshot at every point, the stop):
+most keep `rnDurInv`, and `DurAgrees` survives each loop step. Taken:
+- **H1:** the loop could not rule out the taken case: it now holds the loop's "not failed" token.
+- **H2:** the apply thread could not get its snapshot's term: `walCommitLb` is now a prefix of the
+  handed log (a monotone list), not a length.
+- **M1:** firing *enter* inside the `Save`'s update would need a later credit: `raftState` is the
+  loop's own again (beside its view half), not the invariant's.
+- **L1–L3:** `SaveSnap` keeps its I/O premise (the apply thread panics on its error), said so;
+  the records' ghost name is the storage's WAL identity (`MinimalEtcdVersion` reopens the WAL
+  behind it); `readyGotR` drops the conjunct `deliveredLogLb` implies.
+Recorded for R2b-1's proof (docstring of `rnDurTake_stmt`): **M2**, the order is at the view's
+handed log, the stop's post at the apply side's `pre ++ A`; equating them needs every sent batch
+received (`applyc` is unbuffered; the spsc idiom's spec admits a buffer). **M3**, the apply
+thread's token travels with its half of `rnWalTok`. **L4**, `Close` and `rnWalClosed` are R2b-3's.
+
+The draft is ready for R2b-1's proof. Its stages: (1) raft's receive gives `readyGotR`
+(`readyRecv_open`, `node.readyRecv.spec`, `readyGot`'s users); (2) the pure laws; (3) the WAL
+contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs` (fresh:
+`walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
+(`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
+snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).
+
+### The WAL's API, spec-first (2026-11-03, the user's request; approved)
+
+Before R2b-1's proof, the user asked for the WAL's whole API through the spec-first approach
+(`notes/decisions.md`, "The WAL's API"). Three review rounds; the axiom review found a third WAL bug
+(a restart at a received snapshot names the next file below it; `nonissues/
+etcd-wal-restart-file-below-snapshot.md`), fixed on the fork in `323320bb8` (with
+`LatestSnapshotEntry` at the highest record); **the pin moves to it once the user pushes
+`goose-lean-walsnap`**. The API landed as modules no proof uses yet (`storage/WalRecs.lean`,
+`etcdserver/WalApi.lean`, sealed); `InvWal.lean` keeps the durability invariant over it. R2b-1's
+stage 3 puts it in place, with the six approved changes to trusted statements.
+
+### R2b-1 stage 2: the pure laws, proved (2026-11-03)
+
+`walFresh_holds`, `walSave_holds`, `walSnapSave_holds`, `walOwnSnap_holds` (`InvWal.lean`), over
+three list lemmas (`appendEnts_cons`, `plogTermAt_take_append`, `drop_take_append`) and
+`plogTermAt_some_le`: the WAL's records keep holding the durable state across a saved batch with or
+without a received snapshot and across the member's own snapshot. The etcd pin moved to the fork's
+`323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
+Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
+changes).
+
+### R2b-1 stage 1: raft's receive gives its facts before *enter* (2026-11-03)
+
+`readyGot` gains `deliveredLogLb` of the delivered log after the `Ready` and its hard state's
+committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
+hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
+changes) and stage 4 (the raft loop entering at the `Save`), which go together.
+
+### R2b-1 stage 3a-3b: a member's WAL directory fresh at start, `bootstrap` gives the opened WAL (2026-11-03)
+
+The user's choice for change 6: an axiomatized token. `walDirFresh dir` (`storage/WalDir.lean`) and
+`walFiles` (`storage/WalRecs.lean`) are axiomatized, timeless only (no exclusivity: read as `True`
+every axiom holds, the start axiom's satisfiability argument). Program start gives `walDirFresh`
+for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new environment premise,
+`walDirsAbsent e Ds`; `etcd_adequate` and `k8setcd3`'s adequacy pass the members' directories.
+`bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
+`walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
+theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
+base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.

@@ -123,6 +123,10 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent (linkv3pProgram clients ops steps) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -135,7 +139,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   linkv3p_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
 (`linkv3p_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
@@ -161,6 +165,10 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
+    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
+    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""].Nodup)
+    (HDs : walDirsAbsent (linkv3pWatchProgram nw nops steps) [config.walDirOf (linkv3p.name₁ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₂ ++ go!".etcd") go!"", config.walDirOf (linkv3p.name₃ ++ go!".etcd") go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ctxs boot)
@@ -173,7 +181,7 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   linkv3p_watch_adequate Hctx Hcec id₁ id₂ id₃ ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hops Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

@@ -8,3 +8,10 @@ sealed Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+
+# The WAL's API (2026-11-03, `notes/decisions.md`, "The WAL's API"): the records, a WAL directory's
+# state and the purge's right are ghost variables whose meaning is trusted (what the WAL's files
+# hold); no proof may update them except through the trusted contracts, so no module imports these
+# with `import all`.
+sealed Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi

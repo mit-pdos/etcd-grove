@@ -99,28 +99,22 @@ theorem wkSteps_km (γ : client.KMNames) (P : List (GoString × GoString)) (hW :
   iintro !> %r0 %r1 %evs #Hstep
   ihave #Hs : client.kmStep γ r0 r1 wkPfx evs $$ []
   · iexact Hstep
-  iunfold client.kmStep at Hs
-  icases Hs with ⟨%L, #HL, %Hs⟩
-  iunfold client.kmLog at HL
-  icases HL with ⟨%l, #Hlb, %Hw⟩
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
-  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
-  imod Hclose $$ [Hσ Hc Ht] with -
-  · inext; iexists σ, m; iframe; ipureintro; exact Hm
+  icases client.kmStep_elim _ _ _ _ _ $$ Hs with ⟨%L, #HL, %Hs⟩
+  imod client.kmLog_W γ L $$ Hinv HL with %HW
+  obtain ⟨cs, hcs, hLcs⟩ := HW
+  have hwk : WkLog P L :=
+    ((show wkW P cs by rw [← hW]; exact hcs).prefix (List.prefix_refl _)).prefix hLcs
+  icases client.kmLog_lb γ L $$ HL with ⟨%l, #Hlb, %Hw⟩
   imodintro
-  have hWσ : wkW P σ.changes := by rw [← hW]; exact Hm.2
-  have hwk : WkLog P ([] :: l) := hWσ.prefix Hp.2
   iexists L
   isplitr
-  · ipureintro; exact ⟨hwk.prefix Hw.1, Hs⟩
+  · ipureintro; exact ⟨hwk, Hs⟩
   iintro !> %r %k %v %h
   iunfold revAtK
   iexists l
   iframe Hlb
   ipureintro
-  obtain ⟨t, ht⟩ := Hw.1
+  obtain ⟨t, ht⟩ := Hw
   have hr : r < L.length := (List.getElem?_eq_some_iff.mp h).1
   rw [← ht, List.getElem?_append_left hr]
   exact h

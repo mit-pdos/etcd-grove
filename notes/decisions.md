@@ -28978,6 +28978,9 @@ statement changed. Next: the Probe (`KeyDel_lt_of_noDup`, `syncWatchers`' compac
 
 ## bootOk's boot metadata: the opened data's meta keys explicit (2026-11-01 · the user's decision, candidate (a))
 
+*Superseded in part (2026-11-03, "The whole-`bootOk` review"): `%HN` left the post for the
+contract's precondition, `N + 7 + bootWB ≤ wbInit`, and `Hnew` gives `bootLeft N`, not every token.*
+
 **Before** (J8a-4 and earlier): `bootOk` (`InvBoot.lean`) stated the boot backend's metadata as a
 literal about the names, `%Hci`'s `γA.m0 = (W64 0, W64 0)`, and again hidden in `Hthr`'s
 `applyThread γA ⟨0, 0, 0, false⟩` (its `p` is the stored index's initial copy, `consInv_alloc`'s
@@ -29854,6 +29857,26 @@ compactkv's and putgetc's proofs (premises weakened; no result's other statement
 the compactions' takes together, so a second stock with its own receipts is not needed; and it is the
 supply that survives a snapshot's swap, which restore in compaction mode needs.
 
+## A snapshot payload's job in compaction mode: `applyAll.specSnap` in either mode (M2's item 15, stage C)
+
+**2026-11-02 · the user's "start stage C", "keep it on the branch" (until image-cmp), "so you can go
+ahead?" · branch `m2-item15-c`, over `image-cmp` (#7-cmp's Freeze)**
+
+**What was.** `applyAll.specSnap` took `E.cmp = false`; `run_job_snap` proved the mode off and left
+the compaction mode to `run_job_snap_cmp`, a `sorry`.
+
+**Decision.** `applyAll.specSnap` drops `E.cmp = false` (no other change to its text). Its proof
+takes the image's records `r`, the restored log's receipt and the two permits from `snapRecv_image`
+(restated by `image-cmp`: `SnapImageFacts` carries `keyImageM d.cm … r D` and `r.crev = crevOf γr.kv
+A'`), and `applySnapshot.specSnap`'s `hcc` from `crev_hcc` over `kvApplied`'s `crevOf` tie and the
+image's log extending the applied one. The snapshot step's merge branch is `merged_image` in both
+modes (image-cmp's). `run_job_snap` covers both modes; `run_job_snap_cmp` is gone, and with it a
+`sorry` (trust base: only its removal).
+
+**Why.** Stage C of the approved plan. An interim form with a bridge `sorry` (`snapRecv_image_cmp`,
+the certificate's facts as a lemma) was committed on the branch and kept off `lean` at the user's
+word; image-cmp's Freeze made it provable as a few lines at the call, and it was removed.
+
 ## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
 
 **The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
@@ -30220,6 +30243,38 @@ compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
    `imageAt` in place; their compaction-mode receipt is the restart path's (marked RESTART-RCPT in
    their docstrings and `notes/image-cmp-plan.md`).
 
+**2026-11-02 · accepted (the user's approval of F2's seven questions, `notes/image-cmp-f2-plan.md`)**
+1. `backend.backend.Snapshot.spec` restated as `specF2` (the plan's text, verbatim): the observation
+   also gets the batch lock's exact halves of the physical non-hook view (`pvHalf`) and of `Meta`'s
+   compaction keys (`ckHalf`), the post their values (`fkVals D`); today's spec kept as the proved
+   corollary `spec_of_specF2`. Restated only after the backend's invariant holds the two halves.
+2. Two exact client halves (not the hook's own keys widened, not a gone set).
+3. The cut kept by a job cursor in mvcc, at a whole revision, handed on in `compactTok`.
+4. `srvBeSnapOk_cmpRecs` replaced by the proved observation (`srvBeSnapOk_window`'s), not proved.
+5. `cmpTrack` carried across a restore before any writer registers (the new backend's
+   pre-registration state).
+6. A share of the writer's log ghost `γ.wv` in the writer's pin.
+7. `updateCompactRev` takes `1 ≤ rev` from its caller (the source of `recsPos`).
+
+**2026-11-03 · accepted (the user's approval, F2's Freeze, stage 1)**
+1. `storage.OpenBackend`'s `openPre`: the creator callback also receives `pvckInit γ P D` (the two new
+   ghosts' client halves at the opened data), as `backend.New` (proved) gives them; the axiom's
+   docstring argues it from `backend.New` as it does `hkOwn`.
+2. The widened meaning of the axioms that mention `isBackend` (its batch-lock invariant now holds
+   the batch lock's halves of `pv`/`ck`): `auth.NewAuthStore`, `lease.NewLessor`, `lessor.Recover`,
+   membership `Recover`/`SetBackend`/`MustSave`/`MustDelete`/`MustRead`, `NewBackendQuota`, alarm
+   `restore`/`NewAlarmStore`, `MustUnsafeSaveConfStateToBackend`, `backend.Snapshot`: accepted on the
+   condition that a fresh spec review confirms each writes only hook buckets and non-compaction keys
+   (so `pvPut`/`ckPut` are `True` and neither ghost moves).
+   Review (2026-11-03, a fresh spec reviewer): all thirteen preserve the invariant, and so do the
+   three others whose specs reach `isBackend` (`storage.OpenBackend`, `EtcdServer.monitorStorageVersion`,
+   `v3alarm.AlarmStore.restore`): no write, delete or bucket removal in `key`, none of `meta`'s two
+   compaction keys. `AlarmStore.restore`, generic in `P`, only creates `alarm` (creation keeps
+   `sData`/`fkVals`); widening it later needs a `pvPut` premise. The condition holds.
+3. (The user, directly, 2026-11-03) confirmed item 1 (`openPre` and its docstring edit), and approved
+   the exported `mvcc_backend_bridge` restated with the lock resource `iprop(W ∗ backend.pvckOwn γ)`
+   (`isBackend … iprop(W ∗ backend.pvckOwn γ)`), and `bootOk`'s `Hnew` and `InvRestart`'s `newPost`
+   stating the boot backend's lock resource as `lateWB` (`lateW ∗ pvckOwn`).
 ## cachekv checks the cache's `Get` (2026-11-02 · the user's go-ahead · `cache_safe` gains `GetFailed`)
 
 `Main`, after the watch's check, does a `Get` of the prefix at the highest revision `r` a `Put`
@@ -30237,6 +30292,69 @@ at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cac
 are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
 answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
 is a theorem (`Proof/context/WithTimeoutBackground.lean`, over Perennial's spec).
+
+**2026-11-03 · accepted (the user's approval of F2 stage 2's three proposals) · `lateWB`'s meaning**
+*Superseded in part (2026-11-03, "The whole-`bootOk` review"): the unregistered arm's
+`pvckEmpty` holds of a first start only; a restart's `bootOkR` holds `lateWBR`.*
+1. **`lateWB gx γB`'s body changes** (its signature and `bootOk`'s text stay): the backend's client
+   halves (`pvckOwn`) move inside `lateW`'s two arms, unregistered (the bootstrap's deposit, literally
+   `dghostVar gx ½ none ∗ pvckOwn γB`, or, for a backend the snapshot walk opened, the restore's
+   tracking) and registered (the store's `writerRes`, whose `compactRes` holds `cmpTrack` with the
+   exact halves). So `bootOk`/`bootstrapContract`, `InvRestart.newPost` and `mvcc_backend_bridge`
+   change meaning. **Why the client halves must sit with the facts**: the snapshot's observation is
+   a pure wand over the batch lock's resource `W` (no update, so no invariant opened: not
+   `writerReg`); what it learns of the physical view `vd` the lock's half agrees with can only come
+   from what sits beside the client's half inside `W`. With the halves outside `lateW` (stage 1's
+   `lateW ∗ pvckOwn`, an existential value), no fact about `vd` is reachable.
+2. **`KBReal` gains the tie ghosts** `lg` (the writer's log), `sg` (the records' revision), `jg` (the
+   job cursor) and a flag for backends the snapshot walk opened; `NewServer` sets them as it sets
+   `cm`, `SnapApplyWalk` allocates fresh ones with `gx'` (renewed at a restore through
+   `PhysNames.kb`: the approved "physical names renewed at a restore").
+3. **`cmpTrack` corrected**: the tie ghost holds `r.crev` (not `r.sched`), with "once a job has run,
+   `schedRev = crev`"; `fin ≤ sched` dropped (an image with odd records, `sched < fin`, would break
+   a `sched` tie at a restore).
+Condition: a fresh spec review of the new `lateWB` body and the widened mvcc backend contract
+(`batchTxSpecG`, `isKeyBackendG`, `mvcc_backend_bridge`, `store.Restore`) before the Freeze.
+
+**2026-11-03 · F2 stage 2, scope restrictions (filed per "No unneeded premise"; review round 3)**
+- `kbBoot kb` on `NewStore`/`New`/`newWatchableStore`: the store is made over a backend `bootstrap`
+  opened (`snap := false`); the snapshot walk's backends get their store only through
+  `store.Restore`. The server always meets it.
+- `d'.snap = true` on `store.Restore`/`watchableStore.Restore`: a restore installs over a backend the
+  snapshot walk opened (the only caller is `applySnapshot`).
+- `1 ≤ rev` on `store.Compact`/`updateCompactRev`/`compactLockfree` in compaction mode (Q7, approved):
+  from `compactPropOk` through `apply.cmpAdmitRev`; `compactLockfree`'s caller is Go's own resume
+  guard (`scheduledCompact != 0`). `nonissues/etcd-restore-scheduled-compact-zero.md`.
+
+## `cache_Watch_delivery`: progress notifications are quiet (2026-11-03 · the user's go-ahead · a strengthening, no new premise)
+
+The open arm of the `Watch` delivery theorem (`cacheWatch_delivery`, restated in
+`cache_Watch_delivery`) gains `watchProgressQuiet pfx p₀ bs L`: every response of the log without
+events at a positive revision `p` (a progress notification) is at most `c`, the last batch of
+`bs` at or below `p` (`p₀` if none), or ends a step without events under the prefix from at most
+`c` (`∃ q ≤ c, EtcdStep q p pfx []`, the shape of etcd's own watch contract, `watchRespOk`: the
+spec-reviewer's round, which found the first form, the demux's `progressQuiet` at
+`(etcdStepCert pfx).quiet`, internal vocabulary without laws). With the chain, a `Watch` client
+knows etcd's events under the prefix in `(p₀, p]` are exactly the batches of `bs` at or below
+`p` (for a filtered watch, `bs` is the unfiltered segment). The internal form `progressQuiet` stays
+the demux's (`watchProgressQuiet_of` converts). Proved from the publication
+(`pub_progressQuiet`, `InvDemux.lean`): the first delivered batch above the notification certifies
+the interval (`cert_quiet`), or, if none, the quiet tail (`quietEnd` is at or above every progress
+notification sent). The `0 < p` premise: an event-less response at or below `0` is not a progress
+notification, and the lock keeps no quiet fact while `maxRev = 0` (`Init` at a non-positive
+`minRev`). The compaction arm keeps none (closed logs drop the tail; the facts were true
+there too, round 2's finding 3, left: no client needs them). Open (round 2's finding 2): derive
+`storeW_quiet` from `pub_progressQuiet` (for an unfiltered watch with the notification last, the
+anchor is the last event received) instead of unfolding the publication.
+
+The user (2026-11-03): consumers do not unfold predicates from other modules (the spec skill's
+principle sharpened from packages to modules). Applied to this change: `etcdQuiet_at`,
+`etcdQuiet_step`, `etcdQuiet_of_step`, `etcdStepCert_quiet` (`InvEtcd`), `progressQuiet_at`
+(`InvDemux`), `cacheGap_at`, `watchProgressQuiet_at` (`InvCache`); `watchProgressQuiet_of`,
+`cacheGap_of_step` and `Cache.Get`'s gap step use them. Open (unfolds across modules in earlier
+work, to be replaced by laws): `GetFacts.lean`'s `getCheck_km` (the adapter's `kmLog`, `kmInv`,
+`kmRevAt`, as `km_step_log` does; the cache's `isEtcdKvs`, `cacheGetErr`), `storeW_quiet`/
+`storeW_chain` (`demuxPubBody`).
 
 ## Porcupine PR #46: the DAG search, specified and verified in a part (2026-11-02 · the task "verify PR #46's checker, the v1.3.1 spec or the closest true one" · this worktree's branch)
 
@@ -30309,3 +30427,231 @@ The PR #46 work (branch `worktree-agent-ac37901483259dd26`, "Porcupine PR #46: t
 specified and verified in a part" above) merged into `lean` with the user's approval of its
 premises. Its two bug reports moved from `issues/` to `notes/pr-verify/porcupine-46.md`, as
 `issues/README.md` asks for bugs only in an unmerged pull request's code.
+
+## cachekv checks a progress notification of the cache's watch (2026-11-03 · the user's choice of the cheaper check)
+
+`Main`, after `collect`, asks the cache for a progress notification (`RequestProgress`), reads
+the watch up to it (`awaitProgress`, the events before it appended) and `checkProgress`es it:
+panic if its revision `p` is past the last event's (`1` if none). In watchkv's workload every
+revision from `2` on is a put under the prefix, so the quiet fact of `cache_Watch_delivery`
+(`watchProgressQuiet`) gives exactly `p ≤ 1 + #events` (`log_ck_progress`: the last batch at or
+below `p` is one of the events, or `p` ends a step without events under the prefix, impossible at
+a revision `≥ 2` of a watchkv log, `km_step_log`, `revEvs_hi`). The check catches a watch claiming
+completeness past an event it did not send. The user chose it over a check against etcd's own
+answer at `p` (a client `Get` of the prefix at a revision, a specialization of `kv.Get`'s spec
+still to state), equally strong in this workload. `collect`'s post now returns the slice's
+capacity, the consumer and the received log; `cancel()` moved after the progress notification
+(it closes the watch). `cache_safe`'s statement unchanged. Laws instead of unfolds:
+`common.collectOk_elim`/`_intro`, `cacheWatchSlot_parts`. Open: `Main`'s unfolds of the cache's
+`cacheGetResult`/`cacheGetOk` (the `Get` wiring of 2026-11-02).
+
+## The whole-`bootOk` review: `bootstrap`'s contracts restated (2026-11-03 · the user's approval of candidate 3 and its seven recommendations · branch `bootok-review`)
+
+`bootOk` (`InvBoot.lean`), the trusted stand-in for etcd's untranslated `bootstrap`, changed in five
+stages since 2026-11-01, each reviewed for its own part. Reviewed as a whole (three fresh
+spec-reviewer rounds; a Go test at the pinned fork checking each Go-checkable conjunct of `bootOk`
+and of the restart contract, fresh start and restart, compaction and auth each on and off,
+`etc/spec-test/bootstrap/`), it was **false of every run of `bootstrap`**: with a false `bootOk`
+every closed server result held vacuously.
+
+**Findings and repairs** (tier 1 false, tier 2 incomplete or a hard rule broken, tier 3 clarity):
+- **A (T1): `Hnew` gave every write-back token** (`newPost`'s `ownToks γ.wb wbInit`). The batch
+  lock's bound `bgOk` (`ver + n + k < 2 ^ 40`) then forces the read buffer's `bufVersion` to `0`,
+  but `bootstrap` writes back twice before it returns (`CreateMetaBucket`, `Finalize`'s
+  `MustCreateBackendBuckets`): `bufVersion = 2` on every run (measured). **Repair:** `Hnew` is
+  `newPostK … (bootLeft N)`, `bootLeft N γ := ownToks γ.wb (N + 7) ∗ bOpen γ 1`; the bound moves
+  out of the post (`%HN`, a claim about the caller's `N`, gone) into the contracts' precondition,
+  `N + 7 + bootWB ≤ wbInit`, `bootWB := 4` (two needed, one write-back per session; the `run`
+  goroutine's commits are unpaid; two kept as margin; `BootBackend.lean`). `NewServer.spec`,
+  `specM`, `specG` take it as a premise, threaded through `newServerMode.spec` and every example's
+  spec chain; the adequacy theorems prove it from `n + 2 ≤ 2 ^ 28` (the unused `n + 7 ≤ wbInit`
+  they proved is gone). `bootBackend_of_newPost` is now `bootBackend_of_bootLeft` (with the pool
+  split `newPost_pool` did). Q3: `bootWB = 4` with defragmentation at boot out of scope.
+- **B (T1, T1-B, open since F2): `lateWB`'s unregistered arm fixed at an empty `Key` bucket** (and
+  no compaction keys): true of a first start, false of every restart (`bootOkR`). **Repair (B3,
+  Q2):** `bootOkR`'s `Hnew` holds a new `lateWBR` (`InvRestart.lean`) whose unregistered arm holds
+  the client's halves at some values (`pvckOwn`); `lateWB`, `bootOk` and `NewStore` unchanged.
+  Nothing on the restart path can use `lateWBR` yet (`lateWD`, `KBReal.snap`, `kbBoot` take a
+  backend `bootstrap` opened to carry `lateWB`): R2d does B1, `lateWB`'s arm at `pvckOwn` for both
+  starts with `NewStore` deriving `pvckEmpty` by agreement under the lock, in `batchTxInitSpec`'s
+  `LockOutsideApply` triple (round 2: `NewStore` sees no `kbLocked`), when the contracts merge.
+  Rejected: B2 (`lateWB` indexed by the opened data, a `KBReal` field), a trusted signature change
+  for nothing B1 lacks.
+- **C (T1): the contracts covered configurations where Go panics or does otherwise**: a nil logger
+  (panics, measured), a quota bbolt cannot map, any `BackendBatchLimit` (`Hbe`'s `d.P.Wf` needs
+  `0 < limit ≤ 2 ^ 57`; round 3), discovery, bootstrap defragmentation; on a restart
+  `ForceNewCluster` (rewrites the WAL's log) and a `DedicatedWALDir` (the WAL elsewhere than
+  `srvFiles`' `<dd>/member/wal`). And (T2) `bootOk` relied on `ElectionTicks`, `TickMs`,
+  `NewCluster`, which only the examples' `cfgOk` fixed. **Repair:** `bootCfgOk cfg` (both starts:
+  logger, `openMmapOk`, the batch limit's range, no bootstrap defragmentation, `1 < ElectionTicks`,
+  `TickMs ≠ 0`) and `bootCfgFresh cfg U` (first start: `NewCluster`, no discovery endpoints, the
+  initial cluster's names valid UTF-8, moved here from the examples' `bootPremise`) in the
+  first-start contract's precondition; `bootCfgOk ∧ ForceNewCluster' = false ∧ DedicatedWALDir' =
+  ""` in the restart contract's premise. Q4: `NewServer.spec` (three statements) takes
+  `bootCfgOk cfg` and `bootCfgFresh cfg U` as premises (scope restrictions: the code accepts more);
+  the examples discharge them from the configuration literal (`common.bootCfgOk_of`,
+  `discoveryZero_len`). (`NewServer.spec`'s older `cfg.Logger' ≠ null` and `%Hmmap` stay: its
+  proof uses them on their own; implied by `bootCfgOk`, a cleanup for later.)
+- **D (T1): `#Hclose` persistent with a `True` pre**; a second `Close` panics on `close(b.stopc)`
+  (measured). **Not repaired in this stage.** The approved repair, one-shot with the backend's whole
+  open token (`backend.backend.Close.spec`'s pre), costs little on `NewServer`'s first error path
+  but cannot be met on the second (`NewServer.lean`'s transport-start failure): there the stock's
+  reader tokens went into `mvcc.New` (the watch readers, the store's two goroutines, the compaction
+  job's readers) and `watchableStore.Close`/`store.Close` give none back (posts `True`). Giving them
+  back restates both closers, their goroutines' wait-group payloads and the readers' return:
+  judged days of work, past the stage's budget; no premise can rule the branch out
+  (`Transport.Start` and the round-tripper axioms allow an error for every TLS configuration). A
+  stage of its own (`notes/STATUS.md`).
+- **E (T1): no resource records that the data directory is fresh.** The persistent first-start
+  contract claims `bootOk` for every call, also a second one on a directory the first wrote;
+  `restart3`'s members 2 and 3 hold both contracts for one directory. Candidate 1's opaque token
+  minted by adequacy is not exclusive (premises enter as `⊢ premises`, which mints it twice), nor
+  is a non-persistent premise. **Open (Q5):** exclusivity from the semantics, a durable-directory
+  GooseLang extension giving each directory once, with `srvFiles`' exclusivity (open since R2c), in
+  R2d.
+- **F (T2): `bootOk` and `bootOkR` are two contracts of one function.** Q1: kept separate; merged at
+  R2d as one contract over the directory's state, the first-start statement a corollary.
+- **G (T2): `bootOkR`'s `Members()` fixed to `ps`** while its members come from the image's log.
+  **Repair:** the restart contract's premise, the static cluster: the image's members agree with
+  the boot log's on ids and peer URLs (round 3: not on whole records, `publishV3` changes a member's
+  name and client URLs after its start, which `restart3` cannot rule out before its stop).
+- **H (T2): `srvImage` fixes the auth-off chain**, and a restart's `imageAt` cannot be met after
+  `AuthEnable` (measured). **Open (Q7):** `notes/STATUS.md`'s auth-on gap.
+- **I/J/K (T3)**: the duplicate `#Hbh` gone (in both); `bootOkR`'s stale comments (`Hrms0`,
+  `Hclg`'s constructor, the fresh storage's), `HwalR`'s; `(ps.length : Int) < 2 ^ 62` dropped
+  from `Hraft` (implied by `Hdirps`' `ps.length ≤ 2 ^ 20`; `NewServer` derives it).
+
+Supersedes in part "bootOk's boot metadata" (2026-11-01: `%HN` in the post) and "`lateWB`'s
+meaning" (2026-11-03: the boot arm's literal `pvckEmpty` text holds only of a first start; a
+restart's is `lateWBR`'s).
+
+**The final fresh review round on the frozen texts (2026-11-03)** confirmed the repairs (A's two
+write-back sessions measured, `bootWB`/`bootLeft`/`bootBackend_of_bootLeft` sound, the restart
+premises matching the code) and found earlier defects outside this stage's approved repairs,
+recorded here and in `notes/STATUS.md` for the user's decision, none fixed on this branch:
+- **S1 (false of Go, a bug in this repository's examples): putget3 (and restart3, draft) bind
+  member ids to names out of sort order.** `bootOk`'s `Hraft` has `γ.vs = ps` with `ps` from
+  `MemberIDs()`, ascending; putget3's `premises` passes `[id₁, id₂, id₃]` with `idᵢ` member `-i`'s
+  id. Measured (`putget3`'s `NewClusterFromURLsMap`): `0x4594…` is `putget3-1`, `0x615e…`
+  `putget3-3`, `0xecbf…` `putget3-2`, so no choice of ids meets `premises`, and `putget3_adequate`
+  is vacuous of the real program; restart3 the same (`2, 3, 1`). linkv3p's ids are in order. The
+  file header's claim (`-1, -2, -3` sorted) is wrong. Fix: bind names to ids in sorted order (with
+  `dir3` and the boot log to match), and make each `TestMemberIDs` assert the order.
+- **S2 (false of the model): `rnTickerOk` admits a negative duration.** Its pre is `d ≠ 0`; Go's
+  `time.NewTicker` panics for `d ≤ 0` and so does the model, so the premise is a triple of a stuck
+  expression at `d = -1`. With it, `bootCfgOk`'s `TickMs ≠ 0` lets the heartbeat
+  (`TickMs * Millisecond`, wrapping) be 0 or negative. Fix: `0 < sint.Z d` in `rnTickerOk`,
+  `0 < sint.Z heartbeat` in `Hraft`, `0 < TickMs ∧ TickMs * 10^6 < 2^63` in `bootCfgOk`.
+- **M1: neither contract takes a disk premise** for `bootstrap`'s own panics (`backend.New` on a
+  failed `bolt.Open`, `MemoryMlock`; `bootstrapNewWAL` on a failed `wal.Create`); `NewServer.spec`
+  has `storage.diskOk` but does not pass it down.
+- **M2: `Hdirps` (the URL directory's members, `ps.length ≤ 2 ^ 20`) is in the post**, a fact of the
+  caller's `dir`, the shape `%HN` had; it belongs in the precondition.
+- Minor: `srvFiles`' docstring says the last snapshot record (Go takes the highest-index valid
+  one); `NewServer.spec`'s new pure premises written as implications, as its others are.
+
+## Laws in place of cross-module unfolds: the cache's Get, the adapter, the store watcher (2026-11-03 · the user's "go ahead with the unfold follow-ups")
+
+The follow-ups of "cachekv checks a progress notification" and of the cache's `Get` at the
+requested revision: consumers stop unfolding predicates of other modules (the user's principle,
+`.claude/skills/spec/PRINCIPLES.md`), each through a law beside the definition. No statement of a
+result changed.
+
+- **The cache's `Get`** (`InvCache`): `cacheGetResult_cases`; `cacheGetOk_rev` (at `o.rev ≠ 0`,
+  the response's `Kvs` and `isEtcdKvs o.rev`, dropping the store's facts no client uses);
+  `cacheGetErr_ne_nil` (moved from `cachekv/GetFacts.lean`), over `snapErr_ne_nil` (`InvStore`).
+  `isEtcdKvs_elim` and `kvValsAt_at` (`InvEtcd`): the state, `m`'s length and keys under the prefix,
+  the values (not `EtcdStateWf`, which no client needs).
+- **The adapter** (`client/v3/EtcdModelKV`): `kmLog_W` (a log the client saw is a prefix of
+  changes satisfying `γ.W`, the one use of `kmInv` the examples made), `kmLog_lb` (its lower bound
+  of `γ.ch`, the representation `kmRevAt`, `kmWriteQ` and `kmReachedAt` already share),
+  `kmLog_getElem`, `kmEtcdState_elim`, `kmStep_elim`. `common.kmRevAt` keeps its definition (over
+  the lower bound: `okFactKM_of_write` has only `kmWriteQ`'s, not a `kmLog`; *rejected:* redefining
+  it over `kmLog`), with `kmRevAt_of_log` and `kmRevAt_log` beside it. Users: `getCheck_km`,
+  `km_step_log` (`cachekv`), `wkSteps_km` (`linkv3p`).
+- **The store watcher** (`Cache.applyStorage`): `storeW_chain`/`storeW_quiet` unfolded the
+  demux's publication; they are facts of an unfiltered publication, so they moved to `InvDemux` as
+  `demuxPubBody_next_chain`/`demuxPubBody_next_quiet` (with `lastEvRevOr` and the pure batch lemmas
+  they use), and `storeW_revCerts` uses a new `demuxPubBody_evProg` (every event published has its
+  batch's `C.prog`). *Rejected:* deriving `storeW_quiet` from `pub_progressQuiet` (round 2's
+  suggestion): moving the proof is shorter and needs no new reasoning.
+
+Left (not in the follow-ups; the same kind): unfolds of other modules' predicates elsewhere in the
+examples (`linkv3p/WatchKV.lean`'s `watchChain`, `etcdStepCertBody`, `evsMatch`, `kmWriteQ`;
+`cachekv`'s `CacheFacts`, `collect`, `awaitProgress`, `NoDup`, `Main`), and pure functions'
+unfolds, which the principle does not cover.
+
+## The WAL's API (2026-11-03 · the user's request for a spec-first pass, and approval of candidate 3)
+
+**Before:** the WAL's contract grew one piece at a time: `isRNWal` (`InvRaftNode.lean`: `Save`, then
+`SaveSnap`, `Sync`, the open token and `Close`'s I/O premise, 2026-10-31), the tokens and premises in
+`storage/InvOpen.lean`, `bootOk`'s open WAL, `Release`'s own spec, and R2b-1's draft records
+(`InvWal.lean`). None of it said what the WAL holds, which a restart reads. The user asked for the
+whole API through the spec-first approach before R2b-1's proof.
+
+**The API** (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`, both sealed by `etc/import-all.txt`):
+the records `walRecs w σ` (what `ReadAll` returns at the restart's snapshot record) and their model
+(`walSave`, `walSaveSnap`, `walFresh`), the base's lower bounds (`walBaseLb`), a WAL directory's
+state (`walDirFresh`, `walFiles`: one ghost variable per directory), the purge's right
+(`walPurgeRight`), the contract `isWalStorage` over the server's storage (sealed, one law per
+operation: `Save` as two atomic updates, saved or on an error some records; `SaveSnap`; `Sync`;
+`Close` making the files), and `walOpened`, what `bootstrap` gives.
+
+**Reviews:** round 1, a `spec-reviewer` and the `axiom` skill, which refuted candidate 1 with Go
+tests: a restart at a received snapshot named its next WAL file below the snapshot, and a later
+restart could fail once the purge removed the file with the record (fixed on the fork, `323320bb8`;
+`nonissues/etcd-wal-restart-file-below-snapshot.md`), and two cases the server never issues
+(`Close` with a received snapshot's `Save` pending; `SaveSnap` at the base's index with another
+term), now excluded by premises. Round 2 (a `spec-reviewer`): the WAL directory is opaque
+(`config.walDirOf dataDir dedicated`: a concatenated string was false), `Close` needs the purge
+stopped (`walPurgeRight`: `Close` releases every lock), the directory's state is a ghost variable
+(timeless, one per directory), the module sealed mechanically, and every change to a trusted
+statement listed.
+
+**Approved by the user (2026-11-03), to land with R2b-1's proof:** (1) `NewStorage`'s contract
+(`rnNewStorageOk`) gives `isWalStorage` in place of `isRNWal`; (2) `bootstrap`'s first start takes
+`walDirFresh` and gives `walOpened … walFresh` and `walPurgeRight`, the restart contract takes
+`walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope: `ForceNewCluster` off, a decision:
+with it `bootstrap` writes conf entries to the WAL itself); (3) `srvFiles` is `∃ cid, walFiles
+(config.walDirOf dd "") id cid σ ∗` the backend file; (4) `storage.Release` takes `walBaseLb` (the
+received snapshot's `notifyc` then carries it); (5) `purgeFile` takes and returns `walPurgeRight`;
+(6) the examples' members start with their WAL directories fresh (`walDirFresh`, a new premise).
+Out of the API: `MinimalEtcdVersion` (a downgrade's check; its `Reopen` also opens a purge window,
+code reading), `wal.Repair`, `UnsafeNoFsync`.
+
+**Why not incremental:** each piece added alone had been reviewed against its one client; together
+they said nothing about the files a restart reads, and three of the WAL's own bugs (two found while
+drafting R2b-1, one by the API's axiom review) were invisible until the records were modelled.
+
+## Raft's receive gives the delivered log and the committed hard state before *enter* (2026-11-03 · the restart plan's R2b-1 stage 1)
+
+`readyGot` (raft's API, `InvNode.lean`; `readyPost` in `InvApi.lean`) gains two persistent
+conjuncts: `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed
+fact (`⌜phsNext … = hsZero⌝ ∨ committedAtTerm …`). Until now a client got both only from the
+entered driver (`nodeDriver_deliveredLogLb`, `nodeDriver_hardStateCommitted`), after *enter*. A
+client that enters a batch at its disk write needs them before: etcd's server hands the committed
+entries to its apply thread (`applyc`, `rnApN`: `deliveredLogLb (F ++ ce)`, the new term's
+`rnRtOk`) before the WAL `Save`, where R2b-1 moves *enter* so that a stop between the receive and
+the `Save` leaves the node's durable state the WAL's. Raft's proof had both, persistent, where it
+builds *enter* (`readyRecv_open`: `isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`);
+`deliveredLogLb`'s implementation moved from `InvApiView` to `InvApi` for `readyPost` to name it.
+The four clients that destructure `readyGot` (the server's `rn_ready_recv`, `kv`, `kvreconf`,
+`kvdurable`) drop the two new conjuncts. The `isCommittedLogLb (delivered ++ ce)` conjunct, which
+the new `deliveredLogLb` implies, stays (dropping it would move every client's pattern for nothing).
+
+## The WAL in the boot hub through its slots (2026-11-03 · the user's approval of the slot convention)
+
+**Before:** R2b-1 stage 3a-3b (branch `r2b1-s3`, built, not landed) put the WAL into the boot hub
+inline: `NewServer.spec`'s three triples and `bootstrapContract` took `walDirFresh (config.walDirOf
+cfg.DataDir' cfg.DedicatedWALDir')`, `bootOk` had `walOpened … walFresh ∗ walPurgeRight …`.
+`notes/spec-first-plan.md` ("Hubs", "Incremental adoption") makes the WAL the first subsystem to
+enter the hub through sealed slots, after a convention reviewed once.
+
+**Now:** the convention (`notes/spec-first-plan.md`, "The slot convention") approved as drafted;
+`WalApi.lean` exports `wal.bootRes cfg` and `wal.bootOk cfg id cid w`, sealed, with
+`wal.bootRes_intro` and `wal.bootOk_storage` (narrow: what `NewStorage` takes; a review's
+suggestion, replacing a law that restated the body); the hub names them. A later change to what the WAL takes
+or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) changes those bodies and
+laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
+starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
+

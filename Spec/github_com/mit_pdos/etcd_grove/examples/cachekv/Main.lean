@@ -7,7 +7,10 @@ with etcd's default configuration (its default retries; D29), a cache of the pre
 client (`cache.New`, the default options), the cache's watch of the prefix from revision `2`,
 `nw` writer goroutines, then, after they are done, the successful Puts' log, the watch read up to
 their highest revision (`collect`) and the check (`check`, which panics if the watch did not
-report exactly the writes); then (2026-11-02) the cache's `Get` of the prefix at that revision
+report exactly the writes), after (2026-11-03) a progress notification of the cache's watch
+(`RequestProgress`, the watch read up to it, `awaitProgress`) and its check (`checkProgress`,
+which panics if its revision is past the last event: the watch claiming completeness past a
+revision whose event it did not send); then (2026-11-02) the cache's `Get` of the prefix at that revision
 (`WithRev`, under a timeout) and its check (`checkGet`, which panics unless it answers each key's
 last watched value at or below the revision, and every key watched).
 
@@ -50,13 +53,17 @@ abbrev Main.spec : Prop :=
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
   putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23873" ∗ threadTok ∗ premises N id ctxs boot ∗
+      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
+      walDirFresh (config.walDirOf go!"cachekv.etcd" go!"") }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main)) (Val #nw))
       (Val #nops))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2 ∨ r = W64 3⌝ }}

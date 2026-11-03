@@ -6,7 +6,8 @@ of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterp
   etcd member started in process (since 2026-11-02 with the auto-compactor on, periodic mode
   at 10ms: a compaction of the cache's watch makes the cache re-list), a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
-  revision, a check that panics unless the watched events are exactly the writes, then the cache's
+  revision, a progress notification of the watch and a check that panics if it is past the last
+  event, a check that panics unless the watched events are exactly the writes, then the cache's
   `Get` of the prefix at that revision and a check that panics unless it answers each key's last
   watched value (`checkGet`) -- does not panic and returns `Ok`, `Failed`, `WatchEnded` or
   `GetFailed`. From `isPkgInit cachekv`, the right to listen
@@ -75,6 +76,8 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (cachekvProgram nw nops) cachekvNames)
     (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23873"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent (cachekvProgram nw nops) [config.walDirOf go!"cachekv.etcd" go!""])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ cachekv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -87,7 +90,7 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   cache_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
-    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

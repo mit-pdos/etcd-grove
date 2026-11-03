@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.SetScheduledCompact.wp_proof
     (h0 : mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) := by
-  intro bt View RT WT PutOk Del W Dep Locked P HF Rb MW HN hk value Pre Q Post Hv
-  wp_start as ⟨#Hbt, #Hsw, Hrt, Hwt, Hpre, Harm⟩
+  intro bt View RT WT PutOk Del W Dep Locked P HF Rb MW HN hk value Pre Q Post PV PVx CK X Hv
+  wp_start as ⟨#Hbt, Hsw, Hrt, Hwt, Hpre, Harm⟩
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -, -, -, #HMeta, -⟩
   ihave #Hcap := HMeta $$ []
@@ -50,18 +50,19 @@ theorem mvcc.SetScheduledCompact.wp_proof
     iintro ⟨Hl, HW, HQ, Hrt⟩
     wp_auto_lc 1
     -- (question 5's core stage, part (1)) the compaction keys' write right, for the lock's resource
-    iunfold mvcc.mwSwap at Hsw
-    imod Hsw $$ [HW Hlc1] with ⟨HMW, Hback⟩
+    iunfold mvcc.mwSwapCK at Hsw
+    imod Hsw $$ [HW Hlc1] with ⟨HMW, %c, Hc, Hback⟩
     · iframe HW Hlc1
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
       (Val #(GoInterface.ok bt))) (Val #value))
-    iapply (h0 bt iprop(Locked [] ∗ MW) _ value Hv) $$ [Hl HMW]
-    · iframe Hpkg Hcap Hl HMW
+    iapply (h0 bt iprop(Locked [] ∗ MW) _ CK c value Hv) $$ [Hl HMW Hc]
+    · iframe Hpkg Hcap Hl HMW Hc
     inext
     -- (the backend-compaction stage, R2-3) the put leaves a token only `Unlock` takes; the right
     -- swapped back for the lock's resource
-    iintro ⟨⟨%U, HU, #Hua⟩, HMW⟩
-    imod Hback $$ HMW with HW
+    iintro ⟨⟨⟨%U, HU, #Hua⟩, HMW⟩, Hc⟩
+    imod Hback $$ [HMW Hc] with ⟨HW, HX⟩
+    · iframe HMW Hc
     iunfold mvcc.unlockAt at Hua
     icases Hua with ⟨#HUnlock0, -⟩
     (try wp_auto)
@@ -75,7 +76,7 @@ theorem mvcc.SetScheduledCompact.wp_proof
     iintro -
     (try wp_auto)
     iapply HΦ
-    iframe Hrt HPost
+    iframe Hrt HPost HX
   | none =>
     rw [mvcc.lockArmS_none]
     icases Harm with ⟨Hhn, #HLN, Hupd⟩
@@ -88,16 +89,17 @@ theorem mvcc.SetScheduledCompact.wp_proof
     inext
     iintro ⟨Hl, HW, HP, Hpre, Hrt, Hhn⟩
     wp_auto_lc 1
-    iunfold mvcc.mwSwap at Hsw
-    imod Hsw $$ [HW Hlc1] with ⟨HMW, Hback⟩
+    iunfold mvcc.mwSwapCK at Hsw
+    imod Hsw $$ [HW Hlc1] with ⟨HMW, %c, Hc, Hback⟩
     · iframe HW Hlc1
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
       (Val #(GoInterface.ok bt))) (Val #value))
-    iapply (h0 bt iprop(Locked [] ∗ MW) _ value Hv) $$ [Hl HMW]
-    · iframe Hpkg Hcap Hl HMW
+    iapply (h0 bt iprop(Locked [] ∗ MW) _ CK c value Hv) $$ [Hl HMW Hc]
+    · iframe Hpkg Hcap Hl HMW Hc
     inext
-    iintro ⟨⟨%U, HU, #Hua⟩, HMW⟩
-    imod Hback $$ HMW with HW
+    iintro ⟨⟨⟨%U, HU, #Hua⟩, HMW⟩, Hc⟩
+    imod Hback $$ [HMW Hc] with ⟨HW, HX⟩
+    · iframe HMW Hc
     iunfold mvcc.unlockAt at Hua
     icases Hua with ⟨#HUnlock0, -⟩
     (try wp_auto)
@@ -111,7 +113,7 @@ theorem mvcc.SetScheduledCompact.wp_proof
     iintro -
     (try wp_auto)
     iapply HΦ
-    iframe Hrt HPost
+    iframe Hrt HPost HX
 
 end proof
 

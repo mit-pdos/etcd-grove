@@ -26,9 +26,9 @@ is switched (no `d.cm = false`; the image's records `r`, `keyImageM`, the receip
 premises; `notes/decisions.md`, "Restore in compaction mode at the server"); `applyAll` still calls it
 with the mode off. Stage B3 done (2026-11-02): one write-token count, `N` in both modes (`NewServer`
 makes the budget and the compaction's supply comes from its stock; `notes/decisions.md`, "One
-write-token count"). Next: `applyAll`'s call of `specSnap` in compaction mode (the receipt from `srvImageR`, the permits),
-`merged_image_cmp` restated over `keyImageM` (#7-cmp), and stage C (`run_job_snap_cmp`, a `sorry`
-until then).
+write-token count"). Stage C done (2026-11-02, branch `m2-item15-c`, over image-cmp): `applyAll.specSnap` in either
+mode, `run_job_snap_cmp` gone (`notes/decisions.md`, "A snapshot payload's job in compaction mode").
+Item 15 is done; the compaction mode's snapshot path rests on image-cmp's `srvBeSnapOk_cmpRecs` only.
 
 Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`

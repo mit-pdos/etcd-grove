@@ -258,7 +258,7 @@ theorem Replica.run.wp_proof
     inext
     iintro %rdv Hgot
     iunfold readyGot at Hgot
-    icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, Hlm, Henter⟩
+    icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, Hlm, Henter, -, -⟩
     ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
     ihave ⟨Hrest, %G4⟩ := readyRest_commit_mono _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
     ihave ⟨Hrest, %G8⟩ := readyRest_commit_le_last _ _ _ _ _ _ _ _ _ _ _ $$ Hrest

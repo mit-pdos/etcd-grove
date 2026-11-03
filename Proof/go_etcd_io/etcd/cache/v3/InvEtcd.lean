@@ -371,6 +371,32 @@ instance isEtcdKvs_persistent (rev : w64) (pfx : GoString) (m : KvMap) :
     Persistent (isEtcdKvs (GF := GF) rev pfx m) := by
   unfold isEtcdKvs; infer_instance
 
+omit EM package_sem in
+/-- The `i`th `*KeyValue` of `m` holds the `i`th key-value of `s`. -/
+theorem kvValsAt_at (m : KvMap) (s : List EtcdKv) (i : Nat) (e : KvEntry) (v : EtcdKv)
+    (hm : m[i]? = some e) (hs : s[i]? = some v) :
+    kvValsAt (GF := GF) m s ⊢ kvValAt e.2 v := by
+  unfold kvValsAt
+  iintro #H
+  iapply H $$ %i %e %v %hm %hs
+
+omit package_sem in
+/-- **What `isEtcdKvs` gives a client**: etcd's state `s` at `rev` under `pfx`, of `m`'s length,
+every key of `m` under `pfx`, and `m`'s `*KeyValue`s holding `s`'s key-values in order. -/
+theorem isEtcdKvs_elim (rev : w64) (pfx : GoString) (m : KvMap) :
+    isEtcdKvs (GF := GF) rev pfx m ⊢
+      ∃ s : List EtcdKv, □ etcdState rev pfx s ∗
+        ⌜m.length = s.length ∧ ∀ e ∈ m, pfx <+: e.1⌝ ∗ kvValsAt m s := by
+  unfold isEtcdKvs
+  iintro ⟨%s, #Hst, %Hk, %Hwf, #Hv⟩
+  iexists s
+  iframe Hst Hv
+  ipureintro
+  refine ⟨by have := congrArg List.length Hk; simpa using this, fun e he => ?_⟩
+  have hk : e.1 ∈ s.map EtcdKv.key := by rw [← Hk]; exact List.mem_map_of_mem he
+  obtain ⟨v, hv, hve⟩ := List.mem_map.1 hk
+  rw [← hve]; exact Hwf.2 v hv
+
 omit EM in
 /-- The events `evs` (as the store reads them) are etcd's events `cs`, pointwise: the same type,
 key and revision, and each event's `*KeyValue` holds etcd's key-value (`kvValAt`). -/
@@ -604,6 +630,38 @@ theorem etcdQuiet_nil (pfx : GoString) (a b : Int) (h : b ≤ a) : ⊢ etcdQuiet
   unfold etcdQuiet
   imodintro; iintro %x %hx; exfalso; omega
 
+/-- **Elimination**: a revision of a quiet interval ends a step without events from at or below its
+start. -/
+theorem etcdQuiet_at (pfx : GoString) (a b : Int) (x : w64) (hx : a < sint.Z x ∧ sint.Z x ≤ b) :
+    etcdQuiet (GF := GF) pfx a b ⊢ ∃ q : w64, ⌜sint.Z q ≤ a⌝ ∗ EtcdStep q x pfx [] := by
+  unfold etcdQuiet
+  iintro #H
+  iapply H $$ %x %hx
+
+/-- **Elimination at the end**: a quiet interval up to `p` is empty, or `p` ends a step without
+events from at or below its start (the shape of etcd's watch contract, `watchRespOk`). -/
+theorem etcdQuiet_step (pfx : GoString) (c : Int) (p : w64) :
+    etcdQuiet (GF := GF) pfx c (sint.Z p) ⊢
+      ⌜sint.Z p ≤ c⌝ ∨ ∃ q : w64, ⌜sint.Z q ≤ c⌝ ∗ EtcdStep q p pfx [] := by
+  iintro #H
+  by_cases h : sint.Z p ≤ c
+  · ileft; ipureintro; exact h
+  · iright; iapply etcdQuiet_at pfx c (sint.Z p) p ⟨by omega, Int.le_refl _⟩ $$ H
+
+/-- **Introduction from a step**: a step from at or below `a` to `B` is quiet before `B`
+(`etcdStep_restrict`). -/
+theorem etcdQuiet_of_step (pfx : GoString) (p B : w64) (cs : List EtcdEv) (a : Int)
+    (hp : sint.Z p ≤ a) :
+    EtcdStep (GF := GF) p B pfx cs ⊢ etcdQuiet pfx a (sint.Z B - 1) := by
+  unfold etcdQuiet
+  iintro #Hs
+  imodintro; iintro %x %hx
+  iexists p
+  isplitr
+  · ipureintro; exact hp
+  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
+  iexact Hs
+
 /-- A batch's step is quiet before the batch (`etcdStep_restrict`). -/
 theorem etcdQuiet_of_cert (pfx : GoString) (p : w64) (b : Batch) (a : Int) (hp : sint.Z p ≤ a) :
     etcdStepCertBody (GF := GF) pfx p b ⊢ etcdQuiet pfx a (sint.Z (batchRev b) - 1) := by
@@ -637,6 +695,9 @@ def etcdStepCert (pfx : GoString) : DemuxCert GF where
 
 theorem etcdStepCert_prog (pfx : GoString) :
     (etcdStepCert (GF := GF) pfx).prog = etcdReached := rfl
+
+theorem etcdStepCert_quiet (pfx : GoString) :
+    (etcdStepCert (GF := GF) pfx).quiet = etcdQuiet pfx := rfl
 
 /-- The cache's store certificate: a snapshot `(r, m)` is etcd's state at `r`, restricted to the
 cache's prefix. -/

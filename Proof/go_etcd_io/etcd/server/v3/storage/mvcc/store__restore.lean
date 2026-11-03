@@ -55,7 +55,7 @@ theorem mvcc.store.restore.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP0 RevP RevK RevQ
+  intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh PV PVx CK dqb dqi R RevP0 RevP RevK RevQ
     dqc dql q1 q2 r ents Fin ns hR hq12 hrec hns hdq hcut
   by_cases hR0 : ns = true
   rotate_left

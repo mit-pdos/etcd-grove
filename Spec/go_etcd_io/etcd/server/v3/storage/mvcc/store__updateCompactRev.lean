@@ -57,19 +57,34 @@ permit holds of it, which `s.mu`'s and `s.revMu`'s resources keep of the compact
 **The lag** (M2's item 15, 2026-11-02): `compactMainRev` may hold `cp`, below `c` (`muInvLag`;
 `muInvAt s γ 1 c` is `cp = c`, `muInvLag_at`): `restore()`'s resumed compaction, after `restore()`
 stored the finished record, at a revision `rev` at least `c`; the success case's then, with the
-lag's token back (`lagTok`), the error case's not. -/
+lag's token back (`lagTok`), the error case's not.
+
+**The scope restriction** (F2, stage 2; the user's Q7, approved 2026-11-03): the revision is at least
+`1`, no compaction at revision `0` (`nonissues/etcd-restore-scheduled-compact-zero.md`: a member that
+compacted at `0` and restores mid-way through that compaction goes back to compaction revision `-1`).
+In compaction mode the backend's tracking records the compaction's records as positive revisions
+(`physCut`'s `recsPos`); etcd does not enforce it. Its callers have it: `store.Compact` of its
+caller (the server's `EtcdServer.Compact.spec`'s `1 ≤ r`, through `apply.cmpAdmitRev`),
+`compactLockfree` of `restore()` (the image's scheduled record, `recsPos`).
+
+**The tracking** (F2, stage 2): the put of the scheduled record moves the backend's compaction
+tracking (in compaction mode, the batch lock's records and the compaction right's tie, `kbCrev`, to
+`rev`), whose facts need `rev` a revision of the batch lock's log; the whole of `s.mu`'s deposit
+ghost (`γ.wr`, the caller's: `s.mu` held exclusively), lent and given back, keeps the writer's state
+in its invariant, where it is the committed log (`writerInv_clog`). -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
-  mvcc.storeCmp γ → (cp < c → c ≤ sint.Z rev) →
+  mvcc.storeCmp γ → 1 ≤ sint.Z rev → (cp < c → c ≤ sint.Z rev) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
-      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
+      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗
+      ghostVar γ.wr 1 () }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗
+      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗ ghostVar γ.wr 1 () ∗
       ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 cp ∧ cp < sint.Z rev ∧ c ≤ sint.Z rev⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRightR s γ (sint.Z rev) ∗ Post ∗
         mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp) ∨

@@ -73,22 +73,15 @@ theorem getCheck_km (γ : client.KMNames) (P : List (GoString × GoString))
       ∃ s : List EtcdKv, ⌜CheckGetOk evs r s ∧ m.length = s.length ∧
         kvRange ckPfx (prefixRangeEnd ckPfx) m = m⌝ ∗ kvValsAt m s := by
   iintro #Hinv #Hrev Hm
-  unfold isEtcdKvs
-  icases Hm with ⟨%s, #Hst, %Hk, %Hwf, #Hv⟩
+  icases isEtcdKvs_elim (EM := client.etcdModelOfKV γ) _ _ _ $$ Hm with ⟨%s, #Hst, %Hm, #Hv⟩
   ihave Hst' : client.kmEtcdState γ r ckPfx s $$ []
   · rw [← client.etcdModelOfKV_etcdState]; iexact Hst
-  iunfold client.kmEtcdState at Hst'
-  icases Hst' with ⟨%L, #HL, %HLs⟩
-  iunfold client.kmLog at HL
-  icases HL with ⟨%l, #Hlb, %Hl⟩
-  -- the log is a watchkv log: a prefix of the invariant's state's changes
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %mm, Hσ, Hc, Ht, %Hmm⟩
-  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
-  imod Hclose $$ [Hσ Hc Ht] with -
-  · inext; iexists σ, mm; iframe; ipureintro; exact Hmm
-  have hwk : watchkv.WkLog P L := watchkv.wkW_prefix (by rw [← hW]; exact Hmm.2) Hp.2 Hl.1
+  icases client.kmEtcdState_elim _ _ _ _ $$ Hst' with ⟨%L, #HL, %HLs⟩
+  -- the log is a watchkv log: a prefix of the changes of a state satisfying the plan's fact
+  imod client.kmLog_W γ L $$ Hinv HL with %HW
+  obtain ⟨cs, hcs, hLcs⟩ := HW
+  have hwk : watchkv.WkLog P L :=
+    watchkv.wkW_prefix (by rw [← hW]; exact hcs) (List.prefix_refl _) hLcs
   -- the events' puts are the log's, where it has them
   ihave %Hput : ⌜∀ (i : Nat) (e : common.wev), evs[i]? = some e → 2 + i < L.length →
       L[2 + i]? = some [mvcc.Change.put e.Key' e.Val' (W64 0)]⌝ $$ []
@@ -98,40 +91,21 @@ theorem getCheck_km (γ : client.KMNames) (P : List (GoString × GoString))
     iintro %e
     by_cases hi : evs[i]? = some e
     · ihave Hr := Hrev $$ %i %e %hi
-      iunfold common.kmRevAt at Hr
-      icases Hr with ⟨%l', #Hlb', %h'⟩
-      ihave %Hp' := mono_list_lb_valid γ.ch l l' $$ Hlb Hlb'
-      ipureintro
-      intro _ hiL
-      have hc : ([] :: l : mvcc.Log) <+: [] :: l' ∨ ([] :: l' : mvcc.Log) <+: [] :: l :=
-        Hp'.imp client.log_prefix_of client.log_prefix_of
-      obtain ⟨t, ht⟩ := Hl.1
-      have hrL : 2 + i < ([] :: l : mvcc.Log).length := by
-        rw [← ht, List.length_append]; omega
-      have hrL' : 2 + i < ([] :: l' : mvcc.Log).length := (List.getElem?_eq_some_iff.mp h').1
-      have e1 : L[2 + i]? = ([] :: l : mvcc.Log)[2 + i]? := by
-        rw [← ht, List.getElem?_append_left hiL]
-      have e2 : ([] :: l : mvcc.Log)[2 + i]? = ([] :: l' : mvcc.Log)[2 + i]? := by
-        rcases hc with ⟨t', ht'⟩ | ⟨t', ht'⟩
-        · rw [← ht', List.getElem?_append_left hrL]
-        · rw [← ht', List.getElem?_append_left hrL']
-      rw [e1, e2, h']
+      by_cases hiL : 2 + i < L.length
+      · ihave %h := common.kmRevAt_log γ L (2 + i) e.Key' e.Val' hiL $$ [$HL $Hr]
+        ipureintro; intro _ _; exact h
+      · ipureintro; intro _ h; exact absurd h hiL
     · ipureintro; intro h; exact absurd h hi
   imodintro
   iexists s
   iframe Hv
   ipureintro
-  refine ⟨?_, ?_⟩
-  · rw [HLs.2.2]
-    refine checkGetOk_of' L evs r ckPfx (onePuts_of_wk hwk) hwk.1 (fun i e h => (hrev i e h).1)
-      Hput (fun e he => ?_) hr1 HLs.2.1 hre
-    obtain ⟨i, hi⟩ := List.getElem?_of_mem he
-    exact hpk _ (hrev i e hi).2
-  · refine ⟨by have := congrArg List.length Hk; simpa using this, kvRange_prefix m ?_⟩
-    intro e he
-    have hk : e.1 ∈ s.map EtcdKv.key := by rw [← Hk]; exact List.mem_map_of_mem he
-    obtain ⟨v, hv, hve⟩ := List.mem_map.1 hk
-    rw [← hve]; exact Hwf.2 v hv
+  refine ⟨?_, Hm.1, kvRange_prefix m Hm.2⟩
+  rw [HLs.2.2]
+  refine checkGetOk_of' L evs r ckPfx (onePuts_of_wk hwk) hwk.1 (fun i e h => (hrev i e h).1)
+    Hput (fun e he => ?_) hr1 HLs.2.1 hre
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem he
+  exact hpk _ (hrev i e hi).2
 
 theorem isEtcdKvs_cast [EM : EtcdModel GF] {R R' : w64} {p p' : GoString} {m : KvMap}
     (h1 : R = R') (h2 : p = p') : isEtcdKvs (GF := GF) R p m ⊢ isEtcdKvs R' p' m := by
@@ -140,8 +114,8 @@ theorem isEtcdKvs_cast [EM : EtcdModel GF] {R R' : w64} {p p' : GoString} {m : K
 /-- The answer's key-values hold the state's values (`checkGet`'s premise). -/
 theorem kvsHold_of_vals (m : KvMap) (s : List EtcdKv) (h : m.length = s.length) :
     kvValsAt (GF := GF) m s ⊢ kvsHold (m.map Prod.snd) s := by
-  unfold kvValsAt kvsHold
   iintro #H
+  iapply kvsHold_intro
   isplitr
   · ipureintro; simpa using h
   imodintro
@@ -153,53 +127,7 @@ theorem kvsHold_of_vals (m : KvMap) (s : List EtcdKv) (h : m.length = s.length) 
     rw [he] at hp
     simp only [Option.map_some, Option.some.injEq] at hp
     subst hp
-    iapply H $$ %i %e %v %he %hv
-
-/-- **The cache's `Get` errors are non-nil**: each is a fixed non-nil error of the cache's or
-`rpctypes`' package (their facts), or one the spec says is non-nil. -/
-theorem cacheGetErr_ne_nil [EM : EtcdModel GF] [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF)) (key : GoString)
-    (o : OpModel) (err : GoInterface) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 -∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes -∗
-      cacheGetErr cf r0 s key o err -∗ ⌜err ≠ GoInterface.nil⌝ := by
-  iintro #Hpkg #Hrpc Herr
-  ihave Hci : (cacheInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨⟨%eNR, #HeNR⟩, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
-  ihave Hri : (rpctypesInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩, -⟩
-  iunfold cacheGetErr at Herr
-  icases Herr with (⟨%h, -⟩ | %h | ⟨-, #H⟩ | %h | ⟨-, #H, -⟩ | ⟨-, #H⟩ | ⟨%st, -, #Hse, %Hno⟩)
-  · ipureintro; exact h
-  · ipureintro; exact h.2
-  · icombine H HeKR gives %Heq
-    ipureintro; intro hn; subst hn; cases Heq
-  · ipureintro; exact h.2
-  · icombine H HeFR gives %Heq
-    ipureintro; intro hn; subst hn; cases Heq
-  · icombine H HeCT gives %Heq
-    ipureintro; intro hn; subst hn; cases Heq
-  · generalize hres : snapModel st o.rev = res at Hno
-    cases res with
-    | ok r m => exact absurd rfl (Hno r m)
-    | notReady =>
-      iunfold snapErr at Hse
-      icombine Hse HeNR gives %Heq
-      ipureintro; intro hn; subst hn; cases Heq
-    | invalid =>
-      iunfold snapErr at Hse
-      icases Hse with %h
-      ipureintro; obtain ⟨e, rfl⟩ := h; simp
-    | future =>
-      iunfold snapErr at Hse
-      icombine Hse HeFR gives %Heq
-      ipureintro; intro hn; subst hn; cases Heq
-    | compacted =>
-      iunfold snapErr at Hse
-      icombine Hse HeCP gives %Heq
-      ipureintro; intro hn; subst hn; cases Heq
+    iapply kvValsAt_at m s i e v he hv $$ H
 
 end iris
 
