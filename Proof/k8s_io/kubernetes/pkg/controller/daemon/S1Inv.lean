@@ -103,17 +103,18 @@ def claimTok (γ : S1Names) (o : Owner) (n : GoString) (v : Option (Bool × Key 
 /-- **S1's invariant's content**: the mirror's half at `σ`, the consistency store's state `M`,
 the owner tokens' authority and the bounds `Lm` (each registered owner: the invariant's half of
 its bound, a lower bound of the pod informer's version, and its sync token or the work queue's
-token of its key), the claims `C` (each with a fraction of its owner's token), and `s1Ok`. -/
+token of its key), the claims `C` (each with a fraction of its owner's token), a lower bound `Ld`
+of the DaemonSet informer's version, and `s1Ok`. -/
 def s1Res (γ : S1Names) (c : DscComp) : IProp GF :=
   iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool)) (C : Claims)
-      (D : GMap Owner Unit),
+      (D : GMap Owner Unit) (Ld : Nat),
     apiMirror γ σ ∗ consState c.γc M ∗
     ghostMapAuth c.tok 1 D ∗ ⌜∀ o, (D !! o).isSome = (Lm !! o).isSome⌝ ∗
     ghostMapAuth γ.lb 1 Lm ∗
     ([∗map] o ↦ Lr ∈ Lm, seenTok γ o Lr ∗ infRvLb c.podI.γi Lr.1 ∗
       (syncTok γ c o ∨ keyTok c.γq.tq (ownerKey o))) ∗
     ghostMapAuth γ.claim 1 C ∗ ([∗map] on ↦ _v ∈ C, ∃ q, ownerTok c on.1 q) ∗
-    ⌜s1Ok σ M Lm C⌝)
+    infRvLb c.dsI.γi Ld ∗ ⌜s1Ok σ M Lm C Ld⌝)
 
 /-- The invariant's namespace. -/
 def s1N : Namespace := nroot.@"daemonset_s1"

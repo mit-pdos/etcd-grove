@@ -14,8 +14,8 @@ that is still stored, unchanged but for its status. `sceneOk σ` states it, for 
   UID, spec, annotations and collision count (`dsSame`); each stored one is well formed for the
   controller: a namespace and name with no `/` (its key is canonical), a non-empty namespace, a
   valid selector that selects every label set extending the template's (`selCovers`: so the
-  controller never releases what it made), an unbound template (`NodeName` empty: its pods are
-  deleted at once, never terminating), a revision history limit, no collision count. Distinct
+  controller never releases what it made), an unbound template with no finalizers (`NodeName` empty:
+  its pods are deleted at once, never terminating), a revision history limit, no collision count. Distinct
   DaemonSets have distinct UIDs and distinct revision names (`crName`, so `snapshot` never meets
   another DaemonSet's revision: no hash collision, the collision count stays `nil`, the hash and so
   every pod's hash label stays the DaemonSet's `dsHash`).
@@ -123,6 +123,7 @@ structure dsWf (d : kd.apps.DaemonSet) : Prop where
   selValid : labels.selValid (selOf d)
   selCovers : selCovers d
   unbound : d.Spec'.Template'.Spec'.NodeName' = go!""
+  noFin : d.Spec'.Template'.ObjectMeta'.Finalizers' = []
   histLimit : d.Spec'.RevisionHistoryLimit'.isSome
   noCollision : d.Status'.CollisionCount' = none
 
@@ -135,6 +136,7 @@ structure podOf (d : kd.apps.DaemonSet) (p : kd.core.Pod) : Prop where
   unbound : p.Spec'.NodeName' = go!""
   pending : p.Status'.Phase' = go!"Pending"
   live : p.ObjectMeta'.DeletionTimestamp' = none
+  noFin : p.ObjectMeta'.Finalizers' = []
 
 /-- **A controller revision the controller made for `d`** (see the file header). -/
 structure crOf (d : kd.apps.DaemonSet) (r : kd.apps.ControllerRevision) : Prop where
