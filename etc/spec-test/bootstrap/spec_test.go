@@ -121,24 +121,12 @@ func (r *run) add(name string, holds bool, format string, args ...any) {
 	r.checks = append(r.checks, check{name, holds, fmt.Sprintf(format, args...)})
 }
 
-// knownFalse: conjuncts the review found false of Go, by run kind (`restart`) and mode. Each is a
-// finding of the review (the scratch file's numbering); the test fails if one of them holds.
+// knownFalse: conjuncts found false of Go, by run kind (`restart`) and mode; the test fails if one
+// of them holds. (The whole-`bootOk` review's A, T1-B, C and G were repaired on 2026-11-03: their
+// checks below are the frozen statements'. What remains is H, out of the review's repairs: a restart's
+// image certificate assumes auth disabled, `notes/STATUS.md`'s auth-on gap.)
 func knownFalse(restart, cmp, auth bool, name string) bool {
-	if name == "Hnew.newPost(every write-back token: bufVersion = 0)" { // F2 (the write-back tokens)
-		return true
-	}
-	if !restart {
-		return false
-	}
-	switch name {
-	case "Hnew.lateWB(unregistered: key empty)": // T1-B
-		return true
-	case "Hnew.lateWB(unregistered: no compaction keys)", "bootBackend_of_newPost.noCmpData":
-		return cmp
-	case "srvDiskImage.imageAt.bkRestAt(auth)":
-		return auth
-	}
-	return false
+	return restart && auth && name == "srvDiskImage.imageAt.bkRestAt(auth)"
 }
 
 func specConfig(t *testing.T, dir, name string) config.ServerConfig {
@@ -220,21 +208,22 @@ func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 
 		"batchLimit %d", field(be, "batchLimit").Int())
 	h := field(be, "hooks").Interface()
 	r.add("HhkAt/Hbh", h == any(b.storage.backend.beHooks) && b.storage.backend.beHooks != nil, "hooks %T", h)
-	// `Hnew`'s `newPost` gives every write-back token (`ownToks γ.wb wbInit`); the batch lock's
-	// invariant (`bgOk`: `ver + n + k < 2 ^ 40`, `n` the tokens out) then forces the read buffer's
-	// version (`txReadBuffer.bufVersion`, `InvBuffer.lean`'s `R.ver`) to be 0, and a clean read buffer
-	// (`bViewC … true`) has no buffered bucket
+	// `Hnew`'s `newPostK … (bootLeft N)`: `N + 7` write-back tokens left past the `bootWB`
+	// `bootstrap`'s own sessions spent (each session's `Unlock` writes back once, raising the read
+	// buffer's version, `txReadBuffer.bufVersion`, `InvBuffer.lean`'s `R.ver`; the batch lock's
+	// invariant `bgOk`, `ver + n + k < 2 ^ 40`, with the contract's `N + 7 + bootWB ≤ wbInit`); the
+	// `run` goroutine's commits are unpaid. (Until 2026-11-03 `newPost`'s every token, false: it
+	// forced `bufVersion = 0`.) A clean read buffer (`bViewC … true`) has no buffered bucket.
 	rbuf := field(field(be, "readTx").Interface(), "buf")
 	ver := field(rbuf.Addr().Interface(), "bufVersion").Uint()
-	r.add("Hnew.newPost(every write-back token: bufVersion = 0)", ver == 0, "bufVersion %d", ver)
-	// the repair's bound (the scratch file's `bootWB`): the write-backs and commits `bootstrap`
-	// paid, at most two per batch-lock session with pending changes (`CreateMetaBucket`'s,
-	// `MustCreateBackendBuckets`'), defrag off
 	cm := be.(interface{ Commits() int64 }).Commits()
-	r.add("Hnew.newPostBoot(write-backs + commits ≤ bootWB = 4)", ver+uint64(cm) <= 4 && cfg.BootstrapDefragThresholdMegabytes == 0,
+	r.add("Hnew.bootLeft(bootstrap's write-backs ≤ bootWB = 4)", ver <= 4,
 		"bufVersion %d, commits %d", ver, cm)
 	nb := field(field(rbuf.Addr().Interface(), "txBuffer").Addr().Interface(), "buckets").Len()
-	r.add("Hnew.newPost(read buffer clean)", nb == 0, "read buffer buckets %d", nb)
+	r.add("Hnew.newPostK(read buffer clean)", nb == 0, "read buffer buckets %d", nb)
+	// the contracts' configuration premises (`bootCfgOk`), which the examples' configuration meets
+	r.add("bootCfgOk", cfg.Logger != nil && cfg.QuotaBackendBytes == 0 && cfg.BackendBatchLimit == 0 &&
+		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1 && cfg.TickMs != 0, "")
 	return cv.ID
 }
 
@@ -293,7 +282,9 @@ func checkFresh(t *testing.T, r *run, cmp, auth bool) {
 	_, fin := d["meta"]["finishedCompactRev"]
 	r.add("Hnew.lateWB(unregistered: key empty)", d.emptyOrAbsent("key"), "")
 	r.add("Hnew.lateWB(unregistered: no compaction keys)", !sch && !fin, "")
-	r.add("bootBackend_of_newPost.noCmpData", !sch && !fin, "")
+	r.add("bootBackend_of_bootLeft.noCmpData", !sch && !fin, "")
+	// the first-start contract's configuration premise (`bootCfgFresh`)
+	r.add("bootCfgFresh", cfg.NewCluster && len(cfg.DiscoveryCfg.Endpoints) == 0, "")
 }
 
 func bucketNames(d dbData) []string {
@@ -410,15 +401,36 @@ func checkRestart(t *testing.T, r *run, cmp, auth bool) {
 			strings.Join(raw.PeerURLs, ",") == strings.Join(m.PeerURLs, ",")
 	}
 	r.add("bootOkR.Hmem(members of the image's bucket)", memOk, "members %d", len(d0["members"]))
+	// the restart contract's static-cluster premise (G): the image's members are the boot log's at
+	// the same peer URLs (names and client URLs may differ: `publishV3`)
+	gOk := len(d0["members"]) == len(cfg.InitialPeerURLsMap)
+	for _, v := range d0["members"] {
+		var raw membership.RaftAttributes
+		found := false
+		if json.Unmarshal([]byte(v), &raw) == nil {
+			for _, u := range cfg.InitialPeerURLsMap {
+				found = found || strings.Join(raw.PeerURLs, ",") == u.String()
+			}
+		}
+		gOk = gOk && found
+	}
+	r.add("bootstrapRestartContract(G: the members' peer URLs the boot log's)", gOk, "")
 	b.Close()
 	b.storage.wal.w.Close()
 	d1 := readDB(t, cfg.BackendPath())
 	r.add("bootOkR(D at return = srvFiles' D)", reflect.DeepEqual(d0, d1), "before %v after %v", bucketNames(d0), bucketNames(d1))
 	_, sch := d1["meta"]["scheduledCompactRev"]
 	_, fin := d1["meta"]["finishedCompactRev"]
-	r.add("Hnew.lateWB(unregistered: key empty)", d1.emptyOrAbsent("key"), "key %d keys", len(d1["key"]))
-	r.add("Hnew.lateWB(unregistered: no compaction keys)", !sch && !fin, "scheduled %v finished %v", sch, fin)
-	r.add("bootBackend_of_newPost.noCmpData", !sch && !fin, "")
+	// `bootOkR`'s `Hnew` holds `lateWBR` (its unregistered arm at the data's values, whatever they
+	// are: until 2026-11-03 `lateWB`, an empty `Key` bucket and no compaction keys, false here); the
+	// facts below are informational, the reason for `lateWBR`
+	r.add("bootOkR.Hnew.lateWBR(informational: key non-empty)", !d1.emptyOrAbsent("key"), "key %d keys", len(d1["key"]))
+	r.add("bootOkR.Hnew.lateWBR(informational: compaction keys iff cmp)", (sch || fin) == cmp,
+		"scheduled %v finished %v", sch, fin)
+	// the restart contract's configuration premises
+	r.add("bootstrapRestartContract(bootCfgOk, ForceNewCluster = false, DedicatedWALDir = \"\")",
+		cfg.Logger != nil && cfg.BootstrapDefragThresholdMegabytes == 0 && !cfg.ForceNewCluster &&
+			cfg.DedicatedWALDir == "", "")
 	r.add("restPresent(rest buckets present)", func() bool {
 		for _, n := range restBuckets {
 			if _, ok := d1[n]; !ok {
@@ -476,9 +488,11 @@ func panics(f func()) (p bool) {
 	return false
 }
 
-// TestSpecBootstrapFalseCases shows two configurations or uses the contracts admit and Go does not
-// (the review's findings C and D): `bootstrap` with a nil logger (a configuration `cfgOk` admits)
-// panics, and the record's `Close`, which `#Hclose` promises persistently, panics the second time.
+// TestSpecBootstrapFalseCases shows Go's behavior behind the review's findings C and D: `bootstrap`
+// with a nil logger panics (C: since 2026-11-03 excluded by the contracts' `bootCfgOk`), and the
+// record's `Close` panics the second time (D: `#Hclose` still promises it persistently, false; its
+// repair, one-shot with the backend's whole open token, waits for the store's closers to give their
+// reader tokens back, `notes/STATUS.md`).
 func TestSpecBootstrapFalseCases(t *testing.T) {
 	cfg := specConfig(t, t.TempDir(), "m1")
 	cfg.Logger = nil

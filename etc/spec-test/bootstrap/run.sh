@@ -17,5 +17,8 @@ if [ ! -d "$src" ]; then
   find "$src" -xtype l -delete   # client/v3's example tests link into tests/, not extracted
 fi
 cp "$here/spec_test.go" "$src/server/etcdserver/zz_bootok_spec_test.go"
+# the WAL preallocates 64 MiB segments: the test's directories under `.lake`, not a small `/tmp`
+export TMPDIR="${TMPDIR_SPEC:-$root/.lake/spec-test/tmp}"
+mkdir -p "$TMPDIR"
 cd "$src/server"
 GOTOOLCHAIN="$toolchain" go test ./etcdserver -run "TestSpecBootstrap.*" -count=1 -v "$@"

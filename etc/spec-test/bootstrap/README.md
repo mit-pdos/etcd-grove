@@ -17,5 +17,7 @@ test in and runs it.
 Each check is named by the Lean conjunct it transcribes; keep them in step. The checks the review
 found false of Go are listed in `knownFalse` (with the finding's name): the test fails if one of
 them holds, or if any other check fails, so a repair of the Lean statement goes with moving its
-check out of the list. The table of every check in every run is in the test's log. Needs `go` (the
-toolchain of `etc/goose.py`'s `GO_TOOLCHAIN`, fetched if absent).
+check out of the list (2026-11-03: the review's A, T1-B, C and G repaired; left, a restart's image in
+auth mode, H). The table of every check in every run is in the test's log. Needs `go` (the
+toolchain of `etc/goose.py`'s `GO_TOOLCHAIN`, fetched if absent). The test's data directories go
+under `.lake/spec-test/tmp` (`TMPDIR_SPEC` to change it): each WAL preallocates 64 MiB.
