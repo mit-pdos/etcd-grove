@@ -688,3 +688,34 @@ many of `NewServer`'s changes added subsystems not planned at the time, which no
 foreseen; the claim is that they would have been additions, not rewrites. **Test** it as
 `etc/spec-churn.py` tests the stages: after the hubs are reshaped, rerun both scripts and compare
 the hubs' changes per new subsystem, and how many existing clauses each one edits, before and after.
+
+### Incremental adoption (2026-11-03, the user's)
+
+No big rewrite: a subsystem moves into a slot the next time it must change the hub anyway, and a
+subsystem that never changes again is never converted. In the meantime the hub mixes inline
+premises with slots.
+
+1. **The convention first, once.** A short note, reviewed once (a Draft and Review of the hub
+   alone): the names (`<sub>.Names`, `<sub>.bootCfg cfg γ`, `<sub>.srvInv s γ`, the laws callers
+   use); where a slot lives (the subsystem's API module, sealed, on the generated interface);
+   how a coupling is stated (one slot exports a fact the other consumes, or a named cross-slot
+   predicate); and the name records' split (one field group per subsystem). Without it each
+   subsystem invents its own shape.
+2. **No retrofit under an approved Freeze.** Stages already proving against a frozen `NewServer`
+   (on 2026-11-03: `snap-auth-on-apply`'s P5, `lease-grant`) land as frozen; reshaping under them
+   reopens their review and delays their sorries.
+3. **The first slot: the WAL**, in restart R2b-1 (`notes/restart-plan.md`). Its API is already a
+   slot's shape (`etcdserver/WalApi.lean`: the sealed `isWalStorage`, one law per operation,
+   approved 2026-11-03, not yet in use), and R2b-1's stage 3 brings it into `NewServer` and the
+   restart contracts: `wal.bootCfg`, `wal.Names`, `wal.srvInv` over that API, a conjunct of the hub
+   rather than its facts inline. It tests "an addition, not a rewrite" on a new subsystem. The
+   R2b-1 session must know before its stage 3 touches `NewServer` (the user's call).
+4. **Then each subsystem when it next touches the hub**: auth at its first stage after auth-on,
+   lease at lease expiry (after `lease-grant`), the compactor and mvcc when next changed; the name
+   records (`RaftNames`, `AEnv`, `KVNames`, ...) a field group at a time with their subsystem.
+   A stage's Scope step says whether it converts its subsystem, from `etc/spec-hubs.py`'s
+   aggregator and cost tables.
+5. **Check after two or three slots**: rerun `etc/spec-hubs.py` and `etc/spec-churn.py`; did a
+   slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
+   stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
+   2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
