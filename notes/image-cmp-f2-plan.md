@@ -156,3 +156,17 @@ watchkv.
 7. **C4: the source of `recsPos`** (records `≥ 1`): `updateCompactRev` takes `1 ≤ rev` from its
    caller (the server's committed compactions, `compactPropOk`, are at revisions `≥ 1`; M2's scope
    restriction Q7). Recommended.
+
+## Open after landing: T1-B, `lateWB` at a restart (2026-11-03)
+
+F2's second review round found that `lateWB`'s unregistered arm, narrowed to an empty `Key` bucket
+with no compaction records (the fix of round 1's A1), cannot be met by a restart: the backend reopens
+the stopped member's data, which is not empty, so `InvRestart.newPost` cannot hold and
+`bootstrapRestartContract` (under `examples/common/Restart.lean`'s `bootPremiseR`) says `bootstrap`
+always fails on a restart, false of Go. F2 landed without fixing it (the user's choice, 2026-11-03):
+it is the first item of the whole-`bootOk` spec-first review. The reviewer's proposed fix: index the
+boot state by the opened data, `lateWB gx γB P D := (dghostVar gx ½ none ∗ backend.pvckInit γB P D) ∨
+lateWR gx`, a first boot the case of an empty `D` (a law from `bootOk`'s `HD`/`HmEmpty` to the empty
+form, for `NewStore`); it changes the text of `bootOk`'s `Hnew` and `InvRestart.newPost`, and
+`lateWD_boot`, `kbBoot`/`kbTieInit` (fixed at the empty log and `-1`) and `crevRightM`'s
+`kbCrev (-1)` generalize with it.

@@ -7,7 +7,10 @@ with etcd's default configuration (its default retries; D29), a cache of the pre
 client (`cache.New`, the default options), the cache's watch of the prefix from revision `2`,
 `nw` writer goroutines, then, after they are done, the successful Puts' log, the watch read up to
 their highest revision (`collect`) and the check (`check`, which panics if the watch did not
-report exactly the writes); then (2026-11-02) the cache's `Get` of the prefix at that revision
+report exactly the writes), after (2026-11-03) a progress notification of the cache's watch
+(`RequestProgress`, the watch read up to it, `awaitProgress`) and its check (`checkProgress`,
+which panics if its revision is past the last event: the watch claiming completeness past a
+revision whose event it did not send); then (2026-11-02) the cache's `Get` of the prefix at that revision
 (`WithRev`, under a timeout) and its check (`checkGet`, which panics unless it answers each key's
 last watched value at or below the revision, and every key watched).
 

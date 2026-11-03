@@ -16,7 +16,9 @@
 // revision with its key and value. The watch is read after the writers are done, until an event at
 // or above the highest revision a successful Put returned; if the channel closes, or a response
 // reports an error (a cancel, a compaction), before that, Main returns WatchEnded without a check.
-// Then the cache's Get of the prefix at that revision must answer each key's last watched value at
+// Then the cache is asked for a progress notification (RequestProgress), the watch read up to it
+// (awaitProgress), and its revision must be at most the last event's (checkProgress). Then the
+// cache's Get of the prefix at that revision must answer each key's last watched value at
 // or below it, and every key watched at or below it (checkGet); an error from the Get ends Main
 // with GetFailed.
 //
@@ -150,10 +152,20 @@ func Main(nw int, nops int) int {
 	w.Mu.Unlock()
 	r := common.MaxRev(oks)
 	evs, ok := collect(wch, r)
+	if !ok {
+		cancel()
+		return WatchEnded
+	}
+	// A progress notification of the cache's watch, at revision p: etcd had no event under the
+	// prefix after the last batch it sent at or below p, so, a put under the prefix at every
+	// revision from 2 on, p is at most the last event's revision.
+	c.RequestProgress(wctx)
+	p, evs, ok := awaitProgress(wch, evs)
 	cancel()
 	if !ok {
 		return WatchEnded
 	}
+	checkProgress(evs, p)
 	common.Check("cachekv", "Put", evs, tried, oks)
 	// The cache's Get of the prefix at the highest revision a Put returned: the watch read every
 	// revision from 2 up to it, so its answer is each key's last watched value at or below it.
@@ -167,6 +179,41 @@ func Main(nw int, nops int) int {
 		checkGet(evs, r, gresp.Kvs)
 	}
 	return Ok
+}
+
+// awaitProgress reads the cache watch's channel wch until a progress notification, appending the
+// events of the responses before it to evs: the notification's revision, the events, and whether
+// it came before the channel closed or a response reported an error (a cancel, a compaction).
+func awaitProgress(wch clientv3.WatchChan, evs []common.Event) (int64, []common.Event, bool) {
+	for wresp := range wch {
+		if wresp.Canceled || wresp.CompactRevision != 0 {
+			return 0, evs, false
+		}
+		if wresp.IsProgressNotify() {
+			return wresp.Header.Revision, evs, true
+		}
+		var es []*mvccpb.Event = wresp.Events
+		for _, e := range es {
+			evs = append(evs, common.Event{Rev: e.Kv.ModRevision, Key: string(e.Kv.Key),
+				Val: string(e.Kv.Value), Put: e.Type == mvccpb.Event_PUT})
+		}
+	}
+	return 0, evs, false
+}
+
+// checkProgress panics unless the progress notification's revision p is at most the last watched
+// event's revision (1, a fresh member's, if none): with a put under the prefix at every revision
+// from 2 on, a notification above it would claim the watch complete past a revision whose event
+// it did not send.
+func checkProgress(evs []common.Event, p int64) {
+	last := int64(1)
+	if len(evs) > 0 {
+		e := evs[len(evs)-1]
+		last = e.Rev
+	}
+	if p > last {
+		panic("cachekv: a progress notification above an event the watch did not send")
+	}
 }
 
 // lastVal returns the value of the last of the events evs of key at or below revision r, and

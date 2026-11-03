@@ -112,6 +112,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
+  project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
+  and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
+  --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 

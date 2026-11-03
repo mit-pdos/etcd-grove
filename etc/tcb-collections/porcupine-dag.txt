@@ -1,0 +1,14 @@
+# Porcupine pull request #46 (the DAG search; notes/porcupine-dag-plan.md; the part PorcupineDag/):
+# its three public results (`wp_CheckOperations`, `wp_CheckOperationsTimeout`,
+# `wp_CheckOperationsVerbose`, linked in PorcupineDag/Proof/github_com/anishathalye/porcupine/
+# Link.lean) and their corollaries (Results.lean: `spec_seq`, v1.3.1's spec under sequential
+# clients; `spec_sound`, soundness for plain linearizability). While a function's proof is
+# unfinished, its spec is a hypothesis of the results that reach it (`section links_pending`),
+# not a `sorry`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/porcupine-dag.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^PorcupineDag/Spec/github_com/anishathalye/porcupine/CheckOperations(Timeout|Verbose)?\.lean$
+roots ^PorcupineDag/Proof/github_com/anishathalye/porcupine/Results\.lean$
