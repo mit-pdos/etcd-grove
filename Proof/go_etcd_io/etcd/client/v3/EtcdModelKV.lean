@@ -606,6 +606,41 @@ theorem km_read_au (γ : KMNames) (l0 : List (List Change)) :
     iframe Hlb
     ipureintro; exact Hp.2
 
+/-- **The adapter's plan's fact, read** (persistent): a read update whose result is the plan's
+fact of the state's changes (`kmInv`'s `γ.W`). -/
+theorem kmWAu (γ : client.KMNames) :
+    kmInv (GF := GF) γ ⊢ kvReadAu γ.kv (fun σ => iprop(⌜γ.W σ.changes⌝)) := by
+  have Hm := kmN_mask
+  iintro #Hinv
+  iunfold kvReadAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold kmInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %m, Hσ, Hch, Htok, %Hok⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hch Htok] with -
+    · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hch Htok] with -
+    · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
+    imodintro
+    iintro !>
+    ipureintro
+    exact Hok.2
+
 /-- **What a write learns** (fired once): the state after it is one the client saw, the state it
 met after the changes `l0`, and, if the write made a revision, that revision's token. -/
 def kmWriteQ (γ : KMNames) (l0 : List (List Change)) (op : KVOp) (σ : KVState) : IProp GF :=
@@ -614,6 +649,15 @@ def kmWriteQ (γ : KMNames) (l0 : List (List Change)) (op : KVOp) (σ : KVState)
     (if (kvOpStep op σ).rev = σ.rev + 1 then
       ghostMapElem (K := Nat) (V := Unit) γ.tok (σ.rev + 1) (DFrac.own 1) ()
      else iprop(True)))
+
+/-- **A write's lower bounds**: the changes after it and the ones it met, at or after `l0`. -/
+theorem kmWriteQ_lb {γ : KMNames} {l0 : List (List Change)} {op : KVOp} {σ : KVState} :
+    kmWriteQ (GF := GF) γ l0 op σ ⊢ monoListLbOwn γ.ch (kvOpStep op σ).changes ∗
+      monoListLbOwn γ.ch σ.changes ∗ ⌜l0 <+: σ.changes⌝ := by
+  unfold kmWriteQ
+  iintro ⟨#H1, #H2, %H, -⟩
+  iframe H1 H2
+  ipureintro; exact H
 
 /-- **Every operation keeps the application's property** (`γ.W`; e.g. none, `fun _ => True`,
 `KMWritable.of_true`): what the clients' write contracts take, any write being allowed. -/

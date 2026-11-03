@@ -341,7 +341,7 @@ theorem Main.wp_proof
     ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
     · iunfold mvcc.watchNoDup; iright
       ihave #HWau : kvReadAu ρ.rd.kv (fun σ => iprop(⌜watchkv.wkW (trs.map pairOf) σ.changes⌝)) $$ []
-      · rw [← hγW, ← hγkv]; iapply kmWAu γk $$ Hkm
+      · rw [← hγW, ← hγkv]; iapply client.kmWAu γk $$ Hkm
       iapply (noDupKeys_of_wk (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv)
         ρ.rd.kv rfl (trs.map pairOf))
       iframe Hkf HWau
