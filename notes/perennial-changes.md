@@ -1372,6 +1372,11 @@ the lemma in `Bag.lean`, next to `bag_send_au`.
   `go_func_resolve_step` and a few `FuncUnfold` facts of named functions (`reservedFuncs`) need
   proofs. In `prophkv`, `wp_GetAny` is now a plain logically atomic spec (no prediction), and
   `prog_safe` takes `ModelOk` and `heapOk` premises.
+- **Deferred (2026-11-03, the user's choice).** Not landed and not used for now: proofs that need
+  a prophecy get it from a prophecy patch of the Go code (`etc/proph-patches/`, `notes/decisions.md`,
+  "Prophecies as patches of the Go code"). To do later: a WP-free, proved erasure theorem, with no
+  Iris statement in the trusted base; it needs either the premises below or a new `go.Semantics`
+  fact (Go instructions commute with erasure).
 - **Remaining limitations.** `f` must take exactly two arguments (the wrapper's shape and the
   call-position count are fixed); one instrumented function per model (patching composes, not
   done); `ModelOk` assumes the program's own function bodies are `ok` rather than checking them

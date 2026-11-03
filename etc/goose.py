@@ -31,6 +31,9 @@ may itself translate into such a root (`root`): for a Go path two sources transl
 witness experiment, the parallel tree `RaftWitness/` of projects raft-witness and kvwitness; until
 stage R6 of the raft v3.7 retarget, 2026-10-16, etcd's raft dependency in `EtcdDeps/` and the raft
 proof's parallel tree `Raft37/`, both raft's path).
+A project's prophecy patches (`etc/proph-patches/<project>/*.patch`: changes that only add
+prophecy variables and their resolutions, checked by etc/proph_patch.py) are applied to a copy of
+its source (`.lake/goose/<project>.proph`) before translation, in --check mode too.
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -1162,6 +1165,17 @@ def source(proj, local, check):
     return local, f"{proj.rev[:12]} (local checkout {local})"
 
 
+def with_proph_patches(proj, src, desc):
+    """The source to translate: `src`, or a copy with the project's prophecy patches applied
+    (`etc/proph-patches/<project>/`, checked by etc/proph_patch.py)."""
+    import proph_patch
+    n = len(proph_patch.patches(proj.name))
+    if n == 0:
+        return proj, src, desc
+    dest = os.path.join(WORK, proj.name + ".proph")
+    return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -1234,6 +1248,7 @@ def main():
     else:
         perennial, rev = pinned_perennial()
     sources = [(p,) + source(p, local.get(p.name), args.check) for p in projects]
+    sources = [with_proph_patches(p, src, desc) for p, src, desc in sources]
 
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)

@@ -533,7 +533,9 @@ porcupine has to return its linearization.
   run under a prophecy of its result, in a patched Go model whose `go.Semantics` `patchSem`
   proves), so `prophkv`'s `GetAny` has a plain logically atomic spec; the closed theorem takes
   premises that the model returns no out-of-call reference to the function (`ModelOk`). Not
-  landed in Perennial.
+  landed in Perennial, and deferred: for now a prophecy is a checked patch of the Go code
+  (`etc/proph-patches/`, `etc/proph_patch.py`; `notes/decisions.md`, "Prophecies as patches of the
+  Go code"). Prophecy erasure in Lean is a to-do.
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 

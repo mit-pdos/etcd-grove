@@ -27224,3 +27224,29 @@ the client's positional destructurings of the server's read view, `srvKVInvs_of_
 approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFacts V` into
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
+
+## Prophecies as patches of the Go code (2026-11-03 · the user's choice)
+
+A proof that needs a prophecy the Go code does not have (a read whose answer may be the one
+returned: `prophkv`'s `GetAny`, the etcd3 store's `Get`) gets it from a **prophecy patch**,
+`etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the project's
+source before translation (`etc/proph_patch.py`). A patch may only add `primitive.NewProph()`
+declarations and `ResolveBool`/`ResolveU64` calls (no-ops in Go: `goose-lang/primitive`'s
+`proph.go`) with identifier or literal arguments and fresh names, and the `primitive` import; the
+checker enforces this line by line, so a patch cannot change the program's behavior. The proofs
+are of the patched code.
+
+Why: proving prophecy erasure in Lean was too much machinery for now. Perennial branch
+`proph-erasure` (not landed) has two proved theorems: `goose_adequacy_withProph` (a prophecy of
+the whole program's result) and `goose_adequacy_funcProph` (one function's body under a prophecy
+of its result, in a patched Go model, with premises that the model returns no out-of-call
+reference to that function). A general erasure theorem needs either such premises or a new fact
+in `go.Semantics` (Go instructions commute with erasure), since the Go model is an abstract
+relation that could otherwise inspect prophecy code (`notes/perennial-changes.md`, "Prophecies in
+Lean only"). **To do later:** settle prophecy erasure (a WP-free, proved erasure theorem, with no
+Iris statement in the trusted base) and retire the patches.
+
+Patches rather than commits of the Go fork: the prophecy then shows as what it is, an addition
+for verification that is checked mechanically, instead of a fork commit read by hand among bug
+fixes. The fork's existing prophecy commit (`bc9c3868c`, `kubernetes.Client.Get`'s revision
+prophecy, D30n) predates this and stays; moving it into a patch is a candidate cleanup.
