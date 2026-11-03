@@ -686,3 +686,11 @@ From the watch path (`assess-watch.md`):
 - **G2** a non-blocking receive law (the drain is a `select` with a default), whose empty case gives
   `n ≤ rs.length` for every `wsSentLb ι n`.
 - **G3** a compaction response's revision is `0` (true of the code; client/v3 relies on it).
+
+From `txn` (`assess-txn.md`): rebuildable, its specs simpler (logically atomic, passing the API's
+updates through; the sole writer's pin becomes apply's own ghost variable); one gap:
+- **T1** a size law: every state readable at a revision at or above the compaction revision has
+  fewer than `2 ^ 62` keys, with non-negative versions and revisions (from the backend's existing
+  `keySized` assumption): `sortRangeResults`'s premise (the heapsort fallback's), which today's
+  write path takes from `isTxnWrite_small` (`TxnLemmas.lean:281`) and the read side from mvcc's
+  receipts (`InvRead.lean:93`), and which no whole-log bound gives after a compacted `Restore`.
