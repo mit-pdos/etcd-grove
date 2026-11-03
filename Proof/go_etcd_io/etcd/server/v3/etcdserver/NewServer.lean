@@ -327,6 +327,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    -- (2026-11-03, the final whole-`bootOk` review's S2) the ticker's specs, for `rnTickerOk`
+    -- (`rnTickerOk_of_time`; until then a premise of the spec)
+    (hTkN : time.NewTicker.spec (GF := GF) (hG := hG))
+    (hTkS : time.Ticker.Stop.spec (GF := GF) (hG := hG))
     -- (M2, `NewServer.spec`'s compaction mode) what only the compacting server uses: the compacting store's
     -- backend contract's specs, and the compactor's run precondition's (the server's `Rev` and
     -- `Compact`, `CompactEnv.lean`)
@@ -337,7 +341,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
@@ -362,7 +366,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iunfold bootstrapContract at Hboot'
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro
-    ipureintro; exact ⟨Hbco, Hbcf, Hbwb⟩
+    ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with
@@ -430,17 +434,22 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (2026-11-03, the whole-`bootOk` review, K) from the directory's bound (`Hdirps`); until then a
   -- conjunct of `bootOk`'s `Hraft`
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory's facts, from the
+  -- transport's slot `rafthttp.bootCfg` (until then `bootOk`'s `Hdirps`)
+  have Hdirps : (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20 :=
+    ⟨fun f => by rw [← Hrvs]; exact rafthttp.bootCfg_mem Hdirs f,
+      by rw [← Hrvs]; exact rafthttp.bootCfg_len Hdirs⟩
   have Hrpslen : (ps.length : Int) < 2 ^ 62 := by have := Hdirps.2; omega
   -- (rafthttp stage 6d) the raft loop's key to the transport's `Send` (`srvTrKey`), its name
   -- allocated now: the raft node's environment is built before the transport
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) $$ []
-  · iapply rnTickerOk_srvErM_S $$ Htkok
+  · iapply (rnTickerOk_of_time hTkN hTkS _ rfl)
   ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID' ∗
       raftState γ.cl cv.ID' RaftState.init ∗ nodeVacant γ.cl cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
-    bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
+    bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrvalid Hrlok
     Hrstor Hrinfl Hrdpf Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem
     Hrvs HwalR (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
     (by simp [srvErM, HρRaft]))
@@ -449,6 +458,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot'
     simp only [srvErM]
     iframe #
+    (try ipureintro)
+    (try (rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc))
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
@@ -2357,15 +2368,19 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    -- (2026-11-03, the final whole-`bootOk` review's S2) the ticker's specs, for `rnTickerOk`
+    -- (`rnTickerOk_of_time`; until then a premise of the spec)
+    (hTkN : time.NewTicker.spec (GF := GF) (hG := hG))
+    (hTkS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
+  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hTkN hTkS
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
     (fun h => nomatch h)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
   exact h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb
-    Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg Hbco Hbcf Hbwb
+    Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hbco Hbcf Hbwb
 
 theorem NewServer.wp_proof
     -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
@@ -2487,16 +2502,20 @@ theorem NewServer.wp_proof
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    -- (2026-11-03, the final whole-`bootOk` review's S2) the ticker's specs, for `rnTickerOk`
+    -- (`rnTickerOk_of_time`; until then a premise of the spec)
+    (hTkN : time.NewTicker.spec (GF := GF) (hG := hG))
+    (hTkS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto
-    Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hbco Hbcf Hbwb
+    Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hbco Hbcf Hbwb
   -- (M2, item 14) the general proof at auth off, in the configuration's compaction mode
   have h := NewServer.wp_proofG false E₀.cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hTkN hTkS
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
   have Hmode : (if E₀.cmp = true then
       ((cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
@@ -2514,7 +2533,7 @@ theorem NewServer.wp_proof
       simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
       exact ⟨Or.inr ⟨hm, hr, hcr⟩, trivial⟩
   have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn
-    Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
+    Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs
     (fun h => absurd h (by decide)) Hbco Hbcf Hbwb
   rw [bootKVOf_false] at h'
   -- (the auth plan's E2w) the mode-indexed rows at `false` are today's

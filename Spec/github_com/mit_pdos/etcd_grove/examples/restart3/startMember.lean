@@ -48,6 +48,8 @@ abbrev startMember.spec : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
@@ -80,6 +82,8 @@ abbrev startMember.specRestart : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  rafthttp.bootCfg dir ps →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →

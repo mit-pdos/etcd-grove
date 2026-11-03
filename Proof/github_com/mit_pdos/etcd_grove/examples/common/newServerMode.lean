@@ -45,12 +45,12 @@ theorem newServerMode.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
-    bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
+    bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -98,9 +98,12 @@ theorem newServerMode.wp_proof
       v3rpc.maxTxnOpsOk_default Hacr Hdec
       (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
+      -- literal's clock, the directory of the peers
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ Hlg rfl rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
+      (bootCfgOk_of _ Hlg rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
   · iframe
     iframe #
@@ -126,9 +129,7 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
-    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-    iapply Htk
-    ipureintro; rfl
+    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned

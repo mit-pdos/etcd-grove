@@ -42,10 +42,10 @@ theorem startServer.wp_proof
     (wp_Start : EtcdServer.Start.specOn (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
-    Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
+    Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold common.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -97,10 +97,13 @@ theorem startServer.wp_proof
       v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
+      -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
+      -- literal's clock, the directory of the peers
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl rfl)
+      (common.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
       ⟨rfl, common.discoveryZero_len, common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
@@ -128,9 +131,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
-    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-    iapply Htk
-    ipureintro; rfl
+    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token

@@ -108,7 +108,7 @@ theorem Main.wp_proof
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -142,7 +142,7 @@ theorem Main.wp_proof
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   -- `startServer(lg)`: the member with auth on
   wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb
-      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) Hlg Hck Haf
+      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) (rafthttp.bootCfg_dirOne id _) Hlg Hck Haf
       Hbuq Hdbo)
     $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
