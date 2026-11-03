@@ -111,7 +111,7 @@ stream-wide progress response falsified the progress law. Now `!own` takes a pro
 not live: an id the registrar's view does not have (ids are never reused) or one already
 cancelled. Two docstrings corrected: `Watch` does not clamp a negative start revision (it replays
 the history, or answers with a compaction response at `-1`: the premise `0 ≤ startRev` is needed;
-mvcc's documentation says otherwise: `issues/etcd-mvcc-watch-negative-start-rev.md`, found by the
+mvcc's documentation says otherwise: `nonissues/etcd-mvcc-watch-negative-start-rev.md`, found by the
 review, reproduced); `Attach`'s key bound is the real lessor's proof's invariant (`itemKeysShort`),
 not a need of its Go code.
 
@@ -384,9 +384,9 @@ watch from `0` is `σ.rev + 1`, and every id a response carries is in the stream
 tester's registrar check); `Cancel` fires at its first check of the stream's maps.
 
 **Found on the way** (both reproduced with mvcc-level Go tests):
-`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md` (a watch from exactly the compaction revision
+`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md` (a watch from exactly the compaction revision
 loses the earlier changes of a key changed twice in it), and
-`issues/etcd-mvcc-progress-lock-order-deadlock.md` (found by the review: `progressIfSync` takes the
+`nonissues/etcd-mvcc-progress-lock-order-deadlock.md` (found by the review: `progressIfSync` takes the
 two store locks in the wrong order; a hang, which no spec here falsifies).
 
 ### Decisions for the user (before freezing)
@@ -546,7 +546,7 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
 3. **The closed flag in the stream's state: accepted.**
 4. Proposed instead of a fix: a precondition that a transaction does not change a key twice; asked
    whether to fix upstream, and its cost. Found while answering: on upstream `main` (without
-   etcd-io/etcd#22395) the bug is likely reachable through gRPC (`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`).
+   etcd-io/etcd#22395) the bug is likely reachable through gRPC (`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`).
 6. **The backend precondition designed now, against M2's model: accepted.**
 
 ### The user's third answers (2026-11-03)

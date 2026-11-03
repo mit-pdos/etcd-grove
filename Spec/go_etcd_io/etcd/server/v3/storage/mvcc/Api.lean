@@ -83,7 +83,7 @@ Scratch file (outside the repository, never committed); typechecks against the r
 * **Compaction with watches, one condition** (the user: no proof bifurcation): the watch guarantee
   holds of a watcher while every revision from its first up to the compaction revision changes each
   key at most once (`onceUpTo`; vacuous below the compaction revision): the case the code loses
-  events in (`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`) is exactly its negation.
+  events in (`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`) is exactly its negation.
 * **The backend's resources** (`mvccBackendFor`, sealed): what `New`, `NewStore` and `Restore`
   take, made by the law `mvccBackendFor_open` from what the backend's opener returns at the store's
   write invariant `mvccW gx` (`mvccW_alloc`); always the compacting form, so no compaction mode.

@@ -577,11 +577,13 @@ before kept; one pure watch guarantee, with compaction (one condition); the back
 any opener; shutdown out of scope (etcd's is buggy). This branch was cut from `lean` for the
 invariants and the proof (decision 4): the tester is re-translated at `lean`'s pins (Goose project
 `mvccrand`). Round 9's candidate proof (an abstract mode over the old internals,
-`notes/mvcc-api-proof-plan.md`) stays on `worktree-mvcc-rand-tester`, not carried over. Not yet
-carried over: seven findings (a read during shutdown crashes etcd; a watch from the compaction
-revision loses events; a progress request's lock order deadlocks; three of the hashes; a negative
-watch start revision), in the old issue format on `worktree-mvcc-rand-tester`, to be ported to
-`issues/`'s format (upstream search, valid tests) or `nonissues/`.
+`notes/mvcc-api-proof-plan.md`) stays on `worktree-mvcc-rand-tester`, not carried over. The seven findings
+found on the way are ported (2026-11-03): four in `issues/` (a read on a removed member crashes
+it, `etcd-read-after-backend-close-panic`; `HashByRev` after a restore, and after `Compact(0)`; the
+hash's race on the current revision, fixed upstream by #22609), three in `nonissues/` (the progress
+request's lock order, a precondition etcd's server meets; a watch from the compaction revision, a
+revision changing a key twice, which etcd never makes through mvcc; a negative watch start
+revision, which gRPC rejects); none blocks the proof.
 
 ## The findings: issues and non-issues (2026-11-02, branch `worktree-issues-schema`)
 

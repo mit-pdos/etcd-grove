@@ -157,7 +157,7 @@ being committed):
 
 The condition of 2-3 is the case the code delivers exactly: a compaction at `c` keeps only the last
 change of a key at `c`, and a watcher reading revision `c` after it gets only that one
-(`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`); it holds for every watcher of a store whose
+(`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`); it holds for every watcher of a store whose
 transactions change each key at most once (etcd's, whose gRPC layer rejects others), and while the
 compaction revision is below the watcher's first (the tester, which never compacts). etcd's cost:
 the history's revisions change each key at most once because its gRPC layer checks each request
