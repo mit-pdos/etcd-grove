@@ -3,7 +3,7 @@
 Programs over the verified code, each with a Go test and (most) a closed Lean result: an adequacy
 theorem (`<name>_adequate`: a run never panics, under the result's premises) and its consequence
 (`<name>_safe`, or `_porcupine_safe`: the checks the program makes hold). One Go module
-(`go.mod`), except `raft/kvwitness`, `k8s/*` and `lib/lintest`, which have their own. Their
+(`go.mod`), except `raft/kvwitness`, `bbolt/bank`, `k8s/*` and `lib/lintest`, which have their own. Their
 proofs mirror the paths: `{Spec,Proof}/github_com/mit_pdos/etcd_grove/examples/<dir>/`, the
 results in its `Results.lean`, the Lean namespace `<layer>_<dir>` (`etcd_cache`).
 
@@ -32,6 +32,7 @@ names).
 | `etcd/watch` | `watchkv` | a prefix watch against concurrent writers: every Put is seen, in order | `etcd_watch_safe` |
 | `etcd/cache` | `cachekv` | `watch` read through etcd's cache, its `Get` and progress notifications checked | `etcd_cache_safe` |
 | `etcd/lease` | `leasekv` | the client's lease reads (`Leases`, `TimeToLive`) | `etcd_lease_safe` |
+| `etcd/leasegrant` | `leasegrant` | a lease granted, then listed: the listing has it (three-member cluster test of amendment (E)'s failure answers) | `etcd_leasegrant_safe` |
 | `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | (in progress) |
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | `etcd_txnlin_safe` |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | `etcd_partition_safe` |
@@ -43,6 +44,12 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend | `k8s_etcd3_safe` |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
+
+## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
+
+| dir | was | what it is | headline result |
+|---|---|---|---|
+| `bbolt/bank` | `bbolttest` | bbolt's top-level test: a bank whose transfers and snapshot reads must be durable and strictly serializable across crashes (porcupine) | (in progress) |
 
 ## `lib/`: shared code
 

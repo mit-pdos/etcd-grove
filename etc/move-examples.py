@@ -50,6 +50,7 @@ MOVES = [
     ("watchkv", "etcd/watch", "etcd_watch", ["watch"]),
     ("cachekv", "etcd/cache", "etcd_cache", ["cache"]),
     ("leasekv", "etcd/lease", "etcd_lease", ["leasekv"]),
+    ("leasegrant", "etcd/leasegrant", "etcd_leasegrant", ["leasegrant"]),
     ("authkv", "etcd/auth", "etcd_auth", ["authkv"]),
     ("linkvtxn", "etcd/txnlin", "etcd_txnlin", ["linkvtxn"]),
     ("linkv3p", "etcd/partition", "etcd_partition", ["linkv3p"]),
@@ -61,6 +62,8 @@ MOVES = [
     ("common", "lib/etcdstart", "etcdstart", []),
     ("lintest", "lib/lintest", None, []),
     ("durable", "lib/durable", None, []),
+    # bbolt's top-level test (translated into the part Bbolt/)
+    ("bbolttest", "bbolt/bank", None, []),
     # the file-system extension's programs
     ("bboltfs", "osfs/bboltfs", "osfs_bboltfs", ["bboltfs"]),
     ("crashlog", "osfs/crashlog", "osfs_crashlog", ["crashlog", "crash"]),
@@ -71,7 +74,7 @@ OLD = {m[0]: m for m in MOVES}
 AMBIGUOUS = {"kv"}
 
 LEAN_KINDS = ("Code", "GeneratedProof", "Spec", "Proof", "TrustedCode", "ManualProof")
-LEAN_ROOTS = ("", "RaftWitness/", "PorcupineDag/")
+LEAN_ROOTS = ("", "RaftWitness/", "PorcupineDag/", "Bbolt/")
 EXPATH = "github_com/mit_pdos/etcd_grove/examples/"
 # never rewritten: append-only history and vendored code
 FROZEN = ("notes/status-history.md", "notes/examples-layout-plan.md", "etc/move-examples.py",
