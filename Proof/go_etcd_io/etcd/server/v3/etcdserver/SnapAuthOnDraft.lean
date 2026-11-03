@@ -648,13 +648,13 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The auth realization's share of a backend's open token** (a quarter). -/
 def authOpenQ : Qp := (1 : Qp).half.half
 
-/-- The auth buckets. -/
-def authBkts (n : GoString) : Prop :=
-  n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
+/-- The auth buckets: lean's `auth.authBkts` (the backend-auth-split stage). -/
+abbrev authBkts : GoString → Prop := auth.authBkts
 
-/-- The tracked buckets but the auth ones. -/
+/-- The buckets of `srvRestOwn`'s part but the auth ones: neither the cluster's nor the auth
+store's. -/
 def restNonAuth (n : GoString) : Prop :=
-  n ≠ go!"auth" ∧ n ≠ go!"authUsers" ∧ n ≠ go!"authRoles"
+  ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
 
 -- `backend.rbOwnIn` (decision 1's per-bucket idleness) is the backend's own (`InvBackend.lean`,
 -- landed with the backend stage, `a43af91055`); the Draft's opaque stand-in and its split law are gone
@@ -998,7 +998,9 @@ def srvImageM (M : auth.AuthMode) (γ : SrvRaft) (i : w64) (D : backend.Data) : 
 
 theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) .off γ = srvImage γ := rfl
 
-/-- **The rest buckets' owner, redefined over the mode** (decision 1, "the mode-on `srvRest` holds
+/-- **The rest buckets' owner, redefined over the mode** (rebased on the backend-auth-split stage:
+lean's owner, the cluster's buckets idle and the others a part, with the auth buckets left out of the
+part in `on`; decision 1, "the mode-on `srvRest` holds
 the auth buckets at the log's auth state"): in `on`, the client's half of the **non-auth** tracked
 buckets at the rest model (the auth buckets' write authority is the auth realization's, their
 contents the history's last state, which `authHistTie`/`kvRunAtOn` make the log's auth state;
@@ -1008,7 +1010,8 @@ equation in `srvSnapRO`/`specSnap`, takes the mode with it. -/
 def AonDraft.srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) :
     IProp GF :=
   match M with
-  | .on _ => iprop(backend.rbOwnIn γB restNonAuth r.bk ∗ membership.clusterMem c r.mem)
+  | .on _ => iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗ backend.rbPart γB restNonAuth r.bk ∗
+      membership.clusterMem c r.mem ∗ ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
   | _ => Perennial.EtcdGrove.srvRestOwn γB c r
 
 theorem AonDraft.srvRestOwn_off (γB : backend.BNames) (c : Loc) :
