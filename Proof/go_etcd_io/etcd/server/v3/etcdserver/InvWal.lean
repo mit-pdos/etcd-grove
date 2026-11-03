@@ -582,6 +582,156 @@ def WalSnapStep (v : WalView) (m : SnapshotMetadataM) : Prop :=
     ∀ σ, ViewOk v σ → (uint.nat m.Index' = σ.b → m.Term' = σ.base.term') ∧
       ViewOk { v with pend := some m } σ
 
+/-- (2026-11-03, R2b-1 stage 4) **A batch without a snapshot is a `Save` step** (pure): from the
+loop's view at the driver's state `st` (its durable state, hard state and delivered log) to the view
+after the batch (`readyDurable`, the hard state after `h`, the delivered log grown by `ce`), from the
+batch's facts (`ReadyRestFacts`: its entries above the hard state's commit, so the handed log keeps
+its terms; the committed entries the durable log's) and its consecutive entries. -/
+theorem walSaveStep_ready (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM)
+    (h : HardStateM) (Hr : ReadyRestFacts st ce es h none)
+    (Hcons : ∀ (j : Nat) (e : EntryM) (e0 : EntryM), es.head? = some e0 → es[j]? = some e →
+      uint.nat e.Index' = uint.nat e0.Index' + j) :
+    WalSaveStep ⟨st.durable, st.hardState, none, st.delivered⟩
+      ⟨readyDurable st.durable (phsNext st.hardState h) none es, phsNext st.hardState h, none,
+        st.delivered ++ ce⟩ h es := by
+  refine ⟨rfl, List.prefix_append _ _, ?_⟩
+  intro σ Hv
+  obtain ⟨Hh, Hhs, Hb, Hc, Hda, -⟩ := Hv
+  simp only at Hh Hhs Hb Hc Hda
+  simp only [recsOf]
+  obtain ⟨Hsok, Hh'⟩ := walSave_holds st σ ce es h Hh Hhs Hr Hcons
+  have Hr0 := Hr
+  simp only [ReadyRestFacts] at Hr0
+  obtain ⟨R1, R2, R3, R4, R5, R6, R7⟩ := Hr0
+  have Hcσ : σ.commit = uint.nat st.hardState.Commit' := by
+    simp only [StorContents.commit, Hhs]
+  have HbS : uint.Z st.durable.base.index' ≤ uint.Z σ.base.index' := Hh.1
+  have hσb : σ.b = uint.nat σ.base.index' := rfl
+  have hCb : uint.nat (phsNext st.hardState h).Commit' < 2 ^ 64 := by word
+  -- the durable base below the records' base, at most the handed log's length, below the commit
+  have hBn : uint.nat st.durable.base.index' ≤ st.delivered.length := by
+    simp only [StorContents.b] at Hb; word
+  have hLc : st.delivered.length ≤ uint.nat st.hardState.Commit' := by rw [← Hcσ]; exact Hc
+  refine ⟨Hsok, Hh', ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [walSave, Hhs]
+  · simp only [walSave, StorContents.b, List.length_append] at Hb ⊢; omega
+  · simp only [walSave, StorContents.commit, Hhs] at R4 ⊢; exact R4
+  · -- the handed log's terms: the old part below the batch's first index, the committed entries
+    -- the durable log's
+    intro i e Hbase Hget
+    simp only [readyDurable, RaftState.next, Option.map_none] at Hbase ⊢
+    rcases Nat.lt_or_ge i st.delivered.length with hi | hi
+    · rw [List.getElem?_append_left hi] at Hget
+      have Hold := Hda i e Hbase Hget
+      cases hes : es with
+      | nil => simp only [appendEnts_nil]; exact Hold
+      | cons e0 rest =>
+        have he0 := R6 e0 (by rw [hes]; rfl)
+        have hb0 : uint.Z st.durable.base.index' < uint.Z e0.Index' := by word
+        rw [appendEnts_cons _ _ _ _ hb0]
+        have hcm : uint.nat st.hardState.Commit' < 2 ^ 64 := by word
+        have hiZ : uint.Z (W64 ((i : Int) + 1)) = (i : Int) + 1 := by
+          have : (i : Int) + 1 < 2 ^ 64 := by omega
+          word
+        rw [plogTermAt_take_append]
+        · exact Hold
+        · exact (plogTermAt_some_le _ _ _ _ Hold).2
+        · rw [hiZ]; word
+    · obtain ⟨j, rfl⟩ : ∃ j, i = st.delivered.length + j := ⟨i - st.delivered.length, by omega⟩
+      rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left] at Hget
+      have hjce : j < ce.length := by
+        rcases Nat.lt_or_ge j ce.length with h1 | h1
+        · exact h1
+        · rw [List.getElem?_eq_none h1] at Hget; cases Hget
+      have hbl : uint.nat st.durable.base.index' ≤ st.delivered.length := hBn
+      have Hent := R5 j e Hget (by simp only [readyDurable, RaftState.next, Option.map_none]; omega)
+      simp only [readyDurable, RaftState.next, Option.map_none] at Hent
+      have hlen : st.delivered.length + ce.length ≤ uint.nat (phsNext st.hardState h).Commit' := by
+        simpa only [List.length_append] using R4
+      have hiZ : uint.Z (W64 (((st.delivered.length + j : Nat) : Int) + 1)) =
+          (st.delivered.length : Int) + j + 1 := by
+        have : ((st.delivered.length + j : Nat) : Int) + 1 < 2 ^ 64 := by omega
+        word
+      unfold plogTermAt
+      rw [hiZ]
+      have hBZ : uint.Z st.durable.base.index' = (uint.nat st.durable.base.index' : Int) := by word
+      rw [if_neg (by rw [hBZ]; omega), if_neg (by rw [hBZ]; omega)]
+      have hidx : ((st.delivered.length : Int) + j + 1 - uint.Z st.durable.base.index' - 1).toNat =
+          st.delivered.length + j - uint.nat st.durable.base.index' := by rw [hBZ]; omega
+      rw [hidx, Hent]
+      rfl
+  · intro m hm; cases hm
+
+/-- (2026-11-03, R2b-1 stage 4) **A batch with a received snapshot is a `SaveSnap` then a `Save`
+step** (pure): from the loop's view at `st`, the snapshot pending, then the view after the batch at
+the snapshot's log `l'` (the loan's delivered log: extending the log before, as long as the
+snapshot's index, ending at its term). -/
+theorem walSnapSteps_ready (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM)
+    (h : HardStateM) (l : SnapLoan) (l' : List LogEntry) (Hr : ReadyRestFacts st ce es h (some l))
+    (Hcons : ∀ (j : Nat) (e : EntryM), es[j]? = some e →
+      uint.nat e.Index' = uint.nat l.snap.Metadata'.Index' + 1 + j)
+    (Hpfx : st.delivered <+: l') (Hlen : l'.length = uint.nat l.snap.Metadata'.Index')
+    (Hlast : l'.getLast?.map (·.term) = some l.snap.Metadata'.Term') :
+    WalSnapStep ⟨st.durable, st.hardState, none, st.delivered⟩ l.snap.Metadata' ∧
+      WalSaveStep ⟨st.durable, st.hardState, some l.snap.Metadata', st.delivered⟩
+        ⟨readyDurable st.durable (phsNext st.hardState h) (some l) es, phsNext st.hardState h,
+          none, l'⟩ h es := by
+  have Hr0 := Hr
+  simp only [ReadyRestFacts] at Hr0
+  obtain ⟨R1, R2, R3, R4, R5⟩ := Hr0
+  refine ⟨⟨rfl, ?_⟩, ⟨rfl, Hpfx, ?_⟩⟩
+  · intro σ Hv
+    obtain ⟨Hh, Hhs, Hb, Hc, Hda, -⟩ := Hv
+    simp only at Hh Hhs Hb Hc Hda
+    have Hcσ : σ.commit = uint.nat st.hardState.Commit' := by
+      simp only [StorContents.commit, Hhs]
+    refine ⟨fun he => ?_, Hh, Hhs, Hb, Hc, Hda, ?_⟩
+    · exfalso
+      have : σ.b ≤ σ.commit := Hh.2.2.2.2.2.1
+      omega
+    · intro m hm
+      simp only [Option.some.injEq] at hm
+      subst hm
+      omega
+  · intro σ Hv
+    obtain ⟨Hh, Hhs, Hb, Hc, Hda, -⟩ := Hv
+    simp only at Hh Hhs Hb Hc Hda
+    simp only [recsOf]
+    obtain ⟨Hsok, Hh'⟩ := walSnapSave_holds st σ ce es h l Hh Hhs Hr Hcons
+    have Hcσ : σ.commit = uint.nat st.hardState.Commit' := by
+      simp only [StorContents.commit, Hhs]
+    have hnlt : ¬ uint.nat l.snap.Metadata'.Index' < σ.b := by
+      have : σ.b ≤ σ.commit := Hh.2.2.2.2.2.1
+      omega
+    have hnle : ¬ uint.nat l.snap.Metadata'.Index' ≤ σ.commit := by omega
+    have hσ1 : walSaveSnap σ l.snap.Metadata' =
+        { σ with base := entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index',
+                 snap := some (SnapshotM.mk [] l.snap.Metadata'), ents := [] } := by
+      unfold walSaveSnap; simp only [hnlt, hnle, ↓reduceIte]
+    refine ⟨Hsok, Hh', ?_, ?_, ?_, ?_, ?_⟩
+    · simp only [walSave, hσ1, Hhs]
+    · simp only [walSave, hσ1, StorContents.b]; omega
+    · simp only [walSave, hσ1, StorContents.commit, Hhs]; omega
+    · intro i e Hbase Hget
+      simp only [readyDurable, RaftState.next, Option.map_some] at Hbase ⊢
+      have hi : i < l'.length := by
+        rcases Nat.lt_or_ge i l'.length with h1 | h1
+        · exact h1
+        · rw [List.getElem?_eq_none h1] at Hget; cases Hget
+      have hiE : i + 1 = uint.nat l.snap.Metadata'.Index' := by omega
+      have hlast : l'.getLast? = some e := by
+        rw [List.getLast?_eq_getElem?, Hlen]
+        have : uint.nat l.snap.Metadata'.Index' - 1 = i := by omega
+        rw [this]; exact Hget
+      rw [hlast] at Hlast
+      simp only [Option.map_some, Option.some.injEq] at Hlast
+      unfold plogTermAt
+      have hZ : uint.Z (W64 ((i : Int) + 1)) = uint.Z l.snap.Metadata'.Index' := by
+        have : uint.nat l.snap.Metadata'.Index' < 2 ^ 64 := by word
+        word
+      rw [hZ, if_neg (Int.lt_irrefl _), if_pos rfl, Hlast]
+    · intro m hm; cases hm
+
 /-- (2026-11-03, R2b-1 stage 4) **The raft loop's `SaveSnap` of a received snapshot, as the WAL
 contract's atomic update** (`walSaveSnap_spec`): the view's half moves to the snapshot pending. -/
 theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotMetadataM)
