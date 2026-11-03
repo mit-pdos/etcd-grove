@@ -717,3 +717,14 @@ receive. API changes from them: `shapes.law` restored (deleted by accident with 
 law); the range deleter not `nil` (S2); the names inhabited (S3, `names_nonempty`). Open, for the
 user: the size bounds the hidden time receipts gave (the write path's sort margin, `Revoke`'s sort,
 non-negative versions, the watch path's `LogSmall`).
+
+**Round 15 (the user's (D), 2026-11-03).** The user asked why a client would need a size bound from
+the state: it does not. The only need is etcd's sort of a range's results (`txn/range.go:125`): at
+most `2 ^ 62` entries (the sort's premise) with non-negative revisions and version (Go's comparators
+subtract, `range.go:214-226`). So the `Range` contracts (`KV.Range`, `Txn.Range`) say it of every state
+they could read (`stateOk`, `kvSortOk`, `ApiState.lean`), round 14's state-level law `mvccTxn_small`
+is gone, and `Restore` takes the restored history's receipt `⧖ (logCh σ'.log)` (the server's snapshot
+image certificate carries it), so the store keeps today's whole-history receipt (no relative budget,
+`notes/mvcc-api-invariants.md` §4.3 superseded). Not chosen: strengthening the backend's `keySized`
+(a trust-base change) or a workload premise on etcd's results; nor (C), the same receipt exported as
+a law on `mvccState`.

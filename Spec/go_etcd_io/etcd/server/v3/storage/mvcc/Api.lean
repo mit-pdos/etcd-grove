@@ -5,7 +5,9 @@ API: A1 the stream's sent count `wsSentLb`, given by `Watch` at a watcher's stam
 non-blocking receive, in one channel law with the blocking one; A3 a compaction response's
 revision `0`; A4 a read transaction's states small; A5 the lease bucket's delete inside a write
 transaction, giving back `End`'s triple; all after the review of round 14,
-`~/mvcc-api-candidates/review-r14.md`): the vocabulary
+`~/mvcc-api-candidates/review-r14.md`; round 15, the user's (D): the size facts a range's caller
+needs at the `Range` contracts, `stateOk`, and the restored history's receipt on `Restore`, in place of
+round 14's A4 law): the vocabulary
 (opaque until the invariants stage defines each over the implementation, sealed), the contracts of
 the interfaces' methods at a receiver, the canonical specs per (concrete type, method) as their
 instances, the constructors' specs, and the laws an implementation proves (`<name>.law : Prop`,
@@ -305,7 +307,9 @@ abbrev KV.FirstRev.contract (ty : go.GoType) (v : val) : Prop :=
     (App (Val #(methods ty go!"FirstRev" v)) (Val #()))
   {{ (r : w64), RET #r; threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.crev⌝ }}
 
-/-- **`Range(ctx, key, end, ro)`** (a read transaction of one range): the outcome at the state. -/
+/-- **`Range(ctx, key, end, ro)`** (a read transaction of one range): the outcome at the state, and
+every state it could read safe to sort (`stateOk`, round 15: what the caller's sort of the results
+needs). -/
 abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (kk e : GoString) (ro : RangeOptions) (Q : MvccState → IProp GF),
@@ -316,7 +320,8 @@ abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
       (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); threadTok ∗ ⌜todo = true → r ≠ null⌝ ∗
       ∃ σ : MvccState, Q σ ∗
-        rangeOutcomeC r err σ.log (W64 (σ.rev : Int)) σ.crev (decide (endk = slice.nil)) kk e ro }}
+        rangeOutcomeC r err σ.log (W64 (σ.rev : Int)) σ.crev (decide (endk = slice.nil)) kk e ro ∗
+        ⌜∀ r' : Nat, σ.crev ≤ (r' : Int) → r' ≤ σ.rev → stateOk (stateAt σ.log r')⌝ }}
 
 /-- **`Put(key, value, lease)`** (a write transaction of one put): the hook, then the commit's two
 steps at the state the update gives (the lessor's item map that state's). -/
@@ -392,7 +397,10 @@ abbrev KV.Commit.contract (ty : go.GoType) (v : val) : Prop :=
 (decision 3, the user, 2026-11-03: at any share of the new backend's post-lock hook): by the
 caller's update, at a state whose history `σ'`'s extends (the compaction revision not lowered), the
 state `σ'`; the store's backend now `B'`, the old one's reader slots' open shares back (`Restore` waits out
-every transaction, the scheduler and the sync loops); the lessor's items re-attached. When the image
+every transaction, the scheduler and the sync loops); the lessor's items re-attached (the restored history's receipt, `⧖ (logCh σ'.log)`, round 15:
+the store's size facts, `stateOk`, rest on every change it holds having been made by some step of
+the program; the server's snapshot image certificate carries it, `etcdserver/InvImage.lean:148`).
+When the image
 records an unfinished compaction (`u`), `Restore` resumes it: under the new backend's batch lock,
 running its post-lock hook `f` once (from `Pre` to `Q'`, giving the lock's invariant `Pk'` back), and
 committing once (the new backend's commit request, `X` to `Y`); otherwise neither, and `Pre`, `X`
@@ -405,6 +413,7 @@ abbrev KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
       mvccBackendFor B' Pk' σ'.log σ'.crev u ∗
       ⌜MvccReachable σ' ∧ σ'.pending = none ∧ σ'.log.length + receiptBound GF + 3 ≤ 2 ^ 63⌝ ∗
+      ⧖ (logCh σ'.log) ∗
       backend.plHookAt B'.γB dq f ∗ Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
       X ∗ backend.commitReq B'.γB B'.P Pk' B'.b X Y ∗
       lease.leaseOwn (mvccLeases γ) L ∅ ∗
@@ -476,7 +485,9 @@ abbrev Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗ mvccTxn (interface.mkOk ty v) γ trace k ∗
       traceutil.ownTrace trace te ∗
-      rangeOutcomeC r err k.readLog k.readRev k.state.crev (decide (endk = slice.nil)) kk e ro }}
+      rangeOutcomeC r err k.readLog k.readRev k.state.crev (decide (endk = slice.nil)) kk e ro ∗
+      ⌜∀ r' : Nat, k.state.crev ≤ (r' : Int) → r' + 1 ≤ k.readLog.length →
+        stateOk (stateAt k.readLog r')⌝ }}
 
 abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (pend : List Change)
@@ -847,18 +858,6 @@ abbrev wsChan_recv.law : Prop :=
 /-- **The stream has sent at least nothing** (the review of round 14: v3rpc's drain before a
 refused create, which has no stamp). -/
 abbrev wsSentLb_zero.law : Prop := ∀ ι, ⊢ wsSentLb (GF := GF) ι 0
-
-/-- **A read transaction's states are small** (round 14, A4, after its review: the sort of a
-range's results needs at most `2 ^ 62` elements, the heapsort fallback's premise): every state a
-read transaction can read (at a revision from the compaction revision to its own) has fewer than
-`2 ^ 62` keys. From the backend's existing assumption on a read-locked view (`keySized`: its Key
-bucket has fewer than `2 ^ 62` entries, and every live key has one), which a read transaction holds.
-(Not stated: the versions' range, a workload fact of the client's model, false of a compacted
-image whose revision puts a key `2 ^ 63` times; the pending state of a write transaction, which no
-read-locked view covers: a write path's size is its client's premise.) -/
-abbrev mvccTxn_small.law : Prop :=
-  ∀ t γ trace σ, mvccTxn (GF := GF) t γ trace (.read σ) ⊢
-    ⌜∀ r : Nat, σ.crev ≤ (r : Int) → r ≤ σ.rev → (stateAt σ.log r).length < 2 ^ 62⌝
 
 /-- **The lease bucket's delete inside a write transaction** (round 14, A5: `lessor.Revoke` deletes
 the lease's record on the backend's batch transaction between the range deleter's `Write` and the

@@ -47,9 +47,9 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
   it, M7; the `length ≤ 2` disjunct: such a log is `[[], []]`'s prefix, comparable with every log) ∗
   the authority half of `γ.crevLb` ∗, watched, a share of `γ.rel` (the released length, bumped at the
   notification, `watchableStoreTxnWrite__End.lean:508`: the notified log's bound, D1) and the sole
-  writer's half of `γ.wlog` (the committed-and-notified log, today `watchWriter`'s, M2/M4) ∗ the relative revision budget (§4.3: the restore base
-  `b`, a monotone ghost value, with `⧖ (logCh (σ.log.drop b))` and `b + receiptBound + 3 ≤ 2 ^ 63`,
-  D6) ∗
+  writer's half of `γ.wlog` (the committed-and-notified log, today `watchWriter`'s, M2/M4) ∗ `idxCert γ.idx σ.log` (today's, with the receipt
+  `⧖ (logCh σ.log)` of the whole history: round 15, the user's (D), `Restore` taking the restored
+  history's receipt, so no relative budget) ∗
   `⌜MvccReachable σ⌝`. Exclusive by the map's full authority (W1: say so).
 - **`isMvcc kv γ`**: `kv` is `mkOk (Ptr store) s` with `isStore s γ.st`, or `mkOk (Ptr watchableStore)
   ws` with `isWatchableStore ws s γ`; the readers' pool (a `ThreadPool` of `storeReaderC`, with
@@ -120,14 +120,14 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
    in `NewStore`, `newWatchableStore`, `NewWatchStream`; carried through every proof that opens and
    closes those (`storeTxnWrite.End`, `store.Read`, `updateCompactRev`, `watch`, `syncWatchers`,
    `moveVictims`, `RestoreMoves`, `NewStore`, the fractional instances).
-3. **The relative revision budget** (W3, D6): `idxCert`'s `⧖ (logCh log)` bounds a log by this
-   process's receipts, which a restored history did not earn; the budget becomes relative to the
-   last restore's base `b`, a monotone ghost value (`⧖ (logCh (log.drop b))`: changes since the base,
-   in the same unit as `logCh`; it bounds `σ.log.length` since every committed revision is
-   non-empty, and each `Put`'s/`DeleteRange`'s pending changes; `b + receiptBound + 3 ≤ 2 ^ 63`, the
-   latter `Restore`'s frozen premise, base 2 at `New`), changing `idxSealed`/`idxCert` and their
-   users (they name their base, so facts from before a restore keep their meaning); `mvccState`
-   carries the budget, not `idxCert`.
+3. **No relative revision budget** (superseded, round 15, the user's (D)): `Restore` takes the
+   restored history's receipt `⧖ (logCh σ'.log)` (the server's snapshot image certificate carries
+   it, `etcdserver/InvImage.lean:148`), so `idxCert` keeps today's whole-history receipt and its users
+   are unchanged. The `Range` contracts' `stateOk` (every readable state at most `2 ^ 62` entries,
+   non-negative revisions and version) is proved from it: a state's entries, a key's version and a
+   revision number are each at most the history's changes, fewer than `receiptBound ≤ 2 ^ 48`; a write
+   transaction's pending state from the writer's `⧖ (logCh ilog + pend.length)` (today's
+   `idxWriter`).
 4. **The watch guarantee per watcher under compaction**: the global premise per registration
    (`watchNoDup = noCompactor ∨ noDupKeys`, `InvWatchStore.lean:544`) becomes per watcher: the
    watcher's delivery invariant "exact while `onceUpTo L lo crev`" (one implication: a catch-up read
@@ -156,17 +156,14 @@ seven for each of the three types; the stream's seven), the constructors' (`New`
 `mvccBackend_agree`, `mvccState_reachable`, `shapes`, `wsChan_recv`, `wsRecv_ok`, `mvccW_alloc`,
 `mvccBackendFor_open`).
 
-## Clients (from the review)
+## Clients (from the review; the size facts superseded by round 15)
 
 The tester's proof needs §4.5 and the notified-log bound of every response (M2) though it never
 compacts (it checks `CompactRevision == 0` and progress revisions below its history). etcd keeps
 `mvccState` in its own invariant (fine at the mask once §0 is done) and loses `γ.cok` as its raft
-link: its proof's link moves to `mvccState`'s `σ.log`. **An obligation for etcd's migration** (the
-second review): after a compacted restore the relative budget makes `isTxnWrite_small` (the whole
-log's changes below `receiptBound`) false, from which etcd's `txn` package derives its sort premise
-`sortSmall` (`etcdserver/txn/TxnLemmas.lean:263-290`); the frozen API states no such bound, so etcd
-must get it from its own model (its applied raft log) when it moves onto the API, or the API gains a
-law then (a size bound on a transaction's pending changes, from the budget).
+link: its proof's link moves to `mvccState`'s `σ.log`. (The second review's obligation for etcd, its
+sort premise `sortSmall` after a compacted restore, is gone: round 15 states what the sort needs,
+`stateOk`, at the `Range` contracts, from the whole-history receipt.)
 
 ## The migration (the user, 2026-11-03)
 

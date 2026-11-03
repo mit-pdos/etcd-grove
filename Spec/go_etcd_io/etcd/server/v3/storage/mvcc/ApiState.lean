@@ -178,6 +178,16 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
     recvEvs (rs.take (j + 1)) id =
       filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1)))
 
+/-- **A key-value safe to sort** (round 15, the user's (D)): its revisions and version
+non-negative, so that Go's comparators, which subtract (`txn/range.go:214-226`), order it. -/
+def kvSortOk (e : EtcdKv) : Prop :=
+  0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version
+
+/-- **A state safe to sort** (round 15): at most `2 ^ 62` key-values (the sort's own premise, its
+heapsort fallback's), each safe to sort. What a range's results need, stated where they are
+produced (the `Range` contracts), not as a law of the state. -/
+def stateOk (s : List EtcdKv) : Prop := s.length ≤ 2 ^ 62 ∧ ∀ e ∈ s, kvSortOk e
+
 /-- **A backend, as the store sees it**: its ghost names, parameters and location. -/
 structure BkRef where
   γB : backend.BNames
