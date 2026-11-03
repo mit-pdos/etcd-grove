@@ -15,11 +15,11 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
-public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.k8s_io.apimachinery.pkg.util.naming.Init
 public import Proof.k8s_io.apimachinery.pkg.util.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.util.version.Init
 public import Proof.k8s_io.klog.v2.Init
+public import Proof.os.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -101,8 +101,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
       EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.os _root_.Perennial.os.initialize'
-      EtcdGrove.ExternalInit.os _root_.Perennial.os.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk internalPackages.init (by mem_tac))

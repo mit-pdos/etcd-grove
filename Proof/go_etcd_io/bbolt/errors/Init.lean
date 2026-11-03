@@ -2,16 +2,18 @@
 Package initialization of `go_etcd_io.bbolt.errors`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`bboltErrorsInit`, `storage/backend/Base.lean`): `ErrBucketNotFound` holds an
-`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, of
-the method set goose emits). Its initializer runs its variables' initializers, all untranslated
-`errors.New` calls (`errors/errors.go`), which the trust-boundary axiom `errorsNewVarsInit`
-states.
+Its fact (`bboltErrorsInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `ErrBucketNotFound`
+holds an `errors.New` error, a leaf pointer error without an `Is` method
+(`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
+variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
+Perennial's `context.wp_New_errorString`).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
-public import Proof.errors.NewVarCell
+public import Proof.go_etcd_io.bbolt.PkgInit
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.context.NewErrorString
+public import Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -29,42 +31,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.bbolt.errors
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.bbolt.errors`'s variables initialized by `errors.New`.** Each
-listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
-axiom errorsNewVarsInit :
-    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrDatabaseNotOpen.init, ErrDatabaseNotOpen, go!"database not open"),
-        (ErrInvalid.init, ErrInvalid, go!"invalid database"),
-        (ErrInvalidMapping.init, ErrInvalidMapping, go!"database isn't correctly mapped"),
-        (ErrVersionMismatch.init, ErrVersionMismatch, go!"version mismatch"),
-        (ErrChecksum.init, ErrChecksum, go!"checksum error"),
-        (ErrTimeout.init, ErrTimeout, go!"timeout"),
-        (ErrTxNotWritable.init, ErrTxNotWritable, go!"tx not writable"),
-        (ErrTxClosed.init, ErrTxClosed, go!"tx closed"),
-        (ErrDatabaseReadOnly.init, ErrDatabaseReadOnly, go!"database is in read-only mode"),
-        (ErrFreePagesNotLoaded.init, ErrFreePagesNotLoaded, go!"free pages are not pre-loaded"),
-        (ErrBucketNotFound.init, ErrBucketNotFound, go!"bucket not found"),
-        (ErrBucketExists.init, ErrBucketExists, go!"bucket already exists"),
-        (ErrBucketNameRequired.init, ErrBucketNameRequired, go!"bucket name required"),
-        (ErrKeyRequired.init, ErrKeyRequired, go!"key required"),
-        (ErrKeyTooLarge.init, ErrKeyTooLarge, go!"key too large"),
-        (ErrValueTooLarge.init, ErrValueTooLarge, go!"value too large"),
-        (ErrMaxSizeReached.init, ErrMaxSizeReached, go!"database reached maximum size"),
-        (ErrIncompatibleValue.init, ErrIncompatibleValue, go!"incompatible value"),
-        (ErrSameBuckets.init, ErrSameBuckets, go!"the source and target are the same bucket"),
-        (ErrDifferentDB.init, ErrDifferentDB, go!"the source and target buckets are in different database files")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
-
-end go_etcd_io.bbolt.errors
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -88,47 +54,109 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (errorsNewVarsInit ErrDatabaseNotOpen.init ErrDatabaseNotOpen go!"database not open" (by mem_tac))
-    as ⟨%xErrDatabaseNotOpen, HErrDatabaseNotOpen, #MErrDatabaseNotOpen, #CErrDatabaseNotOpen⟩
-  wp_apply (errorsNewVarsInit ErrInvalid.init ErrInvalid go!"invalid database" (by mem_tac))
-    as ⟨%xErrInvalid, HErrInvalid, #MErrInvalid, #CErrInvalid⟩
-  wp_apply (errorsNewVarsInit ErrInvalidMapping.init ErrInvalidMapping go!"database isn't correctly mapped" (by mem_tac))
-    as ⟨%xErrInvalidMapping, HErrInvalidMapping, #MErrInvalidMapping, #CErrInvalidMapping⟩
-  wp_apply (errorsNewVarsInit ErrVersionMismatch.init ErrVersionMismatch go!"version mismatch" (by mem_tac))
-    as ⟨%xErrVersionMismatch, HErrVersionMismatch, #MErrVersionMismatch, #CErrVersionMismatch⟩
-  wp_apply (errorsNewVarsInit ErrChecksum.init ErrChecksum go!"checksum error" (by mem_tac))
-    as ⟨%xErrChecksum, HErrChecksum, #MErrChecksum, #CErrChecksum⟩
-  wp_apply (errorsNewVarsInit ErrTimeout.init ErrTimeout go!"timeout" (by mem_tac))
-    as ⟨%xErrTimeout, HErrTimeout, #MErrTimeout, #CErrTimeout⟩
-  wp_apply (errorsNewVarsInit ErrTxNotWritable.init ErrTxNotWritable go!"tx not writable" (by mem_tac))
-    as ⟨%xErrTxNotWritable, HErrTxNotWritable, #MErrTxNotWritable, #CErrTxNotWritable⟩
-  wp_apply (errorsNewVarsInit ErrTxClosed.init ErrTxClosed go!"tx closed" (by mem_tac))
-    as ⟨%xErrTxClosed, HErrTxClosed, #MErrTxClosed, #CErrTxClosed⟩
-  wp_apply (errorsNewVarsInit ErrDatabaseReadOnly.init ErrDatabaseReadOnly go!"database is in read-only mode" (by mem_tac))
-    as ⟨%xErrDatabaseReadOnly, HErrDatabaseReadOnly, #MErrDatabaseReadOnly, #CErrDatabaseReadOnly⟩
-  wp_apply (errorsNewVarsInit ErrFreePagesNotLoaded.init ErrFreePagesNotLoaded go!"free pages are not pre-loaded" (by mem_tac))
-    as ⟨%xErrFreePagesNotLoaded, HErrFreePagesNotLoaded, #MErrFreePagesNotLoaded, #CErrFreePagesNotLoaded⟩
-  wp_apply (errorsNewVarsInit ErrBucketNotFound.init ErrBucketNotFound go!"bucket not found" (by mem_tac))
-    as ⟨%xErrBucketNotFound, HErrBucketNotFound, #MErrBucketNotFound, #CErrBucketNotFound⟩
-  wp_apply (errorsNewVarsInit ErrBucketExists.init ErrBucketExists go!"bucket already exists" (by mem_tac))
-    as ⟨%xErrBucketExists, HErrBucketExists, #MErrBucketExists, #CErrBucketExists⟩
-  wp_apply (errorsNewVarsInit ErrBucketNameRequired.init ErrBucketNameRequired go!"bucket name required" (by mem_tac))
-    as ⟨%xErrBucketNameRequired, HErrBucketNameRequired, #MErrBucketNameRequired, #CErrBucketNameRequired⟩
-  wp_apply (errorsNewVarsInit ErrKeyRequired.init ErrKeyRequired go!"key required" (by mem_tac))
-    as ⟨%xErrKeyRequired, HErrKeyRequired, #MErrKeyRequired, #CErrKeyRequired⟩
-  wp_apply (errorsNewVarsInit ErrKeyTooLarge.init ErrKeyTooLarge go!"key too large" (by mem_tac))
-    as ⟨%xErrKeyTooLarge, HErrKeyTooLarge, #MErrKeyTooLarge, #CErrKeyTooLarge⟩
-  wp_apply (errorsNewVarsInit ErrValueTooLarge.init ErrValueTooLarge go!"value too large" (by mem_tac))
-    as ⟨%xErrValueTooLarge, HErrValueTooLarge, #MErrValueTooLarge, #CErrValueTooLarge⟩
-  wp_apply (errorsNewVarsInit ErrMaxSizeReached.init ErrMaxSizeReached go!"database reached maximum size" (by mem_tac))
-    as ⟨%xErrMaxSizeReached, HErrMaxSizeReached, #MErrMaxSizeReached, #CErrMaxSizeReached⟩
-  wp_apply (errorsNewVarsInit ErrIncompatibleValue.init ErrIncompatibleValue go!"incompatible value" (by mem_tac))
-    as ⟨%xErrIncompatibleValue, HErrIncompatibleValue, #MErrIncompatibleValue, #CErrIncompatibleValue⟩
-  wp_apply (errorsNewVarsInit ErrSameBuckets.init ErrSameBuckets go!"the source and target are the same bucket" (by mem_tac))
-    as ⟨%xErrSameBuckets, HErrSameBuckets, #MErrSameBuckets, #CErrSameBuckets⟩
-  wp_apply (errorsNewVarsInit ErrDifferentDB.init ErrDifferentDB go!"the source and target buckets are in different database files" (by mem_tac))
-    as ⟨%xErrDifferentDB, HErrDifferentDB, #MErrDifferentDB, #CErrDifferentDB⟩
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrDifferentDB _ as HErrDifferentDB
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSameBuckets _ as HErrSameBuckets
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrIncompatibleValue _ as HErrIncompatibleValue
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrMaxSizeReached _ as HErrMaxSizeReached
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrValueTooLarge _ as HErrValueTooLarge
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrKeyTooLarge _ as HErrKeyTooLarge
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrKeyRequired _ as HErrKeyRequired
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrBucketNameRequired _ as HErrBucketNameRequired
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrBucketExists _ as HErrBucketExists
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrBucketNotFound _ as HErrBucketNotFound
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrFreePagesNotLoaded _ as HErrFreePagesNotLoaded
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrDatabaseReadOnly _ as HErrDatabaseReadOnly
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrTxClosed _ as HErrTxClosed
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrTxNotWritable _ as HErrTxNotWritable
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrTimeout _ as HErrTimeout
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrChecksum _ as HErrChecksum
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrVersionMismatch _ as HErrVersionMismatch
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidMapping _ as HErrInvalidMapping
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalid _ as HErrInvalid
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrDatabaseNotOpen _ as HErrDatabaseNotOpen
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of ErrDatabaseNotOpen))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrDatabaseNotOpen #MErrDatabaseNotOpen
+  -- translated initializer of ErrInvalid))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalid #MErrInvalid
+  -- translated initializer of ErrInvalidMapping))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidMapping #MErrInvalidMapping
+  -- translated initializer of ErrVersionMismatch))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrVersionMismatch #MErrVersionMismatch
+  -- translated initializer of ErrChecksum))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrChecksum #MErrChecksum
+  -- translated initializer of ErrTimeout))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrTimeout #MErrTimeout
+  -- translated initializer of ErrTxNotWritable))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrTxNotWritable #MErrTxNotWritable
+  -- translated initializer of ErrTxClosed))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrTxClosed #MErrTxClosed
+  -- translated initializer of ErrDatabaseReadOnly))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrDatabaseReadOnly #MErrDatabaseReadOnly
+  -- translated initializer of ErrFreePagesNotLoaded))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrFreePagesNotLoaded #MErrFreePagesNotLoaded
+  -- translated initializer of ErrBucketNotFound))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrBucketNotFound #MErrBucketNotFound
+  -- translated initializer of ErrBucketExists))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrBucketExists #MErrBucketExists
+  -- translated initializer of ErrBucketNameRequired))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrBucketNameRequired #MErrBucketNameRequired
+  -- translated initializer of ErrKeyRequired))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrKeyRequired #MErrKeyRequired
+  -- translated initializer of ErrKeyTooLarge))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrKeyTooLarge #MErrKeyTooLarge
+  -- translated initializer of ErrValueTooLarge))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrValueTooLarge #MErrValueTooLarge
+  -- translated initializer of ErrMaxSizeReached))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrMaxSizeReached #MErrMaxSizeReached
+  -- translated initializer of ErrIncompatibleValue))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrIncompatibleValue #MErrIncompatibleValue
+  -- translated initializer of ErrSameBuckets))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrSameBuckets #MErrSameBuckets
+  -- translated initializer of ErrDifferentDB))
+  try wp_auto
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrDifferentDB #MErrDifferentDB
+  try wp_auto
+  ipersist HErrDatabaseNotOpen
+  ipersist HErrInvalid
+  ipersist HErrInvalidMapping
+  ipersist HErrVersionMismatch
+  ipersist HErrChecksum
+  ipersist HErrTimeout
+  ipersist HErrTxNotWritable
+  ipersist HErrTxClosed
+  ipersist HErrDatabaseReadOnly
+  ipersist HErrFreePagesNotLoaded
   ipersist HErrBucketNotFound
+  ipersist HErrBucketExists
+  ipersist HErrBucketNameRequired
+  ipersist HErrKeyRequired
+  ipersist HErrKeyTooLarge
+  ipersist HErrValueTooLarge
+  ipersist HErrMaxSizeReached
+  ipersist HErrIncompatibleValue
+  ipersist HErrSameBuckets
+  ipersist HErrDifferentDB
   iframe Hown
   imodintro
   isplitr
@@ -139,8 +167,47 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imodintro
   iexists _
   iframe HErrBucketNotFound
-  ipureintro
-  exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩
+  isplitr
+  · ipureintro
+    exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩
+  unfold go_etcd_io.bbolt.errors.bboltErrorsVars
+  isplitr
+  · iexists _; iexact HErrDatabaseNotOpen
+  isplitr
+  · iexists _; iexact HErrInvalid
+  isplitr
+  · iexists _; iexact HErrInvalidMapping
+  isplitr
+  · iexists _; iexact HErrVersionMismatch
+  isplitr
+  · iexists _; iexact HErrChecksum
+  isplitr
+  · iexists _; iexact HErrTimeout
+  isplitr
+  · iexists _; iexact HErrTxNotWritable
+  isplitr
+  · iexists _; iexact HErrTxClosed
+  isplitr
+  · iexists _; iexact HErrDatabaseReadOnly
+  isplitr
+  · iexists _; iexact HErrFreePagesNotLoaded
+  isplitr
+  · iexists _; iexact HErrBucketExists
+  isplitr
+  · iexists _; iexact HErrBucketNameRequired
+  isplitr
+  · iexists _; iexact HErrKeyRequired
+  isplitr
+  · iexists _; iexact HErrKeyTooLarge
+  isplitr
+  · iexists _; iexact HErrValueTooLarge
+  isplitr
+  · iexists _; iexact HErrMaxSizeReached
+  isplitr
+  · iexists _; iexact HErrIncompatibleValue
+  isplitr
+  · iexists _; iexact HErrSameBuckets
+  iexists _; iexact HErrDifferentDB
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

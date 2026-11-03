@@ -112,6 +112,10 @@ def inventory(code='Code'):
         m = re.search(r"instance info' : PkgInfo pkg_id\.(\S+) where", t)
         if not m:
             continue
+        # a package this repository translates itself (`os`, project bboltfs's, 2026-11-03) is not
+        # Perennial's, which no module here imports
+        if m.group(1) in out and f.startswith(PERENNIAL_CODE):
+            continue
         i = t.find("noncomputable def initialize'")
         body = t[i:t.find("\n\n", i)]
         out[m.group(1)] = dict(
@@ -169,38 +173,6 @@ which the trust-boundary axiom `errorsNewVarsInit` states.''',
             'iframe HErrNoSpace', 'ipureintro', 'exact ⟨_, _, rfl, rfl⟩'],
 )
 
-SPECIAL['go_etcd_io.bbolt.errors'] = dict(
-    doc='''Its fact (`bboltErrorsInit`, `storage/backend/Base.lean`): `ErrBucketNotFound` holds an
-`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, of
-the method set goose emits). Its initializer runs its variables' initializers, all untranslated
-`errors.New` calls (`errors/errors.go`), which the trust-boundary axiom `errorsNewVarsInit`
-states.''',
-    newvars=dict(ErrDatabaseNotOpen="database not open",
-        ErrInvalid="invalid database",
-        ErrInvalidMapping="database isn't correctly mapped",
-        ErrVersionMismatch="version mismatch",
-        ErrChecksum="checksum error",
-        ErrTimeout="timeout",
-        ErrTxNotWritable="tx not writable",
-        ErrTxClosed="tx closed",
-        ErrDatabaseReadOnly="database is in read-only mode",
-        ErrFreePagesNotLoaded="free pages are not pre-loaded",
-        ErrBucketNotFound="bucket not found",
-        ErrBucketExists="bucket already exists",
-        ErrBucketNameRequired="bucket name required",
-        ErrKeyRequired="key required",
-        ErrKeyTooLarge="key too large",
-        ErrValueTooLarge="value too large",
-        ErrMaxSizeReached="database reached maximum size",
-        ErrIncompatibleValue="incompatible value",
-        ErrSameBuckets="the source and target are the same bucket",
-        ErrDifferentDB="the source and target buckets are in different database files"),
-    vars=['[_root_.Perennial.errors.Assumptions]'],
-    finish=['ipersist HErrBucketNotFound', 'iframe Hown', 'imodintro', 'isplitr',
-            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'iexists _',
-            'iframe HErrBucketNotFound', 'ipureintro',
-            'exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩'],
-)
 
 def raft_subpath(seg, tag):
     """(2026-10-24, rafthttp stage 6d) `X = path.Join(RaftPrefix, seg)` (`http.go`): the slice
@@ -279,6 +251,85 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
+# `Proof/go_etcd_io/bbolt/PkgInit.lean`)
+_BBOLT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'ErrVersionMismatch', 'ErrChecksum', 'ErrTimeout', 'ErrTxNotWritable', 'ErrTxClosed', 'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound', 'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge', 'ErrValueTooLarge', 'ErrMaxSizeReached', 'ErrIncompatibleValue', 'ErrSameBuckets', 'ErrDifferentDB']
+_BBOLT_VARS = [x for x in _BBOLT_ERRS if x != 'ErrBucketNotFound']
+SPECIAL['go_etcd_io.bbolt.errors'] = dict(
+    doc='''Its fact (`bboltErrorsInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `ErrBucketNotFound`
+holds an `errors.New` error, a leaf pointer error without an `Is` method
+(`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
+variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
+Perennial's `context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVar'],
+    alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
+    vars=['[_root_.Perennial.errors.Assumptions]'],
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{x} #M{x}']
+                 for x in _BBOLT_ERRS}, **{'$end': ['try wp_auto']}),
+    finish=[f'ipersist H{x}' for x in _BBOLT_ERRS] + FIN_PRE + ['iexists _', 'iframe HErrBucketNotFound',
+            'isplitr', '· ipureintro',
+            '  exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩',
+            'unfold go_etcd_io.bbolt.errors.bboltErrorsVars'] +
+           [l for x in _BBOLT_VARS[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
+           [f'iexists _; iexact H{_BBOLT_VARS[-1]}'],
+)
+
+SPECIAL['go_etcd_io.bbolt.internal.common'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `DefaultPageSize`, initializes its imports and
+runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`page.go`), whose callee is
+names-only in Perennial: the trust-boundary axiom `os.Getpagesize.wp_proof` (4096 on linux/amd64).''',
+    imports=['Proof.os.Getpagesize'],
+    alloc_types={'DefaultPageSize': 'w64'},
+    before={'DefaultPageSize': ['try wp_auto', 'wp_apply EtcdGrove.os.Getpagesize.wp_proof'],
+            '$end': ['try wp_auto']},
+)
+
+# the deprecated aliases of bbolt's root package (`errors.go`)
+_BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'ErrVersionMismatch',
+                    'ErrChecksum', 'ErrTimeout', 'ErrTxNotWritable', 'ErrTxClosed',
+                    'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound',
+                    'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge',
+                    'ErrValueTooLarge', 'ErrIncompatibleValue']
+SPECIAL['go_etcd_io.bbolt'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and
+runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
+`context.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
+`errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
+0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.log.NewModel'],
+    vars=['[_root_.Perennial.log.NewModel]'],
+    alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
+                     DefaultOptions='Loc', discardLogger='Loc'),
+    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.context.wp_New_errorString as %xS #MS'],
+            # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
+            'ErrDatabaseNotOpen': ['try wp_auto',
+                'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
+                '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
+                'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars',
+                'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}⟩' for x in _BBOLT_VARS) + '⟩'],
+            'discardLogger': ['try wp_auto', 'wp_apply _root_.Perennial.log.wp_New as %lg'],
+            '$end': ['try wp_auto']},
+)
+
+# (2026-11-03) `os` is this repository's (project bboltfs's), for every project: names only (its
+# variables' initializers untranslated); until then Perennial's, raft's `Init.lean` by hand.
+SPECIAL['os'] = dict(
+    doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
+initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's,
+names only but for the types and the functions the Linux file extension models): its initializer
+initializes its imports, runs its variables' untranslated initializers, which the trust-boundary
+axiom `opaqueInitsOk` says run without panicking (`Stderr_init` the one the fact reads: `Stderr =
+NewFile(uintptr(syscall.Stderr), "/dev/stderr")` gives the variable some `*File`), and its
+untranslated `init` function, which `initFuncsOk` says returns. (Until 2026-11-03, over Perennial's
+`os`, in raft's `Init.lean`.)''',
+    custom={'Stderr': dict(
+        doc='''/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
+holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
+cell is given here: its initializer is untranslated, so no `GlobalAlloc` of it is translated. -/''',
+        post='∃ f : Loc, globalAddr Stderr ↦ f', pat='⟨%stderr, H@⟩')},
+    finish=['ipersist HStderr'] + FIN_PRE[:6],
+)
 
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
 SPECIAL['unicode.utf8'] = dict(
@@ -1641,7 +1692,9 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
-             'google_golang_org.protobuf.proto', 'os'}
+             'google_golang_org.protobuf.proto'}
+# (`os` was here until 2026-11-03: Perennial b3e996d84 translates some of its initializers, and bbolt
+# imports it too; its `wp_initialize'` is generated, `Proof/os/Init.lean`, `SPECIAL['os']`.)
 # (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
 
 def plain(ns):
@@ -1666,8 +1719,6 @@ def init_module(q):
         return 'Proof.k8s_io.utils.third_party.forked.golang.btree.initialize'
     if d['perennial'] and q not in ('math.rand', 'reflect'):
         return 'Perennial.Proof.' + plain(q) + '.Link'
-    if q == 'go_etcd_io.bbolt.internal.common':
-        return 'Proof.go_etcd_io.bbolt.internal.common.Initialize'
     return 'Proof.' + plain(q) + '.Init'
 
 def init_thm(q):
@@ -1705,7 +1756,9 @@ def external(q):
 
 
 def ext_ctor(q):
-    return plain(q).replace('.', '_')
+    # (`unsafe` is a Lean keyword: its constructor is `unsafe_`)
+    n = plain(q).replace('.', '_')
+    return n + '_' if n == 'unsafe' else n
 
 
 def lb_term(q, hin):
@@ -1882,7 +1935,7 @@ def gen(p, cfg=None):
             if v not in vs: vs.append(v)
     for v in vs:
         A(f'variable {v}')
-    if needs_raft:
+    if needs_raft and '[_root_.Perennial.log.NewModel]' not in vs:
         A('variable [_root_.Perennial.log.NewModel]')
     A('')
     A(f'namespace {p}')
@@ -2006,8 +2059,6 @@ def gen(p, cfg=None):
     A('')
     A('end Perennial')
     path = f'Proof/{dirof(p)}/Init.lean'
-    if p == 'go_etcd_io.bbolt.internal.common':
-        path = f'Proof/{dirof(p)}/Initialize.lean'
     return path, '\n'.join(lines) + '\n'
 
 
@@ -2032,7 +2083,8 @@ def code_module(q):
     root = os.path.dirname(os.path.dirname(PERENNIAL_CODE)) + '/'
     if f.startswith(root):
         f = f[len(root):]
-    return f[:-len('.lean')].replace('/', '.')
+    # (a Lean keyword as a component is escaped: `Perennial.Code.«unsafe»`)
+    return '.'.join(f'«{c}»' if c == 'unsafe' else c for c in f[:-len('.lean')].split('/'))
 
 
 EXT_DOC = """/-

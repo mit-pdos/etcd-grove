@@ -9,16 +9,9 @@ the package's `isPkgInit` (`Base.lean`). For raft that is `isInitialized`: the e
 variables (non-`nil`, and for the three the proofs compare against, of a pointer type, from
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
-Three things are not facts of the model, and are premises:
-* `os`'s initializer is only partly translated (the standard library's names-only `os`,
-  Perennial's; `strconv`'s is Perennial's own since it translates `strconv`, 24bef275e), so it calls opaque values `X.init`: the
-  trust-boundary axioms `<pkg>.opaqueInitsOk` say these run (the generated `Init.lean` files'
-  method, `etc/gen-init.py`), `os.initFuncsOk` that its untranslated `func init()`s (`init.0`, as
-  gc names it) return (2026-10-19, when Goose began calling a package's `init`s by name), and
-  `os.Stderr_init` that `Stderr`'s gives the variable some `*File`, which `os`'s fact reads
-  (2026-10-18; until then the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s
-  untranslated initializers and `init`s are trusted no-op models (2026-10-20, until then axioms
-  like these: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
+Two things are not facts of the model, and are premises:
+* `raftpb`'s and `proto`'s untranslated initializers and `init`s are trusted no-op models
+  (2026-10-20: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
   `TrustedCode/google_golang_org/protobuf/proto.lean`), and raftpb's descriptor tables
   `file_raft_proto_goTypes` and `_depIdxs` are translated. `raftpb`'s and `proto`'s call the
   generated `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s,
@@ -26,9 +19,12 @@ Three things are not facts of the model, and are premises:
   (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
   no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
 * `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
-  class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
-  that returns a new `*Logger` (what raft needs of it; the Go function allocates and
-  initializes a `Logger`, without failing).
+  class `log.NewModel` (`Proof/log/NewModel.lean`) says that the name `log.New` stands for a
+  function that returns a new `*Logger`.
+
+`os`'s `wp_initialize'` was here until 2026-11-03; it is now generated (`Proof/os/Init.lean`,
+`etc/gen-init.py`), with its trust-boundary axioms (`os.opaqueInitsOk`, `os.Stderr_init`,
+`os.initFuncsOk`), since every project translates against this repository's `os` (project bboltfs's).
 -/
 module
 
@@ -36,6 +32,8 @@ public import Perennial.Proof.strconv.Link
 public import RaftWitness.Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
+public import Proof.log.NewModel
+public import Proof.os.Init
 public import RaftWitness.Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import RaftWitness.Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 
@@ -50,152 +48,10 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace log
-
-/-- A model of `log.New(out, prefix, flag)`: a fresh pointer. `Logger` is an opaque type in
-Perennial's `log` (no layout, so no typed allocation), and raft only stores the pointer (in
-`DefaultLogger`, whose methods the register's `quietLogger` replaces), so the model
-allocates an untyped cell: what Go returns is a fresh, non-`nil` `*Logger`. -/
-def New.model [GooseExts] [GoGlobalContext] : val :=
-  λ: "out" "prefix" "flag", Alloc (Val #())
-
-/-- The name `log.New` stands for `New.model`: an assumption about the semantics, like the
-`FuncUnfold` fields of a package's `Assumptions` (Perennial translates `log` without
-`New`). -/
-class NewModel [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
-  New_unfold : FuncUnfold log.New [] New.model
-
-attribute [instance] NewModel.New_unfold
-
-section wps
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : log.Assumptions] [NewModel]
-
-theorem wp_New (out : GoInterface) (pfx : GoString) (flag : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (App (Val (@! log.New)) (Val #out)) (Val #pfx)) (Val #flag))
-    {{ (l : Loc), RET #l; True }} := by
-  wp_start
-  wp_apply (wp_alloc_untyped _ (isPanic_intoVal _)) as %l Hl
-  iapply HΦ
-  itrivial
-
-end wps
-
-end log
-
-section opaqueInits
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-namespace os
-
-/-- **The trust boundary: `os`'s untranslated variable initializers run.** Perennial
-translates `os` names-only, so each `X.init` is an axiom of the translation; Go runs them at
-program start (`ErrInvalid = fs.ErrInvalid`, ..., `Stdin = NewFile(...)`, `dirBufPool =
-sync.Pool{...}`, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, the `var _ I = ...`
-assertions), and every Go program starts, so each returns without panicking. Satisfiable
-whatever the semantics (the `X.init`s are uninterpreted constants). `Stderr`'s, which the
-fact reads, is `Stderr_init`. -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, errPatternHasSeparator.init,
-        checkPidfdOnce.init, «_».init, checkWrapErr.init, lstat.init, errPathEscapes.init,
-        errWriteAtInAppendMode.init, Stdout.init, Stdin.init, Kill.init, Interrupt.init,
-        ErrNoHandle.init, errProcessReleased.init, ErrProcessDone.init,
-        ErrDeadlineExceeded.init, ErrNoDeadline.init, ErrClosed.init, ErrNotExist.init,
-        ErrExist.init, ErrPermission.init, ErrInvalid.init, dirBufPool.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
-holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
-cell is given here: `os` is names-only, so no `GlobalAlloc` of it is translated. -/
-axiom Stderr_init :
-    {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
-    {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }}
-
-/-- **The trust boundary: `os`'s untranslated `init` functions return.** Goose names a package's
-`func init()`s `init.<k>`, as gc does, and translates `os` names-only, so the model does not unfold
-them (`@! init.<k>`: the semantics' `functions`, which the package's `Assumptions` do not constrain
-for them). Go runs them at program start (`os`'s `func init()`, `proc.go`'s `Args =
-runtime_args()`), and every Go program starts, so each returns without panicking. A fact about the
-Go code, as the axioms of other names-only functions
-(`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end os
-
-
-end opaqueInits
 
 /-- `x ∈ [a, ..., x, ...]`, linear in the list. -/
 local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-omit package_sem in
-theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.os get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val os.initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.os }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply (os.opaqueInitsOk os.dirBufPool.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrInvalid.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrPermission.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrExist.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrNotExist.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrClosed.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrNoDeadline.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrDeadlineExceeded.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrProcessDone.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errProcessReleased.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrNoHandle.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Interrupt.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Kill.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Stdin.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Stdout.init (by mem_tac))
-  wp_apply os.Stderr_init as ⟨%stderr, Hstderr⟩
-  wp_apply (os.opaqueInitsOk os.errWriteAtInAppendMode.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errPathEscapes.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.lstat.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.checkWrapErr.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.checkPidfdOnce.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errPatternHasSeparator.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
-  wp_apply (os.initFuncsOk os.init.«0» (by mem_tac))
-  ipersist Hstderr
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-
-end init
 
 section init_lc
 variable [GooseExts] [GooseSemantics] [GooseInterp]

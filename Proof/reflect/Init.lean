@@ -8,7 +8,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
+public import Proof.reflect.PkgInit
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

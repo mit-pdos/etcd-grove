@@ -108,6 +108,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [_root_.Perennial.log.NewModel]
 variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
