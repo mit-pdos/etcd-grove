@@ -694,3 +694,15 @@ updates through; the sole writer's pin becomes apply's own ghost variable); one 
   `keySized` assumption): `sortRangeResults`'s premise (the heapsort fallback's), which today's
   write path takes from `isTxnWrite_small` (`TxnLemmas.lean:281`) and the read side from mvcc's
   receipts (`InvRead.lean:93`), and which no whole-log bound gives after a compacted `Restore`.
+
+**Round 14** (`d3a8e46433`, its review `review-r14.md`, repaired): A1 `wsSentLb ι n`, given by
+`Watch` at the stamp, and `wsSentLb_zero` (a refused create's drain); A2 the non-blocking receive,
+in one channel law with the blocking one (one channel name); A3 a compaction response's revision `0`;
+A4 **a read transaction's** states have fewer than `2 ^ 62` keys (`mvccTxn_small`; the review: a law
+on `mvccState` alone was false, `keySized` holds of a read-locked view only, and versions can wrap
+after a compacted image, so versions are the client model's fact and a write path's size its
+client's premise); A5 the Lease bucket's delete inside a write transaction, giving back `End`'s
+triple, not `mvccTxn` (the backend's batch session admits only `Unlock` after an `UnsafeDelete`).
+Found while checking the watch path's gap W1: the gRPC handler contract's per-run resource `S` is
+the server's choice (`InvGrpc.lean:151`), and the lease read already passes `threadTok` through it
+(`InvLeaseRead.lean:17`): the KV and watch handlers do the same, no trust-base change.

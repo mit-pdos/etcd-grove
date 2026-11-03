@@ -1,9 +1,11 @@
 /-
 **mvcc's API, frozen 2026-11-03, reopened before the proof as round 14** (`notes/mvcc-api-candidate.md`,
 "The freeze", "Reopened before the proof"; round 14 from the assessments of etcd's proofs over the
-API: A1 the stream's sent count `wsSentLb`, given by `Watch` at a watcher's stamp; A2 the
-non-blocking receive law; A3 a compaction response's revision `0`; A4 the size laws; A5 the
-lease bucket's delete inside a write transaction): the vocabulary
+API: A1 the stream's sent count `wsSentLb`, given by `Watch` at a watcher's stamp, and at `0`; A2 the
+non-blocking receive, in one channel law with the blocking one; A3 a compaction response's
+revision `0`; A4 a read transaction's states small; A5 the lease bucket's delete inside a write
+transaction, giving back `End`'s triple; all after the review of round 14,
+`~/mvcc-api-candidates/review-r14.md`): the vocabulary
 (opaque until the invariants stage defines each over the implementation, sealed), the contracts of
 the interfaces' methods at a receiver, the canonical specs per (concrete type, method) as their
 instances, the constructors' specs, and the laws an implementation proves (`<name>.law : Prop`,
@@ -166,7 +168,7 @@ opaque wsState (ι : WsName) (S : StreamState) : IProp GF := iprop(True)
 /-- **The stream has sent at least `n` responses** (persistent; round 14, A1): `Watch` gives it at
 the watcher's stamp `k`, so that a client can match a stream-wide progress response (the `j`-th
 received, `j ≥ k`) with the watchers registered before it; the non-blocking receive's empty case
-bounds it by what was received (`wsChan_tryRecv`). -/
+bounds it by what was received (`wsChan_recv`). -/
 opaque wsSentLb (ι : WsName) (n : Nat) : IProp GF := iprop(True)
 
 /-- **The consumer has received `rs`**, in order (exclusive, timeless). -/
@@ -804,17 +806,13 @@ abbrev mvccBackend_agree.law : Prop :=
 abbrev mvccState_reachable.law : Prop :=
   ∀ kv γ σ, isMvcc (GF := GF) kv γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝
 
-/-- **The shapes and the bundles**, from the concrete specs (an implementation proves them as
-`sync`'s `Mutex_is_Locker`): a store's handle, a transaction, a stream are an `interface.mkOk ty v`
-whose type meets its interface's contracts (the watchable store `WatchableKV`'s too). -/
-abbrev shapes.law : Prop :=
-  (∀ kv γ, isMvcc (GF := GF) kv γ ⊢ ⌜∃ ty v, kv = interface.mkOk ty v ∧ isKV (GF := GF) ty v⌝) ∧
-  (∀ ws : Loc, isWatchableKV (GF := GF) (go.GoType.PointerType watchableStore.ty) #ws) ∧
-  (∀ t γ trace k, mvccTxn (GF := GF) t γ trace k ⊢
-    ⌜∃ ty v, t = interface.mkOk ty v ∧ isTxn (GF := GF) ty v⌝) ∧
-  (∀ w γ ι, isMvccWatchStream (GF := GF) w γ ι ⊢
-    ⌜∃ ty v, w = interface.mkOk ty v ∧ isWatchStream (GF := GF) ty v⌝)
-
+/-- **Receiving on the stream's channel** (round 14: the blocking and the non-blocking receive
+in one law, over one channel name, the review of round 14's preference), in the forms Perennial's
+channel rules take: a receive (`recvAu`: a plain receive or one in a `select`) gives the next
+response (the consumer's view grown) or (`!ok`) the end of a closed, drained channel; a
+non-blocking receive (`nonblockingRecvAuAlt`, a `select` with a `default`: v3rpc's drain, A2) gives
+the same, or the channel empty, every response the stream had sent (at least `n`, from a
+`wsSentLb ι n` taken before the poll) received. -/
 abbrev wsChan_recv.law : Prop :=
   ∀ ws γ ι, isMvccWatchStream (GF := GF) ws γ ι ⊢ ∃ γch : ChanNames,
     isChan (wsChanOf ι) γch WatchResponse ∗
@@ -822,14 +820,7 @@ abbrev wsChan_recv.law : Prop :=
       wsRecv ι rs -∗
       (∀ (v : WatchResponse) (ok : Bool),
         (if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs) -∗ Φ v ok) -∗
-      recvAu γch WatchResponse Φ)
-
-/-- **The non-blocking receive** (round 14, A2: v3rpc's send loop drains the channel with a `select`
-and a `default`), in the form of Perennial's `nonblockingRecvAuAlt`: the next response (as
-`wsChan_recv`), or the channel empty, every response the stream had sent (at least `n`) received. -/
-abbrev wsChan_tryRecv.law : Prop :=
-  ∀ ws γ ι, isMvccWatchStream (GF := GF) ws γ ι ⊢ ∃ γch : ChanNames,
-    isChan (wsChanOf ι) γch WatchResponse ∗
+      recvAu γch WatchResponse Φ) ∗
     □ (∀ (rs : List WResp) (n : Nat) (Φ : WatchResponse → Bool → IProp GF) (Ψ : IProp GF),
       wsRecv ι rs -∗ wsSentLb ι n -∗
       ((∀ (v : WatchResponse) (ok : Bool),
@@ -837,38 +828,50 @@ abbrev wsChan_tryRecv.law : Prop :=
         (wsRecv ι rs -∗ ⌜n ≤ rs.length⌝ -∗ Ψ)) -∗
       nonblockingRecvAuAlt γch WatchResponse Φ Ψ)
 
-/-- **The states are small** (round 14, A4: the sort of a range's results needs at most `2 ^ 62`
-elements, the heapsort fallback's premise): every state readable at a revision at or above the
-compaction revision has fewer than `2 ^ 62` keys, each with non-negative revisions and version; and a
-write transaction's pending state too. From the backend's existing assumption that its Key bucket
-has fewer than `2 ^ 62` entries (`keySized`, `mvccBackendFor`'s): every live key has one. -/
-abbrev mvccState_small.law : Prop :=
-  (∀ kv γ σ, isMvcc (GF := GF) kv γ ∗ mvccState γ σ ⊢
-    ⌜∀ r : Nat, σ.crev ≤ (r : Int) → r ≤ σ.rev →
-      (stateAt σ.log r).length < 2 ^ 62 ∧
-      ∀ e ∈ stateAt σ.log r, 0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version⌝) ∧
-  (∀ t γ trace σ pend, mvccTxn (GF := GF) t γ trace (.write σ pend) ⊢
-    ⌜(stateAt (σ.log ++ [pend]) σ.log.length).length < 2 ^ 62 ∧
-      ∀ e ∈ stateAt (σ.log ++ [pend]) σ.log.length,
-        0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version⌝)
+/-- **The stream has sent at least nothing** (the review of round 14: v3rpc's drain before a
+refused create, which has no stamp). -/
+abbrev wsSentLb_zero.law : Prop := ∀ ι, ⊢ wsSentLb (GF := GF) ι 0
+
+/-- **A read transaction's states are small** (round 14, A4, after its review: the sort of a
+range's results needs at most `2 ^ 62` elements, the heapsort fallback's premise): every state a
+read transaction can read (at a revision from the compaction revision to its own) has fewer than
+`2 ^ 62` keys. From the backend's existing assumption on a read-locked view (`keySized`: its Key
+bucket has fewer than `2 ^ 62` entries, and every live key has one), which a read transaction holds.
+(Not stated: the versions' range, a workload fact of the client's model, false of a compacted
+image whose revision puts a key `2 ^ 63` times; the pending state of a write transaction, which no
+read-locked view covers: a write path's size is its client's premise.) -/
+abbrev mvccTxn_small.law : Prop :=
+  ∀ t γ trace σ, mvccTxn (GF := GF) t γ trace (.read σ) ⊢
+    ⌜∀ r : Nat, σ.crev ≤ (r : Int) → r ≤ σ.rev → (stateAt σ.log r).length < 2 ^ 62⌝
 
 /-- **The lease bucket's delete inside a write transaction** (round 14, A5: `lessor.Revoke` deletes
 the lease's record on the backend's batch transaction between the range deleter's `Write` and the
 transaction's `End`, so that the keys' deletes and the lease's commit together): while the write
 transaction is open (it holds the batch lock), an `UnsafeDelete` of the Lease bucket on the
 backend's batch transaction, over the bucket rights the client owns (`backend.rbPart`, the
-lessor's), leaves the transaction and the store's backend as they were. -/
+lessor's), leaves the store's backend as it was and the transaction able only to end (the
+backend's batch session admits only `Unlock` after an `UnsafeDelete`, and the delete forces a commit
+at `End`: the review of round 14): what comes back is `End`'s triple for the transaction, as
+`Txn.End.contract` states it at a write view. -/
 abbrev mvccTxn_leaseDelete.law : Prop :=
-  ∀ (tw : GoInterface) γ trace σ pend (q : Qp) (B : BkRef) (Pk : IProp GF) (t : Loc)
+  ∀ (tw : GoInterfaceOk) γ trace σ pend (q : Qp) (B : BkRef) (Pk : IProp GF) (t : Loc)
     (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac) (S : GoString → Prop)
     (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
   S leaseName →
-  mvccTxn (GF := GF) tw γ trace (.write σ pend) ∗ mvccBackend γ q B Pk ∗
+  mvccTxn (GF := GF) (GoInterface.ok tw) γ trace (.write σ pend) ∗ mvccBackend γ q B Pk ∗
     backend.bF go!"batchTx" B.b ↦□ t ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ∗ key ↦*{dq} k ∗
     backend.rbPart B.γB S r ∗
-    ▷ (mvccTxn tw γ trace (.write σ pend) ∗ mvccBackend γ q B Pk -∗ key ↦*{dq} k -∗
-        backend.rbPart B.γB S (rbDel r leaseName k) -∗ Φ #()) ⊢
+    ▷ (mvccBackend γ q B Pk -∗ key ↦*{dq} k -∗ backend.rbPart B.γB S (rbDel r leaseName k) -∗
+        (∀ (Q : IProp GF),
+          {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+              mvccBackend γ q B Pk ∗ Pk ∗
+              AU <{ ∃∃ (σ1 : MvccState), mvccState γ σ1 }> @ ⊤ \ ↑mvccN, ∅
+                <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend), COMM
+                    AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
+                      <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> }}
+            (App (Val #(methods tw.ty go!"End" tw.v)) (Val #()))
+          {{ RET #(); threadTok ∗ mvccBackend γ q B Pk ∗ Q }}) -∗ Φ #()) ⊢
   WP (App (App (Val #(methods (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))
       (Val #b)) (Val #key)) {{ Φ }}
