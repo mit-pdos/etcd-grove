@@ -446,12 +446,35 @@ structure AEnv (GF : BundledGFunctors) where
   package does not read it until its chain passes it to `rqOk` (commit 4 of the lease-grant plan's
   last section) -/
   lg : Bool := false
+  /-- (the lease-grant stage, 2.0, 2026-11-03) the ghost variable of the lessor's live set, whose
+  halves the apply thread's image (`srvRest`) and its KV resources (`kvOwn`'s `leasesLive`) hold in
+  a cluster that grants leases (`ltHalf`); unused otherwise -/
+  γlt : GName := default
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/
 def AEnv.authOn (E : AEnv GF) : Bool := E.authMode.isOn
 
 theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
+
+/-- **The apply thread's half of the lessor's live set `L`** (the lease-grant stage, 2.0,
+2026-11-03): in a cluster that grants leases (`E.lg`), half of `E.γlt` at `L`; `True` otherwise
+(`ltHalf_false`). Its two holders tie the image's lease records to the lessor's live set. -/
+def ltHalf (E : AEnv GF) (L : List w64) : IProp GF :=
+  if E.lg then ghostVar E.γlt (1 : Qp).half L else iprop(True)
+
+theorem ltHalf_false (E : AEnv GF) (L : List w64) (h : E.lg = false) :
+    ltHalf E L = iprop(True) := by
+  unfold ltHalf; rw [h]; rfl
+
+/-- **A fresh response header's four id fields owned** (2.11a, 2026-11-03): `ClusterId`, `MemberId`,
+`RaftTerm`, `LeaderId` at the header `h`, any values (`txn.respHdrOwn`'s body). -/
+def hdrFields (h : Loc) : IProp GF :=
+  iprop(∃ (c m t l : w64),
+    structFieldRef etcdserverpb.ResponseHeader go!"ClusterId" h ↦ c ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"MemberId" h ↦ m ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦ t ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦ l)
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of

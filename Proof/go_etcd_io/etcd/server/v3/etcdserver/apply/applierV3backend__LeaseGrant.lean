@@ -94,7 +94,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     iStructNamed «$r0»
     wp_auto
     wp_apply HTTL as %t -
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     iapply HΦ
     isplitl; rotate_left

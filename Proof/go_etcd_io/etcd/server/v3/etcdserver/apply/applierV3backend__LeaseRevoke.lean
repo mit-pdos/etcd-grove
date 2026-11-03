@@ -90,7 +90,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     have hlog : apply.revokeLog log id = log := by
       unfold apply.revokeLog; rw [Hnf.2]; rfl
     (try wp_auto)
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
@@ -128,7 +128,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iexact HRO
   · -- live: the lease's keys deleted, the lease gone
     (try wp_auto)
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
     · iexact Hb
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0

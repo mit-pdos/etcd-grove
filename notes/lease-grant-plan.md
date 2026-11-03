@@ -939,7 +939,7 @@ d.be` at both instantiations, `NewServer` and `SnapApplyOptsLemmas`, unchanged),
 `Ln` is dropped. The `d`-named form belongs with the clause over `RO` (commit 3), whose lens gives
 `d`.
 
-**The problem: a conf change does not commute with a lease record (blocks commit 3).**
+**The problem: a conf change does not commute with a lease record (blocked commit 3; resolved by (A), the user's, 2026-11-03, above).**
 - *What.* §2.0 says "`restEntry` commutes with `restGrantT` (`restEntry_keep`, GMap
   extensionality)". It does for a normal entry (`restAfter_restGrantT`, proved), but not for a conf
   change: `ccRest v3 cc r` branches on `membership.ccValidOn r.bk cc`, which is `ccValidM` of
@@ -967,14 +967,39 @@ d.be` at both instantiations, `NewServer` and `SnapApplyOptsLemmas`, unchanged),
   (C) A trust-boundary axiom that `membersOfBk` ignores the `lease` bucket: excluded (no new axiom).
   Recommended: (A), the smallest change and true of Go; (B) if the trust base must not move.
 
+**Commit 3, split** (2026-11-03): commit 3 is one full server rebuild by design; it is done in
+buildable parts, each a full build with the checks, the design's statements unchanged.
+- **3a (done)**: `AEnv.γlt : GName := default`, `ltHalf E L` with `ltHalf_false` (2.0, in
+  `apply/Chain.lean`: they need `AEnv`, not pure); `hdrFields h` (2.11a's id fields, `Chain.lean`);
+  `newHeader.spec`'s post strengthened as 2.11a (`⌜h ≠ null⌝ ∗ hdrFields h ∗ Revision h ↦ W64
+  (|log| − 1) ∗ certOk E.γ log ∗ ⌜2 ≤ |log| ∧ |log| + 3 ≤ 2^63⌝`) and its proof. Mechanical
+  adaptations: the proof calls `store.Rev.spec` itself (`storeReader_toC`/`_of` around it), not the
+  readers' corollary `Rev.specR`, which drops `certOk` (changing `specR` would move the mvcc result
+  `mvcc_store_Rev_frozen`); the callers' intro patterns: `⟨Hrd, Hsw, -⟩` unchanged (the last `-`
+  drops the new conjuncts), `⟨Hrd, Hsw, %Hh⟩` → `⟨Hrd, Hsw, %Hh, -⟩` (`LeaseRevoke`,
+  `LeaseCheckpoint`, `LeaseGrant`); `NewServer.lean`'s anonymous `AEnv` literal gains `default` for
+  `γlt` (3b allocates it there).
+- **Not separable**, so left for the next part (3b): `isApplyLessor`'s Grant clause over `RO`
+  with `isApplyLessor_of_lessorInv`'s `d`-named premise (the backend `LeaseGrant` proof is the
+  clause's only caller and has only `E.RW` until it gets the grant triple, 2.11); the
+  `dispatchTable` ids law (needs the triple's `chainOutcome`/`o ↔` facts).
+- **The rest of commit 3, 3b, one part** (not split further: the server's callers of
+  `Apply.spec`/`dispatch.spec` must supply `ltHalf E T` at any `E.lg`, and only the gated `srvRest`
+  holds that half, so the apply package's new specs and the server side build only together). The
+  apply package: `leasesLive E` with `ltHalf E L` (29 sites / 13 files); `grantHdr`/`grantAnswer`/
+  `grantRes`; the grant triple (2.11) in `applierTriples` (out of `respMethods`/`reqFacts`), its five
+  layers; the RO Grant clause and its derivation (2.12, with the `d`-named premise);
+  `dispatch.spec`/`Apply.spec` (2.10), the `dispatchTable` ids law. The server side: `srvRest` gated
+  with `srvGrantable`, `srvRest_applyG`, the receive side's refutation, `entryOk`/`logShape` at
+  `E.lg`, `applyEntryNormal` (both arms), `NewServer`'s allocations (`E.γlt` at `[]`),
+  `imageAt`'s/`mergedObs`' gates, `mergedCreate_window` and the send branch.
+
 **Checks after each of commits 1 and 2**: the full build; `tcb-report.py --check` reports as new only
 the two `sorry`s already on the branch (`srvGrantOpen_open`, `leasegrant.Main.wp_proof`); all 46
 collections unchanged; `gen-init.py --check` and `gen-interface.py --check` (backend, raft) clean.
 
-**Where the plumbing stopped**: after commit 2. Commit 3 (and 4-5, which rest on it) is held for the
-user's choice above: its server side gates `srvRest`, and the conf-change arm of `EtcdServer.apply`
-cannot reclose the leased arm without the commutation. Next, once chosen: with (A), restate
-`membersOfBk` (and `membersOfBk_empty`), prove `ccValidOn` ignores `lease`, drop the premise of
-`ccRest_restGrantT`/`restEntry_restGrantT`, then commit 3 as designed (with `isApplyLessor_of_lessorInv`'s
-`d`-named premise, deferred from commit 2); with (B), restate 2.0/2.9/2.14 first.
-
+**Where the plumbing stopped** (2026-11-03): after (A) and commit 3a. Commit 3b (the rest of
+commit 3, as listed above) is next, then 4 and 5. (A) resolved the conf-change problem above: with
+`membersOfBk` over the two membership buckets, `ccRest_restGrantT`/`restEntry_restGrantT` hold
+unconditionally, which `srvRest_snoc`'s conf-change arm in 3b uses. Nothing of 3b is started in
+the tree.
