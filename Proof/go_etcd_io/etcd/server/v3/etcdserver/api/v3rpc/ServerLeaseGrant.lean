@@ -33,17 +33,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **The server's `LeaseGrant` meets `lessorGrantOkL`** in a cluster that grants leases, given the
-run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.spec`'s). The
+run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.spec`'s), with the auth store's contract
+(`srvAuthAt`, amendment (G): from both server views, `srvAuthAt_of_views`). The
 header's answer (`leaseHdrAns`): the revision reached (`etcdReached_of_certOk` from
 `leaseGrantedResp`'s `srvRevLb`), the four id fields from its `txn.respHdrOwn`; the error one the
 gRPC layer can take (`srvErrIs_of_applyErrIs`). -/
 theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkL s E S := by
-  iintro ⟨#Hpkg, #Hq, #Hcred, #HS⟩
+  iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   iunfold lessorGrantOkL
   iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, -, #Hreq, Hid⟩ HΦ
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr

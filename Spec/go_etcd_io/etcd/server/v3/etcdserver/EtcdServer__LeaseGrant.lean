@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseGrant(ctx, r)`**, any goroutine, in a cluster that grants leases
 (`srvGrantsLeases`), at a context, with the request path's resources (`Put`'s: the server's
-request-side facts, the leader-timeout reader, the backend reader `E.RD`, the id generator's
+request-side facts, the auth store's contract (`srvAuthAt`, for `requireAuthInfo`; the plan's
+amendment (G), 2026-11-03), the leader-timeout reader, the backend reader `E.RD`, the id generator's
 credits, freely minted) and the decoded request (its `ID` owned): on `nil`, the server's response
 (`leaseGrantedResp`: a lease id not `0`, its header with a revision the store has reached, and the
 lease granted at an index of the lessor's history); on an error, no response and an error the gRPC layer can take.
@@ -52,7 +53,7 @@ abbrev EtcdServer.LeaseGrant.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64),
   srvGrantsLeases E ρ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
       context.isContext ctx cd ∗ leaseGrantReqOwn r ttl id0 }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))

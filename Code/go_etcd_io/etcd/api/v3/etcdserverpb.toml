@@ -71,6 +71,8 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "TxnRequest.GetFailure", "RequestOp.GetRequest",
   # the spec-first pilot (2026-10-27): the trace attributes of EtcdServer.Compact
   "CompactionRequest.GetPhysical", "CompactionRequest.GetRevision",
+  # the lease-grant stage (2026-11-03): the trace attribute of EtcdServer.LeaseGrant
+  "LeaseGrantRequest.GetTTL",
   # unit P4: the read-only transaction's warning (txn's `util.go`) reads a range's `GetKvs()`
   "RangeResponse.GetKvs",
   # the gRPC KV service's interface (`v3rpc.NewKVServer` converts its `*kvServer` to it) and the

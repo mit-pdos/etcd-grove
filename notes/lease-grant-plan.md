@@ -1565,3 +1565,62 @@ index up to the lessor's bound in the listed map), `kv_lease_grant_served` (`kv_
 `lg`), `alloc1 true`, `leasegrant.Main.wp_proof`. `leasegrant_safe`/`leasegrant_Main` reach 4
 `sorry`s: `leasegrant.Main.wp_proof` and the three intended (`srvGrantOpen_open`, `merged_image`,
 `run_job_snap_cmp`).
+
+**Commit 5c: (G) and `LeaseGrantRequest.GetTTL`** (2026-11-03, a full build with the checks).
+- *(G).* `EtcdServer.LeaseGrant.spec`'s pre gains `srvAuthAt s E` (after `isServerReq`), and so
+  does `v3rpc.lessorGrantOkL_of_server`'s premise (its proof frames it into the call).
+- *`GetTTL`.* `"LeaseGrantRequest.GetTTL"` added to `Code/go_etcd_io/etcd/api/v3/etcdserverpb.toml`
+  (beside `CompactionRequest`'s getters), project `etcd` regenerated; `Spec`/`Proof`
+  `etcdserverpb/LeaseGrantRequest__GetTTL.lean`, linked in `etc/link-lean-first-server.txt`.
+  *Mechanical deviation from the sibling getters:* the spec does not take `⌜p ≠ null⌝` (its caller
+  cannot give it, the problem below) and returns `if p = null then 0 else v` (the getter's `x != nil`
+  check), true at every `p`.
+- `EtcdServer__LeaseGrant` is **not linked**: its proof is still `sorry` (the problem below), and
+  linking it would add that `sorry` to the server's collections.
+
+**The problem: two non-null facts `EtcdServer.LeaseGrant`'s proof needs and its texts do not give**
+(found 2026-11-03 writing the proof; stops `EtcdServer.LeaseGrant.wp_proof`, hence a sorry-free
+`lessorGrantOkL_of_server` chain, `leasegrant.Main.wp_proof` and the goal of commit 5).
+The proof is otherwise done: on branch `lease-grant-5-wip` (one WIP commit,
+`EtcdServer__LeaseGrant.lean`, builds), a private `leaseGrant_nn` proves the spec's triple under
+the extra premise `r ≠ null`, with one `sorry` at `resp ≠ null`; the loop (`HI : ∃ i, ID ↦ i`, a
+credit minted per `Next`), the span, `requireAuthInfo` (`nil`: `authedOutB`'s off arm, `E.authOn =
+false`), the proposal (`reqPropOk`'s grant disjunct: `grantPropOk`, `rqShape` by `rqOk`'s grant arm,
+`irrNoZeroEnd`; `F := []` by `mvcc.idxCert_nil`), `raftRequest.spec_M … false`, and the success
+post from `grantAnsM`/`grantRespIs`/`grantHdr` (`rv ≠ 0` and `srvRevLb` from `grantHdr`'s bounds)
+all check.
+1. *The request.* The proposal `{LeaseGrant: r}` needs `irrNoHdrIs p rq` with `rq.leaseGrant = some
+   ⟨id, ttl⟩`, whose field is `apply.leaseGrantIs r g := ⌜r ≠ null⌝ ∗ …` (`apply/InvRequest.lean:319`).
+   The spec's pre has `leaseGrantReqOwn r ttl id0` (D4: `TTL ↦□ ∗ ID ↦`), no `⌜r ≠ null⌝`, and the
+   model's `StructFieldRef` does not fault on `nil` (Perennial `PostLang.lean:446`, the FIXME), so
+   the field points-tos do not give it. Upstream nothing does either: `lessorGrantOk(G/L)`'s pre
+   (`leaseGrantReqIs`, `leaseGrantReqIdOwn`), `LeaseServer.LeaseGrant.spec`, and the trusted wire
+   model `pbLeaseGrantRequest.recv`/`recvOwn` (`client/v3/InvLease.lean:104-106`), unlike its siblings
+   (`pbAuthUserAddRequest.recv`, `InvAuthConn.lean:83`, and the lease reads' `r ↦□ v`, which carry it).
+   True of Go: Go's `r.ID` on a nil `r` panics, and the generated handler decodes into its own `in :=
+   new(LeaseGrantRequest)`.
+2. *The response.* The post needs `resp ≠ null`; `grantAnswer` (2.6) gives `resp = mkOk
+   *LeaseGrantResponse r'` and `grantRespIs E r' g` (field points-tos), no `⌜r' ≠ null⌝`, so the type
+   assertion's result is not known non-nil. True of Go: the backend's `LeaseGrant` answers `resp :=
+   &pb.LeaseGrantResponse{}` (`apply/backend.go`), the only success arm (capped and corrupt answer
+   `nil` with an error).
+- *Options.*
+  (1) **Recommended.** Request: `⌜r ≠ null⌝` in `pbLeaseGrantRequest.recv` (trusted, as its siblings'),
+  `v3rpc.leaseGrantReqIs` and `leaseGrantReqOwn` (the handlers pass it through). Response:
+  `grantRespIs E r g` gains `⌜r ≠ null⌝` (2.6; the backend layer has it from its allocation, the
+  quota layer passes it, capped/corrupt never reach the success arm). Each a frozen text; the first
+  a trusted definition (it strengthens what gRPC's decode is assumed to give: true, the handler's
+  fresh `in`).
+  (1') Request without a trust change: the generic `grpcHandlerOwnOk`/`grpcHandlerOwnOkMd`
+  (`google_golang_org/grpc/InvGrpc.lean:188`) give the handler `⌜r ≠ null⌝`, proved once in
+  `wp_unaryHandlerOwnMd` from the decoded request's allocation; every `OwnOk` handler's proof gains
+  an unused premise. More statements move, none trusted.
+  (2) Response alternative: `leaseGrantedResp`'s user does not need `resp ≠ null` — false:
+  `lessorGrantOkL_of_server` passes it to `leaseGrantAns`.
+
+**Where the plumbing stopped** (2026-11-03, after 5c): `EtcdServer.LeaseGrant.wp_proof` waits on the
+problem above (then: `leaseGrant_nn`'s two premises discharged, the WIP proof moved in, the file
+linked). Commit 5's rest not started: the Lease service's `LeaseGrant`/`LeaseLeases` handlers at
+`etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`, `kv_lease_served` at `lg` (replacing the draft
+`kv_lease_grant_served`), `alloc1 true`, `leasegrant.Main.wp_proof`. `lease-grant-4-wip` was
+already deleted (4g).
