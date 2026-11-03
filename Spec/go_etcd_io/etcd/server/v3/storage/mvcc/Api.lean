@@ -104,6 +104,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -898,7 +899,7 @@ abbrev mvccTxn_leaseDelete.law : Prop :=
           {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
               mvccBackend γ q B Pk ∗ Pk ∗
               AU <{ ∃∃ (σ1 : MvccState), mvccState γ σ1 }> @ ⊤ \ ↑mvccN, ∅
-                <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend), COMM
+                <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend) ∗ ⧖ (logCh (σ1.log ++ [pend])), COMM
                     AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
                       <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> }}
             (App (Val #(methods tw.ty go!"End" tw.v)) (Val #()))
@@ -912,7 +913,52 @@ abbrev wsRecv_ok.law : Prop :=
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsState ι S ∗ mvccState γ σ ⊢
       ⌜wsRecvOk σ S rs⌝
 
+/-- **A reachable state's history is well formed, its notified history too** (round 16, pure, of the
+API's own definitions: by induction on `MvccReachable`, `notify`'s `LogWf` and `commitLog`; the
+server's read path and the watch path take their clients' `LogWf'` from it). -/
+abbrev reach_logWf.law : Prop :=
+  ∀ σ : MvccState, MvccReachable σ → LogWf' σ.log ∧ LogWf' σ.notifiedLog
+
 end laws
+
+section snapshot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [bk_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **A snapshot of the store's backend is the image of the store's history** (round 16, G3: the
+sender's side of `mvccImage`, `createMergedSnapshotMessage`'s `s.be.Snapshot()`; derived from
+`backend.Snapshot`'s triple). With the whole backend share held through the call (no step that
+changes the history runs: each takes a share), by the caller's update at the state (nothing
+pending; the state unchanged), the snapshot's data `D` is the image of that state's history and
+compaction, with the store's receipt inside (`mvccImage`), recording an unfinished compaction iff
+`u`; and the caller's own observation `Q` of the backend's hook keys `d` and tracked buckets `r`,
+from its `R` and the batch lock's invariant `Pk`, as `backend.Snapshot`'s. Not a pin predicate (the
+server draft's proposal): the update at the state is the API's one shape for reading it. -/
+abbrev mvccImage_snapshot.law : Prop :=
+  backend.backend.Snapshot.spec (GF := GF) (hG := hG) →
+  ∀ (γ : MvccName) (B : BkRef) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
+    (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
+    (Φ : MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗ R ∗
+      □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
+        R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) ∗
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvccN, ∅
+        <{ mvccState γ σ, COMM Φ σ }> }}
+    (App (Val (B.b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
+      @!! go!"Snapshot")) (Val #()))
+  {{ (sp : Loc) (D : backend.Data),
+      RET #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
+      backend.snapOpen sp D ∗ backend.bOpen B.γB qo ∗ R ∗ mvccBackend γ 1 B Pk ∗
+      ⌜Q (backend.hkData B.P D) (backend.rbData B.P D)⌝ ∗
+      ∃ (σ : MvccState) (u : Bool), Φ σ ∗ mvccImage D σ.log σ.crev u }}
+
+end snapshot
 
 end api
 end mvcc

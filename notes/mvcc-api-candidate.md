@@ -749,3 +749,14 @@ the notify step of `Txn.End`, `Put`, `DeleteRange` (`⧖ (logCh (σ.log ++ [pend
 step (`⧖ (logCh σ'.log)`). `Restore`'s length premise is dropped: a committed revision is never
 empty (`commitLog`), so the receipt inside `mvccBackendFor` bounds the length.
 
+**Round 16, the clients' updates (2026-11-03).** The three drafts are updated (txn needs nothing
+more; watch and server need the laws below). Added: `reach_logWf.law` (pure: a reachable state's
+history and notified history are `LogWf'`, which the read path and the watch path need for their
+clients' `LogWf'`), and `mvccImage_snapshot.law` (G3: the sender's image, from `backend.Snapshot`'s
+triple, with the whole backend share held through the call and the caller's update at the state).
+The server draft proposed instead a pin predicate (`mvccPinned`, with pin and unpin laws: one more
+predicate and two laws); the update at the state is the API's existing shape for reading the state
+and needs neither (the law's proof commits it before the call, and the whole share keeps every
+step that changes the history out until the share comes back). The lease-delete law's `End` triple
+gets the notify receipt as `Txn.End`'s.
+
