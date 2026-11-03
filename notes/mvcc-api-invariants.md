@@ -167,3 +167,13 @@ log's changes below `receiptBound`) false, from which etcd's `txn` package deriv
 `sortSmall` (`etcdserver/txn/TxnLemmas.lean:263-290`); the frozen API states no such bound, so etcd
 must get it from its own model (its applied raft log) when it moves onto the API, or the API gains a
 law then (a size bound on a transaction's pending changes, from the budget).
+
+## The migration (the user, 2026-11-03)
+
+**M1: all at once.** The internals change, today's specs are replaced by the API's, and every
+client of today's mvcc specs (etcd's `txn`, `apply`, `lease`, the server, `v3rpc`, client/v3's watch
+proofs, the examples) moves onto the API in the same stage (not today's specs kept as temporary
+corollaries over a legacy invariant, M2; not a mode flag, M3). **First** (the user): an informal
+assessment that etcd's proofs can work over the new specs (three, by client group:
+`~/mvcc-api-candidates/assess-{txn,server,watch}.md`); if it holds, the mvcc proofs, then the proofs
+on top of them.
