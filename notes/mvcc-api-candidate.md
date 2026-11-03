@@ -520,3 +520,18 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
   `idAssigned`, `chanRegFact`, `streamRegAt`) is unchecked (review B6).
 - **The laws are obligations**: an implementation proves each `<name>.law` over its definitions
   of the opaque predicates; until then nothing rests on them.
+
+### The user's answers to rounds 10-11 (2026-11-03)
+
+1. **No verified method left out** (now a principle of the `spec` skill, "A smaller API is not a
+   narrower scope"). Back in scope, each with a linked proof today: `NewStore`, `store.Restore`,
+   `watchableStore.Restore`, the store's views (`readView.Range`/`Rev`/`FirstRev`,
+   `writeView.Put`/`DeleteRange`), `txnReadWrite.Put`/`DeleteRange` (they panic), `hashStorage.Store`
+   (an axiom today), `NewHashStorage`, and watch filters (today's `Watch` takes them). Still out, no
+   proof today: `HashByRev`, `Hash`, `Hashes`, a caller-chosen watch id, a store without a hook.
+2. Asked for an explanation (the layout problem of interface-method specs).
+3. Asked why the stream's closed flag in its state affects v3rpc.
+4. Asked what the lost-events bug is; **compaction must be supported** (with watches).
+5. Asked what the question is (the registration stamp).
+6. Asked why the backend boundary is a placeholder.
+7. **`New`'s premises accepted.**

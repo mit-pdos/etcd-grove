@@ -15,6 +15,14 @@ These judgments are for specs that cross a package boundary: what another packag
 internal helper's spec, used only inside its own package, may simply mirror its code.
 (`notes/spec-first-plan.md`, Review)
 
+**A smaller API is not a narrower scope.** A redesigned API keeps a spec for every function that
+already has a proved spec (a linked result: the package's `Link.lean`), and for every feature those
+specs cover (watch filters), whether or not today's clients call it. Minimizing the vocabulary is a
+choice among specs of the same functions; dropping a verified function to save a predicate makes
+verified code unverified. Functions with no proof today may be left out, marked as such. (The mvcc
+API's round 10, 2026-11-02: it left out `NewStore`, `Restore`, the store's views and watch filters,
+all verified; the user: "Do not leave out any methods that we have verified previously.")
+
 ## Hard rules
 
 A spec that breaks one of these is wrong, whatever else it does well, and is not done.
