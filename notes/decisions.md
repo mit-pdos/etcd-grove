@@ -30359,3 +30359,20 @@ The PR #46 work (branch `worktree-agent-ac37901483259dd26`, "Porcupine PR #46: t
 specified and verified in a part" above) merged into `lean` with the user's approval of its
 premises. Its two bug reports moved from `issues/` to `notes/pr-verify/porcupine-46.md`, as
 `issues/README.md` asks for bugs only in an unmerged pull request's code.
+
+## cachekv checks a progress notification of the cache's watch (2026-11-03 · the user's choice of the cheaper check)
+
+`Main`, after `collect`, asks the cache for a progress notification (`RequestProgress`), reads
+the watch up to it (`awaitProgress`, the events before it appended) and `checkProgress`es it:
+panic if its revision `p` is past the last event's (`1` if none). In watchkv's workload every
+revision from `2` on is a put under the prefix, so the quiet fact of `cache_Watch_delivery`
+(`watchProgressQuiet`) gives exactly `p ≤ 1 + #events` (`log_ck_progress`: the last batch at or
+below `p` is one of the events, or `p` ends a step without events under the prefix, impossible at
+a revision `≥ 2` of a watchkv log, `km_step_log`, `revEvs_hi`). The check catches a watch claiming
+completeness past an event it did not send. The user chose it over a check against etcd's own
+answer at `p` (a client `Get` of the prefix at a revision, a specialization of `kv.Get`'s spec
+still to state), equally strong in this workload. `collect`'s post now returns the slice's
+capacity, the consumer and the received log; `cancel()` moved after the progress notification
+(it closes the watch). `cache_safe`'s statement unchanged. Laws instead of unfolds:
+`common.collectOk_elim`/`_intro`, `cacheWatchSlot_parts`. Open: `Main`'s unfolds of the cache's
+`cacheGetResult`/`cacheGetOk` (the `Get` wiring of 2026-11-02).

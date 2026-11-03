@@ -6,7 +6,8 @@ of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterp
   etcd member started in process (since 2026-11-02 with the auto-compactor on, periodic mode
   at 10ms: a compaction of the cache's watch makes the cache re-list), a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
-  revision, a check that panics unless the watched events are exactly the writes, then the cache's
+  revision, a progress notification of the watch and a check that panics if it is past the last
+  event, a check that panics unless the watched events are exactly the writes, then the cache's
   `Get` of the prefix at that revision and a check that panics unless it answers each key's last
   watched value (`checkGet`) -- does not panic and returns `Ok`, `Failed`, `WatchEnded` or
   `GetFailed`. From `isPkgInit cachekv`, the right to listen

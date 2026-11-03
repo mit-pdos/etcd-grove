@@ -123,3 +123,26 @@ func TestCheckGet(t *testing.T) {
 		}
 	}
 }
+
+// TestCheckProgress: checkProgress accepts a progress notification at or below the last event's
+// revision and panics above it.
+func TestCheckProgress(t *testing.T) {
+	evs := []common.Event{{Rev: 2, Key: "ck/k0", Val: "v", Put: true},
+		{Rev: 3, Key: "ck/k1", Val: "v", Put: true}}
+	checkProgress(evs, 3)
+	checkProgress(evs, 2)
+	checkProgress(nil, 1)
+	for _, c := range []struct {
+		evs []common.Event
+		p   int64
+	}{{evs, 4}, {nil, 2}} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("checkProgress(%v, %d) did not panic", c.evs, c.p)
+				}
+			}()
+			checkProgress(c.evs, c.p)
+		}()
+	}
+}
