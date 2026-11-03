@@ -36,9 +36,11 @@ def mapLen : MapSt → Nat
   | none => 0
 
 /-- **The state of the page store** (`pagesInv`): the mapping, the committed state, the
-freelist, the registered readers, the writer's borrowed base view (out from its begin to its
-close), the live writer's txid, whether it has published (between its meta write and its
-`close`), and the bytes of the store slots (stable while they are store slots). -/
+freelist, the registered readers, the writer's base view (recorded from its begin to its close),
+the live writer's txid, whether it has published (between its meta write and its `close`),
+whether the writer's view is lent (`wlent`: false while it is parked for a remap, U0a deviation:
+the store keeps the parked view, so that re-borrowing it on the new base needs no fact the writer
+cannot know), and the bytes of the store slots (stable while they are store slots). -/
 structure StoreSt where
   ms : MapSt
   C : CommitSt
@@ -47,7 +49,18 @@ structure StoreSt where
   wv : Option View
   wtx : Option Nat
   pub : Bool
+  wlent : Bool
   bytes : Nat → List w8
+
+/-- The writer's part of the store's state, which the store and the writer share (`ghostVar
+B.wv`): its view, its txid, published, lent. -/
+abbrev WSt := Option View × Option Nat × Bool × Bool
+
+/-- The writer's part of `σ`. -/
+def StoreSt.wst (σ : StoreSt) : WSt := (σ.wv, σ.wtx, σ.pub, σ.wlent)
+
+/-- No live writer. -/
+def wIdle : WSt := (none, none, false, false)
 
 /-- The store slots: the current tree's and the pending pages'. -/
 def storeSlots (σ : StoreSt) : List Nat := listDedup (treeSlots σ.C ++ pendSlots σ.fl)
@@ -75,9 +88,9 @@ view does. -/
 def lent (σ : StoreSt) (s : Nat) : Option Qp :=
   let r := GMap.mapFold (fun _ (ri : RdInfo) acc =>
     if coversSlot ri.v.pages s then optAdd rq acc else acc) none σ.R
-  match σ.wv with
-  | some v => if coversSlot v.pages s then optAdd wq r else r
-  | none => r
+  match σ.wv, σ.wlent with
+  | some v, true => if coversSlot v.pages s then optAdd wq r else r
+  | _, _ => r
 
 /-- The pages of `P` are the bytes of their slots in `bytes`. -/
 def pagesFromBytes (bytes : Nat → List w8) (P : Pages) : Prop :=
@@ -97,7 +110,7 @@ stay store slots; before the publish, they are the current tree's. -/
 def StoreSt.wOK (σ : StoreSt) (v : View) : Prop :=
   σ.wtx = some (v.txid + 1) ∧ mvccView σ.fl v ∧ viewInStore σ v ∧ viewWF v ∧
   pagesFromBytes σ.bytes v.pages ∧ (σ.pub = false → v.pages = σ.C.pages ∧ v.root = σ.C.root) ∧
-  (∀ b l, σ.ms = some (b, l) → v.base = b)
+  (σ.wlent = true → ∀ b l, σ.ms = some (b, l) → v.base = b)
 
 /-- **The store's invariant** (design §3.6). -/
 def storeOK (σ : StoreSt) : Prop :=
@@ -112,7 +125,8 @@ def storeOK (σ : StoreSt) : Prop :=
   (∀ v, σ.wv = some v → pagesAgree σ.C.pages v.pages) ∧
   (∀ s ∈ storeSlots σ, 2 ≤ s ∧ (σ.bytes s).length = 4096) ∧
   (∀ b l, σ.ms = some (b, l) → ∀ s ∈ storeSlots σ, s < l / 4096) ∧
-  (σ.ms = none → σ.R = ∅ ∧ σ.wv = none) ∧
+  (σ.ms = none → σ.R = ∅ ∧ σ.wlent = false) ∧ (σ.wv = none → σ.wlent = false) ∧
+  (σ.wtx = none → σ.wv = none) ∧
   (∀ s, s ∈ treeSlots σ.C → s ∉ pendSlots σ.fl ∨ pendingOnlyFromWriter σ.fl σ.wtx s)
 
 /-! ## Transitions (one per `Inv/Store.lean` lemma) -/
@@ -127,19 +141,21 @@ proj_simps StoreSt.deregister
 
 /-- The writer begins: its txid is the next one, its base view `v` borrowed. -/
 def StoreSt.wbegin (σ : StoreSt) (v : View) : StoreSt :=
-  { σ with wv := some v, wtx := some (σ.C.txid + 1), pub := false }
+  { σ with wv := some v, wtx := some (σ.C.txid + 1), pub := false, wlent := true }
 proj_simps StoreSt.wbegin
 
-/-- The writer's view returned for a remap (`wtx`, `pub` kept: round 4, N6). -/
-def StoreSt.wreturn (σ : StoreSt) : StoreSt := { σ with wv := none }
+/-- The writer's view returned (parked) for a remap (`wtx`, `pub` kept: round 4, N6). -/
+def StoreSt.wreturn (σ : StoreSt) : StoreSt := { σ with wlent := false }
 proj_simps StoreSt.wreturn
 
-/-- The writer's view re-borrowed after a remap (on the new base). -/
-def StoreSt.wborrow (σ : StoreSt) (v : View) : StoreSt := { σ with wv := some v }
+/-- The writer's parked view re-borrowed after a remap, on the new base `b`. -/
+def StoreSt.wborrow (σ : StoreSt) (b : Loc) : StoreSt :=
+  { σ with wv := σ.wv.map (fun v => { v with base := b }), wlent := true }
 proj_simps StoreSt.wborrow
 
 /-- The writer's `close`: the view returned, no live writer (the only reset of `wtx`/`pub`). -/
-def StoreSt.wclose (σ : StoreSt) : StoreSt := { σ with wv := none, wtx := none, pub := false }
+def StoreSt.wclose (σ : StoreSt) : StoreSt :=
+  { σ with wv := none, wtx := none, pub := false, wlent := false }
 proj_simps StoreSt.wclose
 
 /-- `Free(txid, p)` of `n` slots from `id`; when the freed page is the old synced freelist page,
@@ -214,13 +230,10 @@ theorem storeOK_wbegin (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeO
 theorem storeOK_wreturn (σ : StoreSt) (h : storeOK σ) : storeOK σ.wreturn := by
   sorry
 
-/-- Re-borrowing at a remap: the view `v` (the returned one, on the new base `b`) has the
-writer's view's facts and agrees with the other views. -/
-theorem storeOK_wborrow (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeOK σ)
-    (hwv : σ.wv = none) (hms : σ.ms = some (b, l)) (hok : (σ.wborrow v).wOK v)
-    (hagree : pagesAgree σ.C.pages v.pages ∧
-      ∀ k r, σ.R !! k = some r → pagesAgree v.pages r.v.pages) :
-    storeOK (σ.wborrow v) := by
+/-- Re-borrowing the parked view at a remap, on the new mapping's base. -/
+theorem storeOK_wborrow (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ)
+    (hwl : σ.wlent = false) (hms : σ.ms = some (b, l)) :
+    storeOK (σ.wborrow b) := by
   sorry
 
 /-- The writer's `close`: published, or with nothing pending for it (rolled back). -/
@@ -249,7 +262,7 @@ theorem storeOK_alloc (σ : StoreSt) (w : Nat) (r : w64) (n : Nat) (h : storeOK 
 /-- `ReleasePendingPages` with no live writer, `ro` holding every registered reader's txid
 (`metaR`'s `F`, design §3.6). -/
 theorem storeOK_release (σ : StoreSt) (ro : List w64) (h : storeOK σ) (hw : σ.wtx = none)
-    (hwv : σ.wv = none) (hro : ∀ k r, σ.R !! k = some r → W64 (r.v.txid : Int) ∈ ro)
+    (hwv : σ.wlent = false) (hro : ∀ k r, σ.R !! k = some r → W64 (r.v.txid : Int) ∈ ro)
     (hro' : ∀ t ∈ ro, t.toNat ≤ σ.C.txid) :
     storeOK (σ.release ro) := by
   sorry
@@ -282,7 +295,7 @@ theorem storeOK_reload (σ : StoreSt) (ids : List w64) (h : storeOK σ)
   sorry
 
 /-- `munmap` with no reader and the writer's view in. -/
-theorem storeOK_gather (σ : StoreSt) (h : storeOK σ) (hR : σ.R = ∅) (hwv : σ.wv = none) :
+theorem storeOK_gather (σ : StoreSt) (h : storeOK σ) (hR : σ.R = ∅) (hwv : σ.wlent = false) :
     storeOK σ.gather := by
   sorry
 

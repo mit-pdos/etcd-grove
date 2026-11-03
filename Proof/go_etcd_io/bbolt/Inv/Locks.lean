@@ -164,7 +164,7 @@ def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
   iprop(∃ wa : GoFunc,
     ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
     ghostVar B.fl (1 : Qp).half w.fl ∗ ghostVar B.map (1 : Qp).half w.ms ∗
-    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half (none : Option View) ∗
+    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
@@ -196,7 +196,7 @@ def closedR (B : BNs) (db : Loc) : IProp GF :=
     ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗
-    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half (none : Option View) ∗
+    ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} false ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} interface.nil ∗
     (∃ wa : GoFunc, (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa))
