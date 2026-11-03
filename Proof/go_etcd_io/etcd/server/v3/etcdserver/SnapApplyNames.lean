@@ -146,6 +146,36 @@ theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal) (hkb :
     (kvCmpPermit γr.kv))
   iexact Hcp
 
+/-- **The server's atomics in the mode, at the snapshot's environment** (P6.2, 2026-11-03): off,
+`srvAtomics_snapE`; on, the KV invariants' tie to the store's history reads only the mode. -/
+theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal)
+    (hkb : E.γ.kb = some d) (hkb' : p'.kb = some d') (hcm' : d'.cm = d.cm) :
+    srvAtomicsM (GF := GF) on s E γr ⊢
+      srvAtomicsM on s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr := by
+  cases on with
+  | false => exact srvAtomics_snapE E γ' TM' ci p' g γB al ast lp cl be s γr d d' hkb hkb' hcm'
+  | true =>
+    have e1 : srvAppliedInvM (GF := GF) true s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr =
+        srvAppliedInvM true s E γr := rfl
+    have e2 : authHistTie (GF := GF) (snapE E γ' TM' ci p' g γB al ast lp cl be) γr srvAuthSt0 =
+        authHistTie E γr srvAuthSt0 := rfl
+    simp only [srvAtomicsM, srvKVInvsM, srvKVInvsOn]
+    rw [e1, e2]
+    iintro ⟨#Ha, #Ht, ⟨#Hk, #Hc, #Hr, #Hti, %Hcok, #Hcp⟩, #Hu⟩
+    isplitr; · iexact Ha
+    isplitr; · iexact Ht
+    isplitr
+    · isplitr; · iexact Hk
+      isplitr; · iexact Hc
+      isplitr; · iexact Hr
+      isplitr; · iexact Hti
+      isplitr
+      · ipureintro; exact Hcok
+      iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
+        (kvCmpPermit γr.kv))
+      iexact Hcp
+    iexact Hu
+
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :
     srvGenAt s (snapE E γ' TM' ci p' g γB al ast lp cl be) ρ = srvGenAt s E ρ := rfl
 

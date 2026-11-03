@@ -102,13 +102,13 @@ theorem srvRestOwnH_lens_cluster (M : auth.AuthMode) (γB : backend.BNames) (al 
 /-! ## The logger -/
 
 /-- The new options' logger is the server's, not `nil` (`srvFieldsAt`'s). -/
-theorem snap_lg_nn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem snap_lg_nn (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (lg : Loc) :
-    isServer s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ ⌜lg ≠ null⌝ := by
+    isServerM on s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ ⌜lg ≠ null⌝ := by
   iintro ⟨#HS, #Hlg⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨#Hlg', %Hnn, -⟩
   icombine Hlg Hlg' gives %Heq
   ipureintro; rw [Heq]; exact Hnn
@@ -128,15 +128,15 @@ theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (γs : mvcc.St
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_alarm
 
-theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
+theorem snap_isAuthStore (M : auth.AuthMode) (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
     (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) :
-    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗
+    authApplyOkM M ast RD ∗ backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗
       backend.plHookRO d'.γB g ⊢
-    apply.isAuthStore (auth.authIface ast) γs Pk #g RD .off
+    apply.isAuthStore (auth.authIface ast) γs Pk #g RD M
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HisAuth, #HB, #Hhook⟩
-  iunfold authApplyOk at HisAuth
+  iunfold authApplyOkM at HisAuth
   iapply HisAuth $$ %d' %(mvcc.lateWD d') %Pk %γs %g
     %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] []
   · ipureintro; exact hk
@@ -259,17 +259,17 @@ theorem snap_isRaftStatus
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ⊢
+      isServerM on s γ ci TM E ρ γr ⊢
     apply.isRaftStatus (interface.mkOk EtcdServer.ty.PointerType #s) := by
   iintro ⟨#Hpkg, #HS⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, #Hat, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, -⟩
-  iunfold srvAtomics at Hat
+  iunfold srvAtomicsM at Hat
   icases Hat with ⟨-, #Hti, -⟩
   iunfold apply.isRaftStatus
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
@@ -294,15 +294,15 @@ theorem snap_isRaftStatus
 `E.FS = srvFS s`). -/
 theorem snap_isSnapshotServer
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ⊢
+      isServerM on s γ ci TM E ρ γr ⊢
     apply.isSnapshotServer (interface.mkOk EtcdServer.ty.PointerType #s) E.FS := by
   iintro ⟨#Hpkg, #HS⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
   rw [Henv.2.1]
   iunfold apply.isSnapshotServer

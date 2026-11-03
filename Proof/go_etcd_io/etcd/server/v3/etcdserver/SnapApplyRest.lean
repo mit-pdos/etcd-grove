@@ -38,8 +38,11 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
     (A' : List EntryModel) (hγB : d'.γB = γB)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
+    -- (P6.2, 2026-11-03) the rest model's buckets the image's at the cluster's and the rest
+    -- part's (until then everywhere: with auth on, the rest model does not model the admin writes)
+    (hbk : ∀ n, membership.clusterBkts n ∨ restSet E.authMode n →
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n = bk.lookup n)
+    (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
       backend.rbPart d'.γB (restSet E.authMode) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
@@ -48,10 +51,12 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
   unfold srvRest
   rw [snapE_RO]
   unfold srvRestOwnH srvRestOwn srvObjsOn
-  have hmi : memIdOk memI := hA'.2 ▸ restModel_memIdOk' _ _ _
-  have hrp : restPresent bk := hA'.1 ▸ restPresent_restModel _ _ _
-  rw [hA'.1, hA'.2]
+  have hmi : memIdOk memI := hmem ▸ restModel_memIdOk' _ _ _
+  have hrp := restPresent_restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')
+  rw [hmem]
   iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+  ihave H0 := (backend.rbOwnIn_congr (GF := GF) _ _ _ _ (fun n h => (hbk n (.inl h)).symm)).1 $$ H0
+  ihave H1 := (backend.rbPart_congr (GF := GF) _ _ _ _ (fun n h => (hbk n (.inr h)).symm)).1 $$ H1
   iframe
   ipureintro; exact ⟨hmi, hrp⟩
 

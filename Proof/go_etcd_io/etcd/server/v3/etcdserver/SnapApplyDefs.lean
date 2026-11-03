@@ -41,6 +41,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyAuthM
 
 @[expose] public section
 
@@ -84,14 +85,15 @@ review round 16's M1, until M2's item 15) The new backend's instance at the old 
 (`d'.cm = d.cm`), the store's right at the image's records `r` (`storeCloserM`), the new backend's
 write-back supply (`kbWTSupplyM`, from its stock). -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A : List EntryModel)
+    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A A' : List EntryModel)
     (x : apply.ApplyKV) (R : mvcc.Log) (r : mvcc.CmpRecs) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
     (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) (memI : GMap w64 apply.MemberM)
     (quota : w64) (wad : time.Duration) : IProp GF :=
   iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
-      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
+      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc)
+      (ua : GoInterface),
     ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ d'.cm = d.cm ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
@@ -123,7 +125,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvWAddr s ↦□ w0 ∗ srvLgAddr s ↦□ lg ∗
     waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
     -- the apply thread's own (spatial)
-    backend.plHook γB g ∗
+    backend.plHookRO γB g ∗
     applyThread (γ.withPh (futPhys π0 γB)) (stLoaded (γ.withPh (futPhys π0 γB))
       { k := W64 0, p := sv.Metadata'.Index', eff := sv.Metadata'.Index', pending := false }) ∗
     applyBackend (γ.withPh (futPhys π0 γB)) ci
@@ -137,9 +139,10 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
     backend.rbOwnIn d'.γB membership.clusterBkts
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
-    backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n)
+    backend.rbPart d'.γB (restSet E.authMode)
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
-    membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    -- (P6.2, 2026-11-03) the apply thread's share of the new backend's open token by the mode
+    membership.clusterMem cl memI ∗ backend.bOpen d'.γB (srvOpenQ E.authMode) ∗
     -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
     backend.bkRPool d'.γB d'.P d'.be ∗
     mvcc.storeCloserM E.s (γw.st.withPhys p') r.crev ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
@@ -156,8 +159,12 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false)) ∗
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
     -- what is left of the old backend's and the old applier's
-    backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
-    revAuth E x.log ∗ srvAuthApplyRes s E ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
+    -- (P6.2, 2026-11-03) the auth row by the mode (`snapAuthRowM`: on, the new backend's at the
+    -- image's state; until then the old one's `srvAuthApplyRes`, and the old backend's buckets,
+    -- which nothing used)
+    revAuth E x.log ∗
+    snapAuthRowM E.authMode s E ua ast γr A' d' (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
+      g ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
     -- the watchable store's own closer's parts (`restorePre_of_apply`'s)
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
@@ -203,6 +210,95 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     backend.pathOwn bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
+
+/-- **`srvSnapApplied` in the server's auth mode `on`** (P6.2, 2026-11-03, F9): the server's view
+and the applier row in the mode (`isServerM`, `srvApplyKVM` at the image's auth state, the state
+after its log `A'`), the apply thread's share of the new backend's open token by the mode
+(`srvOpenQ`); off, `srvSnapApplied` (`srvSnapAppliedG_off`). -/
+def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) :
+    IProp GF :=
+  iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
+      (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
+    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = d.cm ∧ d'.P = d.P ∧
+      E'.RO = srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
+      loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
+      x'.log = [[], []] ++ R ∧ x'.crev = r.crev ∧ x'.chain = apply.alarmChain E.authOn false false ∧
+      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
+    isServerM on s γ' ci TM' E' ρ γr ∗
+    epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
+    epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
+    epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
+    applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
+    srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗
+    srvKVCloserW s E' ∗
+    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
+    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
+    backend.pathOwn bp ∗
+    trLive γn t c L ∗
+    (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
+
+/-- **`srvSnapAppliedG`'s `off` case is `srvSnapApplied`.** -/
+theorem srvSnapAppliedG_off (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc)
+    (hoff : E.authMode = .off) :
+    srvSnapAppliedG (GF := GF) false s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl ⊢
+      srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl := by
+  unfold srvSnapAppliedG srvSnapApplied
+  iintro ⟨%γ', %TM', %E', %b', %st', %d', %x', %cs', %L, %Hp, H⟩
+  obtain ⟨-, p, P, f, c', RO, RW, rfl⟩ := Hp.1
+  have e : srvOpenQ (E.onBe p P f c' RO RW).authMode = (1 : Qp).half := by
+    show srvOpenQ E.authMode = _; rw [hoff]; rfl
+  rw [e, isServerM_false, srvApplyKVM_false]
+  iexists γ', TM', _, b', st', d', x', cs', L
+  isplitr
+  · ipureintro; exact Hp
+  iexact H
+
+/-- **`srvSnapApplied` with auth on** (the auth-on snapshot plan's Freeze; P6.2, 2026-11-03:
+`srvSnapAppliedG true`, the Draft's body): the server's row in the mode, the applier at the image's
+auth state (the state after `A'`). -/
+abbrev srvSnapAppliedOn (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) :
+    IProp GF :=
+  srvSnapAppliedG true s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl
+
+/-- **`specSnapM`'s post, by the mode** (F9): lean's `srvSnapApplied` off, `srvSnapAppliedOn`
+on. -/
+def srvSnapAppliedM (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) :
+    IProp GF :=
+  match on with
+  | false => srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl
+  | true => srvSnapAppliedOn s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl
+
+/-- **`srvSnapAppliedG` is `srvSnapAppliedM` in a mode the server runs in.** -/
+theorem srvSnapAppliedM_of_G (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log)
+    (r : mvcc.CmpRecs) (A' : List EntryModel) (ss : Loc) (bp : GoString) (γt : GName)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc)
+    (hany : E.authMode ≠ .any) :
+    srvSnapAppliedG (GF := GF) E.authOn s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al
+        ast cl ⊢
+      srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl := by
+  cases hM : E.authMode with
+  | any => exact absurd hM hany
+  | off =>
+    have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
+    rw [hon]
+    exact srvSnapAppliedG_off s ep sv γ ci E ρ γr d R r A' ss bp γt γn t c rs idm lp al ast cl hM
+  | on γa =>
+    have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
+    rw [hon]
+    exact .rfl
 
 end proof
 end EtcdGrove
