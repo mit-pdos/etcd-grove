@@ -983,6 +983,12 @@ v.Err' = nil⌝`, true at every chain (`dispatch` has it from `grantPost`).
 lacks it), and so does `lessorGrantOkL_of_server`'s premise (its user has both views:
 `srvAuthAt_of_views`).
 
+**Amendment: (H), the user's, 2026-11-03** (the problem after "5c" below): the trusted
+`pbLeaseGrantRequest.recv` gains `⌜r ≠ null⌝`, as its siblings' (`pbAuthUserAddRequest.recv`), and
+through it `v3rpc.leaseGrantReqIs` and `leaseGrantReqOwn`; `grantRespIs` (2.6) gains `⌜resp ≠ null⌝`
+(the backend from its allocation, the quota layer passes it on). True of Go: the generated handler
+decodes into its own fresh allocation; the backend answers `&pb.LeaseGrantResponse{}`.
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
