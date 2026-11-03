@@ -1,0 +1,37 @@
+/-
+`(*Inode).Value`'s proof (`internal/common/inode.go`): a stub, proved by U1 of
+`notes/bbolt-proof-plan.md`.
+-/
+module
+
+public import Spec.go_etcd_io.bbolt.internal.common.Inode__Value
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+namespace internal
+namespace common
+
+open Iris Iris.BI go_etcd_io.bbolt.internal.common
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
+
+theorem Inode.Value.wp_proof : Inode.Value.spec (GF := GF) (hG := hG) := by
+  sorry
+
+end proof
+
+end common
+end internal
+end bbolt
+end EtcdGrove
+end Perennial
