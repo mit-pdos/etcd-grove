@@ -11,3 +11,9 @@ stock storage/backend/RdPool\.lean  # the backend's reader pool (the backend-aut
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).
 stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
+
+# The auth-on snapshot Draft's reader stocks (N4, 2026-11-03, `R` a ticket): staged in the Draft until
+# the merge moves them to their owners: the auth store's share of a backend's reader slots
+# (`authRdSlots`, a part of the backend's partition, `storage/backend/RdPool.lean`) and the auth
+# store kit's supply (`authRdSupply`, in place of `AuthSrv.lean`'s counted copies of `RD`).
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapAuthOnDraft\.lean$

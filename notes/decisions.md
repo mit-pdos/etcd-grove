@@ -30457,7 +30457,7 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 `common.collectOk_elim`/`_intro`, `cacheWatchSlot_parts`. Open: `Main`'s unfolds of the cache's
 `cacheGetResult`/`cacheGetOk` (the `Get` wiring of 2026-11-02).
 
-## The auth-on snapshot install: one spec over the mode, the readers' `R` lent, the boot buckets idle (2026-11-03 · the user's decisions on F9, N4, F5 · `notes/snapshot-auth-on-plan.md`)
+## The auth-on snapshot install: one spec over the mode, the readers' `R` a ticket, the boot buckets idle (2026-11-03 · the user's decisions on F9, N4, F5 · `notes/snapshot-auth-on-plan.md`)
 
 Three questions the review rounds R1/R2 left for the user before the Freeze. **F9**: decision 6 of
 2026-11-01 (one spec per function over the mode) waited for J8b, which has landed: the Draft's
@@ -30468,13 +30468,19 @@ mode-dependent piece is a definition indexed by the mode (`snapAuthImgM`, `snapR
 `applyAll.specSnap_of_M`, proved in the Draft). The two texts cannot drift apart, and a proof is
 written once. `applyAll.specSnap` has no mode premise: its rows force `off` (`authOn_false_of_off`).
 So the unified spec takes `E.authOn = true → ∃ γa, E.authMode = .on γa`, which is vacuous off; the
-corollary refutes the `on` case from lean's precondition. **N4**: with auth on, the readers'
-`R` is lent against thread tokens (`authRdLoan`), so nothing can build today's `actualMaxReaders`
-copies of `RD = authRd stl R`. The kit's post gives `AonDraft.authRdSupply M stl RD` instead:
-copies off, the lock slots and the loan on. `NewServer`'s supply of `E.RD` and the request, serve and
-compactor paths borrow `RD` per call (`authRdSlot_borrow`). The cost is a wider ripple (the plan's
-"Impact on the base"), taken in this stage rather than a search for a copyable fragment of `R`, which
-may not exist. **F5's boot half**: checked, not chosen. The boot caller holds the auth buckets idle:
-the lessor returns every tracked bucket idle (`NewServer.lean:586-587`, `rbOwnIn ⊤`), and the kit
-weakens it to a part only for today's axiom (`AuthSrv.lean:236`, `rbOwnIn_part`). So the restated
-boot clause keeps the idle `rbOwnIn … authBkts`.
+corollary refutes the `on` case from lean's precondition (after review R3's N3, the premise is the
+convention's `E.authMode ≠ .any`). **N4**: the user first chose to lend the readers' `R` against
+thread tokens (`authRdLoan`). Review R3 refuted that the same day. The readers that hold `E.RD` for
+good (the serving slots in `NewServer.specM`'s post, the apply thread's `kvOwn`, the compactor) have
+no token to lend, and the loans' counted stocks failed the bounds gate. The user's decision: **`R` is a
+ticket**. Readers keep plain copies, as today. A realization backs `authRdN` copies (`2 ^ 7`, at least
+the 67 `NewServer` hands out) with as many reader slots of each backend (`authRdSlots`, a part of the
+backend's slot partition carved from the counted stock). The boot premise and the snapshot clause
+take those slots, and the old backend's lifecycle gives them back with its open share. This is sound
+in Go: a reader redeems its ticket inside the store's `RLock`, and `Recover` swaps the backend under
+`beMu`'s write lock, so no ticket is redeemed across the swap. `Recover` itself reads with the apply
+thread's copy of `RD`. The ripple stays inside the auth store, the backend's partition and the install. **F5's boot half**: checked, not chosen. The boot caller holds the auth buckets idle:
+the lessor returns every tracked bucket idle (`NewServer.lean:586-587`, `rbOwnIn ⊤`), and the caller
+weakens it to a part (`NewServer.lean:741-742`) only because today's kit's pre takes one
+(`AuthSrv.lean:84`). So the restated boot clause, and the kit's pre, keep the idle
+`rbOwnIn … authBkts`.

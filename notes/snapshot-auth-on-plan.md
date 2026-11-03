@@ -64,8 +64,9 @@ branch; the Draft builds, the glue proved again):
   and gives back `threadTok` (its post a fancy update). R2: realizable with `R` independent of the
   backend (e.g. the token itself, the slot borrowed inside `RLock` from the then-current pool).
 - F5 (the auth buckets not required in the table): both premises and `authRecoverOn.spec` take
-  `d.P.has authBI ∧ authUsersBI ∧ authRolesBI`; R2's N3: `specSnapOn` takes them (`hauthbi`), and in the
-  merge `srvSnapRO`'s facts beside `alarmBI`. **The same gap is in lean's trusted mode-off
+  `d.P.has authBI ∧ authUsersBI ∧ authRolesBI`; R2's N3: `specSnapOn` took them (`hauthbi`); since F9
+  `specSnapM`'s `snapAuthImgM` (`on` arm), with `srvSnapRO`'s facts beside `alarmBI` their source
+  (R3's N2, in `srvSnapROAuth`'s delta). **The same gap is in lean's trusted mode-off
   `authRecoverOk`** (`SnapRO.lean`, no `d.P.has` for `dn`; unreachable with the server's parameters,
   false at others): this repository's spec bug, to fix with the merge.
 - F6: `run_snap_jobOn` the exact twin of `run_job_snap` (`applyResOn`, `hM`). F7:
@@ -78,6 +79,23 @@ new: **N2** (trusted): `authBkLife`'s three clauses and both premises' updates w
 `|==>`), which cannot open the invariant the released exclusive `bOpen` share must live in: now
 `={⊤}=∗`. N5: stale docstrings fixed. N7: this record (a scripted edit had dropped the next
 section's header line and the first record of R1).
+
+**Review R3 (2026-11-03, at `3a10bc5d9a`, `scratchpad/aon-review-R3.md`)**: F9 sound in both modes
+(the `off` cases exactly lean's; the `on` premise supplied by `run_snap_jobOn`'s `hM` through
+`beSucc_authMode`), `authRdSlot_borrow` correct, the idle boot form available. **F1**: the loans'
+reader stocks failed the bounds gate (42 against 40). **F2**: readers that hold `E.RD` for good have
+no thread token to borrow with (the 64 serving slots in `NewServer.specM`'s post, which reach the
+client package and the examples; the apply thread's `kvOwn` across the install; the compactor). The
+user's decision (2026-11-03): **`R` a ticket**. The store's readers keep plain copies of `R`, as
+today; a realization backs `authRdN` (`2 ^ 7` ≥ the 67 copies `NewServer` hands out) of them by as
+many reader slots of each backend (`authRdSlots`, a part of the backend's slot partition carved from
+the counted stock), which both clauses take and the old backend's lifecycle gives back with its
+open share; `Recover` reads with the apply thread's copy of `RD` (in `authApplyResPre`). The loans
+(`authRdLoan`, `authRdSlot`, the borrow law) are gone; the bounds gate passes (the Draft's stocks
+allowed as staged owners' matches, `etc/bounds-allow.txt`). N2 (the auth buckets in the table among
+`srvSnapRO`'s facts), N3 (`E.authMode ≠ .any` in both `M` specs, the convention), N5 (texts) done;
+N4: the boot weakening to a part is the caller's (`NewServer.lean:741-742`, the kit's pre taking a
+part, `AuthSrv.lean:84`): the kit's pre and post in "Impact on the base".
 
 **Open, for the user before the Freeze:**
 - ~~F8~~ **Decided (2026-11-03, the user's go-ahead after the measurement): #7-on (b) in this stage.**
@@ -103,13 +121,13 @@ section's header line and the first record of R1).
   `snapAuthResM`, `srvSnapAppliedM`), lean's `specSnap`/`applyAll.specSnap` their `off` cases
   (`specSnap_of_M`, `applyAll.specSnap_of_M`, proved). `applyAll.specSnapM` takes `E.authOn = true →
   ∃ γa, E.authMode = .on γa` (lean's has no mode premise: its rows force `off`).
-- ~~R2's N4~~ **Decided (2026-11-03): the loans in this stage.** Drafted: `AonDraft.authRdSupply M
-  stl RD` (the kit's post in place of the `actualMaxReaders` copies of `RD`: the copies off; on, the
-  lock slots `authRdSlot` and `authRdLoan R`) and `authRdSlot_borrow` (proved: a slot and a thread
-  token give a call's `RD` and back). In "Impact on the base".
+- ~~R2's N4~~ **Decided (2026-11-03): the loans in this stage; superseded the same day after R3's F2:
+  `R` a ticket** (R3's record above). Drafted: `authRdN`, `authRdSlots`, `AonDraft.authRdSupply M RD`
+  (the kit's post: `actualMaxReaders` copies of `RD` off, `authRdN` on). In "Impact on the base".
 - ~~F5's boot half~~ **Checked (2026-11-03): the idle form.** The boot caller has the auth buckets idle
-  (the lessor's `rbOwnIn ⊤`, `NewServer.lean:586-587`; `AuthSrv.lean:236` weakens it to a part only
-  for today's axiom), so the boot clause keeps `rbOwnIn … authBkts`.
+  (the lessor's `rbOwnIn ⊤`, `NewServer.lean:586-587`; the caller weakens it to a part,
+  `NewServer.lean:741-742`, only because the kit's pre takes one, `AuthSrv.lean:84`), so the boot
+  clause keeps `rbOwnIn … authBkts` and the kit's pre takes the idle form.
 - F12's rest: `.any` falls into the mode-off arms of `srvImageM`/`AonDraft.srvRestOwn`/`srvOpenQ`;
   `srvImageOn` exports no laws yet.
 - Not a spec finding (R1's; unverified, no test): `authStore.Recover` never drops simple tokens the
@@ -727,11 +745,14 @@ not a false claim about Go) and the reader-slot count (S9).
   as `specSnapM`, `spec` over it; the mode-off text by `specSnap_of_M`), their proofs
   (`ApplyAllSnap.lean`, `SnapApply*.lean`: one proof, the mode split inside), `EtcdServer__run.lean`
   (`run_job_snap` and the auth-on site through `applyAll.specSnapM`), `Link.lean`; the interface diff.
-- N4: `AuthSrv.lean` (`authStoreKit`'s post: `authRdSupply M stl RD` for the copies; `authStoreKit_on`
-  builds the slots and the loan), `NewServer.lean` (`:831-836`, the slots the auth applier, the KV, the
-  64 request goroutines and the compactor take: on, slots, each call borrowing `RD` with
-  `authRdSlot_borrow`), the J8a reader stock and the request/serve paths that hold `E.RD`
-  (`etc/importers.py --uses E.RD` to list them at the Prove step).
+- N4 (`R` a ticket): `storage/backend/RdPool.lean` (the partition `rdPoolN + authRdN + rdStockN =
+  actualMaxReaders`: `rdStockN`'s value drops by `authRdN`, `rdStockN_val` and the mvcc arithmetic
+  over it, `newPost_pool` splitting off the auth share), `AuthSrv.lean` (`authStoreKit`'s pre: the
+  idle `rbOwnIn … authBkts` and `authRdSlots`; its post: `authRdSupply M RD` for the copies),
+  `NewServer.lean` (`:741-742` the idle form passed on; `:831-836`: `authRdN` copies on, the first into
+  `authApplyResPre`), the snapshot path's new backend (`SnapApplyWalk.lean`: its auth share to the
+  snapshot clause) and the old one's close goroutine (the slots back with the open share). The
+  serving slots, the client package and the examples are unchanged.
 
 - `authSchemaSrv`: `etcdserver/AuthSrv.lean` (`authStoreKit_on`, `newAuthStore_on`, `authSrvTP_on`:
   re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn` (idle), `authSucc`, the
