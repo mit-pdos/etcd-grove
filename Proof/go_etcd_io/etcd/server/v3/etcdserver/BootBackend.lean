@@ -83,7 +83,8 @@ storage side, 2026-10-30; the backend-cmp Probe's S3) the compaction keys' value
 takes. (2026-11-02, the backend-auth-split stage) From the post with its reader slots pooled
 (`backend.newPostP`, `newPost_pool`'s): the backend's pool of readers (`bkRPool`, the apply
 thread's) and a read token per slot of the counted stock (`rdStockN`; until then per slot of all
-`actualMaxReaders`). -/
+`actualMaxReaders`); (2026-11-03, the auth-on snapshot plan's P1) the auth store's share of the
+slots (`rdAuth`). -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
@@ -101,11 +102,13 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
       backend.srSlot b ∗
       -- (the backend-auth-split stage) the backend's pool of readers
-      backend.bkRPool γ P b := by
+      backend.bkRPool γ P b ∗
+      -- (the auth-on snapshot plan's P1) the auth store's share of the reader slots
+      backend.rdAuth γ P b := by
   iintro Hnew
   unfold backend.newPostP
-  icases Hnew with ⟨#HnB, #HnSC, Ho, Hos, HnV, HnH, HnWb, HnRB, HnPool, HnRT, HnDl, HnFk, HnSr⟩
-  iframe HnB HnSC HnH HnRB HnDl HnSr HnPool
+  icases Hnew with ⟨#HnB, #HnSC, Ho, Hos, HnV, HnH, HnWb, HnRB, HnPool, HnRA, HnRT, HnDl, HnFk, HnSr⟩
+  iframe HnB HnSC HnH HnRB HnDl HnSr HnPool HnRA
   ihave ⟨Hnc, Hfv⟩ := mvcc.bkNoCmp_fkV_of_fkCl γ _ hnc $$ HnFk
   iframe Hnc Hfv
   iunfold backend.rdStock at HnRT

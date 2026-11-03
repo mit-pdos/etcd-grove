@@ -567,7 +567,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (the backend-auth-split stage, 2026-11-02) the reader slots split into the backend's pool and
   -- the counted stock (`backend.newPost_pool`), for the thread bound
   imod backend.newPost_pool Hbnd ⊤ d.γB d.P _ _ d.be D $$ Hnew with Hnew
-  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP⟩ := bootBackend_of_newPost d.γB d.P
+  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP, -⟩ := bootBackend_of_newPost d.γB d.P
     (fun γB => mvcc.lateWB d.gx γB) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN HnoCmp $$ Hnew
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩

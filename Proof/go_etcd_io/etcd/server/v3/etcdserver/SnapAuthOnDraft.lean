@@ -719,22 +719,15 @@ instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : 
     Persistent (authWAtHook (GF := GF) γa d γc) := by
   unfold authWAtHook; infer_instance
 
-/-- **The auth store's share of a backend's reader slots** (N4 redone, the user's decision of
-2026-11-03 after review R3's F2: `R` a ticket): the copies of the store's reader resource `R` the
-server hands out, which a realization backs by as many reader slots of each backend the store runs
-on. The server hands out 67 copies of `RD` (`NewServer.lean:831-836`: the auth applier, the KV, the
-64 serving slots, the compactor). In the merge it is a part of the backend's reader-slot partition
-(`rdPoolN + authRdN + rdStockN = actualMaxReaders`, `RdPool.lean`), carved from the counted stock. -/
-@[word_unfold] def authRdN : Nat := 2 ^ 7
-
-/-- **The auth store's reader slots of the backend `d`** (N4): `authRdN` of its reader slots, which
+/-- **The auth store's reader slots of the backend `d`** (N4): its auth share (`backend.rdAuth`,
+`backend.authRdN` slots, a part of the constructor's partition, P1), which
 the boot premise and the snapshot clause hand the realization for good (review R4's F1: a permission
 check's read transaction may outlive `beMu`, `store.go:941-947`, so the release cannot give them
 back; `backend.Close` takes only the open token, which the slots carry no share of). A ticket `R` is
 redeemed against a slot of the backend current at `lockedReadTx` (with a share of its currency
 `Cu`, which the release takes whole), so the same `R` works on every backend. -/
 def authRdSlots (d : mvcc.KBReal) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate authRdN (), backend.rdTok d.γB d.P d.be)
+  backend.rdAuth d.γB d.P d.be
 
 /-- **The auth store's reader supply** (N4; review R4's F2 and N2): what `authStoreKit`'s post gives
 the server in place of today's `actualMaxReaders` copies of `RD`, in every mode: `authRdN - 1` plain
@@ -742,7 +735,7 @@ copies of the ticket, which the readers keep as long as they like (a gRPC slot, 
 `kvOwn`, the compactor), as today; the `authRdN`-th is the auth applier's, in `authApplyResPre`
 (`Recover` reads with it). `NewServer` takes 66 of them. -/
 def AonDraft.authRdSupply (RD : IProp GF) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate (authRdN - 1) (), RD)
+  iprop([∗list] _x ∈ List.replicate (backend.authRdN - 1) (), RD)
 
 /-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
@@ -819,7 +812,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
       auth.authWTok γc ∗ auth.authPubTok γa ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       mvcc.csContract P f Pre Q Post ∗
-      ([∗list] _x ∈ List.replicate authRdN (), R) ∗
+      ([∗list] _x ∈ List.replicate backend.authRdN (), R) ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
       authSchemaSnap γa R)
 

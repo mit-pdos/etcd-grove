@@ -22,6 +22,31 @@ The plan from here (2026-11-03):
    `run.wp_proofOn` lose their `sorry`. The receiver rests on the mode-on image certificate
    (`snapRecv_imageOn`); the sender's side (#7-on) stays a named `sorry` unless taken in this stage.
 
+**The Freeze approved (2026-11-03, the user, `scratchpad/aon-freeze.md` at `6cddf6d508`).** The Prove
+step's sub-steps, bottom up (each builds and passes the gates before the next; the branch merges lean
+first, `9adc6b325d`):
+- **P1, the backend's slot partition**: `backend.authRdN` and `rdAuth` (the auth share of the
+  constructor's slots, `RdPool.lean`), `rdStockN` less it (`rdPoolN + authRdN + rdStockN =
+  actualMaxReaders`), the posts `newPostP`/`newPostKP` with the auth share and its open shares (the
+  half's holder's), a three-way `bOpen_one_pool`; their users (`BootBackend`, `SnapApplyWalk`,
+  `NewServer`, mvcc `New`/`InvStore`/`newWatchableStore`).
+- **P2, `NewAuthStore`'s axiom, auth off** (R1's F5: the auth buckets in the new backend's table in
+  `authRecoverOk`).
+- **P3, the auth package's redefinitions**: `AuthNames` (`bk`, `succ`), `authBackendOk`/
+  `authReadTxOk`/`beP`, `revFresh`/`revInv`/`authPubAuth`, `authWBackendOkR`, the per-backend names
+  and `authBkLife`; `Recover.spec` over the mode and its proof; `NewAuthStoreOn`, `Boot`, `Fresh*`,
+  `Latest`, `ReadLb`, `lockedReadTx`.
+- **P4, the server's auth start**: `AuthSrv` (`authSchemaSrv` replaced, the kit's pre and post,
+  `authStoreKit_on`), `authApplyResPre`/`authApplyResB` redefined (`StoreLatest`, `AuthApplyRes`,
+  `UberOn`, `ApplyNormalOn`, `AdminEntryOn`), `Results`/authkv's premise.
+- **P5, the server's snapshot rows**: `srvRestOwn`/`srvOpenQ` by the mode, `srvSnapRO` (the image
+  certificate by the cluster's mode, `SrvRaft.authOn`, F8; the gated `srvAuthSnapOk`; the auth
+  buckets among its facts), `NewServer` (the tie, decision 8, the quarter, the idle buckets, the
+  copies), `bootOk`, `isServerRunOn`.
+- **P6, the install**: `snapRecv_imageOn` (a mode-on `merged_image`), `specSnapM`'s proof (one proof,
+  lean's `specSnap` by `specSnap_of_M`), `applyAll.specSnapM` (the twin of `ApplyAllSnap.lean`),
+  `run_snap_jobOn`; `applyAll.wp_proofOn` and `run.wp_proofOn` lose their `sorry`.
+
 **Step 1 done (2026-11-03, on lean `dac0145eb1`).** The Draft builds; its sorries are the three
 intended (`snapRecv_imageOn`, `srvHist_wf`, `run_snap_jobOn`), the glue (`authRecoverOn_glue`,
 `kvRunAtOn_sa`, the catch-up) proved over the rebased statements. What changed, each the mode-on twin
