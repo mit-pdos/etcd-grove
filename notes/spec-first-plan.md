@@ -719,6 +719,41 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
+   `NewServer` has three hand-written triples: `spec` (N0, 10-16: auth off, compaction off or on),
+   `specM on` (E2i, 10-26: auth on or off, compaction off) and `specG on cmp` (M2, 10-31: both).
+   Each mode was added as a more general twin so that the older callers kept their names, and the
+   older triple became its corollary. Only `specG` is proved (`NewServer.wp_proofG`); `wp_proofM`
+   and `wp_proof` are derived from it, the latter by naming and passing on 35 hypotheses. The three
+   are about 80 lines each (190 with comments), equal but for the mode's points (the alarm chain,
+   the compaction premise, the token TTL, `kvInv`/`kvInvM on`, `srvEr`/`srvErM on`,
+   `srvBuilt`/`srvBuiltG on`, a few auth and lessor post clauses). So every edit to a shared clause
+   is made three times (the WAL's slot was), and a missed copy breaks the derivations. The step:
+   - `specG` is the one statement written out; `specM on := specG on false`, and `spec := ∀ cmp,
+     specG false cmp`, or a thin wrapper if the callers need `spec`'s three-way compaction
+     disjunction as it reads today;
+   - `wp_proofM` and `wp_proof` become one-line instances;
+   - the callers that use the triples in code, not in comments, migrate: `examples/common/
+     newServerMode`, `examples/authkv/startServer`, the server's `Results` and `Link`, v3rpc's
+     `Server` and `Link`. They get `specG`'s postcondition, which is at least as strong.
+   **When:** the hub quiet, after auth-on's P5 lands (it edits `NewServer`), between two stages that
+   edit it. The same applies to the other twin families (`applySnapshot.specSnap`/`specSnapM`,
+   `applyAll.specSnapOn`, ...), each when next touched.
+7. **The program-start boundary** (R2b-1's review, suggestion 2). The examples' statements name the
+   program-start resources of each member themselves: `walDirFresh (config.walDirOf (name ++
+   go!".etcd") go!"")` in `putget3`'s `Main`, `common`'s `StartMember`, `linkv3p`'s `startMember`
+   and 22 more spec files (25 in all), next to `netAddrFree` and `httpProtoFree` (61 lines in 24 spec
+   files), which came the same way. Each new start resource has been threaded through every example (hub 4), and a
+   restart's `walFiles` would be another round. The step: **the starter owns the boundary.**
+   `examples/common`'s API exports a sealed per-member bundle, `common.memberStartRes name addrs`,
+   with its intro from the adequacy theorem's items (`startRights`'s `walDirFresh d`,
+   `netAddrFree a`, `httpProtoFree a` of the member's directory and addresses) and its narrow
+   elimination into what the starter hands `NewServer` (`wal.bootRes_intro`'s premise, the
+   network's tokens). An example's `Main` takes one bundle per member; a new start resource changes
+   the bundle and its laws, not the examples. A restart's resources are a different bundle
+   (`common.memberRestartRes`, with the WAL's files), since a restart is a different precondition,
+   not an extension of a fresh start. **When:** with the restart contracts' stage 2 (`walFiles`),
+   the next change that would thread a start resource through the examples.
 
 ### The slot convention (approved 2026-11-03, step 1)
 
@@ -757,6 +792,11 @@ that subsystem converts (step 4), into `<sub>.Names`; until then they stay as th
 **Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
 added only when its subsystem must change the hub anyway.
 
+**Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
+compaction on, a restart) generalizes the one written-out statement with a parameter; it does not
+add a twin statement with the older one as its corollary (step 6). A caller that needs the old form
+gets an abbreviation at the old mode, not a copy.
+
 **The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
 configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
 w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
@@ -766,7 +806,5 @@ purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.b
 WAL conjuncts. The examples still thread one token per member from program start (a new resource
 is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
 
-Open from the same review (not taken yet): (2) the program-start boundary has no owner: each
-example's start statement names `walDirFresh` itself, so a restart's `walFiles` would change every
-example (hub 4); (3) `NewServer.spec`, `specM` and `specG` are three twin triples, so a slot is added
-three times; the first two could be corollaries of `specG`, as `specSnap_of_M` is for the snapshot.
+From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
+boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.
