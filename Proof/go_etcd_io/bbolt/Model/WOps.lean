@@ -186,6 +186,32 @@ def bktLocalOK (X : WX) (bl : Loc) : Prop :=
 /-- All the entries of bucket `bl` in order (its logical leaves'). -/
 def WX.allEnts (X : WX) (bl : Loc) : List WEntry := (X.leaves bl).flatten
 
+/-! ## Opening a nested bucket (`Bucket.Bucket`, writer) -/
+
+/-- **`X'` is `X` with the nested bucket `name` of bucket `bl` opened at `c`** (`b.Bucket(name)`,
+uncached case, `openBucket`): a new bucket record at the fresh `c`, from the value of `bl`'s
+bucket entry `name` (its header copied, or the value cloned when unaligned: the page's bytes then
+persistent heap bytes), with the transaction's `tx`, empty caches and no node, fill `0.5` (in
+`fills`), cached in `bl`'s `buckets`, live, and the handle `(name, g)` registered. -/
+def bktOpened (X X' : WX) (bl c : Loc) (name : List w8) (g : Nat) : Prop :=
+  ∃ (B C : BRec) (w : WEntry), X.t.bs !! bl = some B ∧ w ∈ X.allEnts bl ∧ w.key = name ∧
+    isBktFlag w.flags ∧ B.bm !! name = none ∧ c ≠ null ∧ (X.t.objs !! c).isNone ∧
+    C.ib = ibOf w.value ∧ C.bv.tx' = B.bv.tx' ∧ C.bv.rootNode' = null ∧ C.nm = ∅ ∧
+    C.bm = ∅ ∧ C.ns = ∅ ∧
+    (inBucketRoot w.value = 0 →
+      C.bv.page' ≠ null ∧ C.ipg = inlinePage w.value ∧
+      ((w.vs = Src.view ∧ C.isrc = Src.view ∧ C.pst = PageSt.view) ∨
+        (C.isrc = Src.own DFrac.discard ∧ C.pst = PageSt.none))) ∧
+    (inBucketRoot w.value ≠ 0 → C.bv.page' = null ∧ C.pst = PageSt.none) ∧
+    X' = { X with t := { X.t with bs := (X.t.bs.insert bl { B with bm := B.bm.insert name c }).insert c C },
+                  live := X.live.insert c (), handles := X.handles.insert c (name, g) }
+
+/-- The node `n` of `B` has the root `rt`: following `parent` within `B`'s nodes (`node.root`). -/
+inductive nodeRootIn (B : BRec) : Loc → Loc → Prop
+  | top (n : Loc) (r : NRec) : B.ns !! n = some r → r.nv.parent' = null → nodeRootIn B n n
+  | up (n rt : Loc) (r : NRec) : B.ns !! n = some r → r.nv.parent' ≠ null →
+      nodeRootIn B r.nv.parent' rt → nodeRootIn B n rt
+
 /-! ## Frees (`Bucket.free`, `node.free`) -/
 
 /-- The positions a walk of the logical tree visits from `pid`, in order (`_forEachPageNode`;

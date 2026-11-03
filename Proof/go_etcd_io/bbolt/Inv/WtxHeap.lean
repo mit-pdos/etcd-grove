@@ -56,10 +56,13 @@ def pageOwn (v : View) (B : BRec) : IProp GF :=
 
 /-- **An object of the writer's heap** at `dq` (a bucket: its fields but `FillPercent`, its
 header, its maps, its page; a node: its struct, inodes, children and key), live (with its slices'
-facts on the view `v`) or dead. -/
+facts on the view `v`) or dead. A bucket's `tx` field is persistent but the root bucket's (U0b:
+`boltBkt` holds a handle's `↦□`; `Tx.close` writes the root bucket whole). -/
 def objOwn (v : View) (l : Loc) (dq : DFrac) (live : Bool) : WObj → IProp GF
   | .bkt B => iprop(
-      l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗ l.[Bucket, go!"tx"] ↦{dq} B.bv.tx' ∗
+      l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗
+      (if l = B.bv.tx'.[Tx, go!"root"] then l.[Bucket, go!"tx"] ↦{dq} B.bv.tx'
+       else l.[Bucket, go!"tx"] ↦□ B.bv.tx') ∗
       l.[Bucket, go!"buckets"] ↦{dq} B.bv.buckets' ∗ l.[Bucket, go!"page"] ↦{dq} B.bv.page' ∗
       l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
       B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗

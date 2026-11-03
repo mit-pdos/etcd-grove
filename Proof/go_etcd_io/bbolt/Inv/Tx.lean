@@ -59,7 +59,13 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
     tx.[Tx, go!"WriteFlag"] ↦{DFrac.own q} t.WriteFlag' ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ t.meta' ↦{DFrac.own q} mv ∗
     viewCells (QpMul q rq) v ∗ PmNoTok B r.db (QpMul q sync.rfrac) ∗ viewOf r v ∗
-    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid⌝)
+    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid⌝ ∗
+    -- U0b: the root bucket (`Tx.init`'s `tx.root`), what every read starts from: its header a
+    -- persistent copy of the view's root, no cache, no page, no root node.
+    (∃ ib : InBucket, t.root'.InBucket' ↦□ ib ∗
+      ⌜ib.root'.toNat = v.root ∧ t.root'.tx' = tx ∧ t.root'.buckets' = null ∧
+        t.root'.page' = null ∧ t.root'.rootNode' = null ∧ t.root'.nodes' = null ∧
+        t.pages' = null⌝))
 
 /-- The writer's handles' generations (the `buckets` caches): every handle's generation is at
 most its name's, and the opened bucket of a name is its current handle. -/
