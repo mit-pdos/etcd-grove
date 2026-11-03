@@ -66,12 +66,15 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HRD Htok Hsl
+    isplitr
+    · ipureintro; intro _; rfl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
     iunfold leaseCheckFrom
     ileft; iexact Hen
   | true =>
+  ihave %HaOn := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
   wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
@@ -81,6 +84,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   · (try wp_auto)
     iapply HΦ
     iframe HRD Htok Hsl Herr
+    isplitr
+    · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
     iintro %h; cases h
   (try wp_auto)
   iunfold authInfoOpt at Ha
@@ -90,6 +95,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HRD Htok Hsl HUEe
+    isplitr
+    · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
   ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
@@ -109,6 +116,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   · (try wp_auto)
     iapply HΦ
     iframe HRD Htok Hsl
+    isplitr
+    · ipureintro; intro _; rfl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -222,6 +231,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
         wp_for_post
         iapply HΦ
         iframe HRD Htok Hsl
+        isplitr
+        · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
         iunfold authApplyErrIs at Herr3
         icases Herr3 with ⟨#Herr3, -⟩
         iframe Herr3
@@ -256,6 +267,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   wp_if_destruct
   · iapply HΦ
     iframe HRD Htok Hsl
+    isplitr
+    · ipureintro; intro _; rfl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -267,6 +280,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     iexact Hcls
   · iapply HΦ
     iframe HRD Htok Hsl HORe
+    isplitr
+    · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
     iintro %h; cases h
 
 end proof

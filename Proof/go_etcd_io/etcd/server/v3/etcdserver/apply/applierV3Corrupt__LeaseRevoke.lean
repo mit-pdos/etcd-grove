@@ -61,9 +61,10 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     iright
     iapply apply.csContract_pre $$ Hcs
   · iunfold apply.revokeRes at Hrr
+    icases Hrr with ⟨Hrdat, Hrev, HRO, -⟩
     iunfold apply.revokeResAfter
     simp only [reduceCtorEq, ↓reduceIte]
-    iexact Hrr
+    iframe
 
 end proof
 

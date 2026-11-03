@@ -255,23 +255,39 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
     | (intro t _; exact ⟨h4, hls⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
-premise at every log at which the size clauses hold. -/
-def rqShape (rq : apply.IRRModel) : Prop :=
-  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk log rq
+premise at every log at which the size clauses hold, in a cluster that grants leases or not (`lg`,
+the lease-grant stage's B1/B2 commit 3, 2026-11-02: `rqOk lg`; at `lg = false` what it was). -/
+def rqShape (lg : Bool) (rq : apply.IRRModel) : Prop :=
+  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk lg log rq
 
 /-- **What the KV invariant keeps of a committed entry** (D19c): a normal entry with data
 decodes to a request with an id, of a good shape; a conf change has the id `0` (raft's
 bootstrap's: `srvCCPolicy`). -/
-def entryShape [GooseExts] (m : EntryModel) : Prop :=
+def entryShape [GooseExts] (lg : Bool) (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ rqShape rq) ∧
+      (∃ id, apply.irrId rq = some id) ∧ rqShape lg rq) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape. -/
-def logShape [GooseExts] (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape m
+def logShape [GooseExts] (lg : Bool) (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape lg m
 
-theorem logShape_append [GooseExts] (A B : List EntryModel) :
-    logShape (A ++ B) ↔ logShape A ∧ logShape B := by
+/-- **A shape in a cluster that grants none is one in any** (`apply.rqOk_of_false`; the lease-grant
+stage's §2.8). -/
+theorem rqShape_mono (lg : Bool) (rq : apply.IRRModel) (h : rqShape false rq) : rqShape lg rq :=
+  ⟨h.1, fun log hs => apply.rqOk_of_false lg log rq (h.2 log hs)⟩
+
+theorem entryShape_mono [GooseExts] (lg : Bool) (m : EntryModel) (h : entryShape false m) :
+    entryShape lg m := by
+  refine ⟨fun ht => ?_, h.2⟩
+  rcases h.1 ht with hd | ⟨rq, hdec, hid, hs⟩
+  · exact Or.inl hd
+  · exact Or.inr ⟨rq, hdec, hid, rqShape_mono lg rq hs⟩
+
+theorem logShape_mono [GooseExts] (lg : Bool) (L : List EntryModel) (h : logShape false L) :
+    logShape lg L := fun m hm => entryShape_mono lg m (h m hm)
+
+theorem logShape_append [GooseExts] (lg : Bool) (A B : List EntryModel) :
+    logShape lg (A ++ B) ↔ logShape lg A ∧ logShape lg B := by
   unfold logShape
   simp only [List.mem_append]
   constructor
@@ -301,7 +317,7 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq ≠ .range ∧ apply.dispatchKind rq ≠ .txn ∧
       apply.dispatchKind rq ≠ .clusterVersionSet ∧ apply.dispatchKind rq ≠ .authUserAdd ∧
       apply.dispatchKind rq ≠ .authRoleAdd ∧ apply.dispatchKind rq ≠ .leaseCheckpoint) :
-    rqShape rq := by
+    rqShape false rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
@@ -312,7 +328,7 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
 /-- **The shape of a covered transaction request** from its transaction's shape. -/
 theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t) :
-    rqShape rq := by
+    rqShape false rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk

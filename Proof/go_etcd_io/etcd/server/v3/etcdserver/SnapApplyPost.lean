@@ -95,7 +95,7 @@ theorem srvSnapApplied_of_walk
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
-    (hoff : E.authMode = auth.AuthMode.off) :
+    (hoff : E.authMode = auth.AuthMode.off) (hlg : E.lg = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
@@ -143,7 +143,7 @@ theorem srvSnapApplied_of_walk
   · iframe #
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      rfl hkb' hγw hwq hpre hRok hrbw r.crev $$
+      rfl hkb' hγw hwq hpre hRok hrbw hlg r.crev $$
       [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
     iunfold apply.cmpOwn
@@ -153,7 +153,7 @@ theorem srvSnapApplied_of_walk
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
-    cl _ memI A' rfl hA' $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
+    cl _ memI A' rfl hA' hlg $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb
   -- step 7: the rest, framed
   icases Hcso with #Hcso

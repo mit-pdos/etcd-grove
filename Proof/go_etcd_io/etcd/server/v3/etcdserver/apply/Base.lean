@@ -587,7 +587,12 @@ abbrev applyErrVars : IProp GF :=
     EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
       go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ∗
     -- (the auth plan's E3i, 2026-10-27) and from the auth package's error variables
-    authErrsApart)
+    authErrsApart ∗
+    -- (lease-grant amendment (E), 2026-11-03) and from the lessor's errors a grant answers
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.lease.ErrLeaseExists ∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge)
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/

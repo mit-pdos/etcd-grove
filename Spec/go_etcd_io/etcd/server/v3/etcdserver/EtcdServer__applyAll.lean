@@ -67,7 +67,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
     (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShape (unapplied ai ms) →
+  loopOk γ st ai → logShape E.lg (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
@@ -279,6 +279,9 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
   -- until then `E.cmp = false`)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
   γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] →
+  -- (the lease-grant plan's D2, 2026-11-02) a cluster that grants no lease (its lessor revocable:
+  -- `Recover`'s premise; an interim restriction, as the compaction mode's)
+  γr.kv.lg = false →
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

@@ -135,6 +135,8 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       -- (the lease-grant plan's D2, 2026-11-02) the lessor revocable (`Recover`'s premise)
+       lease.lessorRevocable E.γ.leases ∗
        -- (M2's item 15) the server's closer by the mode (on, the watchable store's own parts: the
        -- store's right is the apply thread's, `srvApplyKV`'s compaction resources)
        srvKVCloserW s E ∗

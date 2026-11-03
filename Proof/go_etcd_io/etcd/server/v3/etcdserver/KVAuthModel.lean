@@ -673,13 +673,13 @@ theorem detLogOn_last (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × 
 excludes every admin kind, or an admitted admin request with an id). -/
 def entryShapeOn (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ (rqShape rq ∨ apply.adminKindOk rq)) ∧
+      (∃ id, apply.irrId rq = some id) ∧ (rqShape false rq ∨ apply.adminKindOk rq)) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape in the mode `on`. -/
 def logShapeOn (L : List EntryModel) : Prop := ∀ m ∈ L, entryShapeOn m
 
-theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape m) :
+theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape false m) :
     entryShapeOn m := by
   refine ⟨fun ht => ?_, h.2⟩
   rcases h.1 ht with h | ⟨rq, hd, hid, hs⟩
@@ -777,13 +777,14 @@ instance kvWorkOn_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
   unfold kvWorkOn; infer_instance
 
 /-- `kvWork` gives `kvWorkOn`. -/
-theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
+theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
+    (hlg : γk.lg = false) :
     kvWork (GF := GF) cfg γk L ⊢ kvWorkOn cfg γk L := by
   unfold kvWork kvWorkOn
   iintro ⟨%h, #H⟩
   iframe H
   ipureintro
-  exact ⟨fun m hm => entryShapeOn_of_entryShape m (h.1 m hm), h.2⟩
+  exact ⟨fun m hm => entryShapeOn_of_entryShape m (hlg ▸ h.1 m hm), h.2⟩
 
 /-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
 

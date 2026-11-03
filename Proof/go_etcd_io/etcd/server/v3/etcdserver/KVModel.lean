@@ -154,9 +154,11 @@ theorem dispatchStep_plain (lt : LeaseTable) (c : apply.Chain) (rq : apply.IRRMo
   · rename_i hc; rw [if_pos hc, h]; left; rfl
   · rename_i hc
     rw [if_neg hc]
+    have hng : apply.dispatchKind rq ≠ .leaseGrant := by
+      intro hk; unfold plainCover at hp; rw [hk] at hp; exact hp
     split at h
-    · rename_i hs; rw [if_pos hs]; exact chainStep_plain lt c rq log o hp h
-    · rename_i hs; rw [if_neg hs]; left; exact h
+    · rename_i hs; rw [if_pos (hs.resolve_right hng)]; exact chainStep_plain lt c rq log o hp h
+    · rename_i hs; rw [if_neg (fun h' => hs (Or.inl h'))]; left; exact h
 
 /-- A covered request is not an alarm request. -/
 theorem plainReq_not_alarm (rq : apply.IRRModel) (hp : plainCover rq) :

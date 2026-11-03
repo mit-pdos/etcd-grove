@@ -93,7 +93,8 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
   icases HR with ⟨Hlt, Hlr, Hrd, Hst⟩
   ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -, %Hcrt, -⟩
+  icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -, %Hcrt', -⟩
+  have Hcrt := Hcrt'.1
   -- (C3's server stage) at least the cluster's retention behind a revision reached
   ihave #Hlb' : srvRevLb E.γ (r + ρ.rd.kv.cret) $$ []
   · iapply srvRevLb_mono E.γ (r + ρ.rd.kv.cret) (r + E.cret) (by omega); iexact Hlb
