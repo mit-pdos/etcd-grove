@@ -102,7 +102,8 @@ theorem applySnapshot_walk
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
-    (halbi : d.P.has mvcc.alarmBI) (hlpw : mvcc.leaseParams d.P)
+    (halbi : d.P.has mvcc.alarmBI ∧
+      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) (hlpw : mvcc.leaseParams d.P)
     (hNAuB : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     (hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
       ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
@@ -564,7 +565,7 @@ theorem applySnapshot_walk
   wp_apply hAR al d.be abl sfv.lg d'.be γB d.P (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
       (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅) trivial
-      (by simp [mvcc.KBReal.P, mvcc.restBuckets]) halbi
+      (by simp [mvcc.KBReal.P, mvcc.restBuckets]) halbi.1
     $$ [HoAl HnOh Hwba HnRB HnPl HthT]
     as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB⟩
   · rw [hγ']; iframe #; iframe HoAl HnOh HnRB HnPl HthT
@@ -602,11 +603,13 @@ theorem applySnapshot_walk
   · rw [hγ', hP']; (try rw [hgx']); iframe #; iframe HoAu HnOh HnPl HthT HnRA
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro
-    refine ⟨?_, ?_⟩ <;>
-      rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
-    · exact hauthb.1
-    · exact hauthb.2.1
+    isplitr
+    · ipureintro
+      refine ⟨?_, ?_⟩ <;>
+        rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
+      · exact hauthb.1
+      · exact hauthb.2.1
+    ipureintro; exact halbi.2
   ihave HnRA : backend.rbOwnIn (GF := GF) γB auth.authBkts _ $$ [HnRA]
   · rw [← hγ']; iexact HnRA
   ihave HnPl : backend.bkRPool (GF := GF) γB d.P d'.be $$ [HnPl]

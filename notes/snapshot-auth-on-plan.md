@@ -928,5 +928,9 @@ step 5; the user's request through etcd-grove-56):
   resource no longer holds the auth buckets, and the old observation (them at the rest model's
   `authBoot`) was finding 5's false claim. Off callers recover `mergedObs` (`mergedObs_of_M`);
   `merged_image` unchanged; the on sender passes it to #7-on's `sorry`. (P5, `44695a6328`)
+- `[F, proof, trusted, approved]` (P2, the Freeze's item 5) `authRecoverOk` (`NewAuthStore`'s
+  axiom's mode-off `Recover`) takes the auth buckets in the new backend's table: the axiom weakened.
+  The fact reaches the install through `srvSnapRO`'s and `specSnap`'s `halbi`, now the alarm and
+  the auth buckets (`bootOk`'s, as `NewServer`'s kit takes them). (P5)
 - `[A, proof, internal, —]` `applySnapshot_walk` takes `E.authMode = .off` (its caller `specSnap`
   has it): the old backend's rest part back at every non-cluster bucket. (P5, `44695a6328`)

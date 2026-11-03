@@ -1506,7 +1506,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, Hcmp0.symm, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, HalB, Hwq, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, Hwq, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

@@ -272,7 +272,9 @@ contract, an open share, a pooled reader's resource and the caller's thread toke
 `Recover(ab)` moves the store's user's half `authBeOn ast oldbe` to the new backend, all else given
 back. (2026-11-02, the backend-auth-split stage: until then the reader's token and open share
 `mvcc.bkRTx` and the writer's half `rbOwn`, with `authRoles` empty too; `NewAuthStore.spec`'s last
-two bullets say why.) -/
+two bullets say why.) (The auth-on snapshot plan's P2, 2026-11-03: the auth buckets in the new
+backend's table, a premise; without it the triple was false at other parameters, unreachable with
+the server's: review R1's F5.) -/
 def authRecoverOk (ast : Loc) : IProp GF :=
   iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
           (r : GMap GoString backend.BktData),
@@ -283,7 +285,10 @@ def authRecoverOk (ast : Loc) : IProp GF :=
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
             backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
             backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
-            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ }}
+            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ ∗
+            -- (the auth-on snapshot plan's P2, review R1's F5) the auth buckets in the new
+            -- backend's table, as `NewAuthStore`'s axiom takes them
+            ⌜dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI⌝ }}
           (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
             go!"Recover")) (Val #(authBkIface abl)))
         {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.be ∗
@@ -394,8 +399,10 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       storage.snapOpensOk ∧ d.cm = E.cmp ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
       storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ mvcc.leaseParams d.P ∧
       -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table, which the alarm
-      -- store's `Recover` takes (`bootOk`'s)
-      d.P.has mvcc.alarmBI ∧
+      -- store's `Recover` takes (`bootOk`'s); (the auth-on snapshot plan's P2/P5, 2026-11-03) and
+      -- the auth buckets, which the auth store's `Recover` takes (`authRecoverOk`)
+      (d.P.has mvcc.alarmBI ∧
+        d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.γ.watchQ = true ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗

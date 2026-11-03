@@ -88,8 +88,10 @@ at the etcd pin):
   is `authBoot`: false) and the revision (`setRevision` under its lock), and
   `refreshRangePermCache` over the image's users (none: `authUsers` empty, no decoding, no panic),
   then `enabledMu`'s write lock to set `enabled = false` (the token provider's `enable` not
-  called). The read transaction sees the image: the pre holds **the idle part of the new backend's
-  auth buckets** at `authBoot`/empty (`rbOwnIn dn.γB auth.authBkts r`: no write to them pending
+  called). (The auth-on snapshot plan's P2, 2026-11-03, review R1's F5: the pre takes the auth
+  buckets in the new backend's table, `dn.P.has authBI ∧ …`, as this triple's own pre does; without
+  it the claim was false at other parameters.) The read transaction sees the image: the pre holds
+  **the idle part of the new backend's auth buckets** at `authBoot`/empty (`rbOwnIn dn.γB auth.authBkts r`: no write to them pending
   since the last `Unlock` handed it, so a read transaction sees `r` there, the file header's Go
   basis; `authRoles` is read only per user, and there is none). Until 2026-11-01 the pre held the
   writer's half `rbOwn`, false: a batch deleting `authEnabled` and the users, held across

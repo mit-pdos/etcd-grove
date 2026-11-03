@@ -778,7 +778,8 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     -- (as `specSnap`'s, the backend-auth-split stage) the alarm bucket in the table
-    (halbi : d.P.has mvcc.alarmBI)
+    (halbi : d.P.has mvcc.alarmBI ∧
+      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)
