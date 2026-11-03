@@ -1176,6 +1176,13 @@ group (both kept by the goroutine). -/
 def cacheWatchSlot (cf : CacheFields) (γd : DemuxNames) (cap : Nat) : IProp GF :=
   iprop(demuxHandle cf.demux γd cap (cacheCert cf) ∗ cacheWgSlot cf)
 
+/-- A watch slot's two parts: one of the demux's handles (`RequestProgress` takes one too), and a
+slot of the cache's wait group. -/
+theorem cacheWatchSlot_parts (cf : CacheFields) (γd : DemuxNames) (cap : Nat) :
+    cacheWatchSlot (GF := GF) cf γd cap ⊢ demuxHandle cf.demux γd cap (cacheCert cf) ∗ cacheWgSlot cf := by
+  unfold cacheWatchSlot
+  iintro H; iexact H
+
 /-- A log published by the demux with nothing in it (`newWatcher`'s premise, for the watcher
 `Watch` registers with start `sr`). -/
 theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64) :

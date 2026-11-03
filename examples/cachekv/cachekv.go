@@ -208,7 +208,8 @@ func awaitProgress(wch clientv3.WatchChan, evs []common.Event) (int64, []common.
 func checkProgress(evs []common.Event, p int64) {
 	last := int64(1)
 	if len(evs) > 0 {
-		last = evs[len(evs)-1].Rev
+		e := evs[len(evs)-1]
+		last = e.Rev
 	}
 	if p > last {
 		panic("cachekv: a progress notification above an event the watch did not send")

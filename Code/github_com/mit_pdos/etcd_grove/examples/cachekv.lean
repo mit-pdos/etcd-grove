@@ -657,10 +657,15 @@ noncomputable def checkProgress.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Rev"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Rev"))) (Var "e")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "last") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "last") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Pair (Var "e") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -670,7 +675,7 @@ noncomputable def checkProgress.impl [GooseExts] [GoGlobalContext] : val :=
 /-- lastVal returns the value of the last of the events evs of key at or below revision r, and
     whether there is one.
 
-    go: cachekv.go:220:6 -/
+    go: cachekv.go:221:6 -/
 noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "key"
@@ -727,7 +732,7 @@ noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- hasKey reports whether one of the key-values kvs has the key key.
 
-    go: cachekv.go:231:6 -/
+    go: cachekv.go:232:6 -/
 noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "key"
@@ -768,7 +773,7 @@ noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
     last values of the watch's events evs at or below r: each key-value's value its key's last
     value, and each key with an event at or below r among them.
 
-    go: cachekv.go:243:6 -/
+    go: cachekv.go:244:6 -/
 noncomputable def checkGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "r"
