@@ -183,7 +183,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     iStructNamedSuffix Hw "_f"
     ipersist Header_f
     ipersist Leases_f
-    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨Hh, Hl⟩)
+    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨-, Hh, Hl⟩)
     · ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
       iunfold v3rpc.leasesHdrDone at Hh
       icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
@@ -253,7 +253,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     iapply HΨ
     iframe HS Hrev
     iintro %Hnil
-    exact absurd Hnil Herr.2
+    exact absurd Hnil Herr.2.1
 
 /-- The lease reads' requests at a pointer: the learner check reads nothing of them. -/
 theorem leaseTTLReq_learnerOk (l : Loc) :

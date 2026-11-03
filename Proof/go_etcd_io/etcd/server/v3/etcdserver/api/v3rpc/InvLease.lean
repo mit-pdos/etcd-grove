@@ -134,6 +134,24 @@ def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err }})
 
+/-- **The server's `LeaseGrant` with a success fact `G`** (the lease-grant plan's amendment (F2)):
+`lessorGrantOk`'s triple whose post also gives, on success, the response's `ID` with `G` of it.
+`raftLessor`'s conjunct is it at `G := True` (`lessorGrantOkG_true`); the server's at the lessor's
+history is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id` (`lessorGrantOkL`). -/
+def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) :
+    IProp GF :=
+  iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
+        leaseGrantReqIdOwn r m.2 }}
+      (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
+        (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
+          structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G id) }})
+
+instance lessorGrantOkG_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
+    (G : w64 → IProp GF) : Persistent (lessorGrantOkG s E S G) := by
+  unfold lessorGrantOkG; infer_instance
+
 /-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). -/
 def lessorRevokeOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64),
@@ -217,6 +235,62 @@ instance quotaLeaseServerAt_persistent (q : Loc) (ls : GoInterfaceOk) (s : Loc) 
   unfold quotaLeaseServerAt; infer_instance
 
 end defs
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+open Iris.ProofMode
+
+/-- **`raftLessor`'s grant contract is `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)):
+a success's response has its `ID` (`leaseGrantFields`). -/
+theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
+    lessorGrantOk s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+  iintro #H
+  iunfold lessorGrantOk at H
+  iunfold lessorGrantOkG
+  iintro %ci %cd %r %m !> %Φ Hpre HΦ
+  wp_apply H $$ [Hpre] as %resp %err ⟨HS, Hans⟩
+  · iexact Hpre
+  iapply HΦ
+  iframe HS
+  iunfold leaseGrantAns at Hans
+  icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)
+  · isplitl [Hh]
+    · iunfold leaseGrantAns
+      ileft
+      isplitr
+      · ipureintro; exact Hok
+      isplitl [Hh]
+      · iexact Hh
+      iexact Hf
+    iright
+    iunfold leaseGrantFields at Hf
+    icases Hf with ⟨%id, %ttl, %e, #Hid, -⟩
+    iexists id
+    iframe Hid
+  · isplitl []
+    · iunfold leaseGrantAns
+      iright
+      iexact Hse
+    ileft
+    iunfold srvErrIs at Hse
+    icases Hse with ⟨%Hen, -⟩
+    ipureintro; exact Hen
+
+/-- **`raftLessor`'s grant conjunct as `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)). -/
+theorem raftLessor_grantG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
+    raftLessor s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+  iintro #HL
+  iunfold raftLessor at HL
+  icases HL with ⟨#HG, -⟩
+  iapply lessorGrantOkG_true
+  iexact HG
+
+end lemmas
 
 end v3rpc
 end EtcdGrove

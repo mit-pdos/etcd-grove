@@ -54,6 +54,34 @@ instance lessorGrantOkL_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF) 
 
 end defs
 
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+open Iris.ProofMode
+
+/-- **The server's grant at the lessor's history is `lessorGrantOkG`** at `G id := ∃ i,
+leaseGrantedAt E.γ.leases i id` (the lease-grant plan's (F2)). -/
+theorem lessorGrantOkG_of_L (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
+    lessorGrantOkL s E S ⊢
+      lessorGrantOkG s E S (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt E.γ.leases i id)) := by
+  iintro #H
+  iunfold lessorGrantOkL at H
+  iunfold lessorGrantOkG
+  iintro %ci %cd %r %m !> %Φ Hpre HΦ
+  wp_apply H $$ [Hpre] as %resp %err ⟨HS, Hans, Hg⟩
+  · iexact Hpre
+  iapply HΦ
+  iframe HS Hans
+  icases Hg with (%Hn | ⟨%id, %i, #Hid, #Hgr⟩)
+  · ileft; ipureintro; exact Hn
+  · iright; iexists id; iframe Hid; iexists i; iexact Hgr
+
+end lemmas
+
 end v3rpc
 end EtcdGrove
 end Perennial

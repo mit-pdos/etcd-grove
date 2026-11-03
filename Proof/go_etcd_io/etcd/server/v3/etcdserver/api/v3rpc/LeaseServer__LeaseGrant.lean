@@ -33,17 +33,14 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E S ci cd r m
+  intro p s A cid mid E S G ci cd r m
   wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
-  iunfold v3rpc.raftLessor at HL
-  icases HL with ⟨#HG, #HR⟩
-  iunfold v3rpc.lessorGrantOk at HG
-  iunfold v3rpc.lessorRevokeOk at HR
+  iunfold v3rpc.lessorGrantOkG at HL
   wp_auto
-  wp_apply HG $$ [HS Hid] as %resp %err ⟨HS, Hans⟩
+  wp_apply HL $$ [HS Hid] as %resp %err ⟨HS, Hans, Hg⟩
   · iframe; iframe #
   iunfold v3rpc.leaseGrantAns at Hans
   icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)
@@ -61,7 +58,7 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     · iframe; iframe #
     wp_auto
     iapply HΦ
-    iframe
+    iframe HS Hg
     iunfold v3rpc.leaseGrantOut
     ileft
     isplitr
@@ -83,10 +80,12 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
       wp_apply hTog $$ [] as %e %He
       · iframe #
       iapply HΦ
-      iframe
-      iunfold v3rpc.leaseGrantOut
-      iright
-      ipureintro; exact ⟨rfl, He⟩
+      iframe HS
+      isplitl []
+      · iunfold v3rpc.leaseGrantOut
+        iright
+        ipureintro; exact ⟨rfl, He⟩
+      ileft; ipureintro; exact He
 
 end proof
 

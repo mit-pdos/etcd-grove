@@ -1533,3 +1533,20 @@ before any code of the proof; stops `EtcdServer.LeaseGrant.wp_proof`, hence a so
   it added to `translate`, `etc/goose.py --project etcd` rerun, and a `Spec`/`Proof` pair as
   `CompactionRequest__GetRevision`'s, linked in `etc/link-lean-first-server.txt` with
   `EtcdServer__LeaseGrant` itself (not linked yet).
+
+**Commit 5b: (F2) and (F3)** (2026-11-03, a full build with the checks).
+- *(F3).* `EtcdServer.LeaseLeases.spec`'s error arm `⌜resp = null ∧ err ≠ nil ∧ E.authOn = true⌝`;
+  `v3rpc`'s `leasesAns`/`leaseLeasesOut` error arms (and `leaseLeasesOut`'s empty arm) carry
+  `E.authOn = true`; `LeaseServer.LeaseLeases`, `ServerLeaseRead`, `client/v3/LeaseReadServed`
+  adapted. *Mechanical adaptation, not in (F3)'s text:* `EtcdServer.checkLeaseLeases.spec`'s post
+  gains `⌜E.authOn = false → err = nil⌝` (Go: `v3_server.go:754-756`, `nil` when auth is off), which
+  `LeaseLeases` needs; its proof reads `M.isOn = true` off the enabled verdict
+  (`enabledVerdictFrom_true_isOn`, `LeaseCheckLemmas.lean`) on every error return.
+- *(F2).* `InvLease.lean`: `lessorGrantOkG s E S G` (`lessorGrantOk`'s triple whose post adds
+  `⌜err ≠ nil⌝ ∨ ∃ id, ID resp ↦□ id ∗ G id`), `lessorGrantOkG_true` (`lessorGrantOk` is it at
+  `True`, from `leaseGrantFields`), `raftLessor_grantG`; `InvLeaseGrant.lean`: `lessorGrantOkG_of_L`
+  (`lessorGrantOkL` is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id`).
+  `LeaseServer.LeaseGrant.spec` takes `(G : w64 → IProp GF)` and `lessorGrantOkG s E S G` in place of
+  `raftLessor s E S`, its post adding the same disjunction (the error arm by `togRPCError`'s non-nil
+  error). `etcd_leaseGrantHandlerOk` (`client/v3/Results.lean`, statement unchanged) calls it at
+  `True` through `raftLessor_grantG`.
