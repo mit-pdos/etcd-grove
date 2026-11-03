@@ -119,7 +119,7 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ctxs boot nw nops sched steps Hbf Htb Hrb48
+  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb Hrb48
     HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
@@ -169,7 +169,7 @@ theorem MainWatch.wp_proof
   -- the cluster, its clients' watch prefix `wk/`
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -209,7 +209,7 @@ theorem MainWatch.wp_proof
   -- change)
   have hboot : kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
     unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) (ids id₁ id₂ id₃)
+    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) ps
       (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
   have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes := by
     rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hboot]; exact wkW_start _

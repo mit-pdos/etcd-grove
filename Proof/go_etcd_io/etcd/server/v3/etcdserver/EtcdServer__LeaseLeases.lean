@@ -63,7 +63,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   (try wp_auto)
   -- `if err := s.checkLeaseLeases(ctx, ls); err != nil { return nil, err }`
   wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Htok $Hsl]
-      as %err ⟨HRD, Htok, Hsl, #Herr, Hok⟩
+      as %err ⟨HRD, Htok, Hsl, %Hoff, #Herr, Hok⟩
   · iframe #
     isplitr
     · ipureintro; exact Hb1
@@ -76,7 +76,12 @@ theorem EtcdServer.LeaseLeases.wp_proof
     iframe HRD Htok Hst
     iright
     iframe Herr
-    ipureintro; exact ⟨rfl, by intro h; cases h⟩
+    ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · intro h; cases h
+    · cases hon : E.authOn
+      · cases Hoff hon
+      · rfl
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := Loc) sl.len) as %lsl ⟨Hlsl, -⟩

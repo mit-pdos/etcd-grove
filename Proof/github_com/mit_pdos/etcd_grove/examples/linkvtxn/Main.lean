@@ -60,7 +60,7 @@ theorem Main.wp_proof
     H0 H31 Hops Hmul
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
       (common.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796") id cfgOk urlsOk
@@ -89,7 +89,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (linkvtxnDir id) (dirOne_member id _)
+  imod (common.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (linkvtxnDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
@@ -102,7 +102,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (LogEntry.toEntries boot 0) ctxs
       (linkvtxnDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [linkvtxnDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
+      (by simp [linkvtxnDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

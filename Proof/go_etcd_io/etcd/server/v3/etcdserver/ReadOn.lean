@@ -378,6 +378,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     ihave Hc2 : ghostVar (GF := GF) γr.kv.st (1 : Qp).half σ $$ [Hc']
     · rw [← hst]; iexact Hc'
     ihave %Hag := ghostVar_agree γr.kv.st _ _ _ _ $$ Hσ' Hc2
+    ihave %Hlg := kvSt_client_lg γr.kv _ _ $$ Hσ' Hc2
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
@@ -387,7 +388,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
     imodintro
     iexists kvModel γr.kv Lf
-    rw [← kvModelSt_plain γr.kv Lf Hok'.1, Hag]
+    rw [← kvModelSt_plain γr.kv Lf (Hlg ▸ Hok'.1), Hag]
     iframe HQ0
     ipureintro; exact HpL
   · rw [srvKVCoreM_true]

@@ -167,7 +167,8 @@ theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out :
   | dispatched o b =>
     obtain ⟨-, hd, hl, hc⟩ := h
     unfold apply.dispatchStep at hd
-    rw [if_neg (by simp [hpv]), if_neg (by simp [hsk])] at hd
+    rw [if_neg (by simp [hpv]),
+      if_neg (by rcases hkd with h | h | h | h | h | h <;> simp [h, apply.storeKind])] at hd
     refine ⟨hl.trans hd, ?_⟩
     rcases hc with hc | ⟨-, hal, -⟩
     · exact hc

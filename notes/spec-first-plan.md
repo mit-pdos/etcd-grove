@@ -60,12 +60,27 @@ adequacy). Widening later is a new, deliberate stage, not a series of spec edits
 and the statements of the layers it changes, not a survey of the files: M2's Scope, decided from
 a survey, was revised four times in Draft by drafting alone (C3, the watch store, Restore, and
 delete-then-put twice).
+*For a stage that admits a new case into shared invariants* (lease-grant, 2026-11-02, the user's):
+Scope lists not only what is missing but what admitting the case breaks: every invariant and result
+that rules the case out today (by a `False` arm, a "plain" predicate, an exact image), and for each
+whether it stays true once the case happens. lease-grant's Scope listed the five places a grant was
+closed and chose "narrow" from that list; then Draft found, one at a time, that the rest model's
+exact image forces the lessor tied to the model's table, and that the server's KV results become
+false once a grant is applied. Each needed the user's decision in the middle of plumbing.
 
 **Draft (was phase 1): the spec skeleton, top-down.** Every function's spec written, internal and external,
 every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*Design before plumbing* (lease-grant, 2026-11-02, the user's): when a change runs through shared
+definitions with many sites (a new parameter threaded through `rqOk`, `dispatchAnswer`: hundreds of
+sites, each a full server rebuild), Draft first writes the design as text in the plan -- each changed
+statement old → new, and for each the callee specs it is proved from -- and Review checks that whole
+chain (is each statement provable from what it cites?) before any site is threaded. lease-grant
+threaded `lg` through about 400 sites before the chain was reviewed; its first review found two specs
+not provable from the callees they cited, and the next two design problems surfaced during the
+plumbing.
 
 **Review (was phase 1b): review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
 Draft step). Writing a spec and proving its callers' glue alternate per package boundary: write the
@@ -764,7 +779,7 @@ Approved by the user as drafted (draft 1), with the WAL as its first slot.
 | name | kind | in the hub | what it holds |
 |---|---|---|---|
 | `<sub>.Names` | structure | `NewServer.spec`'s binders, one per subsystem | the subsystem's ghost names, allocated by its own initialization (never a field of `RaftNames`/`AEnv`/`KVNames`) |
-| `<sub>.bootCfg cfg` | `Prop`, sealed | a premise of `NewServer.spec` and `bootstrapContract` | the subsystem's conditions on the configuration |
+| `<sub>.bootCfg …` | `Prop`, sealed | a premise of `NewServer.spec` (and of `bootstrapContract` when `bootstrap` needs it) | the subsystem's pure boot premise; its arguments are what it reads (amended 2026-11-03, below) |
 | `<sub>.bootRes cfg` | `IProp`, sealed | a conjunct of `NewServer.spec`'s and `bootstrapContract`'s precondition | the resources the caller hands in (program-start tokens, ...) |
 | `<sub>.bootOk cfg … b` | `IProp`, sealed | a conjunct of `bootOk` | what `bootstrap` gives the subsystem |
 | `<sub>.srvInv s γ` | `IProp`, sealed | a conjunct of `NewServer`'s postcondition (`srvBuilt`) | the subsystem's part of the running server |
@@ -805,6 +820,30 @@ purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.b
 `wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
 WAL conjuncts. The examples still thread one token per member from program start (a new resource
 is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
+
+**The raft node's and the transport's slots** (2026-11-03, branch `boot-premises`, the final
+whole-`bootOk` review's S2 and M2; `notes/decisions.md`, "The boot premises"): `raftNode.bootCfg
+cfg` (`etcdserver/RaftNodeApi.lean`: the heartbeat positive; `raftNode.bootCfg_of` at `TickMs =
+100`, `raftNode.bootCfg_heartbeat`), and `rafthttp.bootCfg dir ps` (`api/rafthttp/Net.lean`: the
+directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`, the eliminations
+`_mem`, `_len`), a coupling the transport owns with raft's peers as its parameter, and no `cfg`
+(the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
+triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
+
+**`bootCfg`'s arguments** (amended 2026-11-03, the user's approval; prompted by `rafthttp.bootCfg`).
+The table first read `<sub>.bootCfg cfg`, "the subsystem's conditions on the configuration". That
+mixed up what the slot is with what it reads. `<sub>.bootCfg` is the subsystem's pure boot premise,
+a sealed `Prop`. Its arguments are what it reads: `cfg` if it reads the configuration, the
+subsystem's `<sub>.Names` (or a field of it, until the subsystem has a `Names`), and a coupled
+subsystem's parameter (raft's peers for the transport). An argument it does not read is left out.
+`raftNode.bootCfg cfg` and `rafthttp.bootCfg dir ps` both fit.
+
+**Follow-up: the transport's names.** `rafthttp.bootCfg` takes the bare directory `dir`, a field of
+the network's names (`NetNames.dir`). When the transport converts its names (step 4: `NetNames`
+becomes `rafthttp.Names`), the slot takes the record, `rafthttp.bootCfg γn ps`, not the field. A
+later condition on another field then changes only the sealed body, not every caller's arguments.
+The same applies to any slot that takes a field of a names record before its subsystem has a
+`Names`.
 
 From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
 boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.

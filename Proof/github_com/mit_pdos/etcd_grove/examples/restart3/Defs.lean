@@ -43,13 +43,18 @@ header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' co
 node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
 until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
 policy `ccOk`, over raft's records.) -/
-structure BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) :
-    Prop where
+structure BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (bl : List LogEntry) : Prop where
+  /-- the peers are a permutation of the members' ids (`bootstrap`'s order is the sorted one:
+  `0x2828…`, `0x8389…`, `0xd217…`, the members `-2`, `-3`, `-1`; only it meets the premises)
+  (2026-11-03, the final whole-`bootOk` review's S1: until then
+  `[id₁, id₂, id₃]`, which is not `bootstrap`'s order, so that the premise was false) -/
+  perm : ps.Perm [id₁, id₂, id₃]
   idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
   idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id₁, id₂, id₃] ctxs bl
+  boot : BootLog ps ctxs bl
   cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id₁, id₂, id₃]) e.Data'
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
 
 /-- The members' names. -/
 abbrev name₁ : GoString := go!"restart3-1"
@@ -99,26 +104,26 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 abbrev token : GoString := go!"restart3"
 
 /-- **`Run`'s named premises** (persistent; see the file header), at the bound `N`, the member ids,
-the peers' contexts and the bootstrap log. -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
-    IProp GF :=
+the peers `ps` (in `bootstrap`'s order), the peers' contexts and the bootstrap log. -/
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) : IProp GF :=
   iprop(
-    common.bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    common.bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₁ (urlsOk peerAddr₁ clientAddr₁) id₁ ∗
-    common.bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    common.bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₂ (urlsOk peerAddr₂ clientAddr₂) id₂ ∗
-    common.bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    common.bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₃ (urlsOk peerAddr₃ clientAddr₃) id₃ ∗
-    common.bootPremiseR N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    common.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₂ (urlsOk peerAddr₂ clientAddr₂) id₂ ∗
-    common.bootPremiseR N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    common.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₃ (urlsOk peerAddr₃ clientAddr₃) id₃ ∗
-    bootMarshal [id₁, id₂, id₃] ctxs (LogEntry.toEntries boot 0) ∗
+    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
     common.commonPremises)
 
-instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
-    (boot : List LogEntry) :
-    Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
+instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) :
+    Persistent (premises (GF := GF) N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
 /-- **A stoppable member** (DRAFT; see the file header): the `member` record at `m` (its server

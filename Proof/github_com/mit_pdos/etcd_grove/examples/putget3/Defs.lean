@@ -4,10 +4,12 @@
 the three members of `examples/putget3/putget3.go`.
 
 **The pure facts** (`BootFacts`): `bootstrap`'s results for the three configurations, as Go
-computes them: the member ids `id₁ id₂ id₃` (etcd's, from the peer URLs and the cluster token
-`putget3`; `TestMemberIDs` in `putget3_test.go` prints them), their 16 low bits distinct and not `0`
-(D21e (A): the request ids' prefixes), the peers in that order (`bootstrap` sorts the member ids:
-`0x4594…`, `0x615e…`, `0xecbf…`, the members `putget3-1`, `-2`, `-3`), and the bootstrap log with
+computes them: the member ids `id₁ id₂ id₃` of the members `putget3-1`, `-2`, `-3` (etcd's, from
+the peer URLs and the cluster token `putget3`; `TestMemberIDs` in `putget3_test.go` prints them),
+their 16 low bits distinct and not `0` (D21e (A): the request ids' prefixes), the peers `ps` in
+`bootstrap`'s order, a permutation of the ids (`bootstrap` sorts them: `0x4594…`, `0x615e…`,
+`0xecbf…`, the members `-1`, `-3`, `-2`; 2026-11-03, the final whole-`bootOk` review's S1: until
+then the peers were `[id₁, id₂, id₃]`, claimed sorted, which they are not), and the bootstrap log with
 the peers' contexts (the node API's `BootLog`), one conf change adding each member, each of id `0`
 and one the server's `applyConfChange` takes.
 
@@ -51,13 +53,19 @@ header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' co
 node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
 until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
 policy `ccOk`, over raft's records.) -/
-structure BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List LogEntry) :
-    Prop where
+structure BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (bl : List LogEntry) : Prop where
+  /-- the peers are a permutation of the members' ids (`bootstrap`'s order is the sorted one, which
+  this does not state: only that order meets `bootPremise`'s contract, whose `Hraft` gives
+  `γ.vs = MemberIDs()`, so a caller holding the premises has it) (2026-11-03, the final
+  whole-`bootOk` review's S1: until then the ids in the members' order, `[id₁, id₂, id₃]`, which
+  is not `bootstrap`'s for putget3's or restart3's ids, so that the premise was false) -/
+  perm : ps.Perm [id₁, id₂, id₃]
   idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
   idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id₁, id₂, id₃] ctxs bl
+  boot : BootLog ps ctxs bl
   cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id₁, id₂, id₃]) e.Data'
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=
@@ -139,7 +147,6 @@ wrapper's trust-boundary contracts and the deployment's
 `runsNoRequireLeader`. -/
 def commonPremises : IProp GF :=
   iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
@@ -149,21 +156,21 @@ instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := b
 member's apply thread's write tokens, the member ids, the peers' contexts and the bootstrap log;
 (2026-10-27, the server port) with `proto.Marshal`'s contract at the bootstrap log's conf changes
 (`bootMarshal`, which the cluster's allocation takes; until then `bootstrap`'s contract gave it). -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
-    IProp GF :=
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) : IProp GF :=
   iprop(
-    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+    bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₃ peerAddr₃ clientAddr₃ id₃ ∗
-    bootMarshal [id₁, id₂, id₃] ctxs (LogEntry.toEntries boot 0) ∗
+    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
     commonPremises)
 
-instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
-    (boot : List LogEntry) :
-    Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
+instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) :
+    Persistent (premises (GF := GF) N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

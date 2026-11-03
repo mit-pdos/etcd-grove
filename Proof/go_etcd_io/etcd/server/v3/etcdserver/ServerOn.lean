@@ -55,25 +55,27 @@ def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
 section pure
 variable [GooseExts]
 
-/-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
-def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
+/-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
+leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
+def logShapeM (on lg : Bool) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape L
+  | false => logShape lg L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
-theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
+theorem logShapeM_cc (on lg : Bool) (L : List EntryModel) (h : logShapeM on lg L) :
     ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0 := by
   cases on
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+theorem logShapeM_false (lg : Bool) (L : List EntryModel) : logShapeM false lg L = logShape lg L :=
+  rfl
 
-theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+theorem logShapeM_true (lg : Bool) (L : List EntryModel) : logShapeM true lg L = logShapeOn L := rfl
 
-theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
-    logShapeM on A := by
+theorem logShapeM_append (on lg : Bool) (A B : List EntryModel) (h : logShapeM on lg (A ++ B)) :
+    logShapeM on lg A := by
   cases on
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
@@ -251,7 +253,7 @@ instance kvCertInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames
 /-- **The server's `E.C` in the auth mode `on`** (`srvC` with the mode's shapes). -/
 def srvCM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvCM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (L : List EntryModel) :
@@ -274,7 +276,7 @@ theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x�
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
 def clusterWorkloadOkM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOkM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOkM (GF := GF) on ρ E) := by
@@ -467,6 +469,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
+    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
@@ -650,24 +655,10 @@ open Iris.ProofMode in
 
 /-- `srvCM` does not read the environment's names but through `envAgree` (`srvC_agree`'s). -/
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (h : envAgree E E') :
+    (x₀ : apply.ApplyKV) (_h : envAgree E E') :
     srvCM on ρ E ai₀ c₀ x₀ = srvCM on ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr, -, -⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  funext L
-  unfold srvCM batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
-
-/-- The ticker's contract does not read the transport's borrow (`rnTickerOk_srvEr_S`'s). -/
-theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S) ⊢
-      rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S') := by
-  unfold rnTickerOk isRNTicker srvErM
-  exact .rfl
+  -- (the lease-grant plan's 2.6) the contract reads no name of `E` (`reqWaitNone`)
+  rfl
 
 /-- **The claims give a batch's ids** (`batchWaitOk_of_work`, from the conf changes' ids alone:
 what both modes' shapes give, `logShapeM_cc`). -/
@@ -709,9 +700,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
@@ -789,7 +779,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL HatL $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lg L HshL) HcclL HatL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :

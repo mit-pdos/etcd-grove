@@ -119,12 +119,15 @@ tracked bucket, D22) with the lease bucket's part (`backend.rbPart d.γB (· = "
 the lessor's put writes `Lease` only; 2026-11-01, the backend-auth-split stage: until then the
 whole client half `backend.rbOwn`), given back with the record put (leases T3, L3c, 2026-10-27:
 until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
-real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
+real backend's `LockInsideApply` does not need it, its `UnsafePut` does). (The lease-grant stage,
+2.12, 2026-11-02, the user's freeze) The counted write-back token is spent and the lent part `RW`
+given back (until then spent with it): true of Go, `persistTo(le.b)` reads the field before
+`BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
+    lease.lessorBackend lp Pk #f (backend.wbTok d.γB) RW (mvcc.bkRTx d.γB d.P d.be)
       (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
@@ -423,6 +426,9 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
     -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the watchable store
     lease.lessorInv lp E.γ.leases ∗
+    -- (the lease-grant plan's D2, 2026-11-02) its mode: monotone when the cluster grants leases
+    -- (`KVNames.lg`), revocable (what `Recover` takes) otherwise
+    lease.lessorModeIs E.γ.leases γr.kv.lg ∗
     (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
      mvcc.isWatchableStore wsl E.s γw0) ∗
@@ -463,7 +469,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3

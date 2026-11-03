@@ -39,8 +39,8 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs key cv Hlg Hhb
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok⟩
+  intro E node id nl pre ms γs key cv Hlg
+  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok, %Hhb⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
@@ -106,7 +106,8 @@ theorem newRaftNode.wp_proof :
   iStructNamedSuffix «$r0» "R"
   (try wp_auto)
   -- `r.heartbeat != 0`: the ticker
-  rw [show (decide (cv.heartbeat' = W64 0) = false) from decide_eq_false Hhb]
+  rw [show (decide (cv.heartbeat' = W64 0) = false) from
+    decide_eq_false (fun h0 => by rw [h0] at Hhb; exact absurd Hhb (by decide))]
   (try wp_auto)
   wp_apply Htkok $$ %cv.heartbeat' [] as %tk #Htki
   · ipureintro; exact Hhb

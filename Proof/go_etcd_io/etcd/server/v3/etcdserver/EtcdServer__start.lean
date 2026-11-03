@@ -519,6 +519,8 @@ theorem EtcdServer.start.wp_proof
       isplitr
       · ipureintro; exact Hdisk
       isplitr
+      · ipureintro; exact Hslg
+      isplitr
       · iexists vd.kv; iframe R1 R2
       iframe Hsnapb
       isplitr
@@ -999,6 +1001,8 @@ theorem EtcdServer.start.wp_proofOn
       · ipureintro; exact HEr
       isplitr
       · ipureintro; exact Hdisk
+      isplitr
+      · ipureintro; exact Hslg
       isplitr
       · icases Hrdb with ⟨%vd, #Hvd⟩
         iunfold srvReadBuilt at Hvd

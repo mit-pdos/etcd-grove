@@ -32,7 +32,7 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
   allocation), premises of the call;
 * premises: `rnLogFits` (pure since D19b stage 5: the receipt bound past the bootstrap log, so
   raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOkStarted` (D19r (A): `Stop` returns, of a started node)
-  (`Stop` returns), `rnTickerOk`/`isRNTicker` (Perennial models no ticker), the `InitialState`
+  (`Stop` returns), `rnTickerOk` (`time.NewTicker`'s contract, at `isRNTicker`), the `InitialState`
   closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
   `memStorMeta`, which is not persistent: `MemoryStorage.InitialState.spec` cannot be the `□`
   closure; `StartNode` calls it once -- B's spec could drop the `□`), `bootMarshal` (protobuf's
@@ -347,7 +347,7 @@ abbrev NodeStartSpec : Prop :=
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     -- `newRaftNode`'s premises
-    bv.lg' ≠ null → bv.heartbeat' ≠ W64 0 →
+    bv.lg' ≠ null →
     -- `NewRawNode`'s premises on `b.config`
     ConfigValid cv → cv.Logger' = interface.ok lok →
     cv.Storage' = memStorIface bv.storage' →
@@ -368,6 +368,9 @@ abbrev NodeStartSpec : Prop :=
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        -- (2026-11-03, the final whole-`bootOk` review's S2: until then the implication
+        -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction (`newRaftNode.spec`'s)
+        "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- (2026-10-30, the repair) the fresh registered `MemoryStorage`, as `NewMemoryStorage`
@@ -464,7 +467,7 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
+  intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
@@ -482,11 +485,13 @@ theorem raftNode_of_StartNode
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
-    Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
+    Hlg Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
     (by omega) Hid Hvs Hwal)
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
+    (try ipureintro)
+    (try exact Hhb)
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames

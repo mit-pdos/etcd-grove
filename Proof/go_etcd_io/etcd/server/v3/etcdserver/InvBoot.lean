@@ -59,6 +59,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Code.net.http
 public import Proof.unicode.utf8.Valid
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
@@ -88,10 +89,6 @@ peer's handler may add a remote for. -/
 def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
-
-/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
-peer URL `url`, no other member. -/
-def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
 
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
@@ -203,8 +200,16 @@ request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal
 `remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
 approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
 `lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-Neither call is exercised while the server's grant guard is `False` (`srvGrantGuard`: no lessor has
-a lease); the lease-grant work must revisit both. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
+When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
+S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
+that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
+neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
+schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
+`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
+(`server.go:394-406`): outside the verified request path, so the premise then has content. The
+examples leave the feature off (`examples/common/common.go:96`: `le.cp == nil`, nothing is ever
+proposed), so for `examples/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
+this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
 opaque ckptEffectsOk : Prop
 
@@ -223,14 +228,17 @@ otherwise), a batch limit the backend's model admits (`openLimit cfg` positive a
 `bootOk`'s `Hbe`, `d.P.Wf`; Go takes any `BackendBatchLimit`, `storage/backend.go:36-41`), no
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes = 0`, `bootstrap.go:267-272`: `Defrag`
 is not modeled, and `bootWB` counts no defrag session), and raft's timing (`1 < ElectionTicks`,
-which `Hraft`'s `ConfigValid` needs; `TickMs ≠ 0`, for `heartbeat ≠ 0`). Until then the last two
-came only from the examples' `cfgOk`. The examples' configuration (`examples/common/common.go`)
+which `Hraft`'s `ConfigValid` needs). Until then the last came only from the examples' `cfgOk`.
+(2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
+`heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
+states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/common/common.go`)
 meets all. -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
-    1 < sint.Z cfg.ElectionTicks' ∧ cfg.TickMs' ≠ W64 0
+    1 < sint.Z cfg.ElectionTicks'
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -262,7 +270,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
+    -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
+    -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
+    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
       sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
@@ -308,11 +318,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
     -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
-    -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
-    -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
-    -- any request), at most `2 ^ 20` of them (each peer's goroutines borrow eight of `lgMu`'s
-    -- reader slots)
-    "%Hdirps" ∷ ⌜(∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20⌝ ∗
+    -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, the directory's
+    -- members raft's peers, at most `2 ^ 20`, a fact of the caller's `dir` and `γ.vs`, now
+    -- `NewServer`'s premise, the transport's slot `rafthttp.bootCfg dir γ.vs`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
@@ -486,11 +494,17 @@ new `MemoryStorage` joins it; until then the contract gave its registration with
 which no update can), an error, or the record with `bootOk` (at the write-back budget
 `N + 7`). (2026-11-03, the whole-`bootOk` review, A and C) For the configurations it covers
 (`bootCfgOk`, `bootCfgFresh`: until then every configuration, including ones where Go panics or
-does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`). -/
+does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`).
+(2026-11-03, the final whole-`bootOk` review's M1) On a disk that cooperates with `bootstrap`'s own
+I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
+`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
+(`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
+call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
-  iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit⌝ ∗
+  iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
+          storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))

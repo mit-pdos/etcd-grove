@@ -68,7 +68,7 @@ theorem Main.wp_proof
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
       go!"putgetc" go!"putgetc"
@@ -100,7 +100,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
+  imod (common.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
       (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
@@ -115,7 +115,7 @@ theorem Main.wp_proof
       (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
+      (by simp [putgetcDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

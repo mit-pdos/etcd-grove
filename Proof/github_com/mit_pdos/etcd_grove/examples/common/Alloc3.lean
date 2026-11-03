@@ -3,7 +3,9 @@
 Lean-first (no Rocq counterpart). What putget3's `putget3_alloc`, linkv3's and linkv3p's
 `cluster3_alloc` were, once, at a peer-URL directory `dir`.
 
-`alloc3`: for the three-member cluster `[id₁, id₂, id₃]` (in `bootstrap`'s order) and its bootstrap
+`alloc3`: for the three-member cluster of the members' ids `id₁ id₂ id₃`, its peers `ps` in
+`bootstrap`'s order (sorted; a permutation of the ids, 2026-11-03, the final whole-`bootOk` review's
+S1: until then the ids in the members' order, which is not `bootstrap`'s) and its bootstrap
 log (the node API's `BootLog` at the contexts `ctxs`, `bootCCOk`; the ids' 16 low bits distinct and
 not `0`, D21e (A)): each member's names chosen before its `NewServer` (`newServerNames_alloc`) and
 its storage registry (2026-10-27, the server port: the server's `SrvRaft` names one registry, so each
@@ -98,7 +100,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev)) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -122,7 +124,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok) $$ Hkv' Hp
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hwn', hfs', hinc'⟩ := Hρ
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
   ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key x $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', Hfs]; iexact Hkf
   imodintro
@@ -145,30 +147,31 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   isplitr
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
-      hpfx, ?_, trivial, by rw [hkc', Hkc]⟩
+      hpfx, ?_, trivial, by rw [hkc', Hkc], by simp [hklg', Hklg]⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
   rw [hiss', Hiss]
   iexact H0
 
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header). -/
-theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+    (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog [id₁, id₂, id₃] ctxs boot)
-    (Hcc : bootCCOk [id₁, id₂, id₃] (LogEntry.toEntries boot 0))
+    (HB : BootLog ps ctxs boot)
+    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
-    ⊢ bootMarshal (GF := GF) [id₁, id₂, id₃] ctxs (LogEntry.toEntries boot 0) -∗
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
-      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
+      ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
         kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
@@ -211,25 +214,32 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
     simp only [xs, Ne.symm hp12, if_false, if_true]
   have Hx₃ : xs (idPfxOf (W16 (uint.Z id₃))) = idx₃ := by
     simp only [xs, Ne.symm hp13, Ne.symm hp23, if_false]
-  imod (srvClusterBoot_alloc (GF := GF) [id₁, id₂, id₃] ctxs boot xs reg₁ Hrb Hrb2 HB
-      (by simp [hn12, hn13, hn23]) (by simp)
-      (by intro h; exact Hnz _ h rfl) Hcc Hlow Hlow0 false) $$ Hmarsh
+  -- the peers `ps`, in `bootstrap`'s (sorted) order, a permutation of the members' ids
+  -- (2026-11-03, the final whole-`bootOk` review's S1)
+  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 HB
+      (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
+      (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
+      (fun h => Hnz _ (hperm.subset h) rfl) Hcc ((hperm.map _).nodup_iff.2 Hlow)
+      (fun id h => Hlow0 id (hperm.subset h)) false) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, -⟩ := Hγ
-  icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
-  icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
-  imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₁ issued cnt wn fs γk Φs id₁ idx₁ cok₁ rev₁
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, -, hklg⟩ := Hγ
+  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
+  ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
+  ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
+  icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩
+  icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
+  imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ idx₁ cok₁ rev₁
       (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
-      hvs hkc HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+      hvs hkc hklg HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₂ issued cnt wn fs γk Φs id₂ idx₂ cok₂ rev₂
+  imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
-      hvs hkc HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+      hvs hkc hklg HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
-  imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₃ issued cnt wn fs γk Φs id₃ idx₃ cok₃ rev₃
+  imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
-      hvs hkc HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+      hvs hkc hklg HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
