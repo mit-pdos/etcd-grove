@@ -956,6 +956,12 @@ for a failed grant). Option (1): the grant's outcome carries the backend's error
   `errVarApart ErrNoSpace` for `ErrLeaseExists` and `ErrLeaseTTLTooLarge`, as for `ErrLeaseNotFound`.
 - `applyResultIs_notNoSpace_M` gains a grant case. No new axiom or hypothesis.
 
+**Amendment: (E'), the user's, 2026-11-03** ("Commit 4b" below: (E) covers the rejected outcome, but
+`dispatch` drops `grantPost`'s tie between an applied outcome and `err = nil` before `grantRes`, the
+only grant fact `Apply.spec`'s post carries). Option (b): `grantRes`'s (E) conjunct becomes
+`⌜v.Err' ≠ nil⌝ -∗ ⌜o = .rejected .backend⌝ ∗ lessorErrIs v.Err'` (one conjunct: a failed grant was
+rejected by the backend, with the lessor's error). True of Go; no new axiom or hypothesis.
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
