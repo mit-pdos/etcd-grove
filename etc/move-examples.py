@@ -203,20 +203,26 @@ def main():
             out = rx.sub(rep, out)
         own = owner(f)
         if f.endswith(".lean"):
-            # the hand-written namespaces: in the example's files and in those importing one
+            # the hand-written namespaces: in every example's own files and in those importing one
+            # (not inside string literals: `go!"putget.etcd"` is a directory)
+            in_examples = "etcd_grove/examples/" in f
             for old, new, ns, _ in MOVES:
                 if not ns or ns == old:
                     continue
-                imports = re.search(r"^(public )?import \S*etcd_grove\.examples\."
-                                    + re.escape(new.replace("/", ".")) + r"\b", out, re.M)
-                if own != old and not imports:
+                imports = re.search(r"^(public )?import \S*etcd_grove\.examples\.", out, re.M)
+                if not in_examples and not imports:
                     continue
-                out = re.sub(r"^(namespace|end) " + re.escape(old) + r"$", r"\1 " + ns, out,
-                             flags=re.M)
-                out = re.sub(r"^(open[^\n]*?)(?<![\w.])" + re.escape(old) + r"(?![\w.])",
-                             r"\1" + ns, out, flags=re.M)
-                out = re.sub(r"(?<![\w.'«])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
-                             ns + ".", out)
+                def ren(code):
+                    code = re.sub(r"^(namespace|end) " + re.escape(old) + r"$", r"\1 " + ns, code,
+                                  flags=re.M)
+                    code = re.sub(r"^(open[^\n]*?)(?<![\w.])" + re.escape(old) + r"(?![\w.])",
+                                  r"\1" + ns, code, flags=re.M)
+                    code = re.sub(r"(?<![\w.'«])" + re.escape(old) + r"\.(?=[A-Za-z_«])",
+                                  ns + ".", code)
+                    return re.sub(r"(?<=EtcdGrove\.)" + re.escape(old) + r"\.(?=[A-Za-z_«])",
+                                  ns + ".", code)
+                parts = re.split(r'("(?:[^"\\\n]|\\.)*")', out)
+                out = "".join(s if i % 2 else ren(s) for i, s in enumerate(parts))
         if f.endswith(".go"):
             # the Go package of a moved example and its importers' references
             for old, new, _, _ in MOVES:
@@ -231,6 +237,11 @@ def main():
                 if re.search(r'^\s*(import\s+)?"github\.com/mit-pdos/etcd-grove/examples/'
                              + re.escape(new) + r'"', out, re.M):
                     out = re.sub(r"(?<![\w.])" + op + r"\.(?=[A-Z])", np_ + ".", out)
+        # gen-link's namespaces of the modes (`"--cachekv": "cachekv"`)
+        if f == "etc/gen-link.py":
+            for old, new, ns, _ in MOVES:
+                if ns and ns != old:
+                    out = re.sub(r'(":\s*)"' + re.escape(old) + r'"', r'\1"' + ns + '"', out)
         # the link configs' function ids, `<last directory of the spec>_<function>`
         if re.match(r"etc/(link-lean-first-[\w-]+\.txt|gen-link\.py)$", f):
             for old, new, _, _ in MOVES:
