@@ -606,9 +606,17 @@ Nothing unsound in the specs; two laws unprovable and three gaps, repaired:
   its revision tokens).
 - **The shape laws** (`shapes.law`): a handle, a transaction, a stream are an `interface.mkOk ty v`
   of a type meeting its contracts (a client can make its first call on what `Read` returned).
-- **`Close` and `Restore` give back the store's half of the backend's open token**
-  (`backend.bOpen B.γB ½`): the client closes the old backend (etcd after a restore, the tester at
-  its end).
-- **`Restore` from a compacted image** (`imageOf L c D`), resuming an unfinished compaction under the
-  new backend's `nil` hook (lent: the server sets that backend's hook after `Restore`) and a commit
-  request that keeps `X`.
+- **`Restore` gives back the store's half of the old backend's open token**
+  (`backend.bOpen B.γB ½`): the client closes the old backend after a restore. **Not `Close`** (the
+  re-review, `review-r13.md`): `store.Close` takes no lock, so a `Read`, `Range`, `Rev`, `FirstRev`
+  or progress request may still hold a reader's part of that half. `Close` gives nothing, so a
+  client cannot close the backend after the store (the tester's `be.Close()`, etcd's shutdown):
+  the user's decision whether every read and write entry point takes a share of `mvccOpen`, as
+  `Compact` does (a new premise on specs with clients; etcd's request goroutines would draw shares).
+- **`Restore` from a compacted image** (`imageOf L c D`, with two obligations: a scheduled
+  compaction above the finished one is `c`; `L`'s last revision is the largest of the Key bucket's and
+  the compaction revisions), resuming an unfinished compaction under the new backend's `nil` hook,
+  lent (a marked scope restriction: etcd sets that hook after `Restore`). The re-review found the
+  commit request lent for it vacuous; dropped.
+- Open, from the review: where the server gets `Restore`'s length bound for a snapshot another
+  member made (bounded by that member's writes, not this process's receipts).
