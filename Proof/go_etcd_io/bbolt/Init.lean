@@ -4,7 +4,7 @@ Package initialization of `go_etcd_io.bbolt`
 
 Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
-`context.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
+`errors.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
 0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).
 -/
@@ -16,7 +16,6 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Perennial.Proof.runtime.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -29,8 +28,9 @@ public import Proof.go_etcd_io.bbolt.internal.common.Init
 public import Proof.go_etcd_io.bbolt.internal.freelist.Init
 public import Proof.golang_org.x.sys.unix.Init
 public import Proof.os.Init
+public import Proof.runtime.Init
 public import Proof.syscall.Init
-public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.log.NewModel
 public import Proof.runtime.PkgInitExt
 
@@ -103,8 +103,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.bbolt.internal.freelist.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.runtime _root_.Perennial.runtime.initialize'
-      EtcdGrove.ExternalInit.runtime _root_.Perennial.runtime.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
@@ -126,7 +125,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of trySolo))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xS #MS
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS
   -- translated initializer of DefaultOptions))
   -- translated initializer of ErrDatabaseNotOpen))
   try wp_auto
@@ -152,7 +151,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrIncompatibleValue))
   -- translated initializer of discardLogger))
   try wp_auto
-  wp_apply _root_.Perennial.log.wp_New as %lg
+  icases (show isPkgInit (PROP := IProp GF) pkg_id.io ⊢ ∃ w : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.Discard) w DFrac.discard by with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left) $$ Hd11 with ⟨%discard, #Hdiscard⟩
+  try wp_auto
+  wp_apply _root_.Perennial.log.wp_New as %lg _
   -- translated initializer of _root_.Perennial.io.Discard))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrIncompatibleValue))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrValueTooLarge))

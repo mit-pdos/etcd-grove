@@ -98,7 +98,12 @@ ASSUMED = {}
 # package, however many imports lead there.
 PRE_RES = {'go_etcd_io.etcd.server.v3.etcdserver.read': 'EtcdGrove.read.readRegPerm'}
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'reflect'}
+PERENNIAL_HERE = {'math.rand', 'reflect', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+# The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
+# and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
+PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
+                  'internal.runtime.atomic': 'Perennial.Proof.internal.runtime.atomic.Base',
+                  'internal.runtime.sys': 'Perennial.Proof.internal.runtime.sys.Base'}
 
 
 def inventory(code='Code'):
@@ -261,11 +266,11 @@ SPECIAL['go_etcd_io.bbolt.errors'] = dict(
 holds an `errors.New` error, a leaf pointer error without an `Is` method
 (`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
 variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
-Perennial's `context.wp_New_errorString`).''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVar'],
+Perennial's `errors.wp_New_errorString`).''',
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
     vars=['[_root_.Perennial.errors.Assumptions]'],
-    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{x} #M{x}']
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
                  for x in _BBOLT_ERRS}, **{'$end': ['try wp_auto']}),
     finish=[f'ipersist H{x}' for x in _BBOLT_ERRS] + FIN_PRE + ['iexists _', 'iframe HErrBucketNotFound',
             'isplitr', '· ipureintro',
@@ -294,21 +299,24 @@ _BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'Er
 SPECIAL['go_etcd_io.bbolt'] = dict(
     doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
-`context.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
+`errors.wp_New_errorString`), `DefaultOptions` (a composite literal), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
 0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.log.NewModel'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.log.NewModel'],
     vars=['[_root_.Perennial.log.NewModel]'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
                      DefaultOptions='Loc', discardLogger='Loc'),
-    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.context.wp_New_errorString as %xS #MS'],
+    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
                 'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}⟩' for x in _BBOLT_VARS) + '⟩'],
-            'discardLogger': ['try wp_auto', 'wp_apply _root_.Perennial.log.wp_New as %lg'],
+            # `io.Discard`'s cell, from `io`'s fact (as raft's `Init.lean`)
+            'discardLogger': ['try wp_auto',
+                'icases (show isPkgInit (PROP := IProp GF) pkg_id.io ⊢ ∃ w : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.Discard) w DFrac.discard by with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left) $$ {Hd:io} with ⟨%discard, #Hdiscard⟩',
+                'try wp_auto', 'wp_apply _root_.Perennial.log.wp_New as %lg _'],
             '$end': ['try wp_auto']},
 )
 
@@ -1717,7 +1725,7 @@ def init_module(q):
         return 'Proof.go_etcd_io.raft.v3.Init'
     if q == 'k8s_io.utils.third_party.forked.golang.btree':
         return 'Proof.k8s_io.utils.third_party.forked.golang.btree.initialize'
-    if d['perennial'] and q not in ('math.rand', 'reflect'):
+    if d['perennial'] and q not in PERENNIAL_HERE:
         return 'Perennial.Proof.' + plain(q) + '.Link'
     return 'Proof.' + plain(q) + '.Init'
 
@@ -1812,7 +1820,7 @@ def gen(p, cfg=None):
     d = inv[p]
     k = plain(p)
     imods = inst.get(k) or inst.get(p)
-    inst_mod = 'Proof.' + imods[0][0].replace('/', '.')
+    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
     cl = closure(p)
     needs_ctx = 'context' in cl
     needs_raft = 'go_etcd_io.raft.v3' in cl

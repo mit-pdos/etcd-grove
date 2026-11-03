@@ -11,7 +11,6 @@ module
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
-public import Perennial.Proof.runtime.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
@@ -19,6 +18,7 @@ public import Perennial.Proof.unsafe.Link
 public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.hash.fnv.Init
 public import Proof.os.Init
+public import Proof.runtime.Init
 public import Proof.os.Getpagesize
 public import Proof.runtime.PkgInitExt
 
@@ -64,8 +64,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.runtime _root_.Perennial.runtime.initialize'
-      EtcdGrove.ExternalInit.runtime _root_.Perennial.runtime.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
       EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
