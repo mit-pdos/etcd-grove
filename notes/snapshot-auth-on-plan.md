@@ -75,10 +75,24 @@ new: **N2** (trusted): `authBkLife`'s three clauses and both premises' updates w
 section's header line and the first record of R1).
 
 **Open, for the user before the Freeze:**
-- **F8**: `srvSnapROAuth`'s `srvImageM E.authMode` cannot be built while the network's certificate
-  (`srvNet`'s `img`, which feeds the snapshot directory) has no mode: step 3 would move #7-on's gap
-  into `NewServer`. Either the mode in `SrvRaft` with `srvNet`'s image by it (#7-on (b)) in this stage,
-  or step 3 states the dependency.
+- ~~F8~~ **Decided (2026-11-03, the user's go-ahead after the measurement): #7-on (b) in this stage.**
+  The image certificate by the **cluster's** auth mode: in the merge `SrvRaft` gains a field
+  `authOn`, `srvNet γ`'s `img` is `srvImageM γ.authOn γ` (`srvImageOn` when on, `srvImage` by `rfl`
+  when off), and `NewServer` ties a member's mode to its cluster's (`γr.raft.raft.authOn =
+  E.authOn`: every member of a cluster boots in its mode, as every example does; in Go a mixed
+  cluster's receiver would read the sender's auth buckets in the other mode). Drafted:
+  `srvImageM (on : Bool)`, `AonDraft.srvNetM` with `srvNetM_off` (`rfl`), `srvSnapROAuth` at the
+  cluster's mode. The ripple measured: `SrvRaft` is built in one place (`srvLogInv_alloc`,
+  `SrvRaftLog.lean`), whose three callers (`NewServerAlloc`, `NewServerAllocOn`, `BuildAlloc`) know
+  the mode; the transport and snapshot handler (about 10 files) only pass `img` on; the concrete
+  image proofs that need `authOn = false` to read `img` as `srvImage` are about 10 files (`InvImage`,
+  `SnapRecvFacts`, `ApplyAllSnap`, `SnapSendBranch`, `EtcdServer__applyAll`, `NewServer`, `SnapRO`,
+  `InvRun`, kvdurable's `Image`/`Defs`); the examples take `SrvRaft` from the allocators. A change to
+  `SrvRaft` rebuilds 1238 modules (one full build); no exported statement is expected to change (the
+  examples' `SrvRaft` is existential: the interface check confirms). With it, step 3 closes both
+  `run.wp_proofOn`'s gap and the sender's #7-on (`EtcdServer__applyAll.lean:811`), the sender proving
+  `srvImageOn` of an auth-on member's database (a mode-on `merged_image`, over a mode-on `mergedObs`:
+  to state at the Prove step).
 - **F9**, packaging: decision 6's trigger (J8b) has landed. One `specSnap`/`applyAll.specSnap` over
   `E.authMode` (the mode-off text a corollary), or the twins.
 - **R2's N4**: with only `authRdLoan R`, no proof builds the copies of `RD` (which contains `R`) that

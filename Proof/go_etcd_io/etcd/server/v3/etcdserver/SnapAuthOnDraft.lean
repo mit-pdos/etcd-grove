@@ -1050,15 +1050,37 @@ instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp G
     Persistent (srvAuthSnapOk (GF := GF) s γa RD) := by
   unfold srvAuthSnapOk; infer_instance
 
-/-- **The image certificate in the cluster's mode** (decision 7, `srvSnapRO`'s certificate by mode;
-review round 1's F5): `srvImageOn` in `on`, today's `srvImage` otherwise (by `rfl`). In the merge,
-with #7-on, the one `srvImage` over the mode. -/
-def srvImageM (M : auth.AuthMode) (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
-  match M with
-  | .on _ => srvImageOn γ i D
-  | _ => srvImage γ i D
+/-- **The image certificate in the cluster's auth mode** (decision 7; #7-on (b), the user's go-ahead
+of 2026-11-03 after review R1's F8): `srvImageOn` when the cluster runs auth on, `srvImage`
+otherwise (by `rfl`). Keyed on the **cluster's** mode, not a member's `E.authMode`: the certificate
+travels in the cluster's network payload (`srvNet`), which every member's transport and snapshot
+directory share. In the merge the mode is a field of `SrvRaft` (`authOn`, set by the allocator
+`srvLogInv_alloc`, whose callers `NewServerAlloc`/`NewServerAllocOn` know it), and `NewServer` ties
+it to the member's (`γr.raft.raft.authOn = E.authOn`): every member of a cluster boots in its mode. -/
+def srvImageM (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
+  match on with
+  | true => srvImageOn γ i D
+  | false => srvImage γ i D
 
-theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) .off γ = srvImage γ := rfl
+theorem srvImageM_off (γ : SrvRaft) : srvImageM (GF := GF) false γ = srvImage γ := rfl
+
+instance srvImageM_persistent (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) :
+    Persistent (srvImageM (GF := GF) on γ i D) := by
+  cases on
+  · simp only [srvImageM]; infer_instance
+  · simp only [srvImageM]; unfold srvImageOn dbImageOn; infer_instance
+
+/-- **The network payload in the cluster's auth mode** (#7-on (b)): `srvNet` with the image
+certificate by the mode (`srvImageM`). In the merge `srvNet γ` is this at `γ.authOn`; the sender
+(`applyAll`'s merge branch, `EtcdServer__applyAll.lean`'s #7-on) proves `srvImageOn` of an auth-on
+member's database, the receiver (`snapRecv_imageOn`) reads it from the snapshot directory. -/
+def AonDraft.srvNetM (on : Bool) (γ : SrvRaft) : NetPayload GF :=
+  { srvNet γ with
+    img := fun i D => srvImageM on γ i D
+    img_pers := fun i D => by infer_instance }
+
+/-- Mode off, today's payload. -/
+theorem AonDraft.srvNetM_off (γ : SrvRaft) : AonDraft.srvNetM (GF := GF) false γ = srvNet γ := rfl
 
 /-- **The apply thread's share of a server backend's open token, by the mode** (decision 5; review
 R1's F1, R2's N1): a quarter in `on`, the auth realization keeping `authOpenQ`; the half otherwise.
@@ -1071,14 +1093,14 @@ def AonDraft.srvOpenQ (M : auth.AuthMode) : Qp :=
   | _ => (1 : Qp).half
 
 /-- **`srvSnapRO`'s two mode-dependent clauses, redefined** (decision 7 and 8): `srvSnapRO` is
-today's with `snapDirInv ss γd (srvImage γr.raft.raft) …` replaced by `snapDirInv ss γd (srvImageM
-E.authMode γr.raft.raft) …`, `E.RO = srvRestOwnH d.γB cl …` by its mode-indexed owner
+today's with `snapDirInv ss γd (srvImage γr.raft.raft) …` replaced by `snapDirInv ss γd (srvImageM on
+γr.raft.raft) …` at the cluster's mode `on` (`γr.raft.raft.authOn` in the merge), `E.RO = srvRestOwnH d.γB cl …` by its mode-indexed owner
 (`AonDraft.srvRestOwn E.authMode`), and, beside `□ (⌜E.authMode = off⌝ → authRecoverOk ast)`, the
 mode-`on` row `□ ∀ γa, ⌜E.authMode = .on γa⌝ → srvAuthSnapOk s γa E.RD` (the gated `Recover` facts
 of decision 5). Drafted as the delta, the rest of the bundle unchanged. -/
-def AonDraft.srvSnapROAuth (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γd : GName)
+def AonDraft.srvSnapROAuth (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γd : GName)
     (ss : Loc) (γt : GName) : IProp GF :=
-  iprop(inv snapDirN (snapDirInv ss γd (srvImageM E.authMode γr.raft.raft) (srvSnapRm γt γr)) ∗
+  iprop(inv snapDirN (snapDirInv ss γd (srvImageM on γr.raft.raft) (srvSnapRm γt γr)) ∗
     □ (∀ γa : auth.AuthNames, ⌜E.authMode = .on γa⌝ → srvAuthSnapOk s γa E.RD))
 
 /-- **`srvSnapApplied` with auth on**: the server's row in the mode, the applier at the image's
@@ -1262,7 +1284,7 @@ the applier's and the KV's rows in the mode at the applied log's auth state `sa`
 chain the mode-on one, and the store's snapshot clause, `srvAuthSnapOk`; after, at the image's
 auth state). Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
 `srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
-false of an auth-on cluster's images; in the merge `srvImageM E.authMode`, `srvImageOn` in the
+false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
 mode `on`, from which `snapRecv_imageOn` gives `specSnapOn`'s `hauthI`/`hkI`), and under
 `authApplyResB`'s redefinition as `specSnapOn` is. -/
 abbrev EtcdServer.applyAll.specSnapOn : Prop :=
