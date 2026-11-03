@@ -227,16 +227,71 @@ def rwR (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) : IProp GF :=
 /-! ## Lemma statements (U3, U4, U5) -/
 
 theorem Pm_fractional (B : BNs) (db : Loc) : Fractional (Pm (GF := GF) B db) := by
-  sorry
+  have fea : ∀ {X : Type} (Φ : X → Qp → IProp GF), (∀ x, Fractional (Φ x)) →
+      (∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) → Fractional (fun q => iprop(∃ x, Φ x q)) := by
+    intro X Φ hfrac hagree
+    refine ⟨fun p q => ⟨?_, ?_⟩⟩
+    · iintro ⟨%x, H⟩
+      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists x; iexact H1
+      · iexists x; iexact H2
+    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
+      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
+      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
+      subst h
+      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
+  unfold Pm
+  refine fea _ (fun ms => ?_) (fun x y q1 q2 => ?_)
+  · have h1 : Fractional (fun q : Qp => ghostVar (GF := GF) B.map q.half.half ms) :=
+      ⟨fun p q => by
+        rw [Qp_half_add, Qp_half_add]; exact (ghostVar_fractional _ _).fractional _ _⟩
+    have hd : DFractional (fun dq => mapFields (GF := GF) db dq ms) := by
+      rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
+    have h2 : Fractional (fun q : Qp => mapFields (GF := GF) db (DFrac.own q.half) ms) :=
+      ⟨fun p q => by
+        rw [Qp_half_add]
+        exact (fractional_of_dfractional (h := hd) _).fractional
+          p.half q.half⟩
+    have h3 : Fractional (fun q : Qp => ghostVar (GF := GF) B.mtok q ()) :=
+      ghostVar_fractional _ _
+    infer_instance
+  · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 gives %H
+    ipureintro; exact H.2
 
 theorem Ps_fractional (sp : Loc) : Fractional (Ps (GF := GF) sp) := by
-  sorry
+  have fea : ∀ {X : Type} (Φ : X → Qp → IProp GF), (∀ x, Fractional (Φ x)) →
+      (∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) → Fractional (fun q => iprop(∃ x, Φ x q)) := by
+    intro X Φ hfrac hagree
+    refine ⟨fun p q => ⟨?_, ?_⟩⟩
+    · iintro ⟨%x, H⟩
+      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists x; iexact H1
+      · iexists x; iexact H2
+    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
+      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
+      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
+      subst h
+      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
+  unfold Ps
+  by_cases h : sp = null
+  · simp only [h, ite_true]; exact ⟨fun _ _ => emp_sep.symm⟩
+  · simp only [h, ite_false]
+    refine fea _ (fun s => fractional_of_dfractional
+      (fun dq => typedPointsto (GF := GF) sp s dq)) (fun x y q1 q2 => ?_)
+    iintro ⟨H1, H2⟩
+    icombine H1 H2 gives %H
+    ipureintro; exact H
 
 /-- The `W` slots are neither tree nor pending slots, nor metas. Used by U3/U4 (`store_publish`,
 `store_free` move slots between the store and `W`). -/
 theorem wdbOK_partition (w : WDb) (h : wdbOK w) :
     ∀ s ∈ w.W, 2 ≤ s ∧ s ∉ treeSlots w.C ∧ s ∉ pendSlots w.fl := by
-  sorry
+  intro s hs
+  obtain ⟨h2, -, ht, hp⟩ := (h.2.2.2.1 s).1 hs
+  exact ⟨h2, ht, hp⟩
 
 end locks
 
