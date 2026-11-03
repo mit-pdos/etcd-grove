@@ -101,18 +101,25 @@ instance beP_fractional (st : Loc) (R : IProp GF) (M : AuthMode) :
     Fractional (beP (GF := GF) st R M) := by
   unfold beP
   exact fractional_exists_agree
-    (fun (be : AuthBackend) q => iprop(aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M))
+    (fun (be : AuthBackend) q => iprop(∃ γc : AuthBkNames,
+      aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M γc ∗ beCurM M q γc))
     (fun b => ⟨fun q1 q2 => by
       rw [Qp.half_add]
       constructor
-      · iintro ⟨H, #Hv⟩
+      · iintro ⟨%γc, H, #Hv, Hc⟩
         icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
-        iframe H1 H2 Hv
-      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        icases (beCurM_split M q1 q2 γc).1 $$ Hc with ⟨Hc1, Hc2⟩
+        isplitl [H1 Hc1]
+        · iexists γc; iframe H1 Hv Hc1
+        · iexists γc; iframe H2 Hv Hc2
+      · iintro ⟨⟨%γ1, H1, #Hv, Hc1⟩, ⟨%γ2, H2, -, Hc2⟩⟩
+        iexists γ1
         iframe Hv
-        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+        isplitl [H1 H2]
+        · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]
+        · iapply beCurM_merge M q1 q2 γ1 γ2 $$ [$Hc1 $Hc2]⟩)
     (fun x y q1 q2 => by
-      iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+      iintro ⟨⟨%γ1, H1, -⟩, ⟨%γ2, H2, -⟩⟩
       icombine H1 H2 gives %Heq
       ipureintro; exact Heq)
 
@@ -208,11 +215,12 @@ theorem newAuthStore_on
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γa : AuthNames)
-    (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
+    (γc : AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
     (stl : AuthState) (hlast : hs.getLast? = some stl) (hfit : permsFit stl)
     (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) γc ∗
+        authBkCur γa (1 : Qp).half γc ∗ authCur γc 1 ∗
         authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
@@ -228,7 +236,7 @@ theorem newAuthStore_on
         (∃ c : w64, aF go!"bcryptCost" stp ↦□ c) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
+  wp_start as ⟨%Hlg, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
   icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
@@ -346,8 +354,8 @@ theorem newAuthStore_on
   ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
   ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
   imod (sync.init_RWMutex (beP «$r0_ptr» R (.on γa)) (aF go!"beMu" «$r0_ptr») (E := ⊤))
-    $$ [Hbe1] beMu with HbeS
-  · inext; iunfold beP; iexists _; iframe Hbe1; iexact Hrdok
+    $$ [Hbe1 Hbk Hcu] beMu with HbeS
+  · inext; iunfold beP; iexists _, γc; iframe Hbe1 Hrdok; simp only [beCurM]; iframe Hbk Hcu
   -- (E3h) the field's ghost variable at the flag read: half the guard's, a quarter the admin
   -- side's, a quarter the store's freshness
   imod (ghostVar_update b γa.fen b0) $$ Hfe with Hfe
@@ -491,6 +499,7 @@ theorem newAuthStore_on
   imod (authSnapF_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
   wp_bind (App (Val («$r0_ptr» @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
+  icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
   iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta hs') $$ [HL Hca Hown]
   · iframe Hpkg Hinv Hca Hsnap Hown
     isplitr
@@ -500,6 +509,8 @@ theorem newAuthStore_on
     ipureintro; exact ⟨Hsta.2.1, fun _ _ => Hsta.1⟩
   inext
   iintro ⟨HL, Hca, Hown⟩
+  icombine Hown HshR as Hown
+  ihave Hown := (authOwnF_split _ _).2 $$ Hown
   ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   -- `tx.Unlock()`, `be.ForceCommit()`

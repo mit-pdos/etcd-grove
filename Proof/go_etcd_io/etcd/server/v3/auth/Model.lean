@@ -43,6 +43,7 @@ public import Code.go_etcd_io.etcd.server.v3.auth
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.Token
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
 
@@ -354,6 +355,12 @@ structure AuthNames where
   kept in the store's revision invariant with a quarter of the history, `revCur`); its authority
   (`capAuth`) is the store's client's, which raises it before a step may append -/
   cap : GName
+  /-- **the current backend's ghost names** (the auth-on snapshot plan's decision 3b, 2026-11-03):
+  a ghost variable at the names of the backend the store reads (`authBkCur`, `BkNames.lean`), half
+  in `beMu`'s guard, half with the apply thread's write token -/
+  bk : GName
+  /-- **the succession right** (`authSucc`, `BkNames.lean`): at most one backend live at a time -/
+  succ : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -523,14 +530,6 @@ theorem authPubAuth_lb_le (γa : AuthNames) (p i : Nat) :
   icases monoNatLbOwn_valid γa.pub 1 p i $$ H Hlb with %Hv
   ipureintro; exact Hv.2
 
-/-- **The store's ghost at its allocation** (the auth plan's E3h, 2026-10-27): the half of the
-latest state's ghost variable and the history's quarter with the cap's lower bound at it (H5) that the
-store's revision invariant takes (`revCur`), and the
-published index's authority at `0` (the invariant's freshness, `revFresh`). -/
-def authStoreInit (γa : AuthNames) (hs : List AuthState) (st : AuthState) : IProp GF :=
-  iprop(authCurHalf γa st ∗ authHistRev γa hs ∗ capLb γa hs ∗ authPubAuth γa 0 ∗ (∃ b : Bool, ghostVar γa.fen 1 b) ∗
-    ∃ v : Loc × Nat, ghostVar γa.fca 1 v)
-
 theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
     authStateAt (GF := GF) γa i st ⊢ ⌜permKeysOk st⌝ := by
   unfold authStateAt
@@ -581,20 +580,27 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
       authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) ∗
-      authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C := by
+      authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C ∗
+      -- (2026-11-03, the auth-on snapshot plan's P3) the current backend's name, unset, and the
+      -- succession right
+      (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ := by
   unfold authCurHalf authPubAuth
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imod (mono_list_own_alloc (GF := GF) C) with ⟨%γcap, Hcap, #Hcl⟩
-  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
+  imod (ghostVar_alloc (GF := GF) ((γ, γ, γ) : GName × GName × GName)) with ⟨%γb, Hb⟩
+  imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
+  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
   imod (ghostVar_alloc (GF := GF) ((null : Loc), 0)) with ⟨%γk, Hk⟩
+  ihave Hb' : iprop(∃ γ0 : GName × GName × GName, ghostVar (GF := GF) γb 1 γ0) $$ [Hb]
+  · iexists _; iexact Hb
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap⟩
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs⟩
   unfold authHist authHistRev capAuth capLb
-  iframe H Hp He Hk Hr Hcap Hcl
+  iframe H Hp He Hk Hr Hcap Hcl Hs Hb'
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr

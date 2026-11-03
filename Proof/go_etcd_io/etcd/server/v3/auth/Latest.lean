@@ -43,14 +43,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- `as.lockedReadTx()` for a caller holding the admin side's authority `hs` (the apply thread):
-the locked read transaction is at the latest state (`authReadTxLockedL`); the authority back. -/
+/-- `as.lockedReadTx()` for a caller holding the admin side's authority `hs` and its write token on
+the current backend (`authWHeldM`; the apply thread, outside a batch): the locked read transaction
+is at the latest state (`authReadTxLockedL`); the authority and the token back. -/
 abbrev auth.authStore.lockedReadTx.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState),
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      beRd st R M ∗ R ∗ authOwn M hs }}
+      beRd st R M ∗ R ∗ authOwn M hs ∗ authWHeldM M γw }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"lockedReadTx")) (Val #()))
-  {{ (tx : GoInterface), RET #tx; beRd st R M ∗ authReadTxLockedL tx R M hs ∗ authOwn M hs }}
+  {{ (tx : GoInterface), RET #tx; beRd st R M ∗ authReadTxLockedL tx R M hs ∗ authOwn M hs ∗
+      authWHeldM M γw }}
 
 end spec
 
@@ -63,8 +65,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.lockedReadTx.wp_latest :
     auth.authStore.lockedReadTx.specL (GF := GF) (hG := hG) := by
-  intro st R M hs
-  wp_start as ⟨#Hinv, Hrd, HR, Hown⟩
+  intro st R M hs γw
+  wp_start as ⟨#Hinv, Hrd, HR, Hown, Hw⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold authInv at Hinv
@@ -75,29 +77,28 @@ theorem auth.authStore.lockedReadTx.wp_latest :
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold beP at HP
-  icases HP with ⟨%be, Hbe, #Hbeok⟩
+  icases HP with ⟨%be, %γc, Hbe, #Hbeok, Hcu⟩
   ihave #Hbeok' := Hbeok
   iunfold authBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HRT⟩
   subst Hbi
   wp_auto
   wp_apply HRT as %tx Htx
-  iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, Htx⟩
+  ihave Htx := authReadTxOk_latest _ R M γc $$ Htx
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, #Hreads⟩
   subst Hti
-  icases Htx with ⟨%Hs, -, #HRL, -, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-  iapply HRL $$ %hs [HR Hown]
-  · iframe HR Hown
+  iapply HRL $$ %hs %sync.rfrac %γw [HR Hown Hw Hcu]
+  · iframe HR Hown Hw Hcu
   inext
-  iintro ⟨%sta, Htok, #Hsnap, Hown, %Hlast⟩
+  iintro ⟨%sta, Htok, #Hsnap, Hown, Hw, Hcu, %Hlast⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe] as Hrd
-  · inext; iunfold beP; iexists _; iframe Hbe; iexact Hbeok
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe Hcu] as Hrd
+  · inext; iunfold beP; iexists _, γc; iframe Hbe Hbeok Hcu
   iapply HΦ
   iunfold beRd
-  iframe Hrd Hown
+  iframe Hrd Hown Hw
   iunfold authReadTxLockedL
   iexists ti
   isplitr
@@ -320,17 +321,17 @@ abbrev auth.authStore.isRangeOpPermitted.specL : Prop :=
 the flag (at `b`) and of the cache (at `sc`) tied to the latest state (`latestTie`), the verdict is
 the latest state's (`permVerdictL`); the resources back. -/
 abbrev auth.authStore.isOpPermitted.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames) (b : Bool)
     (sc : auth.AuthState) (info : AuthInfo) (key re : GoSlice) (k e : List w8) (dk de : DFrac)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
-      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜latestTie M hs b sc⌝ }}
     (App (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isOpPermitted"))
       (Val #info.Username')) (Val #info.Revision')) (Val #key)) (Val #re)) (Val #pt))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e (permOp pt) err⌝ }}
 
 end spec
@@ -509,8 +510,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
     (h_lockedReadTx : auth.authStore.lockedReadTx.specL (GF := GF) (hG := hG))
     (h_isRangeOpPermitted : auth.authStore.isRangeOpPermitted.specL (GF := GF) (hG := hG)) :
     auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG) := by
-  intro st R M hs b sc info key re k e dk de pt
-  wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  intro st R M hs γw b sc info key re k e dk de pt
+  wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen, Hown, Hw, Hfl, Hca, %Htie⟩
   iunfold authRd at Hrd
   icases Hrd with ⟨Hen, Hcr, Hbr, HR⟩
   ihave %Hkeys := authOwn_last_permKeysOk M hs $$ Hown
@@ -608,7 +609,7 @@ theorem auth.authStore.isOpPermitted.wp_latest
     | off => exact absurd rfl Hnoff
     | any => trivial
   have hcur : uint.nat cur ≤ uint.nat info.Revision' := by word
-  wp_apply (h_lockedReadTx st R M hs) $$ [$Hinv $Hbr $HR $Hown] as %tx ⟨Hbr, Htx, Hown⟩
+  wp_apply (h_lockedReadTx st R M hs γw) $$ [$Hinv $Hbr $HR $Hown $Hw] as %tx ⟨Hbr, Htx, Hown, Hw⟩
   iunfold authReadTxLockedL at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
@@ -815,43 +816,43 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.IsPutPermitted(authInfo, key)` on the apply thread: the latest state's verdict on the
 write (`isOpPermitted.specL`). -/
 abbrev auth.authStore.IsPutPermitted.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
     (dk : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsPutPermitted")) (Val #a)) (Val #key))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k [] .write err⌝ }}
 
 /-- `as.IsRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's verdict
 on the read. -/
 abbrev auth.authStore.IsRangePermitted.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key re : GoSlice)
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .read err⌝ }}
 
 /-- `as.IsDeleteRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's
 verdict on the write. -/
 abbrev auth.authStore.IsDeleteRangePermitted.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key re : GoSlice)
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsDeleteRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .write err⌝ }}
 
 end spec
@@ -866,13 +867,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.IsPutPermitted.wp_latest
     (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
     auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG) := by
-  intro st R M hs b sc a info dq key k dk
-  wp_start as ⟨#Hinv, Hrd, Ha, Hk, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  intro st R M hs γw b sc a info dq key k dk
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, %Hlen, Hown, Hw, Hfl, Hca, %Htie⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R M hs b sc info key slice.nil k [] dk (DFrac.own 1)
-      (W32 1)) $$ [$Hinv $Hrd $Hk $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, -, Herr, Hown, Hfl, Hca, %Hv⟩
+  wp_apply (h_isOpPermitted st R M hs γw b sc info key slice.nil k [] dk (DFrac.own 1)
+      (W32 1)) $$ [$Hinv $Hrd $Hk $Hown $Hw $Hfl $Hca] as %err ⟨Hrd, Hk, -, Herr, Hown, Hw, Hfl, Hca, %Hv⟩
   · isplitl
     · iapply ownSlice_nil (V := w8) (DFrac.own 1)
     ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
@@ -887,13 +888,13 @@ theorem auth.authStore.IsPutPermitted.wp_latest
 theorem auth.authStore.IsRangePermitted.wp_latest
     (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
     auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG) := by
-  intro st R M hs b sc a info dq key re k e dk de
-  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  intro st R M hs γw b sc a info dq key re k e dk de
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hw, Hfl, Hca, %Htie⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R M hs b sc info key re k e dk de
-      (W32 0)) $$ [$Hinv $Hrd $Hk $He $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hfl, Hca, %Hv⟩
+  wp_apply (h_isOpPermitted st R M hs γw b sc info key re k e dk de
+      (W32 0)) $$ [$Hinv $Hrd $Hk $He $Hown $Hw $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hw, Hfl, Hca, %Hv⟩
   · ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
   ihave Ha : a ↦{dq} info $$ [Username Revision]
   · iapply typedPointsto_combine a info dq Hann
@@ -906,13 +907,13 @@ theorem auth.authStore.IsRangePermitted.wp_latest
 theorem auth.authStore.IsDeleteRangePermitted.wp_latest
     (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
     auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG) := by
-  intro st R M hs b sc a info dq key re k e dk de
-  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  intro st R M hs γw b sc a info dq key re k e dk de
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hw, Hfl, Hca, %Htie⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R M hs b sc info key re k e dk de
-      (W32 1)) $$ [$Hinv $Hrd $Hk $He $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hfl, Hca, %Hv⟩
+  wp_apply (h_isOpPermitted st R M hs γw b sc info key re k e dk de
+      (W32 1)) $$ [$Hinv $Hrd $Hk $He $Hown $Hw $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hw, Hfl, Hca, %Hv⟩
   · ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
   ihave Ha : a ↦{dq} info $$ [Username Revision]
   · iapply typedPointsto_combine a info dq Hann

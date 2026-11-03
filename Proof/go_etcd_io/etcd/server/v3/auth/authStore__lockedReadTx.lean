@@ -38,25 +38,25 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold beP at HP
-  icases HP with ⟨%be, Hbe, #Hbeok⟩
+  icases HP with ⟨%be, %γc, Hbe, #Hbeok, Hcu⟩
   ihave #Hbeok' := Hbeok
   iunfold authBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HRT⟩
   subst Hbi
   wp_auto
   wp_apply HRT as %tx Htx
-  iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, Htx⟩
+  ihave Htx := authReadTxOk_rd _ R M γc $$ Htx
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, #Hreads⟩
   subst Hti
-  icases Htx with ⟨%Hs, #HRL, -, -, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-  iapply HRL $$ HR
+  iapply HRL $$ %sync.rfrac [HR Hcu]
+  · iframe HR Hcu
   inext
-  iintro ⟨%sta, Htok, #Hsnap⟩
+  iintro ⟨%sta, Htok, #Hsnap, Hcu⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe] as Hrd
-  · inext; iunfold beP; iexists _; iframe Hbe; iexact Hbeok
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe Hcu] as Hrd
+  · inext; iunfold beP; iexists _, γc; iframe Hbe Hbeok Hcu
   iapply HΦ
   iunfold beRd
   iframe Hrd
