@@ -30341,3 +30341,30 @@ reviews whose every finding was repaired inside the implementation, the frozen s
 choice that mattered: a relative revision budget re-based at `Restore`, in place of a receipt premise
 on `Restore`, which would have changed the frozen spec). Recorded for etcd's migration: its `txn`
 package's size premise (`sortSmall`) needs a bound the API does not state.
+
+## mvcc's API and its clients' specs, frozen again (2026-11-03 · the user delegated the freeze · branch `mvcc-api`)
+
+Supersedes the two entries above where they differ. **What it was.** The API frozen at round 13 and
+its invariants (with a relative revision budget) were reopened before any proof, at the user's
+request to design every spec and invariant the migration needs, the client packages' included,
+before proving (to avoid backtracking): the three client drafts (txn, the server's apply and lease
+paths, the watch path) and their cross-review found the clients needing facts the API did not
+give (the range results' sort facts, the history's receipt for client/v3's exported `kvLogOk`, the
+sender's image for the snapshot path).
+
+**Decision.** Rounds 14-16 (`notes/mvcc-api-candidate.md`): the size facts at the `Range` contracts
+(`stateOk`, the user's (D): local, since Perennial will lift the sort's size premise), no
+state-level size law; the image with its receipt (`mvccImage`, the user: hide the receipt in an
+abstract predicate traced from the sender's store to the receiver's `Restore`); the receipt of the
+history given at each step that changes it (a fact the caller needs at the call that returns it);
+`mvccImage_snapshot.law`, by an update at the state (no pin predicate), for a store that never
+compacted (the backend's `Snapshot` axiom reports nothing of the compaction keys after a write:
+strengthening it is the user's call, open); no relative budget. The client packages' specs are
+frozen as drafted (`notes/mvcc-api-clients/`: `TxnSpecs.lean`, `ServerSpecs.lean`, `WatchSpecs.lean`,
+scratch modules over the API, not built, with their notes, the cross-review and the review of round
+16); the invariants are `notes/mvcc-api-invariants.md` with round 16's additions (the share token
+behind `mvccBackend`, the frozen writer state). Frozen when every draft typechecked against the API
+with no need left open, and the independent review's findings were repaired (F1 by the premise
+above) or recorded (F4, `keySized` derivable, kept). Next: the proofs, stage 1 (the vocabulary's
+re-exports, the ghost state, the definitions in a sealed `ApiImpl.lean`), then the contracts and
+laws in parallel, then the clients (M1: all at once).
