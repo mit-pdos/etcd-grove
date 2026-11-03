@@ -48,6 +48,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestLeased
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
@@ -84,6 +85,15 @@ def bkRestAt [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel
     Prop :=
   ∀ n ∈ restBuckets, D.lookup n = bkRestOf c0 bootLog L n
 
+/-- **The leased image of a log that grants nothing is the plain one** (the lease-grant plan's
+Freeze, amendment (D)): with no live lease, `bkRestAtL`'s records are none. -/
+theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
+    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAtL γk bootLog L D) :
+    bkRestAt γk.c0 bootLog L D := by
+  obtain ⟨f, hf⟩ := h
+  intro n hn'
+  rw [hf n hn', hn, apply.restLeasesWith_nil]; rfl
+
 /-! ## The image -/
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
@@ -92,7 +102,7 @@ def imageAt [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A :
     (D : Data) : Prop :=
   mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
+    bkRestAtL γk bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -141,8 +151,11 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
   ipureintro
   refine ⟨h.1, ?_⟩
   have h2' := h.2
-  unfold imageAt at h2' ⊢
+  have hl : ∀ L, kvLeases γk L = kvLeases γk' L := by
+    intro L; simp only [kvLeases, h0, h1]
+  unfold imageAt bkRestAtL at h2' ⊢
   rw [← hk, ← hc]
+  simp only [← hl]
   exact h2'
 
 /-- A member's image certificate is the network's. -/
@@ -230,9 +243,10 @@ theorem imageAt_of_snap {P : BParams} (hP : mvcc.bridgeParams P) (hK : ciKeys P)
     (htm : ∃ t : w64, (hkData P D).lookup (schema.metaName, schema.termKeyBytes) = encMeta t)
     (hcmp : dget D schema.metaName mvcc.schedKeyBytes = none ∧
       dget D schema.metaName mvcc.finKeyBytes = none)
-    (hrb : rbData P D = (restModel γk.c0 bootLog L).bk)
+    (f : w64 → w64)
+    (hrb : rbData P D = (apply.restLeasesWith f (kvLeases γk L).ids (restModel γk.c0 bootLog L)).bk)
     (hwf : mvcc.IdxWf (kvModel γk A) []) : imageAt γk bootLog i L A D := by
-  have hrest := bkRestAt_of_rb hRB hrb
+  have hrest := bkRestAtL_of_rb hRB f hrb
   obtain ⟨t, ht⟩ := htm
   rw [hkData_lookup, ciKeys_hk hK (Or.inl rfl)] at hci
   rw [hkData_lookup, ciKeys_hk hK (Or.inr rfl)] at ht

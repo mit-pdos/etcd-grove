@@ -66,7 +66,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false) (hγw : γw.st = E.γ)
     (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hrbw : receiptBound GF ≤ backend.wbInit - 6) :
+    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (hlg : E.lg = false) :
     apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
         opts' ∗
       mvcc.isWatchableStore ws E.s γw ∗
@@ -96,7 +96,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   ihave ⟨#Hub, Huo⟩ :=
     Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) Hopts
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
+    hγw hwq hRok hrb hlg $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
   · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
   iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, -1⟩

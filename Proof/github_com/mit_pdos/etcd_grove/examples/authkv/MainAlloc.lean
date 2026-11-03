@@ -93,7 +93,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     isplitr
     · ipureintro
       exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-        hpfx, rfl, trivial, by rw [hkc', hkc], by simp [hklg', hklg]⟩
+        hpfx, rfl, trivial, by rw [hkc', hkc], by simp [hklg', hklg], by simp [hklg', hklg]⟩
     iunfold idNoZero
     rw [hiss', hiss]
     iexact H0

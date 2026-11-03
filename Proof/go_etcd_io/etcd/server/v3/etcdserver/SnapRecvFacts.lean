@@ -325,7 +325,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH d.γB cl H) (hlg : E.lg = false) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -335,6 +335,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
+  rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
@@ -359,7 +360,6 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
   have Hpl := Hpl0.1
   -- the cluster's in-memory members, from the rest resource
-  iunfold srvRest at Hrest
   rw [hRO]
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
@@ -384,9 +384,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
   isplitl [Hrb Hrn Hmem HH]
-  · iunfold srvRest
-    rw [hRO]
-    iunfold srvRestOwnH
+  · iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
     iframe Hrb Hrn Hmem
@@ -395,7 +393,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   iframe HA'
   ipureintro
   have hsplit := kvModel_split γr.kv A' hlog0
-  obtain ⟨hkI, hci, htm, hrest, hwf⟩ := himA
+  obtain ⟨hkI, hci, htm, hrestL, hwf⟩ := himA
+  -- (the lease-grant plan's (D)) the committed log grants nothing: the plain image
+  have hrest := bkRestAt_of_L (by
+    rw [hpre0, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A' Hpl]; rfl) hrestL
   have hb := image_bootBuckets d hrest
   have hrok : mvcc.restoreLogOk ((kvModel γr.kv A').drop 2) := by
     unfold kvModel at hwf ⊢

@@ -97,8 +97,11 @@ theorem dbImageR_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} 
   ipureintro
   refine ⟨h.1, ?_⟩
   have h2' := h.2
-  unfold imageAt at h2' ⊢
+  have hl : ∀ L, kvLeases γk L = kvLeases γk' L := by
+    intro L; simp only [kvLeases, h0, h1]
+  unfold imageAt bkRestAtL at h2' ⊢
   rw [← hk, ← h0]
+  simp only [← hl]
   exact h2'
 
 /-- **Draft of `srvImage`** (the network payload's `img`, `srvNet`; the snapshot directory's):

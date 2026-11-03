@@ -890,6 +890,62 @@ entries approved with it. Next: the plumbing, in the design's commit order, then
 and `members_removed` buckets only, and the axiom `membership.membersOfBk_empty` is restated over
 `membersOf` (old → new text in "Plumbing", "(A)"). No other frozen statement changes.
 
+**Amendment: (B), the user's, 2026-11-03.** §2.10 said "A grant is dispatched only with `v3`
+…; without it `o` is not `.applied`, so `grantIds`/`grantRest` are the identity". False:
+`dispatchStep` (`apply/InvUber.lean:70`) is `o = .applied log false` when `v3 = false`, so
+`grantIds rq o T` would append a grant that `dispatch` never ran, and `dispatch.spec`/`Apply.spec`'s
+frozen posts were unprovable at `v3 = false` (found in 3b, "Plumbing").
+- The fix (option 1): `grantIds`, `grantRest`, `grantIdsA`, `grantRestA` take `v3` and are the
+  identity when `v3 = false` (as `dispatchTable`): `grantIds rq v3 o L`, `grantRest t rq v3 o r`,
+  `grantIdsA rq v3 out L`, `grantRestA t rq v3 out r`, each gated on `dispatchKind rq =
+  .leaseGrant ∧ v3 = true` (the kind check is kept: a request dispatched as another kind with a
+  stray `LeaseGrant` field leaves the live set). The grant triple (2.11, below `dispatch`, always
+  with `v3`) uses `grantIds rq true o T`, `grantRest t rq true o rs`.
+- The two frozen posts, old → new:
+  `dispatch.spec`: `ltHalf E (grantIds rq o T)` → `ltHalf E (grantIds rq v3 o T)`;
+  `∃ t, E.RO (grantRest t rq o (restAfter rq v3 rs))` → `∃ t, E.RO (grantRest t rq v3 o (restAfter
+  rq v3 rs))`.
+  `Apply.spec`: `ltHalf E (grantIdsA rq out T)` → `ltHalf E (grantIdsA rq v3 out T)`;
+  `∃ t, E.RO (grantRestA t rq out (restOut …))` → `∃ t, E.RO (grantRestA t rq v3 out (restOut …))`.
+- Two deviations approved with it: the grant triple's pre (`grantPre`) has `⌜E.lg = true⌝`
+  (without it both halves are `True` at `E.lg = false` and `grantIdsOk T` is unprovable;
+  `dispatch` has it from `rqOk E.lg`'s grant arm); `revokeRes E rs` gains `⌜E.lg = false⌝` (a
+  revocation changes `L`, and in a granting cluster the apply thread holds one half only; `rqOk
+  E.lg` excludes revocations).
+
+**Amendment: (C), the user's, 2026-11-03.** The gap: the grant's outcome fact (`(o applied) ↔
+err = nil ↔ grantGoes c rq ∧ grantIdsOk T g.id g.ttl`) was only in the grant triple's post (2.11,
+internal); 2.10's `dispatch.spec`/`Apply.spec` posts did not pass it on, and what they give
+(`dispatchStep`, whose backend grant arm is `applied ∨ rejected .backend` whatever the table) does
+not tie `o` to the model table, so `srvRest_applyG` (hence `applyEntryNormal` with a grant entry)
+was unprovable (found in 3b, "Plumbing"). The fix (option 1): one pure conjunct in each post,
+`grantOutOk c rq v3 T o := dispatchKind rq = .leaseGrant → v3 = true → ∀ g, rq.leaseGrant = some g
+→ ((∃ l ns, o = .applied l ns) ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)` (pure, in
+`apply/Chain.lean` beside `grantIds`; vacuous for other requests and at `v3 = false`).
+- `dispatch.spec`'s post, old → new: `… ∗ (∃ t, E.RO (grantRest t rq v3 o (restAfter rq v3 rs))) ∗
+  cPost v3 Pre Post ∗ …` → `… ∗ (∃ t, E.RO (grantRest …)) ∗ ⌜grantOutOk c rq v3 T o⌝ ∗ cPost v3 Pre
+  Post ∗ …`.
+- `Apply.spec`'s post, old → new: `… ∗ (∃ t, E.RO (grantRestA t rq v3 out (restOut …))) ∗ cmpOwn E
+  x'.crev ∗ …` → `… ∗ (∃ t, E.RO (grantRestA …)) ∗ ⌜grantOutOkA x.chain rq v3 T out⌝ ∗ cmpOwn E
+  x'.crev ∗ …`, with `grantOutOkA c rq v3 T out := match out with | .dispatched o _ => grantOutOk c
+  rq v3 T o | _ => True` (`GrantRest.lean`, beside `grantIdsA`: `Apply`'s post has `out`, not `o`;
+  mechanical, the `grantIdsA` pattern).
+- Proved in `dispatch` from the grant triple's post (`Hst.2.1.trans Hst.2.2`), the other arms by
+  `grantOutOk_nonGrant`/`_noV3`; the server's ids law is then a pure lemma.
+
+**Amendment: (D), the user's, 2026-11-03** (review round 4, `notes/spec-review/lease-grant-design-r4.md`,
+finding B1). The gap: §2.14 gated `imageAt`'s rest conjunct on `γk.lg`, but the network's image
+certificate `srvImage γ i D := ∃ γk, ⌜γk.c0 = 0 ∧ γk.ch0 = … ∧ γk.log0 = …⌝ ∗ dbImage …` does not pin
+the sender's `lg`, so `dbImage_kv_congr` (and with it `dbImage_of_srvImage`, `snapRecv_image`)
+would need `γk.lg = γk'.lg`, which no receiver knows. The fix: `imageAt` is not gated; its rest
+conjunct is the leased image at every `lg`.
+- `imageAt`, old → new: `… ∧ bkRestAt γk.c0 bootLog L D ∧ …` → `… ∧ bkRestAtL γk bootLog L D ∧ …`
+  (`bkRestAtL` reads `γk` only through `c0`/`ch0`, so `dbImage_kv_congr` keeps its premises).
+- New law `bkRestAt_of_L : (kvLeases γk L).ids = [] → bkRestAtL γk bootLog L D → bkRestAt γk.c0
+  bootLog L D`; the receiver gets the empty ids from its plain log (`kvTableOf_plainM`).
+- `mergedObs` stays gated on `E.lg` (S-1); `merged_image` (the S2 `sorry`) converts both arms to
+  the ungated image, still true.
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
@@ -998,8 +1054,145 @@ buildable parts, each a full build with the checks, the design's statements unch
 the two `sorry`s already on the branch (`srvGrantOpen_open`, `leasegrant.Main.wp_proof`); all 46
 collections unchanged; `gen-init.py --check` and `gen-interface.py --check` (backend, raft) clean.
 
-**Where the plumbing stopped** (2026-11-03): after (A) and commit 3a. Commit 3b (the rest of
-commit 3, as listed above) is next, then 4 and 5. (A) resolved the conf-change problem above: with
-`membersOfBk` over the two membership buckets, `ccRest_restGrantT`/`restEntry_restGrantT` hold
-unconditionally, which `srvRest_snoc`'s conf-change arm in 3b uses. Nothing of 3b is started in
-the tree.
+**Commit 3b, partial** (2026-11-03, WIP on branch `lease-grant-3b`, not squashed: it does not
+build as a whole, and it is blocked on the problem below).
+
+*Done, building* (`apply.Link` builds; `SnapApplyOptsLemmas`, `NewServer` build):
+- `apply/Chain.lean`: `ltHalf_agree` (at `E.lg`), `ltHalf_update`; `leasesLive E` with `ltHalf E L`
+  (`kvOwn_lend` adapted); `grantHdr`, `grantRespIs`, `grantAnswer`, `grantPre`/`grantPost` (2.11's
+  triple, named), the triple as `applierTriples`' 6th conjunct (after `LeaseRevoke`); `LeaseGrant`
+  out of `respMethods`/`reqFacts`. The pure grant vocabulary moved for import order: `restGrantT`,
+  `grantIdsOk`, `restLeasesWith`, `updFn` and their laws to `apply/RestLease.lean`; `grantGoes`,
+  `grantIds`, `grantRest` to `Chain.lean`; `GrantRest.lean` keeps `grantIdsA`/`grantRestA` (its
+  header docstring is stale).
+- `apply/Contracts.lean`: `isApplyLessor`'s Grant clause over `RO rs` (2.12); `LessorDerive.lean`:
+  `isApplyLessor_of_lessorInv` with the `d`-named premise (`Rb := rbPart d.γB (· = leaseName)`,
+  `Ln := lessorBeOn lp d.be`) and an `RW` lens giving `d`; `RW₀`/`Rb` parameters gone;
+  `Results.lean`'s `lessor_apply_contract` and both instantiations (`NewServer`,
+  `SnapApplyOptsLemmas`) restated.
+- The four grant layers (`applierV3backend`, `quotaApplierV3`, `applierV3Capped`,
+  `applierV3Corrupt` `__LeaseGrant`): specs restated to `grantPre`/`grantPost`, proofs done; the
+  compositions (`newApplierV3Backend`, `newQuotaApplierV3`, `newApplierV3Capped`,
+  `newApplierV3Corrupt`, `newAuthApplierV3`) supply the clause; the `leasesLive` and
+  `applierTriples` patterns in the other apply proofs adapted.
+- `NewServer.lean`: allocates `E.γlt` at `[]` (`ghostVar_alloc`, split in halves), one half in the
+  boot's `leasesLive`; the other (`HltS`) is unused until the gated `srvRest` takes it.
+
+*Failing* (the server `Link` build): `SnapApplyKVLemmas.lean:123` (the receive side builds
+`leasesLive` at `L = []`: needs `ltHalf E []`, i.e. `E.lg = false` from the gated `srvRest`'s
+refutation, 2.9); `SnapApplyWalk.lean:379` (destructs the old `leasesLive`: one more component, and
+the same `E.lg = false`). Modules downstream of those were not reached.
+
+*Not started*: `dispatch.spec`/`Apply.spec` (2.10, blocked below), `grantRes`, the `dispatchTable`
+ids law; the server side: `srvRest` gated with `srvGrantable`, `srvRest_applyG`, the receive
+side's refutation, `entryOk`/`logShape` at `E.lg`, `applyEntryNormal`, `imageAt`/`mergedObs`
+gates, `mergedCreate_window`, the send branch.
+
+*Deviations* (internal; mechanical unless said):
+- `grantIds`/`grantRest` are gated on `dispatchKind rq = .leaseGrant` (not only on
+  `rq.leaseGrant = some g`): otherwise a put carrying a stray `leaseGrant` field would add a record;
+  `backendTable` is gated the same way. `grantIds_applied`/`grantRest_applied` take the kind.
+- `grantPre` has `⌜E.lg = true⌝`: at `E.lg = false` both halves are `True` and do not tie the
+  lessor's `L` to `T`, so `grantIdsOk T` is unprovable. `dispatch` gets it from `rqOk E.lg`'s grant arm.
+- `revokeRes` gains `⌜E.lg = false⌝`: a revocation changes `L`, and in a granting cluster the
+  apply thread holds only one half. The design missed it; `rqOk` excludes revocations when
+  `E.lg`, so the callers have it.
+- `grantRespIs` has `∃ e, Error ↦□ e` and `∃ t, TTL ↦□ t`; `chainOutcome c rq o` is
+  `chainStep backendStep c rq log o`.
+
+*The problem: 2.10 at `v3 = false` (resolved: amendment (B), the user's, 2026-11-03, option (1); the
+`v3` argument is in `Chain.lean`/`GrantRest.lean`).*
+- *What.* 2.10 says "without [v3] `o` is not `.applied`, so `grantIds`/`grantRest` are the
+  identity". False: `dispatchStep` (`apply/InvUber.lean:70`) is `if preV3Kind … ∨ v3 = false then
+  o = .applied log false`, so a grant dispatched without `v3` has `o = .applied log false`, and
+  `grantIds rq o T = T ++ [g.id]` though nothing was granted (`ar = null`). The frozen posts
+  `ltHalf E (grantIds rq o T)` and `∃ t, E.RO (grantRest t rq o …)` are then unprovable (the
+  lessor's `L` and the store did not change). The model `dispatchTable` already ignores a grant at
+  `v3 = false`.
+- *Options.* (1) give `grantIds`/`grantRest` (and `grantIdsA`/`grantRestA`) the `v3` argument,
+  identity when `v3 = false`: the text of `dispatch.spec`/`Apply.spec` changes (`grantIds rq v3 o
+  T`), matching `dispatchTable`. (2) keep the four definitions and gate the specs' posts on `v3`
+  (`if v3 then … else ltHalf E T ∗ E.RO …`). (3) keep the text and gate `grantIds` on
+  `o = .applied _ true`-like information: not available, `Outcome.applied` carries no `v3`.
+  Recommended: (1). Either way `grantRes` is vacuous when `ar = null`.
+
+**3b, after amendment (B)** (2026-11-03, WIP on `lease-grant-3b`):
+- *Done, building* (`apply.Link` builds): (B) itself (`grantIds rq v3 o L`, `grantRest t rq v3 o r`,
+  `grantIdsA`/`grantRestA` with `v3`, gated on `dispatchKind rq = .leaseGrant ∧ v3 = true`; laws
+  `_noV3`; the triple at `v3 := true`); `grantPermRq` (+ `_persistent`, `_of_not_grant`, in
+  `Chain.lean`); `grantRes E rq o ar` and `grantResA` (`InvUber.lean`); `chainStep_grant_logAfter`
+  (`DispatchLemmas.lean`: a grant leaves the KV log, any chain); `dispatch.spec` and `Apply.spec`
+  restated to 2.10 with (B) and their proofs (`dispatch`'s grant arm calls the triple). Mechanical:
+  `grantRes` is gated on `dispatchKind rq = .leaseGrant ∧ ar ≠ null` (so `True` at `v3 = false`,
+  where `ar = null`), its `o` unused (2.10's text names it); the new post conjuncts sit inside
+  `∃ o` (they mention `o`), after `kvOwn`/`chainClass`; `Apply.spec`'s module imports `GrantRest`.
+- *The problem (found 2026-11-03; stops the server side, the user's decision).* `srvRest`'s
+  leased arm (2.9) is `… ltHalf E (appliedTable γr A).ids …` with the image at those ids, so
+  `srvRest_applyG` must show `grantIds rq v3 o T = (appliedTable γr (A ++ [m])).ids`, i.e. the
+  design's "`(dispatchTable c rq v3 lt).ids = grantIds rq o lt.ids` under the triple's `o ↔` fact".
+  But that fact (`(o applied) ↔ err = nil ↔ grantGoes c rq ∧ grantIdsOk T g.id g.ttl`) is only in
+  the grant triple's post (2.11, internal); 2.10's `dispatch.spec`/`Apply.spec` posts do not pass it
+  on. What they give, `dispatchStep c rq v3 log o`, is `chainStep backendStep`, whose backend grant
+  arm is `o = .applied log false ∨ o = .rejected .backend` (either, whatever the table), and the
+  other new conjuncts (`ltHalf`, `grantRest`, `grantRes`) do not tie `o` to the model table. So
+  `srvRest_applyG`, hence `applyEntryNormal` with a grant entry (which `entryOk E.lg` admits, 2.8),
+  is unprovable from the frozen 2.10 text. Options:
+  (1) add a pure conjunct to both posts, e.g. `⌜apply.grantOutOk c rq v3 T o⌝` with `grantOutOk c
+  rq v3 T o := dispatchKind rq = .leaseGrant → v3 = true → ∀ g, rq.leaseGrant = some g → ((∃ l ns,
+  o = .applied l ns) ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)` (`Apply`: over `out`,
+  at `x.chain`); proved in `dispatch` from the triple's post (one line), and the ids law is then
+  pure (`leaseGrantOk lt` is `grantIdsOk lt.ids`; `chainTable` at a grant is the backend's at
+  `grantGoes`). Recommended: the smallest, and true of the code.
+  (2) make the model relation exact for a grant: `backendStep`'s grant arm takes the lessor's
+  condition, which needs the live set as an argument of `dispatchStep`/`chainStep` (a model
+  change reaching every user of `dispatchStep`, ≈90 sites).
+  (3) state the half after the call by the table: `ltHalf E (dispatchTable c rq v3 ⟨T⟩).ids`; but
+  `grantRest` still depends on `o`, so the image needs the same fact: no gain over (1).
+- *Not started* (unchanged from the list above): the server side (gated `srvRest` with
+  `srvGrantable`, its laws, `srvRest_applyG`, the receive side's refutation, `entryOk`/`logShape`
+  at `E.lg`, `applyEntryNormal`, `NewServer`'s `srvRest` half, `imageAt`/`mergedObs` gates,
+  `mergedCreate_window`, the send branch); the two failing files above
+  (`SnapApplyKVLemmas.lean:123`, `SnapApplyWalk.lean:379`) and `applyEntryNormal`'s calls of
+  `Apply.spec` (new arguments `T`, the half, `grantPermRq`; the post's `∃ t` RO) are where the
+  server build fails now.
+
+**3b, done** (2026-11-03, squashed onto `lease-grant`; the full build, `tcb-report.py --check` (new
+only the two `sorry`s already on the branch, `srvGrantOpen_open` and `leasegrant.Main.wp_proof`), the 46
+collections, `gen-init.py --check`, `gen-interface.py --check` (backend, raft) clean). After (B),
+(C) (`grantOutOk`/`grantOutOkA` in `dispatch.spec`/`Apply.spec`'s posts, proved in `dispatch`) and
+(D) (`imageAt`'s rest conjunct `bkRestAtL` for every lg, `bkRestAt_of_L` back at empty ids):
+- *The server side.* `InvRest.lean`: `srvGrantable`, `srvRest` gated (2.9), `srvRest_false`,
+  `srvRest_revocable` (the receive side's refutation); helpers `srvRestAt` (`srvRest_eq_at`), `srvIds
+  E T := if E.lg then T else []`, `srvGrantIf` (persistent), `srvRestAt_open` (⊣⊢: one form at both
+  `E.lg`), `srvRest_open`/`srvRest_close`, `srvRest_snoc` (premise: the table unchanged),
+  `srvRest_nodata`, `srvRest_applyG`, `srvGrantIf_perm`, `srvRest_init` (`NewServer`). `AppliedTable.lean`:
+  the ids law, pure (`dispatchTable_ids`, `dispatchTableA_ids` from `grantOutOk`), and
+  `appliedTable_snoc`/`_nodata`/`_cc`/`_nonLease`, `chainTable_*`. `ApplyCmpArm.lean`:
+  `srvRest_applyP`/`srvRest_applyP0` (a plain request or compaction), `srvGrantIf_permP`.
+  `RestLeased.lean`: the transfer lemmas across `restLeasesWith` (`restLeasesWith_lookup_other`,
+  `membersOfBk_`/`ccValidOn_`/`ccRaftEff_`/`membersDecode_`/`ccRest_restLeasesWith`).
+- *Callers.* `applyEntryNormal` (both arms) opens with `srvRest_open`, calls `Apply.spec` with
+  `T := srvIds E …`, the half and `grantPermRq` (`srvGrantIf_permP`), recloses with
+  `srvRest_applyP` (the auth-on KV arm's `kvSpecL` triple has no grant conjuncts: `srvRest_applyP0`);
+  admin entries through `srvRest_admin` (restated over `srvRest_snoc`, S3). `EtcdServer.apply`'s
+  conf-change arms (S2): `rs := restLeasesWith f (srvIds …) r` to `applyConfChange`, its premises by the
+  transfer lemmas, reclosed by `ccRest_restLeasesWith` and `appliedTable_cc`. The receive side (S4):
+  `applySnapshot` derives `E.lg = false` by `srvRest_revocable`; `kvOwn_snap`, `snap_applyKV`,
+  `snap_srvRest`, `srvSnapApplied_of_walk`, `snapRecv_image` take `hlg : E.lg = false`; `ApplyAllSnap`
+  derives it from its `lessorRevocable`. The send side: `mergedObs … lg` gated, `mergedCreate_window`
+  through `srvRest_open`/`close`, `bkRestIf_of_rb`. `NewServer` (S1): `specM`/`specG` gain the pure
+  premise `on = true → ρ.rd.kv.lg = false` (the Freeze row; `memberBootOn` gains the conjunct
+  `ρ.rd.kv.lg = false`, which `MainAlloc` discharges and `startServer` passes); the boot's `srvRest`
+  by `srvRest_init` with `HltS`, and `srvGrantable` at `lg = true` from `NewLessor`'s
+  `lessorGuard`/`lessorModeIs` (`on = false` by the new premise). `M2StorageDraftB2`'s congruence
+  through `kvLeases`.
+- *Deviations* (mechanical): `apply.Apply.specRec` gains `T`, `rqOk E.lg`, `grantPermRq E rq ∗ ltHalf E
+  T` and the post's `ltHalf`/`∃ t RO`/`grantOutOkA`/`grantResA`; `srvRest_applyG`'s premises (M3:
+  `hch : x.chain = γr.kv.ch0`, `hg`, `hr : ∀ r, restOut = restAfter`); instances
+  (`apply.Assumptions`, `lease.Assumptions`) as binders per theorem, not section variables.
+- *Left (not done in 3b).* `entryOk`/`logShape` at `E.lg` (2.8): the KV invariant is still
+  `plainLogM … false`, so no grant entry reaches `applyEntryNormal`; its callers pass `rqOk E.lg` by
+  `apply.rqOk_of_false`. With 2.8, `applyEntryNormal`'s grant arm uses `srvRest_applyG` and
+  `srvGrantIf_perm` (both proved). M1's lemmas are for commit 4.
+
+**Where the plumbing stopped** (2026-11-03): 3b done (above); next: commits 4 and 5 (and 2.8).

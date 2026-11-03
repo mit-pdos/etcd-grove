@@ -39,13 +39,13 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
     (A' : List EntryModel) (hγB : d'.γB = γB)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) (hlg : E.lg = false) :
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
       backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
-  unfold srvRest
+  rw [srvRest_false _ _ _ (by rw [snapE_lg]; exact hlg)]
   rw [snapE_RO]
   unfold srvRestOwnH srvRestOwn srvObjsOn
   have hmi : memIdOk memI := hA'.2 ▸ restModel_memIdOk' _ _ _

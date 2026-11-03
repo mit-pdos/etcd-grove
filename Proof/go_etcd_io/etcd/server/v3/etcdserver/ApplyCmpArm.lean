@@ -194,16 +194,62 @@ theorem kv_certPre_M (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.c
     rw [apply.chainStep_cmp_log rq hc.1.1 hc.2.2 x.log x.chain oc hs]
     iapply kvCert_certOk γk E.γ hγ $$ Hc
 
-/-- **The rest buckets after an entry's request**, covered or a compaction. -/
-theorem srvRest_apply_M (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut)
+theorem plainOrCmp_nonLease (rq : apply.IRRModel) (hp : plainOrCmp rq) :
+    apply.dispatchKind rq ≠ .leaseGrant ∧ apply.dispatchKind rq ≠ .leaseRevoke := by
+  rcases hp with hp | hc
+  · unfold plainCover at hp
+    constructor <;> intro hk <;> rw [hk] at hp <;> exact hp.elim
+  · rw [hc.1.1]; exact ⟨by decide, by decide⟩
+
+open Iris.ProofMode in
+/-- **`srvRest` one entry later, a covered request or a compaction** (`srvRest_applyG` at a request
+that neither grants nor revokes). -/
+theorem srvRest_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
-    (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hp : plainOrCmp rq)
-    (hs : apply.applyStep rq v3 x x' out) :
-    E.RO (apply.restOut rq v3 out (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) =
+    (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
+    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out) :
+    srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
+      apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
+      (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
+        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
+      srvRest E γr (A ++ [m]) :=
+  have hk := plainOrCmp_nonLease rq hp
+  srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch hk.2 (fun h => absurd h hk.1)
+    (fun r => restOut_plainOrCmp rq v3 x x' out r hp hs) hs
+
+/-- `srvRest_applyP` for a triple whose post carries no grant conjuncts (`kvSpecL`'s): a plain
+request or a compaction grants nothing, so its ids, its rest and `grantOutOkA` are the identity's. -/
+theorem srvRest_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
+    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out) :
+    srvGrantIf E ∗ apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗
+      E.RO (apply.restOut rq v3 out
+        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ⊢
       srvRest E γr (A ++ [m]) := by
-  rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, restOut_plainOrCmp rq v3 x x' out _ hp hs,
-    hv3]
+  have hk := (plainOrCmp_nonLease rq hp).1
+  iintro ⟨HGI, HLt, HR⟩
+  iapply srvRest_applyP E γr A m rq v3 x x' out f ht hd hdec hv3 hch hp hs
+  iframe HGI
+  isplitl []
+  · ipureintro
+    cases out with
+    | dispatched o _ => exact apply.grantOutOk_nonGrant _ _ _ _ _ hk
+    | _ => trivial
+  rw [apply.grantIdsA_nonGrant _ _ _ _ hk]
+  iframe HLt
+  iexists (0 : w64)
+  rw [apply.grantRestA_nonGrant _ _ _ _ _ hk]
+  iexact HR
+
+/-- **Its permits give a covered request's or a compaction's** (`grantPermRq`, vacuous). -/
+theorem srvGrantIf_permP [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmp rq) :
+    srvGrantIf E ⊢ apply.grantPermRq E rq :=
+  srvGrantIf_perm E rq (fun h => absurd h (plainOrCmp_nonLease rq hp).1)
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
 the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in

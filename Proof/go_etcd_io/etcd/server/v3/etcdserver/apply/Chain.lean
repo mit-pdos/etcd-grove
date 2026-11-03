@@ -387,6 +387,120 @@ theorem chainCompacts_quota (c : Chain) : chainCompacts (.quota c) = chainCompac
 theorem chainCompacts_capped (c : Chain) : chainCompacts (.capped c) = chainCompacts c := rfl
 
 
+/-! ## A grant's outcome (the lease-grant stage, 2.0; from `GrantRest.lean`) -/
+
+/-- **The chain lets a grant through to the backend**: no capped and no corrupt layer (each
+rejects a grant: `cappedRejects`, `corruptRejects`). -/
+def grantGoes : Chain → IRRModel → Bool
+  | .backend, _ => true
+  | .auth _ c, rq => grantGoes c rq
+  | .quota c, rq => grantGoes c rq
+  | .capped _, _ => false
+  | .corrupt _, _ => false
+
+/-- **The live set after the outcome `o`** of `rq` dispatched with `v3`: a grant applied appends
+its id. Only a request dispatched as a grant (`dispatchKind`) with `v3` (the lease-grant plan's
+Freeze, amendment (B)): without `v3`, `dispatch` returns `.applied` without calling the chain
+(`dispatchStep`), and a request whose first set field is another keeps its stray `LeaseGrant`
+field unread; both leave the live set, as `dispatchTable`. -/
+def grantIds (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64) : List w64 :=
+  if dispatchKind rq = .leaseGrant ∧ v3 = true then
+    match o, rq.leaseGrant with
+    | .applied .., some g => L ++ [g.id]
+    | _, _ => L
+  else L
+
+/-- **The rest buckets after the outcome `o`** of `rq` dispatched with `v3`, the record at the TTL
+`t` (a request dispatched as a grant with `v3` only, as `grantIds`). -/
+def grantRest (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM) : RestM :=
+  if dispatchKind rq = .leaseGrant ∧ v3 = true then
+    match o, rq.leaseGrant with
+    | .applied .., some g => restGrantT g.id t r
+    | _, _ => r
+  else r
+
+theorem grantIds_rejected (rq : IRRModel) (v3 : Bool) (e : RejectKind) (L : List w64) :
+    grantIds rq v3 (.rejected e) L = L := by
+  unfold grantIds; split <;> rfl
+
+theorem grantRest_rejected (t : w64) (rq : IRRModel) (v3 : Bool) (e : RejectKind) (r : RestM) :
+    grantRest t rq v3 (.rejected e) r = r := by
+  unfold grantRest; split <;> rfl
+
+/-- No grant field: the identity. -/
+theorem grantIds_none (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64)
+    (h : rq.leaseGrant = none) : grantIds rq v3 o L = L := by
+  unfold grantIds; cases o <;> simp [h]
+
+theorem grantRest_none (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM)
+    (h : rq.leaseGrant = none) : grantRest t rq v3 o r = r := by
+  unfold grantRest; cases o <;> simp [h]
+
+/-- A request not dispatched as a grant: the identity. -/
+theorem grantIds_nonGrant (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64)
+    (h : dispatchKind rq ≠ .leaseGrant) : grantIds rq v3 o L = L := by
+  unfold grantIds; rw [if_neg (fun h' => h h'.1)]
+
+theorem grantRest_nonGrant (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM)
+    (h : dispatchKind rq ≠ .leaseGrant) : grantRest t rq v3 o r = r := by
+  unfold grantRest; rw [if_neg (fun h' => h h'.1)]
+
+/-- Without `v3` (`dispatch` does not call the chain): the identity. -/
+theorem grantIds_noV3 (rq : IRRModel) (o : Outcome) (L : List w64) :
+    grantIds rq false o L = L := by
+  unfold grantIds; rw [if_neg (fun h' => Bool.false_ne_true h'.2)]
+
+theorem grantRest_noV3 (t : w64) (rq : IRRModel) (o : Outcome) (r : RestM) :
+    grantRest t rq false o r = r := by
+  unfold grantRest; rw [if_neg (fun h' => Bool.false_ne_true h'.2)]
+
+/-- An outcome that is not `.applied`: the identity. -/
+theorem grantIds_not_applied (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64)
+    (h : ∀ log' ns, o ≠ .applied log' ns) : grantIds rq v3 o L = L := by
+  cases o with
+  | rejected => exact grantIds_rejected _ _ _ _
+  | applied log' ns => exact absurd rfl (h log' ns)
+
+theorem grantRest_not_applied (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM)
+    (h : ∀ log' ns, o ≠ .applied log' ns) : grantRest t rq v3 o r = r := by
+  cases o with
+  | rejected => exact grantRest_rejected _ _ _ _ _
+  | applied log' ns => exact absurd rfl (h log' ns)
+
+theorem grantIds_applied (rq : IRRModel) (g : LeaseGrantModel) (log' : mvcc.Log) (ns : Bool)
+    (L : List w64) (hk : dispatchKind rq = .leaseGrant) (h : rq.leaseGrant = some g) :
+    grantIds rq true (.applied log' ns) L = L ++ [g.id] := by
+  unfold grantIds; rw [if_pos ⟨hk, rfl⟩, h]
+
+theorem grantRest_applied (t : w64) (rq : IRRModel) (g : LeaseGrantModel) (log' : mvcc.Log)
+    (ns : Bool) (r : RestM) (hk : dispatchKind rq = .leaseGrant) (h : rq.leaseGrant = some g) :
+    grantRest t rq true (.applied log' ns) r = restGrantT g.id t r := by
+  unfold grantRest; rw [if_pos ⟨hk, rfl⟩, h]
+
+theorem grantRest_mem (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM) :
+    (grantRest t rq v3 o r).mem = r.mem := by
+  unfold grantRest; split
+  · split <;> rfl
+  · rfl
+
+/-- **A grant's outcome is the lessor's verdict** (the lease-grant plan's Freeze, amendment (C),
+the user's, 2026-11-03): for `rq` dispatched as the grant `g` with `v3`, the outcome `o` is
+applied exactly when the chain `c` lets the grant through (`grantGoes`) and the lessor's condition
+holds at the live set `T` (`grantIdsOk`); vacuous for any other request or without `v3`.
+`dispatch.spec`'s and `Apply.spec`'s posts carry it, so the server's table (`dispatchTable`) follows
+the live set (`grantIds`). -/
+def grantOutOk (c : Chain) (rq : IRRModel) (v3 : Bool) (T : List w64) (o : Outcome) : Prop :=
+  dispatchKind rq = .leaseGrant → v3 = true → ∀ g : LeaseGrantModel, rq.leaseGrant = some g →
+    ((∃ l ns, o = .applied l ns) ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)
+
+theorem grantOutOk_nonGrant (c : Chain) (rq : IRRModel) (v3 : Bool) (T : List w64) (o : Outcome)
+    (h : dispatchKind rq ≠ .leaseGrant) : grantOutOk c rq v3 T o :=
+  fun hk => absurd hk h
+
+theorem grantOutOk_noV3 (c : Chain) (rq : IRRModel) (T : List w64) (o : Outcome) :
+    grantOutOk c rq false T o :=
+  fun _ h => absurd h Bool.false_ne_true
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -467,6 +581,27 @@ theorem ltHalf_false (E : AEnv GF) (L : List w64) (h : E.lg = false) :
     ltHalf E L = iprop(True) := by
   unfold ltHalf; rw [h]; rfl
 
+open Iris.ProofMode in
+/-- The two halves agree (in a cluster that grants leases). -/
+theorem ltHalf_agree (E : AEnv GF) (L T : List w64) (h : E.lg = true) :
+    ltHalf E L ∗ ltHalf E T ⊢ ⌜L = T⌝ := by
+  unfold ltHalf; simp only [h, ↓reduceIte]
+  iintro ⟨H1, H2⟩
+  ihave %Heq := ghostVar_agree E.γlt L (1 : Qp).half T (1 : Qp).half $$ H1 H2
+  ipureintro; exact Heq
+
+open Iris.ProofMode in
+/-- The two halves together update the live set. -/
+theorem ltHalf_update (E : AEnv GF) (L T L' : List w64) :
+    ⊢ ltHalf E L -∗ ltHalf E T ==∗ ltHalf E L' ∗ ltHalf E L' := by
+  unfold ltHalf
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro - - !>
+    isplitl <;> itrivial
+  · simp only [↓reduceIte]
+    exact ghostVar_update_halves (GF := GF) L' E.γlt L T
+
 /-- **A fresh response header's four id fields owned** (2.11a, 2026-11-03): `ClusterId`, `MemberId`,
 `RaftTerm`, `LeaderId` at the header `h`, any values (`txn.respHdrOwn`'s body). -/
 def hdrFields (h : Loc) : IProp GF :=
@@ -480,8 +615,9 @@ def hdrFields (h : Loc) : IProp GF :=
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
 which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
 lessor's `itemMap` and the leases' item sets). -/
-def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L (mvcc.leaseItemsOf s))
+def leasesLive (E : AEnv GF) (s : List EtcdKv) : IProp GF :=
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf s) ∗
+    ltHalf E L)
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
@@ -491,7 +627,7 @@ half of its notified log; unit N4), every lease of its state live, the auth stor
 lock borrow; until then the reader slots' own). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
-    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
+    leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
@@ -548,14 +684,14 @@ theorem kvOwn_lend (E : AEnv GF) (log : mvcc.Log) :
       (E.RD -∗ lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
         kvOwn E log) := by
   unfold kvOwn leasesLive
-  iintro ⟨Hsr, Hsw, ⟨%L, #Hk, Hu⟩, Hrd, Hwo⟩
+  iintro ⟨Hsr, Hsw, ⟨%L, #Hk, Hu, Hlt⟩, Hrd, Hwo⟩
   iframe Hrd
   iexists L
   iframe Hu
   iintro Hrd Hu
   iframe Hsr Hsw Hrd Hwo
   iexists L
-  iframe Hk Hu
+  iframe Hk Hu Hlt
 
 /-- The KV's certificate of its log (persistent; the vertical slice's unit V2: the trivial
 floor). -/
@@ -946,6 +1082,35 @@ def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
       structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp ↦ h ∗ ⌜h ≠ null⌝) ∗
       applyErrIs err ∗ revokeErrIs err)
 
+/-- **A granted lease's response header** at the header field `hf` (the lease-grant stage, 2.6,
+2026-11-03): its id fields owned (`txn.respHdrOwn`) and its revision read-only, the last of the
+committed log `log`, which is certified (`idxCert`, `certOk`): what `newHeader` gives at the sole
+writer (2.11a). Not `appliedHdr` (`+ 4`), which no grant callee gives. -/
+def grantHdr (E : AEnv GF) (log : mvcc.Log) (hf : Loc) : IProp GF :=
+  iprop(txn.respHdrOwn hf ∗ ∃ (h : Loc) (rv : w64), hf ↦□ h ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗
+    mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    ⌜sint.Z rv = (log.length : Int) - 1 ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
+
+/-- **A granted lease's `*pb.LeaseGrantResponse` `r`** (2.6): its `ID` the grant's, its `TTL` and
+`Error` read-only (any values), its header `grantHdr` at some certified log. -/
+def grantRespIs (E : AEnv GF) (r : Loc) (g : LeaseGrantModel) : IProp GF :=
+  iprop(structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" r ↦□ g.id ∗
+    (∃ t : w64, structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" r ↦□ t) ∗
+    (∃ e : GoString, structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" r ↦□ e) ∗
+    ∃ log : mvcc.Log, grantHdr E log (structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" r))
+
+/-- **A grant's answer** (2.6, the `authnAnsM` pattern beside `dispatchAnswer`, Q2): for a grant
+`g`, the response a `*pb.LeaseGrantResponse`; without error, its fields (`grantRespIs`) and the
+lease granted at some index of the lessor's history; `True` for a request with no grant. -/
+def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp GF :=
+  match rq.leaseGrant with
+  | some g => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗ ∃ i : Nat, lease.leaseGrantedAt E.γ.leases i g.id) ∨
+        ⌜err ≠ GoInterface.nil⌝))
+  | none => iprop(True)
+
 /-- The result of `authApplierV3.Apply`'s admin check failing: a fresh `&Result{Err: err}`, the
 auth store's error. -/
 def rejectResultIs (ar : Loc) : IProp GF :=
@@ -1118,9 +1283,11 @@ def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.s
     mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
 
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
-range deleter held and the rest at `rs`. -/
+range deleter held and the rest at `rs`; (the lease-grant stage, 3b, 2026-11-03) in a cluster that
+grants none (`E.lg = false`: a revocation changes the live set, of which the apply thread holds
+only its half in a granting cluster, `ltHalf`; revocations are out there, `rqOk`). -/
 def revokeRes (E : AEnv GF) (rs : RestM) : IProp GF :=
-  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗ E.RO rs)
+  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗ E.RO rs ∗ ⌜E.lg = false⌝)
 
 /-- **What it gives back** (R6): the range deleter, the rest with the lease's record deleted when
 the revocation succeeded (`err = nil`: the lease was live), else as it was. Which of "not live"
@@ -1189,9 +1356,7 @@ the layers read of the request (`R r`); `True` for those passed on unread to the
 auth store's requests are admitted in the environment's mode only (`adminAdmitted`, the auth plan's
 E2i). -/
 def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
-  if m = go!"LeaseGrant" then
-    iprop((∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW)
-  else if m = go!"LeaseCheckpoint" then
+  if m = go!"LeaseCheckpoint" then
     iprop((∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW)
   else if m = go!"Alarm" then iprop((∃ am : AlarmModel, alarmRequestIs r am) ∗ E.RW)
   else if m = go!"Authenticate" then
@@ -1216,11 +1381,12 @@ def clusterFacts (E : AEnv GF) (m : GoString) (cr : ClusterReq) (r : Loc) : IPro
   | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ memberAttrSetIs r a)
   | .dg d => iprop(⌜m = go!"DowngradeInfoSet"⌝ ∗ downgradeInfoSetIs r d ∗ E.RW)
 
-/-- The methods `(resp, err) = m(r)` that leave the log as it is (the lease grant and
-checkpoint, the alarm, and the auth store's requests): writers the workload does not reach,
+/-- The methods `(resp, err) = m(r)` that leave the log as it is (the lease checkpoint, the
+alarm, and the auth store's requests; the grant has its own triple since the lease-grant stage,
+2.11): writers the workload does not reach,
 their facts with the write right `E.RW` (`reqFacts`, D22, 2026-10-23). -/
 def respMethods : List GoString :=
-  [go!"LeaseGrant", go!"LeaseCheckpoint", go!"Alarm", go!"Authenticate", go!"UserAdd",
+  [go!"LeaseCheckpoint", go!"Alarm", go!"Authenticate", go!"UserAdd",
     go!"UserDelete", go!"UserChangePassword", go!"UserGrantRole", go!"UserGet",
     go!"UserRevokeRole", go!"RoleAdd", go!"RoleGrantPermission", go!"RoleGet",
     go!"RoleRevokePermission", go!"RoleDelete", go!"UserList", go!"RoleList"]
@@ -1378,6 +1544,23 @@ theorem cmpPermRq_nonCmp (E : AEnv GF) (rq : IRRModel) (h : dispatchKind rq ≠ 
   iintro !> %hk
   exact absurd hk h
 
+/-- **A grant's permits** (the lease-grant plan's 2.10, S2; the `cmpPermRq` pattern): for a request
+dispatched as a grant, its id is one the lessor may grant (`leaseGranted`) and the lessor grants
+(`lessorModeIs … true`). Free of a request of another kind. -/
+def grantPermRq (E : AEnv GF) (rq : IRRModel) : IProp GF :=
+  iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → (∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
+    lease.leaseGranted E.γ.leases g.id) ∗ lease.lessorModeIs E.γ.leases true))
+
+instance grantPermRq_persistent (E : AEnv GF) (rq : IRRModel) :
+    Persistent (grantPermRq (GF := GF) E rq) := by
+  unfold grantPermRq; infer_instance
+
+theorem grantPermRq_of_not_grant (E : AEnv GF) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantPermRq (GF := GF) E rq := by
+  iunfold grantPermRq
+  iintro !> %hk
+  exact absurd hk h
+
 /-- A wrapper that passes `Compaction` on answers as its inner chain. -/
 theorem cmpAnswerIs_congr (c c' : Chain) (h : chainCompacts c = chainCompacts c') (crev : Int)
     (rev : w64) (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface) :
@@ -1387,6 +1570,31 @@ theorem cmpAnswerIs_congr (c c' : Chain) (h : chainCompacts c = chainCompacts c'
 instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
     Persistent (cmpTriple E c ai) := by
   unfold cmpTriple; infer_instance
+
+/-- **The grant triple's precondition** (2.11): in a cluster that grants leases (`E.lg`, which
+`dispatch` has from `rqOk E.lg`'s grant arm: without it the two halves are `True` and do not tie the
+lessor's live set to `T`), a request dispatched as the grant `g` (its request `r`), the lease marked granted and the lessor in the monotone mode (`grantPermRq`'s), the
+apply thread's half of the live set `T`, the rest resource at `rs`, the store's write token, the
+common precondition and the consistent index's split. -/
+def grantPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64) (rs : RestM)
+    (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(⌜E.lg = true ∧ rq.leaseGrant = some g ∧ dispatchKind rq = .leaseGrant⌝ ∗ leaseGrantIs r g ∗
+    lease.leaseGranted E.γ.leases g.id ∗ lease.lessorModeIs E.γ.leases true ∗ ltHalf E T ∗
+    E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ ciSplit E Pre)
+
+/-- **The grant triple's postcondition** (2.11) at the outcome `o`: the chain's step
+(`chainStep backendStep`), applied exactly without error, which is exactly when the chain lets the
+grant through and the lessor's condition holds at `T`; the half of the live set and the rest
+resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's), the answer. -/
+def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
+    (log : mvcc.Log) (T : List w64) (rs : RestM) (Pre Post : IProp GF) (resp : Loc)
+    (err : GoInterface) (o : Outcome) : IProp GF :=
+  iprop(mPost E c a log Pre Post ∗ applyErrIs err ∗
+    ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
+      (err = GoInterface.nil ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)⌝ ∗
+    ltHalf E (grantIds rq true o T) ∗ (∃ t : w64, E.RO (grantRest t rq true o rs)) ∗
+    grantAnswer E rq (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #resp) err)
 
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
 `E` (each persistent: `dispatch` calls one per request). Each takes the principal `info` the
@@ -1427,6 +1635,13 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log (revokeOutcomeIs resp err) Pre Post ∗
             revokeResAfter E id rs err }}) ∗
+    -- (the lease-grant stage, 2.11) `LeaseGrant`
+    □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
+        (rs : RestM) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ grantPre E c (.ok ai) info r rq g log T rs Pre Q Post }}
+        (App (Val #(methods ai.ty go!"LeaseGrant" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+          ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs Pre Post resp err o }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗

@@ -340,7 +340,9 @@ theorem applySnapshot_walk
   ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
   ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
   -- the old backend's objects, from the rest resource
-  iunfold srvRest at HRS
+  -- (the lease-grant stage, 2.9) the revocable lessor refutes the leased arm: a cluster that
+  -- grants none
+  ihave ⟨%Hlg0, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
   rw [hRO]
   iunfold srvRestOwnH at HRS
   icases HRS with ⟨HoRO, HoObj⟩
@@ -374,7 +376,7 @@ theorem applySnapshot_walk
   have Hwkl : wsk = wsl := by simp at Hwk; exact GoGlobalContext.intoVal_inj_loc Hwk.symm
   subst wsk
   iunfold apply.leasesLive at HlLive
-  icases HlLive with ⟨%Ll, #HlK, HlUser⟩
+  icases HlLive with ⟨%Ll, #HlK, HlUser, -⟩
   iunfold lease.lessorUser at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]

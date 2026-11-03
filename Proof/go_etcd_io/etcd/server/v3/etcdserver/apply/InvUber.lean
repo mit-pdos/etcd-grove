@@ -360,6 +360,23 @@ def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (a
       applyErrIs v.Err')
   else iprop(⌜ar = null⌝)
 
+/-- **A dispatched grant's answer through `dispatch`'s result `ar`** (the lease-grant plan's 2.6,
+2.10): `grantAnswer` of the result's `Resp` and `Err`, for a request dispatched as a grant; `True`
+otherwise, and when `ar` is `nil` (`dispatch` without `v3` returns `nil`, `dispatchResult`). The
+outcome `o` is the spec's argument (2.10's text); the answer does not depend on it. -/
+def grantRes (E : AEnv GF) (rq : IRRModel) (_o : Outcome) (ar : Loc) : IProp GF :=
+  if dispatchKind rq = .leaseGrant ∧ ar ≠ null then
+    iprop(∃ v : Result, ar ↦□ v ∗ grantAnswer E rq v.Resp' v.Err')
+  else iprop(True)
+
+theorem grantRes_not_grant (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantRes (GF := GF) E rq o ar := by
+  unfold grantRes; rw [if_neg (fun h' => h h'.1)]; iintro; itrivial
+
+theorem grantRes_null (E : AEnv GF) (rq : IRRModel) (o : Outcome) :
+    ⊢ grantRes (GF := GF) E rq o null := by
+  unfold grantRes; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
+
 /-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
 the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
 The apply thread hands it, with the result, to the goroutine serving the request. -/
@@ -400,6 +417,18 @@ def applyResultIs (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (ar : Loc) : Appl
   | .skipped => iprop(⌜ar = null⌝)
   | .rejected => rejectedResultIs ar
   | .dispatched o skip => dispatchResult rq v3 log skip ar o
+
+/-- `grantRes` over `apply.Apply`'s outcome: a dispatched request's. -/
+def grantResA (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc) : IProp GF :=
+  match out with
+  | .dispatched o _ => grantRes E rq o ar
+  | _ => iprop(True)
+
+theorem grantResA_not_grant (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantResA (GF := GF) E rq out ar := by
+  unfold grantResA; split
+  · exact grantRes_not_grant E rq _ ar h
+  · iintro; itrivial
 
 end defs
 

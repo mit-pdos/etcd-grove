@@ -49,7 +49,7 @@ theorem startServer.wp_proof
   iunfold common.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -97,7 +97,7 @@ theorem startServer.wp_proof
       v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
-      (fun _ => ⟨rfl, by word, by word⟩))
+      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf))
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
   · iframe
     iframe #

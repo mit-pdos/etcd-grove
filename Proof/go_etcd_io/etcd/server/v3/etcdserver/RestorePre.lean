@@ -57,7 +57,7 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.storeCloser E.s γw.st ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
         mvcc.crevFrozen γw.st ∗ mvcc.watchWriter γw log ∗
-        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD) ∗
+        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E (mvcc.stateAfter log) ∗ E.RD) ∗
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by

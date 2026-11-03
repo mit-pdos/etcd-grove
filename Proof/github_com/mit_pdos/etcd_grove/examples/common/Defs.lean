@@ -369,7 +369,9 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       ρ.rd.kv.cmp = cmp ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
       -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none
-      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF))⌝ ∗
+      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) ∧
+      -- (the lease-grant stage, 2.13) `NewServer.specM true`'s: auth on grants none
+      ρ.rd.kv.lg = false⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗

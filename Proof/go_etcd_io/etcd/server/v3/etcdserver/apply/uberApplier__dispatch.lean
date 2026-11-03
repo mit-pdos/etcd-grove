@@ -94,6 +94,27 @@ local macro "dtail" : tactic => `(tactic| (
   cases err <;> (try wp_auto) <;> first | ok_path | err_path))
 
 set_option hygiene false in
+/-- The half of the live set and the rest buckets of a request that is not a grant dispatched with
+`v3` (the lease-grant stage): as they were. -/
+local macro "grant_same" : tactic => `(tactic| (
+  isplitl [HLt]
+  · first
+      | rw [apply.grantIds_noV3]
+      | rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]
+    iexact HLt
+  isplitl [HRO]
+  · iexists (W64 0)
+    first
+      | rw [apply.grantRest_noV3]
+      | rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk])]
+    iexact HRO
+  isplitr
+  · ipureintro
+    first
+      | exact apply.grantOutOk_noV3 _ _ _ _
+      | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
+
+set_option hygiene false in
 /-- The postcondition for a request that leaves the KV and the chain as they are. -/
 local macro "fin_same" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
@@ -103,12 +124,15 @@ local macro "fin_same" : tactic => `(tactic| (
   iexists (GoInterface.ok ai), c, (Outcome.applied log false)
   simp only [apply.Outcome.logAfter]
   iframe Ha Hs Hkv
+  grant_same
   isplitl [HPP]
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
   · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
   isplitl []
   · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+  isplitl []
+  · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -129,6 +153,7 @@ local macro "fin_kv" : tactic => `(tactic| (
   iframe Hco
   iexists (GoInterface.ok ai), c, oc
   iframe Ha Hs Hkv
+  grant_same
   isplitl [HPP]
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
@@ -140,6 +165,8 @@ local macro "fin_kv" : tactic => `(tactic| (
     · first | exact fun _ _ => Hst.2 | simp [apply.kvFloorOk, apply.isFloorKind, hk]
   isplitl []
   · iintro %_; iexact Hcls
+  isplitl []
+  · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -172,8 +199,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, %HcE, #HF, HFS, HSp, HRO, Hco⟩
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, #Hgp, HLt, %HcE, #HF, HFS, HSp,
+    HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -229,7 +257,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   icases Hsp with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster, -, #HCmp⟩
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster, -, #HCmp⟩
   iunfold apply.cmpTriple at HCmp
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -276,7 +304,7 @@ theorem apply.uberApplier.dispatch.wp_proof
         simp [apply.restAfter, apply.ClusterReq.eff, hs]]
       iexact HRO
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -305,7 +333,7 @@ theorem apply.uberApplier.dispatch.wp_proof
         simp [apply.restAfter, apply.ClusterReq.eff, zClusterVersionSet, hs]]
       iexact HRO
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -334,7 +362,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     ihave HPP : iprop(cPost v3 Pre Post) $$ [Hc]
     · iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hc
     fin_same
@@ -347,7 +375,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (try wp_auto)
     ok_path
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Hres
     rw [apply.dispatchCrev_noV3]
@@ -355,12 +383,15 @@ theorem apply.uberApplier.dispatch.wp_proof
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
     iframe Ha Hs Hkv
+    grant_same
     isplitl [Hc]
     · simp only [apply.cPost, apply.cPre, Bool.false_eq_true, ↓reduceIte]; iexact Hc
     isplitr
     · ipureintro; simp [apply.kvFloorOk, apply.dispatchStep, apply.chainAfter, hpre]
     isplitl []
     · iintro %h; cases h
+    isplitl []
+    · iapply apply.grantRes_null
     isplitl []
     · iapply apply.resTrace_null
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
@@ -381,12 +412,15 @@ theorem apply.uberApplier.dispatch.wp_proof
       (apply.chainResAny c (GoInterface.ok ai) ∗ apply.cmpOwn E (apply.dispatchCrev c rq true crev) ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-          apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
+          apply.kvOwn E (o.logAfter log) ∗ apply.ltHalf E (apply.grantIds rq true o T) ∗
+          (∃ t : w64, E.RO (apply.grantRest t rq true o (apply.restAfter rq true rs))) ∗
+          ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
+          apply.grantRes E rq o «$r0_ptr» ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco]
+    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco HLt HRO]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -512,6 +546,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iexists (GoInterface.ok ai), c, (apply.cmpOutcome c log)
     rw [apply.cmpOutcome_logAfter]
     iframe Ha Hs Hkv
+    grant_same
     isplitl [HPP]
     · simp only [apply.cPost, ↓reduceIte]; iexact HPP
     isplitr
@@ -523,6 +558,8 @@ theorem apply.uberApplier.dispatch.wp_proof
       · simp [apply.kvFloorOk, apply.isFloorKind, hk]
     isplitl []
     · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+    isplitl []
+    · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
     isplitl [Htrc]
     · iapply apply.resTrace_of $$ H0; iexact Htrc
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
@@ -543,8 +580,64 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLG
     have hk : dispatchKind rq = .leaseGrant := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, hs]
-    have hok := Hok.1
-    simp only [rqOk, hk] at hok
+    -- (the lease-grant stage, 2.10) admitted where the cluster grants; the chain's grant triple
+    have hok := (apply.rqOk_leaseGrant _ _ _ hk).1 Hok.1
+    iunfold apply.grantPermRq at Hgp
+    ihave ⟨#Hgr, #Hmode⟩ := Hgp $$ %hk
+    wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info
+      [HLt HRO Hwt Hkv Hres Hc] as %resp %err ⟨%o, Hpost⟩
+    · iunfold apply.grantPre
+      isplitr
+      · ipureintro; exact ⟨hok.1, hs, hk⟩
+      iframe HR Hmode HSp
+      isplitr
+      · iapply Hgr $$ %x %hs
+      iunfold apply.mPre
+      iframe
+    iunfold apply.grantPost at Hpost
+    icases Hpost with ⟨Hmp, #HeI, %Hst, HLt, HRO, Hans⟩
+    iunfold apply.mPost at Hmp
+    icases Hmp with ⟨Hkv, Hres, HPP⟩
+    have hlog : o.logAfter log = log := apply.chainStep_grant_logAfter rq hk log c o Hst.1
+    join_ar
+    iframe Hres
+    rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+    iframe Hco
+    iexists (GoInterface.ok ai), c, o
+    rw [hlog]
+    iframe Ha Hs Hkv HLt HRO
+    isplitr
+    · ipureintro
+      intro _ _ g hg
+      rw [hs] at hg; cases hg
+      exact Hst.2.1.trans Hst.2.2
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
+      · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
+          Bool.false_eq_true, ↓reduceIte]
+        exact hlog
+      · simp [apply.kvFloorOk, apply.isFloorKind, hk]
+    isplitl []
+    · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+    isplitl [Hans]
+    · iunfold apply.grantRes
+      rw [if_pos ⟨hk, hn⟩]
+      iexists _
+      iframe H0
+      iexact Hans
+    isplitl []
+    · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    itrivial
   have zLeaseGrant : rq.leaseGrant = none := nLG.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseRevoke
@@ -760,7 +853,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   dtail
   all_goals
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     iexact Hpost
 
 end proof

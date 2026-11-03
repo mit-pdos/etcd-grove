@@ -391,6 +391,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -595,6 +598,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

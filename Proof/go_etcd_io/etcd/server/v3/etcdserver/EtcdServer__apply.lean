@@ -22,6 +22,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestLeased
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
@@ -581,6 +582,7 @@ theorem EtcdServer.apply.wp_proofOff
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
+        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -594,7 +596,10 @@ theorem EtcdServer.apply.wp_proofOff
             applyBackend γ ci b)
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
-          m.index m.term γB sv.cluster _ dB alB stB lpB dv
+          m.index m.term γB sv.cluster
+          (apply.restLeasesWith f (srvIds E (appliedTable γr (A ++ ms.take (sint.nat j))).ids)
+            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))))
+          dB alB stB lpB dv
           (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
@@ -603,14 +608,15 @@ theorem EtcdServer.apply.wp_proofOff
           (fun γn h => ⟨rfl, by
             obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
             have := Hdvf γn h
-            rw [hrule]
+            rw [ccRaftEff_restLeasesWith, hrule]
             simp only [hρr] at this ⊢
-            exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
+            exact this⟩) Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.1)
+          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.2))
           $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt HplP HthT Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs, Hcsv⟩, HRS, Hpost, Hdvq, Hmr,
             Hrt, HplP, HthT⟩
         · rw [ite_eq_left rfl, HEP, HEf]
-          iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
             HplP HthT HbeRO
           isplitr
@@ -619,6 +625,7 @@ theorem EtcdServer.apply.wp_proofOff
           · ipureintro; exact Hlgcnn
           isplitr
           · ipureintro
+            refine membersDecode_restLeasesWith _ _ _ ?_
             exact membersDecode_restModel γr.kv.c0 γr.raft.raft.boot
               (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
@@ -653,6 +660,10 @@ theorem EtcdServer.apply.wp_proofOff
               ipureintro; rfl
           iframe Hst Happ Hbe
           ipureintro; exact hpre
+        have hpa : ∀ (g : w64 → w64) (T : List w64) (r : apply.RestM),
+            ccPeersAfter true cm (apply.restLeasesWith g T r).bk prs = ccPeersAfter true cm r.bk prs :=
+          fun g T r => by unfold ccPeersAfter; rw [ccValidOn_restLeasesWith]
+        rw [hpa]
         ihave HAR := HARk $$ %true Hmr
         -- (S5) `ep.confState` after the change: raft's answer, or, on a failed validation, as
         -- before, which reports the voters (the first entry validates on a fresh backend)
@@ -668,7 +679,7 @@ theorem EtcdServer.apply.wp_proofOff
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
-              rw [hbk, ccValidOn_boot cm0 hct0] at hf
+              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
@@ -689,10 +700,14 @@ theorem EtcdServer.apply.wp_proofOff
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS]
-        · rw [srvRest_snoc, restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
+        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
+            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
-          iexact HRS
+          iapply (srvRestAt_open E _ _).2
+          iexists f
+          rw [← ccRest_restLeasesWith]
+          iframe HRS HLt HGI
         cc_kv_applied
         subst Hsb Hrem
         (
@@ -1449,6 +1464,7 @@ theorem EtcdServer.apply.wp_proofOn
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
+        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -1462,7 +1478,10 @@ theorem EtcdServer.apply.wp_proofOn
             applyBackend γ ci b)
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
-          m.index m.term γB sv.cluster _ dB alB stB lpB dv
+          m.index m.term γB sv.cluster
+          (apply.restLeasesWith f (srvIds E (appliedTable γr (A ++ ms.take (sint.nat j))).ids)
+            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))))
+          dB alB stB lpB dv
           (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
@@ -1471,14 +1490,15 @@ theorem EtcdServer.apply.wp_proofOn
           (fun γn h => ⟨rfl, by
             obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
             have := Hdvf γn h
-            rw [hrule]
+            rw [ccRaftEff_restLeasesWith, hrule]
             simp only [hρr] at this ⊢
-            exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
+            exact this⟩) Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.1)
+          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.2))
           $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt HplP HthT Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs, Hcsv⟩, HRS, Hpost, Hdvq, Hmr,
             Hrt, HplP, HthT⟩
         · rw [ite_eq_left rfl, HEP, HEf]
-          iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
             HplP HthT HbeRO
           isplitr
@@ -1487,6 +1507,7 @@ theorem EtcdServer.apply.wp_proofOn
           · ipureintro; exact Hlgcnn
           isplitr
           · ipureintro
+            refine membersDecode_restLeasesWith _ _ _ ?_
             exact membersDecode_restModel γr.kv.c0 γr.raft.raft.boot
               (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
@@ -1521,6 +1542,10 @@ theorem EtcdServer.apply.wp_proofOn
               ipureintro; rfl
           iframe Hst Happ Hbe
           ipureintro; exact hpre
+        have hpa : ∀ (g : w64 → w64) (T : List w64) (r : apply.RestM),
+            ccPeersAfter true cm (apply.restLeasesWith g T r).bk prs = ccPeersAfter true cm r.bk prs :=
+          fun g T r => by unfold ccPeersAfter; rw [ccValidOn_restLeasesWith]
+        rw [hpa]
         ihave HAR := HARk $$ %true Hmr
         -- (S5) `ep.confState` after the change: raft's answer, or, on a failed validation, as
         -- before, which reports the voters (the first entry validates on a fresh backend)
@@ -1536,7 +1561,7 @@ theorem EtcdServer.apply.wp_proofOn
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
-              rw [hbk, ccValidOn_boot cm0 hct0] at hf
+              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
@@ -1557,10 +1582,14 @@ theorem EtcdServer.apply.wp_proofOn
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS]
-        · rw [srvRest_snoc, restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
+        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
+            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
-          iexact HRS
+          iapply (srvRestAt_open E _ _).2
+          iexists f
+          rw [← ccRest_restLeasesWith]
+          iframe HRS HLt HGI
         cc_kv_appliedOn
         subst Hsb Hrem
         (

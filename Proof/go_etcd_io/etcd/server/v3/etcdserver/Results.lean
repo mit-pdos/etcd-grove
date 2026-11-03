@@ -1130,7 +1130,7 @@ lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`
 backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : EtcdGrove.apply.RestM → IProp GF)
-    (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    (RW : IProp GF) :
     ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.hookOk γ P f ∗
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
@@ -1139,8 +1139,11 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f (mvcc.storeWT γ) RW₀ (mvcc.storeRT γ) Rb ∗
-      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
+      □ (∀ d : mvcc.KBReal, ⌜γ.kb = some d⌝ →
+        lease.lessorBackend lp P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
+          (backend.rbPart d.γB (· = mvcc.leaseName))) ∗
+      □ (RW -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗ lease.lessorBeOn lp d.be ∗
+        ∃ r, backend.rbPart d.γB (· = mvcc.leaseName) r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
@@ -1149,7 +1152,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp s γ P f RO RW RW₀ Rb
+    lp s γ P f RO RW
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has

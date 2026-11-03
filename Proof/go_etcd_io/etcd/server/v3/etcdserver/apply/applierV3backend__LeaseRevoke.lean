@@ -57,9 +57,9 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩, Hrr⟩
   iunfold apply.revokeRes at Hrr
-  icases Hrr with ⟨Hrdat, #Hrev, HRO⟩
+  icases Hrr with ⟨Hrdat, #Hrev, HRO, %Hlgf⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, -⟩
   iunfold lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hlrd, Hrvk⟩
   ihave #Hb' := Hb
@@ -116,6 +116,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
         iunfold apply.leasesLive
         iexists L
         iframe Hknown
+        rw [apply.ltHalf_false E L Hlgf]
         iunfold lease.lessorUser
         iframe
       isplitr
@@ -153,6 +154,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
         iunfold apply.leasesLive
         iexists (L.filter (· != id))
         iframe Hknown'
+        rw [apply.ltHalf_false E _ Hlgf]
         iunfold lease.lessorUser
         iframe
       isplitr

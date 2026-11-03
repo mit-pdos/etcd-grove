@@ -414,7 +414,12 @@ theorem srvRest_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
     srvRest E γr (A ++ [m]) = srvRest E γr A := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
-  rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
+  have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  have hr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  rw [srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr),
+    restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
   rfl
 
 /-- **After the entry, in the mode `on`** (`kvApplied_next`'s counterpart): the apply thread's KV

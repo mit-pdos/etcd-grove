@@ -39,7 +39,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -91,8 +91,8 @@ theorem apply.applierV3backend.Put.wp_proof
     · isplitl []
       · ipureintro; exact Hn.2.2
       ileft; iexact He
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+    isplitl [Hrd Hsw Hu Hard HltL]
+    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
     iright; iexact HPre
   · -- the previous key-value missing
     iexists (.rejected .backend)
@@ -107,8 +107,8 @@ theorem apply.applierV3backend.Put.wp_proof
     · isplitl []
       · ipureintro; exact Hn.2.2
       iright; iexact He
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+    isplitl [Hrd Hsw Hu Hard HltL]
+    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
     ileft; iexact HPost
   · -- the put committed
     iexists (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
@@ -122,12 +122,12 @@ theorem apply.applierV3backend.Put.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Herr.1, Hl2, hlen⟩
-    isplitl [Hrd Hsw Hu Hard]
+    isplitl [Hrd Hsw Hu Hard HltL]
     · iunfold apply.kvOwn
       iframe Hrd Hsw Hard
       iunfold apply.leasesLive
       iexists L
-      iframe Hu
+      iframe Hu HltL
       iapply apply.leasesKnown_putChange
       iframe #
     ileft; iexact HPost

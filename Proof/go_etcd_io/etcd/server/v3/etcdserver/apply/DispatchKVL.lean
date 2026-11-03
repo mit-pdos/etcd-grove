@@ -476,7 +476,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   icases Hsp with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster, -⟩
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster, -⟩
   iunfold apply.applierKVL at HKV
   icases HKV with ⟨%ai', %Hai', #HPutL, #HDelL, #HRangeL, #HTxnL⟩
   injection Hai' with Hai'

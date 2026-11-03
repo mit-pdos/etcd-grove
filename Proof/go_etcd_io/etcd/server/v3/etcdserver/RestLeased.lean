@@ -81,5 +81,46 @@ theorem restEntry_restGrantT [GooseExts] (c0 : w64) (m : EntryModel) (id t : w64
     · exact ccRest_restGrantT _ _ _ _ _
     · rfl
 
+/-! ### Across all the records (2.14's conf-change arm, the plumbing's S2) -/
+
+/-- **The records leave every other bucket.** -/
+theorem restLeasesWith_lookup_other [GooseExts] (f : w64 → w64) (ids : List w64) (r : apply.RestM)
+    (n : GoString) (hn : mvcc.leaseName ≠ n) :
+    (apply.restLeasesWith f ids r).bk.lookup n = r.bk.lookup n := by
+  unfold apply.restLeasesWith
+  induction ids generalizing r with
+  | nil => rfl
+  | cons id ids ih =>
+    rw [List.foldl_cons, ih]
+    unfold apply.restGrantT
+    exact putIn_other _ _ _ _ _ hn
+
+theorem membersOfBk_restLeasesWith [GooseExts] (f : w64 → w64) (ids : List w64) (r : apply.RestM) :
+    membership.membersOfBk (apply.restLeasesWith f ids r).bk = membership.membersOfBk r.bk := by
+  unfold membership.membersOfBk
+  rw [restLeasesWith_lookup_other _ _ _ _ (by decide), restLeasesWith_lookup_other _ _ _ _ (by decide)]
+
+theorem ccValidOn_restLeasesWith [GooseExts] (f : w64 → w64) (ids : List w64) (r : apply.RestM)
+    (cc : ConfChangeM) :
+    membership.ccValidOn (apply.restLeasesWith f ids r).bk cc = membership.ccValidOn r.bk cc := by
+  unfold membership.ccValidOn; rw [membersOfBk_restLeasesWith]
+
+theorem ccRaftEff_restLeasesWith [GooseExts] (f : w64 → w64) (ids : List w64) (r : apply.RestM)
+    (cc : ConfChangeM) :
+    membership.ccRaftEff (apply.restLeasesWith f ids r).bk cc = membership.ccRaftEff r.bk cc := by
+  unfold membership.ccRaftEff; rw [ccValidOn_restLeasesWith]
+
+theorem membersDecode_restLeasesWith [GooseExts] (f : w64 → w64) (ids : List w64) (r : apply.RestM)
+    (h : membership.membersDecode r.bk) :
+    membership.membersDecode (apply.restLeasesWith f ids r).bk := by
+  unfold membership.membersDecode
+  rw [restLeasesWith_lookup_other _ _ _ _ (by decide), restLeasesWith_lookup_other _ _ _ _ (by decide)]
+  exact h
+
+theorem ccRest_restLeasesWith [GooseExts] (v3 : Bool) (cc : ConfChangeM) (f : w64 → w64)
+    (ids : List w64) (r : apply.RestM) :
+    ccRest v3 cc (apply.restLeasesWith f ids r) = apply.restLeasesWith f ids (ccRest v3 cc r) :=
+  apply.restLeasesWith_comm _ (ccRest_restGrantT v3 cc) f ids r
+
 end EtcdGrove
 end Perennial

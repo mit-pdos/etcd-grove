@@ -98,6 +98,11 @@ theorem EtcdServer.applyAll.wp_proofSnap
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
+  -- (the lease-grant stage, 2.9) the lessor revocable refutes the rest's leased arm
+  ihave #Hlrev0 : lease.lessorModeIs E.γ.leases false $$ []
+  · rw [← hlgk]; iexact HlpM
+  ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev0 $HRS]
+  rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
   -- the snapshot saved in the member's directory (`nodeSnapLocal` at the cluster's directories,
@@ -123,7 +128,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   have hai0 : uint.Z ai = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
   imod snapRecv_image γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ hraft hc0 hch hlog0
-      hai0 hai hboot hRO $$ Hkvi Himg Hka HRS Hrc with ⟨Hka, HRS, %A', %R, #HA', %Hif⟩
+      hai0 hai hboot hRO HElg $$ Hkvi Himg Hka HRS Hrc with ⟨Hka, HRS, %A', %R, #HA', %Hif⟩
   -- the auth mode off (the run's), the KV's ghost state jumps to the image's log
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
   have hoff := authMode_off_of E Hoff
@@ -455,7 +460,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hr2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' (mergedObs γr E'.cmp sv.Metadata'.Index' A' x'.log))
+                RS RS' (mergedObs γr E'.cmp E'.lg sv.Metadata'.Index' A' x'.log))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn

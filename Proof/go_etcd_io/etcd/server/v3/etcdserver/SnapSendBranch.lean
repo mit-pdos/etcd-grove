@@ -512,7 +512,7 @@ committed log (`IdxWf`): `imageAt`'s clauses, over the apply thread's KV log in 
 with the store's compaction mode `cmp` off (`noCmpData`; until then unconditionally, `keyImage`,
 which is false of a snapshot taken with compactions applied): a compacted image is the image
 certificate's to state (`merged_image`, the durability work's `srvImageR`). -/
-def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
+def mergedObs (γr : ReadNames) (cmp lg : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
     (D : backend.Data) : Prop :=
   (∀ k v, backend.dget D mvcc.keyName k = some v → (mvcc.bucketMap log).lookup k = some v) ∧
     (cmp = false → ∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
@@ -521,7 +521,23 @@ def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (l
       go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
       go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D ∧ mvcc.IdxWf log []
+    (if lg then bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A) D
+      else bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D) ∧ mvcc.IdxWf log []
+
+/-- **The gated rest observation from the snapshot's tracked buckets** (the window at `srvRest`'s
+image, either arm). -/
+theorem bkRestIf_of_rb {P : backend.BParams} (hRB : ∀ n ∈ restBuckets, P.RB n = true)
+    (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (f : w64 → w64) (D : backend.Data)
+    (hrb : backend.rbData P D = (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk) :
+    if E.lg then bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A) D
+    else bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
+  unfold srvIds at hrb
+  cases h : E.lg
+  · simp only [h, Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil] at hrb ⊢
+    exact bkRestAt_of_rb hRB hrb
+  · simp only [h, ↓reduceIte] at hrb ⊢
+    exact bkRestAtL_of_rb hRB f hrb
 
 /-- **(S2, open) The merged snapshot's window** (`createMergedSnapshotMessage`'s premise): with the
 apply thread at the applied index `ai`, its consistent index (`loopOk`, `ciEff γ st.k = ai`) and
@@ -554,7 +570,7 @@ theorem mergedCreate_window
       srvRest E γr A ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
-      srvBeSnapOk be RS RS' (mergedObs γr E.cmp ai A x.log) ∗ (RC' -∗ RS) ∗
+      srvBeSnapOk be RS RS' (mergedObs γr E.cmp E.lg ai A x.log) ∗ (RC' -∗ RS) ∗
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
@@ -610,16 +626,16 @@ theorem mergedCreate_window
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hg with ⟨Ht2, Hg⟩
   ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
   -- the rest buckets
-  iunfold srvRest at HRs
+  ihave ⟨%f, HRs, HLt, #HGI⟩ := srvRest_open E γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrc, Hrn, Hcl, %Hmi⟩
   ihave Hrb : iprop(backend.rbOwnIn (GF := GF) d.γB membership.clusterBkts
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+      (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
     backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) $$ [Hrc Hrn]
+      (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk) $$ [Hrc Hrn]
   · iframe Hrc Hrn
   have hRT : mvcc.storeRT (GF := GF) E.γ =
       iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen) := by
@@ -634,31 +650,31 @@ theorem mergedCreate_window
   iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ freezeY γ st ∗ emp)
   iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ (freezeY γ st ∗
       iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
+          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
         mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
   iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ (freezeY γ st ∗
       iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
+          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
         mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
-  isplitr
+  isplitl []
   · iapply srvKVCommitOk_of_kv hC kv E.s E.γ (applyThread γ st) (freezeY γ st) emp
     iframe #
   isplitl [Hfr Hwo Hwt Hst]
   · iframe Hfr Hwo Hwt Hst Hreq
   isplitl [Hbe]
   · iexact Hbe
-  isplitr
+  isplitl []
   · -- the snapshot in the window, observing `mergedObs`
     iapply srvBeSnapOk_mono _ _ _ _ _ ?_
     rotate_left
     · iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
-        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk
+        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk
         iprop(txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
           mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))
         (fun vd => (∀ k v, vd.lookup (mvcc.keyName, k) = some v →
@@ -684,7 +700,7 @@ theorem mergedCreate_window
       rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
       refine ⟨fun k v h => hthin k v (by rw [hsd]; exact h), fun hc k => ?_,
         fun hc => mvcc.noCmpData_of_fkAbsD (hnc (hcm.trans hc)), ?_, ⟨t1, by simpa using ht1⟩,
-        bkRestAt_of_rb hRB hrbD, Hwf⟩
+        bkRestIf_of_rb hRB E γr A f D hrbD, Hwf⟩
       · rw [← hsd]; exact hex (hcm.trans hc) k
       · rw [← hci]; simpa using hci1
   isplitl [Hsw Hwl Ht2 Hrb]
@@ -727,8 +743,10 @@ theorem mergedCreate_window
       isplitl [Hra]
       · iexact Hra
       iexact Hw
-    isplitl [Hrb Hcl HH]
-    · iunfold srvRest
+    isplitl [Hrb Hcl HH HLt]
+    · iapply srvRest_close
+      iframe HLt HGI
+      iexists f
       rw [hRO]
       iunfold srvRestOwnH
       iframe HH
@@ -750,7 +768,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
     (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
-    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+    ⌜mergedObs γr E.cmp E.lg ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
   sorry
 
