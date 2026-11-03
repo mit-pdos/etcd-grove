@@ -49,8 +49,8 @@
   peers) shorter than `2 ^ 60` (D19b stage 5) it also bounds every index raft's `Ready`s hand out
   below `MemoryStorage.Append`'s `2 ^ 61` (until then the premise `rnLogFits`, an Iris statement
   on every `Ready`).
-* `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
-  server's raft environment `srvEr`; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
+* `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; since 2026-11-03 not
+  `rnTickerOk`, a theorem of the `time` specs, `NewServer.wp_proof`'s callees; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
   until then of every location, false of Go), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
   facts `start` needs (`context`'s `closedchan`; since D19r (C), (D) the raft status's mutex and
@@ -201,6 +201,12 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -268,6 +274,9 @@ abbrev NewServer.spec : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -275,7 +284,6 @@ abbrev NewServer.spec : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -394,10 +402,19 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -462,6 +479,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -469,7 +489,6 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -509,8 +528,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv ∗
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
+          -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
+          □ (⌜on = true⌝ → srvLessorNil srv) ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
@@ -603,10 +623,19 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
+  -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
+  -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
+  -- raft's peers (the members it names exactly raft's, at most `peersMax`: `rafthttp.bootCfg`, a
+  -- coupling the transport owns)
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
+  -- example is auth off: `srvGrantGuard`)
+  (on = true → ρ.rd.kv.lg = false) →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -673,6 +702,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -680,7 +712,6 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -720,8 +751,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv ∗
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
+          -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
+          □ (⌜on = true⌝ → srvLessorNil srv) ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its

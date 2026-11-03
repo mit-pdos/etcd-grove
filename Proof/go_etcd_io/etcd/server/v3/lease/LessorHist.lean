@@ -55,6 +55,22 @@ theorem getLast?_getElem? {α : Type} {hs : List α} {σ : α} (h : hs.getLast? 
   · simp at h
   · simp
 
+/-- **Appending a snapshot whose lease map keeps the last one's ids keeps the history monotone**
+(the lease-grant plan's D2: `Grant`, `Attach`, `Detach`). -/
+theorem histMono_snoc {hs : List LSnap} {τ σ' : LSnap} (hlast : hs.getLast? = some τ)
+    (hsub : ∀ id : w64, (τ.1.lookup id).isSome → (σ'.1.lookup id).isSome)
+    (h : histMono hs) : histMono (hs ++ [σ']) := by
+  have ⟨hτ, hpos⟩ := getLast?_getElem? hlast
+  intro i j σ ρ id hij hi hj hl
+  rcases getElem?_snoc_cases hs σ' ρ j hj with ⟨hjl, hj'⟩ | ⟨hje, hρ⟩
+  · have hil : i < hs.length := by omega
+    rw [getElem?_snoc_lt hs σ' hil] at hi
+    exact h i j σ ρ id hij hi hj' hl
+  · rw [hρ]
+    rcases getElem?_snoc_cases hs σ' σ i hi with ⟨hil, hi'⟩ | ⟨hie, hσ⟩
+    · exact hsub id (h i (hs.length - 1) σ τ id (by omega) hi' hτ hl)
+    · rw [← hσ]; exact hl
+
 /-- A lease of the last snapshot is under one id there. -/
 theorem oneId_last {hs : List LSnap} {σ : LSnap} (hone : oneIdPerLease hs)
     (hlast : hs.getLast? = some σ) {id id' : w64} {l : Loc} (h1 : σ.1.lookup id = some l)

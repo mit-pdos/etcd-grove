@@ -8,7 +8,7 @@ another lease. Lean-first (no Rocq counterpart).
 `127.0.0.1:23936` (`netAddrFree`, which program start gives once: D19d), the main thread's token
 (`Start` forks the server's goroutines) and `Main`'s named premises (`leasekv.premises`,
 `Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/Defs.lean`), `Main()` returns: it does not
-panic: the listing has no lease twice (etcd's `etcdLeaseLeasesSpec`, from the lessor's map's keys)
+panic: the listing has no lease twice (etcd's `etcdLeaseLeasesSpecAny`, from the lessor's map's keys)
 and the answer is about the lease asked (`etcdLeaseTTLSpec`), whatever the lessor holds.
 
 **The pure premises:** the member id and bootstrap log Go computes (`leasekv.BootFacts`); the

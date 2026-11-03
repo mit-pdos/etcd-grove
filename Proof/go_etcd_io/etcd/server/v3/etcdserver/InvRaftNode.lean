@@ -1280,11 +1280,12 @@ instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) (γr : ReadNames) :
     Persistent (isReadyHandler (GF := GF) rh R γr) := by
   unfold isReadyHandler; infer_instance
 
-/-- **The ticker `tk`** (Perennial models no `time.Ticker`; a trust-boundary contract): its `C`
+/-- **The ticker `tk`** (what `rnTickerOk` gives; at `E.T = True` from the `time` specs, `time.isTicker`): its `C`
 is a channel on which a receive yields some time **with a tick's resource `E.T`** (2026-10-16,
 stage R7b: raft's tick credit came with the tick, "fewer than `2^64 - 1` ticks in a run" the
 ticker's premise; since D19b, 2026-10-18, `E.T` is `True` for the server, `raftNode.tick` taking
-the credit, a time receipt, from a Go step of its own), or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`); `Stop`
+the credit, a time receipt, from a Go step of its own), or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`: dead since 2026-11-03, the
+specs requiring a positive heartbeat, a scope restriction; kept for covering it later); `Stop`
 returns. -/
 def isRNTicker (E : RNEnv GF) (tk : Loc) : IProp GF :=
   iprop(∃ c : Loc, structFieldRef time.Ticker go!"C" tk ↦□ c ∗
@@ -1691,7 +1692,8 @@ opaque rnStopClaim (γ : RNNames) : IProp GF
 /-- (DRAFT, R2b-1, 2026-11-02) **The raft wrapper `r`'s WAL, closed, its records `σ`** (opaque
 until R2b-1, which keeps the WAL's records in a ghost token beside its open token, `walOpen`,
 updated by the trust-boundary contract `isRNWal`'s `Save` and `SaveSnap`, and has `Close` give
-it): `ReadAll` from the WAL's last snapshot record reads back the snapshot record at `σ.b`, the
+it): `ReadAll` from the WAL's newest valid snapshot record (the highest index at or below the
+last hard state's commit, as `bootstrap` opens it; 2026-11-03: until then "last") reads back the snapshot record at `σ.b`, the
 hard state `σ.hs` and the entries `σ.ents`. R2b-3's closes' axioms make `srvFiles` from it. -/
 opaque rnWalClosed (r : Loc) (σ : StorContents) : IProp GF
 

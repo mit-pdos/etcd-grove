@@ -101,7 +101,7 @@ theorem Main.wp_proof
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
   -- packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -163,7 +163,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (wkDir id) (dirOne_member id _)
+  imod (common.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (wkDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
@@ -192,7 +192,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" lg (LogEntry.toEntries boot 0) ctxs
       (wkDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [wkDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo)
+      (by simp [wkDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hwdf] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

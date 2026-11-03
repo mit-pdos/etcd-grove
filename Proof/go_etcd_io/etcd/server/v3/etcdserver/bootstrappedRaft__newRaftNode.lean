@@ -39,7 +39,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q
   letI := srvStor (GF := GF) γr
-  intro Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
+  intro Hlg Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
     Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal
   wp_start as Hpre
   iNamed Hpre
@@ -123,8 +123,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K ν
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-      bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+      bv.heartbeat' GoInterface.nil) Hlg) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
+    (try ipureintro)
+    (try exact Hhb)
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn

@@ -159,8 +159,8 @@ theorem restart3_safe ... :
     goose_adequacy ... restart3.Main ... (fun v => v = #())
 ```
 
-What stays out: crashes (Q4), membership changes (the membership track), restarting the leader
-mid-request (Q6), and a member whose data directory was lost.
+What stays out: crashes (Q4; a later stage, R6 under "Stages"), membership changes (the membership
+track), restarting the leader mid-request (Q6), and a member whose data directory was lost.
 
 ## Questions for the user (decided 2026-11-02: each the recommended option)
 
@@ -219,6 +219,45 @@ shutdown with `Cleanup` in it.
 - **R5. Probe:** one easy proof (the example's `Main` over the frozen specs) and one hard one (`run`'s
   deferred shutdown, or the apply thread's start at the consistent index).
 - **Freeze, then Prove:** M6's request-path tokens, L5's widening, the example.
+- **R6, later: crash durability** (added 2026-11-03, the user's request). R2-R5 cover a graceful
+  stop in one process, where every write is visible to the next incarnation, fsynced or not (Q4
+  (a)). R6 replaces the stop by a crash: the process is gone, and only what was fsynced survives.
+  The goal is the server-level counterpart of `kvdurable_porcupine_safe`: acknowledged writes
+  survive a member's crash and restart, and the history stays linearizable across it.
+  - **What it builds on.** Raft's durability, proved with no sorry (durability stage II:
+    `StartNode`, `RestartNode`, `node.run`'s persist-before-send, `examples/kvdurable`). R2b-1's WAL
+    model, contract and durability invariant (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`,
+    `etcdserver/InvWal.lean`, a failed `Save` leaving `walFailed`). R2-R5's restart boot and
+    catch-up.
+  - **What is new.**
+    - File semantics with crashes under the WAL and bbolt (Q4 (b)): the Linux file extension of
+      `notes/osfs-ext-plan.md` (files, fsync, bytes lost on a failed fsync) or `durableExt`. The
+      image L2 hands to the next incarnation becomes the durable part of the files, not the ghost
+      image.
+    - The WAL over those files: `Save`'s and `SaveSnapshot`'s fsyncs, the segment cut and rename,
+      preallocation. Either proved (Q3 (b), the trust boundary down to the WAL), or a crash-aware
+      contract reviewed with the `axiom` skill.
+    - bbolt's commit (data pages before the meta page) over the same files, which the osfs plan
+      targets. The backend's consistent index is committed with batches, not per apply, so after a
+      crash the backend may be behind the WAL; the restart replays the WAL above it. The image
+      invariant must say so.
+    - The snapshot files (`.snap`, the `.snap.db` backend) against the WAL's snapshot records: their
+      order of writes and fsyncs. The two WAL non-issues of R2b-1
+      (`etcd-wal-stale-entries-above-snapshot`, `etcd-wal-snapshot-record-order`) are where it
+      already showed.
+    - The server's persist-before-send. A follower saves before it sends. The leader sends its
+      messages before its own `Save` (`raft.go`, "the leader can write to its disk in parallel with
+      replicating", raft thesis §10.2.1), so the leader's acknowledged writes rest on a quorum of
+      followers' fsyncs, not its own. The invariant must state which, as raft's stage II does for
+      raft.
+  - **The example**: `restart3` with a crash of the follower in place of `HardStop`, or a crash
+    step in its schedule; a closed theorem that the client's history is linearizable, as
+    kvdurable's.
+  - **Questions for its Scope**: osfs or `durableExt`; bbolt and the WAL proved over the files or
+    behind crash-aware contracts; one member's crash or the whole cluster's (power loss); a failed
+    fsync handled (`walFailed`, osfs's lost bytes) or excluded by a premise.
+  - **Order and size**: after R2-R5 have landed and the osfs extension exists. The largest stage of
+    this plan.
 
 ## Size and order
 

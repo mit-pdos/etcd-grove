@@ -3,8 +3,9 @@
 v3.7 retarget, 2026-10-16; D12). Lean-first (no Rocq counterpart); see `InvNodeStart.lean`.
 
 With `cfg.lg` non-nil (etcd always passes a logger: the `else` branch, `NewRaftLogger` of the
-default zap config and `log.Fatalf`, is dead) and `cfg.heartbeat` non-zero (etcd's `TickMs > 0`:
-the `heartbeat == 0` branch's `&time.Ticker{}` is dead), it sets raft's logger
+default zap config and `log.Fatalf`, is dead) and `cfg.heartbeat` positive (a scope restriction,
+2026-11-03, the final whole-`bootOk` review's S2, `notes/decisions.md`: Go's `heartbeat == 0` branch,
+`&time.Ticker{}`, a ticker that never fires, is not covered; a negative one makes `NewTicker` panic), it sets raft's logger
 (`NewRaftLoggerZap`, `raft.SetLogger`: contracts), allocates `tickMu`, takes `time.Now()`, the
 timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a contract), the channels
 (`readStateC` of capacity 1, `msgSnapC` of capacity `maxInFlightMsgSnap`, `applyc`, `stopped` and
@@ -41,10 +42,12 @@ abbrev newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
     (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames) (cv : raftNodeConfig),
   cv.lg' ≠ null →
-  cv.heartbeat' ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the contracts (`InvNodeStart.lean`)
-      rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnTickerOk E }}
+      rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnTickerOk E ∗
+      -- (2026-11-03, S2: until then the implication `heartbeat ≠ 0`) a positive heartbeat (see the
+      -- file header)
+      ⌜0 < sint.Z cv.heartbeat'⌝ }}
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,

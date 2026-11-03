@@ -41,7 +41,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hlive, Hard, Hwo⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hle' := apply.isApplyLessorAny_of _ _ _ _ _ _ _ $$ Hle
   ihave #Hr' := Hr
@@ -52,12 +52,12 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   wp_apply (hLP st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) id L
       (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [$Hst $Hle' $Hinfo $Hard $Hu]
     as %err ⟨Hinfo, Hard, Hu, #HeI, %Hoff, #Hlc⟩
-  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hu Hard Hwo]
+  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hu Hard Hwo HltL]
   · iunfold apply.kvOwn
     iframe Hrd Hsw Hard Hwo
     iunfold apply.leasesLive
     iexists L
-    iframe Hknown Hu
+    iframe Hknown Hu HltL
   cases err with
   | ok e' =>
     wp_auto
@@ -70,9 +70,10 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp
     · iunfold apply.revokeRes at Hrr
+      icases Hrr with ⟨Hrdat, Hrev, HRO, -⟩
       iunfold apply.revokeResAfter
       simp only [reduceCtorEq, ↓reduceIte]
-      iexact Hrr
+      iframe
   | nil =>
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin

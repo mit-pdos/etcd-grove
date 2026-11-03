@@ -416,7 +416,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH d.γB cl H) (hlg : E.lg = false) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -428,9 +428,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
+  rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, %Hcm, -, #Hcp⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, %Hcm, %Hlgk, #Hcp⟩
   have hdcm : d.cm = γr.kv.cmp := by
     have h2 := Hcm.2; rw [hkb] at h2; simp only [mvcc.kbCmpM] at h2
     rw [Hcm.1]; cases hd : d.cm <;> cases he : E.cmp <;> simp_all
@@ -458,9 +459,8 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
-  have Hpl := Hpl0.1
+  have Hpl : plainLogM γr.kv.cmp false A' := by rw [← hlg, ← Hlgk.2]; exact Hpl0.1
   -- the cluster's in-memory members, from the rest resource
-  iunfold srvRest at Hrest
   rw [hRO]
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
@@ -479,7 +479,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   have hsplit := kvModel_split γr.kv A' hlog0
-  obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrest, hwf⟩ := himA
+  obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrestL, hwf⟩ := himA
+  -- (the lease-grant plan's (D)) the committed log grants nothing: the plain image
+  have hrest := bkRestAt_of_L (by
+    rw [hpre0, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A' Hpl]; rfl) hrestL
   rw [← hdcm] at hkI
   imod image_restoreRes E γr d A' r D hkI hr $$ HkI HrI Hcp HA' Hrcp with ⟨#Hrcpt, #Hpf, #Hpc⟩
   imodintro
@@ -489,9 +492,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
   isplitl [Hrb Hrn Hmem HH]
-  · iunfold srvRest
-    rw [hRO]
-    iunfold srvRestOwnH
+  · iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
     iframe Hrb Hrn Hmem

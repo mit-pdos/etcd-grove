@@ -61,9 +61,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (pre : List EntryModel) (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
-  -- `newRaftNode`'s premises: a logger, a heartbeat
+  -- `newRaftNode`'s premises: a logger (and a positive heartbeat, in the precondition)
   bv.lg' ≠ null →
-  bv.heartbeat' ≠ W64 0 →
   -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
   -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
   ConfigValid cv →
@@ -85,6 +84,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
   storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-03, the final whole-`bootOk` review's S2: until then the implication
+      -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction (`newRaftNode.spec`'s)
+      "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
       -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the
