@@ -30655,3 +30655,15 @@ or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) ch
 laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
 starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
 
+
+## A failed WAL `Save` is an I/O failure (2026-11-03 · the user's choice, R2b-1 stage 5)
+
+**Before:** `isWalStorage`'s `Save` took two atomic updates, the save and, on an error, "some records"
+(the user's choice of 2026-11-03: a failed state, no premise), so the durability invariant had a
+failed state with records unknown. **The conflict:** after a failed `Save` the loop calls `lg.Fatal`,
+but the apply thread runs on and may `SaveSnap` its own snapshot, whose contract requires a record at
+the records' base to carry its term: unprovable over unknown records. **Now:** `Save`'s error case
+gives `⌜¬ storage.walSaveOk⌝`, as `SaveSnap`'s and `Close`'s already do (the WAL's write failing is
+I/O, excluded by `storage.diskOk`, which every example assumes); the invariant has no failed state.
+The alternative (keep the failed state, give `SaveSnap` a "records broken" outcome) was more complex
+and also a trusted change.

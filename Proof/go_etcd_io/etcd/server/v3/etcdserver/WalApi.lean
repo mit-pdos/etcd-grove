@@ -57,15 +57,13 @@ below. -/
   letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
     □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-        (es : List EntryModel) (Q Qf : IProp GF),
+        (es : List EntryModel) (Q : IProp GF),
       {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          (AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
-            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅
-             <{ ∃ σ' : StorContents, walRecs w σ', COMM Qf }>) }}
+          AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+            @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }}) ∗
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           smPtsV mp dq' md ∗
@@ -97,26 +95,26 @@ theorem isWalStorage_ok (st : GoInterface) :
   ipureintro; exact ⟨si, Heq⟩
 
 /-- **The WAL's operations** (the contract's laws: a client uses these, not `isWalStorage`'s body).
-`Save`: the records saved, or on an error some records (the raft loop then calls `lg.Fatal`,
-which never returns). -/
+`Save`: the records saved, or the environment failed (the raft loop then calls `lg.Fatal`;
+`walSaveOk`, in `diskOk`, as for `SaveSnap` and `Close`). (2026-11-03, R2b-1 stage 5, the user's
+choice: until then on an error some records, a second atomic update; with records unknown after a
+failed `Save`, the apply thread's own `SaveSnap` could not show its precondition.) -/
 theorem walSave_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInterface.ok si)
     (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
-    (es : List EntryModel) (Q Qf : IProp GF) :
+    (es : List EntryModel) (Q : IProp GF) :
     isWalStorage st ⊢
       {{ storage.walOpen (storage.walOf st) q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
-          (AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ ∗
                 ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
             @ ⊤, ∅ <{ walRecs (storage.walOf st) (walSave σ hs.toM (es.map EntryModel.toM)),
-              COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ }> @ ⊤, ∅
-             <{ ∃ σ' : StorContents, walRecs (storage.walOf st) σ', COMM Qf }>) }}
+              COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen (storage.walOf st) q ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }} := by
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }} := by
   unfold isWalStorage
   iintro ⟨%si', %Heq, #HS, -, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %q %hp %hs %sl %esL %es %Q %Qf
+  ispecialize HS $$ %q %hp %hs %sl %esL %es %Q
   iexact HS
 
 /-- `SaveSnap`: the snapshot record saved (or the environment failed: the apply thread panics on an
