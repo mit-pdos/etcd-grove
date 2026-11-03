@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, durablekv, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, prophkv, durablekv, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
                k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -496,6 +496,19 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durable")],
+    ),
+    Project(
+        name="prophkv",
+        # GetAny's logically atomic spec over a prophecy of its random choice (`examples/prophkv`,
+        # a port of Perennial's goose/testdata/examples/prophkv): the prophecy is a prophecy patch
+        # (etc/proph-patches/prophkv/), the first one of this repository. A package of the
+        # examples' Go module (examples/go.mod), importing only goose-lang/primitive.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "prophkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "prophkv")],
     ),
     Project(
         name="durablekv",

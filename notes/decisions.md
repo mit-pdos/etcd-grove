@@ -27262,3 +27262,9 @@ unchanged): the etcd pin moved to `bb1b80ca0` (branch `goose-lean-noproph`, the 
 with `bc9c3868c` reverted), the examples' `go.mod` replaces with it. The patched source is the old
 pin's tree file for file, and its translation the checked-in one. The fork carries no code for
 verification only.
+
+The first patch written as one: `examples/prophkv` (a port of Perennial's prophkv). Its patch adds
+a `bool` prophecy of `GetAny`'s random choice (`prophFirst.ResolveBool(r%2 == 0)`; Go's prophecy
+values are `bool`s or `uint64`s, so the choice rather than the returned string); `GetAny`'s spec
+is the plain logically atomic one, and `prog_safe` follows from `goose_adequacy` with the standard
+axioms only (`Proof/.../prophkv/Results.lean`).
