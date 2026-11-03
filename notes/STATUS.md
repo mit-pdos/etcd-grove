@@ -557,6 +557,26 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: "Durability stage II (p)", "Durability stage II (s)" (2026-11-02), the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## mvcc's API redesign, for etcd and the randomized tester (2026-11-03, branch `mvcc-api`)
+
+The user's plan: specs for mvcc strong enough for etcd's proofs and the randomized tester
+(`examples/mvccrand`, `notes/mvccrand.md`), as simple as possible, frozen; then informal invariants,
+frozen; then the proof. **Status: the candidate spec (round 13, with the user's decisions 1-3) is
+ready to freeze**: `~/mvcc-api-candidates/MvccApiR13.lean` (a scratch Lean file outside the
+repository, typechecked on branch `worktree-mvcc-rand-tester`; it goes into this branch's spec files
+once frozen); the design and every decision in `notes/mvcc-api-candidate.md` ("Rounds 10-11" on).
+In short: 8 opaque predicates; canonical specs per (concrete type, method), each its interface
+method's contract at the type, with interface bundles as `sync.isLocker`; every method verified
+before kept; one pure watch guarantee, with compaction (one condition); the backend's resources from
+any opener; shutdown out of scope (etcd's is buggy). This branch was cut from `lean` for the
+invariants and the proof (decision 4): the tester is re-translated at `lean`'s pins (Goose project
+`mvccrand`). Round 9's candidate proof (an abstract mode over the old internals,
+`notes/mvcc-api-proof-plan.md`) stays on `worktree-mvcc-rand-tester`, not carried over. Not yet
+carried over: seven findings (a read during shutdown crashes etcd; a watch from the compaction
+revision loses events; a progress request's lock order deadlocks; three of the hashes; a negative
+watch start revision), in the old issue format on `worktree-mvcc-rand-tester`, to be ported to
+`issues/`'s format (upstream search, valid tests) or `nonissues/`.
+
 ## The findings: issues and non-issues (2026-11-02, branch `worktree-issues-schema`)
 
 `issues/` holds only bugs with a Go test that fails at current upstream `main` (etcd `1573d5941`,
