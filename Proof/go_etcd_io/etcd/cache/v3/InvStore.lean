@@ -598,6 +598,31 @@ theorem gapsOf_applyResp (cap : Nat) (st : StoreState) (r : RespModel) (Y : w64 
   · rw [if_pos he] at hg ⊢; exact gapsOf_applyEvents cap _ st Y hY g hg
   · rw [if_neg he] at hg; exact Or.inl hg
 
+/-- The snapshot `getSnapshot(rev)` picks is at or below the revision asked for. -/
+theorem snapModel_ok_le (st : StoreState) (rev r : w64) (m : KvMap)
+    (h : snapModel st rev = .ok r m) :
+    sint.Z r ≤ sint.Z (if rev = W64 0 then st.latestRev else rev) := by
+  unfold snapModel at h
+  by_cases h0 : st.latestRev = W64 0
+  · rw [if_pos h0] at h; cases h
+  rw [if_neg h0] at h
+  by_cases hn : sint.Z rev < 0
+  · rw [if_pos hn] at h; cases h
+  rw [if_neg hn] at h
+  try dsimp only at h
+  generalize (if rev = W64 0 then st.latestRev else rev) = v at h ⊢
+  by_cases hf : sint.Z st.latestRev < sint.Z v
+  · rw [if_pos hf] at h; cases h
+  rw [if_neg hf] at h
+  cases hx : (st.history.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v))).getLast? with
+  | none => rw [hx] at h; cases h
+  | some x =>
+    rw [hx] at h
+    simp only [SnapResult.ok.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    have := List.mem_filter.1 (List.mem_of_getLast? hx)
+    simpa using this.2
+
 /-- In a sorted history, the gap of the newest snapshot at or below `v` covers `v` (with `v` at
 most the latest revision `l`). -/
 theorem gapsOf_filter_last (v l : w64) : ∀ (hs : List (w64 × KvMap)) (x : w64 × KvMap),

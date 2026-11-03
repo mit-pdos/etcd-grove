@@ -142,9 +142,10 @@ theorem demux.broadcastProgressLocked.wp_proof
         (by rw [Hvact]; rfl) Hup (by rw [Hp1, Hvn]; omega) (by rw [Hp1, HvmaxRev]; omega)
         (by rw [HvmaxRev]; exact enqueueResult_some sent hr')).2 rfl⟩
     ihave #Hpub := pub_send (C := C) pred ri.sr ri.s v sent (progressResp p) c.base
-      (Hst.sr_ok key ri Hri) (HSO.active Hvact) Hnext $$ [Hcerts] [Hprog]
+      (Hst.sr_ok key ri Hri) (HSO.active Hvact) Hnext $$ [Hcerts] [Hprog] [Hquiet]
     · rw [Hmv.1]; iexact Hcerts
     · rw [Hmv.2]; iexact Hprog
+    · rw [Hmv.1, Hmv.2, chainEnd_base_stream]; iexact Hquiet
     wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent _ (progressResp p) $$ [Hwat] as %ok ⟨%sent', Hwat, %Henq⟩
     · iframe Hwat Hw Hresp
       simp only [demuxPub]; iexact Hpub
@@ -231,6 +232,8 @@ theorem demux.broadcastProgressLocked.wp_proof
   · iexact Hcerts
   isplitr
   · iexact Hprog
+  isplitr
+  · iexact Hquiet
   ipureintro; exact ⟨Hok, Hst⟩
 
 end proof

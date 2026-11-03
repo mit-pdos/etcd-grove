@@ -317,6 +317,108 @@ theorem applyEvents_certs (pfx : GoString) (cap : Nat) :
           · unfold etcdCert; iexact HY'
           · iapply Hs; ipureintro; exact hx
 
+/-- Along a certificate chain from `Y` through the batches of `evs`, every gap `applyEvents` makes
+(`evGaps`: before each snapshot it appends, back to the previous one or `Y`; and each new one's,
+empty) is certified (`cacheGap`): the batch's step restricted (`etcdStep_restrict`). -/
+theorem applyEvents_gaps (pfx : GoString) :
+    ∀ (evs : List EvModel) (m : KvMap) (Y : w64),
+    certChain (etcdStepCert (GF := GF) pfx) (sint.Z Y) (splitBatches evs) ⊢
+      gapList (cacheGap pfx) (evGaps Y (applyEventsSnaps m evs)) := by
+  intro evs
+  induction h : evs.length using Nat.strongRecOn generalizing evs with
+  | ind n ih =>
+    intro m Y
+    match evs with
+    | [] =>
+      iintro -
+      rw [applyEventsSnaps]
+      unfold gapList; imodintro; iintro %g %hg; simp [evGaps] at hg
+    | e :: es =>
+      iintro #Hch
+      rw [splitBatches_takeWhile, certChain_cons]
+      icases Hch with ⟨⟨%p, %Hp, #Hc⟩, #Hch⟩
+      have htw : (e :: es).takeWhile (fun x => decide (x.rev = e.rev)) =
+          e :: es.takeWhile (fun x => decide (x.rev = e.rev)) := by
+        simp
+      have hbr : batchRev ((e :: es).takeWhile (fun x => decide (x.rev = e.rev))) = e.rev := by
+        rw [htw]; rfl
+      rw [hbr] at Hp
+      rw [hbr]
+      rw [applyEventsSnaps]
+      cases hb : applyBatch m ((e :: es).takeWhile (fun x => decide (x.rev = e.rev))) with
+      | mk m' ok =>
+        cases ok with
+        | false =>
+          simp only
+          unfold gapList; imodintro; iintro %g %hg; simp [evGaps] at hg
+        | true =>
+          simp only
+          have hcert : ∀ p b, (etcdStepCert (GF := GF) pfx).cert p b = etcdStepCertBody pfx p b :=
+            fun _ _ => rfl
+          simp only [hcert]
+          iunfold etcdStepCertBody at Hc
+          icases Hc with ⟨%cs, -, #Hstep0, -, -⟩
+          ihave #Hstep := EtcdStep_congr hbr $$ Hstep0
+          have hlen : ((e :: es).dropWhile (fun x => decide (x.rev = e.rev))).length < n := by
+            rw [← h]; exact dropWhile_length_lt e es
+          ihave #Hrest := ih _ hlen _ rfl m' e.rev $$ Hch
+          unfold gapList
+          imodintro
+          iintro %g %hg
+          simp only [evGaps, List.mem_cons] at hg
+          rcases hg with rfl | rfl | hg
+          · iapply cacheGap_of_step pfx p Y e.rev cs Hp.1 $$ Hstep
+          · iapply cacheGap_nil pfx e.rev _ (Int.le_refl _)
+          · iapply Hrest; ipureintro; exact hg
+
+/-- The gaps `Apply(r)` makes (`applyRespGaps`) are certified, given the chain of `r`'s batches
+from the newest snapshot's `Y` and, for a progress notification, the quiet interval from `Y` to its
+revision. -/
+theorem applyResp_gaps (pfx : GoString) (st : StoreState) (r : RespModel) (Y : w64) :
+    certChain (etcdStepCert (GF := GF) pfx) (sint.Z Y) (splitBatches r.events) ∗
+      □ (⌜r.isProgressNotify = true⌝ -∗ etcdQuiet pfx (sint.Z Y) (sint.Z r.hdrRev)) ⊢
+    gapList (cacheGap pfx) (applyRespGaps Y st r) := by
+  iintro ⟨#Hch, #Hq⟩
+  unfold applyRespGaps
+  by_cases hc : r.canceled = true
+  · rw [if_pos hc]; unfold gapList; imodintro; iintro %g %hg; simp at hg
+  rw [if_neg hc]
+  by_cases hv : (!validRevisions r st.latestRev) = true
+  · rw [if_pos hv]; unfold gapList; imodintro; iintro %g %hg; simp at hg
+  rw [if_neg hv]
+  by_cases hp : r.isProgressNotify = true
+  · rw [if_pos hp]
+    by_cases h0 : st.latestRev = W64 0
+    · rw [if_pos h0]; unfold gapList; imodintro; iintro %g %hg; simp at hg
+    rw [if_neg h0]
+    ihave #Hq' := Hq $$ %hp
+    unfold gapList; imodintro; iintro %g %hg
+    simp only [List.mem_singleton] at hg; subst hg
+    iapply cacheGap_of_quiet pfx (sint.Z Y) Y (sint.Z r.hdrRev) (Int.le_refl _) $$ Hq'
+  rw [if_neg hp]
+  by_cases he : (!r.events.isEmpty) = true
+  · rw [if_pos he]; iapply applyEvents_gaps pfx r.events st.latest Y $$ Hch
+  · rw [if_neg he]; unfold gapList; imodintro; iintro %g %hg; simp at hg
+
+/-- A stale response makes no gap. -/
+theorem applyRespGaps_stale (st : StoreState) (r : RespModel) (Y Y' : w64)
+    (hstale : ∃ e ∈ r.events, sint.Z e.rev ≤ sint.Z Y) (hY : sint.Z Y ≤ sint.Z st.latestRev) :
+    applyRespGaps Y' st r = [] := by
+  obtain ⟨e, he, hle⟩ := hstale
+  have hpn : r.isProgressNotify = false := by
+    cases hp : r.isProgressNotify
+    · rfl
+    · rw [isProgressNotify_events hp] at he; cases he
+  unfold applyRespGaps
+  by_cases h1 : r.canceled = true
+  · simp [h1]
+  have hv : validRevisions r st.latestRev = false := by
+    unfold validRevisions
+    rw [hpn]
+    simp only [Bool.false_eq_true, ↓reduceIte, List.all_eq_false, decide_eq_true_eq, Int.not_lt]
+    exact ⟨e, he, by omega⟩
+  simp [h1, hv]
+
 /-- What `Apply(r)` needs and leaves, given the chain of `r`'s batches from `Y` and the latest
 map etcd's state at `Y`: the snapshots it appends are certified, and after a success the latest
 map is etcd's state at the last event's revision (`Y` if `r` has no events). -/
@@ -447,6 +549,87 @@ theorem storeW_chain (C : DemuxCert GF) (s R Y : w64) (rcv : List RespModel) (r 
     have hyr : batchRev b = y.rev := by rw [hyb]; rfl
     rw [hyr]
     exact habove y hy
+
+/-- **A progress notification to the store watcher is quiet** back to `Y`, the revision of the last
+event received (`R` if none): the publication's quiet tail (`quietEnd`, at or above every progress
+notification sent) starts at the segment's end, which is `Y`'s batch (or below the start). -/
+theorem storeW_quiet (C : DemuxCert GF) (s R Y : w64) (rcv : List RespModel) (r : RespModel)
+    (hs0 : 0 < sint.Z s) (hsR : sint.Z s ≤ sint.Z R + 1)
+    (hY : sint.Z Y = lastEvRevOr rcv (sint.Z R)) (hp : r.events = []) :
+    demuxPubBody (GF := GF) C none s none (rcv ++ [r]) ⊢ □ C.quiet (sint.Z Y) (sint.Z r.hdrRev) := by
+  iintro H
+  iunfold demuxPubBody at H
+  icases H with ⟨%s', %v, %p₀, %Hpure, -, -, #Hq⟩
+  obtain ⟨hs, hD, hp0, -⟩ := Hpure
+  have hs' : s' = s := by
+    rcases hs with hs | hs
+    · exfalso; rw [hs] at hs0; exact absurd hs0 (by decide)
+    · exact hs
+  subst hs'
+  have hp0' : p₀ < sint.Z s' := by
+    rcases hp0 with h | h
+    · exfalso; rw [h] at hs0; exact absurd hs0 (by decide)
+    · exact h
+  have hsub : List.Sublist (streamRange s' v.n v.stream) v.stream := List.filter_sublist
+  have hsegok := hD.stream_ok.sublist hsub
+  have hev : (streamRange s' v.n v.stream).flatten = eventsOf rcv := by
+    have := hD.events
+    rw [eventsOf_append, hp, List.append_nil] at this
+    rw [this]
+    have hk : keepEv none = fun _ => true := rfl
+    rw [hk]
+    exact (List.filter_eq_self.2 (fun _ _ => rfl)).symm
+  -- every event received is at or above the start
+  have hge : ∀ x ∈ eventsOf rcv, sint.Z s' ≤ sint.Z x.rev := by
+    intro x hx
+    rw [← hev] at hx
+    obtain ⟨b, hbm, hxb⟩ := List.mem_flatten.1 hx
+    rw [(hsegok.batches b hbm).2 x hxb]
+    exact (streamRange_mem hbm).2.1
+  have hY0 : 0 ≤ sint.Z Y := by
+    rw [hY]; unfold lastEvRevOr
+    cases hl : (eventsOf rcv).getLast? with
+    | none => simp only; omega
+    | some x => simp only; have := hge x (List.mem_of_getLast? hl); omega
+  -- the segment's end is at most `Y`
+  have hle : chainEnd p₀ (streamRange s' v.n v.stream) ≤ sint.Z Y := by
+    rw [hY]
+    unfold chainEnd lastEvRevOr
+    cases hl : (streamRange s' v.n v.stream).getLast? with
+    | none =>
+      have h0 : streamRange s' v.n v.stream = [] := List.getLast?_eq_none_iff.1 hl
+      have he : eventsOf rcv = [] := by rw [← hev, h0]; rfl
+      rw [he]
+      simp only [List.getLast?_nil]
+      omega
+    | some b =>
+      obtain ⟨x, hx, hxr⟩ := flatten_getLast _ hsegok.batches b hl
+      rw [hev] at hx
+      simp only [hx, hxr]
+      exact Int.le_refl _
+  -- the progress notification is at most `quietEnd`
+  have hr : r ∈ rcv ++ [r] := by simp
+  obtain ⟨hmx, hown⟩ := hD.progress r hr hp
+  have hend : sint.Z r.hdrRev ≤ quietEnd v := by
+    unfold quietEnd
+    cases hh : (v.stream.filter (fun b => decide (sint.Z v.n ≤ sint.Z (batchRev b)))).head? with
+    | none => simp only; exact hmx
+    | some b =>
+      simp only
+      have hb := List.mem_filter.1 (List.mem_of_head? hh)
+      have := hown b hb.1 (by simpa using hb.2)
+      omega
+  icases Hq with (%h | #Hq)
+  · rcases h with h | h | h
+    · exact absurd rfl h
+    · simp at h
+    · imodintro
+      iapply C.quiet_nil
+      rw [h] at hmx
+      have : sint.Z (W64 0) = 0 := rfl
+      omega
+  · imodintro
+    iapply C.quiet_mono _ _ _ _ hle hend $$ Hq
 
 /-- **The store watcher's next response** `r` after `rcv` moves the store's latest revision only
 to revisions with the certificate's `prog` (`revCerts C.prog`, `Apply`'s premise): a progress
@@ -685,7 +868,15 @@ theorem Cache.applyStorage.wp_proof
           isplitr
           · ipureintro
             exact applyResp_ok_or_same cf.scap st r (fun _ _ _ => Hok)
-          · iapply cacheGap_all
+          · iapply applyResp_gaps cf.pfx st r Y'
+            iframe Hch''
+            imodintro
+            iintro %hp
+            ihave #Hq := storeW_quiet (cacheCert cf) sw (sw - W64 1) Y rcv r hs0 hsR hYc
+              (isProgressNotify_events hp) $$ Hpub
+            rw [show (cacheCert (GF := GF) cf).quiet (sint.Z Y) (sint.Z r.hdrRev) =
+              etcdQuiet cf.pfx (sint.Z Y) (sint.Z r.hdrRev) from rfl]
+            iapply etcdQuiet_mono cf.pfx _ _ _ _ hYY' (Int.le_refl _) $$ Hq
         · -- an event at or below the newest snapshot, so at or below the latest revision:
           -- `validateRevisions` rejects the response
           have hstale : ∃ e ∈ r.events, sint.Z e.rev ≤ sint.Z Y' := by
@@ -700,7 +891,8 @@ theorem Cache.applyStorage.wp_proof
             exact applyResp_stale_same cf.scap st r Y' hstale hY'l
           isplitl []
           · unfold snapCerts; imodintro; iintro %x %hx; simp at hx
-          · iapply cacheGap_all
+          · rw [applyRespGaps_stale st r Y' Y' hstale hY'l]
+            unfold gapList; imodintro; iintro %g %hg; simp at hg
       wp_auto
       wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) Y resp r
         $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err ⟨#HeAp, Hres⟩

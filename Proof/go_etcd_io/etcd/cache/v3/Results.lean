@@ -9,8 +9,8 @@ Every Go function of the package has a `Spec`/`Proof` pair and a linked result
   configuration) or a cache (`isCacheFields`, every field) with its handles (`cacheHandles`):
   the readers `Get` needs, the slots `Watch` needs, the handles `WaitForNextResync` needs, the
   token `Close` needs; its three loops (resync, watch, progress requests) run.
-* **`Get`** (`cache_Get`): the answer is etcd's state at a revision the cache holds
-  (`isEtcdKvs`), restricted to the requested range; a linearizable request is at least as fresh
+* **`Get`** (`cache_Get`): the answer is etcd's state at the revision asked for (the header
+  revision for `0`; `isEtcdKvs`), restricted to the requested range; a linearizable request is at least as fresh
   as etcd was when it started (`cacheGetResult`).
 * **`Watch`** (`cache_Watch`) and **its delivery theorem** (`cache_Watch_delivery`): every
   prefix of the responses the caller receives on the returned channel is a `cacheWatchLog`, and
