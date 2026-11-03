@@ -27256,5 +27256,9 @@ Iris statement in the trusted base) and retire the patches.
 
 Patches rather than commits of the Go fork: the prophecy then shows as what it is, an addition
 for verification that is checked mechanically, instead of a fork commit read by hand among bug
-fixes. The fork's existing prophecy commit (`bc9c3868c`, `kubernetes.Client.Get`'s revision
-prophecy, D30n) predates this and stays; moving it into a patch is a candidate cleanup.
+fixes. The fork's one prophecy commit (`bc9c3868c`, `kubernetes.Client.Get`'s revision
+prophecy, D30n) is now `etc/proph-patches/etcd/01-client-get-revision.patch` (the commit's diff,
+unchanged): the etcd pin moved to `bb1b80ca0` (branch `goose-lean-noproph`, the old pin `249d76bea`
+with `bc9c3868c` reverted), the examples' `go.mod` replaces with it. The patched source is the old
+pin's tree file for file, and its translation the checked-in one. The fork carries no code for
+verification only.

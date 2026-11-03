@@ -152,7 +152,8 @@ def patched_copy(project, src, dest, quiet=False):
         sys.exit("proph_patch: " + "\nproph_patch: ".join(errs))
     shutil.rmtree(dest, ignore_errors=True)
     rel = os.path.relpath(os.path.abspath(src), ROOT)
-    if not rel.startswith(".."):
+    # an example of this repository (not a clone under `.lake/`, nor a checkout elsewhere)
+    if not rel.startswith("..") and rel.split(os.sep)[0] != ".lake":
         top = rel.split(os.sep)[0]
         os.makedirs(dest)
         for e in os.listdir(ROOT):
@@ -163,14 +164,23 @@ def patched_copy(project, src, dest, quiet=False):
     else:
         shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".git"), symlinks=True)
         out = dest
+    # `dest` is under this repository's `.lake/`: inside a repository, `git apply` takes paths from
+    # its top and silently skips those outside the current directory, so keep git from finding it
+    env = dict(os.environ, GIT_CEILING_DIRECTORIES=os.path.dirname(os.path.abspath(dest)))
     for p in ps:
         if not quiet:
             print(f"+ git apply {os.path.relpath(p, ROOT)} (in {out})", file=sys.stderr)
-        r = subprocess.run(["git", "apply", "--whitespace=nowarn", p], cwd=out,
+        r = subprocess.run(["git", "apply", "--whitespace=nowarn", p], cwd=out, env=env,
                            capture_output=True, text=True)
         if r.returncode != 0:
             sys.exit(f"proph_patch: {os.path.relpath(p, ROOT)} does not apply to {project}: "
                      f"{r.stderr.strip()}")
+        # and check that it did apply: it now applies in reverse
+        r = subprocess.run(["git", "apply", "--check", "--reverse", "--whitespace=nowarn", p],
+                           cwd=out, env=env, capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.exit(f"proph_patch: {os.path.relpath(p, ROOT)} did not apply to {project} "
+                     f"({out}): {r.stderr.strip()}")
     errs = go_errors(project, src, out)
     if errs:
         sys.exit("proph_patch: " + "\nproph_patch: ".join(errs))
