@@ -188,6 +188,11 @@ Why `linkv3p` and not a new example: it already sends snapshots for real, and co
 invisible to its model. Auth on is not added here (a separate example, `notes/snapshot-auth-on-plan.md`,
 "An example").
 
+Status (2026-11-03): not started; #7-cmp and `run_job_snap_cmp` are proved (F2), so the step is
+open. Branch `ex-acsnap` (`examples/acsnap`: compaction, auth on and a snapshot together; Go and
+its test, no proof yet) overlaps it: once `acsnap` is proved, this step adds only porcupine's
+coverage under arbitrary partition schedules with the compactor on.
+
 ## Questions (for the user; recommendations)
 
 1. **Freeze the certificate as drafted** (`imageAt`'s key view `∃ r, keyImageM γk.cmp (kvModel γk A)
