@@ -34,6 +34,16 @@ instance kvsHold_persistent (ps : List Loc) (s : List EtcdKv) :
     Persistent (kvsHold (GF := GF) ps s) := by
   unfold kvsHold; infer_instance
 
+omit package_sem in
+/-- `kvsHold`'s introduction: the lengths agree and each `*KeyValue` holds its key-value. -/
+theorem kvsHold_intro (ps : List Loc) (s : List EtcdKv) :
+    ⌜ps.length = s.length⌝ ∗
+      □ (∀ (i : Nat) (p : Loc) (v : EtcdKv), ⌜ps[i]? = some p⌝ -∗ ⌜s[i]? = some v⌝ -∗
+        kvValAt p v) ⊢ kvsHold (GF := GF) ps s := by
+  unfold kvsHold
+  iintro H
+  iexact H
+
 /-- See the file header. -/
 abbrev hasKey.spec : Prop :=
   ∀ (sl : GoSlice) (ps : List Loc) (s : List EtcdKv) (key : GoString),
