@@ -741,6 +741,12 @@ A slot a subsystem does not need is omitted, not defined as `True`.
 (`<sub>.bootCfg_of …`, `<sub>.bootRes_intro …`, the elimination laws the server's proof needs). A law
 states a client's fact in the client's terms: no body leaks.
 
+**Elimination laws are narrow** (2026-11-03, the review of the WAL's slots, suggestion 1, which the
+user took): a law out of a slot gives what its consumer takes (`wal.bootOk_storage`: the open token
+and `walReady`, what `NewStorage` takes), or turns the slot into the consumer's slot (`wal.bootOk ⊢
+|==> wal.srvInv …`), never the slot's body restated: a body-restating law keeps the hub's text stable
+but makes the hub's proof change with the body.
+
 **Couplings:** one slot exports a fact the other consumes (a law of the owner's API, taken as a
 premise by the other's slot or proof); only when neither subsystem owns the relation, a named
 cross-slot predicate in the hub's module (`<a>_<b>.couple …`), reviewed with the hub.
@@ -754,8 +760,13 @@ added only when its subsystem must change the hub anyway.
 **The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
 configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
 w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
-purge's right; `wal.bootOk_elim`). No `wal.bootCfg` (no condition on the configuration);
+purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.bootCfg` (no condition on the configuration);
 `wal.Names` and `wal.srvInv` come at stages 3c/4. `NewServer.spec`'s three triples take
 `wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
 WAL conjuncts. The examples still thread one token per member from program start (a new resource
 is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
+
+Open from the same review (not taken yet): (2) the program-start boundary has no owner: each
+example's start statement names `walDirFresh` itself, so a restart's `walFiles` would change every
+example (hub 4); (3) `NewServer.spec`, `specM` and `specG` are three twin triples, so a slot is added
+three times; the first two could be corollaries of `specG`, as `specSnap_of_M` is for the snapshot.

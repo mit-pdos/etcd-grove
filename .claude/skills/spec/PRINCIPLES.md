@@ -195,7 +195,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   resources and results as one sealed predicate each from the subsystem's API module
   (`<sub>.bootCfg`, `<sub>.bootRes`, `<sub>.bootOk`, `<sub>.srvInv`, with laws), so that a change
   inside the subsystem changes the slot's body, not the hub's text and its callers. A subsystem moves
-  into its slot when it next changes the hub. (`notes/spec-first-plan.md`, "The slot convention",
+  into its slot when it next changes the hub. Its elimination laws give what their consumer takes,
+  never the slot's body restated, or the hub's proof changes with the body. (`notes/spec-first-plan.md`, "The slot convention",
   approved 2026-11-03; the WAL the first.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)

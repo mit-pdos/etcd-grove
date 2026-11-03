@@ -30649,7 +30649,8 @@ enter the hub through sealed slots, after a convention reviewed once.
 
 **Now:** the convention (`notes/spec-first-plan.md`, "The slot convention") approved as drafted;
 `WalApi.lean` exports `wal.bootRes cfg` and `wal.bootOk cfg id cid w`, sealed, with
-`wal.bootRes_intro` and `wal.bootOk_elim`; the hub names them. A later change to what the WAL takes
+`wal.bootRes_intro` and `wal.bootOk_storage` (narrow: what `NewStorage` takes; a review's
+suggestion, replacing a law that restated the body); the hub names them. A later change to what the WAL takes
 or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) changes those bodies and
 laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
 starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.

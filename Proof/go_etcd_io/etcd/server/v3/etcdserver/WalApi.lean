@@ -211,13 +211,21 @@ and the right to close it with its files kept (the purge's, `walPurgeRight`). -/
   iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
     walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
 
-/-- `wal.bootOk`'s parts (what `NewServer`'s proof uses). -/
-theorem wal.bootOk_elim (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+/-- **What `NewServer` takes from `wal.bootOk`**: the WAL open, whole, and read, which
+`NewStorage`'s contract takes today (`rnNewStorageOk`). Narrow on purpose (the slot convention: an
+elimination law gives what its consumer takes, never the slot's body), so that `NewServer`'s proof
+does not change with the body. The rest (the records, the metadata, the purge's right) is dropped
+until a consumer needs it: R2b-1 stages 3c/4 replace this law by one into the raft loop's
+durability invariant (`wal.bootOk ⊢ |==> wal.srvInv …`). -/
+theorem wal.bootOk_storage (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) :
-    wal.bootOk (GF := GF) cfg id cid w ⊢
-      walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
-        walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') := by
-  unfold wal.bootOk; iintro H; iexact H
+    wal.bootOk (GF := GF) cfg id cid w ⊢ storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ := by
+  unfold wal.bootOk
+  iintro ⟨Hw, -⟩
+  icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, -, -, %Hr⟩
+  isplitl [Ho]
+  · iexact Ho
+  · ipureintro; exact Hr.1
 
 end defs
 
