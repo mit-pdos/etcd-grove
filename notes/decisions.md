@@ -29854,6 +29854,26 @@ compactkv's and putgetc's proofs (premises weakened; no result's other statement
 the compactions' takes together, so a second stock with its own receipts is not needed; and it is the
 supply that survives a snapshot's swap, which restore in compaction mode needs.
 
+## A snapshot payload's job in compaction mode: `applyAll.specSnap` in either mode (M2's item 15, stage C)
+
+**2026-11-02 · the user's "start stage C", "keep it on the branch" (until image-cmp), "so you can go
+ahead?" · branch `m2-item15-c`, over `image-cmp` (#7-cmp's Freeze)**
+
+**What was.** `applyAll.specSnap` took `E.cmp = false`; `run_job_snap` proved the mode off and left
+the compaction mode to `run_job_snap_cmp`, a `sorry`.
+
+**Decision.** `applyAll.specSnap` drops `E.cmp = false` (no other change to its text). Its proof
+takes the image's records `r`, the restored log's receipt and the two permits from `snapRecv_image`
+(restated by `image-cmp`: `SnapImageFacts` carries `keyImageM d.cm … r D` and `r.crev = crevOf γr.kv
+A'`), and `applySnapshot.specSnap`'s `hcc` from `crev_hcc` over `kvApplied`'s `crevOf` tie and the
+image's log extending the applied one. The snapshot step's merge branch is `merged_image` in both
+modes (image-cmp's). `run_job_snap` covers both modes; `run_job_snap_cmp` is gone, and with it a
+`sorry` (trust base: only its removal).
+
+**Why.** Stage C of the approved plan. An interim form with a bridge `sorry` (`snapRecv_image_cmp`,
+the certificate's facts as a lemma) was committed on the branch and kept off `lean` at the user's
+word; image-cmp's Freeze made it provable as a few lines at the call, and it was removed.
+
 ## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
 
 **The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
