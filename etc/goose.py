@@ -10,8 +10,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
-               k8s-daemonset; repeatable; default: all).
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
+               k8s-daemonset, bbolt or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -1143,6 +1143,46 @@ PROJECTS = [
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvwitness")],
     ),
+    Project(
+        name="bbolt",
+        # bbolt with its bodies, for the top-level test bbolttest: the fork upamanyus/bbolt, branch
+        # goose-lean (v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
+        # the fix of etcd-io/bbolt#1311). Translated into the parallel tree Bbolt (modules
+        # Bbolt.Code.go_etcd_io.bbolt*, ...), since project etcd translates go.etcd.io/bbolt (names
+        # only) into the main tree; nothing outside Bbolt imports it. Its `os`, `syscall`,
+        # `golang.org/x/sys/unix` and `io/fs` are project bboltfs's (the Linux file extension), its
+        # `hash/fnv` and `encoding/hex` project etcd's; the rest of the standard library Perennial's.
+        repo="https://github.com/upamanyus/bbolt",
+        rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
+        root="Bbolt",
+        lean_roots=["go.etcd.io/bbolt=Bbolt", "os=", "syscall=", "golang.org/x/sys=", "io/fs=",
+                    "hash=", "encoding/hex="],
+        # the database; not its tests, tools (cmd/) or test helpers (internal/btesting, ...)
+        packages=[".", "./errors", "./internal/common", "./internal/freelist"],
+        owned=[os.path.join("go_etcd_io", "bbolt")],
+        counted_modules=["go.etcd.io/bbolt"],
+    ),
+    Project(
+        name="bbolttest",
+        # The top-level test of bbolt (`examples/bbolttest`): a bank whose boot program checks, after
+        # any crash, that the balances add up and that every acknowledged transfer survived (against
+        # a witness file), then runs concurrent transactions through the lintest driver, whose
+        # trace porcupine checks for strict serializability. A Go module of its own, whose go.mod
+        # replaces go.etcd.io/bbolt by the fork at project bbolt's pin (GO_MOD_PINS checks the two
+        # agree), and lintest and porcupine by this repository's copies. Translated into Bbolt, its
+        # bbolt project bbolt's, its file calls project bboltfs's, lintest and porcupine the main
+        # tree's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "bbolttest"),
+        root="Bbolt",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/bbolttest=Bbolt",
+                    "go.etcd.io/bbolt=Bbolt", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs=", "hash=", "encoding/hex="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolttest")],
+    ),
 ]
 
 
@@ -1153,6 +1193,7 @@ PROJECTS = [
 GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    os.path.join("examples", "bbolttest", "go.mod"): {"go.etcd.io/bbolt": "bbolt"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8setcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }

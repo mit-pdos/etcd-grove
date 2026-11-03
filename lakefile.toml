@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -44,6 +44,16 @@ globs = ["RaftWitness.+"]
 [[lean_lib]]
 name = "PorcupineDag"
 globs = ["PorcupineDag.+"]
+
+# bbolt's top-level test (examples/bbolttest) and bbolt itself with its bodies (the fork
+# upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
+# into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main
+# tree translates go.etcd.io/bbolt names-only, for etcd, so the two declare the same names;
+# nothing outside Bbolt imports it. Its file calls are the Linux file extension's (project
+# bboltfs's `os`, `syscall`, `golang.org/x/sys/unix`).
+[[lean_lib]]
+name = "Bbolt"
+globs = ["Bbolt.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false
