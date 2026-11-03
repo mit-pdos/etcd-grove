@@ -1,38 +1,25 @@
 /-
-**The WAL's durability for the raft loop, drafted** (the restart plan's R2b-1, 2026-11-02;
-`notes/restart-plan.md`, "R2b-1: the WAL's records"). Lean-first (no Rocq counterpart). DRAFT:
-nothing proved imports this module yet. (2026-11-03: the WAL's records, model and contract moved to
-the WAL's API, `storage/WalRecs.lean` and `etcdserver/WalApi.lean`; here the laws tying the model
-to raft's `Ready`, the durability invariant and the receive's new postcondition.)
+**The WAL's durability for the raft loop** (the restart plan's R2b-1, 2026-11-02 to 2026-11-03;
+`notes/restart-plan.md`, "R2b-1"). Lean-first (no Rocq counterpart). The WAL's records, model and
+contract are the WAL's API (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`); here what ties them
+to raft:
 
-What a stopped member's image needs of raft (`srvDiskImage`: `StorageHolds S σ`) is that the
-WAL's records hold the node's durable state. Today the server's proof enters each `Ready`'s batch
-into the durable state (`raftState`) at its receive, and the WAL has an open token only
-(`storage.walOpen`). R2b-1:
+* **The pure laws** (stage 2): the records keep holding the durable state across a saved batch with
+  or without a received snapshot (`walSave_holds`, `walSnapSave_holds`) and across the member's own
+  snapshot (`walOwnSnap_holds`); a received batch is a `Save` step of the loop's view
+  (`walSaveStep_ready`, `walSnapSteps_ready`), the apply thread's own snapshot one too
+  (`walOwnSnapStep`).
+* **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the records, the loop's view `WalView` (half of it; the other half the loop's) and the records it
+  describes (`walAsViewed`: `ViewOk`), the handed log as a monotone list (`walCommitLb`).
+  Allocated over a fresh WAL (`rnDur_alloc`).
+* **Its accessors**: the loop's `Save` and `SaveSnap` (`rnDur_save_au`, `rnDur_saveSnap_au`), the
+  apply thread's own `SaveSnap` (`rnDur_ownSnap_au`), as the WAL contract's atomic updates; the
+  stop's taking the records out (`rnDur_take`).
 
-* **The records** (`walRecs w σ`, a trust-boundary token beside `walOpen`): what `wal.ReadAll`
-  (the fork's, `goose-lean-walsnap`: the records read as the log they write,
-  `nonissues/etcd-wal-stale-entries-above-snapshot.md`) returns from the WAL's last snapshot
-  record: the snapshot record at `σ.base`, the hard state `σ.hs`, the entries above `σ.base`.
-* **Their model** (`walSave`, `walSaveSnap`, `walFresh`): `Save(h, es)` replaces the hard state
-  unless `h` is empty and truncate-appends the entries as raft's log does; `SaveSnap(m)` starts
-  the records at `m`'s index, keeping the entries above it when `m` is within the saved commit (a
-  snapshot of the applied log) and none when above it (a received snapshot: raft discarded its
-  log), and changes nothing below the records' base (the restart opens at the highest record).
-* **The contract** (`isRNWalR`): `Save` and `SaveSnap` update the records atomically (the raft
-  loop and the apply thread both write the WAL), `Save` within the case etcd's server uses
-  (consecutive entries above the records' base, the first at most one past their last), with any
-  error as today, after which the records are some records (the loop is in `lg.Fatal` for good).
-* **The durability invariant** (`rnDurInv`, over the ghost names `WalNames` and the raft loop's
-  view `WalView`): the node's durable state and the records holding it (`walAsViewed`), the
-  handed log between their base and commit (`walCommitLb`, which the apply thread's snapshot
-  needs), a received snapshot's pending `Save`, a failed `Save`, the stop's taking the contents
-  out (`rnDurTake_stmt`).
-* **Entering at the `Save`**: raft's receive gives the facts the server needs before *enter*
-  (`readyGotR`, a raft API change), and the raft loop fires *enter* inside the `Save`'s update,
-  together with the records' change, so that the invariant is kept by the pure laws
-  `walSave_holds_stmt` and `walSnapSave_holds_stmt`.
-* **The apply thread's snapshot** keeps it too (`walOwnSnap_holds_stmt`).
+The loop enters a batch at its receive (the user's choice, 2026-11-03), so the view is at the durable
+state before the batch until the `Save` moves it; at every idle point the records hold the node's
+durable state. A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): no failed state.
 -/
 module
 
@@ -300,12 +287,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- (DRAFT, R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
+/-- (R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
 variable, half in the invariant, half the raft loop's: the durable state, the records' hard state,
 the received snapshot whose `Save` is pending if any, the log handed at the last `Save`; round 2
-review F1/F2, as kvdurable's writer variable), the handed log (a monotone list: `walCommitLb`), the "not failed" token (in the invariant once a `Save` failed), the stop's claim
-and the apply thread's token (both in the invariant once the stop took the contents; round 2 review
-F4: the apply thread's `SaveSnap` excludes the taken state with its token). -/
+review F1/F2, as kvdurable's writer variable), the handed log (a monotone list: `walCommitLb`), the
+loop's "not stopped" token `ok`, the stop's claim and the apply thread's token (the three in the
+invariant once the stop took the records; round 2 review F4: each thread rules the taken state out
+with its token). -/
 structure WalNames where
   view : GName
   cm : GName
@@ -360,7 +348,7 @@ instance walView_countable : Pos.Countable WalView :=
         cases p1 <;> cases p2 <;> simp_all
       subst h1 h2 h3 h4 h5 h6 h7 h8'; rw [logEntries_enc_inj h9])
 
-/-- (DRAFT, R2b-1, round 4; round 3 review H2: a prefix, not a length, so that the apply thread
+/-- (R2b-1, round 4; round 3 review H2: a prefix, not a length, so that the apply thread
 learns the handed log's terms) **The handed log extends `l`** (persistent): a lower bound of the
 invariant's monotone list. What the raft loop's `notifyc` hands the apply thread after a `Save`
 (it snapshots only after it, `applyAll`'s `<-apply.notifyc`): the log it applied is a prefix, so
@@ -397,7 +385,7 @@ def ViewOk (v : WalView) (σ : StorContents) : Prop :=
   StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
     DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')
 
-/-- (DRAFT, R2b-1, round 3) **The records as the view says**: at no pending snapshot, records `σ`
+/-- (R2b-1, round 3) **The records as the view says**: at no pending snapshot, records `σ`
 holding the durable state, between whose base and commit the handed log ends (round 2 review F3:
 the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image needs, `|l| ≤
 σ.commit` the apply thread's snapshot), the durable log agreeing with it; at a received snapshot
@@ -410,17 +398,14 @@ def walAsViewed (w : Loc) (v : WalView) : IProp GF :=
 instance walAsViewed_timeless (w : Loc) (v : WalView) : Timeless (walAsViewed (GF := GF) w v) := by
   unfold walAsViewed; infer_instance
 
-/-- (DRAFT, R2b-1, round 4; round 2 review F1-F5, round 3 H1, M1) **The durability invariant** of
-the raft wrapper's WAL `w`, with ghost names `ν`: until the stop takes the
-contents (its claim, the apply thread's token and the loop's "not failed" token: the loop, which
-holds the latter at every access while it runs, rules the taken case out), the loop's view `v`
-(half of it), the handed log as a monotone list (`walCommitLb`'s authority), and either the
-records as the view says (`walAsViewed`; the raft loop fires *enter* and the records' update in
-one step at its `Save`, the apply thread's own snapshot moves the records only), or, once a `Save`
-failed, some records and the "not failed" token (the loop is in `lg.Fatal` for good). The node's
-durable state (`raftState`) is the loop's own, beside its view half (as `rnDrv` holds it today),
-not the invariant's: the loop fires *enter* without a later to strip, and the apply thread needs
-only the pure `StorageHolds`. -/
+/-- (R2b-1, round 4; round 2 review F1-F5, round 3 H1, M1; 2026-11-03: no failed state, a failed
+`Save` being I/O) **The durability invariant** of the raft wrapper's WAL `w`, with ghost names `ν`:
+until the stop takes the records (its claim, the apply thread's token and the loop's token: each
+thread, holding its own token at every access, rules the taken case out), the loop's view `v` (half
+of it), the handed log as a monotone list (`walCommitLb`'s authority), and the records as the view
+says (`walAsViewed`; the loop's `Save` moves the records and the view in one step, the apply
+thread's own snapshot moves the records only). The node's durable state (`raftState`) is the
+loop's own, beside its view half (`rnLoopTokP`), not the invariant's. -/
 def rnDurInv (ν : WalNames) (w : Loc) : IProp GF :=
   inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
       monoListAuthOwn ν.cm 1 v.l ∗ walAsViewed w v) ∨

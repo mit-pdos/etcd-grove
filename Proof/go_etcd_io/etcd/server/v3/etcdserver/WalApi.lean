@@ -222,13 +222,14 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
       |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
         storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
-        walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') := by
+        walPurgeRight (walDirOf w) := by
   unfold wal.bootOk
   iintro ⟨Hw, Hp⟩
   icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
   imod rnDur_alloc w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
   imodintro
   iexists ν
+  rw [Hrd.2]
   iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
   ipureintro; exact Hrd.1
 

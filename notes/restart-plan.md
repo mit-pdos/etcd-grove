@@ -1091,3 +1091,24 @@ loop's token (`rnLoopTokP`, from `NodeStartSpec`); `isWalStorage` in place of `i
 apply thread's `SaveSnap` (its token `ν.app` with its half of the open token, review M3: `rnWalTok`
 takes the wrapper's names, or the apply side's half becomes its own predicate); `onStop`'s `Close`
 (the records from `rnDurTake`, with the metadata and purge right the loop keeps from the start).
+
+### R2b-1 stages 3c-6, done (2026-11-03)
+
+The WAL contract is in use: `NewStorage` gives `isWalStorage` (`isRNWal` is gone), the wrapper holds
+the durability invariant (`isRaftNode`'s `rnDurInv γ.wal`), allocated in `NewServer` from
+`wal.bootOk_start`. Every WAL operation is proved over the contract:
+- the loop's `SaveSnap` and `Save` (`rnDur_saveSnap_au`, `rnDur_save_au`; the steps from the
+  receive, `rnReadyData`/`rnReadySnap`), its view's half in the loop's token (`rnLoopTokP`'s
+  `rnWalView`, the initial view from `NodeStartSpec`);
+- the apply thread's own `SaveSnap` (`rnDur_ownSnap_au`), with its token `ν.app` in its WAL share
+  (`rnWalTokA`, review M3) and the handed log's bound (`rnWalHanded`, carried by `raftAdvancedC`,
+  closed after the loop's `Save`); its chain (`applyAll`, `snapshotIfNeeded`, `snapshot`) takes a
+  fresh start's premise `γr.raft.pre = []` (the snapshot's index is the applied log's length),
+  which `run` has;
+- `onStop`'s `Close` (`rnDur_take`: the records out of the invariant, with the stop's claim, the
+  apply token from `stopped`, the loop's view; the metadata and purge right in the loop's share
+  `rnWalTokL`).
+A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): the invariant has no failed
+state. Close's result (`walFiles`) is dropped for now: R2b-3 makes the image from it (`rnWalClosed`,
+`srvFiles`). Open: M2 (the order at the view's handed log vs the stop's `pre ++ A`), enter at the
+`Save` (crash recovery).

@@ -30667,3 +30667,19 @@ gives `⌜¬ storage.walSaveOk⌝`, as `SaveSnap`'s and `Close`'s already do (th
 I/O, excluded by `storage.diskOk`, which every example assumes); the invariant has no failed state.
 The alternative (keep the failed state, give `SaveSnap` a "records broken" outcome) was more complex
 and also a trusted change.
+
+## The WAL's durability in the server's proof (2026-11-03, R2b-1 stages 3c-6)
+
+**Where the ghost state lives.** The invariant (`rnDurInv`) in the wrapper (`isRaftNode`) and in the
+apply side's WAL share (`rnWalTokA`, for the snapshot path that has no `isRaftNode`); the loop's view
+half with its "not stopped" token in the loop's token beside the driver at the same durable state
+(`rnLoopTokP`: the driver's predicates take the durable state `S` as a parameter so the view can
+name it; `Advance` keeps it); the apply thread's token `ν.app` with its half of the open token
+(review M3), back to the loop through `stopped`; the stop's claim, the metadata and the purge right
+with the loop's half (`rnWalTokL`). **Why `rnWalHanded` rides on `raftAdvancedC`:** the apply
+thread's own snapshot needs the handed log to reach its index; the loop closes `raftAdvancedC` after
+its `Save` (and `Advance`), and the apply thread already waits on it for `nodeAppliedLb`; the WAL's
+lower bound is committed (`deliveredLogLb`), so it agrees with the snapshot's committed log
+(`isCommittedLogLb_agree`). **Why a premise `γr.raft.pre = []`** on the snapshot chain: the snapshot's
+index is the applied log's length only at a fresh start (the restart, R2d, revisits it); `run` has it
+(`isServerRun`'s fresh start).

@@ -31,10 +31,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (D22 S-b) the node's names (`rnRtOk`) only. -/
 theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
-    (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key) :
+    (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
+    (hwal : γ1.wal = γ2.wal) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv
-  rw [h, hγs, hpre, hn, hnl, hid, hkey]
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv rnWalHanded
+  rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal]
 
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
@@ -140,7 +141,7 @@ theorem newRaftNode.wp_proof :
   isplitr
   · iunfold isRNApplyc
     rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩
-      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ rfl rfl rfl rfl rfl rfl rfl rfl]
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

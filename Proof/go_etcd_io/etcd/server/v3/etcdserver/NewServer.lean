@@ -446,9 +446,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     Hrstor Hrinfl Hrdpf Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem
     Hrvs HwalR (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
     (by simp [srvErM, HρRaft]))
-    $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot']
+    $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta⟩
-  · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot'
+  · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdur
     simp only [srvErM]
     iframe #
   (try wp_auto)
@@ -964,6 +964,31 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe storageC
     rw [Hrnwal]; iexact Hwalo
   icases rnWalTok_split (srvRAddr s) $$ Hwt with ⟨Hwth, Hwtl⟩
+  -- (2026-11-03, R2b-1 stages 5-6) the shares: the apply side's with its token and the
+  -- durability invariant, the loop's with the stop's claim, the metadata and the purge's right
+  ihave Hwth : rnWalTokA γrn (srvRAddr s) (1 : Qp).half $$ [Hwth Hwapp]
+  · iunfold rnWalTok at Hwth
+    icases Hwth with ⟨%st0, #Hst0, Hwo⟩
+    iunfold rnWalTokA
+    iexists st0
+    iframe Hst0 Hwo
+    rw [Hrnν]; iframe Hwapp
+    iunfold rnFixed at Hfix
+    iNamed Hfix
+    icombine storageC Hst0 gives %Hsteq
+    have Hsteq' : st0 = rvr.raftNodeConfig'.storage' := by
+      first | exact Hsteq.symm | exact Hsteq.2.symm
+    rw [Hsteq', Hrnwal]; iexact Hdur
+  ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge]
+  · iunfold rnWalTokL
+    rw [Hrnν]
+    iframe Hwtl Hwstop
+    iunfold rnFixed at Hfix
+    iNamed Hfix
+    iexists rvr.raftNodeConfig'.storage', id, _
+    iframe storageC
+    rw [Hrnwal]
+    iframe Hwmeta Hwpurge
   ipersist memberID
   ipersist beHooks
   ipersist stats
