@@ -30332,3 +30332,12 @@ that only restrict (the thread bound at the store's reader slots; the open token
 concurrent compactions out of scope), and the modules built against `lean`. Beside today's specs
 until the proofs are done and the clients move onto it (each `api.<T>.<M>.spec` then replaces
 `<T>.<M>.spec`). Next: the invariants, `notes/mvcc-api-invariants.md`.
+
+## mvcc's API: the invariants, frozen (2026-11-03 · the user delegated the freeze · branch `mvcc-api`)
+
+`notes/mvcc-api-invariants.md`, round 3: what each opaque predicate of the frozen API is over
+`lean`'s internals, where each update fires, what the internals gain. Frozen after two independent
+reviews whose every finding was repaired inside the implementation, the frozen spec unchanged (the
+choice that mattered: a relative revision budget re-based at `Restore`, in place of a receipt premise
+on `Restore`, which would have changed the frozen spec). Recorded for etcd's migration: its `txn`
+package's size premise (`sortSmall`) needs a bound the API does not state.

@@ -7,10 +7,13 @@ says what each opaque predicate of the API is over `lean`'s internals, where eac
 fires, and what the internals must gain. It is over `lean`'s mvcc (the survey of 2026-11-03), not
 round 9's old internals (`notes/mvcc-api-proof-plan.md`, whose abstract mode `lean` does not have).
 
-**Status: round 2**, after an independent review of round 1 (`~/mvcc-api-candidates/review-invariants.md`:
-W1-W4 wrong, M1-M7 missing, U1-U3 unclear, P1-P2), every finding repaired inside the
-implementation: **the frozen spec does not change** (W3's option of a `Restore` receipt premise not
-taken: a relative revision budget instead).
+**Status: frozen (2026-11-03, round 3).** Round 1 reviewed (`~/mvcc-api-candidates/review-invariants.md`:
+W1-W4 wrong, M1-M7 missing, U1-U3 unclear, P1-P2), every finding repaired inside the implementation
+(**the frozen spec does not change**: W3's option of a `Restore` receipt premise not taken, a
+relative revision budget instead); round 2 reviewed (`review-invariants-2.md`: the repairs' defects
+D1-D6 and two missing items), its repairs applied as the review gave them. Frozen by the agent (the
+user delegated it): every finding of both reviews repaired, and the second review found
+`wsRecv_ok` a pure entailment for every conjunct with those repairs.
 
 Paths are under `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`.
 
@@ -28,10 +31,10 @@ proofs that name them; the first step of stage 1.
 |---|---|---|
 | `γ.abs` | ghost variable `Log × Int` (`σ.log`, `σ.crev`) | ½ the client, ¼ `revMuBody`, ¼ the writer's state (`writerL`, or the open write transaction) |
 | `γ.pnd` | ghost variable `Option (List Change)` (`σ.pending`) | watched: ½ the client, ¼ the writer's state, ¼ `watchStoreBody` (beside `γ.rel`); a plain store: ½ the client, ½ the writer's state (P1; sound because a plain store's two steps fire in one atomic step at the bump, U3) |
-| `γ.crevLb` | monotone natural lower bound of `σ.crev + 1` | authority: in `mvccState` (½) and with the compaction right (½), raised at `Compact`'s and `Restore`'s updates; fragments persistent (M2) |
+| `γ.crevLb` | monotone natural lower bound of `σ.crev + 1` | authority: ½ in `mvccState`, ¼ with the compaction right, ¼ in `revMuBody` (scaled by its fraction, so that `syncWatchers` under `s.revMu` mints fragments, D2); raised at `Compact`'s and `Restore`'s updates, which hold all; fragments persistent (M2) |
 | `ι.sst` | ghost variable `StreamState` | ¾ the client, ¼ the stream's mutex invariant (W1: `wsState` exclusive, two copies exceed 1) |
 | `ι.reg` | ghost map `id ↦ (watcher, range, filter predicates, first revision, stamp k)`, monotone | authority ½ in `wsState`, ½ in the stream's mutex invariant; elements persistent, minted at the registration (M1) |
-| `ι.dead` | ghost set of cancelled ids, monotone | as `ι.reg`; an element minted at `Cancel`'s first check and at `Close` (M1) |
+| `ι.dead` | ghost set of cancelled ids, monotone | as `ι.reg`; an element minted at `Cancel`'s first check only (`Close` marks none: its update leaves `live` unchanged, and no `-1` response is sent after it, D3) (M1) |
 | `ι.rcv` | the consumer's view: `watchConsumer`'s `γc.recv`, re-split ⅔ the consumer (`wsRecv`), ⅓ the channel invariant (W1) | |
 
 Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, no mode.
@@ -42,9 +45,11 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
   certificate map's authority `ghostMapAuth γ.cok 1 M` with `certMapOk M σ.notifiedLog` (every entry
   a prefix of the notified log, key 0 excluded so that `certOk`'s `certFree` disjunct contradicts
   it, M7; the `length ≤ 2` disjunct: such a log is `[[], []]`'s prefix, comparable with every log) ∗
-  the authority half of `γ.crevLb` ∗, watched, the sole writer's half of `γ.wlog` (the notified log's
-  authority, today `watchWriter`'s, M2/M4) ∗ the relative revision budget (§4.3: the restore base
-  `b` with `σ.log.length = b + n`, `⧖ n`, `b + receiptBound + 3 ≤ 2 ^ 63`) ∗
+  the authority half of `γ.crevLb` ∗, watched, a share of `γ.rel` (the released length, bumped at the
+  notification, `watchableStoreTxnWrite__End.lean:508`: the notified log's bound, D1) and the sole
+  writer's half of `γ.wlog` (the committed-and-notified log, today `watchWriter`'s, M2/M4) ∗ the relative revision budget (§4.3: the restore base
+  `b`, a monotone ghost value, with `⧖ (logCh (σ.log.drop b))` and `b + receiptBound + 3 ≤ 2 ^ 63`,
+  D6) ∗
   `⌜MvccReachable σ⌝`. Exclusive by the map's full authority (W1: say so).
 - **`isMvcc kv γ`**: `kv` is `mkOk (Ptr store) s` with `isStore s γ.st`, or `mkOk (Ptr watchableStore)
   ws` with `isWatchableStore ws s γ`; the readers' pool (a `ThreadPool` of `storeReaderC`, with
@@ -74,12 +79,19 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
 - **`wsRecv ι rs`**: the consumer's ⅔ of `recv` at the received `RespM`s `ms`, `rs = ms.map respView`,
   and for each received response **pure facts and persistent ghost elements only** (W4: no
   `filtersImpl` triples, no `rsnFor`/`progFact`, no fancy updates): the watcher's `ι.reg` element
-  (its range, predicates, first revision, stamp), the events of the watcher received so far as
-  `filtered fs (watchEvents L rg lo hi)` for a `γ.wlog` lower bound `L` (`notifiedLb`, recorded with
-  every response: events or not, M2), the ids the response covers (a `-1` response: the live ids
-  registered at a stamp at most its index, resolved from `regsAt` at the receive, which spends the
-  receive's later credit), `ι.dead` elements, a compaction response's `γ.crevLb` fragment. The
-  receive law (`wsChan_recv`) converts the channel invariant's facts into these.
+  (its range, predicates, first revision, stamp, with its `chanRegAt`; deposited into the channel
+  invariant before `s.mu` is released at the registration, so the receive can hand it out), the
+  events of the watcher received so far, **as an implication**: `onceUpTo L lo c₀ →` they are
+  `filtered fs (watchEvents L rg lo hi)`, with a `γ.crevLb c₀` fragment (exactness fails when a
+  compaction lost an event); a lower bound on the notified log with every response (events or not,
+  M2): a `γ.rel` lower bound for the notification's responses (D1), `notifiedLb` at `syncWatchers`
+  and progress, and for `moveVictims` (which sends without `s.mu`) the bound recorded when the victim
+  batch was made and carried to the send; the coverage of a progress response: every watcher
+  registered at a stamp at most its index is covered **or has an `ι.dead` element** (D4: the receive
+  runs inside the channel invariant, with no access to `ι.reg`/`ι.dead` behind `ws.mu`; `regsAt`
+  resolved from `sentAuth` inside the opening the receive already makes: no credit, D5); a compaction
+  response's `γ.crevLb` fragment. The receive law (`wsChan_recv`) converts the channel invariant's
+  facts into these.
 
 ## 3. Where each update fires
 
@@ -97,8 +109,8 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
 | the store's own `Put`/`DeleteRange` | one transaction: `Write`'s begin, then `End`'s two steps; the lessor's map `I` learnt by peeking the update, pinned by the transaction's ¼ (U1) | as those |
 | `Watch`'s registration | inside `watchableStore.watch` after the current revision's read (`watchableStore__watch.lean:716`), the update fired after closing `watchN` (M6); the stream holds its mutex | the store's shares (agreement; `pending = none`), `ι.sst`, `ι.reg` (insert, element minted) |
 | `Watch` on a closed stream | the `closed` check (`watchStream__Watch.lean:77`) | `ι.sst`: agreement |
-| `Cancel` | its first check of the maps (`watchStream__Cancel.lean:38-43`) | `ι.sst`, `ι.dead` (element minted; the stream's cancel reason `Ψ` becomes it, replacing v3rpc's) |
-| a stream's `Close` | `closed` written (`watchStream__Close.lean:~99`) | `ι.sst`, `ι.dead` (all) |
+| `Cancel` | its first check of the maps (`watchStream__Cancel.lean:38-43`) | `ι.sst`, `ι.dead` (element minted, and deposited in `respCompl` directly: not through the saved reason `rsnFor`, which would cost a second later credit at the receive, D5) |
+| a stream's `Close` | `closed` written (`watchStream__Close.lean:~99`) | `ι.sst` (`closed`; `ι.dead` unchanged, D3) |
 
 ## 4. What the internals must gain
 
@@ -108,11 +120,14 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
    in `NewStore`, `newWatchableStore`, `NewWatchStream`; carried through every proof that opens and
    closes those (`storeTxnWrite.End`, `store.Read`, `updateCompactRev`, `watch`, `syncWatchers`,
    `moveVictims`, `RestoreMoves`, `NewStore`, the fractional instances).
-3. **The relative revision budget** (W3): `idxCert`'s `⧖ (logCh log)` bounds a log by this process's
-   receipts, which a restored history did not earn; the budget becomes relative to the last
-   restore's base `b` (`⧖ (logCh log - b)` and `b + receiptBound + 3 ≤ 2 ^ 63`, the latter
-   `Restore`'s frozen premise), changing `idxSealed`/`idxCert` and their users; `mvccState` carries
-   the budget, not `idxCert`.
+3. **The relative revision budget** (W3, D6): `idxCert`'s `⧖ (logCh log)` bounds a log by this
+   process's receipts, which a restored history did not earn; the budget becomes relative to the
+   last restore's base `b`, a monotone ghost value (`⧖ (logCh (log.drop b))`: changes since the base,
+   in the same unit as `logCh`; it bounds `σ.log.length` since every committed revision is
+   non-empty, and each `Put`'s/`DeleteRange`'s pending changes; `b + receiptBound + 3 ≤ 2 ^ 63`, the
+   latter `Restore`'s frozen premise, base 2 at `New`), changing `idxSealed`/`idxCert` and their
+   users (they name their base, so facts from before a restore keep their meaning); `mvccState`
+   carries the budget, not `idxCert`.
 4. **The watch guarantee per watcher under compaction**: the global premise per registration
    (`watchNoDup = noCompactor ∨ noDupKeys`, `InvWatchStore.lean:544`) becomes per watcher: the
    watcher's delivery invariant "exact while `onceUpTo L lo crev`" (one implication: a catch-up read
@@ -146,4 +161,9 @@ seven for each of the three types; the stream's seven), the constructors' (`New`
 The tester's proof needs §4.5 and the notified-log bound of every response (M2) though it never
 compacts (it checks `CompactRevision == 0` and progress revisions below its history). etcd keeps
 `mvccState` in its own invariant (fine at the mask once §0 is done) and loses `γ.cok` as its raft
-link: its proof's link moves to `mvccState`'s `σ.log`.
+link: its proof's link moves to `mvccState`'s `σ.log`. **An obligation for etcd's migration** (the
+second review): after a compacted restore the relative budget makes `isTxnWrite_small` (the whole
+log's changes below `receiptBound`) false, from which etcd's `txn` package derives its sort premise
+`sortSmall` (`etcdserver/txn/TxnLemmas.lean:263-290`); the frozen API states no such bound, so etcd
+must get it from its own model (its applied raft log) when it moves onto the API, or the API gains a
+law then (a size bound on a transaction's pending changes, from the budget).

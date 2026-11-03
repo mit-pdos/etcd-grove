@@ -561,10 +561,12 @@ In status-history.md: "Durability stage II (p)", "Durability stage II (s)" (2026
 
 The user's plan: specs for mvcc strong enough for etcd's proofs and the randomized tester
 (`examples/mvccrand`, `notes/mvccrand.md`), as simple as possible, frozen; then informal invariants,
-frozen; then the proof. **Status: the candidate spec (round 13, with the user's decisions 1-3) is
-ready to freeze**: `~/mvcc-api-candidates/MvccApiR13.lean` (a scratch Lean file outside the
-repository, typechecked on branch `worktree-mvcc-rand-tester`; it goes into this branch's spec files
-once frozen); the design and every decision in `notes/mvcc-api-candidate.md` ("Rounds 10-11" on).
+frozen; then the proof. **Status: the spec frozen** (2026-11-03,
+`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, `ApiState.lean`, namespace `mvcc.api`, beside
+today's specs; the design and every decision in `notes/mvcc-api-candidate.md`, "Rounds 10-11" on,
+"The freeze"); **the invariants frozen** (`notes/mvcc-api-invariants.md`, round 3, after two
+reviews); next the proof: stage 1 sequential (namespaces under `mvccN`, the new ghost state, the
+relative revision budget, the predicates' definitions), then the contracts and laws in parallel.
 In short: 8 opaque predicates; canonical specs per (concrete type, method), each its interface
 method's contract at the type, with interface bundles as `sync.isLocker`; every method verified
 before kept; one pure watch guarantee, with compaction (one condition); the backend's resources from
