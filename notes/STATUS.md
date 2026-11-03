@@ -535,7 +535,7 @@ porcupine has to return its linearization.
   premises that the model returns no out-of-call reference to the function (`ModelOk`). Not
   landed in Perennial, and deferred: for now a prophecy is a checked patch of the Go code
   (`etc/proph-patches/`, `etc/proph_patch.py`; `notes/decisions.md`, "Prophecies as patches of the
-  Go code"). Prophecy erasure in Lean is a to-do. The fork's prophecy is now a patch (etcd pin
+  Go code"); the in-Lean approach is dropped (branch kept, unused). The fork's prophecy is now a patch (etcd pin
   `bb1b80ca0`), and `examples/prophkv` proves `GetAny`'s plain logically atomic spec over a
   prophecy patch, `prog_safe` with the standard axioms only.
 

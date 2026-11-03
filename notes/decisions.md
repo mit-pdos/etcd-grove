@@ -27251,8 +27251,8 @@ of its result, in a patched Go model, with premises that the model returns no ou
 reference to that function). A general erasure theorem needs either such premises or a new fact
 in `go.Semantics` (Go instructions commute with erasure), since the Go model is an abstract
 relation that could otherwise inspect prophecy code (`notes/perennial-changes.md`, "Prophecies in
-Lean only"). **To do later:** settle prophecy erasure (a WP-free, proved erasure theorem, with no
-Iris statement in the trusted base) and retire the patches.
+Lean only"). The in-Lean approach is dropped (the user, 2026-11-03): the branch stays, unused; the
+patches are the way prophecies are added.
 
 Patches rather than commits of the Go fork: the prophecy then shows as what it is, an addition
 for verification that is checked mechanically, instead of a fork commit read by hand among bug
