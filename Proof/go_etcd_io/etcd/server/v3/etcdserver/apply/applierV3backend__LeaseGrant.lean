@@ -172,6 +172,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     · ipureintro; rfl
     isplitl [Hhf]
     · iunfold apply.grantRespIs
+      isplitr
+      · ipureintro; exact Hnn
       iframe ID
       isplitr
       · iexists _; iexact TTL

@@ -68,9 +68,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **The decoded `*pb.LeaseGrantRequest` `r`** of `(TTL, ID)` `m`: its `TTL` (read-only;
 `pbLeaseGrantRequest.recv`). Its `ID` is owned (`leaseGrantReqIdOwn`, the wire model's `recvOwn`;
-the lease-grant plan, 2026-11-02: until then read-only here). -/
+the lease-grant plan, 2026-11-02: until then read-only here). Not `null` (amendment (H)). -/
 def leaseGrantReqIs (r : Loc) (m : w64 × w64) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1)
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1)
 
 /-- **The decoded `*pb.LeaseGrantRequest` `r`'s `ID`, owned** at `id` (`pbLeaseGrantRequest.recvOwn`):
 the server's `LeaseGrant` writes a fresh id there when it is `0` (`v3_server.go:436-439`). -/

@@ -1630,3 +1630,39 @@ linked). Commit 5's rest not started: the Lease service's `LeaseGrant`/`LeaseLea
 `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`, `kv_lease_served` at `lg` (replacing the draft
 `kv_lease_grant_served`), `alloc1 true`, `leasegrant.Main.wp_proof`. `lease-grant-4-wip` was
 already deleted (4g).
+
+**Commit 5d: (H), `EtcdServer.LeaseGrant` proved and linked; `lessorGrantOkL` an instance**
+(2026-11-03, a full build with the checks).
+- *(H).* `⌜r ≠ null⌝` first in `pbLeaseGrantRequest.recv` (`client/v3/InvLease.lean`, trusted),
+  `v3rpc.leaseGrantReqIs` and `leaseGrantReqOwn`; `⌜r ≠ null⌝` first in `apply.grantRespIs`, proved in
+  the backend's `LeaseGrant` from its allocation (`typedPointsto_not_null_dup`); the quota layer passes
+  `grantAnswer` through unchanged. `lessorGrantOkL_of_server` passes the request's fact on.
+- *`EtcdServer.LeaseGrant.wp_proof`.* `lease-grant-5-wip`'s proof moved in, `leaseGrant_nn` folded into
+  it: `r ≠ null` from `leaseGrantReqOwn`, `resp ≠ null` from `grantRespIs`. Mechanical: the proof takes
+  its seven callees (the id generator's `Next`, `requireAuthInfo`, `raftRequest`, `GetTTL`, the
+  tracer's `Start`, `WithAttributes`, `Int64`), in that order, as its `etc/link-lean-first-server.txt`
+  line (`EtcdServer__LeaseGrant`, the Link regenerated). `LeaseGrantRequest.GetTTL.spec` keeps its
+  form (no `p ≠ null` premise, true at every `p`); its docstring updated. `lease-grant-5-wip` deleted.
+  `v3rpc.lessorGrantOkL_server` (`api/v3rpc/Results.lean`, linking): `lessorGrantOkL_of_server` at the
+  linked spec, for commit 5's served lemma.
+- *Mechanical adaptation (the hub plan's "no twin triples", the coordinator's request):*
+  `v3rpc.lessorGrantOkL` is now `abbrev lessorGrantOkL s E S := lessorGrantOkG s E S (fun id => ∃ i,
+  lease.leaseGrantedAt E.γ.leases i id)` (`api/v3rpc/InvLeaseGrant.lean`), the same statement as the
+  triple written out before; `lessorGrantOkG_of_L` (no users) deleted; `lessorGrantOkL_of_server`'s
+  proof unfolds both. `lessorGrantOk` (`raftLessor`'s conjunct) unchanged: making it the `G := True`
+  instance would strengthen it.
+
+### Hubs touched
+
+(2026-11-03, `notes/spec-first-plan.md`, "Hubs", "Modes generalize, no twins".)
+- lease-grant touches the boot hub: it adds `%Hslg` and the premise `on = true → ρ.rd.kv.lg = false`,
+  each written into `NewServer`'s three twin triples (`spec`/`specM`/`specG`), plus `bootOk`/`InvBoot`.
+- It touches `KVNames.lg`/`AEnv.lg` (the name-record hub) and the apply aggregators (`dispatchStep`,
+  `grantRes`).
+- Per the hub plan's step 2 it lands as frozen, without conversion to slots.
+- Per its step 4, the lease subsystem converts at its next hub change, the lease-expiry stage: there
+  `%Hslg`'s `leasesNoExpiry ∧ srvGrantOpen` and `lg` become `lease.bootCfg`/`lease.srvInv`/
+  `lease.Names` slots.
+- `lean` has since changed `NewServer` (`2d4ee6adc0`, the WAL's slots), so merging `lean` in will
+  conflict there. Resolve by keeping both: the WAL slot conjuncts and the lease-grant clauses, in each
+  triple.

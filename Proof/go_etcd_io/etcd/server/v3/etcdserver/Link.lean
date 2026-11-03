@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChanged
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRenew
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
@@ -781,6 +782,10 @@ theorem membership.RaftCluster.wp_IsMemberExist :
     membership.RaftCluster.IsMemberExist.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.IsMemberExist.wp_proof
 
+theorem LeaseGrantRequest.wp_GetTTL :
+    LeaseGrantRequest.GetTTL.spec (GF := GF) (hG := hG) :=
+  LeaseGrantRequest.GetTTL.wp_proof
+
 theorem lease.lessor.wp_unsafeLeases :
     lease.lessor.unsafeLeases.spec (GF := GF) (hG := hG) :=
   lease.lessor.unsafeLeases.wp_proof
@@ -1260,10 +1265,6 @@ theorem TxnRequest.wp_GetFailure :
 theorem bcrypt.wp_GenerateFromPassword :
     bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
   bcrypt.GenerateFromPassword.wp_proof
-
-theorem LeaseGrantRequest.wp_GetTTL :
-    LeaseGrantRequest.GetTTL.spec (GF := GF) (hG := hG) :=
-  LeaseGrantRequest.GetTTL.wp_proof
 
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -1792,6 +1793,14 @@ theorem EtcdServer.wp_LeaderChanged :
     EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
 
+theorem EtcdServer.wp_requireAuthInfo :
+    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+
+theorem EtcdServer.wp_LeaseGrant :
+    EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LeaseGrant.wp_proof idutil.Generator.wp_Next EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseGrantRequest.wp_GetTTL traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+
 theorem EtcdServer.wp_checkLeaseLeases :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.checkLeaseLeases.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.Lease.wp_Keys
@@ -1839,10 +1848,6 @@ theorem EtcdServer.wp_isLeader :
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is context.wp_ErrDone errors.wp_IsCtxErr
-
-theorem EtcdServer.wp_requireAuthInfo :
-    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_checkLeaseTimeToLive :
     EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=

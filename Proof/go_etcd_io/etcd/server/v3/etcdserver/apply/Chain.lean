@@ -1093,9 +1093,10 @@ def grantHdr (E : AEnv GF) (log : mvcc.Log) (hf : Loc) : IProp GF :=
     ⌜sint.Z rv = (log.length : Int) - 1 ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **A granted lease's `*pb.LeaseGrantResponse` `r`** (2.6): its `ID` the grant's, its `TTL` and
-`Error` read-only (any values), its header `grantHdr` at some certified log. -/
+`Error` read-only (any values), its header `grantHdr` at some certified log; not `null` (amendment
+(H), 2026-11-03: the backend answers `&pb.LeaseGrantResponse{}`). -/
 def grantRespIs (E : AEnv GF) (r : Loc) (g : LeaseGrantModel) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" r ↦□ g.id ∗
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" r ↦□ g.id ∗
     (∃ t : w64, structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" r ↦□ t) ∗
     (∃ e : GoString, structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" r ↦□ e) ∗
     ∃ log : mvcc.Log, grantHdr E log (structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" r))

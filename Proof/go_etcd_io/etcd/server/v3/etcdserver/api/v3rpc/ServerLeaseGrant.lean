@@ -45,7 +45,7 @@ theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (h
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkL s E S := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
-  iunfold lessorGrantOkL
+  unfold lessorGrantOkL lessorGrantOkG
   iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, -, #Hreq, Hid⟩ HΦ
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLG s E ρ ci cd r m.1 m.2 h) $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
@@ -53,7 +53,9 @@ theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (h
     iunfold leaseGrantReqOwn
     iunfold leaseGrantReqIs at Hreq
     iunfold leaseGrantReqIdOwn at Hid
-    iframe Hreq Hid
+    icases Hreq with ⟨%Hrn, #Httl⟩
+    iframe Httl Hid
+    ipureintro; exact Hrn
   ihave HSr := Hback $$ [Hlt HRD]
   · iframe Hlt HRD
   iapply HΦ
@@ -91,8 +93,9 @@ theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (h
       iframe Hid' Httl He'
       ipureintro; exact Hid0
     iright
-    iexists id, i
-    iframe Hid' Hgr
+    iexists id
+    iframe Hid'
+    iexists i; iexact Hgr
   · obtain ⟨rfl, hne⟩ := He
     isplitl
     · iunfold leaseGrantAns

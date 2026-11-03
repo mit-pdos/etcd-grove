@@ -44,9 +44,10 @@ def srvGrantsLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
   ρ.rd.kv.lg = true ∧ E.authOn = false
 
 /-- **A decoded `*pb.LeaseGrantRequest` `r`**: its `TTL` read-only, its `ID` owned
-(`LeaseGrant` writes a fresh id there when it is `0`, `v3_server.go:436-439`). -/
+(`LeaseGrant` writes a fresh id there when it is `0`, `v3_server.go:436-439`); not `null` (amendment
+(H), 2026-11-03: the proposal's `LeaseGrant` field needs it, `apply.leaseGrantIs`). -/
 def leaseGrantReqOwn (r : Loc) (ttl id : w64) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ ttl ∗
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ id)
 
 /-- **The server's grant response** `resp` (the apply thread's `LeaseGrant`, `backend.go`), as its
