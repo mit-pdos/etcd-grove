@@ -740,8 +740,7 @@ theorem Main.wp_proof
     -- `gcancel()`
     wp_apply Hgcancel
     (try wp_auto)
-    unfold cacheGetResult
-    icases Hgres with (⟨%Hnull, Hgerr⟩ | ⟨%Hgnil, Hgok⟩)
+    icases cacheGetResult_cases (EM := client.etcdModelOfKV γk) _ _ _ _ _ _ _ $$ Hgres with (⟨%Hnull, Hgerr⟩ | ⟨%Hgnil, Hgok⟩)
     · -- an error: `GetFailed`
       ihave #Prpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
       · iPkgInit
@@ -754,10 +753,8 @@ theorem Main.wp_proof
         iapply HΦ; ipureintro; right; right; right; rfl
     · -- the answer: etcd's state under the prefix at `r`, which passes `checkGet`
       subst Hgnil
-      unfold cacheGetOk
-      icases Hgok with ⟨%hdr, %kvsSl, %st, %r', %m', Hresp, Hhdr, Hkvs, Hkcap, #HkvsAt, Hst, -, %Hpure, -⟩
+      icases cacheGetOk_rev (EM := client.etcdModelOfKV γk) _ _ _ _ _ hm0 $$ Hgok with ⟨%hdr, %kvsSl, %m', Hresp, Hkvs, Hkcap, Hst⟩
       irevert Hst
-      simp only [if_neg hm0]
       rw [Hcfe.1]
       iintro Hst
       imod getCheck_km γk (trs.map pairOf) hγW evs m m'

@@ -1267,6 +1267,38 @@ instance snapErr_persistent (res : SnapResult) (err : GoInterface) :
     Persistent (snapErr (GF := GF) res err) := by
   cases res <;> unfold snapErr <;> infer_instance
 
+/-- **A failed snapshot's error is non-nil**: each is a fixed non-nil error of the cache's or
+`rpctypes`' package (their facts), or a non-nil one for an invalid revision. -/
+theorem snapErr_ne_nil (res : SnapResult) (err : GoInterface) (h : ∀ r m, res ≠ .ok r m) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes -∗
+      snapErr res err -∗ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #Hpkg #Hrpc Hse
+  ihave Hci : (cacheInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -⟩
+  ihave Hri : (rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hrpc
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩, -⟩
+  cases res with
+  | ok r m => exact absurd rfl (h r m)
+  | notReady =>
+    iunfold snapErr at Hse
+    icombine Hse HeNR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  | invalid =>
+    iunfold snapErr at Hse
+    icases Hse with %h
+    ipureintro; obtain ⟨e, rfl⟩ := h; simp
+  | future =>
+    iunfold snapErr at Hse
+    icombine Hse HeFR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  | compacted =>
+    iunfold snapErr at Hse
+    icombine Hse HeCP gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+
 /-- What a reader learns about the store: some state `st` it was in, satisfying
 `StoreInv`, whose latest revision is at least the reader's lower bound `r0`, with a lower
 bound for it. -/

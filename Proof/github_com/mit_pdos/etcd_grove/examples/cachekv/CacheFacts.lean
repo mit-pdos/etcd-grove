@@ -156,29 +156,16 @@ theorem km_step_log (γ : client.KMNames) (P : List (GoString × GoString)) (hW 
         □ ∀ (r : Nat) (k v : GoString), ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ -∗
           common.kmRevAt γ r k v := by
   iintro #Hinv #Hstep
-  iunfold client.kmStep at Hstep
-  icases Hstep with ⟨%L, #HL, %Hs⟩
-  iunfold client.kmLog at HL
-  icases HL with ⟨%l, #Hlb, %Hl⟩
-  iunfold client.kmInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
-  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
-  imod Hclose $$ [Hσ Hc Ht] with -
-  · inext; iexists σ, m; iframe; ipureintro; exact Hm
-  have hwk : watchkv.WkLog P L := watchkv.wkW_prefix (by rw [← hW]; exact Hm.2) Hp.2 Hl.1
+  icases client.kmStep_elim _ _ _ _ _ $$ Hstep with ⟨%L, #HL, %Hs⟩
+  imod client.kmLog_W γ L $$ Hinv HL with %HW
+  obtain ⟨cs, hcs, hLcs⟩ := HW
+  have hwk : watchkv.WkLog P L :=
+    watchkv.wkW_prefix (by rw [← hW]; exact hcs) (List.prefix_refl _) hLcs
   imodintro
   iexists L
   isplitr
   · ipureintro; exact ⟨hwk, Hs⟩
-  iintro !> %r %k %v %h
-  unfold common.kmRevAt
-  iexists l
-  iframe Hlb
-  ipureintro
-  obtain ⟨t, ht⟩ := Hl.1
-  rw [← ht, List.getElem?_append_left (List.getElem?_eq_some_iff.mp h).1]
-  exact h
+  iapply common.kmRevAt_of_log γ L $$ HL
 
 /-- **The certificate chain of a cache watch's batches at a watchkv server** (see the file
 header). -/

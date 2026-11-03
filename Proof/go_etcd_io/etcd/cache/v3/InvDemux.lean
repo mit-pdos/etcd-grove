@@ -1462,6 +1462,13 @@ theorem eventsOf_append (sent : List RespModel) (r : RespModel) :
     eventsOf (sent ++ [r]) = eventsOf sent ++ r.events := by
   simp [eventsOf]
 
+/-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
+watcher's consumer is in the stream. -/
+def lastEvRevOr (L : List RespModel) (dflt : Int) : Int :=
+  match (eventsOf L).getLast? with
+  | some e => sint.Z e.rev
+  | none => dflt
+
 /-- An event sent is an event of a stream batch in `[s, n)`. -/
 theorem Delivered.mem_events {pred : Option (GoString → Bool)} {s : w64} {v : View}
     {sent : List RespModel} (hD : Delivered pred s v sent) {r : RespModel} (hr : r ∈ sent)
@@ -2582,6 +2589,285 @@ theorem certChain_prog (last : Int) (bs : List Batch) :
     rcases List.mem_cons.1 Hb' with h | h
     · subst h; iapply C.cert_prog p b'; iexact Hc
     · iapply Hih; ipureintro; exact h
+
+/-- **Event certificates from a publication**: every event of a published log has its revision's
+certificate (`C.prog`): it is in a batch of the delivered segment, whose chain certifies it. -/
+theorem demuxPubBody_evProg (pred : Option (GoString → Bool)) (sr : w64)
+    (oc : Option (Option w64)) (L : List RespModel) :
+    demuxPubBody (GF := GF) C pred sr oc L ⊢
+      □ ∀ e, ⌜e ∈ eventsOf L⌝ -∗ C.prog e.rev := by
+  unfold demuxPubBody
+  iintro ⟨%s, %v, %p₀, %Hd, #Hch, -⟩
+  obtain ⟨-, hD, -, -⟩ := Hd
+  ihave #Hbs := certChain_prog (C := C) p₀ _ $$ Hch
+  imodintro
+  iintro %e %he
+  have hmem : e ∈ (streamRange s v.n v.stream).flatten := by
+    rw [hD.events] at he
+    exact (List.mem_filter.1 he).1
+  obtain ⟨b, hb, heb⟩ := List.mem_flatten.1 hmem
+  have hbok : BatchOk b := hD.stream_ok.batches b (streamRange_mem hb).1
+  rw [batchRev_of_mem hbok heb]
+  iapply Hbs; ipureintro; exact hb
+
+/-- Batches whose flattening is `xs ++ ys`, every event of `xs` below every event of `ys`, split
+into the batches of `xs` and those of `ys`. -/
+theorem batches_split : ∀ (bs : List Batch) (xs ys : List EvModel), (∀ b ∈ bs, BatchOk b) →
+    bs.flatten = xs ++ ys → (∀ x ∈ xs, ∀ y ∈ ys, sint.Z x.rev < sint.Z y.rev) →
+    ∃ bs1 bs2, bs = bs1 ++ bs2 ∧ bs1.flatten = xs ∧ bs2.flatten = ys := by
+  intro bs
+  induction bs with
+  | nil =>
+    intro xs ys _ h _
+    simp at h
+    exact ⟨[], [], rfl, h.1.symm, h.2.symm⟩
+  | cons b bt ih =>
+    intro xs ys hok h hlt
+    by_cases hxs : xs = []
+    · subst hxs; exact ⟨[], b :: bt, rfl, rfl, by simpa using h⟩
+    simp only [List.flatten_cons] at h
+    rcases List.append_eq_append_iff.1 h with ⟨a', hxs', hbt⟩ | ⟨c', hb, hys⟩
+    · obtain ⟨bs1, bs2, h1, h2, h3⟩ := ih a' ys (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb'))
+        hbt (fun x hx y hy => hlt x (by rw [hxs']; exact List.mem_append_right _ hx) y hy)
+      exact ⟨b :: bs1, bs2, by rw [h1]; rfl, by simp [h2, hxs'], h3⟩
+    · by_cases hc : c' = []
+      · subst hc
+        simp at hb hys
+        exact ⟨[b], bt, rfl, by simp [hb], hys.symm⟩
+      · exfalso
+        obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil xs hxs
+        obtain ⟨y, hy⟩ := List.exists_mem_of_ne_nil c' hc
+        have hbok := hok b List.mem_cons_self
+        have h1 := hbok.2 x (by rw [hb]; exact List.mem_append_left _ hx)
+        have h2 := hbok.2 y (by rw [hb]; exact List.mem_append_right _ hy)
+        have := hlt x hx y (by rw [hys]; exact List.mem_append_left _ hy)
+        rw [h1, h2] at this
+        exact Int.lt_irrefl _ this
+
+/-- Well-formed sorted batches are the `splitBatches` of their events. -/
+theorem splitBatches_of_ok : ∀ (bs : List Batch), (∀ b ∈ bs, BatchOk b) → RevSorted batchRev bs →
+    splitBatches bs.flatten = bs := by
+  intro bs
+  induction bs with
+  | nil => intro _ _; rfl
+  | cons b bt ih =>
+    intro hok hs
+    unfold RevSorted at hs
+    rw [List.pairwise_cons] at hs
+    have hb := hok b List.mem_cons_self
+    simp only [List.flatten_cons]
+    rw [splitBatches_append, splitBatches_run b hb.1 (batchRev b) hb.2,
+      ih (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) hs.2]
+    · rfl
+    · intro x y hx hy
+      rw [hb.2 x (List.mem_of_getLast? hx)]
+      obtain ⟨b', hb', hyb'⟩ := List.mem_flatten.1 (List.mem_of_head? hy)
+      rw [(hok b' (List.mem_cons_of_mem _ hb')).2 y hyb']
+      intro h
+      have := hs.1 b' hb'
+      rw [h] at this
+      exact Int.lt_irrefl _ this
+
+/-- The last event of well-formed batches is in the last batch. -/
+theorem flatten_getLast (bs : List Batch) (hok : ∀ b ∈ bs, BatchOk b) (b : Batch)
+    (h : bs.getLast? = some b) : ∃ x, bs.flatten.getLast? = some x ∧ x.rev = batchRev b := by
+  obtain ⟨ys, hys⟩ := List.getLast?_eq_some_iff.1 h
+  have hb := hok b (by rw [hys]; simp)
+  obtain ⟨x, hx⟩ : ∃ x, b.getLast? = some x := by
+    cases hl : b.getLast? with
+    | none => simp [List.getLast?_eq_none_iff] at hl; exact absurd hl hb.1
+    | some x => exact ⟨x, rfl⟩
+  refine ⟨x, ?_, hb.2 x (List.mem_of_getLast? hx)⟩
+  rw [hys]; simp [List.getLast?_append, hx]
+
+
+/-- **An unfiltered watcher's next response** `r` after `rcv` (the store watcher's): its events are sorted; they are above
+`Y`, the revision of the last event of `rcv` (`R` if none), when `rcv` has events or the watcher
+started right after `R`; and when they are above `Y`, its batches are chained from `Y` by the
+certificates of the watcher's publication (`demuxPub`, start `s ≤ R + 1`, no filter). -/
+theorem demuxPubBody_next_chain (s R Y : w64) (rcv : List RespModel) (r : RespModel)
+    (hs0 : 0 < sint.Z s) (hsR : sint.Z s ≤ sint.Z R + 1)
+    (hY : sint.Z Y = lastEvRevOr rcv (sint.Z R)) :
+    demuxPubBody (GF := GF) C none s none (rcv ++ [r]) ⊢
+      ⌜EvRevSorted r.events ∧ ((eventsOf rcv ≠ [] ∨ sint.Z s = sint.Z R + 1) →
+          ∀ e ∈ r.events, sint.Z Y < sint.Z e.rev)⌝ ∗
+        (⌜∀ e ∈ r.events, sint.Z Y < sint.Z e.rev⌝ -∗
+          certChain C (sint.Z Y) (splitBatches r.events)) := by
+  iintro H
+  iunfold demuxPubBody at H
+  icases H with ⟨%s', %v, %p₀, %Hpure, #Hch, -⟩
+  obtain ⟨hs, hD, hp, -⟩ := Hpure
+  have hs' : s' = s := by
+    rcases hs with hs | hs
+    · exfalso; rw [hs] at hs0; exact absurd hs0 (by decide)
+    · exact hs
+  subst hs'
+  have hp0 : p₀ < sint.Z s' := by
+    rcases hp with hp | hp
+    · exfalso; rw [hp] at hs0; exact absurd hs0 (by decide)
+    · exact hp
+  -- the segment
+  have hsub : List.Sublist (streamRange s' v.n v.stream) v.stream := List.filter_sublist
+  have hsegok := hD.stream_ok.sublist hsub
+  have hev : (streamRange s' v.n v.stream).flatten = eventsOf rcv ++ r.events := by
+    have := hD.events
+    rw [eventsOf_append] at this
+    rw [this]
+    have hk : keepEv none = fun _ => true := rfl
+    rw [hk]
+    exact (List.filter_eq_self.2 (fun _ _ => rfl)).symm
+  have hord : ∀ x ∈ eventsOf rcv, ∀ y ∈ r.events, sint.Z x.rev < sint.Z y.rev := by
+    intro x hx y hy
+    obtain ⟨evs, hevs, hxe⟩ := List.mem_flatten.1 hx
+    obtain ⟨r', hr', rfl⟩ := List.mem_map.1 hevs
+    have hpw := hD.ordered.1
+    rw [List.pairwise_append] at hpw
+    exact (hpw.2.2 r' hr' r (by simp)).1 x hxe y hy
+  obtain ⟨seg1, seg2, hseg, h1, h2⟩ := batches_split _ (eventsOf rcv) r.events
+    hsegok.batches hev hord
+  have hok2 : ∀ b ∈ seg2, BatchOk b := fun b hb =>
+    hsegok.batches b (by rw [hseg]; exact List.mem_append_right _ hb)
+  have hsorted2 : RevSorted batchRev seg2 := by
+    have := hsegok.sorted
+    rw [hseg] at this
+    exact this.sublist (List.sublist_append_right _ _)
+  have hseg2 : splitBatches r.events = seg2 := by
+    rw [← h2]; exact splitBatches_of_ok seg2 hok2 hsorted2
+  -- every event of `r` is at or above the start
+  have hge : ∀ y ∈ r.events, sint.Z s' ≤ sint.Z y.rev := by
+    intro y hy
+    rw [← h2] at hy
+    obtain ⟨b, hbm, hyb⟩ := List.mem_flatten.1 hy
+    rw [(hok2 b hbm).2 y hyb]
+    exact (streamRange_mem (show b ∈ streamRange s' v.n v.stream by
+      rw [hseg]; exact List.mem_append_right _ hbm)).2.1
+  isplitr
+  · ipureintro
+    refine ⟨hD.ordered.2 r (by simp), fun hc y hy => ?_⟩
+    rw [hY]
+    unfold lastEvRevOr
+    cases hl : (eventsOf rcv).getLast? with
+    | none =>
+      simp only
+      rcases hc with hc | hc
+      · exact absurd (List.getLast?_eq_none_iff.1 hl) hc
+      · have := hge y hy; omega
+    | some x =>
+      simp only
+      exact hord x (List.mem_of_getLast? hl) y hy
+  iintro %habove
+  rw [hseg2]
+  rw [hseg]
+  icases (certChain_append (C := C) p₀ seg1 seg2).1 $$ Hch with ⟨-, #Hch2⟩
+  iapply certChain_mono_start _ _ seg2 ?_ ?_ $$ Hch2
+  · -- `chainEnd p₀ seg1 ≤ Y`
+    rw [hY]
+    unfold chainEnd lastEvRevOr
+    cases hl : seg1.getLast? with
+    | none =>
+      have : seg1 = [] := List.getLast?_eq_none_iff.1 hl
+      subst this
+      have he : eventsOf rcv = [] := by rw [← h1]; rfl
+      rw [he]
+      simp only [List.getLast?_nil]
+      omega
+    | some b =>
+      obtain ⟨x, hx, hxr⟩ := flatten_getLast seg1
+        (fun b hb => hsegok.batches b (by rw [hseg]; exact List.mem_append_left _ hb)) b hl
+      rw [h1] at hx
+      simp only [hx, hxr]
+      exact Int.le_refl _
+  · -- every batch of `r` is above `Y`
+    intro b hb
+    have hbm : b ∈ seg2 := List.mem_of_head? hb
+    have hbok := hok2 b hbm
+    obtain ⟨y, ys, hyb⟩ := List.exists_cons_of_ne_nil hbok.1
+    have hy : y ∈ r.events := by
+      rw [← h2]; exact List.mem_flatten.2 ⟨b, hbm, by rw [hyb]; exact List.mem_cons_self⟩
+    have hyr : batchRev b = y.rev := by rw [hyb]; rfl
+    rw [hyr]
+    exact habove y hy
+
+/-- **A progress notification to an unfiltered watcher is quiet** (the store watcher's) back to `Y`, the revision of the last
+event received (`R` if none): the publication's quiet tail (`quietEnd`, at or above every progress
+notification sent) starts at the segment's end, which is `Y`'s batch (or below the start). -/
+theorem demuxPubBody_next_quiet (s R Y : w64) (rcv : List RespModel) (r : RespModel)
+    (hs0 : 0 < sint.Z s) (hsR : sint.Z s ≤ sint.Z R + 1)
+    (hY : sint.Z Y = lastEvRevOr rcv (sint.Z R)) (hp : r.events = []) :
+    demuxPubBody (GF := GF) C none s none (rcv ++ [r]) ⊢ □ C.quiet (sint.Z Y) (sint.Z r.hdrRev) := by
+  iintro H
+  iunfold demuxPubBody at H
+  icases H with ⟨%s', %v, %p₀, %Hpure, -, -, #Hq⟩
+  obtain ⟨hs, hD, hp0, -⟩ := Hpure
+  have hs' : s' = s := by
+    rcases hs with hs | hs
+    · exfalso; rw [hs] at hs0; exact absurd hs0 (by decide)
+    · exact hs
+  subst hs'
+  have hp0' : p₀ < sint.Z s' := by
+    rcases hp0 with h | h
+    · exfalso; rw [h] at hs0; exact absurd hs0 (by decide)
+    · exact h
+  have hsub : List.Sublist (streamRange s' v.n v.stream) v.stream := List.filter_sublist
+  have hsegok := hD.stream_ok.sublist hsub
+  have hev : (streamRange s' v.n v.stream).flatten = eventsOf rcv := by
+    have := hD.events
+    rw [eventsOf_append, hp, List.append_nil] at this
+    rw [this]
+    have hk : keepEv none = fun _ => true := rfl
+    rw [hk]
+    exact (List.filter_eq_self.2 (fun _ _ => rfl)).symm
+  -- every event received is at or above the start
+  have hge : ∀ x ∈ eventsOf rcv, sint.Z s' ≤ sint.Z x.rev := by
+    intro x hx
+    rw [← hev] at hx
+    obtain ⟨b, hbm, hxb⟩ := List.mem_flatten.1 hx
+    rw [(hsegok.batches b hbm).2 x hxb]
+    exact (streamRange_mem hbm).2.1
+  have hY0 : 0 ≤ sint.Z Y := by
+    rw [hY]; unfold lastEvRevOr
+    cases hl : (eventsOf rcv).getLast? with
+    | none => simp only; omega
+    | some x => simp only; have := hge x (List.mem_of_getLast? hl); omega
+  -- the segment's end is at most `Y`
+  have hle : chainEnd p₀ (streamRange s' v.n v.stream) ≤ sint.Z Y := by
+    rw [hY]
+    unfold chainEnd lastEvRevOr
+    cases hl : (streamRange s' v.n v.stream).getLast? with
+    | none =>
+      have h0 : streamRange s' v.n v.stream = [] := List.getLast?_eq_none_iff.1 hl
+      have he : eventsOf rcv = [] := by rw [← hev, h0]; rfl
+      rw [he]
+      simp only [List.getLast?_nil]
+      omega
+    | some b =>
+      obtain ⟨x, hx, hxr⟩ := flatten_getLast _ hsegok.batches b hl
+      rw [hev] at hx
+      simp only [hx, hxr]
+      exact Int.le_refl _
+  -- the progress notification is at most `quietEnd`
+  have hr : r ∈ rcv ++ [r] := by simp
+  obtain ⟨hmx, hown⟩ := hD.progress r hr hp
+  have hend : sint.Z r.hdrRev ≤ quietEnd v := by
+    unfold quietEnd
+    cases hh : (v.stream.filter (fun b => decide (sint.Z v.n ≤ sint.Z (batchRev b)))).head? with
+    | none => simp only; exact hmx
+    | some b =>
+      simp only
+      have hb := List.mem_filter.1 (List.mem_of_head? hh)
+      have := hown b hb.1 (by simpa using hb.2)
+      omega
+  icases Hq with (%h | #Hq)
+  · rcases h with h | h | h
+    · exact absurd rfl h
+    · simp at h
+    · imodintro
+      iapply C.quiet_nil
+      rw [h] at hmx
+      have : sint.Z (W64 0) = 0 := rfl
+      omega
+  · imodintro
+    iapply C.quiet_mono _ _ _ _ hle hend $$ Hq
 
 end lemmas
 

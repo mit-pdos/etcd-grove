@@ -80,6 +80,47 @@ theorem kmRevAt_agree (γ : client.KMNames) (r : Nat) (k v k' v' : GoString) :
   simp at e
   exact e
 
+/-- **A put of a log the client saw is a `kmRevAt`.** -/
+theorem kmRevAt_of_log (γ : client.KMNames) (L : mvcc.Log) :
+    client.kmLog (GF := GF) γ L ⊢
+      □ ∀ (r : Nat) (k v : GoString), ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ -∗
+        kmRevAt γ r k v := by
+  iintro #HL
+  icases client.kmLog_lb γ L $$ HL with ⟨%l, #Hlb, %Hl⟩
+  iintro !> %r %k %v %h
+  unfold kmRevAt
+  iexists l
+  iframe Hlb
+  ipureintro
+  obtain ⟨t, ht⟩ := Hl
+  rw [← ht, List.getElem?_append_left (List.getElem?_eq_some_iff.mp h).1]
+  exact h
+
+/-- **A `kmRevAt` is the put of every log the client saw that reaches it.** -/
+theorem kmRevAt_log (γ : client.KMNames) (L : mvcc.Log) (r : Nat) (k v : GoString)
+    (hr : r < L.length) :
+    client.kmLog (GF := GF) γ L ∗ kmRevAt γ r k v ⊢
+      ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ := by
+  iintro ⟨#HL, Hr⟩
+  icases client.kmLog_lb γ L $$ HL with ⟨%l, #Hlb, %Hl⟩
+  unfold kmRevAt
+  icases Hr with ⟨%l', #Hlb', %h'⟩
+  ihave %Hp' := mono_list_lb_valid γ.ch l l' $$ Hlb Hlb'
+  ipureintro
+  have hc : ([] :: l : mvcc.Log) <+: [] :: l' ∨ ([] :: l' : mvcc.Log) <+: [] :: l :=
+    Hp'.imp client.log_prefix_of client.log_prefix_of
+  obtain ⟨t, ht⟩ := Hl
+  have hrL : r < ([] :: l : mvcc.Log).length := by
+    rw [← ht, List.length_append]; omega
+  have hrL' : r < ([] :: l' : mvcc.Log).length := (List.getElem?_eq_some_iff.mp h').1
+  have e1 : L[r]? = ([] :: l : mvcc.Log)[r]? := by
+    rw [← ht, List.getElem?_append_left hr]
+  have e2 : ([] :: l : mvcc.Log)[r]? = ([] :: l' : mvcc.Log)[r]? := by
+    rcases hc with ⟨t', ht'⟩ | ⟨t', ht'⟩
+    · rw [← ht', List.getElem?_append_left hrL]
+    · rw [← ht', List.getElem?_append_left hrL']
+  rw [e1, e2, h']
+
 /-- **What the program knows of a successful Put it logged** (persistent; see the file header). -/
 def okFactKM (γ : client.KMNames) (p : wrec) : IProp GF :=
   iprop(⌜2 ≤ sint.Z p.Rev'⌝ ∗ kmRevAt γ (sint.Z p.Rev').toNat p.Key' p.Val')

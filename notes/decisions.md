@@ -30376,3 +30376,34 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 (it closes the watch). `cache_safe`'s statement unchanged. Laws instead of unfolds:
 `common.collectOk_elim`/`_intro`, `cacheWatchSlot_parts`. Open: `Main`'s unfolds of the cache's
 `cacheGetResult`/`cacheGetOk` (the `Get` wiring of 2026-11-02).
+
+## Laws in place of cross-module unfolds: the cache's Get, the adapter, the store watcher (2026-11-03 · the user's "go ahead with the unfold follow-ups")
+
+The follow-ups of "cachekv checks a progress notification" and of the cache's `Get` at the
+requested revision: consumers stop unfolding predicates of other modules (the user's principle,
+`.claude/skills/spec/PRINCIPLES.md`), each through a law beside the definition. No statement of a
+result changed.
+
+- **The cache's `Get`** (`InvCache`): `cacheGetResult_cases`; `cacheGetOk_rev` (at `o.rev ≠ 0`,
+  the response's `Kvs` and `isEtcdKvs o.rev`, dropping the store's facts no client uses);
+  `cacheGetErr_ne_nil` (moved from `cachekv/GetFacts.lean`), over `snapErr_ne_nil` (`InvStore`).
+  `isEtcdKvs_elim` and `kvValsAt_at` (`InvEtcd`): the state, `m`'s length and keys under the prefix,
+  the values (not `EtcdStateWf`, which no client needs).
+- **The adapter** (`client/v3/EtcdModelKV`): `kmLog_W` (a log the client saw is a prefix of
+  changes satisfying `γ.W`, the one use of `kmInv` the examples made), `kmLog_lb` (its lower bound
+  of `γ.ch`, the representation `kmRevAt`, `kmWriteQ` and `kmReachedAt` already share),
+  `kmLog_getElem`, `kmEtcdState_elim`, `kmStep_elim`. `common.kmRevAt` keeps its definition (over
+  the lower bound: `okFactKM_of_write` has only `kmWriteQ`'s, not a `kmLog`; *rejected:* redefining
+  it over `kmLog`), with `kmRevAt_of_log` and `kmRevAt_log` beside it. Users: `getCheck_km`,
+  `km_step_log` (`cachekv`), `wkSteps_km` (`linkv3p`).
+- **The store watcher** (`Cache.applyStorage`): `storeW_chain`/`storeW_quiet` unfolded the
+  demux's publication; they are facts of an unfiltered publication, so they moved to `InvDemux` as
+  `demuxPubBody_next_chain`/`demuxPubBody_next_quiet` (with `lastEvRevOr` and the pure batch lemmas
+  they use), and `storeW_revCerts` uses a new `demuxPubBody_evProg` (every event published has its
+  batch's `C.prog`). *Rejected:* deriving `storeW_quiet` from `pub_progressQuiet` (round 2's
+  suggestion): moving the proof is shorter and needs no new reasoning.
+
+Left (not in the follow-ups; the same kind): unfolds of other modules' predicates elsewhere in the
+examples (`linkv3p/WatchKV.lean`'s `watchChain`, `etcdStepCertBody`, `evsMatch`, `kmWriteQ`;
+`cachekv`'s `CacheFacts`, `collect`, `awaitProgress`, `NoDup`, `Main`), and pure functions'
+unfolds, which the principle does not cover.
