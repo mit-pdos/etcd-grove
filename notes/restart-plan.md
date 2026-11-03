@@ -944,3 +944,26 @@ In `etcdserver/InvWal.lean`, after review round 1:
   `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
   counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
   loop's two tokens.
+
+### R2b-1 review, round 2, and the draft's round 3 (2026-11-03)
+
+The model half holds: the pure laws are true as stated (checked by hand against `StorageHolds`,
+`RaftState.next`, `appendEnts`), `walSaveSnap`/`WalSaveOk` match the fork's `ReadAll`, and raft's
+receive can give the facts the server needs before *enter* (in `readyRecv_open` they are
+persistent before `api_enter`), which are enough for the hand-off on `applyc`. The invariant half
+was not keepable; round 3:
+- **F1, F2:** the pending token excluded the wrong case, and nothing tied the invariant's durable
+  state to the loop's. Now a ghost variable, half the loop's, holds the loop's view (`WalView`:
+  the durable state, the records' hard state, the pending received snapshot, the handed log), as
+  kvdurable's writer variable; the records are as the view says (`walAsViewed`).
+- **F3:** `σ.commit ≤ |committed log|` was not keepable (raft pages committed entries). Now the
+  handed log `l`: `σ.b ≤ |l| ≤ σ.commit`, `DurAgrees S l`; `walCommitLb` bounds `|l|`.
+- **F4:** a failed `Save` now leaves some records (`∃ σ'`), not `walFailed`, so that the apply
+  thread's `SaveSnap` can still update them; the taken state holds the apply thread's token.
+- **F5:** `walRecs` is a ghost variable at an opaque per-WAL name (timeless, exclusive by proof),
+  and the invariant holds `raftState` without an extra later.
+- **F6:** the receive statement became `readyGotR`, the receive's new postcondition (a law over
+  today's `readyGot` could not be proved).
+- **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
+  `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
+  record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).

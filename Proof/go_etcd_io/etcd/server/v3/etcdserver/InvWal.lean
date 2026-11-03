@@ -21,14 +21,17 @@ into the durable state (`raftState`) at its receive, and the WAL has an open tok
 * **The contract** (`isRNWalR`): `Save` and `SaveSnap` update the records atomically (the raft
   loop and the apply thread both write the WAL), `Save` within the case etcd's server uses
   (consecutive entries above the records' base, the first at most one past their last), with any
-  error as today, after which the records are not known (`walFailed`).
-* **The durability invariant** (`rnDurInv`): the node's durable state and the records, the latter
-  holding the former (`StorageHolds`), with the records' commit index's lower bounds
-  (`walCommitLb`, which the apply thread's snapshot needs: at or below the saved commit).
-* **Entering at the `Save`** (`rnReadyRecvR`): the receive keeps *enter* (`readyEnter`) unfired;
-  the raft loop fires it inside the `Save`'s update, together with the records' change, so that the
-  invariant's `StorageHolds` is kept by the pure laws `walSave_holds` and `walSnapSave_holds`.
-* **The apply thread's snapshot** keeps `StorageHolds` too (`walOwnSnap_holds`).
+  error as today, after which the records are some records (the loop is in `lg.Fatal` for good).
+* **The durability invariant** (`rnDurInv`, over the ghost names `WalNames` and the raft loop's
+  view `WalView`): the node's durable state and the records holding it (`walAsViewed`), the
+  handed log between their base and commit (`walCommitLb`, which the apply thread's snapshot
+  needs), a received snapshot's pending `Save`, a failed `Save`, the stop's taking the contents
+  out (`rnDurTake_stmt`).
+* **Entering at the `Save`**: raft's receive gives the facts the server needs before *enter*
+  (`readyGotR`, a raft API change), and the raft loop fires *enter* inside the `Save`'s update,
+  together with the records' change, so that the invariant is kept by the pure laws
+  `walSave_holds_stmt` and `walSnapSave_holds_stmt`.
+* **The apply thread's snapshot** keeps it too (`walOwnSnap_holds_stmt`).
 -/
 module
 
@@ -89,7 +92,7 @@ def walSave_holds_stmt : Prop :=
   ∀ (st : NodeDriverState) (σ : StorContents) (ce : List LogEntry) (es : List EntryM)
     (h : HardStateM),
     StorageHolds st.durable σ → σ.hs = st.hardState → ReadyRestFacts st ce es h none →
-    -- (R2b-1 review F2) the entries consecutive (raft's; a raft API law to add)
+    -- (R2b-1 review F2) the entries consecutive: raft's `readyRest_indices` (round 2 review F7)
     (∀ (j : Nat) (e : EntryM) (e0 : EntryM), es.head? = some e0 → es[j]? = some e →
       uint.nat e.Index' = uint.nat e0.Index' + j) →
     WalSaveOk σ es ∧
@@ -101,8 +104,8 @@ def walSnapSave_holds_stmt : Prop :=
   ∀ (st : NodeDriverState) (σ : StorContents) (ce : List LogEntry) (es : List EntryM)
     (h : HardStateM) (l : SnapLoan),
     StorageHolds st.durable σ → σ.hs = st.hardState → ReadyRestFacts st ce es h (some l) →
-    -- (R2b-1 review F1) the entries consecutive from past the snapshot: raft's (after a restore
-    -- the log matches only at the snapshot), which `ReadyRestFacts` must state (a raft API law)
+    -- (R2b-1 review F1) the entries consecutive from past the snapshot: raft's `readySnap`
+    -- (`LogIndicesOk (snapId l.snap) es`, round 2 review F7)
     (∀ (j : Nat) (e : EntryM), es[j]? = some e →
       uint.nat e.Index' = uint.nat l.snap.Metadata'.Index' + 1 + j) →
     WalSaveOk (walSaveSnap σ l.snap.Metadata') es ∧
@@ -129,37 +132,50 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- (DRAFT, R2b-1) **The WAL `w`'s records are `σ`** (opaque, exclusive; a trust-boundary token
-beside `storage.walOpen`): see the file header. `bootstrap`'s contract gives it (a first start's
-at `walFresh`, a restart's at the image's), `Save` and `SaveSnap` update it (`isRNWalR`); `Close`
-leaves it (R2b-3: the closes' axioms make `srvFiles` of it). -/
-opaque walRecs (w : Loc) (σ : StorContents) : IProp GF
+instance storContents_countable : Pos.Countable StorContents :=
+  .ofInjective (fun σ => Pos.Countable.encode (σ.hs, σ.snap, σ.base, σ.ents))
+    (by
+      rintro ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp_all)
 
-/-- (DRAFT, R2b-1; the user's choice, 2026-11-02) **The WAL `w`'s records are not known** (opaque,
-exclusive): what a failed `Save` leaves (it may have written part of its records). The raft loop
-then calls `lg.Fatal`, which never returns, so it never stops, and no image is made of such a
-WAL. In place of a premise that `Save` fails only on I/O. -/
-opaque walFailed (w : Loc) : IProp GF
+/-- (DRAFT, R2b-1) The ghost name of the WAL `w`'s records (opaque: one per WAL, as `walGName`). -/
+opaque walRecGName (w : Loc) : GName
 
-/-- (DRAFT, R2b-1) **The WAL contract with its records** (`isRNWal`'s, trust boundary): `Save` and
-`SaveSnap` as atomic updates of the records (the raft loop and the apply thread both write the
-WAL, so the records live in an invariant), `Save` in the case the server uses (`WalSaveOk`),
-with any error as today: one of two updates fires, the records saved or, on an error, not known
-(`walFailed`; the user's choice, 2026-11-02, over widening the premise `walSaveOk` to `Save`).
-`Close` and `Sync` as `isRNWal`'s. (R2b-1 review F6: R2b-1's proof replaces `isRNWal`'s `Save`/`SaveSnap` by these, one spec per function; the draft conjoins
-them.) -/
+/-- (DRAFT, R2b-1; round 2 review F5: a ghost variable, so timeless and exclusive by proof, only its
+meaning trusted, as `storage.walOpen`) **The WAL `w`'s records are `σ`**: see the file header.
+`bootstrap`'s contract gives it (a first start's at `walFresh`, a restart's at the image's), `Save`
+and `SaveSnap` update it (`isRNWalR`); `Close` leaves it (R2b-3: the closes' axioms make `srvFiles`
+of it). The records a restart reads are those from the snapshot record of the highest index at
+or below the saved commit (`recoverSnapshot`, `validSnapshotEntries`): `walSaveSnap σ m` once a
+hard state commits `m` (round 2 review F9; no image is taken before). -/
+def walRecs (w : Loc) (σ : StorContents) : IProp GF :=
+  ghostVar (walRecGName w) 1 σ
+
+/-- (DRAFT, R2b-1) **The WAL contract with its records** (`isRNWal`'s replacement, trust boundary;
+one spec per function: R2b-1's proof puts it in `isRNWal`'s place, round 2 review F10): `Save` and
+`SaveSnap` as atomic updates of the records (the raft loop and the apply thread both write the WAL,
+so the records live in an invariant; `Save` holds `w.mu` across its records), `Save` in the case
+the server uses (`WalSaveOk`), with any error as today: one of two updates fires, the records
+saved or, on an error, some records (the user's choice, 2026-11-02: no premise that `Save` fails
+only on I/O; round 2 review F4: "some records", not a token without them, so that the apply
+thread's snapshot can still update them while the loop is in `lg.Fatal`). `Close` and `Sync` as
+`isRNWal`'s. -/
 def isRNWalR (st : GoInterface) : IProp GF :=
   letI w := storage.walOf st
-  iprop(isRNWal st ∗ ∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
+  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
     □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
         (es : List EntryModel) (Q Qf : IProp GF),
       {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es ∗
           (AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
             @ ⊤, ∅ <{ walRecs w (walSave σ hs.toM (es.map EntryModel.toM)), COMM Q }> ∧
-           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅ <{ walFailed w, COMM Qf }>) }}
+           AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅
+             <{ ∃ σ' : StorContents, walRecs w σ', COMM Qf }>) }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
           ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Qf)) }}) ∗
+    □ ({{ storage.walOpen w 1 }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ storage.walCloseOk⌝ }}) ∗
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF),
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           smPtsV mp dq' md ∗
@@ -168,127 +184,142 @@ def isRNWalR (st : GoInterface) : IProp GF :=
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
-          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}))
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }}) ∗
+    □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; storage.walOpen w q }}))
 
-/-- (DRAFT, R2b-1 round 2) **The ghost names of a WAL's durability** (allocated with the raft
-wrapper, R2b-1's proof): the records' hard state (a ghost variable, half in the invariant, half the
-raft loop's: the loop's driver knows the records' hard state is the last it handed), their commit
-index (a monotone counter: `walCommitLb`), the pending token (in the invariant except between the
-raft loop's `SaveSnap` of a received snapshot and its `Save`), the "not failed" token (in the
-invariant once a `Save` failed; the loop holds it otherwise, so that at its stop the WAL is not
-`walFailed`), and the stop's claim (`raftNode.stop`'s, R2b-2's `rnStopClaim`: whoever holds it
-takes the contents out). -/
+/-- (DRAFT, R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
+variable, half in the invariant, half the raft loop's: the durable state, the records' hard state,
+the received snapshot whose `Save` is pending if any, the log handed at the last `Save`; round 2
+review F1/F2, as kvdurable's writer variable), the handed log's length (a monotone counter:
+`walCommitLb`), the "not failed" token (in the invariant once a `Save` failed), the stop's claim
+and the apply thread's token (both in the invariant once the stop took the contents; round 2 review
+F4: the apply thread's `SaveSnap` excludes the taken state with its token). -/
 structure WalNames where
-  hs : GName
+  view : GName
   cm : GName
-  pend : GName
   ok : GName
   stop : GName
+  app : GName
 
-/-- (DRAFT, R2b-1) **The records' commit index is at least `n`** (persistent): a lower bound of
-the invariant's counter. What the raft loop's `notifyc` hands the apply thread after a `Save` (the
-apply thread snapshots only after it, `applyAll`'s `<-apply.notifyc`), so that its snapshot is
-within the saved commit. -/
+/-- The raft loop's view of the WAL's durability: the durable state `S`, the records' hard state,
+the received snapshot whose `Save` is pending (if any), the committed log handed out at the last
+`Save` (the apply thread's, once the loop is idle). -/
+structure WalView where
+  S : RaftState
+  hs : HardStateM
+  pend : Option SnapshotMetadataM
+  l : List LogEntry
+
+theorem logEntries_enc_inj [GooseExts] {l1 l2 : List LogEntry}
+    (h : l1.map (fun e => (e.term, e.type, e.data)) = l2.map (fun e => (e.term, e.type, e.data))) :
+    l1 = l2 := by
+  induction l1 generalizing l2 with
+  | nil => cases l2 with
+    | nil => rfl
+    | cons _ _ => simp at h
+  | cons x xs ih => cases l2 with
+    | nil => simp at h
+    | cons y ys =>
+      simp only [List.map_cons, List.cons.injEq, Prod.mk.injEq] at h
+      obtain ⟨⟨h1, h2, h3⟩, h4⟩ := h
+      obtain ⟨_, _, _⟩ := x; obtain ⟨_, _, _⟩ := y
+      simp only at h1 h2 h3; subst h1 h2 h3
+      rw [ih h4]
+
+instance walView_countable : Pos.Countable WalView :=
+  .ofInjective (fun v => Pos.Countable.encode
+      ((v.S.term, v.S.vote, v.S.base, v.S.ents, v.S.commit, v.S.wcommit), v.hs,
+        v.pend.map (SnapshotM.mk []), v.l.map (fun e => (e.term, e.type, e.data))))
+    (by
+      rintro ⟨⟨_, _, _, _, _, _⟩, _, p1, l1⟩ ⟨⟨_, _, _, _, _, _⟩, _, p2, l2⟩ h
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨⟨h1, h2, h3, h4, h5, h6⟩, h7, h8, h9⟩ := h
+      have h8' : p1 = p2 := by
+        cases p1 <;> cases p2 <;> simp_all
+      subst h1 h2 h3 h4 h5 h6 h7 h8'; rw [logEntries_enc_inj h9])
+
+/-- (DRAFT, R2b-1) **The handed log is at least `n` long** (persistent): a lower bound of the
+invariant's counter. What the raft loop's `notifyc` hands the apply thread after a `Save` (it
+snapshots only after it, `applyAll`'s `<-apply.notifyc`): its snapshot's index, at most its
+applied index, is at most the handed log's length, so within the saved commit. -/
 def walCommitLb (ν : WalNames) (n : Nat) : IProp GF := monoNatLbOwn ν.cm n
 
-/-- **The durable log agrees with the committed log `l`** above its base: what the apply thread's
-own snapshot needs of the durable state at its index (`walOwnSnap_holds_stmt`'s term premise),
-from the committed log it applied. The raft loop keeps it: the committed entries a `Ready` hands out
-above the durable base are its batch's (`ReadyRestFacts`). -/
+/-- **The durable log agrees with the committed log `l`** from its base on (round 2 review F8: the
+base included): what the apply thread's own snapshot needs of the durable state at its index
+(`walOwnSnap_holds_stmt`'s term premise), from the committed log it applied. The raft loop keeps
+it: the committed entries a `Ready` hands out above the durable base are its batch's
+(`ReadyRestFacts`), a received snapshot's base is the committed log's entry at its index. -/
 def DurAgrees (S : RaftState) (l : List LogEntry) : Prop :=
-  ∀ (i : Nat) (e : LogEntry), uint.nat S.base.index' < i + 1 → l[i]? = some e →
+  ∀ (i : Nat) (e : LogEntry), uint.nat S.base.index' ≤ i + 1 → l[i]? = some e →
     plogTermAt S.base S.ents (W64 ((i : Int) + 1)) = some e.term
 
 /-- The namespace of the durability invariant. -/
 def rnDurN : Namespace := nroot.@"rnDur"
 
-/-- (DRAFT, R2b-1 round 2) **The WAL's records when they hold the durable state `S`**: records
-`σ` holding it, the committed log `l` they are within, with which `S` agrees, the records' hard
-state and commit in the ghost names. -/
-def walHolds (γ : RNNames) (ν : WalNames) (w : Loc) (S : RaftState) : IProp GF :=
-  iprop(∃ (σ : StorContents) (l : List LogEntry),
-    walRecs w σ ∗ ⌜StorageHolds S σ ∧ σ.commit ≤ l.length ∧ DurAgrees S l⌝ ∗
-    isCommittedLogLb γ.node.cl l ∗
-    ghostVar ν.hs (1 : Qp).half σ.hs ∗ monoNatAuthOwn ν.cm 1 σ.commit)
+/-- (DRAFT, R2b-1, round 3) **The records as the view says**: at no pending snapshot, records `σ`
+holding the durable state, between whose base and commit the handed log ends (round 2 review F3:
+the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image needs, `|l| ≤
+σ.commit` the apply thread's snapshot), the durable log agreeing with it; at a received snapshot
+`m` whose `Save` is pending, records `walSaveSnap σ m` of such records `σ` (the apply thread's own
+snapshot is then below their base and changes nothing). Either way the records' hard state is the
+view's. -/
+def walAsViewed (w : Loc) (v : WalView) : IProp GF :=
+  iprop(∃ σ : StorContents,
+    walRecs w (match v.pend with | none => σ | some m => walSaveSnap σ m) ∗
+    ⌜StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
+      DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')⌝)
 
-/-- (DRAFT, R2b-1 round 2; R2b-1 review F3) **The durability invariant** of the raft wrapper of
-names `γ` over its WAL `w`: until the stop takes its contents (its claim, `ν.stop`), the node's
-durable state `S` (`raftState`, under a later: it holds an invariant) and either
-* the records holding it (`walHolds`), with the pending token: the raft loop enters a batch and
-  saves it in one step (the `Save`'s update fires *enter*), the apply thread's own snapshot moves
-  the records only (`walOwnSnap_holds_stmt`);
-* or a received snapshot's records saved, its `Save` pending (the loop holds the pending token):
-  the records `walSaveSnap σ m` of records `σ` that held `S` (the apply thread's own snapshot is
-  then below their base and changes nothing, review G1's fix);
-* or a failed `Save`'s records (`walFailed`), with the "not failed" token: the loop gave it up and
-  is in `lg.Fatal` for good. -/
+/-- (DRAFT, R2b-1, round 3; round 2 review F1-F5) **The durability invariant** of the raft wrapper
+of names `γ` over its WAL `w`, with ghost names `ν`: until the stop takes the contents (its claim
+and the apply thread's token), the loop's view `v` (half of it), the node's durable state
+(`raftState`, the view's; no extra later: the invariant's own suffices) and either the records as
+the view says (`walAsViewed`; the raft loop fires *enter* and the records' update in one step at
+its `Save`, the apply thread's own snapshot moves the records only), or, once a `Save` failed, some
+records and the "not failed" token (the loop is in `lg.Fatal` for good). The counter is at the
+handed log's length. -/
 def rnDurInv (γ : RNNames) (ν : WalNames) (w : Loc) : IProp GF :=
-  inv rnDurN iprop((∃ (S : RaftState), ▷ raftState γ.node.cl γ.id S ∗
-      ((walHolds γ ν w S ∗ token ν.pend) ∨
-       (∃ (σ : StorContents) (m : SnapshotMetadataM) (l : List LogEntry),
-          walRecs w (walSaveSnap σ m) ∗
-          ⌜StorageHolds S σ ∧ σ.commit < uint.nat m.Index' ∧ σ.commit ≤ l.length ∧ DurAgrees S l⌝ ∗
-          isCommittedLogLb γ.node.cl l ∗
-          ghostVar ν.hs (1 : Qp).half σ.hs ∗ monoNatAuthOwn ν.cm 1 σ.commit) ∨
-       (walFailed w ∗ token ν.ok))) ∨
-    token ν.stop)
+  inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
+      raftState γ.node.cl γ.id v.S ∗ monoNatAuthOwn ν.cm 1 v.l.length ∗
+      (walAsViewed w v ∨ ((∃ σ : StorContents, walRecs w σ) ∗ token ν.ok))) ∨
+    (token ν.stop ∗ token ν.app))
 
-/-- (DRAFT, R2b-1 round 2) **The stop takes the contents out** (R2b-2's `raftNode.stop.specStop`:
-`onStop`, with the loop idle, so not pending, and not failed): with the claim and the loop's
-pending and "not failed" tokens, the durable state and records holding it, the committed log and
-the hard state's half. -/
+/-- (DRAFT, R2b-1, round 3) **The stop takes the contents out** (R2b-2's `raftNode.stop.specStop`:
+`onStop`, the loop idle and not failed): with the claim, the apply thread's token (which `stopped`
+brings), the loop's view at no pending snapshot (its half) and its "not failed" token, the durable
+state and the records holding it, between whose base and commit the handed log ends. -/
 def rnDurTake_stmt (γ : RNNames) (ν : WalNames) (w : Loc) : Prop :=
-  rnDurInv (GF := GF) γ ν w ∗ token ν.stop ∗ token ν.pend ∗ token ν.ok ⊢
-    |={⊤}=> ∃ S : RaftState, ▷ raftState γ.node.cl γ.id S ∗ walHolds γ ν w S
+  ∀ (v : WalView), v.pend = none →
+    rnDurInv (GF := GF) γ ν w ∗ token ν.stop ∗ token ν.app ∗
+      ghostVar ν.view (1 : Qp).half v ∗ token ν.ok ⊢
+    |={⊤}=> ▷ raftState γ.node.cl γ.id v.S ∗
+      ∃ σ : StorContents, walRecs w σ ∗
+        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝
 
-/-- (DRAFT, R2b-1 round 2; R2b-1 review F4) **Raft's receive gives the delivered log and the
-committed hard state without *enter*** (a raft API change: `readyGot` gains the last two
-conjuncts). Raft's proof has both when it builds *enter* (`isCommittedLogLb`, `hsCommitted` and the
-busy driver's `dlvLb` at the state after the `Ready`, all persistent), so the change hands them out
-beside it. The server needs them before the `Save` for the hand-off on `applyc` (`rnApN`:
-`deliveredLogLb (F ++ ce)`, the new term's `rnRtOk`), which today come from the entered driver. -/
-def readyGotFacts_stmt [StorageModel GF] : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready),
-    readyGot (GF := GF) n γ N id st rd ⊢
-    ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+/-- (DRAFT, R2b-1, round 3; round 2 review F6: in place of a law over today's `readyGot`, which
+cannot be proved) **What receiving a `Ready` gives, with the facts the server needs before *enter***
+(raft's `readyGot`'s new body, and the receive's postcondition `readyPost`): today's, and the
+delivered log after the `Ready` (`deliveredLogLb`) and its hard state's committed fact
+(`committedAtTerm`), which raft's proof has, persistent, where it builds *enter* (round 2 review:
+`readyRecv_open`). The server hands the batch on `applyc` (`rnApN`: `deliveredLogLb (F ++ ce)`, the
+new term's `rnRtOk`) before its `Save` fires *enter*. -/
+def readyGotR [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+    (st : NodeDriverState) (rd : Ready) : IProp GF :=
+  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-      committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-      isCommittedLogLb γ (st.delivered ++ ce) ∗
-      (∃ rs, readStatesPts rd.ReadStates' rs ∗
-        [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-      readyRest γ N id rd st ce es h L ms ss ∗
-      readyLeaderMsgs γ N id st ms ss ∗
-      readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
-      deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-      (⌜phsNext st.hardState h = hsZero⌝ ∨
-        committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
-        ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-          uint.Z (phsNext st.hardState h).Commit'⌝)
-
-/-- (DRAFT, R2b-1) **The receive, entering at the `Save`** (`rn_ready_recv`'s new form, a
-statement for R2b-1's proof): from the idle driver's view without the durable state (the
-invariant holds it), the busy state holds *enter* unfired (`readyEnter` at the state after the
-`Ready`), which the loop fires inside the `Save`'s update. Stated for the case without a snapshot;
-the snapshot case is alike.
-
-R2b-1 review round 1 (F4): too weak as drafted. The loop uses, before the `Save`, what the receive
-gives today through the entered driver: the committed entries (`committedEntriesAt`,
-`isCommittedLogLb`), the read states, `readyLeaderMsgs`, `readyRest` and, for the hand-off on
-`applyc`, `deliveredLogLb (delivered ++ ce)` and the new hard state's term fact (`rnRtOk`), which
-come from `nodeDriver` at the state after the `Ready` (`nodeDriver_deliveredLogLb`,
-`nodeDriver_hardStateCommitted`). With *enter* at the `Save` (after the hand-off) the driver is not
-there yet: raft's `readyGot` must give those two facts without *enter* (a raft API change), and the
-receive returns today's `rnReadyData`/`rnReadySnap` minus the entered state, *enter* unfired. -/
-def rnReadyRecvR_stmt (E : RNEnv GF) (γ : RNNames) : Prop :=
-  ∀ (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType) (rd : Ready),
-    letI := srvStor (GF := GF) γ.node
-    iprop(rnEnvOk E γ ∗ rnReadStateBridge E γ ∗ rnCfgAt γ L ∗
-      readyGot γ.nl γ.node.cl srvClusterN γ.id (rnDrvSt γ L p S r) rd) ⊢
-      |={⊤}=> ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
-        (ss : Option (w64 × StateType)),
-        ⌜ReadyRestFacts (rnDrvSt γ L p S r) ce es h none⌝ ∗
-        readyEnter γ.nl γ.node.cl srvClusterN γ.id (rnDrvSt γ L p S r)
-          ((rnDrvSt γ L p S r).afterReady ce es h none ss) ms
+    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+    isCommittedLogLb γ (st.delivered ++ ce) ∗
+    (∃ rs, readStatesPts rd.ReadStates' rs ∗
+      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+    readyRest γ N id rd st ce es h L ms ss ∗
+    readyLeaderMsgs γ N id st ms ss ∗
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝))
 
 end defs
 
