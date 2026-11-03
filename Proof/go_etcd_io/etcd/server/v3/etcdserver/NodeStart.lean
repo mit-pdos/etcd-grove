@@ -191,10 +191,10 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
   · iunfold rnLoopTok
     iexists hsZero
     iunfold rnLoopTokP
-    iexists [], [[]]
+    iexists [], [[]], RaftState.init
     isplitl [Hdrv HrS Hcfg]
     · iunfold rnDrv
-      iexists RaftState.init, W64 0
+      iexists W64 0
       have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
           NodeDriverState.init (memStorIface γ.ms) γ.key := by
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
@@ -345,6 +345,7 @@ and the trust boundary provide, yields the wrapper's struct value, the tokens an
 abbrev NodeStartSpec : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
+    (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     -- `newRaftNode`'s premises
     bv.lg' ≠ null → bv.heartbeat' ≠ W64 0 →
@@ -396,6 +397,7 @@ abbrev NodeStartSpec : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
+            γw.wal = ν ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
@@ -464,7 +466,7 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
+  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
@@ -479,7 +481,7 @@ theorem raftNode_of_StartNode
     iintro %K Hi Hm
     iframe Hi Hm
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs
+  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
@@ -489,7 +491,7 @@ theorem raftNode_of_StartNode
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
@@ -529,7 +531,7 @@ theorem raftNode_of_StartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
   iframe Hr Hmu Hloop Happly Hb Hminv Hmeta
   isplitr

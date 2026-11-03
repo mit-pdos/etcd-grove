@@ -179,9 +179,9 @@ theorem raftNode.start.wp_proof
     · ileft
       simp only [chan.blockingClausePre]
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
+      icases Htok with ⟨%sent, %cums, %S, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
       iunfold rnDrv at Hdrv
-      icases Hdrv with ⟨%S, %ro, Hdrv, HrS, Hcfg⟩
+      icases Hdrv with ⟨%ro, Hdrv, HrS, Hcfg⟩
       icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p S ro) _ rfl
         $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
@@ -199,7 +199,7 @@ theorem raftNode.start.wp_proof
         have hae : ai = E.γr.raft.ai0 := by word
         rw [← hae]; exact hidx
       imod rn_ready_recv E γ L' p S ro rd HLi $$ Henv Hrsb Hcfg HrS Hrun Hgot
-        with ⟨Hrun, (⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)⟩
+        with ⟨Hrun, (⟨%ce, %es, %p', %S', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)⟩
       rotate_left
       · -- (2026-10-31, #3) **The `Ready`-snapshot branch** (raft.go:256-342): the snapshot cloned
         -- twice (`raftSnap`, the apply thread's), the batch on `applyc` (`rnApSnap`), `SaveSnap`,
@@ -209,7 +209,7 @@ theorem raftNode.start.wp_proof
         -- `Append`, notifyc's second send, `Advance`'s snapshot clause over `snapReceipt`, and
         -- `raftAdvancedC` closed with the frozen dummy entry
         letI : MemStorReg GF := ⟨γ.reg⟩
-        icases Hsnap with ⟨%es, %A', %p', %l, Hdata, Hbusy, %HidxN⟩
+        icases Hsnap with ⟨%es, %A', %p', %l, %S', Hdata, Hbusy, %HidxN⟩
         iunfold rnBusyS at Hbusy
         icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
@@ -423,7 +423,7 @@ theorem raftNode.start.wp_proof
             rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
         -- the batch's raft term, with the witness bounding the batch (`nodeDriver_hardStateCommitted`,
         -- on the busy driver at `p'`)
-        ihave ⟨Hbdrv, #Hrtok⟩ := rn_rtOk_busyS γ rt' A' _ p' _ Hrt' $$ Hbdrv
+        ihave ⟨Hbdrv, #Hrtok⟩ := rn_rtOk_busyS γ rt' A' _ p' _ S' Hrt' $$ Hbdrv
         -- `notifyc` (2026-10-31, #3: two sends, after `Sync` and after the messages, the
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -714,7 +714,7 @@ theorem raftNode.start.wp_proof
           · iapply srvFrozenTerms_snap γ.γs (γ.pre.length + 1) A' l.snap
               (by simp only [List.length_append] at hlenA; omega) Hlast
             iframe HcpS Hdum
-          ihave Hbusy : rnBusyS γ L' A' es p' l $$ [Hbdrv Hbcv]
+          ihave Hbusy : rnBusyS γ L' A' es p' l S' $$ [Hbdrv Hbcv]
           · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61⟩
           -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
           ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
@@ -840,7 +840,7 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A']
+              iexists _, cums ++ [A'], _
               iframe
               isplitr
               · ipureintro
@@ -882,7 +882,7 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A']
+              iexists _, cums ++ [A'], _
               iframe
               isplitr
               · ipureintro
@@ -1116,7 +1116,7 @@ theorem raftNode.start.wp_proof
           rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
       -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
       -- (`nodeDriver_hardStateCommitted`, on the busy driver at `p'`)
-      ihave ⟨Hbusy, #Hrtok⟩ := rn_rtOk_busyN γ rt' L' ce es p' Hrt' $$ Hbusy
+      ihave ⟨Hbusy, #Hrtok⟩ := rn_rtOk_busyN γ rt' L' ce es p' S' Hrt' $$ Hbusy
       -- `notifyc` (D43 M3: the two-send idiom, depositing the view after the batch if it goes
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -1416,7 +1416,7 @@ theorem raftNode.start.wp_proof
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce]
+            iexists _, cums ++ [L' ++ ce], _
             iframe
             isplitr
             · ipureintro
@@ -1470,7 +1470,7 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce]
+              iexists _, cums ++ [L' ++ ce], _
               iframe
               isplitr
               · ipureintro
@@ -1529,7 +1529,7 @@ theorem raftNode.start.wp_proof
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce]
+            iexists _, cums ++ [L' ++ ce], _
             iframe
             isplitr
             · ipureintro
@@ -1577,7 +1577,7 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce]
+              iexists _, cums ++ [L' ++ ce], _
               iframe
               isplitr
               · ipureintro
@@ -1644,7 +1644,7 @@ theorem raftNode.start.wp_proof
       wp_auto
       wp_for_post
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, -, Hrun, -⟩
+      icases Htok with ⟨%sent, %cums, %S, -, Hrun, -⟩
       ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
       ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
       wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]

@@ -36,8 +36,9 @@ into the durable state (`raftState`) at its receive, and the WAL has an open tok
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.raft.v3.NodeApiVocab
+public import Perennial.Ghost.MonoList
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 
 @[expose] public section
 
@@ -298,7 +299,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- (DRAFT, R2b-1, round 3) **The ghost names of a WAL's durability**: the loop's view (a ghost
 variable, half in the invariant, half the raft loop's: the durable state, the records' hard state,
@@ -368,6 +368,10 @@ its snapshot's index is within the saved commit and its term the durable log's t
 (`DurAgrees`). -/
 def walCommitLb (ν : WalNames) (l : List LogEntry) : IProp GF := monoListLbOwn ν.cm l
 
+instance walCommitLb_persistent (ν : WalNames) (l : List LogEntry) :
+    Persistent (walCommitLb (GF := GF) ν l) := by
+  unfold walCommitLb; infer_instance
+
 /-- **The durable log agrees with the committed log `l`** from its base on (round 2 review F8: the
 base included): what the apply thread's own snapshot needs of the durable state at its index
 (`walOwnSnap_holds_stmt`'s term premise), from the committed log it applied. The raft loop keeps
@@ -380,6 +384,19 @@ def DurAgrees (S : RaftState) (l : List LogEntry) : Prop :=
 /-- The namespace of the durability invariant. -/
 def rnDurN : Namespace := nroot.@"rnDur"
 
+/-- (2026-11-03, R2b-1 stage 4) **The records the view `v` describes**, from the records `σ` before
+its pending received snapshot: `σ`, or `σ` after the snapshot's `SaveSnap`. -/
+def recsOf (v : WalView) (σ : StorContents) : StorContents :=
+  match v.pend with | none => σ | some m => walSaveSnap σ m
+
+/-- (2026-11-03, R2b-1 stage 4) **The records `σ` (before a pending snapshot) describe the view `v`**
+(pure; `walAsViewed`'s): they hold its durable state, with its hard state, the handed log ending
+between their base and their commit and the durable log agreeing with it, below a pending
+snapshot. -/
+def ViewOk (v : WalView) (σ : StorContents) : Prop :=
+  StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
+    DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')
+
 /-- (DRAFT, R2b-1, round 3) **The records as the view says**: at no pending snapshot, records `σ`
 holding the durable state, between whose base and commit the handed log ends (round 2 review F3:
 the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image needs, `|l| ≤
@@ -388,10 +405,10 @@ the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image n
 snapshot is then below their base and changes nothing). Either way the records' hard state is the
 view's. -/
 def walAsViewed (w : Loc) (v : WalView) : IProp GF :=
-  iprop(∃ σ : StorContents,
-    walRecs w (match v.pend with | none => σ | some m => walSaveSnap σ m) ∗
-    ⌜StorageHolds v.S σ ∧ σ.hs = v.hs ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
-      DurAgrees v.S v.l ∧ (∀ m, v.pend = some m → σ.commit < uint.nat m.Index')⌝)
+  iprop(∃ σ : StorContents, walRecs w (recsOf v σ) ∗ ⌜ViewOk v σ⌝)
+
+instance walAsViewed_timeless (w : Loc) (v : WalView) : Timeless (walAsViewed (GF := GF) w v) := by
+  unfold walAsViewed; infer_instance
 
 /-- (DRAFT, R2b-1, round 4; round 2 review F1-F5, round 3 H1, M1) **The durability invariant** of
 the raft wrapper's WAL `w`, with ghost names `ν`: until the stop takes the
@@ -409,6 +426,219 @@ def rnDurInv (ν : WalNames) (w : Loc) : IProp GF :=
       monoListAuthOwn ν.cm 1 v.l ∗
       (walAsViewed w v ∨ ((∃ σ : StorContents, walRecs w σ) ∗ token ν.ok))) ∨
     (token ν.stop ∗ token ν.app ∗ token ν.ok))
+
+instance rnDurInv_persistent (ν : WalNames) (w : Loc) : Persistent (rnDurInv (GF := GF) ν w) := by
+  unfold rnDurInv; infer_instance
+
+/-- (2026-11-03, R2b-1 stage 3c) **The view at the start**: the node's durable state at
+`RaftState.init` (`StartNode`'s), the fresh records' hard state, nothing pending, nothing handed. -/
+abbrev walView0 : WalView := ⟨RaftState.init, hsZero, none, []⟩
+
+/-- (2026-11-03, R2b-1 stage 3c) **The durability's ghost state allocated** over a fresh WAL
+(`walFresh`, what `bootstrap` gives a first start): the invariant at the start's view (the fresh
+records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view with its "not failed"
+token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`. -/
+theorem rnDur_alloc (w : Loc) :
+    walRecs (GF := GF) w walFresh ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
+  iintro Hr
+  imod (ghostVar_alloc (GF := GF) walView0) with ⟨%γv, Hv⟩
+  imod (mono_list_own_alloc (GF := GF) ([] : List LogEntry)) with ⟨%γc, Hca, #Hcl⟩
+  imod (token_alloc (GF := GF)) with ⟨%γo, Ho⟩
+  imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
+  imod (token_alloc (GF := GF)) with ⟨%γa, Ha⟩
+  icases (ghostVar_split_half γv 1 walView0).1 $$ Hv with ⟨Hv1, Hv2⟩
+  imod (inv_alloc rnDurN ⊤ iprop((∃ v : WalView, ghostVar γv (1 : Qp).half v ∗
+      monoListAuthOwn γc 1 v.l ∗
+      (walAsViewed w v ∨ ((∃ σ : StorContents, walRecs w σ) ∗ token γo))) ∨
+    (token γs ∗ token γa ∗ token γo))) $$ [Hv1 Hca Hr] with #Hinv
+  · inext
+    ileft
+    iexists walView0
+    iframe Hv1
+    isplitl [Hca]
+    · iexact Hca
+    ileft
+    iunfold walAsViewed
+    iexists walFresh
+    simp only [walView0, recsOf]
+    iframe Hr
+    ipureintro
+    unfold ViewOk
+    refine ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, ?_, ?_⟩
+    · intro i e _ he; simp at he
+    · intro m hm; simp at hm
+  imodintro
+  iexists ⟨γv, γc, γo, γs, γa⟩
+  iunfold rnDurInv
+  iframe Hinv Hv2 Ho Hs Ha
+  iunfold walCommitLb
+  iexact Hcl
+
+/-- (2026-11-03, R2b-1 stage 4) **A `Save` from the view `v` to `v'`** (pure): from any records
+`σ` the view describes (`ViewOk`), the batch `(h, es)` is in `Save`'s case (`WalSaveOk`) and the
+saved records describe `v'`, at no pending snapshot. -/
+def WalSaveStep (v v' : WalView) (h : HardStateM) (es : List EntryM) : Prop :=
+  v'.pend = none ∧ v.l <+: v'.l ∧
+    ∀ σ, ViewOk v σ → WalSaveOk (recsOf v σ) es ∧ ViewOk v' (walSave (recsOf v σ) h es)
+
+/-- (2026-11-03, R2b-1 stage 4) **The raft loop's `Save`, as the WAL contract's atomic updates**
+(`walSave_spec`): from the loop's view `v` (its half) and its "not failed" token, a `Save` moving
+the view to `v'` (`WalSaveStep`): on success the loop's half at `v'`, the token back and the handed
+log's lower bound at `v'.l`; on an error the token stays in the invariant with some records (the
+loop then calls `lg.Fatal`). -/
+theorem rnDur_save_au (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM)
+    (es : List EntryM) (Hst : WalSaveStep v v' h es) :
+    rnDurInv (GF := GF) ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
+      ((AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ es⌝ }> @ ⊤, ∅
+          <{ walRecs w (walSave σ h es),
+            COMM ghostVar ν.view (1 : Qp).half v' ∗ token ν.ok ∗ walCommitLb ν v'.l }>) ∧
+        (AU <{ ∃∃ (σ : StorContents), walRecs w σ }> @ ⊤, ∅
+          <{ ∃ σ' : StorContents, walRecs w σ', COMM True }>)) := by
+  obtain ⟨Hpn, Hpfx, Hstep⟩ := Hst
+  iintro #Hinv Hv Hok
+  isplit
+  · iauintro
+    unfold atomic_acc
+    iunfold rnDurInv at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with (⟨%v0, Hv0, Hcm, (Hw | ⟨-, Hok'⟩)⟩ | ⟨-, -, Hok'⟩)
+    rotate_left
+    · iexfalso; iapply token_exclusive $$ Hok Hok'
+    · iexfalso; iapply token_exclusive $$ Hok Hok'
+    icombine Hv Hv0 gives %Hag
+    have Hvv : v = v0 := Hag.2
+    subst Hvv
+    iunfold walAsViewed at Hw
+    icases Hw with ⟨%σ, Hr, %Hok0⟩
+    obtain ⟨Hsok, Hok1⟩ := Hstep σ Hok0
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iexists recsOf v σ
+    iframe Hr
+    isplitr
+    · ipureintro; exact Hsok
+    isplit
+    · iintro ⟨Hr, -⟩
+      imod Hmask with -
+      imod Hclose $$ [Hv0 Hcm Hr] with -
+      · inext; ileft; iexists v; iframe Hv0 Hcm; ileft; iunfold walAsViewed; iexists σ; iframe Hr
+        ipureintro; exact Hok0
+      imodintro
+      iframe Hv Hok
+    · iintro Hr
+      imod Hmask with -
+      imod (ghostVar_update_halves v' ν.view v v) $$ Hv Hv0 with ⟨Hv, Hv0⟩
+      imod (monoListAuthOwn_update (GF := GF) (γ := ν.cm) v'.l Hpfx) $$ Hcm with ⟨Hcm, #Hlb⟩
+      imod Hclose $$ [Hv0 Hcm Hr] with -
+      · inext; ileft; iexists v'; iframe Hv0 Hcm; ileft; iunfold walAsViewed
+        iexists walSave (recsOf v σ) h es
+        have hr : recsOf v' (walSave (recsOf v σ) h es) = walSave (recsOf v σ) h es := by
+          unfold recsOf; rw [Hpn]
+        rw [hr]
+        iframe Hr
+        ipureintro; exact Hok1
+      imodintro
+      iframe Hv Hok
+      iunfold walCommitLb
+      iexact Hlb
+  · iauintro
+    unfold atomic_acc
+    iunfold rnDurInv at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with (⟨%v0, Hv0, Hcm, (Hw | ⟨-, Hok'⟩)⟩ | ⟨-, -, Hok'⟩)
+    rotate_left
+    · iexfalso; iapply token_exclusive $$ Hok Hok'
+    · iexfalso; iapply token_exclusive $$ Hok Hok'
+    iunfold walAsViewed at Hw
+    icases Hw with ⟨%σ, Hr, %Hok0⟩
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iexists recsOf v0 σ
+    iframe Hr
+    isplit
+    · iintro Hr
+      imod Hmask with -
+      imod Hclose $$ [Hv0 Hcm Hr] with -
+      · inext; ileft; iexists v0; iframe Hv0 Hcm; ileft; iunfold walAsViewed; iexists σ; iframe Hr
+        ipureintro; exact Hok0
+      imodintro
+      iframe Hv Hok
+    · iintro ⟨%σ', Hr⟩
+      imod Hmask with -
+      imod Hclose $$ [Hv0 Hcm Hr Hok] with -
+      · inext; ileft; iexists v0; iframe Hv0 Hcm; iright; iframe Hok; iexists σ'; iexact Hr
+      imodintro
+      itrivial
+
+/-- (2026-11-03, R2b-1 stage 4) **A received snapshot's `SaveSnap` from the view `v`** (pure): from
+any records the view describes, the snapshot `m` is in `SaveSnap`'s case and the records describe
+the view with `m` pending (its `Save` next). -/
+def WalSnapStep (v : WalView) (m : SnapshotMetadataM) : Prop :=
+  v.pend = none ∧
+    ∀ σ, ViewOk v σ → (uint.nat m.Index' = σ.b → m.Term' = σ.base.term') ∧
+      ViewOk { v with pend := some m } σ
+
+/-- (2026-11-03, R2b-1 stage 4) **The raft loop's `SaveSnap` of a received snapshot, as the WAL
+contract's atomic update** (`walSaveSnap_spec`): the view's half moves to the snapshot pending. -/
+theorem rnDur_saveSnap_au (ν : WalNames) (w : Loc) (v : WalView) (m : SnapshotMetadataM)
+    (Hst : WalSnapStep v m) :
+    rnDurInv (GF := GF) ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
+      AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
+            ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }> @ ⊤, ∅
+        <{ walRecs w (walSaveSnap σ m),
+          COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok }> := by
+  obtain ⟨Hpn, Hstep⟩ := Hst
+  iintro #Hinv Hv Hok
+  iauintro
+  unfold atomic_acc
+  iunfold rnDurInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with (⟨%v0, Hv0, Hcm, (Hw | ⟨-, Hok'⟩)⟩ | ⟨-, -, Hok'⟩)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Hok Hok'
+  · iexfalso; iapply token_exclusive $$ Hok Hok'
+  icombine Hv Hv0 gives %Hag
+  have Hvv : v = v0 := Hag.2
+  subst Hvv
+  iunfold walAsViewed at Hw
+  icases Hw with ⟨%σ, Hr, %Hok0⟩
+  obtain ⟨Hsok, Hok1⟩ := Hstep σ Hok0
+  have hr0 : recsOf v σ = σ := by unfold recsOf; rw [Hpn]
+  rw [hr0]
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hr
+  isplitr
+  · ipureintro; exact Hsok
+  isplit
+  · iintro ⟨Hr, -⟩
+    imod Hmask with -
+    imod Hclose $$ [Hv0 Hcm Hr] with -
+    · inext; ileft; iexists v; iframe Hv0 Hcm; ileft; iunfold walAsViewed; iexists σ
+      rw [hr0]; iframe Hr
+      ipureintro; exact Hok0
+    imodintro
+    iframe Hv Hok
+  · iintro Hr
+    imod Hmask with -
+    imod (ghostVar_update_halves { v with pend := some m } ν.view v v) $$ Hv Hv0 with ⟨Hv, Hv0⟩
+    imod Hclose $$ [Hv0 Hcm Hr] with -
+    · inext; ileft; iexists { v with pend := some m }; iframe Hv0
+      isplitl [Hcm]
+      · iexact Hcm
+      ileft; iunfold walAsViewed
+      iexists σ
+      simp only [recsOf]
+      iframe Hr
+      ipureintro; exact Hok1
+    imodintro
+    iframe Hv Hok
 
 /-- (DRAFT, R2b-1, round 4) **The stop takes the records out** (R2b-2's `raftNode.stop.specStop`:
 `onStop`, the loop idle and not failed): with the claim, the apply thread's token (which `stopped`
@@ -429,31 +659,6 @@ def rnDurTake_stmt (ν : WalNames) (w : Loc) : Prop :=
       ghostVar ν.view (1 : Qp).half v ∗ token ν.ok ⊢
     |={⊤}=> ∃ σ : StorContents, walRecs w σ ∗
         ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝
-
-/-- (DRAFT, R2b-1, round 3; round 2 review F6: in place of a law over today's `readyGot`, which
-cannot be proved) **What receiving a `Ready` gives, with the facts the server needs before *enter***
-(raft's `readyGot`'s new body, and the receive's postcondition `readyPost`): today's, and the
-delivered log after the `Ready` (`deliveredLogLb`) and its hard state's committed fact
-(`committedAtTerm`), which raft's proof has, persistent, where it builds *enter* (round 2 review:
-`readyRecv_open`). The server hands the batch on `applyc` (`rnApN`: `deliveredLogLb (F ++ ce)`, the
-new term's `rnRtOk`) before its `Save` fires *enter*. (Round 3 review L3: today's
-`isCommittedLogLb (delivered ++ ce)` dropped, a consequence of `deliveredLogLb` by
-`deliveredLogLb_committed` and `deliveredLogLb_mono`.) -/
-def readyGotR [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
-    (st : NodeDriverState) (rd : Ready) : IProp GF :=
-  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
-      (ms : List QMsg) (ss : Option (w64 × StateType)),
-    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-    (∃ rs, readStatesPts rd.ReadStates' rs ∗
-      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-    readyRest γ N id rd st ce es h L ms ss ∗
-    readyLeaderMsgs γ N id st ms ss ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
-    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
-      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
-      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝))
 
 end defs
 

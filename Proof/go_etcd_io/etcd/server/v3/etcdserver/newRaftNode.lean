@@ -39,7 +39,7 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs key cv Hlg Hhb
+  intro E node id nl pre ms γs key wal cv Hlg Hhb
   wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
@@ -85,7 +85,7 @@ theorem newRaftNode.wp_proof :
   ihave #Hcum0 := monoListIdxOwn_get (γ := cum) 0 ([] : List EntryModel) (by simp) $$ Hlb
   imod start_bag (V := ReadState) (srvReadStateOk E.γr.raft E.RQ) _ rsc γrs (by simp)
     $$ Hrsc Hrso with #Hrsb
-  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩) _
+  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
@@ -97,7 +97,7 @@ theorem newRaftNode.wp_proof :
   · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
   imod start_spsc (V := toApply) apc
-    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩)
+    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩)
     (fun _ => iprop(False)) γap $$ Hapc [Hapo] with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
   · ileft; iexact Hapo
   -- the struct `r`
@@ -112,7 +112,7 @@ theorem newRaftNode.wp_proof :
   · ipureintro; exact Hhb
   (try wp_auto)
   iapply HΦ
-  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩
+  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
@@ -133,14 +133,14 @@ theorem newRaftNode.wp_proof :
   · ipureintro; exact Hlg
   isplitr
   · iunfold isRNMsgSnapC; iexists γms
-    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩ =
-        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩ := by
+    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩ =
+        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ := by
       unfold rnSnapMsg; rfl
     rw [hsm]; iexact Hmsb
   isplitr
   · iunfold isRNApplyc
-    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩
-      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩ rfl rfl rfl rfl rfl rfl rfl rfl]
+    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ rfl rfl rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

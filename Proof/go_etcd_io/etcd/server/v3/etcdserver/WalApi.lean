@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWal
 
 @[expose] public section
 
@@ -211,21 +212,27 @@ and the right to close it with its files kept (the purge's, `walPurgeRight`). -/
   iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh ∗
     walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
 
-/-- **What `NewServer` takes from `wal.bootOk`**: the WAL open, whole, and read, which
-`NewStorage`'s contract takes today (`rnNewStorageOk`). Narrow on purpose (the slot convention: an
-elimination law gives what its consumer takes, never the slot's body), so that `NewServer`'s proof
-does not change with the body. The rest (the records, the metadata, the purge's right) is dropped
-until a consumer needs it: R2b-1 stages 3c/4 replace this law by one into the raft loop's
-durability invariant (`wal.bootOk ⊢ |==> wal.srvInv …`). -/
-theorem wal.bootOk_storage (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+/-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
+give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing
+`wal.bootOk_storage`): the WAL's durability allocated over the fresh records (`rnDur_alloc`: the
+invariant, the raft loop's view at the start and its "not failed" token, the stop's claim, the apply
+thread's token, the handed log's lower bound), and what `NewStorage` and `Close` take: the open
+token, whole, the WAL read, its metadata and the purge's right. -/
+theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) :
-    wal.bootOk (GF := GF) cfg id cid w ⊢ storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ := by
+    wal.bootOk (GF := GF) cfg id cid w ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
+        storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
+        walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') := by
   unfold wal.bootOk
-  iintro ⟨Hw, -⟩
-  icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, -, -, %Hr⟩
-  isplitl [Ho]
-  · iexact Ho
-  · ipureintro; exact Hr.1
+  iintro ⟨Hw, Hp⟩
+  icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
+  imod rnDur_alloc w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
+  imodintro
+  iexists ν
+  iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
+  ipureintro; exact Hrd.1
 
 end defs
 
