@@ -806,6 +806,17 @@ abbrev mvccBackend_agree.law : Prop :=
 abbrev mvccState_reachable.law : Prop :=
   ∀ kv γ σ, isMvcc (GF := GF) kv γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝
 
+/-- **The shapes and the bundles**, from the concrete specs (an implementation proves them as
+`sync`'s `Mutex_is_Locker`): a store's handle, a transaction, a stream are an `interface.mkOk ty v`
+whose type meets its interface's contracts (the watchable store `WatchableKV`'s too). -/
+abbrev shapes.law : Prop :=
+  (∀ kv γ, isMvcc (GF := GF) kv γ ⊢ ⌜∃ ty v, kv = interface.mkOk ty v ∧ isKV (GF := GF) ty v⌝) ∧
+  (∀ ws : Loc, isWatchableKV (GF := GF) (go.GoType.PointerType watchableStore.ty) #ws) ∧
+  (∀ t γ trace k, mvccTxn (GF := GF) t γ trace k ⊢
+    ⌜∃ ty v, t = interface.mkOk ty v ∧ isTxn (GF := GF) ty v⌝) ∧
+  (∀ w γ ι, isMvccWatchStream (GF := GF) w γ ι ⊢
+    ⌜∃ ty v, w = interface.mkOk ty v ∧ isWatchStream (GF := GF) ty v⌝)
+
 /-- **Receiving on the stream's channel** (round 14: the blocking and the non-blocking receive
 in one law, over one channel name, the review of round 14's preference), in the forms Perennial's
 channel rules take: a receive (`recvAu`: a plain receive or one in a `select`) gives the next
