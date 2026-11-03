@@ -184,7 +184,7 @@ close), the write contract at `d`'s frozen hook (`authWAtHook`), and the admin s
 def authInstallPre (stl : Loc) (γa : auth.AuthNames) (T : auth.AuthBkNames) (d : mvcc.KBReal)
     (RD : IProp GF) : IProp GF :=
   iprop(auth.authBkLife γa T (backend.bOpen d.γB authOpenQ) ∗ authWAtHook γa d T ∗
-    authStepsAny stl γa RD)
+    authStepsAny stl γa RD ∗ authBkLend γa T d)
 
 instance authInstallPre_persistent (stl : Loc) (γa : auth.AuthNames) (T : auth.AuthBkNames)
     (d : mvcc.KBReal) (RD : IProp GF) : Persistent (authInstallPre (GF := GF) stl γa T d RD) := by
@@ -480,7 +480,7 @@ theorem authApplyResB_kb_congr (M : auth.AuthMode) (stl : Loc) (st : auth.AuthSt
     (d d' : mvcc.KBReal) (Pk : IProp GF) (f : val) (RD : IProp GF) (h1 : d'.be = d.be)
     (h2 : d'.γB = d.γB) (h3 : d'.P = d.P) :
     authApplyResB (GF := GF) M stl st d' Pk f RD = authApplyResB M stl st d Pk f RD := by
-  cases M <;> simp only [authApplyResB, authInstallPre, authWAtHook, h1, h2, h3]
+  cases M <;> simp only [authApplyResB, authInstallPre, authWAtHook, authBkLend, h1, h2, h3]
 
 /-- A reader ticket gives the apply thread's in any mode (P6.2). -/
 theorem authRdM_of (M : auth.AuthMode) (RD : IProp GF) : RD ⊢ authRdM M RD := by

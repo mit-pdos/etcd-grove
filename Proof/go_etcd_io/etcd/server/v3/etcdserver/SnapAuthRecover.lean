@@ -4,7 +4,7 @@
 mode-generic walk `applySnapshot_walk` to take them).
 
 * the history's catch-up: `authHistTie_catchup`, `catchup_list` (proved), `srvHist_wf` (pure model
-  facts, sorry: to prove), `auth.authCatchUpFirst` (proved);
+  facts, proved), `auth.authCatchUpFirst` (proved);
 * `authRecoverOn.spec`, the server-level triple of the auth store's `Recover` at the install, and
   its glue `authRecoverOn_glue` (proved from the restated `auth.authStore.Recover.spec`);
 * the install's mode-indexed facts (F9): `srvAuthSnapOk`, `snapAuthImgM`, `snapRestImgM`,
@@ -21,6 +21,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSnapKit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Recover
+public import Proof.go_etcd_io.etcd.server.v3.auth.Fuel
+public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.auth.GrantPermLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 
 @[expose] public section
 
@@ -113,12 +117,186 @@ theorem catchup_list (γk : KVNames) (A' : List EntryModel) (hs : List auth.Auth
 
 -- (P6.1) `SnapImageFactsOn` is `SnapRecvOn.lean`'s.
 
+/-- A well-formed auth state: its permission keys non-empty, small (`auth.authSmall`). -/
+def histWf (st : auth.AuthState) : Prop := auth.permKeysOk st ∧ auth.authSmall st
+
+/-- A step relation's successor keeps a well-formed state, the revision bumped at most once, when
+the step keeps the permission keys and is small. -/
+theorem authRelState_wf (R : auth.StepRel) (hS : auth.StepSmall R)
+    (hK : ∀ st st', auth.permKeysOk st → R st (.next st') → auth.permKeysOk st')
+    (st st' : auth.AuthState) (h : histWf st) (hR : authRelState R st st') :
+    histWf st' ∧ st'.revision ≤ st.revision + 1 := by
+  obtain ⟨o, ho, rfl⟩ := hR
+  cases o with
+  | err e => exact ⟨h, Nat.le_succ _⟩
+  | same => exact ⟨h, Nat.le_succ _⟩
+  | next st'' =>
+    obtain ⟨hr, hs⟩ := hS st st'' h.2 ho
+    exact ⟨⟨hK st st'' h.1 ho, hs⟩, hr⟩
+
+/-- **An admin entry's effect keeps a well-formed state**, the revision bumped at most once (the
+five kinds `adminStateR` steps, `auth/Fuel.lean`'s `StepSmall`s; a user's name a bbolt key, the
+request model's `adminKindOk`). -/
+theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : histWf st)
+    (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
+      m.name.length ≤ backend.maxKeySize)
+    (hR : adminStateR rq st st') : histWf st' ∧ st'.revision ≤ st.revision + 1 := by
+  unfold adminStateR at hR
+  split at hR
+  · split at hR <;> rename_i hk
+    · split at hR <;> rename_i m hm
+      · rcases hR with ⟨-, rfl⟩ | hR
+        · exact ⟨h, Nat.le_succ _⟩
+        · refine authRelState_wf _ (auth.stepSmall_userAdd m.name (hU m hm hk)) ?_ st st' h hR
+          intro s s' hs hn
+          simp only [auth.stepOf, auth.userAddF] at hn
+          split at hn
+          · cases hn
+          · split at hn
+            · cases hn
+            · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i n hn
+      · refine authRelState_wf _ (auth.stepSmall_roleAdd n) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.roleAddF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · cases hn
+            exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs (by simp))
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i u r hur
+      · refine authRelState_wf _ (auth.stepSmall_userGrantRole u r) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.userGrantRoleR] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · split at hn
+            · cases hn
+            · obtain ⟨u', -, -, hn⟩ := hn
+              cases hn
+              exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i r w hrw
+      · refine authRelState_wf _ (auth.stepSmall_roleGrantPermission r w) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.roleGrantPermissionR] at hn
+        split at hn
+        · cases hn
+        · rename_i w'
+          split at hn
+          · cases hn
+          · rename_i hv
+            split at hn
+            · cases hn
+            · rename_i ps hps
+              cases hn
+              exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs
+                (auth.grant_keys ps w' (Classical.not_not.1 hv).1 (fun p hp => hs r ps hps p hp)))
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · refine authRelState_wf _ (auth.stepSmall_authEnable st.enabled) ?_ st st' h hR
+      intro s s' hs hn
+      simp only [auth.stepOf, auth.authEnableF] at hn
+      split at hn
+      · cases hn
+      · split at hn
+        · cases hn
+        · split at hn
+          · cases hn; exact auth.permKeysOk_enabled _ _ hs
+          · cases hn
+    · subst hR; exact ⟨h, Nat.le_succ _⟩
+  · subst hR; exact ⟨h, Nat.le_succ _⟩
+
+/-- The model's admin step keeps a well-formed state (`adminNext`: a determinate entry's
+successor, `adminStateR`'s; else the state kept). -/
+theorem adminNext_wf (rq : apply.IRRModel) (st : auth.AuthState) (h : histWf st)
+    (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
+      m.name.length ≤ backend.maxKeySize) :
+    histWf (adminNext rq st) ∧ (adminNext rq st).revision ≤ st.revision + 1 := by
+  unfold adminNext
+  split
+  · rename_i hd
+    exact adminStateR_wf rq st _ h hU (Classical.choose_spec hd).1
+  · exact ⟨h, Nat.le_succ _⟩
+
+/-- A mode-on entry's request names a user by a bbolt key (`plainEntryOn`: a plain request is no
+`UserAdd`; an admin one's kind is `adminKindOk`'s). -/
+theorem plainEntryOn_userAdd (m : EntryModel) (hm : plainEntryOn m) (h0 : m.typ = W32 0)
+    (hd : m.data ≠ []) (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq) :
+    ∀ u, rq.authUserAdd = some u → apply.dispatchKind rq = .authUserAdd →
+      u.name.length ≤ backend.maxKeySize := by
+  intro u hu hk
+  rcases hm h0 hd rq hdec with ⟨⟨-, hp⟩, -⟩ | ⟨ha, -⟩
+  · rw [hk] at hp; simp [putgetKind] at hp
+  · unfold apply.adminKindOk at ha
+    rw [hk] at ha
+    exact (ha u hu).1
+
+/-- A mode-on entry keeps the auth state well formed, its revision bumped at most once. -/
+theorem kvEntryOn_wf (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (hm : plainEntryOn m) (h : histWf s.1) :
+    histWf (kvEntryOn c₀ ch s m).1 ∧ (kvEntryOn c₀ ch s m).1.revision ≤ s.1.revision + 1 := by
+  unfold kvEntryOn
+  split
+  · rename_i hn
+    split
+    · rename_i rq hdec
+      split
+      · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
+      · split
+        · exact ⟨h, Nat.le_succ _⟩
+        · exact ⟨h, Nat.le_succ _⟩
+    · exact ⟨h, Nat.le_succ _⟩
+  · exact ⟨h, Nat.le_succ _⟩
+
+/-- Induction over a list from its end. -/
+theorem list_snoc_ind {α : Type _} {P : List α → Prop} (h0 : P [])
+    (hs : ∀ A m, P A → P (A ++ [m])) : ∀ A, P A := by
+  intro A
+  rw [← List.reverse_reverse A]
+  induction A.reverse with
+  | nil => exact h0
+  | cons m B ih => rw [List.reverse_cons]; exact hs _ _ ih
+
+/-- **Along a mode-on log**, every recorded state of the history well formed, the last too, its
+revision at most the start's plus the log's length. -/
+theorem admStatesR_wf (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (h₀ : histWf s₀.1) (A : List EntryModel) (hp : plainLogOn A) :
+    (∀ x ∈ admStatesR c₀ ch s₀ A, histWf x) ∧ histWf (kvRaftOfOn c₀ ch s₀ A).1 ∧
+      (kvRaftOfOn c₀ ch s₀ A).1.revision ≤ s₀.1.revision + A.length := by
+  revert hp
+  refine list_snoc_ind (P := fun A => plainLogOn A →
+      (∀ x ∈ admStatesR c₀ ch s₀ A, histWf x) ∧ histWf (kvRaftOfOn c₀ ch s₀ A).1 ∧
+        (kvRaftOfOn c₀ ch s₀ A).1.revision ≤ s₀.1.revision + A.length) ?_ ?_ A
+  · intro _
+    refine ⟨?_, h₀, by simp [kvRaftOfOn_nil]⟩
+    intro x hx
+    rw [admStatesR_nil, List.mem_singleton] at hx
+    subst hx; exact h₀
+  · intro A m ih hp
+    have hpA : plainLogOn A := fun e he => hp e (List.mem_append_left _ he)
+    have hpm : plainEntryOn m := hp m (List.mem_append_right _ (List.mem_singleton_self _))
+    obtain ⟨hall, hlast, hrev⟩ := ih hpA
+    have hstep := kvEntryOn_wf c₀ ch (kvRaftOfOn c₀ ch s₀ A) m hpm hlast
+    rw [← kvRaftOfOn_snoc] at hstep
+    refine ⟨?_, hstep.1, by rw [List.length_append, List.length_singleton]; omega⟩
+    intro x hx
+    rw [admStatesR_snoc] at hx
+    split at hx
+    · rcases List.mem_append.1 hx with hx | hx
+      · exact hall x hx
+      · rw [List.mem_singleton] at hx; subst hx; exact hstep.1
+    · exact hall x hx
+
 /-- **The states of the committed log's history are well formed** (pure; the catch-up needs them:
 `authHist` keeps `permKeysOk` of every state, `Recover` the image state's `permsFit`, the fuel
 its size and a revision bound), of a mode-on log (`plainLogOn`; review R1's F2: without it false,
 the model's `userAddF` refusing only the empty name while `authSmall` bounds names by `maxKeySize`;
-`adminKindOk` bounds them). Statement only: to check against the model's admin steps (the
-grant step's `isValidPermissionRange`, `StepSmall` of the eleven steps). The revision is `1` plus
+`adminKindOk` bounds them). Proved (2026-11-03) over the five kinds' `StepSmall`s and their permission keys (`adminStateR_wf`). The revision is `1` plus
 the number of state-changing admin entries, so at most the log's length plus one (review round 1's
 F3: `< 2^61` is false of `2^61 - 1` distinct `UserAdd`s). -/
 theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 ^ 61)
@@ -127,7 +305,21 @@ theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 
       auth.permsFit (srvAuthAtLog γk srvAuthSt0 A') ∧
       auth.authSmall (srvAuthAtLog γk srvAuthSt0 A') ∧
       (srvAuthAtLog γk srvAuthSt0 A').revision ≤ A'.length + 1 := by
-  sorry
+  have h₀ : histWf (auth.bump auth.bootState) :=
+    ⟨auth.permKeysOk_bump _ auth.bootState_permKeysOk, auth.authSmall_bump _ auth.bootState_small⟩
+  obtain ⟨hall, hlast, hrev⟩ :=
+    admStatesR_wf γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0) h₀ A' hp
+  have hrev' : (srvAuthAtLog γk srvAuthSt0 A').revision ≤ A'.length + 1 := by
+    have h1 : (auth.bump auth.bootState, γk.log0).1.revision = 1 := rfl
+    rw [h1] at hrev
+    show (kvRaftOfOn γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0) A').1.revision ≤ A'.length + 1
+    omega
+  refine ⟨?_, auth.permsFit_of_small _ hlast.2 (by omega), hlast.2, hrev'⟩
+  intro x hx
+  unfold srvHist at hx
+  rcases List.mem_cons.1 hx with rfl | hx
+  · exact auth.bootState_permKeysOk
+  · exact (hall x hx).1
 
 end draft
 
@@ -267,7 +459,7 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
   iunfold auth.authOwnFu at Hfu
   icases Hfu with ⟨Hown, Hfu⟩
   iunfold authInstallPre at Hins
-  icases Hins with ⟨#Hlife, -, #Hsteps⟩
+  icases Hins with ⟨#Hlife, -, #Hsteps, -⟩
   iunfold auth.authWHeld at HTh
   icases HTh with ⟨HT, Hbk0⟩
   -- the tie's half: the history a prefix of the image's, the cap at it
@@ -294,7 +486,7 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
   iunfold authSchemaSnap at Hsn
   imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl [] HisB Hhk
       [] Hrb Hslots HbO Hlk Hsucc
-    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife'⟩
+    with ⟨%γc, #HokH, HCu, #HwR, #HwH, #HLend, HT', #Hlife'⟩
   · ipureintro; exact Hlg
   · ipureintro; exact Hbk
   · ipureintro; exact Hhas
@@ -377,7 +569,7 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
   · iunfold authStepsAny at Hsteps
     iapply Hsteps
   isplitr
-  · iunfold authInstallPre; iframe Hlife' HwH Hsteps
+  · iunfold authInstallPre; iframe Hlife' HwH Hsteps HLend
   iunfold auth.authRd; iframe Hrd1 Hrd2 Hrd3 HR
 
 end glue

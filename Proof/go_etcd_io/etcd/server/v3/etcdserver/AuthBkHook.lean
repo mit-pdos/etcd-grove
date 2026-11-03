@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageOn
 
 @[expose] public section
 
@@ -57,6 +58,24 @@ def authWAtHook (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames
 instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) :
     Persistent (authWAtHook (GF := GF) γa d γc) := by
   unfold authWAtHook; infer_instance
+
+/-- **The realization lends the auth buckets to the writer** (trusted, `authSchemaSrv`'s and
+`authSchemaSnap`'s; persistent; #7-on, the user's approval of 2026-11-03): the holder of the backend
+`γc`'s write token and of the admin side's half of the history `hs` borrows a part of `d`'s tracked
+auth buckets, which hold `hs`'s latest state (`authBucketsAt`), and gives it back. True of the code:
+every auth write is the apply thread's, inside a batch transaction it holds the write token for, so
+while it holds the token (with the history's half) no auth write is pending and the buckets are the
+latest state's encoding. What the merged snapshot's window observes the auth buckets with
+(`srvImageOn`'s `authBucketsAt`). -/
+def authBkLend (γa : auth.AuthNames) (γc : auth.AuthBkNames) (d : mvcc.KBReal) : IProp GF :=
+  iprop(□ ∀ (hs : List auth.AuthState) (st : auth.AuthState), ⌜hs.getLast? = some st⌝ -∗
+    auth.authWTok γc -∗ auth.authHistHalf γa hs ={⊤}=∗
+      ∃ r : GMap GoString backend.BktData, backend.rbPart d.γB authBkts r ∗ ⌜authBucketsAt st r⌝ ∗
+        (backend.rbPart d.γB authBkts r ={⊤}=∗ auth.authWTok γc ∗ auth.authHistHalf γa hs))
+
+instance authBkLend_persistent (γa : auth.AuthNames) (γc : auth.AuthBkNames) (d : mvcc.KBReal) :
+    Persistent (authBkLend (GF := GF) γa γc d) := by
+  unfold authBkLend; infer_instance
 
 end defs
 

@@ -93,7 +93,7 @@ def authSchemaSrv : IProp GF :=
     |={⊤}=> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) ∗
-      authWAtHook γa d γc ∗
+      authWAtHook γa d γc ∗ authBkLend γa γc d ∗
       □ ({{ auth.authWTok γc }} (App (Val #(methods
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
           go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
@@ -380,7 +380,7 @@ theorem authStoreKit_on
   · ipureintro; exact Hr
   · iunfold ablOn; iframe Habbe Hablg
   · ipureintro; exact Hhas
-  imod HD' with ⟨%R, %P, %f, %Pre, %Q, %Post, %γc, #Hrdok, Hcu, #HwokR, #HwAt, #HCreate, HT, Hpt,
+  imod HD' with ⟨%R, %P, %f, %Pre, %Q, %Post, %γc, #Hrdok, Hcu, #HwokR, #HwAt, #HLend, #HCreate, HT, Hpt,
     #Hlife, Hcs, HRs, Hback, #Hsnap⟩
   -- (the Prove step) the current backend's names, set to the new backend's: the store's half and
   -- the apply thread's
@@ -468,7 +468,7 @@ theorem authStoreKit_on
     -- (P6.2) what an install needs: the lifecycle at the backend's open share, the hook clause,
     -- the admin steps at any backend
     iunfold authInstallPre
-    iframe Hlife HwAt
+    iframe Hlife HwAt HLend
     iunfold authStepsAny
     iintro !> %bel %Pk' %f' %T'
     iunfold adminW
