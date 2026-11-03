@@ -978,6 +978,11 @@ v.Err' = nil⌝`, true at every chain (`dispatch` has it from `grantPost`).
 - *(F3)* `LeaseServer.LeaseLeases.spec`'s error arm is limited to auth-on: Go's `LeaseLeases` fails
   only through `checkLeaseLeases`, `nil` when auth is off (`v3_server.go:737-756`).
 
+**Amendment: (G), the user's, 2026-11-03**: `EtcdServer.LeaseGrant.spec`'s pre gains `srvAuthAt s E`
+(the auth store's contract, for its call to `requireAuthInfo` at `v3_server.go:447`; `isServerReq`
+lacks it), and so does `lessorGrantOkL_of_server`'s premise (its user has both views:
+`srvAuthAt_of_views`).
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.
