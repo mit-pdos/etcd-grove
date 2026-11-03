@@ -120,6 +120,11 @@ noncomputable def Logger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Logger.ty
 
+noncomputable def nopLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/bbolt.nopLogger" [])
+
+attribute [irreducible] nopLogger.ty
+
 noncomputable def DefaultLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt.DefaultLogger" [])
 
@@ -988,7 +993,7 @@ noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -1211,7 +1216,7 @@ noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalConte
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -1403,7 +1408,7 @@ noncomputable def Bucket.DeleteBucket.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -1645,7 +1650,7 @@ noncomputable def Bucket.MoveBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -1971,7 +1976,7 @@ noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -2095,7 +2100,7 @@ noncomputable def Bucket.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -5808,7 +5813,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef DB.ty go!"PreLoadFreelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -6609,7 +6614,7 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"getting map size failed: %w"))
+  (Let "$a0" (Val #(go!"getting map size failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Errorf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
@@ -6636,7 +6641,7 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"getting file size failed: %w"))
+  (Let "$a0" (Val #(go!"getting file size failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Errorf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
@@ -7034,7 +7039,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %w"))
+  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOOS))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOARCH))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -7064,7 +7069,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"writeAt failed: %w"))
+  (Let "$a0" (Val #(go!"writeAt failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Errorf"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))
@@ -7087,7 +7092,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %w"))
+  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOOS))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOARCH))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -7116,7 +7121,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"writeAt failed: %w"))
+  (Let "$a0" (Val #(go!"writeAt failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Errorf"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))
@@ -7547,7 +7552,7 @@ noncomputable def DB.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -8366,7 +8371,7 @@ noncomputable def DB.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -8894,7 +8899,7 @@ noncomputable def DB.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"getting file size failed: %w"))
+  (Let "$a0" (Val #(go!"getting file size failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Errorf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
@@ -9210,12 +9215,12 @@ noncomputable def Stats.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad Stats.ty))) (Var "$res0"))))))
 
-/-- go: logger.go:31:6 -/
+/-- go: logger.go:30:6 -/
 noncomputable def getDiscardLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -9223,7 +9228,146 @@ noncomputable def getDiscardLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "$res0")))))
 
-/-- go: logger.go:49:25 -/
+/-- go: logger.go:43:19 -/
+noncomputable def nopLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
+
+/-- go: logger.go:44:19 -/
+noncomputable def nopLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #())))))
+
+/-- go: logger.go:45:19 -/
+noncomputable def nopLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
+
+/-- go: logger.go:46:19 -/
+noncomputable def nopLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #())))))
+
+/-- go: logger.go:47:19 -/
+noncomputable def nopLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
+
+/-- go: logger.go:48:19 -/
+noncomputable def nopLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #())))))
+
+/-- go: logger.go:49:19 -/
+noncomputable def nopLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
+
+/-- go: logger.go:50:19 -/
+noncomputable def nopLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Val #())))))
+  (Val #())))))
+
+/-- go: logger.go:51:19 -/
+noncomputable def nopLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Exit []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+
+/-- go: logger.go:52:19 -/
+noncomputable def nopLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Exit []))) (Val #())) (Var "$a0")))))))
+  (Val #())))))
+
+/-- go: logger.go:53:19 -/
+noncomputable def nopLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprint []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (Val #()))))
+
+/-- go: logger.go:54:19 -/
+noncomputable def nopLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "format"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "format"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "v"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))
+  (Val #())))))
+
+/-- go: logger.go:68:25 -/
 noncomputable def DefaultLogger.EnableTimestamps.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -9234,7 +9378,7 @@ noncomputable def DefaultLogger.EnableTimestamps.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DefaultLogger.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (Var "l"))) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: logger.go:53:25 -/
+/-- go: logger.go:72:25 -/
 noncomputable def DefaultLogger.EnableDebug.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -9245,7 +9389,7 @@ noncomputable def DefaultLogger.EnableDebug.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef DefaultLogger.ty go!"debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (Var "l"))) (Var "$r0")))))))
   (Val #()))))
 
-/-- go: logger.go:57:25 -/
+/-- go: logger.go:76:25 -/
 noncomputable def DefaultLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9265,7 +9409,7 @@ noncomputable def DefaultLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))))
   (Val #()))))
 
-/-- go: logger.go:63:25 -/
+/-- go: logger.go:82:25 -/
 noncomputable def DefaultLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9288,7 +9432,7 @@ noncomputable def DefaultLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val 
   (Val #())))))))
   (Val #())))))
 
-/-- go: logger.go:69:25 -/
+/-- go: logger.go:88:25 -/
 noncomputable def DefaultLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9305,7 +9449,7 @@ noncomputable def DefaultLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$r0"))))))
   (Val #()))))
 
-/-- go: logger.go:73:25 -/
+/-- go: logger.go:92:25 -/
 noncomputable def DefaultLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9325,7 +9469,7 @@ noncomputable def DefaultLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :
   (Var "$r0")))))))
   (Val #())))))
 
-/-- go: logger.go:77:25 -/
+/-- go: logger.go:96:25 -/
 noncomputable def DefaultLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9342,7 +9486,7 @@ noncomputable def DefaultLogger.Error.impl [GooseExts] [GoGlobalContext] : val :
   (Var "$r0"))))))
   (Val #()))))
 
-/-- go: logger.go:81:25 -/
+/-- go: logger.go:100:25 -/
 noncomputable def DefaultLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9362,7 +9506,7 @@ noncomputable def DefaultLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val 
   (Var "$r0")))))))
   (Val #())))))
 
-/-- go: logger.go:85:25 -/
+/-- go: logger.go:104:25 -/
 noncomputable def DefaultLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9379,7 +9523,7 @@ noncomputable def DefaultLogger.Warning.impl [GooseExts] [GoGlobalContext] : val
   (Var "$r0"))))))
   (Val #()))))
 
-/-- go: logger.go:89:25 -/
+/-- go: logger.go:108:25 -/
 noncomputable def DefaultLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9399,7 +9543,7 @@ noncomputable def DefaultLogger.Warningf.impl [GooseExts] [GoGlobalContext] : va
   (Var "$r0")))))))
   (Val #())))))
 
-/-- go: logger.go:93:25 -/
+/-- go: logger.go:112:25 -/
 noncomputable def DefaultLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9420,7 +9564,7 @@ noncomputable def DefaultLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :
   (Var "$r0")))))))
   (Val #()))))
 
-/-- go: logger.go:98:25 -/
+/-- go: logger.go:117:25 -/
 noncomputable def DefaultLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9444,7 +9588,7 @@ noncomputable def DefaultLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val 
   (Var "$r0"))))))))
   (Val #())))))
 
-/-- go: logger.go:103:25 -/
+/-- go: logger.go:122:25 -/
 noncomputable def DefaultLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "v"
@@ -9456,7 +9600,7 @@ noncomputable def DefaultLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.log.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.log.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef DefaultLogger.ty go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (Var "l"))))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: logger.go:107:25 -/
+/-- go: logger.go:126:25 -/
 noncomputable def DefaultLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "format"
@@ -9471,7 +9615,7 @@ noncomputable def DefaultLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.log.Logger.ty) go!"Panicf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.log.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef DefaultLogger.ty go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: logger.go:111:6 -/
+/-- go: logger.go:130:6 -/
 noncomputable def header.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lvl"
   (Lam "msg"
@@ -11767,7 +11911,7 @@ noncomputable def Tx.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(go!"managed tx commit not allowed"))
   (Let "$a2" (Val #slice.nil)
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (Convert (go.GoType.PointerType DefaultLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DefaultLogger.ty)))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Logger.ty))) (Pair (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "lg")) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$f" (Lam BAnon
@@ -12102,36 +12246,6 @@ noncomputable def Tx.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "page" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "tx")))))
-  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Var "m"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Writer.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "nn" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Writer.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "tx")))))) (Val #(W64 2)))))
   (Let "dataOffset" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -12193,11 +12307,36 @@ noncomputable def Tx.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "dataSize") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "dataOffset") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id")) (Val #(W64 1)))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "tx")))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Writer.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "werr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "nn" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
-  (Let "$r1" (Let "$a0" (Val #(go!"meta 1 copy: %s"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (Let "$r1" (Let "$a0" (Val #(go!"meta %d copy: %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -12208,53 +12347,33 @@ noncomputable def Tx.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "n")) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "nn")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "werr") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "nn") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "nn") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Sum64"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"SetChecksum"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoOp GoRemainder _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Txid"))) (Var "m")) (Val #())) (Val #(W64 2)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id"))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"DecTxid"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Val #()))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"SetId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
-  (Let "$r1" (Let "$a0" (Val #(go!"meta 0 copy: %s"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"DecTxid"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "n")) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "nn")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "nn") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Sum64"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"SetChecksum"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #()))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 0))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"SetId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty))) (Pair (Var "m") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "id") (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "id") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val _root_.Perennial.go_etcd_io.bbolt.internal.common.MetaPageFlag))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "page"))) (Var "$a0")))))))
@@ -12361,7 +12480,7 @@ noncomputable def Tx.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "f") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: tx.go:479:6 -/
+/-- go: tx.go:476:6 -/
 noncomputable def sameFile.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f1"
   (Lam "f2"
@@ -12449,7 +12568,7 @@ noncomputable def sameFile.impl [GooseExts] [GoGlobalContext] : val :=
     A reader transaction is maintained during the copy so it is safe to continue
     using the database while a copy is in progress.
 
-    go: tx.go:495:15 -/
+    go: tx.go:492:15 -/
 noncomputable def Tx.CopyFile.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "path"
@@ -12521,7 +12640,7 @@ noncomputable def Tx.CopyFile.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- allocate returns a contiguous block of memory starting at a given page.
 
-    go: tx.go:510:15 -/
+    go: tx.go:507:15 -/
 noncomputable def Tx.allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "count"
@@ -12598,7 +12717,7 @@ noncomputable def Tx.allocate.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- write writes any dirty pages to disk.
 
-    go: tx.go:529:15 -/
+    go: tx.go:526:15 -/
 noncomputable def Tx.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam BAnon
@@ -12679,7 +12798,7 @@ noncomputable def Tx.write.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %w"))
+  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOOS))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOARCH))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -12755,7 +12874,7 @@ noncomputable def Tx.write.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"writeAt failed, offset: %d: %w"))
+  (Let "$a0" (Val #(go!"writeAt failed, offset: %d: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "offset")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
@@ -12816,7 +12935,7 @@ noncomputable def Tx.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeMeta writes the meta to the disk.
 
-    go: tx.go:604:15 -/
+    go: tx.go:601:15 -/
 noncomputable def Tx.writeMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam BAnon
@@ -12863,7 +12982,7 @@ noncomputable def Tx.writeMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %w"))
+  (Let "$a0" (Val #(go!"[GOOS: %s, GOARCH: %s] fdatasync failed: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOOS))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val _root_.Perennial.runtime.GOARCH))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -12927,7 +13046,7 @@ noncomputable def Tx.writeMeta.impl [GooseExts] [GoGlobalContext] : val :=
 /-- page returns a reference to the page with a given id.
     If page has been written to then a temporary buffered page is returned.
 
-    go: tx.go:638:15 -/
+    go: tx.go:635:15 -/
 noncomputable def Tx.page.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "id"
@@ -12985,7 +13104,7 @@ noncomputable def Tx.page.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- forEachPage iterates over every page within a given page and executes a function.
 
-    go: tx.go:654:15 -/
+    go: tx.go:651:15 -/
 noncomputable def Tx.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "pgidnum"
@@ -13010,7 +13129,7 @@ noncomputable def Tx.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Var "stack") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: tx.go:660:15 -/
+/-- go: tx.go:657:15 -/
 noncomputable def Tx.forEachPageInternal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "pgidstack"
@@ -13064,7 +13183,7 @@ noncomputable def Tx.forEachPageInternal.impl [GooseExts] [GoGlobalContext] : va
 /-- Page returns page information for a given page number.
     This is only safe for concurrent use when used by a writable transaction.
 
-    go: tx.go:677:15 -/
+    go: tx.go:674:15 -/
 noncomputable def Tx.Page.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "id"
@@ -13147,7 +13266,7 @@ noncomputable def Tx.Page.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.PageInfo.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: tx.go:751:19 -/
+/-- go: tx.go:748:19 -/
 noncomputable def TxStats.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -13207,7 +13326,7 @@ noncomputable def TxStats.add.impl [GooseExts] [GoGlobalContext] : val :=
     This is useful when obtaining stats at two different points and time and
     you need the performance counters that occurred within that time span.
 
-    go: tx.go:769:19 -/
+    go: tx.go:766:19 -/
 noncomputable def TxStats.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -13274,7 +13393,7 @@ noncomputable def TxStats.Sub.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- GetPageCount returns PageCount atomically.
 
-    go: tx.go:787:19 -/
+    go: tx.go:784:19 -/
 noncomputable def TxStats.GetPageCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13292,7 +13411,7 @@ noncomputable def TxStats.GetPageCount.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncPageCount increases PageCount atomically and returns the new value.
 
-    go: tx.go:792:19 -/
+    go: tx.go:789:19 -/
 noncomputable def TxStats.IncPageCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13312,7 +13431,7 @@ noncomputable def TxStats.IncPageCount.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetPageAlloc returns PageAlloc atomically.
 
-    go: tx.go:797:19 -/
+    go: tx.go:794:19 -/
 noncomputable def TxStats.GetPageAlloc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13330,7 +13449,7 @@ noncomputable def TxStats.GetPageAlloc.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncPageAlloc increases PageAlloc atomically and returns the new value.
 
-    go: tx.go:802:19 -/
+    go: tx.go:799:19 -/
 noncomputable def TxStats.IncPageAlloc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13350,7 +13469,7 @@ noncomputable def TxStats.IncPageAlloc.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetCursorCount returns CursorCount atomically.
 
-    go: tx.go:807:19 -/
+    go: tx.go:804:19 -/
 noncomputable def TxStats.GetCursorCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13368,7 +13487,7 @@ noncomputable def TxStats.GetCursorCount.impl [GooseExts] [GoGlobalContext] : va
 
 /-- IncCursorCount increases CursorCount atomically and return the new value.
 
-    go: tx.go:812:19 -/
+    go: tx.go:809:19 -/
 noncomputable def TxStats.IncCursorCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13388,7 +13507,7 @@ noncomputable def TxStats.IncCursorCount.impl [GooseExts] [GoGlobalContext] : va
 
 /-- GetNodeCount returns NodeCount atomically.
 
-    go: tx.go:817:19 -/
+    go: tx.go:814:19 -/
 noncomputable def TxStats.GetNodeCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13406,7 +13525,7 @@ noncomputable def TxStats.GetNodeCount.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncNodeCount increases NodeCount atomically and returns the new value.
 
-    go: tx.go:822:19 -/
+    go: tx.go:819:19 -/
 noncomputable def TxStats.IncNodeCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13426,7 +13545,7 @@ noncomputable def TxStats.IncNodeCount.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetNodeDeref returns NodeDeref atomically.
 
-    go: tx.go:827:19 -/
+    go: tx.go:824:19 -/
 noncomputable def TxStats.GetNodeDeref.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13444,7 +13563,7 @@ noncomputable def TxStats.GetNodeDeref.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncNodeDeref increases NodeDeref atomically and returns the new value.
 
-    go: tx.go:832:19 -/
+    go: tx.go:829:19 -/
 noncomputable def TxStats.IncNodeDeref.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13464,7 +13583,7 @@ noncomputable def TxStats.IncNodeDeref.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetRebalance returns Rebalance atomically.
 
-    go: tx.go:837:19 -/
+    go: tx.go:834:19 -/
 noncomputable def TxStats.GetRebalance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13482,7 +13601,7 @@ noncomputable def TxStats.GetRebalance.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncRebalance increases Rebalance atomically and returns the new value.
 
-    go: tx.go:842:19 -/
+    go: tx.go:839:19 -/
 noncomputable def TxStats.IncRebalance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13502,7 +13621,7 @@ noncomputable def TxStats.IncRebalance.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetRebalanceTime returns RebalanceTime atomically.
 
-    go: tx.go:847:19 -/
+    go: tx.go:844:19 -/
 noncomputable def TxStats.GetRebalanceTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13520,7 +13639,7 @@ noncomputable def TxStats.GetRebalanceTime.impl [GooseExts] [GoGlobalContext] : 
 
 /-- IncRebalanceTime increases RebalanceTime atomically and returns the new value.
 
-    go: tx.go:852:19 -/
+    go: tx.go:849:19 -/
 noncomputable def TxStats.IncRebalanceTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13540,7 +13659,7 @@ noncomputable def TxStats.IncRebalanceTime.impl [GooseExts] [GoGlobalContext] : 
 
 /-- GetSplit returns Split atomically.
 
-    go: tx.go:857:19 -/
+    go: tx.go:854:19 -/
 noncomputable def TxStats.GetSplit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13558,7 +13677,7 @@ noncomputable def TxStats.GetSplit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- IncSplit increases Split atomically and returns the new value.
 
-    go: tx.go:862:19 -/
+    go: tx.go:859:19 -/
 noncomputable def TxStats.IncSplit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13578,7 +13697,7 @@ noncomputable def TxStats.IncSplit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- GetSpill returns Spill atomically.
 
-    go: tx.go:867:19 -/
+    go: tx.go:864:19 -/
 noncomputable def TxStats.GetSpill.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13596,7 +13715,7 @@ noncomputable def TxStats.GetSpill.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- IncSpill increases Spill atomically and returns the new value.
 
-    go: tx.go:872:19 -/
+    go: tx.go:869:19 -/
 noncomputable def TxStats.IncSpill.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13616,7 +13735,7 @@ noncomputable def TxStats.IncSpill.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- GetSpillTime returns SpillTime atomically.
 
-    go: tx.go:877:19 -/
+    go: tx.go:874:19 -/
 noncomputable def TxStats.GetSpillTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13634,7 +13753,7 @@ noncomputable def TxStats.GetSpillTime.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncSpillTime increases SpillTime atomically and returns the new value.
 
-    go: tx.go:882:19 -/
+    go: tx.go:879:19 -/
 noncomputable def TxStats.IncSpillTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13654,7 +13773,7 @@ noncomputable def TxStats.IncSpillTime.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- GetWrite returns Write atomically.
 
-    go: tx.go:887:19 -/
+    go: tx.go:884:19 -/
 noncomputable def TxStats.GetWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13672,7 +13791,7 @@ noncomputable def TxStats.GetWrite.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- IncWrite increases Write atomically and returns the new value.
 
-    go: tx.go:892:19 -/
+    go: tx.go:889:19 -/
 noncomputable def TxStats.IncWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13692,7 +13811,7 @@ noncomputable def TxStats.IncWrite.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- GetWriteTime returns WriteTime atomically.
 
-    go: tx.go:897:19 -/
+    go: tx.go:894:19 -/
 noncomputable def TxStats.GetWriteTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -13710,7 +13829,7 @@ noncomputable def TxStats.GetWriteTime.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IncWriteTime increases WriteTime atomically and returns the new value.
 
-    go: tx.go:902:19 -/
+    go: tx.go:899:19 -/
 noncomputable def TxStats.IncWriteTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "delta"
@@ -13728,7 +13847,7 @@ noncomputable def TxStats.IncWriteTime.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
-/-- go: tx.go:906:6 -/
+/-- go: tx.go:903:6 -/
 noncomputable def atomicAddDuration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ptr"
   (Lam "du"
@@ -13746,7 +13865,7 @@ noncomputable def atomicAddDuration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
-/-- go: tx.go:910:6 -/
+/-- go: tx.go:907:6 -/
 noncomputable def atomicLoadDuration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ptr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -14823,13 +14942,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrIncompatibleValue))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc DefaultLogger.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.Discard))) (Val #())))
-  (Let "$a1" (Val #(go!""))
-  (Let "$a2" (Val #(W64 0))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral DefaultLogger.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.log.Logger.ty) (Var "$v0")))]))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType nopLogger.ty) Logger.ty))) (App (Val (GoInstruction (GoAlloc nopLogger.ty))) (App (Val (GoInstruction (CompositeLiteral nopLogger.ty))) (LiteralValue []))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType DefaultLogger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr discardLogger))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrIncompatibleValue))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -14943,7 +15058,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrIncompatibleValue go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc discardLogger (go.GoType.PointerType DefaultLogger.ty))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc discardLogger Logger.ty)) (Val #()))))))))
 
 structure Bucket [GooseExts] where
   mk ::
@@ -16234,6 +16349,60 @@ attribute [instance] Info.TypeAssumptions.type_repr
   Info.TypeAssumptions.method_set
   Info.TypeAssumptions.ptr_method_set
 
+structure nopLogger [GooseExts] where
+  mk ::
+
+noncomputable instance nopLogger.zero_val [GooseExts] : ZeroVal nopLogger :=
+  ⟨nopLogger.mk⟩
+
+@[reducible] noncomputable def nopLogger.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] noncomputable def nopLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  nopLogger.fieldsUnsealed
+
+noncomputable instance equals_unfold_nopLogger [GooseExts] [GoGlobalContext] :
+    EqualsUnfold nopLogger.fields nopLogger.fieldsUnsealed :=
+  ⟨by unfold nopLogger.fields; rfl⟩
+
+@[reducible] noncomputable def nopLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType nopLogger.fields)
+
+class nopLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying nopLogger.underlying nopLogger
+  underlying : go.UnderlyingDirectedEq nopLogger.ty nopLogger.underlying
+  method_set : go.MethodSetIs nopLogger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopLogger.ty) [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
+  ptr_Debug_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Debug" nopLogger.Debug.impl
+  ptr_Debugf_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Debugf" nopLogger.Debugf.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Error" nopLogger.Error.impl
+  ptr_Errorf_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Errorf" nopLogger.Errorf.impl
+  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Fatal" nopLogger.Fatal.impl
+  ptr_Fatalf_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Fatalf" nopLogger.Fatalf.impl
+  ptr_Info_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Info" nopLogger.Info.impl
+  ptr_Infof_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Infof" nopLogger.Infof.impl
+  ptr_Panic_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Panic" nopLogger.Panic.impl
+  ptr_Panicf_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Panicf" nopLogger.Panicf.impl
+  ptr_Warning_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Warning" nopLogger.Warning.impl
+  ptr_Warningf_unfold : MethodUnfold (go.GoType.PointerType nopLogger.ty) go!"Warningf" nopLogger.Warningf.impl
+
+attribute [instance] nopLogger.TypeAssumptions.type_repr
+  nopLogger.TypeAssumptions.underlying
+  nopLogger.TypeAssumptions.method_set
+  nopLogger.TypeAssumptions.ptr_method_set
+  nopLogger.TypeAssumptions.ptr_Debug_unfold
+  nopLogger.TypeAssumptions.ptr_Debugf_unfold
+  nopLogger.TypeAssumptions.ptr_Error_unfold
+  nopLogger.TypeAssumptions.ptr_Errorf_unfold
+  nopLogger.TypeAssumptions.ptr_Fatal_unfold
+  nopLogger.TypeAssumptions.ptr_Fatalf_unfold
+  nopLogger.TypeAssumptions.ptr_Info_unfold
+  nopLogger.TypeAssumptions.ptr_Infof_unfold
+  nopLogger.TypeAssumptions.ptr_Panic_unfold
+  nopLogger.TypeAssumptions.ptr_Panicf_unfold
+  nopLogger.TypeAssumptions.ptr_Warning_unfold
+  nopLogger.TypeAssumptions.ptr_Warningf_unfold
+
 structure DefaultLogger [GooseExts] where
   mk ::
   Logger' : Loc
@@ -16824,6 +16993,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Stats_instance : Stats.TypeAssumptions
   Info_instance : Info.TypeAssumptions
   Logger_instance : Logger.TypeAssumptions
+  nopLogger_instance : nopLogger.TypeAssumptions
   DefaultLogger_instance : DefaultLogger.TypeAssumptions
   node_instance : node.TypeAssumptions
   nodes_instance : nodes.TypeAssumptions
@@ -16896,6 +17066,7 @@ attribute [instance] Assumptions.Bucket_instance
   Assumptions.Stats_instance
   Assumptions.Info_instance
   Assumptions.Logger_instance
+  Assumptions.nopLogger_instance
   Assumptions.DefaultLogger_instance
   Assumptions.node_instance
   Assumptions.nodes_instance

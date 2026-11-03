@@ -302,14 +302,12 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
     doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
-0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).
+`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
 And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
 `Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.log.NewModel'],
-    vars=['[_root_.Perennial.log.NewModel]'],
+    imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     discardLogger='Loc'),
+                     discardLogger='GoInterface'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
@@ -317,10 +315,6 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}⟩' for x in _BBOLT_VARS) + '⟩'],
-            # `io.Discard`'s cell, from `io`'s fact (as raft's `Init.lean`)
-            'discardLogger': ['try wp_auto',
-                'icases (show isPkgInit (PROP := IProp GF) pkg_id.io ⊢ ∃ w : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.Discard) w DFrac.discard by with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left) $$ {Hd:io} with ⟨%discard, #Hdiscard⟩',
-                'try wp_auto', 'wp_apply _root_.Perennial.log.wp_New as %lg _'],
             '$end': ['try wp_auto']},
 )
 

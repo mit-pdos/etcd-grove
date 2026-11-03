@@ -152,14 +152,17 @@ PROJECTS = [
         # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
         # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
         # label; then branch `goose-lean-v2` (b30879b2): `getPageSize` returns a meta read error
-        # instead of probing further (D18), and `splitTwo`'s float threshold factored out as
-        # `splitThreshold`, trusted (D17). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # instead of probing further (D18), `splitTwo`'s float threshold factored out as
+        # `splitThreshold`, trusted (D17) (b30879b2); then `Tx.WriteTo` writes the current meta at
+        # page txid%2 (e1fae5c, a bug: two torn meta writes after restoring an odd-txid copy
+        # leave no valid meta), `%v` for errors in logger calls (27b1412, upstream main's change)
+        # and a no-op default logger (b3e06648). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="b30879b2f90a9b3bdd0dbb0f397be4f1477eb90f",
+        rev="b3e06648216b765b08dbe9a574c6509db0d611bf",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

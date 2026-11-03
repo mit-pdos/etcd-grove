@@ -5,8 +5,7 @@ Package initialization of `go_etcd_io.bbolt`
 Its fact is `True`. Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&DefaultLogger{log.New(io.Discard, "",
-0)}`: `log.New` is names-only in Perennial, the class `log.NewModel`, `Proof/log/NewModel.lean`).
+`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
 And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
 `Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.
 -/
@@ -33,7 +32,6 @@ public import Proof.os.Init
 public import Proof.runtime.Init
 public import Proof.syscall.Init
 public import Perennial.Proof.errors.NewVar
-public import Proof.log.NewModel
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -76,7 +74,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.bbolt.Assumptions]
-variable [_root_.Perennial.log.NewModel]
 variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.bbolt
@@ -93,7 +90,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply wp_GlobalAlloc (V := Loc) discardLogger _ as HdiscardLogger
+  wp_apply wp_GlobalAlloc (V := GoInterface) discardLogger _ as HdiscardLogger
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIncompatibleValue _ as HErrIncompatibleValue
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrValueTooLarge _ as HErrValueTooLarge
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrKeyTooLarge _ as HErrKeyTooLarge
@@ -169,11 +166,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrValueTooLarge))
   -- translated initializer of ErrIncompatibleValue))
   -- translated initializer of discardLogger))
-  try wp_auto
-  icases (show isPkgInit (PROP := IProp GF) pkg_id.io ⊢ ∃ w : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.Discard) w DFrac.discard by with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left) $$ Hd11 with ⟨%discard, #Hdiscard⟩
-  try wp_auto
-  wp_apply _root_.Perennial.log.wp_New as %lg _
-  -- translated initializer of _root_.Perennial.io.Discard))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrIncompatibleValue))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrValueTooLarge))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrKeyTooLarge))

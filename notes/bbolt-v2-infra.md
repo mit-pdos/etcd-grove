@@ -28,6 +28,37 @@ belongs with `Open`'s proof, when those axioms become lemmas.
 The etcd project no longer translates bbolt. Its lean root `go.etcd.io/bbolt=` stays, so that the
 backend names the same modules.
 
+**Since 2026-11-03 (second step) the fork is at branch `goose-lean-v2` (`b30879b2`)**, which adds
+two commits on `goose-lean`:
+- `7c837ad` (D18): `getPageSize` returns a meta page's read error. Before, it went on probing
+  page 1's offsets, which could take the page size from user data that happens to hold a valid
+  meta. Adapted from the spec work's `getpagesize.diff`; it applied as is.
+- `b30879b` (D17): `splitTwo`'s float threshold is factored out, unchanged, as
+  `splitThreshold(pageSize uintptr, fillPercent float64) int`. It is listed `trusted`, and its
+  model in `TrustedCode/go_etcd_io/bbolt.lean` returns an arbitrary `int`, continuing only if
+  `splitThresholdOk` holds (a NaN fill, or `pageSize ≥ 2^53`, or else `0 ≤ t ≤ pageSize`) and
+  diverging otherwise. The model's docstring argues faithfulness.
+- `rebalance`'s own float threshold is left translated, so it is arbitrary. This is harmless:
+  its early return also needs `len(n.inodes) > n.minKeys()`, so empty nodes and one-child
+  branches are always rebalanced, and a different threshold only changes how much is merged,
+  which `spill` re-splits.
+
+Three more commits followed (head `b3e06648`):
+- `e1fae5c`: `Tx.WriteTo` writes the current meta at page `txid%2`. This is a real bug: after
+  restoring a copy whose txid is odd, two torn meta writes leave no valid meta, and the rollback
+  panics. The fork adds the regression test `TestWriteTo_OddTxid_TornMetaWrites`, which fails
+  before the fix.
+- `27b1412`: logger calls format errors with `%v`, not `%w` (upstream main's change).
+- `b3e06648`: the default logger is a no-op `nopLogger`. `discardLogger`'s initializer is now a
+  literal, so bbolt's package initialization no longer needs `log.NewModel`.
+
+bbolt's tests (`go test -short`) pass on the fork. `examples/go.mod` replaces `go.etcd.io/bbolt`
+by the fork at the pin, and `GO_MOD_PINS` checks it. `internal/common`'s package fact is now
+`bboltCommonInit`: `DefaultPageSize ↦□ 4096`. The package's other names are constants that the
+translation unfolds; `IgnoreNoSync` folds to `false`. The root package still reads
+`runtime.GOOS`, an opaque value, in 13 places: those branches need a `GOOS = "linux"` premise
+when proved.
+
 **Goose reports nothing it cannot translate**, with Perennial `b3e996d84`. Nothing of bbolt is
 `trusted`, and there is no `TrustedCode/go_etcd_io/bbolt`. The only axioms are goose's, for the two
 names left out (`Options`' generated instances are `sorry -- axiomatized type`, as before, and no
@@ -71,8 +102,8 @@ bbolt's initializers now run translated code, so its `Init.lean` files are gener
   - `DefaultOptions`;
   - the deprecated aliases, which load `errors`' variables, so `errors`' fact now holds them all
     (`bboltErrorsVars`);
-  - `discardLogger`, through `log.New` (the class `log.NewModel`, moved to
-    `Proof/log/NewModel.lean`).
+  - `discardLogger` (since the fork's `b3e06648`, a `nopLogger` literal; before, `log.New`,
+    through the class `log.NewModel`, now in `Proof/log/NewModel.lean` for raft).
 - `os`: its `wp_initialize'` is now generated (`Proof/os/Init.lean`) with the same three kinds of
   trust-boundary axioms raft's `Init.lean` had (`opaqueInitsOk`, `Stderr_init`, `initFuncsOk`),
   over bboltfs's `os`. `syscall`, `io/fs` and `golang.org/x/sys/unix` get generated `Init.lean`s

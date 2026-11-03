@@ -1935,6 +1935,29 @@ noncomputable instance Info_access_store_PageSize (l : Loc) (v : go_etcd_io.bbol
 end def_
 end Info
 
+namespace nopLogger
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.bbolt.Assumptions]
+
+noncomputable instance nopLogger_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.nopLogger where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance nopLogger_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.nopLogger go_etcd_io.bbolt.nopLogger.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end nopLogger
+
 namespace DefaultLogger
 section def_
 

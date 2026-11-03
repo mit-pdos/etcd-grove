@@ -83,4 +83,4 @@ require (
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
 )
 
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261103161531-b30879b2f90a
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261103172530-b3e06648216b
