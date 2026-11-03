@@ -81,7 +81,8 @@ that a server that grants leases also expires them, and convert the lease subsys
   mechanical commits before the expiry change, so the expiry change lands inside the sealed bodies
   (recommended); or the expiry change inline and the conversion after.
 **Decided (the user, 2026-11-03):** Q1 (a), the server's expiry and the example `etcd/leaseexpiry`;
-Q2, convert first.
+Q2, convert first. **Snapshots in scope** (the user, 2026-11-03, after the design's first draft):
+restoring a snapshot in a lease-granting cluster is proved here (Part S), closing `srvGrantOpen_open`.
 
 - **Q3. Auth.** Off, as lease-grant (`on = true → lg = false`): `WithRoot`'s context then carries no
   token that matters.
@@ -188,5 +189,52 @@ contracts and the request path, not `NewServer.specG`'s text.
 - **P2. Who may propose a revocation.** X7's `¬ leasesNoExpiry` makes a client's `LeaseRevoke`
   provable only under that premise too; client revocations are outside Scope, so
   `LeaseRevoke.spec` takes it as a premise (the server's expiry path has it from X3).
-- **P3. `srvGrantOpen`.** Unchanged in statement; recheck in Draft whether X2's revocable lessor
-  makes its snapshot case provable (the image's leases, `specSnap`'s `hlease`, still stand).
+- **P3. `srvGrantOpen`.** Now Part S.
+
+### Part S: snapshots in a lease-granting cluster (in scope, the user's, 2026-11-03)
+
+Today a granting cluster's snapshot job is the open premise `srvGrantOpen` (`runSnapLgOkBody`,
+`InvRun.lean:446`; `sorry srvGrantOpen_open`, reached by `etcd_leasegrant_safe` only). It is open for
+three reasons: the lessor is monotone there and `Recover` takes a revocable one; `Recover`'s trusted
+spec takes an empty lease bucket (`⌜(r.lookup "lease").getD ∅ = ∅⌝`) and gives an empty lessor;
+and the snapshot path's image fact `hlease` (`SnapRecvOn.lean:296`, `image_leaseAlarmNA`) says the
+image's lease bucket is empty, false once a grant is applied. A snapshot is received only in a
+multi-member cluster (a lagging follower, `raft.go`'s `maybeSendSnapshot`), but `run`'s proof is
+generic over clusters, so the case is not vacuous.
+
+What Go does: `lessor.Recover(b, rd)` (`lessor.go:600`) under `le.mu` stores `b` and `rd`, fresh
+`leaseMap`/`itemMap`, and `initAndRecover` (`:770`) reads every record of the new backend's `lease`
+bucket (`schema.MustUnsafeGetAllLeases`) into the map: TTL raised to the minimum, expiry forever
+(refreshed at `Promote`), empty item sets (mvcc's restore re-attaches the leased keys: none here,
+no leased put), then `ForceCommit`.
+
+- **S1. `lease.lessor.Recover`: translate and prove, or restate.** (a) *Translate and prove*
+  (recommended): `Recover` and `initAndRecover` get bodies (the lease package's configuration),
+  proved over the trust-boundary specs of `schema.UnsafeCreateLeaseBucket`/`MustUnsafeGetAllLeases`
+  (the latter read-only over the bucket's records) and the backend's `ForceCommit`; the axiom
+  leaves the trust base, and the audit's open frame finding (`le.rd` not returned, `notes/audit.md`)
+  is fixed by the proof's statement (`rdOwn γl rd0` in, `rdOwn γl rd` out). (b) *Restate the
+  axiom*: a non-empty bucket, the post's `leaseOwn γl L' ∅` with `L'` the bucket's ids, and the
+  frame fix; the `axiom` skill before Freeze. The new spec, either way: the history gets the
+  snapshot `(L' ↦ leases, ∅)`; in the monotone mode only if every live lease is in `L'` (premise
+  `⌜L ⊆ L'⌝`), else `lessorRevocable`.
+- **S2. The mode question, settled by S1.** With S1's monotone case, the monotone lessor (X2:
+  `mono := lg && leasesNoExpiry`) can be restored too: under `leasesNoExpiry` no revocation is ever
+  applied (X7), so a snapshot at index `j` above the member's applied index has every lease the
+  member has. That fact comes from the image (S3).
+- **S3. The image's lease bucket.** `hlease` (empty) → the image's `lease` bucket is the lease
+  records of the log up to the snapshot's index (the grants' records minus the revoked ones:
+  `bkRestAtL`'s lease ids, lease-grant's `appliedTable`/`grantRest`, `revokeLog`'s `restRevoke`), in
+  `specSnap`/`specSnapM` and the walk (`SnapApplyWalk.lean`, `SnapRecvOn.lean`'s
+  `image_leaseAlarmNA` split: alarm still empty). The KV model's table stays untied to the lessor
+  (narrow): only the rest model's lease bucket and the lessor's history are related.
+- **S4. `srvGrantOpen` discharged.** `run_job_snap` at `lg = true` proved from S1-S3;
+  `runSnapLgOkBody` proved, `srvGrantOpen` and its sorry gone, `lease.bootCfg` (Part C) loses its
+  `lg = true → srvGrantOpen` conjunct. `etcd_leasegrant_safe` loses the `sorry`.
+- **S5. Test.** A Go test of a three-member granting cluster in which a follower is cut off, the
+  others grant leases (and let one expire) and compact past the follower's index, the follower is
+  reconnected and restored from a snapshot, then lists (`Leases` at that member) the live leases
+  and not the expired one, and later expires the restored leases once it leads (expiry forever
+  until `Promote`). Built on `leasegrant_cluster_test.go`'s cluster.
+
+Order: C, then X, then S (S needs X2's mode and X7's revocations in the image), then E.
