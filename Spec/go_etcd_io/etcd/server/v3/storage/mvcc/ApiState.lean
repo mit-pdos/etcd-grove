@@ -144,7 +144,8 @@ being committed):
 
 1. each response: a watcher's (an id the stream has) unless it is the stream's `-1`; its events at
    or below its revision; its revision a revision of `L` (but a compaction response's); a compaction
-   response a watcher's, without events, at a positive revision at most the compaction revision; a
+   response a watcher's, without events, at revision `0`, its compaction revision positive and at
+   most the store's (round 14, A3: client/v3 relies on the `0`); a
    `-1` response is progress, at a positive revision;
 2. each watcher (while `onceUpTo L w.lo σ.crev`) has received exactly its range's events of the
    revisions `[lo, hi)` of `L`, for some `hi`, those its filters keep;
@@ -165,7 +166,7 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
     (r.id ≠ W64 (-1) → (S.ws !! r.id).isSome) ∧
     (∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev) ∧
     (r.compactRev = W64 0 → sint.nat r.rev < σ.notifiedLog.length) ∧
-    (r.compactRev ≠ W64 0 → r.evs = [] ∧ r.id ≠ W64 (-1) ∧
+    (r.compactRev ≠ W64 0 → r.evs = [] ∧ r.id ≠ W64 (-1) ∧ r.rev = W64 0 ∧
       0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev) ∧
     (r.id = W64 (-1) → r.evs = [] ∧ r.compactRev = W64 0 ∧ 1 ≤ sint.Z r.rev)) ∧
   (∀ (id : w64) (w : WInfo), S.ws !! id = some w → onceUpTo σ.notifiedLog w.lo σ.crev →
