@@ -198,13 +198,17 @@ opaque mvccBackendFor (B : BkRef) (Pk : IProp GF) (L : Log) (c : Int) (u : Bool)
   iprop(True)
 
 /-- **The backend data `D` is the image of the history `L` compacted at `c`, recording an unfinished
-compaction iff `u`** (the scheduled compaction above the finished one) (pure; on adoption:
-`keyImage L D` when `c = -1`, else `lean`'s restore image). Its obligations (the review of round
+compaction iff `u`** (the scheduled compaction above the finished one), **and every change of `L` was
+made by a step of the program** (round 16, the user: the receipt `⧖ (logCh L)` hidden in this
+predicate, traced from the sender's store, `mvccImage_snapshot`, through the server's image
+certificate, to the receiver's `mvccBackendFor_open`; persistent; opaque; on adoption: the image
+`keyImage L D` when `c = -1`, else `lean`'s restore image, with the receipt. Formerly the pure
+`imageOf`). Its obligations (the review of round
 13, `restore`, `kvstore.go:365-423`): when the scheduled compaction is above the finished one, `c`
 is the scheduled revision (the restore resumes it, so the Key bucket may be partly compacted); and
 `L`'s last revision is the largest of the Key bucket's last revision and the two compaction
 revisions. -/
-opaque imageOf (L : Log) (c : Int) (u : Bool) (D : backend.Data) : Prop := True
+opaque mvccImage (D : backend.Data) (L : Log) (c : Int) (u : Bool) : IProp GF := iprop(True)
 
 /-- **What the client keeps of an opened backend** after the store's part (a definition on
 adoption; here opaque): its stop channels, its hook's exclusive half at `nil`
@@ -397,10 +401,8 @@ abbrev KV.Commit.contract (ty : go.GoType) (v : val) : Prop :=
 (decision 3, the user, 2026-11-03: at any share of the new backend's post-lock hook): by the
 caller's update, at a state whose history `σ'`'s extends (the compaction revision not lowered), the
 state `σ'`; the store's backend now `B'`, the old one's reader slots' open shares back (`Restore` waits out
-every transaction, the scheduler and the sync loops); the lessor's items re-attached (the restored history's receipt, `⧖ (logCh σ'.log)`, round 15:
-the store's size facts, `stateOk`, rest on every change it holds having been made by some step of
-the program; the server's snapshot image certificate carries it, `etcdserver/InvImage.lean:148`).
-When the image
+every transaction, the scheduler and the sync loops); the lessor's items re-attached (the restored history's receipt is inside `mvccBackendFor`, from
+the image `mvccImage`, round 16). When the image
 records an unfinished compaction (`u`), `Restore` resumes it: under the new backend's batch lock,
 running its post-lock hook `f` once (from `Pre` to `Q'`, giving the lock's invariant `Pk'` back), and
 committing once (the new backend's commit request, `X` to `Y`); otherwise neither, and `Pre`, `X`
@@ -413,7 +415,6 @@ abbrev KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
       mvccBackendFor B' Pk' σ'.log σ'.crev u ∗
       ⌜MvccReachable σ' ∧ σ'.pending = none ∧ σ'.log.length + receiptBound GF + 3 ≤ 2 ^ 63⌝ ∗
-      ⧖ (logCh σ'.log) ∗
       backend.plHookAt B'.γB dq f ∗ Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
       X ∗ backend.commitReq B'.γB B'.P Pk' B'.b X Y ∗
       lease.leaseOwn (mvccLeases γ) L ∅ ∗
@@ -775,6 +776,7 @@ abbrev persistent.law : Prop :=
   (∀ kv γ, Persistent (isMvcc (GF := GF) kv γ)) ∧
   (∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι)) ∧
   (∀ ι n, Persistent (wsSentLb (GF := GF) ι n)) ∧
+  (∀ D L c u, Persistent (mvccImage (GF := GF) D L c u)) ∧
   (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧ (∀ ι S, Timeless (wsState (GF := GF) ι S)) ∧
   (∀ ι rs, Timeless (wsRecv (GF := GF) ι rs)) ∧
   (∀ γ B Pk, Fractional (fun q => mvccBackend (GF := GF) γ q B Pk))
@@ -793,7 +795,8 @@ needs, at any opener; the review of round 13's decisions: at the pooled post): w
 opener returns with its reader slots pooled (`backend.newPostKP`, at whatever the client
 keeps, `K`: `backend.New`'s at boot, `K := bFresh`; `storage.OpenSnapshotBackend`'s when applying a
 snapshot, `K := snapOpenK`), opened at the store's write invariant `W := mvccW gx` over data `D` that
-is the image of the history `L` compacted at `c` (`imageOf`), with the registration, and the
+is the image of the history `L` compacted at `c` (`mvccImage`, with its receipt), with the
+registration, and the
 store's part of the backend's payment rights, in the backend's own terms: two write-back tokens (for
 `NewStore`'s own writes) and the receipt-paid supply every later write-back and the compaction's job
 draw on (`□ (⧗ 1 ={⊤}=∗ wbTok)`: on `lean` one stock, shared with the server's own writes, backs
@@ -804,12 +807,19 @@ as today. -/
 abbrev mvccBackendFor_open.law : Prop :=
   ∀ (γB : backend.BNames) (P : backend.BParams) (Pk K : backend.BNames → IProp GF) (b : Loc)
     (D : backend.Data) (gx : GName) (L : Log) (c : Int) (u : Bool),
-  imageOf L c u D →
-  □ (∀ γ b', keySized (GF := GF) γ P b') ∗
+  □ (∀ γ b', keySized (GF := GF) γ P b') ∗ mvccImage D L c u ∗
     backend.newPostKP γB P (fun _ => mvccW gx) Pk K b D ∗ mvccWReg gx ∗
     backend.wbTok γB ∗ backend.wbTok γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok γB) ∗
     ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γB backend.rdOpen) ={⊤}=∗
     mvccBackendFor ⟨γB, P, b⟩ (Pk γB) L c u ∗ backendRest γB P K b D
+
+/-- **A fresh backend's data is the image of the empty history** (round 16: `New`'s and
+`NewStore`'s backend, `mvccBackendFor_open` at `mvccStart`): no change, so no receipt to carry. -/
+abbrev mvccImage_fresh.law : Prop :=
+  ∀ D : backend.Data, (∀ k, backend.dget D mvcc.keyName k = none) →
+    backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none →
+    backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none →
+    ⊢ mvccImage (GF := GF) D mvccStart.log mvccStart.crev false
 
 /-- The backend's shares agree. -/
 abbrev mvccBackend_agree.law : Prop :=

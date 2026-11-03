@@ -145,7 +145,9 @@ being committed):
 1. each response: a watcher's (an id the stream has) unless it is the stream's `-1`; its events at
    or below its revision; its revision a revision of `L` (but a compaction response's); a compaction
    response a watcher's, without events, at revision `0`, its compaction revision positive and at
-   most the store's (round 14, A3: client/v3 relies on the `0`); a
+   most the store's (round 14, A3: client/v3 relies on the `0`); each event's revision positive, a
+   put's creation revision and version too (round 16: the value facts the clients' models need, at
+   the result, in place of a size bound on the history); a
    `-1` response is progress, at a positive revision;
 2. each watcher (while `onceUpTo L w.lo σ.crev`) has received exactly its range's events of the
    revisions `[lo, hi)` of `L`, for some `hi`, those its filters keep;
@@ -168,7 +170,9 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
     (r.compactRev = W64 0 → sint.nat r.rev < σ.notifiedLog.length) ∧
     (r.compactRev ≠ W64 0 → r.evs = [] ∧ r.id ≠ W64 (-1) ∧ r.rev = W64 0 ∧
       0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev) ∧
-    (r.id = W64 (-1) → r.evs = [] ∧ r.compactRev = W64 0 ∧ 1 ≤ sint.Z r.rev)) ∧
+    (r.id = W64 (-1) → r.evs = [] ∧ r.compactRev = W64 0 ∧ 1 ≤ sint.Z r.rev) ∧
+    (∀ ev ∈ r.evs, 0 < sint.Z ev.kv.modRev ∧
+      (ev.del = false → 0 < sint.Z ev.kv.createRev ∧ 0 < sint.Z ev.kv.version))) ∧
   (∀ (id : w64) (w : WInfo), S.ws !! id = some w → onceUpTo σ.notifiedLog w.lo σ.crev →
     ∃ hi, hi ≤ σ.notifiedLog.length ∧
       recvEvs rs id = filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo hi)) ∧
@@ -178,10 +182,13 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
     recvEvs (rs.take (j + 1)) id =
       filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1)))
 
-/-- **A key-value safe to sort** (round 15, the user's (D)): its revisions and version
-non-negative, so that Go's comparators, which subtract (`txn/range.go:214-226`), order it. -/
+/-- **A live key-value's values are positive** (round 16: its creation and modification revisions
+and its version, a count of its puts since its creation, none wrapped): what makes etcd's own
+comparators, which subtract (`txn/range.go:214-226`), order it, and what the clients' models of a
+key-value assume (client/v3's `0 < version`). True of every live key-value of the store's states:
+mvcc's own receipt bounds the changes it ever made. -/
 def kvSortOk (e : EtcdKv) : Prop :=
-  0 ≤ sint.Z e.createRev ∧ 0 ≤ sint.Z e.modRev ∧ 0 ≤ sint.Z e.version
+  0 < sint.Z e.createRev ∧ 0 < sint.Z e.modRev ∧ 0 < sint.Z e.version
 
 /-- **A state safe to sort** (round 15): at most `2 ^ 62` key-values (the premise of Perennial's
 sort spec, its heapsort fallback's index arithmetic), each safe to sort. **The size bound is a temporary, local
@@ -189,8 +196,8 @@ assumption**: it exists only because of that limitation of Perennial's spec
 (`notes/perennial-changes.md`, "`sort.Sort`'s size premise"), to go when Perennial's sort spec drops
 it, so it is stated at the one place a range's results are produced (the `Range` contracts), not as
 a law of the store's state that every client would thread (the user, 2026-11-03). The values' part
-(`kvSortOk`) is not temporary: it is what makes etcd's own comparators, which subtract, a strict weak
-order. -/
+(`kvSortOk`) is not temporary: it is true of the store's values, and what makes etcd's own
+comparators, which subtract, a strict weak order. -/
 def stateOk (s : List EtcdKv) : Prop := s.length ≤ 2 ^ 62 ∧ ∀ e ∈ s, kvSortOk e
 
 /-- **A backend, as the store sees it**: its ghost names, parameters and location. -/

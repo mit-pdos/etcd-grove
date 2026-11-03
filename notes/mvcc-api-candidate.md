@@ -728,3 +728,17 @@ image certificate carries it), so the store keeps today's whole-history receipt 
 `notes/mvcc-api-invariants.md` §4.3 superseded). Not chosen: strengthening the backend's `keySized`
 (a trust-base change) or a workload premise on etcd's results; nor (C), the same receipt exported as
 a law on `mvccState`.
+
+**Round 16 (the user, 2026-11-03: hide the receipt in an existing abstract predicate traced from
+the sender's mvcc to the receiver's `Restore`).** The cross-review found round 15's `⧖ (logCh σ'.log)`
+premise on `Restore` circular for its callers (the server's certificate got it from mvcc's internals)
+and client/v3's and the watch path's models still needing `LogSmall`. So: the pure `imageOf` becomes
+`mvccImage D L c u`, opaque and persistent, the image *with* its receipt; `mvccBackendFor_open` takes
+it, `Restore` no longer takes a receipt (it is inside the `mvccBackendFor` it is given), and
+`mvccImage_fresh.law` makes one for an empty backend (no change, no receipt: `New`, `NewStore`). The
+sender's law making an `mvccImage` of a snapshot of a store's backend (G3) is designed with the
+server's draft, over `backend.Snapshot`'s spec. The value facts move to the results: `kvSortOk` is
+now positivity (creation and modification revision, version: what the comparators and client/v3's
+`0 < version` need), and `wsRecvOk` says each event's revision positive, a put's creation revision
+and version too. No size bound on the history is exported.
+

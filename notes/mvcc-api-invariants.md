@@ -127,7 +127,11 @@ Allocated by `NewStore`, `newWatchableStore`, `NewWatchStream`: in every store, 
    non-negative revisions and version) is proved from it: a state's entries, a key's version and a
    revision number are each at most the history's changes, fewer than `receiptBound ≤ 2 ^ 48`; a write
    transaction's pending state from the writer's `⧖ (logCh ilog + pend.length)` (today's
-   `idxWriter`).
+   `idxWriter`). Round 16: the receipt reaches `Restore` inside `mvccBackendFor`, from the image
+   `mvccImage` (`mvccBackendFor_open`), so `mvccImage` is defined on adoption as the image facts
+   ∗ `⧖ (logCh L)`, and `mvccBackendFor` keeps the receipt for `Restore`'s `idxCert`; the
+   positivity in `kvSortOk` and `wsRecvOk` is from the same receipt (`logCh` bounds every revision
+   and version below `receiptBound`, so none wraps).
 4. **The watch guarantee per watcher under compaction**: the global premise per registration
    (`watchNoDup = noCompactor ∨ noDupKeys`, `InvWatchStore.lean:544`) becomes per watcher: the
    watcher's delivery invariant "exact while `onceUpTo L lo crev`" (one implication: a catch-up read
