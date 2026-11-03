@@ -815,7 +815,9 @@ gets an abbreviation at the old mode, not a copy.
 **The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
 configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
 w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
-purge's right; `wal.bootOk_storage`, the narrow law `NewServer` uses). No `wal.bootCfg` (no condition on the configuration);
+purge's right; `wal.bootOk_storage`, the narrow law `NewServer` used, replaced at R2b-1 stage 3c by
+`wal.bootOk_start`, into what the server's consumers take: the durability's ghost state and invariant,
+`NewStorage`'s open token, `Close`'s metadata and purge right). No `wal.bootCfg` (no condition on the configuration);
 `wal.Names` and `wal.srvInv` come at stages 3c/4. `NewServer.spec`'s three triples take
 `wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
 WAL conjuncts. The examples still thread one token per member from program start (a new resource

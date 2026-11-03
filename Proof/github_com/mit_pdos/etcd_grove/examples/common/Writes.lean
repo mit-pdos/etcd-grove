@@ -81,8 +81,8 @@ theorem checkOk_of
     (hup : ∀ p ∈ oks, sint.Z p.Rev' ≤ sint.Z upTo) :
     common.collectOk (revAt E) (trs.map pairOf) upTo evs ∗ □ ([∗list] p ∈ oks, okFact E p) ⊢
       ⌜CheckOk evs trs oks⌝ := by
-  unfold common.collectOk
-  iintro ⟨⟨%Hc, #Hrevs⟩, #Hoks⟩
+  iintro ⟨Hco, #Hoks⟩
+  icases common.collectOk_elim $$ Hco with ⟨%Hc, #Hrevs⟩
   obtain ⟨hup0, hlen, hevs⟩ := Hc
   ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.Rev' ∧ ∃ e, evs[(sint.Z p.Rev' - 2).toNat]? = some e ∧
       e.Key' = p.Key' ∧ e.Val' = p.Val'⌝ $$ []

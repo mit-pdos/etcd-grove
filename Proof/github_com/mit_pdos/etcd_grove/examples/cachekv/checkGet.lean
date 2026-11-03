@@ -57,8 +57,7 @@ theorem checkGet.wp_proof
     wp_apply wp_load_slice_index ksl (sint.Z j) ps DFrac.discard p Hj.1 $$ [Hk] as -
     · iframe #; ipureintro; exact Hp_lookup
     ihave #Hv := Hkv $$ %(sint.nat j) %p %v %Hp_lookup %hv
-    iunfold kvValAt at Hv
-    icases Hv with ⟨%keySl, %valSl, #HkF, #HkS, -, -, -, #HvF, #HvS, -⟩
+    icases kvValAt_elim $$ Hv with ⟨%keySl, %valSl, #HkF, #HkS, -, -, -, #HvF, #HvS, -⟩
     (try wp_auto)
     wp_apply wp_bytes_to_string keySl v.key DFrac.discard $$ [HkS] as -
     · iframe #

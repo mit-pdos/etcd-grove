@@ -72,8 +72,8 @@ theorem checkOkK_of (γ : client.KMNames) (trs : List wkv) (upTo : w64) (evs : L
     common.collectOk (GF := GF) (revAtK γ) (trs.map pairOf) upTo evs ∗
         □ ([∗list] p ∈ oks, okFactK γ p) ⊢
       ⌜CheckOk evs trs oks⌝ := by
-  unfold common.collectOk
-  iintro ⟨⟨%Hc, #Hrevs⟩, #Hoks⟩
+  iintro ⟨Hco, #Hoks⟩
+  icases common.collectOk_elim $$ Hco with ⟨%Hc, #Hrevs⟩
   obtain ⟨hup0, hlen, hevs⟩ := Hc
   ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.Rev' ∧ ∃ e, evs[(sint.Z p.Rev' - 2).toNat]? = some e ∧
       e.Key' = p.Key' ∧ e.Val' = p.Val'⌝ $$ []

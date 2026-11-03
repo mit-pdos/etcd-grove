@@ -145,7 +145,7 @@ def rnNewStorageOk : IProp GF :=
   iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
-    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
+    {{ (st : GoInterface), RET #st; isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
 
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance

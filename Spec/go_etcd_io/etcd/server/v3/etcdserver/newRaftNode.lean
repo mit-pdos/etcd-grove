@@ -42,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
-    (ms : Loc) (γs : MemStorNames) (key : GName) (cv : raftNodeConfig),
+    (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames) (cv : raftNodeConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, the ticker proved)
       rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗
@@ -54,7 +54,7 @@ abbrev newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.key = key⌝ ∗
+          γ.key = key ∧ γ.wal = wal⌝ ∗
         rnBuilt E γ r cv }}
 
 end spec

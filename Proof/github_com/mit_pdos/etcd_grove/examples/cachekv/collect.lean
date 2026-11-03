@@ -21,30 +21,6 @@ namespace cachekv
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver github_com.mit_pdos.etcd_grove.examples.cachekv
 
-section consumer
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-
-/-- The log a cache watch's consumer received (persistent). -/
-theorem cacheWatchConsumer_log (γ : CacheWatchNames) (C : DemuxCert GF)
-    (pred : Option (GoString → Bool)) (sr : w64) (rs : List RespModel) :
-    cacheWatchConsumer γ C pred sr rs ⊢
-      cacheWatchConsumer γ C pred sr rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr rs) := by
-  iintro H
-  iunfold cacheWatchConsumer at H
-  icases H with ⟨%vs, Hc, %Hl, #Hlb, #Hlog⟩
-  isplitl
-  · iunfold cacheWatchConsumer
-    iexists vs
-    iframe Hc Hlb Hlog
-    ipureintro; exact Hl
-  · iexact Hlog
-
-end consumer
-
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -70,10 +46,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     · iapply ownSliceCap_nil
     isplitl [Hcons]
     · iexact Hcons
-    iunfold collectOk
-    iunfold common.collectOk
-    isplitr
-    · ipureintro; refine ⟨Or.inl rfl, by simp, fun i e h => by simp at h⟩
+    iapply common.collectOk_intro _ _ _ _ ⟨Or.inl rfl, by simp, fun i e h => by simp at h⟩
     iintro !> %i %e %h
     simp at h
   (try wp_auto)
@@ -116,8 +89,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     iintro %h; cases h
   simp only [↓reduceIte]
   icases H with ⟨%r, #Hr, Hcons⟩
-  iunfold respAt at Hr
-  icases Hr with ⟨#Hevs, -, %Hrf⟩
+  icases respAt_elim $$ Hr with ⟨#Hevs, -, %Hrf⟩
   (try wp_auto)
   -- a cancel (`Canceled`, or a compaction's revision): the watch ended
   cases hcv : v.Canceled'
@@ -157,8 +129,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     ihave H := Hall $$ %((eventsOf rs).length + j) %e %he
     rw [show 2 + evs0.length + j = 2 + ((eventsOf rs).length + j) by rw [Hc.2.1]; omega]
     iexact H
-  iunfold eventsAt at Hevs
-  icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
+  icases eventsAt_elim $$ Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
   ihave %Hlsl := ownSlice_len $$ Hls
   (try wp_auto)
   ihave IJ : (∃ (j : w64) (e0 : Loc) (sl' : GoSlice) (lv' : w64) (ws : List cev),
@@ -191,13 +162,9 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     · iframe #; ipureintro; exact Hev_lookup
     ihave #Hea := Hev $$ %(sint.nat j) %ev %e %Hev_lookup %he
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
-    iunfold eventAt at Hea
-    icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-    iunfold evFact at Hf
-    iunfold common.evFactR at Hf
-    icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
-    iunfold kvValAt at Hkvv
-    icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
+    icases eventAt_elim $$ Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
+    icases common.evFactR_elim $$ Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
+    icases kvValAt_elim $$ Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
     (try wp_auto)
     wp_apply wp_bytes_to_string keySl e.key DFrac.discard $$ [HkeyS] as -
     · iframe #
@@ -271,14 +238,11 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
         isplitr
         · ipureintro; exact ⟨hc', hlens⟩
         iframe
-        iunfold collectOk
-        iunfold common.collectOk
         have hne : evs0 ++ ws ≠ [] := by
           intro h; rw [h] at Hsl2; simp at Hsl2; word
         have hlv := hl' hne
-        isplitr
-        · ipureintro
-          refine ⟨Or.inr (by omega), by word, ?_⟩
+        iapply common.collectOk_intro
+        · refine ⟨Or.inr (by omega), by word, ?_⟩
           intro i w hw
           rcases Nat.lt_or_ge i evs0.length with hi | hi
           · rw [List.getElem?_append_left hi] at hw; exact Hc.2.2.2 i w hw

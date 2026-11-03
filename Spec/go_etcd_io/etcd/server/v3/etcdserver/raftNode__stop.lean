@@ -31,8 +31,9 @@ abbrev raftNode.stop.spec : Prop :=
       -- (2026-10-30, the repair) the apply side's half of the node's running token, which
       -- `stopped` carries to the loop (`rnStopBag`)
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-      -- (2026-10-31) and its half of the WAL's open token, for `onStop`'s `Close`
-      rnWalTok r (1 : Qp).half }}
+      -- (2026-10-31) and its share of the WAL (2026-11-03, R2b-1 stage 6: with its token), for
+      -- `onStop`'s `Close`
+      rnWalTokA γ r (1 : Qp).half }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
@@ -41,15 +42,16 @@ the server's stop**: `spec`'s, with the claim on the loop's stop escrow (`rnStop
 apply side's token at the committed log `A` handed to it (`rnApplyTok`, `run`'s once the scheduler
 has run every job), giving back what the loop's `onStop` left: the node's id vacant (`node.Stop`'s
 `nodeVacant`), its durable state `S` (`raftState`) and the WAL closed with records `σ` holding it
-(`StorageHolds`, R2b-1: the loop enters a batch at its WAL `Save`), between the WAL's snapshot
+(`StorageHolds`, R2b-1: the loop's `Save` moves the records to the entered state; the stop is at an
+idle loop, where they hold the node's durable state), between the WAL's snapshot
 record and its stored commit the log handed to the apply thread (R2b-1: every snapshot record is
 of an index the apply thread was handed, and the loop saves a `Ready`'s hard state after handing
 its committed entries, with no stop between).
 
 What R2b-1 must change for it (R2b-2 review F5): the loop's `done` carries the escrow, so
 `isRaftNode`'s persistent `done` conjunct (today at predicate `True`) changes, and with it every
-spec that mentions `isRaftNode`; the server enters a batch at its WAL `Save`, not at the receive
-(else `StorageHolds` fails at a stop between the two). The image's order is at the backend's
+spec that mentions `isRaftNode`. (2026-11-03: the server still enters a batch at the receive, the
+user's choice; `StorageHolds` holds at the idle loop, where the stop happens.) The image's order is at the backend's
 consistent index, which equals `|pre ++ A|` once every job ran and the backend's last commit
 saved the index: R2b-3's. -/
 abbrev raftNode.stop.specStop : Prop :=
@@ -57,7 +59,7 @@ abbrev raftNode.stop.specStop : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
       E.ST ∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-      rnWalTok r (1 : Qp).half ∗ rnStopClaim γ ∗ rnApplyTok γ A }}
+      rnWalTokA γ r (1 : Qp).half ∗ rnStopClaim γ ∗ rnApplyTok γ A }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); nodeVacant γ.node.cl γ.id ∗
       ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed r σ ∗

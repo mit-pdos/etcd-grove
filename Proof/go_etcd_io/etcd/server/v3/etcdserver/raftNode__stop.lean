@@ -28,8 +28,8 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hr, HST, Hrun, Hwt⟩
   iunfold isRaftNode at Hr
   iNamed Hr
-  iunfold rnWalTok at Hwt
-  icases Hwt with ⟨%st', #Hst', Hwo⟩
+  iunfold rnWalTokA at Hwt
+  icases Hwt with ⟨%st', #Hst', Hwo, Hwap, -⟩
   icombine Hst Hst' gives %Hsteq
   have Hsteq' : st' = st := by first | exact Hsteq.symm | exact Hsteq.2.symm
   subst Hsteq'
@@ -48,8 +48,8 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply is_bag_is_chan $$ Hbag
-    iapply bag_send_au γs stc _ () _ $$ [$Hlc1 $Hlc2] Hbag [HST Hrun Hwo]
-    · iframe HST Hrun Hwo
+    iapply bag_send_au γs stc _ () _ $$ [$Hlc1 $Hlc2] Hbag [HST Hrun Hwo Hwap]
+    · iframe HST Hrun Hwo Hwap
     inext
     wp_auto
     wp_apply_core chan.wp_receive dnc γ.done $$ Hdch

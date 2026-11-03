@@ -84,7 +84,7 @@ def srvSnapDisk (s : Loc) (γr : ReadNames) : IProp GF :=
     ⌜storage.storageSnap stp ss⌝ ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    isRNWal (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) ∗
+    isWalStorage (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) ∗
     inv snapDirN (snapDirInv ss γd img Rm) ∗
     □ (∀ j : w64, monoNatLbOwn γr.applied (uint.nat j + 1) -∗ Rm j))
 

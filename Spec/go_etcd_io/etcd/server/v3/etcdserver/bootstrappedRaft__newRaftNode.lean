@@ -58,7 +58,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (pre : List EntryModel)
+    (pre : List EntryModel) (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
   -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
@@ -113,7 +113,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
-          γw.γs = γs⌝ ∗
+          γw.γs = γs ∧ γw.wal = ν⌝ ∗
         -- the node API's node, its driver at the storage's key (the wrapper's, `γw.key`: raft
         -- names it at the attach), and (2026-11-01, durability layer 4) the node's durable state,
         -- unchanged by the update
@@ -124,7 +124,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- (2026-10-30, the repair) the node's whole running token (`StartNode`'s)
         nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
-        isRNIDRemoved f ∗ isRNWal st ∗
+        isRNIDRemoved f ∗ isWalStorage st ∗
         -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
         -- over the WAL `wal`
         ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗

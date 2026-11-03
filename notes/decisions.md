@@ -30659,11 +30659,37 @@ or gives at boot (the restart's `walFiles`, stage 2 of the restart contracts) ch
 laws, not `NewServer.spec`. What stays outside: the program-start token each example threads to its
 starter (`walDirFresh`, the start axiom's), converted to the slot where the starter calls `NewServer`.
 
-## The lease-grant stage's choices (2026-11-02 · the user's decisions; frozen 2026-11-02 · branch `lease-grant`)
 
+## A failed WAL `Save` is an I/O failure (2026-11-03 · the user's choice, R2b-1 stage 5)
+
+**Before:** `isWalStorage`'s `Save` took two atomic updates, the save and, on an error, "some records"
+(the user's choice of 2026-11-03: a failed state, no premise), so the durability invariant had a
+failed state with records unknown. **The conflict:** after a failed `Save` the loop calls `lg.Fatal`,
+but the apply thread runs on and may `SaveSnap` its own snapshot, whose contract requires a record at
+the records' base to carry its term: unprovable over unknown records. **Now:** `Save`'s error case
+gives `⌜¬ storage.walSaveOk⌝`, as `SaveSnap`'s and `Close`'s already do (the WAL's write failing is
+I/O, excluded by `storage.diskOk`, which every example assumes); the invariant has no failed state.
+The alternative (keep the failed state, give `SaveSnap` a "records broken" outcome) was more complex
+and also a trusted change.
+
+## The WAL's durability in the server's proof (2026-11-03, R2b-1 stages 3c-6)
+
+**Where the ghost state lives.** The invariant (`rnDurInv`) in the wrapper (`isRaftNode`) and in the
+apply side's WAL share (`rnWalTokA`, for the snapshot path that has no `isRaftNode`); the loop's view
+half with its "not stopped" token in the loop's token beside the driver at the same durable state
+(`rnLoopTokP`: the driver's predicates take the durable state `S` as a parameter so the view can
+name it; `Advance` keeps it); the apply thread's token `ν.app` with its half of the open token
+(review M3), back to the loop through `stopped`; the stop's claim, the metadata and the purge right
+with the loop's half (`rnWalTokL`). **Why `rnWalHanded` rides on `raftAdvancedC`:** the apply
+thread's own snapshot needs the handed log to reach its index; the loop closes `raftAdvancedC` after
+its `Save` (and `Advance`), and the apply thread already waits on it for `nodeAppliedLb`; the WAL's
+lower bound is committed (`deliveredLogLb`), so it agrees with the snapshot's committed log
+(`isCommittedLogLb_agree`). **Why a premise `γr.raft.pre = []`** on the snapshot chain: the snapshot's
+index is the applied log's length only at a fresh start (the restart, R2d, revisits it); `run` has it
+(`isServerRun`'s fresh start).
+## The lease-grant stage's choices (2026-11-02 · the user's decisions; frozen 2026-11-02 · branch `lease-grant`)
 `examples/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
 order:
-
 - **S1 (scope): the narrow stage, then the tie.** The grant through the request path and the apply
   thread, the client's grant fact, the listing; not leased puts, nor the results at the committed
   model `kvModelSt γk Lq` (both later, the leases plan's L3b part 2). Revised by the tie below.
@@ -30686,8 +30712,6 @@ order:
   statements kept as `etcdLeaseGrantSpecAny`/`etcdLeaseLeasesSpecAny` with laws deriving them from a
   registration at the new ones (`isGrpcRpc_leaseGrant_any`, `isGrpcRpc_leaseLeases_any`); their
   callers (leasekv, the client's results) keep the old contracts under the new names.
-
-
 **Frozen (the user, 2026-11-02)**, after the stage stepped back to design before plumbing
 (`notes/spec-first-plan.md`, "Design before plumbing"): the server chain's design
 (`notes/lease-grant-plan.md`, "Design of the server chain"), three review rounds
@@ -30699,9 +30723,7 @@ the grant's answer beside `dispatchAnswer`; the lessor tied to the table by ghos
 (`notes/axiom-review/lessor-apply-ok.md`, `lease-grant-lessor.md`): five restated trusted statements
 survive; `leasesNoExpiry` was refuted as worded ("the cluster's leases"; `NewLessor` reads it for
 every lessor) and is restated to every lessor the program creates.
-
 ## The trust-base report, faster (2026-11-03 · the user's "go ahead with 1": the gates' time)
-
 `etc/tcb-report.py --check` took 529s of a gate run (measured 2026-11-03, 32 cores); now 246s, its
 JSON byte-identical (sorted lines). Measured first: in the largest run (87 root modules), import
 27s, listing the roots ~110s (every constant of the environment against the module list), the
@@ -30713,14 +30735,11 @@ without freeing the environment. *Rejected:* an incremental report caching each 
 result by the hashes of its dependencies' `.olean`s: one end-to-end result (`putget_safe`'s
 module) alone costs 125s of closure (its cone is most of the development), and almost every
 change reaches one, so the cache would rarely save anything.
-
 ## The boot premises: the final whole-`bootOk` review's S1, S2, M1, M2 repaired (2026-11-03 · the user's approval of candidate 3 and its six recommendations · branch `boot-premises`)
-
 The final review round of "The whole-`bootOk` review" (above) found four defects outside that
 stage's repairs. Each was confirmed against Go at the pin (`etc/spec-test/bootstrap/`:
 `TestSpecBootstrapMemberOrder`, `TestSpecBootstrapHeartbeat`, `TestSpecBootstrapDisk`); all four
 made premises false or missing, and two of them made adequacy theorems vacuous.
-
 - **S1 (putget3's and restart3's premises false): the peers in the names' order.** `bootOk`'s
   `γ.vs = ps` is `MemberIDs()`, sorted; putget3 passed `[id₁, id₂, id₃]` with `idᵢ` member `-i`'s
   id, measured `-1, -3, -2` sorted (restart3 `-2, -3, -1`; linkv3p happens to be in order). **Repair
@@ -30759,7 +30778,6 @@ made premises false or missing, and two of them made adequacy theorems vacuous.
 - **Q6 (minor):** `srvFiles`' and `rnWalClosed`'s docs name the newest valid snapshot record
   (`ValidSnapshotEntries` with the highest index at most the last hard state's commit), as
   `recoverSnapshot` reads it (`bootstrap.go:437-482`).
-
 **Hubs** (`notes/spec-first-plan.md`, "Hubs"; `etc/spec-hubs.py`): the statements touched are the
 boot hub's widest: `NewServer.spec` (fan-out 15, 79 past changes), `specM`, `specG`, `bootOk`
 (13, 59), `bootOkR`, `bootstrapContract`, `NodeStartSpec`, and the examples' start chain
@@ -30775,10 +30793,8 @@ members, at most three), `srvBootEnvOk_of` (at `TickMs = 100`), and each three-m
 `dir3_dirsOk` from `BootFacts.perm`. `bootCfgOk`/`bootCfgFresh` stay named clauses. M1's
 conditions stay in `diskOk`, which `NewServer` already takes. `applySnapshot.specSnap` (fan-out 17)
 is unchanged: it takes the directory fact `hps` as its own premise already, from its caller.
-
 Supersedes in part "The whole-`bootOk` review" (C: `bootCfgOk`'s `TickMs ≠ 0`; I/J/K: `Hraft`'s
 bound now from `srvBootEnvOk`, not `Hdirps`).
-
 **The final fresh review round** (one spec-reviewer, the changed texts): no T1; S1, S2, M1, M2
 repaired. Applied: the dead `rnTickerOk_srvEr_S`/`rnTickerOk_srvErM_S` deleted, `BootFacts.perm`'s
 doc no longer claims sortedness (only `bootstrap`'s sorted order meets the premises; a `sorted`
@@ -30899,3 +30915,25 @@ its own step.
 
 Supersedes in part "The boot premises" (its Q2, `rnTickerOk_of_time` in `NewServer`'s proofs, and
 the open T2/T3 points).
+
+## Laws in place of cross-module unfolds, part 2: the cache's response and certificate predicates, `common`, the adapter (2026-11-03 · the user's "go ahead with 2a and 2b")
+
+The examples (`cachekv`, `linkv3p`, `common`) no longer unfold these predicates of other modules;
+each has a law beside its definition:
+
+- the store's response predicates (`InvStore`): `eventAt_elim`, `eventsAt_elim`, `hdrAt_cases`,
+  `respAt_elim` (a reader's fields, read-only);
+- `InvEtcd`: `kvValAt_elim`, `evsMatch_elim`, `etcdStepCertBody_elim`, `etcdStepCert_cert` (moved
+  from `Cache.watchEvents`), `watchChain_cons`/`watchChain_cons_elim`, `watchRespOk_cases`;
+- `InvCache`: `cacheWatchLog_cases`; `cacheWatchConsumer_log` moved from `cachekv/collect.lean`;
+- `common/WatchBase`: `evFactR_elim`, `evFactR_intro`; `collectOk_elim`/`_intro` (existing) now
+  used by `collect`, `CollectPlan` and the three `CheckOk` lemmas (`Writes`, `WritesKM`,
+  `linkv3p/MainWatch`);
+- the client's adapter (`EtcdModelKV`): `kmWriteQ_lb` (used by `okFactKM_of_write`,
+  `okFactK_of_put`); `kmWAu` moved from `cachekv/NoDup.lean` (it opens `kmInv`, beside `km_read_au`).
+
+Most laws restate the body (an elimination or introduction in its shape): what changes is who
+owns the statement. Not covered: pure functions (`txn.revEvs`, `chainEnd`, `kvRange`, the config
+definitions), an example's own modules (`linkv3p`'s `Defs` in its `Main`), and the server's
+predicates in `cachekv/NoDup.lean` (`kvAu`, `srvKVFacts`, `mvcc`'s `idxSealed`, `evLog`,
+`noDupKeys`; 2c, in other sessions' areas).

@@ -1072,3 +1072,82 @@ for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new env
 theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
 directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
 base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.
+
+### R2b-1 stages 3c-6: one landing (2026-11-03, plan)
+
+**Why together.** Putting `isWalStorage` in `isRNWal`'s place (`rnNewStorageOk`, approved change 1)
+changes every WAL operation's contract at once: `Save`'s success update needs `WalSaveOk` (the
+records tracking raft's log: the durability invariant), the apply thread's `SaveSnap` needs the
+records' base term, and `Close` needs the records, the metadata and the purge's right. None of
+them can be met from a weaker invariant (`∃ σ, walRecs w σ` does not give `WalSaveOk`). Giving both
+contracts during a transition would be unsound (an old `Save` moves the records behind
+`walRecs`' back, and `Close` would then give `walFiles` of the wrong records). So stages 3c
+(the contract), 4 (the loop's `SaveSnap`/`Save`), 5 (the apply thread's `SaveSnap`) and 6
+(`onStop`'s `Close`) land as one, on one branch, built in that order.
+
+**Where the WAL's ghost state lives.**
+- `wal.Names` (the draft's `WalNames`) is a field group of the wrapper's names (`RNNames.wal`; the
+  slot convention's name-record split), allocated in `NewServer`'s proof from `wal.bootOk` by the
+  narrow law `wal.bootOk ⊢ |==> ∃ ν, wal.srvInv … ∗ (the loop's part) ∗ (the stop's part)`, which
+  replaces `wal.bootOk_storage`.
+- `wal.srvInv` = `rnDurInv ν w` (persistent), in the wrapper's components beside `isWalStorage`.
+- The loop's part: its view half and "not failed" token, with the driver's state (`rnDrv`: the
+  view's durable state is the driver's `S`), and the metadata and purge right until `onStop`.
+- The apply thread's: `walCommitLb` of the log it applied (from `notifyc`'s deposit) and its token
+  `ν.app` with its half of the open token (`rnWalTok`, review M3).
+- The stop's claim `ν.stop` goes with `srvStopRight` (R2b-2).
+
+**Firing *enter*: at the receive** (the user's choice, 2026-11-03, over the draft's "at the
+`Save`", round 3 M1): today's `rn_ready_recv` keeps firing it; the loop's `Save` then moves the
+records and the invariant's view from the durable state before the batch to the entered one
+(`walSave_holds`, `walSnapSave_holds`, stage 2). Enough for a graceful stop and restart: at every
+idle point, where the stop happens, the records hold the node's durable state. Not for a crash
+between the receive and the `Save`, which nothing models yet: entering at the `Save` is recorded as
+open for crash recovery (it would rewrite `rn_ready_recv` and the middle of both branches of
+`raftNode.start`, where the loop would hold no driver).
+
+**The view's half** lives in the loop's token (`rnLoopTokP`), at the durable state of its driver,
+which the driver's predicates now name (`rnDrv γ L p S`, `rnBusyN … S`, `rnBusyS … S`: `Advance`
+keeps it), with the "not failed" token. Between the receive and the `Save` the view is at the
+state before the batch and the busy driver at the entered one; `rn_ready_recv` says how they relate
+(`readyDurable`).
+
+**Order of work:** (a) the vocabulary: `RNNames.wal`, the view in the driver's predicates, the
+contract in `isRaftNode`, `rnNewStorageOk`; (b) the start: `NewServer` allocates from `wal.bootOk`,
+`NodeStart`'s first driver holds the initial view (`RaftState.init`, `walFresh`; `γ.pre = []`);
+(c) the loop: receive without *enter*, `SaveSnap`/`Save` with the invariant, both branches of
+`raftNode.start`; (d) the apply thread's `SaveSnap`; (e) `onStop`'s `Close`.
+
+**Where it stands (2026-11-03, branch `r2b1-s3c`, built, not landed):** the vocabulary and the
+pure halves are done: `RNNames.wal`; the driver predicates name their durable state; `rnDur_alloc`
+and `wal.bootOk_start` (NewServer allocates; the names reach `newRaftNode`); the loop's `Save` and
+`SaveSnap` as the contract's atomic updates (`rnDur_save_au`, `rnDur_saveSnap_au`, over the pure
+`WalSaveStep`/`WalSnapStep`); a received batch is such a step, proved from raft's `ReadyRestFacts`
+(`walSaveStep_ready`, `walSnapSteps_ready`), and `rn_ready_recv` hands the steps to the loop
+(`rnReadyData`, `rnReadySnap`). Left, as one change: the view's half and "not failed" token in the
+loop's token (`rnLoopTokP`, from `NodeStartSpec`); `isWalStorage` in place of `isRNWal`
+(`rnNewStorageOk`, `isRaftNode` with `rnDurInv`); the loop's `SaveSnap`/`Save` over the lemmas; the
+apply thread's `SaveSnap` (its token `ν.app` with its half of the open token, review M3: `rnWalTok`
+takes the wrapper's names, or the apply side's half becomes its own predicate); `onStop`'s `Close`
+(the records from `rnDurTake`, with the metadata and purge right the loop keeps from the start).
+
+### R2b-1 stages 3c-6, done (2026-11-03)
+
+The WAL contract is in use: `NewStorage` gives `isWalStorage` (`isRNWal` is gone), the wrapper holds
+the durability invariant (`isRaftNode`'s `rnDurInv γ.wal`), allocated in `NewServer` from
+`wal.bootOk_start`. Every WAL operation is proved over the contract:
+- the loop's `SaveSnap` and `Save` (`rnDur_saveSnap_au`, `rnDur_save_au`; the steps from the
+  receive, `rnReadyData`/`rnReadySnap`), its view's half in the loop's token (`rnLoopTokP`'s
+  `rnWalView`, the initial view from `NodeStartSpec`);
+- the apply thread's own `SaveSnap` (`rnDur_ownSnap_au`), with its token `ν.app` in its WAL share
+  (`rnWalTokA`, review M3) and the handed log's bound (`rnWalHanded`, carried by `raftAdvancedC`,
+  closed after the loop's `Save`); its chain (`applyAll`, `snapshotIfNeeded`, `snapshot`) takes a
+  fresh start's premise `γr.raft.pre = []` (the snapshot's index is the applied log's length),
+  which `run` has;
+- `onStop`'s `Close` (`rnDur_take`: the records out of the invariant, with the stop's claim, the
+  apply token from `stopped`, the loop's view; the metadata and purge right in the loop's share
+  `rnWalTokL`).
+A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): the invariant has no failed
+state. Close's result (`walFiles`) is dropped for now: R2b-3 makes the image from it (`rnWalClosed`,
+`srvFiles`). Open: M2 (the order at the view's handed log vs the stop's `pre ++ A`), enter at the
+`Save` (crash recovery).
