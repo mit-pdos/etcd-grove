@@ -344,6 +344,43 @@ def rebalOK (X X' : WX) (fl fl' : FLPg) (txid : w64) : Prop :=
     ∀ e ∈ es, ∃ pg, X.v.pages !! e.1.toNat = some pg ∧ 1 + pageOverflow pg = e.2) ∧
   ∀ s, coversSlot X.v.pages s → lCovers X' s ∨ s ∈ pendSlots fl'
 
+/-- **`spill`'s pre** (the part of `rebalOK`'s post about the records after it, `X`, and the
+writer side's freelist `fl`): `X` well-formed; no empty non-root node, branch nodes of at least
+two entries; every bucket's leaves at one depth; every base slot covered by the logical tree or
+pending. -/
+def spillPre (X : WX) (fl : FLPg) : Prop :=
+  wOK X ∧
+  (∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → l ∈ X.live →
+    (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
+  (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) ∧
+  ∀ s, coversSlot X.v.pages s → lCovers X s ∨ s ∈ pendSlots fl
+
+/-! ## Reachability and dereference (the coverage contract) -/
+
+/-- The buckets the code reaches from the root bucket through the `buckets` caches. -/
+inductive bktReach (X : WX) : Loc → Prop
+  | root : bktReach X X.rl
+  | child (bl c : Loc) (B : BRec) (n : GoString) :
+      X.t.bs !! bl = some B → B.bm !! n = some c → bktReach X bl → bktReach X c
+
+/-- Node `d` is `n` or a descendant of it through `children` within `B`. -/
+inductive descIn (B : BRec) : Loc → Loc → Prop
+  | self (n : Loc) : descIn B n n
+  | child (n c d : Loc) (r : NRec) : B.ns !! n = some r → c ∈ r.cs → descIn B c d → descIn B n d
+
+/-- **The live objects are those the code reaches** (design §4.2's coverage contract): every live
+bucket is reached from the root bucket, and every live node of a bucket descends from the root of
+its root node's chain of parents (`b.rootNode.root()`, then `children`). -/
+def liveReach (X : WX) : Prop :=
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live → bktReach X bl) ∧
+  ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
+    ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ descIn B rt l
+
+/-- No live node holds a stale slice (what `dereference` copies from). -/
+def liveFresh (X : WX) : Prop :=
+  ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
+    wsLive r.ws ∧ r.ksrc ≠ Src.stale
+
 /-- The pages the writer's buffers hold (`tx.pages`' bytes, by id). -/
 def WX.bufPages (X : WX) : Pages := GMap.ofList (X.t.bufs.toList.map fun e => (e.1.toNat, e.2))
 
@@ -376,6 +413,42 @@ def spillOK (X X' : WX) (C : CommitSt) (fl fl' : FLPg) (txid : w64) : Prop :=
         X.t.mv.pgid'.toNat ≤ s)) ∧
   ∀ id pg, (spillC X' C.pages).pages !! id = some pg →
     C.pages !! id = some pg ∨ X'.t.bufs !! W64 (id : Int) = some pg
+
+/-! ## Readers' buckets and walks (the read path over a view's pages) -/
+
+/-- The names of the nested buckets of the bucket whose value is `bv` (the root bucket's: its
+header encoded), in order (`ForEachBucket`'s keys). -/
+def bktNames (P : Pages) (bv : List w8) : List (List w8) :=
+  (bktLeaves P bv).flatMap fun pg =>
+    ((List.range (pageCount pg)).filter fun i => decide (leafFlags pg i % 2 = bucketLeafFlag)).map
+      (leafKey pg)
+
+/-- The bucket whose value is `bv` has the nested bucket `k` of value `cv`. -/
+def bktEntry (P : Pages) (bv k cv : List w8) : Prop :=
+  ∃ pg i, pg ∈ bktLeaves P bv ∧ i < pageCount pg ∧ leafKey pg i = k ∧
+    leafFlags pg i % 2 = bucketLeafFlag ∧ leafValue pg i = cv
+
+/-- The pages a walk visits (`forEachPageInternal`), in order, each with its stack of page ids
+(root first; `fuel` bounds the depth). -/
+def pageWalkF (P : Pages) : Nat → List Nat → List (Nat × List Nat)
+  | 0, _ => []
+  | n + 1, stk => match stk.getLast? with
+    | none => []
+    | some id => (id, stk) :: match P !! id with
+      | some pg => if pageFlags pg = branchPageFlag
+          then (List.range (pageCount pg)).flatMap fun i => pageWalkF P n (stk ++ [branchPgid pg i])
+          else []
+      | none => []
+
+/-- The walk of the tree from page `root` (`tx.forEachPage(root, fn)`). -/
+def pageWalk (P : Pages) (root : Nat) : List (Nat × List Nat) := pageWalkF P (P.size + 1) [root]
+
+open Classical in
+/-- **The ids `freepages` returns** for the committed state `C`: the slots in `[2, hwm)` no page
+of its tree covers, increasing. -/
+def freeIdsOf (C : CommitSt) : List w64 :=
+  ((List.range' 2 (C.hwm - 2)).filter fun x => decide (¬ coversSlot C.pages x)).map
+    fun (x : Nat) => W64 (x : Int)
 
 /-! ## Lemma statements -/
 

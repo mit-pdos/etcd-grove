@@ -78,6 +78,12 @@ view cells, the mapping fields' quarter unmapped. -/
 def wtxLost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(wtxCore K tx r m X ∗ mapFields r.db (DFrac.own (1 : Qp).half.half) (none : MapSt))
 
+/-- The live writer's txid, the next after the committed state's (`tx.meta.txid`). -/
+def WDb.wtxid (w : WDb) : w64 := W64 ((w.C.txid + 1 : Nat) : Int)
+
+/-- The writer side with the freelist `fl`. -/
+def WDb.withFl (w : WDb) (fl : FLPg) : WDb := { w with fl := fl }
+
 /-- The store's writer state of a live writer on the view `v`, of the committed state `C`, before
 its publish, its view lent. -/
 def wLive (v : View) (C : CommitSt) : WSt := (some v, some (C.txid + 1), false, true)
@@ -152,25 +158,43 @@ def pairBack (K : BC) : PairSrc → IProp GF
   | .loan => threadTok
   | .spare => rdPair K.B K.db K.sp
 
-/-- **`tx.allocate(count)`'s success** for the writer's txid `txid`, from `X` (writer side's
-freelist `fl`) to `X'` (`fl'`): the page `id` from the freelist (`fl.canAlloc`, the high-water
-mark unchanged) or at the high-water mark (which grows by `count`), in the buffer `p`; possibly
-after a remap, before which the coverage contract held (`derefOK`), `X` re-based on the new
-mapping. -/
-def allocRes (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc) (id : w64) :
-    Prop :=
-  0 < count ∧ p ≠ null ∧
-  ∃ Xr, (Xr = X ∨ (derefOK X ∧ ∃ b, Xr = X.rebase b)) ∧
-    ((fl.canAlloc id count ∧ fl' = fl.alloc txid id count ∧
-        X' = Xr.addPage id p count X.t.mv.pgid') ∨
-     (id = X.t.mv.pgid' ∧ fl' = fl ∧ id.toNat + count < 2 ^ 62 ∧
-        X' = Xr.addPage id p count (id + W64 (count : Int))))
-
 /-- A remap's effect on the writer side (`DB.mmap` through `DB.allocate`): the committed state,
 freelist and slots' bytes kept; the mapping, the file's maps and the `W` slots the new mapping's. -/
 def wdbRemap (w w' : WDb) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl ∧ w'.fli = w.fli ∧ w'.f = w.f ∧ w'.fd = w.fd ∧
   w'.m.size = w.m.size ∧ ∀ s, s ∈ w.W → s ∈ w'.W ∧ w'.wb s = w.wb s
+
+/-- **`dereference`'s effect** (`tx.root.dereference()`): every live node's keys and values
+copied to the heap (the coverage contract, `derefOK`), by data unchanged; nothing else. -/
+def derefRel (X X' : WX) : Prop :=
+  derefOK X' ∧ X'.v = X.v ∧ X'.live = X.live ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧
+  X'.rl = X.rl ∧ X'.t.mv = X.t.mv ∧ X'.t.pm = X.t.pm ∧ X'.t.bufs = X.t.bufs ∧
+  (∀ bl l, (X'.node bl l).map (fun r => (r.ws.map wDat, r.key, r.nv.pgid', r.nv.isLeaf')) =
+    (X.node bl l).map (fun r => (r.ws.map wDat, r.key, r.nv.pgid', r.nv.isLeaf'))) ∧
+  (∀ bl pid, (ltree X' bl pid).map (fun x => (x.1, x.2.map wDat)) =
+    (ltree X bl pid).map (fun x => (x.1, x.2.map wDat))) ∧
+  wtxData X' = wtxData X ∧ (wOK X → wOK X')
+
+/-- **`tx.allocate(count)`'s success** for the writer's txid `txid`, from `X` (writer side's
+freelist `fl`) to `X'` (`fl'`): the page `id` from the freelist (`fl.canAlloc`, the high-water
+mark unchanged) or at the high-water mark (which grows by `count`), in the buffer `p`; possibly
+after a remap, before which `dereference` ran (`derefRel`, the coverage contract), the records
+re-based on the new mapping. -/
+def allocRes (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc) (id : w64) :
+    Prop :=
+  0 < count ∧ p ≠ null ∧
+  ∃ Xr, (Xr = X ∨ ∃ Xd b, derefRel X Xd ∧ Xr = Xd.rebase b) ∧
+    ((fl.canAlloc id count ∧ fl' = fl.alloc txid id count ∧
+        X' = Xr.addPage id p count X.t.mv.pgid') ∨
+     (id = X.t.mv.pgid' ∧ fl' = fl ∧ id.toNat + count < 2 ^ 62 ∧
+        X' = Xr.addPage id p count (id + W64 (count : Int))))
+
+/-- **`DB.grow`'s effect on the writer side**: the file's size grows (or stays), its pages'
+bytes kept; nothing else changes (the new slots inside the mapping become `W` slots). -/
+def wdbGrown (w w' : WDb) : Prop :=
+  w'.C = w.C ∧ w'.fl = w.fl ∧ w'.ms = w.ms ∧ w'.fli = w.fli ∧ w'.f = w.f ∧ w'.fd = w.fd ∧
+  w'.junk = w.junk ∧ w'.m.maps = w.m.maps ∧ w.m.size ≤ w'.m.size ∧
+  ∀ s, s ∈ w.W → s ∈ w'.W ∧ w'.wb s = w.wb s
 
 /-! ## Lemma statements -/
 
