@@ -529,7 +529,11 @@ porcupine has to return its linearization.
   (`issues/k8s-etcd3-cached-object-trusted-at-current-rv.md`).
 - (2026-11-02) Prophecies added in Lean only, proved sound: Perennial branch `proph-erasure`
   (`withProph`, `goose_adequacy_withProph`, the example `prophkv`); `notes/perennial-changes.md`,
-  "Prophecies in Lean only". Whole-program prophecies only, so far.
+  "Prophecies in Lean only". (2026-11-03) Per-call too: `goose_adequacy_funcProph` (one function
+  run under a prophecy of its result, in a patched Go model whose `go.Semantics` `patchSem`
+  proves), so `prophkv`'s `GetAny` has a plain logically atomic spec; the closed theorem takes
+  premises that the model returns no out-of-call reference to the function (`ModelOk`). Not
+  landed in Perennial.
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 

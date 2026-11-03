@@ -1355,14 +1355,26 @@ the lemma in `Bag.lean`, next to `bag_send_au`.
   `goose/testdata/examples/prophkv` (`GetAny` reads twice and returns one answer chosen afterwards;
   its logically atomic spec takes a prediction; `prog_safe` is about the program without the
   prophecy).
-- **Limitation.** The prophecy is the *whole program's* result, resolved at its end; a function
-  that needs its own prophecy (one per call, as `kubernetes.Client.Get` would) takes the
-  prediction as a ghost argument of its spec, supplied from a top-level prophecy, which works only
-  when the program's result determines what each call's prophecy must predict. Per-call
-  instrumentation of a function's body is not covered: instrumented closures (from the function
-  table) would reach Go instructions, whose semantics is an axiomatized relation over all models
-  (`GoLocalContext.is_go_step_pure` with the `go.Semantics` axioms, some deterministic over
-  arbitrary values), so their steps on instrumented and erased values cannot be related in
-  general. Making that work needs either a value-bijection argument over every `go.Semantics`
-  axiom, or prophecy values (and instrumented closures) kept out of Go instructions by the
-  semantics; neither is attempted.
+- **Per-call instrumentation, done (same branch, 2026-11-03).** `goose_adequacy_funcProph`
+  (`Perennial/GooseLang/FuncInstrument.lean`, proved, standard axioms only): a WP in a Go model
+  patched so that one function `f` (two arguments, no type arguments) resolves to its body under a
+  prophecy of its result (`prophFnV impl`) gives `goose_adequacy`'s conclusions about the real
+  executions in the real model. Proof: a simulation in the bounded language whose instrumented
+  threads are the real ones with the wrapper's frames inserted around running calls of `f`. It
+  needs `f`'s resolution `GoInstruction (FuncResolve f [])` to be only applied to its arguments
+  (`ok`), so that the two models' different closures never reach a Go instruction: `ok` is checked
+  on the program and is an invariant given the same of the model's instruction results
+  (`GoodModel`), the extensions (`GoodExts`), prophecy-id values (`IntoValOk.proph`) and the
+  initial heap; these are premises of the closed theorem (true of any model of Go, which has no
+  instruction producing a reference to `f` and no prophecies, but not derivable from
+  `go.Semantics`). `patchSem` (`Perennial/Golang/Theory/FuncProph.lean`) proves the patched model
+  satisfies `go.Semantics`: a `transfer` tactic carries the ~480 fields over definitionally; only
+  `go_func_resolve_step` and a few `FuncUnfold` facts of named functions (`reservedFuncs`) need
+  proofs. In `prophkv`, `wp_GetAny` is now a plain logically atomic spec (no prediction), and
+  `prog_safe` takes `ModelOk` and `heapOk` premises.
+- **Remaining limitations.** `f` must take exactly two arguments (the wrapper's shape and the
+  call-position count are fixed); one instrumented function per model (patching composes, not
+  done); `ModelOk` assumes the program's own function bodies are `ok` rather than checking them
+  (they are checked only through `prog`'s own code); generated instances that take the package's
+  `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
+  `AssumptionsP` (`Main.lean`'s shim).
