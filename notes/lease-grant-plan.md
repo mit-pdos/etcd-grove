@@ -1196,3 +1196,12 @@ collections, `gen-init.py --check`, `gen-interface.py --check` (backend, raft) c
   `srvGrantIf_perm` (both proved). M1's lemmas are for commit 4.
 
 **Where the plumbing stopped** (2026-11-03): 3b done (above); next: commits 4 and 5 (and 2.8).
+
+**`runSnapLgOkBody` after 3b** (round 4 left it unverified, 2026-11-03): still true of Go, by this
+argument. With revocations, checkpoints and expiry out, the leader's lease bucket at the snapshot's
+index holds a record for exactly each id of the committed table (TTLs as each granting member
+stored them, which (D)'s TTL-free image absorbs), so the leased `srvRest` of `A'` holds after the
+receive; Go's `Recover` rebuilds the lessor from exactly those records, so its live set equals the
+table again and stays monotone (only `Revoke`/`Recover` remove, and `Recover` reloads the same set).
+It is a `sorry` (`srvGrantOpen_open`) because `Recover.spec` takes a revocable lessor, not because it
+is false. Restoring a snapshot with leases (a `Recover` spec for a monotone lessor) is its own stage.
