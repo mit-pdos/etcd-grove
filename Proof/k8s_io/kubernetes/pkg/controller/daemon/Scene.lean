@@ -39,6 +39,7 @@ calls to them, proposals of the run's report).
 module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Model
+public import Proof.k8s_io.kubernetes.pkg.controller.daemon.util.Defs
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.SelDefs
 public import Proof.k8s_io.client_go.tools.cache.Keys
 
@@ -72,13 +73,8 @@ opaque getPatchD : kd.core.PodTemplateSpec → List w8
 
 /-! ## The DaemonSet's derived values -/
 
-/-- `apps.DefaultDaemonSetUniqueLabelKey` (`"controller-revision-hash"`). -/
-def hashLabelKey : GoString := go!"controller-revision-hash"
-/-- `extensions.DaemonSetTemplateGenerationKey` (`"pod-template-generation"`). -/
-def genLabelKey : GoString := go!"pod-template-generation"
-
 /-- The template's labels (`nil`: none). -/
-def tmplLabels (d : kd.apps.DaemonSet) : GMap GoString GoString :=
+def dsTmplLabels (d : kd.apps.DaemonSet) : GMap GoString GoString :=
   d.Spec'.Template'.ObjectMeta'.Labels'.getD ∅
 
 /-- **The DaemonSet's hash** (`snapshot`'s `ComputeHash(&ds.Spec.Template, ds.Status.CollisionCount)`). -/
@@ -102,7 +98,7 @@ def lblSub (M L : GMap GoString GoString) : Prop := ∀ k v, M !! k = some v →
 
 /-- **The selector selects every label set extending the template's.** -/
 def selCovers (d : kd.apps.DaemonSet) : Prop :=
-  ∀ L, lblSub (tmplLabels d) L → labels.selMatch (selOf d) L
+  ∀ L, lblSub (dsTmplLabels d) L → labels.selMatch (selOf d) L
 
 /-- **The DaemonSet stored for owner `o`** (its key). -/
 def dsAtOwner (σ : St) (o : Owner) : Option kd.apps.DaemonSet :=
@@ -132,8 +128,8 @@ structure dsWf (d : kd.apps.DaemonSet) : Prop where
 structure podOf (d : kd.apps.DaemonSet) (p : kd.core.Pod) : Prop where
   ref : p.ObjectMeta'.OwnerReferences' = [ctlRefOf d]
   ns : p.ObjectMeta'.Namespace' = d.ObjectMeta'.Namespace'
-  lbls : lblSub (tmplLabels d) (p.ObjectMeta'.Labels'.getD ∅)
-  hash : (p.ObjectMeta'.Labels'.getD ∅) !! hashLabelKey = some (dsHash d)
+  lbls : lblSub (dsTmplLabels d) (p.ObjectMeta'.Labels'.getD ∅)
+  hash : (p.ObjectMeta'.Labels'.getD ∅) !! hashKey = some (dsHash d)
   unbound : p.Spec'.NodeName' = go!""
   pending : p.Status'.Phase' = go!"Pending"
   live : p.ObjectMeta'.DeletionTimestamp' = none
@@ -143,7 +139,7 @@ structure crOf (d : kd.apps.DaemonSet) (r : kd.apps.ControllerRevision) : Prop w
   ref : r.ObjectMeta'.OwnerReferences' = [ctlRefOf d]
   ns : r.ObjectMeta'.Namespace' = d.ObjectMeta'.Namespace'
   name : r.ObjectMeta'.Name' = crName d
-  lbls : r.ObjectMeta'.Labels' = some (<[hashLabelKey := dsHash d]> (tmplLabels d))
+  lbls : r.ObjectMeta'.Labels' = some (<[hashKey := dsHash d]> (dsTmplLabels d))
   data : r.Data'.Raw' = getPatchD d.Spec'.Template'
 
 /-- **The scenario's facts** (see the file header). -/

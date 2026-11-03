@@ -131,6 +131,18 @@ def ownerOf (k : GoString) : Option Owner :=
 name). -/
 def ownerKey (o : Owner) : GoString := nameKey o.Namespace' o.Name'
 
+/-- **`metav1.GetControllerOf(pod)`**: the first owner reference with `Controller` set. -/
+def ctlOf (p : kd.core.Pod) : Option kd.meta.OwnerReference :=
+  p.ObjectMeta'.OwnerReferences'.find? (fun r => decide (r.Controller' = some true))
+
+/-- **`controller.PodControllerIndexKey(ns, ref)`**: the namespace alone for no reference. -/
+def podCtlKey (ns : GoString) : Option kd.meta.OwnerReference → GoString
+  | none => ns
+  | some r => ns ++ go!"/" ++ r.Kind' ++ go!"/" ++ r.Name' ++ go!"/" ++ r.UID'
+
+/-- `controller.PodControllerIndex`. -/
+def podCtlIndex : GoString := go!"podController"
+
 end comps
 
 section defs
@@ -236,6 +248,21 @@ instance queueKeysCanon_persistent (γq : DNames) :
     Persistent (queueKeysCanon (GF := GF) γq) := by
   unfold queueKeysCanon; infer_instance
 
+/-- **The pod store's controller index** (persistent): from now on every state of the pod store
+has the indexer `podCtlIndex` (`AddPodControllerIndexer`, in the constructor, before the informer
+starts: afterwards `AddIndexers` fails) at family index `j`, whose relation gives a pod its
+`PodControllerIndexKey`. (Its source is the informer's API: a fact the constructor's proof needs
+from track A's `AddIndexers`/`RunWithContext` specs, an open question of the run's report.) -/
+def podCtlIndexed (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
+  iprop(∃ j : Nat, □ (∀ σs, storeSt I.γt σs -∗ ⌜σs.fnIds !! podCtlIndex = some j⌝) ∗
+    □ (∀ (x : GoInterface) (vs : List GoString) (p : kd.core.Pod),
+      apimodel.objAt x DFrac.discard (.pod p) -∗ Fam j x vs -∗
+      ⌜vs = [podCtlKey p.ObjectMeta'.Namespace' (ctlOf p)]⌝))
+
+instance podCtlIndexed_persistent (I : InfLoc) (Fam : Nat → Fn GF) :
+    Persistent (podCtlIndexed I Fam) := by
+  unfold podCtlIndexed; infer_instance
+
 /-- **The controller** `dsc` (persistent): see the file header. -/
 def isDsc (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
@@ -251,6 +278,10 @@ def isDsc (dsc : Loc) (c : DscComp)
     "%HpcKc" ∷ ⌜c.pc.KubeClient' = c.kc⌝ ∗
     "#HpcRec" ∷ recorderOk c.pc.Recorder' ∗
     "#HonWrite" ∷ onWriteFnOk c.pc.OnWrite' c.cons c.γc (ownerTok c) ∗
+    "#HcrControl" ∷ dsc.[DaemonSetsController, go!"crControl"] ↦□
+      (interface.mkOk k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl.ty
+        #(k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl.mk c.kc) :
+        k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface) ∗
     "#HburstReplicas" ∷ dsc.[DaemonSetsController, go!"burstReplicas"] ↦□ (W64 250) ∗
     "#HsyncHandler" ∷ dsc.[DaemonSetsController, go!"syncHandler"] ↦□
       (methods (go.GoType.PointerType DaemonSetsController.ty) go!"syncDaemonSet" #dsc : GoFunc) ∗
@@ -268,6 +299,7 @@ def isDsc (dsc : Loc) (c : DscComp)
     "#HdsI" ∷ infAt γa .daemonSets c.dsI F.ds ∗
     "#HcrI" ∷ infAt γa .revisions c.crI F.cr ∗
     "#HpodI" ∷ infAt γa .pods c.podI F.pod ∗
+    "#HpodIdx" ∷ podCtlIndexed c.podI F.pod ∗
     "#HnodeI" ∷ infAt γa .nodes c.nodeI F.node ∗
     "#HdsLister" ∷ dsc.[DaemonSetsController, go!"dsLister"] ↦□
       (interface.mkOk (go.GoType.PointerType k8s_io.client_go.listers.apps.v1.daemonSetLister.ty)
