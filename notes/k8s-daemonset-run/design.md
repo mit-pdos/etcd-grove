@@ -58,6 +58,17 @@ track C proves `NewDaemonSetsController` produces it.
 
 ## S1's invariant (B)
 
+**Thaw (track B, 2026-11-03):** two invariants, not one. The consistency store allocates its own
+ghost names inside `NewDaemonSetsController`, so no invariant holding `consState` can exist right
+after `NewServer`. `apiInv γa γ` (allocated by `Main` right after `NewServer`) holds `apiState`
+and half of a mirror of it (`ghostVar γ.mirror`); `apiReader` follows by `apiReader_of_inv`.
+`s1Inv γ c` (allocated by `Main` after the constructor, before `Run` and the admin's DaemonSet
+create) holds the mirror's other half, the consistency store's state, the per-owner bookkeeping and
+the claims, with `s1Ok`: S1 for every UID, `sceneOk` (what the model and the controller keep true of
+every object), per-owner accounting. Track B's report has the full text (`S1Inv.lean`).
+
+The text below is the first version:
+
 `s1Inv` holds the API state's clients' half, the consistency store's abstract state, the pod
 informer's version lower bound, the pending creates and claimed nodes (`S1Inv.lean`). Track B
 decides whether it covers one DaemonSet (the driver's: its key `default/ds-1`, its UID fixed when

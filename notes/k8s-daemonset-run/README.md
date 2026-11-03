@@ -69,3 +69,9 @@ Then: review rounds (fresh `spec-reviewer`), the freeze, the invariant walk-thro
   construction (the FIFO's ghost names pre-allocated), not at `Start`; handler events carry their API
   facts (`evFacts`) through the processor; `reflect.TypeOf`'s stronger (deterministic, injective on
   the four resources' pointer types) statement is a separate trust-boundary proposal for Stage 4.
+- R5 (2026-11-03, track B's `queueKeysCanon`): the work queue gets a pure item predicate `Pk`
+  fixed when the queue is created: `Add`/`AddAfter`/`AddRateLimited` take `⌜Pk k⌝`, `Get` returns
+  it (with the key's token). The spec principles' approved departure for a persistent predicate
+  fixed at creation (`crevPermIs`, `c3-store-law.md`); the old statements are its instance
+  `Pk := fun _ => True`; the only clients are this run's stubs. The controller's `Pk` is
+  `keyCanon` (every key it adds comes from `KeyFunc` of a namespaced object).
