@@ -451,6 +451,9 @@ noncomputable def bootstrapNewClusterNoWAL [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def bootstrapClusterWithWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapClusterWithWAL"
 
+noncomputable def newestSnapshotEntry [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.newestSnapshotEntry"
+
 noncomputable def recoverSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recoverSnapshot"
 
@@ -610,7 +613,7 @@ noncomputable def NewRaftLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewRaftLoggerFromZapCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerFromZapCore"
 
-/-- go: bootstrap.go:578:28 -/
+/-- go: bootstrap.go:594:28 -/
 noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "ss"
