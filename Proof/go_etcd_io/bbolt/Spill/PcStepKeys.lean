@@ -86,6 +86,93 @@ theorem wssOff_succ {wss : List (List WEntry)} {k : Nat} {ws : List WEntry}
   unfold wssOff
   rw [List.take_add_one, hk]; simp
 
+/-- **`n`'s shape after its children's loop**: its keys not empty; a leaf of height `0`, or a
+branch of at least two entries (of height at least `1`). -/
+theorem spEnd_shape {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
+    (∀ e ∈ r'.ws, 0 < e.key.length) ∧ (r'.nv.isLeaf' = true → h = 0) ∧
+    (r'.nv.isLeaf' = false → 2 ≤ r'.ws.length ∧ 1 ≤ h) := by
+  obtain ⟨hn, -, hc⟩ := hpre
+  rcases hc with ⟨hs, -⟩ | ⟨hut, -⟩
+  · rw [hs] at hsp; cases hsp
+  rcases hend with ⟨hlf, -, -, rfl, -, -⟩ | ⟨hlf, h', es, i, rfl, hl, -⟩
+  · have hun := pk_uNode hut hn
+    refine ⟨fun e he => (hun.2.2.2.2.2.2.1 e he).2.1, fun _ => ?_, fun h' => by
+      rw [hlf] at h'; cases h'⟩
+    cases hut with
+    | leaf => rfl
+    | branch _ r'' _ _ _ _ hr _ hl2 =>
+      rw [hn] at hr; cases hr; rw [hlf] at hl2; cases hl2
+  · have hun := hl.br.un
+    refine ⟨fun e he => (hun.2.2.2.2.2.2.1 e he).2.1, fun h1 => ?_, fun _ => ⟨hl.br.two, by omega⟩⟩
+    rw [hl.br.leaf] at h1; cases h1
+
+/-- **A piece's entries' keys** (piece `k`, entries `ws`, not empty): sorted, not empty, within
+`n`'s bounds and within the piece's (from its first key to the next piece's). -/
+theorem pcPiece_keys {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T)
+    {X1 X2 : WX} {xs : List (Loc × node × List Inode)} {wss : List (List WEntry)} {pl : Loc}
+    {rp0 : NRec} (hsr : splitRel X1 X2 bl n r'.nilCh xs wss pl rp0)
+    {k : Nat} {ws : List WEntry} (hws : wss[k]? = some ws) :
+    wsSorted ws ∧ (∀ e ∈ ws, 0 < e.key.length) ∧ (∀ e ∈ ws, keyIn lo hi e.key) ∧
+    (∀ e ∈ ws, keyIn (some (wKey ws 0)) (childHi hi (wssKey wss) wss.length k) e.key) := by
+  obtain ⟨hsort, hin, -, -⟩ := spEnd_keys hpre hsp hend
+  have hk0 := (spEnd_shape hpre hsp hend).1
+  have hflat : wss.flatten = r'.ws := hsr.ws
+  have hlt : k < wss.length := (List.getElem?_eq_some_iff.1 hws).1
+  have hd : wss.drop k = ws :: wss.drop (k + 1) := by
+    rw [List.drop_eq_getElem_cons hlt, (List.getElem?_eq_some_iff.1 hws).2]
+  have hf : r'.ws = (wss.take k).flatten ++ (ws ++ (wss.drop (k + 1)).flatten) := by
+    rw [← hflat]
+    have e := congrArg List.flatten (List.take_append_drop k wss)
+    rw [← e, hd]; simp
+  have hlen : (wss.take k).flatten.length = wssOff wss k := by
+    unfold wssOff; rw [List.length_flatten]
+  -- entry `a` of the piece is entry `wssOff wss k + a` of `n`
+  have hat : ∀ a, a < ws.length → wssOff wss k + a < r'.ws.length ∧
+      wKey r'.ws (wssOff wss k + a) = wKey ws a := by
+    intro a ha
+    constructor
+    · rw [hf, List.length_append, List.length_append, hlen]; omega
+    · unfold wKey; rw [hf, ← hlen, List.getElem?_append_right (by omega),
+        show (wss.take k).flatten.length + a - (wss.take k).flatten.length = a by omega,
+        List.getElem?_append_left ha]
+  have hmem : ∀ e ∈ ws, e ∈ r'.ws := fun e he => by
+    rw [hf]; exact List.mem_append_right _ (List.mem_append_left _ he)
+  have hsw : wsSorted ws := by
+    intro a b hab hb
+    rw [← (hat a (by omega)).2, ← (hat b hb).2]
+    exact hsort _ _ (by omega) (hat b hb).1
+  refine ⟨hsw, fun e he => hk0 e (hmem e he), fun e he => hin e (hmem e he), ?_⟩
+  intro e he
+  obtain ⟨a, ha, rfl⟩ := List.getElem_of_mem he
+  have hka : wKey ws a = ws[a].key := by unfold wKey; rw [List.getElem?_eq_getElem ha]; rfl
+  refine ⟨fun l hl => ?_, fun u hu => ?_⟩
+  · cases hl
+    rw [← hka]
+    rcases Nat.eq_zero_or_pos a with h0 | h0
+    · subst h0; exact go.goStringLt_irrefl _
+    · exact go.goStringLt_asymm (hsw 0 a h0 ha)
+  · unfold childHi at hu
+    by_cases hk1 : k + 1 < wss.length
+    · rw [if_pos hk1] at hu; cases hu
+      obtain ⟨wn, hwn⟩ : ∃ wn, wss[k + 1]? = some wn := ⟨_, List.getElem?_eq_getElem hk1⟩
+      have hil : k + 1 < xs.length := by rw [← hsr.len]; exact hk1
+      obtain ⟨xn, hxn⟩ : ∃ xn, xs[k + 1]? = some xn := ⟨_, List.getElem?_eq_getElem hil⟩
+      have hnn : 0 < wn.length := (hsr.plen _ xn wn hxn hwn).2 (by omega)
+      obtain ⟨hoff, hkw⟩ := wssKey_flat hwn hnn
+      rw [hflat] at hoff hkw
+      rw [← hkw, ← hka, ← (hat a ha).2, wssOff_succ hws]
+      rw [wssOff_succ hws] at hoff; exact hsort _ _ (by omega) hoff
+    · rw [if_neg hk1] at hu
+      exact (hin _ (hmem _ he)).2 u hu
+
 /-- **The keys around piece `i`'s entry in the parent** (`parPut`'s premises, the piece's key
 `wssKey wss i`): the node's entry `j` in the base `bs` (none for a new root), the first piece put
 at the node's key, the piece's key above the base's previous entry and the previous piece's, below
