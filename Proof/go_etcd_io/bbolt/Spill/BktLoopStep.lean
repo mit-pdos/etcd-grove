@@ -189,7 +189,7 @@ theorem rinv_inlPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} 
     cases hu with
     | leaf _ r _ _ _ hr hu' => rw [hrn] at hr; cases hr; exact hu'
     | branch _ r _ _ _ _ hr hu' => rw [hrn] at hr; cases hr; exact hu'
-  obtain ⟨-, B', hB', hcl, -⟩ := hloc
+  obtain ⟨-, B', hB', hcl, -⟩ := hloc hn
   rw [hC] at hB'; cases hB'
   have hnc := hcl.2.2.2.2.2.2.2.1 _ rn hns
   exact ⟨rn, hrn, hns, hun.1, hnc.2.2.2.2.2.1, fun w hw => (hun.2.2.2.2.2.2.1 w hw).2.2⟩

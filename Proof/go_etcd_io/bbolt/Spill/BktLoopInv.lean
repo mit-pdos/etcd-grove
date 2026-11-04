@@ -75,7 +75,8 @@ def rootLoc (X : WX) (bl : Loc) : Prop :=
 
 /-- **A child not yet visited** (see the module doc). -/
 def childTodo (X0 X : WX) (w : WDb) (txid : w64) (c : Loc) (D : List Nat) : Prop :=
-  ∃ C, X.t.bs !! c = some C ∧ c ∈ X.liveB ∧ C.bm = ∅ ∧ c ≠ X.rl ∧ bktLocalOK X c ∧ rtOK X c ∧
+  ∃ C, X.t.bs !! c = some C ∧ c ∈ X.liveB ∧ C.bm = ∅ ∧ c ≠ X.rl ∧
+    (C.bv.rootNode' ≠ null → bktLocalOK X c) ∧ rtOK X c ∧
     lbktEnts X c = lbktEnts X0 c ∧
     (C.bv.rootNode' = null → D = [] ∧ ∃ C0, X0.t.bs !! c = some C0 ∧ C0.bv.rootNode' = null) ∧
     (C.bv.rootNode' ≠ null → ∃ rn h F N E, X.node c C.bv.rootNode' = some rn ∧
@@ -122,6 +123,10 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   rootPg : B0.ib.root' ≠ W64 0
   /-- The root bucket's entries' keys are not empty (the searches' keys, `node.put`'s premise). -/
   entKeys : ∀ we ∈ X.allEnts X0.rl, 0 < we.key.length
+  /-- The root's cached children are distinct (`StartFacts.inj`). -/
+  inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
+  /-- The committed state's tree is well-formed (`StartFacts.cok`; the view's, `viewWF`). -/
+  cok : treeOK w0.C
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=

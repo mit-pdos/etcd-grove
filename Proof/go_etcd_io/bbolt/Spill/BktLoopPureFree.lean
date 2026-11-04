@@ -75,10 +75,10 @@ theorem rinv_freePre' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
     intro e
     have := (hG.2.2.1.2.2.1 c C hC).2
     rw [e] at hns; rw [this] at hns; cases hns
-  have hloc' := hloc
+  have hloc' := hloc hnn
   obtain ⟨-, B', hB', hcl, -⟩ := hloc'
   rw [hC] at hB'; cases hB'
-  refine ⟨hloc, positions_pm_none hG hC hcl h0 hrt, ?_, hrt, htx⟩
+  refine ⟨hloc hnn, positions_pm_none hG hC hcl h0 hrt, ?_, hrt, htx⟩
   obtain ⟨rn', h, F, N, E, hrn', -, hu, hfr, -⟩ := htree hnn
   rw [hrn] at hrn'; cases hrn'
   have hres : resolve C C.ib.root' = some C.bv.rootNode' := by
