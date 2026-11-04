@@ -33,26 +33,6 @@ threads; `notes/lease-expiry-plan.md`, review round 2). Proposed general change
 levels). Local workaround: `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` (the user's
 approval, 2026-11-04). Not yet proposed on a Perennial branch.
 
-### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
-
-- **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
-  initTicker ↦□ true ∗ bag`, with no unforgeability token like `isTimer`'s `newTimerMade`. A copy
-  `u := new(time.Ticker); *u = *t` meets it (both fields are read through `t`'s persistent
-  points-tos and written into `u`), and the proved `Ticker.Reset` spec says `u.Reset(d)` returns,
-  while Go fails: measured with go1.27.3, "fatal error: unlock of unlocked lock" (the runtime's timer
-  state after the `Ticker` header is not copied). `u.Stop()` returned in the same experiment, but
-  also runs the runtime's `stopTimer` on memory that is not a timer.
-- **Needed by.** Nothing here copies a ticker; every client gets its ticker from `NewTicker`
-  (`serverWatchStream.sendLoop`, `streamWriter.run`, `syncWatchersLoop`, `newRaftNode`, the auth
-  token keeper, kvdurable's and kvreconf's replicas). The concern is the spec's soundness as a
-  library spec.
-- **Here.** Nothing: since 2026-11-03 this repository's own ticker axioms are gone (their `Reset`
-  admitted a forged `v.C = t.C`, false of Go, `notes/decisions.md`, "The ticker where it is made")
-  and the clients use Perennial's proved specs.
-- **Proposal.** An opaque `newTickerMade t` in `isTicker`, given only by `NewTicker`'s spec, as
-  `newTimerMade` for timers.
-- **Status.** Not proposed yet.
-
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
@@ -364,7 +344,13 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
   in a scratch copy of the pinned translator: the three translate and their `Code` and
   `GeneratedProof` elaborate; nothing else changes.
-- **Status.** Not started; small. Needed before the watcher.
+- **Status.** Done, waiting for the push (2026-11-04, the user's sign-off on the plan, G1 of
+  `notes/k8s-compactor-plan.md`): Perennial branch `goose-unalias` (`/shared/perennial-unalias`,
+  commits `d2aa32108`, `e028adb0d`; `etc/land.sh prepare` passed, the review recorded), the two
+  lines, tests of a value, a pointer to an alias and an alias of a pointer (gold files; the
+  semantics test `testStructFieldThroughAlias`, proved), `fix-semantics` Case 30; the standard
+  library regenerates unchanged. Then the pin bump, and `etcdstart.Collect`'s workaround
+  (`mvccpb.Event` for `clientv3.Event`) can go.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 
@@ -893,6 +879,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
+
+- **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
+  initTicker ↦□ true ∗ bag`, with no unforgeability token like `isTimer`'s `newTimerMade`. A copy
+  `u := new(time.Ticker); *u = *t` meets it (both fields are read through `t`'s persistent
+  points-tos and written into `u`), and the proved `Ticker.Reset` spec says `u.Reset(d)` returns,
+  while Go fails: measured with go1.27.3, "fatal error: unlock of unlocked lock" (the runtime's timer
+  state after the `Ticker` header is not copied). `u.Stop()` returned in the same experiment, but
+  also runs the runtime's `stopTimer` on memory that is not a timer.
+- **Needed by.** Nothing here copies a ticker; every client gets its ticker from `NewTicker`
+  (`serverWatchStream.sendLoop`, `streamWriter.run`, `syncWatchersLoop`, `newRaftNode`, the auth
+  token keeper, kvdurable's and kvreconf's replicas). The concern is the spec's soundness as a
+  library spec.
+- **Here.** Nothing: since 2026-11-03 this repository's own ticker axioms are gone (their `Reset`
+  admitted a forged `v.C = t.C`, false of Go, `notes/decisions.md`, "The ticker where it is made")
+  and the clients use Perennial's specs (proved from its trusted models until `432c32f28`, its
+  axioms since).
+- **Proposal.** An opaque `newTickerMade t` in `isTicker`, given only by `NewTicker`'s spec, as
+  `newTimerMade` for timers.
+- **Status.** Landed on Perennial's `lean` as `432c32f28`, design A: the trusted models of
+  `NewTicker`, `Ticker.Stop` and `Ticker.Reset` removed, the three made axioms, and `isTicker`
+  holding the runtime timer's `newTimerMade` (a copy has none). In the pin since 2026-11-04 (the bump
+  to `4c8617a9e`, branch `pin-4c8617a9e`); nothing here needed a change for it.
+
 ### The thread and receipt bounds as instances (2026-11-01, bounds plan B1; landed `6e3ca6ca3`)
 
 - **Limitation.** A proof needing `threadBound GF` or `receiptBound GF` small took the bound as a
@@ -1060,8 +1070,8 @@ elaborate:
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
 - **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
-  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
-  names-only.
+  reached by the pin `edcadb1e5` (2026-10-27). (2026-10-31) `store.GetList` translated with it
+  (`notes/k8s-etcd3-plan.md`, stage 7a).
 
 ### The type set of an interface with an embedded interface
 
@@ -1559,3 +1569,48 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `iStructNamed` and put it back with `typedPointsto_combine` (`op_split`/`op_join` in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
+
+### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
+
+- **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's
+  `Get`, whose read update fires at several states; `notes/k8s-etcd3-plan.md`, phase 7) had to
+  instrument the Go code (the etcd fork's `goose-lean-getproph`, `Apply`'s `ResolveU64`s), with
+  an informal argument that `primitive.NewProph`/`ResolveU64` are no-ops.
+- **Done (Perennial branch `proph-erasure`, pushed, not landed).** `withProph e`
+  (`Perennial/GooseLang/ProphInstrument.lean`) runs the program `e` unchanged under a prophecy of
+  its result; `goose_adequacy_withProph` gives `goose_adequacy`'s conclusions about the real
+  executions of `e` from a WP of `withProph e`, same bounds, proved (standard axioms only), no
+  change to the semantics (`etc/trusted-delta.py`: the new modules are tier 2). `wp_withProph`
+  (`Golang/Theory/WithProph.lean`) hands the proof of `e` the prophesied list. End-to-end example
+  `goose/testdata/examples/prophkv` (`GetAny` reads twice and returns one answer chosen afterwards;
+  its logically atomic spec takes a prediction; `prog_safe` is about the program without the
+  prophecy).
+- **Per-call instrumentation, done (same branch, 2026-11-03).** `goose_adequacy_funcProph`
+  (`Perennial/GooseLang/FuncInstrument.lean`, proved, standard axioms only): a WP in a Go model
+  patched so that one function `f` (two arguments, no type arguments) resolves to its body under a
+  prophecy of its result (`prophFnV impl`) gives `goose_adequacy`'s conclusions about the real
+  executions in the real model. Proof: a simulation in the bounded language whose instrumented
+  threads are the real ones with the wrapper's frames inserted around running calls of `f`. It
+  needs `f`'s resolution `GoInstruction (FuncResolve f [])` to be only applied to its arguments
+  (`ok`), so that the two models' different closures never reach a Go instruction: `ok` is checked
+  on the program and is an invariant given the same of the model's instruction results
+  (`GoodModel`), the extensions (`GoodExts`), prophecy-id values (`IntoValOk.proph`) and the
+  initial heap; these are premises of the closed theorem (true of any model of Go, which has no
+  instruction producing a reference to `f` and no prophecies, but not derivable from
+  `go.Semantics`). `patchSem` (`Perennial/Golang/Theory/FuncProph.lean`) proves the patched model
+  satisfies `go.Semantics`: a `transfer` tactic carries the ~480 fields over definitionally; only
+  `go_func_resolve_step` and a few `FuncUnfold` facts of named functions (`reservedFuncs`) need
+  proofs. In `prophkv`, `wp_GetAny` is now a plain logically atomic spec (no prediction), and
+  `prog_safe` takes `ModelOk` and `heapOk` premises.
+- **Dropped (2026-11-03, the user's choice).** This approach (prophecies added in Lean, with an
+  instrumentation theorem) is no longer followed: proofs that need a prophecy get it from a
+  prophecy patch of the Go code (`etc/proph-patches/`, `notes/decisions.md`, "Prophecies as patches
+  of the Go code"). The Perennial branch `proph-erasure` is kept, not landed, for reference only;
+  do not build on it. (A WP-free erasure theorem would need either the premises below or a new
+  `go.Semantics` fact, Go instructions commute with erasure; not pursued.)
+- **Remaining limitations.** `f` must take exactly two arguments (the wrapper's shape and the
+  call-position count are fixed); one instrumented function per model (patching composes, not
+  done); `ModelOk` assumes the program's own function bodies are `ok` rather than checking them
+  (they are checked only through `prog`'s own code); generated instances that take the package's
+  `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
+  `AssumptionsP` (`Main.lean`'s shim).

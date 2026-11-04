@@ -258,7 +258,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
   -- translated initializer of restoreChunkKeys))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
   wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
@@ -299,9 +299,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrEmptyWatcherRange))
   -- translated initializer of ErrWatcherDuplicateID))
   -- translated initializer of watchBatchMaxRevs))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xWNE #MWNE
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xEWR #MEWR
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xWDI #MWDI
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xWNE ⟨-, #MWNE⟩
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xEWR ⟨-, #MEWR⟩
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xWDI ⟨-, #MWDI⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrRevisionNotFound
   ipersist HErrCompacted

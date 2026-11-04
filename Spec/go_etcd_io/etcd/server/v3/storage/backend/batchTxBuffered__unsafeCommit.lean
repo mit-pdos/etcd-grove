@@ -32,7 +32,7 @@ abbrev backend.batchTxBuffered.unsafeCommit.spec : Prop :=
       payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"unsafeCommit")) (Val #stop))
   {{ RET #(); Y ∗ rtRes γ P rt 1 ∗ Pk ∗ payOut γ stop m ∗
-      (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ)
+      (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ ∗ bDBOutG γ P)
        else iprop(∃ (st' : BSess) (db : Loc), sync.ownMutex (muOf t) ∗ batchPhys γ b t db st' ∗
          batchGhostAt γ P st' true ∗
          ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0⌝ ∗

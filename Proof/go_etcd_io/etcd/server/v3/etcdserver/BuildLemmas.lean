@@ -59,6 +59,14 @@ theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (Pk : I
         ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).be := by
   rw [mvcc.lateWD_boot _ rfl]; exact .rfl
 
+/-- (R2b-3c part 2) The backend with its stop channels, at the instance in either mode. -/
+theorem isStopChansE_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) :
+    backend.isStopChansE (GF := GF) d.γB d.P d.be ⊢
+      backend.isStopChansE ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).γB
+        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).P
+        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).be := by
+  exact .rfl
+
 theorem plHookRO_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (f : GoFunc) :
     backend.plHookRO (GF := GF) d.γB f ⊢
       backend.plHookRO ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).γB f := by

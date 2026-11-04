@@ -322,6 +322,14 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
     "Hlcs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
       ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n))
 
+/-- **`Start`'s reader slots** (its post's; the auth component's stage 2, 2026-11-04, named once so
+that `Start`'s merged spec and its corollaries share one count of the stocks): the read loop's
+lock's `actualMaxReaders` slots and the wait group's lock's but two. -/
+def srvStartReaders (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (), srvWgReader s))
+
 end defs
 
 section lemmas

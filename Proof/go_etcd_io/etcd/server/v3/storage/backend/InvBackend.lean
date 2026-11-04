@@ -125,6 +125,9 @@ structure BNames where
   /-- `ghostVar FkVals`: **the compaction keys' values** (`fkVals` of the writer's contents; F2's
   stage 1), half the batch lock's (`trkHalf`), half the client's (`ckHalf`) -/
   ck : GName
+  /-- `dghostVar (Loc × GoString)`, discarded at allocation (2026-11-04, R2b-3c): bbolt's database
+  and the file it is (`bDB`, `bFile`), so that the stop's escrow and `Close` agree on it -/
+  dbf : GName
   /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
@@ -294,6 +297,36 @@ def bOpen (γ : BNames) (q : Qp) : IProp GF :=
 
 /-- The backend stopped (persistent). -/
 def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
+
+/-- (2026-11-04, R2b-3c) **The backend's bbolt database is `db`, the file at `path`** (persistent). -/
+def bDBAt (γ : BNames) (db : Loc) (path : GoString) : IProp GF :=
+  dghostVar γ.dbf DFrac.discard ((db, path) : Loc × GoString)
+
+instance bDBAt_persistent (γ : BNames) (db : Loc) (path : GoString) :
+    Persistent (bDBAt (GF := GF) γ db path) := by
+  unfold bDBAt; infer_instance
+
+/-- (R2b-3c) The backend's bbolt database is `db` (persistent). -/
+def bDB (γ : BNames) (db : Loc) : IProp GF := iprop(∃ path : GoString, bDBAt γ db path)
+
+instance bDB_persistent (γ : BNames) (db : Loc) : Persistent (bDB (GF := GF) γ db) := by
+  unfold bDB; infer_instance
+
+/-- (R2b-3c) **The backend's file is at `path`** (persistent; `New` gives it, `Close` gives the file
+back there). -/
+def bFile (γ : BNames) (path : GoString) : IProp GF := iprop(∃ db : Loc, bDBAt γ db path)
+
+instance bFile_persistent (γ : BNames) (path : GoString) : Persistent (bFile (GF := GF) γ path) := by
+  unfold bFile; infer_instance
+
+theorem bDBAt_agree (γ : BNames) (db db' : Loc) (p p' : GoString) :
+    bDBAt (GF := GF) γ db p ∗ bDBAt γ db' p' ⊢ ⌜db = db' ∧ p = p'⌝ := by
+  unfold bDBAt
+  iintro ⟨H1, H2⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
+  ipureintro
+  simp only [Prod.mk.injEq] at H
+  exact H
 
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
@@ -934,6 +967,27 @@ def cacheRes (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ (bp : Loc) (ver : w64), cbufOf b ↦ bp ∗ cverOf b ↦ ver ∗
     (⌜bp = Loc.null⌝ ∨ cacheEnt γ P bp ver))
 
+/-! ## The stopped batch transaction -/
+
+/-- (2026-11-04, R2b-3c part 2) **What the stop's commit leaves of the batch lock's ghost shares**, at
+its committed data `C`: the readers' view quarter at `C`'s physical view (over some logical view, as
+`batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
+holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
+def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
+  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C)
+
+/-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
+committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
+commit's; `CommitAndStop` adds the lock's client resources, `bDBOut`). -/
+def bDBOutG (γ : BNames) (P : BParams) : IProp GF :=
+  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗ bStopG γ P C)
+
+/-- (R2b-3c) **What `CommitAndStop` gives up**: the stopped batch transaction's (`bDBOutG`) and the
+batch lock's client resources `W ∗ Pk`, which the stopped lock no longer holds (the stop's escrow,
+`bDoneEsc`, keeps them for `Close`). -/
+def bDBOut (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop(bDBOutG γ P ∗ W ∗ Pk)
+
 /-! ## The batch transaction -/
 
 /-- The batch transaction's physical state for `st`: its fields, the write buffer, the
@@ -944,7 +998,9 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
     txFOf t ↦ st.tx ∗ pendOf t ↦ st.pend ∗ delOf t ↦ st.ndel ∗ ownWB (wbOf t) st.W ∗
     bF go!"txPostLockInsideApplyHook" b ↦ hk ∗ dghostVar γ.hook (DFrac.own (1 : Qp).half) hk ∗
     ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
-    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+    -- (2026-11-04, R2b-3c) the database the backend's (its stop gives it to `Close`)
+    bDB γ db)
 
 /-- **The batch lock's quarter of the readers' view, over the logical view** (question 2, option (a),
 2026-10-29; until then the quarter at the physical view `vData P (st.C, st.R)` itself): some logical
@@ -1187,7 +1243,9 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-    isDB db ∗ ⌜P.Wf⌝)
+    isDB db ∗ ⌜P.Wf⌝ ∗
+    -- (2026-11-04, R2b-3c) the database and its file
+    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path))
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by

@@ -13,6 +13,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 
 @[expose] public section
 
@@ -94,7 +95,8 @@ theorem startServer.wp_proof
       γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
-      v3rpc.maxTxnOpsOk_default (by simp only [Bool.false_eq_true, ↓reduceIte]) hcmp0 Htb Hrb48 HrbN
+      v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
+      (fun h => absurd h (by decide)) hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
@@ -168,8 +170,10 @@ theorem startServer.wp_proof
   -- `s.Start()` with auth on
   wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N γa
       hγa Hrb48 HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, -⟩
+    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩
   · iframe; iframe #
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
   (try wp_auto)
   iapply HΦ
   iright

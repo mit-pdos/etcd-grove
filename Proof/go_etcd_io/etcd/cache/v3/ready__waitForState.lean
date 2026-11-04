@@ -80,7 +80,7 @@ theorem ready.waitForState.wp_proof : ready.waitForState.spec (GF := GF) (hG := 
       iintro ⟨#HP, #Hc⟩
       wp_auto
       ihave #HErrD := HErr $$ %Broadcast.Done
-      wp_apply HErrD $$ [] as %err %herr
+      wp_apply HErrD $$ [] as %err %herr -
       · iexact Hc
       wp_for_post
       iapply HΦ
@@ -95,7 +95,7 @@ theorem ready.waitForState.wp_proof : ready.waitForState.spec (GF := GF) (hG := 
     wp_apply sync.Mutex.wp_Unlock $$ [$Hr $Hlocked HisReady HstateCh Hch Hauth]
     · inext; iexists b, ch, γch, e; simp only [named]; iframe; ipureintro; exact Hb
     ihave #HErrU := HErr $$ %Broadcast.Unknown
-    wp_apply HErrU as %err Herr
+    wp_apply HErrU as %err Herr -
     wp_for_post
     iapply HΦ
     unfold readyWaitResult

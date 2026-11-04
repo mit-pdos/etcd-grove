@@ -30,7 +30,8 @@ as ownership of or knowledge about bbolt's memory is):
 - `txDone tx` (persistent): `tx` was committed or rolled back (its `Stats` can be read);
   `txDB tx db` (persistent): `tx`'s database.
 - `fileHolds path D`: the database file at `path` holds `D` (what `bolt.Open` reads: the
-  caller's assumption about the file).
+  caller's assumption about the file; (2026-11-04, R2b-3c) what `DB.Close` gives back).
+- `dbFile db path` (persistent): the open database `db` is the file at `path`.
 -/
 module
 
@@ -99,6 +100,11 @@ axiom ownCur (tx : Loc) (c : Loc) (es : List Ent) (pos : Option Nat) : IProp GF
 axiom txDone (tx : Loc) : IProp GF
 axiom txDB (tx : Loc) (db : Loc) : IProp GF
 axiom fileHolds (path : GoString) (D : Data) : IProp GF
+/-- (2026-11-04, R2b-3c, the user's approval) The open database `db` is the file at `path`
+(persistent): `Open_kv` gives it, `DB.Close_kv` gives the file back (`fileHolds path D`). -/
+axiom dbFile (db : Loc) (path : GoString) : IProp GF
+@[instance] axiom dbFile_persistent (db : Loc) (path : GoString) : Persistent (dbFile (GF := GF) db path)
+@[instance] axiom dbFile_timeless (db : Loc) (path : GoString) : Timeless (dbFile (GF := GF) db path)
 
 @[instance] axiom isDB_persistent (db : Loc) : Persistent (isDB (GF := GF) db)
 @[instance] axiom txBytes_persistent (tx : Loc) (s : GoSlice) (b : GoString) :

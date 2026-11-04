@@ -212,7 +212,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
       · itrivial
       iintro !> -
       wp_auto
-      wp_apply +noauto HErrU $$ [] as %cerr -
+      wp_apply +noauto HErrU $$ [] as %cerr - -
       wp_auto
       wp_apply hICE as %b -
       wp_if_destruct
@@ -316,7 +316,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr %HtyC
+    wp_apply +noauto HErrDone $$ [$HCC] as %cerr %HtyC -
     wp_auto
     canceled_check cerr
     all_goals watch_tail

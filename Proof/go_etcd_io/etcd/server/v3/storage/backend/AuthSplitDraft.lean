@@ -119,7 +119,7 @@ alarm store's `GetAllAlarms`, `authStore.Recover`, `UserGet`/`UserList`/`RoleGet
 rounds 3-4) and the counted remainder (`rdStock`) for the owners that pool bundles. Q2. -/
 def BksDraft.backend.newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) : IProp GF :=
-  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
+  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwnIn γ (fun _ => True) (rbData P D) ∗
     backend.rdPool γ P b ∗ backend.rdStock γ P b ∗

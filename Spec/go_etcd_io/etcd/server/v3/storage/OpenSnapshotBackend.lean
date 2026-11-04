@@ -59,7 +59,9 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
           ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
           newPostK γ P W Pk K b D ∗
           hooksAt b (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk) ∗
-          pathOwn (config.backendPathOf cfg.DataDir')) ∨
+          pathOwn (config.backendPathOf cfg.DataDir') ∗
+          -- (2026-11-04, R2b-3c part 2) the backend's file is the backend path (`OpenBackend`'s)
+          bFile γ (config.backendPathOf cfg.DataDir')) ∨
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil ∧
           ¬ (snap.dirReadOk ss ∧
             renameOk (snap.snapDBPath ss md.Index') (config.backendPathOf cfg.DataDir'))⌝ ∗

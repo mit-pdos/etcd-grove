@@ -1564,7 +1564,7 @@ vertical slice's unit V2): as `etcd_rangeHandlerOk`, for a transaction of plain 
 the txn package's model (`etcdTxnSpec`'s premises), the reply with `txnReplied` at the committed
 index the caller knew of and its floor. -/
 theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cid mid n : w64) :
+    (cid mid n : w64) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -1693,7 +1693,9 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iexists m
         isplitl []
         · simp only [pbTxnResponse]; iexact Hm
-        iapply Hspec
+        ihave Hrv : txnRevLb ρ.rd.kv t m $$ []
+        · unfold txnRevLb; simp only [hro, ↓reduceIte]; itrivial
+        iapply Hspec $$ %m [] Hrv
         unfold txnReplied
         simp only [hro, ↓reduceIte]
         iexists log
@@ -1709,6 +1711,44 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
         imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
+        -- (U1, 2026-11-04) the KV has reached the reply's revision: the store's certificate of
+        -- the log after the transaction, as the cluster's bound (`kvRevLb_of_srvRevLb`, as `Put`'s)
+        have HstC := Hst
+        obtain ⟨-, hs1, hs2, -, hs4, -, -, hs7, hs8, -⟩ := HstC
+        have hlogT := kvs_txn_applied_log tw t'' hm rq' x x' l skip hs1 hs2 hs4
+        ihave #Hkvi := srvKVInvs_of_read s E γr $$ Hsrd
+        iunfold srvKVInvs at Hkvi
+        icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hγcok, -⟩
+        have hwlt : mvcc.writeRev x.log
+            (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t'').2.1 <
+            x'.log.length := by
+          rw [hlogT]
+          have hne : x.log ≠ [] := by
+            intro he; have := hs7; rw [he] at this; simp at this
+          unfold mvcc.commitLog
+          split
+          · rename_i hp; unfold mvcc.writeRev; rw [if_pos hp]
+            have := List.length_pos_iff.2 hne; omega
+          · exact mvcc.writeRev_lt _ _ hne
+        have hwfit : (mvcc.writeRev x.log
+            (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t'').2.1 : Int) <
+            2 ^ 63 := by
+          have := hs8; unfold mvcc.writeRev; split <;> omega
+        ihave #HlbT : srvRevLb E.γ (sint.Z (W64 (mvcc.writeRev x.log
+            (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t'').2.1 : Int))) $$ []
+        · iunfold srvRevLb
+          iexists x'.log
+          iframe Hcert Hcok
+          ipureintro
+          have : sint.Z (W64 (mvcc.writeRev x.log
+              (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t'').2.1 : Int)) =
+              (mvcc.writeRev x.log
+              (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t'').2.1 : Int) := by
+            word
+          rw [this]; omega
+        imod (kvRevLb_of_srvRevLb γr.raft γr.kv E.γ Hγcok ⊤ (fun _ _ => CoPset.mem_full)
+            (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) _)
+          $$ Hkv Hci Hrl HlbT with #HrvT
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
           · rw [hro] at h; cases h
@@ -1728,7 +1768,12 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iexists m
         isplitl []
         · simp only [pbTxnResponse]; iexact Hm
-        iapply Hspec
+        ihave Hrv : txnRevLb ρ.rd.kv t m $$ []
+        · unfold txnRevLb; simp only [hro, Bool.false_eq_true, ↓reduceIte]
+          obtain ⟨h1, -⟩ := Hmm
+          rw [show ρ.rd = γr from hρ, h1]
+          iexact HrvT
+        iapply Hspec $$ %m [HMint HQv] Hrv
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
         iexists tw, hm, rq', t'', x, x', l, skip
@@ -1985,7 +2030,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
   · iframe #
   ihave #Hd := etcd_deleteHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
-  ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n $$ []
+  ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n hρ $$ []
   · iframe #
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOk_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpec E ρ.rd γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
@@ -2405,6 +2450,10 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
     iexists m
     iframe Hm
     iunfold txnAns at Hq
+    icases Hq with ⟨%x, %hx, Hq, -⟩
+    iexists x
+    isplitr
+    · ipureintro; exact hx
     iexact Hq
   · iright
     isplitl
@@ -3501,7 +3550,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   · iframe #
   ihave #Hd := etcd_deleteHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
-  ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n $$ []
+  ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n hρ $$ []
   · iframe #
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOk_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpec E ρ.rd γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩

@@ -28,7 +28,9 @@ theorem backend.newBackend.wp_proof (hOpen : bbolt.Open_kv.spec) (hLog :
                       W γ ∗ Pk γ ∗ K γ) -∗
           (▷
               ∀ r,
-                (∃ b γ, ⌜r = intoVal b⌝ ∗ backend.newPostK γ P W Pk K b D ∗ backend.hooksAt b cfg.Hooks') ∨
+                (∃ b γ,
+                      ⌜r = intoVal b⌝ ∗
+                        backend.newPostK γ P W Pk K b D ∗ backend.hooksAt b cfg.Hooks' ∗ backend.bFile γ cfg.Path') ∨
                     ⌜∃ p, r = p.PanicV⌝ -∗
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBackend [])) (intoVal cfg)) {{ Φ }}

@@ -2,43 +2,77 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def backend.bStopView (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (D :
+    backend.Data) : IProp GF :=
+  iprop(W ∗
+      Pk ∗
+        backend.viewAt γ (backend.sData P D) ∗
+          backend.pvHalf γ (backend.sData P D) ∗
+            backend.hkOwn γ (backend.hkData P D) ∗
+              backend.rbOwn γ (backend.rbData P D) ∗ backend.ckHalf γ (backend.fkVals D))
+
+def backend.isStopChansE (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
+  iprop(∃ W Pk, backend.isBackend γ P W Pk b ∗ backend.isStopChans γ P W Pk b)
+
 theorem backend.stopQ_persistent (γ : backend.BNames) : Persistent (backend.stopQ γ)
 
-theorem backend.isStopChans_persistent (γ : backend.BNames) (b : Loc) : Persistent
-    (backend.isStopChans γ b)
+theorem backend.isStopChans_persistent (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF)
+    (b : Loc) : Persistent (backend.isStopChans γ P W Pk b)
+
+theorem backend.isStopChansE_persistent (γ : backend.BNames) (P : backend.BParams) (b : Loc) :
+    Persistent (backend.isStopChansE γ P b)
+
+theorem backend.bDoneEsc_take (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (sc :
+    GoChan) (γsc : ChanNames) : ⊢ backend.bDoneEsc γ P W Pk -∗ backend.stopInv γ sc γsc -∗
+    backend.stopQ γ -∗ ghostVar γ.cls (Qp.half 1) () -∗ £ 1 -∗ £ 1 ={⊤}=∗ backend.bDBOut γ P W Pk
 
 theorem backend.runTok_timeless (γ : backend.BNames) : Timeless (backend.runTok γ)
+
+def backend.bDoneEsc (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
+  inv (backend.bN.@"dbesc") iprop(backend.bDBOut γ P W Pk ∨ ghostVar γ.cls (Qp.half 1) ())
 
 theorem backend.stop_get (γ : backend.BNames) (sc : GoChan) (γsc : ChanNames) : backend.stopInv γ sc
     γsc ∗ backend.stopQ γ ∗ backend.runTok γ ⊢ |={⊤}=> dghostVar γ.opn (DFrac.own (Qp.half 1)) false
 
+theorem backend.bStopG_view (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (C :
+    backend.Data) : backend.bStopG γ P C ∗ W ∗ Pk ⊢ backend.bStopView γ P W Pk C
+
+theorem backend.bDoneEsc_persistent (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) :
+    Persistent (backend.bDoneEsc γ P W Pk)
+
 def backend.stopInv (γ : backend.BNames) (sc : GoChan) (γsc : ChanNames) : IProp GF :=
   inv (backend.bN.@"stop")
     iprop(ownBroadcastChan sc γsc (backend.stopQ γ) Broadcast.Pending ∗ dghostVar γ.sdn (DFrac.own 1) false ∨
-        ghostVar γ.cls 1 () ∗ (dghostVar γ.opn (DFrac.own (Qp.half 1)) false ∨ backend.runTok γ))
+        ghostVar γ.cls (Qp.half 1) () ∗ (dghostVar γ.opn (DFrac.own (Qp.half 1)) false ∨ backend.runTok γ))
+
+theorem backend.isStopChansE_intro (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b :
+    Loc) : backend.isBackend γ P W Pk b ∗ backend.isStopChans γ P W Pk b ⊢ backend.isStopChansE γ P
+    b
 
 def backend.stopQ (γ : backend.BNames) : IProp GF :=
   dghostVar γ.sdn DFrac.discard true
 
 theorem backend.stop_take (γ : backend.BNames) (sc : GoChan) (γsc : ChanNames) : backend.stopInv γ
     sc γsc ∗ backend.bOpen γ 1 ⊢ |={⊤}=> ▷ ownBroadcastChan sc γsc (backend.stopQ γ)
-    Broadcast.Pending ∗ backend.stopQ γ
+    Broadcast.Pending ∗ backend.stopQ γ ∗ ghostVar γ.cls (Qp.half 1) ()
 
 theorem backend.stopInv_persistent (γ : backend.BNames) (sc : GoChan) (γsc : ChanNames) : Persistent
     (backend.stopInv γ sc γsc)
 
-def backend.isStopChansAt (γ : backend.BNames) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) :
-    IProp GF :=
+def backend.isStopChansAt (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (sc
+    dc : GoChan) (γsc γdc : ChanNames) : IProp GF :=
   iprop(typedPointsto (backend.bF go!"stopc" b) sc DFrac.discard ∗
       typedPointsto (backend.bF go!"donec" b) dc DFrac.discard ∗
         ownBroadcastChan sc γsc (backend.stopQ γ) Broadcast.Unknown ∗
-          ownBroadcastChan dc γdc iprop(True) Broadcast.Unknown ∗ backend.stopInv γ sc γsc)
+          ownBroadcastChan dc γdc (backend.bDoneEsc γ P W Pk) Broadcast.Unknown ∗ backend.stopInv γ sc γsc)
 
-theorem backend.isStopChansAt_persistent (γ : backend.BNames) (b : Loc) (sc dc : GoChan) (γsc γdc :
-    ChanNames) : Persistent (backend.isStopChansAt γ b sc dc γsc γdc)
+theorem backend.isStopChansAt_persistent (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp
+    GF) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) : Persistent (backend.isStopChansAt γ P W
+    Pk b sc dc γsc γdc)
 
-def backend.isStopChans (γ : backend.BNames) (b : Loc) : IProp GF :=
-  iprop(∃ sc dc γsc γdc, backend.isStopChansAt γ b sc dc γsc γdc)
+def backend.isStopChans (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) :
+    IProp GF :=
+  iprop(∃ sc dc γsc γdc, backend.isStopChansAt γ P W Pk b sc dc γsc γdc)
 
 def backend.runTok (γ : backend.BNames) : IProp GF :=
   ghostVar γ.stk 1 ()

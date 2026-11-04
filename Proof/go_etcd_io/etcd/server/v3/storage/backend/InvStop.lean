@@ -16,6 +16,7 @@ lives beside `isBackend` rather than in it: `isStopChans`). Lean-first (no Rocq 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 
 @[expose] public section
@@ -54,34 +55,87 @@ the clients' half of the open token, until `run` takes the half (leaving its tok
 def stopInv (γ : BNames) (sc : GoChan) (γsc : ChanNames) : IProp GF :=
   iprop(inv (bN.@"stop")
     iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
-     (ghostVar γ.cls 1 () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ))))
+     (ghostVar γ.cls (1 : Qp).half () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ))))
 
 instance stopInv_persistent (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     Persistent (stopInv (GF := GF) γ sc γsc) := by
   unfold stopInv; infer_instance
 
-/-- The stop channels of the backend `b`, with their ghost names. -/
-def isStopChansAt (γ : BNames) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) : IProp GF :=
+/-- (2026-11-04, R2b-3c) **What closing `donec` announces: the stop's escrow** (persistent; until then
+`True`): bbolt's database as the stopped batch transaction left it, with the lock's ghost shares
+and client resources `W ∗ Pk` (`bDBOut`, R2b-3c part 2), or `Close`'s half of the close right once
+it took them. `run` allocates it as it closes `donec`. -/
+def bDoneEsc (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  inv (bN.@"dbesc") iprop(bDBOut γ P W Pk ∨ ghostVar γ.cls (1 : Qp).half ())
+
+instance bDoneEsc_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) :
+    Persistent (bDoneEsc (GF := GF) γ P W Pk) := by
+  unfold bDoneEsc; infer_instance
+
+/-- The stop channels of the backend `b`, with their ghost names (R2b-3c part 2: at the parameters
+and the batch lock's client resources of `isBackend`, which `donec`'s escrow returns). -/
+def isStopChansAt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (sc dc : GoChan)
+    (γsc γdc : ChanNames) : IProp GF :=
   iprop(bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
-    ownBroadcastChan sc γsc (stopQ γ) .Unknown ∗ ownBroadcastChan dc γdc iprop(True) .Unknown ∗
+    ownBroadcastChan sc γsc (stopQ γ) .Unknown ∗ ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Unknown ∗
     stopInv γ sc γsc)
 
-instance isStopChansAt_persistent (γ : BNames) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) :
-    Persistent (isStopChansAt (GF := GF) γ b sc dc γsc γdc) := by
+instance isStopChansAt_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
+    (sc dc : GoChan) (γsc γdc : ChanNames) :
+    Persistent (isStopChansAt (GF := GF) γ P W Pk b sc dc γsc γdc) := by
   unfold isStopChansAt stopInv; infer_instance
 
-/-- The stop channels of the backend `b` (persistent; `New` gives it with `isBackend`). -/
-def isStopChans (γ : BNames) (b : Loc) : IProp GF :=
-  iprop(∃ (sc dc : GoChan) (γsc γdc : ChanNames), isStopChansAt γ b sc dc γsc γdc)
+/-- The stop channels of the backend `b` (persistent; `New` gives it with `isBackend γ P W Pk b`). -/
+def isStopChans (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
+  iprop(∃ (sc dc : GoChan) (γsc γdc : ChanNames), isStopChansAt γ P W Pk b sc dc γsc γdc)
 
-instance isStopChans_persistent (γ : BNames) (b : Loc) :
-    Persistent (isStopChans (GF := GF) γ b) := by
+instance isStopChans_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    Persistent (isStopChans (GF := GF) γ P W Pk b) := by
   unfold isStopChans; infer_instance
+
+/-- (2026-11-04, R2b-3c part 2) **The backend `b` with its stop channels, at some client resources**
+(persistent): what `Close` takes besides the open token, the batch lock's resources `W ∗ Pk`
+hidden. A client that only closes the backend (the snapshot path's old backend) keeps this; one that
+needs what `Close` gives back (`bStopView`) keeps its own `W`, `Pk`. -/
+def isStopChansE (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
+  iprop(∃ W Pk : IProp GF, isBackend γ P W Pk b ∗ isStopChans γ P W Pk b)
+
+instance isStopChansE_persistent (γ : BNames) (P : BParams) (b : Loc) :
+    Persistent (isStopChansE (GF := GF) γ P b) := by
+  unfold isStopChansE; infer_instance
+
+/-- `isStopChansE` from a backend and its stop channels. -/
+theorem isStopChansE_intro (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend (GF := GF) γ P W Pk b ∗ isStopChans γ P W Pk b ⊢ isStopChansE γ P b := by
+  unfold isStopChansE
+  iintro ⟨#Hb, #Hs⟩
+  iexists W, Pk
+  iframe #
+
+/-- (2026-11-04, R2b-3c part 2) **What `Close` hands back of the stopped batch lock, at the file's data
+`D`**: its client resources `W ∗ Pk`, and its ghost shares at `D` -- the readers' view quarter
+(`viewAt`) and the lock's halves of the non-hook buckets' physical view (`pvHalf`), the hook's own
+keys (`hkOwn`), the tracked buckets (`rbOwn`) and the compaction keys' values (`ckHalf`): what
+`backend.Snapshot.spec`'s observation takes, so that a client's own halves (by agreement) and its
+observation of `W ∗ Pk` tell what `D` holds. -/
+def bStopView (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) : IProp GF :=
+  iprop(W ∗ Pk ∗ viewAt γ (sData P D) ∗ pvHalf γ (sData P D) ∗ hkOwn γ (hkData P D) ∗
+    rbOwn γ (rbData P D) ∗ ckHalf γ (fkVals D))
+
+/-- The stopped lock's ghost shares at `C` are `bStopView`'s. -/
+theorem bStopG_view (γ : BNames) (P : BParams) (W Pk : IProp GF) (C : Data) :
+    bStopG (GF := GF) γ P C ∗ W ∗ Pk ⊢ bStopView γ P W Pk C := by
+  unfold bStopG trkHalf bStopView viewAt pvHalf hkOwn ckHalf
+  iintro ⟨⟨Hv, Hhk, Hrb, Hpv, Hck⟩, HW, HPk⟩
+  ihave Hrb := rbSide_rbOwn γ P _ $$ Hrb
+  iframe
 
 /-- `Close`'s step: the right to close `stopc`, for the clients' whole open token. -/
 theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     stopInv (GF := GF) γ sc γsc ∗ bOpen γ 1 ⊢
-      |={⊤}=> ▷ ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ stopQ γ := by
+      |={⊤}=> ▷ ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ stopQ γ ∗
+        -- (2026-11-04, R2b-3c) half the close right, `Close`'s claim on `donec`'s escrow
+        ghostVar γ.cls (1 : Qp).half () := by
   iintro ⟨#Hinv, Ho⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
@@ -90,6 +144,10 @@ theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
   icases Hi with (⟨Hpend, >Hsdn⟩ | ⟨>Hcls', -⟩)
   · imod dghostVar_update true γ.sdn false $$ Hsdn with Hsdn
     imod dghostVar_persist γ.sdn 1 true $$ Hsdn with #Hsdn
+    ihave ⟨Hcls, Hclaim⟩ : iprop(ghostVar γ.cls (1 : Qp).half () ∗ ghostVar γ.cls (1 : Qp).half ())
+      $$ [Hcls]
+    · iapply ghostVar_split γ.cls () (1 : Qp).half (1 : Qp).half
+      rw [Qp.half_add_half]; iexact Hcls
     imod Hclose $$ [Hcls Ho] with -
     · inext
       iright
@@ -97,7 +155,7 @@ theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
       ileft
       iexact Ho
     imodintro
-    iframe Hpend
+    iframe Hpend Hclaim
     unfold stopQ
     iexact Hsdn
   · icombine Hcls Hcls' gives % ⟨Hv, -⟩
@@ -129,6 +187,35 @@ theorem stop_get (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     exfalso
     revert Hv
     grind
+
+/-- (2026-11-04, R2b-3c) **`Close` takes bbolt's database out of `donec`'s escrow**, with its half
+of the close right (`stop_take`'s): the other alternative would make three halves, the stop
+invariant keeping one once `stopc` closed (`stopQ`). -/
+theorem bDoneEsc_take (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc : GoChan) (γsc : ChanNames) :
+    ⊢ bDoneEsc (GF := GF) γ P W Pk -∗ stopInv γ sc γsc -∗ stopQ γ -∗ ghostVar γ.cls (1 : Qp).half () -∗
+      £ 1 -∗ £ 1 ={⊤}=∗ bDBOut γ P W Pk := by
+  iintro #Hesc #Hinv #Hq Hclaim Hlc1 Hlc2
+  iunfold bDoneEsc at Hesc
+  iinv Hesc with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑(bN.@"dbesc")) $$ Hlc1 Hi with Hi
+  icases Hi with (Hout | Hcl2)
+  rotate_left
+  · unfold stopInv
+    iinv Hinv with Hs Hsclose
+    imod lc_fupd_elim_later (E := (⊤ \ ↑(bN.@"dbesc")) \ ↑(bN.@"stop")) $$ Hlc2 Hs with Hs
+    icases Hs with (⟨-, Hsdn⟩ | ⟨Hcl3, -⟩)
+    · iexfalso
+      unfold stopQ
+      icombine Hsdn Hq gives %Hc
+      exact absurd Hc.2 (by decide)
+    · iexfalso
+      icombine Hclaim Hcl2 as H12
+      icombine H12 Hcl3 gives % ⟨Hv, -⟩
+      exfalso; revert Hv; grind
+  imod Hclose $$ [Hclaim] with -
+  · inext; iright; iexact Hclaim
+  imodintro
+  iexact Hout
 
 end preds
 

@@ -69,6 +69,9 @@ theorem backend.rbOwnIn_split (γ : backend.BNames) (S S' : GoString → Prop) (
     backend.BktData) (hd : ∀ (n : GoString), S n → S' n → False) : backend.rbOwnIn γ (fun n => S n ∨
     S' n) r ⊣⊢ backend.rbOwnIn γ S r ∗ backend.rbOwnIn γ S' r
 
+theorem backend.rbSide_rbOwn (γ : backend.BNames) (P : backend.BParams) (r : GMap GoString
+    backend.BktData) : backend.rbSide γ P r ⊢ backend.rbOwn γ r
+
 theorem backend.rbEls_alloc (D : GMap GoString Unit) (v : GoString → Option backend.BktData × Bool)
     : ⊢ |==> ∃ g, (∃ M, ghostMapAuth g 1 M) ∗ [∗map] n ↦ _u ∈ D, n ↪[g] v n
 

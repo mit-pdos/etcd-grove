@@ -236,7 +236,7 @@ plain text (`--markdown` for Markdown; `-o FILE` writes Markdown if FILE ends in
 Like the TCB report, don't commit its output.
 
 Both scripts are generic for a Goose project with this layout: they name no project.
-Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`Results.lean` under
+Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lean`/`Results.lean` under
 `Proof/` and a part's `<root>/Proof/`; Lean runs grouped by the part roots a module
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
@@ -308,6 +308,15 @@ generated: never edit the `.lean` files by hand.
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,
   `RaftWitness/Code/**.toml`) and `examples/raft/kvwitness` (project `kvwitness`, a Go module whose
   `go.mod` replaces raft by that commit), modules `RaftWitness.Code.go_etcd_io.raft.v3`, ....
+
+A proof that needs a prophecy the Go code does not have gets it from a **prophecy patch**,
+`etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
+translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
+`ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
+read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
+patched file with those statements erased must be the original). A read-only expression may fail,
+which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
+code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the

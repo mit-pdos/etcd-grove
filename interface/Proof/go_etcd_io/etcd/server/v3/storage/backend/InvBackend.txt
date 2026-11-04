@@ -20,6 +20,8 @@ theorem backend.pvPut_hook_eq (γ : backend.BNames) (P : backend.BParams) (n : G
 theorem backend.bOpen_add (γ : backend.BNames) (p q : Qp) : backend.bOpen γ (p + q) ⊣⊢ backend.bOpen
     γ p ∗ backend.bOpen γ q
 
+theorem backend.bDB_persistent (γ : backend.BNames) (db : Loc) : Persistent (backend.bDB γ db)
+
 def backend.cbufOf [GoSemanticsFunctions] (b : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" (backend.cacheOf b)
 
@@ -50,6 +52,9 @@ theorem backend.fkRd_persistent (γ : backend.BNames) (P : backend.BParams) (rv 
 
 def backend.qsum (outs : GMap Nat Qp) : Rat :=
   (List.map (fun x => x.snd.val) outs.toList).sum
+
+def backend.bFile (γ : backend.BNames) (path : GoString) : IProp GF :=
+  iprop(∃ db, backend.bDBAt γ db path)
 
 def backend.qpRep (q s : Qp) : Nat → Qp :=
   Nat.brecOn x✝ (backend.qpRep._f q s)
@@ -161,8 +166,9 @@ def backend.batchPhys (γ : backend.BNames) (b t db : Loc) (st : backend.BSess) 
                   backend.ownDB db γ.db st.C ∗
                     backend.ownWTx st.tx γ.db st.C st.S ∗
                       backend.txDB st.tx db ∗
-                        sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
-                          typedPointsto (backend.bF go!"db" b) db (DFrac.own q))
+                        (sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
+                            typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
+                          backend.bDB γ db)
 
 def backend.fkHalf (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) : IProp GF :=
   iprop(∃ f g, monoNatAuthOwn γ.fk (Qp.half 1) f ∗ backend.fkVR γ g ∗ ⌜backend.fkOkG P f g st⌝)
@@ -465,6 +471,9 @@ def backend.rbPart (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoStr
     IProp GF :=
   iprop(∃ F, backend.rbPartF γ S r F)
 
+def backend.bDBOutG (γ : backend.BNames) (P : backend.BParams) : IProp GF :=
+  iprop(∃ db C, backend.bDB γ db ∗ backend.ownDB db γ.db C ∗ backend.bStopG γ P C)
+
 def backend.baseRd (γ : backend.BNames) (P : backend.BParams) (base : Loc) (dq : DFrac) (rtx : Loc)
     (rv : backend.RView) (q : Qp) : IProp GF :=
   iprop(∃ m Pb cm tm,
@@ -479,6 +488,9 @@ def backend.baseRd (γ : backend.BNames) (P : backend.BParams) (base : Loc) (dq 
                       □ backend.intvInv γ P rtx cm rv.fst ∗
                         ⌜rv.snd.Wf ∧
                             backend.idsOk P rv.snd.bks ∧ P.Wf ∧ (dq = DFrac.discard ∨ backend.bksOk Pb rv.snd.bks)⌝)
+
+def backend.bDBAt (γ : backend.BNames) (db : Loc) (path : GoString) : IProp GF :=
+  dghostVar γ.dbf DFrac.discard (db, path)
 
 def backend.plHookAt (γ : backend.BNames) (dq : DFrac) (f : GoFunc) : IProp GF :=
   dghostVar γ.hook dq f
@@ -585,6 +597,9 @@ def backend.batchFree (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
   iprop((∃ st db, backend.batchPhys γ b t db st ∗ backend.batchGhostAt γ P st true ∗ ⌜backend.freeOk P st⌝ ∗ W ∗ Pk) ∨
       backend.bStopped γ)
 
+def backend.bDBOut (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop(backend.bDBOutG γ P ∗ W ∗ Pk)
+
 def backend.bOpen (γ : backend.BNames) (q : Qp) : IProp GF :=
   iprop(dghostVar γ.opn (DFrac.own q.half) false ∗ ghostVar γ.cls q ())
 
@@ -625,6 +640,12 @@ def backend.trkHalf (γ : backend.BNames) (P : backend.BParams) (S : backend.Dat
       backend.rbSide γ P (backend.rbData P S) ∗
         ghostVar γ.pv (Qp.half 1) (backend.sData P S) ∗ ghostVar γ.ck (Qp.half 1) (backend.fkVals S))
 
+def backend.bStopG (γ : backend.BNames) (P : backend.BParams) (C : backend.Data) : IProp GF :=
+  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗ backend.trkHalf γ P C)
+
+theorem backend.bDBAt_persistent (γ : backend.BNames) (db : Loc) (path : GoString) : Persistent
+    (backend.bDBAt γ db path)
+
 def backend.poisonAt (γ : backend.BNames) (ver : w64) (i : Nat) : IProp GF :=
   (ver, i) ↪[γ.cached]□ false
 
@@ -650,7 +671,8 @@ def backend.isBackend (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
                                     backend.metricsInv b ∗
                                       (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q =>
                                           typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
-                                        backend.isDB db ∗ ⌜P.Wf⌝)
+                                        backend.isDB db ∗
+                                          ⌜P.Wf⌝ ∗ ∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path)
 
 def backend.tokPart (γ : backend.BNames) (q : Rat) : IProp GF :=
   if h : 0 < q then ghostVar γ.txa ⟨q, h⟩ () else iprop(True)
@@ -666,6 +688,9 @@ def backend.bN : Namespace :=
 
 def backend.fkV (γ : backend.BNames) (w : Bool) : IProp GF :=
   iprop(∃ n v, dghostVar γ.fkv DFrac.discard (w, n, v))
+
+theorem backend.bFile_persistent (γ : backend.BNames) (path : GoString) : Persistent (backend.bFile
+    γ path)
 
 def backend.wgOpen (γw : GName) (q : Qp) : IProp GF :=
   ghostVar γw q ()
@@ -855,6 +880,7 @@ structure backend.BNames : Type where
   fkv : GName
   pv : GName
   ck : GName
+  dbf : GName
   rbD : GMap GoString Unit
 
 def backend.bView (γ : backend.BNames) (q : Qp) (vd : backend.VData) : IProp GF :=
@@ -882,6 +908,9 @@ def backend.rbPartF (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoSt
   iprop(⌜∀ (n : GoString), S n → γ.rbD !! n = none → r !! n = none⌝ ∗
       backend.rbEls γ S (Qp.half 1) fun n => (r !! n, F n))
 
+theorem backend.bDBAt_agree (γ : backend.BNames) (db db' : Loc) (p p' : GoString) : backend.bDBAt γ
+    db p ∗ backend.bDBAt γ db' p' ⊢ ⌜db = db' ∧ p = p'⌝
+
 theorem backend.commitReq_true (γ : backend.BNames) (P : backend.BParams) (Pk : IProp GF) (b : Loc)
     : ⊢ backend.commitReq γ P Pk b iprop(True) iprop(True)
 
@@ -904,3 +933,6 @@ theorem backend.rdB_persistent (rtx : Loc) (s : GoSlice) (b : GoString) : Persis
 
 def backend.bF [GoSemanticsFunctions] (f : GoString) (b : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend f b
+
+def backend.bDB (γ : backend.BNames) (db : Loc) : IProp GF :=
+  iprop(∃ path, backend.bDBAt γ db path)

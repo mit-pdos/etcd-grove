@@ -40,7 +40,10 @@ the same argument, `New`'s proof allocates them in the batch lock's ghost step.)
 halves of the backend's exact ghosts at the opened data, the non-hook buckets' `sData P D` and the
 compaction keys' `fkVals D`; the same argument as for `hkOwn`: `New`'s spec, proved, hands its
 creator both, `NewAlloc` allocating them at the data `Open` read, and `OpenBackend` passes `New`'s
-creator through.) Why an axiom and not a proof: the
+creator through.) (2026-11-04, R2b-3c part 2, the user's approval) Why the post's
+`bFile γ (backendPathOf cfg.DataDir')` holds: `newBackend` sets the backend configuration's path to
+`cfg.BackendPath()` (`<DataDir>/member/snap/db`, `config.backendPathOf`), and `New`'s spec (proved)
+gives `bFile γ` at its configuration's path. Why an axiom and not a proof: the
 goroutine's panic cannot be excluded from `New`'s spec, and a goroutine must not panic
 (`wp_fork`); the rest (the timer's `select`, `time.After` has a spec) is provable. What would
 discharge it: `OpenBackend` and `newBackend` translated with their bodies, over a `New` whose

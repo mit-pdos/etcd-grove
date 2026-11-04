@@ -72,7 +72,7 @@ theorem leasingKV.put.wp_proof
   · iexists _; simp only [named]; iframe
   wp_for IH
   ihave #HErrU := HErr $$ %Broadcast.Unknown
-  wp_apply HErrU as %cerr Hcerr
+  wp_apply HErrU as %cerr Hcerr -
   cases cerr with
   | ok e =>
     rw [ite_eq_right (show GoInterface.ok e ≠ GoInterface.nil from fun h => by cases h)]
@@ -81,7 +81,7 @@ theorem leasingKV.put.wp_proof
     simp only [goose_wp_simp_extra, Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
     ihave #HErrD := HErr $$ %Broadcast.Done
-    wp_apply HErrD $$ [$HCC] as %cerr2 %Hcerr2
+    wp_apply HErrD $$ [$HCC] as %cerr2 %Hcerr2 -
     iapply HΦ
     iframe
     ileft; ipureintro; exact ⟨Hcerr2, rfl⟩

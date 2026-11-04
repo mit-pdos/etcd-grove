@@ -146,7 +146,7 @@ theorem Cache.waitTillRevision.wp_proof
       iexact HeCT
     -- `ctx.Err()`
     ihave #HErrU := HErr $$ %Broadcast.Unknown
-    wp_apply HErrU $$ [] as %err herr
+    wp_apply HErrU $$ [] as %err herr -
     cases err with
     | ok e =>
       -- the context is done: return `ctx.Err()`
@@ -154,7 +154,7 @@ theorem Cache.waitTillRevision.wp_proof
       icases herr with ⟨#HPD, #Hcl⟩
       wp_auto
       ihave #HErrD := HErr $$ %Broadcast.Done
-      wp_apply HErrD $$ [] as %err' %herr'
+      wp_apply HErrD $$ [] as %err' %herr' -
       · iexact Hcl
       wp_for_post
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd

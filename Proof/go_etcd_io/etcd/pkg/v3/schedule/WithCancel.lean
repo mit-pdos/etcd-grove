@@ -59,6 +59,7 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   unfold cancelSpec
   imodintro
   iintro %Φ' #Hp HΦ'
+  ihave #HcE := isCtxErr_of_Canceled canceled $$ Hpkg Hcanceled
   wp_auto
   wp_apply cancelCtx.wp_cancel c γ P true canceled GoInterface.nil hcanceled $$ [$Hc]
     as #Hclosed

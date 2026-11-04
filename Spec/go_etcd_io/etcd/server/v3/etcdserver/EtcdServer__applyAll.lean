@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 
 @[expose] public section
 
@@ -29,59 +30,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.applyAll(ep, ap)`**, the apply loop's step on one `toApply` from raft (`ap`: its entries
-`ms`, consecutive from `f0` with no gap after the applied index `ai`, as `applyEntries` takes them;
-no snapshot, `rnApP`; its `notifyc`, a unit bag channel raft signals once it persisted the batch),
-by the apply thread: `applySnapshot` (nothing: no snapshot), `applyEntries` (the KV goes from `x`
-to `x'` by `entriesStep` over the entries above `ai`, under their shapes, `logShape`; the
-applied index to `ai'`,
-the last entry's or `ai`; each `setAppliedIndex` deposits the KV log after its entry, so the log
-applied through `ai'` is `x'.log`; 2026-10-14, unit C2a: each entry committed,
-`batchCommittedIdx`, and its log deposited ahead of its result), the backend's verification (`VerifyBackendConsistency`, the
-trust boundary), the `proposalsApplied` gauge, **`applyWait.Trigger(ai')`** (with `appliedAtLeast γr
-ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV has applied through
-`ai'`), `<-ap.notifyc`, the snapshot trigger (`snapshotIfNeededAndCompactRaftLog`, over the
-`snapshot`/`compactRaftLog` contracts), and a pending merged-snapshot request on `msgSnapC`
-(names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
-write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
-store per entry above `ai`, from the budget `srvWTPool E` (D19b, 2026-10-18; until then
-`txn.storeWTs E.γ (unapplied ai ms).length`, handed in); (D22 J5, 2026-10-26) the count of tokens
-taken from `w` to `w` plus the entries applied (`srvWTTaken`; until J5 at the applied index,
-`srvWTAt γp ai`; until J8b, 2026-11-01, with `uint.Z ai ≤ w`, which no proof read). **The KV model**
-(2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
-amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
-(`termAfter`), which the merged snapshot's metadata carries. **The merged snapshot** (2026-10-31,
-S1; until then the branch was dead, D22 S-h): a `MsgSnap` raft handed to `msgSnapC`
-(`isServerApplyAll`'s bag, `rnSnapMsg`) of the batch's term `rt` (`apply.raftTerm`, `rnRtOk`) and
-of a snapshot at most the applied index (the fork's guard, `notes/decisions.md`, "The merged
-snapshot's index guard") is rewritten to carry the backend's image at the applied index
-(`createMergedSnapshotMessage`) and sent (`sendMergedSnap`, over `isServerApplyAll`'s transport).
-**The snapshot resources** (D22 J1b, 2026-10-31, the user's decision): what each snapshot install
-takes and gives back (`srvSnapOwn`, `SnapRO.lean`) at the backend's environment, passed through
-(no snapshot here: `E' = E`, the counter's bound raised to `ai'`), for J8a's snapshot case. -/
+/-- **`s.applyAll(ep, ap)` on a batch of entries** (the auth component's stage 2, 2026-11-04: one
+statement in both auth modes, over the component `C`, the environment's; until then `specBatch`
+with auth off, now `specBatchOff`, and `specOn` with auth on, both `ModeSpecs.lean`'s corollaries):
+`specBatchOff`'s contract (see there) with the server's view, the applier row and the model in the
+component (`isServerC`, `srvApplyKVC` at the model's auth state `sa`, `kvAppliedM C.isOn`), the
+entries' shapes in the mode (`logShapeM`), the lessor finding no lease with auth on (`acLessor`), the
+rights to issue tokens at the consistent index (`acTok`) and the receipts' bound (`acReceiptOk`). -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
+    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
     (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
-  (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShape E.lg (unapplied ai ms) →
-  -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
-  -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
-  -- `ai`, `at0` its last term (the frozen terms' indices)
-  uint.Z ai = A.length → lastTermIs A at0 →
-  -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
-  -- disk cooperating, the consistent index at least the applied one
-  storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
-  -- (2026-10-31, S1: the merged snapshot) the consistent index at most the applied one (so equal:
-  -- the merged snapshot's image is exact at the applied index), the raft node's names those of the
-  -- server's raft, and the batch's term good for a log at least the applied log after the batch
-  uint.Z (ciEff γ st.k) ≤ uint.Z ai → γn.node = γr.raft.raft → γr.raft.pre = [] → (A ++ unapplied ai ms).length ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
+      -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
+      -- the mode, `logShapeM`)
+      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧
+        (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
+        loopOk γ st ai ∧ logShapeM C.isOn E.lg (unapplied ai ms) ∧
+        dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) ∧
+        uint.Z ai = A.length ∧ lastTermIs A at0 ∧
+        storage.diskOk ∧ uint.Z ai ≤ uint.Z (ciEff γ st.k) ∧
+        uint.Z (ciEff γ st.k) ≤ uint.Z ai ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
+        (A ++ unapplied ai ms).length ≤ n⌝ ∗
+      isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
       -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
@@ -103,9 +77,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
-      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
+      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
       (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
@@ -119,7 +93,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr ai }}
+      srvSnapOwn s ci E γr ai ∗
+      -- the rights to issue tokens at the consistent index
+      acTok C (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -129,15 +105,15 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
-        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
+        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         srvWTTaken γp (w + (unapplied ai ms).length) ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
+        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
+          kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
         srvSnapOwn s ci E' γr ai' ∗
@@ -150,109 +126,6 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
 
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27): over `applyEntries.specOn`
-and `snapshotIfNeededAndCompactRaftLog.spec` at auth on (the server with auth on, `logShapeOn`, the applier
-row at the model's auth state `sa`, the apply thread at the mode-`on` model; the lessor finding no
-lease, the receipts' bound); after the batch at the model's state after `A ++ unapplied ai ms` (its
-auth state `sa'`). No snapshot is applied (`taSnapshotAddr ap ↦□ null`), so the backend stays. -/
-abbrev EtcdServer.applyAll.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
-    (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (γa : auth.AuthNames) (sa : auth.AuthState) (q : Qp) (γn : RNNames)
-    (rt : w64) (n : Nat),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShapeOn (unapplied ai ms) →
-  -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
-  -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
-  -- `ai`, `at0` its last term (the frozen terms' indices)
-  uint.Z ai = A.length → lastTermIs A at0 →
-  -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
-  -- disk cooperating, the consistent index at least the applied one
-  storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
-  -- (2026-10-31, S1: the merged snapshot) the consistent index at most the applied one (so equal:
-  -- the merged snapshot's image is exact at the applied index), the raft node's names those of the
-  -- server's raft, and the batch's term good for a log at least the applied log after the batch
-  uint.Z (ciEff γ st.k) ≤ uint.Z ai → γn.node = γr.raft.raft → γr.raft.pre = [] → (A ++ unapplied ai ms).length ≤ n →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
-      batchWaitOk ρ E ms ∗
-      taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
-      -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
-      -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
-      -- storage's floor)
-      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        iprop(nodeAppliedLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ nodeCommitLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
-          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
-          srvFrozenRange γs (uint.nat ai + 1)
-            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
-          -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs 1 (A ++ unapplied ai ms) ∗
-          -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
-          rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
-          taSnapshotAddr ap ↦□ (null : Loc) ∗
-      -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
-      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
-      notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
-      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
-      -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
-      -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
-      srvTokRights E (ciEff γ st.k) ∗
-      -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
-      -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
-      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nk) ∗
-      rnWalTokA γn (srvRAddr s) q ∗
-      -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
-      -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
-      -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
-      -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr ai }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
-      (Val #ap))
-  {{ RET #();
-      -- (D22 receiver epochs, S7f, 2026-10-23) the apply thread's backend after the batch: the
-      -- protocol's names `γ'` and the environment `E'` at some backend's (`beSucc`), with the
-      -- server's view at them (`applySnapshot` moves the backend; without a snapshot they are
-      -- `γ`, `TM`, `E`, `b`)
-      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
-        (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
-        epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
-        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
-        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ srvTokRights E' (ciEff γ' st'.k) ∗
-        applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
-        srvWTTaken γp (w + (unapplied ai ms).length) ∗
-        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E' ρ.wait x' sa' ∗
-          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
-          srvRest E' γr (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        -- (D22 J1b) the snapshot resources, at the batch's end
-        srvSnapOwn s ci E' γr ai' ∗
-        ⌜loopOk γ' st' ai' ∧
-          uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
-          (ciEff γ' st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
-          -- (2026-10-31, the snapshot track: S1) the consistent index stays at least the applied one
-          (uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ' st'.k)) ∧
-          -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
-          termAfter at0 (unapplied ai ms) at'⌝ }}
 
 /-- **`s.applyAll(ep, ap)` on a snapshot payload** (2026-11-01, J8a-5, step 5e; `rnApSnap`'s:
 `notes/snapshot-j8a-plan.md`, item 4), by the apply thread of a fresh cluster's member (the start
@@ -448,10 +321,12 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
           lastTermIs A' sv.Metadata'.Term'⌝ }}
 
-/-- **`applyAll`'s spec** (J8b, 2026-11-01): both cases, a batch of entries (`specBatch`) and a snapshot payload (`specSnap`), for the link. -/
+/-- **`applyAll`'s spec** (J8b, 2026-11-01): both cases, a batch of entries (`specBatch`) and a
+snapshot payload, for the link; (the auth component's stage 2, 2026-11-04) both in the server's auth
+mode (`specSnapM`; until then `specSnap`, the off case, now `specOff`'s, `ModeSpecs.lean`). -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) ∧
-    EtcdServer.applyAll.specSnap (GF := GF) (hG := hG)
+    EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
 
 end spec
 

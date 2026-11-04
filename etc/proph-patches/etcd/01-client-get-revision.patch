@@ -1,0 +1,85 @@
+diff --git a/client/v3/go.mod b/client/v3/go.mod
+index 29054df..6e888ca 100644
+--- a/client/v3/go.mod
++++ b/client/v3/go.mod
+@@ -8,6 +8,7 @@ require (
+ 	github.com/Masterminds/semver/v3 v3.5.0
+ 	github.com/dustin/go-humanize v1.1.0
+ 	github.com/golang/protobuf v1.5.4
++	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
+ 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
+ 	github.com/prometheus/client_golang v1.24.1
+ 	github.com/stretchr/testify v1.12.1
+diff --git a/client/v3/go.sum b/client/v3/go.sum
+index 724fe09..4ac1978 100644
+--- a/client/v3/go.sum
++++ b/client/v3/go.sum
+@@ -10,6 +10,8 @@ github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek
+ github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
+ github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
+ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
++github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 h1:iIxG6zAiFGcVGx0hVeQxNZypucNcRhFUoUzTEHTBbp0=
++github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65/go.mod h1:sDE72zVH81ASwPXc1m9OgSfaaY0aZHu4Ty19FgONpOc=
+ github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 h1:QGLs/O40yoNK9vmy4rhUGBVyMf1lISBGtXRpsu/Qu/o=
+ github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0/go.mod h1:hM2alZsMUni80N33RBe6J0e423LB+odMj7d3EMP9l20=
+ github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 h1:9ZJYjPEJpcleIKcqysXOo14NLQYwu23fzmKRFpIjPjc=
+diff --git a/client/v3/kubernetes/client.go b/client/v3/kubernetes/client.go
+index 11f2a45..5159c15 100644
+--- a/client/v3/kubernetes/client.go
++++ b/client/v3/kubernetes/client.go
+@@ -18,6 +18,7 @@ import (
+ 	"context"
+ 	"fmt"
+ 
++	"github.com/goose-lang/primitive"
+ 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+ 	"go.etcd.io/etcd/api/v3/mvccpb"
+ 	clientv3 "go.etcd.io/etcd/client/v3"
+@@ -45,6 +46,10 @@ type Client struct {
+ var _ Interface = (*Client)(nil)
+ 
+ func (k Client) Get(ctx context.Context, key string, opts GetOptions) (resp GetResponse, err error) {
++	// Verification only (a no-op in Go): a prophecy of the response's revision and the key's mod
++	// revision (0 if absent), which identify the state the response reflects, so that the proof
++	// knows, at each state the read may be served at, whether it is the response's.
++	p := primitive.NewProph()
+ 	rangeResp, err := k.KV.Get(ctx, key, clientv3.WithRev(opts.Revision), clientv3.WithLimit(1))
+ 	if err != nil {
+ 		return resp, err
+@@ -53,6 +58,12 @@ func (k Client) Get(ctx context.Context, key string, opts GetOptions) (resp GetR
+ 	if len(rangeResp.Kvs) == 1 {
+ 		resp.KV = rangeResp.Kvs[0]
+ 	}
++	p.ResolveU64(uint64(resp.Revision))
++	if resp.KV != nil {
++		p.ResolveU64(uint64(resp.KV.ModRevision))
++	} else {
++		p.ResolveU64(0)
++	}
+ 	return resp, nil
+ }
+ 
+diff --git a/tests/go.mod b/tests/go.mod
+index bb4ae4d..ee6bf23 100644
+--- a/tests/go.mod
++++ b/tests/go.mod
+@@ -69,6 +69,7 @@ require (
+ 	github.com/go-logr/logr v1.4.4 // indirect
+ 	github.com/go-logr/stdr v1.2.2 // indirect
+ 	github.com/google/uuid v1.6.0 // indirect
++	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 // indirect
+ 	github.com/gorilla/websocket v1.5.3 // indirect
+ 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 // indirect
+ 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+diff --git a/tests/go.sum b/tests/go.sum
+index 7dbbd03..2530b6b 100644
+--- a/tests/go.sum
++++ b/tests/go.sum
+@@ -46,6 +46,7 @@ github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
+ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
+ github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+ github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
++github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 h1:iIxG6zAiFGcVGx0hVeQxNZypucNcRhFUoUzTEHTBbp0=
+ github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
+ github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=

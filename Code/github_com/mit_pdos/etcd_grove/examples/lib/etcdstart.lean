@@ -333,10 +333,12 @@ noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- StartCompactingServer is StartServer with the auto-compactor on, in revision mode, keeping
-    retention revisions (retention positive).
+/-- StartCompactingServer is StartServer in compaction mode: with the auto-compactor on, in revision
+    mode, keeping retention revisions (retention positive), or, at retention zero, with it off and
+    every compaction a client's (Kubernetes' deployment, whose API servers compact:
+    examples/k8s/compactor).
 
-    go: common.go:118:6 -/
+    go: common.go:120:6 -/
 noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -415,7 +417,7 @@ noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val
 /-- StartPeriodicServer is StartServer with the auto-compactor on, in periodic mode, keeping the
     revisions of the last period (period at least 10ns: a shorter one busy-loops).
 
-    go: common.go:132:6 -/
+    go: common.go:134:6 -/
 noncomputable def StartPeriodicServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -497,7 +499,7 @@ noncomputable def StartPeriodicServer.impl [GooseExts] [GoGlobalContext] : val :
     for an example that keeps its listeners, to close them when it stops the member
     (examples/etcd/restart).
 
-    go: common.go:149:6 -/
+    go: common.go:151:6 -/
 noncomputable def BuildServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -547,7 +549,7 @@ noncomputable def BuildServer.impl [GooseExts] [GoGlobalContext] : val :=
     http://client, with the snapshot settings snapCount and catchUp (newServer), and serves its raft
     handler on a listener at peerAddr; it does not start it.
 
-    go: common.go:158:6 -/
+    go: common.go:160:6 -/
 noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -655,7 +657,7 @@ noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- StartMember starts member name of a new cluster: NewMember, then the server started.
 
-    go: common.go:175:6 -/
+    go: common.go:177:6 -/
 noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -731,7 +733,7 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
     refuses a ping more often than every 5 minutes, which would close a keepalive client's
     connection).
 
-    go: common.go:190:6 -/
+    go: common.go:192:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
@@ -793,7 +795,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewClient connects a client to the one endpoint addr (a plain host:port, clientv3.New's premise
     plainEndpoint): NewClients of it.
 
-    go: common.go:204:6 -/
+    go: common.go:206:6 -/
 noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -826,7 +828,7 @@ noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
     next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
     which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
 
-    go: common.go:213:6 -/
+    go: common.go:215:6 -/
 noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"

@@ -148,7 +148,7 @@ theorem wp_ctx_Err (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
   iapply HE
   · itrivial
   inext
-  iintro %err -
+  iintro %err - -
   iapply HΦ
   itrivial
 
