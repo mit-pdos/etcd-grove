@@ -35,6 +35,7 @@ public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Free
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
+public import Proof.go_etcd_io.bbolt.Commit.TailPure
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
@@ -351,17 +352,17 @@ theorem Tx.Commit_err.wp_proof'
   wp_apply time.wp_Now as %t1 -
   try wp_auto
   -- `spill`
-  obtain ⟨hrbOK, hreach1, hflv1, htt1, hmv1⟩ := Hrb
+  obtain ⟨hrbOK, hreach1, hflv1, htt1, hmv1, hbm1⟩ := Hrb
   have hv1 : X1.v = X.v := hrbOK.2.2.1
   rw [← hv1]
   have hmap1 : X1.t.mv.pgid'.toNat * 4096 ≤ mapLen (w.withFl fl1).ms := by
     rw [hmv1, show (w.withFl fl1).ms = w.ms from rfl, Hmeta.2.2.2.1]
     exact Hwok.1.2.2.2.2.2.2.2.2.1 _ _ Hwok.2.1
-  -- the spill's start: the committed tree, the mark, the root bucket's children
-  -- (local gap: `rebalance`'s post says nothing of the root bucket's `bm`; `wrFacts` and
-  -- `gensOK_bktLoc_inj` give it of `X`)
+  -- the spill's start: the committed tree, the mark, the root bucket's children (`wrFacts` and
+  -- `gensOK` of `X`, the root bucket's `bm` kept by `rebalance`)
   have hroot1 : ∀ B0, X1.t.bs !! X1.rl = some B0 → (∀ k c, B0.bm !! k = some c → c ≠ X1.rl) ∧
-      ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k' := sorry
+      ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k' :=
+    cm_root_children T X X1 Hf.2.2.2.1 Hf.2.2.2.2.2.2 hrbOK.2.2.2.2.1 hbm1
   have hstart1 : spillStartOK X1 (w.withFl fl1) :=
     ⟨Hflv.2.2, by rw [hmv1, Hmeta.2.2.2.1]; exact Nat.le_refl _, hroot1⟩
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
@@ -454,10 +455,9 @@ theorem Tx.Commit_err.wp_proof'
           word
         have hmap3 : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms := by
           rw [← hX3]; exact hmap2
-        -- local gap: `derefRel` (a remap inside `allocate`) keeps the transaction's fields and the
-        -- root bucket's record (it says so of the meta copy, `pm`, `bufs`, `rl` only)
         have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
-            ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := sorry
+            ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := fun Xd b hd =>
+          cm_derefKeep X3 Xd b hd hwr3 hrl3
         have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
             wtxW K tx r false X3 ∗ wdbW K tx X3.v w2 ⊢
             |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
