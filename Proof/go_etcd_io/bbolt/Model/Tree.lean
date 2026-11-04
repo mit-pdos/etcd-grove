@@ -229,13 +229,16 @@ def bktLeafPg (pages : Pages) (v : List w8) (pg : List w8) : Prop :=
   (inBucketRoot v ≠ 0 ∧ ∃ id, ownHas pages (inBucketRoot v) id ∧ pages !! id = some pg ∧
     pageFlags pg = leafPageFlag)
 
-/-- The root bucket's leaves hold top-level buckets only, with non-empty names, each entry (name
-and bucket value) within `bboltEntryMax` (batch 37: `CreateBucket` checks `MaxKeySize`, an inline
-value is at most a quarter page by `inlineable`); their leaves hold plain entries only (no nested
-bucket), each within `bboltEntryMax`. -/
+/-- The root bucket's leaves hold top-level buckets only, with names of `1..MaxKeySize` bytes
+(item 3, batch 43.4: `CreateBucket` refuses a longer name, so every file bbolt writes has them),
+each entry (name and bucket value) within `bboltEntryMax` (batch 37: an inline value is at most a
+quarter page by `inlineable`); their leaves hold plain entries only (no nested bucket), each
+within `bboltEntryMax`. The name bound is one conjunct with the non-emptiness
+(`0 < ksize ∧ ksize ≤ maxKeySize`), so the positions of the others are unchanged. -/
 def rootShape (pages : Pages) (root : Nat) : Prop :=
   ∀ id pg, ownHas pages root id → pages !! id = some pg → pageFlags pg = leafPageFlag →
-    ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag ∧ 0 < leafKsize pg i ∧
+    ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag ∧
+      (0 < leafKsize pg i ∧ leafKsize pg i ≤ maxKeySize) ∧
       leafKsize pg i + leafVsize pg i ≤ bboltEntryMax ∧
       ∀ bpg, bktLeafPg pages (leafValue pg i) bpg → ∀ j < pageCount bpg,
         leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
@@ -247,7 +250,8 @@ def rootShape (pages : Pages) (root : Nat) : Prop :=
   empty child page, uniform leaf depth);
 - `C.pages` is exactly the tree's pages;
 - extents in `[2, hwm)` (by `treeWF`), pairwise disjoint, each page's bytes its whole extent;
-- the root holds buckets only, keys non-empty, entries within `bboltEntryMax` (`rootShape`);
+- the root holds buckets only, names of `1..MaxKeySize` bytes, keys non-empty, entries within
+  `bboltEntryMax` (`rootShape`);
 - the txid below `2 ^ 63`. -/
 def treeOK (C : CommitSt) : Prop :=
   treeStrict C.pages C.hwm C.root ∧ treePages C.pages C.root = C.pages ∧

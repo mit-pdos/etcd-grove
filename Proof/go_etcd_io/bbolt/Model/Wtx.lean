@@ -364,9 +364,11 @@ def posShape (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ c p pg, posRoot B c → ownHas X.v.pages c p →
     X.v.pages !! p = some pg → pageFlags pg = leafPageFlag →
     ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl) ∧
-      -- batch 38 (S1): a non-root bucket's view leaf entries are bounded (`rootShape`'s nested
-      -- clause)
-      (bl ≠ X.rl → 0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax)
+      -- batch 38 (S1): the view leaf entries are bounded (`rootShape`'s clauses; item 3/batch
+      -- 43.4: the root bucket's too, unconditionally), and the root bucket's names at most
+      -- `MaxKeySize` (`rootShape`'s name bound)
+      (0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax) ∧
+      (bl = X.rl → leafKsize pg i ≤ maxKeySize)
 
 /-- **The root bucket is not inline** (batch 37, U7f): its root is a page (the view's meta root at
 `beginRWTx`; no operation makes it inline). -/
@@ -458,10 +460,13 @@ def txPg (v : View) (bs : GMap Loc BRec) : Prop :=
 
 /-- Every entry of the transaction's nodes within `bboltEntryMax` (D4, for `SpillFit`), and keys
 non-empty; batch 37 (U9i): every entry, leaf or branch, a bucket entry too (the root bucket's: name
-and header or inline value, `rootShape`; a branch key is a leaf key, by exact branch keys). -/
+and header or inline value, `rootShape`; a branch key is a leaf key, by exact branch keys);
+(item 3, batch 43.4) the root bucket's keys (bucket names, and branch keys: names too) at most
+`MaxKeySize` (`rootShape`'s name bound; `CreateBucket`'s premise), the third conjunct. -/
 def entriesBounded (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → ∀ w ∈ r.ws,
-    0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax
+    0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
+      (bl = X.rl → w.key.length ≤ maxKeySize)
 
 /-- The handles: each is a bucket of the transaction (current handles are in `buckets`'
 caches, stale ones are dead objects). -/

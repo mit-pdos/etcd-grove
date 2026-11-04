@@ -155,8 +155,8 @@ page cache, and durability is out of scope), and either
   `getPageSize` reads there (1024, 2048: zero in every file bbolt writes). With D18's fork change (decided: `getPageSize` returns a meta read error, and
   probes past page 1 only after successful reads with a bad checksum, i.e. both metas invalid),
   nothing about user values is assumed. Its tree holding `D`:
-  - the root holds top-level buckets only (no nested bucket, no plain value); every key
-    non-empty; every entry within `bboltEntryMax` (key and value together: every write goes
+  - the root holds top-level buckets only (no nested bucket, no plain value), their names of
+    `1..MaxKeySize` bytes (`CreateBucket` refuses others); every key non-empty; every entry within `bboltEntryMax` (key and value together: every write goes
     through `Put`, whose spec takes it, and `WriteTo` copies such a database; a file with entries
     near `MaxValueSize` is one bbolt cannot use anyway, `issues/bbolt-max-value-size-unusable.md`);
   - (round 4: over *extents*) every tree page's extent (`id` through `id + overflow`) and the

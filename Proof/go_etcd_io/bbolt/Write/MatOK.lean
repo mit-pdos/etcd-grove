@@ -143,7 +143,8 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hnsO : ∀ y ry, B.ns !! y = some ry → ∃ ry', B'.ns !! y = some ry' ∧
       ry'.nv.pgid' = ry.nv.pgid')
     (hpg : nodePg X.v B.ib.root' r)
-    (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax)
+    (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
+      (bl = X.rl → w.key.length ≤ maxKeySize))
     (hpid : r.nv.pgid'.toNat = pgid.toNat)
     (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl))
     (hnmS : ∀ k, B'.nm !! k = none → B.nm !! k = none)
@@ -188,7 +189,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       rw [hlo] at this; cases this
   have hps' : posShape (matX X bl l pgid B') := by
     intro c C hC c0 p pg0 hpos hown hpg0 hleaf i hi
-    show (_ ↔ c = X.rl) ∧ (c ≠ X.rl → _)
+    show (_ ↔ c = X.rl) ∧ _ ∧ (c = X.rl → _)
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · rcases hpos with ⟨hrn', h0', rfl⟩ | ⟨y, j, ⟨ry', w, hy, hyl, hw, hwp, hnm'⟩, hlt⟩
       · exact hps c B hB _ p pg0 (Or.inl ⟨hrn hrn', by rw [← hib]; exact h0', by rw [hib]⟩)
@@ -673,16 +674,20 @@ omit [GooseExts] in
 theorem bytesAt_length_le (pg : List w8) (off n : Nat) : (bytesAt pg off n).length ≤ n := by
   unfold bytesAt; exact List.length_take_le _ _
 
-/-- The new node's entries are bounded (`entriesBounded`). -/
+/-- The new node's entries are bounded (`entriesBounded`); (item 3, batch 43.4) under `P` (the
+bucket is the root bucket) its keys at most `MaxKeySize`, given the page's (`hroot`). -/
 theorem newNodeBnd (pg : List w8) (r : NRec) (hr9 : r.ws.map wDat = (pageWs pg).map wDat)
     (hr4 : r.nv.isLeaf' = decide (pageFlags pg = leafPageFlag))
-    (hnodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length) (hb : leafBnd pg) :
-    ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax := by
+    (hnodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length) (hb : leafBnd pg) {P : Prop}
+    (hroot : P → ∀ j < pageCount pg, (pageKey pg j).length ≤ maxKeySize) :
+    ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
+      (P → w.key.length ≤ maxKeySize) := by
   intro x hx
   obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hx
   obtain ⟨hjc, hd⟩ := mat_at hr9 j x hj
   obtain ⟨e1, -, e3, e4⟩ := mat_wDat_eq hd
-  refine ⟨by rw [e3, mat_pageW_key]; exact hnodes j hjc, ?_⟩
+  refine ⟨by rw [e3, mat_pageW_key]; exact hnodes j hjc, ?_,
+    fun hP => by rw [e3, mat_pageW_key]; exact hroot hP j hjc⟩
   -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry are
   -- bounded too (`rootShape`'s new clause, exact branch keys): OPEN, owner U7 (`leafBnd` to cover
   -- every element of a view page)
@@ -945,7 +950,10 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' htk)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
-      (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb) (by rw [hrid'])
+      (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb
+        -- item 3/batch 43.4: the root bucket's root page's keys at most `MaxKeySize` (a leaf's:
+        -- `posShape`'s name clause; a branch's: exact branch keys and `rootShape`): OPEN, owner U7
+        (fun _ _ _ => sorry)) (by rw [hrid'])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj => by
         by_cases hin : B.ib.root' = W64 0
         · -- an inline bucket's page: no bucket entries; `bl` is not the root bucket (batch 37:
@@ -1020,7 +1028,10 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
         rp' hr hp')
       rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
-        (viewWF_leafBnd X.v hv _ pg hpg)) (by rw [hrid, hcid])
+        (viewWF_leafBnd X.v hv _ pg hpg)
+        -- item 3/batch 43.4: the root bucket's page keys at most `MaxKeySize` (as above): OPEN,
+        -- owner U7
+        (fun _ _ _ => sorry)) (by rw [hrid, hcid])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj =>
         (hok.1.2.1.2.2.2.1 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hlf j hj).1))
       (fun k h => nm_ins_none B.nm _ k l h)

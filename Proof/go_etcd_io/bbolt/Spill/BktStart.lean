@@ -42,7 +42,7 @@ theorem plainE_node {X : WX} (hok : wOKR X) {c : Loc} {C : BRec} (hC : X.t.bs !!
   intro l r hr hl w hw
   have hsh := hok.1.2.1.2.2.1 c C hC l r hr hl w hw
   have hb := hok.2.2.2.1 c C hC l r hr w hw
-  exact ⟨(notBkt_iff _).1 (fun h => hne (hsh.1 h)), hb.1, hb.2⟩
+  exact ⟨(notBkt_iff _).1 (fun h => hne (hsh.1 h)), hb.1, hb.2.1⟩
 
 /-- **A nested bucket's tree at the start of the spill** (see the module doc). -/
 theorem bk_init {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X)
@@ -87,7 +87,7 @@ theorem bk_init {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach 
   have hI : InitB X c C (spP X) C0 pht ht bnd (fun _ _ => []) :=
     { hB := hC, clean := hcl, keys := hkeys, live := hlive,
       ne := fun l r hr => hpre.2.1 c C hC l r hr (hlive l r hr),
-      bound := fun l r hr w hw => (hok.2.2.2.1 c C hC l r hr w hw).2,
+      bound := fun l r hr w hw => (hok.2.2.2.1 c C hC l r hr w hw).2.1,
       cok := hcok, cpages := hcp, chwm := hch, hpht := hpht, ext := by rw [← hcp]; exact hext,
       agree := by
         intro x pg hx

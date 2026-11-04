@@ -269,7 +269,10 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
     · rename_i hcb; subst hcb; cases hC
       rcases hB'cases y ry hy with ⟨hyl, hre⟩ | ⟨-, ry0, h1, h2, h3, -⟩
       · subst ry; subst y
-        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_⟩
+        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_,
+          -- item 3/batch 43.4: a root-bucket key at most `MaxKeySize` (the view page's: a leaf's
+          -- by `posShape`'s name clause, a branch's by exact branch keys): OPEN, owner U8
+          fun _ => sorry⟩
         -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry:
         -- OPEN, owner U8 (as `Write/MatOK.newNodeBnd`, U7)
         by_cases hlf' : r.nv.isLeaf' = false
@@ -297,8 +300,8 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
           (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
         omega
       · rw [h3] at hxw
-        exact hEB c B hb y ry0 h1 x hxw
-    · exact hEB c C hC y ry hy x hxw
+        rw [hrl']; exact hEB c B hb y ry0 h1 x hxw
+    · rw [hrl']; exact hEB c C hC y ry hy x hxw
   · intro b nm h; rw [hhd] at h; exact hobjB b (hH b nm h)
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hL
     refine ⟨by rw [hrl', hliveB]; exact l1, fun y hy => ?_, fun c C hC => ?_,
