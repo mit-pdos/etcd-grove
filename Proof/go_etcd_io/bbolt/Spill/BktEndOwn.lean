@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.BktSlot
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
 
 @[expose] public section
 
@@ -87,6 +88,21 @@ theorem mem_rootOwn_bkt {X0 : WX} {w0 : WDb} {B0 : BRec} {keys : List GoString}
     exact ⟨id, pg, hpg, h1, h2⟩
   exact mem_rootOwn.2 ⟨hc, lCovers_of_coverW h,
     not_mem_Dc0 hpre hreach hfv hk hDc0 h fun k c pid' _ e => CovW.noConfusion e⟩
+
+/-- **Every bucket is the root or a cached child of it** (nesting depth 2: a cached child of the
+root caches none, `child_bm_empty`). -/
+theorem bkt_root_or_child {X : WX} (hok : wOKR X) (hreach : liveReach X) {B0 : BRec}
+    (hB0 : X.t.bs !! X.rl = some B0) {bl : Loc} {B : BRec} (hB : X.t.bs !! bl = some B) :
+    bl = X.rl ∨ ∃ n, B0.bm !! n = some bl := by
+  have hr := hreach.1 bl B hB (hok.2.2.2.2.2.1.2.2.1 bl B hB)
+  clear hB B
+  induction hr with
+  | root => exact Or.inl rfl
+  | child bl0 c B' n hB' hm _ _ =>
+    by_cases hne : bl0 = X.rl
+    · subst hne; rw [hB0] at hB'; cases hB'; exact Or.inr ⟨n, hm⟩
+    · rw [child_bm_empty hok hB' hne, GMap.lookup_empty] at hm
+      cases hm
 
 end own
 
