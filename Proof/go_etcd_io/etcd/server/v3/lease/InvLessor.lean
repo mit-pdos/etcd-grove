@@ -118,8 +118,10 @@ to its item set); (the lease-grant plan's D2, 2026-11-02) and the lessor's **mod
 `NewLessor`'s caller. -/
 abbrev LessorRdNames := GName × GName × Bool
 
-/-- **A snapshot of the lessor**: its lease map (id to `*Lease`) and its item map (item to id). -/
-abbrev LSnap := GMap w64 Loc × GMap LeaseItem w64
+/-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
+(the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
+`Recover` set before the lease enters the map and nothing writes after: `ttlTie`). -/
+abbrev LSnap := GMap w64 Loc × GMap LeaseItem w64 × GMap w64 w64
 
 /-- The values of the lessor's ghost map `γl`: at `false` its location, the name of its grant
 guard (D19n), (unit T3) of its closers' map `γcl` (lease id to `*Lease`) and (Part B) its
@@ -290,11 +292,11 @@ def setsOk (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)) : Prop :=
     (Sm.lookup l).isSome) ∧
   ∀ (l : Loc) (S : GMap LeaseItem Unit), Sm.lookup l = some S →
     ((∀ (i : Nat) (σ : LSnap) (id : w64), hs[i]? = some σ → σ.1.lookup id ≠ some l) ∧ S = ∅) ∨
-    ∃ (id : w64) (i : Nat) (σ : LSnap), lastLiveAt hs id l i ∧ hs[i]? = some σ ∧ itemsFor σ.2 id S
+    ∃ (id : w64) (i : Nat) (σ : LSnap), lastLiveAt hs id l i ∧ hs[i]? = some σ ∧ itemsFor σ.2.1 id S
 
 /-- **The history's facts**: not empty, each lease under one id, every snapshot's keys short. -/
 def histOk (hs : List LSnap) : Prop :=
-  hs ≠ [] ∧ oneIdPerLease hs ∧ ∀ σ ∈ hs, itemKeysShort σ.2
+  hs ≠ [] ∧ oneIdPerLease hs ∧ ∀ σ ∈ hs, itemKeysShort σ.2.1
 
 /-- **No lease leaves the history's lease maps** (the lease-grant plan's D2, 2026-11-02): an id
 live at an index is live at every later one (the monotone mode's invariant: `lessorRdBody`). -/
@@ -304,16 +306,39 @@ def histMono (hs : List LSnap) : Prop :=
 
 def lessorRdN : Namespace := nroot .@ "lessor_rd"
 
+/-- **The snapshot `σ`'s TTLs are its leases' `ttl` fields** (the lease-expiry plan's R5,
+2026-11-04; persistent): it has a TTL exactly for its live ids, and each live lease's `ttl` field
+holds it, read-only (`Grant` and `Recover` write the field before the lease enters the map, nothing
+after). -/
+def ttlTie (σ : LSnap) : IProp GF :=
+  iprop(⌜∀ id : w64, (σ.2.2.lookup id).isSome ↔ (σ.1.lookup id).isSome⌝ ∗
+    [∗map] id ↦ l ∈ σ.1, ∃ t : w64, ⌜σ.2.2.lookup id = some t⌝ ∗ lsF go!"ttl" l ↦□ t)
+
+instance ttlTie_persistent (σ : LSnap) : Persistent (ttlTie (GF := GF) σ) := by
+  unfold ttlTie; infer_instance
+
+instance ttlTie_timeless (σ : LSnap) : Timeless (ttlTie (GF := GF) σ) := by
+  unfold ttlTie
+  have : Timeless (iprop([∗map] id ↦ l ∈ σ.1, ∃ t : w64, ⌜σ.2.2.lookup id = some t⌝ ∗
+      lsF go!"ttl" l ↦□ t) : IProp GF) :=
+    BigSepM.bigSepM_timeless fun {_} {_} _ => inferInstance
+  infer_instance
+
+instance ttlTies_timeless (hs : List LSnap) : Timeless ([∗list] σ ∈ hs, ttlTie (GF := GF) σ) :=
+  BigSepL.bigSepL_timeless fun _ => inferInstance
+
 /-- **The lessor's reader-side invariant** at the names `γr`: a quarter of the history's
 authority (`hs`; the owner holds half, `leaseClosers`, and `le.mu`'s invariant a quarter, so that
 the owner appends holding the write lock), half of the item sets' map's authority (`Sm`; the owner
 the other half), `setsOk` and `histOk`, and every `*Lease` of the item sets' map's `ID` (read-only:
 so a `*Lease` `Grant` has just made, whose `ID` it owns, is not one of them); (the lease-grant
-plan's D2, 2026-11-02) in the monotone mode (`γr.2.2`), `histMono`. -/
+plan's D2, 2026-11-02) in the monotone mode (`γr.2.2`), `histMono`; (the lease-expiry plan's R5,
+2026-11-04) every snapshot's TTLs its leases' `ttl` fields (`ttlTie`). -/
 def lessorRdBody (γr : LessorRdNames) : IProp GF :=
   iprop(∃ (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)),
     monoListAuthOwn γr.1 Qp.quarter hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
     ⌜setsOk hs Sm ∧ histOk hs⌝ ∗ ⌜γr.2.2 = true → histMono hs⌝ ∗
+    ([∗list] σ ∈ hs, ttlTie σ) ∗
     [∗map] l ↦ _S ∈ Sm, ∃ id : w64, lsF go!"ID" l ↦□ id)
 
 /-- **The lessor `γl`'s reader-side invariant** (persistent). -/
@@ -349,6 +374,16 @@ instance leaseLiveFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) :
     Persistent (leaseLiveFrom (GF := GF) γl m id l) := by
   unfold leaseLiveFrom; infer_instance
 
+/-- **The lessor's TTL of `id` at the index `i` is `t`** (the lease-expiry plan's R5, 2026-11-04;
+persistent): the snapshot there records `t` for `id` (the `ttl` field of its lease there:
+`ttlTie`). -/
+def leaseTTLAt (γl : GName) (i : Nat) (id : w64) (t : w64) : IProp GF :=
+  iprop(∃ σ : LSnap, ⌜σ.2.2.lookup id = some t⌝ ∗ lessorAt γl i σ)
+
+instance leaseTTLAt_persistent (γl : GName) (i : Nat) (id t : w64) :
+    Persistent (leaseTTLAt (GF := GF) γl i id t) := by
+  unfold leaseTTLAt; infer_instance
+
 /-- **No lease of `id` at an index no earlier than `m`** (persistent). -/
 def leaseAbsentFrom (γl : GName) (m : Nat) (id : w64) : IProp GF :=
   iprop(∃ (i : Nat) (σ : LSnap), ⌜m ≤ i ∧ σ.1.lookup id = none⌝ ∗ lessorAt γl i σ)
@@ -362,8 +397,8 @@ the keys the item map attaches to `id` there, where the lease map has `l`; every
 map short. -/
 def leaseKeysFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) : IProp GF :=
   iprop(∃ (i : Nat) (σ : LSnap),
-    ⌜m ≤ i ∧ σ.1.lookup id = some l ∧ (∀ k : GoString, k ∈ ks ↔ σ.2.lookup ⟨k⟩ = some id) ∧
-      itemKeysShort σ.2⌝ ∗ lessorAt γl i σ)
+    ⌜m ≤ i ∧ σ.1.lookup id = some l ∧ (∀ k : GoString, k ∈ ks ↔ σ.2.1.lookup ⟨k⟩ = some id) ∧
+      itemKeysShort σ.2.1⌝ ∗ lessorAt γl i σ)
 
 instance leaseKeysFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) :
     Persistent (leaseKeysFrom (GF := GF) γl m id l ks) := by
@@ -411,6 +446,88 @@ theorem leaseLiveFrom_lb (γl : GName) (m : Nat) (id : w64) (l : Loc) :
   isplitr
   · ipureintro; exact ⟨Nat.le_refl i, Hi.2⟩
   iexists γr; iframe Hp; iexists hs; iframe Hlb; ipureintro; exact Hhs
+
+/-- **The snapshot `σ` keeps the snapshot `τ`'s leases at their TTLs** (the lease-expiry plan's
+R5): every lease of `σ` is `τ`'s under the same id, at the same TTL, and `σ` has a TTL exactly for
+its live ids (`Revoke`'s, `Attach`'s and `Detach`'s snapshots of the last one). -/
+def tieSub (τ σ : LSnap) : Prop :=
+  (∀ (id : w64) (l : Loc), σ.1.lookup id = some l →
+    τ.1.lookup id = some l ∧ σ.2.2.lookup id = τ.2.2.lookup id) ∧
+  ∀ id : w64, (σ.2.2.lookup id).isSome ↔ (σ.1.lookup id).isSome
+
+/-- **A snapshot keeping a tied snapshot's leases at their TTLs is tied.** -/
+theorem ttlTie_sub {τ σ : LSnap} (h : tieSub τ σ) : ttlTie (GF := GF) τ ⊢ ttlTie σ := by
+  unfold ttlTie
+  iintro ⟨-, #Hm⟩
+  isplitr
+  · ipureintro; exact h.2
+  have key : (iprop(□ ([∗map] id ↦ l ∈ τ.1, ∃ t : w64, ⌜τ.2.2.lookup id = some t⌝ ∗
+      lsF go!"ttl" l ↦□ t)) : IProp GF) ⊢
+      [∗map] id ↦ l ∈ σ.1, ∃ t : w64, ⌜σ.2.2.lookup id = some t⌝ ∗ lsF go!"ttl" l ↦□ t := by
+    apply BigSepM.bigSepM_intro
+    intro id l hl
+    obtain ⟨hτ, heq⟩ := h.1 id l hl
+    refine intuitionistically_elim.trans ?_
+    refine (BigSepM.bigSepM_lookup (Φ := fun id l => (iprop(∃ t : w64,
+      ⌜τ.2.2.lookup id = some t⌝ ∗ lsF go!"ttl" l ↦□ t) : IProp GF))
+      (show Iris.Std.PartialMap.get? τ.1 id = some l from hτ)).trans ?_
+    iintro ⟨%t, %ht, #H⟩
+    iexists t; iframe H; ipureintro; rw [heq]; exact ht
+  iapply key
+  imodintro
+  iexact Hm
+
+/-- **The snapshot's TTLs with a lease of `id` removed** (`Revoke`'s). -/
+theorem tieSub_delete (M : GMap w64 Loc) (I I' : GMap LeaseItem w64) (T : GMap w64 w64)
+    (id : w64) (hT : ∀ x : w64, (T.lookup x).isSome ↔ (M.lookup x).isSome) :
+    tieSub (M, I, T) (M.delete id, I', T.delete id) := by
+  refine ⟨fun x l h => ?_, fun x => ?_⟩
+  · by_cases hx : id = x
+    · subst hx; simp at h
+    · rw [GMap.lookup_delete_ne _ hx] at h
+      exact ⟨h, by simp only [GMap.lookup_delete_ne _ hx]⟩
+  · by_cases hx : id = x
+    · subst hx; simp [GMap.lookup_delete]
+    · simp only [GMap.lookup_delete_ne _ hx]; exact hT x
+
+/-- **The snapshot's TTLs with only its item map changed** (`Attach`'s, `Detach`'s). -/
+theorem tieSub_items (M : GMap w64 Loc) (I I' : GMap LeaseItem w64) (T : GMap w64 w64)
+    (hT : ∀ x : w64, (T.lookup x).isSome ↔ (M.lookup x).isSome) :
+    tieSub (M, I, T) (M, I', T) :=
+  ⟨fun _ _ h => ⟨h, rfl⟩, hT⟩
+
+/-- A tied snapshot has a TTL exactly for its live ids. -/
+theorem ttlTie_dom (σ : LSnap) :
+    ttlTie (GF := GF) σ ⊢ ⌜∀ id : w64, (σ.2.2.lookup id).isSome ↔ (σ.1.lookup id).isSome⌝ := by
+  unfold ttlTie
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
+
+/-- **A lease joining a tied snapshot at its `ttl` field's value** (R5: `Grant`'s snapshot). -/
+theorem ttlTie_insert (M : GMap w64 Loc) (I I' : GMap LeaseItem w64) (T : GMap w64 w64) (id : w64)
+    (l : Loc) (t : w64) (hid : M.lookup id = none) :
+    ttlTie (GF := GF) (M, I, T) ∗ lsF go!"ttl" l ↦□ t ⊢
+      ttlTie ((M.insert id l, I', T.insert id t) : LSnap) := by
+  unfold ttlTie
+  iintro ⟨⟨%Hd, #Hm⟩, #Ht⟩
+  isplitr
+  · ipureintro
+    intro x
+    simp only [GMap.lookup_insert_is_Some]
+    rw [Hd x]
+  iapply (BigSepM.bigSepM_insert (Φ := fun i x => (iprop(∃ t' : w64,
+    ⌜(T.insert id t).lookup i = some t'⌝ ∗ lsF go!"ttl" x ↦□ t') : IProp GF))
+    (show Iris.Std.PartialMap.get? M id = none from hid)).2
+  isplitr
+  · iexists t; iframe Ht; ipureintro; simp [GMap.lookup_insert_eq_iff]
+  iapply (BigSepM.bigSepM_mono (Φ := fun i x => (iprop(∃ t' : w64,
+    ⌜T.lookup i = some t'⌝ ∗ lsF go!"ttl" x ↦□ t') : IProp GF)) ?_) $$ Hm
+  intro i x hx
+  iintro ⟨%t', %ht', #H⟩
+  iexists t'; iframe H; ipureintro
+  have hne : id ≠ i := by
+    rintro rfl; have : M.lookup id = some x := hx; rw [hid] at this; cases this
+  rw [GMap.lookup_insert_ne _ _ hne]; exact ht'
 
 /-- **`ls` is the lease map at the index `i`** (persistent; the lease-read plan, 2026-10-31): its
 pairs `(l, id)` are the map's there, each id once. What `Leases()` returns, in some order. -/
@@ -712,7 +829,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗ ⧖ (GMap.size M) ∗
     ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp M q ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
-      monoListAuthOwn γr.1 q.half.half hs ∗ ⌜hs.getLast? = some (M, I)⌝))
+      monoListAuthOwn γr.1 q.half.half hs ∗ ⌜∃ T, hs.getLast? = some (M, I, T)⌝))
 
 /-- **The lessor** at `lp` with ghost map `γl` (persistent): pinned, its lock's guard. -/
 def lessorInv (lp : Loc) (γl : GName) : IProp GF :=
@@ -797,7 +914,7 @@ def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp G
     ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ ∗ ⌜itemKeysShort I⌝ ∗
     ([∗map] id ↦ l ∈ C, closerAt γl γcl I id l) ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)),
-      lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗ ⌜hs.getLast? = some (C, I)⌝ ∗
+      lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗ ⌜∃ T, hs.getLast? = some (C, I, T)⌝ ∗
       ghostMapAuth γr.2.1 (1 : Qp).half Sm))
 
 /-- **The lease owner's revokers** (unit T3, 2026-10-25): for every lease of the live set `L`,
@@ -978,6 +1095,41 @@ theorem lessorPinR_agree (γl : GName) (γr γr' : LessorRdNames) :
   have h2 := H.2
   cases h2; rfl
 
+/-- **The `ttl` field of a lease found in the history is the lessor's TTL of its id there** (the
+lease-expiry plan's R5, 2026-11-04): what a reader that looked a lease up and read its `ttl`
+(`TimeToLive`'s `GrantedTTL`) learns of the history. -/
+theorem leaseLiveFrom_ttl (γl : GName) (m : Nat) (id : w64) (l : Loc) (t : w64) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseLiveFrom γl m id l ∗ lsF go!"ttl" l ↦□ t ⊢
+      |={E}=> ∃ i : Nat, ⌜m ≤ i⌝ ∗ leaseTTLAt γl i id t := by
+  unfold lessorRdInv leaseLiveFrom leaseTTLAt lessorAt
+  iintro ⟨⟨%γr, #Hp, #Hinv⟩, #⟨%i, %σ, %Hi, %γr2, #Hp2, #Hidx⟩, #Ht⟩
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
+  subst H2
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, #>Htie, Hids⟩
+  ihave %Hhs := mono_list_auth_idx_lookup γr.1 _ hs i σ $$ Ha Hidx
+  ihave #Hσ := BigSepL.bigSepL_lookup (Φ := fun _ σ => ttlTie (GF := GF) σ) Hhs $$ Htie
+  iunfold ttlTie at Hσ
+  icases Hσ with ⟨-, #Hm⟩
+  ihave ⟨%t', %Ht', #Ht2⟩ := BigSepM.bigSepM_lookup (Φ := fun i x => (iprop(∃ t' : w64,
+    ⌜σ.2.2.lookup i = some t'⌝ ∗ lsF go!"ttl" x ↦□ t') : IProp GF))
+    (show Iris.Std.PartialMap.get? σ.1 id = some l from Hi.2) $$ Hm
+  icombine Ht Ht2 gives %Heq
+  subst Heq
+  imod Hclose $$ [Ha HS Hids] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS Htie Hids; ipureintro
+    exact ⟨Hok, Hmono⟩
+  imodintro
+  iexists i
+  isplitr
+  · ipureintro; exact Hi.1
+  iexists σ
+  isplitr
+  · ipureintro; exact Ht'
+  iexists γr; iframe Hp Hidx
+
 /-- **A `w64` field owned whole is not also read-only** (a local workaround: Perennial's typed
 points-to has value agreement but no fraction validity, `notes/perennial-changes.md`): through its
 first byte's heap points-to. -/
@@ -1009,7 +1161,7 @@ theorem itemSet_keysFrom (γl : GName) (γr : LessorRdNames) (l : Loc) (dq : DFr
     lessorRdInv (GF := GF) γl ∗ lessorPinR γl γr ∗ leaseLiveFrom γl m id l ∗
       ghostMapElem γr.2.1 l dq S ⊢
     |={E}=> ghostMapElem γr.2.1 l dq S ∗ ∃ (i : Nat) (σ : LSnap),
-      ⌜m ≤ i ∧ σ.1.lookup id = some l ∧ itemsFor σ.2 id S ∧ itemKeysShort σ.2⌝ ∗
+      ⌜m ≤ i ∧ σ.1.lookup id = some l ∧ itemsFor σ.2.1 id S ∧ itemKeysShort σ.2.1⌝ ∗
       lessorAt γl i σ := by
   unfold lessorRdInv leaseLiveFrom lessorAt
   iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, #Hp, #⟨%i, %σ, %Hi, %γr2, #Hp2, #Hidx⟩, He⟩
@@ -1032,7 +1184,7 @@ theorem itemSet_keysFrom (γl : GName) (γr : LessorRdNames) (l : Loc) (dq : DFr
   have Hij : i ≤ j := by
     refine Nat.le_of_not_lt fun hlt => ?_
     exact Hlater i σ hlt Hhs Hi.2
-  have Hshort : itemKeysShort τ.2 := Hok.2.2.2 τ (List.mem_of_getElem? Hj)
+  have Hshort : itemKeysShort τ.2.1 := Hok.2.2.2 τ (List.mem_of_getElem? Hj)
   ihave #Hidx' := monoListIdxOwn_get j τ Hj $$ Hlb
   imod Hclose $$ [Ha HS Hids] with -
   · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS Hids; ipureintro; exact ⟨Hok, Hmono⟩

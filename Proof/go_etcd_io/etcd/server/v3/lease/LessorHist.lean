@@ -89,12 +89,12 @@ theorem setsOk_snoc {hs : List LSnap} {Sm Sm' : GMap Loc (GMap LeaseItem Unit)} 
     (hinj : ∀ (id id' : w64) (l : Loc), σ'.1.lookup id = some l → σ'.1.lookup id' = some l →
       id = id')
     (hin : ∀ (id : w64) (l : Loc) (S : GMap LeaseItem Unit), σ'.1.lookup id = some l →
-      Sm'.lookup l = some S → itemsFor σ'.2 id S)
+      Sm'.lookup l = some S → itemsFor σ'.2.1 id S)
     (hout : ∀ (l : Loc) (S : GMap LeaseItem Unit), Sm'.lookup l = some S →
       (∀ id : w64, σ'.1.lookup id ≠ some l) →
       Sm.lookup l = some S ∨
         ((∀ (k : Nat) (τ : LSnap) (id : w64), hs[k]? = some τ → τ.1.lookup id ≠ some l) ∧ S = ∅))
-    (hshort : itemKeysShort σ'.2) :
+    (hshort : itemKeysShort σ'.2.1) :
     setsOk (hs ++ [σ']) Sm' ∧ histOk (hs ++ [σ']) := by
   obtain ⟨hne, hone, hks⟩ := hh
   have ⟨hσ, hpos⟩ := getLast?_getElem? hlast
@@ -159,11 +159,11 @@ theorem setsOk_snoc {hs : List LSnap} {Sm Sm' : GMap Loc (GMap LeaseItem Unit)} 
 /-- **`Grant`'s snapshot**: the lease map gains the lease `l` of `id`, `l` in no snapshot before
 (registered with the empty set) and `id` with no item. -/
 theorem setsOk_grant {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M : GMap w64 Loc}
-    {I : GMap LeaseItem w64} {id : w64} {l : Loc}
-    (hlast : hs.getLast? = some (M, I)) (hok : setsOk hs Sm) (hh : histOk hs)
+    {I : GMap LeaseItem w64} {T T' : GMap w64 w64} {id : w64} {l : Loc}
+    (hlast : hs.getLast? = some (M, I, T)) (hok : setsOk hs Sm) (hh : histOk hs)
     (hM : M.lookup id = none) (hI : ∀ it : LeaseItem, I.lookup it ≠ some id)
     (hnew : ∀ (k : Nat) (τ : LSnap) (id' : w64), hs[k]? = some τ → τ.1.lookup id' ≠ some l) :
-    setsOk (hs ++ [(M.insert id l, I)]) (Sm.insert l ∅) ∧ histOk (hs ++ [(M.insert id l, I)]) := by
+    setsOk (hs ++ [(M.insert id l, I, T')]) (Sm.insert l ∅) ∧ histOk (hs ++ [(M.insert id l, I, T')]) := by
   have ⟨hσ, hpos⟩ := getLast?_getElem? hlast
   have hlM : ∀ x : w64, M.lookup x ≠ some l := fun x h => hnew _ _ x hσ h
   have hins : ∀ (x : w64) (l' : Loc), (M.insert id l).lookup x = some l' →
@@ -207,12 +207,12 @@ theorem setsOk_grant {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M 
       rcases hok.2 l' S hS with ⟨hn, -⟩ | ⟨id3, i, τ, ⟨⟨τ', hi', hτ'⟩, hlat⟩, hi, hit⟩
       · exact absurd h (hn _ _ x hσ)
       · rw [hi] at hi'; cases hi'
-        have h3 : id3 = x := hh.2.1 i _ τ (M, I) id3 x l' hi hσ hτ' h
+        have h3 : id3 = x := hh.2.1 i _ τ (M, I, T) id3 x l' hi hσ hτ' h
         subst h3
         have hilt : i < hs.length := (List.getElem?_eq_some_iff.1 hi).1
         have : i = hs.length - 1 := by
           refine Nat.le_antisymm (by omega) (Nat.le_of_not_lt fun hlt => ?_)
-          exact hlat _ (M, I) hlt hσ h
+          exact hlat _ (M, I, T) hlt hσ h
         subst this
         rw [hσ] at hi; cases hi
         exact hit
@@ -220,14 +220,14 @@ theorem setsOk_grant {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M 
     have hll : l ≠ l' := fun e => hn id (by subst e; simp [GMap.lookup_insert_eq_iff])
     rw [hSm, if_neg hll] at hS
     left; exact hS
-  · exact hh.2.2 (M, I) (List.mem_of_getElem? hσ)
+  · exact hh.2.2 (M, I, T) (List.mem_of_getElem? hσ)
 
 /-- A lease of the last snapshot has, in the item sets' map, the items the last item map attaches
 to its id. -/
 theorem itemsFor_of_last {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {σ : LSnap}
     {id : w64} {l : Loc} {S : GMap LeaseItem Unit}
     (hlast : hs.getLast? = some σ) (hok : setsOk hs Sm) (hh : histOk hs)
-    (hl : σ.1.lookup id = some l) (hS : Sm.lookup l = some S) : itemsFor σ.2 id S := by
+    (hl : σ.1.lookup id = some l) (hS : Sm.lookup l = some S) : itemsFor σ.2.1 id S := by
   have ⟨hσ, hpos⟩ := getLast?_getElem? hlast
   rcases hok.2 l S hS with ⟨hn, -⟩ | ⟨id3, i, τ, ⟨⟨τ', hi', hτ'⟩, hlat⟩, hi, hit⟩
   · exact absurd hl (hn _ _ id hσ)
@@ -245,13 +245,14 @@ theorem itemsFor_of_last {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)}
 /-- **`Attach`'s and `Detach`'s snapshot**: the item map changed to `I'` on the lease `l` of `id`
 only, and `l`'s set with it (`S` to `S'`). -/
 theorem setsOk_items {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M : GMap w64 Loc}
-    {I I' : GMap LeaseItem w64} {id : w64} {l : Loc} {S S' : GMap LeaseItem Unit}
-    (hlast : hs.getLast? = some (M, I)) (hok : setsOk hs Sm) (hh : histOk hs)
+    {I I' : GMap LeaseItem w64} {T : GMap w64 w64} {id : w64} {l : Loc}
+    {S S' : GMap LeaseItem Unit}
+    (hlast : hs.getLast? = some (M, I, T)) (hok : setsOk hs Sm) (hh : histOk hs)
     (hM : M.lookup id = some l) (hS : Sm.lookup l = some S)
     (hself : itemsFor I id S → itemsFor I' id S')
     (hother : ∀ id' : w64, id' ≠ id → ∀ it : LeaseItem, I'.lookup it = some id' ↔ I.lookup it = some id')
     (hshort : itemKeysShort I → itemKeysShort I') :
-    setsOk (hs ++ [(M, I')]) (Sm.insert l S') ∧ histOk (hs ++ [(M, I')]) := by
+    setsOk (hs ++ [(M, I', T)]) (Sm.insert l S') ∧ histOk (hs ++ [(M, I', T)]) := by
   have ⟨hσ, hpos⟩ := getLast?_getElem? hlast
   have hSm : ∀ l' : Loc, (Sm.insert l S').lookup l' = if l = l' then some S' else Sm.lookup l' :=
     fun l' => GMap.lookup_insert_eq_iff Sm l l' S'
@@ -281,13 +282,13 @@ theorem setsOk_items {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M 
     have hll : l ≠ l' := fun e => hn id (by subst e; exact hM)
     rw [hSm, if_neg hll] at hS0
     left; exact hS0
-  · exact hshort (hh.2.2 (M, I) (List.mem_of_getElem? hσ))
+  · exact hshort (hh.2.2 (M, I, T) (List.mem_of_getElem? hσ))
 
 /-- **`Revoke`'s snapshot**: the lease of `id` leaves the lease map; the item sets unchanged. -/
 theorem setsOk_delete {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M : GMap w64 Loc}
-    {I : GMap LeaseItem w64} {id : w64}
-    (hlast : hs.getLast? = some (M, I)) (hok : setsOk hs Sm) (hh : histOk hs) :
-    setsOk (hs ++ [(M.delete id, I)]) Sm ∧ histOk (hs ++ [(M.delete id, I)]) := by
+    {I : GMap LeaseItem w64} {T T' : GMap w64 w64} {id : w64}
+    (hlast : hs.getLast? = some (M, I, T)) (hok : setsOk hs Sm) (hh : histOk hs) :
+    setsOk (hs ++ [(M.delete id, I, T')]) Sm ∧ histOk (hs ++ [(M.delete id, I, T')]) := by
   have ⟨hσ, hpos⟩ := getLast?_getElem? hlast
   have hdel : ∀ (x : w64) (l' : Loc), (M.delete id).lookup x = some l' → x ≠ id ∧ M.lookup x = some l' := by
     intro x l' h
@@ -299,9 +300,9 @@ theorem setsOk_delete {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M
   · intro x l' h; exact hok.1 _ _ x l' hσ (hdel x l' h).2
   · intro x l' h; left; exact (hdel x l' h).2
   · intro x x' l' h h'; exact oneId_last hh.2.1 hlast (hdel x l' h).2 (hdel x' l' h').2
-  · intro x l' S0 h hS0; exact itemsFor_of_last (σ := (M, I)) hlast hok hh (hdel x l' h).2 hS0
+  · intro x l' S0 h hS0; exact itemsFor_of_last (σ := (M, I, T)) hlast hok hh (hdel x l' h).2 hS0
   · intro l' S0 hS0 _; left; exact hS0
-  · exact hh.2.2 (M, I) (List.mem_of_getElem? hσ)
+  · exact hh.2.2 (M, I, T) (List.mem_of_getElem? hσ)
 
 end hist
 
