@@ -704,7 +704,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     iexists X2, w2, st ++ st2
     isplitr
     · ipureintro
-      refine ⟨Hst2.1.trans HI.C, ?_, Hst2.2.2.trans HI.pages⟩
+      refine ⟨Hst2.1.trans HI.C, ?_, Hst2.2.2.1.trans HI.pages⟩
       rw [Hst2.2.1, HI.fl, HwX, applySteps_append]
     iexact Hcase
 

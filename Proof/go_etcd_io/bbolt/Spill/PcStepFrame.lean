@@ -45,7 +45,7 @@ theorem spFrame_setNode' (X : WX) (bl l : Loc) (r' : NRec) :
         { X with t := { X.t with bs := X.t.bs.insert bl { B with ns := B.ns.insert l r' } } } := by
       unfold WX.setNode WX.setBkt; rw [hB]
     rw [e]
-    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
       ?_, ?_, ?_, fun _ _ _ _ _ _ => Iff.rfl, ?_, ?_⟩
     · intro bl' hne B0 hB0
       refine ⟨B0, ?_, bktSim_refl B0, fun _ => optRel_nodeSim_refl _⟩
@@ -104,7 +104,7 @@ theorem spFrame_deref {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (bl :
     have e5 := congrArg BRec.ipg e
     exact ⟨B', hB', ⟨e1, e2, e3, e4, e5⟩,
       fun l => optRel_mono' (hs.2 l) fun _ _ hn => nodeStep_nodeSim hn⟩
-  refine ⟨hrl, hhd, hnl, hlb, by rw [hv], by rw [hv], htt, by rw [hmv], by rw [hmv]; exact Nat.le_refl _,
+  refine ⟨hrl, hhd, hnl, hlb, by rw [hv], by rw [hv], htt, meta_with_pgid_of_eq hmv, by rw [hmv]; exact Nat.le_refl _,
     fun _ _ hk => by rw [hbf]; exact hk, fun _ _ hk => by rw [hpm]; exact hk,
     fun bl' _ B hB => hBk bl' B hB, fun bl' _ h0 => optRel_none_l (h0 ▸ hbs bl'), ?_,
     fun _ _ _ _ _ _ => by rw [hlv], fun y hy => by rw [objs_isSome_step h hd y]; exact hy, ?_⟩
@@ -132,7 +132,7 @@ theorem spFrame_rebase {X : WX} (b : Loc) (hd : objsDisj X.t) (hc : derefOK X) (
     cases B.ns !! l with
     | none => trivial
     | some r => exact unview_nodeSim r
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
     fun bl' _ B hB => hBk bl' B hB, fun bl' _ h0 => by rw [rebase_bs, h0]; rfl, ?_,
     fun _ _ _ _ _ _ => Iff.rfl, ?_, ?_⟩
   · intro B hB
@@ -163,8 +163,8 @@ theorem spFrame_addPage {X : WX} {id : w64} {p : Loc} {count : Nat} {hwm : w64}
     (hb : X.t.bufs !! id = none) (hp : X.t.pm !! id = none)
     (hh : X.t.mv.pgid'.toNat ≤ hwm.toNat) (bl : Loc) (T : List Loc) :
     spFrame X (X.addPage id p count hwm) bl T := by
-  obtain ⟨a, b, c, d, e, f, g, i, -, -, -, m, n, o, q, r, z⟩ := spFrame_refl X bl T
-  refine ⟨a, b, c, d, e, f, g, i, hh, ?_, ?_, m, n, o, q, r, z⟩
+  obtain ⟨a, b, c, d, e, f, g, -, -, -, -, m, n, o, q, r, z⟩ := spFrame_refl X bl T
+  refine ⟨a, b, c, d, e, f, g, rfl, hh, ?_, ?_, m, n, o, q, r, z⟩
   · intro k bs hk
     show (X.t.bufs.insert id _) !! k = _
     rw [GMap.lookup_insert_ne _ _ (fun he => by subst he; rw [hb] at hk; cases hk)]; exact hk

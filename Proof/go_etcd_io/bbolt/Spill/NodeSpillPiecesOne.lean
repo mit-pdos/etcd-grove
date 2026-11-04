@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.bbolt.Inv.WtxBase
 public import Proof.go_etcd_io.bbolt.Spill.AllocDeref
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillAsm
 public import Proof.go_etcd_io.bbolt.Spill.DerefCopy
+public import Proof.go_etcd_io.bbolt.Spill.SpErr
 
 @[expose] public section
 
@@ -182,8 +183,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         wtxW K tx r m X3 -∗ wdbW K tx X3.v w2 -∗ txp ↦ tx -∗ nodep ↦ l -∗ resp ↦ e0 -∗
         Φ executeVal) ∗
       (∀ (err : GoInterface) (X' : WX) (w' : WDb) (st : List FLStep),
-        ⌜err ≠ interface.nil ∧ w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
-          X'.v.pages = X.v.pages⌝ -∗ fmtErrorOk err -∗
+        ⌜err ≠ interface.nil ∧ spErr X X' w w' st⌝ -∗ fmtErrorOk err -∗
         ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w')) -∗
         txp ↦ tx -∗ nodep ↦ l -∗ resp ↦ err -∗ Φ (returnVal #())) ⊢
     WP (App (App (Val (pieceFn txp resp nodep)) (Val #k)) (Val #l)) {{ Φ }} := by
@@ -247,10 +247,11 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
   · iframe
   rotate_left
   · -- `allocate`'s error: returned
-    have hfw : w1.C = w.C ∧ w1.fl = w.fl.applySteps w.wtxid st1 := by
-      rcases Hfr1 with ⟨-, -, rfl, rfl⟩ | ⟨pg, -, -, -, rfl, rfl⟩
-      · exact ⟨rfl, rfl⟩
-      · exact ⟨rfl, rfl⟩
+    have hfw : spErr X X1 w w1 st1 := by
+      rcases Hfr1 with ⟨h0, rfl, rfl, rfl⟩ | ⟨pg, -, -, rfl, rfl, rfl⟩
+      · exact spErr_refl _ _
+      · obtain ⟨-, -, c, d, e, f, g⟩ := spErr_setNode X w bl l { rl with nv := { rl.nv with pgid' := W64 0 } }
+        exact ⟨rfl, rfl, c, d, e, f, g⟩
     cases err with
     | nil => exact absurd rfl Herr
     | ok ii =>
@@ -258,14 +259,12 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     wp_auto
     icases Hres2 with (⟨Hw, Hdb⟩ | ⟨%X', %w', Hw, Hdb, %Hl⟩)
     · iapply HΦe $$ %(GoInterface.ok ii) %X1 %w1 %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
-      · ipureintro; exact ⟨Herr, hfw.1, hfw.2, by rw [hv1]⟩
+      · ipureintro; exact ⟨Herr, spErr_st (spErr_trans hfw (spErr_refl X1 w1)) (List.append_nil _)⟩
       · ileft; iframe
     · obtain ⟨⟨Xd, b, hd, rfl⟩, hC, hfl⟩ := Hl
       iapply HΦe $$ %(GoInterface.ok ii) %(Xd.rebase b) %w' %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
       · ipureintro
-        refine ⟨Herr, hC.trans hfw.1, hfl.trans hfw.2, ?_⟩
-        show Xd.v.pages = X1.v.pages
-        rw [hd.2.1]
+        exact ⟨Herr, spErr_st (spErr_trans hfw (spErr_rebase hd b hC hfl)) (List.append_nil _)⟩
       · iright; iframe
   -- `allocate`'s success
   obtain ⟨Hal, HC2, Hml2, Hw2⟩ := Hal

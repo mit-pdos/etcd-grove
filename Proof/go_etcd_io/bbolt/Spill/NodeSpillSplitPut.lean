@@ -127,7 +127,7 @@ theorem splitX_frame (hb : X.t.bs !! bl = some B) (T : List Loc)
     intro hm
     obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hm
     exact hl (hT p hp)
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
     ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro bl' hne B0 hB0
     refine ⟨B0, ?_, bktSim_refl B0, fun _ => optRel_nodeSim_refl _⟩
