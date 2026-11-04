@@ -268,6 +268,115 @@ private theorem not_pend_of_only_none (fl : FLPg) (s : Nat) (hs : s < 2 ^ 64)
 private theorem W64_toNat_of_lt' (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
   simp only [W64, BitVec.toNat_ofInt]; omega
 
+private theorem run_toNat (id : w64) (n j : Nat) (hj : j < n) (hn : id.toNat + n < 2 ^ 64) :
+    (id + W64 (j : Int)).toNat = id.toNat + j := by
+  simp only [W64, BitVec.toNat_add, BitVec.toNat_ofInt]; omega
+
+private theorem mem_runIds' (id : w64) (n : Nat) (x : w64) :
+    x ∈ runIds id n ↔ ∃ j < n, x = id + W64 (j : Int) := by
+  simp only [runIds, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+
+private theorem mem_runIds_toNat (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (x : w64) :
+    x ∈ runIds id n ↔ id.toNat ≤ x.toNat ∧ x.toNat < id.toNat + n := by
+  rw [mem_runIds']
+  constructor
+  · rintro ⟨j, hj, rfl⟩; rw [run_toNat id n j hj hn]; omega
+  · intro ⟨h1, h2⟩
+    refine ⟨x.toNat - id.toNat, by omega, ?_⟩
+    apply BitVec.eq_of_toNat_eq
+    rw [run_toNat id n _ (by omega) hn]; omega
+
+private theorem inRun_W64 (id : w64) (n s : Nat) (hs : s < 2 ^ 64) :
+    inRun id n (W64 (s : Int)) ↔ id.toNat ≤ s ∧ s < id.toNat + n := by
+  unfold inRun; rw [W64_toNat_of_lt' s hs]
+
+private theorem freePages_lookup (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : (fl.freePages T id n).pending !! t = some pd) :
+    (t ≠ T ∧ fl.pending !! t = some pd) ∨
+    (t = T ∧ ∃ P : Pending, (fl.pending !! T).getD ⟨[], [], 0⟩ = P ∧
+      pd = ⟨P.ids ++ runIds id n, P.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0),
+        P.lastReleaseBegin⟩) := by
+  simp only [FLPg.freePages, GMap.lookup_insert_eq_iff] at h
+  split at h
+  · rename_i he; cases h; exact Or.inr ⟨he.symm, _, rfl, rfl⟩
+  · rename_i he; exact Or.inl ⟨fun e => he e.symm, h⟩
+
+private theorem freePages_pending_old (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : fl.pending !! t = some pd) : ∃ pd', (fl.freePages T id n).pending !! t = some pd' ∧
+      ∀ x, x ∈ pd.ids → x ∈ pd'.ids := by
+  by_cases ht : t = T
+  · subst ht
+    refine ⟨⟨pd.ids ++ runIds id n, pd.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0),
+      pd.lastReleaseBegin⟩, by simp [FLPg.freePages, h], fun x hx => ?_⟩
+    simp only [List.mem_append]; exact Or.inl hx
+  · exact ⟨pd, by simp [FLPg.freePages, Ne.symm ht, h], fun x hx => hx⟩
+
+private theorem pendSlots_free (fl : FLPg) (T id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (s : Nat) :
+    s ∈ pendSlots (fl.freePages T id n) ↔
+      s ∈ pendSlots fl ∨ (id.toNat ≤ s ∧ s < id.toNat + n) := by
+  rw [mem_pendSlots, mem_pendSlots]
+  constructor
+  · rintro ⟨t, pd, x, hp, hx, rfl⟩
+    rcases freePages_lookup fl T id n t pd hp with ⟨-, hp⟩ | ⟨rfl, P, hP, rfl⟩
+    · exact Or.inl ⟨t, pd, x, hp, hx, rfl⟩
+    · simp only [List.mem_append] at hx
+      rcases hx with hx | hx
+      · left
+        rcases hq : fl.pending !! t with _ | q
+        · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; simp at hx
+        · rw [hq] at hP; simp only [Option.getD_some] at hP; subst hP
+          exact ⟨t, q, x, hq, hx, rfl⟩
+      · exact Or.inr ((mem_runIds_toNat id n hn x).1 hx)
+  · rintro (⟨t, pd, x, hp, hx, rfl⟩ | ⟨h1, h2⟩)
+    · obtain ⟨pd', hp', hsub⟩ := freePages_pending_old fl T id n t pd hp
+      exact ⟨t, pd', x, hp', hsub x hx, rfl⟩
+    · refine ⟨T, _, W64 (s : Int), GMap.lookup_insert_eq _ _ _, ?_,
+        W64_toNat_of_lt' s (by omega)⟩
+      simp only [List.mem_append]
+      right
+      rw [mem_runIds_toNat id n hn, W64_toNat_of_lt' s (by omega)]; omega
+
+private theorem pendingIds_free_perm (fl : FLPg) (T id : w64) (n : Nat) :
+    (fl.freePages T id n).pendingIds.Perm (fl.pendingIds ++ runIds id n) := by
+  unfold FLPg.pendingIds
+  rcases hq : fl.pending !! T with _ | q
+  · have h1 := GMap.mapToList_insert fl.pending T ⟨runIds id n,
+      List.replicate n ((fl.allocs !! id).getD 0), 0⟩ hq
+    simp only [FLPg.freePages, hq, Option.getD_none, List.nil_append]
+    refine (h1.flatMap_right _).trans ?_
+    simp only [List.flatMap_cons]
+    exact List.perm_append_comm
+  · have h0 := GMap.mapToList_delete fl.pending T q hq
+    have h1 := GMap.mapToList_insert (fl.pending.delete T) T ⟨q.ids ++ runIds id n,
+      q.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0), q.lastReleaseBegin⟩
+      (GMap.lookup_delete _ _)
+    rw [GMap.insert_delete] at h1
+    simp only [FLPg.freePages, hq, Option.getD_some]
+    refine (h1.flatMap_right _).trans ?_
+    refine List.Perm.trans ?_ ((h0.flatMap_right _).symm.append_right _)
+    simp only [List.flatMap_cons, List.append_assoc]
+    exact List.Perm.append_left _ List.perm_append_comm
+
+private theorem runIds_nodup (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) : (runIds id n).Nodup := by
+  unfold runIds List.Nodup
+  rw [List.pairwise_map]
+  refine List.Pairwise.imp_of_mem ?_ (List.nodup_range (n := n))
+  intro a b ha hb hne e
+  have := congrArg BitVec.toNat e
+  simp only [List.mem_range] at ha hb
+  rw [run_toNat id n a ha hn, run_toNat id n b hb hn] at this; omega
+
+private theorem flatMap_congr' {α β : Type} (l : List α) (f g : α → List β) (h : ∀ x ∈ l, f x = g x) :
+    l.flatMap f = l.flatMap g := by
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+    simp only [List.flatMap_cons]
+    rw [h a (by simp), ih (fun x hx => h x (by simp [hx]))]
+
 /-! ## Lemma statements (U3) -/
 
 omit [GooseExts] in
@@ -605,7 +714,226 @@ theorem storeOK_free (σ : StoreSt) (w : Nat) (id : w64) (n : Nat) (pg : Nat →
         (pg (id.toNat + j)).length = 4096 ∧
         ∀ b l, σ.ms = some (b, l) → id.toNat + j < l / 4096) ∧ id.toNat + n ≤ σ.C.hwm) :
     storeOK (σ.free (W64 (w : Int)) id n pg) := by
-  sorry
+  have hslt : ∀ s, s ∈ storeSlots σ → s < 2 ^ 64 := by
+    intro s hs
+    simp only [storeSlots, mem_list_dedup, List.mem_append] at hs
+    rcases hs with hs | hs
+    · exact treeSlot_lt64 σ h s ((mem_pagesSlots' _ _).1 hs)
+    · obtain ⟨t, pd, x, -, -, rfl⟩ := (mem_pendSlots _ _).1 hs; exact x.isLt
+  have htlt := treeSlot_lt64 σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20, h21⟩ := h
+  have hsm : σ.C.txid + 1 < 2 ^ 64 := h3.2.2.2.1
+  have hww : w = σ.C.txid + 1 := by have := h5 w hw; simp [hpub] at this; omega
+  have hT : (W64 (w : Int)).toNat = w := W64_toNat_of_lt' w (by omega)
+  obtain ⟨hc2, hcn, hcfresh, hcal, hclen⟩ := hcan
+  generalize W64 (w : Int) = T at hT hcfresh hcal hclen ⊢
+  -- the run is below the high-water mark, hence `2 ^ 62`
+  have hrun_hwm : id.toNat + n ≤ σ.C.hwm := by
+    rcases hpage with ⟨⟨p, hp, hpn⟩, -⟩ | ⟨-, hb⟩
+    · have := h2.2.2.2.1 id.toNat p hp; omega
+    · exact hb
+  -- the run's slots are not store slots before, in the freelist-page case
+  have hrun_new : (σ.C.flpg = some id.toNat ∧ ∀ j < n, ¬ coversSlot σ.C.pages (id.toNat + j) ∧
+      (pg (id.toNat + j)).length = 4096 ∧ ∀ b l, σ.ms = some (b, l) → id.toNat + j < l / 4096) →
+      ∀ s, id.toNat ≤ s → s < id.toNat + n → s ∉ storeSlots σ := by
+    intro ⟨_, hb⟩ s hs1 hs2 hs
+    simp only [storeSlots, mem_list_dedup, List.mem_append] at hs
+    rcases hs with hs | hs
+    · exact (hb (s - id.toNat) (by omega)).1 (by
+        rw [show id.toNat + (s - id.toNat) = s by omega]; exact (mem_pagesSlots' _ _).1 hs)
+    · obtain ⟨t, pd, x, hp, hx, hxs⟩ := (mem_pendSlots _ _).1 hs
+      apply hcfresh x ((mem_runIds_toNat id n hcn x).2 (by omega))
+      simp only [FLPg.allIds, FLPg.pendingIds, List.mem_append, List.mem_flatMap]
+      exact Or.inr ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩
+  -- the run, in the tree case, is the page's slots
+  have hrun_tree : ((∃ p, σ.C.pages !! id.toNat = some p ∧ 1 + pageOverflow p = n) ∧
+      ∀ j < n, pg (id.toNat + j) = σ.bytes (id.toNat + j)) →
+      ∀ s, id.toNat ≤ s → s < id.toNat + n → coversSlot σ.C.pages s := by
+    intro ⟨⟨p, hp, hpn⟩, _⟩ s hs1 hs2
+    exact ⟨id.toNat, p, hp, hs1, by omega⟩
+  -- the bytes: unchanged on every store slot, the freed page's in the freelist-page case
+  have hbytes : ∀ s, s < 2 ^ 64 → (σ.free T id n pg).bytes s =
+      if id.toNat ≤ s ∧ s < id.toNat + n then pg s else σ.bytes s := by
+    intro s hs
+    simp only [StoreSt.free]
+    by_cases hr : id.toNat ≤ s ∧ s < id.toNat + n
+    · rw [if_pos ((inRun_W64 id n s hs).2 hr), if_pos hr]
+    · rw [if_neg (fun h' => hr ((inRun_W64 id n s hs).1 h')), if_neg hr]
+  have hbytes_store : ∀ s, s ∈ storeSlots σ → (σ.free T id n pg).bytes s = σ.bytes s := by
+    intro s hs
+    rw [hbytes s (hslt s hs)]
+    split
+    · rename_i hr
+      rcases hpage with ⟨hA, hpgb⟩ | hB
+      · have := hpgb (s - id.toNat) (by omega)
+        rwa [show id.toNat + (s - id.toNat) = s by omega] at this
+      · exact absurd hs (hrun_new hB.1 s hr.1 hr.2)
+    · rfl
+  -- store slots grow by the run
+  have hstore : ∀ s, s ∈ storeSlots (σ.free T id n pg) ↔
+      s ∈ storeSlots σ ∨ (id.toNat ≤ s ∧ s < id.toNat + n) := by
+    intro s
+    simp only [storeSlots, mem_list_dedup, List.mem_append, StoreSt.free]
+    rw [pendSlots_free σ.fl T id n hcn s]
+    constructor
+    · rintro (h' | h' | h')
+      · exact Or.inl (Or.inl h')
+      · exact Or.inl (Or.inr h')
+      · exact Or.inr h'
+    · rintro ((h' | h') | h')
+      · exact Or.inl h'
+      · exact Or.inr (Or.inl h')
+      · exact Or.inr (Or.inr h')
+  have hpagesFrom : ∀ P : Pages, (∀ s, coversSlot P s → s ∈ storeSlots σ) →
+      pagesFromBytes σ.bytes P → pagesFromBytes (σ.free T id n pg).bytes P := by
+    intro P hin hP id' pg' hp'
+    refine (hP id' pg' hp').trans ?_
+    refine flatMap_congr' _ _ _ fun s hs => (hbytes_store s (hin s ?_)).symm
+    simp only [List.mem_range'] at hs
+    obtain ⟨j, hj, rfl⟩ := hs
+    exact ⟨id', pg', hp', by omega, by omega⟩
+  -- the MVCC rule of a view in the store, older than the writer
+  have hmv : ∀ v : View, mvccView σ.fl v → viewInStore σ v → v.txid < w →
+      pagesAgree σ.C.pages v.pages → mvccView (σ.fl.freePages T id n) v := by
+    intro v hv hin hvt hag
+    refine mvccView_free σ.fl v T id n hv (by omega) ⟨hc2, hcn, hcfresh, hcal, hclen⟩ ?_
+      (fun s hs => hslt s (hin s hs)) h4.2.2.2.2
+    rcases hpage with hA | hB
+    · by_cases hc : ∃ j < n, coversSlot v.pages (id.toNat + j)
+      · left
+        obtain ⟨j, hj, q, qp, hq, hq1, hq2⟩ := hc
+        obtain ⟨⟨p, hp, hpn⟩, -⟩ := hA
+        obtain ⟨e1, e2⟩ := hag id.toNat p q qp (id.toNat + j) hp hq (by omega) (by omega) hq1 hq2
+        subst e1 e2
+        exact ⟨p, hq, hpn⟩
+      · right; intro j hj hc'; exact hc ⟨j, hj, hc'⟩
+    · right
+      intro j hj hc'
+      exact hrun_new hB.1 (id.toNat + j) (by omega) (by omega) (hin _ hc')
+  refine ⟨h1, h2, ?_, ?_, h5, h6, fun k r hr => ?_, fun v hv => ?_, hpagesFrom _
+      (fun s hs => tree_in_store' σ s hs) h9, h10, h11, fun s hs => ?_, fun b l hb s hs => ?_,
+    h14, h15, h16, fun s hs => ?_, fun b => ?_, fun x a hx => ?_, fun _ s hs ht hpo k r hr => ?_,
+    h21⟩
+  · -- flBelow
+    obtain ⟨b1, b2, b3, b4, b5, b6⟩ := h3
+    refine ⟨b1, fun t pd x hp hx hle => ?_, fun t pd hp => ?_, b4, b5, fun x hx => ?_⟩
+    · rcases freePages_lookup σ.fl T id n t pd hp with ⟨-, hp⟩ | ⟨rfl, -⟩
+      · exact b2 t pd x hp hx hle
+      · simp only [StoreSt.free] at hle; rw [hT] at hle; omega
+    · rcases freePages_lookup σ.fl T id n t pd hp with ⟨-, hp⟩ | ⟨rfl, P, hP, rfl⟩
+      · rcases b3 t pd hp with h' | ⟨h', h''⟩
+        · exact Or.inl h'
+        · exact Or.inr ⟨h', h''⟩
+      · right
+        refine ⟨by simp only [StoreSt.free]; rw [hT]; exact hw, fun a ha => ?_⟩
+        simp only [List.mem_append, List.mem_replicate] at ha
+        rcases ha with ha | ⟨-, rfl⟩
+        · rcases hq : σ.fl.pending !! t with _ | q
+          · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; simp at ha
+          · rw [hq] at hP; simp only [Option.getD_some] at hP; subst hP
+            rcases b3 t q hq with h' | ⟨-, h''⟩
+            · rw [hT] at h'; omega
+            · exact h'' a ha
+        · rcases hal : σ.fl.allocs !! id with _ | a
+          · simp only [Option.getD_none]; rw [hT]; simp; omega
+          · simp only [hal, Option.getD_some] at hcal ⊢
+            have := h19 id a hal
+            have hne : a.toNat ≠ w := fun e => hcal (BitVec.eq_of_toNat_eq (by rw [e, hT]))
+            rw [hT]; omega
+    · have hx' := (pendingIds_free_perm σ.fl T id n).subset hx
+      simp only [List.mem_append] at hx'
+      rcases hx' with hx' | hx'
+      · exact b6 x hx'
+      · have := (mem_runIds_toNat id n hcn x).1 hx'; omega
+  · -- WF
+    obtain ⟨w1, w2, w3, w4, w5⟩ := h4
+    have hperm : (σ.fl.freePages T id n).allIds.Perm (σ.fl.allIds ++ runIds id n) := by
+      simp only [FLPg.allIds]
+      rw [List.append_assoc]
+      exact (pendingIds_free_perm σ.fl T id n).append_left _
+    refine ⟨hperm.nodup_iff.2 (List.nodup_append.2 ⟨w1, runIds_nodup id n hcn,
+        fun a ha b hb e => hcfresh b hb (e ▸ ha)⟩),
+      fun x hx => ?_, w3, ?_, fun t p hp => ?_⟩
+    · rcases List.mem_append.1 (hperm.subset hx) with hx | hx
+      · exact w2 x hx
+      · have := (mem_runIds_toNat id n hcn x).1 hx; omega
+    · simp only [StoreSt.free]; rw [hperm.length_eq, List.length_append]
+      simp only [runIds, List.length_map, List.length_range]; omega
+    · rcases freePages_lookup σ.fl T id n t p hp with ⟨-, hp⟩ | ⟨rfl, P, hP, rfl⟩
+      · exact w5 t p hp
+      · simp only [List.length_append, List.length_replicate, runIds, List.length_map,
+          List.length_range]
+        rcases hq : σ.fl.pending !! t with _ | q
+        · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; rfl
+        · rw [hq] at hP; simp only [Option.getD_some] at hP; subst hP; rw [w5 t q hq]
+  · -- readers
+    obtain ⟨a, b, c, d, e, f⟩ := h7 k r hr
+    refine ⟨a, hmv r.v b c (by omega) (h10 k r hr).1, fun s hs => (hstore s).2 (Or.inl (c s hs)),
+      d, hpagesFrom _ c e, f⟩
+  · -- the writer's view
+    obtain ⟨a, b, c, d, e, f, g⟩ := h8 v hv
+    have hvt : v.txid + 1 = w := by rw [hw] at a; cases a; rfl
+    refine ⟨a, hmv v b c (by omega) (h11 v hv), fun s hs => (hstore s).2 (Or.inl (c s hs)), d,
+      hpagesFrom _ c e, f, g⟩
+  · -- slots and their bytes
+    rcases (hstore s).1 hs with hs | hr
+    · rw [hbytes_store s hs]; exact h12 s hs
+    · refine ⟨by omega, ?_⟩
+      rw [hbytes s (by omega), if_pos hr]
+      rcases hpage with hA | hB
+      · have hc := hrun_tree hA s hr.1 hr.2
+        have := h12 s (tree_in_store' σ s hc)
+        obtain ⟨-, hpgb⟩ := hA
+        rw [show s = id.toNat + (s - id.toNat) by omega, hpgb _ (by omega),
+          show id.toNat + (s - id.toNat) = s by omega]
+        exact this.2
+      · have := (hB.1.2 (s - id.toNat) (by omega)).2.1
+        rwa [show id.toNat + (s - id.toNat) = s by omega] at this
+  · rcases (hstore s).1 hs with hs | hr
+    · exact h13 b l hb s hs
+    · rcases hpage with hA | hB
+      · exact h13 b l hb s (tree_in_store' σ s (hrun_tree hA s hr.1 hr.2))
+      · have := (hB.1.2 (s - id.toNat) (by omega)).2.2 b l hb
+        rwa [show id.toNat + (s - id.toNat) = s by omega] at this
+  · -- tree slots pending only for the writer
+    by_cases hp : s ∈ pendSlots σ.fl
+    · right
+      intro t pd hp' hx
+      rcases freePages_lookup σ.fl T id n t pd hp' with ⟨-, hp'⟩ | ⟨rfl, -⟩
+      · rcases h17 s hs with h' | h'
+        · exact absurd hp h'
+        · exact h' t pd hp' hx
+      · rw [hT]; exact hw
+    · by_cases hr : id.toNat ≤ s ∧ s < id.toNat + n
+      · right
+        intro t pd hp' hx
+        rcases freePages_lookup σ.fl T id n t pd hp' with ⟨-, hp'⟩ | ⟨rfl, -⟩
+        · exact absurd ((mem_pendSlots _ _).2 ⟨t, pd, _, hp', hx,
+            W64_toNat_of_lt' s (htlt s ((mem_pagesSlots' _ _).1 hs))⟩) hp
+        · rw [hT]; exact hw
+      · left
+        simp only [StoreSt.free]
+        rw [pendSlots_free σ.fl T id n hcn s]
+        rintro (h' | h') <;> contradiction
+  · -- the current tree's MVCC rule
+    exact hmv _ (h18 b) (fun s hs => tree_in_store' σ s hs) (by simp [View.ofC]; omega)
+      (pagesAgree_refl _ h2.2.2.1)
+  · simp only [StoreSt.free, FLPg.freePages, GMap.lookup_delete_iff] at hx
+    split at hx
+    · cases hx
+    · exact h19 x a hx
+  · -- the writer-only pending slots
+    simp only [StoreSt.free] at hs
+    rw [pendSlots_free σ.fl T id n hcn s] at hs
+    rcases hs with hs | hrn
+    · refine h20 hpub s hs ht (fun t pd hp hx => ?_) k r hr
+      obtain ⟨pd', hp', hsub⟩ := freePages_pending_old σ.fl T id n t pd hp
+      exact hpo t pd' hp' (hsub _ hx)
+    · rcases hpage with hA | hB
+      · exact absurd ((mem_pagesSlots' _ _).2 (hrun_tree hA s hrn.1 hrn.2)) ht
+      · intro hc
+        exact hrun_new hB.1 s hrn.1 hrn.2 ((h7 k r hr).2.2.1 s hc)
 
 /-- `Allocate` by the live writer of free ids. -/
 theorem storeOK_alloc (σ : StoreSt) (w : Nat) (r : w64) (n : Nat) (h : storeOK σ)
