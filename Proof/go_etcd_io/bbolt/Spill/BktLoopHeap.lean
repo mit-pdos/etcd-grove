@@ -7,6 +7,7 @@ uses: a child bucket's object with the transaction's `db` field and the page siz
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesOne
+public import Proof.go_etcd_io.bbolt.Spill.DerefCopy
 
 @[expose] public section
 
@@ -53,6 +54,49 @@ theorem wtxHeap_bkt_node_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BR
   isplitl [Hnback Hno]
   · iapply Hnback; iexact Hno
   iapply Hbback; iexact Hbo
+
+/-- **A live node's inodes' slices have its entries' lengths** (the sources not stale), so they
+are bounded by its entries' bound. -/
+theorem wOwns_lens (v : View) :
+    ∀ (ins : List Inode) (ws : List WEntry), wsLive ws →
+    (∀ w ∈ ws, w.key.length + w.value.length ≤ bboltEntryMax) →
+    ([∗list] it;w ∈ ins;ws, wOwn (GF := GF) v true it w) ⊢
+      ⌜∀ it ∈ ins, it.key'.len.toNat + it.value'.len.toNat < 2 ^ 62⌝
+  | [], [], _, _ => by
+    iintro -; ipureintro; intro it hit; cases hit
+  | [], _ :: _, _, _ => by
+    iintro H
+    icases BigSepL2.bigSepL2_nil_inv_left $$ H with %H
+    cases H
+  | _ :: _, [], _, _ => by
+    iintro H
+    icases BigSepL2.bigSepL2_nil_inv_right $$ H with %H
+    cases H
+  | it :: ins, w :: ws, hl, hb => by
+    have hw := hl w List.mem_cons_self
+    have hbw := hb w List.mem_cons_self
+    have IH := wOwns_lens v ins ws (fun x hx => hl x (List.mem_cons_of_mem _ hx))
+      (fun x hx => hb x (List.mem_cons_of_mem _ hx))
+    iintro H
+    icases BigSepL2.bigSepL2_cons.1 $$ H with ⟨Hw, H⟩
+    icases (wOwn_true' v it w).1 $$ Hw with ⟨-, #Hks, #Hvs⟩
+    ihave %Hk := srcOwn_len v it.key' w.ks w.key hw.1 $$ Hks
+    ihave %Hv := srcOwn_len v it.value' w.vs w.value hw.2 $$ Hvs
+    ihave %Hr := IH $$ H
+    ipureintro
+    intro x hx
+    rcases List.mem_cons.1 hx with rfl | hx
+    · have h1 : x.key'.len.toNat = w.key.length := by
+        rw [Hk.1, show sint.nat x.key'.len = (sint.Z x.key'.len).toNat from rfl]
+        have := Hk.2; unfold sint.Z at this ⊢; rw [BitVec.toInt_eq_toNat_cond] at this ⊢
+        split <;> omega
+      have h2 : x.value'.len.toNat = w.value.length := by
+        rw [Hv.1, show sint.nat x.value'.len = (sint.Z x.value'.len).toNat from rfl]
+        have := Hv.2; unfold sint.Z at this ⊢; rw [BitVec.toInt_eq_toNat_cond] at this ⊢
+        split <;> omega
+      unfold bboltEntryMax at hbw
+      omega
+    · exact Hr x hx
 
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
@@ -114,6 +158,60 @@ theorem wtxW_bkt_root_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (c
   isplitr
   · ipureintro; exact ⟨rfl, Hr.2⟩
   ipureintro; exact Hl
+
+/-- **What `b.inlineable()` reads of a child bucket**, out of `wtxW` and back: its `tx` field
+(persistent: not the root bucket), its `rootNode` field, its root node's struct and inodes (if
+any), the transaction's `db` field, the page size, and the inodes' lengths bound. -/
+theorem wtxW_inl_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (c : Loc) (C : BRec)
+    (nv : node) (ins : List Inode) (hc : X.t.bs !! c = some C) (hcl : c ∈ X.liveB)
+    (hcr : c ≠ C.bv.tx'.[Tx, go!"root"]) (hnull : C.bv.rootNode' = null → ins = [])
+    (hrn : C.bv.rootNode' ≠ null → ∃ rn, C.ns !! C.bv.rootNode' = some rn ∧ rn.nv = nv ∧
+      rn.ins = ins ∧ C.bv.rootNode' ∈ X.live ∧ wsLive rn.ws ∧
+      ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax) :
+    wtxW (GF := GF) K tx r m X ⊢ c.[Bucket, go!"tx"] ↦□ C.bv.tx' ∗
+      c.[Bucket, go!"rootNode"] ↦ C.bv.rootNode' ∗
+      (if C.bv.rootNode' = null then emp else C.bv.rootNode' ↦ nv ∗ nv.inodes' ↦* ins) ∗
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db ∗ K.db.[DB, go!"pageSize"] ↦□ W64 4096 ∗
+      ⌜∀ it ∈ ins, it.key'.len.toNat + it.value'.len.toNat < 2 ^ 62⌝ ∗
+      (c.[Bucket, go!"rootNode"] ↦ C.bv.rootNode' -∗
+        (if C.bv.rootNode' = null then emp else C.bv.rootNode' ↦ nv ∗ nv.inodes' ↦* ins) -∗
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db -∗ wtxW K tx r m X) := by
+  iintro Hw
+  by_cases hn : C.bv.rootNode' = null
+  · rw [if_pos hn, hnull hn]
+    icases wtxW_bkt_db_acc K tx r m X c C hc hcl $$ Hw with ⟨Ho, Hdbf, #Hps, Hback⟩
+    unfold objOwn
+    icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+    rw [if_neg hcr]
+    icases H2 with #H2
+    iframe H2 H5 Hdbf Hps
+    isplitr
+    · ipureintro; intro it hit; cases hit
+    iintro H5 - Hdbf
+    iapply Hback $$ [H1 H3 H4 H5 H6 H7 H8 H9 H10] Hdbf
+    dsimp only
+    rw [if_neg hcr]
+    iframe; iframe #
+  · rw [if_neg hn]
+    obtain ⟨rn, hr, rfl, rfl, hl, hlive, hbd⟩ := hrn hn
+    icases wtxW_bkt_root_acc K tx r m X c C C.bv.rootNode' rn hc hcl hr hl $$ Hw
+      with ⟨-, Ho, Hno, Hcells, Hdbf, #Hps, Hback⟩
+    unfold objOwn
+    icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+    rw [if_neg hcr]
+    icases H2 with #H2
+    icases Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+    ihave %Hlens := wOwns_lens X.v rn.ins rn.ws hlive hbd $$ [Hws]
+    · iexact Hws
+    iframe H2 H5 Hdbf Hps Hn Hins
+    isplitr
+    · ipureintro; exact Hlens
+    iintro H5 ⟨Hn, Hins⟩ Hdbf
+    iapply Hback $$ [H1 H3 H4 H5 H6 H7 H8 H9 H10] [Hn Hins Hcap Hws Hch Hchcap Hkey] Hcells Hdbf
+    · dsimp only
+      rw [if_neg hcr]
+      iframe; iframe #
+    · dsimp only; iframe
 
 end heap
 
