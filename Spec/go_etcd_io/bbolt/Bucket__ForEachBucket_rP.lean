@@ -29,10 +29,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.ForEachBucket(fn)` of a reader's bucket (header at `ibp`, inline page at `pp`): `fn` runs on
 its nested buckets' names in order (`bktNames`), with the invariant `I i` before the `i`-th; it
-returns the first non-nil error `fn` returned (after which the iteration stops), else nil. -/
+returns the first non-nil error `fn` returned (after which the iteration stops; the caller's `E err`
+holds of it), else nil (and every name was visited). -/
 abbrev Bucket.ForEachBucket_rP.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
-    (bv : List w8) (ibp pp : Loc) (fn : GoFunc) (I : Nat → IProp GF),
+    (bv : List w8) (ibp pp : Loc) (fn : GoFunc) (I : Nat → IProp GF)
+    (E : GoInterface → IProp GF),
   (bv = rootVal v ∨ ∃ n, (n, bv) ∈ treeEntries v.pages v.root) →
   {{ rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗ I 0 ∗
       □ (∀ (i : Nat) (k : GoSlice) (kb : List w8) (ks : Src),
@@ -40,12 +42,11 @@ abbrev Bucket.ForEachBucket_rP.spec : Prop :=
               ⌜ks ≠ Src.stale ∧ (bktNames v.pages bv)[i]? = some kb⌝ }}
             (App (Val #fn) (Val #k))
           {{ (err : GoInterface), RET #err; rdTxK K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗
-              I (i + 1) }}) }}
+              ((⌜err = interface.nil⌝ ∗ I (i + 1)) ∨ (⌜err ≠ interface.nil⌝ ∗ E err)) }}) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"ForEachBucket")) (Val #fn))
-  {{ (err : GoInterface), RET #err; ∃ i : Nat, rdTxK K tx src q T v ∗
-      rBktP v tx b dq bv ibp pp ∗ I i ∗
-      ⌜i ≤ (bktNames v.pages bv).length ∧
-        (err = interface.nil → i = (bktNames v.pages bv).length)⌝ }}
+  {{ (err : GoInterface), RET #err; rdTxK K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗
+      ((⌜err = interface.nil⌝ ∗ I (bktNames v.pages bv).length) ∨
+        (⌜err ≠ interface.nil⌝ ∗ E err)) }}
 
 end spec
 

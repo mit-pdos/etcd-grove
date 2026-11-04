@@ -44,7 +44,7 @@ theorem Bucket.ForEachBucket_rP.wp_proof
     (hfst : Cursor.first_r.spec (GF := GF) (hG := hG))
     (hnx : Cursor.next_r.spec (GF := GF) (hG := hG)) :
     Bucket.ForEachBucket_rP.spec (GF := GF) (hG := hG) := by
-  intro K tx src q T v b dq bv ibp pp fn I hbv
+  intro K tx src q T v b dq bv ibp pp fn I E hbv
   wp_start as ⟨Hk, Hb, HI, #Hfn⟩
   icases (persistent_entails_left (rdTxK_view K tx src q T v)) $$ Hk with ⟨Hk, %Hvw⟩
   have hok := rBktOK_of v Hvw.2 bv hbv
@@ -90,10 +90,11 @@ theorem Bucket.ForEachBucket_rP.wp_proof
       exact absurd rfl hkn'
     · iapply HΦ
       unfold rBktP
-      iexists (bktNames v.pages bv).length
       rw [Hnil.1, bktBefore_end]
       iframe
-      ipureintro; exact ⟨Nat.le_refl _, fun _ => rfl⟩
+      ileft
+      iframe
+      ipureintro; rfl
   · simp only [hkn, _root_.decide_false, Bool.not_false, _root_.decide_true,
       ↓reduceIte]
     unfold rCurKV
@@ -136,22 +137,27 @@ theorem Bucket.ForEachBucket_rP.wp_proof
         have hbb := bktBefore_succ v bv p _ hent
         rw [hyb] at hbb; simp only [↓reduceIte] at hbb
         ihave #Hf := Hfn $$ %(bktBefore v bv p) %k %(leafKey pg idx) %ks
-        wp_apply Hf $$ [Hk Hb HI Hks] as %err ⟨Hk, Hb, HI⟩
+        wp_apply Hf $$ [Hk Hb HI Hks] as %err ⟨Hk, Hb, HIE⟩
         · unfold rBktP; iframe; iframe #
           ipureintro; exact ⟨hks, bktNames_at v bv p pg idx hent hyb⟩
         try wp_auto
         cases err with
         | ok ie =>
+          icases HIE with (⟨%He, -⟩ | ⟨%He, HE⟩)
+          · cases He
           wp_auto
           wp_for_post
           iapply HΦ
-          iexists bktBefore v bv p + 1
           iframe
           isplitl [Hb]
           · iExactEq Hb; rfl
-          ipureintro
-          refine ⟨by rw [← hbb]; exact bktBefore_le v bv _, fun h => by cases h⟩
+          iright
+          iframe
+          ipureintro; exact He
         | nil =>
+          icases HIE with (⟨-, HI⟩ | ⟨%He, -⟩)
+          rotate_left
+          · exact absurd rfl He
           wp_auto
           wp_for_post
           wp_apply hnx K tx src q T v b dq bv ibp pp c stk1 els1 p (p + 1) hok hpos
