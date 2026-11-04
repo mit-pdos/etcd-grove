@@ -593,7 +593,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     try wp_auto
     have Hdone' := Hdone
     obtain ⟨Hstep, Hc⟩ := Hdone
-    rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, rt, rr, S, h', Hrt, Hrtl,
+    rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, -, rt, rr, S, h', Hrt, Hrtl,
       Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD', HEls⟩
     · rw [Hun] at Hsp1; cases Hsp1
     obtain ⟨B2, HB2, Hsim, -⟩ := Hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B HB

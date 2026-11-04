@@ -95,7 +95,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       (∀ s ∈ pcSlots (spP X') ps, s ∈ Dc ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
       (∀ x, spP X' !! x ≠ spP X !! x → x ∉ Dc) ∧ (∀ x ∈ ps.drop 1, X.t.objs !! x.l = none) := by
   obtain ⟨hstep, hcase⟩ := hdone
-  rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, hDk, hDn, hPd, rest⟩
+  rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, hDk, hDn, hPd, -, rest⟩
   · rw [hsp] at hsp'; cases hsp'
   obtain ⟨ps, r', hps, hhd, hfr1, hD', hE, hr', hpar, hlive⟩ := rest
   have hjes : j < es.length := (List.getElem?_eq_some_iff.1 hj).1

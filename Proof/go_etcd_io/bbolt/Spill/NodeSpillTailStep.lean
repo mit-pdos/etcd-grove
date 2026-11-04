@@ -67,7 +67,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   have hwf : X.v.pages = w.C.pages ∧ (∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat) ∧
       (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) := by
     obtain ⟨-, -, hc⟩ := hpre
-    rcases hc with ⟨hs', -⟩ | ⟨-, -, -, -, hvC, hfc, htl⟩
+    rcases hc with ⟨hs', -⟩ | ⟨-, -, -, -, hvC, hfc, htl, -⟩
     · rw [hs'] at hsp; cases hsp
     · exact ⟨by rw [hvC]; rfl, hfc, htl⟩
   obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hsr, hfit, rfl,
