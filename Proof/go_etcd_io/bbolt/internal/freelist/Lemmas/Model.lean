@@ -267,6 +267,38 @@ theorem FLPg.WFw.wf {fl : FLPg} (h : fl.WFw) (hd : ∀ x ∈ fl.free, x ∉ fl.p
   unfold FLPg.allIds
   exact List.nodup_append.2 ⟨h3.nodup, h1, fun a ha b hb e => hd a ha (e ▸ hb)⟩
 
+/-- The state whose free ids are the increasing ids `xs` (at least 2) but the pending ones
+(`NoSyncReload`) is well-formed, from a weakly well-formed state. -/
+theorem reload_WF_w {fl : FLPg} {xs : List w64} (hwf : fl.WFw) (hinc : PgidsIncr xs)
+    (hge : ∀ x ∈ xs, 2 ≤ x.toNat) (hlen : xs.length + fl.pendingIds.length < 2 ^ 63) :
+    (fl.reload xs).WF := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hwf
+  have hfs : (xs.filter (fun x => decide (x ∉ fl.pendingIds))).Sublist xs := by
+    apply List.filter_sublist
+  have hinc' : PgidsIncr (xs.filter (fun x => decide (x ∉ fl.pendingIds))) :=
+    List.Pairwise.sublist hfs hinc
+  have hr : fl.reload xs = { fl with free := xs.filter (fun x => decide (x ∉ fl.pendingIds)) } := by
+    unfold FLPg.reload; rw [sortPgids_of_incr hinc']
+  rw [hr]
+  refine ⟨?_, ?_, hinc', ?_, h5⟩
+  · show (_ ++ fl.pendingIds).Nodup
+    rw [List.nodup_append]
+    refine ⟨hfs.nodup hinc.nodup, h1, fun a ha b hb e => ?_⟩
+    subst e
+    simp only [List.mem_filter, decide_eq_true_iff] at ha
+    exact ha.2 hb
+  · intro id hid
+    rcases List.mem_append.1 hid with h | h
+    · exact hge id (hfs.subset h)
+    · exact h2 id (List.mem_append_right _ h)
+  · show (_ ++ fl.pendingIds).length < _
+    have := List.length_filter_le (fun x => decide ¬x ∈ fl.pendingIds) xs
+    simp only [List.length_append]; omega
+
+theorem reload_free {fl : FLPg} {xs : List w64} (hinc : PgidsIncr xs) :
+    (fl.reload xs).free = xs.filter (fun x => decide (x ∉ fl.pendingIds)) := by
+  unfold FLPg.reload; rw [sortPgids_of_incr (List.Pairwise.sublist List.filter_sublist hinc)]
+
 /-- Allocating keeps the state well-formed. -/
 theorem alloc_WF {fl : FLPg} (h : fl.WF) (txid r : w64) (n : Nat) :
     (fl.alloc txid r n).WF := by
