@@ -128,6 +128,11 @@ structure BNames where
   /-- `dghostVar (Loc × GoString)`, discarded at allocation (2026-11-04, R2b-3c): bbolt's database
   and the file it is (`bDB`, `bFile`), so that the stop's escrow and `Close` agree on it -/
   dbf : GName
+  /-- saved proposition (2026-11-04, the restart plan's R2b-3d stage 3): the result `Y` of the
+  request `Close`'s caller makes of the stop's commit (`stopReq`): both halves in the stop
+  invariant at `True` until `Close` sets them to `Y`; one its claim, one deposited with the request,
+  which `run` carries to `donec`'s escrow with `Y` -/
+  rq : GName
   /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/

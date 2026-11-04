@@ -39,8 +39,11 @@ theorem bootstrappedBackend.Close.wp_proof
   wp_auto
   rw [Hbe]
   wp_auto
-  wp_apply hClose γ P W Pk be $$ [Hopen] as %err -
+  wp_apply hClose γ P W Pk be iprop(True) iprop(True) $$ [Hopen] as %err -
   · iframe Hopen; iframe #
+    isplitr
+    · itrivial
+    iapply backend.commitReq_true
   iapply HΦ
   itrivial
 

@@ -18,6 +18,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Perennial.Ghost.SavedProp
 
 @[expose] public section
 
@@ -50,15 +51,28 @@ def runTok (γ : BNames) : IProp GF := ghostVar γ.stk 1 ()
 instance runTok_timeless (γ : BNames) : Timeless (runTok (GF := GF) γ) := by
   unfold runTok; infer_instance
 
-/-- The stop invariant: before `Close`, the right to close `stopc`; after, the close right and
-the clients' half of the open token, until `run` takes the half (leaving its token). -/
-def stopInv (γ : BNames) (sc : GoChan) (γsc : ChanNames) : IProp GF :=
-  iprop(inv (bN.@"stop")
-    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
-     (ghostVar γ.cls (1 : Qp).half () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ))))
+/-- (2026-11-04, the restart plan's R2b-3d stage 3) **The request `Close`'s caller made of the stop's
+commit**: some `X ⇒ Y` (`commitReq`, as any commit takes from its caller: the snapshot window's
+`commitReq_freeze`, `commitReq_true` for none) with `X`, and half of the saved proposition `γ.rq` at
+`Y` (`Close` keeps the other half: `donec`'s escrow gives `Y` back under it). -/
+def stopReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
+  iprop(∃ X Y : IProp GF, X ∗ commitReq γ P Pk b X Y ∗
+    savedPropOwn γ.rq (DFrac.own (1 : Qp).half) Y)
 
-instance stopInv_persistent (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
-    Persistent (stopInv (GF := GF) γ sc γsc) := by
+/-- The stop invariant: before `Close`, the right to close `stopc` (and the request's saved
+proposition, both halves, at `True`); after, the close right, and the clients' half of the open
+token with the caller's request (`stopReq`), until `run` takes them (leaving its token). -/
+def stopInv (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (sc : GoChan) (γsc : ChanNames) :
+    IProp GF :=
+  iprop(inv (bN.@"stop")
+    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True) ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True)) ∨
+     (ghostVar γ.cls (1 : Qp).half () ∗
+       ((dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗ stopReq γ P Pk b) ∨ runTok γ))))
+
+instance stopInv_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (sc : GoChan)
+    (γsc : ChanNames) : Persistent (stopInv (GF := GF) γ P Pk b sc γsc) := by
   unfold stopInv; infer_instance
 
 /-- (2026-11-04, R2b-3c) **What closing `donec` announces: the stop's escrow** (persistent; until then
@@ -66,7 +80,10 @@ instance stopInv_persistent (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
 and client resources `W ∗ Pk` (`bDBOut`, R2b-3c part 2), or `Close`'s half of the close right once
 it took them. `run` allocates it as it closes `donec`. -/
 def bDoneEsc (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
-  inv (bN.@"dbesc") iprop(bDBOut γ P W Pk ∨ ghostVar γ.cls (1 : Qp).half ())
+  inv (bN.@"dbesc") iprop((bDBOut γ P W Pk ∗
+      -- (2026-11-04, R2b-3d stage 3) the request's result, under its saved proposition's half
+      ∃ Y : IProp GF, savedPropOwn γ.rq (DFrac.own (1 : Qp).half) Y ∗ Y) ∨
+    ghostVar γ.cls (1 : Qp).half ())
 
 instance bDoneEsc_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) :
     Persistent (bDoneEsc (GF := GF) γ P W Pk) := by
@@ -78,7 +95,7 @@ def isStopChansAt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (sc dc
     (γsc γdc : ChanNames) : IProp GF :=
   iprop(bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
     ownBroadcastChan sc γsc (stopQ γ) .Unknown ∗ ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Unknown ∗
-    stopInv γ sc γsc)
+    stopInv γ P Pk b sc γsc)
 
 instance isStopChansAt_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
     (sc dc : GoChan) (γsc γdc : ChanNames) :
@@ -134,32 +151,40 @@ theorem bStopG_view (γ : BNames) (P : BParams) (W Pk : IProp GF) (C : Data) :
   ihave Hrb := rbSide_rbOwn γ P _ $$ Hrb
   iframe
 
-/-- `Close`'s step: the right to close `stopc`, for the clients' whole open token. -/
-theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
-    stopInv (GF := GF) γ sc γsc ∗ bOpen γ 1 ⊢
+/-- `Close`'s step: the right to close `stopc`, for the clients' whole open token, depositing the
+caller's request `X ⇒ Y` (`stopReq`, R2b-3d stage 3) and keeping half of its result's saved
+proposition. -/
+theorem stop_take (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (sc : GoChan) (γsc : ChanNames)
+    (X Y : IProp GF) :
+    stopInv (GF := GF) γ P Pk b sc γsc ∗ bOpen γ 1 ∗ X ∗ commitReq γ P Pk b X Y ∗ £ 1 ⊢
       |={⊤}=> ▷ ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ stopQ γ ∗
         -- (2026-11-04, R2b-3c) half the close right, `Close`'s claim on `donec`'s escrow
-        ghostVar γ.cls (1 : Qp).half () := by
-  iintro ⟨#Hinv, Ho⟩
+        ghostVar γ.cls (1 : Qp).half () ∗ savedPropOwn γ.rq (DFrac.own (1 : Qp).half) Y := by
+  iintro ⟨#Hinv, Ho, HX, #Hreq, Hlc⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   unfold stopInv
   iinv Hinv with Hi Hclose
-  icases Hi with (⟨Hpend, >Hsdn⟩ | ⟨>Hcls', -⟩)
+  imod lc_fupd_elim_later (E := ⊤ \ ↑(bN.@"stop")) $$ Hlc Hi with Hi
+  icases Hi with (⟨Hpend, Hsdn, Hrq1, Hrq2⟩ | ⟨Hcls', -⟩)
   · imod dghostVar_update true γ.sdn false $$ Hsdn with Hsdn
     imod dghostVar_persist γ.sdn 1 true $$ Hsdn with #Hsdn
+    imod saved_prop_update_halves Y γ.rq iprop(True) iprop(True) $$ Hrq1 Hrq2 with ⟨Hrq1, Hrq2⟩
     ihave ⟨Hcls, Hclaim⟩ : iprop(ghostVar γ.cls (1 : Qp).half () ∗ ghostVar γ.cls (1 : Qp).half ())
       $$ [Hcls]
     · iapply ghostVar_split γ.cls () (1 : Qp).half (1 : Qp).half
       rw [Qp.half_add_half]; iexact Hcls
-    imod Hclose $$ [Hcls Ho] with -
+    imod Hclose $$ [Hcls Ho HX Hrq1] with -
     · inext
       iright
       iframe Hcls
       ileft
-      iexact Ho
+      iframe Ho
+      unfold stopReq
+      iexists X, Y
+      iframe HX Hreq Hrq1
     imodintro
-    iframe Hpend Hclaim
+    iframe Hpend Hclaim Hrq2
     unfold stopQ
     iexact Hsdn
   · icombine Hcls Hcls' gives % ⟨Hv, -⟩
@@ -167,14 +192,16 @@ theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     revert Hv
     grind
 
-/-- `run`'s step: once `stopc` closed, the clients' half of the open token for its token. -/
-theorem stop_get (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
-    stopInv (GF := GF) γ sc γsc ∗ stopQ γ ∗ runTok γ ⊢
-      |={⊤}=> dghostVar γ.opn (DFrac.own (1 : Qp).half) false := by
-  iintro ⟨#Hinv, #Hq, Ht⟩
+/-- `run`'s step: once `stopc` closed, the clients' half of the open token, with `Close`'s caller's
+request (`stopReq`, R2b-3d stage 3), for its token. -/
+theorem stop_get (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (sc : GoChan) (γsc : ChanNames) :
+    stopInv (GF := GF) γ P Pk b sc γsc ∗ stopQ γ ∗ runTok γ ∗ £ 1 ⊢
+      |={⊤}=> dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗ stopReq γ P Pk b := by
+  iintro ⟨#Hinv, #Hq, Ht, Hlc⟩
   unfold stopInv
   iinv Hinv with Hi Hclose
-  icases Hi with (⟨-, >Hsdn⟩ | ⟨>Hcls, (>Ho | >Ht')⟩)
+  imod lc_fupd_elim_later (E := ⊤ \ ↑(bN.@"stop")) $$ Hlc Hi with Hi
+  icases Hi with (⟨-, Hsdn, -⟩ | ⟨Hcls, (⟨Ho, Hrq⟩ | Ht')⟩)
   · unfold stopQ
     icombine Hsdn Hq gives %Hc
     exact absurd Hc.2 (by decide)
@@ -185,7 +212,7 @@ theorem stop_get (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
       iright
       iexact Ht
     imodintro
-    iexact Ho
+    iframe Ho Hrq
   · unfold runTok
     icombine Ht Ht' gives % ⟨Hv, -⟩
     exfalso
@@ -195,9 +222,11 @@ theorem stop_get (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
 /-- (2026-11-04, R2b-3c) **`Close` takes bbolt's database out of `donec`'s escrow**, with its half
 of the close right (`stop_take`'s): the other alternative would make three halves, the stop
 invariant keeping one once `stopc` closed (`stopQ`). -/
-theorem bDoneEsc_take (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc : GoChan) (γsc : ChanNames) :
-    ⊢ bDoneEsc (GF := GF) γ P W Pk -∗ stopInv γ sc γsc -∗ stopQ γ -∗ ghostVar γ.cls (1 : Qp).half () -∗
-      £ 1 -∗ £ 1 ={⊤}=∗ bDBOut γ P W Pk := by
+theorem bDoneEsc_take (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (sc : GoChan)
+    (γsc : ChanNames) :
+    ⊢ bDoneEsc (GF := GF) γ P W Pk -∗ stopInv γ P Pk b sc γsc -∗ stopQ γ -∗
+      ghostVar γ.cls (1 : Qp).half () -∗ £ 1 -∗ £ 1 ={⊤}=∗
+      bDBOut γ P W Pk ∗ ∃ Y : IProp GF, savedPropOwn γ.rq (DFrac.own (1 : Qp).half) Y ∗ Y := by
   iintro #Hesc #Hinv #Hq Hclaim Hlc1 Hlc2
   iunfold bDoneEsc at Hesc
   iinv Hesc with Hi Hclose
@@ -207,7 +236,7 @@ theorem bDoneEsc_take (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc : GoChan
   · unfold stopInv
     iinv Hinv with Hs Hsclose
     imod lc_fupd_elim_later (E := (⊤ \ ↑(bN.@"dbesc")) \ ↑(bN.@"stop")) $$ Hlc2 Hs with Hs
-    icases Hs with (⟨-, Hsdn⟩ | ⟨Hcl3, -⟩)
+    icases Hs with (⟨-, Hsdn, -⟩ | ⟨Hcl3, -⟩)
     · iexfalso
       unfold stopQ
       icombine Hsdn Hq gives %Hc

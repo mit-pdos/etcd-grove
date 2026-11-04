@@ -685,6 +685,48 @@ theorem mergedObs_of_M {M : auth.AuthMode} (hM : M = .off) {γr : ReadNames} {cm
   · simp only [↓reduceIte] at h4' ⊢
     exact ⟨f, h4'⟩
 
+/-- **What an observation of a backend's data `D` gives** (2026-11-04, the restart plan's R2b-3d stage
+3; factored out of the merged snapshot's window, which the stop image shares): with the hook's own
+keys at the applied index `ai` (`ciObs`), the tracked buckets the rest model's at the committed log,
+the `Key` bucket by the mode (off: the KV log's, `hex`; on: its records, `windowObs`) and no
+compaction key in a store that does not compact (`hnc`), `D` is `mergedObsM`'s. -/
+theorem mergedObsM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (d : mvcc.KBReal) (f : w64 → w64) (D : backend.Data)
+    (hcK : ciKeys d.P) (hRB : ∀ n ∈ restBuckets, d.P.RB n = true) (hcm : d.cm = E.cmp)
+    (hciO : ciObs ai (backend.hkData d.P D))
+    (hrbD : ∀ n, (membership.clusterBkts n ∨ restSet E.authMode n) →
+      (backend.rbData d.P D).lookup n = (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n)
+    (hex : d.cm = false → ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
+      (mvcc.bucketMap x.log).lookup k)
+    (hwo : apply.windowObs d x.log x.crev (backend.sData d.P D) (backend.fkVals D))
+    (hnc : d.cm = false → backend.fkAbsD D) (Hwf : mvcc.IdxWf x.log []) :
+    mergedObsM E.authMode γr E.cmp E.lg ai A x.log x.crev D := by
+  have hrec := apply.windowObs_image d x.log x.crev D hwo
+  have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
+      backend.dget D mvcc.keyName k := fun k => by
+    rw [backend.sData_lookup]; simp [mvcc.KBReal.P]
+  obtain ⟨hci1, t1, ht1⟩ := hciO
+  rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
+  rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
+  have hrest : bkRestAtM E.authMode (if E.lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else [])
+      γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
+    refine ⟨f, fun n hn hs => ?_⟩
+    have := hrbD n hs
+    simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this
+    unfold srvIds appliedTable at this
+    exact this
+  refine ⟨?_, by simpa using hci1, ⟨t1, by simpa using ht1⟩, hrest, Hwf⟩
+  cases hc : E.cmp
+  · -- off: the whole bucket and no compaction key, no record
+    have hdc : d.cm = false := hcm.trans hc
+    refine ⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨?_, rfl⟩, fun h => by cases h⟩
+    refine ⟨fun k => ?_, (mvcc.noCmpData_of_fkAbsD (hnc hdc)).1,
+      (mvcc.noCmpData_of_fkAbsD (hnc hdc)).2⟩
+    rw [← hsd]; exact hex hdc k
+  · obtain ⟨r, hr, hrc⟩ := hrec (hcm.trans hc)
+    exact ⟨r, hr, fun _ => hrc⟩
+
 /-- **Nothing lent** (`bkLendW` of no bucket): what the merged snapshot's window takes with the auth
 mode off. -/
 theorem bkLendW_none (E : apply.AEnv GF) :
@@ -881,34 +923,11 @@ theorem mergedCreate_window
         iframe Hkw Hrt Hret Hcmo
         ipureintro; exact fun hc => (h hc).1
     · intro D ⟨⟨⟨hciO, hrbD, hraD⟩, ⟨_, hex⟩, hwo⟩, hnc⟩
-      have hrec := apply.windowObs_image d x.log x.crev D hwo
-      have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
-          backend.dget D mvcc.keyName k := fun k => by
-        rw [backend.sData_lookup]; simp [mvcc.KBReal.P]
-      obtain ⟨hci1, t1, ht1⟩ := hciO
-      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
-      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
-      have hrest : bkRestAtM E.authMode (if E.lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else [])
-          γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
-        refine ⟨f, fun n hn hs => ?_⟩
-        have := hrbD n hs
-        simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this
-        unfold srvIds appliedTable at this
-        exact this
-      refine ⟨⟨?_, ?_, ⟨t1, by simpa using ht1⟩, hrest, Hwf⟩, ra, hQA, fun n h => ?_⟩
-      · cases hc : E.cmp
-        · -- off: the whole bucket and no compaction key, no record
-          have hdc : d.cm = false := hcm.trans hc
-          refine ⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨?_, rfl⟩, fun h => by cases h⟩
-          refine ⟨fun k => ?_, (mvcc.noCmpData_of_fkAbsD (hnc hdc)).1,
-            (mvcc.noCmpData_of_fkAbsD (hnc hdc)).2⟩
-          rw [← hsd]; exact hex hdc k
-        · obtain ⟨r, hr, hrc⟩ := hrec (hcm.trans hc)
-          exact ⟨r, hr, fun _ => hrc⟩
-      · rw [← hci]; simpa using hci1
-      · have := hraD n h
-        simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
-        exact this
+      refine ⟨mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf,
+        ra, hQA, fun n h => ?_⟩
+      have := hraD n h
+      simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
+      exact this
   isplitl [Hsw Hwl Ht2 Hrb Hcmo]
   · iintro ⟨Hfr, Hwo, HY, -⟩
     iunfold mvcc.writerOwn at Hwo

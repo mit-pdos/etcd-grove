@@ -7,14 +7,15 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof [go_etcd_io.bbolt.Assumpt
     backend.batchTxBuffered.commit.spec) (hBU : backend.batchTx.Unlock.spec) :
     backend.batchTxBuffered.CommitAndStop.spec
   -- `Perennial.EtcdGrove.backend.batchTxBuffered.CommitAndStop.spec`, unfolded:
-  ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t : Loc),
+  ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t : Loc) (X Y : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
             backend.isBackend γ P W Pk b ∗
               typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                dghostVar γ.opn (DFrac.own (Qp.half 1)) false ∗ dghostVar γ.opn (DFrac.own (Qp.half 1).half) false -∗
-          ▷ (backend.bStopped γ ∗ backend.bDBOut γ P W Pk -∗ Φ (intoVal ())) -∗
+                dghostVar γ.opn (DFrac.own (Qp.half 1)) false ∗
+                  dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗ X ∗ backend.commitReq γ P Pk b X Y -∗
+          ▷ (backend.bStopped γ ∗ backend.bDBOut γ P W Pk ∗ Y -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType

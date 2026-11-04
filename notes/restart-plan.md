@@ -1426,3 +1426,17 @@ To be designed next.
     while `Pk`'s `metaTM` records that it did. After `Close` the apply thread finds the protocol
     frozen at `ciEff γ s.k`. This changes the hook's commit AU and touches every commit.
   Leaning to (a1), local to the backend's stop protocol.
+
+**Step 2b done (2026-11-04), option (a1).** `BNames.rq` (a saved proposition); `stopReq`;
+`stopInv γ P Pk b sc γsc` (both halves at `True` before `Close`, the request deposited after);
+`CommitAndStop`, `Close` and `Cleanup` take `X ∗ commitReq … X Y` and give `Y`; `run` carries
+the request to the stop's commit and its result to `donec`'s escrow. Callers with no request
+(the snapshot walk's old backend, `bootstrappedBackend.Close`) pass `commitReq_true`. The server's
+shutdown passes `commitReq_freeze`'s `applyThread γ s ⇒ freezeY γ s` (stage 5), so after
+`Cleanup` the frozen protocol pins the stored index (`snapObs_window`'s `ciObs`).
+
+**Stage 3 done (2026-11-04).** `SnapSendBranch.mergedObsM_of_obs` (the window's pure block,
+shared) and `StopImage.stop_mergedObs`. The latter turns the frozen protocol, the apply thread's
+halves of the tracked buckets, the KV's writer and compaction right, and `Close`'s `bStopView` at
+the server's resources into `⌜mergedObsM … D⌝`. Stage 5 turns that into the image (as
+`merged_imageC` does for the snapshot: `kvAppliedM`, `isServerM`, the KV log's receipt).
