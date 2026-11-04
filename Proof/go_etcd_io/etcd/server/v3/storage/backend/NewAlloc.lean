@@ -353,7 +353,7 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     iframe
     iframe #
   isplitl [Hv Hrvs Hwba Hwbc Hused Hopn Hhkd Hfkh]
-  · ihave Hv := batchViewQ_of_exact γ P (st0 D wtx) $$ [Hv]
+  · ihave Hv := batchViewQ_of_exact γ P (st0 D wtx) (dlsW_exact (st := st0 D wtx) rfl rfl) $$ [Hv]
     · simp only [st0, rv0, rb0] at *; iexact Hv
     iframe Hv
     simp only [st0, rv0]
@@ -531,10 +531,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
   -- (2026-11-04, round 16's F1) the compaction keys' values in the writer's contents, `D`'s
   imod ghostVar_alloc (fkVals D) with ⟨%gfkd, Hfkd⟩
+  -- (2026-11-04, probe M2) the safe-range buckets' deleted entries: none
+  imod ghostVar_alloc (dlR P (∅ : GMap (GoString × GoString) GoString)) with ⟨%gdls, Hdls⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    rbDomOf P D, gfkd⟩
+    rbDomOf P D, gfkd, gdls⟩
   icases gv_halves gfkd _ $$ Hfkd with ⟨Hfkdb, Hfkdc⟩
+  icases gv_halves gdls _ $$ Hdls with ⟨Hdlsb, Hdlsc⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
   have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
     fkOkG_init rfl rfl rfl rfl
@@ -544,8 +547,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     iframe Hfklb Hfkv
     ipureintro
     exact fkOkRvG_of Hok0
-  ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb Hfkdb]
-  · unfold fkHalf fkVR fkdOwn
+  ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb Hfkdb Hdlsb]
+  · unfold fkHalf fkVR fkdOwn dlsOwn
     isplitl [Hfkb]
     · iexists fkInit D, (fkWInit P D, fkInit D, fkVals D)
       iframe Hfkb Hfkv
@@ -553,7 +556,10 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
       exact Hok0
     · have hS0 : fkVals (st0 D wtx).S = fkVals D := rfl
       rw [hS0]
-      iexact Hfkdb
+      iframe Hfkdb
+      have hD0 : (st0 D wtx).dl = ∅ := rfl
+      rw [hD0]
+      iexact Hdlsb
   let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
@@ -680,7 +686,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hfkdc Hsr]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hfkdc Hdlsc Hsr]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -704,12 +710,15 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hdlg Hdlb]
     · unfold dlInit
       iframe Hdlg Hdlb
-    isplitl [Hfkc Hfkdc]
-    · unfold fkCl fkOwn fkVR fkdOwn
+    isplitl [Hfkc Hfkdc Hdlsc]
+    · unfold fkCl fkOwn fkVR fkdOwn dlsOwn
       iframe Hfkv
       iframe Hfkc
-      iexists fkVals D
-      iexact Hfkdc
+      isplitl [Hfkdc]
+      · iexists fkVals D
+        iexact Hfkdc
+      · iexists _
+        iexact Hdlsc
     iexact Hsr
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr

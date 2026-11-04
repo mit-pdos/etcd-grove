@@ -134,6 +134,20 @@ quarter at `vd` itself, an instance: `viewQ_exact`). -/
 def viewAt (γ : BNames) (vd : VData) : IProp GF :=
   iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
 
+/-- **The batch lock's quarter of the readers' view at a commit, with the safe-range buckets'
+deleted entries** (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
+safe-range bucket exactly): the quarter at a logical view `L`, the physical view `vd` thin of it,
+and `vd` exactly `L` but the deleted entries `X` on the safe-range buckets (`dlVd`). -/
+def viewAtD (γ : BNames) (P : BParams) (vd X : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L ∗ ⌜dlVd P vd L X⌝)
+
+/-- The quarter with the deleted entries is the quarter. -/
+theorem viewAtD_viewAt (γ : BNames) (P : BParams) (vd X : VData) :
+    viewAtD (GF := GF) γ P vd X ⊢ viewAt γ vd := by
+  unfold viewAtD viewAt
+  iintro ⟨%L, Hq, -⟩
+  iexists L; iexact Hq
+
 /-- **`viewAt` agrees with the clients' shares** (review round 12, R12-3): the snapshot's physical
 view is thin of the clients' view. -/
 theorem viewAt_bView (γ : BNames) (vd vd' : VData) (q : Qp) :

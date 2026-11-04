@@ -434,6 +434,115 @@ theorem image_of_obs (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hb : LogB ([[], [
   · intro h; rw [← hrc]; unfold CmpRecs.crev; rw [ite_eq_left_of_eq_true _ _ (eq_true h)]
   · exact restoreCur_cut' R hR hb rc hrec _ (hrc ▸ hcut)
 
+/-! ### The acceptance check: the strengthened observation gives the job's cut (2026-11-04)
+
+The user (2026-11-04): "the snapshot axiom should imply that the snapshot when restored from will
+give a correct view of the abstract etcd state associated with that snapshot". The `Snapshot`
+axiom now hands the observation, with the quarter of the readers' view at the logical view `Lv`
+(the physical view `vd` thin of it), the batch lock's half of the safe-range buckets' deleted
+entries `X` and `vd` exactly `Lv` but `X` there (`viewAtD`'s `dlVd`). With the store's facts -- its
+logical bucket is its log's (`hLv`: mvcc's `bucketView`, agreeing with the clients' view) and the
+deleted entries are what its compaction jobs deleted (`hX`: the client's half of `X`, kept by the
+store's compaction beside the jobs' cursors) -- the data's `Key` bucket is the jobs' (`key_of_obs_exact`,
+derived, not assumed), and so the image (`image_of_obs_exact`). -/
+
+/-- **The data's `Key` bucket is the jobs'**, from the strengthened observation. -/
+theorem key_of_obs_exact (L : Log) (hb : LogB L) (jobs : List (Int × Option Rev))
+    (P : backend.BParams) (hsb : P.SB keyName = true) (hhb : P.HB keyName = false)
+    (vd Lv X : backend.VData) (D : backend.Data)
+    (hvd : ∀ k, vd.lookup (keyName, k) = backend.dget D keyName k)
+    (hLv : ∀ k, Lv.lookup (keyName, k) = (bucketMap L).lookup k)
+    (hsub : ∀ nk v, vd.lookup nk = some v → Lv.lookup nk = some v)
+    (hdl : backend.dlVd P vd Lv X)
+    (hX : ∀ k, X.lookup (keyName, k) ≠ none ↔
+      ∃ e ∈ logEnts L 0 L.length, revBytes e.rev e.tomb = k ∧ Gone L jobs e) :
+    ∀ k, backend.dget D keyName k = (bucketOfEnts (entsOfJobs L jobs)).lookup k := by
+  have hsl : (entsOfJobs L jobs).Sublist (logEnts L 0 L.length) := List.filter_sublist
+  have hpart := bucketOfEnts_lookup_iff L hb hsl
+  have hfull := bucketOfEnts_lookup_iff L hb (List.Sublist.refl (logEnts L 0 L.length))
+  rw [bucketOfEnts_logEnts] at hfull
+  -- two of the log's entries with the same bytes are one
+  have huniq : ∀ e₁ ∈ logEnts L 0 L.length, ∀ e₂ ∈ logEnts L 0 L.length,
+      revBytes e₁.rev e₁.tomb = revBytes e₂.rev e₂.tomb → e₁ = e₂ := by
+    intro e₁ h₁ e₂ h₂ h
+    exact logEnts_rev_inj hb h₁ h₂ (revBytes_inj _ _ _ _ h).2
+  intro k
+  rw [← hvd]
+  cases hm : (bucketMap L).lookup k with
+  | none =>
+    have hv : vd.lookup (keyName, k) = none := by
+      cases h : vd.lookup (keyName, k) with
+      | none => rfl
+      | some w => have := hsub _ w h; rw [hLv, hm] at this; cases this
+    rw [hv]; symm
+    cases h2 : (bucketOfEnts (entsOfJobs L jobs)).lookup k with
+    | none => rfl
+    | some v =>
+      obtain ⟨e, he, hpe⟩ := List.mem_map.1 ((hpart k v).1 h2)
+      have := (hfull k v).2 (List.mem_map.2 ⟨e, hsl.subset he, hpe⟩)
+      rw [hm] at this; cases this
+  | some v =>
+    cases hx : X.lookup (keyName, k) with
+    | some x =>
+      have hxn : X.lookup (keyName, k) ≠ none := by rw [hx]; simp
+      have hv := (hdl.2 _ hxn).2.2.1
+      rw [hv]; symm
+      obtain ⟨e, he, hek, hg⟩ := (hX k).1 hxn
+      cases h2 : (bucketOfEnts (entsOfJobs L jobs)).lookup k with
+      | none => rfl
+      | some v' =>
+        obtain ⟨e', he', hpe'⟩ := List.mem_map.1 ((hpart k v').1 h2)
+        have hk' : revBytes e'.rev e'.tomb = k := congrArg Prod.fst hpe'
+        have := huniq e' (hsl.subset he') e he (hk'.trans hek.symm)
+        subst this
+        exact absurd hg (mem_entsOfJobs.1 he').2
+    | none =>
+      have hLn : Lv.lookup (keyName, k) ≠ none := by rw [hLv, hm]; simp
+      have hvn : vd.lookup (keyName, k) ≠ none := by
+        intro h
+        exact (hdl.1 _ hsb hhb hLn h) hx
+      cases hw : vd.lookup (keyName, k) with
+      | none => exact absurd hw hvn
+      | some w =>
+        have hw' := hsub _ w hw
+        rw [hLv, hm] at hw'
+        cases hw'
+        symm
+        obtain ⟨e, he, hpe⟩ := List.mem_map.1 ((hfull k v).1 hm)
+        have hk' : revBytes e.rev e.tomb = k := congrArg Prod.fst hpe
+        have hng : ¬ Gone L jobs e := by
+          intro hg
+          exact ((hX k).2 ⟨e, he, hk', hg⟩) hx
+        exact (hpart k v).2 (List.mem_map.2 ⟨e, mem_entsOfJobs.2 ⟨he, hng⟩, hpe⟩)
+
+/-- **The acceptance check** (the user's criterion, 2026-11-04): from the strengthened
+observation's facts (the logical view `Lv`, the exact deleted entries `X`, the compaction keys'
+values `fkVals D`) and the store's (its log `[[], []] ++ R` and compaction revision `c`, its
+records, its jobs and that `X` is what they deleted), the snapshot's data is the image `restore()`
+reads: `image_of_obs`'s conclusion, its `Key` bucket premise derived (`key_of_obs_exact`). -/
+theorem image_of_obs_exact (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hb : LogB ([[], []] ++ R))
+    (hwf : LogWf' ([[], []] ++ R)) (c : Int) (rc : CmpRecs)
+    (hrec : recsOk ([[], []] ++ R) rc) (hpos : recsPos rc) (hrc : rc.crev = c)
+    (jobs : List (Int × Option Rev)) (hjobs : ∀ j ∈ jobs, -1 ≤ j.1 ∧ j.1 ≤ c)
+    (P : backend.BParams) (hsb : P.SB keyName = true) (hhb : P.HB keyName = false)
+    (vd Lv X : backend.VData) (D : backend.Data)
+    (hvd : ∀ k, vd.lookup (keyName, k) = backend.dget D keyName k)
+    (hLv : ∀ k, Lv.lookup (keyName, k) = (bucketMap ([[], []] ++ R)).lookup k)
+    (hsub : ∀ nk v, vd.lookup nk = some v → Lv.lookup nk = some v)
+    (hdl : backend.dlVd P vd Lv X)
+    (hX : ∀ k, X.lookup (keyName, k) ≠ none ↔
+      ∃ e ∈ logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length,
+        revBytes e.rev e.tomb = k ∧ Gone ([[], []] ++ R) jobs e)
+    (hfk : backend.fkVals D = (recBytes rc.fin, recBytes rc.sched)) :
+    keyImageM true ([[], []] ++ R) rc D ∧ rc.crev = c ∧
+      (c = -1 → keyImageM false ([[], []] ++ R) rc D) ∧
+      (rc.resumes = true ↔ ∃ x, rc.sched = some x ∧ rc.finRev < sint.Z x) ∧
+      (rc.resumes = true → c = rc.schedRev) ∧
+      max (max (sint.Z (restoreLastRev (entsOfJobs ([[], []] ++ R) jobs))) rc.finRev)
+        rc.schedRev = (([[], []] ++ R).length : Int) - 1 :=
+  image_of_obs R hR hb hwf c rc hrec hpos hrc jobs hjobs D
+    (key_of_obs_exact _ hb jobs P hsb hhb vd Lv X D hvd hLv hsub hdl hX) hfk
+
 /-! ### What the observation gives of the `Key` bucket, and what it does not -/
 
 open Classical in
@@ -575,6 +684,8 @@ end pure
 #print axioms entsCutAt_jobs
 #print axioms entsCutAt_jobStep
 #print axioms image_of_obs
+#print axioms key_of_obs_exact
+#print axioms image_of_obs_exact
 #print axioms obs_thin_cut12
 #print axioms thin_not_cut
 #print axioms crev0_corner

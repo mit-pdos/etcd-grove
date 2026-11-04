@@ -84,7 +84,8 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
     as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
   · iframe #
     iframe
-    iintro !> %vd %d %r %v HR' HW HPk Hva Hhk Hrb -
+    iintro !> %vd %d %r %v %X HR' HW HPk Hva - Hhk Hrb -
+    ihave Hva := backend.viewAtD_viewAt γ P vd X $$ Hva
     iapply HQ $$ HR' HW HPk Hva Hhk Hrb
   ihave ⟨%HQRD, HR⟩ := HQR $$ %D HR Hfk
   iapply HΦ

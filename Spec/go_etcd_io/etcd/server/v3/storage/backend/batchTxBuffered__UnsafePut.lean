@@ -33,7 +33,9 @@ gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's
 bucket, `rbPut` (since decision 3, 2026-11-01, of its bucket only; a holder of `rbOwn` splits it with `rbPutAll_split`), likewise; a compaction key (`fkKey`, the backend-compaction stage,
 2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
 raises it to at least `1`, which the post does not say, no caller needing it), and a well-formed
-value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
+value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true); in a safe-range
+bucket not a deleted entry (`st.dl`; the user's decision, 2026-11-04, probe M2: the deleted entries
+stay missing from the writer's contents). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
 exit: the call does not return (`nonissues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
@@ -42,7 +44,8 @@ abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
   P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
   sint.Z st.pend + 1 < 2 ^ 58 →
-  (P.SB bi.name = true → ∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) →
+  (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
+    st.dl.lookup (bi.name, kb) = none) →
   (fkKey bi.name kb → P.FV vb) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S ∗ fkPut γ bi.name kb }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))

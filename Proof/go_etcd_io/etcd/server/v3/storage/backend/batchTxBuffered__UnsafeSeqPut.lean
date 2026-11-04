@@ -59,7 +59,9 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   ihave Hg := batchGhost_step γ P (st := st) (st' := (st.put bi kb vb true)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
     (hkData_put_other st bi kb vb true Hhk)
-    (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) $$ Hg
+    (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
+    (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
+      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd) $$ Hg
   iframe Hg
   isplitl
   · iexists hk
@@ -67,7 +69,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp Hsb
+    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp (fun h => (Hsb h).1)
 
 end proof
 

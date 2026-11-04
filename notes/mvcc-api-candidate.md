@@ -811,3 +811,13 @@ known exactly (the safe-range bucket's physical deletes tracked by the backend, 
 keys' values are), and the criterion of done is the image (what `restore()` reads) proved from it
 with no gap.
 
+**The `Snapshot` axiom sees the `Key` bucket exactly (the user's criterion, 2026-11-04).** Done as
+`notes/decisions.md`, "The backend's `Snapshot` axiom sees the safe-range bucket exactly": the
+observation gets the batch lock's half of the safe-range deleted entries and the physical view
+exactly the logical one but them (`viewAtD`, `dlVd`). The acceptance check is proved
+(`SnapImageProbe.lean`'s `key_of_obs_exact`, `image_of_obs_exact`): with the store's facts (its
+logical bucket its log's, the deleted entries what its jobs deleted, its records), the snapshot's
+data is the image `restore()` reads. What the store must keep (stage 2): the client's half (inside
+`fkOwn`, in the compaction's resources) at what its jobs deleted, with the jobs' cursors. No API
+statement changes: `mvccImage_snapshot.law` keeps its statement over the strengthened axiom.
+

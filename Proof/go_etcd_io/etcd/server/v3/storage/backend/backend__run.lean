@@ -102,6 +102,10 @@ theorem backend.backend.run.wp_proof
         · simp only [Bool.false_eq_true, ↓reduceIte]
           rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
           iapply thinV_refl
+        isplitr
+        · ipureintro; intro h; cases h
+        isplitr
+        · ipureintro; exact Hfo.1.2.2.2.2
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb

@@ -58,7 +58,23 @@ committed data; the flag only grows, so a later put of a compaction key cannot f
 would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
 commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
 in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
-rather than the batch lock's alone. -/
+rather than the batch lock's alone. (The user's decision, 2026-11-04, probe M2: a snapshot restored
+from gives a correct view of the abstract state it is of.) Why the deleted entries' clause holds:
+at the end of that last commit the batch lock's state `st` is out of an `Unlock`'s commit window
+(`commitSt` resets `win`), so its quarter's agreement (`batchViewQ`'s `dlsW`) is the full one,
+`dlsOk P st L` with its logical view `L`: the safe-range entries of `L` missing from the writer's
+contents are exactly the deleted ones `dlR P st.dl`, which are `L`'s; the committed data is the
+writer's contents and the read buffer is empty, so the physical view is `sData P st.S`, and
+`dlVd P (sData P st.S) L (dlR P st.dl)` (`dlVd_of_dlsOk`); the lock's half of the deleted entries is
+at `dlR P st.dl` (`fkHalf`'s `dlsOwn`). The agreement is the backend's own proved invariant: every
+operation keeps it (a delete from a safe-range bucket records the entry, both halves updated with
+the client's, `fkHalf_dl`; a put there is not of a deleted entry, `UnsafeSeqPut`'s and
+`UnsafePut`'s premise; a put session's `Unlock` deleted no safe-range entry the readers see,
+`sbKept`, so `relog` keeps the deleted entries, `dlsOk_relog`; an `Unlock`'s commit window is the
+one exemption, its commit's close re-establishing the agreement at `relog`). So the clause is the
+hook keys' argument again, over a ghost variable of the same shape and the quarter's pure
+agreement; it adds nothing the other clauses rely on. To be re-attacked with the `axiom` skill
+(`notes/axiom-review/backend-snapshot-fkd.md`, superseded 2026-11-04). -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof

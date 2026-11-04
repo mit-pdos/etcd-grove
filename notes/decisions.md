@@ -30448,3 +30448,28 @@ a gap restore misreads. **Decision.** `KV.Compact.contract` takes `1 ≤ rev` (`
 strengthened again, to the user's criterion: from it, a snapshot restored from gives a correct view
 of the abstract state the snapshot is of (the safe-range bucket's deletes tracked exactly).
 
+## The backend's `Snapshot` axiom sees the safe-range bucket exactly (2026-11-04 · the user · branch `mvcc-api`)
+
+**What it was.** After the compaction keys' values (the entry above), the observation still saw the
+`Key` bucket only thin of the logical view (`thinV`: each missing entry deletable), which admits a
+gap restore misreads (`notes/mvcc-api-probes/SnapImageProbe.lean`, `thin_not_cut`). **Decision (the
+user: "the snapshot axiom should imply that the snapshot when restored from will give a correct view
+of the abstract etcd state associated with that snapshot").** In place: the backend tracks the
+entries deleted from the safe-range buckets (the model's ghost `BSess.dl`, its safe-range part
+`dlR`, half the batch lock's and half the client's inside `fkOwn`, as the compaction keys' values),
+and keeps them agreeing with its logical view and the writer's contents (`dlsOk`: exactly the
+logical entries missing from the writer's contents are the deleted ones, and those are the logical
+view's), inside the batch lock's quarter of the view (`batchViewQ`'s `dlsW`), out of an `Unlock`'s
+commit window (`BSess.win`, the window's quarter `batchViewQ0`, where the agreement is re-established
+at the commit's close). The operations' specs: `UnsafeDelete` in a safe-range bucket takes the
+client's half (`dlPut`) and an entry the readers see; `UnsafeSeqPut`/`UnsafePut` there not a deleted
+entry (their safe-range premise); a put session's `Unlock` deleted no safe-range entry the readers
+see (`sbKept`); `commit`/`unsafeCommit` take a window's agreement at the new logical view and the
+hook's window closed. The axiom: the observation receives `viewAtD γ P vd X` (the quarter with
+`dlVd P vd L X`) and `dlsOwn γ X`. mvcc's contract: the compaction job's delete takes the write right
+`MW` (the client's half). The acceptance check (`image_of_obs_exact`, `key_of_obs_exact`): from
+the observation and the store's facts, the snapshot's data is the image `restore()` reads, its `Key`
+bucket derived. **Rejected:** tracking the exact physical safe-range bucket with a client half on
+every put (the writer's puts would need it); a second, stronger `Snapshot` spec (one spec per
+function).
+

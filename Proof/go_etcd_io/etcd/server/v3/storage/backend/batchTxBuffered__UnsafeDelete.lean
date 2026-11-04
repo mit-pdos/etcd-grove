@@ -29,8 +29,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
     (hBT : backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key kb dk own Hhas Hp Hhk Hfk
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, Hrbp⟩
+  intro γ P W Pk b t st bk bi key kb dk own Hhas Hp Hhk Hfk Hsb
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, Hrbp, Hdlp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
@@ -40,11 +40,16 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
-  imod batchGhost_step_rb γ P (st := st) (st' := (st.del bi kb)) rfl rfl rfl
+  imod batchGhost_step_dl γ P (st := st) (st' := (st.del bi kb)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_del st bi kb Hhk)
     (rbData_del_other st bi kb) (fkOkG_del Hfk) (fkVals_del Hfk) (fun _ => ⟨bi.id, Hhas⟩)
-    (BSess.del_S_other st bi kb) $$ Hg Hrbp with ⟨Hg, Hrbp⟩
+    (BSess.del_S_other st bi kb) (fun h => dlR_del_other P st bi kb (Or.inl h))
+    (fun L hsub hd => dlsW_step dlsS_del (dlsOk_del (fun h1 _ hs => by
+      have := Hsb h1 hs
+      cases hq : (vData P (st.C, st.R)).lookup (bi.name, kb) with
+      | none => exact absurd hq this
+      | some v => rw [hsub _ v hq]; simp)) rfl rfl hd) $$ Hg Hrbp Hdlp with ⟨Hg, Hrbp, Hdlp⟩
   wp_apply (hBT γ P W Pk b t st bk bi key kb dk own) $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
     unfold btW
@@ -52,7 +57,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   iapply HΦ
-  iframe Hrbp
+  iframe Hrbp Hdlp
   iframe Hkey
   iexists t, db
   iframe Ht' Hown

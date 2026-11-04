@@ -55,7 +55,9 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) bi.name kb
     (hkData_put_other st bi kb vb false) (rbData_put_other st bi kb vb false)
     (fun hk => fkOkG_put false HP Hhas hk) (fun hk => fkOkG_putFk false HP Hhas (Hfv hk)) (fun hk => fkVals_put false hk)
-    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false)
+    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false) rfl
+    (fun L _ hd => dlsW_step (dlsS_put false (fun h1 _ => (Hsb h1).2))
+      (dlsOk_put false (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
     $$ Hg Hhkp Hrbp Hfkp
     with ⟨Hg, Hhkp, Hrbp, Hfkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW
@@ -71,7 +73,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_put HP Hwf Hhas (by simp) Hp Hsb
+    exact sessWf_put HP Hwf Hhas (by simp) Hp (fun h => (Hsb h).1)
 
 end proof
 

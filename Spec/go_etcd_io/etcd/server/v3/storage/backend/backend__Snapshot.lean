@@ -27,7 +27,12 @@ buckets the applied log's (`restModel`). (2026-11-02, the merged snapshot's wind
 gives a reader's lower bound of the compaction keys' flag over `D` with an empty read buffer
 (`fkRd`, what a commit gives the backend's readers, `batchTxBuffered.unsafeCommit`): with the
 client's half at `0` (`fkOwn γ 0`, a store that does not compact), `D` has no compaction key
-(`fkRd_abs`).
+(`fkRd_abs`). (The user's decision, 2026-11-04, probe M2 of the mvcc API: a snapshot restored from
+gives a correct view of the abstract state it is of.) The quarter of the readers' view comes with
+the batch lock's half of the safe-range buckets' deleted entries at `X` (`dlsOwn`) and the physical
+view exactly the logical view but `X` there (`viewAtD`'s `dlVd`): a compacting store, holding the
+client's half (inside `fkOwn`), learns which entries of its `Key` bucket the compaction has
+physically deleted, so the image its restore reads.
 -/
 module
 
@@ -60,7 +65,9 @@ abbrev backend.backend.Snapshot.spec : Prop :=
       isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ R ∗
       □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
           (v : FkVals),
-        R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗ ⌜Q vd d r v⌝) }}
+        ∀ X : VData,
+        R -∗ W -∗ Pk -∗ viewAtD γ P vd X -∗ dlsOwn γ X -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗
+          ⌜Q vd d r v⌝) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
       snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗

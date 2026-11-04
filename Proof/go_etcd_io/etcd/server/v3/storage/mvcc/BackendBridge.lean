@@ -1853,6 +1853,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   iunfold bkView at Hvw
   icases Hvw with ⟨%vd, Hvw, %Hvd⟩
   icases batchLocked_thin γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, #Hth⟩
+  icases batchLocked_dl γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, %Hdlv⟩
   ihave %Hsub := thinV_sub γ _ _ $$ Hth
   obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
@@ -1863,9 +1864,18 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   -- pending delete (`sessPuts`), a committed key of `Key` (off the hook's buckets) is in the
   -- writer's contents (`sessWf_C_in_S`), above which the puts are (the physical `Key` bucket is
   -- the logical one's entries the readers see: `keyView_sub`; question 2, 2026-10-29)
-  have hSB : P.SB keyBI.name = true → ∀ kc vc,
-      (bktOf st.C keyBI.name).lookup kc = some vc → strLt kc k := by
-    intro _ kc vc0 hc0
+  have hSB : P.SB keyBI.name = true → (∀ kc vc,
+      (bktOf st.C keyBI.name).lookup kc = some vc → strLt kc k) ∧
+      st.dl.lookup (keyBI.name, k) = none := by
+    intro hsb
+    refine ⟨fun kc vc0 hc0 => ?_, ?_⟩
+    rotate_left
+    · -- (2026-11-04, probe M2) not a deleted entry: those are the clients' view's, below `k`
+      apply dl_not_of_above (Hdlv Hs.2.2.2.2) hsb (key_not_HB hP)
+      intro k' v' h'
+      rw [Hvd keyBI.name k'] at h'
+      simp only [show keyBI.name = keyName from rfl, ↓reduceIte] at h'
+      exact hbm k' v' h'
     obtain ⟨vc, hc⟩ := sessWf_C_in_S Hwf Hs.1 (key_not_HB hP) hc0
     rw [bktOf_of_sData hP hS, foldl_insert_lookup] at hc
     cases hlv : lastVal l kc with
@@ -1946,6 +1956,8 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
   iright
   iexists vd
   iframe Hv HPk
+  isplitr
+  · ipureintro; exact sbKept_of_ndel0 Hwf Hs.1
   iintro Hbv
   iapply Hwand
   iunfold bkView
@@ -1993,6 +2005,8 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
     iright
     iexists vd
     iframe Hv HPk
+    isplitr
+    · ipureintro; exact sbKept_del_hook hb (sbKept_of_ndel0 hwf hs.1)
     iintro Hbv
     iapply Hwand
     iunfold bkView
@@ -2061,9 +2075,13 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
   ihave Hrb : rbPut γ P leaseBI.name st.S $$ [Hrb]
   · rw [hrp]
     iapply (rbPart_congr γ _ (rbData P st.S) r (fun n hn => Hr n hn)).2 $$ Hrb
+  have hsbL : P.SB leaseBI.name = false := by
+    rw [hP.2.2.2.1]; exact decide_eq_false (by decide)
   have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k) (lease_not_fk k)
+    (fun h => absurd h (by rw [hsbL]; decide))
   simp only [↓reduceIte] at hDel'
-  wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
+  ihave Hdlp := dlPut_other (GF := GF) γ P leaseBI.name hsbL
+  wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb $Hdlp] as ⟨Hl, Hkey, Hrb, -⟩
   ihave Hrb : rbPart γ (· = leaseName) (rbDel r leaseName k) $$ [Hrb]
   · ihave Hrb : rbPut γ P leaseName (st.S.insert leaseName ((bktOf st.S leaseName).delete k))
         $$ [Hrb]
@@ -2448,8 +2466,9 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by simp at hp; omega
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hHB : P.HB metaBI.name = true := by rw [hP.2.2.1]; decide
-  have hSB : P.SB metaBI.name = true → ∀ kc vc,
-      (bktOf st.C metaBI.name).lookup kc = some vc → strLt kc k := by
+  have hSB : P.SB metaBI.name = true → (∀ kc vc,
+      (bktOf st.C metaBI.name).lookup kc = some vc → strLt kc k) ∧
+      st.dl.lookup (metaBI.name, k) = none := by
     intro h; rw [hP.2.2.2.1] at h; exact absurd h (by decide)
   have hlen : 0 < k.length ∧ k.length ≤ backend.maxKeySize := by
     rcases hk with rfl | rfl <;> decide
@@ -2806,11 +2825,11 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
               pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
               □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
                 {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bk ∗ U (n + 1) ∗
-                    bkDel γ k ∗ □ Rd key k }}
+                    bkDel γ k ∗ □ Rd key k ∗ ∃ f : Nat, fkOwn γ f }}
                   (App (App (Val #(methods (go.GoType.PointerType
                     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete"
                     #t)) (Val #bk)) (Val #key))
-                {{ RET #(); U n }}) ∗
+                {{ RET #(); U n ∗ ∃ f : Nat, fkOwn γ f }}) ∗
               (□ ∀ n : Nat, metaPutCap ⟨go.GoType.PointerType
                 go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩
                 iprop(U (n + 1) ∗ ∃ f : Nat, fkOwn γ f) iprop(U n ∗ ∃ f : Nat, fkOwn γ f)) ∗
@@ -2941,9 +2960,13 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   · iexact Hkv
   -- a delete of a registered key the range returned
   isplitr
-  · iintro !> %key %k %n %Φ' !> ⟨#HK', HU, Hd, #HRd⟩ HΦ'
+  · iintro !> %key %k %n %Φ' !> ⟨#HK', HU, Hd, #HRd, Hmw⟩ HΦ'
     iunfold bkLockedC at HU
     icases HU with ⟨%st', Hl', Hwb', #Hth', %Hc⟩
+    ihave %Hsub' := thinV_sub γ _ _ $$ Hth'
+    have hsbK : P.SB keyBI.name = true := by
+      rw [hP.2.2.2.1]; exact decide_eq_true rfl
+    ihave Hdlp := dlPut_sb_intro (GF := GF) γ P keyBI.name hsbK $$ Hmw
     obtain ⟨htx, hhw, hroom, hW⟩ := Hc
     icases batchLocked_wf γ P b st' $$ Hl' with ⟨Hl', %Hwf'⟩
     have hp0' : 0 ≤ sint.Z st'.pend := Hwf'.2.2.2.2.1
@@ -2961,9 +2984,14 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
         iexact Hks
     icases Harg with ⟨%own, Harg⟩
     wp_apply (hDel γ P W Pk b t st' bk keyBI key k DFrac.discard own hP.1 hpend (key_not_hk hP k)
-        (key_not_fk k))
-      $$ [$Hb $Ht $Hl' $Hbk $Harg $Hrb] as ⟨Hl', -, -⟩
+        (key_not_fk k) (fun _ hs => by
+          cases hq : (sData P st'.S).lookup (keyBI.name, k) with
+          | none => exact absurd hq hs
+          | some v => rw [Hsub' _ v hq]; simp))
+      $$ [$Hb $Ht $Hl' $Hbk $Harg $Hrb $Hdlp] as ⟨Hl', -, -, Hdlp⟩
+    ihave Hmw := dlPut_sb_elim (GF := GF) γ P go_etcd_io.etcd.server.v3.storage.schema.keyName hsbK $$ Hdlp
     iapply HΦ'
+    iframe Hmw
     iunfold bkLockedC
     iexists (st'.del keyBI k)
     iframe Hl' Hwb'
@@ -2997,8 +3025,9 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     have hpend : sint.Z st'.pend + 1 < 2 ^ 58 := by push_cast at hroom; omega
     ihave #Hbk2 := meta_isBucket hID hName hSafe bk2 $$ [$Hsch $HM]
     have hHB : P.HB metaBI.name = true := by rw [hP.2.2.1]; decide
-    have hSB : P.SB metaBI.name = true → ∀ kc vc,
-        (bktOf st'.C metaBI.name).lookup kc = some vc → strLt kc k := by
+    have hSB : P.SB metaBI.name = true → (∀ kc vc,
+        (bktOf st'.C metaBI.name).lookup kc = some vc → strLt kc k) ∧
+        st'.dl.lookup (metaBI.name, k) = none := by
       intro h; rw [hP.2.2.2.1] at h; exact absurd h (by decide)
     have hlen : 0 < k.length ∧ k.length ≤ backend.maxKeySize := by
       rcases hk with rfl | rfl <;> decide

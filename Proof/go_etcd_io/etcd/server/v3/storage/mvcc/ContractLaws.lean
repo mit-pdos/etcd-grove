@@ -309,9 +309,9 @@ theorem batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IPr
   iframe Hv Hlo Hhi
   iexists m', Rd, U
   iframe HU Hth' Hc1 Hc2 Hpv Hmp Hul
-  iintro !> %key %k %n %Ψ !> ⟨HK, HU, HDk, #HRd⟩ HΨ
-  iapply Hdel $$ %key %k %n [HK HU HDk] HΨ
-  iframe HK HU HRd
+  iintro !> %key %k %n %Ψ !> ⟨HK, HU, HDk, #HRd, Hmw⟩ HΨ
+  iapply Hdel $$ %key %k %n [HK HU HDk Hmw] HΨ
+  iframe HK HU HRd Hmw
   iapply Hb $$ [] HDk
   ipureintro; exact hc
 

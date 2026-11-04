@@ -156,10 +156,11 @@ theorem wp_commitsAdd (b : Loc) (v : w64) :
 /-- The batch lock's half of the flag, for a state that keeps what the flag and the bit say
 (`fkOk`). -/
 theorem fkHalf_mono (γ : BNames) (P : BParams) {st st' : BSess}
-    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S) :
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
+    (hD : dlR P st'.dl = dlR P st.dl) :
     fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st' := by
   unfold fkHalf
-  rw [hV]
+  rw [hV, hD]
   iintro ⟨⟨%f, %w, Ha, #Hv, %Hf⟩, Hd⟩
   iframe Hd
   iexists f, w
@@ -190,10 +191,11 @@ theorem fk_halves (γ : BNames) (n : Nat) :
 compaction key, of a well-formed value: `hR`), and both halves of the compaction keys' values
 updated to the new writer's contents' (2026-11-04). -/
 theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
-    (hR : ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
+    (hR : ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') (hD : dlR P st'.dl = dlR P st.dl) :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkOwn γ g ==∗ fkHalf γ P st' ∗ ∃ g' : Nat, fkOwn γ g' := by
   unfold fkHalf fkOwn fkdOwn
-  iintro ⟨⟨%f, %w, H1, #Hv, %Hf⟩, Hd1⟩ ⟨H2, %v, Hd2⟩
+  rw [hD]
+  iintro ⟨⟨%f, %w, H1, #Hv, %Hf⟩, Hd1, Hx1⟩ ⟨H2, ⟨%v, Hd2⟩, Hx2⟩
   imod ghostVar_update_halves (fkVals st'.S) γ.fkd _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
   ihave %Hag := monoNatAuthOwn_agree γ.fk _ _ _ _ $$ H1 H2
   obtain ⟨-, rfl⟩ := Hag
@@ -202,14 +204,14 @@ theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
   imod mono_nat_own_update (f + 1) (Nat.le_succ f) $$ H with ⟨H, -⟩
   icases (fk_halves γ (f + 1)).1 $$ H with ⟨H1, H2⟩
   imodintro
-  isplitl [H1 Hd1]
-  · iframe Hd1
+  isplitl [H1 Hd1 Hx1]
+  · iframe Hd1 Hx1
     iexists f + 1, w
     iframe H1 Hv
     ipureintro
     exact hR f w Hf
   · iexists f + 1
-    iframe H2
+    iframe H2 Hx2
     iexists fkVals st'.S
     iexact Hd2
 
@@ -219,18 +221,33 @@ flag and the bit say (`hF`). -/
 theorem fkHalf_put (γ : BNames) (P : BParams) {st st' : BSess} (n k : GoString)
     (hF : ¬ fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P f g st')
     (hR : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st')
-    (hV : ¬ fkKey n k → fkVals st'.S = fkVals st.S) :
+    (hV : ¬ fkKey n k → fkVals st'.S = fkVals st.S) (hD : dlR P st'.dl = dlR P st.dl) :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkPut γ n k ==∗ fkHalf γ P st' ∗ fkPut γ n k := by
   unfold fkPut
   by_cases hk : fkKey n k
   · rw [if_pos hk]
     iintro Hf ⟨%g, Ho⟩
-    iapply fkHalf_raise γ P st st' g (hR hk) $$ Hf Ho
+    iapply fkHalf_raise γ P st st' g (hR hk) hD $$ Hf Ho
   · rw [if_neg hk]
     iintro Hf -
-    ihave Hf := fkHalf_mono γ P (hF hk) (hV hk) $$ Hf
+    ihave Hf := fkHalf_mono γ P (hF hk) (hV hk) hD $$ Hf
     imodintro
     iframe Hf
+
+/-- **The batch lock's quarter of the view, for a state with the readers' state unchanged that
+keeps the deleted entries' agreement** (`hO`, given the physical view thin of the logical one). -/
+theorem batchViewQ_mono (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C = st.C)
+    (hR : st'.R = st.R)
+    (hO : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
+      dlsW P st L → dlsW P st' L) :
+    batchViewQ (GF := GF) γ P st ⊢ batchViewQ γ P st' := by
+  unfold batchViewQ viewQ
+  rw [hC, hR]
+  iintro ⟨%L, ⟨Hq, #Ht⟩, %Hd⟩
+  ihave %Hsub := thinV_sub γ _ _ $$ Ht
+  iexists L
+  iframe Hq Ht
+  ipureintro; exact hO L Hsub Hd
 
 /-- A session's operation (one more pending operation, at most one more entry per bucket of the
 write buffer, the committed data, the read buffer and the counters unchanged) keeps the batch
@@ -240,16 +257,21 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1)
     (hS : hkData P st'.S = hkData P st.S) (hB : rbData P st'.S = rbData P st.S)
-    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S) :
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
+    (hD : dlR P st'.dl = dlR P st.dl)
+    (hO : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
+      dlsW P st L → dlsW P st' L) :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
-  unfold batchGhost batchGhostAt batchViewQ
-  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
-  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩
+  unfold batchGhost batchGhostAt
+  iintro ⟨Hv, Hrest⟩
+  ihave Hv := batchViewQ_mono γ P hC hR hO $$ Hv
   iframe Hv
+  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
+  icases Hrest with ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩
   iexists n, w, u
   iframe
   isplitl
-  · iapply fkHalf_mono γ P hF hV $$ Hfk
+  · iapply fkHalf_mono γ P hF hV hD $$ Hfk
   ipureintro
   exact bgOk_step Hok hR hc hp hW
 
@@ -300,23 +322,28 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
     (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
-    (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m) :
+    (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
+    (hD : dlR P st'.dl = dlR P st.dl)
+    (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
+      dlsW P st L → dlsW P st' L) :
     ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S ==∗
       batchGhost γ P st' ∗ rbPut γ P n st'.S := by
   unfold rbPut
   cases hb : P.RB n
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro Hg -
-    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF hV $$ Hg
+    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF hV hD hDl $$ Hg
     imodintro
     iframe Hg
   · simp only [↓reduceIte]
-    unfold batchGhost batchGhostAt batchViewQ trkHalf
+    unfold batchGhost batchGhostAt trkHalf
+    iintro ⟨Hv, Hrest⟩ Hc
+    ihave Hv := batchViewQ_mono γ P hC hR hDl $$ Hv
     rw [hC, hR, hS]
-    iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hc
+    icases Hrest with ⟨%n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩
     imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) n (hBT hb) hb (rbData_other P hO)
       $$ [$Hb $Hc] with ⟨Hb, Hc⟩
-    ihave Hfk := fkHalf_mono γ P hF hV $$ Hfk
+    ihave Hfk := fkHalf_mono γ P hF hV hD $$ Hfk
     imodintro
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hb Hfk]
     · iframe Hv
@@ -325,6 +352,84 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
       ipureintro
       exact bgOk_step Hok hR hc hp hW
     · iexact Hc
+
+/-- **The batch lock's half of the flag and the safe-range deleted entries, with the client's
+half of the latter** (the user's decision, 2026-11-04, probe M2): a delete from a safe-range bucket
+updates both halves of the deleted entries to the new state's; the flag and the compaction keys'
+values as `fkHalf_mono`. -/
+theorem fkHalf_dl (γ : BNames) (P : BParams) {st st' : BSess}
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S) :
+    ⊢ fkHalf (GF := GF) γ P st -∗ (∃ f : Nat, fkOwn γ f) ==∗
+      fkHalf γ P st' ∗ ∃ f : Nat, fkOwn γ f := by
+  unfold fkHalf fkOwn dlsOwn
+  rw [hV]
+  iintro ⟨⟨%f, %w, Ha, #Hv, %Hf⟩, Hd, Hx1⟩ ⟨%g, H2, Hd2, %X, Hx2⟩
+  imod ghostVar_update_halves (dlR P st'.dl) γ.dls _ _ $$ Hx1 Hx2 with ⟨Hx1, Hx2⟩
+  imodintro
+  isplitl [Ha Hd Hx1]
+  · iframe Hd Hx1
+    iexists f, w
+    iframe Ha Hv
+    ipureintro; exact hF f w Hf
+  · iexists g
+    iframe H2 Hd2
+    iexists dlR P st'.dl
+    iexact Hx2
+
+/-- **A delete from bucket `n`** (as `batchGhost_step_rb`), with the client's half of the deleted
+entries if `n` is a safe-range bucket (`dlPut`), both halves updated; else they are unchanged. -/
+theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C = st.C)
+    (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
+    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) (n : GoString)
+    (hS : hkData P st'.S = hkData P st.S)
+    (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
+    (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
+    (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
+    (hD : P.SB n = false → dlR P st'.dl = dlR P st.dl)
+    (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
+      dlsW P st L → dlsW P st' L) :
+    ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S -∗ dlPut γ P n ==∗
+      batchGhost γ P st' ∗ rbPut γ P n st'.S ∗ dlPut γ P n := by
+  cases hsb : P.SB n
+  · unfold dlPut
+    rw [hsb]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro Hg Hr -
+    imod batchGhost_step_rb γ P hC hR hc hp hW n hS hB hF hV hBT hO (hD hsb) hDl $$ Hg Hr
+      with ⟨Hg, Hr⟩
+    imodintro
+    iframe Hg Hr
+  · unfold dlPut
+    rw [hsb]
+    simp only [↓reduceIte]
+    unfold batchGhost batchGhostAt
+    iintro ⟨Hv, %n0, %w, %u, Hr0, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩ Hrp Hdp
+    ihave Hv := batchViewQ_mono γ P hC hR hDl $$ Hv
+    imod fkHalf_dl γ P (st := st) (st' := st') hF hV $$ Hfk Hdp with ⟨Hfk, Hdp⟩
+    iframe Hdp Hv
+    unfold rbPut trkHalf at *
+    cases hb : P.RB n
+    · simp only [Bool.false_eq_true, ↓reduceIte] at *
+      rw [hC, hR, hS, hB hb]
+      icases Hk with ⟨Hk, Hb⟩
+      imodintro
+      iframe Hrp
+      iexists n0, w, u
+      iframe
+      ipureintro
+      exact bgOk_step Hok hR hc hp hW
+    · simp only [↓reduceIte] at *
+      rw [hC, hR, hS]
+      icases Hk with ⟨Hk, Hb⟩
+      imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) n (hBT hb) hb (rbData_other P hO)
+        $$ [$Hb $Hrp] with ⟨Hb, Hrp⟩
+      imodintro
+      iframe Hrp
+      iexists n0, w, u
+      iframe
+      ipureintro
+      exact bgOk_step Hok hR hc hp hW
 
 /-- A put of key `k` in bucket `n` (as `batchGhost_step`): with the client's half of the hook's
 own keys if `k` is one (`hkPut`), and of the tracked buckets if `n` is one (`rbPut`), both halves
@@ -338,13 +443,18 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (hFk : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st')
     (hV : ¬ fkKey n k → fkVals st'.S = fkVals st.S)
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
-    (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m) :
+    (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
+    (hD : dlR P st'.dl = dlR P st.dl)
+    (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
+      dlsW P st L → dlsW P st' L) :
     ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S -∗ fkPut γ n k ==∗
       batchGhost γ P st' ∗ hkPut γ P n k st'.S ∗ rbPut γ P n st'.S ∗ fkPut γ n k := by
-  unfold batchGhost batchGhostAt batchViewQ trkHalf
+  unfold batchGhost batchGhostAt trkHalf
+  iintro ⟨Hv, Hrest⟩ Hhp Hrp Hfp
+  ihave Hv := batchViewQ_mono γ P hC hR hDl $$ Hv
   rw [hC, hR]
-  iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hhp Hrp Hfp
-  imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk hV $$ Hfk Hfp with ⟨Hfk, Hfp⟩
+  icases Hrest with ⟨%n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩
+  imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk hV hD $$ Hfk Hfp with ⟨Hfk, Hfp⟩
   ihave Hk2 : iprop(|==> (ghostVar γ.hkd (1 : Qp).half (hkData P st'.S) ∗ hkPut γ P n k st'.S))
     $$ [Hk Hhp]
   · unfold hkPut
@@ -399,7 +509,7 @@ theorem batchLocked_fkd (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (v : 
     batchLocked (GF := GF) γ P b st ∗ fkdOwn γ v ⊢
       batchLocked γ P b st ∗ fkdOwn γ v ∗ ⌜v = fkVals st.S⌝ := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt fkHalf fkdOwn
-  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd⟩, %Hok⟩,
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd, Hx⟩, %Hok⟩,
     %Hwf⟩, Hc⟩
   icombine Hc Hd gives %Heq
   iframe Hc
@@ -409,6 +519,24 @@ theorem batchLocked_fkd (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (v : 
     iframe #
     ipureintro; exact ⟨Hok, Hwf⟩
   · ipureintro; exact Heq.2
+
+/-- **The deleted safe-range entries are a client's view's** (the user's decision, 2026-11-04,
+probe M2), out of the hook's window: a session's put above every key of the view is not of one. -/
+theorem batchLocked_dl (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp) (vd : VData) :
+    batchLocked (GF := GF) γ P b st ∗ bView γ q vd ⊢
+      batchLocked γ P b st ∗ bView γ q vd ∗
+        ⌜st.cnt.hw = false → ∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+          vd.lookup nk ≠ none⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩, Hc⟩
+  ihave ⟨Hv, Hc, %Hd⟩ := batchViewQ_dl γ P st q vd $$ [$Hv $Hc]
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact Hwf
+  · ipureintro; exact Hd
 
 /-- The client's half of the tracked buckets agrees with the batch lock's state (leases T3: `lessor.Revoke`'s
 delete from the `Lease` bucket, `BackendBridge.lean`). -/
@@ -578,7 +706,7 @@ theorem batchLocked_rdB2 (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess)
 
 /-- The batch lock's ghost share, held, with the `Unlock` window flag `win`. -/
 def batchGhostW (γ : BNames) (P : BParams) (st : BSess) (win : Bool) : IProp GF :=
-  iprop(batchViewQ γ P st ∗
+  iprop((if win then batchViewQ0 γ P st else batchViewQ γ P st) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), win) ∗
       ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
@@ -592,6 +720,7 @@ def batchLockedW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (win : Bool)
 theorem batchLocked_W (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLocked (GF := GF) γ P b st ⊢ batchLockedW γ P b st false := by
   unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
+  simp only [Bool.false_eq_true, ↓reduceIte]
   iintro H
   iexact H
 

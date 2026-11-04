@@ -68,8 +68,8 @@ local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
 set_option hygiene false in
 /-- `commit` of the written-back batch (`vw`: whether a view update is owed, `L` the logical view
 it comes back at; `Hpc` the commit's thinness premise), up to its outcome `Hpost` (both commit tests, with or without the view). -/
-local macro "bu_commit" vw:term:max L:term:max : tactic => `(tactic| (
-    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0 iprop(True) iprop(True) $L) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc] as ⟨-, HPk, -, Hpost⟩
+local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| (
+    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc] as ⟨-, HPk, -, Hpost⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
@@ -81,7 +81,8 @@ local macro "bu_commit" vw:term:max L:term:max : tactic => `(tactic| (
           iframe
           iframe #
         isplitl [Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
-        · iframe Hv
+        · try simp only [↓reduceIte, Bool.false_eq_true]
+          iframe Hv
           iexists n - 1, w + 1, u0
           iframe
           ipureintro
@@ -94,6 +95,10 @@ local macro "bu_commit" vw:term:max L:term:max : tactic => `(tactic| (
         exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i⟩
       isplitl [Hpc]
       · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hpc
+      isplitr
+      · ipureintro; first | (intro h; cases h; done) | (intro _; exact ⟨rfl, Hdlr⟩)
+      isplitr
+      · ipureintro; rfl
       unfold payIn
       rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
       isplitr
@@ -139,6 +144,7 @@ private theorem unlock_core
     ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave Hl := batchLocked_W γ P b st $$ Hl
   unfold batchLockedW batchGhostW
+  simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
     %Hbg⟩, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
@@ -147,7 +153,7 @@ private theorem unlock_core
   icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
   wp_auto
   by_cases hp0 : st.pend = W64 0
-  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
+  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, %Hkept, Hbv, HPk, HQw⟩)
     · rw [decide_eq_true hp0]
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0 Hhw
@@ -164,7 +170,7 @@ private theorem unlock_core
       · rw [relog_same P vd st hvf.symm Hsub]; iexact Hbv
       icases HQw $$ Hbv with ⟨HWv, HQ⟩
       bu_free st hbg hfo
-  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
+  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, %Hkept, Hbv, HPk, HQw⟩)
     · -- a deleting session: the write-back leaves the readers' view; the commit's new physical
       -- view is thin of the old
       rw [decide_eq_false hp0]
@@ -187,23 +193,27 @@ private theorem unlock_core
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh
       have hsame := vData_writeback_same P st.C st.W st.R Hnw
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
         (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr]
         with ⟨Hrr, Hrvs⟩
       ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
-      · unfold batchViewQ; rw [wbSt_C, wbSt_R, hsame]; iexact Hv
+      · unfold batchViewQ; rw [wbSt_C, wbSt_R, hsame]
+        icases Hv with ⟨%L, Hq, %Hd⟩
+        iexists L; iframe Hq; ipureintro
+        exact dlsW_step (st := st) (st' := wbSt P st) (dlsS_congr (by rw [wbSt_S]) rfl)
+          (dlsOk_congr (by rw [wbSt_S]) rfl) rfl (by simp [wbSt, Hhw]) Hd
       wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
       · ihave Hpc : thinV γ (sData P (wbSt P st).S) (vData P ((wbSt P st).C, (wbSt P st).R)) $$ []
         · rw [wbSt_S, wbSt_C, wbSt_R, hsame]
           iexact Hth
         wp_if_destruct
-        · bu_commit false (vData P (st.C, st.R))
+        · bu_commit (wbSt P st) false (vData P (st.C, st.R))
           bu_release
         wp_if_destruct
-        · bu_commit false (vData P (st.C, st.R))
+        · bu_commit (wbSt P st) false (vData P (st.C, st.R))
           bu_release
         exfalso
         rcases hcond with h | h
@@ -216,6 +226,17 @@ private theorem unlock_core
         have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
         bu_free (wbSt P st) hbg' hfo'
     · -- a put session: back at `relog P vd st`
+      ihave ⟨Hv, Hbv, %Hdvw⟩ := batchViewQ_bView_dl γ P st 1 vd $$ [$Hv $Hbv]
+      have Hdvd : dlsOk P st vd := Hdvw.2.1 (Hdvw.2.2 Hhw)
+      -- the commit window (`win`) and the session's state agree with the logical view `relog`
+      have Hdlr : dlsOk P ({ wbSt P st with win := true }) (relog P vd st) :=
+        dlsOk_congr (by simp only [wbSt_S]) rfl (dlsOk_relog Hkept Hdvd)
+      have Hdlr0 : dlsW P (wbSt P st) (relog P vd st) :=
+        ⟨dlsS_congr (by rw [wbSt_S]) rfl Hdvw.1,
+          fun _ => dlsOk_congr (by rw [wbSt_S]) rfl (dlsOk_relog Hkept Hdvd),
+          fun _ => Hdvw.2.2 Hhw⟩
+      have HdlS : dlsS P ({ wbSt P st with win := true }) :=
+        dlsS_congr (by simp only [wbSt_S]) rfl Hdvw.1
       ihave ⟨Hv, Hbv, #Hthvd⟩ := batchViewQ_bView γ P st 1 vd $$ [$Hv $Hbv]
       ihave #Hrel := thinV_relog γ P vd st $$ Hthvd
       rw [decide_eq_false hp0]
@@ -238,26 +259,31 @@ private theorem unlock_core
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh
       unfold batchViewQ
-      icases Hv with ⟨%L0, Hv⟩
+      icases Hv with ⟨%L0, Hv, %Hd0⟩
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
       · -- committed: the window opens at the exact new physical view, the commit's close moves it
         -- to `relog` (R11-2)
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true Hwf.2.2.1 hver hsafe)
           $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr] with ⟨Hrr, Hrvs, Hv, -⟩
         · simp only [↓reduceIte]; itrivial
-        ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
-        · unfold batchViewQ; rw [wbSt_C, wbSt_R]; iexists _; iexact Hv
+        ihave Hv : batchViewQ0 γ P ({ wbSt P st with win := true }) $$ [Hv]
+        · unfold batchViewQ0; simp only [wbSt_C, wbSt_R]; iexists _; iframe Hv; ipureintro
+          exact HdlS
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
-        ihave Hpc : thinV γ (sData P (wbSt P st).S) (relog P vd st) $$ []
-        · rw [wbSt_S]; iexact Hrel
+        ihave Hpc : thinV γ (sData P ({ wbSt P st with win := true }).S) (relog P vd st) $$ []
+        · simp only [wbSt_S]; iexact Hrel
+        ihave Hfkh : fkHalf γ P ({ wbSt P st with win := true }) $$ [Hfkh]
+        · iapply fkHalf_mono γ P (st := wbSt P st) (st' := { wbSt P st with win := true })
+            (fun _ _ h => h) rfl rfl
+          iexact Hfkh
         wp_if_destruct
-        · bu_commit true (relog P vd st)
+        · bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         wp_if_destruct
-        · bu_commit true (relog P vd st)
+        · bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         exfalso
@@ -273,7 +299,8 @@ private theorem unlock_core
         · simp only [Bool.false_eq_true, ↓reduceIte]; rw [hvf]; iexact Hrel
         simp only [Bool.false_eq_true, ↓reduceIte]
         ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
-        · unfold batchViewQ; rw [wbSt_C, wbSt_R]; iexists _; iexact Hv
+        · unfold batchViewQ; rw [wbSt_C, wbSt_R]; iexists _; iframe Hv; ipureintro
+          exact Hdlr0
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
         wp_if_destruct
         · exfalso; exact hcond (Or.inl (by omega))
