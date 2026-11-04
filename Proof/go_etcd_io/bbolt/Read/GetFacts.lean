@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Read.BktOK
 public import Proof.go_etcd_io.bbolt.Read.TreeEnts
+public import Proof.go_etcd_io.bbolt.Read.Pos
 
 @[expose] public section
 
@@ -220,6 +221,42 @@ theorem rd_root_lookup_some (v : View) (hv : viewWF v) (n : GoString) (cv : List
   have := (ofList_lookup_iff _ hnd n (bktOfPage v.pages cv)).2
     (List.mem_map.2 ⟨(n, cv), hmem, rfl⟩)
   rw [h] at this; cases this
+
+open Ents TreeEnts in
+/-- **A reader's top-level bucket's entries in order** (`boltCur`'s `es`): its leaves' entries. -/
+theorem rd_bktEnts (v : View) (hv : viewWF v) (n : GoString) (bv : List w8) (m : BktData)
+    (hbe : bktEntry v.pages (rootVal v) n bv) (hm : v.data !! n = some m) :
+    bktEnts m = bktEntries v.pages bv := by
+  obtain ⟨-, rfl, hS⟩ := rd_bkt_data v hv n bv m hbe hm
+  have hnd : (bktEntries v.pages bv).Pairwise (fun a b => a.1 ≠ b.1) :=
+    hS.imp (fun hab heq => by rw [heq] at hab; exact go.goStringLt_irrefl _ hab)
+  unfold bktOfPage
+  apply sorted_ext _ _ (bktEnts_sorted _) hS
+  intro x
+  rw [mem_bktEnts, ofList_lookup_iff _ hnd]
+
+/-- **The entries a reader's cursor positions name** (`rEnts`, as (leaf, index) pairs) are the
+bucket's entries (`bktEntries`) read at those pairs. -/
+theorem rEnts_bktEntries (v : View) (bv : List w8) :
+    (rEnts v bv).map (fun x => (leafKey x.1 x.2, leafValue x.1 x.2)) = bktEntries v.pages bv := by
+  unfold rEnts bktEntries lEnts leafEnts
+  rw [List.map_flatMap]
+  congr 1
+  funext pg
+  rw [List.map_map]
+  rfl
+
+/-- A cursor position on an entry names the bucket's entry there. -/
+theorem rEnts_get (v : View) (bv : List w8) (i : Nat) (pg : List w8) (idx : Nat)
+    (h : (rEnts v bv)[i]? = some (pg, idx)) :
+    (bktEntries v.pages bv)[i]? = some (leafKey pg idx, leafValue pg idx) := by
+  rw [← rEnts_bktEntries, List.getElem?_map, h]
+  rfl
+
+/-- The position past a cursor's last entry is past the bucket's last entry. -/
+theorem rEnts_length (v : View) (bv : List w8) :
+    (bktEntries v.pages bv).length = (rEnts v bv).length := by
+  rw [← rEnts_bktEntries, List.length_map]
 
 end getFacts
 
