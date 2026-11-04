@@ -89,7 +89,9 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
   ihave %Hok := wtxHeap_heapOK tx _ X $$ Hh
   have Hobj := objs_node X.t bl B n rn Hok.2.1 HB Hrn
   have Hnode : X.node bl n = some rn := by simp [WX.node, HB, Hrn]
-  icases wtxHeap_node_acc tx _ X bl n rn Hnode Hobj Hlive $$ Hh with ⟨Ho, Hback⟩
+  icases wtxHeap_setNode tx _ X bl B n rn HB Hrn $$ Hh with ⟨Ho, Hback⟩
+  have Hpar : rn.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rn HB Hrn
+  rw [decide_eq_true Hlive]
   unfold objOwn
   icases Ho with ⟨Hn, Hins, Hcap, Hws, Hcs, Hcsc, Hkey⟩
   wp_method_call
@@ -286,7 +288,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
         · simp [NRec.derefTo, h1, h2]
       · simp only [NRec.derefTo]; rw [Hj.2.2.1, Hje, Hwsl, List.take_length]
       · simp only [NRec.derefTo]; rw [Hj.2.1, Hje]
-    ihave Hh := Hback $$ %(rn.derefTo k1 insD wsD) [Hn Hins Hcap HwsD Hcs Hcsc Hk1]
+    ihave Hh := Hback $$ %(rn.derefTo k1 insD wsD) %Hpar [Hn Hins Hcap HwsD Hcs Hcsc Hk1]
     · try simp only [NRec.derefTo]
       iframe
       rcases Hk1 with ⟨h1, h2⟩ | ⟨h1, h2⟩
