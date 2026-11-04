@@ -280,6 +280,11 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
         $$ [Hno Hv Q2 Hmeta Hmv] as ⟨%sl, %ins', Hno, Hv, Q2, Hmeta, Hmv⟩
       · iframe; iframe #; unfold srcOwn; iframe #
       try wp_auto
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn5, Hins5, Hcap5, Hws5, Hch5, Hchcap5, Hkey5⟩
+      ihave %Hinsl := BigSepL2.bigSepL2_length $$ Hws5
+      ihave Hno := (objOwn_live_node _ l (DFrac.own 1) X.rl _).2
+        $$ [Hn5 Hins5 Hcap5 Hws5 Hch5 Hchcap5 Hkey5]
+      · iframe
       ihave Hh := Hback $$ %(rl.withEnts sl ins' (wsPutAt rl.ws key
           ⟨W32 1, W64 0, key, inlineVal C1.ib rn1.ws, Src.own DFrac.discard, Src.own DFrac.discard⟩))
         %(by simpa [NRec.withEnts] using Hpar) [Hno] [Q1 Q2 Q3 Q4 Q5 Q6 Q7 Q8 Q9 Q10]
@@ -292,7 +297,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
       ihave Hw := Hclose $$ %(X3.setNode X.rl l (rl.withEnts sl ins'
           (wsPutAt rl.ws key ⟨W32 1, W64 0, key, inlineVal C1.ib rn1.ws, Src.own DFrac.discard, Src.own DFrac.discard⟩))) [] Hh Hv Hst
       · ipureintro; rw [setNode_eq X3 X.rl l B3 _ HB3]; exact ⟨rfl, rfl, rfl⟩
-      have HI4 := rinv_put HI2 (upd_same ks key _) Hc Hmg Hp Hr HB3 Hlast Hres Hrl sl ins'
+      have HI4 := rinv_put HI2 (upd_same ks key _) Hc Hmg Hp Hr HB3 Hlast Hres Hrl sl ins' Hinsl
+            ⟨we, hwe, hwk, hwf⟩
       rw [upd_upd, show rootEnt key (inlineVal C1.ib rn1.ws) = ⟨W32 1, W64 0, key, inlineVal C1.ib rn1.ws, Src.own DFrac.discard, Src.own DFrac.discard⟩ from rfl] at HI4
       obtain ⟨Br4, HBr4, Hbk4, Hbm4⟩ := HI4.root
       icases wtxW_bm_acc K tx r m _ X.rl Br4 HBr4 B0.bv.buckets' B0.bm Hbk4 Hbm4 $$ Hw
@@ -458,6 +464,11 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
             $$ [Hno Hv Q2 Hmeta Hmv] as ⟨%sl, %ins', Hno, Hv, Q2, Hmeta, Hmv⟩
           · iframe; iframe #; unfold srcOwn; iframe #
           try wp_auto
+          icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn5, Hins5, Hcap5, Hws5, Hch5, Hchcap5, Hkey5⟩
+          ihave %Hinsl := BigSepL2.bigSepL2_length $$ Hws5
+          ihave Hno := (objOwn_live_node _ l (DFrac.own 1) X.rl _).2
+            $$ [Hn5 Hins5 Hcap5 Hws5 Hch5 Hchcap5 Hkey5]
+          · iframe
           ihave Hh := Hback $$ %(rl.withEnts sl ins' (wsPutAt rl.ws key
               ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩))
             %(by simpa [NRec.withEnts] using Hpar) [Hno] [Q1 Q2 Q3 Q4 Q5 Q6 Q7 Q8 Q9 Q10]
@@ -470,7 +481,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
           ihave Hw := Hclose $$ %(X3.setNode X.rl l (rl.withEnts sl ins'
               (wsPutAt rl.ws key ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩))) [] Hh Hv Hst
           · ipureintro; rw [setNode_eq X3 X.rl l B3 _ HB3]; exact ⟨rfl, rfl, rfl⟩
-          have HI4 := rinv_put HI2 (upd_same ks key _) Hc Hmg Hp Hr HB3 Hlast Hres Hrl sl ins'
+          have HI4 := rinv_put HI2 (upd_same ks key _) Hc Hmg Hp Hr HB3 Hlast Hres Hrl sl ins' Hinsl
+            ⟨we, hwe, hwk, hwf⟩
           rw [upd_upd, show rootEnt key (encode C2.ib) = ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩ from rfl] at HI4
           obtain ⟨Br4, HBr4, Hbk4, Hbm4⟩ := HI4.root
           icases wtxW_bm_acc K tx r m _ X.rl Br4 HBr4 B0.bv.buckets' B0.bm Hbk4 Hbm4 $$ Hw

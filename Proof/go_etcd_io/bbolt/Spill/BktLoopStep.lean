@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureRPut
 
 @[expose] public section
 
@@ -43,9 +44,6 @@ variable [GooseExts]
 def inlineVal (ib : InBucket) (ws : List WEntry) : List w8 :=
   encode ib ++ encode (hdrWritten ⟨W64 0, W16 0, W16 0, W32 0⟩ true (wsMs ws).length) ++
     pageBody true (wsMs ws)
-
-/-- The root entry the loop puts for child `k` with the value `v` (the value persistent). -/
-def rootEnt (k v : List w8) : WEntry := ⟨W32 1, W64 0, k, v, Src.heap, Src.heap⟩
 
 variable {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString} {Lroot : List Nat}
   {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
@@ -294,6 +292,16 @@ theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
       rl.nv.parent' ≠ l ∧ 0 < k.length ∧ X1.t.bs !! X0.rl = some B1 :=
   rinv_putPre' hI hm hp hB1 hlast hres hk
 
+/-- **The bound of a root entry the loop puts** (a `sorry`): the child's name is at most
+`MaxKeySize` (32768) bytes and its staged value at most 1040 (a header and an inline page of at
+most a quarter page, `inlineable`), far below `bboltEntryMax` (2 ^ 28). `RInv` carries neither: the
+names' bound is batch 43.4's (root entries' names in `rootShape` and the writer invariants, not
+landed); the staged values' size would be a clause of `childSt`'s `.val`. -/
+theorem rinv_putBound (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {v : List w8}
+    (hks : ks k = .val v false) (hk : ∃ we ∈ X.allEnts X0.rl, we.key = k) :
+    k.length + v.length ≤ bboltEntryMax := by
+  sorry
+
 /-- **The staged value put into the root bucket's leaf.** -/
 theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {v : List w8} (hks : ks k = .val v false) (hc : B0.bm !! k = some c) {X1 : WX}
@@ -301,11 +309,13 @@ theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
     (hp : lPath X X0.rl els pids) (hr : lRoutes X X0.rl els pids k) {B1 : BRec} {pid : w64}
     {l : Loc} {rl : NRec} (hB1 : X1.t.bs !! X0.rl = some B1) (hlast : pids.getLast? = some pid)
     (hres : resolve B1 pid = some l) (hrl : B1.ns !! l = some rl) (s : GoSlice)
-    (ins : List Inode) :
+    (ins : List Inode) (hins : ins.length = (wsPutAt rl.ws k (rootEnt k v)).length)
+    (hent : ∃ we ∈ X.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags) :
     RInv X0 w0 B0 keys Lroot
       (X1.setNode X0.rl l (rl.withEnts s ins (wsPutAt rl.ws k (rootEnt k v)))) w st Dc
-      (upd ks k (.val v true)) := by
-  sorry
+      (upd ks k (.val v true)) :=
+  rinv_put' hI hks hc hm hp hr hB1 hlast hres hrl s ins hins hent
+    (rinv_putBound hI hks (by obtain ⟨we, h1, h2, -⟩ := hent; exact ⟨we, h1, h2⟩))
 
 end step
 
