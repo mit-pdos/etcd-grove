@@ -34,6 +34,11 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 /-- The cache holds exactly the free and pending ids. -/
 def cacheOK (c : GMap w64 Unit) (fl : FLPg) : Prop := ∀ id, (c !! id).isSome ↔ id ∈ fl.allIds
 
+/-- A pending entry, its pointer not nil. (`flPgOwn`'s `ownPending` does not say it: a `nil`
+entry would make `Free` replace it by a new one, losing its pages. U2 adds it here; the fact is
+the one `sorry` of `flPgOwn_open`, until `Inv/Freelist.lean`'s `ownPending` carries it.) -/
+def ownPend (p : Loc) (pd : Pending) : IProp GF := iprop(⌜p ≠ null⌝ ∗ ownPending p pd)
+
 /-- `shared`'s fields at `s` but `readonlyTXIDs`: its interface `fli`, `fl`'s allocations and
 pending entries, and the cache `c`. -/
 def ownShC (s : Loc) (fli : GoInterface) (fl : FLPg) (c : GMap w64 Unit) : IProp GF :=
@@ -42,7 +47,7 @@ def ownShC (s : Loc) (fli : GoInterface) (fl : FLPg) (c : GMap w64 Unit) : IProp
     "Hal" ∷ structFieldRef shared go!"allocs" s ↦ al ∗ "Hallocs" ∷ al ↦$ fl.allocs ∗
     "Hca" ∷ structFieldRef shared go!"cache" s ↦ ca ∗ "Hcache" ∷ ca ↦$ c ∗
     "Hpe" ∷ structFieldRef shared go!"pending" s ↦ pe ∗ "Hpending" ∷ pe ↦$ pp ∗
-    "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPending p pd))
+    "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPend p pd))
 
 /-- `ownShC` with its cache up to date and the state well-formed. -/
 def ownSh (s : Loc) (fli : GoInterface) (fl : FLPg) : IProp GF :=

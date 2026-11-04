@@ -92,7 +92,7 @@ theorem shared.reindex.wp_proof (I : FLImpl (GF := GF)) (hF : I.FreePageIdsSpec)
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (tp : Loc) (cm : GMap w64 Unit),
       "%Hi" ∷ ⌜0 ≤ i⌝ ∗
-      "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPending p pd) ∗
+      "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPend p pd) ∗
       "Hmc" ∷ mc ↦$ cm ∗ "txp" ∷ txp_ptr ↦ tp ∗ "t" ∷ t_ptr ↦ s ∗
       "Hca" ∷ structFieldRef shared go!"cache" s ↦ mc ∗
       "%Hcm" ∷ ⌜∀ x, (cm !! x).isSome ↔
@@ -110,6 +110,8 @@ theorem shared.reindex.wp_proof (I : FLImpl (GF := GF)) (hF : I.FreePageIdsSpec)
     obtain ⟨pd, Hpd⟩ := Option.isSome_iff_exists.1
       ((Hdom key).1 (by simp only [show Std.get? pp key = some p from Hp, Option.isSome_some]))
     icases BigSepM2.bigSepM2_lookup_acc Hp Hpd $$ Hpds with ⟨Hpo, Hback2⟩
+    iunfold ownPend at Hpo
+    icases Hpo with ⟨%Hpnn, Hpo⟩
     iunfold ownPending at Hpo
     icases Hpo with ⟨%ids, %atx, Hidsf, Hids, Hidc, Hatxf, Hatx, Hatxc, Hlrb⟩
     ihave %Hl := ownSlice_len _ _ _ $$ Hids
@@ -151,7 +153,9 @@ theorem shared.reindex.wp_proof (I : FLImpl (GF := GF)) (hF : I.FreePageIdsSpec)
     have Hjall : sint.nat j = pd.ids.length := by word
     rw [Hjall, List.take_length] at Hj
     ihave Hpds := Hback2 $$ [Hidsf Hids Hidc Hatxf Hatx Hatxc Hlrb]
-    · iunfold ownPending; iexists ids, atx; iframe
+    · iunfold ownPend; isplitr
+      · ipureintro; exact Hpnn
+      iunfold ownPending; iexists ids, atx; iframe
     unfold forMapPostcondition
     iright; ileft
     isplitr

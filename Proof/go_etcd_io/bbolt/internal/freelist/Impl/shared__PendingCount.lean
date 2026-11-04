@@ -44,7 +44,7 @@ theorem shared.PendingCount.wp_proof : shared.PendingCount.spec (GF := GF) (hG :
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (tp : Loc),
       "%Hi" ∷ ⌜0 ≤ i⌝ ∗
-      "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPending p pd) ∗
+      "Hpds" ∷ ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPend p pd) ∗
       "count" ∷ count_ptr ↦
         W64 (((keys.take i.toNat).map (fun t => (fl.pendingOf t).ids.length)).sum : Int) ∗
       "txp" ∷ txp_ptr ↦ tp)) $$ Hpending
@@ -61,12 +61,16 @@ theorem shared.PendingCount.wp_proof : shared.PendingCount.spec (GF := GF) (hG :
     obtain ⟨pd, Hpd⟩ := Option.isSome_iff_exists.1
       ((Hdom key).1 (by simp only [show Std.get? pp key = some p from Hp, Option.isSome_some]))
     icases BigSepM2.bigSepM2_lookup_acc Hp Hpd $$ Hpds with ⟨Hpo, Hback⟩
+    iunfold ownPend at Hpo
+    icases Hpo with ⟨%Hpnn, Hpo⟩
     iunfold ownPending at Hpo
     icases Hpo with ⟨%ids, %atx, Hidsf, Hids, Hidc, Hatxf, Hatx, Hatxc, Hlrb⟩
     ihave %Hl := ownSlice_len _ _ _ $$ Hids
     wp_auto
     ihave Hpds := Hback $$ [Hidsf Hids Hidc Hatxf Hatx Hatxc Hlrb]
-    · iunfold ownPending; iexists ids, atx; iframe
+    · iunfold ownPend; isplitr
+      · ipureintro; exact Hpnn
+      iunfold ownPending; iexists ids, atx; iframe
     unfold forMapPostcondition
     iright; ileft
     isplitr

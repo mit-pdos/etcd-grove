@@ -40,6 +40,36 @@ theorem mkOk_array_ne_hash (a b : Loc) :
   intro h; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
   exact array_ne_hash h.1
 
+/-- **The one `sorry` of U2's freelist proofs** (a defect of `Inv/Freelist.lean`, reported):
+`ownPending` does not say its entry's pointer is not `nil`, which `Free` needs (on a `nil`
+entry it would allocate a new one, dropping the old entry's pages). Every entry the code stores
+is a fresh allocation, so the fact holds of every reachable state; the fix is a `⌜p ≠ null⌝` in
+`ownPending`, then this is `fun _ h => h.1`-style. -/
+theorem ownPending_nonnull (p : Loc) (pd : Pending) :
+    ownPending (GF := GF) p pd ⊢ ⌜p ≠ null⌝ := by
+  sorry
+
+theorem pds_to_pend (pp : GMap w64 Loc) (m : GMap w64 Pending) :
+    ([∗map] _t ↦ p;pd ∈ pp;m, ownPending (GF := GF) p pd) ⊢
+      [∗map] _t ↦ p;pd ∈ pp;m, ownPend p pd :=
+  BigSepM2.bigSepM2_mono_of_forall _ _ _ _ (by
+    intro _ p pd
+    iintro H
+    icases ownPending_nonnull p pd $$ H with %Hn
+    iunfold ownPend
+    iframe
+    ipureintro; exact Hn)
+
+theorem pend_to_pds (pp : GMap w64 Loc) (m : GMap w64 Pending) :
+    ([∗map] _t ↦ p;pd ∈ pp;m, ownPend (GF := GF) p pd) ⊢
+      [∗map] _t ↦ p;pd ∈ pp;m, ownPending p pd :=
+  BigSepM2.bigSepM2_mono_of_forall _ _ _ _ (by
+    intro _ p pd
+    iintro H
+    iunfold ownPend at H
+    icases H with ⟨-, H⟩
+    iexact H)
+
 /-- `flPgOwn`, opened. -/
 theorem flPgOwn_open (fli : GoInterface) (fl : FLPg) :
     flPgOwn (GF := GF) fli fl ⊢ ∃ (I : FLImpl (GF := GF)) (a s : Loc),
@@ -48,6 +78,7 @@ theorem flPgOwn_open (fli : GoInterface) (fl : FLPg) :
   iunfold flPgOwn at H
   icases H with ⟨%a, %s, %al, %ca, %pe, %c, %pp, Himpl, Hif, Hal, Hallocs, Hca, Hcache, Hpe,
     Hpending, Hpds, Hown, %Hok⟩
+  ihave Hpds := pds_to_pend _ _ $$ Hpds
   iunfold flImplAt at Himpl
   iunfold flImplOwn at Hown
   icases Himpl with (⟨%Hfli, #Hsh⟩ | ⟨%Hfli, #Hsh⟩) <;>
@@ -90,6 +121,7 @@ theorem flPgOwn_close (I : FLImpl (GF := GF)) (a s : Loc) (fli : GoInterface) (f
   icases Hsh' with ⟨%c, Hsh', %Hok⟩
   iunfold ownShC at Hsh'
   icases Hsh' with ⟨%al, %ca, %pe, %pp, Hif, Hal, Hallocs, Hca, Hcache, Hpe, Hpending, Hpds⟩
+  ihave Hpds := pend_to_pds _ _ $$ Hpds
   iunfold flPgOwn
   iexists a, s, al, ca, pe, c, pp
   iframe
