@@ -1147,6 +1147,29 @@ Not done (in this order, the coordinator's):
   from `Tx__commitFreelist.lean`, same definition: U10c deletes its copy), **`wdbW_fl_acc`** and
   **`wtxW_flpage_acc`** (U10c's local statements verbatim).
 
+- **41: design (not yet applied; Open's unsynced `loadFreelist`, `DB__loadFreelist`'s `hF` and
+  `open_setFl_gap`).** Why the reader sets are empty there: during the opening only the spare pair
+  can register a reader (a pool loan needs `isBolt`, which `Open` has not published), and
+  `freepages`' spare reader has deregistered. Make both facts ghost state:
+  1. **opening one-shot** `B.opn` (new `BNs` name, allocated at `Open`): `pending` held by `Open`
+     until after `loadFreelist`, then `shot` (persistent) and the shot witness goes into
+     `isBoltCoreP`/`isBolt` (so `beginTx` with a pool loan knows the opening is over);
+  2. **spare-idle token** `B.spr` (new name): `ghostVar B.spr ½ false` held beside the spare pair
+     (`rdPair K.B K.db K.sp` where it is the spare: `wdbOwn`/`wdbLive`, `Open`), the other half in
+     `metaR`; `beginTx_s` sets both to `true` (the spare reader's `rdTxK`, src `spare`, holds its
+     half), its `Rollback`/`close` sets `false` and gives the half back with the pair (`pairBack`);
+  3. `metaR` gains `ghostVar B.spr ½ s ∗ (shot ∨ ⌜(s = false → F = ∅) ∧ (s = true → ∃ k t, F =
+     {[k := t]})⌝)` (registration under `pending` only by the spare: a pool `beginTx` has `shot`);
+     `pagesInv` the same for `σ.R` (its own quarter of `B.spr`, or a second name).
+  Then at `loadFreelist`, `Open` (holding `pending` and the spare's `½ false`) gets `F = ∅` from
+  `metaR` and `σ.R = ∅` from `pagesInv`. **`DB.freepages.spec`'s addition**: pre and post
+  `ghostVar K.B.spr (1 : Qp).half false` (the spare is idle before and after; U10e's spec file).
+  `beginTx_s.spec`: pre takes that half, the reader keeps the `true` half; nothing needs the
+  `metaR` authority split. Cost: `BNs` (+2 names, `bnsOf`/`mkGs`), `metaR`, `pagesInv`, `rdTxK`'s
+  spare case, `wdbOwn`/`wdbLive` (the spare's half beside `rdPair`), `isBoltCoreP` (shot), and the
+  store's `register`/`deregister` lemmas (keep the clause). Not applied: a root-level change
+  (`Inv/Names`, `Inv/Locks`, `Inv/Store`) waiting for the coordinator's go and a quiet moment.
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
