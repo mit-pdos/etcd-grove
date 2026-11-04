@@ -63,24 +63,25 @@ theorem spFrame_refl (X : WX) (bl : Loc) (T : List Loc) : spFrame X X bl T :=
     fun _ _ B hB => ⟨B, hB, bktSim_refl B, fun _ => optRel_nodeSim_refl _⟩,
     fun _ _ h => h,
     fun B hB => ⟨B, hB, bktSim_refl B, fun _ _ => optRel_nodeSim_refl _⟩,
-    fun _ _ _ => Iff.rfl⟩
+    fun _ _ _ => Iff.rfl, fun _ h => h⟩
 
 /-- A frame for fewer touched nodes is one for more. -/
 theorem spFrame_mono {X X' : WX} {bl : Loc} {T T' : List Loc} (h : spFrame X X' bl T)
     (hT : ∀ l ∈ T, l ∈ T') : spFrame X X' bl T' := by
-  obtain ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, o, p⟩ := h
-  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y hy => p y (fun hm => hy (hT y hm))⟩
+  obtain ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, o, p, q⟩ := h
+  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y hy => p y (fun hm => hy (hT y hm)), q⟩
   obtain ⟨B', hB', hs, hn⟩ := o B hB
   exact ⟨B', hB', hs, fun y hy => hn y (fun hm => hy (hT y hm))⟩
 
 /-- **Frames compose**, their touched nodes joined. -/
 theorem spFrame_trans {X1 X2 X3 : WX} {bl : Loc} {T1 T2 : List Loc} (h1 : spFrame X1 X2 bl T1)
     (h2 : spFrame X2 X3 bl T2) : spFrame X1 X3 bl (T1 ++ T2) := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1, m1, n1, o1, p1⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2, m2, n2, o2, p2⟩ := h2
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1, m1, n1, o1, p1, q1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2, m2, n2, o2, p2, q2⟩ := h2
   refine ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1,
     g2.trans g1, i2.trans i1, Nat.le_trans j1 j2, fun id bs h => k2 id bs (k1 id bs h),
-    fun id p h => l2 id p (l1 id p h), ?_, fun bl' hne h => n2 bl' hne (n1 bl' hne h), ?_, ?_⟩
+    fun id p h => l2 id p (l1 id p h), ?_, fun bl' hne h => n2 bl' hne (n1 bl' hne h), ?_, ?_,
+    fun l h => q2 l (q1 l h)⟩
   · intro bl' hne B hB
     obtain ⟨B2, hB2, hs2, hn2⟩ := m1 bl' hne B hB
     obtain ⟨B3, hB3, hs3, hn3⟩ := m2 bl' hne B2 hB2
@@ -117,7 +118,7 @@ theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLe
 theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by
   obtain ⟨a, b, c, d, e, f, g, i⟩ := h
-  exact ⟨a, b, c, d, e, f, fun x hx hm => g x hx (hO x hm),
+  exact ⟨a, b, c, d, e, f, fun x hx => ⟨fun hm => (g x hx).1 (hO x hm), (g x hx).2⟩,
     fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr⟩
 
 theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
@@ -134,7 +135,8 @@ theorem spStep_trans {X1 X2 X3 : WX} {w1 w2 w3 : WDb} {O : List Nat} {s1 s2 : Li
   refine ⟨a2.trans a1, by rw [b2, b1, applySteps_append], c2.trans c1, d2, e2,
     fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr)⟩
   by_cases hx1 : spP X2 !! x = spP X1 !! x
-  · exact g2 x (by rw [hx1]; exact hx)
+  · obtain ⟨hO, hp⟩ := g2 x (by rw [hx1]; exact hx)
+    exact ⟨hO, fun hm => hp (f1 x hm)⟩
   · exact g1 x hx1
 
 /-- `newSlot` grows with the steps (a prefix) and a lower mark. -/

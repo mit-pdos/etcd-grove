@@ -111,7 +111,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
         · exact Or.inr (Or.inl (node_none_of_objs h0))
         · cases hcs; exact Or.inr (Or.inr rfl))
     (fun k e hk he x hx => Classical.byContradiction fun hne =>
-      hstep.2.2.2.2.2.2.1 x hne (hOth k e hk he x hx))
+      (hstep.2.2.2.2.2.2.1 x hne).1 (hOth k e hk he x hx))
     hps hhd hr' hpar hlive
     (fun x hx hmem => by
       have h1 := (hdp.1 bl B n r hBb hBn hnl).2.2.2 _ hmem

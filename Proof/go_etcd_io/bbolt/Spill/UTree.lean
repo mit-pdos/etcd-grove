@@ -189,7 +189,8 @@ def bktSim (B B' : BRec) : Prop :=
 /-- **The frame of a spill in bucket `bl`** from `X` to `X'`, the nodes `T` touched: the other
 buckets' records modulo sources, `bl`'s struct, header and caches, its untouched nodes modulo
 sources (live as before), and the transaction's root, handles, registry, live buckets, base pages
-and txid unchanged; the buffers and page cache grown (old buffers kept), the mark not lower. -/
+and txid unchanged; the buffers and page cache grown (old buffers kept), the mark not lower; every
+object still one (U9h: a node fresh after a later step was fresh at the start). -/
 def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   X'.rl = X.rl ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.liveB = X.liveB ∧
   X'.v.pages = X.v.pages ∧ X'.v.txid = X.v.txid ∧ X'.t.t = X.t.t ∧
@@ -202,7 +203,8 @@ def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   (∀ B, X.t.bs !! bl = some B → ∃ B', X'.t.bs !! bl = some B' ∧ bktSim B B' ∧
     ∀ l, l ∉ T → optRel nodeSim (B.ns !! l) (B'.ns !! l)) ∧
   (∀ l, l ∉ T → (∃ bl' B, X.t.bs !! bl' = some B ∧ (B.ns !! l).isSome) →
-    (l ∈ X'.live ↔ l ∈ X.live))
+    (l ∈ X'.live ↔ l ∈ X.live)) ∧
+  (∀ l, (X.t.objs !! l).isSome → (X'.t.objs !! l).isSome)
 
 /-! ## What every step of the spill keeps -/
 

@@ -103,12 +103,14 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **A spill's step from `(X, w)` to `(X', w')`** for the slots `O` owned elsewhere (the frame):
 the committed state kept, the freelist after free and allocation steps `st` of the writer (pending
 pages kept), the base pages kept, the spill's global state kept, the other owned slots still
-owned, the page map changed only outside them, and what the other trees' frees need kept. -/
+owned, the page map changed only outside them and outside the pending slots (U9h: a slot one
+child's spill freed keeps its page through its siblings' spills), and what the other trees' frees
+need kept. -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
   spG X' w.wtxid (mapLen w'.ms) ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
-  (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O) ∧
+  (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F)
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
