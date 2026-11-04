@@ -23,6 +23,9 @@ theorem bytesAt_bytesAt (pg : List w8) (o L off n : Nat) (h : off + n ≤ L) :
   unfold bytesAt
   rw [List.drop_take, List.take_take, List.drop_drop, Nat.min_eq_left (by omega)]
 
+theorem bytesAt_drop' (pg : List w8) : bytesAt pg 0 pg.length = pg := by
+  unfold bytesAt; simp
+
 theorem bytesAt_length (pg : List w8) (off n : Nat) (h : off + n ≤ pg.length) :
     (bytesAt pg off n).length = n := by
   unfold bytesAt; simp; omega
@@ -225,6 +228,156 @@ theorem rdTxK_src2_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView)
   iapply Hk
   iapply (viewCells_split_r qc.half qc.half v).2
   iframe
+
+/-- Where a key a reader searches for is: caller-owned bytes, or bytes of the view. -/
+inductive KeyR where
+  | heap (dk : DFrac)
+  | view
+
+/-- The key `key` holding `kb` from `kr`. -/
+def keyR (v : View) (key : GoSlice) (kr : KeyR) (kb : List w8) : IProp GF :=
+  match kr with
+  | .heap dk => iprop(key ↦*{dk} kb)
+  | .view => iprop(⌜inViewAt v key kb⌝)
+
+/-- A live slice is a key. -/
+theorem srcOwn_keyR (v : View) (s : GoSlice) (sr : Src) (bs : List w8) (hs : sr ≠ Src.stale) :
+    srcOwn (GF := GF) v s sr bs ⊢ ∃ kr, keyR v s kr bs := by
+  cases sr with
+  | stale => exact absurd rfl hs
+  | own d => unfold srcOwn; iintro H; iexists (KeyR.heap DFrac.discard); unfold keyR; iexact H
+  | view => unfold srcOwn; iintro %H; iexists KeyR.view; unfold keyR; ipureintro; exact H
+
+/-- **A reader bucket's page and a key, read together**, and back. -/
+theorem rd_page_key_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (key : GoSlice) (kr : KeyR) (kb : List w8) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ∗ keyR v key kr kb ⊢
+      ∃ dq dk, bytesPointsto l dq pg ∗ key ↦*{dk} kb ∗
+        (bytesPointsto l dq pg -∗ key ↦*{dk} kb -∗
+          rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ∗ keyR v key kr kb) := by
+  cases kr with
+  | heap dk =>
+    unfold keyR
+    iintro ⟨Hk, Hb0, Hkey⟩
+    icases rd_page_acc K tx src q T v b dqb bv ibp pp pid l pg h $$ [Hk Hb0] with ⟨%dq, Hp, Hb⟩
+    · iframe
+    iexists dq, dk
+    iframe Hp Hkey
+    iintro Hp Hkey
+    ihave H := Hb $$ Hp
+    icases H with ⟨H1, H2⟩
+    iframe
+  | view =>
+    unfold keyR
+    iintro ⟨Hk, Hb, %Hin⟩
+    ihave %Hbase := rdTxK_base_pos K tx src q T v $$ Hk
+    have Hko : srcOwn (GF := GF) v key Src.view kb ⊣⊢ iprop(⌜inViewAt v key kb⌝) := by
+      unfold srcOwn; exact .rfl
+    -- the page's bytes from the first half of the cells (or persistent bytes), the key's from
+    -- the second
+    have hpage : rPageAt v bv pp pid = some (l, pg) → (∃ id, v.pages !! id = some pg ∧
+        l = pageLoc v id) ∨ (inBucketRoot bv = 0 ∧ pid = 0 ∧ l = pp ∧ pg = inlinePage bv) := by
+      intro h
+      unfold rPageAt at h
+      by_cases hi : inBucketRoot bv = 0
+      · rw [if_pos hi] at h
+        by_cases h0 : pid = 0
+        · rw [if_pos h0] at h
+          simp only [Option.some.injEq, Prod.mk.injEq] at h
+          exact Or.inr ⟨hi, h0, h.1.symm, h.2.symm⟩
+        · rw [if_neg h0] at h; cases h
+      · rw [if_neg hi] at h
+        obtain ⟨pg', hpg, he⟩ := Option.map_eq_some_iff.mp h
+        simp only [Prod.mk.injEq] at he
+        exact Or.inl ⟨pid, by rw [hpg, he.2], he.1.symm⟩
+    -- bytes of the page as a view location, or persistent
+    have Hpl : rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ⊢
+        (rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp) ∗
+        (⌜inViewLoc v l pg⌝ ∨ bytesPointsto l DFrac.discard pg) := by
+      rcases hpage h with ⟨id, hpg, rfl⟩ | ⟨hi, -, rfl, rfl⟩
+      · iintro H
+        iframe H
+        ileft; ipureintro
+        have := inViewLoc_page v id pg hpg 0 pg.length (by omega)
+        rw [bytesAt_drop' pg] at this
+        simpa using this
+      · unfold rBktP
+        rw [if_pos hi]
+        iintro ⟨Hk, H1, H2, H3, H4, H5, H6, H7, %Hpp, Hlo⟩
+        unfold locOwn
+        icases Hlo with (%Hv | #Hb)
+        · iframe; isplitr
+          · isplitr
+            · ipureintro; exact Hpp
+            ileft; ipureintro; exact Hv
+          ileft; ipureintro; exact Hv
+        · iframe; isplitr
+          · isplitr
+            · ipureintro; exact Hpp
+            iright; iexact Hb
+          iright; iexact Hb
+    icases Hpl $$ [Hk Hb] with ⟨⟨Hk, Hb⟩, Hpg⟩
+    · iframe
+    icases rdTxK_cells_acc K tx src q T v $$ Hk with ⟨%qc, Hc, Hkb⟩
+    rw [← Qp.half_add_half qc]
+    icases (viewCells_split_r qc.half qc.half v).1 $$ Hc with ⟨Hc1, Hc2⟩
+    icases viewCells_src_acc qc.half v Hbase key Src.view kb (by intro e; cases e) $$ [Hc2]
+      with ⟨%dk, Hkey, Hkeyb⟩
+    · iframe; unfold srcOwn; ipureintro; exact Hin
+    icases Hpg with (%Hv | #Hp)
+    · icases viewCells_loc_acc qc.half v l pg Hv $$ Hc1 with ⟨%dq, Hp, Hpb⟩
+      iexists dq, dk
+      iframe Hp Hkey
+      iintro Hp Hkey
+      ihave Hc1 := Hpb $$ Hp
+      ihave Hc2 := Hkeyb $$ Hkey
+      iframe Hb
+      isplitl [Hkb Hc1 Hc2]
+      · iapply Hkb
+        iapply (viewCells_split_r qc.half qc.half v).2
+        iframe
+      ipureintro; exact Hin
+    · iexists DFrac.discard, dk
+      iframe Hp Hkey
+      iintro - Hkey
+      ihave Hc2 := Hkeyb $$ Hkey
+      iframe Hb
+      isplitl [Hkb Hc1 Hc2]
+      · iapply Hkb
+        iapply (viewCells_split_r qc.half qc.half v).2
+        iframe
+      ipureintro; exact Hin
+
+/-- **Bytes of a reader bucket's page as a byte slice and a key, read together**, and back. -/
+theorem rd_slice_key_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (off n : Nat) (hn : off + n ≤ pg.length)
+    (hn63 : n < 2 ^ 63) (hn0 : 0 < n) (key : GoSlice) (kr : KeyR) (kb : List w8) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ∗ keyR v key kr kb ⊢ ∃ dq dk,
+      slice.mk (l +ₗ ((off : Nat) : Int)) (W64 (n : Int)) (W64 (n : Int)) ↦*{dq} bytesAt pg off n ∗
+      key ↦*{dk} kb ∗
+      (slice.mk (l +ₗ ((off : Nat) : Int)) (W64 (n : Int)) (W64 (n : Int)) ↦*{dq} bytesAt pg off n -∗
+        key ↦*{dk} kb -∗ rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ∗ keyR v key kr kb) := by
+  have hlen : (bytesAt pg off n).length = n := by unfold bytesAt; simp; omega
+  iintro H
+  icases rd_page_key_acc K tx src q T v b dqb bv ibp pp pid l pg h key kr kb $$ H
+    with ⟨%dq, %dk, Hb, Hkey, Hback⟩
+  icases Read.bytesPointsto_bounds l dq pg (by intro e; simp [e] at hn; omega) $$ Hb
+    with ⟨Hb, %Hbd⟩
+  icases Read.bytesPointsto_sub_acc l dq pg (bytesAt pg off n) off (by rw [hlen]; omega)
+    (by rw [hlen]) $$ Hb with ⟨Hs, Hsb⟩
+  have Ho := Read.bytesPointsto_ownSlice (GF := GF) (l +ₗ ((off : Nat) : Int)) dq
+    (bytesAt pg off n) (by simp [Loc.add]; omega) (by rw [hlen]; exact hn63)
+  rw [hlen] at Ho
+  icases Ho.1 $$ Hs with Hs
+  iexists dq, dk
+  iframe Hs Hkey
+  iintro Hs Hkey
+  icases Ho.2 $$ Hs with Hs
+  iapply Hback $$ [Hsb Hs] Hkey
+  iapply Hsb
+  iexact Hs
 
 end src
 

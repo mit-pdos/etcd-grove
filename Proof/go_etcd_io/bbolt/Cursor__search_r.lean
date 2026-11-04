@@ -123,22 +123,22 @@ theorem search_r_rec
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) (pht : Nat → Nat) :
     ∀ (n : Nat) (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
       (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List elemRef) (pid : w64)
-      (key : GoSlice) (dk : DFrac) (kb : List w8),
+      (key : GoSlice) (kr : KeyR) (kb : List w8),
     pageHts v.pages pht → pagesStrict v.pages →
     (inBucketRoot bv = 0 ∨ pht pid.toNat ≤ n) →
     16 ≤ bv.length → rTree v bv pid.toNat →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ rdTxK (GF := GF) K tx src q T v ∗
         rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk ∗ stk ↦* els ∗
-        ownSliceCap elemRef stk (DFrac.own 1) ∗ key ↦*{dk} kb }}
+        ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR v key kr kb }}
       (App (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key)) (Val #pid))
     {{ RET #(); ∃ (stk' : GoSlice) (path : List elemRef), rdTxK K tx src q T v ∗
         rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk' ∗ stk' ↦* (els ++ path) ∗
-        ownSliceCap elemRef stk' (DFrac.own 1) ∗ key ↦*{dk} kb ∗
+        ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR v key kr kb ∗
         ⌜rRoute v bv pp kb pid.toNat path⌝ }} := by
   intro n
   induction n using Nat.strongRecOn with
   | _ n ih =>
-  intro K tx src q T v b dq bv ibp pp c stk els pid key dk kb hpht hstrict hn hbv htree
+  intro K tx src q T v b dq bv ibp pp c stk els pid key kr kb hpht hstrict hn hbv htree
   wp_start as ⟨Hk, Hb, Hc, Hs, Hcap, Hkey⟩
   obtain ⟨l, pg, hpa, h16, hpg⟩ := rTree_page v bv pp pid.toNat htree
   wp_auto
@@ -183,13 +183,15 @@ theorem search_r_rec
     rw [hf2]
     wp_auto
     ihave Hkb := Hhb $$ Hh
-    icases rd_page_acc K tx src q T v b dq bv ibp pp pid.toNat l pg hpa $$ Hkb
-      with ⟨%dqp, Hp, Hpb⟩
+    icases Hkb with ⟨Hk, Hb⟩
+    icases rd_page_key_acc K tx src q T v b dq bv ibp pp pid.toNat l pg hpa key kr kb
+      $$ [Hk Hb Hkey] with ⟨%dqp, %dk, Hp, Hkey, Hpb⟩
+    · iframe
     wp_apply hns c b s1 els ⟨l, null, W64 0⟩ dqp pg key dk kb rfl hlf hlwf
       $$ [Hc Hs Hp Hkey] as ⟨Hc, Hs, Hp, Hkey⟩
     · iframe
-    ihave Hkb := Hpb $$ Hp
-    icases Hkb with ⟨Hk, Hb⟩
+    ihave Hkb := Hpb $$ Hp Hkey
+    icases Hkb with ⟨Hk, Hb, Hkey⟩
     iapply HΦ
     iexists s1, [⟨l, null, W64 (pageSeekIdx pg kb : Int)⟩]
     iframe
@@ -233,7 +235,7 @@ theorem search_r_rec
     wp_apply hS (W64 (uint.Z hd.count')) _ (spPred pg kb)
       (fun L => iprop(rdTxK K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗ key_ptr ↦ key ∗
         inodes_ptr ↦ slice.mk (l +ₗ 16) (W64 (uint.Z hd.count')) (W64 (uint.Z hd.count')) ∗
-        exact_ptr ↦ spExact pg kb L ∗ key ↦*{dk} kb ∗
+        exact_ptr ↦ spExact pg kb L ∗ keyR v key kr kb ∗
         ⌜∀ j ∈ L, 0 ≤ j ∧ j < (pageCount pg : Int)⌝))
       $$ [Hk Hb key inodes exact Hkey]
     · iframe
@@ -270,9 +272,10 @@ theorem search_r_rec
         · iexact Hel
         ihave Hkb := Helb $$ Hel
         icases Hkb with ⟨Hk, Hb⟩
-        icases rd_slice_acc K tx src q T v b dq bv ibp pp pid.toNat l pg hpa
+        icases rd_slice_key_acc K tx src q T v b dq bv ibp pp pid.toNat l pg hpa
           (elemOff k + branchPos pg k) (branchKsize pg k) (by omega)
-          (by unfold maxAllocSize at he2; omega) (hgood k hkc) $$ [Hk Hb] with ⟨%dqk, Hks, Hksb⟩
+          (by unfold maxAllocSize at he2; omega) (hgood k hkc) key kr kb $$ [Hk Hb Hkey]
+          with ⟨%dqk, %dk, Hks, Hkey, Hksb⟩
         · iframe
         have hkloc : (l +ₗ ((elemOff k : Nat) : Int)) +ₗ uint.Z be.pos' =
             l +ₗ ((elemOff k + branchPos pg k : Nat) : Int) := by
@@ -280,8 +283,8 @@ theorem search_r_rec
         rw [hkloc, hks]
         wp_apply hC $$ [Hks Hkey] as ⟨Hks, Hkey⟩
         · iframe
-        ihave Hkb := Hksb $$ Hks
-        icases Hkb with ⟨Hk, Hb⟩
+        ihave Hkb := Hksb $$ Hks Hkey
+        icases Hkb with ⟨Hk, Hb, Hkey⟩
         rw [show bytesAt pg (elemOff k + branchPos pg k) (branchKsize pg k) = branchKey pg k from rfl]
         have hcr0 : bytes.compareResult (branchKey pg k) kb = W64 0 ↔ branchKey pg k = kb := by
           unfold bytes.compareResult
@@ -406,7 +409,7 @@ theorem search_r_rec
         have hnpos : 0 < n := by omega
         wp_apply (ih (n - 1) (by omega) K tx src q T v
           b dq bv ibp pp c s1 (els ++ [({ page' := l, node' := null, index' := ri } : elemRef)])
-          be2.pgid' key dk kb hpht hstrict
+          be2.pgid' key kr kb hpht hstrict
           (Or.inr (by rw [hchild]; omega)) hbv (by rw [hchild]; exact hch k hkc))
           $$ [Hk Hb Hc Hs Hcap Hkey] as ⟨%stk'', %path', Hk, Hb, Hc, Hs, Hcap, Hkey, %Hrt⟩
         · iframe
@@ -464,7 +467,7 @@ theorem search_r_rec
         have hnpos : 0 < n := by omega
         wp_apply (ih (n - 1) (by omega) K tx src q T v
           b dq bv ibp pp c s1 (els ++ [({ page' := l, node' := null, index' := ri } : elemRef)])
-            be2.pgid' key dk kb hpht hstrict
+            be2.pgid' key kr kb hpht hstrict
           (Or.inr (by rw [hchild]; omega)) hbv (by rw [hchild]; exact hch k hkc))
           $$ [Hk Hb Hc Hs Hcap Hkey] as ⟨%stk'', %path', Hk, Hb, Hc, Hs, Hcap, Hkey, %Hrt⟩
         · iframe
@@ -521,7 +524,7 @@ theorem search_r_rec
       have hnpos : 0 < n := by omega
       wp_apply (ih (n - 1) (by omega) K tx src q T v
         b dq bv ibp pp c s1 (els ++ [({ page' := l, node' := null, index' := ri } : elemRef)])
-          be2.pgid' key dk kb hpht hstrict
+          be2.pgid' key kr kb hpht hstrict
         (Or.inr (by rw [hchild]; omega)) hbv (by rw [hchild]; exact hch k hkc))
         $$ [Hk Hb Hc Hs Hcap Hkey] as ⟨%stk'', %path', Hk, Hb, Hc, Hs, Hcap, Hkey, %Hrt⟩
       · iframe
@@ -551,7 +554,7 @@ theorem Cursor.search_r.wp_proof
     (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     Cursor.search_r.spec (GF := GF) (hG := hG) := by
-  intro K tx src q T v b dq bv ibp pp c stk els pid key dk kb hbv htree
+  intro K tx src q T v b dq bv ibp pp c stk els pid key kr kb hbv htree
   iintro %Φ ⟨#Hpkg, Hk, Hrest⟩ HΦ
   icases (persistent_entails_left (rdTxK_view K tx src q T v)) $$ Hk with ⟨Hk, %Hvw⟩
   obtain ⟨-, C, hok, hvC⟩ := Hvw
@@ -559,7 +562,7 @@ theorem Cursor.search_r.wp_proof
   obtain ⟨-, hstr, -, pht, hpht⟩ := hok.1
   rw [← hpv] at hstr hpht
   iapply (search_r_rec hpn hns hIL hIB hBE hCnt hBK hBP hS hC pht (pht pid.toNat) K tx src q T v
-    b dq bv ibp pp c stk els pid key dk kb hpht hstr (Or.inr (Nat.le_refl _)) hbv htree)
+    b dq bv ibp pp c stk els pid key kr kb hpht hstr (Or.inr (Nat.le_refl _)) hbv htree)
     $$ [Hk Hrest] HΦ
   iframe; iframe #
 

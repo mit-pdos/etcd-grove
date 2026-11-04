@@ -32,7 +32,7 @@ theorem Cursor.seek_r.wp_proof
     (hkv : Cursor.keyValue_r.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
     Cursor.seek_r.spec (GF := GF) (hG := hG) := by
-  intro K tx src q T v b dq bv ibp pp c stk els key dk kb hbv htree
+  intro K tx src q T v b dq bv ibp pp c stk els key kr kb hbv htree
   wp_start as ⟨Hk, Hb, Hc, Hs, Hcap, Hkey⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave %Hcw := ownSliceCap_wf _ _ $$ Hcap
@@ -53,7 +53,7 @@ theorem Cursor.seek_r.wp_proof
   · iframe
   rw [show (decode (List.take 8 (bytesAt bv 0 16)) : w64) = (inBucketOf bv).root' from rfl,
     show ({ bucket' := b, stack' := stk } : Cursor).bucket' = b from rfl]
-  wp_apply hs K tx src q T v b dq bv ibp pp c _ [] (inBucketOf bv).root' key dk kb hbv htree
+  wp_apply hs K tx src q T v b dq bv ibp pp c _ [] (inBucketOf bv).root' key kr kb hbv htree
     $$ [Hk HIB Htx Hbks Hpage Hroot Hnodes Hhdr Hil Hc Hs Hcap Hkey]
     as ⟨%stk', %path, Hk, Hb, Hc, Hs, Hcap, Hkey, %Hrt⟩
   · iframe; unfold rBktP; iframe

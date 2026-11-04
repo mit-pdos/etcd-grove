@@ -32,16 +32,16 @@ index. -/
 abbrev Cursor.seek_r.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List elemRef)
-    (key : GoSlice) (dk : DFrac) (kb : List w8),
+    (key : GoSlice) (kr : KeyR) (kb : List w8),
   16 ≤ bv.length → rTree v bv (inBucketRoot bv) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ rdTxK (GF := GF) K tx src q T v ∗
       rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk ∗ stk ↦* els ∗
-      ownSliceCap elemRef stk (DFrac.own 1) ∗ key ↦*{dk} kb }}
+      ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR v key kr kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
   {{ (k vl : GoSlice) (fl : w32), RET (PairV (PairV #k #vl) #fl);
       ∃ (stk' : GoSlice) (els' : List elemRef) (e : elemRef) (pid : Nat) (pg : List w8),
       rdTxK K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk' ∗
-      stk' ↦* (els' ++ [e]) ∗ ownSliceCap elemRef stk' (DFrac.own 1) ∗ key ↦*{dk} kb ∗
+      stk' ↦* (els' ++ [e]) ∗ ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR v key kr kb ∗
       ⌜rRoute v bv pp kb (inBucketRoot bv) (els' ++ [e]) ∧ rPageAt v bv pp pid = some (e.page', pg) ∧
         pageFlags pg = leafPageFlag ∧ e.index' = W64 (pageSeekIdx pg kb : Int)⌝ ∗
       rKV v pg (pageSeekIdx pg kb) k vl fl }}

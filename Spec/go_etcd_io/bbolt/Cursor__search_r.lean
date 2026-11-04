@@ -5,7 +5,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Read.RCtx
+public import Proof.go_etcd_io.bbolt.Read.Src
 public import Spec.go_etcd_io.bbolt.Cursor__nsearch_p
 
 @[expose] public section
@@ -56,19 +56,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `c.search(key, pid)` in a reader's bucket `b` (value `bv`, a well-formed (sub)tree at `pid`):
-the stack grows by a path routing `kb`. -/
+the stack grows by a path routing `kb` (the key the caller's bytes or the view's). -/
 abbrev Cursor.search_r.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List elemRef) (pid : w64)
-    (key : GoSlice) (dk : DFrac) (kb : List w8),
+    (key : GoSlice) (kr : KeyR) (kb : List w8),
   16 ≤ bv.length → rTree v bv pid.toNat →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ rdTxK (GF := GF) K tx src q T v ∗
       rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk ∗ stk ↦* els ∗
-      ownSliceCap elemRef stk (DFrac.own 1) ∗ key ↦*{dk} kb }}
+      ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR v key kr kb }}
     (App (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key)) (Val #pid))
   {{ RET #(); ∃ (stk' : GoSlice) (path : List elemRef), rdTxK K tx src q T v ∗
       rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk' ∗ stk' ↦* (els ++ path) ∗
-      ownSliceCap elemRef stk' (DFrac.own 1) ∗ key ↦*{dk} kb ∗
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR v key kr kb ∗
       ⌜rRoute v bv pp kb pid.toNat path⌝ }}
 
 end spec
