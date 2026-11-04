@@ -115,10 +115,14 @@ structure NRec where
   cs : List Loc
   key : List w8
   ksrc : Src
+  /-- Whether the node owns its `inodes` slice's capacity (U9a fix): every node but a piece of
+  `node.split` other than the last, whose capacity is the next pieces' inodes. -/
+  capOwn : Bool := true
 
 instance NRec.countable : Pos.Countable NRec :=
-  countableOfLeftInverse (fun r => (r.nv, r.ins, r.ws, r.cs, r.key, r.ksrc))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun r => (r.nv, r.ins, r.ws, r.cs, r.key, r.ksrc, r.capOwn))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 /-- The status of a bucket's `page` field (round 4, N2): none (`page = nil`), view-backed (set by
 `openBucket`, while `rootNode = nil` and no remap has happened since), or stale (never read
@@ -281,7 +285,7 @@ def bvalOK (pages : Pages) (hwm : Nat) (v : List w8) : Prop :=
 
 /-- The node `l` (record `r`) of the bucket `bl` (record `B`) is well-formed. -/
 def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) : Prop :=
-  r.nv.bucket' = bl ∧ r.ins.length = r.ws.length ∧ wsSorted r.ws ∧
+  r.nv.bucket' = bl ∧ r.capOwn = true ∧ r.ins.length = r.ws.length ∧ wsSorted r.ws ∧
   (∀ w ∈ r.ws, 0 < w.key.length) ∧ wsLive r.ws ∧ r.nv.spilled' = false ∧
   B.nm !! r.nv.pgid' = some l ∧
   (B.ib.root' = W64 0 → r.nv.pgid' = W64 0) ∧

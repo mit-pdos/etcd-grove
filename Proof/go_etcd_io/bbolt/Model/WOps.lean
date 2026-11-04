@@ -129,7 +129,7 @@ def nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) : Prop :=
     l ≠ null ∧ (X.t.objs !! l).isNone ∧
     r.nv.bucket' = bl ∧ r.nv.parent' = parent ∧ r.nv.pgid' = (pageHdr pg).id' ∧
     r.nv.isLeaf' = decide (pageFlags pg = leafPageFlag) ∧ r.nv.unbalanced' = false ∧
-    r.nv.spilled' = false ∧ r.cs = [] ∧
+    r.nv.spilled' = false ∧ r.cs = [] ∧ r.capOwn = true ∧
     r.ws.map wDat = (pageWsAs pg (posSrc B)).map wDat ∧ wsLive r.ws ∧
     r.key = wKey r.ws 0 ∧ r.ksrc ≠ Src.stale ∧
     ((parent = null ∧ bv' = { B.bv with rootNode' := l } ∧ ns' = B.ns.insert l r) ∨
@@ -205,6 +205,14 @@ def bktLocalOK (X : WX) (bl : Loc) : Prop :=
   bl ∈ X.live ∧ ∃ B, X.t.bs !! bl = some B ∧ bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     bktKeys X.v B ∧ txPgLeaf (GMap.singleton bl B) ∧
     ∀ l r, B.ns !! l = some r → l ∈ X.live
+
+/-- A searchable bucket's cached nodes are not nil (`bktClean`'s `B.nm` clause;
+`Bucket.pageNode_w`'s premise). -/
+theorem bktLocalOK_nm_nonnull (X : WX) (bl : Loc) (B : BRec) (h : bktLocalOK X bl)
+    (hB : X.t.bs !! bl = some B) : ∀ c l, B.nm !! c = some l → l ≠ null := by
+  obtain ⟨-, B', hB', hc, -⟩ := h
+  rw [hB] at hB'; cases hB'
+  exact fun c l hl => (hc.2.2.2.2.1 c l hl).1
 
 /-- All the entries of bucket `bl` in order (its logical leaves'). -/
 def WX.allEnts (X : WX) (bl : Loc) : List WEntry := (X.leaves bl).flatten

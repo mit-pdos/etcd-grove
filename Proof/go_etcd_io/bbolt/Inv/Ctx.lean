@@ -180,7 +180,8 @@ def wdbGrown (w w' : WDb) : Prop :=
 
 /-! ## Lemma statements -/
 
-private instance reg_persistent' (tx : Loc) (B : BNs) (r : TxReg) :
+/-- A registration is persistent. -/
+instance reg_persistent' (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 

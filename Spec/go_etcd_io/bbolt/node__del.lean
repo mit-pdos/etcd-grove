@@ -30,7 +30,7 @@ entry of key `key` at its search index is removed and the node marked unbalanced
 one (`wsDelAt`); else nothing changes. -/
 abbrev node.del.spec : Prop :=
   ∀ (v : View) (n bl : Loc) (r : NRec) (qv : Qp) (key : GoSlice) (kb : List w8) (ks : Src),
-  wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale →
+  r.capOwn = true → wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗ srcOwn v key ks kb }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"del")) (Val #key))

@@ -60,7 +60,8 @@ facts on the view `v`) or dead. A bucket's `tx` field is persistent but the root
 `boltBkt` holds a handle's `↦□`; `Tx.close` writes the root bucket whole). A dead node keeps only
 its struct (U8 fix: `rebalance`'s root collapse gives the collapsed child's `inodes` and
 `children` to the root, so its slices are not its own; keeping its location an object keeps it
-out of the registry's fresh locations, `nlocOK`). -/
+out of the registry's fresh locations, `nlocOK`). A node owns its `inodes`' capacity unless it
+is a piece of `node.split` other than the last (`NRec.capOwn`, U9a fix). -/
 def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
   | live, .bkt B => iprop(
       l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗
@@ -71,7 +72,8 @@ def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
       B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
       (if live then pageOwn v B else emp))
   | true, .node _ r => iprop(
-      l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗ ownSliceCap Inode r.nv.inodes' dq ∗
+      l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗
+      (if r.capOwn then ownSliceCap Inode r.nv.inodes' dq else emp) ∗
       ([∗list] it;w ∈ r.ins;r.ws, wOwn v true it w) ∗
       r.nv.children' ↦*{dq} r.cs ∗ ownSliceCap Loc r.nv.children' dq ∗
       (if true ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp))

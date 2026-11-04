@@ -37,7 +37,7 @@ abbrev node.put.spec : Prop :=
   ∀ (v : View) (n bl : Loc) (r : NRec) (tx mp : Loc) (mv : Meta) (dqb : DFrac) (qv : Qp)
     (oldKey newKey value : GoSlice) (okb nkb vb : List w8) (oks nks vs : Src) (pgId : w64)
     (flags : w32),
-  r.nv.bucket' = bl → wsSorted r.ws → wsLive r.ws → pgId.toNat < mv.pgid'.toNat →
+  r.nv.bucket' = bl → r.capOwn = true → wsSorted r.ws → wsLive r.ws → pgId.toNat < mv.pgid'.toNat →
   0 < okb.length → 0 < nkb.length → oks ≠ Src.stale → nks ≠ Src.stale → vs ≠ Src.stale →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗
