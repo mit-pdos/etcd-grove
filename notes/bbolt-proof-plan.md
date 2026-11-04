@@ -244,6 +244,26 @@ No frozen public statement changed.
    for its prover: `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF` (from `wtxW`'s `mapFields` bound and a
    view page inside the mapping, which `wtxW` does not hold yet: as `rtxFrac`, it could).
 
+5. **`spill`'s pre after `rebalance`**: `rebalOK`'s post and `spillPre` hold the new `wOKR X`
+   (`Model/Wtx`): `wOK` with `txPg` replaced by `txPgLeaf` (leaf entries of page id `0`: what
+   `spill`'s `node.write` needs; a merged branch node's entries are no longer its page's);
+   `wOK_wOKR`. `bktKeys` stays (the post). `bktLocalOK` (the searches `Bucket.spill` makes after
+   its children's spill, `Cursor.seek_w`, `Cursor.node`, `Bucket.Bucket_w`, `ForEachBucket_w`,
+   `Bucket.free`) holds `txPgLeaf` of its bucket instead of `txPg`: U6/U7 must not use a branch
+   node's page equality there. `treeData_spill` takes `wOKR`. **`nlocOK`** (in `wOK`, so also
+   for `DeleteBucket`'s post): every registered node is an object (a fresh location is
+   unregistered), and only a *live* registered node is a node of its bucket at its page id (the
+   nodes `rebalance` and `DeleteBucket` remove are dead, their entries kept).
+6. **`wtxData_rebalance`** (`Model/LTree`) is U8's `wtxData_rebalance'` (adds
+   `X'.v.pages = X.v.pages`; `rebalOK` gives `X'.v = X.v`), proved; U8's `Rebalance/Data.lean`
+   can go.
+7. **The root collapse** (U8's finding): the collapsed child's `inodes`/`children` become the
+   root's, so the child cannot keep them. A **dead node now owns only its struct** (`objOwn`'s
+   `false, .node` case; `objOwn_weaken` drops the rest, `objOwn_node_ptr_acc` reads the struct
+   either way): the child goes to `dead` with its struct (rather than leaving `objs`, which would
+   break `nlocOK`'s "registered ⇒ object", i.e. the freshness `nodeAdded`'s registry insert needs
+   after the collapse, in `spill`'s materializations).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

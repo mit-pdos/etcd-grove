@@ -57,9 +57,12 @@ def pageOwn (v : View) (B : BRec) : IProp GF :=
 /-- **An object of the writer's heap** at `dq` (a bucket: its fields but `FillPercent`, its
 header, its maps, its page; a node: its struct, inodes, children and key), live (with its slices'
 facts on the view `v`) or dead. A bucket's `tx` field is persistent but the root bucket's (U0b:
-`boltBkt` holds a handle's `↦□`; `Tx.close` writes the root bucket whole). -/
-def objOwn (v : View) (l : Loc) (dq : DFrac) (live : Bool) : WObj → IProp GF
-  | .bkt B => iprop(
+`boltBkt` holds a handle's `↦□`; `Tx.close` writes the root bucket whole). A dead node keeps only
+its struct (U8 fix: `rebalance`'s root collapse gives the collapsed child's `inodes` and
+`children` to the root, so its slices are not its own; keeping its location an object keeps it
+out of the registry's fresh locations, `nlocOK`). -/
+def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
+  | live, .bkt B => iprop(
       l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗
       (if l = B.bv.tx'.[Tx, go!"root"] then l.[Bucket, go!"tx"] ↦{dq} B.bv.tx'
        else l.[Bucket, go!"tx"] ↦□ B.bv.tx') ∗
@@ -67,11 +70,12 @@ def objOwn (v : View) (l : Loc) (dq : DFrac) (live : Bool) : WObj → IProp GF
       l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
       B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
       (if live then pageOwn v B else emp))
-  | .node _ r => iprop(
+  | true, .node _ r => iprop(
       l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗ ownSliceCap Inode r.nv.inodes' dq ∗
-      ([∗list] it;w ∈ r.ins;r.ws, wOwn v live it w) ∗
+      ([∗list] it;w ∈ r.ins;r.ws, wOwn v true it w) ∗
       r.nv.children' ↦*{dq} r.cs ∗ ownSliceCap Loc r.nv.children' dq ∗
-      (if live ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp))
+      (if true ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp))
+  | false, .node _ r => iprop(l ↦{dq} r.nv)
 
 /-- The transaction's fields but `db`, `stats` and `root`, its meta copy, and its page cache
 `pages` with the buffers. -/
@@ -157,7 +161,7 @@ theorem fills_fractional (H : GMap Loc (GoString × Nat)) :
 
 omit hos in
 open Iris.ProofMode in
-/-- An object's facts can be dropped (live to dead). U8. -/
+/-- An object's facts can be dropped (live to dead; a node keeps only its struct). U8. -/
 theorem objOwn_weaken (v : View) (l : Loc) (dq : DFrac) (b b' : Bool) (o : WObj)
     (h : b' = true → b = true) :
     objOwn (GF := GF) v l dq b o ⊢ objOwn v l dq b' o := by
@@ -176,19 +180,30 @@ theorem objOwn_weaken (v : View) (l : Loc) (dq : DFrac) (b b' : Bool) (o : WObj)
         simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
       | node bl r =>
         unfold objOwn
-        iintro ⟨H1, H2, H3, Hws, H5, H6, -⟩
-        dsimp only
-        iframe
-        isplitl [Hws]
-        · iapply (BigSepL2.bigSepL2_mono_of_forall (Φ := fun _ it w => wOwn (GF := GF) v true it w)
-            (Ψ := fun _ it w => wOwn (GF := GF) v false it w) ?_) $$ Hws
-          intro _ it w
-          unfold wOwn
-          iintro ⟨%Hp, -⟩
-          isplitr
-          · ipureintro; exact Hp
-          · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
-        · simp only [Bool.false_eq_true, _root_.false_and, ↓reduceIte]; iempintro
+        iintro ⟨H1, -⟩
+        iexact H1
+
+omit hos in
+open Iris.ProofMode in
+/-- A node's struct, out of its object (live or dead), and back. -/
+theorem objOwn_node_ptr_acc (v : View) (l : Loc) (dq : DFrac) (b : Bool) (bl : Loc) (r : NRec) :
+    objOwn (GF := GF) v l dq b (.node bl r) ⊢
+      l ↦{dq} r.nv ∗ (l ↦{dq} r.nv -∗ objOwn v l dq b (.node bl r)) := by
+  cases b with
+  | true =>
+    unfold objOwn
+    dsimp only
+    iintro ⟨Hl, Hr⟩
+    iframe Hl
+    iintro Hl
+    iframe
+  | false =>
+    unfold objOwn
+    dsimp only
+    iintro Hl
+    iframe Hl
+    iintro Hl
+    iexact Hl
 
 open Iris.ProofMode in
 /-- An object goes dead (spill's spilled children, rebalance's removed nodes, `DeleteBucket`'s

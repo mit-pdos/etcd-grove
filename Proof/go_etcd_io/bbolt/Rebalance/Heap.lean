@@ -51,16 +51,15 @@ theorem wtxHeap_node_ptr_acc (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (r : 
   unfold wtxHeap
   iintro ⟨%Hrl, Hf, Hrf, Hm⟩
   icases (BigSepM.bigSepM_lookup_acc ho).1 $$ Hm with ⟨Ho, Hback⟩
-  unfold objOwn
-  icases Ho with ⟨Hl, Hrest⟩
+  icases objOwn_node_ptr_acc X.v l dq _ bl r $$ Ho with ⟨Hl, Hob⟩
   iframe Hl
   iintro Hl
   iframe
   isplitr
   · ipureintro; exact Hrl
   iapply Hback
-  dsimp only
-  iframe
+  iapply Hob
+  iexact Hl
 
 omit hos in
 /-- **An object, out and back unchanged** (its liveness as the heap has it). -/
