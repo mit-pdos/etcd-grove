@@ -458,6 +458,390 @@ private theorem mem_storeSlots (σ : StoreSt) (s : Nat) :
     s ∈ storeSlots σ ↔ s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl := by
   simp only [storeSlots, mem_list_dedup, List.mem_append]
 
+private theorem toList_flatMap_perm {V : Type} (m : GMap w64 V) (f : V → List w64) (K : List w64)
+    (hK : K.Nodup) (hdom : ∀ k, (m !! k).isSome → k ∈ K) :
+    (m.toList.flatMap fun kv => f kv.2).Perm (K.flatMap fun k => ((m !! k).map f).getD []) := by
+  let L := K.filterMap fun k => (m !! k).map fun v => (k, v)
+  have hL : L.Perm m.toList := by
+    refine (List.perm_ext_iff_of_nodup ?_ (GMap.NoDup_map_to_list m)).2 fun ⟨k, v⟩ => ?_
+    · unfold List.Nodup
+      rw [List.pairwise_filterMap]
+      refine hK.imp fun {a a'} hne b hb b' hb' e => hne ?_
+      simp only [Option.mem_def, Option.map_eq_some_iff] at hb hb'
+      obtain ⟨_, -, rfl⟩ := hb; obtain ⟨_, -, rfl⟩ := hb'; exact (Prod.mk.inj e).1
+    · simp only [L, List.mem_filterMap, Option.map_eq_some_iff, Prod.mk.injEq]
+      rw [GMap.mem_toList]
+      constructor
+      · rintro ⟨k', -, v', h, rfl, rfl⟩; exact h
+      · intro h; exact ⟨k, hdom k (by simp [h]), v, h, rfl, rfl⟩
+  refine (hL.symm.flatMap_right _).trans (List.Perm.of_eq ?_)
+  simp only [L]
+  clear hL hdom hK
+  induction K with
+  | nil => rfl
+  | cons k K ih =>
+    simp only [List.filterMap_cons, List.flatMap_cons]
+    rcases m !! k with _ | v
+    · simp only [Option.map_none, List.nil_append, Option.getD_none]; exact ih
+    · simp only [Option.map_some, List.flatMap_cons, Option.getD_some]; rw [ih]
+
+private theorem flatMap_perm_congr {α β : Type} (K : List α) (f g : α → List β)
+    (h : ∀ k ∈ K, (f k).Perm (g k)) : (K.flatMap f).Perm (K.flatMap g) := by
+  induction K with
+  | nil => exact List.Perm.refl _
+  | cons k K ih =>
+    simp only [List.flatMap_cons]
+    exact (h k (by simp)).append (ih fun k hk => h k (by simp [hk]))
+
+private theorem flatMap_append_perm' {α β : Type} (K : List α) (f g : α → List β) :
+    (K.flatMap fun k => f k ++ g k).Perm (K.flatMap f ++ K.flatMap g) := by
+  induction K with
+  | nil => exact List.Perm.refl _
+  | cons k K ih =>
+    simp only [List.flatMap_cons, List.append_assoc]
+    refine List.Perm.append_left _ ?_
+    refine (List.Perm.append_left _ ih).trans ?_
+    rw [← List.append_assoc, ← List.append_assoc]
+    exact List.Perm.append_right _ List.perm_append_comm
+
+/-! ## The release steps -/
+
+private def relOK (Q : w64 → w64 → Prop) (fl fl' : FLPg) : Prop :=
+  fl'.allocs = fl.allocs ∧
+  (∀ x ∈ fl'.free, x ∈ fl.free ∨ ∃ t pd i, fl.pending !! t = some pd ∧ pd.ids[i]? = some x ∧
+    Q t (pd.alloctx.getD i 0)) ∧
+  (∀ t pd' i x, fl'.pending !! t = some pd' → pd'.ids[i]? = some x →
+    ∃ pd j, fl.pending !! t = some pd ∧ pd.ids[j]? = some x ∧
+      pd.alloctx.getD j 0 = pd'.alloctx.getD i 0) ∧
+  fl'.allIds.Perm fl.allIds ∧
+  (∀ t p, fl'.pending !! t = some p → p.ids.length = p.alloctx.length) ∧
+  (∀ t p, fl'.pending !! t = some p → (fl.pending !! t).isSome)
+
+private theorem relOK_refl (Q : w64 → w64 → Prop) (fl : FLPg)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    relOK Q fl fl :=
+  ⟨rfl, fun x hx => Or.inl hx, fun t pd' i x hp hi => ⟨pd', i, hp, hi, rfl⟩,
+    List.Perm.refl _, hwf, fun t p hp => by simp [hp]⟩
+
+private theorem relOK_trans (Q : w64 → w64 → Prop) (fl fl1 fl2 : FLPg) (h1 : relOK Q fl fl1)
+    (h2 : relOK Q fl1 fl2) : relOK Q fl fl2 := by
+  obtain ⟨a1, b1, c1, d1, -, f1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2⟩ := h2
+  refine ⟨a2.trans a1, fun x hx => ?_, fun t pd' i x hp hi => ?_, d2.trans d1, e2,
+    fun t p hp => ?_⟩
+  · rcases b2 x hx with hx | ⟨t, pd, i, hp, hi, hq⟩
+    · exact b1 x hx
+    · obtain ⟨pd0, j, hp0, hj, he⟩ := c1 t pd i x hp hi
+      exact Or.inr ⟨t, pd0, j, hp0, hj, he ▸ hq⟩
+  · obtain ⟨pd1, j, hp1, hj, he⟩ := c2 t pd' i x hp hi
+    obtain ⟨pd0, j', hp0, hj', he'⟩ := c1 t pd1 j x hp1 hj
+    exact ⟨pd0, j', hp0, hj', he'.trans he⟩
+  · obtain ⟨q, hq⟩ := Option.isSome_iff_exists.1 (f2 t p hp)
+    exact f1 t q hq
+
+private theorem relOK_mono (Q Q' : w64 → w64 → Prop) (hQ : ∀ t a, Q t a → Q' t a) (fl fl' : FLPg)
+    (h : relOK Q fl fl') : relOK Q' fl fl' := by
+  obtain ⟨a, b, c, d, e, f⟩ := h
+  refine ⟨a, fun x hx => ?_, c, d, e, f⟩
+  rcases b x hx with hx | ⟨t, pd, i, hp, hi, hq⟩
+  · exact Or.inl hx
+  · exact Or.inr ⟨t, pd, i, hp, hi, hQ _ _ hq⟩
+
+private theorem mem_sortPgids'' (l : List w64) (x : w64) : x ∈ sortPgids l ↔ x ∈ l :=
+  (List.mergeSort_perm _ _).mem_iff
+
+private theorem getD_of_getElem?' {l : List w64} {i : Nat} {a : w64} (h : l[i]? = some a) :
+    l.getD i 0 = a := by
+  simp [List.getD_eq_getElem?_getD, h]
+
+private theorem relOK_release (fl : FLPg) (txid : w64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    relOK (fun t _ => t.toNat ≤ txid.toNat) fl (fl.release txid) := by
+  let K := fl.pending.domList
+  have hK : K.Nodup := GMap.nodup_dom_list _
+  have hdom : ∀ (m : GMap w64 Pending), (∀ k, (m !! k).isSome → (fl.pending !! k).isSome) →
+      ∀ k, (m !! k).isSome → k ∈ K := fun m hm k hk => (GMap.mem_dom_list _ _).2 (hm k hk)
+  refine ⟨rfl, fun x hx => ?_, fun t pd' i x hp hi => ?_, ?_, fun t p hp => ?_,
+    fun t p hp => ?_⟩
+  · simp only [FLPg.release] at hx
+    rw [mem_sortPgids'', List.mem_append, List.mem_flatMap] at hx
+    rcases hx with hx | ⟨⟨t, pd⟩, hkv, hx⟩
+    · exact Or.inl hx
+    · rw [GMap.mem_toList, GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
+      obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+      exact Or.inr ⟨t, pd, i, hkv.1, hi, by simpa using hkv.2⟩
+  · simp only [FLPg.release, GMap.lookup_filter, Option.filter_eq_some_iff] at hp
+    exact ⟨pd', i, hp.1, hi, rfl⟩
+  · simp only [FLPg.allIds, FLPg.release, FLPg.pendingIds]
+    refine ((List.mergeSort_perm _ _).append_right _).trans ?_
+    rw [List.append_assoc]
+    refine List.Perm.append_left _ ?_
+    refine ((toList_flatMap_perm _ Pending.ids K hK (hdom _ fun k h => by
+        simp only [GMap.lookup_filter] at h; revert h; cases fl.pending !! k <;> simp)).append
+      (toList_flatMap_perm _ Pending.ids K hK (hdom _ fun k h => by
+        simp only [GMap.lookup_filter] at h; revert h; cases fl.pending !! k <;> simp))).trans ?_
+    refine (flatMap_append_perm' K _ _).symm.trans ?_
+    refine List.Perm.trans ?_ (toList_flatMap_perm _ Pending.ids K hK (hdom _ fun _ h => h)).symm
+    refine flatMap_perm_congr K _ _ fun k _ => ?_
+    simp only [GMap.lookup_filter]
+    rcases fl.pending !! k with _ | pd
+    · exact List.Perm.refl _
+    · by_cases hk : k.toNat ≤ txid.toNat
+      · have : ¬ txid.toNat < k.toNat := by omega
+        simp [hk, this, Option.filter]
+      · have : txid.toNat < k.toNat := by omega
+        simp [hk, this, Option.filter]
+  · simp only [FLPg.release, GMap.lookup_filter, Option.filter_eq_some_iff] at hp
+    exact hwf t p hp.1
+  · simp only [FLPg.release, GMap.lookup_filter, Option.filter_eq_some_iff] at hp
+    simp [hp.1]
+
+private theorem mem_zip_idx3 {l1 l2 : List w64} {x : w64 × w64} (h : x ∈ l1.zip l2) :
+    ∃ i : Nat, l1[i]? = some x.1 ∧ l2[i]? = some x.2 := by
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 h
+  rw [List.getElem?_zip_eq_some] at hi
+  exact ⟨i, hi.1, hi.2⟩
+
+private theorem rrOne_perm (b e : w64) (pd : Pending) (hl : pd.ids.length = pd.alloctx.length) :
+    pd.ids.Perm ((releaseRangeOne b e pd).1 ++ (releaseRangeOne b e pd).2.ids) := by
+  have e : pd.ids = (pd.ids.zip pd.alloctx).map Prod.fst := (List.map_fst_zip (by omega)).symm
+  refine (List.Perm.of_eq e).trans ?_
+  simp only [releaseRangeOne]
+  rw [← List.map_append]
+  exact ((List.filter_append_perm _ _).map _).symm
+
+private theorem relOK_releaseRange (fl : FLPg) (b e : w64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    relOK (fun t a => b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ b.toNat ≤ a.toNat ∧
+      a.toNat ≤ e.toNat) fl (fl.releaseRange b e) := by
+  unfold FLPg.releaseRange
+  split
+  · exact relOK_refl _ fl hwf
+  let K := fl.pending.domList
+  have hK : K.Nodup := GMap.nodup_dom_list _
+  have hdom : ∀ {V : Type} (m : GMap w64 V), (∀ k, (m !! k).isSome → (fl.pending !! k).isSome) →
+      ∀ k, (m !! k).isSome → k ∈ K := fun m hm k hk => (GMap.mem_dom_list _ _).2 (hm k hk)
+  refine ⟨rfl, fun x hx => ?_, fun t pd' i x hp hi => ?_, ?_, fun t p hp => ?_,
+    fun t p hp => ?_⟩
+  · simp only at hx
+    rw [mem_sortPgids'', List.mem_append, List.mem_flatMap] at hx
+    rcases hx with hx | ⟨⟨t, pd⟩, hkv, hx⟩
+    · exact Or.inl hx
+    · rw [GMap.mem_toList, GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
+      obtain ⟨hkv, hsel⟩ := hkv
+      simp only [releaseRangeOne, List.mem_map, List.mem_filter] at hx
+      obtain ⟨⟨x', a⟩, ⟨hxz, hin⟩, rfl⟩ := hx
+      obtain ⟨i, hi1, hi2⟩ := mem_zip_idx3 hxz
+      refine Or.inr ⟨t, pd, i, hkv, hi1, ?_⟩
+      rw [getD_of_getElem?' hi2]
+      simp only [decide_eq_true_eq] at hin hsel
+      exact ⟨hsel.1, hsel.2.1, hin⟩
+  · simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap] at hp
+    rcases hq : fl.pending !! t with _ | pd0
+    · simp [hq] at hp
+    rw [hq] at hp
+    by_cases hsel : (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b)
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = true :=
+        decide_eq_true hsel
+      simp only [Option.filter_some, hs', Bool.not_true, Option.none_or, ite_false,
+        Bool.false_eq_true, Option.map_some, ite_true] at hp
+      split at hp
+      rotate_left
+      · cases hp
+      cases hp
+      simp only [releaseRangeOne, List.getElem?_map, Option.map_eq_some_iff] at hi ⊢
+      obtain ⟨⟨x', a⟩, hxa, rfl⟩ := hi
+      have hmem := List.mem_of_getElem? hxa
+      rw [List.mem_filter] at hmem
+      obtain ⟨j, hj1, hj2⟩ := mem_zip_idx3 hmem.1
+      refine ⟨pd0, j, rfl, hj1, ?_⟩
+      rw [getD_of_getElem?' hj2]
+      symm; apply getD_of_getElem?'; rw [List.getElem?_map, hxa]; rfl
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = false :=
+        decide_eq_false hsel
+      simp only [Option.filter_some, hs', Bool.not_false, ite_true, Option.some_or] at hp
+      cases hp
+      exact ⟨pd', i, rfl, hi, rfl⟩
+  · simp only [FLPg.allIds, FLPg.pendingIds]
+    refine ((List.mergeSort_perm _ _).append_right _).trans ?_
+    rw [List.append_assoc]
+    refine List.Perm.append_left _ ?_
+    refine ((toList_flatMap_perm _ (fun p => (releaseRangeOne b e p).1) K hK (hdom _ fun k h => by
+        simp only [GMap.lookup_filter] at h; revert h; cases fl.pending !! k <;> simp)).append
+      (toList_flatMap_perm _ Pending.ids K hK (hdom _ fun k h => by
+        simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap] at h; revert h
+        cases fl.pending !! k <;> simp))).trans ?_
+    refine (flatMap_append_perm' K _ _).symm.trans ?_
+    refine List.Perm.trans ?_ (toList_flatMap_perm _ Pending.ids K hK (hdom _ fun _ h => h)).symm
+    refine flatMap_perm_congr K _ _ fun k _ => ?_
+    simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap]
+    rcases hq : fl.pending !! k with _ | pd
+    · exact List.Perm.refl _
+    · by_cases hsel : (b.toNat ≤ k.toNat ∧ k.toNat ≤ e.toNat ∧ pd.lastReleaseBegin ≠ b)
+      · have hs' : decide (b.toNat ≤ k.toNat ∧ k.toNat ≤ e.toNat ∧ pd.lastReleaseBegin ≠ b) =
+            true := decide_eq_true hsel
+        simp only [Option.filter_some, hs', Bool.not_true, Option.none_or, ite_false,
+          Bool.false_eq_true, Option.map_some, ite_true, Option.getD_some]
+        refine List.Perm.trans ?_ (rrOne_perm b e pd (hwf k pd hq)).symm
+        refine List.Perm.append_left _ ?_
+        by_cases hne : (releaseRangeOne b e pd).2.ids = []
+        · simp [hne]
+        · simp [hne]
+      · have hs' : decide (b.toNat ≤ k.toNat ∧ k.toNat ≤ e.toNat ∧ pd.lastReleaseBegin ≠ b) =
+            false := decide_eq_false hsel
+        simp only [Option.filter_some, hs', Bool.not_false, ite_true, Option.some_or,
+          Option.map_none, Option.getD_none, Option.map_some, Option.getD_some, List.nil_append,
+          Bool.false_eq_true, ite_false]
+        exact List.Perm.refl _
+  · simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap] at hp
+    rcases hq : fl.pending !! t with _ | pd0
+    · simp [hq] at hp
+    rw [hq] at hp
+    by_cases hsel : (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b)
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = true :=
+        decide_eq_true hsel
+      simp only [Option.filter_some, hs', Bool.not_true, Option.none_or, ite_false,
+        Bool.false_eq_true, Option.map_some, ite_true] at hp
+      split at hp
+      rotate_left
+      · cases hp
+      cases hp
+      simp only [releaseRangeOne, List.length_map]
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = false :=
+        decide_eq_false hsel
+      simp only [Option.filter_some, hs', Bool.not_false, ite_true, Option.some_or] at hp
+      cases hp
+      exact hwf t _ hq
+  · simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap] at hp
+    rcases hq : fl.pending !! t with _ | pd0
+    · simp [hq] at hp
+    · simp
+
+private def relSafe (ro : List w64) (t a : w64) : Prop :=
+  ∀ T ∈ ro, ¬ (a.toNat ≤ T.toNat ∧ T.toNat < t.toNat)
+
+private theorem relOK_fold (ro : List w64) :
+    ∀ (l : List w64) (fl : FLPg) (m : w64),
+      (∀ T ∈ ro, T.toNat < m.toNat ∨ T ∈ l) →
+      l.Pairwise (fun x y => x.toNat ≤ y.toNat) →
+      (∀ x ∈ l, m.toNat ≤ x.toNat + 1) →
+      (∀ x ∈ l, 1 ≤ x.toNat ∧ x.toNat + 1 < 2 ^ 64) →
+      (∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) →
+      relOK (relSafe ro) fl (l.foldl (fun (acc : FLPg × w64) t =>
+          (acc.1.releaseRange acc.2 (t - 1), t + 1)) (fl, m)).1 ∧
+      ∀ T ∈ ro, T.toNat < (l.foldl (fun (acc : FLPg × w64) t =>
+          (acc.1.releaseRange acc.2 (t - 1), t + 1)) (fl, m)).2.toNat
+  | [], fl, m, hinv, _, _, _, hwf => by
+    refine ⟨relOK_refl _ fl hwf, fun T hT => ?_⟩
+    rcases hinv T hT with h | h
+    · exact h
+    · simp at h
+  | t :: l, fl, m, hinv, hsort, hm, hb, hwf => by
+    simp only [List.foldl_cons]
+    have ht := hb t (by simp)
+    have htm1 : (t - 1).toNat = t.toNat - 1 := by
+      simp only [BitVec.toNat_sub]; simp; omega
+    have htp1 : (t + 1).toNat = t.toNat + 1 := by
+      simp only [BitVec.toNat_add]; simp; omega
+    have hstep := relOK_releaseRange fl m (t - 1) hwf
+    have hstep' : relOK (relSafe ro) fl (fl.releaseRange m (t - 1)) := by
+      refine relOK_mono _ _ (fun t' a hq T hT => ?_) _ _ hstep
+      rw [htm1] at hq
+      rcases hinv T hT with h | h
+      · omega
+      · have : t.toNat ≤ T.toNat := by
+          rcases List.mem_cons.1 h with rfl | h
+          · exact Nat.le_refl _
+          · exact List.rel_of_pairwise_cons hsort h
+        omega
+    obtain ⟨h1, h2⟩ := relOK_fold ro l (fl.releaseRange m (t - 1)) (t + 1)
+      (fun T hT => by
+        rcases hinv T hT with h | h
+        · left; rw [htp1]; have := hm t (by simp); omega
+        · rcases List.mem_cons.1 h with rfl | h
+          · left; rw [htp1]; omega
+          · exact Or.inr h)
+      (List.pairwise_cons.1 hsort).2
+      (fun x hx => by rw [htp1]; have := List.rel_of_pairwise_cons hsort hx; omega)
+      (fun x hx => hb x (by simp [hx])) hstep.2.2.2.2.1
+    exact ⟨relOK_trans _ _ _ _ hstep' h1, h2⟩
+
+private theorem sortPgids_sorted (l : List w64) :
+    (sortPgids l).Pairwise (fun x y => x.toNat ≤ y.toNat) := by
+  have := List.pairwise_mergeSort (le := fun x y : w64 => decide (x.toNat ≤ y.toNat))
+    (fun a b c h1 h2 => by simp at *; omega) (fun a b => by simp; omega) l
+  exact this.imp fun h => by simpa using h
+
+private theorem relOK_releasePending (fl : FLPg) (ro : List w64)
+    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    relOK (relSafe ro) fl (fl.releasePending ro) := by
+  unfold FLPg.releasePending
+  simp only
+  have hS := sortPgids_sorted ro
+  have hmem : ∀ x, x ∈ sortPgids ro ↔ x ∈ ro := mem_sortPgids'' ro
+  generalize sortPgids ro = S at hS hmem
+  -- the first step: everything before the oldest reader
+  have h1 : relOK (relSafe ro) fl (if 0 < ((S.head?).getD (W64 (-1))).toNat then
+      fl.release ((S.head?).getD (W64 (-1)) - 1) else fl) := by
+    split
+    · rename_i hpos
+      refine relOK_mono _ _ (fun t a hq T hT => ?_) _ _ (relOK_release fl _ hwf)
+      rcases hS' : S with _ | ⟨s0, S'⟩
+      · rw [hS'] at hmem; exact absurd ((hmem T).2 hT) (by simp)
+      · rw [hS'] at hq hmem hS
+        simp only [List.head?_cons, Option.getD_some] at hq hpos
+        have hT' := (hmem T).2 hT
+        have : s0.toNat ≤ T.toNat := by
+          rcases List.mem_cons.1 hT' with rfl | h
+          · exact Nat.le_refl _
+          · exact List.rel_of_pairwise_cons hS h
+        have hs01 := (hro s0 ((hmem s0).1 (by simp))).1
+        have : (s0 - 1).toNat = s0.toNat - 1 := by
+          simp only [BitVec.toNat_sub]; simp; omega
+        omega
+    · exact relOK_refl _ fl hwf
+  have hwf1 := h1.2.2.2.2.1
+  generalize (if 0 < ((S.head?).getD (W64 (-1))).toNat then
+      fl.release ((S.head?).getD (W64 (-1)) - 1) else fl) = fl1 at h1 hwf1
+  have hfold := relOK_fold ro S fl1 ((S.head?).getD (W64 (-1)))
+    (fun T hT => Or.inr ((hmem T).2 hT)) hS
+    (fun x hx => by
+      rcases hS' : S with _ | ⟨s0, S'⟩
+      · rw [hS'] at hx; simp at hx
+      · rw [hS'] at hx hS
+        simp only [List.head?_cons, Option.getD_some]
+        rcases List.mem_cons.1 hx with rfl | h
+        · omega
+        · have := List.rel_of_pairwise_cons hS h; omega)
+    (fun x hx => hro x ((hmem x).1 hx)) hwf1
+  obtain ⟨h2, h3⟩ := hfold
+  generalize (S.foldl (fun (acc : FLPg × w64) t => (acc.1.releaseRange acc.2 (t - 1), t + 1))
+    (fl1, (S.head?).getD (W64 (-1)))) = res at h2 h3
+  rcases res with ⟨fl2, m2⟩
+  simp only at h2 h3 ⊢
+  refine relOK_trans _ _ _ _ (relOK_trans _ _ _ _ h1 h2)
+    (relOK_mono _ _ (fun t a hq T hT => ?_) _ _ (relOK_releaseRange fl2 m2 _ h2.2.2.2.2.1))
+  have := h3 T hT
+  omega
+
+private theorem releasePending_free (fl : FLPg) (ro : List w64) :
+    ∃ L, (fl.releasePending ro).free = sortPgids L := by
+  unfold FLPg.releasePending
+  simp only
+  generalize (List.foldl _ _ _) = res
+  rcases res with ⟨fl2, m2⟩
+  simp only
+  unfold FLPg.releaseRange
+  rw [if_neg (by simp only [W64, BitVec.toNat_ofInt]; have := m2.isLt; omega)]
+  exact ⟨_, rfl⟩
+
+private theorem sortPgids_incr' (l : List w64) (hnd : (sortPgids l).Nodup) : PgidsIncr (sortPgids l) := by
+  unfold PgidsIncr
+  refine ((sortPgids_sorted l).and hnd).imp fun {x y} ⟨h1, h2⟩ => ?_
+  have : x.toNat ≠ y.toNat := fun h => h2 (BitVec.eq_of_toNat_eq h)
+  omega
+
 /-! ## Lemma statements (U3) -/
 
 omit [GooseExts] in
@@ -1056,7 +1440,138 @@ theorem storeOK_release (σ : StoreSt) (ro : List w64) (h : storeOK σ) (hw : σ
     (hwv : σ.wlent = false) (hro : ∀ k r, σ.R !! k = some r → W64 (r.v.txid : Int) ∈ ro)
     (hro' : ∀ t ∈ ro, t.toNat ≤ σ.C.txid) (hro1 : ∀ t ∈ ro, 1 ≤ t.toNat) :
     storeOK (σ.release ro) := by
-  sorry
+  have htlt := treeSlot_lt64 σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20, h21⟩ := h
+  have hc63 : σ.C.txid < 2 ^ 63 := h2.2.2.2.2.2
+  have hwvn := h16 hw
+  have hpubf := h6 hw
+  obtain ⟨w1, w2, w3, w4, w5⟩ := h4
+  have hrel := relOK_releasePending σ.fl ro (fun t ht => ⟨hro1 t ht, by have := hro' t ht; omega⟩) w5
+  obtain ⟨r1, r2, r3, r4, r5, r6⟩ := hrel
+  generalize hfl' : σ.fl.releasePending ro = fl' at r1 r2 r3 r4 r5 r6
+  have hσ' : (σ.release ro).fl = fl' := by simp only [StoreSt.release]; exact hfl'
+  -- every pending entry is a committed transaction's
+  have hpt : ∀ t pd, σ.fl.pending !! t = some pd → t.toNat ≤ σ.C.txid := by
+    intro t pd hp
+    rcases h3.2.2.1 t pd hp with h' | ⟨h', -⟩
+    · exact h'
+    · rw [hw] at h'; cases h'
+  have hpend_sub : ∀ s, s ∈ pendSlots fl' → s ∈ pendSlots σ.fl := by
+    intro s hs
+    obtain ⟨t, pd', x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
+    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+    obtain ⟨pd, j, hp0, hj, -⟩ := r3 t pd' i x hp hi
+    exact (mem_pendSlots _ _).2 ⟨t, pd, x, hp0, List.mem_of_getElem? hj, rfl⟩
+  have htree_np : ∀ s, s ∈ treeSlots σ.C → s ∉ pendSlots σ.fl := by
+    intro s hs
+    rcases h17 s hs with h' | h'
+    · exact h'
+    · rw [hw] at h'
+      exact not_pend_of_only_none _ s (htlt s ((mem_pagesSlots' _ _).1 hs)) h'
+  -- the MVCC rule of a view the release must spare
+  have hmv : ∀ v : View, mvccView σ.fl v →
+      (∀ s, coversSlot v.pages s → W64 (s : Int) ∈ fl'.free → False) → mvccView fl' v := by
+    intro v ⟨m1, m2⟩ hno
+    refine ⟨fun id pg hp a ha => m1 id pg hp a (r1 ▸ ha), fun s hs => ?_⟩
+    obtain ⟨a, b, c⟩ := m2 s hs
+    refine ⟨a, fun hx => hno s hs hx, fun t pd' i hp hi => ?_⟩
+    obtain ⟨pd, j, hp0, hj, he⟩ := r3 t pd' i _ hp hi
+    rw [← he]; exact c t pd j hp0 hj
+  have hreader : ∀ k r, σ.R !! k = some r →
+      ∀ s, coversSlot r.v.pages s → W64 (s : Int) ∈ fl'.free → False := by
+    intro k r hr s hs hx
+    obtain ⟨-, ⟨-, m2⟩, -⟩ := h7 k r hr
+    obtain ⟨-, hnf, hpend⟩ := m2 s hs
+    rcases r2 _ hx with hx | ⟨t, pd, i, hp, hi, hq⟩
+    · exact hnf hx
+    · obtain ⟨ha, ht⟩ := hpend t pd i hp hi
+      have hT := hro k r hr
+      have hrt : r.v.txid ≤ σ.C.txid := (h7 k r hr).1
+      have := hq _ hT
+      rw [W64_toNat_of_lt' _ (by omega)] at this
+      exact this ⟨ha, ht⟩
+  refine ⟨h1, h2, ?_, ?_, h5, h6, fun k r hr => ?_, fun v hv => ?_, h9, h10, h11,
+    fun s hs => h12 s ?_, fun b l hb s hs => h13 b l hb s ?_, h14, h15, h16, fun s hs => ?_,
+    fun b => ?_, fun x a hx => ?_, fun _ s hs _ hpo => ?_, h21⟩
+  · -- flBelow
+    rw [hσ']
+    obtain ⟨b1, b2, b3, b4, b5, b6⟩ := h3
+    have hpid : ∀ x, x ∈ fl'.pendingIds → x ∈ σ.fl.pendingIds := by
+      intro x hx
+      simp only [FLPg.pendingIds, List.mem_flatMap] at hx ⊢
+      obtain ⟨⟨t, pd'⟩, hkv, hx⟩ := hx
+      obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+      obtain ⟨pd, j, hp0, hj, -⟩ := r3 t pd' i x ((GMap.mem_toList _ _ _).1 hkv) hi
+      exact ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp0, List.mem_of_getElem? hj⟩
+    refine ⟨fun x hx => ?_, fun t pd' x hp hx hle => ?_, fun t pd' hp => ?_, b4, fun x hx => ?_,
+      fun x hx => b6 x (hpid x hx)⟩
+    · rcases r2 x hx with hx | ⟨t, pd, i, hp, hi, -⟩
+      · exact b1 x hx
+      · exact b2 t pd x hp (List.mem_of_getElem? hi) (hpt t pd hp)
+    · obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+      obtain ⟨pd, j, hp0, hj, -⟩ := r3 t pd' i x hp hi
+      exact b2 t pd x hp0 (List.mem_of_getElem? hj) hle
+    · obtain ⟨q, hq⟩ := Option.isSome_iff_exists.1 (r6 t pd' hp)
+      exact Or.inl (hpt t q hq)
+    · rcases r2 x hx with hx | ⟨t, pd, i, hp, hi, -⟩
+      · exact b5 x hx
+      · apply b6
+        simp only [FLPg.pendingIds, List.mem_flatMap]
+        exact ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, List.mem_of_getElem? hi⟩
+  · -- WF
+    rw [hσ']
+    obtain ⟨L, hL⟩ := releasePending_free σ.fl ro
+    rw [hfl'] at hL
+    have hnd := r4.nodup_iff.2 w1
+    refine ⟨hnd, fun x hx => w2 x (r4.subset hx), ?_, by rw [r4.length_eq]; exact w4, r5⟩
+    rw [hL]
+    apply sortPgids_incr'
+    rw [← hL]
+    exact (List.nodup_append.1 hnd).1
+  · obtain ⟨a, b, c, d, e, f⟩ := h7 k r hr
+    refine ⟨a, ?_, fun s hs => ?_, d, e, f⟩
+    · rw [hσ']; exact hmv r.v b (hreader k r hr)
+    · have hin := c s hs
+      rw [mem_storeSlots] at hin ⊢
+      simp only [StoreSt.release]
+      rw [hfl']
+      rcases hin with hin | hin
+      · exact Or.inl hin
+      · right
+        obtain ⟨t, pd, x, hp, hx, hxs⟩ := (mem_pendSlots _ _).1 hin
+        have hxa : x ∈ fl'.allIds := r4.symm.subset (by
+          simp only [FLPg.allIds, FLPg.pendingIds, List.mem_append, List.mem_flatMap]
+          exact Or.inr ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩)
+        simp only [FLPg.allIds, List.mem_append] at hxa
+        rcases hxa with hxa | hxa
+        · exfalso
+          apply hreader k r hr s hs
+          rw [← hxs, W64_toNat_eq]; exact hxa
+        · simp only [pendSlots, List.mem_map]
+          exact ⟨x, hxa, hxs⟩
+  · simp only [StoreSt.release, hwvn] at hv; cases hv
+  · rw [mem_storeSlots] at hs ⊢
+    simp only [StoreSt.release] at hs
+    rw [hfl'] at hs
+    exact hs.imp id (hpend_sub s)
+  · rw [mem_storeSlots] at hs ⊢
+    simp only [StoreSt.release] at hs
+    rw [hfl'] at hs
+    exact hs.imp id (hpend_sub s)
+  · left; rw [hσ']; exact fun hp => htree_np s hs (hpend_sub s hp)
+  · rw [hσ']
+    refine hmv _ (h18 b) (fun s hs hx => ?_)
+    rcases r2 _ hx with hx | ⟨t, pd, i, hp, hi, -⟩
+    · exact ((h18 b).2 s hs).2.1 hx
+    · exact htree_np s ((mem_pagesSlots' _ _).2 hs) ((mem_pendSlots _ _).2
+        ⟨t, pd, _, hp, List.mem_of_getElem? hi, W64_toNat_of_lt' s (htlt s hs)⟩)
+  · rw [hσ', r1] at hx; exact h19 x a hx
+  · exfalso
+    rw [hσ'] at hs hpo
+    obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
+    have := hpo t pd hp (by rw [W64_toNat_eq]; exact hx)
+    simp [StoreSt.release, hw] at this
 
 /-- **The commit point**: the new committed state `C'` (spill's post, design §4.2: its tree
 `treeOK`, every dropped base page pending for `w`, its new pages the writer's allocations, read
