@@ -1042,6 +1042,54 @@ Batch 38:
   by `curSt_step` through `Write/MatOK.bktLocalOK_nodeAdded`; `Cursor.node.spec`'s post adds
   `bktLocalOK X' bl` (after `wOK X → wOK X'`).
 
+### Maintainer 6's hand-off (2026-11-04): what is left of batches 37-42
+
+Not done (in this order, the coordinator's):
+- **37.9** `Spec/fmt/Errorf.lean`'s post: add `∗ ⌜_root_.Perennial.errors.IsPointerError err⌝` at the
+  end (import `Perennial.Proof.errors.Base`); only bbolt binds the post's pure part (`%Hty`:
+  `Mmap/Alloc` ×3, `Mmap/Munmap`; `⟨-, #HeS⟩`: `Mmap/FileSize` ×2, `Mmap/Map`), others use `-`/`%_`.
+  Then `⌜err ≠ nil ∧ errPtrTyped err⌝` in the error posts of `DB.fileSize`, `DB.mmapSize`,
+  `DB.munmap`, `mmapF` (a lemma `IsPointerError ii → errPtrTyped (.ok ii)` in `Mmap/Remap`;
+  `errors.New`'s and `bboltErrVar`'s are pointers; `syscall.Errno` is no pointer type, so
+  `errPtrTyped` holds vacuously), and `RemapBody`'s four `fmtErrorOk_errPtrTyped` uses replaced.
+  Keep `RemapGaps.fmtErrorOk_errPtrTyped` until `Open/PageSize:419` (U11) stops using it.
+- **37.10** `os.File.Close.spec`'s post `… ∗ fmtErrorOkOrNil err` (proof: `os.wp_wrapErrno_ok` in the
+  errno branch), `os.OpenFile.spec`'s too (its error branch: `wp_errno` then `pathError_fmtErrorOk`
+  and `errnoErr_fmtErrorOk`, as `wp_wrapErrno_ok`). Users to adapt: bboltfs `DB__close`,
+  `DB__closeCrash` (`as %err2 Hf` becomes `⟨Hf, -⟩`), bboltfs `Open` (OpenFile), U11b's
+  `Open/Close.os.File.Close.specE` goes.
+- **37.3** `vwAuth r q v := ∃ V, ghostMapAuth r.n.vw q V ∗ ([∗map] k ↦ u ∈ V, k ↪[r.n.vw]□ u) ∗
+  ⌜∀ k u, V !! k = some u → u = { v with base := k }⌝` (`Inv/Tx`), in `wtxFrac` (at `q`, after
+  `viewOf`) and `wtxCore` (at `1`, last); `vwAuth r q v = vwAuth r q {v with base := b}` (the
+  condition is base-free); `wr_names_alloc` (`Txn/WInitH`) must return the auth; then gap 3
+  (`wtxCore_viewOf_rebase`: look up or insert `b`) is proved. Expect ~80 `wtxCore` pattern sites.
+- **37.14** draft (untracked, not yet built): `Inv/ShapeOps.lean`: token lists `pgIds`, `entTokL`,
+  `brTokL`, `nodeTokL`, `bktTokL`, `txTokL`; `bktToks_list` (resource = list of tokens); the general
+  **`txShape_sub`** (`X'.v.pages = X.v.pages → (txTokL X').Subperm (txTokL X) → txShape γ X e ⊢
+  txShape γ X' e`; its subperm step is a `sorry` to finish with `List.Sublist.exists_perm_append` and
+  `bigSepL_submseteq`). Corollaries to state, with owners: `txTokL_setNode` (a node's tokens
+  permuted), `nodeTokL_withEnts_leaf` (leaf entries whose token lists agree), the bucket insert and
+  delete (proved structurally from `FiniteMap.toList_insert`/`toList_delete`); `txTokL_nodeAdded`
+  (U7: a position's subtree is the page and its children's), `txTokL_bktOpened` (U6: a nested
+  tree moves from the parent to the opened bucket), create/drop (U7), rebalance/spill (U8/U9:
+  freed pages' tokens dropped, new pages are no view pages), `gensOK_setBkt` (trivial: `setBkt` keeps
+  `gen`), `wOK_setNode_withEnts` (U7), and batch 38.5 (S3: `bktLocalOK` under a value replaced at an
+  existing key of `B.bm`; the old value persistent first).
+- **38.1** (user-approved 2026-11-04): `Spec/go_etcd_io/bbolt/Options.loggerPtrOk (.ok li) := ∃ t (l :
+  Loc), li.ty = PointerType t ∧ li.v = #l`; the backend's own `OptsM.ok`
+  (`backend/BboltOptsDefs`) gains the same logger condition (so `bbolt.Open_kv`'s premise carries
+  it), `backend.newBoltLoggerZap.spec`'s post `boltLogger l ∗ ⌜…⌝`; `newBackend`'s `Hok` for the
+  logger-updated options from the new post. Axioms whose statements change: `newBoltLoggerZap.wp_proof`,
+  `bbolt.Open_kv.wp_proof` (through `OptsM.ok`). Record in `notes/bbolt-spec-decisions.md` and
+  `notes/decisions.md`.
+- **39** (Bucket.spill's buffer post, `wdbOK_publish`, the `wrSlots` carve lemma), **40** (`flCurOK`'s
+  writer-pending case), **41** (Open's unsynced `loadFreelist`: readers empty), **42** (`rtxFrac`'s
+  extent bound `id + (1 + pageOverflow pg) ≤ mv.pgid'.toNat`, `rdTxK_intro`, an accessor for U10e).
+  For 41, the simplest candidate is (a): `DB.freepages`' post gives back the reader sets unchanged,
+  which needs the sets observable to `Open`; with `metaR` inside `metalock` that means `Open` keeping
+  a fraction of the readers' ghost authority until `loadFreelist`, which `beginTx_s` must then not
+  need whole — not yet designed.
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
