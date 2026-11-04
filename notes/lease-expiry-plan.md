@@ -440,3 +440,18 @@ R1-R4, R6 and R7 repaired below; R5 and R8 go to the user; then the glue against
 - **Hubs touched** adds hub 3's `applySnapshot.specSnapM` (one premise until S4), `SnapRO`,
   `kv_lease_served`.
 - **R5, R8**: the user's.
+
+**Decided (the user, 2026-11-04):**
+- **R5: track the TTL in the lessor.** The lessor history's snapshots record each lease's `ttl`.
+  `Grant` and `Recover` only raise it (`lessor.go:301`, `:817`), so a lease granted with `TTL ≥ 1`
+  keeps `ttl ≥ 1`. The restated `leaseTimeToLive` gives the found arm `GrantedTTL` as the lessor's
+  recorded `ttl` of `id` at an index; the example grants `TTL = 1`. This touches the history's
+  snapshots and the `Grant`, `Recover` and `Checkpoint` specs.
+- **R8: generated ids only.**
+  - In the revocable mode, `EtcdServer.LeaseGrant`'s spec requires the request's `ID = 0`.
+    clientv3's `Grant` always sends `0`.
+  - So every grant takes a fresh id from the member's generator, unique under the single-member
+    row. Explicit-ID grants are outside the revocable mode's workload.
+  - The invariant: each id's first appearance in the lessor history is the one grant of that
+    generated id.
+  - The law: an id absent at `i` after its grant at `i₀ ≤ i` stays absent at every `j ≥ i`.
