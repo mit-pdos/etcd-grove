@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.UTree
 public import Proof.go_etcd_io.bbolt.Spill.STreeAgree
+public import Proof.go_etcd_io.bbolt.Spill.TreeElsFuel
 
 @[expose] public section
 
@@ -169,13 +170,13 @@ theorem uTree_head {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {lo hi 
     (hu : uTree X bl P hwm n lo hi h F D N E) : n ∈ N := by
   cases hu <;> simp
 
-/-- **A written tree's leaf elements depend only on its pages.** (U9h: stated, not yet proved;
-`treeLeaves`' fuel is the page map's size, so the proof shows the walk's result independent of
-the fuel past the tree's height.) -/
+/-- **A written tree's leaf elements depend only on its pages** (`Spill/TreeElsFuel`: the walk
+is independent of the fuel past the tree's pages). -/
 theorem treeEls_agree {P P' : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h : Nat}
     {S : List Nat} (hs : sTree P hwm id lo hi h S) (hag : ∀ x ∈ S, P' !! x = P !! x) :
     treeEls P' id = treeEls P id := by
-  sorry
+  unfold treeEls
+  rw [treeLeaves_sTree_agree hs hag]
 
 theorem fTree_agree {P P' : Pages} {hwm hwm' id : Nat} {k : List w8} {hi : Option (List w8)}
     {h : Nat} {S : List Nat} {E : List El} (hag : ∀ x ∈ pgSlots P S, P' !! x = P !! x)
