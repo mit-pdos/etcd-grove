@@ -195,7 +195,7 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
   ipureintro
   first | exact ⟨rfl, fun h => nomatch h⟩ | exact ⟨trivial, fun h => nomatch h⟩ | simp))
 
-theorem Open.wp_proof
+theorem Open.wp_proof [sync.Assumptions]
     (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.spec (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : ∀ [HasExt osFsExt], flock.spec (GF := GF) (hG := hG))
@@ -455,7 +455,7 @@ theorem Open.wp_proof
   -- the file's size
   obtain ⟨hmaps, hxl, hsz, hbr⟩ := Hm
   wp_apply hStat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) ⟨path, true, true⟩ m $$
-    [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse⟩
+    [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse, -⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   rw [← fileOwn_eq]
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
@@ -613,6 +613,8 @@ theorem Open.wp_proof
     iright; ipureintro; exact hne
   subst Hv
   ipersist pageSize
+  try wp_auto
+  rw [recv_eq_func_mk BAnon BAnon]
   try wp_auto
   sorry
 
