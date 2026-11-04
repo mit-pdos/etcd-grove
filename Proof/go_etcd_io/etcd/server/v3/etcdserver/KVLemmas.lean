@@ -197,12 +197,12 @@ mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
     (hok : plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log ∧ γ.raft.authOn = false)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
     plainLogM γk.cmp γk.lm (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
+      γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧
       cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log ∧ γ.raft.authOn = false := by
   obtain ⟨hplog, -, hc0, hch, h0, hcl, htie⟩ := hok
   refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl), htie⟩
@@ -506,7 +506,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
@@ -572,7 +572,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)

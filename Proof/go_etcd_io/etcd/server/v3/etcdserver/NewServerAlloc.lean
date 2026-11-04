@@ -285,7 +285,10 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         unfold SrvRaft.cfg
         rw [hvs]
         exact hcc e (by rw [← hbt]; exact he))
-      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _) rfl hao)
+      rfl rfl (by simp [γk, γk0])
+      (by intro cs hcs c hc; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, or_false] at hcs
+          rcases hcs with rfl | rfl <;> simp at hc)
+      (mvcc.LogPutsLe.empties _) rfl hao)
     $$ [HL] [Hstv] with ⟨#Hkv, Hetcd⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv

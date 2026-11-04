@@ -892,3 +892,7 @@ Left for after the decision: `revokePropOk` in `plainEntryM`/`reqPropOk(W)`, the
 revocation case (`srvRest_applyPG`'s, `AppliedTable`'s `T.filter`, the `restRevoke`/`restLeasesWith`
 commute, `revokeOwn` from `srvApplyKV`'s `rdAt` and the revocable lessor), then X6 and the
 mode-gated discharge of `lessorRevokeOk`.
+
+**Decided (the user, 2026-11-04): (a).** `kvInv`'s conjunct `γk.log0 ≠ []` becomes `γk.log0 ≠ [] ∧
+mvcc.LogNoLease γk.log0`. Then: the proposal side, the server's revocation case, the lease-freeness
+lemma, X6.
