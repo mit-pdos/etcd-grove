@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Read.Base
 public import Proof.go_etcd_io.bbolt.Read.Bytes
+public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
 
 @[expose] public section
 
@@ -131,6 +132,91 @@ theorem rd_page_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v
     iintro Hp
     ihave Hk := Hk $$ Hp
     iframe
+
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- The bounds of a reader bucket's page (non-empty), keeping the resources. -/
+theorem rd_page_bounds (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (hne : pg ≠ []) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ⊢
+      (rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp) ∗
+      ⌜0 < l.addr ∧ l.addr + pg.length ≤ maxAddr⌝ := by
+  iintro H
+  icases rd_page_acc K tx src q T v b dqb bv ibp pp pid l pg h $$ H with ⟨%dq, Hb, Hback⟩
+  icases Read.bytesPointsto_bounds l dq pg hne $$ Hb with ⟨Hb, %Hbd⟩
+  ihave H := Hback $$ Hb
+  iframe
+  ipureintro; exact Hbd
+
+/-- **A reader bucket's page header, read**, and back. -/
+theorem rd_hdr_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (h16 : 16 ≤ pg.length) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ⊢ ∃ dq,
+      l ↦{dq} pageHdr pg ∗ (l ↦{dq} pageHdr pg -∗ rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp) := by
+  iintro H
+  icases rd_page_acc K tx src q T v b dqb bv ibp pp pid l pg h $$ H with ⟨%dq, Hb, Hback⟩
+  icases Read.bytesPointsto_bounds l dq pg (by intro e; simp [e] at h16) $$ Hb with ⟨Hb, %Hbd⟩
+  icases bytesPointsto_view_read (V := Page) l dq pg 0 l (by simp) (by omega) Hbd.1 $$ Hb
+    with ⟨Hh, Hhb⟩
+  iexists dq
+  rw [show pageHdr pg = (decode (List.take 16 (List.drop 0 pg)) : Page) from rfl]
+  iframe Hh
+  iintro Hh
+  iapply Hback
+  iapply Hhb
+  iexact Hh
+
+/-- **Element `i` of a reader bucket's page, read** (its 16 bytes as an element view), and back. -/
+theorem rd_elem_acc {V : Type} [ByteEncoding V 16] [TypedPointsto (GF := GF) V]
+    [BytesView (GF := GF) V] (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (i : Nat) (hi : elemOff i + 16 ≤ pg.length) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ⊢ ∃ dq,
+      (l +ₗ ((elemOff i : Nat) : Int)) ↦{dq} (decode (bytesAt pg (elemOff i) 16) : V) ∗
+      ((l +ₗ ((elemOff i : Nat) : Int)) ↦{dq} (decode (bytesAt pg (elemOff i) 16) : V) -∗
+        rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp) := by
+  iintro H
+  icases rd_page_acc K tx src q T v b dqb bv ibp pp pid l pg h $$ H with ⟨%dq, Hb, Hback⟩
+  icases Read.bytesPointsto_bounds l dq pg (by intro e; simp [e] at hi) $$ Hb with ⟨Hb, %Hbd⟩
+  icases bytesPointsto_view_read (V := V) l dq pg (elemOff i) _ rfl hi Hbd.1 $$ Hb
+    with ⟨Hh, Hhb⟩
+  iexists dq
+  rw [show bytesAt pg (elemOff i) 16 = List.take 16 (List.drop (elemOff i) pg) from rfl]
+  iframe Hh
+  iintro Hh
+  iapply Hback
+  iapply Hhb
+  iexact Hh
+
+/-- **Bytes of a reader bucket's page as a byte slice**, and back. -/
+theorem rd_slice_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (b : Loc) (dqb : DFrac) (bv : List w8) (ibp pp : Loc) (pid : Nat) (l : Loc) (pg : List w8)
+    (h : rPageAt v bv pp pid = some (l, pg)) (off n : Nat) (hn : off + n ≤ pg.length)
+    (hn63 : n < 2 ^ 63) (hn0 : 0 < n) :
+    rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dqb bv ibp pp ⊢ ∃ dq,
+      slice.mk (l +ₗ ((off : Nat) : Int)) (W64 (n : Int)) (W64 (n : Int)) ↦*{dq} bytesAt pg off n ∗
+      (slice.mk (l +ₗ ((off : Nat) : Int)) (W64 (n : Int)) (W64 (n : Int)) ↦*{dq} bytesAt pg off n -∗
+        rdTxK K tx src q T v ∗ rBktP v tx b dqb bv ibp pp) := by
+  have hlen : (bytesAt pg off n).length = n := by unfold bytesAt; simp; omega
+  iintro H
+  icases rd_page_acc K tx src q T v b dqb bv ibp pp pid l pg h $$ H with ⟨%dq, Hb, Hback⟩
+  icases Read.bytesPointsto_bounds l dq pg (by intro e; simp [e] at hn; omega) $$ Hb
+    with ⟨Hb, %Hbd⟩
+  icases Read.bytesPointsto_sub_acc l dq pg (bytesAt pg off n) off (by rw [hlen]; omega)
+    (by rw [hlen]) $$ Hb with ⟨Hs, Hsb⟩
+  have Ho := Read.bytesPointsto_ownSlice (GF := GF) (l +ₗ ((off : Nat) : Int)) dq
+    (bytesAt pg off n) (by simp [Loc.add]; omega) (by rw [hlen]; exact hn63)
+  rw [hlen] at Ho
+  icases Ho.1 $$ Hs with Hs
+  iexists dq
+  iframe Hs
+  iintro Hs
+  icases Ho.2 $$ Hs with Hs
+  iapply Hback
+  iapply Hsb
+  iexact Hs
 
 end rctx
 
