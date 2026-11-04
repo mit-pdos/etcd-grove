@@ -206,7 +206,7 @@ theorem Tx.rollback.wp_proof
       · rfl
       · exact absurd hms (hwl.1 rfl)
     subst hpb hwl0
-    simp only [Bool.false_eq_true, ↓reduceIte, Nat.add_zero] at hwt'
+    simp only [Bool.false_eq_true, ↓reduceIte] at hwt'
     rw [show dataOf w.ms = null by rw [hms]; rfl]
     wp_auto
     wp_apply wp_Txid $$ [Hmv] as Hmv
@@ -248,7 +248,138 @@ theorem Tx.rollback.wp_proof
       rcases h : w.ms with _ | ⟨b, l⟩
       · exact absurd h hms
       · exact ⟨b, l, rfl⟩
-    sorry
+    have hb0 : 0 < b.addr := Hbpos b l hbl'
+    have hbn : b ≠ null := by intro h; rw [h] at hb0; exact absurd hb0 (by decide)
+    rw [show dataOf w.ms = b by rw [hbl']; rfl]
+    wp_auto
+    rw [decide_eq_false hbn]
+    ihave Hmfw := Hmfw $$ Hdata
+    ihave Hmf2 : mapFields K.db (DFrac.own (1 : Qp).half.half) (some (b, l) : MapSt) $$ [Hmfw]
+    · rw [← hbl']; iexact Hmfw
+    ihave Hmc2 : metaCellsQ (1 : Qp).half.half (some (b, l) : MapSt) w.C $$ [Hmc]
+    · rw [← hbl']; iexact Hmc
+    wp_auto
+    wp_apply wp_meta K.db b l w.C _ _ hmok $$ [Hmf2 Hmc2] as ⟨Hmf2, Hmc2⟩
+    · iframe
+    wp_apply wp_meta_Txid wp_Txid b l w.C _ hmok $$ [Hmc2] as Hmc2
+    · iframe
+    wp_apply wp_Txid $$ [Hmv] as Hmv
+    · iframe
+    rw [htid]
+    cases pb
+    · -- not published: roll back
+      simp only [Bool.false_eq_true, ↓reduceIte] at hwt'
+      subst hwt'
+      have hne : W64 (w.C.txid : Int) ≠ W64 ((w.C.txid + 1 : Nat) : Int) := by
+        intro e
+        have := congrArg BitVec.toNat e
+        rw [toNat_W64_of_lt _ (by omega), toNat_W64_of_lt _ h64] at this
+        omega
+      rw [decide_eq_false hne]
+      wp_auto
+      wp_apply wp_Txid $$ [Hmv] as Hmv
+      · iframe
+      rw [htid]
+      simp only at hbl
+      wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
+      · iframe
+      imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms
+        (some v, some (w.C.txid + 1), false, wl) (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
+        with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
+      · iframe; iframe #
+      icases wdb_rollback' K.p w _ S bs hwok rfl HS (pendSlots_two _ hwf) Hbs
+        $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+      · iframe
+      obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
+      imod store_cfacts K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ w.ms _
+        $$ [Hpi Hcur Hgfl Hgmap Hgwv] with ⟨Hcur, Hgfl, Hgmap, Hgwv, %Hcf2⟩
+      · iframe; iframe #
+      obtain ⟨-, -, -, hwf2, hbl2, -⟩ := Hcf2
+      -- `db.data` again: mapped
+      icases mapFields_data K.db _ _ $$ Hmf2 with ⟨Hdata, -, Hmf2⟩
+      rw [show dataOf (some (b, l)) = b from rfl]
+      wp_auto
+      rw [decide_eq_false hbn]
+      ihave Hmf2 := Hmf2 $$ Hdata
+      wp_auto
+      wp_apply wp_hasSynced K.db b l w.C _ _ hmok $$ [Hmf2 Hmc2] as ⟨Hmf2, Hmc2⟩
+      · iframe
+      obtain ⟨-, -, -, -, c5, -, -, -, -, -, -, c12, -, -, -⟩ := id hok'
+      have hfree : ∀ x ∈ (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))).free,
+          ¬ coversSlot w.C.pages x.toNat ∧ x.toNat < w.C.hwm := by
+        intro x hx
+        rw [← hfl'] at hx
+        refine ⟨fun hc => c5 x hx ?_, ?_⟩
+        · rw [hC']; exact (mem_pagesSlots_iff _ _).2 hc
+        · have := c12 x hx; rw [hC'] at this; exact this
+      rcases hfp : w.C.flpg with _ | f
+      · -- no synced freelist page: `NoSyncReload(db.freepages())`
+        rw [show (! (! decide (none = (none : Option Nat)))) = true from rfl]
+        wp_auto
+        ihave Hgmap2 : ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) $$ [Hgmap]
+        · rw [← hbl']; iexact Hgmap
+        wp_apply wp_freepages K w.C b l hmok htok hhwm $$ [Hpair Hcur Hgmap2 Hop]
+          as %s ⟨Hs, -, %Hfacts, Hpair, Hcur, Hgmap2, Hop⟩
+        · iframe; iframe #
+        have hnsr := nsr_premises w.C _ hhwm hwf2 hbl2.2.2.2.2.2 hfree
+        wp_apply wp_NSR w.fli _ s (freeIdsOf w.C) _ Hfacts.1 Hfacts.2.1 hnsr.1 hnsr.2
+          $$ [Hflo Hs] as ⟨Hflo, -⟩
+        · iframe
+        obtain ⟨hids, hnd⟩ := nsr_store_ids w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) hhwm
+        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _ hids hnd $$ [Hpi Hcur Hgfl]
+          with ⟨Hcur, Hgfl⟩
+        · iframe; iframe #
+        ihave Hw := Hback $$ Hdb Hwr Hme Hmv
+        ihave Hmfw : mapFields K.db (DFrac.own (1 : Qp).half.half) w.ms $$ [Hmf2]
+        · rw [hbl']; iexact Hmf2
+        ihave Hmc : metaCellsQ (1 : Qp).half.half w.ms w.C $$ [Hmc2]
+        · rw [hbl']; iexact Hmc2
+        ihave Hgmap : ghostVar K.B.map (1 : Qp).half w.ms $$ [Hgmap2]
+        · rw [hbl']; iexact Hgmap2
+        have hok'' := wdbOK_reload w' (freeIdsOf w.C) hok' (by rw [hC']; exact hfp)
+          (fun x hx => by
+            rw [hC']
+            have := (mem_freeIdsOf w.C (by omega) x).1 hx
+            exact ⟨this.2.1, this.2.2⟩)
+        rw [← hfl']
+        rw [← hC', ← hms', ← hm', ← hfli', ← hjunk', ← hf', ← hfd']
+        wp_apply wp_close K tx r X _ { w' with fl := w'.fl.reload (freeIdsOf w'.C) }
+          ⟨v, w'.C.txid + 1, false, wl, rfl,
+            Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
+            by simp only; rw [hms']; exact hwl, hwlv⟩
+          $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+        · iunfold wtxEnd
+          iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+          isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
+            Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
+          · unfold wdbLive wdbCoreG
+            iframe
+          rw [← hC'] at hok''
+          ipureintro; exact ⟨hok'', hwr, hrl⟩
+        iapply HΦ; iexact Hdone
+      · sorry
+    · -- published (the commit point passed): only close
+      simp only [↓reduceIte, Nat.add_zero] at hwt'
+      subst hwt'
+      rw [decide_eq_true rfl]
+      wp_auto
+      ihave Hw := Hback $$ Hdb Hwr Hme Hmv
+      ihave Hmfw : mapFields K.db (DFrac.own (1 : Qp).half.half) w.ms $$ [Hmf2]
+      · rw [hbl']; iexact Hmf2
+      ihave Hmc : metaCellsQ (1 : Qp).half.half w.ms w.C $$ [Hmc2]
+      · rw [hbl']; iexact Hmc2
+      wp_apply wp_close K tx r X _ w ⟨v, w.C.txid, true, wl, rfl, Or.inl rfl, hwl, hwlv⟩
+        $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+          Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+      · iunfold wtxEnd
+        iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+        isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
+          Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
+        · unfold wdbLive wdbCoreG
+          iframe
+        ipureintro; exact ⟨hwok, hwr, hrl⟩
+      iapply HΦ; iexact Hdone
 
 end proof
 
