@@ -10,11 +10,12 @@ case), `b.rootNode = root()`, `SetRootPage`, as `Spill/BktChild`'s tail; the pos
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
-public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
 public import Spec.go_etcd_io.bbolt.Bucket__spill
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
-public import Proof.go_etcd_io.bbolt.Read.WOpenH
 public import Proof.go_etcd_io.bbolt.Read.WCtx
+public import Proof.go_etcd_io.bbolt.Read.WOpenH
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Spec.go_etcd_io.bbolt.Cursor__seek_w
@@ -70,7 +71,8 @@ def loopP (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (B0 : BR
 theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill.spec' (GF := GF) (hG := hG))
     (hRoot : node.root.spec (GF := GF) (hG := hG))
     (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
-    (hSRP : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG)) :
+    (hSRP : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG))
+    (hInl : Bucket.inlineable.spec (GF := GF) (hG := hG)) :
     Bucket.spill.spec (GF := GF) (hG := hG) := by
   intro K tx r m X w Hpre Hreach Hml Hfv
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
@@ -112,7 +114,130 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     exact ⟨HI, fun j k _ => ⟨fun h => absurd h (Nat.not_lt_zero _), fun _ => rfl⟩⟩
   isplitr
   · iintro !> %i %key %c %m' ⟨%Hkey, %Hc⟩ HP Hbm
-    sorry
+    unfold loopP
+    icases HP with ⟨%Hm, HΦ, Hres, Hb, ⟨%cv, Hcp⟩, ⟨%nv, Hnp⟩, %X1, %w1, %st, %Lroot, %Dc, %ks, Hwb, Hdb, %HI⟩
+    subst Hm
+    ihave Hw := Hwb $$ Hbm
+    obtain ⟨HI, Hks⟩ := HI
+    have Hkm : key ∈ keys := List.mem_of_getElem? Hkey
+    have Htodo := ksAt_todo Hks Hkey
+    obtain ⟨C, HC, HcL, HCbm, Hcne, HcLoc, HcRt, HcEnts, HcNil, HcTree⟩ := rinv_todo HI Htodo Hc
+    icases wtxW_heapOK' K tx r m X1 $$ Hw with ⟨Hw, %Hok1⟩
+    have Hctx : C.bv.tx' = tx := Hok1.2.2.1 c C HC
+    have Hcr : c ≠ C.bv.tx'.[Tx, go!"root"] := by
+      rw [Hctx, show tx.[Tx, go!"root"] = X1.rl from Hok1.1.symm]; exact Hcne
+    wp_auto
+    obtain ⟨nv0, ins0, Hn0, Hrn0⟩ : ∃ (nv0 : node) (ins0 : List Inode),
+        (C.bv.rootNode' = null → ins0 = []) ∧
+        (C.bv.rootNode' ≠ null → ∃ rn, C.ns !! C.bv.rootNode' = some rn ∧ rn.nv = nv0 ∧
+          rn.ins = ins0 ∧ C.bv.rootNode' ∈ X1.live ∧ wsLive rn.ws ∧
+          ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax) := by
+      by_cases hn : C.bv.rootNode' = null
+      · exact ⟨zero_val node, [], fun _ => rfl, fun h => absurd hn h⟩
+      · obtain ⟨rn, -, hns, hl, hlv, hbd⟩ := rinv_inlPre HI Htodo Hc HC hn
+        exact ⟨rn.nv, rn.ins, fun h => absurd h hn, fun _ => ⟨rn, hns, rfl, rfl, hl, hlv, hbd⟩⟩
+    icases wtxW_inl_acc K tx r m X1 c C nv0 ins0 HC HcL Hcr Hn0 Hrn0 $$ Hw
+      with ⟨#H2, H5, Hnd, Hdbf, #Hps, %Hlens, Hwb⟩
+    rw [Hctx]
+    wp_apply hInl c C.bv.rootNode' nv0 ins0 tx K.db (DFrac.own 1) (DFrac.own 1)
+      (DFrac.own 1) DFrac.discard (DFrac.own (txDbQ 1)) (fun it hit _ => Hlens it hit)
+      $$ [H5 Hnd Hdbf] as ⟨H5, Hnd, -, Hdbf⟩
+    · iframe; iframe #
+    ihave Hw := Hwb $$ H5 Hnd Hdbf
+    by_cases Hinl : C.bv.rootNode' ≠ null ∧ nv0.isLeaf' = true ∧ inlineIns ins0
+    · rw [decide_eq_true Hinl]
+      try wp_auto
+      sorry
+    · rw [decide_eq_false Hinl]
+      try wp_auto
+      obtain ⟨h, F, N, Hbk⟩ := rinv_bkPre HI Hknd Hkm Htodo Hc HC
+      wp_apply (Bucket.spill.wp_child hNS hRoot hPgid hSRP) K tx r m X1 w1 c C _ h F (Dc key) N Hbk
+        $$ [Hw Hdb] as %err Hpost
+      · iframe
+      unfold bkPost
+      icases Hpost with (⟨%he, %X2, %w2, %st2, Hw, Hdb, %Hdone⟩ |
+        ⟨%hne, #HeOk, %X2, %w2, %st2, %Hst2, Hcase⟩)
+      · subst he
+        obtain ⟨C2, Dc2, s2, st3, HC2, HcL2, HI2, Hs2⟩ : ∃ C2 Dc2 s2 st3,
+            X2.t.bs !! c = some C2 ∧ c ∈ X2.liveB ∧
+            RInv X w B0 keys Lroot X2 w2 st3 Dc2 (upd ks key s2) ∧
+            ((C2.bv.rootNode' = null ∧ s2 = .nilc) ∨
+             (C2.bv.rootNode' ≠ null ∧ s2 = .val (encode C2.ib) false)) := by
+          rcases Hdone.2 with ⟨hn, rfl, rfl⟩ | ⟨hn, -⟩
+          · exact ⟨C, Dc, .nilc, st, HC, HcL, rinv_nil HI Htodo Hc HC hn, Or.inl ⟨hn, rfl⟩⟩
+          · obtain ⟨C', D', HC', Hnn, HcL', HI'⟩ := rinv_spilled HI Hknd Hkm Htodo Hc HC hn Hdone
+            exact ⟨C', upd Dc key D', _, _, HC', HcL', HI', Or.inr ⟨Hnn, rfl⟩⟩
+        try wp_auto
+        wp_apply wp_slice_make2 (V := w8) $$ [] as %val ⟨Hv, Hcap⟩
+        · ipureintro; decide
+        ihave %Hvl := ownSlice_len _ _ _ $$ Hv
+        ihave %Hvp := ownSlice_ptr_pos _ _ _ (by simp) $$ Hv
+        icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) _ _ _ Hvp $$ Hv
+          with ⟨Hbytes, Hback⟩
+        rw [flatMap_encode_w8, show (zero_val w8 : w8) = 0 from rfl]
+        have hvlen : sint.Z val.len = 16 :=
+          internal.common.sint_Z_eq_of_sint_nat _ _ (by simpa using Hvl.1) Hvl.2
+        icases (bytesPointsto_typed (V := InBucket) _ _ _ (by simp) Hvp).1 $$ Hbytes with Hh0
+        simp only [hvlen, show sint.Z (W64 0) = 0 from rfl,
+          show (0 : Int) ≤ 0 ∧ (0 : Int) < 16 from ⟨Int.le_refl _, by decide⟩]
+        rw [show sliceIndexRef w8 0 val = val.ptr by rw [sliceIndexRef_byte _ _ Hvp (Int.le_refl _)]; simp]
+        icases wtxW_bkt_acc K tx r m X2 c C2 HC2 $$ Hw with ⟨Ho, Hwb2⟩
+        rw [decide_eq_true HcL2]
+        unfold objOwn
+        icases Ho with ⟨G1, G2, G3, G4, G5, G6, G7, G8, G9, G10⟩
+        try wp_auto
+        icases (typedPointsto_bytes (V := InBucket) _ _ _ Hvp).1 $$ Hh0 with Hh0
+        ihave Hval := Hback $$ %(encode C2.ib) [] [Hh0]
+        · ipureintro; simp [ByteEncoding.encode_length]
+        · rw [flatMap_encode_w8]; iexact Hh0
+        ihave Hw := Hwb2 $$ [G1 G2 G3 G4 G5 G6 G7 G8 G9 G10]
+        · dsimp only; iframe
+        rcases Hs2 with ⟨Hn2, rfl⟩ | ⟨Hn2, rfl⟩
+        · rw [decide_eq_true Hn2]
+          try wp_auto
+          obtain ⟨Br, HBr, Hbk', Hbm'⟩ := HI2.root
+          icases wtxW_bm_acc K tx r m X2 X.rl Br HBr B0.bv.buckets' B0.bm Hbk' Hbm' $$ Hw
+            with ⟨Hbm, Hwb⟩
+          unfold forMapPostcondition
+          ileft
+          isplitr
+          · ipureintro; rfl
+          iexists B0.bm
+          iframe Hbm
+          isplitr
+          · ipureintro; rfl
+          iframe
+          iexists st3, Lroot, Dc2, upd ks key .nilc
+          iframe
+          ipureintro
+          exact ⟨HI2, ksAt_step Hknd Hks Hkey .nilc ⟨(fun h => nomatch h), (fun v h => nomatch h)⟩⟩
+        · rw [decide_eq_false Hn2]
+          try wp_auto
+          sorry
+      · cases err with
+        | nil => exact absurd rfl hne
+        | ok ii =>
+        try wp_auto
+        unfold forMapPostcondition
+        iright; iright; iright
+        iexists #()
+        isplitr
+        · ipureintro; rfl
+        dsimp only
+        wp_auto
+        iapply HΦ
+        unfold spillPost
+        iright
+        isplitr
+        · ipureintro; exact hne
+        isplitr
+        · iexact HeOk
+        iexists X2, w2, st ++ st2
+        isplitr
+        · ipureintro
+          refine ⟨Hst2.1.trans HI.C, ?_, Hst2.2.2.trans HI.pages⟩
+          rw [Hst2.2.1, HI.fl, wtxid_of_C HI.C, applySteps_append]
+        iexact Hcase
   isplitr
   · iintro !> %i %key %m' ⟨%Hkey, %Hc⟩ HP
     unfold loopP
