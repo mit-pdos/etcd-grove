@@ -30,7 +30,9 @@ for it: its `Rollback` ran), after it (`pub`), or after a failed remap (no mappi
 parked); a lent view is the records' (`wl = true → v = X.v`, batch 34: `store_wclose` takes its
 cells, which `wtxW` holds at `X.v`). It reads the freelist's counts, clears `db.rwtx`, unlocks
 `rwlock` (its resource back: `store_wclose`, the writer side idle), adds its statistics to the
-database's under `statlock`; the transaction is done. -/
+database's under `statlock`; the transaction is done. The `commitHandlers` field is given back
+(maintainer 12, item 2: `close` never writes it, and `Commit`'s handler loop reads it after
+`close`). -/
 abbrev Tx.close_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
   (∃ v wt pb wl, ws = (some v, some wt, pb, wl) ∧
@@ -38,7 +40,7 @@ abbrev Tx.close_w.spec : Prop :=
     (wl = true → v = X.v)) →
   {{ wtxEnd (GF := GF) K tx r X ws w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"close")) (Val #()))
-  {{ RET #(); txDoneDef tx }}
+  {{ RET #(); txDoneDef tx ∗ tx.[Tx, go!"commitHandlers"] ↦ X.t.t.commitHandlers' }}
 
 end spec
 

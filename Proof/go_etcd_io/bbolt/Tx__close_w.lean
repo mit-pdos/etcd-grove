@@ -237,6 +237,7 @@ theorem Tx.close_w.wp_proof
     unfold txRoot
     wp_auto
     iapply HΦ
+    iframe Hch
     iunfold txDoneDef; iexists s; iexact Hsts
   · rw [decide_eq_false hsp]
     wp_auto
@@ -259,6 +260,7 @@ theorem Tx.close_w.wp_proof
     unfold txRoot
     wp_auto
     iapply HΦ
+    iframe Hch
     iunfold txDoneDef; iexists s; iexact Hsts
 
 end proof

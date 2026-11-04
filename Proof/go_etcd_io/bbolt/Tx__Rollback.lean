@@ -174,7 +174,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
       fun _ => rfl⟩
     $$ [Hcls Hfull Hvc Hmf Hpkg Hkc Hreg Hfills Hbk Hnl Hdb Hvo Hd Hrwl Hshape Hv Hst Hcur Hgfl
       Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk
-      Hflo Hpair Hrcpt Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch Hwfl Hmv Hpm Hbufs] as Hdone
+      Hflo Hpair Hrcpt Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch Hwfl Hmv Hpm Hbufs] as ⟨Hdone, -⟩
   · iunfold wtxEnd
     iframe Hfull Hrwl Hst Hcls
     isplitl [Hvc Hmf Hpkg Hkc Hreg Hfills Hbk Hnl Hdb Hvo Hd Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch

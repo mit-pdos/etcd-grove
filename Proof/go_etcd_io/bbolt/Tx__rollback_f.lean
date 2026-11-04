@@ -239,7 +239,7 @@ theorem Tx.rollback_f.wp_proof
         Or.inr (by rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
         Iff.intro (fun h => by cases h) (fun h => absurd hms2 h), fun h => by cases h⟩
       $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
-        Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+        Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as ⟨Hdone, -⟩
     · iunfold wtxEnd
       iframe Hfull Hw Hrwl Hcls Hv Hst
       isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
@@ -353,7 +353,7 @@ theorem Tx.rollback_f.wp_proof
             Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
             by simp only; rw [hms']; exact hwl, hwlv⟩
           $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
-            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as ⟨Hdone, -⟩
         · iunfold wtxEnd
           iframe Hfull Hw Hrwl Hcls Hv Hst
           isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
@@ -449,7 +449,7 @@ theorem Tx.rollback_f.wp_proof
             Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
             by simp only; rw [hms']; exact hwl, hwlv⟩
           $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
-            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as ⟨Hdone, -⟩
         · iunfold wtxEnd
           iframe Hfull Hw Hrwl Hcls Hv Hst
           isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
@@ -476,7 +476,7 @@ theorem Tx.rollback_f.wp_proof
       · rw [hbl']; iexact Hmc2
       wp_apply wp_close K tx r X _ w ⟨v, w.C.txid, true, wl, rfl, Or.inl rfl, hwl, hwlv⟩
         $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
-          Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+          Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as ⟨Hdone, -⟩
       · iunfold wtxEnd
         iframe Hfull Hw Hrwl Hcls Hv Hst
         isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
