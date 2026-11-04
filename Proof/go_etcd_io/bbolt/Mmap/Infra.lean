@@ -13,6 +13,17 @@ supply it).
   package fact (`bboltRootInit`, from the trust-boundary axiom `runtime.GOOS_linux` of
   `Proof/runtime/Init.lean`): `goosLinux_of_pkgInit` gives it from `isPkgInit bbolt`.
 
+- `errMaxSizeOk` (U4c): `ErrMaxSizeReached` is a pointer error (`errors.New`'s) that `fmt` formats:
+  `DB.allocate` compares `DB.mmap`'s error with it (`err == ErrMaxSizeReached`, stuck unless one
+  side's dynamic type is known comparable) and returns it. bbolt's package facts
+  (`bboltErrorsVars`) say only that it is not nil; its initializer (`errors/Init.lean`) knows it is
+  `errors.New`'s. To discharge: `bboltErrorsVars`' clause for it as `bboltErrorsInit`'s for
+  `ErrBucketNotFound` (`IsPointerError`, with `errorString_fmtErrorOk`'s method spec).
+- `pagePoolNew` (U4c): the page pool's `New` is not nil (`Open` sets it), so `Get().([]byte)`
+  cannot assert on a nil interface. `dbFixed` holds `∃ f, isPool db.pagePool f pageBuf` with any
+  `f`, and `sync.Pool.Get.spec` returns nil for a nil `New`. To discharge: `dbFixed` with
+  `⌜f ≠ func.nil⌝`.
+
 (2026-11-04) The error posts of `os`'s `File.Stat`/`Truncate`/`Sync`/`ReadAt`/`WriteAt` now end
 with `fmtErrorOkOrNil err` (`Spec/fmt/ErrorOk.lean`; `fmtErrorOkOrNil_ne` gives `fmtErrorOk` of a
 non-nil one), and `fmt.Errorf.spec`'s post has the method-set fact (`fmtErrorOk_of_errorf`).
@@ -23,6 +34,7 @@ public import Spec.fmt.ErrorOk
 public import Proof.syscall.ErrorOk
 public import Perennial.Code.runtime
 public import Proof.go_etcd_io.bbolt.PkgInit
+public import Proof.go_etcd_io.bbolt.Inv.Bolt
 
 @[expose] public section
 
@@ -47,6 +59,17 @@ def errnoErrOk : Prop := ∀ e : w64, e ≠ 0 → ⊢ fmtErrorOk (GF := GF) (err
 (`TrustedCode/syscall.lean`, some string), `errnoErr_fmtErrorOk` (`Proof/syscall/ErrorOk.lean`). -/
 theorem errnoErrOk_holds [syscall.Assumptions] : errnoErrOk (GF := GF) (hG := hG) :=
   fun e he => errnoErr_fmtErrorOk e he
+
+/-- **`ErrMaxSizeReached` is a pointer error `fmt` formats** (U4c, see the header). -/
+def errMaxSizeOk : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
+    ∃ e : GoInterfaceOk, globalAddr go_etcd_io.bbolt.errors.ErrMaxSizeReached ↦□ GoInterface.ok e ∗
+      ⌜_root_.Perennial.errors.IsPointerError e⌝ ∗ fmtErrorOk (.ok e)
+
+/-- **The page pool's `New` is not nil** (U4c, see the header). -/
+def pagePoolNew : Prop :=
+  ∀ db sp : Loc, dbFixed (GF := GF) db sp ⊢
+    ∃ f : GoFunc, sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝
 
 end infra
 
