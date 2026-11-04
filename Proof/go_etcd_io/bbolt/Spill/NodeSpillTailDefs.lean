@@ -33,7 +33,7 @@ def insLens (ins : List Inode) (ws : List WEntry) : Prop :=
 
 /-- **The pure premises of `pieceOne_wp`** for the piece `l` (record `rl`) at `(X, w)` (see the
 module doc), in its order: `hlv`, `hbl`, `hfree`, `hG`, `hne`, `hil`, `hsz`, `hfit`, `hn16`,
-`hbody`, `hid`, `hpar` (U9w: `hne` only with a parent, an empty root leaf is written). -/
+`hbody`, `hid`, `hpar`, `hsz31` (coordinator: the size an `int`; U9w: `hne` only with a parent, an empty root leaf is written). -/
 def pcPre (X : WX) (w : WDb) (bl l : Loc) (rl : NRec) : Prop :=
   l ∈ X.live ∧ rl.nv.bucket' = bl ∧
   (rl.nv.pgid' ≠ W64 0 → X.t.pm !! rl.nv.pgid' = none ∧ X.t.mv.txid' = w.wtxid ∧
@@ -49,7 +49,8 @@ def pcPre (X : WX) (w : WDb) (bl l : Loc) (rl : NRec) : Prop :=
     allocRes X1 X2 w1.fl fl2 w.wtxid (pcCount (insSize rl.ins)) p id →
     id.toNat < X2.t.mv.pgid'.toNat ∧ (rl.nv.isLeaf' = false → ∀ e ∈ rl.ws, e.pgid ≠ id)) ∧
   (rl.nv.parent' ≠ null → ∃ rp, X.node bl rl.nv.parent' = some rp ∧
-    rl.nv.parent' ∈ X.live ∧ rl.nv.parent' ≠ l ∧ rp.capOwn = true ∧ wsSorted rp.ws)
+    rl.nv.parent' ∈ X.live ∧ rl.nv.parent' ≠ l ∧ rp.capOwn = true ∧ wsSorted rp.ws) ∧
+  insSize rl.ins < 2 ^ 31 - 1
 
 end defs
 

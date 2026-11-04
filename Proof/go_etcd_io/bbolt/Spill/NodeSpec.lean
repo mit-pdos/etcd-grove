@@ -139,13 +139,14 @@ def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with
-`O`, its pages freeable. -/
+`O`, its pages freeable, the view the committed tree's (coordinator: for `spStep`'s `bufsOK`). -/
 def spPre (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Option (List w8))
     (h : Nat) (F D : List Nat) (N : List Loc) (E : List El) (cs : SpCase) : Prop :=
   X.node bl n = some rn ∧ spG X w.wtxid (mapLen w.ms) w.fl ∧
   ((rn.nv.spilled' = true ∧ rn.nv.bucket' = bl ∧ n ∈ X.live) ∨
    (uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E ∧ spCtx X bl n rn lo hi N cs ∧
-    slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F))
+    slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F ∧
+    X.v = View.ofC X.v.base w.C))
 
 /-- **`n.spill()`'s success** (pure), from `(X, w)` to `(X', w')` by the steps `st` (see
 `node.spill.spec'`). -/
@@ -205,6 +206,18 @@ abbrev node.spill.spec' : Prop :=
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #()))
   {{ (err : GoInterface), RET #err; spPost K tx r m X w bl n rn O lo hi h D N E cs err }}
+
+omit package_sem in
+/-- The writer's view is the committed tree's (`wdbW`'s pure fact; `spPre`'s last clause). -/
+theorem wdbW_ofC (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ wdbW K tx v w ∗ ⌜v = View.ofC v.base w.C⌝ := by
+  unfold wdbW
+  iintro ⟨H, %Hp⟩
+  isplitl [H]
+  · isplitl [H]
+    · iexact H
+    · ipureintro; exact Hp
+  · ipureintro; exact Hp.2.2
 
 end spec
 

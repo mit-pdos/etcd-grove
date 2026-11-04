@@ -60,7 +60,8 @@ theorem tail_init_par {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       (pl ≠ null → ∃ rpi, X2.node bl pl = some rpi ∧ pl ∈ X2.live ∧ pl ∉ xs.map (·.1) ∧
         rpi.capOwn = true ∧ wsSorted rpi.ws ∧ rpi.ws.map wDat = parWs bs j 0 [] ∧
         rpi.ins.length = rpi.ws.length ∧
-        rpi.cs = rp'.cs ∧ rpi.nv = { rp'.nv with inodes' := rpi.nv.inodes' } ∧ rpi.key = rp'.key ∧
+        rpi.cs = rp'.cs ∧ rpi.nv = { rp'.nv with inodes' := rpi.nv.inodes', key' := rpi.nv.key' } ∧
+        rpi.key = rp'.key ∧
         (rpi.nv.key' = slice.nil ↔ rp'.nv.key' = slice.nil)) := by
   obtain ⟨hn', -, -, hnv, -, -, hfr0, hT⟩ := spEnd_rec hpre hsp hend
   obtain ⟨-, -, hS⟩ := tail_pre hpre hsp hend

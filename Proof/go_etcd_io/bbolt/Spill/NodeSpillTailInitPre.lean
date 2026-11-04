@@ -31,7 +31,8 @@ variable [GooseExts] [GoGlobalContext]
 theorem spG_fl {X : WX} {txid : w64} {ml : Nat} {fl fl' : FLPg} (hf : fl'.free = fl.free)
     (h : spG X txid ml fl) : spG X txid ml fl' := by
   obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := h
-  exact ⟨a1, a2, a3, a4, a5, a6, a7, fun id hid => by rw [hf]; exact a8 id hid, a9⟩
+  exact ⟨a1, a2, a3, a4, a5, a6, a7, fun id hid => by rw [hf]; exact a8 id hid, a9.1, a9.2.1,
+    by rw [hf]; exact a9.2.2⟩
 
 theorem freePages_free (fl : FLPg) (txid id : w64) (n : Nat) :
     (fl.freePages txid id n).free = fl.free := rfl

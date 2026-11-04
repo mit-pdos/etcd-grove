@@ -237,7 +237,7 @@ theorem spillTail_gen
     obtain ⟨x, hx⟩ : ∃ x, xs[sint.nat j]? = some x := ⟨_, List.getElem?_eq_getElem hjn⟩
     obtain ⟨rl, hrl, hrlv, hrwl, hpre⟩ := H2 xs pl _ Xi wi _ x HIj hx
     icases wtxW_lens K tx r m Xi bl x.1 rl hrl hrlv hrwl $$ Hw with ⟨Hw, %Hrlens⟩
-    obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12⟩ := hpre Hrlens
+    obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12, -⟩ := hpre Hrlens
     icases wtxW_heapOK K tx r m Xi $$ Hw with ⟨Hw, %Hok⟩
     icases wdbW_freeView K tx Xi.v wi $$ Hdb with ⟨Hdb, %Hfv⟩
     wp_pures

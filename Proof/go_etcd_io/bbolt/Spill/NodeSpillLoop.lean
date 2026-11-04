@@ -177,7 +177,8 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
     {r' : NRec} {es : List UE} {i : Nat} {st : List FLStep} {T : List Loc} {c : Loc}
     {j : Nat} {Fc Dc : List Nat} {Nc : List Loc} {Ec : List El}
     (hl : spLoop X w bl n r O lo hi h D0 N0 E0 X' w' r' es i st T)
-    (hj : es[j]? = some ⟨some c, Fc, Dc, Nc, Ec⟩) (hnn : n ≠ null) :
+    (hj : es[j]? = some ⟨some c, Fc, Dc, Nc, Ec⟩) (hnn : n ≠ null)
+    (hv : X'.v = View.ofC X'.v.base w'.C) :
     ∃ rc, X'.node bl c = some rc ∧ rc.nv.spilled' = false ∧
       spPre X' w' bl c rc (chO O X'.v r' es j) (childLo lo (wKey r'.ws) j)
         (childHi hi (wKey r'.ws) r'.ws.length j) h Fc Dc Nc Ec (.child n r' j lo hi) := by
@@ -201,7 +202,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
       exact ⟨hpar, hnn, hnN, hb.node, hb.un, hb.leaf, hpg0, hcm,
         ⟨_, List.getElem?_eq_getElem hjl, hpg.symm, hkey.symm⟩, rfl, rfl, hknil, hne.2, hne.1⟩
     · exact slotInv_child hj hl.slot
-    · intro id hid
+    · refine ⟨fun id hid => ?_, hv⟩
       rw [htx]
       refine hl.free id (List.mem_append_right _ (List.mem_flatMap.2 ⟨_, mem_of_get hj, hid⟩))
 

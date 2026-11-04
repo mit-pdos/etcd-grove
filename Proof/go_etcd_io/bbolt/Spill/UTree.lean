@@ -230,7 +230,8 @@ the base pages' slots, and the mark below `2 ^ 62`; (batch 37, U9l) every buffer
 mark, not free in the writer side's freelist `fl` (so `allocate`'s new id is no buffer's, and
 `spFrame` keeps the old buffers) and no page of the view (so the positions of a bucket the spill
 frees, view pages, have no buffer: `Bucket.free`'s premise for an inlineable child); (U9w) the view's pages below the mark (an
-allocation at the mark is no view page). -/
+allocation at the mark is no view page); (coordinator, for `spStep`'s `bufsOK`) the mark and the
+free ids at least 2 (`wdbOK`'s `fl.WF`: an allocation's id is no meta page). -/
 def spG (X : WX) (txid : w64) (ml : Nat) (fl : FLPg) : Prop :=
   X.t.mv.txid' = txid ∧ X.t.mv.pgid'.toNat * 4096 ≤ ml ∧ derefPre X ∧ liveFresh X ∧
   liveReach X ∧
@@ -238,7 +239,8 @@ def spG (X : WX) (txid : w64) (ml : Nat) (fl : FLPg) : Prop :=
   X.t.mv.pgid'.toNat < 2 ^ 62 ∧
   (∀ id, (X.t.bufs !! id).isSome →
     id.toNat < X.t.mv.pgid'.toNat ∧ id ∉ fl.free ∧ X.v.pages !! id.toNat = none) ∧
-  (∀ id pg, X.v.pages !! id = some pg → id < X.t.mv.pgid'.toNat)
+  (∀ id pg, X.v.pages !! id = some pg → id < X.t.mv.pgid'.toNat) ∧
+  2 ≤ X.t.mv.pgid'.toNat ∧ ∀ y ∈ fl.free, 2 ≤ y.toNat
 
 end utree
 

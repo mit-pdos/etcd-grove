@@ -145,7 +145,8 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
       have h1 : (sint.Z j).toNat < (sint.Z r'.nv.children'.len).toNat := by omega
       rw [Hcl.1]; exact h1
     obtain ⟨c, hc⟩ : ∃ c, r'.cs[sint.nat j]? = some c := ⟨_, List.getElem?_eq_getElem hjn⟩
-    obtain ⟨rc, O', lo', hi', h', F', D', N', E', cs', hrc, hpre, hnext⟩ := spLoop_next Hl hc Hnn
+    icases wdbW_ofC K tx X'.v w' $$ Hdb with ⟨Hdb, %Hvc⟩
+    obtain ⟨rc, O', lo', hi', h', F', D', N', E', cs', hrc, hpre, hnext⟩ := spLoop_next Hl hc Hnn Hvc
     icases wtxW_children_acc K tx r m X' bl n r' hrn hlv $$ Hw with ⟨Hnv, Hch, Hwb⟩
     iStructNamed Hnv
     wp_auto

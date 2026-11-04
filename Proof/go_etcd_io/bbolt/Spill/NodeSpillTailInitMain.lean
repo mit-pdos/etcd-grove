@@ -103,7 +103,7 @@ theorem pcInv_init' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   exact {
     len := rfl
     start := fun _ => ⟨rfl, rfl, rfl⟩
-    vb := hG2.2.2.2.2.2.2.2.2
+    vb := hG2.2.2.2.2.2.2.2.2.1
     ile := Nat.zero_le _
     pcl := fun k p x hp => by simp at hp
     Elen := hEl

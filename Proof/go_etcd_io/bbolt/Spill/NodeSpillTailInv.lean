@@ -113,7 +113,8 @@ structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List
     rpi.capOwn = true ∧ wsSorted rpi.ws ∧ rpi.ws.map wDat = parWs bs j i ps ∧
     rpi.ins.length = rpi.ws.length ∧
     -- (U9z) the parent's record but its inodes and entries: the split's
-    rpi.cs = rp0.cs ∧ rpi.nv = { rp0.nv with inodes' := rpi.nv.inodes' } ∧ rpi.key = rp0.key ∧
+    rpi.cs = rp0.cs ∧ rpi.nv = { rp0.nv with inodes' := rpi.nv.inodes', key' := rpi.nv.key' } ∧
+    rpi.key = rp0.key ∧
     (rpi.nv.key' = slice.nil ↔ rp0.nv.key' = slice.nil)
 
 /-- **The pieces' loop's invariant** (see the module doc): `n`'s spill from `(X, w)` (as

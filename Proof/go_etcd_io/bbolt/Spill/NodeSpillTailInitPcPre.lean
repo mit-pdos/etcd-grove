@@ -88,7 +88,7 @@ theorem spEnd_free0 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
     spFree X' w'.fl w.wtxid (ownF r'.nv.pgid') := by
   obtain ⟨hn, -, hc⟩ := hpre
-  rcases hc with ⟨hs, -⟩ | ⟨hut, -, -, hfr⟩
+  rcases hc with ⟨hs, -⟩ | ⟨hut, -, -, hfr, -⟩
   · rw [hsp] at hs; cases hs
   rcases hend with ⟨hleaf, rfl, rfl, rfl, -, -⟩ | ⟨-, h', es, i, -, hl, -⟩
   · cases hut with
@@ -159,7 +159,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hfit x (List.mem_of_getElem? hx)).1
   have hcnt : insSize rk.ins ≤ pcCount (insSize rk.ins) * 4096 := by unfold pcCount; omega
   refine ⟨hlv, hnv.1.trans hbk, ?_, spG_pcFreed hrk hlv hGi, ?_, ?_, by omega, ?_,
-    by omega, by omega, ?_, ?_⟩
+    by omega, by omega, ?_, ?_, by omega⟩
   · -- piece `0`'s page
     intro h0
     have hi0 : i = 0 := by
