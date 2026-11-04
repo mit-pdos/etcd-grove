@@ -12,7 +12,8 @@ those that reach another's, or the main root's same path.  A project translated 
 root of its own (`Project.root`: the witness experiment's `RaftWitness/`; raft v3.7's parallel tree `Raft37/` was one) is a part root
 here too.
 
-The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and
+The roots are the theorems of every `Link.lean`, `MainLinked.lean` (an example's `Main` linked
+by hand) and `Results.lean` under `Proof/` and
 `<root>/Proof/`, so a new package's proofs are picked up when its directory has them.
 `etc/tcb-report.lean` imports the modules of one run into one environment; the runs
 group the root modules by the part roots they reach (none, for most), and by the local
@@ -47,7 +48,9 @@ PROJECT_DIRS = tuple(m.rstrip(".").replace(".", "/") for m in PROJECT_MODS)
 ROOT_DIRS = ("Proof",) + tuple(os.path.join(r, "Proof") for r in PART_ROOTS)
 LOCAL_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof") + tuple(
     PART_ROOTS)
-ROOT_FILES = ("Link.lean", "Results.lean")
+# `MainLinked.lean`: an example's `Main` linked by hand over its callees' Links (no
+# `etc/gen-link.py` mode links several packages); its results are linked results too
+ROOT_FILES = ("Link.lean", "MainLinked.lean", "Results.lean")
 IMPORT = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+(.*)$", re.M)
 NAMESPACE = re.compile(r"^namespace\s+(\S+)", re.M)
 
@@ -80,7 +83,7 @@ def root_modules():
 
 
 def link_modules():
-    return [m for m in root_modules() if m.endswith(".Link")]
+    return [m for m in root_modules() if m.endswith((".Link", ".MainLinked"))]
 
 
 def namespace():
