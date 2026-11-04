@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.State
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.fmt.ErrorOk
+public import Proof.go_etcd_io.bbolt.Mmap.Infra
 
 @[expose] public section
 
@@ -39,11 +40,13 @@ instance beginErr_persistent (err : GoInterface) : Persistent (beginErr (GF := G
 
 /-- **The error of `Begin` is `fmtErrorOk`** (B1: `Open` logs a failed `Begin` with `%v`). Needs
 bbolt's error variables' package facts to say each is an `errors.New` error (`IsPointerError` and
-`errorString_fmtErrorOk`'s method spec, as `bboltErrorsInit` says of `ErrBucketNotFound`): being
-added by the maintainer (queue item C(1)). -/
+`errorString_fmtErrorOk`'s method spec: batch 30's `bboltErrVar`, `beginErrs_fmtErrorOk`). -/
 theorem beginErr_fmtErrorOk (err : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ∗ beginErr err ⊢ fmtErrorOk err := by
-  sorry
+  unfold beginErr
+  iintro ⟨#Hep, -, #Hor⟩
+  iapply beginErrs_fmtErrorOk err
+  iframe #
 
 /-- **The read update fired at the meta copy** (design §3.13, `Begin(false)`'s linearization
 point): with `metalock`'s quarter of the committed data `D`, the client's update commits at `D`. -/

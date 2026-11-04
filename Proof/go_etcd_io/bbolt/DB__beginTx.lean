@@ -93,7 +93,12 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hep
   unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
-  icases Hei with ⟨%_, #-, %_, ⟨%eNO, #HNO, %HNOn⟩, -, ⟨%eIM, #HIM, %HIMn⟩, -⟩
+  icases Hei with ⟨%_, #-, %_, #H0, -, #H2, -⟩
+  unfold go_etcd_io.bbolt.errors.bboltErrVar
+  icases H0 with ⟨%eNO0, #HNO, -⟩
+  icases H2 with ⟨%eIM0, #HIM, -⟩
+  have HNOn : GoInterface.ok eNO0 ≠ GoInterface.nil := by simp
+  have HIMn : GoInterface.ok eIM0 ≠ GoInterface.nil := by simp
   -- the pair borrowed from the pool
   iapply fupd_wp
   imod threadPool.borrow (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) ⊤ (fun _ _ => CoPset.mem_full)
