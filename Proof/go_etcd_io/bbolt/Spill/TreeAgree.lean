@@ -157,6 +157,78 @@ theorem treeHas_agree {P P' : Pages} {root id : Nat}
       h
   exact key h ha
 
+/-- `treeHas_le` for a nested bucket's value. -/
+theorem bucketHas_le {P P' : Pages} (hle : pagesLe P P') {v : List w8} {id : Nat}
+    (h : bucketHas P v id) : bucketHas P' v id :=
+  bucketHas.rec (pages := P)
+    (motive_1 := fun root id _ => treeHas P' root id)
+    (motive_2 := fun pg id _ => pageHas P' pg id)
+    (motive_3 := fun v id _ => bucketHas P' v id)
+    (fun root pg hpg => treeHas.root root pg (hle _ _ hpg))
+    (fun root pg id hpg _ ih => treeHas.sub root pg id (hle _ _ hpg) ih)
+    (fun pg i id hfl hi _ ih => pageHas.child pg i id hfl hi ih)
+    (fun pg i id hfl hi hbf _ ih => pageHas.bucket pg i id hfl hi hbf ih)
+    (fun v id hr _ ih => bucketHas.file v id hr ih)
+    (fun v id hr _ ih => bucketHas.inline v id hr ih)
+    h
+
+/-- `treeHas_of_le` for a nested bucket's value. -/
+theorem bucketHas_of_le {P P' : Pages} (hle : pagesLe P P') (hwm : Nat) {v : List w8} {id : Nat}
+    (h : bucketHas P' v id) : bucketWF P hwm v → bucketHas P v id :=
+  bucketHas.rec (pages := P')
+    (motive_1 := fun root id _ => treeWF P hwm root → treeHas P root id)
+    (motive_2 := fun pg id _ => ∀ len, pageTreeWF P hwm pg len → pageHas P pg id)
+    (motive_3 := fun v id _ => bucketWF P hwm v → bucketHas P v id)
+    (fun root pg hpg hw => by
+      cases hw with
+      | page _ pg' _ _ hpg' _ _ _ => exact treeHas.root root pg' hpg')
+    (fun root pg id hpg _ ih hw => by
+      cases hw with
+      | page _ pg' _ _ hpg' _ _ hpt =>
+        have e := hle _ _ hpg'
+        rw [hpg] at e; cases e
+        exact treeHas.sub root pg id hpg' (ih _ hpt))
+    (fun pg i id hfl hi _ ih len hpt => by
+      cases hpt with
+      | leaf _ _ hfl' _ _ => rw [hfl] at hfl'; simp [branchPageFlag, leafPageFlag] at hfl'
+      | branch _ _ _ _ hch => exact pageHas.child pg i id hfl hi (ih (hch i hi)))
+    (fun pg i id hfl hi hbf _ ih len hpt => by
+      cases hpt with
+      | leaf _ _ _ _ hb => exact pageHas.bucket pg i id hfl hi hbf (ih (hb i hi hbf))
+      | branch _ _ hfl' _ _ => rw [hfl] at hfl'; simp [branchPageFlag, leafPageFlag] at hfl')
+    (fun v id hr _ ih hb => by
+      cases hb with
+      | file _ _ _ ht => exact bucketHas.file v id hr (ih ht)
+      | inline _ _ hr' _ _ => exact absurd hr' hr)
+    (fun v id hr _ ih hb => by
+      cases hb with
+      | file _ _ hr' _ => exact absurd hr hr'
+      | inline _ _ _ _ hpt => exact bucketHas.inline v id hr (ih _ hpt))
+    h
+
+/-- `treeHas_agree` for a nested bucket's value. -/
+theorem bucketHas_agree {P P' : Pages} {v : List w8} {id : Nat}
+    (ha : ∀ id, bucketHas P v id → P' !! id = P !! id) (h : bucketHas P v id) :
+    bucketHas P' v id :=
+  (bucketHas.rec (pages := P)
+      (motive_1 := fun r x _ => (∀ y, treeHas P r y → P' !! y = P !! y) → treeHas P' r x)
+      (motive_2 := fun pg x _ => (∀ y, pageHas P pg y → P' !! y = P !! y) → pageHas P' pg x)
+      (motive_3 := fun v x _ => (∀ y, bucketHas P v y → P' !! y = P !! y) → bucketHas P' v x)
+      (fun r pg hpg ha => by
+        have e := ha r (treeHas.root r pg hpg); rw [hpg] at e
+        exact treeHas.root r pg e)
+      (fun r pg x hpg _ ih ha => by
+        have e := ha r (treeHas.root r pg hpg); rw [hpg] at e
+        exact treeHas.sub r pg x e (ih fun y hy => ha y (treeHas.sub r pg y hpg hy)))
+      (fun pg i x hfl hi _ ih ha =>
+        pageHas.child pg i x hfl hi (ih fun y hy => ha y (pageHas.child pg i y hfl hi hy)))
+      (fun pg i x hfl hi hbf _ ih ha =>
+        pageHas.bucket pg i x hfl hi hbf (ih fun y hy => ha y (pageHas.bucket pg i y hfl hi hbf hy)))
+      (fun v x hr _ ih ha => bucketHas.file v x hr (ih fun y hy => ha y (bucketHas.file v y hr hy)))
+      (fun v x hr _ ih ha =>
+        bucketHas.inline v x hr (ih fun y hy => ha y (bucketHas.inline v y hr hy)))
+      h) ha
+
 end agree
 
 end Spill
