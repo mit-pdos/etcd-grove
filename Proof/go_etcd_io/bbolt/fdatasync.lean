@@ -55,7 +55,7 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     · iexists _; iframe; ipureintro; exact ⟨rfl, rfl⟩
     · iright
       isplitr
-      · ipureintro; simp only [errnoErr, if_neg he.1]; exact fun h => nomatch h
+      · ipureintro; simp only [errnoErr, he.1, ↓reduceIte]; exact fun h => nomatch h
       · iapply hErr e he.1
 
 end proof

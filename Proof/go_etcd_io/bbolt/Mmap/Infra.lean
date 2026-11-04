@@ -9,11 +9,21 @@ supply it).
   `fmt` formats by its `Error()`. `Errno`'s method set has `Error() string` and no `Format`
   (goose's `Errno.TypeAssumptions`); what is missing is `Errno.Error`'s spec (its body is not
   translated).
+- `goosLinux` (§5 item 3): `runtime.GOOS` is `"linux"` (an axiom `val` in Perennial's `runtime`,
+  with no fact). `DB.grow` (on its success path), `DB.allocate` and `DB.mmap` (when `MaxSize > 0`)
+  compare it with `"windows"`, which is stuck on an unknown value.
+
+Not stated here, since no hypothesis of this form can supply them: the error posts of `os`'s
+`File.Stat`/`Truncate`/`Sync` (an arbitrary non-nil `err`) and `fmt.Errorf`'s (an error of
+unknown dynamic type) carry no `fmtErrorOk`/`fmt.argOk`, so every error path of `DB.grow`,
+`DB.munmap`, `DB.mmap`, `DB.allocate` and `Tx.allocate` that returns or logs such an error needs
+those specs restated (§5 item 5).
 -/
 module
 
 public import Spec.fmt.ErrorOk
 public import Proof.syscall.Base
+public import Perennial.Code.runtime
 
 @[expose] public section
 
@@ -35,6 +45,10 @@ variable [sem : go.Semantics]
 def errnoErrOk : Prop := ∀ e : w64, e ≠ 0 → ⊢ fmtErrorOk (GF := GF) (errnoErr e)
 
 end infra
+
+/-- **`runtime.GOOS` is `"linux"`** (§5 item 3). -/
+def goosLinux [GooseExts] [GoGlobalContext] : Prop :=
+  _root_.Perennial.runtime.GOOS = #(go!"linux")
 
 end bbolt
 end EtcdGrove
