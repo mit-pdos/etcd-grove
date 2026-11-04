@@ -100,7 +100,7 @@ theorem pt_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
 (`wdbOK` of `openW` is needed only when `rwlock`'s resource is formed, after `loadFreelist`.)
 Every ghost share is as `Inv/Names` lists it; the store's cells and witness are allocated mapped
 (no reader, so nothing lent), so `store_carve` is not needed. -/
-theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
+theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8) (fl : FLPg) (fli : GoInterface) (hpend : fl.pending = ∅)
     (hok : storeOK { openSigma b L C wb with fl := fl })
@@ -286,10 +286,10 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (d
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
   iframe Hmo2 Hwc Hwb Hst3 Hopn
   ipureintro
-  exact ⟨htx.2, hdb, hN⟩
+  exact ⟨⟨htx.2, ReceiptBoundLe.receiptBound_le⟩, hdb, hN⟩
 
 /-- **The core phase's ghost step** with no freelist yet (`db.freelist` nil). -/
-theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
+theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8)
     (hok : storeOK (openSigma b L C wb))

@@ -98,7 +98,8 @@ def lfPost (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoString) (C : Commit
 
 /-- **`db.loadFreelist()` at `Open`**. -/
 abbrev DB.loadFreelist.spec_open : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoString)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (db sp f : Loc)
+    (fd : w64) (p : GoString)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List (w8 × Bool)),
   lfOK N db C b L m xs →
   {{ lfPre (GF := GF) db sp f fd p b L m xs ∗
@@ -252,7 +253,7 @@ theorem DB.loadFreelist.wp_proof_open
     (hFC : internal.freelist.Interface.FreeCount.spec (GF := GF) (hG := hG))
     (hFP : DB.freepages.spec (GF := GF) (hG := hG)) :
     DB.loadFreelist.spec_open (GF := GF) (hG := hG) := by
-  intro _ N db sp f fd p C b L m xs hok
+  intro _ _ N db sp f fd p C b L m xs hok
   wp_start as ⟨Hpre, Honce⟩
   iunfold lfPre at Hpre
   icases Hpre with ⟨#Hpkg, Hpre⟩

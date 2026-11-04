@@ -287,7 +287,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
   isimp only [_root_.Perennial.errors.newVar] at Hn
   icases Hn with ⟨%eofl, #Heof, -⟩
   wp_auto
-  wp_apply hStat f fd d.path dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, -⟩
+  wp_apply hStat f fd d.path dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, %Hptr⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   try wp_auto
   icases Hr with (⟨%fs, %Hfs, Hst⟩ | %Hfs)
@@ -416,7 +416,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     | ok ii =>
       ihave #Hek : fmtErrorOk (GF := GF) (GoInterface.ok ii) $$ []
       · iapply fmtErrorOkOrNil_ne _ hne $$ Hek
-      ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ Hek
+      have Hpt := errPtrTyped_of_ptr ii (Hptr ii rfl)
       wp_auto
       iapply HΦ
       rw [fileOwn_eq]

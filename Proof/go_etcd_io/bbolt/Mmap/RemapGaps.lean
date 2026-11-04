@@ -152,14 +152,6 @@ theorem core_osN_disj (K : BC) : K.core (GF := GF) ⊢ ⌜↑osN ## ↑(pagesN K
   intro x hx
   exact H.2.2 x ⟨nclose_subseteq K.N "pages" x hx.2, hx.1⟩
 
-/-- **Gap 5 (Perennial's `fmt.Errorf`): the remap's errors are pointer-typed** (`errPtrTyped`):
-`syscall.Errno` values are no pointers, `errors.New`'s and `fmt.Errorf`'s are fresh pointers. The
-callee specs (`DB.fileSize`, `DB.mmapSize`, `DB.munmap`, `mmap`) give only `fmtErrorOk`; fix:
-`fmt.Errorf.spec`'s post with `IsPointerError` (`notes/perennial-changes.md`, "`fmt.Errorf`'s
-result: a fresh pointer error"), then `errPtrTyped` in the callee specs' error posts. -/
-theorem fmtErrorOk_errPtrTyped (err : GoInterface) : fmtErrorOk (GF := GF) err ⊢ ⌜errPtrTyped err⌝ := by
-  sorry
-
 end gaps
 
 end bbolt
