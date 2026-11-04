@@ -245,8 +245,16 @@ theorem Bucket.Bucket_w.wp_proof'
             · exact Or.inl ⟨by rcases hvs' with e | e <;> simp_all, a, b⟩
             · exact Or.inr ⟨a, b⟩
           · intro hok
-            exact WOpen.wOK_bktOpened X bl c B C w nb g hok hB hwa hk.symm hflag hbmc Hbo hrec'
-              hbv (hk ▸ hent) htk
+            have hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg,
+                leafFlags pg j % 2 = 0 := by
+              intro pg hpg j hj
+              by_cases h0 : inBucketRoot w.value = 0
+              · rcases hpg with ⟨-, rfl⟩ | ⟨h0', -⟩
+                · exact ((hbv.2 h0).1.2.2.2.2 j hj).2
+                · exact absurd h0 h0'
+              · exact WOpen.leafBkt_nest_plain X bl B hB hloc p hI ws hL w hwm hflag h0 pg hpg j hj
+            exact WOpen.wOK_bktOpened X bl c B C w nb g hok Hok.2.1 hB hwa hk.symm hflag hbmc Hbo
+              hrec' hbv (hk ▸ hent) htk hplain
       · rw [decide_eq_false hk]
         simp only [Bool.not_false]
         wp_auto

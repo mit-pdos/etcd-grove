@@ -337,6 +337,17 @@ theorem lPath_leaf (els : List elemRef) (pids : List w64) (hp : lPath X bl els p
   rw [List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]
   simp only [hL]
 
+/-- **A stored nested bucket's leaves hold no nested bucket** (the open's `posShape` and data).
+OPEN (U6e's report): for an entry of a view page this follows from `viewWF` (the page is the root
+bucket's own, by `rootShape` and `viewUnique`, whose entries' trees are plain); for an entry of a
+node it does not follow from `wOK` (a node entry's value may name any page of the view: `bvalOK`
+needs a nested-plainness clause, as batch 22's `inlineBnd`). -/
+theorem leafBkt_nest_plain (p : w64) (hI : posI X B p) (ws : List WEntry)
+    (hL : ltree X bl p = some (true, ws)) (w : WEntry) (hw : w ∈ ws) (hf : isBktFlag w.flags)
+    (h0 : inBucketRoot w.value ≠ 0) (pg : List w8) (hpg : bktLeafPg X.v.pages w.value pg) :
+    ∀ j < pageCount pg, leafFlags pg j % 2 = 0 := by
+  sorry
+
 end posi
 
 section found

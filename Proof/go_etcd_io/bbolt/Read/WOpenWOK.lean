@@ -564,22 +564,153 @@ theorem XO_leaves_old (hok : wOK X) (k : Loc) (hk : k ≠ c) :
   rw [hf]
   exact Write.wOK_leaves_fuel' X k hok 1
 
+/-- **The opened bucket's leaves** are its value's tree's (its inline page, or its view tree's). -/
+theorem XO_leaves_new (w : WEntry) (hv : viewWF X.v) (hrec : openedRec B.bv.tx' w.value w.vs C)
+    (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) :
+    (XO X bl c B C nb h).leaves c = (bktLeaves X.v.pages w.value).map pageWs := by
+  obtain ⟨hib, -, hrn, hnm, -, -, hil, hni⟩ := hrec
+  have hCb : (XO X bl c B C nb h).t.bs !! c = some C := by rw [XO_bs]; simp
+  have hrp : (XO X bl c B C nb h).rootPid c = C.ib.root' := by unfold WX.rootPid; rw [hCb]; rfl
+  have hres : ∀ p, resolve C p = none := by
+    intro p; unfold resolve; split
+    · simp [hrn]
+    · rw [hnm]; rfl
+  have hr : C.ib.root'.toNat = inBucketRoot w.value := by rw [hib]; rfl
+  unfold WX.leaves bktLeaves
+  rw [hrp]
+  by_cases h0 : inBucketRoot w.value = 0
+  · rw [if_pos h0]
+    have hC0 : C.ib.root' = W64 0 := by
+      apply BitVec.eq_of_toNat_eq; rw [hr, h0]; rfl
+    obtain ⟨-, hipg, -⟩ := hil h0
+    have hg := (hbv.2 h0).1
+    have hL : ltree (XO X bl c B C nb h) c (W64 0) = some (true, pageWs (inlinePage w.value)) := by
+      unfold ltree; rw [hCb]; simp only; rw [hres]
+      simp [wpageAt, hC0, hipg, hg.2.1]
+    rw [hC0]
+    obtain ⟨n, hn⟩ : ∃ n, (XO X bl c B C nb h).fuel = n + 1 := ⟨_, rfl⟩
+    rw [hn]
+    simp only [lleaves]
+    rw [hL]
+    rfl
+  · rw [if_neg h0]
+    have hC0 : C.ib.root' ≠ W64 0 := by
+      intro e; apply h0; rw [← hr, e]; rfl
+    have hL : ∀ q, ltree (XO X bl c B C nb h) c q = viewL X.v c c q := by
+      intro q
+      unfold ltree viewL; rw [hCb]; simp only [↓reduceIte]; rw [hres]
+      simp only [wpageAt, hC0, ↓reduceIte, Option.map_map]
+      rfl
+    rw [lleaves_congr' _ (viewL X.v c) c hL]
+    have hf : (XO X bl c B C nb h).fuel = X.v.pages.size + 1 + (XO X bl c B C nb h).t.bs.size := by
+      unfold WX.fuel; rw [show (XO X bl c B C nb h).v = X.v from rfl]; omega
+    rw [hf, lleaves_viewL_fuel X.v hv c _ _, hr]
+
+/-- **Opening keeps the writer's data.** -/
+theorem wtxData_XO (w : WEntry) (hok : wOK X) (hk : w.key = nb) (hf : isBktFlag w.flags)
+    (hw : w ∈ X.allEnts bl)
+    (hrec : openedRec B.bv.tx' w.value w.vs C)
+    (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value)
+    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
+    wtxData (XO X bl c B C nb h) = wtxData X := by
+  have hv : viewWF X.v := hok.2.2.2.2.2.2.2
+  have trl := hok.1.2.2.2.2.1
+  have hrl : X.rl ≠ c := by
+    intro e; obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 trl; rw [e, hc] at hR; cases hR
+  have hroot : rootEnts (XO X bl c B C nb h) = rootEnts X := by
+    unfold rootEnts
+    rw [show (XO X bl c B C nb h).rl = X.rl from rfl, XO_leaves_old X bl c B C nb h hB hc hbm hok _ hrl]
+  unfold wtxData
+  rw [hroot]
+  congr 1
+  apply List.map_congr_left
+  intro e he
+  congr 1
+  rw [Write.bktDataOf_eq, Write.bktDataOf_eq]
+  have hloc : bktLoc (XO X bl c B C nb h) e.1 =
+      if X.rl = bl ∧ e.1 = nb then some c else bktLoc X e.1 := by
+    unfold bktLoc
+    rw [show (XO X bl c B C nb h).rl = X.rl from rfl, XO_bs]
+    simp only [hrl, ↓reduceIte]
+    by_cases hb : X.rl = bl
+    · rw [hb, hB]; simp only [↓reduceIte, Option.bind_some, true_and]
+      by_cases hn : e.1 = nb
+      · rw [if_pos hn, hn, GMap.lookup_insert]
+      · rw [if_neg hn, GMap.lookup_insert_ne _ _ (Ne.symm hn)]
+    · simp only [hb, ↓reduceIte, false_and]
+  rw [hloc]
+  by_cases hch : X.rl = bl ∧ e.1 = nb
+  · rw [if_pos hch]
+    obtain ⟨hb, hn⟩ := hch
+    have hX : bktLoc X e.1 = none := by
+      unfold bktLoc; rw [hb, hB, hn]; simp [hbm]
+    rw [hX]
+    simp only
+    -- the root entry's value is `w`'s
+    have he2 : e.2 = w.value := by
+      unfold rootEnts at he
+      obtain ⟨ws, hws, he'⟩ := List.mem_flatMap.1 he
+      obtain ⟨w', hw', hb'⟩ := List.mem_filterMap.1 he'
+      split at hb'
+      · cases hb'
+        have hw'a : w' ∈ X.allEnts X.rl := List.mem_flatten.2 ⟨ws, hws, hw'⟩
+        rw [hb] at hw'a
+        have := allEnts_key_inj X hok bl B hB w' w hw'a hw (by simp only at hn; rw [hn, hk])
+        rw [this]
+      · cases hb'
+    rw [he2]
+    unfold lbktEnts bktOfPage bktEntries
+    rw [XO_leaves_new X bl c B C nb h hB hc hbm w hv hrec hbv, List.flatMap_map]
+    congr 1
+    apply Write.flatMap_congr'
+    intro pg hpg
+    have hpl : bktLeafPg X.v.pages w.value pg ∧ pageFlags pg = leafPageFlag := by
+      unfold bktLeaves at hpg
+      by_cases h0 : inBucketRoot w.value = 0
+      · rw [if_pos h0, List.mem_singleton] at hpg
+        subst hpg
+        exact ⟨Or.inl ⟨h0, rfl⟩, (hbv.2 h0).1.2.1⟩
+      · rw [if_neg h0] at hpg
+        obtain ⟨p, ho, hp, hl⟩ := leavesF_own X.v.pages
+          (fun id pg hp => (viewWF_page_ready X.v hv id pg hp).2.2.1) _ _ pg hpg
+        exact ⟨Or.inr ⟨h0, p, ho, hp, hl⟩, hl⟩
+    exact plain_pageWs pg hpl.2 (hplain pg hpl.1)
+  · rw [if_neg hch]
+    cases hl : bktLoc X e.1 with
+    | none => rfl
+    | some c' =>
+      simp only
+      have hc' : c' ≠ c := by
+        intro e'; subst e'
+        unfold bktLoc at hl
+        obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 trl
+        rw [hR] at hl
+        simp only [Option.bind_some] at hl
+        have := (hok.1.2.2.2.2.2 X.rl R hR).2 _ _ hl
+        rw [hc] at this; cases this
+      unfold lbktEnts
+      rw [XO_leaves_old X bl c B C nb h hB hc hbm hok _ hc']
+
 end opened
 
 
 /-- **Opening a nested bucket keeps `wOK` and the data**: the parent `bl`'s cache gains
 `nb ↦ c`, the fresh bucket `c` (record `C`, `openedRec` of the entry's value) is added, live, a
-handle. -/
+handle; the entry's nested tree's leaves are plain (`hplain`). -/
 theorem wOK_bktOpened (X : WX) (bl c : Loc) (B C : BRec) (w : WEntry) (nb : List w8) (g : Nat)
-    (hok : wOK X) (hB : X.t.bs !! bl = some B) (hw : w ∈ X.allEnts bl) (hk : w.key = nb)
-    (hf : isBktFlag w.flags) (hbm : B.bm !! nb = none) (hbo : X.t.bobjs !! c = none)
+    (hok : wOK X) (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hw : w ∈ X.allEnts bl)
+    (hk : w.key = nb) (hf : isBktFlag w.flags) (hbm : B.bm !! nb = none)
+    (hbo : X.t.bobjs !! c = none)
     (hrec : openedRec B.bv.tx' w.value w.vs C)
     (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) (hent : entryIn X.v B nb w.value)
     (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none)
     (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
     wOK ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) ∧
       wtxData ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) = wtxData X := by
-  sorry
+  have hc : X.t.bs !! c = none := ((GMap.lookup_union_None _ _ _).1 hbo).1
+  have hcd : X.t.deadB !! c = none := ((GMap.lookup_union_None _ _ _).1 hbo).2
+  exact ⟨wOK_XO X bl c B C nb (nb, g) hB hc hbm w hok hd hk hrec hbv hent htk hcd rfl hplain,
+    wtxData_XO X bl c B C nb (nb, g) hB hc hbm w hok hk hf hw hrec hbv hplain⟩
 
 end wok
 
