@@ -11,12 +11,13 @@ pages, its root, high-water mark, txid and synced freelist page. `CommitSt.metaO
 `fileHolds`' meta clauses, which also tie the record's fields to the current meta.
 
 (U0a deviation, `notes/bbolt-proof-plan.md`: `Pages` and `CommitSt` are here, not in
-`Model/Tree.lean`, since `CommitSt.metaOk` is; and the checksum is the uninterpreted `fnv64a`, not
-a parameter of `metaValid`.)
+`Model/Tree.lean`, since `CommitSt.metaOk` is; and the checksum is `fnv64a`, not a parameter of
+`metaValid`. It was uninterpreted until 2026-11-04; it is now FNV-1a 64, `hash/fnv`'s model.)
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Model.Page
+public import Spec.hash.fnv.Model
 
 @[expose] public section
 
@@ -28,10 +29,10 @@ namespace bbolt
 
 open go_etcd_io.bbolt.internal.common
 
-/-- **FNV-64a** (`hash/fnv`'s `New64a`, `Write`, `Sum64`), uninterpreted: `hash/fnv`'s
-trust-boundary specs (`notes/bbolt-proof-plan.md`, infrastructure item 2) say that `Meta.Sum64`
-computes it. Only its determinism is used in-process. -/
-opaque fnv64a : List w8 → w64
+/-- **FNV-64a** (`hash/fnv`'s `New64a`, `Write`, `Sum64`): `hash/fnv`'s model
+(`Spec/hash/fnv/Model.lean`), which its specs (`Spec/hash/fnv/`, proved from its translated
+bodies) are stated over; `Meta.Sum64`'s proof computes it through them. -/
+def fnv64a : List w8 → w64 := hash.fnv.fnv64a
 
 section metas
 variable [GooseExts]
