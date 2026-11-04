@@ -332,3 +332,55 @@ ids collide (an `ErrLeaseExists`, not a wrong result).
   `specSnapM`, one sealed conjunct), the examples' entry points (`leaseexpiry`).
 
 Round 2: a fresh reviewer on this revision, hardest on R1-R3's repairs.
+
+## Review round 2 (2026-11-04, a fresh `spec-reviewer` on `a8b45a46ba`)
+
+- **R3's repair is not provable** (re-verified by hand): `fork` makes one token (`wp_fork_tok`,
+  Perennial `Lifting.lean:1806`) and `GoAttach`'s `Add` deposits the caller's in the wait group's
+  invariant (`wp_goAttach_Add`, `InvGoAttach.lean:171-192`), which the counter bound needs; so
+  lending `f` a counted token needs three tokens for two threads, and no goroutine started by
+  `GoAttach` holds a token, so the outer expiry goroutine can neither `GoAttach` nor call
+  `ensureLeadership` (which takes `threadTok`) under any pool design. Borrowing `wgMu`'s slot
+  contradicts `notes/bounds-plan.md` (`wgMu` stays counted). The inner goroutine also needs
+  `IsAuthEnabled`'s lock (`WithRoot`, `auth/store.go:1176`), `E.RD`, `srvLeadTimeReader`,
+  `srvAuthAt`. The reviewer's fix: bounds-plan's D2(b), thread tokens split by level
+  (`threadTok ⊣⊢ [∗ l] levelTok l`), a Perennial change proposed on its own. **For the user (P1).**
+- **R2's condition is wrong.** A single voter forwards too, before its first election (`waitLeader`
+  returns itself; its own peer URL answers 404), and a learner forwards to another member. Still
+  true, because no lease is applied before `r.lead` is stored (`raft.go:190-202`) and a sole voter
+  never loses leadership: that argument goes in the trusted statement's docstring. Fix: the row is
+  "this member is the cluster's only member, no membership change admitted". `GrantedTTL ≠ 0` on the
+  forwarded path is the leader's `MinLeaseTTL`, so it also needs the row; the configuration fact
+  bounds `ElectionTicks·TickMs` against `Duration` overflow (`server.go:344`); `lessorCfg`
+  (`InvLessor.lean:742`) gains `1 ≤ minLeaseTTL`.
+- **R1, the couplings.** `lg = (mode ≠ none)` must be stated (`rqOk lg`'s grant arm; `srvSnapRO`'s
+  `lessorModeIs E.γ.leases γr.kv.lg`, `SnapRO.lean:447`; `ApplyAllSnap.lean:104-106, 185`,
+  `ApplyAllSnapOn.lean:145`), and `γl.leases = E.γ.leases`. The generalized grant path has no `m`
+  in scope (`AEnv` has no mode); `lessor.Grant.spec` needs no mode (its post is `leaseLiveFrom`).
+- **E3's right is duplicated across members** (each member's generator mints it; the mask merges
+  prefixes): one cluster authority, or the right under the single-member row only.
+- Preferences: pin the image's records as `leaseEnc id t r` under `u64Be id` (what `Grant.spec`
+  writes); say the `mono` arm's death comes from `bootCfg`'s `_noExpiry` in `isServerRun`; X6's
+  context is `s.ctx` via `WithRoot`, auth off for the run; Hubs touched adds `SnapRO`, `srvRest`,
+  v3rpc's `lessorGrantOkL`.
+
+## Draft, revision 3 (2026-11-04; P1 open)
+
+- **C1.** `lease.bootCfg lg γl on := lg = decide (γl.mode ≠ none) ∧ (on = true → γl.mode = none) ∧
+  (γl.mode = mono → leasesNoExpiry) ∧ ckptEffectsOk` (`∧ (γl.mode ≠ none → srvGrantOpen)` until S4),
+  with `γl.leases = E.γ.leases` stated where `E` is (`lease.srvInv`). `mono`'s dead arm comes from
+  `bootCfg`'s `_noExpiry` (internal) in `isServerRun`.
+- **X2.** The mode conjunct leaves `srvGrantable`, `grantPermRq`, `grantPre`; the grant's reply carries
+  the mode-free `leaseLiveAt`; `lease.srvInv` gains `□ lessorModeIs γl.leases (decide (γl.mode =
+  mono))` with a law `leaseLiveAt` → `leaseGrantedAt` at `mono` (v3rpc's `lessorGrantOkL`,
+  `leasegrant/Main.lean:192`). `srvRest_revocable` deleted: its callers take `lg = false` from
+  `specSnap`'s premise and C1's coupling.
+- **E2.** The row is "the cluster's only member, no membership change admitted" (persistent, from the
+  cluster's boot peers and `ccApplyOk`), under which the not-found arm gives `leaseAbsentAt γl i id ∗
+  lessorLb γl i` and the found arm `GrantedTTL ≠ 0`; the docstring carries the `r.lead` argument.
+  `NewServer`'s configuration premise gains `ElectionTicks ≥ 1`, `TickMs ≥ 1`, no `Duration`
+  overflow (inside `raftNode.bootCfg` or `lease.bootCfg`), `lessorCfg` `1 ≤ minLeaseTTL`.
+- **E3.** The "granted at most once" right under the single-member row only (one generator, so no
+  duplicate); explicit-ID grants take it too.
+- **S3.** `lease.imageOk D ids`: every record `leaseEnc id t r` under `u64Be id`; ids only.
+- **X5.** Blocked on P1.
