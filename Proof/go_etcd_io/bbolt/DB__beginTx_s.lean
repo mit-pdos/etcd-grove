@@ -50,8 +50,8 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
   icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
-  iunfold rdPair at Hpair
-  icases Hpair with ⟨Hmtok, Hstok⟩
+  unfold sparePair rdPair
+  icases Hpair with ⟨⟨Hmtok, Hstok⟩, Hsp⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -98,13 +98,28 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   have htid : (metaOf (C.slot C.txid)).txid' = W64 (C.txid : Int) := by
     apply BitVec.eq_of_toNat_eq; rw [hmvtx]; simp; omega
   obtain ⟨k, hk⟩ := gmap_nat_fresh F
+  iunfold fltxAuth at Hfa
+  icases Hfa with ⟨Hfa, %o, Ho, Hcl⟩
   imod (ghost_map_insert k (W64 (C.txid : Int)) hk) $$ Hfa with ⟨Hfa, Hfk⟩
   imod store_pages_bound K.B K.N K.p ⊤ CoPset.subseteq_top C b l _ $$ [Hpi Hcur' Hmap']
     with ⟨Hcur', Hmap', %Hpgb⟩
   · iframe; iframe #
-  imod store_register K.B K.N K.p ⊤ CoPset.subseteq_top C b l k $$ [Hpi Hcur' Hmap' Hmt Hfk]
-    with ⟨Hcur', Hmap', Hrds, Hvc⟩
+  imod store_register_spare K.B K.N K.p ⊤ CoPset.subseteq_top C b l k o
+    $$ [Hpi Hcur' Hmap' Hmt Hfk Hsp Ho] with ⟨Hcur', Hmap', Hrds, Hvc, Hsr, Ho, %ho⟩
   · iframe; iframe #
+  -- batch 41: the spare clause with the spare reader's key (`F` was empty: `o = none`)
+  ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
+      (opnShot K.B ∨ ⌜sprCl o' (<[k := W64 (C.txid : Int)]> F)⌝)) $$ [Ho Hcl]
+  · iexists (some k)
+    iframe Ho
+    icases Hcl with (#Hshot | %hcl)
+    · ileft; iexact Hshot
+    · iright; ipureintro
+      intro k' x hx
+      rw [GMap.lookup_insert_eq_iff] at hx
+      split at hx
+      · rename_i he; rw [he]
+      · have := hcl k' x hx; rw [ho] at this; cases this
   -- the transaction's names and its registration
   imod rd_names_alloc (GF := GF)
     ((false, (View.ofC b C).data, (View.ofC b C).data, ∅) : TxViewC)
@@ -158,14 +173,16 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     obtain ⟨rfl, rfl, rfl⟩ := Hnull
     imod rdTxK_intro K «$r0_ptr» .spare n C b l k m ibp hok htree Htxn Hpgb
       $$ [Hreg Hpkg Hcore Hv2 Hex Hw managed Hme Hrt Hpg commitHandlers WriteFlag Hdb Hmv Hib
-        Hvc Hmap' Hmf Hvw] with Hrd
+        Hvc Hmap' Hmf Hvw Hsr] with Hrd
     · iframe; iframe #
-      simp only [reduceCtorEq, ↓reduceIte]; itrivial
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+      simp only [reduceCtorEq, ↓reduceIte]; iexact Hsr
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
       simp only [Bool.false_eq_true, ↓reduceIte]
+      iunfold fltxAuth
       iframe
+      try (isplitl [Hspr]; iexact Hspr)
       ipureintro
       refine ⟨fun _ => ⟨hok, htree, htx1⟩, ?_⟩
       intro k' t h'
