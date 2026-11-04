@@ -519,6 +519,344 @@ theorem podCreate_rv (σ : St) (ns : GoString) (dp : kd.core.Pod)
   simp [createApply, Obj.modMeta, Obj.setMeta, Obj.meta_setMeta, Obj.meta, prepareD, createNs,
     Res.namespaced, preparePodD, hns]
 
+/-! ## The controller's pod delete -/
+
+/-- **A pod removed**: its key deleted from the stored pods, a `DELETED` change of a pod the
+controller made for a stored DaemonSet logged. -/
+theorem podRemove_step (σ σ' : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
+    (C : Claims) (Ld : Nat) (k : Key) (ch : Change) (h : s1Ok σ M Lm C Ld)
+    (hobjs : σ'.pods.objs = GMap.delete k σ.pods.objs) (hlog : σ'.pods.log = σ.pods.log ++ [ch])
+    (hty : ch.typ = .deleted) (hdss : σ'.dss = σ.dss) (hcrs : σ'.crs = σ.crs)
+    (hch : ∃ (q : kd.core.Pod) (o : Owner) (d : kd.apps.DaemonSet), ch.obj = .pod q ∧
+      dsAtOwner σ o = some d ∧ podOf d q) :
+    s1Ok σ' M Lm C Ld := by
+  have hadd : ∀ k', addedRv σ'.pods.log k' = addedRv σ.pods.log k' := by
+    intro k'; rw [hlog]; exact addedRv_snoc_other _ _ k' (by rw [hty]; decide)
+  have hdo := dsAtOwner_dss σ σ' hdss
+  have hst : ∀ k' p, σ'.pods.objs !! k' = some p → σ.pods.objs !! k' = some p := by
+    intro k' p hp
+    rw [hobjs] at hp
+    simp only [GMap.lookup_delete_iff] at hp
+    split at hp
+    · cases hp
+    · exact hp
+  refine ⟨?_, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  · intro u k1 k2 o1 o2 n h1 h2 hd1 hd2
+    exact h.s1 u k1 k2 o1 o2 n (hst _ _ h1) (hst _ _ h2) hd1 hd2
+  · rw [hdss]; exact h.scene.dsFixed
+  · rw [hdo]; exact h.scene.dsWf
+  · rw [hdo]; exact h.scene.uidInj
+  · rw [hdo]; exact h.scene.crNameInj
+  · intro c hc
+    rw [hlog] at hc
+    rcases List.mem_append.mp hc with hc | hc
+    · obtain ⟨q', o', d', h1, h2, h3⟩ := h.scene.pods c hc
+      exact ⟨q', o', d', h1, by rw [hdo]; exact h2, h3⟩
+    · simp only [List.mem_singleton] at hc
+      subst hc
+      obtain ⟨q, o, d, h1, h2, h3⟩ := hch
+      exact ⟨q, o, d, h1, by rw [hdo]; exact h2, h3⟩
+  · rw [hcrs, hdo]; exact h.scene.crs
+  · intro o' d' hd'
+    rw [hdo] at hd'
+    have ho := h.owners o' d' hd'
+    refine ⟨?_, ?_, ho.recok, ?_, ho.wrote⟩
+    · intro k' p hk hu
+      obtain ⟨c, hc, hcase⟩ := ho.acct k' p (hst _ _ hk) hu
+      exact ⟨c, by rw [hadd]; exact hc, hcase⟩
+    · intro hr k' p hk hu
+      obtain ⟨c, hc, hcase⟩ := ho.ready hr k' p (hst _ _ hk) hu
+      exact ⟨c, by rw [hadd]; exact hc, hcase⟩
+    · intro n v hC k' p hk hon
+      obtain ⟨w, c, hv, hc⟩ := ho.claims n v hC k' p (hst _ _ hk) hon
+      exact ⟨w, c, hv, by rw [hadd]; exact hc⟩
+  · intro o' n v hC; rw [hdo]; exact h.claimDs o' n v hC
+  · intro o' r hr; rw [hdo, hdss]; exact h.recDs o' r hr
+
+/-- **The controller's pod delete** (`DeletePod`, of a stored pod not being deleted, any grace
+period option): the pod is unbound with no finalizers (`sceneOk`), so removed at once. -/
+theorem podDelete_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
+    (C : Claims) (Ld : Nat) (k : Key) (st : Obj) (gps : Option w64)
+    (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) (h : s1Ok σ M Lm C Ld) (hwf : σ.wf)
+    (hst : σ.pods.objs !! k = some st) :
+    s1Ok (deleteApply .pods st gps σ t) M Lm C Ld := by
+  obtain ⟨p, o0, d0, rfl, hd0, hp, hk⟩ := stored_podOf σ hwf h.scene k st hst
+  have hgr : graceOf .pods (.pod p) gps = W64 0 := by
+    simp [graceOf, podGraceD, hp.unbound]
+  unfold deleteApply
+  dsimp only
+  rw [if_neg (by simp [hgr, Obj.modMeta, Obj.setMeta, Obj.meta, hp.noFin])]
+  refine podRemove_step σ _ M Lm C Ld k
+    ⟨.deleted, σ.rev + 1, (Obj.pod p).modMeta (fun m => { m with ResourceVersion' := rvStr (σ.rev + 1) })⟩
+    h ?hobjs ?hlog rfl ?hdss ?hcrs
+    ⟨_, o0, d0, rfl, hd0, podOf_meta d0 p _ hp rfl rfl rfl rfl rfl⟩
+  case hobjs =>
+    simp only [St.setTbl, St.tbl]
+    rw [← hk]
+    simp [Obj.key, Obj.modMeta, Obj.setMeta, Obj.meta]
+  case hlog => simp only [St.setTbl, St.tbl]
+  case hdss => simp [St.setTbl, St.tbl]
+  case hcrs => simp [St.setTbl, St.tbl]
+
+/-! ## The controller's DaemonSet status write -/
+
+theorem dsEq_refl (d : kd.apps.DaemonSet) : dsEq d d := ⟨rfl, rfl, dsSame_refl d⟩
+
+/-- **A DaemonSet replaced by a version the controller sees alike** (its status written): stored
+at its key `k`, a `MODIFIED` change of it logged. -/
+theorem dsReplace_step (σ σ' : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
+    (C : Claims) (Ld : Nat) (k : Key) (s d' : kd.apps.DaemonSet) (ch : Change)
+    (h : s1Ok σ M Lm C Ld) (hst : σ.dss.objs !! k = some (.ds s)) (hk : (Obj.ds d').key = k)
+    (heq : dsEq s d')
+    (hobjs : σ'.dss.objs = <[k := .ds d']> σ.dss.objs) (hlog : σ'.dss.log = σ.dss.log ++ [ch])
+    (hty : ch.typ = .modified) (hobj : ch.obj = .ds d')
+    (hpods : σ'.pods = σ.pods) (hcrs : σ'.crs = σ.crs) :
+    s1Ok σ' M Lm C Ld := by
+  have hdo : ∀ o, dsAtOwner σ' o = if k = o then some d' else dsAtOwner σ o := by
+    intro o; unfold dsAtOwner; rw [hobjs]
+    by_cases e : k = o
+    · subst e; simp
+    · simp only [GMap.lookup_insert_eq_iff, e, ↓reduceIte]
+  have hs : dsAtOwner σ k = some s := by unfold dsAtOwner; rw [hst]
+  have hfwd : ∀ o d, dsAtOwner σ' o = some d → ∃ d0, dsAtOwner σ o = some d0 ∧ dsEq d0 d := by
+    intro o d hd
+    rw [hdo] at hd
+    split at hd
+    · rename_i e; subst e; cases hd; exact ⟨s, hs, heq⟩
+    · exact ⟨d, hd, dsEq_refl d⟩
+  have hbwd : ∀ o d0, dsAtOwner σ o = some d0 → ∃ d, dsAtOwner σ' o = some d ∧ dsEq d0 d := by
+    intro o d0 hd0
+    rw [hdo]
+    split
+    · rename_i e; subst e; rw [hs] at hd0; cases hd0; exact ⟨d', rfl, heq⟩
+    · exact ⟨d0, hd0, dsEq_refl d0⟩
+  have hsome : ∀ o, (dsAtOwner σ' o).isSome = (dsAtOwner σ o).isSome := by
+    intro o; rw [hdo]; split
+    · rename_i e; subst e; rw [hs]; rfl
+    · rfl
+  have hadd : ∀ o, addedRv σ'.dss.log o = addedRv σ.dss.log o := by
+    intro o; rw [hlog]; exact addedRv_snoc_other _ _ o (by rw [hty]; decide)
+  refine ⟨fun u => S1_pods σ σ' u hpods (h.s1 u), ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  · intro c hc
+    rw [hlog] at hc
+    rcases List.mem_append.mp hc with hc | hc
+    · obtain ⟨hty', d0, d1, h1, h2, h3⟩ := h.scene.dsFixed c hc
+      by_cases e : k = c.obj.key
+      · refine ⟨hty', d0, d', h1, ?_, ?_⟩
+        · rw [hobjs, ← e, GMap.lookup_insert]
+        · rw [← e, hst] at h2; cases h2; exact dsSame_trans h3 heq.2.2
+      · refine ⟨hty', d0, d1, h1, ?_, h3⟩
+        rw [hobjs, GMap.lookup_insert_ne _ _ e]; exact h2
+    · simp only [List.mem_singleton] at hc
+      subst hc
+      refine ⟨by rw [hty]; decide, d', d', hobj, ?_, dsSame_refl d'⟩
+      rw [hobjs, hobj, hk, GMap.lookup_insert]
+  · intro o d hd
+    obtain ⟨d0, hd0, he⟩ := hfwd o d hd
+    exact dsWf_dsEq he (h.scene.dsWf o d0 hd0)
+  · intro o o' d1 d2 h1 h2 hu
+    obtain ⟨e1, he1, q1⟩ := hfwd o d1 h1
+    obtain ⟨e2, he2, q2⟩ := hfwd o' d2 h2
+    exact h.scene.uidInj o o' e1 e2 he1 he2 (by rw [q1.2.2.1, q2.2.2.1]; exact hu)
+  · intro o o' d1 d2 h1 h2 hns hcn
+    obtain ⟨e1, he1, q1⟩ := hfwd o d1 h1
+    obtain ⟨e2, he2, q2⟩ := hfwd o' d2 h2
+    exact h.scene.crNameInj o o' e1 e2 he1 he2 (by rw [q1.2.1, q2.2.1]; exact hns)
+      (by rw [dsEq_crName q1, dsEq_crName q2]; exact hcn)
+  · intro c hc
+    rw [hpods] at hc
+    obtain ⟨q, o, d0, h1, h2, h3⟩ := h.scene.pods c hc
+    obtain ⟨d, hd, he⟩ := hbwd o d0 h2
+    exact ⟨q, o, d, h1, hd, podOf_dsEq he h3⟩
+  · intro c hc
+    rw [hcrs] at hc
+    obtain ⟨r, o, d0, h1, h2, h3⟩ := h.scene.crs c hc
+    obtain ⟨d, hd, he⟩ := hbwd o d0 h2
+    exact ⟨r, o, d, h1, hd, crOf_dsEq he h3⟩
+  · intro o d hd
+    obtain ⟨d0, hd0, he⟩ := hfwd o d hd
+    rw [← he.2.2.1]
+    exact ownerOk_pods σ σ' M _ C o _ hpods (h.owners o d0 hd0)
+  · intro o n v hC; rw [hsome]; exact h.claimDs o n v hC
+  · intro o r hr
+    obtain ⟨h1, c, hc, hcl⟩ := h.recDs o r hr
+    exact ⟨by rw [hsome]; exact h1, c, by rw [hadd]; exact hc, hcl⟩
+
+/-- A DaemonSet with another's status, at version `rv` (`UpdateStatus`'s write). -/
+def dsWithStatus (s q : kd.apps.DaemonSet) (rv : GoString) : kd.apps.DaemonSet :=
+  { s with Status' := q.Status', ObjectMeta' := { s.ObjectMeta' with ResourceVersion' := rv } }
+
+/-- **The controller's status write** (`UpdateStatus`'s mutation: the stored DaemonSet with the
+request's status), keeping the collision count. (A write of nothing is `noop_step`.) -/
+theorem dsStatus_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
+    (C : Claims) (Ld : Nat) (k : Key) (s q : kd.apps.DaemonSet) (h : s1Ok σ M Lm C Ld)
+    (hwf : σ.wf) (hst : σ.dss.objs !! k = some (.ds s))
+    (hcc : q.Status'.CollisionCount' = s.Status'.CollisionCount') :
+    s1Ok (updateApply .daemonSets (.ds s) (.ds { s with Status' := q.Status' }) σ).2 M Lm C Ld := by
+  obtain ⟨c0, -, hc0, hk⟩ := stored_logged σ .daemonSets hwf k (.ds s) hst
+  rw [hc0] at hk
+  refine dsReplace_step σ _ M Lm C Ld k s (dsWithStatus s q (rvStr (σ.rev + 1)))
+    ⟨.modified, σ.rev + 1, .ds (dsWithStatus s q (rvStr (σ.rev + 1)))⟩
+    h hst ?_ ?_ ?_ ?_ rfl rfl ?_ ?_
+  · rw [← hk]; rfl
+  · exact ⟨rfl, rfl, rfl, rfl, rfl, hcc.symm⟩
+  · simp only [updateApply, St.setTbl, St.tbl]
+    rw [← hk]; rfl
+  · simp only [updateApply, St.setTbl, St.tbl]; rfl
+  · simp [updateApply, St.setTbl, St.tbl]
+  · simp [updateApply, St.setTbl, St.tbl]
+
+/-! ## The admin's DaemonSet create -/
+
+theorem prepareD_uid (o : Obj) : (prepareD o).meta.UID' = o.meta.UID' := by
+  cases o <;> simp [prepareD, preparePodD, prepareDaemonSetD, Obj.meta]
+
+/-- A created object's UID is the next one issued. -/
+theorem createApply_uid (r : Res) (ns : GoString) (o : Obj) (σ : St)
+    (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+    (createApply r ns o σ t).1.meta.UID' = go!"uid-" ++ rvStr (σ.uids + 1) := by
+  unfold createApply
+  simp only [Obj.modMeta, Obj.meta_setMeta, prepareD_uid]
+
+/-- **A created object's UID is no logged object's** (of a well-formed state). -/
+theorem createApply_uid_fresh (r r' : Res) (ns : GoString) (o : Obj) (σ : St)
+    (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) (hwf : σ.wf) (c : Change)
+    (hc : c ∈ (σ.tbl r').log) : c.obj.meta.UID' ≠ (createApply r ns o σ t).1.meta.UID' := by
+  rw [createApply_uid]
+  obtain ⟨n, -, hn, hu⟩ := hwf.log_uid r' c hc
+  rw [hu]
+  intro e
+  have e' := List.append_cancel_left e
+  have := decStr_inj e'
+  have hlt := hwf.uids_lt
+  have hr := σ.rev.isLt
+  have h1 : (σ.uids + 1).toNat = (σ.uids.toNat + 1) % 2 ^ 64 := by
+    simp [BitVec.toNat_add]
+  rw [this, h1] at hn
+  omega
+
+/-- **The admin's DaemonSet create**: a well-formed DaemonSet (`dsWf`) whose revision name no stored
+DaemonSet of its namespace has (`Main`'s workload premises). Its UID is fresh, so it has no pod,
+revision, record or claim. -/
+theorem dsCreate_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
+    (C : Claims) (Ld : Nat) (ns : GoString) (dreq : Obj)
+    (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) (h : s1Ok σ M Lm C Ld) (hwf : σ.wf)
+    (herr : createErr .daemonSets ns dreq σ = none)
+    (hnew : ∃ d, (createApply .daemonSets ns dreq σ t).1 = .ds d ∧ dsWf d ∧
+      ∀ o' d', dsAtOwner σ o' = some d' → d'.ObjectMeta'.Namespace' = d.ObjectMeta'.Namespace' →
+        crName d' ≠ crName d) :
+    s1Ok (createApply .daemonSets ns dreq σ t).2 M Lm C Ld := by
+  have hfresh := createApply_fresh .daemonSets ns dreq σ t herr
+  obtain ⟨hobjs, hlog, hother⟩ := createApply_parts .daemonSets ns dreq σ t
+  have huidF : ∀ c ∈ σ.dss.log, c.obj.meta.UID' ≠ (createApply .daemonSets ns dreq σ t).1.meta.UID' :=
+    fun c hc => createApply_uid_fresh .daemonSets .daemonSets ns dreq σ t hwf c hc
+  generalize hpd : (createApply .daemonSets ns dreq σ t) = pr at hfresh hobjs hlog hother hnew huidF ⊢
+  obtain ⟨o3, σ'⟩ := pr
+  simp only [St.tbl] at hfresh hobjs hlog hother hnew huidF ⊢
+  obtain ⟨d, rfl, hwfd, hcrn⟩ := hnew
+  have hpods : σ'.pods = σ.pods := hother .pods (by decide)
+  have hcrs : σ'.crs = σ.crs := hother .revisions (by decide)
+  obtain ⟨K, hK⟩ : ∃ K, K = (Obj.ds d).key := ⟨_, rfl⟩
+  rw [← hK] at hobjs hfresh
+  have hdo : ∀ o, dsAtOwner σ' o = if K = o then some d else dsAtOwner σ o := by
+    intro o; unfold dsAtOwner; rw [hobjs]
+    by_cases e : K = o
+    · subst e; simp
+    · simp only [GMap.lookup_insert_eq_iff, e, ↓reduceIte]
+  have hnK : ∀ o d0, dsAtOwner σ o = some d0 → K ≠ o := by
+    intro o d0 hd0 e; subst e; unfold dsAtOwner at hd0; rw [hfresh] at hd0; cases hd0
+  have hold : ∀ o d0, dsAtOwner σ o = some d0 → dsAtOwner σ' o = some d0 := by
+    intro o d0 hd0; rw [hdo, if_neg (hnK o d0 hd0)]; exact hd0
+  have hfreshU : ∀ o d0, dsAtOwner σ o = some d0 → d0.ObjectMeta'.UID' ≠ d.ObjectMeta'.UID' := by
+    intro o d0 hd0
+    have hs : σ.dss.objs !! o = some (.ds d0) := by
+      unfold dsAtOwner at hd0
+      split at hd0
+      · rename_i x hx; cases hd0; exact hx
+      · cases hd0
+    obtain ⟨c, hc, hco, -⟩ := stored_logged σ .daemonSets hwf o (.ds d0) hs
+    have := huidF c hc
+    rw [hco] at this
+    exact this
+  have hadd : ∀ o, K ≠ o → addedRv σ'.dss.log o = addedRv σ.dss.log o := by
+    intro o e; rw [hlog, addedRv_snoc_added _ _ o rfl]; simp only; rw [← hK, if_neg e]
+  refine ⟨fun u => S1_pods σ σ' u hpods (h.s1 u), ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  · intro c hc
+    rw [hlog] at hc
+    rcases List.mem_append.mp hc with hc | hc
+    · obtain ⟨hty', d0, d1, h1, h2, h3⟩ := h.scene.dsFixed c hc
+      have e : K ≠ c.obj.key := by
+        intro e; rw [← e, hfresh] at h2; cases h2
+      refine ⟨hty', d0, d1, h1, ?_, h3⟩
+      rw [hobjs, GMap.lookup_insert_ne _ _ e]; exact h2
+    · simp only [List.mem_singleton] at hc
+      subst hc
+      refine ⟨(by intro e; cases e), d, d, rfl, ?_, dsSame_refl d⟩
+      rw [hobjs, ← hK]; exact GMap.lookup_insert _ _ _
+  · intro o d0 hd0
+    rw [hdo] at hd0
+    split at hd0
+    · cases hd0; exact hwfd
+    · exact h.scene.dsWf o d0 hd0
+  · intro o o' d1 d2 h1 h2 hu
+    rw [hdo] at h1 h2
+    split at h1 <;> split at h2
+    · rename_i e1 e2; exact e1.symm.trans e2
+    · rename_i e1 e2; cases h1; exact absurd hu.symm (hfreshU o' d2 h2)
+    · rename_i e1 e2; cases h2; exact absurd hu (hfreshU o d1 h1)
+    · exact h.scene.uidInj o o' d1 d2 h1 h2 hu
+  · intro o o' d1 d2 h1 h2 hns hcn
+    rw [hdo] at h1 h2
+    split at h1 <;> split at h2
+    · rename_i e1 e2; exact e1.symm.trans e2
+    · rename_i e1 e2; cases h1; exact absurd hcn.symm (hcrn o' d2 h2 hns.symm)
+    · rename_i e1 e2; cases h2; exact absurd hcn (hcrn o d1 h1 hns)
+    · exact h.scene.crNameInj o o' d1 d2 h1 h2 hns hcn
+  · intro c hc
+    rw [hpods] at hc
+    obtain ⟨q, o, d0, h1, h2, h3⟩ := h.scene.pods c hc
+    exact ⟨q, o, d0, h1, hold o d0 h2, h3⟩
+  · intro c hc
+    rw [hcrs] at hc
+    obtain ⟨r, o, d0, h1, h2, h3⟩ := h.scene.crs c hc
+    exact ⟨r, o, d0, h1, hold o d0 h2, h3⟩
+  · intro o d0 hd0
+    rw [hdo] at hd0
+    split at hd0
+    · rename_i e
+      cases hd0
+      have hM : M !! o = none := by
+        cases hm : M !! o with
+        | none => rfl
+        | some r =>
+          have := (h.recDs o r hm).1
+          rw [← e] at this; unfold dsAtOwner at this; rw [hfresh] at this; cases this
+      have hnoC : ∀ n v, C !! (o, n) ≠ some v := by
+        intro n v hC
+        have := h.claimDs o n v hC
+        rw [← e] at this; unfold dsAtOwner at this; rw [hfresh] at this; cases this
+      have hnopod : ∀ k p, σ'.pods.objs !! k = some p → ¬ dsPod d.ObjectMeta'.UID' p := by
+        intro k p hk hu
+        rw [hpods] at hk
+        obtain ⟨-, o', d', -, hd', -, hu'⟩ := dsPod_owner σ hwf h.scene k p _ hk hu
+        exact hfreshU o' d' hd' hu'.symm
+      refine ⟨fun k p hk hu => absurd hu (hnopod k p hk), fun _ k p hk hu => absurd hu (hnopod k p hk),
+        (by rw [hM]; intro r hr; cases hr), ?_, ?_⟩
+      · intro n v hC; exact absurd hC (hnoC n v)
+      · intro n k c hC; exact absurd hC (hnoC n _)
+    · exact ownerOk_pods σ σ' M _ C o _ hpods (h.owners o d0 hd0)
+  · intro o n v hC
+    have := h.claimDs o n v hC
+    cases hd : dsAtOwner σ o with
+    | none => rw [hd] at this; cases this
+    | some d0 => rw [hold o d0 hd]; rfl
+  · intro o r hr
+    obtain ⟨h1, c, hc, hcl⟩ := h.recDs o r hr
+    cases hd : dsAtOwner σ o with
+    | none => rw [hd] at h1; cases h1
+    | some d0 =>
+      exact ⟨by rw [hold o d0 hd]; rfl, c, by rw [hadd o (hnK o d0 hd)]; exact hc, hcl⟩
+
 end pure
 
 end dsctl
