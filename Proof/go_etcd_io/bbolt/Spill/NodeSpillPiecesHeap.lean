@@ -1,6 +1,6 @@
 /-
 `node.spill` after its children's loop (U9l, `notes/bbolt-proof-plan.md`): **a piece's node and
-its page buffer, out of the writer's heap and back** (what `node.write(p)` writes): the buffers'
+its page buffer, out of the writer's heap and back** (what `node.write(p)` writes; with the transaction's meta, what the page id's check reads): the buffers'
 bytes by page id (`bufs_acc`), and a node's object with a buffer (`wtxHeap_node_buf_acc`, back with
 a new record and new bytes: `X.setNode`, `X.setBuf`).
 -/
@@ -68,8 +68,10 @@ theorem wtxHeap_node_buf_acc (tx : Loc) (X : WX) (bl l : Loc) (r : NRec) (id : w
     (hbs : X.t.bufs !! id = some bs) :
     wtxHeap (GF := GF) tx (DFrac.own 1) X ⊢ objOwn X.v l (DFrac.own 1) true (.node bl r) ∗
       bytesPointsto p (DFrac.own 1) bs ∗
+      tx.[Tx, go!"meta"] ↦ X.t.t.meta' ∗ X.t.t.meta' ↦ X.t.mv ∗
       (∀ r' bs', ⌜r'.nv.parent' ≠ l⌝ -∗ objOwn X.v l (DFrac.own 1) true (.node bl r') -∗
         bytesPointsto p (DFrac.own 1) bs' -∗
+        tx.[Tx, go!"meta"] ↦ X.t.t.meta' -∗ X.t.t.meta' ↦ X.t.mv -∗
         wtxHeap tx (DFrac.own 1) ((X.setNode bl l r').setBuf id bs')) := by
   obtain ⟨B, hb, hr⟩ := node_bs_of hn
   iintro H
@@ -85,8 +87,8 @@ theorem wtxHeap_node_buf_acc (tx : Loc) (X : WX) (bl l : Loc) (r : NRec) (id : w
   unfold txFields
   icases Hf with ⟨Hf1, Hf2, Hf3, Hf4, Hf5, Hf6, Hf7, Hf8, Hbufs⟩
   icases bufs_acc X.t.pm X.t.bufs (DFrac.own 1) id p bs hpm hbs $$ Hbufs with ⟨Hp, Hbufs⟩
-  iframe Hl Hp
-  iintro %r' %bs' %Hpar Hl Hp
+  iframe Hl Hp Hf3 Hf7
+  iintro %r' %bs' %Hpar Hl Hp Hf3 Hf7
   ihave Hbufs := Hbufs $$ %bs' Hp
   have hX : (X.setNode bl l r').setBuf id bs' =
       { X with t := { X.t.setNodeT bl l B r' with bufs := X.t.bufs.insert id bs' } } := by
