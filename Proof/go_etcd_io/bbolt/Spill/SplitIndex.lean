@@ -5,7 +5,6 @@ inodes slice (only the slices' headers are read), with `Spill/SplitModel`'s mode
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.node__size
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Key
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Value
 public import Proof.go_etcd_io.bbolt.Spill.SplitModel
@@ -52,6 +51,17 @@ abbrev node.splitIndex.spec : Prop :=
       n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
 
 end spec
+
+private theorem splitGo_step [GooseExts] (t L j idx sz : Nat) (ins : List Inode) (it : Inode)
+    (hj : j < L) (hL : L ≤ ins.length) (h : ins[j]? = some it) :
+    splitGo t j idx sz ((ins.take L).drop j) =
+      if 2 ≤ j ∧ t < sz + inSz it then (j, sz)
+      else splitGo t (j + 1) j (sz + inSz it) ((ins.take L).drop (j + 1)) := by
+  have hiL : j < (ins.take L).length := by simp; omega
+  rw [List.drop_eq_getElem_cons hiL]
+  have : (ins.take L)[j] = it := by
+    rw [List.getElem_take]; exact (List.getElem?_eq_some_iff.1 h).2
+  rw [this]; rfl
 
 theorem uintZ_W64_nat (x : Nat) (h : x < 2 ^ 64) : uint.Z (W64 (x : Int)) = (x : Int) := by
   word
@@ -167,6 +177,136 @@ theorem node.sizeLessThan.wp_proof (hK : internal.common.Inode.Key.spec (GF := G
       · simp [List.eq_nil_of_length_eq_zero h]
       · simp only [decide_eq_true_eq]; exact Or.inr (Hj.2.2 h)
     rw [Hres]
+    iapply HΦ; iframe
+
+theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hV : internal.common.Inode.Value.spec (GF := GF) (hG := hG)) :
+    node.splitIndex.spec (GF := GF) (hG := hG) := by
+  intro nl nv ins dq dqs thr Hbnd Hthr
+  wp_start as ⟨Hn, Hs⟩
+  ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+  icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+  unfold internal.common.PageHeaderSize internal.common.MinKeysPerPage
+  wp_auto
+  ihave IH : (∃ (j idx : w64) (sz : Nat),
+      "i" ∷ i_ptr ↦ j ∗ "index" ∷ index_ptr ↦ idx ∗ "sz" ∷ sz_ptr ↦ W64 (sz : Int) ∗
+      "Hs" ∷ nv.inodes' ↦*{dqs} ins ∗ "Hn" ∷ nl ↦{dq} nv ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ ins.length - 2 ∧ idx.toNat ≤ sint.nat j ∧
+        sz = insSize (ins.take (sint.nat j)) ∧
+        splitGo (sint.nat thr) (sint.nat j) idx.toNat sz ((ins.take (ins.length - 2)).drop (sint.nat j)) =
+          splitIdx (sint.nat thr) ins⌝ : IProp GF) $$ [i index sz Hs Hn]
+  · iexists W64 0, W64 0, 16
+    simp only [named]
+    iframe
+    ipureintro
+    refine ⟨by word, by word, by word, ?_, rfl⟩
+    rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; rfl
+  wp_for IH
+  iStructNamed Hn
+  wp_auto
+  ihave Hn : (nl ↦{dq} nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  have HL : sint.Z (nv.inodes'.len - W64 2) = sint.Z nv.inodes'.len - 2 ∨ sint.Z nv.inodes'.len < 2 := by
+    rcases Int.lt_or_le (sint.Z nv.inodes'.len) 2 with h | h
+    · exact Or.inr h
+    · left; have : ins.length < 2 ^ 63 := by have := insSize_ge_len ins; omega
+      word
+  wp_if_destruct
+  · have Hlt : sint.Z j < sint.Z (nv.inodes'.len - W64 2) := by
+      rcases Decidable.em (sint.Z j < sint.Z (nv.inodes'.len - W64 2)) with h | h
+      · exact h
+      · exfalso; rw [decide_eq_false h] at Hif; exact false_neq_true Hif
+    have HjL : sint.nat j < ins.length - 2 := by
+      rcases HL with h | h
+      · rw [h] at Hlt; rw [Hsl.1]; word
+      · exfalso; have : sint.Z (nv.inodes'.len - W64 2) < 0 := by word
+        omega
+    have Hjn : sint.nat j < ins.length := by omega
+    iStructNamed Hn
+    try wp_auto
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nv.inodes'.len by
+      constructor <;> word))]
+    list_elem ins (sint.Z j).toNat as it
+    wp_apply wp_load_slice_index _ (sint.Z j) ins _ it Hj.1 $$ [Hs] as Hs
+    · iframe; ipureintro; exact Hit_lookup
+    try wp_auto
+    ihave Hn : (nl ↦{dq} nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    wp_apply node.pageElementSize.wp_proof $$ [$Hn] as Hn
+    try wp_auto
+    wp_apply hK $$ [$inode] as inode
+    try wp_auto
+    wp_apply hV $$ [$inode] as inode
+    try wp_auto
+    have Hit_lookup' : ins[sint.nat j]? = some it := Hit_lookup
+    have Hnext : insSize (ins.take (sint.nat j + 1)) = insSize (ins.take (sint.nat j)) + inSz it := by
+      rw [List.take_add_one, Hit_lookup', Option.toList_some, insSize_snoc]
+    have Hle : insSize (ins.take (sint.nat j + 1)) ≤ insSize ins := insSize_take_le _ _
+    have H64 : sz + inSz it < 2 ^ 63 := by rw [Hj.2.2.2.1, ← Hnext]; omega
+    have Hsz : W64 (sz : Int) + (W64 16 + it.key'.len + it.value'.len) = W64 ((sz + inSz it : Nat) : Int) := by
+      unfold inSz; word
+    wp_if_destruct
+    · try wp_auto
+      rw [Hsz]
+      wp_if_destruct
+      · have Hc : 2 ≤ sint.nat j ∧ sint.nat thr < sz + inSz it := by
+          constructor
+          · word
+          · rw [uintZ_W64_nat _ (by omega)] at Hif; unfold uint.Z at Hif; word
+        wp_for_post
+        try wp_auto
+        rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_pos Hc]
+        simp only
+        rw [show W64 ((sint.nat j : Nat) : Int) = j by word]
+        iapply HΦ; iframe
+      · have Hc : ¬ (2 ≤ sint.nat j ∧ sint.nat thr < sz + inSz it) := by
+          intro ⟨_, h⟩; apply Hif; rw [uintZ_W64_nat _ (by omega)]; unfold uint.Z; word
+        try wp_auto
+        rw [Hsz]
+        wp_for_post
+        iframe
+        iexists j + W64 1, j, sz + inSz it
+        iframe
+        have Hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        rw [Hj1]
+        iframe
+        ipureintro
+        refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_⟩
+        rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
+          show j.toNat = sint.nat j by word]
+    · have Hc : ¬ (2 ≤ sint.nat j ∧ sint.nat thr < sz + inSz it) := by
+        intro ⟨h, _⟩; apply Hif; word
+      try wp_auto
+      rw [Hsz]
+      wp_for_post
+      iframe
+      iexists j + W64 1, j, sz + inSz it
+      iframe
+      have Hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      rw [Hj1]
+      iframe
+      ipureintro
+      refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_⟩
+      rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
+        show j.toNat = sint.nat j by word]
+  · have Hge : ¬ sint.Z j < sint.Z (nv.inodes'.len - W64 2) := by
+      intro h; rw [decide_eq_true h] at Hif; exact Hif rfl
+    simp only [Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
+    try wp_auto
+    have HjL : sint.nat j = ins.length - 2 := by
+      rcases HL with h | h
+      · rw [h] at Hge; rw [Hsl.1] at Hj ⊢; word
+      · rw [Hsl.1] at Hj ⊢; word
+    have Hres := Hj.2.2.2.2
+    rw [HjL, List.drop_eq_nil_of_le (by simp)] at Hres
+    simp only [splitGo] at Hres
+    rw [← Hres]
+    simp only
+    rw [show W64 ((idx.toNat : Nat) : Int) = idx by word]
     iapply HΦ; iframe
 
 end proof
