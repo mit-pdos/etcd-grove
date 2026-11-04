@@ -219,6 +219,19 @@ no leased put), then `ForceCommit`.
   snapshot `(L' ↦ leases, ∅)`; in the monotone mode only if every live lease is in `L'` (premise
   `⌜L ⊆ L'⌝`), else `lessorRevocable`.
   **Decided (the user, 2026-11-03): (a), translate and prove `Recover`.**
+  What it takes (survey, 2026-11-03): bodies for `lessor.Recover`, `lessor.initAndRecover` and
+  `LeaseExpiredNotifier.Init` (`lease_queue.go:75`); callees `BatchTx`, `LockOutsideApply`/`Unlock`,
+  `ForceCommit` (the backend's specs), `schema.UnsafeCreateLeaseBucket` (`UnsafeCreateBucket`),
+  `heap.Init` (Perennial's `Spec/container/heap/Init_`), and `schema.MustUnsafeGetAllLeases`, a
+  trust-boundary axiom like `MustUnsafePutLease` (its body is `UnsafeForEach` and `proto.Unmarshal`,
+  and it **panics on a record that does not unmarshal**: its spec takes the bucket's records to be
+  `MustUnsafePutLease`'s encodings, which the rest model's lease bucket must then say). Two things
+  the proof must face: (i) `LeaseExpiredNotifier.Init` does **not** empty the queue (`heap.Init` of
+  the old queue, then `m` rebuilt from it), so after `Recover` the expiry notifier still holds the
+  old leases' entries (Go's `findExpiredLeases` drops an entry whose lease is not in `leaseMap`):
+  the lessor model's notifier invariant (`notifierAt`) must admit stale entries; (ii) each recovered
+  lease is a new `Lease` object, so `isLeaseObj` (its lock, the reader-slot pool, the expiry halves)
+  is allocated per record.
 - **S2. The mode question, settled by S1.** With S1's monotone case, the monotone lessor (X2:
   `mono := lg && leasesNoExpiry`) can be restored too: under `leasesNoExpiry` no revocation is ever
   applied (X7), so a snapshot at index `j` above the member's applied index has every lease the
