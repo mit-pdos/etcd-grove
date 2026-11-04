@@ -47,7 +47,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.syncNodes(ctx, ds, podsToDelete, nodesNeeding, hash)`**: see the file header. -/
 abbrev DaemonSetsController.syncNodes.spec : Prop :=
-∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+∀ (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (pdl : GoSlice) (dq : DFrac) (pds : List GoString) (nnl : GoSlice)

@@ -8,6 +8,7 @@ module
 
 public import Spec.k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController__updateDaemonSet
 public import Spec.fmt.Errorf
+public import Proof.k8s_io.kubernetes.pkg.controller.daemon.DsLens
 public import Spec.k8s_io.klog.v2.FromContext
 public import Spec.k8s_io.kubernetes.pkg.controller.ControllerExpectations__SatisfiedExpectations
 public import Spec.k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController__cleanupHistory
@@ -43,7 +44,172 @@ theorem DaemonSetsController.updateDaemonSet.wp_proof
     (wp_FromContext : klog.FromContext.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DaemonSetsController.updateDaemonSet.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro dsc c cfg γa F γ ctx ds o d nl ns hash key old rs L
+  wp_start as ⟨#Henv, Htt, %Hctx, #Hds, #Hnl, %Hnd, Hold, Hready⟩
+  wp_auto
+  wp_apply (wp_manage dsc c cfg γa F γ ctx ds o d nl ns hash L) $$ [Htt Hready]
+    as %err ⟨Htt, Hsync, Herr⟩
+  · iframe #
+    iframe
+    isplitr
+    · ipureintro; exact Hctx
+    · ipureintro; exact Hnd
+  cases err with
+  | ok ei =>
+    wp_auto
+    iapply HΦ
+    iframe
+  | nil =>
+  wp_auto
+  ihave Henv2 := Henv
+  iunfold dscEnv at Henv2
+  icases Henv2 with ⟨#Hpkgd, #Hdsc, #Hapi, #Hs1⟩
+  iNamed Hdsc
+  iunfold dscPools at Hpools
+  icases Hpools with ⟨#Hpds, #Hpcr, #Hppod, #Hpnode, #Hpexp, #Hpcons⟩
+  wp_apply (lc := 1) (wp_FromContext ctx) as %lg _
+  · ipureintro; exact Hctx
+  iapply fupd_wp
+  imod threadPool.borrow_lc (dscPoolN.@"exp") c.pools.exp (expReader c.γe) ⊤
+    (fun _ _ => CoPset.mem_full) $$ [Hlc1 Hpexp Htt] with ⟨HR, Hloan⟩
+  · iframe #; iframe
+  imodintro
+  wp_apply (wp_SatisfiedExpectations c.exp c.γe lg key) $$ [HR] as %b HR
+  · iframe #; iframe
+  iapply fupd_wp
+  imod threadPool.giveBack (dscPoolN.@"exp") c.pools.exp (expReader c.γe) ⊤
+    (fun _ _ => CoPset.mem_full) $$ [Hpexp Hloan HR] with Htt
+  · iframe #; iframe
+  imodintro
+  ihave HdsU := Hds
+  iunfold dsArg at HdsU
+  icases HdsU with ⟨#HdsAt, #Hseen⟩
+  ihave #Hty := dsAt_updType ds d $$ HdsAt
+  wp_if_destruct
+  · -- expectations not satisfied
+    wp_apply (wp_cleanupHistory dsc c cfg γa F γ ctx ds o d old rs) $$ [Htt Hold]
+      as %e2 ⟨Htt, He2, Hold⟩
+    · iframe #; iframe; ipureintro; exact Hctx
+    cases e2 with
+    | nil =>
+      wp_auto
+      iapply HΦ
+      iframe
+    | ok ei =>
+      wp_auto
+      wp_apply wp_slice_literal (V := GoInterface) [interface.ok ei]
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      wp_auto
+      wp_apply (wp_Errorf _ _ [interface.ok ei] (DFrac.own 1)) $$ [Hasl He2] as %e3 ⟨-, #He3⟩
+      · iframe
+        iunfold fmt.argsOk
+        iframe
+        iunfold fmt.argsOk
+        itrivial
+      iapply HΦ
+      iframe
+      iunfold fmt.argOk
+      iright; ileft
+      iexact He3
+  · wp_if_destruct
+    · -- OnDelete
+      wp_apply (wp_cleanupHistory dsc c cfg γa F γ ctx ds o d old rs) $$ [Htt Hold]
+        as %e2 ⟨Htt, He2, Hold⟩
+      · iframe #; iframe; ipureintro; exact Hctx
+      cases e2 with
+      | nil =>
+        wp_auto
+        iapply HΦ
+        iframe
+      | ok ei =>
+        wp_auto
+        wp_apply wp_slice_literal (V := GoInterface) [interface.ok ei]
+        isplitr
+        · ipureintro; rfl
+        iintro %asl ⟨Hasl, -⟩
+        wp_auto
+        wp_apply (wp_Errorf _ _ [interface.ok ei] (DFrac.own 1)) $$ [Hasl He2] as %e3 ⟨-, #He3⟩
+        · iframe
+          iunfold fmt.argsOk
+          iframe
+          iunfold fmt.argsOk
+          itrivial
+        iapply HΦ
+        iframe
+        iunfold fmt.argOk
+        iright; ileft
+        iexact He3
+    · wp_if_destruct
+      · -- RollingUpdate
+        wp_apply (wp_rollingUpdate dsc c cfg γa F γ ctx ds o d nl ns hash) $$ [Htt Hsync]
+          as %e1 ⟨Htt, Hsync, He1⟩
+        · iframe #
+          iframe
+          isplitr
+          · ipureintro; exact Hctx
+          · ipureintro; exact Hnd.2
+        cases e1 with
+        | ok ei =>
+          wp_auto
+          iapply HΦ
+          iframe
+        | nil =>
+          wp_auto
+          wp_apply (wp_cleanupHistory dsc c cfg γa F γ ctx ds o d old rs) $$ [Htt Hold]
+            as %e2 ⟨Htt, He2, Hold⟩
+          · iframe #; iframe; ipureintro; exact Hctx
+          cases e2 with
+          | nil =>
+            wp_auto
+            iapply HΦ
+            iframe
+          | ok ei =>
+            wp_auto
+            wp_apply wp_slice_literal (V := GoInterface) [interface.ok ei]
+            isplitr
+            · ipureintro; rfl
+            iintro %asl ⟨Hasl, -⟩
+            wp_auto
+            wp_apply (wp_Errorf _ _ [interface.ok ei] (DFrac.own 1)) $$ [Hasl He2] as %e3 ⟨-, #He3⟩
+            · iframe
+              iunfold fmt.argsOk
+              iframe
+              iunfold fmt.argsOk
+              itrivial
+            iapply HΦ
+            iframe
+            iunfold fmt.argOk
+            iright; ileft
+            iexact He3
+      · -- another strategy
+        wp_apply (wp_cleanupHistory dsc c cfg γa F γ ctx ds o d old rs) $$ [Htt Hold]
+          as %e2 ⟨Htt, He2, Hold⟩
+        · iframe #; iframe; ipureintro; exact Hctx
+        cases e2 with
+        | nil =>
+          wp_auto
+          iapply HΦ
+          iframe
+        | ok ei =>
+          wp_auto
+          wp_apply wp_slice_literal (V := GoInterface) [interface.ok ei]
+          isplitr
+          · ipureintro; rfl
+          iintro %asl ⟨Hasl, -⟩
+          wp_auto
+          wp_apply (wp_Errorf _ _ [interface.ok ei] (DFrac.own 1)) $$ [Hasl He2] as %e3 ⟨-, #He3⟩
+          · iframe
+            iunfold fmt.argsOk
+            iframe
+            iunfold fmt.argsOk
+            itrivial
+          iapply HΦ
+          iframe
+          iunfold fmt.argOk
+          iright; ileft
+          iexact He3
 
 end proof
 

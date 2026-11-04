@@ -43,7 +43,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **The sync's token for `key`**: the sync token of the owner the key names, if any. -/
-def keySyncTok [workqueue.QItem (GF := GF) GoString go.string] (γ : S1Names) (c : DscComp)
+def keySyncTok (γ : S1Names) (c : DscComp)
     (key : GoString) : IProp GF :=
   match ownerOf key with
   | some o => syncTok γ c o
@@ -51,7 +51,7 @@ def keySyncTok [workqueue.QItem (GF := GF) GoString go.string] (γ : S1Names) (c
 
 /-- **`dsc.syncDaemonSet(ctx, key)`**: see the file header. -/
 abbrev DaemonSetsController.syncDaemonSet.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀ (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗

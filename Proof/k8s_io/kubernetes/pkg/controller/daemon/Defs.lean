@@ -150,9 +150,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-/- The work queues' items, the DaemonSets' keys (an instance for `GoString` is not built yet: a
-premise of `isDsc`). -/
-variable [QItem (GF := GF) GoString go.string]
+
+/-- **The work queues' items**, the DaemonSets' keys and the nodes' names: Go `string`s, with the
+predeclared type's own instances (so a proof using the queue's specs at `GoString` loads and
+allocates strings as any other). -/
+instance qItemString : QItem (GF := GF) GoString go.string where
+  zero := inferInstance
+  tp := inferInstance
+  ivt := inferInstance
+  deq := inferInstance
+  inj := inferInstance
+  cnt := inferInstance
+  safe := fun _ => inferInstance
 
 /-- **The informer of resource `r`** (persistent): its store over the informer's registered
 objects (`infObj`), with indices `Fam`, and the informer invariant. -/

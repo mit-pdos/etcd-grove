@@ -34,7 +34,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`storeDaemonSetStatus(...)`**: see the file header. -/
 abbrev storeDaemonSetStatus.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (c : DscComp) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+  ∀ (c : DscComp) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (γ : S1Names) (ctx : GoInterface) (dsClient : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (n1 n2 n3 n4 n5 n6 n7 : w64) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ apiInv γa γ ∗ s1Inv γ c ∗

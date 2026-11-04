@@ -35,7 +35,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.podsShouldBeOnNode(...)`**: see the file header. -/
 abbrev DaemonSetsController.podsShouldBeOnNode.spec : Prop :=
-∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+∀ (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (logger : github_com.go_logr.logr.Logger) (node : Loc)
     (n : kd.core.Node) (m : GoMap) (Mp : GMap GoString (List kd.core.Pod)) (ds : Loc) (o : Owner)

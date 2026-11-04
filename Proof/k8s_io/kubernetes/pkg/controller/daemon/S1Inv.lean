@@ -70,7 +70,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [QItem (GF := GF) GoString go.string]
 
 /-- **The API state's writers' half** (`Main`'s, then `s1Inv`'s). -/
 def apiMirror (γ : S1Names) (σ : St) : IProp GF := ghostVar γ.mirror (1 : Qp).half σ

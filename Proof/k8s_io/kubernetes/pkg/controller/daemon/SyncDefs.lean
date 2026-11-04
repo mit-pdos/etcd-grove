@@ -56,7 +56,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [workqueue.QItem (GF := GF) GoString go.string]
 
 /-- **An `*int64`**: `nil` for `none`, else a pointer to the value (at `dq`). -/
 def int64PtrD (p : Loc) (dq : DFrac) (g : Option w64) : IProp GF :=
@@ -104,6 +103,10 @@ def readyTok (γ : S1Names) (c : DscComp) (o : Owner) (L : Nat) : IProp GF :=
 def nodesAt (nl : GoSlice) (ns : List kd.core.Node) : IProp GF :=
   iprop(∃ ps : List Loc, nl ↦*{DFrac.discard} ps ∗ ⌜ps.length = ns.length⌝ ∗
     [∗list] i ↦ p ∈ ps, ∃ n, ⌜ns[i]? = some n⌝ ∗ □ nodeAt p DFrac.discard n)
+
+instance nodesAt_persistent (nl : GoSlice) (ns : List kd.core.Node) :
+    Persistent (nodesAt (GF := GF) nl ns) := by
+  unfold nodesAt; infer_instance
 
 /-- **A list of pods** (the slice at `dq`, the pods cache objects, read-only for good). -/
 def podsAt (pl : GoSlice) (dq : DFrac) (ps : List kd.core.Pod) : IProp GF :=
