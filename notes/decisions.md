@@ -30422,3 +30422,19 @@ name `γ.fkd` tracked as the hook's own keys' `γ.hkd`), and `Q` is applied to `
 backend's proved specs carry the new ghost (the client's half inside `fkOwn`, so no caller's
 statement changed); the snapshot law drops `σ.crev = -1`. A trust-base change: re-attack it with the
 `axiom` skill.
+
+## mvcc's API proof: strict M1, no scaffold, the riskiest part first (2026-11-04 · the user · branch `mvcc-api`)
+
+Supersedes "the slots in place" where it keeps today's specs. **What it was.** The slots keyed on
+`StoreNames.api : Option api.AbsNames`, with `isStore`'s `γ.api = none`, kept today's specs as
+corollaries at `none` so that the build stayed green while the API was proved: close to the
+temporary corollaries (M2) and the mode flag (M3) the user had rejected for the migration, and
+chosen without asking (`notes/mvcc-api-backtracking.md`). **Decision (the user: "Do strict M1").**
+No scaffold: the internals carry the API's ghost state only, today's mvcc specs are replaced by the
+API's contracts, and every client moves onto the API in the same stage; the build beyond mvcc is
+red meanwhile, and feedback comes from building up through the mvcc library only (and
+`etc/lean-check.py` per file). Order (the user): "We should do the highest risk stuff first" --
+the side (mvcc's proofs of the API, or the clients' proofs over it) likelier to find a frozen
+statement wrong goes first; a client's proof over the API can take the API's contracts and laws as
+hypotheses, so it needs only `Api.lean` to build.
+

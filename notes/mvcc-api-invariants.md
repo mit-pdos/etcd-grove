@@ -336,6 +336,10 @@ read-only proofs' ports.
 
 ## Hand-off: the slots in place (2026-11-04, stage 1)
 
+(Superseded in part, 2026-11-04, the user: strict M1, `notes/decisions.md`, "strict M1, no
+scaffold": no `none` case; the slots become the API's ghost state outright, `isStore`'s
+`γ.api = none` and today's specs' corollaries go.)
+
 **Done** (today's statements unchanged; `γ.api = none` from `isStore`):
 - `InvStore`: `StoreNames.api`; `slotX`/`slotY`/`slotF`/`slotFr`/`slotFl` (`_withPhys`, `_none`,
   `slotX_change`, `slotY_change`, `slotX_fractional`); the slots in `revMuBody`, `revMuBodyL`
