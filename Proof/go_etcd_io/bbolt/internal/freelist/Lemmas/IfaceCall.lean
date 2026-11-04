@@ -33,6 +33,12 @@ abbrev ifaceCall [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (fli : GoI
   | GoInterface.nil => Panic "nil interface"
   | GoInterface.ok i => Val #(methods i.ty m i.v)
 
+theorem ifaceCall_impl [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]
+    [go_etcd_io.bbolt.internal.freelist.Assumptions] (I : FLImpl (GF := GF)) (m : GoString) :
+    ifaceCall I.iface m = Val #(methods I.ity m I.iv) :=
+  rfl
+
 theorem ifaceCall_array [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
     {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]
     [go_etcd_io.bbolt.internal.freelist.Assumptions] (a : Loc) (m : GoString) :
