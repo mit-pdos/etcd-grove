@@ -436,7 +436,58 @@ theorem Bucket.node.wp_proof' (hA : internal.common.Assert.spec (GF := GF) (hG :
       ipureintro; exact Hml
     ipureintro
     refine Or.inr ?_
-    sorry
+    obtain ⟨hJ1, hJ2, hJ3⟩ := Hjoin
+    refine ⟨B, pa, pg, r0, B'.ns.insert «$r0_ptr» r0, { B.bv with rootNode' := rn }, hB, hwp, hnm,
+      Hnn0, by simp [Hfresh], rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, rfl, hsrc', ?_, ?_, ?_,
+      ?_, ?_⟩
+    · show (pageWsAs pg src').map wDat = (pageWsAs pg (posSrc B)).map wDat
+      unfold pageWsAs; simp only [List.map_map]; rfl
+    · intro w hw
+      simp only [r0, pageWsAs, List.mem_map] at hw
+      obtain ⟨w', -, rfl⟩ := hw
+      refine ⟨hsrc', ?_⟩
+      dsimp only
+      split
+      · exact hsrc'
+      · simp
+    · simp [r0, pageInodesAt, pageWsAs, pageWs]
+    · show (if 0 < pageCount pg then keySliceAt pa pg 0 else slice.nil) = slice.nil ↔
+        pageWsAs pg src' = []
+      by_cases hc : 0 < pageCount pg
+      · rw [if_pos hc]
+        simp only [pageWsAs, pageWs, List.map_eq_nil_iff, List.range_eq_nil]
+        constructor
+        · intro h; exact absurd h (hkey hc)
+        · intro h; omega
+      · rw [if_neg hc]
+        simp only [pageWsAs, pageWs, List.map_eq_nil_iff, List.range_eq_nil]
+        constructor
+        · intro _; omega
+        · intro _; trivial
+    · intro w hw _
+      simp only [r0, pageWsAs, List.mem_map] at hw
+      obtain ⟨w', -, rfl⟩ := hw
+      dsimp only
+      have hs2 : src' = Src.view ∨ src' = Src.own DFrac.discard := by
+        simp only [src', Write.inlSrc]
+        split
+        · split <;> simp
+        · simp
+      split
+      · exact hs2
+      · right; rfl
+    · by_cases hp : parent = null
+      · left
+        refine ⟨hp, by rw [hJ1 hp], ?_⟩
+        simp [B', hp]
+      · right
+        have hk : parent ∈ Ls := by simp [Ls, hp]
+        obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7⟩ := hJ3 parent hk
+        refine ⟨hp, by rw [hJ2 hp], f parent, f' parent, (hf parent hk).1, (hf parent hk).2.1,
+          hc1, hc2, hc3, hc4, hc5, hc6, hc7, ?_⟩
+        simp [B', hp]
+    · simp only [Y, WX.addNode, WX.setBkt, GMap.insert_insert]
+      rfl
 
 /-- The frozen spec: open, it lacks `wp_proof'`'s premise (a file bucket's `page` field nil). -/
 theorem Bucket.node.wp_proof : Bucket.node.spec (GF := GF) (hG := hG) := by
