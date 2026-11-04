@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.bbolt.Open.MetasZero
 public import Proof.go_etcd_io.bbolt.Open.MetaNonzero
 public import Proof.go_etcd_io.bbolt.Open.FileModeString
 public import Proof.go_etcd_io.bbolt.Open.LogFmt
+public import Proof.go_etcd_io.bbolt.Open.SyncAcc
 public import Proof.go_etcd_io.bbolt.Inv.LoggerOk
 import all Spec.go_etcd_io.bbolt.Api
 
@@ -195,6 +196,29 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
   ipureintro
   first | exact ⟨rfl, fun h => nomatch h⟩ | exact ⟨trivial, fun h => nomatch h⟩ | simp))
 
+set_option hygiene false in
+/-- `Open`'s success exit (`return db, nil`): the deferred log (`Hdef`), and the database. -/
+macro "open_ok" : tactic => `(tactic| (
+  try wp_auto
+  wp_bind (App (Val #dv) (Val #()))
+  iapply Hdef $$ [err]
+  · iexact err
+  · iexact Herrok
+  iintro err
+  try wp_auto
+  iapply HΦ
+  iframe Hopts
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists ⟨mkGs B, N⟩
+  isplitr
+  · ipureintro; rfl
+  unfold isBolt boltState
+  rw [bnsOf_mkGs, ← hCD]
+  iframe Hstate
+  iexact Hbolt))
+
 theorem Open.wp_proof [sync.Assumptions]
     (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.spec (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
@@ -238,7 +262,10 @@ theorem Open.wp_proof [sync.Assumptions]
   opt_rd (optsAt_bool_rd opts dq o go!"NoSync" (by decide))
   opt_rd (optsAt_bool_rd opts dq o go!"NoGrowSync" (by decide))
   opt_rdt (optsAt_mmapFlags_rd opts dq o)
-  opt_rd (optsAt_bool_rd opts dq o go!"NoFreelistSync" (by decide))
+  icases (optsAt_bool_rd opts dq o go!"NoFreelistSync" (by decide)) $$ Hopts with
+    ⟨%dqx, %nfs, Hx, Hback⟩
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
   opt_rd (optsAt_bool_rd opts dq o go!"PreLoadFreelist" (by decide))
   opt_rd (optsAt_freelist_rd opts dq o)
   opt_rdt (optsAt_mlock_rd opts dq o)
@@ -615,6 +642,117 @@ theorem Open.wp_proof [sync.Assumptions]
   ipersist pageSize
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
+  try wp_auto
+  -- the mapping
+  obtain ⟨hmaps', hxl', hsz', hC⟩ := HC
+  icases (optsAt_int_rd opts dq o go!"InitialMmapSize" (by decide)) $$ Hopts with
+    ⟨%dqx, %minsz, Hx, Hback⟩
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  simp only [hml0]
+  ipersist Mlock
+  ipersist MmapFlags
+  have hmf' : o.mmapFlags = W64 0 ∨ o.mmapFlags = W64 0x8000 := by
+    unfold mapPopulate at hmf0
+    rcases hmf0 with h | h
+    · left; apply BitVec.eq_of_toNat_eq; simpa using h
+    · right; apply BitVec.eq_of_toNat_eq; simpa using h
+  wp_apply hMmap dbl f fd path (.ok li) o.mmapFlags _ (DFrac.own 1) m' xs' minsz Hdbnn hmaps' hxl'
+    (by omega) hmf' (fun _ => openOK_meta C D m' xs' hC) $$
+    [MaxSize rwtx file Hf Hfdo Hfm Hxs Hmf datasz] as %merr ⟨Hfix, file, Hf, Hfdo, Hxs, Hmr⟩
+  · unfold mmapOwnFix; iframe; iframe #
+  unfold mmapOwnFix
+  icases Hfix with ⟨-, -, -, MaxSize, -, -, rwtx⟩
+  icases Hmr with (⟨%Hme, %base, %L, %HL, Hmf, datasz, Hfm, Hbp, %vf, Hcells⟩ |
+    ⟨%Hme, #Hek, Hmf, datasz, %m'', Hfm⟩)
+  rotate_left
+  · cases merr with
+    | nil => exact absurd rfl Hme
+    | ok ei =>
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none path f Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      iright; iexists fd, path, _; iframe
+    open_exit fmtVerbs_mapErr [interface.mkOk go.string #path, GoInterface.ok ei]
+  subst Hme
+  try wp_auto
+  -- the database's fixed fields
+  ipersist stats
+  ipersist readOnly
+  ipersist StrictMode
+  ipersist NoSync
+  ipersist NoGrowSync
+  ipersist NoFreelistSync
+  ipersist PreLoadFreelist
+  ipersist FreelistType
+  ipersist MaxBatchSize
+  ipersist MaxBatchDelay
+  ipersist AllocSize
+  ipersist MaxSize
+  ipersist openFile
+  ipersist batch
+  imod sync.init_Mutex iprop(True) ⊤ _ $$ batchMu [] with #HbatchMu
+  · inext; itrivial
+  -- **A gap (`sorry`, reported):** the page pool's `New` closure reads `Open`'s named result
+  -- `db` (by reference: `return nil, err` later writes it), so its spec needs a persistent
+  -- `db_ptr ↦□ dbl` that `Open` cannot give while it still writes `db` on return.
+  ihave #Hpool : (∃ pf : GoFunc, sync.isPool dbl.[DB, go!"pagePool"] pf pageBuf ∗
+      ⌜pf ≠ func.nil⌝) $$ [pagePool]
+  · sorry
+  ihave #Hfix : dbFixed (GF := GF) dbl sp $$ []
+  · unfold dbFixed dbLogger
+    iframe #
+    isplitr
+    · ipureintro; exact hmf'
+    ipureintro; exact Hlgty
+  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
+  wp_apply hLoad N dbl sp f fd path C base L _ xs'
+    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) $$
+    [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
+      Hxs Hbp Hcells freelistLoad] as Hlf
+  · unfold lfPre
+    rw [← hxl']
+    iframe; iframe #
+    done
+  iunfold lfPost at Hlf
+  icases Hlf with ⟨%B, %fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hstate, Hopn, %Hwok⟩
+  have hCD : treeData C = D := hC.2.2.2.2.2.2.2
+  try wp_auto
+  cases nfs
+  rotate_left
+  · -- `NoFreelistSync`: done
+    have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok
+    rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
+      from rfl] at hOW
+    imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
+    · iframe; iframe #
+    open_ok
+  -- `hasSyncedFreelist()`
+  have hacc := wdbCore_meta_acc (GF := GF) B dbl path
+    (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli)
+  rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).ms =
+      some (base, L) from rfl,
+    show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
+      from rfl] at hacc
+  icases hacc $$ Hw with ⟨Hmf, Hmq, Hwb⟩
+  try wp_auto
+  wp_apply hSync dbl base L C (DFrac.own (1 : Qp).half) (1 : Qp).half.half hC.2.1 $$ [Hmf Hmq]
+    as ⟨Hmf, Hmq⟩
+  · iframe
+  ihave Hw := Hwb $$ Hmf Hmq
+  have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok
+  rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
+    from rfl] at hOW
+  imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
+  · iframe; iframe #
+  by_cases hfl : C.flpg = none
+  rotate_left
+  · rw [decide_eq_false hfl]
+    open_ok
+  rw [decide_eq_true hfl]
   try wp_auto
   sorry
 
