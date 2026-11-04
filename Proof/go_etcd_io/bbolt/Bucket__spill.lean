@@ -84,7 +84,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     (hFree : Bucket.free.spec (GF := GF) (hG := hG))
     (hWrite : Bucket.write.spec (GF := GF) (hG := hG)) :
     Bucket.spill.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w Hpre Hreach Hml Hfv
+  intro K tx r m X w Hpre Hreach Hml Hfv HsOK
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
@@ -106,8 +106,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
   · icases keep_pure (Q := wdbW K tx X.v w)
       (P := wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
       (by unfold wdbW; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hdb with ⟨Hdb, %Hwf⟩
+    icases keep_pure (Q := wdbW K tx X.v w) (P := mapLen w.ms ≤ 0xFFFFFFFFFFFF)
+      (wdbW_mapLen_le K tx X.v w) $$ Hdb with ⟨Hdb, %Hl⟩
     obtain ⟨Lroot, Dc, HI⟩ := rinv_start Hpre Hreach Hml Hfv Hwf HB0 keys
-      (fun k => Hkset k) Hknd
+      (fun k => Hkset k) Hknd Hl HsOK
     unfold loopP
     isplitr
     · ipureintro; rfl

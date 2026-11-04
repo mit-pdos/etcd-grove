@@ -4,9 +4,9 @@
 (`bk_init`) owning its slots `Dc k`, the root owning the other covered base slots (`rootOwn`,
 `slotInv_start`).
 
-`rinv_start'` is proved from the facts `StartFacts` beside the spill's pre; they are not
-consequences of `Bucket.spill.spec`'s pure premises (`spill_startFacts`, a `sorry`: see its
-docstring and the U9t report).
+`rinv_start'` is proved from the facts `StartFacts` beside the spill's pre, the
+consequences of `Bucket.spill.spec`'s pure premises and `spillStartOK` (`spill_startFacts`; the
+root's keys `rootKeys_start`, a `sorry`).
 -/
 module
 
@@ -43,18 +43,27 @@ structure StartFacts (X : WX) (w : WDb) (B0 : BRec) : Prop where
   inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
   rootKeys : ∀ we ∈ X.allEnts X.rl, 0 < we.key.length
 
-/-- **The start's missing facts** (U9t's report): `treeOK w.C` and `w.C.hwm ≤ pgid` are the
-store's (`wtxW`/`wdbW` do not state them purely), the `2 ^ 62` bound is `mapFields`'
-(`l ≤ maxMapSize`, in `wtxW`), the root's children distinct by the handles' generations
-(`gensOK`, in `wtxCore`); a child not the root is not stated anywhere; the root's entries' keys
-not empty are `entriesBounded`'s for its nodes, and for its view pages `rootShape`'s (`treeOK`),
-which no writer invariant carries to the root's page positions (`posShape` bounds only the other
-buckets'). -/
-theorem spill_startFacts {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
-    (hml : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms)
-    (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
-    (hB0 : X.t.bs !! X.rl = some B0) : StartFacts X w B0 := by
+/-- **The root bucket's entries' keys are not empty** (a `sorry`): `entriesBounded`'s `.1` for an
+entry of a node, `posShape`'s `.2.1.1` (batch 43.4) for an entry of a view page at one of the root
+bucket's positions; what is missing is the link from a block of the root's walk read from a page
+(`ltree`'s `none` case) to `posShape`'s `posRoot B c ∧ ownHas X.v.pages c p` (the converse of
+`BktSlotCov.pos_ownHas`). -/
+theorem rootKeys_start {X : WX} {fl : FLPg} (hpre : spillPre X fl) :
+    ∀ we ∈ X.allEnts X.rl, 0 < we.key.length := by
   sorry
+
+/-- **The start's facts** (batch 43): `spillStartOK` (`Bucket.spill.spec`'s premise) gives the
+committed tree, its mark, the root's children's; the mapping's bound (`wdbW_mapLen_le`) the
+mark's `2 ^ 62`; `rootKeys_start` the root's keys. -/
+theorem spill_startFacts {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
+    (hml : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) (hl : mapLen w.ms ≤ 0xFFFFFFFFFFFF)
+    (hS : spillStartOK X w) (hB0 : X.t.bs !! X.rl = some B0) : StartFacts X w B0 :=
+  { cok := hS.1
+    hwm := hS.2.1
+    mark62 := by omega
+    notRoot := (hS.2.2 B0 hB0).1
+    inj := (hS.2.2 B0 hB0).2
+    rootKeys := rootKeys_start hpre }
 
 /-- The writer's txid at the start of the spill is its records'. -/
 theorem txid_start {X : WX} {w : WDb} (hc : txClean X)
@@ -290,9 +299,10 @@ theorem rinv_start {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl) (hrea
     (hml : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) (hfv : flViewU X w.fl)
     (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
     (hB0 : X.t.bs !! X.rl = some B0) (keys : List GoString)
-    (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome) (hnd : keys.Nodup) :
+    (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome) (hnd : keys.Nodup)
+    (hl : mapLen w.ms ≤ 0xFFFFFFFFFFFF) (hS : spillStartOK X w) :
     ∃ Lroot Dc, RInv X w B0 keys Lroot X w [] Dc (fun _ => .todo) :=
-  rinv_start' hpre hreach hml hfv hw hB0 keys hk hnd (spill_startFacts hpre hml hw hB0)
+  rinv_start' hpre hreach hml hfv hw hB0 keys hk hnd (spill_startFacts hpre hml hl hS hB0)
 
 end start
 
