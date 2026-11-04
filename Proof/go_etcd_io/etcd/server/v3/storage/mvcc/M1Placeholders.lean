@@ -38,10 +38,10 @@ theorem slotX_step_M1 {γ : StoreNames} {q : Qp} {L : Log} {c : Int} (L' : Log) 
     slotX (GF := GF) γ q L c ⊢ slotX γ q L' c' := by
   sorry -- M1-REPLACE: Txn.End.contract (bump), KV.Compact.contract
 
-/-- **(Placeholder, false in general.)** The writer's slot made from nothing. M1-REPLACE:
-`Txn.End.contract` (the writer's slot carried from `Write` to `End`, stage 1's step 3). -/
-theorem slotY_make_M1 (γ : StoreNames) (L : Log) : ⊢ slotY (GF := GF) γ L := by
-  sorry -- M1-REPLACE: Txn.End.contract (the writer's slot from Write)
+/-- **(Placeholder, false in general.)** The writer's slot moved to the committed log without the
+client's half of the view. M1-REPLACE: `Txn.End.contract`'s bump. -/
+theorem slotY_step_M1 {γ : StoreNames} {L : Log} (L' : Log) : slotY (GF := GF) γ L ⊢ slotY γ L' := by
+  sorry -- M1-REPLACE: Txn.End.contract (bump)
 
 /-- **(Placeholder, false in general.)** The frozen state excluded without a share of the token.
 M1-REPLACE: `KV.Write.contract`, `Txn.End.contract` (the writer's backend share,

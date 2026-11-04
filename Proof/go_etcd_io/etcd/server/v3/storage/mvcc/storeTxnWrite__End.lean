@@ -68,8 +68,6 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
     -- the view's quarters: `writerRes`'s and the writer's pin's (M2's item 37)
     icases (mvcc.bucketViewL_halves γ (1 : Qp).half _).1 $$ Hbv with ⟨Hbv, HbvP⟩
-    ihave HY : mvcc.slotY γ ilog $$ []
-    · iapply mvcc.slotY_make_M1
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd HY]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -184,8 +182,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state at the committed log, checked back in (D22 receiver epochs, S2)
     imod ghostVar_update (ilog ++ [pend]) γ.wv ilog $$ Hwv with Hwv
     icases ghostVar_halves γ.wv (ilog ++ [pend]) $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave HY : mvcc.slotY γ (ilog ++ [pend]) $$ []
-    · iapply mvcc.slotY_make_M1
+    -- the writer's slot at the committed log (a placeholder until `Txn.End.contract`'s bump)
+    ihave HY := mvcc.slotY_step_M1 (ilog ++ [pend]) $$ HY
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd HY]
     · iunfold mvcc.writerL
       iexists (ilog ++ [pend]), n

@@ -168,7 +168,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ow.ti, bt, Locked, chs, [], ntok, Ph, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

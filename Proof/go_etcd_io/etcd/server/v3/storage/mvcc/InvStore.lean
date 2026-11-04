@@ -5335,7 +5335,8 @@ theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : C
 fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the batch
 transaction locked with the pending puts, the writer's state (`writerL`, checked out of
 `writerInv`, with the pending changes in the index writer's handle) and the batch lock's resource
-(`writerRes`: the view's quarter, the compaction's part; its key deposited in `writerInv`) with
+(`writerRes`: the view's quarter, the compaction's part; its key deposited in `writerInv`), the
+writer's API slot (`slotY`, carried from `Write` to `End`: strict M1, 2026-11-04), with
 the writer's pin (its quarter of the view, and its loan with the compaction's part: `writerLoan`;
 M2's item 37), both halves of the view's log ghost, the revision token the transaction was opened with, and the
 transaction's tokens (with its slot of the index's lock, out of the readers' pool): `s.mu` held shared at the compaction revision `crev` the
@@ -5372,6 +5373,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
     "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
+    "HY" ∷ slotY γ ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
@@ -5418,6 +5420,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
     "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
+    "HY" ∷ slotY γ ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
@@ -5478,7 +5481,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn, Hcrev⟩
 
@@ -5494,7 +5497,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iunfold storeTxnWriteIs
   iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
@@ -5555,7 +5558,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
@@ -5576,7 +5579,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩
