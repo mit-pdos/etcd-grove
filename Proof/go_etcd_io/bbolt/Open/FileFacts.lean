@@ -33,25 +33,20 @@ def openRest (path : GoString) (D : Data) : Option OsMeta → IProp GF
       ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧
         ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝)
 
-/-- **`fileHolds` as `Open` uses it.**
-
-**A gap (`sorry`, reported):** `m.size < 2 ^ 62`. `fileHoldsDef` bounds the file's size from below
-only (`C.hwm * 4096 ≤ size`), and OsFs's model bounds no file's size; `metasZero`'s and
-`mmapUnlocked`'s specs need it (`Stat`'s `int64` size, `mmapSize`'s arithmetic). The fix is a
-shared one: `fileOK` (or `fileHoldsDef`) gains `size < 2 ^ 62` (`fileHolds_new` has `size = 0`). -/
+/-- **`fileHolds` as `Open` uses it** (its size bound, maintainer 12's item 5, included). -/
 theorem fileHolds_openRest (path : GoString) (D : Data) :
     fileHoldsDef (GF := GF) path D ⊢ ∃ mo : Option OsMeta, osMeta path (DFrac.own 1) mo ∗
       openRest path D mo := by
   iintro H
   icases fileHolds_decode path D $$ H with (⟨Hm, %hD⟩ | ⟨%m, %xs, Hm, Hb, %hml, Hr⟩)
   · iexists none; iframe Hm; unfold openRest; ipureintro; exact hD
-  have hsz : m.size < 2 ^ 62 := sorry
+  have hsz : m.size < 2 ^ 62 := hml.2.2
   iexists some m; iframe Hm; unfold openRest; iexists xs; iframe Hb
   icases Hr with (%h | ⟨%C, %hC⟩)
-  · ipureintro; exact ⟨hml.1, hml.2, hsz, Or.inl h⟩
+  · ipureintro; exact ⟨hml.1, hml.2.1, hsz, Or.inl h⟩
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hC
-    exact ⟨hml.1, hml.2, hsz, Or.inr ⟨C, h1, h2, h3, h4, h5, h6, h7, h8⟩⟩
+    exact ⟨hml.1, hml.2.1, hsz, Or.inr ⟨C, h1, h2, h3, h4, h5, h6, h7, h8⟩⟩
 
 /-- **The file opened** (`O_RDWR | O_CREATE`): an `OsMeta`, its bytes and its branch's facts. -/
 theorem openRest_opened (path : GoString) (D : Data) (mo : Option OsMeta) :
