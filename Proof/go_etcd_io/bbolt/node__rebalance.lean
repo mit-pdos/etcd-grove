@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.bbolt.Inv.WtxBase
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSMat
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXMg
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
+public import Proof.go_etcd_io.bbolt.Rebalance.RblColMat
 public import Proof.go_etcd_io.bbolt.Inv.MatReady
 
 @[expose] public section
@@ -411,9 +412,124 @@ theorem rebal_loeb
       ihave Hw := Hw $$ Hnm
       rw [hnc.1]
       wp_apply hNode K tx r m _ bl _ w0.pgid n hb1 hbll Hnodes (fun l h => (hc1.2.2.2.2.1 _ l h).1)
-        (fun h => ⟨Hready h, Or.inr ⟨rblClear rn, hr1, hlf', hnl⟩⟩) $$ [Hw] as %lc ⟨%X2, Hw, %Hmat⟩
+        (fun h => ⟨Hready h, Or.inr ⟨rblClear rn, hr1, hlf', hnl⟩⟩) (fun _ h => hc1.2.2.2.2.2.1 h)
+        $$ [Hw] as %lc ⟨%X2, Hw, %Hmat⟩
       · iexact Hw
-      sorry
+      -- the child's record (`rblX_colMat`) and the collapse's pure facts
+      have hnlc : ((X.setBkt bl (rblStart B n rn)).t.objs !! lc).isNone →
+          (X.setBkt bl (rblStart B n rn)).nloc !! lc = none := by
+        intro h
+        cases hx : (X.setBkt bl (rblStart B n rn)).nloc !! lc with
+        | none => rfl
+        | some y =>
+          have := Hok1.2.2.2.2.1 lc y hx
+          rw [Option.isNone_iff_eq_none] at h; rw [h] at this; cases this
+      obtain ⟨B2, rn2, rc, hb2, hrn2, hlc, hrc, hI2, hR2, hoth2, hnv2, hws2, hins2, hkey2, hks2,
+        hco2, hU2⟩ := rblX_colMat _ X2 w.fl bl _ n (rblClear rn) w0 lc hI1 hb1 hr1 hlf' hw0 Hmat hnlc
+      have hpn2 : rn2.nv.parent' = null := by rw [hnv2]; exact hpn
+      have hbr2 : rn2.nv.isLeaf' = false := by rw [hnv2]; exact hlf
+      have hws2' : rn2.ws = [w0] := hws2.trans hw0
+      have hB2 := (hI2.2.1 bl B2 hb2).1
+      rw [if_pos rfl] at hB2
+      obtain ⟨hc2, -, ha2, -⟩ := hB2
+      obtain ⟨hp1, hlcn, hpg3, -, -, hroot2, -⟩ :=
+        col_basic X2.v _ bl B2 n rn2 w0 lc rc hc2 ha2 hrn2 hbr2 hpn2 hws2' hlc hrc
+      obtain ⟨hchar, hnd, hkn⟩ :=
+        col_kids X2 w.fl bl (some n) B2 n rn2 w0 lc rc hI2 hb2 hrn2 hbr2 hpn2 hws2' hlc hrc
+      have hlive2 : ∀ y ry, B2.ns !! y = some ry → y ∈ X2.live :=
+        fun y ry h => (hI2.2.1 bl B2 hb2).2.2.2.2 y ry h
+      -- open the root, the child and the child's children
+      icases (wtxW_split K tx r m X2).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+      unfold wtxCore
+      icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+      ihave %Hok2 := wtxHeap_heapOK tx (DFrac.own 1) _ $$ Hh
+      icases wtxHeap_setBkt_live_acc tx (DFrac.own 1) X2 bl B2 ([n, lc] ++ kidsOf B2 rc.ws)
+        (fun l => if l = n then rn2 else if l = lc then rc else colKid B2 rc.ws n rc 0 l) hb2 hnd
+        (by
+          intro l hl
+          simp only [List.cons_append, List.nil_append, List.mem_cons] at hl
+          rcases hl with rfl | rfl | hl
+          · simp only [ite_true]; exact hrn2
+          · simp only [if_neg hlcn, ite_true]; exact hrc
+          · obtain ⟨rk, hrk, -⟩ := (hchar l).1 hl
+            simp only [if_neg (hkn l hl).1, if_neg (hkn l hl).2, colKid_zero, hrk, Option.getD_some])
+        $$ Hh with ⟨HL, Hbo, Htf, Hrf, Hback⟩
+      icases (BigSepL.bigSepL_append).1 $$ HL with ⟨⟨Hno, Hlo, -⟩, Hks⟩
+      isimp only [ite_true, if_neg hlcn] at Hno Hlo
+      rw [decide_eq_true (hlive2 n _ hrn2), decide_eq_true (hlive2 lc _ hrc)]
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hlo
+        with ⟨Hl, Hlins, Hlcap, Hlws, Hlch, Hlchcap, Hlkey⟩
+      icases (objOwn_bkt_unf _ _ _ _ _).1 $$ Hbo
+        with ⟨Hb1, Hbtx, Hb3, Hb4, Hb5, Hbnodes, Hib, Hnm, Hbm, Hpgo⟩
+      ihave %Hlwf := ownSlice_wf _ _ _ $$ Hlins
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn4⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hlnn⟩
+      iStructNamed Hn
+      iStructNamedSuffix Hl "C"
+      wp_auto
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧
+        sint.Z (W64 0) ≤ sint.Z rc.nv.inodes'.len ∧ sint.Z rc.nv.inodes'.len ≤ sint.Z rc.nv.inodes'.cap
+        from ⟨by word, Hlwf.1, Hlwf.2⟩)), ← slice_slice_trivial (V := Inode)]
+      wp_auto
+      -- the reparenting loop over the child's entries
+      ihave %Hlwl := BigSepL2.bigSepL2_length $$ Hlws
+      have hbkt2 : rn2.nv.bucket' = bl := by rw [hnv2]; exact hnc.1
+      rw [hbkt2]
+      ihave IHl : iprop(∃ (j : w64),
+          "i" ∷ i_ptr ↦ j ∗ "Hlins" ∷ rc.nv.inodes' ↦* rc.ins ∗
+          "Hlws" ∷ ([∗list] it;w ∈ rc.ins;rc.ws, wOwn X2.v true it w) ∗
+          "Hks" ∷ ([∗list] l ∈ kidsOf B2 rc.ws, objOwn X2.v l (DFrac.own 1) (decide (l ∈ X2.live))
+            (.node bl (if l = n then rn2 else if l = lc then rc else
+              colKid B2 rc.ws n rc (sint.nat j) l))) ∗
+          "Hnm" ∷ B2.bv.nodes' ↦$ B2.nm ∗ "Hbnodes" ∷ bl.[Bucket, go!"nodes"] ↦ B2.bv.nodes' ∗
+          "bucket" ∷ n.[node, go!"bucket"] ↦ bl ∗ "n" ∷ n_ptr ↦ n ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z rc.nv.inodes'.len⌝)
+        $$ [i Hlins Hlws Hks Hnm Hbnodes bucket n]
+      · iexists W64 0
+        iframe
+        ipureintro; exact ⟨by word, by word⟩
+      repeat (irename : ("_" ∷ True : IProp GF) => Htriv; iclear Htriv)
+      repeat (irename : (True : IProp GF) => Htriv; iclear Htriv)
+      wp_for IHl
+      wp_if_destruct
+      · have Hlt : sint.Z j < sint.Z rc.nv.inodes'.len := by simpa using Hif
+        ihave %Hlsl := ownSlice_len _ _ _ $$ Hlins
+        have Hjn : sint.nat j < rc.ins.length := by rw [Hlsl.1]; word
+        list_elem rc.ins (sint.nat j) as itj
+        obtain ⟨wj, hwj⟩ : ∃ wj, rc.ws[sint.nat j]? = some wj :=
+          ⟨_, List.getElem?_eq_getElem (by rw [← Hlwl]; exact Hjn)⟩
+        rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z rc.nv.inodes'.len
+          from ⟨Hj.1, Hlt⟩))]
+        wp_apply wp_load_slice_index _ (sint.Z j) rc.ins _ itj Hj.1 $$ [Hlins] as Hlins
+        · iframe; ipureintro; simpa using Hitj_lookup
+        try wp_auto
+        icases BigSepL2.bigSepL2_lookup_acc (by simpa using Hitj_lookup) hwj $$ Hlws with ⟨Hwj, Hlwsb⟩
+        icases (Write.wOwn_live _ _ _).1 $$ Hwj with ⟨%Hfpj, Hwjr⟩
+        ihave Hlws := Hlwsb $$ [Hwjr]
+        · iapply (Write.wOwn_live _ _ _).2; iframe; ipureintro; exact Hfpj
+        wp_apply hPg $$ [$inode] as inode
+        rw [Hfpj.2]
+        wp_apply wp_map_lookup2 $$ [Hnm] as Hnm
+        · iexact Hnm
+        try wp_auto
+        have Hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        rcases hkk : B2.nm !! wj.pgid with _ | k
+        · -- no node at this entry
+          simp only [Option.isSome_none, Option.getD_none, decide_false, Bool.false_eq_true]
+          try wp_auto
+          wp_for_post
+          iframe
+          iexists j + W64 1
+          rw [Hj1]
+          simp only [colKid_none B2 rc.ws n rc (sint.nat j) wj hwj hkk]
+          iframe
+          ipureintro; exact ⟨by word, by word⟩
+        · -- the node `k`: reparented to `n`
+          simp only [Option.isSome_some, Option.getD_some, decide_true]
+          try wp_auto
+          sorry
+      · sorry
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
         $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
