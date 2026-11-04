@@ -5,6 +5,7 @@ pointers whatever happened (`mapFields … none`).
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Mmap.Unmap
 public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
@@ -44,7 +45,7 @@ abbrev DB.munmap.spec : Prop :=
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
       ((⌜err = interface.nil⌝ ∗
           osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
+       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
         (osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
          (osMeta p (DFrac.own 1) (some m) ∗ cellsR base 0 l vf)))) }}
 
@@ -131,7 +132,7 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     iframe
     iright
     isplitr
-    · ipureintro; exact fun h => nomatch h
+    · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr⟩
     isplitr
     · iapply fmtErrorOk_of_errorf ei Hty $$ HiS
     icases Hr with (⟨%h0, -⟩ | ⟨-, Hr⟩)

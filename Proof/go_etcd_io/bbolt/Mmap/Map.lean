@@ -10,6 +10,7 @@ leaves it any `int` (U4 finding).
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Spec.golang_org.x.sys.unix.Mmap
@@ -65,7 +66,7 @@ abbrev mmapF.spec : Prop :=
           osMeta p (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
-         ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
+         ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
          (osMeta p (DFrac.own 1) (some m) ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
             osMeta p (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
@@ -158,11 +159,11 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         iframe Hf Hfo Hfd
         iright
         iframe Hdr Hd Hsz
+        icases HiS with ⟨#HiS, %Hty, %Hptr⟩
         isplitr
-        · ipureintro; exact fun h => nomatch h
+        · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr⟩
         isplitr
         · simp only [fmtErrorOk, noArgStringSig]
-          icases HiS with ⟨HiS, %Hty, %Hptr⟩
           iframe HiS; ipureintro; exact Hty
         · iright
           iexists base
@@ -183,7 +184,10 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     simp only [errnoErr, he, ↓reduceIte] at hS
     ihave #HeS := hS
     isplitr
-    · ipureintro; simp [interface.mkOk]
+    · ipureintro
+      refine ⟨by simp [interface.mkOk], ?_⟩
+      have := errPtrTyped_errno e
+      unfold errnoErr at this; rw [if_neg he] at this; exact this
     · iframe HeS
       ileft; iexact Hm
 

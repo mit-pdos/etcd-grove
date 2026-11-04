@@ -4,6 +4,7 @@ under two pages. Its errors are `fmt.Errorf`'s, `fmtErrorOk`.
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.os.File__Stat
@@ -61,7 +62,7 @@ abbrev DB.fileSize.spec : Prop :=
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗ osMeta p dqm (some m) ∗
       ((⌜err = interface.nil ∧ r = W64 (m.size : Int) ∧ 8192 ≤ m.size⌝) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
+       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
@@ -100,7 +101,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iframe
       iright
       isplitr
-      · ipureintro; exact fun h => nomatch h
+      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0⟩
       · iapply errorf_fmtErrorOk
         isplitl
         · iexact HeS0
@@ -134,7 +135,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iframe
       iright
       isplitr
-      · ipureintro; exact fun h => nomatch h
+      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0⟩
       · iapply errorf_fmtErrorOk
         isplitl
         · iexact HeS0

@@ -28,6 +28,7 @@ Step 7's agreement is read at the first step (`StartRead`) of the `db.Mlock` loa
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
+public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -47,14 +48,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **An error whose value is a location when its dynamic type is a pointer type** (U4c): what
-`err == ErrMaxSizeReached` needs to step (`go_eq_interface` compares at the dynamic type, and
-pointer equality is over locations; cf. Perennial's `errors.TreeTyped`). Every error `DB.mmap`
-returns is one (`errors.New`'s, `fmt.Errorf`'s pointers, `syscall.Errno`). -/
-def errPtrTyped [GooseExts] [GoGlobalContext] (e : GoInterface) : Prop :=
-  ∀ ii : GoInterfaceOk, e = GoInterface.ok ii → ∀ T : go.GoType, ii.ty = go.GoType.PointerType T →
-    ∃ l : Loc, ii.v = #l
 
 /-- **`db.mmap(minsz)` by the live writer `tx`**, growing the mapping (`minsz` at least its length,
 U4d: a shorter new mapping would drop `W` slots, which `wdbRemap` keeps): on success the records dereferenced and

@@ -11,6 +11,7 @@ in `(2^48 - 2^30, 2^48 - 1]` (U4 finding).
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.fmt.ErrorOk
@@ -116,7 +117,7 @@ abbrev DB.mmapSize.spec : Prop :=
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
       match mmapSizeOf (sint.nat size) with
       | some s => ⌜err = interface.nil ∧ sint.nat r = s⌝
-      | none => ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err }}
+      | none => ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err }}
 
 theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
   intro db size hsz
@@ -165,7 +166,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
       have hgt : sint.nat size > 0xFFFFFFFFFFFF := by word
       simp only [hgt, ↓reduceIte]
       isplitr
-      · ipureintro; exact fun h => nomatch h
+      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_ptrOk _ _⟩
       · iapply errorString_fmtErrorOk $$ Hx
     · have hle : ¬ sint.nat size > 0xFFFFFFFFFFFF := by word
       simp only [hle, ↓reduceIte]
@@ -188,7 +189,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         rw [← hv] at hR1 hR2 hR3 hR4
         generalize size + (W64 1073741824 - BitVec.srem size (W64 1073741824)) = v at *
         rw [srem4096_zero _ hR3 hR4]
-        simp only [decide_true, Bool.not_true]
+        simp only [_root_.decide_true, Bool.not_true]
         try wp_auto
         rw [show sint.nat size = (sint.Z size).toNat from rfl, hR1]
         have hcap : sint.Z (W64 281474976710655) = 281474976710655 := rfl
@@ -211,7 +212,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         obtain ⟨hR1, hR2, hR3, hR4⟩ := mmapSize_round (sint.Z size) _ hS
           (ite_eq_right (by word : ¬ sint.Z size % 1073741824 > 0)).symm
         rw [srem4096_zero _ hR3 hR4]
-        simp only [decide_true, Bool.not_true]
+        simp only [_root_.decide_true, Bool.not_true]
         try wp_auto
         rw [show sint.nat size = (sint.Z size).toNat from rfl, hR1]
         have hcap : sint.Z (W64 281474976710655) = 281474976710655 := rfl

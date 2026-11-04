@@ -240,7 +240,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   rotate_left
   · -- `fileSize` failed: logged, returned
     cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl hne.1
     | ok ii =>
     wp_auto
     wp_apply wp_slice_literal
@@ -253,7 +253,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iframe
     · log_args_ok
     try wp_auto
-    ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
+    have Hpt := hne.2
     ihave Hdb := Hdbback $$ [Hfile Hfo Hfd Hosm]
     · iframe
     iapply HΦ
@@ -279,7 +279,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   · -- `mmapSize` failed: logged, returned
     iintro ⟨%hne, #HeS⟩
     cases err2 with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl hne.1
     | ok ii =>
     wp_auto
     wp_apply wp_slice_literal
@@ -292,7 +292,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iframe
     · log_args_ok
     try wp_auto
-    ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
+    have Hpt := hne.2
     ihave Hdb := Hdbback $$ [Hfile Hfo Hfd Hosm]
     · iframe
     iapply HΦ
@@ -372,11 +372,11 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   rotate_left
   · -- `munmap` failed: the mapping lost (or leaked)
     cases e with
-    | nil => exact absurd rfl he
+    | nil => exact absurd rfl he.1
     | ok ii =>
     try wp_auto
     icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩
-    ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
+    have Hpt := he.2
     ihave Hwl := remap_lostX K tx r m Xd hrel.1 $$ [Hwc0 Hm1]
     · iframe
     ihave Hgwv : ghostVar K.B.wv (1 : Qp).half
@@ -436,7 +436,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   rotate_left
   · -- `mmap` failed: the mapping lost (or leaked by `Madvise`)
     cases e with
-    | nil => exact absurd rfl he
+    | nil => exact absurd rfl he.1
     | ok ii =>
     rw [hgoarch]
     try wp_auto
@@ -454,7 +454,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iframe
     · log_args_ok
     try wp_auto
-    ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
+    have Hpt := he.2
     ihave Hmf0 : mapFields K.db (DFrac.own 1) (none : MapSt) $$ [Hdr Hdd Hm0f Hm1f]
     · simp only [mapFields]; iframe
     icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩

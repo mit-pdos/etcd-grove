@@ -310,7 +310,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         rcases hmo : mmapSizeOf (sint.nat ((pg + count + W64 1) * W64 4096)) with _ | sz
         · iintro ⟨%hne, #HeS⟩
           cases err with
-          | nil => exact absurd rfl hne
+          | nil => exact absurd rfl hne.1
           | ok ii =>
           simp only
           wp_auto
