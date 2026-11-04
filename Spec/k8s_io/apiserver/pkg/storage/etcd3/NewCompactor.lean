@@ -5,7 +5,7 @@ counterpart).
 
 At a nonzero interval, a `RealClock`, no `onClose`, and `ListFromCacheSnapshot` off
 (`gateOff`, U3: no watch loop; a scope restriction, retired by Q1 (b)): one goroutine, the loop
-(`runCompactLoop`, its thread token from the caller, backing the wait group's `Add(1)`), with the
+(`runCompactLoop`; the wait group's one `Add(1)` is `sync.join`'s, which needs no thread token), with the
 client's resources and the caller's contract (`casOk`). Returns the compactor (`isCompactor`)
 and a lower bound `0` on its revision.
 -/
@@ -38,9 +38,10 @@ abbrev NewCompactor.spec : Prop :=
     (iv : w64) (ck : k8s_io.utils.clock.RealClock),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 → iv ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ threadTok ∗ gateOff ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ gateOff ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      clientKvOk cl γk ∗
       casOk ms γk Seen recorded }}
     (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.NewCompactor)) (Val #cl))
       (Val #iv)) (Val #(interface.mkOk k8s_io.utils.clock.RealClock.ty #ck : GoInterface)))

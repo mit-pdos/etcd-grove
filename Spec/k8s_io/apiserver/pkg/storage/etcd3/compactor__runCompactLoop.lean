@@ -45,6 +45,7 @@ abbrev compactor.runCompactLoop.spec : Prop :=
       isCompactor c cl γk recorded γc ∗ compactorStopOk c sc γs ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      clientKvOk cl γk ∗
       casOk ms γk Seen recorded }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"runCompactLoop")) (Val #sc))

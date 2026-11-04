@@ -31485,6 +31485,35 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 
 **`authStore.Close`** is translated (`auth.toml`) and proved over `tpAdmin`, as `AuthDisable` is.
 
+## Kubernetes' compactor proved: its functions linked, three spec changes found while proving (2026-11-04 · K4 of `notes/k8s-compactor-plan.md`, its first part · branch `k8s-compactor-k4`)
+
+**Proved and linked** (in `Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean`, `etc/gen-link.py
+--k8s-etcd3`; collection `etc/tcb-collections/k8s-compactor.txt`): `Compact`, `CompactRevision`,
+`UpdateCompactRevision`, `Stop`, `runCompactLoop`, `NewCompactor`.
+- **`Compact`'s round.** It goes through `txn.Commit.specM` and keeps U1's `txnRevLb`, so the next
+  round's revision is reached. The else branch's `Kvs[0]` exists by the caller's `casPost`, and
+  `ParseInt` reads `FormatInt` back (U2).
+- **`runCompactLoop`.** It runs under `wait.ContextForChannel(stop)`, through `chanCtx_ok` and
+  `ctxOk`'s third case (the entry "A context outside Perennial's model").
+
+**Spec changes, found while proving** (none of these specs has a client outside the package):
+- **The client's KV handle.** `Compact.spec`, `runCompactLoop.spec` and `NewCompactor.spec` take
+  `clientKvOk cl γk`: the client's `KV` field holds a `*kv` with `isKv` (`CompactorDefs.lean`).
+  The client's `kv.Compact.spec` needs `isKv`, whose introduction takes the store's receipt bound.
+  A first version took `receiptBound GF ≤ 2 ^ 62` as a premise and failed `etc/bounds-check.py`
+  (`spec-receipt`). `notes/bounds-plan.md` has the owner fix the bound: here the `isKv`, built
+  once by `Main` (`isKv_of_newClient`) at the adequacy theorem's constant.
+- **No thread token.** `NewCompactor.spec` drops `threadTok`. The stop machinery's wait group is
+  `sync.join`'s, whose one `Add` needs no token. `sync.tokJoin` would have needed
+  `threadBound GF ≤ 2^31`, a premise `NewCompactor.spec` lacked.
+- **`isCompactor`'s internals.** `isCompactor` (sealed) carries `∀ r, Persistent (recorded r)`.
+  The revision under the mutex is kept and returned, so it must be persistent.
+
+**The trust base.**
+- **A new axiom:** `klog.Errorf` (logging, the shape of `klog.Verbose.Infof`'s), for a failed round.
+- **A named hypothesis:** `clock.RealClock.After`, `?` in the link, as in client-go's.
+- **Translated instead of assumed:** the feature constant `ListFromCacheSnapshot` (`features.toml`).
+  So `NewCompactor` needs no "not a panic" axiom, unlike `AllowUnsafeMalformedObjectDeletion`'s.
 ## The stop's pieces kept from construction: `srvStopKeep`, and `bootOk`'s backend file (2026-11-04 · R2b-3d stage 1, the user's approval of `bootOk`'s change · branch `r2b3`)
 
 **Before:** `NewServer` dropped what only the stop needs (the raft loop's stop claim, the storage

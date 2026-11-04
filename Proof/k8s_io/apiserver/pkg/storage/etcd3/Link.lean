@@ -9,29 +9,52 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.Client__Ctx
+public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Compact
+public import Proof.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Proof.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Proof.strings.HasSuffix
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.NewEtcdMetricsTracker
 public import Proof.k8s_io.apiserver.pkg.storage.NewInternalError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyExistsError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyNotFoundError
+public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.OpPut
+public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Proof.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
 public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
 public import Proof.k8s_io.klog.v2.Verbose__Infof
+public import Proof.go_etcd_io.etcd.client.v3.Version
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
+public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__CompactRevision
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRevision
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runCompactLoop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newDefaultLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newStorageKeyReverseFunc
@@ -40,6 +63,7 @@ public import Proof.path.Join
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__string
+public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.reflect.New
 public import Proof.reflect.Value__Addr
 public import Proof.reflect.Value__Interface
@@ -58,10 +82,15 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__stateFromEtcdRespo
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateOnce
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateState
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__validateMinimumResourceVersion
+public import Proof.strconv.FormatInt
+public import Proof.strconv.ParseInt
 public import Proof.strings.Contains
 public import Proof.k8s_io.component_base.tracing.Start
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.txnError
+public import Proof.k8s_io.klog.v2.Errorf
 public import Proof.k8s_io.klog.v2.V
+public import Proof.go_etcd_io.etcd.client.v3.Compare
+public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
 
@@ -85,6 +114,70 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem v3.Client.wp_Ctx :
     EtcdGrove.Client.Ctx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.Ctx.wp_proof
+
+theorem proto.wp_Clone :
+    EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.Clone.wp_proof
+
+theorem v3.wp_cloneCompare :
+    EtcdGrove.cloneCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cloneCompare.wp_proof proto.wp_Clone
+
+theorem v3.Cmp.wp_Clone :
+    EtcdGrove.Cmp.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.Clone.wp_proof v3.wp_cloneCompare
+
+theorem v3.Cmp.wp_ensureCompare :
+    EtcdGrove.Cmp.ensureCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.ensureCompare.wp_proof
+
+theorem v3.wp_Version :
+    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Version.wp_proof
+
+theorem v3.wp_mustInt64 :
+    EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64.wp_proof
+
+theorem v3.wp_mustInt64orLeaseID :
+    EtcdGrove.mustInt64orLeaseID.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64orLeaseID.wp_proof v3.wp_mustInt64
+
+theorem v3.wp_Compare :
+    EtcdGrove.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Compare.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare v3.wp_mustInt64 v3.wp_mustInt64orLeaseID
+
+theorem v3.Op.wp_applyOpts :
+    EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.applyOpts.wp_proof
+
+theorem v3.wp_OpPut :
+    EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
+
+theorem v3.wp_NewOp :
+    EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewOp.wp_proof
+
+theorem v3.wp_IsOptsWithPrefix :
+    EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
+
+theorem v3.wp_IsOptsWithFromKey :
+    EtcdGrove.IsOptsWithFromKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithFromKey.wp_proof v3.wp_NewOp
+
+theorem v3.wp_OpGet :
+    EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpGet.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem strconv.wp_FormatInt :
+    EtcdGrove.strconv.FormatInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.FormatInt.wp_proof
+
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
 
 theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
@@ -129,6 +222,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
+theorem v3.Client.wp_Endpoints :
+    EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.Endpoints.wp_proof
+
+theorem strconv.wp_ParseInt :
+    EtcdGrove.strconv.ParseInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.ParseInt.wp_proof
+
+theorem klog.wp_V :
+    EtcdGrove.klog.V.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.V.wp_proof
+
+theorem klog.Verbose.wp_Infof :
+    EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.Verbose.Infof.wp_proof
+
+theorem wp_Compact :
+    EtcdGrove.k8s.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.Compact.wp_proof v3.wp_Version v3.wp_Compare v3.wp_OpPut v3.wp_OpGet strconv.wp_FormatInt strconv.wp_ParseInt ResponseOp.wp_GetResponseRange v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof
+
+theorem wait.wp_ContextForChannel :
+    EtcdGrove.wait.ContextForChannel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.ContextForChannel.wp_proof
+
 theorem audit.wp_GetAuditIDTruncated :
     EtcdGrove.audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG) :=
   EtcdGrove.audit.GetAuditIDTruncated.wp_proof
@@ -136,6 +253,22 @@ theorem audit.wp_GetAuditIDTruncated :
 theorem strings.wp_HasSuffix :
     EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.HasSuffix.wp_proof
+
+theorem wait.channelContext.wp_Done :
+    EtcdGrove.wait.channelContext.Done.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.channelContext.Done.wp_proof
+
+theorem wait.channelContext.wp_Err :
+    EtcdGrove.wait.channelContext.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.channelContext.Err.wp_proof
+
+theorem compactor.wp_UpdateCompactRevision :
+    EtcdGrove.k8s.compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.UpdateCompactRevision.wp_proof
+
+theorem klog.wp_Errorf :
+    EtcdGrove.klog.Errorf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.Errorf.wp_proof
 
 theorem wp_NewDefaultLeaseManagerConfig :
     EtcdGrove.k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) :=
@@ -189,9 +322,13 @@ theorem strings.wp_TrimSuffix :
     EtcdGrove.strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.TrimSuffix.wp_proof
 
-theorem klog.Verbose.wp_Infof :
-    EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.Verbose.Infof.wp_proof
+theorem compactor.wp_CompactRevision :
+    EtcdGrove.k8s.compactor.CompactRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.CompactRevision.wp_proof
+
+theorem compactor.wp_Stop :
+    EtcdGrove.k8s.compactor.Stop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.Stop.wp_proof
 
 theorem wp_corruptObjErrAggregatorFactory :
     EtcdGrove.k8s.corruptObjErrAggregatorFactory.spec (GF := GF) (hG := hG) :=
@@ -269,10 +406,6 @@ theorem store.wp_getCurrentState :
     EtcdGrove.k8s.store.getCurrentState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.getCurrentState.wp_proof store.wp_stateFromEtcdResponse metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get
 
-theorem klog.wp_V :
-    EtcdGrove.klog.V.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.V.wp_proof
-
 theorem store.wp_deleteOnce :
     EtcdGrove.k8s.store.deleteOnce.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.deleteOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest klog.wp_V klog.Verbose.wp_Infof kubernetes.Client.wp_OptimisticDelete
@@ -310,6 +443,27 @@ theorem store.wp_GuaranteedUpdate :
   EtcdGrove.k8s.store.GuaranteedUpdate.wp_proof store.wp_prepareKey wp_getTypeName conversion.wp_EnforcePtr store.wp_getCurrentState storage.Preconditions.wp_Check store.wp_updateState store.wp_updateOnce wp_refreshOnError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
+include h_clock_RealClock__After
+
+theorem compactor.wp_runCompactLoop :
+    EtcdGrove.k8s.compactor.runCompactLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err h_clock_RealClock__After wp_Compact compactor.wp_UpdateCompactRevision v3.Client.wp_Endpoints klog.wp_Errorf
+
+theorem wp_NewCompactor :
+    EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After)
+
+end links_pending
 
 end k8s
 end EtcdGrove

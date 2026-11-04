@@ -74,3 +74,39 @@ corruptObjErrAggregatorFactory:
 newStorageKeyReverseFunc:
 NewDefaultLeaseManagerConfig:
 etcd3_New: newDefaultLeaseManager defaultListErrorAggregatorFactory corruptObjErrAggregatorFactory newStorageKeyReverseFunc NewEtcdMetricsTracker path_Join TrimSuffix Client__Ctx TypeOf
+#
+# Kubernetes' compactor (`compact.go`; notes/k8s-compactor-plan.md, K4). The clientv3 functions
+# its round calls, linked here as the kubernetes client's Link.lean links them:
+NewOp:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+Op__applyOpts:
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__Clone: cloneCompare
+Cmp__ensureCompare:
+mustInt64:
+mustInt64orLeaseID: mustInt64
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+Version:
+ResponseOp__GetResponseRange:
+Client__Endpoints:
+# the trust boundary: strconv's (U2), klog's Errorf (logging); clock.RealClock.After a named
+# hypothesis, as in client-go's link
+strconv_FormatInt:
+strconv_ParseInt:
+v2_Errorf:
+clock_RealClock__After: ?
+# k8s.io/apimachinery/pkg/util/wait (`wait.go`, translated): the loop's context
+ContextForChannel:
+channelContext__Done:
+channelContext__Err:
+# k8s.io/apiserver/pkg/storage/etcd3 (`compact.go`)
+Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange Client__Endpoints v2_V Verbose__Infof
+compactor__CompactRevision:
+compactor__UpdateCompactRevision:
+compactor__Stop:
+compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
+NewCompactor: compactor__runCompactLoop
