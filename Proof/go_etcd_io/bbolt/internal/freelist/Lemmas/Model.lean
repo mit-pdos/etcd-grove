@@ -140,7 +140,7 @@ theorem toList_insert_perm {V : Type} (m : GMap w64 V) (k : w64) (v : V) :
     · simp [hk, Ne.symm hk]
 
 /-- The bindings of `m`, which binds `k` to `v`: that one and those of the others. -/
-theorem toList_lookup_perm {V : Type} {m : GMap w64 V} {k : w64} {v : V} (h : m !! k = some v) :
+theorem toList_lookup_perm_w64 {V : Type} {m : GMap w64 V} {k : w64} {v : V} (h : m !! k = some v) :
     m.toList.Perm ((k, v) :: (GMap.delete k m).toList) := by
   have h2 : GMap.delete k (<[k := v]> m) = GMap.delete k m := by
     apply GMap.map_eq; intro k'; simp only [GMap.lookup_delete_iff]
@@ -157,7 +157,7 @@ theorem flatIds_insert (m : GMap w64 Pending) (t : w64) (pd : Pending) :
 
 theorem flatIds_lookup {m : GMap w64 Pending} {t : w64} {pd : Pending} (h : m !! t = some pd) :
     (flatIds m).Perm (pd.ids ++ flatIds (GMap.delete t m)) := by
-  have := (toList_lookup_perm h).flatMap_right (fun kv => kv.2.ids)
+  have := (toList_lookup_perm_w64 h).flatMap_right (fun kv => kv.2.ids)
   simpa [flatIds] using this
 
 theorem mem_flatIds (m : GMap w64 Pending) (x : w64) :
