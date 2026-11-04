@@ -188,10 +188,10 @@ theorem isBktFlag_of_mod (f : Nat) (h : f % 2 = 1) : isBktFlag (W32 (f : Int)) :
   simp [BitVec.toNat_and] at this
   omega
 
-/-- **The initial records hold the committed data.** -/
-theorem wtxData_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+/-- The initial root bucket's entries are the view tree's (all buckets: `rootShape`). -/
+theorem rootEnts_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
     (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (htree : treeOK C) (hi : Init0 C t mv bv ib) :
-    wtxData (wx0 rl t mv bv ib (View.ofC b C)) = treeData C := by
+    rootEnts (wx0 rl t mv bv ib (View.ofC b C)) = treeEntries C.pages C.root := by
   obtain ⟨h2, hlt⟩ := treeOK_root C htree
   have hhwm : C.hwm < 2 ^ 64 := by have := hi.pgid; rw [← this]; exact BitVec.isLt _
   have hrt : ib.root'.toNat = C.root := by rw [hi.root]; exact toNat_W64_of_lt _ (by omega)
@@ -250,6 +250,13 @@ theorem wtxData_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
     rw [if_pos (by
       have := isBktFlag_of_mod (leafFlags pg i) (by rw [hf]; rfl)
       exact decide_eq_true this)]
+  exact hents
+
+/-- **The initial records hold the committed data.** -/
+theorem wtxData_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+    (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (htree : treeOK C) (hi : Init0 C t mv bv ib) :
+    wtxData (wx0 rl t mv bv ib (View.ofC b C)) = treeData C := by
+  have hents := rootEnts_wx0 C b rl t mv bv ib htree hi
   unfold wtxData treeData
   rw [hents]
   congr 1
@@ -258,6 +265,258 @@ theorem wtxData_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
   have : bktDataOf (wx0 rl t mv bv ib (View.ofC b C)) e.1 e.2 = bktOfPage C.pages e.2 := by
     simp [bktDataOf, wx0_bs, brec0, wx0, View.ofC]
   rw [this]
+
+/-! ## `covU` of the initial records -/
+
+private theorem treeHas_trans0 {P : Pages} {a b c : Nat} (h1 : treeHas P a b) (h2 : treeHas P b c) :
+    treeHas P a c := by
+  have key : ∀ {a b}, treeHas P a b → ∀ c, treeHas P b c → treeHas P a c := fun {a b} h =>
+    treeHas.rec (pages := P)
+      (motive_1 := fun a b _ => ∀ c, treeHas P b c → treeHas P a c)
+      (motive_2 := fun pg b _ => ∀ c, treeHas P b c → pageHas P pg c)
+      (motive_3 := fun v b _ => ∀ c, treeHas P b c → bucketHas P v c)
+      (fun _ _ _ c h => h)
+      (fun a pg b hpg _ ih c h => treeHas.sub a pg c hpg (ih c h))
+      (fun pg i b hfl hi _ ih c h => pageHas.child pg i c hfl hi (ih c h))
+      (fun pg i b hfl hi hbf _ ih c h => pageHas.bucket pg i c hfl hi hbf (ih c h))
+      (fun v b hr _ ih c h => bucketHas.file v c hr (ih c h))
+      (fun v b hr _ ih c h => bucketHas.inline v c hr (ih c h))
+      h
+  exact key h1 c h2
+
+private theorem bucketHas_page0 {P : Pages} {v : List w8} {y : Nat} (h : bucketHas P v y) :
+    ∃ pg, P !! y = some pg :=
+  bucketHas.rec (pages := P)
+    (motive_1 := fun _ y _ => ∃ pg, P !! y = some pg)
+    (motive_2 := fun _ y _ => ∃ pg, P !! y = some pg)
+    (motive_3 := fun _ y _ => ∃ pg, P !! y = some pg)
+    (fun _ pg hpg => ⟨pg, hpg⟩) (fun _ _ _ _ _ ih => ih) (fun _ _ _ _ _ _ ih => ih)
+    (fun _ _ _ _ _ _ _ ih => ih) (fun _ _ _ _ ih => ih) (fun _ _ _ _ ih => ih) h
+
+private theorem ownHas_treeHas0 {P : Pages} {c p : Nat} (h : ownHas P c p) : treeHas P c p := by
+  induction h with
+  | root r pg hpg => exact treeHas.root r pg hpg
+  | child r pg i id hpg hb hi _ ih => exact treeHas.sub r pg id hpg (pageHas.child pg i id hb hi ih)
+
+private theorem own_bucket_treeHas {P : Pages} {c L : Nat} (h : ownHas P c L) {pg : List w8}
+    (hpg : P !! L = some pg) (hl : pageFlags pg = leafPageFlag) {i : Nat} (hi : i < pageCount pg)
+    (hbf : leafFlags pg i % 2 = bucketLeafFlag) {d : Nat} (hd : bucketHas P (leafValue pg i) d) :
+    treeHas P c d :=
+  treeHas_trans0 (ownHas_treeHas0 h) (treeHas.sub L pg d hpg (pageHas.bucket pg i d hl hi hbf hd))
+
+private theorem leaf_ne_branch {pg : List w8} (hl : pageFlags pg = leafPageFlag)
+    (hb : pageFlags pg = branchPageFlag) : False := by
+  rw [hl] at hb; simp [leafPageFlag, branchPageFlag] at hb
+
+/-- No page of a bucket tree's own pages is in one of its leaves' nested buckets. -/
+theorem own_not_bucket (P : Pages) (hu : viewUnique P) {r a : Nat} (ha : ownHas P r a) :
+    ∀ {L : Nat} {pgL : List w8} {i : Nat}, ownHas P r L → P !! L = some pgL →
+      pageFlags pgL = leafPageFlag → i < pageCount pgL → leafFlags pgL i % 2 = bucketLeafFlag →
+      bucketHas P (leafValue pgL i) a → False := by
+  induction ha with
+  | root r pg hpg =>
+    intro L pgL i hL hpgL hl hi hbf hd
+    cases hL with
+    | root _ pg' hpg' =>
+      exact (hu.2 r _ hpgL hl).2 i hi hbf hd
+    | child _ pg' j _ hpg' hb hj hL' =>
+      have e := hpg.symm.trans hpg'; cases e
+      exact (hu.1 r pg hpg hb).2 j hj (own_bucket_treeHas hL' hpgL hl hi hbf hd)
+  | child r pg j a hpg hb hj ha ih =>
+    intro L pgL i hL hpgL hl hi hbf hd
+    cases hL with
+    | root _ pg' hpg' =>
+      have e := hpg.symm.trans hpgL; cases e
+      exact leaf_ne_branch hl hb
+    | child _ pg' k _ hpg' hb' hk hL' =>
+      have e := hpg.symm.trans hpg'; cases e
+      by_cases hkj : k = j
+      · subst hkj; exact ih hL' hpgL hl hi hbf hd
+      · exact (hu.1 r pg hpg hb).1 k j hk hj hkj a (own_bucket_treeHas hL' hpgL hl hi hbf hd)
+          (ownHas_treeHas0 ha)
+
+/-- Two leaf entries of a bucket tree whose nested buckets share a page are one entry. -/
+theorem bucket_unique (P : Pages) (hu : viewUnique P) {r L1 : Nat} (h1 : ownHas P r L1) :
+    ∀ {L2 : Nat} {pg1 pg2 : List w8} {i1 i2 d : Nat}, ownHas P r L2 →
+      P !! L1 = some pg1 → pageFlags pg1 = leafPageFlag → i1 < pageCount pg1 →
+      leafFlags pg1 i1 % 2 = bucketLeafFlag →
+      P !! L2 = some pg2 → pageFlags pg2 = leafPageFlag → i2 < pageCount pg2 →
+      leafFlags pg2 i2 % 2 = bucketLeafFlag →
+      bucketHas P (leafValue pg1 i1) d → bucketHas P (leafValue pg2 i2) d → L1 = L2 ∧ i1 = i2 := by
+  induction h1 with
+  | root r pg hpg =>
+    intro L2 pg1 pg2 i1 i2 d hL2 hp1 hl1 hi1 hb1 hp2 hl2 hi2 hb2 hd1 hd2
+    cases hL2 with
+    | root _ pg' hpg' =>
+      have e := hp1.symm.trans hp2; cases e
+      refine ⟨rfl, ?_⟩
+      by_cases hne : i1 = i2
+      · exact hne
+      · exact ((hu.2 r pg1 hp1 hl1).1 i1 i2 hi1 hi2 hne hb1 hb2 d hd1 hd2).elim
+    | child _ pg' k _ hpg' hb' _ _ =>
+      have e := hp1.symm.trans hpg'; cases e
+      exact (leaf_ne_branch hl1 hb').elim
+  | child r pg j L1 hpg hb hj h1 ih =>
+    intro L2 pg1 pg2 i1 i2 d hL2 hp1 hl1 hi1 hb1 hp2 hl2 hi2 hb2 hd1 hd2
+    cases hL2 with
+    | root _ pg' hpg' =>
+      have e := hpg.symm.trans hp2; cases e
+      exact (leaf_ne_branch hl2 hb).elim
+    | child _ pg' k _ hpg' hb' hk hL2' =>
+      have e := hpg.symm.trans hpg'; cases e
+      by_cases hkj : k = j
+      · subst hkj; exact ih hL2' hp1 hl1 hi1 hb1 hp2 hl2 hi2 hb2 hd1 hd2
+      · exact ((hu.1 r pg hpg hb).1 k j hk hj hkj d (own_bucket_treeHas hL2' hp2 hl2 hi2 hb2 hd2)
+          (own_bucket_treeHas h1 hp1 hl1 hi1 hb1 hd1)).elim
+
+/-- A position of the initial root bucket with a page is a page of the view tree's own pages. -/
+theorem lposF_wx0_own (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+    (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (hr0 : ib.root' ≠ W64 0) (htree : treeOK C) :
+    ∀ n p pid pg, pid ∈ lposF (ltree (wx0 rl t mv bv ib (View.ofC b C))) rl n p →
+      C.pages !! pid.toNat = some pg → ownHas C.pages p.toNat pid.toNat
+  | 0, _, _, _, h, _ => by simp [lposF] at h
+  | n + 1, p, pid, pg, h, hpg => by
+    simp only [lposF] at h
+    rcases List.mem_cons.1 h with rfl | h
+    · exact ownHas.root _ pg hpg
+    · rw [ltree_wx0 C b rl t mv bv ib hr0, if_pos rfl] at h
+      cases hp : C.pages !! p.toNat with
+      | none => rw [hp] at h; simp at h
+      | some pgp =>
+        rw [hp] at h
+        by_cases hl : pageFlags pgp = leafPageFlag
+        · simp [hl] at h
+        · simp only [Option.map_some, hl, decide_false] at h
+          rw [List.mem_flatMap] at h
+          obtain ⟨w, hw, hm⟩ := h
+          unfold pageWs at hw
+          rw [List.mem_map] at hw
+          obtain ⟨i, hi, rfl⟩ := hw
+          have hpgid : (pageW pgp i).pgid = W64 (branchPgid pgp i : Int) := by simp [pageW, hl]
+          rw [hpgid] at hm
+          have ih := lposF_wx0_own C b rl t mv bv ib hr0 htree n _ pid pg hm hpg
+          rw [branchPgid_toNat] at ih
+          have hv : viewWF (View.ofC b C) := ⟨C, htree, rfl⟩
+          have hb : pageFlags pgp = branchPageFlag := by
+            rcases (viewWF_page_ready (View.ofC b C) hv p.toNat pgp hp).2.2.1 with h | h
+            · exact absurd h hl
+            · exact h
+          exact ownHas.child _ pgp i _ hp hb (List.mem_range.1 hi) ih
+
+/-- An entry of the initial root bucket: a bucket entry of a leaf of the view tree's own pages. -/
+theorem rootEnts_wx0_mem (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+    (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (htree : treeOK C) (hi : Init0 C t mv bv ib)
+    (n : GoString) (v : List w8) (h : (n, v) ∈ rootEnts (wx0 rl t mv bv ib (View.ofC b C))) :
+    ∃ L pg i, ownHas C.pages C.root L ∧ C.pages !! L = some pg ∧ pageFlags pg = leafPageFlag ∧
+      i < pageCount pg ∧ leafFlags pg i % 2 = bucketLeafFlag ∧ n = leafKey pg i ∧
+      v = leafValue pg i := by
+  rw [rootEnts_wx0 C b rl t mv bv ib htree hi] at h
+  unfold treeEntries at h
+  rw [List.mem_flatMap] at h
+  obtain ⟨pg, hpg, he⟩ := h
+  obtain ⟨id, -, -, hown, hpid, hleaf, -⟩ :=
+    leavesF_page C.pages C.hwm _ C.root none none htree.1.1 htree.1.2.2.1 pg hpg
+  unfold leafEnts at he
+  rw [List.mem_map] at he
+  obtain ⟨i, hi', he⟩ := he
+  cases he
+  have hi'' := List.mem_range.1 hi'
+  exact ⟨id, pg, i, hown, hpid, hleaf, hi'', (htree.2.2.2.2.1 id pg hown hpid hleaf i hi'').1,
+    rfl, rfl⟩
+
+/-- **Every covered slot of the initial records is covered once.** -/
+theorem covU_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+    (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (htree : treeOK C) (hi : Init0 C t mv bv ib) :
+    covU (wx0 rl t mv bv ib (View.ofC b C)) := by
+  obtain ⟨h2, hlt⟩ := treeOK_root C htree
+  have hhwm : C.hwm < 2 ^ 64 := by have := hi.pgid; rw [← this]; exact BitVec.isLt _
+  have hrt : ib.root'.toNat = C.root := by rw [hi.root]; exact toNat_W64_of_lt _ (by omega)
+  have hr0 : ib.root' ≠ W64 0 := by
+    intro e; rw [e] at hrt; simp at hrt; omega
+  have hr0' : ¬ ib.root' = 0#64 := by simpa using hr0
+  have hu : viewUnique C.pages := htree.1.2.1.2
+  have hdis : pagesDisjoint C.pages := htree.2.2.1
+  -- a position's cover: its page, own in the view tree
+  have hpos : ∀ bl pid s, coverW (wx0 rl t mv bv ib (View.ofC b C)) s (.pos bl pid) →
+      bl = rl ∧ ∃ pg, C.pages !! pid.toNat = some pg ∧ ownHas C.pages C.root pid.toNat ∧
+        pid.toNat ≤ s ∧ s < pid.toNat + (1 + pageOverflow pg) := by
+    intro bl pid s hc
+    obtain ⟨hbs, hmem, e, he, hs1, hs2⟩ := hc
+    have hbl : bl = rl := by
+      rw [wx0_bs] at hbs; split at hbs
+      · rename_i h; exact h.symm
+      · exact absurd rfl hbs
+    subst hbl
+    refine ⟨rfl, ?_⟩
+    unfold WX.posExtent at he
+    rw [wx0_bs, if_pos rfl] at he
+    have hres : resolve (brec0 bv ib) pid = none := by simp [resolve, brec0, hr0']
+    simp only [hres] at he
+    by_cases hp0 : pid = W64 0
+    · simp [hp0] at he
+    · rw [if_neg hp0] at he
+      cases hp : C.pages !! pid.toNat with
+      | none => simp [wx0, View.ofC, hp] at he
+      | some pg =>
+        have hp' : (View.ofC b C).pages !! pid.toNat = some pg := hp
+        simp only [wx0, hp', Option.map_some, Option.some.injEq] at he
+        subst he
+        have hroot : (wx0 bl t mv bv ib (View.ofC b C)).rootPid bl = ib.root' := by
+          simp [WX.rootPid, wx0_bs, brec0]
+        unfold WX.positions at hmem
+        rw [hroot] at hmem
+        have := lposF_wx0_own C b bl t mv bv ib hr0 htree _ _ pid pg hmem hp
+        rw [hrt] at this
+        exact ⟨pg, by first | exact hp | rfl, this, hs1, hs2⟩
+  -- a bucket's cover: a bucket entry of an own leaf
+  have hbkt : ∀ n s, coverW (wx0 rl t mv bv ib (View.ofC b C)) s (.bkt n) →
+      ∃ L pg i, ownHas C.pages C.root L ∧ C.pages !! L = some pg ∧
+        pageFlags pg = leafPageFlag ∧ i < pageCount pg ∧ leafFlags pg i % 2 = bucketLeafFlag ∧
+        n = leafKey pg i ∧ bucketHas C.pages (leafValue pg i) s := by
+    intro n s hc
+    obtain ⟨v, hv, -, hb⟩ := hc
+    obtain ⟨L, pg, i, h1, h2, h3, h4, h5, h6, rfl⟩ :=
+      rootEnts_wx0_mem C b rl t mv bv ib htree hi n v hv
+    exact ⟨L, pg, i, h1, h2, h3, h4, h5, h6, hb⟩
+  -- an own page covering a page `s` of a nested bucket is `s`
+  have hsame : ∀ (pid : w64) pg s pgs, C.pages !! pid.toNat = some pg → C.pages !! s = some pgs →
+      pid.toNat ≤ s → s < pid.toNat + (1 + pageOverflow pg) → s = pid.toNat := by
+    intro pid pg s pgs hp hs h1 h2
+    by_cases hne : s = pid.toNat
+    · exact hne
+    · rcases hdis _ _ _ _ hp hs (Ne.symm hne) with h | h <;> omega
+  intro s c1 c2 h1 h2
+  cases c1 with
+  | pos bl1 p1 =>
+    obtain ⟨rfl, pg1, hp1, ho1, a1, b1⟩ := hpos _ _ _ h1
+    cases c2 with
+    | pos bl2 p2 =>
+      obtain ⟨rfl, pg2, hp2, ho2, a2, b2⟩ := hpos _ _ _ h2
+      have : p1.toNat = p2.toNat := by
+        by_cases hne : p1.toNat = p2.toNat
+        · exact hne
+        · rcases hdis _ _ _ _ hp1 hp2 hne with h | h <;> omega
+      rw [BitVec.eq_of_toNat_eq this]
+    | bkt n2 =>
+      obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, -, hd⟩ := hbkt _ _ h2
+      obtain ⟨pgs, hs⟩ := bucketHas_page0 hd
+      have := hsame p1 pg1 s pgs hp1 hs a1 b1
+      subst this
+      exact (own_not_bucket C.pages hu ho1 hL hpg hl hi' hbf hd).elim
+  | bkt n1 =>
+    obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, hn1, hd⟩ := hbkt _ _ h1
+    cases c2 with
+    | pos bl2 p2 =>
+      obtain ⟨rfl, pg2, hp2, ho2, a2, b2⟩ := hpos _ _ _ h2
+      obtain ⟨pgs, hs⟩ := bucketHas_page0 hd
+      have := hsame p2 pg2 s pgs hp2 hs a2 b2
+      subst this
+      exact (own_not_bucket C.pages hu ho2 hL hpg hl hi' hbf hd).elim
+    | bkt n2 =>
+      obtain ⟨L', pg', i', hL', hpg', hl', hi'', hbf', hn2, hd'⟩ := hbkt _ _ h2
+      obtain ⟨rfl, rfl⟩ := bucket_unique C.pages hu hL hL' hpg hl hi' hbf hpg' hl' hi'' hbf' hd hd'
+      rw [hpg] at hpg'; cases hpg'
+      rw [hn1, hn2]
 
 /-- `flViewU`'s parts but the cover: the MVCC rule, distinct ids below `2^62`, the view's
 extents below `2^62`, the pending entries aligned. -/
@@ -295,7 +554,7 @@ theorem flViewU_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
     -- covered by the view but by no `lCovers` case: `bucketHas X.v.pages v s` takes `s` as a
     -- page id); see the report.
     sorry
-  · sorry
+  · exact covU_wx0 C b rl t mv bv ib htree hi
 
 /-- `Tx.init`'s writer meta: one txid on, the committed state's high-water mark and root. -/
 theorem initMeta_facts (C : CommitSt) (hok : C.metaOk) (h64 : C.txid + 1 < 2 ^ 64) :
