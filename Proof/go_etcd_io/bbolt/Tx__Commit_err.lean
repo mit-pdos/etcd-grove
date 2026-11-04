@@ -366,8 +366,12 @@ theorem Tx.Commit_err.wp_proof'
     cm_root_children T X X1 Hf.2.2.2.1 Hf.2.2.2.2.2.2 hrbOK.2.2.2.2.1 hbm1
   have hstart1 : spillStartOK X1 (w.withFl fl1) :=
     ⟨Hflv.2.2, by rw [hmv1, Hmeta.2.2.2.1]; exact Nat.le_refl _, hroot1⟩
+  -- OPEN (the receipts' budget, reported by U10j): the writer's txid `w.C.txid + 1` below `2 ^ 63`.
+  -- `wdbLive`'s `receipt (w.C.txid - t0)` gives `w.C.txid - t0 < receiptBound` and `t0 < 2 ^ 62`,
+  -- but nothing bounds `receiptBound` in bbolt's specs; `treeOK w.C` gives `w.C.txid < 2 ^ 63` only.
+  have htx63 : X1.t.mv.txid'.toNat < 2 ^ 63 := sorry
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
-    hreach1 hmap1 hflv1 hstart1 $$ [Hw Hwdb] as %err1 Hsp
+    hreach1 hmap1 hflv1 hstart1 htx63 $$ [Hw Hwdb] as %err1 Hsp
   · iframe
   cases lg with
   | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
@@ -377,7 +381,7 @@ theorem Tx.Commit_err.wp_proof'
   icases Hsp with (⟨%He1, %X2, %w2, Hw, Hwdb, %Hsp⟩ | ⟨%He1, #Hfe1, %X2, %w2, %st, %Hsp, Hres⟩)
   · -- spilled
     subst He1
-    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hflv2, hbufs2, htt2, hrl2e, hrl2, hmv2⟩ := Hsp
+    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hbufs2, htt2, hrl2e, hrl2, hmv2⟩ := Hsp
     try wp_auto
     wp_apply time.wp_Since as %d -
     try wp_auto
@@ -506,6 +510,9 @@ theorem Tx.Commit_err.wp_proof'
             ⟨%He2, #Hfe2, Hdone⟩)
           · -- joins the tail
             ihave Hwdb := wdbW'_wdbW K tx _ w4 $$ Hwdb
+            icases (cm_keep_pure (cm_wdbW_ok K tx _ w4)) $$ Hwdb with ⟨Hwdb, %Hw4ok⟩
+            obtain ⟨htt4, hrl4, htx4⟩ := allocRes_keep _ _ _ _ _ _ _ _ Hal.1
+            have htt5 : X4.t.t = X.t.t := by rw [htt4, htt3, htt2, htt1]
             imod cm_excl_update K r X3 (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))) _
               $$ Hex with Hex
             ihave Hex : cmExcl K r (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl)))
@@ -521,7 +528,15 @@ theorem Tx.Commit_err.wp_proof'
             rw [show (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))).v = X4.v from rfl]
             iframe
             ipureintro
-            sorry
+            refine ⟨?_, ?_, ?_, Hal.2.2.1, ?_, ?_, ?_, ?_, Hw4ok.1, rfl⟩
+            · show X4.t.t.writable' = true; rw [htt5]; exact hwr
+            · show (X4.t.bs !! X4.rl).isSome = true; rw [hrl4]; exact hrl3
+            · show X4.t.mv.txid' = w4.wtxid
+              rw [htx4, htx3]; unfold WDb.wtxid; rw [Hal.2.1]
+            · rw [Hal.2.1, hC2]; exact hstart1.2.1
+            · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.2.1
+            · show X4.t.t.meta' ≠ null; rw [htt5]; exact Hmvn
+            · rw [Hal.2.1]; exact hC2fl
           · -- `commitFreelist` failed (rolled back): log, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
               cases err2 with

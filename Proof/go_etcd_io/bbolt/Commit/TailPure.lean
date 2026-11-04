@@ -60,6 +60,24 @@ theorem cm_derefKeep (X Xd : WX) (b : Loc) (hd : derefRel X Xd) (hwr : X.t.t.wri
   rw [hrl', (derefRel_rebase_root X Xd b hd).1]
   exact hrl
 
+/-- **`allocate` keeps the transaction's struct, the root bucket and the txid** (`allocRes`:
+`addPage` changes `pm`, `bufs` and the mark, a remap re-bases). -/
+theorem allocRes_keep (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p id : _)
+    (h : allocRes X X' fl fl' txid count p id) :
+    X'.t.t = X.t.t ∧ ((X'.t.bs !! X'.rl).isSome = (X.t.bs !! X.rl).isSome) ∧
+      X'.t.mv.txid' = X.t.mv.txid' := by
+  obtain ⟨-, -, Xr, hr, hc⟩ := h
+  have hX' : ∃ h', X' = Xr.addPage id p count h' := by
+    rcases hc with ⟨-, -, e⟩ | ⟨-, -, -, e⟩ <;> exact ⟨_, e⟩
+  obtain ⟨h', rfl⟩ := hX'
+  rcases hr with rfl | ⟨Xd, b, hd, rfl⟩
+  · exact ⟨rfl, rfl, rfl⟩
+  · refine ⟨derefRel_rebase_tt X Xd b hd, ?_, ?_⟩
+    · show ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome = _
+      rw [show (Xd.rebase b).rl = X.rl from hd.2.2.2.2.2.1, (derefRel_rebase_root X Xd b hd).1]
+    · show Xd.t.mv.txid' = _
+      rw [hd.2.2.2.2.2.2.1]
+
 end pure
 
 end bbolt
