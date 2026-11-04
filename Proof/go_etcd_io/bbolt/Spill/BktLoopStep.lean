@@ -168,6 +168,28 @@ theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
         (upd ks k (.val (encode C'.ib) false)) := by
   sorry
 
+/-- **A todo child's root node** (for `b.inlineable()`): live, its entries live and bounded. -/
+theorem rinv_inlPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    {C : BRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C)
+    (hn : C.bv.rootNode' ≠ null) :
+    ∃ rn, X.node c C.bv.rootNode' = some rn ∧ C.ns !! C.bv.rootNode' = some rn ∧
+      C.bv.rootNode' ∈ X.live ∧ wsLive rn.ws ∧
+      ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax := by
+  obtain ⟨C', hC', -, -, -, hloc, -, -, -, htree⟩ := rinv_todo hI hks hc
+  rw [hC] at hC'; cases hC'
+  obtain ⟨rn, h, F, N, E, hrn, -, hu, -⟩ := htree hn
+  have hns : C.ns !! C.bv.rootNode' = some rn := by
+    unfold WX.node at hrn; rw [hC] at hrn; exact hrn
+  have hun : uNode X c C.bv.rootNode' rn none none := by
+    generalize Dc k = D at hu
+    cases hu with
+    | leaf _ r _ _ _ hr hu' => rw [hrn] at hr; cases hr; exact hu'
+    | branch _ r _ _ _ _ hr hu' => rw [hrn] at hr; cases hr; exact hu'
+  obtain ⟨-, B', hB', hcl, -⟩ := hloc
+  rw [hC] at hB'; cases hB'
+  have hnc := hcl.2.2.2.2.2.2.2.1 _ rn hns
+  exact ⟨rn, hrn, hns, hun.1, hnc.2.2.2.2.2.1, fun w hw => (hun.2.2.2.2.2.2.1 w hw).2.2⟩
+
 /-- **`child.free()`'s premise** for an inlineable child (its root node a leaf). -/
 theorem rinv_freePre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {C : BRec} {rn : NRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c)
