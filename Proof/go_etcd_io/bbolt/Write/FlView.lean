@@ -246,6 +246,198 @@ theorem flView_withWs' (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv
           | some r0 => by_cases hl0 : l0 = l <;> simp [hl0]
       · simp only [hc, ↓reduceIte]
 
+/-- The page id a position's extent is of (`WX.posExtent`'s `id`). -/
+def posIdOf (B : BRec) (pid : w64) : w64 :=
+  match resolve B pid with
+  | some l => ((B.ns !! l).map fun r => r.nv.pgid').getD 0
+  | none => pid
+
+
+theorem posExtent_def (X : WX) (c : Loc) (pid : w64) :
+    X.posExtent c pid = match X.t.bs !! c with
+      | none => none
+      | some B => if posIdOf B pid = W64 0 then none
+        else (X.v.pages !! (posIdOf B pid).toNat).map fun pg => (posIdOf B pid, 1 + pageOverflow pg) := by
+  unfold WX.posExtent posIdOf; rfl
+
+theorem posExtent_eq (X X' : WX) (c : Loc) (pid : w64) (hv : X'.v = X.v)
+    (h : (X'.t.bs !! c).map (fun B => posIdOf B pid) = (X.t.bs !! c).map (fun B => posIdOf B pid)) :
+    X'.posExtent c pid = X.posExtent c pid := by
+  rw [posExtent_def, posExtent_def, hv]
+  cases h1 : X'.t.bs !! c with
+  | none =>
+    cases h2 : X.t.bs !! c with
+    | none => rfl
+    | some B => rw [h1, h2] at h; simp at h
+  | some B' =>
+    cases h2 : X.t.bs !! c with
+    | none => rw [h1, h2] at h; simp at h
+    | some B =>
+      rw [h1, h2] at h
+      simp only [Option.map_some, Option.some.injEq] at h
+      simp only [h]
+
+/-- The page a materialization reads from a file bucket has the position's id (`treeWF`). -/
+theorem nodeAdded_pgid (X : WX) (hok : wOK X) (bl : Loc) (B : BRec) (pgid : w64) (parent : Loc)
+    (pa : Loc) (pg : List w8) (hB : X.t.bs !! bl = some B) (hpos : matPos X bl pgid parent)
+    (hpg : wpageAt X.v B pgid = some (pa, pg)) (hin : B.ib.root' ≠ W64 0) :
+    (pageHdr pg).id' = pgid := by
+  have hc := wOK_bktClean X hok bl B hB
+  have hpg' : X.v.pages !! pgid.toNat = some pg := by
+    unfold wpageAt at hpg; rw [if_neg hin] at hpg
+    cases h : X.v.pages !! pgid.toNat with
+    | none => rw [h] at hpg; cases hpg
+    | some pg' => rw [h] at hpg; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hpg
+                  rw [hpg.2]
+  have htw : treeWF X.v.pages X.t.mv.pgid'.toNat pgid.toNat := by
+    obtain ⟨B1, hB1, hp⟩ := hpos
+    rw [hB] at hB1; cases hB1
+    rcases hp with ⟨-, hrn, rfl⟩ | ⟨i, r, w, hr, hleaf, hw, hwp, hnm⟩
+    · exact (hc.2.1 hin).2 hrn
+    · have hn := hc.2.2.2.2.2.2.2.1 parent r hr
+      have hb := hn.2.2.2.2.2.2.2.2.2.2.2.2.1 hleaf
+      have := (hb.2.2 w (List.mem_of_getElem? hw)).2.2
+      rw [hwp] at this; exact this hnm
+  cases htw with
+  | page root pg2 h2 hlt hp hid hlen hptw =>
+    rw [hpg'] at hp; cases hp
+    apply BitVec.eq_of_toNat_eq
+    exact hid
+
+/-- `flView_nodeAdded` (`Model/WOps`). -/
+theorem flView_nodeAdded' (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (parent : Loc)
+    (hv : flView X fl) (hok : wOK X) (h : nodeAdded X X' bl l pgid parent)
+    (hpos : matPos X bl pgid parent) : flView X' fl := by
+  have hf := wOK_matFresh X X' bl l pgid parent hok h hpos
+  obtain ⟨hroot, hbkt, -, hvv, hfuel, hrp, -, hbs⟩ :=
+    nodeAdded_facts X X' bl l pgid parent h hf (wOK_inlineLeaf X bl pgid hok)
+  have hlt := ltree_nodeAdded' X X' bl l pgid parent h hf
+  refine flView_congr X X' fl hvv ?_ hv
+  refine lCovers_congr X X' hvv hroot hbkt hbs ?_
+  intro c hcs
+  obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp0, hrid, hrleaf, hru, hrs, hrcs,
+    hrco, hrws, hrlive, hrkey, hrks, hcase, hX'⟩ := h
+  obtain ⟨hfnm, hfroot⟩ := hf B hB
+  -- the records of the other positions' nodes keep their page ids
+  have hns_pg : ∀ l0, l0 ≠ l → (ns' !! l0).map (fun r => r.nv.pgid') = (B.ns !! l0).map (fun r => r.nv.pgid') := by
+    intro l0 hl0'
+    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', hrpp, -, -, -, -, -, -, hnv, rfl⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hl0')]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hl0')]
+      by_cases hp : parent = l0
+      · subst hp; rw [GMap.lookup_insert, hrpp]; simp only [Option.map_some, Option.some.injEq]
+        rw [hnv]
+      · rw [GMap.lookup_insert_ne _ _ hp]
+  have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
+    rw [hX']; simp
+  have hbsc : ∀ c, c ≠ bl → X'.t.bs !! c = X.t.bs !! c := by
+    intro c hc; rw [hX']; simp [Ne.symm hc]
+  by_cases hcb : c = bl
+  · subst hcb
+    by_cases hin : B.ib.root' = W64 0
+    · -- an inline bucket: its only position is `0`
+      have hrn := hfroot hin
+      have hrp0' : X.rootPid c = W64 0 := by simp [WX.rootPid, hB, hin]
+      have hX0 := hlt c (W64 0) (fun _ _ _ _ => rfl)
+      have hshp0 : shp (ltree X c (W64 0)) = none := by
+        have hpg0 : pgid = W64 0 := by
+          unfold wpageAt at hpg; rw [if_pos hin] at hpg; split at hpg
+          · assumption
+          · simp at hpg
+        subst hpg0
+        have hl := wOK_inlineLeaf X c (W64 0) hok B pa pg hB hin hrn hpg
+        have hd : decide (pageFlags pg = leafPageFlag) = true := by simp [hl]
+        unfold ltree resolve
+        rw [hB]
+        simp only [hin, ↓reduceIte, hrn]
+        rw [hpg]
+        simp only [Option.map_some, hd, shp]
+      have hshp0' : shp (ltree X' c (W64 0)) = none := by
+        rw [shp_of_ldat _ _ hX0, hshp0]
+      have hpos' : ∀ (L : LTree) n, shp (L c (W64 0)) = none →
+          lposF L c n (W64 0) = if n = 0 then [] else [W64 0] := by
+        intro L n hs
+        cases n with
+        | zero => rfl
+        | succ n =>
+          simp only [lposF, Nat.add_one_ne_zero, ↓reduceIte, List.cons.injEq, true_and]
+          cases hL : L c (W64 0) with
+          | none => rfl
+          | some y =>
+            obtain ⟨y1, y2⟩ := y
+            rw [hL] at hs
+            cases y1 <;> simp_all [shp]
+      unfold WX.extents WX.positions
+      rw [hfuel, hrp, hrp0', hpos' _ _ hshp0, hpos' _ _ hshp0']
+      split
+      · rfl
+      · simp only [List.filterMap_cons, List.filterMap_nil]
+        rw [posExtent_eq X X' c (W64 0) hvv]
+        rw [hB', hB]
+        simp only [Option.map_some, Option.some.injEq]
+        unfold posIdOf resolve
+        simp only [hin, ↓reduceIte, hrn]
+        rcases hcase with ⟨-, hbv, hns⟩ | ⟨-, hbv, -⟩
+        · rw [hbv]
+          simp only [hl0, ↓reduceIte]
+          have : ns' !! l = some r := by rw [hns]; simp
+          rw [this]
+          simp only [Option.map_some, Option.getD_some, hrid]
+          have hpg0 : pgid = W64 0 := by
+            unfold wpageAt at hpg; rw [if_pos hin] at hpg; split at hpg
+            · assumption
+            · simp at hpg
+          subst hpg0
+          have hpgB : pg = B.ipg := by
+            unfold wpageAt at hpg; simp only [hin, ↓reduceIte, Option.some.injEq,
+              Prod.mk.injEq] at hpg
+            exact hpg.2.symm
+          obtain ⟨-, -, hg⟩ := (wOK_bktClean X hok c B hB).1 hin hrn
+          rw [hpgB]
+          apply BitVec.eq_of_toNat_eq
+          exact hg.1
+        · rw [hbv]; simp only [hrn, ↓reduceIte]
+    · -- a file bucket: every position
+      have hshape : ∀ pid, shp (ltree X' c pid) = shp (ltree X c pid) := fun pid =>
+        shp_of_ldat _ _ (hlt c pid (fun _ B1 hB1 hin1 => by rw [hB] at hB1; cases hB1; exact absurd hin1 hin))
+      have hpos2 : X'.positions c = X.positions c := by
+        unfold WX.positions; rw [hfuel, hrp]; exact lposF_congr _ _ c hshape _ _
+      unfold WX.extents
+      rw [hpos2]
+      congr 1
+      funext pid
+      apply posExtent_eq X X' c pid hvv
+      rw [hB', hB]
+      simp only [Option.map_some, Option.some.injEq]
+      unfold posIdOf resolve
+      simp only [hin, ↓reduceIte]
+      by_cases hp : pid = pgid
+      · subst hp
+        rw [GMap.lookup_insert, hnm]
+        simp only
+        have : ns' !! l = some r := by
+          rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, rfl⟩ <;> simp
+        rw [this]
+        simp only [Option.map_some, Option.getD_some, hrid]
+        exact nodeAdded_pgid X hok c B pid parent pa pg hB hpos hpg hin
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hp)]
+        cases hc : B.nm !! pid with
+        | none => rfl
+        | some l0 =>
+          simp only
+          have : l0 ≠ l := by intro e; subst e; exact hfnm pid hc
+          rw [hns_pg l0 this]
+  · have hshape : ∀ pid, shp (ltree X' c pid) = shp (ltree X c pid) := fun pid =>
+      shp_of_ldat _ _ (hlt c pid (fun h => absurd h hcb))
+    have hpos2 : X'.positions c = X.positions c := by
+      unfold WX.positions; rw [hfuel, hrp]; exact lposF_congr _ _ c hshape _ _
+    unfold WX.extents
+    rw [hpos2]
+    congr 1
+    funext pid
+    apply posExtent_eq X X' c pid hvv
+    rw [hbsc c hcb]
+
 end flview
 
 end Write
