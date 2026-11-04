@@ -555,3 +555,23 @@ to do. The options:
 `runSnapLgOkBody` move there; the inner predicates carry `∃ m, lease.runCfg lg m`, introduced from
 `lease.bootCfg`); `Recover`'s range deleter by threading `lease.rdAt γl s` from `NewServer` into the
 apply thread's state (option 1; Part X's revocations use it too), then S1 on it.
+
+## Step 2 (thread `lease.rdAt`): stopped before plumbing (2026-11-04)
+
+`lease.rdAt γl s` is `∃ rd, rdOwn γl rd ∗ □ ∀ ws γw, isWatchableStore ws s γw -∗ rdIs rd ws s γw`
+(every watchable store over the inner store `s`, at any names: what `LessorDerive`'s revoke clause
+needs, since `txn.kvWriter_open` hands it a store and names existentially). Its producer gives less:
+`newWatchableStore.spec`'s and `mvcc.New.spec`'s posts (and `server_kv_watchable(_of, _ofM)`,
+`Results.lean:915`, `BuildLemmas.lean:76, 229`, which restate them) end in `∃ rd, rdOwn γl rd ∗
+mvcc.rdIs rd ws st γw`, the deleter's contract at the store's own `ws` and `γw` only, with `rd`
+hidden. `isWatchableStore_agree` (`SnapApplyOpen.lean:164`) gives `ws' = ws` but not `γw' = γw`, and
+`rdIs` at `γw` says nothing at another `γw'`, so `rdAt_intro` cannot be applied at `NewServer`.
+Options:
+- (a) Strengthen the two mvcc posts (and the three restatements) to `lease.rdAt γl st`: provable,
+  since `newWatchableStore`'s proof of the closure (`s.Write(TODO)`, `newWatchableStore.lean:177`)
+  uses `Write`'s spec at the store's names, which it can take at any `γw'` with `isWatchableStore s
+  st γw'` (and `ws' = s` from the agreement law, moved into mvcc). Stronger posts on mvcc's
+  constructors and one exported result (`server_kv_watchable`).
+- (b) Weaken `rdAt` to the store's own names and change the revoke clause's consumer instead (would
+  need `kvWriter_open` to return the construction's `γw`: a change to `txn`'s writer).
+For the user. Steps 2-3 (S1) wait on this.
