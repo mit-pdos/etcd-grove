@@ -1409,3 +1409,9 @@ way to record that its commit came after the last apply. Candidates:
   lower bound of what it stored (`mi ≥ ` the index at the commit), and `Close`'s post says a commit
   ran after `Close` was called; the apply thread, idle at `s`, then knows `mi = s.k`.
 To be designed next.
+- **Chosen: (a), over the backend's own commit requests.** `commitReq γ P Pk b X Y` (`InvBackend`)
+  already lets a commit take `X` and give `Y` through the hooks (the snapshot window's
+  `commitReq_freeze`). `backend.Close` gains a request: its caller gives `commitReq … X Y ∗ X` (the
+  stop's: `X = applyThread γ s`, `Y = freezeY γ s`, `commitReq_freeze`). The stop invariant passes
+  it to `run`, whose `CommitAndStop` commits with it, and the done escrow (`bDoneEsc`) returns `Y`
+  with `bStopView`. `Close`'s callers without a request pass `commitReq_true`. Step 2b.
