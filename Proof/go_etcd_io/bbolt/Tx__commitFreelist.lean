@@ -91,6 +91,40 @@ abbrev Tx.commitFreelist.spec : Prop :=
 
 end spec
 
+section access
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- **Access (for the maintainer; `sorry`)**: the writer side's freelist, `db.freelist`'s field
+and its `flPgOwn`, out of `wdbW` and back unchanged (`EstimatedWritePageSize` and `Write` keep
+the freelist). -/
+theorem wdbW_fl_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ ∃ dq : DFrac, K.db.[DB, go!"freelist"] ↦{dq} w.fli ∗
+      flPgOwn w.fli w.fl ∗
+      (K.db.[DB, go!"freelist"] ↦{dq} w.fli -∗ flPgOwn w.fli w.fl -∗
+        wdbW K tx v w) := by
+  sorry
+
+/-- **Access (for the maintainer; `sorry`)**: an allocated page's buffer and the meta copy out
+of the writer's heap, `tx.db` and `tx.meta`'s fields with them; back with the buffer's new bytes
+(same length) and `tx.meta.freelist = id`, as `WX.setFlPage`. -/
+theorem wtxW_flpage_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (id : w64) (p : Loc)
+    (bs : List w8) (hp : X.t.pm !! id = some p) (hb : X.t.bufs !! id = some bs) :
+    wtxW (GF := GF) K tx r m X ⊢ ∃ (mp : Loc) (dq : DFrac),
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db ∗ tx.[Tx, go!"meta"] ↦{dq} mp ∗
+      mp ↦ X.t.mv ∗ bytesPointsto p (DFrac.own 1) bs ∗
+      (∀ bs' : List w8, ⌜bs'.length = bs.length⌝ -∗
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db -∗ tx.[Tx, go!"meta"] ↦{dq} mp -∗
+        mp ↦ ({ X.t.mv with freelist' := id } : Meta) -∗ bytesPointsto p (DFrac.own 1) bs' -∗
+        wtxW K tx r m (X.setFlPage id bs')) := by
+  sorry
+
+end access
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
