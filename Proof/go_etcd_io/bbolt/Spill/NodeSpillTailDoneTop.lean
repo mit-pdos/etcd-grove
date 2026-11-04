@@ -31,6 +31,53 @@ theorem derefPre_null {X : WX} (h : derefPre X) :
     ∀ bl B, X.t.bs !! bl = some B → B.ns !! null = none :=
   fun bl B hB => (h.2.2.1 bl B hB).2
 
+/-- **`n`'s old children not in `N` are kept modulo sources** through the children's loop (its
+frame: untouched), the kill (records unchanged), the split and the pieces' loop (their frames:
+not a piece, not the parent `null`). -/
+theorem tail_top_kept {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st0 : List FLStep} {T0 : List Loc}
+    {X2 : WX} {xs : List (Loc × node × List Inode)} {wss : List (List WEntry)} {rp0 : NRec}
+    {Xf : WX}
+    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
+    (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss null rp0)
+    (hfr : spFrame X2 Xf bl (xs.map (·.1) ++ [null])) {l : Loc}
+    (hl : l ∈ T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++ (xs.drop 1).map (·.1))
+    {r : NRec} (hr : X.node bl l = some r) : ∃ r'', Xf.node bl l = some r'' ∧ nodeSim r r'' := by
+  obtain ⟨-, -, -, -, -, -, hfr0, hT⟩ := spEnd_rec hpre hsp hend
+  have hnN : n ∈ N := by
+    rcases hpre.2.2 with ⟨hs, -⟩ | ⟨hut, -⟩
+    · rw [hsp] at hs; cases hs
+    · exact uTree_head hut
+  simp only [List.mem_append, List.mem_filter, decide_eq_true_eq, List.mem_map] at hl
+  rcases hl with (hl | ⟨-, hlN⟩) | ⟨x, hx, rfl⟩
+  · rw [node_none_of_objs (hT l hl)] at hr; cases hr
+  · have hlT : l ∉ N ++ T0 := by
+      intro hm
+      rcases List.mem_append.1 hm with hm | hm
+      · exact hlN hm
+      · rw [node_none_of_objs (hT l hm)] at hr; cases hr
+    obtain ⟨r1, hr1, hs1, -⟩ := spFrame_node hfr0 hr hlT
+    have hne : l ≠ n := fun e => hlN (e ▸ hnN)
+    have hr1' : (X'.nilCh bl n r').node bl l = some r1 := by
+      unfold WX.nilCh; rw [killL_node, WX.setNode_node_ne _ _ hne]; exact hr1
+    have hnull : l ≠ null := by
+      intro e; subst e
+      obtain ⟨B, hB, hrB⟩ := node_bs_of hr
+      rw [derefPre_null hpre.2.1.2.2.1 bl B hB] at hrB; cases hrB
+    have hx : l ∉ xs.map (·.1) ++ [null] := by
+      rw [xs_map_head hsr.head]
+      simp only [List.mem_append, List.mem_cons, List.mem_map, List.not_mem_nil, or_false]
+      rintro ((e | ⟨x, hx, e⟩) | e)
+      · exact hne e
+      · subst e; rw [node_none_of_objs (hsr.fresh x hx)] at hr1'; cases hr1'
+      · exact hnull e
+    obtain ⟨r2, hr2, hs2, -⟩ := spFrame_node hsr.frame hr1' hx
+    obtain ⟨r3, hr3, hs3, -⟩ := spFrame_node hfr hr2 hx
+    exact ⟨r3, hr3, nodeSim_trans hs1 (nodeSim_trans hs2 hs3)⟩
+  · rw [node_none_of_objs (tail_fresh hpre hsp hend (hsr.fresh x hx))] at hr; cases hr
+
 /-- **The unsplit top node's `spDone`** (see the module doc). -/
 theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
@@ -89,10 +136,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     rw [← List.append_assoc] at this; exact this
   · rcases tail_T hpre hsp hend hsr l hl with h1 | h1
     · exact Or.inl h1
-    · -- (U9w hand-off) `n`'s old children not in `N` (spilled at the start) are kept modulo
-      -- sources: untouched by the children's loop, the kill (liveness only), the split and the
-      -- pieces' loop (their frames)
-      exact Or.inr (Or.inr ⟨h1.1, h1.2, fun r hr => sorry⟩)
+    · exact Or.inr (Or.inr ⟨h1.1, h1.2, fun r hr => tail_top_kept hpre hsp hend hsr hL.frame hl hr⟩)
   · have hs := hL.slot
     have hD0 : Ds.drop xs.length = [] := List.drop_eq_nil_of_le (Nat.le_of_eq hL.Dlen)
     simp only [pcOwn, hlen0, ↓reduceIte, hD0, List.flatten_nil, List.nil_append] at hs
