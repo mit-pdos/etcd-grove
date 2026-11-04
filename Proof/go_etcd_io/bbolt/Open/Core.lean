@@ -86,13 +86,24 @@ theorem replicate_sep (A B : IProp GF) :
     · iapply replicate_sep A B k $$ [Has Hbs]
       iframe
 
-/-- **The core phase's ghost step.** Pure premises: the store's and the writer side's invariants
-of the opened state (`storeOK`, `wdbOK`: `Open/CoreFacts` derives them from `fileHolds`), the
-current meta's txid, `Open`'s namespace premise. -/
+omit hos package_sem in
+/-- A whole points-to as two halves. -/
+theorem pt_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
+      typedPointsto l v (DFrac.own (1 : Qp).half) ∗ typedPointsto l v (DFrac.own (1 : Qp).half) := by
+  refine Entails.trans ?_ ((typedPointsto_dfractional (GF := GF) l v).dfractional
+    (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1
+  rw [DFrac.op_own, Qp.half_add_half]
+
+/-- **The core phase's ghost step.** Pure premises: the store's invariant of the opened state
+(`storeOK`, from `fileHolds`' facts), the current meta's txid, `Open`'s namespace premise.
+(`wdbOK` of `openW` is needed only when `rwlock`'s resource is formed, after `loadFreelist`.)
+Every ghost share is as `Inv/Names` lists it; the store's cells and witness are allocated mapped
+(no reader, so nothing lent), so `store_carve` is not needed. -/
 theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8)
-    (hok : storeOK (openSigma b L C wb)) (hw : wdbOK (openW C b L m wb f fd))
+    (hok : storeOK (openSigma b L C wb))
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
@@ -180,7 +191,78 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
   have hrd : rdPair (GF := GF) B0 db sp = rdPair B db sp := rfl
   rw [hPm] at *
   rw [hrd] at *
-  sorry
+  -- halves of the ghost state and of the shared fields
+  icases (ghostVar_split_half γst 1 _).1 $$ Hst with ⟨Hst1, Hst2⟩
+  icases (ghostVar_split_half γst _ _).1 $$ Hst2 with ⟨Hst2, Hst3⟩
+  icases (ghostVar_split_half γcur 1 _).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+  icases (ghostVar_split_half γcur _ _).1 $$ Hcur2 with ⟨Hcur2, Hcur3⟩
+  icases (ghostVar_split_half γfl 1 _).1 $$ Hfl with ⟨Hfl1, Hfl2⟩
+  icases (ghostVar_split_half γout 1 _).1 $$ Hout with ⟨Hout1, Hout2⟩
+  icases (ghostVar_split_half γwv 1 _).1 $$ Hwv with ⟨Hwv1, Hwv2⟩
+  icases (ghostVar_split_half γcls 1 _).1 $$ Hcls with ⟨Hcls1, Hcls2⟩
+  icases (ghostVar_split_half γbyt 1 _).1 $$ Hbyt with ⟨Hbyt1, Hbyt2⟩
+  icases pt_halves _ _ $$ Hop with ⟨Hop1, Hop2⟩
+  icases pt_halves _ _ $$ Hfli with ⟨Hfli1, Hfli2⟩
+  icases pt_halves _ _ $$ Hwa with ⟨Hwa1, Hwa2⟩
+  -- the page store
+  imod inv_alloc (pagesN N) E (pagesInv (GF := GF) B p) $$
+    [Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hcells Hslots Hbyt1 Hbyt2 Hmc1 Hout1 Hmln] with #Hpages
+  · inext
+    unfold pagesInv
+    iexists (openSigma b L C wb), W
+    have hws : (openSigma b L C wb).wst = wIdle := rfl
+    rw [hws]
+    unfold storeCells bytesWit metaLend
+    simp only [openSigma_slots]
+    simp only [openSigma]
+    iframe Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hslots Hbyt1 Hbyt2
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+    isplitl [Hcells]
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hcells
+      intro _ s _
+      iintro H
+      iexists (1 : Qp).half
+      iframe H
+      ipureintro
+      have := openSigma_lent b L C wb s
+      simp only [openSigma] at this
+      rw [this]; rfl
+    isplitr
+    · ipureintro; exact hW
+    isplitl [Hmc1 Hout1 Hmln]
+    · ileft; iframe
+    · ipureintro; exact hok
+  -- the transactions
+  imod inv_alloc (txsN N) E (txsInv (GF := GF) B p sp C.txid) $$ [Htxs] with #Htxsi
+  · inext
+    unfold txsInv
+    iexists ∅
+    iframe Htxs
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  -- `metalock`
+  imod sync.init_Mutex (metaR (GF := GF) B db p) E _ $$ Hml
+    [Hcur1 Hst2 Hcls1 Hop1 Hfli1 Hwa1 Hmo1 Hmlk Hfltx] with #Hmeta
+  · inext
+    unfold metaR
+    iexists C, ∅, false, interface.nil,
+      methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f
+    simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte, flRoOpt]
+    iframe
+    ipureintro
+    and_intros <;> first | exact hok.1 | exact hok.2.1 | exact htx.1 | trivial |
+      (intro k t h; simp at h) | (intro _; exact ⟨hok.1, hok.2.1, htx.1⟩)
+  ihave Hspare : rdPair (GF := GF) B db sp $$ [Hspare]
+  · unfold rdPair; iexact Hspare
+  imodintro
+  iexists B
+  unfold isBoltCoreP wdbOpen wdbCore wdbCoreG boltStateDef dblAt t0At
+  simp only [openW, mapLen]
+  iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hst1 Hbq
+  iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
+  iframe Hmo2 Hwc Hwb Hst3
+  ipureintro
+  exact ⟨⟨htx.2, hdb, hN⟩, trivial, trivial⟩
 
 end core
 
