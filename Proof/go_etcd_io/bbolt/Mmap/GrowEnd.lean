@@ -82,7 +82,7 @@ at most `AllocSize`): the cells back, the new zeros joined to the `W` slots (`gr
 theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
     (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (h8 : 8192 ≤ w.m.size) (m' : OsMeta)
     (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
-    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) :
+    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) (S : Nat) (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
     osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
@@ -93,8 +93,9 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
       (min w.m.size L - 4096 * (min w.m.size L / 4096)) vf) -∗
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
     wBytes K.p w.W w.wb w.m.size -∗
-    osBytes K.p w.m.size (DFrac.own 1) (List.replicate (m'.size - w.m.size) ((0 : w8), false)) -∗
+    osBytes K.p w.m.size (DFrac.own 1) (List.replicate (S - w.m.size) ((0 : w8), false)) -∗
     ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
+  subst hSz
   unfold growCloser
   iintro Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
   have hk3 := hok.2.2.1

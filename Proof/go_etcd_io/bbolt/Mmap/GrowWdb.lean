@@ -68,11 +68,26 @@ def growRes (K : BC) (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8
     osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some m) ∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗ wBytes K.p W wb m.size)
 
+omit [GooseSemantics] hos in
+/-- A mapping's length facts, the fields kept. -/
+theorem mapFields_some_len (db : Loc) (dq : DFrac) (ms : MapSt) (b : Loc) (l : Nat)
+    (h : ms = some (b, l)) :
+    mapFields (GF := GF) db dq ms ⊢
+      ⌜l ≤ 0xFFFFFFFFFFFF ∧ (l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF)⌝ ∗ mapFields (GF := GF) db dq ms := by
+  subst h
+  simp only [mapFields]
+  iintro ⟨H1, H2, H3, H4, %h⟩
+  isplitr
+  · ipureintro; exact ⟨h.1, h.2.2⟩
+  iframe
+  ipureintro; exact h
+
 /-- **The writer side's file, out and back** with a new `OsMeta`, `W` slots and slots' bytes
 (kept below the high-water mark), under the facts `wdbOK'`. -/
 theorem wdbW'_grow_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
     wdbW' (GF := GF) fr K tx v w ⊢
       ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ ∗
+      ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF ∧ (mapLen w.ms % 4096 = 0 ∨ mapLen w.ms = 0xFFFFFFFFFFFF)⌝ ∗
       growRes K w w.m w.W w.wb ∗
       (∀ (m' : OsMeta) (W' : List Nat) (wb' : Nat → List w8),
         ⌜wdbOK' fr { w with m := m', W := W', wb := wb' } ∧
@@ -81,8 +96,11 @@ theorem wdbW'_grow_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   unfold wdbW' wdbLive wdbCoreG
   iintro ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmfw,
     Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok, %Hrel⟩
+  icases mapFields_some_len K.db _ _ _ _ Hwok.2.1 $$ Hmfw with ⟨%hL, Hmfw⟩
   isplitr
   · ipureintro; exact Hwok
+  isplitr
+  · ipureintro; exact hL
   unfold growRes
   isplitl [Hfile Hfo Hfd Hosm Hdsz Hwc Hwb]
   · iframe
