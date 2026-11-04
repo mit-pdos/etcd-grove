@@ -109,8 +109,9 @@ theorem rebal_loeb
   iintro %K %tx %r %m %X %w %bl %B %n %rn %dfc %Hpre
   obtain ⟨hI, hb, hrn, hdfc, hfp⟩ := Hpre
   wp_start as ⟨Hw, Hdb⟩
-  unfold wtxW wtxCore
-  icases Hw with ⟨⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+  icases (wtxW_split K tx r m X).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+  unfold wtxCore
+  icases Hc with ⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
   have Ho := objs_node X.t bl B n rn Hok.2.1 hb hrn
   icases wtxHeap_node_ptr_acc tx (DFrac.own 1) X bl n rn Ho $$ Hh with ⟨Hn, Hback⟩
@@ -134,12 +135,12 @@ theorem rebal_loeb
       simp only [TypedPointsto.typedPointstoDef]; rw [hu0]
       iframe
     ihave Hh := Hback $$ Hn
+    ihave Hw : wtxW K tx r m X $$ [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+    · iapply (wtxW_split K tx r m X).2; unfold wtxCore; iframe; iframe #; ipureintro; exact Hr
     iapply HΦ
     iexists X, w.fl
     rw [show w.withFl w.fl = w from rfl]
-    iframe; iframe #
-    isplitr
-    · ipureintro; exact Hr
+    iframe
     ipureintro
     refine ⟨hI, rblRel_refl X w.fl _, fun _ _ => rfl, fun B1 B2 h1 h2 => ?_⟩
     rw [hb] at h1 h2; cases h1; cases h2
@@ -208,7 +209,7 @@ theorem rebal_loeb
   rw [hbtx]
   wp_apply hInc K tx r m 1 (W64 1) $$ [Hst] as %_ Hst
   · iframe; iframe #
-  wp_auto
+  try wp_auto
   wp_apply wp_ArbitraryInt as %thr _
   ihave Hn : (n ↦ ({ rn.nv with unbalanced' := false } : node) : IProp GF)
     $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
@@ -216,7 +217,7 @@ theorem rebal_loeb
     simp only [TypedPointsto.typedPointstoDef]; rw [hnc.1]
     iframe
   wp_apply hSize n ({ rn.nv with unbalanced' := false } : node) rn.ins (DFrac.own 1) (DFrac.own 1)
-    (rblX_insSize X w.fl bl dfc bl B n rn hI hb hrn) $$ [Hn Hins] as ⟨Hn, Hins⟩
+    $$ [Hn Hins] as ⟨Hn, Hins⟩
   · iframe
   wp_join (v := #(decide (sint.Z (BitVec.sdiv thr (W64 2)) < sint.Z (W64 (insSize rn.ins : Int)) ∧
       sint.Z (if rn.nv.isLeaf' then W64 1 else W64 2) < sint.Z rn.nv.inodes'.len))) at
@@ -258,8 +259,25 @@ theorem rebal_loeb
   obtain ⟨hI1, hR1⟩ := rblX_start X w.fl bl dfc B n rn hI hb hrn hdfc'
   ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
     [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
-  · unfold wtxW wtxCore; iframe; iframe #; ipureintro; exact Hr
+  · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+    simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+    iframe; iframe #; ipureintro; exact Hr
   have hlen : rn.ws.length = sint.nat rn.nv.inodes'.len := by rw [← hnc.2.2.1, Hsl.1]
+  have hb1 : (X.setBkt bl (rblStart B n rn)).t.bs !! bl = some (rblStart B n rn) :=
+    GMap.lookup_insert _ _ _
+  have hr1 : (rblStart B n rn).ns !! n = some (rblClear rn) := GMap.lookup_insert _ _ _
+  -- the post of a step that only cleared the node (done)
+  have hpost : (rn.nv.isLeaf' = false → 2 ≤ rn.ws.length) →
+      (rn.nv.isLeaf' = true → rn.nv.parent' ≠ null → 0 < rn.ws.length) →
+      rblX (X.setBkt bl (rblStart B n rn)) w.fl bl none ∧
+      rblRel X w.fl (X.setBkt bl (rblStart B n rn)) w.fl X.t.mv.txid' ∧
+      rblStepX X (X.setBkt bl (rblStart B n rn)) bl n := by
+    intro h2 h1
+    obtain ⟨hD1, hD2, hD3⟩ := rblX_done X w.fl bl dfc B n rn hI hb hrn hdfc' h2 h1
+    refine ⟨hD1, hD2, fun bl' hne => ?_, fun B1 B2 h1' h2' => ?_⟩
+    · show (X.t.bs.insert bl _) !! bl' = _; rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]
+    · rw [hb] at h1'; cases h1'
+      rw [hb1] at h2'; cases h2'; exact hD3
   wp_if_destruct
   · -- big enough: done
     have hmk := Hif.2
@@ -267,20 +285,354 @@ theorem rebal_loeb
       intro hl; rw [hl] at hmk; simp only [Bool.false_eq_true, ↓reduceIte] at hmk; rw [hlen]; word
     have h1 : rn.nv.isLeaf' = true → rn.nv.parent' ≠ null → 0 < rn.ws.length := by
       intro hl _; rw [hl] at hmk; simp only [↓reduceIte] at hmk; rw [hlen]; word
-    obtain ⟨hD1, hD2, hD3⟩ := rblX_done X w.fl bl dfc B n rn hI hb hrn hdfc' h2 h1
     iapply HΦ
     iexists X.setBkt bl (rblStart B n rn), w.fl
     rw [show w.withFl w.fl = w from rfl]
-    unfold wtxW wtxCore
     iframe
     ipureintro
-    refine ⟨hD1, hD2, fun bl' hne => ?_, fun B1 B2 h1' h2' => ?_⟩
-    · show (X.t.bs.insert bl _) !! bl' = _; rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]
-    · rw [hb] at h1'; cases h1'
-      have : (X.setBkt bl (rblStart B n rn)).t.bs !! bl = some (rblStart B n rn) := GMap.lookup_insert _ _ _
-      rw [this] at h2'; cases h2'; exact hD3
-  trace_state
-  sorry
+    exact hpost h2 h1
+  -- not done
+  icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+  unfold wtxCore
+  icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+  ihave %Hok1 := wtxHeap_heapOK tx (DFrac.own 1) _ $$ Hh
+  have Ho1 := objs_node _ bl _ n _ Hok1.2.1 hb1 hr1
+  icases wtxHeap_node_ptr_acc tx (DFrac.own 1) _ bl n (rblClear rn) Ho1 $$ Hh with ⟨Hn, Hback⟩
+  iStructNamed Hn
+  wp_auto
+  wp_if_destruct
+  · -- the root
+    have hpn : rn.nv.parent' = null := Hif
+    have hbrlen : rn.nv.isLeaf' = false → 0 < rn.ws.length := fun hl => (hnc.2.2.2.2.2.2.2.2.2.2.2.2.1 hl).1
+    rcases Bool.eq_false_or_eq_true rn.nv.isLeaf' with hlf | hlf
+    · -- a leaf root: done
+      have hlf' : (rblClear rn).nv.isLeaf' = true := hlf
+      (try rw [hlf]); (try rw [hlf'])
+      wp_auto
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn'
+        simp only [TypedPointsto.typedPointstoDef]; (try rw [hlf]); (try rw [hlf'])
+        iframe
+      ihave Hh := Hback $$ Hn
+      ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      iapply HΦ
+      iexists X.setBkt bl (rblStart B n rn), w.fl
+      rw [show w.withFl w.fl = w from rfl]
+      iframe
+      ipureintro
+      exact hpost (fun h => by rw [hlf] at h; cases h) (fun _ h => absurd hpn h)
+    have hlf' : (rblClear rn).nv.isLeaf' = false := hlf
+    (try rw [hlf]); (try rw [hlf'])
+    wp_auto
+    wp_if_destruct
+    · -- the root collapses into its only child
+      trace_state
+      sorry
+    · -- a branch root with two entries or more: done
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn'
+        simp only [TypedPointsto.typedPointstoDef]; (try rw [hlf]); (try rw [hlf'])
+        iframe
+      ihave Hh := Hback $$ Hn
+      ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      iapply HΦ
+      iexists X.setBkt bl (rblStart B n rn), w.fl
+      rw [show w.withFl w.fl = w from rfl]
+      iframe
+      ipureintro
+      refine hpost (fun _ => ?_) (fun _ h => absurd hpn h)
+      have h0 := hbrlen hlf
+      have h1 : rn.nv.inodes'.len ≠ W64 1 := Hif
+      have : sint.nat rn.nv.inodes'.len ≠ 1 := by intro h; apply h1; word
+      omega
+  · -- not the root
+    have hpn : rn.nv.parent' ≠ null := Hif
+    ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+      $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn'
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    wp_apply hNum n (rblClear rn).nv (DFrac.own 1) $$ [Hn] as Hn
+    · iframe
+    ihave Hh := Hback $$ [Hn]
+    · simp only [rblClear]; iexact Hn
+    ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
+      [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+    · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+      simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+      iframe; iframe #; ipureintro; exact Hr
+    wp_if_destruct
+    · -- an empty node: removed
+      have hlen0 : rn.nv.inodes'.len = W64 0 := Hif
+      have hemp : rn.ws = [] := List.eq_nil_of_length_eq_zero (by rw [hlen, hlen0]; rfl)
+      have hleaf : rn.nv.isLeaf' = true := by
+        rcases Bool.eq_false_or_eq_true rn.nv.isLeaf' with h | h
+        · exact h
+        · have := (hnc.2.2.2.2.2.2.2.2.2.2.2.2.1 h).1; rw [hemp] at this; cases this
+      have hB1 := (hI1.2.1 bl _ hb1).1
+      rw [if_pos rfl] at hB1
+      obtain ⟨hc1, ⟨bnd1, hk1⟩, -, -⟩ := hB1
+      obtain ⟨hkey, rp, i, wi, hrp1, hwi, hwp, hwk, -⟩ := (hk1.2.2 n (rblClear rn) hr1).2.1 hpn
+      have hn1 := hc1.2.2.2.2.2.2.2.1 n (rblClear rn) hr1
+      have hncp := hc1.2.2.2.2.2.2.2.1 _ rp hrp1
+      obtain ⟨rq, hrq, hrpbr, -⟩ := hn1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hpn
+      rw [hrp1] at hrq; cases hrq
+      have hroot0 := rbl_root_ne _ _ _ _ bl _ _ rp hI1 hb1 hrp1 hrpbr
+      obtain ⟨pg, hpg, hp0⟩ := rbl_node_page _ _ _ _ bl _ n (rblClear rn) hI1 hb1 hr1 hroot0
+      have hpln : rn.nv.parent' ≠ n := Hok1.2.2.2.1 bl _ n (rblClear rn) hb1 hr1
+      have hpp : rp.nv.parent' ≠ rn.nv.parent' := Hok1.2.2.2.1 bl _ _ rp hb1 hrp1
+      have hplive : rn.nv.parent' ∈ X.live := (hI1.2.1 bl _ hb1).2.2.2.2 _ rp hrp1
+      have hfound := wsDelAt_at rp.ws i wi hncp.2.2.2.1 hwi
+      rw [hwk] at hfound
+      simp only [rblClear] at hfound
+      have hks : rn.ksrc ≠ Src.stale := (hn1.2.2.2.2.2.2.2.2.2.2.1.resolve_left hkey).2
+      -- open the node, its parent and the bucket
+      icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+      unfold wtxCore
+      icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+      have hLs : [n, rn.nv.parent'].Nodup := by simp [Ne.symm hpln]
+      icases wtxHeap_setBkt_acc tx (DFrac.own 1) _ bl _ [n, rn.nv.parent']
+        (fun l => if l = n then rblClear rn else rp) hb1 hLs
+        (by
+          intro l hl
+          simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
+          rcases hl with rfl | rfl
+          · simp only [ite_true]; exact hr1
+          · simp only [if_neg hpln]; exact hrp1) $$ Hh
+        with ⟨⟨Hno, Hpo, -⟩, Hbo, Htf, Hrf, Hback⟩
+      isimp only [ite_true, if_neg hpln] at Hno Hpo
+      have hnl1 : n ∈ (X.setBkt bl (rblStart B n rn)).live := hnl
+      have hbl1 : bl ∈ (X.setBkt bl (rblStart B n rn)).live := hbll
+      have hpl1 : rn.nv.parent' ∈ (X.setBkt bl (rblStart B n rn)).live := hplive
+      rw [decide_eq_true hnl1, decide_eq_true hpl1, decide_eq_true hbl1]
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+      rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+      icases Hkey with #Hkey
+      icases (objOwn_bkt_unf _ _ _ _ _).1 $$ Hbo
+        with ⟨Hb1, Hbtx, Hb3, Hb4, Hb5, Hbnodes, Hib, Hnm, Hbm, Hpgo⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn2⟩
+      iStructNamed Hn
+      wp_auto
+      -- `n.parent.del(n.key)`
+      wp_apply hDel (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' bl rp wq rn.nv.key'
+        rn.key rn.ksrc hncp.2.1 hncp.2.2.2.1 hncp.2.2.2.2.2.1 hks $$ [Hpo Hcells Hkey]
+        as ⟨Hd, Hcells⟩
+      · iframe; simp only [rblClear]; iframe #
+      icases Hd with (⟨%Hnf, -⟩ | ⟨-, %sI, %insP, Hpo⟩)
+      · exact absurd hfound.1 Hnf
+      rw [hfound.2]
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hpo
+        with ⟨Hp, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
+      ihave %Hpwl := BigSepL2.bigSepL2_length $$ Hpws
+      try wp_auto
+      -- `n.parent.removeChild(n)`
+      wp_apply hRm rn.nv.parent' (rp.withEntsU sI insP (rp.ws.eraseIdx i) true).nv rp.cs n $$ [Hp Hpch Hpchcap] as ⟨%sC, Hp, Hpch, Hpchcap⟩
+      · simp only [NRec.withEntsU]; iframe
+      rw [hnc.1]
+      try wp_auto
+      -- `delete(n.bucket.nodes, n.pgid)`
+      wp_apply (wp_mapDelete (K := w64) (V := Loc) B.bv.nodes' (rblStart B n rn).nm
+        rn.nv.pgid' internal.common.Pgid.ty (go.GoType.PointerType node.ty)) $$ [Hnm]
+        as Hnm
+      · iexact Hnm
+      try wp_auto
+      -- the heap on `X2`: the parent without the entry and the child, the cache without `n`
+      let rp' : NRec := { rmParent rp i n sI sC with ins := insP }
+      let B2 : BRec := { rblStart B n rn with
+        nm := GMap.delete (rblClear rn).nv.pgid' (rblStart B n rn).nm,
+        ns := (rblStart B n rn).ns.insert rn.nv.parent' rp' }
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn2
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave Hh := Hback $$ %B2 %(fun l => if l = n then rblClear rn else rp')
+        [] [Hn Hins Hcap Hws Hch Hchcap Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
+        [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
+      · ipureintro
+        refine ⟨?_, ?_, rfl, ?_⟩
+        · intro l hl
+          simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
+          rcases hl with rfl | rfl
+          · simp only [ite_true]
+            show ((rblStart B l rn).ns.insert rn.nv.parent' rp') !! l = _
+            rw [GMap.lookup_insert_ne _ _ hpln]; exact hr1
+          · simp only [if_neg hpln]; exact GMap.lookup_insert _ _ _
+        · intro l hl
+          simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hl
+          show ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! l = _
+          exact GMap.lookup_insert_ne _ _ (Ne.symm hl.2)
+        · intro l hl
+          simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
+          rcases hl with rfl | rfl
+          · simp only [ite_true]; exact Hok1.2.2.2.1 bl _ l _ hb1 hr1
+          · simp only [if_neg hpln]; exact hpp
+      · simp only [ite_true, if_neg hpln]
+        isplitl [Hn Hins Hcap Hws Hch Hchcap]
+        · iapply (objOwn_live_node _ _ _ _ _).2
+          rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+          iframe; iframe #
+        isplitl [Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
+        · iapply (objOwn_live_node _ _ _ _ _).2
+          isplitl [Hp]
+          · iexact Hp
+          isplitl [Hpins]
+          · iexact Hpins
+          isplitl [Hpcap]
+          · iexact Hpcap
+          isplitl [Hpws]
+          · iexact Hpws
+          isplitl [Hpch]
+          · show (sC ↦* rp.cs.eraseIdx (rp.cs.idxOf n) : IProp GF)
+            rw [cs_erase]; iexact Hpch
+          isplitl [Hpchcap]
+          · iexact Hpchcap
+          iexact Hpkey
+        iempintro
+      · iapply (objOwn_bkt_unf _ _ _ _ _).2
+        iframe
+      · iframe
+      · iframe
+      have hb2 : ((X.setBkt bl (rblStart B n rn)).setBkt bl B2).t.bs !! bl = some B2 :=
+        GMap.lookup_insert _ _ _
+      ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).setBkt bl B2) $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      -- `n.free()`
+      icases wdbW_view_rbl K tx X.v w $$ Hdb with ⟨%Hwv, Hdb⟩
+      have htxid : (X.setBkt bl (rblStart B n rn)).t.mv.txid' = w.wtxid :=
+        rblX_wtxid _ w.fl bl _ w hI1 Hwv
+      obtain ⟨pgc, hpgc, hlenc, hidc, hflc, hcanc⟩ :=
+        rblX_canFree _ w.fl bl _ _ n (rblClear rn) hI1 hb1 hr1 hp0
+      have hpgeq : pgc = pg := by
+        have := hpg.symm.trans hpgc; cases this; rfl
+      subst hpgeq
+      have hX2n : ((X.setBkt bl (rblStart B n rn)).setBkt bl B2).node bl n = some (rblClear rn) := by
+        unfold WX.node; rw [hb2]
+        show ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! n = _
+        rw [GMap.lookup_insert_ne _ _ hpln]; exact hr1
+      wp_apply hFree K tx r m _ w bl n (rblClear rn) hX2n hnc.1
+        (fun _ => ⟨by show X.t.pm !! _ = none; rw [hI.1.2.1]; rfl, htxid, pgc, hpgc, hlenc, hidc,
+          hflc, by rw [← htxid]; exact hcanc⟩)
+        $$ [Hw Hdb] as ⟨%X3, %w3, Hw, Hdb, %Hfr⟩
+      · iframe
+      let r1' : NRec := { rblClear rn with nv := { (rblClear rn).nv with pgid' := W64 0 } }
+      obtain ⟨hX3, hw3⟩ : X3 = ((X.setBkt bl (rblStart B n rn)).setBkt bl B2).setNode bl n r1' ∧
+          w3 = w.withFl (w.fl.freePages w.wtxid (rblClear rn).nv.pgid' (1 + pageOverflow pgc)) := by
+        rcases Hfr with ⟨h0, -, -⟩ | ⟨pg', -, hpg', hX3, hw3⟩
+        · exact absurd h0 hp0
+        · have := hpgc.symm.trans hpg'; cases this; exact ⟨hX3, hw3⟩
+      subst hX3 hw3
+      let B3 : BRec := { B2 with ns := B2.ns.insert n r1' }
+      have hb3 : (((X.setBkt bl (rblStart B n rn)).setBkt bl B2).setNode bl n r1').t.bs !! bl =
+          some B3 := by
+        unfold WX.setNode; rw [hb2]; exact GMap.lookup_insert _ _ _
+      have hr3 : B3.ns !! n = some r1' := GMap.lookup_insert _ _ _
+      -- `n.parent` read (the node's struct)
+      icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+      unfold wtxCore
+      icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+      ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) _ $$ Hh
+      have Ho3 := objs_node _ bl _ n _ Hok3.2.1 hb3 hr3
+      icases wtxHeap_node_ptr_acc tx (DFrac.own 1) _ bl n r1' Ho3 $$ Hh with ⟨Hn, Hback⟩
+      iStructNamed Hn
+      wp_auto
+      ihave Hn : (n ↦ r1'.nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn2
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave Hh := Hback $$ Hn
+      -- `n` goes dead: the records after the removal
+      let B4 : BRec := rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' rp'
+      have hns4 : B4.ns = GMap.delete n B3.ns := by
+        apply GMap.ext
+        intro y
+        show B4.ns !! y = (GMap.delete n B3.ns) !! y
+        rw [rm_ns]
+        by_cases hy1 : y = rn.nv.parent'
+        · subst hy1
+          rw [if_pos rfl, GMap.lookup_delete_ne _ (Ne.symm hpln)]
+          show _ = (B2.ns.insert n r1') !! rn.nv.parent'
+          rw [GMap.lookup_insert_ne _ _ (Ne.symm hpln)]
+          exact (GMap.lookup_insert _ _ _).symm
+        · rw [if_neg hy1]
+          by_cases hy2 : y = n
+          · subst hy2; rw [if_pos rfl, GMap.lookup_delete]
+          · rw [if_neg hy2, GMap.lookup_delete_ne _ (Ne.symm hy2)]
+            show _ = (B2.ns.insert n r1') !! y
+            rw [GMap.lookup_insert_ne _ _ (Ne.symm hy2)]
+            show _ = ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! y
+            rw [GMap.lookup_insert_ne _ _ (Ne.symm hy1)]
+      ihave Hh := wtxHeap_kill_node tx (DFrac.own 1) _ bl B3 B4 n r1' hb3 hr3 rfl rfl rfl rfl rfl rfl
+        rfl hns4 $$ Hh
+      have hK : (((X.setBkt bl (rblStart B n rn)).setBkt bl B2).setNode bl n r1').kill bl B4 n r1' =
+          (X.setBkt bl (rblStart B n rn)).kill bl B4 n r1' := by
+        unfold WX.setNode; rw [hb2]; simp only [WX.kill, WX.setBkt, GMap.insert_insert]
+      rw [hK]
+      have hil : i < rp.ws.length := (List.getElem?_eq_some_iff.1 hwi).1
+      have hins : insP.length + 1 = rp.ins.length := by
+        have h1 : insP.length = (rp.ws.eraseIdx i).length := Hpwl
+        rw [h1, List.length_eraseIdx_of_lt hil, hncp.2.2.1]; omega
+      obtain ⟨hI4, hR4, -, -⟩ := rblX_rm_ins (X.setBkt bl (rblStart B n rn)) w.fl bl _ n (rblClear rn)
+        rn.nv.parent' rp i wi sI sC pgc insP hI1 hb1 hr1 hleaf hemp rfl hpn hrp1 hwi hwp hpgc hins
+      have hfl : w.fl.freePages (X.setBkt bl (rblStart B n rn)).t.mv.txid' (rblClear rn).nv.pgid'
+          (1 + pageOverflow pgc) =
+          (w.withFl (w.fl.freePages w.wtxid (rblClear rn).nv.pgid' (1 + pageOverflow pgc))).fl := by
+        rw [htxid]; rfl
+      rw [hfl] at hI4 hR4
+      have hb4 : ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1').t.bs !! bl = some B4 :=
+        GMap.lookup_insert _ _ _
+      have hrp4 : B4.ns !! rn.nv.parent' = some rp' := by
+        show (rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' rp').ns !! _ = _
+        rw [rm_ns, if_pos rfl]
+      ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1') $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      -- `n.parent.rebalance()`
+      wp_apply IH $$ %K %tx %r %m %((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1')
+        %(w.withFl (w.fl.freePages w.wtxid (rblClear rn).nv.pgid' (1 + pageOverflow pgc))) %bl %B4
+        %rn.nv.parent' %rp' %(some rn.nv.parent') [] [Hw Hdb] as ⟨%X5, %fl5, Hw, Hdb, %Hp5⟩
+      · ipureintro
+        exact ⟨hI4, hb4, hrp4, Or.inr ⟨rfl, rfl⟩, hfp⟩
+      · isplitl [Hw]
+        · iexact Hw
+        iexact Hdb
+      try wp_auto
+      obtain ⟨h5I, h5R, h5S⟩ := Hp5
+      iapply HΦ
+      iexists X5, fl5
+      iframe Hw
+      isplitl [Hdb]
+      · iexact Hdb
+      ipureintro
+      refine ⟨h5I, rblRel_trans _ _ _ _ _ _ _ hR1 (rblRel_trans _ _ _ _ _ _ _ hR4 h5R), ?_, ?_⟩
+      · intro bl' hne
+        rw [h5S.1 bl' hne]
+        show (((X.t.bs.insert bl (rblStart B n rn)).insert bl B4)) !! bl' = _
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm hne), GMap.lookup_insert_ne _ _ (Ne.symm hne)]
+      · intro B0 B5 h0 h5
+        rw [hb] at h0; cases h0
+        exact rblStep_comp B B4 B5 n rn.nv.parent' (rblPre_rm B n rn rn.nv.parent' rp')
+          (h5S.2 B4 B5 hb4 h5)
+    · -- merged with a sibling
+      trace_state
+      sorry
+
 
 theorem node.rebalance.wp_proof
     (hSize : node.size.spec (GF := GF) (hG := hG))

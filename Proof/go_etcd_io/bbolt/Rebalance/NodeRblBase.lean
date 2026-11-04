@@ -5,7 +5,7 @@ the invariant and the database side, and the size bound `node.size`'s spec takes
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Rebalance.HeapRbl
+public import Proof.go_etcd_io.bbolt.Rebalance.HeapRblKill
 public import Proof.go_etcd_io.bbolt.Write.NodeEnts
 
 @[expose] public section
@@ -20,6 +20,17 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+
+theorem WX.setBkt_v (X : WX) (bl : Loc) (B : BRec) : (X.setBkt bl B).v = X.v := rfl
+theorem WX.setBkt_handles (X : WX) (bl : Loc) (B : BRec) :
+    (X.setBkt bl B).handles = X.handles := rfl
+theorem WX.setBkt_nloc (X : WX) (bl : Loc) (B : BRec) : (X.setBkt bl B).nloc = X.nloc := rfl
+theorem WX.kill_v (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
+    (X.kill bl B n r).v = X.v := rfl
+theorem WX.kill_handles (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
+    (X.kill bl B n r).handles = X.handles := rfl
+theorem WX.kill_nloc (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
+    (X.kill bl B n r).nloc = X.nloc := rfl
 
 /-- In sorted entries, an entry's key searches to its index. -/
 theorem wsIdx_at (ws : List WEntry) (i : Nat) (w : WEntry) (hs : wsSorted ws)
@@ -40,6 +51,25 @@ theorem wsDelAt_at (ws : List WEntry) (i : Nat) (w : WEntry) (hs : wsSorted ws)
   refine ⟨hf, ?_⟩
   unfold wsDelAt
   rw [if_pos hf, hidx, List.eraseIdx_eq_take_drop_succ]
+
+/-- A node of a bucket that is not inline was read from a page of the view (`treeWF`). -/
+theorem rbl_node_page (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (bl : Loc) (B : BRec)
+    (n : Loc) (r : NRec) (hI : rblX X fl dbl dfc) (hb : X.t.bs !! bl = some B)
+    (hr : B.ns !! n = some r) (hroot : B.ib.root' ≠ W64 0) :
+    ∃ pg, X.v.pages !! r.nv.pgid'.toNat = some pg ∧ r.nv.pgid' ≠ W64 0 := by
+  have hc := (hI.2.1 bl B hb).1.1
+  have hwf := (hc.2.2.2.2.2.2.2.1 n r hr).2.2.2.2.2.2.2.2.2.1 hroot
+  rcases hwf with ⟨_, pg, h2, _, hpg, _, _, _⟩
+  refine ⟨pg, hpg, fun h => ?_⟩
+  rw [h] at h2; simp at h2
+
+/-- A branch's bucket is not inline (an inline bucket's nodes are leaves). -/
+theorem rbl_root_ne (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (bl : Loc) (B : BRec)
+    (n : Loc) (r : NRec) (hI : rblX X fl dbl dfc) (hb : X.t.bs !! bl = some B)
+    (hr : B.ns !! n = some r) (hbr : r.nv.isLeaf' = false) : B.ib.root' ≠ W64 0 := by
+  intro h0
+  have := (hI.2.1 bl B hb).1.1.2.2.2.2.2.2.1 h0 n r hr
+  rw [hbr] at this; cases this
 
 /-- **A node's page size fits an `int`** (`node.size`'s premise). A `sorry`: nothing in `rblX`
 bounds a node's number of entries or their sizes (see the U8b report). -/
@@ -69,6 +99,49 @@ variable [go_gctx : GoGlobalContext]
 variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+/-- The writer's working state, split (without unfolding `wtxW` elsewhere in a goal). -/
+theorem wtxW_split (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊣⊢ iprop(wtxCore K tx r m X ∗ viewCells wq X.v ∗
+      ∃ l : Nat, mapFields r.db (DFrac.own (1 : Qp).half.half) (some (X.v.base, l) : MapSt) ∗
+        ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) := by
+  unfold wtxW; exact .rfl
+
+/-- A live node's object, unfolded. -/
+theorem objOwn_live_node (v : View) (l : Loc) (dq : DFrac) (bl : Loc) (r : NRec) :
+    objOwn (GF := GF) v l dq true (.node bl r) ⊣⊢ iprop(
+      l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗
+      (if r.capOwn then ownSliceCap Inode r.nv.inodes' dq else emp) ∗
+      ([∗list] it;w ∈ r.ins;r.ws, wOwn v true it w) ∗
+      r.nv.children' ↦*{dq} r.cs ∗ ownSliceCap Loc r.nv.children' dq ∗
+      (if true ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp)) := by
+  unfold objOwn; exact .rfl
+
+/-- A bucket's object, unfolded. -/
+theorem objOwn_bkt_unf (v : View) (l : Loc) (dq : DFrac) (b : Bool) (B : BRec) :
+    objOwn (GF := GF) v l dq b (.bkt B) ⊣⊢ iprop(
+      l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗
+      (if l = B.bv.tx'.[Tx, go!"root"] then l.[Bucket, go!"tx"] ↦{dq} B.bv.tx'
+       else l.[Bucket, go!"tx"] ↦□ B.bv.tx') ∗
+      l.[Bucket, go!"buckets"] ↦{dq} B.bv.buckets' ∗ l.[Bucket, go!"page"] ↦{dq} B.bv.page' ∗
+      l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
+      B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
+      (if b then pageOwn v B else emp)) := by
+  unfold objOwn; exact .rfl
+
+open Iris.BI Iris.ProofMode in
+/-- The writer's view is the committed state's (`wdbW`'s fact, kept). -/
+theorem wdbW_view_rbl (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ ⌜v = View.ofC v.base w.C⌝ ∗ wdbW K tx v w := by
+  unfold wdbW
+  iintro ⟨H, %Hw⟩
+  isplitr
+  · ipureintro; exact Hw.2.2
+  iframe; ipureintro; exact Hw
+
+/-- The database's core is persistent. -/
+instance BC_core_persistent_rbl (K : BC) : Iris.BI.Persistent (K.core (GF := GF)) := by
+  unfold BC.core; infer_instance
 
 open Iris.BI Iris.ProofMode in
 /-- The database's page size (`db.pageSize`, persistent in the core). -/
