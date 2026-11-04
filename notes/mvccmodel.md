@@ -83,13 +83,13 @@ Tolerated deviations, each narrow and pointing at its finding:
   the value depends on how far the asynchronous compaction has got. Found by this test (seed 2: a
   compaction at 6, where revision 6 deleted every key; `HashByRev(6)` hashed every revision up to 6
   until the compaction job ran). Its revisions are checked, not its value; the finding is recorded
-  in `issues/` or `nonissues/` (`etcd-mvcc-hashbyrev-empty-keyspace-*`).
+  in `issues/etcd-mvcc-hashbyrev-empty-keyspace-compaction-progress.md` (known upstream: etcd-io/etcd#22517, fix #22515; through the periodic corruption check it raises a false CORRUPT alarm).
 - `Hash`'s value is not checked (the whole backend: lease and meta buckets, revisions a compaction
   has not yet deleted), only its revision.
 
 ## What it reaches (2026-11-04)
 
-- `go test -race`, seeds 1-20 and 100-199: pass (after the deviations above).
+- `go test`, seeds 1-20, and `go test -race`, seeds 100-199: pass (after the deviations above).
 - Statement coverage of `storage/mvcc` over 20 seeds: 81%. Not reached: the slow-watcher (victim)
   path (a full 128-response channel: possible, as a receiver can be descheduled, but not seen; the
   receivers only append), more than 512 unsynced watchers at once (`choose`'s other branch: the scale
