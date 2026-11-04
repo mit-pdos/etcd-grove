@@ -81,7 +81,9 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave #Hcore : K.core $$ []
   · unfold BC.full BC.core isBoltP; icases Hfull with ⟨$, -⟩
   ihave #Hpool : threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) $$ []
-  · unfold BC.full isBoltP; icases Hfull with ⟨-, -, $⟩
+  · unfold BC.full isBoltP; icases Hfull with ⟨-, -, $, -⟩
+  ihave #Hshot : opnShot K.B $$ []
+  · unfold BC.full isBoltP; icases Hfull with ⟨-, -, -, $⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -194,13 +196,18 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   have htid : (metaOf (C.slot C.txid)).txid' = W64 (C.txid : Int) := by
     apply BitVec.eq_of_toNat_eq; rw [hmvtx]; simp; omega
   obtain ⟨k, hk⟩ := gmap_nat_fresh F
+  iunfold fltxAuth at Hfa
+  icases Hfa with ⟨Hfa, %o, Ho, -⟩
   imod (ghost_map_insert k (W64 (C.txid : Int)) hk) $$ Hfa with ⟨Hfa, Hfk⟩
   imod store_pages_bound K.B K.N K.p ⊤ CoPset.subseteq_top C b l _ $$ [Hpi Hcur' Hmap']
     with ⟨Hcur', Hmap', %Hpgb⟩
   · iframe; iframe #
-  imod store_register K.B K.N K.p ⊤ CoPset.subseteq_top C b l k $$ [Hpi Hcur' Hmap' Hmt Hfk]
+  imod store_register K.B K.N K.p ⊤ CoPset.subseteq_top C b l k $$ [Hpi Hcur' Hmap' Hmt Hfk Hshot]
     with ⟨Hcur', Hmap', Hrds, Hvc⟩
   · iframe; iframe #
+  ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
+      (opnShot K.B ∨ ⌜sprCl o' (<[k := W64 (C.txid : Int)]> F)⌝)) $$ [Ho]
+  · iexists o; iframe Ho; ileft; iexact Hshot
   -- the transaction's names and its registration
   imod rd_names_alloc (GF := GF)
     ((false, (View.ofC b C).data, (View.ofC b C).data, ∅) : TxViewC)
@@ -257,11 +264,13 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
         Hvc Hmap' Hmf Hvw] with Hrd
     · iframe; iframe #
       simp only [↓reduceIte]; iexact Hpool
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
       simp only [Bool.false_eq_true, ↓reduceIte]
+      iunfold fltxAuth
       iframe
+      try (isplitl [Hspr]; iexact Hspr)
       ipureintro
       refine ⟨fun _ => ⟨hok, htree, htx1⟩, ?_⟩
       intro k' t h'
