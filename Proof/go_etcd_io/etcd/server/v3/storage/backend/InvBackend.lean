@@ -122,6 +122,10 @@ structure BNames where
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
   rbD : GMap GoString Unit
+  /-- `ghostVar FkVals`: the compaction keys' values in the writer's contents (`fkVals`; the
+  user's decision, 2026-11-04, round 16's F1: a snapshot's observation sees them), half the batch
+  lock's (`fkHalf`), half the client's (inside `fkOwn`), as the hook's own keys' `hkd` -/
+  fkd : GName
 
 section phys
 variable [GooseExts]
@@ -420,14 +424,28 @@ theorem rbPutAll_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h 
     ⊢ rbPutAll (GF := GF) γ P n S := by
   unfold rbPutAll; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
 
+/-- **A half of the compaction keys' values** (`γ.fkd`; the user's decision, 2026-11-04, round
+16's F1): the values `v` the writer's contents hold at the compaction keys (`fkVals`). One half is
+the client's (inside `fkOwn`), the other the batch lock's (`fkHalf`), handed to a snapshot's
+observation at a commit, where the writer's contents are the committed data
+(`backend.Snapshot`). -/
+def fkdOwn (γ : BNames) (v : FkVals) : IProp GF := ghostVar γ.fkd (1 : Qp).half v
+
+instance fkdOwn_timeless (γ : BNames) (v : FkVals) : Timeless (fkdOwn (GF := GF) γ v) := by
+  unfold fkdOwn; infer_instance
+
 /-- **The client's half of the compaction keys' flag** (`γ.fk`, the backend-compaction stage,
 2026-10-29): at `0`, no state of the backend has a compaction key (`fkKey`), not the batch
 lock's (`fkHalf`) and not any reader's (`fkRd`, `rtHeldF_fk`); a put of a compaction key needs it
-and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). -/
-def fkOwn (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). With it (2026-11-04,
+the user's decision on round 16's F1), the client's half of the compaction keys' values in the
+writer's contents (`fkdOwn`; the batch lock holds the other, `fkHalf`): a put of a compaction key
+updates both, and a snapshot's observation is handed the lock's at the committed values. -/
+def fkOwn (γ : BNames) (n : Nat) : IProp GF :=
+  iprop(monoNatAuthOwn γ.fk (1 : Qp).half n ∗ ∃ v : FkVals, fkdOwn γ v)
 
 instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
-  unfold fkOwn; infer_instance
+  unfold fkOwn fkdOwn; infer_instance
 
 /-- **The compaction keys' well-formedness bit** (persistent; question 4, 2026-10-29): at `true`,
 every state of the backend holds only well-formed values (`P.FV`) at the compaction keys. The
@@ -467,9 +485,10 @@ def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
   iprop(fkOwn γ (fkInit D) ∗ fkVR γ (fkWInit P D, fkInit D, fkVals D))
 
 /-- The batch lock's half of the flag, with what it and the ghost value say of its state
-(`fkOkG`). -/
+(`fkOkG`), and (2026-11-04) its half of the compaction keys' values at the writer's contents'. -/
 def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
-  iprop(∃ (f : Nat) (g : FkG), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkVR γ g ∗ ⌜fkOkG P f g st⌝)
+  iprop((∃ (f : Nat) (g : FkG), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkVR γ g ∗ ⌜fkOkG P f g st⌝) ∗
+    fkdOwn γ (fkVals st.S))
 
 /-- A reader's lower bound of the flag, taken when its state `rv` was set, with the ghost value
 (persistent). -/

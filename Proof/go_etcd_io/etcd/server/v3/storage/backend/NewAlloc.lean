@@ -529,9 +529,12 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (items 27/29 of the M2 storage plan) with the flag's value and `D`'s compaction-key values
   imod dghostVar_alloc ((fkWInit P D, fkInit D, fkVals D) : FkG) with ⟨%gfkv, Hfkv⟩
   imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
+  -- (2026-11-04, round 16's F1) the compaction keys' values in the writer's contents, `D`'s
+  imod ghostVar_alloc (fkVals D) with ⟨%gfkd, Hfkd⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    rbDomOf P D⟩
+    rbDomOf P D, gfkd⟩
+  icases gv_halves gfkd _ $$ Hfkd with ⟨Hfkdb, Hfkdc⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
   have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
     fkOkG_init rfl rfl rfl rfl
@@ -541,12 +544,16 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     iframe Hfklb Hfkv
     ipureintro
     exact fkOkRvG_of Hok0
-  ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb]
-  · unfold fkHalf fkVR
-    iexists fkInit D, (fkWInit P D, fkInit D, fkVals D)
-    iframe Hfkb Hfkv
-    ipureintro
-    exact Hok0
+  ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb Hfkdb]
+  · unfold fkHalf fkVR fkdOwn
+    isplitl [Hfkb]
+    · iexists fkInit D, (fkWInit P D, fkInit D, fkVals D)
+      iframe Hfkb Hfkv
+      ipureintro
+      exact Hok0
+    · have hS0 : fkVals (st0 D wtx).S = fkVals D := rfl
+      rw [hS0]
+      iexact Hfkdb
   let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
@@ -673,7 +680,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hsr]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hfkdc Hsr]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -697,9 +704,12 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hdlg Hdlb]
     · unfold dlInit
       iframe Hdlg Hdlb
-    isplitl [Hfkc]
-    · unfold fkCl fkOwn fkVR
-      iframe Hfkc Hfkv
+    isplitl [Hfkc Hfkdc]
+    · unfold fkCl fkOwn fkVR fkdOwn
+      iframe Hfkv
+      iframe Hfkc
+      iexists fkVals D
+      iexact Hfkdc
     iexact Hsr
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr

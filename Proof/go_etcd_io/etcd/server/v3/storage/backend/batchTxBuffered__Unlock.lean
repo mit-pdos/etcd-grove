@@ -187,7 +187,7 @@ private theorem unlock_core
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl $$ Hfkh
       have hsame := vData_writeback_same P st.C st.W st.R Hnw
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
         (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr]
@@ -238,7 +238,7 @@ private theorem unlock_core
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl $$ Hfkh
       unfold batchViewQ
       icases Hv with ⟨%L0, Hv⟩
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)

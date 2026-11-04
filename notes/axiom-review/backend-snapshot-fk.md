@@ -1,5 +1,12 @@
 # Axiom review: `backend.backend.Snapshot.wp_proof`, the compaction-key flag draft (2026-11-02)
 
+**Superseded in part (2026-11-04, the user's decision on round 16's F1 of the mvcc API review):**
+the axiom is strengthened again: the observation is also handed the batch lock's half of the
+compaction keys' committed values (`fkdOwn γ v`, a new ghost name `γ.fkd`; the client's half is
+inside `fkOwn`), and `Q` is applied to `fkVals D`. The `fkRd` clause reviewed here is unchanged, and
+the argument below still holds of it; the new clause is the hook keys' argument over a second
+ghost variable (the axiom's docstring). To be re-attacked with the `axiom` skill.
+
 **Outcome.** The proposed restatement below (the post's `fkRd γ P (D, ⟨∅, W64 0⟩)`, `Q`
 unchanged) is the one taken, with the user's approval (2026-11-02), in place of the reviewed draft.
 

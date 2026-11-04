@@ -80,8 +80,12 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
   isplitr
   · ipureintro; rfl
   iintro %Φ !> ⟨Ho, Hwb, HR⟩ HΦ
-  wp_apply hSnap γ P W Pk bl qo R Q $$ [Ho Hwb HR] as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
-  · iframe #; iframe
+  wp_apply hSnap γ P W Pk bl qo R (fun vd d r _ => Q vd d r) $$ [Ho Hwb HR]
+    as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
+  · iframe #
+    iframe
+    iintro !> %vd %d %r %v HR' HW HPk Hva Hhk Hrb -
+    iapply HQ $$ HR' HW HPk Hva Hhk Hrb
   ihave ⟨%HQRD, HR⟩ := HQR $$ %D HR Hfk
   iapply HΦ
   iframe

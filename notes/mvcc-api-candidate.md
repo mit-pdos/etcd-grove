@@ -778,3 +778,14 @@ F3: `mvccImage_fresh.law` under `|==>` (`⧖ 0` is allocated). F4 (`keySized` de
 today. F5: the invariants note completed. F6: `kvSortOk`'s docstring names its real consumers. F7:
 the receipt rewrites go into the vocabulary at stage 1; `reach_logWf` a theorem there.
 
+**Round 16, F1 decided (the user, 2026-11-04): "Strengthen the axiom."** `backend.Snapshot`'s
+axiom is strengthened in place: the observation is also handed the batch lock's half of the
+compaction keys' committed values (`fkdOwn γ v`, ghost name `γ.fkd`, half the batch lock's in
+`fkHalf` at the writer's contents' `fkVals`, half the client's inside `fkOwn`, which mvcc's
+compaction holds), and `Q` is applied to `fkVals D` too. `UnsafePut` of a compaction key updates
+both halves (`fkHalf_raise`); every other operation keeps the values (`fkVals_put`/`_del`/
+`_create`/`_delBucket`); `batchLocked_fkd` is the client's agreement. Every caller's statement is
+unchanged (the server's `srvBeSnapOk_of_backend` instantiates the new argument away).
+`mvccImage_snapshot.law` drops its never-compacted premise (`σ.crev = -1`): a compacting sender is
+covered. The axiom is to be re-attacked with the `axiom` skill.
+

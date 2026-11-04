@@ -176,6 +176,9 @@ The peek, `crevOk_off`, `histLb_boot` and **`histLb_model.law`** are as the watc
 
 **G3, the sender's image (§3b, §3c), over the API's `mvccImage_snapshot.law`.**
 
+(**2026-11-04: superseded.** The user strengthened `backend.Snapshot`'s axiom, so
+`mvccImage_snapshot.law` no longer takes `σ.crev = -1`; `auSnap` and `senderImage.law` no longer
+need `γr.kv.cmp = false`, which the M1 proofs drop. The paragraph below records the earlier scope.)
 **Scope: a cluster that never compacts.** That is `γr.kv.cmp = false`, the server's
 `E.cmp = false`. It is not this draft's `on`, which is the auth mode, also `false` here, with #7-on
 deferred.

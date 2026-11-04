@@ -156,9 +156,12 @@ theorem wp_commitsAdd (b : Loc) (v : w64) :
 /-- The batch lock's half of the flag, for a state that keeps what the flag and the bit say
 (`fkOk`). -/
 theorem fkHalf_mono (γ : BNames) (P : BParams) {st st' : BSess}
-    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') : fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st' := by
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S) :
+    fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st' := by
   unfold fkHalf
-  iintro ⟨%f, %w, Ha, #Hv, %Hf⟩
+  rw [hV]
+  iintro ⟨⟨%f, %w, Ha, #Hv, %Hf⟩, Hd⟩
+  iframe Hd
   iexists f, w
   iframe Ha Hv
   ipureintro
@@ -170,10 +173,10 @@ theorem fkHalf_rd (γ : BNames) (P : BParams) (st : BSess) (rv : RView)
     (h : ∀ f g, fkOkG P f g st → fkOkRvG P f g rv) :
     fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st ∗ fkRd γ P rv := by
   unfold fkHalf fkRd
-  iintro ⟨%f, %w, Ha, #Hv, %Hf⟩
+  iintro ⟨⟨%f, %w, Ha, #Hv, %Hf⟩, Hd⟩
   ihave #Hlb := monoNatLbOwn_get γ.fk _ f $$ Ha
   isplitl
-  · iexists f, w; iframe Ha Hv; ipureintro; exact Hf
+  · iframe Hd; iexists f, w; iframe Ha Hv; ipureintro; exact Hf
   · iexists f, w; iframe Hlb Hv; ipureintro; exact h f w Hf
 
 theorem fk_halves (γ : BNames) (n : Nat) :
@@ -184,12 +187,14 @@ theorem fk_halves (γ : BNames) (n : Nat) :
   exact h
 
 /-- The batch lock's half of the flag and the client's, raised by one (a put of a
-compaction key, of a well-formed value: `hR`). -/
+compaction key, of a well-formed value: `hR`), and both halves of the compaction keys' values
+updated to the new writer's contents' (2026-11-04). -/
 theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
     (hR : ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkOwn γ g ==∗ fkHalf γ P st' ∗ ∃ g' : Nat, fkOwn γ g' := by
-  unfold fkHalf fkOwn
-  iintro ⟨%f, %w, H1, #Hv, %Hf⟩ H2
+  unfold fkHalf fkOwn fkdOwn
+  iintro ⟨⟨%f, %w, H1, #Hv, %Hf⟩, Hd1⟩ ⟨H2, %v, Hd2⟩
+  imod ghostVar_update_halves (fkVals st'.S) γ.fkd _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
   ihave %Hag := monoNatAuthOwn_agree γ.fk _ _ _ _ $$ H1 H2
   obtain ⟨-, rfl⟩ := Hag
   ihave H := (fk_halves γ f).2 $$ [H1 H2]
@@ -197,20 +202,24 @@ theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
   imod mono_nat_own_update (f + 1) (Nat.le_succ f) $$ H with ⟨H, -⟩
   icases (fk_halves γ (f + 1)).1 $$ H with ⟨H1, H2⟩
   imodintro
-  isplitl [H1]
-  · iexists f + 1, w
+  isplitl [H1 Hd1]
+  · iframe Hd1
+    iexists f + 1, w
     iframe H1 Hv
     ipureintro
     exact hR f w Hf
   · iexists f + 1
-    iexact H2
+    iframe H2
+    iexists fkVals st'.S
+    iexact Hd2
 
 /-- What a put of key `k` in bucket `n` does to the flag: with the client's half if `k` is a
 compaction key (both halves raised; the state keeps the bit, `hR`), else the state keeps what the
 flag and the bit say (`hF`). -/
 theorem fkHalf_put (γ : BNames) (P : BParams) {st st' : BSess} (n k : GoString)
     (hF : ¬ fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P f g st')
-    (hR : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
+    (hR : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st')
+    (hV : ¬ fkKey n k → fkVals st'.S = fkVals st.S) :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkPut γ n k ==∗ fkHalf γ P st' ∗ fkPut γ n k := by
   unfold fkPut
   by_cases hk : fkKey n k
@@ -219,7 +228,7 @@ theorem fkHalf_put (γ : BNames) (P : BParams) {st st' : BSess} (n k : GoString)
     iapply fkHalf_raise γ P st st' g (hR hk) $$ Hf Ho
   · rw [if_neg hk]
     iintro Hf -
-    ihave Hf := fkHalf_mono γ P (hF hk) $$ Hf
+    ihave Hf := fkHalf_mono γ P (hF hk) (hV hk) $$ Hf
     imodintro
     iframe Hf
 
@@ -231,7 +240,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1)
     (hS : hkData P st'.S = hkData P st.S) (hB : rbData P st'.S = rbData P st.S)
-    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') :
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S) :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
   unfold batchGhost batchGhostAt batchViewQ
   rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
@@ -240,7 +249,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
   iexists n, w, u
   iframe
   isplitl
-  · iapply fkHalf_mono γ P hF $$ Hfk
+  · iapply fkHalf_mono γ P hF hV $$ Hfk
   ipureintro
   exact bgOk_step Hok hR hc hp hW
 
@@ -289,7 +298,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) (n : GoString)
     (hS : hkData P st'.S = hkData P st.S)
     (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
-    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st')
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
     (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m) :
     ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S ==∗
@@ -298,7 +307,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
   cases hb : P.RB n
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro Hg -
-    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF $$ Hg
+    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF hV $$ Hg
     imodintro
     iframe Hg
   · simp only [↓reduceIte]
@@ -307,7 +316,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hc
     imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) n (hBT hb) hb (rbData_other P hO)
       $$ [$Hb $Hc] with ⟨Hb, Hc⟩
-    ihave Hfk := fkHalf_mono γ P hF $$ Hfk
+    ihave Hfk := fkHalf_mono γ P hF hV $$ Hfk
     imodintro
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hb Hfk]
     · iframe Hv
@@ -327,6 +336,7 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
     (hF : ¬ fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P f g st')
     (hFk : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st')
+    (hV : ¬ fkKey n k → fkVals st'.S = fkVals st.S)
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
     (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m) :
     ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S -∗ fkPut γ n k ==∗
@@ -334,7 +344,7 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
   unfold batchGhost batchGhostAt batchViewQ trkHalf
   rw [hC, hR]
   iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hhp Hrp Hfp
-  imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk $$ Hfk Hfp with ⟨Hfk, Hfp⟩
+  imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk hV $$ Hfk Hfp with ⟨Hfk, Hfp⟩
   ihave Hk2 : iprop(|==> (ghostVar γ.hkd (1 : Qp).half (hkData P st'.S) ∗ hkPut γ P n k st'.S))
     $$ [Hk Hhp]
   · unfold hkPut
@@ -375,6 +385,23 @@ theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
   iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩, %Hwf⟩,
     Hc⟩
   icombine Hc Hk gives %Heq
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hok, Hwf⟩
+  · ipureintro; exact Heq.2
+
+/-- **The client's half of the compaction keys' values agrees with the batch lock's state**
+(2026-11-04, round 16's F1: the client's half is inside `fkOwn`). -/
+theorem batchLocked_fkd (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (v : FkVals) :
+    batchLocked (GF := GF) γ P b st ∗ fkdOwn γ v ⊢
+      batchLocked γ P b st ∗ fkdOwn γ v ∗ ⌜v = fkVals st.S⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt fkHalf fkdOwn
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd⟩, %Hok⟩,
+    %Hwf⟩, Hc⟩
+  icombine Hc Hd gives %Heq
   iframe Hc
   isplitl
   · iexists t, db

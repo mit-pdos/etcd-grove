@@ -1,4 +1,7 @@
 /-
+(2026-11-04: `mvccImage_snapshot.law` no longer takes `σ.crev = -1` (the user strengthened
+`backend.Snapshot`'s axiom), so `auSnap`, `kvAus.law`'s snapshot conjunct and `senderImage.law` below
+no longer need `γr.kv.cmp = false`; this draft is not built, and the M1 proofs drop the premise.)
 # The server-side clients of mvcc over the API (rounds 15-16): restated specs and the server's invariant
 
 Scratch draft (outside the repository). Typecheck from the worktree `mvcc-api` (at `6cc29c14f0`):

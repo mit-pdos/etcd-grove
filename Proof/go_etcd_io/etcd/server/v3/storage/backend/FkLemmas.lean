@@ -466,6 +466,38 @@ theorem fkValD_fkVals (D : Data) : fkValD (fkVals D) D := by
     · rfl
   · simp
 
+/-- Data holding `v` at the compaction keys has `v` as its compaction-key values. -/
+theorem fkVals_of_fkValD {v : FkVals} {D : Data} (h : fkValD v D) : fkVals D = v := by
+  have h1 := h go!"meta" go!"finishedCompactRev" ⟨rfl, Or.inr rfl⟩
+  have h2 := h go!"meta" go!"scheduledCompactRev" ⟨rfl, Or.inl rfl⟩
+  unfold fkAt at h1 h2
+  unfold fkVals
+  rw [h1, h2]
+  simp only [↓reduceIte]
+  split
+  · rename_i hh; exact absurd hh (by decide)
+  · rfl
+
+/-! ### The compaction keys' values in the writer's contents (the user's decision, 2026-11-04,
+round 16's F1: the batch lock's and the client's halves, `fkdOwn`): every operation but a put of a
+compaction key keeps them -/
+
+theorem fkVals_put {st : BSess} {bi : BucketInfo} {k x : GoString} (seq : Bool)
+    (hk : ¬ fkKey bi.name k) : fkVals (st.put bi k x seq).S = fkVals st.S :=
+  fkVals_of_fkValD (fkValD_put x (fkValD_fkVals st.S) hk)
+
+theorem fkVals_del {st : BSess} {bi : BucketInfo} {k : GoString} (hk : ¬ fkKey bi.name k) :
+    fkVals (st.del bi k).S = fkVals st.S :=
+  fkVals_of_fkValD (fkValD_delk (fkValD_fkVals st.S) hk)
+
+theorem fkVals_create {st : BSess} {bi : BucketInfo} :
+    fkVals (st.create bi).S = fkVals st.S :=
+  fkVals_of_fkValD (fkValD_create (fkValD_fkVals st.S))
+
+theorem fkVals_delBucket {st : BSess} {bi : BucketInfo} (hn : ∀ k, ¬ fkKey bi.name k) :
+    fkVals (st.delBucket bi).S = fkVals st.S :=
+  fkVals_of_fkValD (fkValD_delete (fkValD_fkVals st.S) hn)
+
 /-- A readers' state holding `v` at the compaction keys reads `v` at one. -/
 theorem vOf_fkVal {P : BParams} {rv : RView} {v : FkVals} {bi : BucketInfo} {kb : GoString}
     (h : fkValRv P v rv) (hbi : P.has bi) (hk : fkKey bi.name kb) :

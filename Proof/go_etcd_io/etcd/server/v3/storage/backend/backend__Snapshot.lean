@@ -34,9 +34,17 @@ bbolt's committed data `D` at that moment, and returns it as the snapshot. Why `
 `run` goroutine's, an `Unlock`'s), or the call's own found nothing pending, the writer's contents
 then being the committed data and the read buffer empty; at the end of each, its committer held
 the batch lock's resources `W ∗ Pk`, the lock's ghost shares were `viewAt γ (sData P C)`,
-`hkOwn γ (hkData P C)` and (D22, 2026-10-23) `rbOwn γ (rbData P C)` of the committed `C` (a
-commit makes the writer's contents committed: the hook's shares are of the writer's contents), and
-the caller held `R`, so the observation gives `Q`. (Question 2, option (a), the user's, 2026-10-29:
+`hkOwn γ (hkData P C)`, (D22, 2026-10-23) `rbOwn γ (rbData P C)` and (the user's decision,
+2026-11-04, round 16's F1) `fkdOwn γ (fkVals C)` of the committed `C` (a commit makes the writer's
+contents committed: the hook's shares, the tracked buckets' and the compaction keys' values are of
+the writer's contents, `fkHalf`'s `fkdOwn γ (fkVals st.S)`; the latter is updated only by a put of
+a compaction key, `fkHalf_raise`, every other operation keeping `fkVals` of the writer's contents,
+`fkVals_put`/`_del`/`_create`/`_delBucket`, and a commit or a write-back leaving them unchanged),
+and the caller held `R`, so the observation gives `Q` of the committed `C`, hence of `D` at its
+compaction keys (`fkVals D`) as at the hook's own keys. The compaction keys' clause is the hook keys'
+argument again, over a second ghost variable of the same shape; it adds nothing the existing
+`fkRd` clause relies on (that clause's flag is unchanged; the values' half is a separate ghost
+name). (Question 2, option (a), the user's, 2026-10-29:
 `viewAt γ (sData P C)` is the batch lock's quarter at a logical view the committed data reads thin
 of, as `batchGhostAt` holds it after a commit, `batchViewQ`; a weaker observation than the quarter
 at `sData P C` itself, which a compaction's deletes would make false. To be checked by the `axiom`

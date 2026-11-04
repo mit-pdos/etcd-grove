@@ -11,13 +11,15 @@ as `batchTxBuffered.Commit`), and the caller's **observation** `Q` of what a com
 resource `R` the caller holds through the call (given back) such that, whatever the batch lock's
 client resource `W` and hooks' resource `Pk` are, `R` with them, the batch lock's quarter of the
 readers' view, at a logical view the physical view `vd` is thin of (`viewAt`; question 2, option
-(a), 2026-10-29: until then the quarter at `vd` itself), its half of the hook's own keys at `d` (`hkOwn`) and (D22,
-2026-10-23: the backend over every bucket) its half of the tracked buckets at `r` (`rbOwn`) give
-`Q vd d r`. The post: the snapshot open (`snapOpen`) over bbolt's committed data `D`, with
-`Q (sData P D) (hkData P D) (rbData P D)`: `D` reads thin of the readers' (logical) view off the
-hook's buckets (exactly as it, with nothing deletable: `viewAt_noDel`)
-and holds the hook's own keys and the tracked buckets as they were when the last commit before
-the read transaction began left them. For the server, `W` holds the store's view of the `Key`
+(a), 2026-10-29: until then the quarter at `vd` itself), its half of the hook's own keys at `d` (`hkOwn`), (D22,
+2026-10-23: the backend over every bucket) its half of the tracked buckets at `r` (`rbOwn`) and
+(the user's decision, 2026-11-04, round 16's F1 of the mvcc API's review) its half of the compaction
+keys' values at `v` (`fkdOwn`) give `Q vd d r v`. The post: the snapshot open (`snapOpen`) over
+bbolt's committed data `D`, with `Q (sData P D) (hkData P D) (rbData P D) (fkVals D)`: `D` reads
+thin of the readers' (logical) view off the hook's buckets (exactly as it, with nothing deletable:
+`viewAt_noDel`) and holds the hook's own keys, the tracked buckets and the compaction keys as they
+were when the last commit before the read transaction began left them (mvcc's image of a store
+that compacted: its scheduled and finished compaction revisions). For the server, `W` holds the store's view of the `Key`
 bucket (`mvcc.writerRes`'s `bucketView`), `Pk` the consistent index's meta keys
 (`batchLockInv`, `metaTM`), `R` the apply thread's half of the tracked buckets: `Q` can say the
 key bucket is the store's log's, the stored index the apply thread's (D22 S-h) and the other
@@ -53,15 +55,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 says of every commit (see the file header). -/
 abbrev backend.backend.Snapshot.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
-    (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → Prop),
+    (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ R ∗
-      □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData),
-        R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ ⌜Q vd d r⌝) }}
+      □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
+          (v : FkVals),
+        R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗ ⌜Q vd d r v⌝) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
       snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
-      ⌜Q (sData P D) (hkData P D) (rbData P D)⌝ }}
+      ⌜Q (sData P D) (hkData P D) (rbData P D) (fkVals D)⌝ }}
 
 end spec
 

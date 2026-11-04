@@ -30407,3 +30407,18 @@ store predicate (`isStoreA`) and the generic proofs of the slot-changing steps c
 their slot steps as hypotheses. **Not chosen:** explicit slot parameters on every definition (a
 diff through `isStore`'s 97 files).
 
+## The backend's `Snapshot` axiom sees the compaction keys' values (2026-11-04 · the user · branch `mvcc-api`)
+
+**What it was.** `backend.Snapshot`'s axiom (`Spec/.../backend/backend__Snapshot.lean`) let a
+snapshot's observation see the readers' view, the hook's own keys and the tracked buckets, and gave
+a lower bound of the compaction keys' flag (`fkRd`), whose values it reports only while no
+compaction key was put since the open. So the image of a compacted store's snapshot was unprovable
+(the mvcc API review of round 16, F1), and `mvccImage_snapshot.law` was stated for a store that
+never compacted.
+
+**Decision (the user: "Strengthen the axiom").** In place, not a second spec: the observation is
+also handed the batch lock's half of the compaction keys' committed values (`fkdOwn`, a new ghost
+name `γ.fkd` tracked as the hook's own keys' `γ.hkd`), and `Q` is applied to `fkVals D`. The
+backend's proved specs carry the new ghost (the client's half inside `fkOwn`, so no caller's
+statement changed); the snapshot law drops `σ.crev = -1`. A trust-base change: re-attack it with the
+`axiom` skill.
