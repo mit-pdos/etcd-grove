@@ -4,16 +4,17 @@ loop's invariant at its start** (`pcInv_init'`, after the split): the entries' f
 (`tail_init_ents`), the parent (`tail_init_par`), the spill's global state across the kill and
 the split (`spG_tailSplit`: `spG_nilCh`, then the split's `G`), the step and frame reflexive.
 
-Open (named `sorry`s): `tail_nilChPre` (what `spG_nilCh` needs of `n`'s children after the
+Open (a named `sorry`): `tail_nilChPre` (what `spG_nilCh` needs of `n`'s children after the
 children's loop: the buckets' nodes disjoint, each child a childless non-root node of `bl`, no
-other live node's child; `spEnd` does not carry them) and `tail_rootN` (the split's `G` premise:
-a top node is its bucket's root after the children's loop and the kill).
+other live node's child; `spEnd` does not carry them). The split's `G` premise is
+`NodeSpillTailInitRoot.tail_rootN'`.
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitEnts
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPar
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillSplitNilCh
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitRoot
 
 @[expose] public section
 
@@ -45,16 +46,6 @@ theorem tail_nilChPre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       (∀ m rm, B.ns !! m = some rm → m ∈ X'.live → m ≠ n → ∀ c ∈ rm.cs, c ∉ r'.cs) := by
   sorry
 
-/-- **A top node is its bucket's root after the children's loop and the kill** (the split's `G`
-premise; a `sorry`: `spCtx.top`'s chain at the start, kept by the frames). -/
-theorem tail_rootN {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
-    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) (h0 : r'.nilCh.nv.parent' = null) :
-    ∀ B rt, (X'.nilCh bl n r').t.bs !! bl = some B → nodeRootIn B B.bv.rootNode' rt → rt = n := by
-  sorry
-
 /-- **The spill's global state after the kill and the split.** -/
 theorem spG_tailSplit {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
@@ -71,7 +62,7 @@ theorem spG_tailSplit {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   obtain ⟨hn', -⟩ := spEnd_rec hpre hsp hend
   obtain ⟨B, hB, hnB⟩ := node_bs_of hn'
   obtain ⟨hd, hcs, hu⟩ := tail_nilChPre hpre hsp hend hB
-  exact hsr.G (fun h0 _ => tail_rootN hpre hsp hend h0) _ _ _ (spG_nilCh hB hnB hd hcs hu hG')
+  exact hsr.G (fun h0 _ => tail_rootN' hpre hsp hend h0) _ _ _ (spG_nilCh hB hnB hd hcs hu hG')
 
 theorem pcOwn_zero (X' : WX) (r' : NRec) (Ds : List (List Nat)) (Xi : WX) :
     pcOwn X' r' Ds 0 [] Xi = ownSl X'.v r'.nv.pgid' ++ Ds.flatten := by
