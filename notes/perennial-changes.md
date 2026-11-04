@@ -40,6 +40,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `*errors.errorString` when the format has no `%w`.
 - **Status.** Open.
 
+### `fmt`: `%v`/`%+v` of a map of basic types in `fmt.Errorf` (2026-11-04, k8s DaemonSet run, track C)
+
+- **Limitation.** As the entry above: `fmt.argOk` admits no `map[string]string`, which Go prints
+  under `%v`/`%+v` entry by entry, in key order, calling no method.
+- **Who.** The DaemonSet controller's `getDaemonSetsForPod` (`daemon_controller.go:451`,
+  `"user error! more than one daemon is selecting pods with labels: %+v"` of a pod's labels,
+  reachable from `addPod`/`updatePod` when two DaemonSets select a pod).
+- **Here.** A local trust-boundary hypothesis, `ErrorfLabelsMap.spec`
+  (`Spec/k8s_io/kubernetes/pkg/controller/daemon/ErrorfLabelsMap.lean`): with the map read-only for
+  good, `Errorf` returns an error with an `Error()` spec.
+- **Proposal.** `fmt`'s argument predicate gains a case for a map whose keys and values are
+  `fmt.ArgWf` (read-only for the call), under `%v`/`%+v`.
+- **Status.** Open.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof

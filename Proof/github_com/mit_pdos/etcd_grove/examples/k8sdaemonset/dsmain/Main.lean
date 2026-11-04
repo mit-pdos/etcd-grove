@@ -35,7 +35,23 @@ theorem Main.wp_proof
     (wp_serverConfig : dsmain.serverConfig.spec (GF := GF) (hG := hG))
     (wp_run : dsmain.run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro nchk
+  wp_start as ⟨Htt, %Htb, %Hrb, Hname⟩
+  wp_auto
+  wp_apply wp_serverConfig
+  -- **The one false obligation of the closed theorem** (decision R8): `run`'s premise at
+  -- `serverConfig()`, whose model has ambiguous writes on. False of the code as it is: the
+  -- D51 bug, `issues/k8s-daemonset-ambiguous-create-duplicate-pod.md` (a create that commits
+  -- and reports a timeout leads a later sync to a second pod on the node:
+  -- `ambiguous_create_breaks_S1`).
+  have hamb : dsCfg.AmbiguousWrites' = false := by
+    sorry -- the D51 bug
+  try wp_auto
+  wp_apply (wp_run dsCfg nchk) $$ [Htt Hname] as %n -
+  · iframe #; iframe; ipureintro; exact ⟨Htb, Hrb, hamb⟩
+  try wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

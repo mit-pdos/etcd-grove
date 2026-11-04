@@ -27,11 +27,16 @@ gave) go to the registrations, each pending until its contract is given (decisio
 fields (stored after the registrations) and `s1Inv` (the delete handler's `Clear` fires inside it),
 which `Main` allocates after the constructor: so the post's `dscActivate` gives the tokens back
 whole once the caller has S1's invariants (the handlers activated, `handlerPending_activate`),
-for `factory.Start`. The registered handlers' resource is `True` (each call gets and returns its
+for `factory.Start`. **Scope** (decision R8): the model's ambiguous writes off
+(`⌜cfg.AmbiguousWrites' = false⌝`, which `isDsc` carries): with them, a create that commits and
+reports a timeout breaks S1 (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`). The right to
+register the controller's metric (`prometheus.nameFree dsMetricName`) goes to `metrics.Register`.
+The registered handlers' resource is `True` (each call gets and returns its
 listener's thread token, R7).
 
-**Open (the run's report).** `isDsc`'s `podCtlIndexed` needs `AddIndexers` to succeed and the index
-to stay (R6's not-started fraction gives the former; A's `infIdx`/`infInv_readIdxAU` the latter);
+**Open (the run's report).** `isDsc`'s `podCtlIndexed` needs the index `podController` to be the
+controller's relation: `AddPodControllerIndexer` adds it only if no index of that name exists
+(review 1 (API), M1: the name-keyed index relations, track A's change in progress);
 `isDsc`'s pools and the expectations' key function come from track B's changes in progress (the
 informers' pools; the `ExpKeyFunc` package fact). In the proof, not the statement.
 -/
@@ -64,13 +69,14 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 abbrev NewDaemonSetsController.spec : Prop :=
   ∀  (ctx : GoInterface) (lds lcr lpod lnode f : Loc) (γF : FacNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
-    (Fams : Res → Nat → Fn GF) (kc : k8s_io.client_go.kubernetes.Interface) (bo : Loc),
+    (Fams : Res → GoString → Fn GF) (kc : k8s_io.client_go.kubernetes.Interface) (bo : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ ⌜ctx ≠ interface.nil⌝ ∗
       isFactory f γF γa cfg Fams ∗ ⌜podFamOk (Fams .pods)⌝ ∗
       typedInfAt .daemonSets lds f ∗ typedInfAt .revisions lcr f ∗ typedInfAt .pods lpod f ∗
       typedInfAt .nodes lnode f ∗ clientIs kc γa cfg ∗ isBackoff bo ∗
       dsGateIs k8s_io.kubernetes.pkg.features.StaleControllerConsistencyDaemonSet true ∗
-      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ([∗list] r ∈ resAll, facNotStarted γF r 1) }}
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ([∗list] r ∈ resAll, facNotStarted γF r 1) ∗
+      ⌜cfg.AmbiguousWrites' = false⌝ ∗ prometheus.nameFree dsMetricName }}
     (App (App (App (App (App (App (App
       (Val (@! k8s_io.kubernetes.pkg.controller.daemon.NewDaemonSetsController)) (Val #ctx))
       (Val #(typedInfVal .daemonSets lds))) (Val #(typedInfVal .revisions lcr)))

@@ -2,7 +2,9 @@
 Package initialization of `k8s_io.kubernetes.pkg.controller.daemon`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variables (`daemon_controller.go`: the
+Its fact (`daemonInit`, `Proof/k8s_io/kubernetes/Base.lean`, 2026-11-04, track B): its three
+variables, read-only for good: `controllerKind` some `GroupVersionKind`, `podGroupResource` and
+`daemonsetGroupResource` their literals. Its initializer allocates its variables (`daemon_controller.go`: the
 group resources `daemonsetGroupResource`, `podGroupResource`, struct literals, and `controllerKind
 = apps.SchemeGroupVersion.WithKind("DaemonSet")`), initializes its imports and runs their
 translated initializers; `WithKind` (apimachinery's `schema`, names only) is the trust-boundary
@@ -114,6 +116,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) controllerKind _ as HcontrollerKind
   wp_apply wp_GlobalAlloc (V := k8s_io.apimachinery.pkg.runtime.schema.GroupResource) podGroupResource _ as HpodGroupResource
   wp_apply wp_GlobalAlloc (V := k8s_io.apimachinery.pkg.runtime.schema.GroupResource) daemonsetGroupResource _ as HdaemonsetGroupResource
@@ -176,8 +179,22 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply GroupVersion_WithKind_any as %r -
   try wp_auto
+  ipersist HcontrollerKind
+  ipersist HpodGroupResource
+  ipersist HdaemonsetGroupResource
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold daemonInit
+  isplitr
+  · iexists _; iexact HcontrollerKind
+  isplitr
+  · iexact HpodGroupResource
+  iexact HdaemonsetGroupResource
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

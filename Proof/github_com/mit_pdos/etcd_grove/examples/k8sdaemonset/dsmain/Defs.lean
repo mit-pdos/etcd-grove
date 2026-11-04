@@ -5,7 +5,7 @@ run, `notes/k8s-daemonset-run/design.md`). Lean-first.
 * `dsCfg`: `serverConfig()`'s value (every failure flag, 20%).
 * `gatesSet`: what `setFeatureGates()` leaves: the controller's gate
   `StaleControllerConsistencyDaemonSet` on (read through `utilfeature.DefaultFeatureGate`,
-  `dsGateIs`), client-go's `AtomicFIFO` on and `WatchListClient` off (read through
+  `dsGateIs`), client-go's `AtomicFIFO` and `InOrderInformers` (GA, locked on) on and `WatchListClient` off (read through
   `features.FeatureGates()`, which `pkg/features`' init makes an adapter over the same gate,
   `features.gateIs`). (Gap C7: the gates' initialization is names only; see `setFeatureGates`'
   spec.)
@@ -67,8 +67,7 @@ variable [sem : go.Semantics]
 /-- **The gates `setFeatureGates()` sets** (persistent): see the file header. -/
 def gatesSet : IProp GF :=
   iprop(dsGateIs k8s_io.kubernetes.pkg.features.StaleControllerConsistencyDaemonSet true ∗
-    features.gateIs k8s_io.client_go.features.AtomicFIFO true ∗
-    features.gateIs k8s_io.client_go.features.WatchListClient false)
+    features.informerGates)
 
 instance gatesSet_persistent : Persistent (gatesSet (GF := GF)) := by
   unfold gatesSet; infer_instance

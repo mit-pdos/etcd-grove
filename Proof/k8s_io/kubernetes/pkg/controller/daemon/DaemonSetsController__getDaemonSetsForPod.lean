@@ -2,13 +2,13 @@
 Proof of `Spec/k8s_io/kubernetes/pkg/controller/daemon/DaemonSetsController__getDaemonSetsForPod.lean` over its callees' specs. Lean-first; Stage 3 of the autoverify run
 (track C, `notes/k8s-daemonset-run/design.md`): a stub.
 
-The plan: a DaemonSet store reader slot from `dscPools`; the lister's atomic read inside the informer invariant.
+The plan: a DaemonSet store reader slot from `dscPools`; the lister's atomic read inside the informer invariant. The two-DaemonSets path's `fmt.Errorf("... %+v", pod.Labels)` over the local boundary hypothesis `ErrorfLabelsMap.spec` (review 1 (API), M3).
 -/
 module
 
 public import Spec.k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController__getDaemonSetsForPod
 public import Spec.k8s_io.client_go.listers.apps.v1.daemonSetLister__GetPodDaemonSets
-public import Spec.fmt.Errorf
+public import Spec.k8s_io.kubernetes.pkg.controller.daemon.ErrorfLabelsMap
 public import Spec.k8s_io.apimachinery.pkg.util.runtime.HandleError
 
 @[expose] public section
@@ -36,7 +36,7 @@ variable [fmt_sem : _root_.Perennial.fmt.Assumptions]
 
 theorem DaemonSetsController.getDaemonSetsForPod.wp_proof
     (wp_GetPodDaemonSets : appslisters.daemonSetLister.GetPodDaemonSets.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLabelsMap : ErrorfLabelsMap.spec (GF := GF) (hG := hG))
     (wp_HandleError : utilruntime.HandleError.spec (GF := GF) (hG := hG)) :
     DaemonSetsController.getDaemonSetsForPod.spec (GF := GF) (hG := hG) := by
   sorry

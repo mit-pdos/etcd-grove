@@ -7,8 +7,8 @@ track B's `isDsc`, what `Run` reads, and the handlers' arguments. Lean-first.
   interface value the constructor takes; `typedInfAt r l f` (track A) says it is the factory's.
 * `podNodeFn`, `podCtlFn`: the relations of the two indexers the constructor adds to the pod
   informer (`controller.AddPodNodeNameIndexer`, `AddPodControllerIndexer`): a pod's node name
-  (none if empty), its `PodControllerIndexKey`. `podFamOk Fam`: the pod store's family has both
-  (the factory's caller chooses the family, `NewSharedInformerFactory`).
+  (none if empty), its `PodControllerIndexKey`. `podFamOk FamN`: the pod store's name-keyed family gives them
+  under their names (the factory's caller chooses the family, `NewSharedInformerFactory`).
 * `dscFams Fams`: the controller's families (track B's `DscFams`) from the factory's.
 * `dsGateIs f b`: `utilfeature.DefaultFeatureGate.Enabled(f)` answers `b` (the constructor reads
   `StaleControllerConsistencyDaemonSet`, which selects the real consistency store, the one
@@ -28,17 +28,22 @@ track B's `isDsc`, what `Run` reads, and the handlers' arguments. Lean-first.
 **The handler resource** (A's `handlerSpec γa r γi h H`, per listener): the controller's
 handlers read the DaemonSet lister and the expectations, so each call needs reader slots, which a
 thread borrows from the controller's pools with its thread token (`dscPools`). A handler runs on
-its listener's goroutine, a thread whose token A's processor holds: the contract the constructor
-needs is `H evs := threadTok` passed through each call (or the listener contract passing the
-listener's token, `{{ threadTok ∗ H evs ∗ Q }} … {{ threadTok ∗ H (evs ++ [e]) }}`, with
-`H evs := True`); see the run's report. Nothing about past events is needed: the delete handler's
-`Clear` is made harmless by the event's own facts (`evFacts`' `goneAfter`) and S1's invariant.
+its listener's goroutine, whose token the listener contract passes through each call (decision
+R7: `{{ H evs ∗ threadTok ∗ Q }} … {{ H (evs ++ [e]) ∗ threadTok }}`): so `H evs := True`. Nothing
+about past events is needed: the delete handler's `Clear` is made harmless by the event's own
+facts (`evFacts`) and S1's invariant. The handlers are registered pending and activated by
+`dscActivate` once S1's invariants exist (R7).
+
+* `dsMetricName`: the controller's one metric (`metrics.Register`'s counter, `daemonset_controller`
+  subsystem): the right to register it (`prometheus.nameFree`) is the constructor's premise, from
+  program start (`goose_adequacy_start`, review 1 (API), M4).
 -/
 module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
 public import Proof.k8s_io.client_go.informers.Defs
 public import Proof.k8s_io.client_go.tools.cache.InformerDefs
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 
 @[expose] public section
 
@@ -58,9 +63,9 @@ open k8s_io.kubernetes.pkg.controller.daemon
 section pure
 variable [GooseExts]
 
-/-- **The controller's index families from the factory's** (track B's `DscFams`). -/
-def dscFams {GF : BundledGFunctors} (Fams : Res → Nat → Fn GF) : DscFams GF :=
-  ⟨Fams .pods, Fams .daemonSets, Fams .revisions, Fams .nodes⟩
+/-- **The controller's metric's name** (`metrics.DaemonsetRequeueSkips`: subsystem
+`daemonset_controller`, name `stale_sync_skips_total`). -/
+def dsMetricName : GoString := go!"daemonset_controller_stale_sync_skips_total"
 
 /-- `controller.PodNodeNameKeyIndex`. -/
 def podNodeIndex : GoString := go!"spec.nodeName"
@@ -89,8 +94,12 @@ def podCtlFn : Fn GF :=
     ⌜vs = [podCtlKey p.ObjectMeta'.Namespace' (ctlOf p)]⌝)
 
 /-- **The pod store's family has the controller's two indexers' relations** (pure). -/
-def podFamOk (Fam : Nat → Fn GF) : Prop :=
-  ∃ j1 j2, Fam j1 = podNodeFn ∧ Fam j2 = podCtlFn
+def podFamOk (FamN : GoString → Fn GF) : Prop :=
+  FamN podNodeIndex = podNodeFn ∧ FamN podCtlIndex = podCtlFn
+
+/-- **The controller's index families from the factory's** (track B's `DscFams`, name-keyed). -/
+def dscFams (Fams : Res → GoString → Fn GF) : DscFams GF :=
+  ⟨Fams .pods, Fams .daemonSets, Fams .revisions, Fams .nodes⟩
 
 /-- **`utilfeature.DefaultFeatureGate.Enabled(f)` answers `b`** (persistent): the variable holds a
 gate, read-only for good, whose `Enabled(f)` returns `b`. -/

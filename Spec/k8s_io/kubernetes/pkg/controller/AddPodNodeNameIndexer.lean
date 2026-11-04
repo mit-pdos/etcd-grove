@@ -4,9 +4,11 @@ store has no indexer named `podNodeIndex`, adds one indexing a pod by the node n
 track C of the DaemonSet run. Before the informer starts (decision R6: a fraction of its
 not-started token, lent to `AddIndexers` and given back).
 
-**The margin**: on `nil`, the index is registered (`infIdx`); its relation is `podNodeFn` when this call
-added it (the store had none); an index already there is one whose relation the informer's API
-does not say (`GetIndexers`' result is a map of functions), so the post does not either.
+The index named `podNodeIndex` is registered for good (`infIdx`, its relation the family's
+`FamN podNodeIndex`, which the caller fixes to `podNodeFn`), whether this call added it, found it already
+there (the `GetIndexers` lookup; needs a lookup contract on the informer's indexers, the run's
+report), or `AddIndexers` refused the name as already registered; the error (from `AddIndexers`
+only) says nothing more.
 -/
 module
 
@@ -35,14 +37,13 @@ variable [ctl_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
 variable [cache_sem : k8s_io.client_go.tools.cache.Assumptions]
 variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
-/-- `AddPodNodeNameIndexer(x)` for the pod informer `x`, its family's `podNodeFn` at `j`. -/
+/-- `AddPodNodeNameIndexer(x)` for the pod informer `x`, its family's `podNodeFn` under `podNodeIndex`. -/
 abbrev AddPodNodeNameIndexer.spec : Prop :=
-  ∀ (x : GoInterface) (γa : ApiNames) (I : InfH) (Fam : Nat → Fn GF) (j : Nat) (q : Qp),
+  ∀ (x : GoInterface) (γa : ApiNames) (I : InfH) (FamN : GoString → Fn GF) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ∗
-      isInformer x γa .pods I Fam ∗ ⌜Fam j = podNodeFn⌝ ∗ infNotStarted I.γi q }}
+      isInformer x γa .pods I FamN ∗ ⌜FamN podNodeIndex = podNodeFn⌝ ∗ infNotStarted I.γi q }}
     (App (Val (@! k8s_io.kubernetes.pkg.controller.AddPodNodeNameIndexer)) (Val #x))
-  {{ (err : GoInterface), RET #err; infNotStarted I.γi q ∗
-      (⌜err ≠ interface.nil⌝ ∨ (⌜err = interface.nil⌝ ∗ ∃ j', infIdx I podNodeIndex j')) }}
+  {{ (err : GoInterface), RET #err; infNotStarted I.γi q ∗ infIdx I podNodeIndex }}
 
 end spec
 

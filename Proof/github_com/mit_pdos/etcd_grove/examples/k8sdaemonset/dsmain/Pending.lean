@@ -11,6 +11,10 @@ hypotheses with. Hand-written; Lean-first.
   `NewBackOff`, track C; `util.GetTargetNodeName`, track B's proved leaf, not linked yet): `sorry`,
   **one per function, named after it** (`*_pending`). Each goes once the function's package is
   linked: its line in the list file becomes `@` (its Link's result) or its callees.
+
+Each entry is a spec believed true of the Go code (review 1 (API), H1: the constructor's takes the
+model's ambiguous writes off, decision R8), so none lets a caller derive `False`; the closed
+theorem's one false step is `Main.wp_proof`'s named `hamb`.
 -/
 module
 

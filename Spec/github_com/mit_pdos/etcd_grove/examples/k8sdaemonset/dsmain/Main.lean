@@ -2,7 +2,10 @@
 `Main(checks)` (`dsmain.go`): `run(serverConfig(), checks)`. Lean-first; track C of the DaemonSet run (`notes/k8s-daemonset-run/design.md`).
 
 The closed theorem's program body (`Adequacy.lean`): no thread of it panics or is stuck. The
-premises are the bounds the adequacy theorem fixes (`run`'s).
+premises are the bounds the adequacy theorem fixes and the metric's registration right (`run`'s).
+**False of the code as it is** (decision R8): `run`'s premise `⌜cfg.AmbiguousWrites' = false⌝`
+fails at `serverConfig()`; `Main.wp_proof` names that one obligation (`hamb`, a `sorry`: the D51 bug,
+`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`).
 -/
 module
 
@@ -32,7 +35,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsm
 /-- **`Main(checks)`**: returns (no panic). -/
 abbrev Main.spec : Prop :=
   ∀ (nchk : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 63⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 63⌝ ∗
+      prometheus.nameFree dsMetricName }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain.Main)) (Val #nchk))
   {{ RET #(); True }}
 

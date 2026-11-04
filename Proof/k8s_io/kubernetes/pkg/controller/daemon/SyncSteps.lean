@@ -49,6 +49,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The daemon package's fact** (`daemonInit`): its variables, read-only for good. -/
+theorem daemon_pkgFact :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ⊢
+      _root_.Perennial.k8s_io.kubernetes.daemonInit := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon
+
 /-- **A past state is before the current one**, which is well formed. -/
 theorem apiState_past_le (γa : ApiNames) (σ σp : St) :
     ⊢ pastSt (GF := GF) γa σp -∗ apiState γa σ -∗ apiState γa σ ∗ ⌜St.le σp σ ∧ σ.wf⌝ := by

@@ -40,6 +40,7 @@ public import GeneratedProof.k8s_io.utils.dump
 public import GeneratedProof.k8s_io.kubernetes.pkg.util.hash
 public import GeneratedProof.k8s_io.kubernetes.pkg.util.taints
 public import GeneratedProof.k8s_io.kubernetes.pkg.controller
+public import Code.k8s_io.kubernetes.pkg.controller.daemon
 public import GeneratedProof.k8s_io.component_base.metrics.legacyregistry
 public import GeneratedProof.k8s_io.kubernetes.pkg.controller.daemon.metrics
 public import GeneratedProof.k8s_io.api.extensions.v1beta1
@@ -339,9 +340,21 @@ instance k8s_io_kubernetes_pkg_util_labels_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.kubernetes.pkg.util.labels :=
   build_get_is_pkg_init_wf
 
+/-- **`pkg/controller/daemon`'s package fact** (the DaemonSet run's track B, 2026-11-04): its three
+variables, read-only for good (nothing writes them after the initializer): `controllerKind` (some
+`GroupVersionKind`: `WithKind` is a trust-boundary call), `podGroupResource` and
+`daemonsetGroupResource` (their literals). -/
+def daemonInit : IProp GF :=
+  iprop((∃ k : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind,
+      globalAddr k8s_io.kubernetes.pkg.controller.daemon.controllerKind ↦□ k) ∗
+    globalAddr k8s_io.kubernetes.pkg.controller.daemon.podGroupResource ↦□
+      (k8s_io.apimachinery.pkg.runtime.schema.GroupResource.mk go!"" go!"pods") ∗
+    globalAddr k8s_io.kubernetes.pkg.controller.daemon.daemonsetGroupResource ↦□
+      (k8s_io.apimachinery.pkg.runtime.schema.GroupResource.mk go!"apps" go!"daemonsets"))
+
 instance k8s_io_kubernetes_pkg_controller_daemon_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init daemonInit
 instance k8s_io_kubernetes_pkg_controller_daemon_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon :=
   build_get_is_pkg_init_wf

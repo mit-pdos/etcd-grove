@@ -587,7 +587,9 @@ interface, which need the method sets).''',
 
 _DSN = 'k8s_io.apimachinery.pkg.runtime.schema'
 SPECIAL['k8s_io.kubernetes.pkg.controller.daemon'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables (`daemon_controller.go`: the
+    doc='''Its fact (`daemonInit`, `Proof/k8s_io/kubernetes/Base.lean`, 2026-11-04, track B): its three
+variables, read-only for good: `controllerKind` some `GroupVersionKind`, `podGroupResource` and
+`daemonsetGroupResource` their literals. Its initializer allocates its variables (`daemon_controller.go`: the
 group resources `daemonsetGroupResource`, `podGroupResource`, struct literals, and `controllerKind
 = apps.SchemeGroupVersion.WithKind("DaemonSet")`), initializes its imports and runs their
 translated initializers; `WithKind` (apimachinery's `schema`, names only) is the trust-boundary
@@ -615,6 +617,10 @@ receiver's fields and the kind).''',
                  'podGroupResource': f'{_DSN}.GroupResource',
                  'daemonsetGroupResource': f'{_DSN}.GroupResource'},
     before={'$end': ['try wp_auto', 'wp_apply GroupVersion_WithKind_any as %r -', 'try wp_auto']},
+    finish=['ipersist HcontrollerKind', 'ipersist HpodGroupResource',
+            'ipersist HdaemonsetGroupResource'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold daemonInit', 'isplitr', '· iexists _; iexact HcontrollerKind',
+            'isplitr', '· iexact HpodGroupResource', 'iexact HdaemonsetGroupResource'],
 )
 
 SPECIAL['k8s_io.kubernetes.pkg.controller.daemon.metrics'] = dict(

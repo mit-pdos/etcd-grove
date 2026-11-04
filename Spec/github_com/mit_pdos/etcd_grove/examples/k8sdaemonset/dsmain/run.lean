@@ -15,9 +15,16 @@ step lemma for an admin create of a `newDsOk` DaemonSet); each check over `s1Rea
 The informers' not-started tokens (decisions R6, R7) go to the constructor, which registers its
 handlers pending; after `s1Inv`, its `dscActivate` gives them back whole for `factory.Start`.
 
+**Scope** (decision R8): the model's ambiguous writes off. With them on, Go refutes the spec:
+a create that commits and reports a timeout leads a later sync to create a second pod on the node
+and the checker panics (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`, 5 of 200 runs of
+`TestAmbiguousWritesDetected`). `Main`'s call, at `serverConfig()` (`dsCfg`, the flag on), is the
+one place the closed theorem's proof cannot pass (`Main.wp_proof`'s named `sorry`).
+
 **Premises**: the thread bound under the reader pools' size (`threadBound ≤ 2^30 - 1`, the
 constructor's and the informers' pools) and the receipt bound `NewServer` takes; the main thread's
-token (the controller's `Run` goroutine is forked with the token the fork hands back).
+token (the controller's `Run` goroutine is forked with the token the fork hands back); the right
+to register the controller's metric (`prometheus.nameFree dsMetricName`, from program start).
 -/
 module
 
@@ -47,7 +54,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsm
 /-- **`run(cfg, checks)`**: returns (no panic). -/
 abbrev run.spec : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (nchk : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 63⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 63⌝ ∗
+      ⌜cfg.AmbiguousWrites' = false⌝ ∗ prometheus.nameFree dsMetricName }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain.run)) (Val #cfg)) (Val #nchk))
   {{ (n : w64), RET #n; True }}
 
