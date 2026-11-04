@@ -151,9 +151,10 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
   · iframe
   -- the store's freelist rolled back; the slots leaving the store join the `W` slots
+  ihave Htok := fbTok_of_wdbOK (GF := GF) K.B w hwok (wLive X.v w.C) ∅
   imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
-    (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
-    with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
+    (w.C.txid + 1) ∅ rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
+    with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, -⟩
   · iframe; iframe #
   icases wdb_rollback K.p w _ S bs hwok rfl HS hpend (by rw [hwms]; simp) Hbs
     $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
