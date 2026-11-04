@@ -23,7 +23,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section bolt
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -100,31 +100,40 @@ def isBoltDef (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
 
 instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
-  sorry
+  unfold isBoltCoreP dblAt t0At dbFixed dbLogger; infer_instance
 
 instance isBoltCore_persistent (B : BNs) (N : Namespace) (db : Loc) :
     Persistent (isBoltCore (GF := GF) B N db) := by
-  sorry
+  unfold isBoltCore; infer_instance
 
 instance isBoltDef_persistent (B : BNs) (N : Namespace) (db : Loc) :
     Persistent (isBoltDef (GF := GF) B N db) := by
-  sorry
+  unfold isBoltDef isBoltP; infer_instance
 
 /-- The full database has its core. -/
 theorem isBolt_core (B : BNs) (N : Namespace) (db : Loc) :
     isBoltDef (GF := GF) B N db ⊢ isBoltCore B N db := by
-  sorry
+  unfold isBoltDef isBoltP isBoltCore
+  iintro ⟨%p, %sp, %t0, Hc, -⟩
+  iexists p, sp, t0; iexact Hc
 
 /-- Two databases of one name are one database. -/
 theorem isBolt_db_agree (B : BNs) (N : Namespace) (db db' : Loc) :
     isBoltDef (GF := GF) B N db ∗ isBoltCore B N db' ⊢ ⌜db = db'⌝ := by
-  sorry
+  unfold isBoltDef isBoltP isBoltCore isBoltCoreP dblAt
+  iintro ⟨⟨%p, %sp, %t0, ⟨H1, -⟩, -⟩, ⟨%p', %sp', %t0', H2, -⟩⟩
+  icombine H1 H2 gives %h
+  ipureintro; exact h.2
 
 /-- The core's parameters agree with the full database's. -/
 theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : GoString) (sp sp' : Loc)
     (t0 t0' : Nat) :
     isBoltP (GF := GF) B N db p sp t0 ∗ isBoltCoreP B N db p' sp' t0' ⊢ ⌜sp = sp' ∧ t0 = t0'⌝ := by
-  sorry
+  unfold isBoltP isBoltCoreP dbFixed t0At
+  iintro ⟨⟨⟨-, Ht, -, -, -, ⟨-, Hsp, -⟩, -⟩, -⟩, ⟨-, Ht', -, -, -, ⟨-, Hsp', -⟩, -⟩⟩
+  icombine Ht Ht' gives %h1
+  icombine Hsp Hsp' gives %h2
+  ipureintro; exact ⟨h2, h1.2⟩
 
 end bolt
 
