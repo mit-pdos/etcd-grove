@@ -264,8 +264,17 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   imod store_release_len K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl (some (b, l)) F ro Hperm HF
     $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfa] with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hfa, Hso, %HS, %Hbs⟩
   · iframe; iframe #
+  have hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64 := by
+    intro t ht
+    obtain ⟨⟨k, t'⟩, hkv, rfl⟩ := List.mem_map.1 (Hperm.subset ht)
+    have h1 := HF k _ ((GMap.mem_toList _ _ _).1 hkv)
+    have h2 := htree.2.2.2.2.2
+    have h3 := h1.2
+    exact ⟨h1.1, by simp only; omega⟩
   have hrel := wdb_release (GF := GF) K.p w σ ro S bs
-    ⟨hσC, hσfl, hσms.trans hms.symm, hσws, hσok⟩ Hwok (by rw [hms]; simp) HS Hbs
+    ⟨hσC, hσfl, hσms.trans hms.symm, hσws, hσok⟩ Hwok HS Hbs hro
+    -- U5d's finding: `wdbOK` does not say that the synced freelist page's bytes hold a header
+    (fun f hf => sorry)
   rw [hms] at hrel
   icases hrel $$ [Hwc Hwb Hso] with ⟨%Hwok', Hwc, Hwb⟩
   · iframe
