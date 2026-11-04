@@ -112,6 +112,68 @@ theorem bobjs_wx0 (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucket)
   apply GMap.ext; intro k
   simp [WTx.bobjs, wx0]
 
+/-- The `Tx` record a writer's `Tx.init` leaves (its `db`, `root` and `stats` fields are not
+`txFields`'). -/
+def tx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) : Tx :=
+  ⟨true, false, null, m, initRoot tx bm nm ibp, pm, zeroValDef, ch, wf⟩
+
+omit hos in
+/-- **The initial writer heap** (`wx0`), from `Tx.init`'s writer fields: the transaction's fields,
+the meta copy, the empty page cache, the root bucket's fields, header and empty caches. -/
+theorem wtxHeap_wx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) (mv : go_etcd_io.bbolt.internal.common.Meta)
+    (ib : InBucket) (v : View) :
+    tx.[Tx, go!"writable"] ↦ true ∗ tx.[Tx, go!"managed"] ↦ false ∗ tx.[Tx, go!"meta"] ↦ m ∗
+      tx.[Tx, go!"pages"] ↦ pm ∗ tx.[Tx, go!"commitHandlers"] ↦ ch ∗
+      tx.[Tx, go!"WriteFlag"] ↦ wf ∗ (m ↦ mv : IProp GF) ∗ pm ↦$ (∅ : GMap w64 Loc) ∗
+      (txRoot (GF := GF) tx).[Bucket, go!"InBucket"] ↦ ibp ∗ (txRoot (GF := GF) tx).[Bucket, go!"tx"] ↦ tx ∗
+      (txRoot (GF := GF) tx).[Bucket, go!"buckets"] ↦ bm ∗ (txRoot (GF := GF) tx).[Bucket, go!"page"] ↦ null ∗
+      (txRoot (GF := GF) tx).[Bucket, go!"rootNode"] ↦ null ∗
+      (txRoot (GF := GF) tx).[Bucket, go!"nodes"] ↦ nm ∗
+      (txRoot (GF := GF) tx).[Bucket, go!"FillPercent"] ↦ W64 4602678819172646912 ∗
+      ibp ↦ ib ∗ nm ↦$ (∅ : GMap w64 Loc) ∗ bm ↦$ (∅ : GMap GoString Loc) ⊢
+    wtxHeap tx (DFrac.own 1)
+      (wx0 (txRoot (GF := GF) tx) (tx0 tx bm nm ibp m pm ch wf) mv (initRoot tx bm nm ibp) ib v) := by
+  iintro ⟨Hw, Hmg, Hme, Hpg, Hch, Hwf, Hmv, Hpm, Hib, Htx, Hbk, Hpp, Hrn, Hnd, Hfp, Hibv, Hnm, Hbm⟩
+  unfold wtxHeap
+  rw [objs_wx0, bobjs_wx0]
+  isplitr
+  · ipureintro
+    refine ⟨rfl, ?_, ?_, ?_, ?_, ?_⟩
+    · intro bl B hb n hn
+      obtain ⟨-, rfl⟩ := wx0_bs_some _ _ _ _ _ _ bl B hb
+      simp [brec0] at hn
+    · intro bl B hb
+      obtain ⟨-, rfl⟩ := wx0_bs_some _ _ _ _ _ _ bl B hb
+      rfl
+    · intro bl B n r hb hn
+      obtain ⟨-, rfl⟩ := wx0_bs_some _ _ _ _ _ _ bl B hb
+      simp [brec0] at hn
+    · intro n y h; simp [wx0] at h
+    · intro bl B hb
+      left; exact (wx0_bs_some _ _ _ _ _ _ bl B hb).1
+  isplitl [Hw Hmg Hme Hpg Hch Hwf Hmv Hpm]
+  · unfold txFields
+    simp only [wx0, tx0]
+    iframe
+    simp; iempintro
+  isplitl [Hfp]
+  · unfold rootFill txRoot; iexists W64 4602678819172646912; iframe Hfp; ipureintro; exact fill_default_not_nan
+  isplitl []
+  · simp; iempintro
+  rw [show GMap.singleton (txRoot (GF := GF) tx) (brec0 (initRoot tx bm nm ibp) ib) =
+    Std.insert (∅ : GMap Loc BRec) (txRoot (GF := GF) tx) (brec0 (initRoot tx bm nm ibp) ib) from rfl]
+  iapply (BigSepM.bigSepM_insert (M := GMap Loc) (m := (∅ : GMap Loc BRec)) (i := txRoot (GF := GF) tx)
+    (x := brec0 (initRoot tx bm nm ibp) ib) (by rfl)).2
+  isplitl
+  rotate_left
+  · iapply BigSepM.bigSepM_empty.2; iempintro
+  unfold objOwn pageOwn
+  have hrl : txRoot (GF := GF) tx = tx.[Tx, go!"root"] := rfl
+  simp only [brec0, initRoot, newBucketV, wx0]
+  simp only [← hrl, ↓reduceIte]
+  iframe
+  split <;> iempintro
+
 end winit
 
 end bbolt
