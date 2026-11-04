@@ -340,7 +340,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · iframe H0 HL
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's model
     ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗ ⌜L <+: kvModel γr.kv Lf⌝) $$ [HLf Hcase]
     · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
@@ -384,8 +384,8 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     imod Hcommit $$ [Hc2] with #HQ0
     · iunfold etcdKV; rw [hst]; iexact Hc2
     imod Hback with -
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     iexists kvModel γr.kv Lf
     rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
@@ -511,15 +511,15 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · imodintro; ipureintro; exact hshort hl Hp0
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     ihave #Hw2 := Hw
     iunfold kvWork at Hw2
     icases Hw2 with ⟨%Hws, -⟩
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
     ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     ipureintro
     obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2

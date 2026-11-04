@@ -149,12 +149,12 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp γk.lm) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
@@ -172,9 +172,9 @@ theorem kv_log0_noLease (γ : ServerRaftNames) (γk : KVNames) :
   iintro #Hinv
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   exact Hok.2.2.2.2.1.2
@@ -347,7 +347,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   ihave #HkI' := HkI
   iunfold kvInv at HkI'
   iinv HkI' with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw, HG⟩
   iunfold etcdKV at Hσ
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
   have hlen := (kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L).length_le
@@ -363,8 +363,8 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
       have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
       unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
-  imod Hclose $$ [HL Hσ'] with -
-  · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
+  imod Hclose $$ [HL Hσ' HG] with -
+  · inext; iexists L; iframe HL Hσ' Hw HG; ipureintro; exact Hok'
   imodintro
   iunfold etcdKV
   iframe Hσ

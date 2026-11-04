@@ -38,9 +38,9 @@ theorem kvInv_ch0_off (γ : ServerRaftNames) (γk : KVNames) :
   iintro #Hinv
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   exact Hok.2.2.2.1

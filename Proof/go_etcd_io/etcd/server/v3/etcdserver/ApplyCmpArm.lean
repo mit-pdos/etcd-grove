@@ -910,9 +910,9 @@ theorem kv_revLbZ_of_rlogLb (γ : ServerRaftNames) (γk : KVNames) (A : List Ent
   imod (srvReqLogLb_of_rlogLb γ ⊤ (fun _ _ => CoPset.mem_full) A) $$ Hr HA with ⟨%L₀, #HL0, %Heqv⟩
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   have hm := (kvModel_eqv γ γk A L₀ Heqv Hok.2.2.1).1
   iunfold kvRevLbZ
@@ -957,12 +957,12 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames)
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L (A ++ [m]) $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ (A ++ [m]) $$ HB
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   obtain ⟨-, -, hc0, -, -, hcl, -⟩ := Hok

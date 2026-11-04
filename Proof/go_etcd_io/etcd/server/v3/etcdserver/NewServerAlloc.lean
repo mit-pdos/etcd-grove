@@ -73,7 +73,7 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
       γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11⟩ := h
-  unfold kvInv kvWork entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
+  unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
     cmpEntryOk kvModel kvStQ KVNames.lg
   rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11]
 

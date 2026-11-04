@@ -311,7 +311,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
   unfold atomic_acc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   -- the revision's bound, on the cluster's requested log (the invariant's tie), below the log
   have hrl : γk.rlog = γ.raft.log := Hok.2.2.2.2.2.2.1
   ihave #HL0' : srvReqLogLb γ L₀ $$ []
@@ -325,8 +325,8 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ HG] with -
+    · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro %e ⟨%He, HL⟩
@@ -370,11 +370,13 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       ipureintro; exact ⟨hdec, hid⟩
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
       (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw Hecl
-    imod Hclose $$ [HL Hσ] with -
+    ihave Hgo := grantIdOwn_cmp (GF := GF) γk rq hform.2.1
+    ihave HG := kvGrantIds_snoc γk L e d rq het hed hdec $$ HG Hgo
+    imod Hclose $$ [HL Hσ HG] with -
     · inext
       iexists L ++ [e]
       rw [hent]
-      iframe HL Hσ Hw'
+      iframe HL Hσ Hw' HG
       ipureintro
       obtain ⟨hpl, -, hc0, hch, h0, hcl, htie⟩ := Hok
       refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim, htie⟩
@@ -422,7 +424,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     unfold atomic_acc
     iunfold kvInv at Hinv
     iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
     isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
     iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
     iintro Hmask
@@ -431,8 +433,8 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     isplit
     · iintro HL
       imod Hmask with -
-      imod Hclose $$ [HL Hσ] with -
-      · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+      imod Hclose $$ [HL Hσ HG] with -
+      · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
       imodintro
       itrivial
     · iintro %e ⟨%He, HL⟩
@@ -448,11 +450,13 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         exact hnw
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
-      imod Hclose $$ [HL Hσ] with -
+      ihave Hgo := grantIdOwn_plain (GF := GF) γk rq hplain
+      ihave HG := kvGrantIds_snoc γk L e d rq het hed hdec $$ HG Hgo
+      imod Hclose $$ [HL Hσ HG] with -
       · inext
         iexists L ++ [e]
         rw [hent]
-        iframe HL Hσ Hw'
+        iframe HL Hσ Hw' HG
         ipureintro
         exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
@@ -469,7 +473,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     unfold atomic_acc
     iunfold kvInv at Hinv
     iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
     imod Hacc with Hacc
@@ -489,8 +493,8 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
       icases Hucl with ⟨Habort, -⟩
       imod Habort $$ [Hc] with -
       · iunfold etcdKV; iexact Hc
-      imod Hclose $$ [HL Hσ] with -
-      · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+      imod Hclose $$ [HL Hσ HG] with -
+      · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
       imodintro
       itrivial
     · iintro %e ⟨%He, HL⟩
@@ -511,11 +515,13 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
-      imod Hclose $$ [HL Hσ] with -
+      ihave Hgo := grantIdOwn_plain (GF := GF) γk rq hplain
+      ihave HG := kvGrantIds_snoc γk L e d rq het hed hdec $$ HG Hgo
+      imod Hclose $$ [HL Hσ HG] with -
       · inext
         iexists L ++ [e]
         rw [hst]
-        iframe HL Hσ Hw'
+        iframe HL Hσ Hw' HG
         ipureintro
         exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
@@ -534,7 +540,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     unfold atomic_acc
     iunfold kvInv at Hinv
     iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
     imod Hacc with Hacc
@@ -554,8 +560,8 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
       icases Hucl with ⟨Habort, -⟩
       imod Habort $$ [Hc] with Hau
       · iunfold etcdKV; iexact Hc
-      imod Hclose $$ [HL Hσ] with -
-      · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+      imod Hclose $$ [HL Hσ HG] with -
+      · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
       imodintro
       iexact Hau
     · iintro %e ⟨%He, HL⟩
@@ -577,11 +583,13 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
-      imod Hclose $$ [HL Hσ] with -
+      ihave Hgo := grantIdOwn_plain (GF := GF) γk rq hplain
+      ihave HG := kvGrantIds_snoc γk L e d rq het hed hdec $$ HG Hgo
+      imod Hclose $$ [HL Hσ HG] with -
       · inext
         iexists L ++ [e]
         rw [hst]
-        iframe HL Hσ Hw'
+        iframe HL Hσ Hw' HG
         ipureintro
         exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
@@ -595,13 +603,15 @@ the user's (C)): in a cluster that grants leases, the invariant owns the KV stat
 whole (`kvStQ`), so it steps it to the model of the log with the entry (no client's update); the
 entry is plain in the modes (`plainEntryM`'s grant disjunct), of a good shape, claims nothing
 (`cmpEntryOk`: no compaction). The result is `True`. (The lease-expiry stage's X7, 2026-11-04:)
-likewise a revocation in the revocable mode (`plainEntryM`'s revocation disjunct). -/
+likewise a revocation in the revocable mode (`plainEntryM`'s revocation disjunct). (The lease-expiry
+plan's E3 (b):) The commit deposits the grant's generated id's claim right (`grantIdOwn`) in the
+invariant's `kvGrantIds`. -/
 theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq) (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E)
     (hform : (grantPropOk γk.lm rq ∨ revokePropOk γk.lm rq) ∧ rqShape γk.lm rq) :
-    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id ={E}=∗
+    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ grantIdOwn γk rq ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
   have Hdisj := kvN_raftN
   have hlm : γk.lm ≠ .none := by
@@ -613,14 +623,14 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     rcases hform.1 with hg | hr
     · exact Or.inl hg.2.1
     · exact Or.inr hr.2.1
-  iintro #Hinv #Hcl #Hreg
+  iintro #Hinv #Hcl #Hreg Hgo
   imodintro
   unfold srvPropAu1
   iauintro
   unfold atomic_acc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   rw [kvStQ_true γk hlg]
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -630,8 +640,8 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ HG] with -
+    · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro %e ⟨%He, HL⟩
@@ -666,10 +676,11 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
       (entryPutsOk_of_data e d rq hed hdec hk)
       (attrEntryOk_of _ e d rq hed hdec (attrIdOk_of_kind _ rq (by rcases hkk with hkk | hkk <;> rw [hkk] <;> decide))) $$ Hw Hecl
-    imod Hclose $$ [HL Hσ] with -
+    ihave HG := kvGrantIds_snoc γk L e d rq het hed hdec $$ HG Hgo
+    imod Hclose $$ [HL Hσ HG] with -
     · inext
       iexists L ++ [e]
-      iframe HL Hσ Hw'
+      iframe HL Hσ Hw' HG
       ipureintro
       obtain ⟨hpl, -, hc0, hch, h0, hcl, htie⟩ := Hok
       refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim, htie⟩
@@ -693,7 +704,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗ srvPropAu1 γ d Qr := by
   iintro #Hinv #Hci #Hrl #Hcl #Hreg Hok
   iunfold reqPropOk at Hok
-  icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩ | %Hg)
+  icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩ | ⟨%Hg, Hgo⟩)
   · iapply (kv_prop_auW γ γk d rq Qr hd hdec hk id γf hid ha E hE) $$ Hinv Hcl Hreg Hok
   · obtain ⟨hc, hcp, hs, -, hQ⟩ := Hc
     subst hQ
@@ -701,7 +712,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       $$ Hinv Hci Hrl Hcl Hreg Hr
   · obtain ⟨hg, hs, -, hQ⟩ := Hg
     subst hQ
-    iapply (kv_prop_au_grant γ γk d rq hdec hk id γf hid E hE ⟨hg, hs⟩) $$ Hinv Hcl Hreg
+    iapply (kv_prop_au_grant γ γk d rq hdec hk id γf hid E hE ⟨hg, hs⟩) $$ Hinv Hcl Hreg Hgo
 
 /-- **A result predicate of the KV model of the log is one the server's two logs agree on**
 (2026-10-27): the KV invariant keeps the start's consistent index at most the start index
@@ -713,9 +724,9 @@ theorem kv_qinv (γ : ServerRaftNames) (γk : KVNames) (Q : mvcc.Log → IProp G
   iintro !> %A %B %Hab #HA
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   inext
   rw [← (kvModel_eqv γ γk A B Hab Hok.2.2.1).1]
@@ -726,7 +737,7 @@ theorem reqPropOk_shape (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMo
     reqPropOk (GF := GF) γk rq Qr ⊢ ⌜∃ Q : mvcc.Log → IProp GF, Qr = fun L => Q (kvModel γk L)⌝ := by
   iintro Hok
   iunfold reqPropOk at Hok
-  icases Hok with (Hok | ⟨%Hc, -⟩ | %Hg)
+  icases Hok with (Hok | ⟨%Hc, -⟩ | ⟨%Hg, -⟩)
   rotate_left
   · ipureintro; exact ⟨fun _ => iprop(True), Hc.2.2.2.2⟩
   · ipureintro; exact ⟨fun _ => iprop(True), Hg.2.2.2⟩
@@ -864,9 +875,9 @@ theorem readQs_qinv (γ : ServerRaftNames) (γk : KVNames) (gs : List GName) :
   iintro !> %A %B %Hab #HA
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOff γk) A B
     (by simp only [kvStOff, (kvModel_eqv γ γk A B Hab Hok.2.2.1).1]) gs $$ Hgs HA
   imodintro
@@ -890,7 +901,7 @@ theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName)
   unfold atomic_acc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod kv_fire_reads γk L Hok.1 gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -900,14 +911,14 @@ theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName)
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ HG] with -
+    · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ HG] with -
+    · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
     imodintro
     iintro !>
     iexact HQs
@@ -936,6 +947,11 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
 
+/-- A grant id's hand-over ignores the header (the lease-expiry plan's E3 (b)). -/
+theorem grantIdOwn_withHeader (γk : KVNames) (rq : apply.IRRModel) (hm : apply.HeaderModel) :
+    grantIdOwn (GF := GF) γk (apply.withHeader rq hm) = grantIdOwn γk rq := by
+  unfold grantIdOwn rqRevGrantId; rfl
+
 /-- **The permission's fact carries to the request the wire decodes** (`reqPropOk_wire`'s). -/
 theorem attrIdOk_wire (S : GSet w64) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
     (hw : irrWireOf (apply.withHeader rq hm) rq') (h : attrIdOk S rq) : attrIdOk S rq' := by
@@ -954,7 +970,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
   obtain ⟨-, -, hk, hrq⟩ := hw
   rw [dispatchKind_withHeader] at hk
   unfold reqPropOk
-  iintro (H | ⟨%Hc, %r, %hr, #Hr⟩ | %Hg)
+  iintro (H | ⟨%Hc, %r, %hr, #Hr⟩ | ⟨%Hg, Hgo⟩)
   rotate_left
   · -- (M2's apply side, item 6) a compaction: the header is all the wire changes
     iright; ileft
@@ -971,7 +987,10 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     obtain ⟨hg, hs, hnz, hQ⟩ := Hg
     have he := hrq hnz
     subst he
-    ipureintro; exact ⟨hg, hs, hnz, hQ⟩
+    isplitr
+    · ipureintro; exact ⟨hg, hs, hnz, hQ⟩
+    rw [grantIdOwn_withHeader]
+    iexact Hgo
   ileft
   unfold reqPropOkW
   irevert H

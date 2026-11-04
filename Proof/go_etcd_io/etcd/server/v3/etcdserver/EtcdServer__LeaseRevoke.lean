@@ -167,7 +167,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
       isplitl
       · iunfold reqPropOk
         iright; iright
-        ipureintro; exact ⟨Or.inr ⟨hlm, Hrk⟩, Hshape, HnzW, rfl⟩
+        isplitr
+        · ipureintro; exact ⟨Or.inr ⟨hlm, Hrk⟩, Hshape, HnzW, rfl⟩
+        iapply grantIdOwn_nonGrant ρ.kv rq (by rw [Hk]; intro hk; cases hk)
       ipureintro; rfl
     iexists _; iexact Header
   (try wp_auto)

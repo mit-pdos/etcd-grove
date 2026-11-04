@@ -432,6 +432,164 @@ theorem kvSt_client_lg (γk : KVNames) (s σ : KVState) :
   · rw [kvStQ_true γk hl] at h
     exact (kvStQ_one_add_false _ h.1).elim
 
+/-! ### The revocable mode's grant ids (the lease-expiry plan's E3 (b), 2026-11-04)
+
+In the revocable lease mode a grant's lease id is the member's generator's (`LeaseGrant.spec`'s
+premise: the request's `ID` is `0`): `LeaseGrant` writes `Next() & (2^63-1)` there. The proposal
+hands the KV invariant the generated id's claim right (`idUnclaimed`, `Next`'s `idFresh`; the
+cluster's issued ids' map, so `kvInv_congr` still reads only the cluster's names), and the invariant
+keeps one per grant of its log (`kvGrantIds`): the log's grant ids are distinct generated ids masked
+(`kv_grantIds_nodup`), distinct after the mask when they share a prefix
+(`leaseIdMask_nodup_of_pfx`). -/
+
+/-- **The mask `LeaseGrant` puts on a generated id** (`v3_server.go`'s `LeaseGrant`:
+`r.ID = int64(s.reqIDGen.Next() & ((1 << 63) - 1))`). -/
+abbrev leaseIdMask : w64 := W64 (2 ^ 63 - 1)
+
+/-- **The lease id a request grants in the revocable mode** (`none` in another mode, or for another
+kind of request). -/
+def rqRevGrantId (lm : lease.Mode) (rq : apply.IRRModel) : Option w64 :=
+  if lm = .revocable ∧ apply.dispatchKind rq = .leaseGrant then rq.leaseGrant.map (·.id) else none
+
+/-- The revocable mode's grant id of a log entry (a normal entry's request's). -/
+def entryRevGrantId (lm : lease.Mode) (m : EntryModel) : Option w64 :=
+  if m.typ = W32 0 then (apply.irrDecode m.data).bind (rqRevGrantId lm) else none
+
+/-- **The revocable mode's grant ids of the log `L`**, in log order (`[]` in another mode). -/
+def logRevGrantIds (lm : lease.Mode) (L : List EntryModel) : List w64 :=
+  L.filterMap (entryRevGrantId lm)
+
+theorem logRevGrantIds_snoc (lm : lease.Mode) (L : List EntryModel) (e : EntryModel) :
+    logRevGrantIds lm (L ++ [e]) = logRevGrantIds lm L ++ (entryRevGrantId lm e).toList := by
+  unfold logRevGrantIds
+  rw [List.filterMap_append]
+  cases h : entryRevGrantId lm e <;> simp [h]
+
+/-- A log of conf changes has no grant. -/
+theorem logRevGrantIds_none (lm : lease.Mode) (L : List EntryModel) (h : ∀ m ∈ L, m.typ ≠ W32 0) :
+    logRevGrantIds lm L = [] := by
+  unfold logRevGrantIds
+  rw [List.filterMap_eq_nil_iff]
+  intro m hm
+  unfold entryRevGrantId
+  rw [if_neg (h m hm)]
+
+/-- **The KV invariant's generated grant ids** (the lease-expiry plan's E3 (b)): the log's
+revocable-mode grant ids are the ids `U` masked, each `U`'s claim right owned (so `U` has no
+repeat). -/
+def kvGrantIds (γk : KVNames) (L : List EntryModel) : IProp GF :=
+  iprop(∃ U : List w64, ⌜logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup⌝ ∗
+    [∗list] u ∈ U, idUnclaimed γk.ids u)
+
+instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
+    Timeless (kvGrantIds (GF := GF) γk L) := by
+  unfold kvGrantIds idUnclaimed; infer_instance
+
+/-- **What a proposal of `rq` hands the KV invariant for its grant id**: in the revocable mode, a
+grant's id is a generated id `u` masked, with `u`'s claim right; nothing otherwise. -/
+def grantIdOwn (γk : KVNames) (rq : apply.IRRModel) : IProp GF :=
+  match rqRevGrantId γk.lm rq with
+  | none => iprop(True)
+  | some g => iprop(∃ u : w64, ⌜g = u &&& leaseIdMask⌝ ∗ idUnclaimed γk.ids u)
+
+/-- A request of another kind than a grant hands nothing. -/
+theorem grantIdOwn_nonGrant (γk : KVNames) (rq : apply.IRRModel)
+    (hk : apply.dispatchKind rq ≠ .leaseGrant) : ⊢ grantIdOwn (GF := GF) γk rq := by
+  have h : rqRevGrantId γk.lm rq = none := by
+    unfold rqRevGrantId; rw [if_neg (fun h => hk h.2)]
+  unfold grantIdOwn; rw [h]
+  istart; itrivial
+
+/-- Outside the revocable mode, nothing. -/
+theorem grantIdOwn_nonRev (γk : KVNames) (rq : apply.IRRModel) (hm : γk.lm ≠ .revocable) :
+    ⊢ grantIdOwn (GF := GF) γk rq := by
+  have h : rqRevGrantId γk.lm rq = none := by
+    unfold rqRevGrantId; rw [if_neg (fun h => hm h.1)]
+  unfold grantIdOwn; rw [h]
+  istart; itrivial
+
+/-- A plain request hands nothing. -/
+theorem grantIdOwn_plain (γk : KVNames) (rq : apply.IRRModel) (h : plainReq rq) :
+    ⊢ grantIdOwn (GF := GF) γk rq := by
+  refine grantIdOwn_nonGrant γk rq fun hk => ?_
+  have := h.2
+  rw [hk] at this
+  simp [putgetKind] at this
+
+/-- A compaction hands nothing. -/
+theorem grantIdOwn_cmp (γk : KVNames) (rq : apply.IRRModel) (h : compactPropOk rq) :
+    ⊢ grantIdOwn (GF := GF) γk rq :=
+  grantIdOwn_nonGrant γk rq (by rw [h.1.1]; decide)
+
+/-- The empty log has no grant. -/
+theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds γk.lm L = []) :
+    ⊢ kvGrantIds (GF := GF) γk L := by
+  iunfold kvGrantIds
+  iexists []
+  isplitr
+  · ipureintro; exact ⟨h, List.nodup_nil⟩
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+  itrivial
+
+/-- **One normal entry on**, its request's grant id handed over (`grantIdOwn`). -/
+theorem kvGrantIds_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) (d : List w8)
+    (rq : apply.IRRModel) (het : e.typ = W32 0) (hed : e.data = d)
+    (hdec : apply.irrDecode d = some rq) :
+    ⊢ kvGrantIds (GF := GF) γk L -∗ grantIdOwn γk rq -∗ kvGrantIds γk (L ++ [e]) := by
+  have he : entryRevGrantId γk.lm e = rqRevGrantId γk.lm rq := by
+    unfold entryRevGrantId; rw [if_pos het, hed, hdec]; rfl
+  unfold grantIdOwn
+  cases hr : rqRevGrantId γk.lm rq with
+  | none =>
+    iintro HG -
+    iunfold kvGrantIds at HG
+    icases HG with ⟨%U, %HU, HUs⟩
+    iunfold kvGrantIds
+    iexists U
+    iframe HUs
+    ipureintro
+    rw [logRevGrantIds_snoc, he, hr]
+    simpa using HU
+  | some g =>
+    iintro HG Hg
+    iunfold kvGrantIds at HG
+    icases HG with ⟨%U, %HU, HUs⟩
+    iunfold kvGrantIds
+    icases Hg with ⟨%u, %Hgu, Hu⟩
+    -- `u ∉ U`: its claim right is exclusive
+    by_cases hin : u ∈ U
+    · iexfalso
+      icases BigSepL.bigSepL_mem_acc (Φ := fun u => idUnclaimed (GF := GF) γk.ids u) hin $$ HUs
+        with ⟨Hu', -⟩
+      iunfold idUnclaimed at Hu Hu'
+      ihave %Hne := ghostMapElem_ne γk.ids.issued u u (DFrac.own 1) _ _ $$ Hu Hu'
+      exact absurd rfl Hne
+    iexists U ++ [u]
+    isplitr
+    · ipureintro
+      refine ⟨?_, List.nodup_append.2 ⟨HU.2, List.pairwise_singleton _ u, ?_⟩⟩
+      · rw [logRevGrantIds_snoc, he, hr, HU.1, Hgu]; simp
+      · intro a ha b hb; rw [List.mem_singleton] at hb; subst hb; intro hab; subst hab; exact hin ha
+    iapply BigSepL.bigSepL_snoc.2
+    iframe HUs Hu
+
+/-- **Two ids of one prefix that agree after the mask are one** (the mask clears bit 63 only, which
+the prefix fixes). -/
+theorem leaseIdMask_inj_pfx (u v : w64) (hu : idPfx u = idPfx v)
+    (h : u &&& leaseIdMask = v &&& leaseIdMask) : u = v := by
+  unfold idPfx at hu
+  have e1 : leaseIdMask = 0x7fffffffffffffff#64 := by decide
+  have e2 : (W64 (2 ^ 64 - 2 ^ 48)) = 0xffff000000000000#64 := by decide
+  rw [e1] at h; rw [e2] at hu
+  bv_decide
+
+/-- **Distinct ids of one prefix stay distinct after the mask** (one generator's ids: `idFresh`'s
+`idPfx id = γi.pfx`). -/
+theorem leaseIdMask_nodup_of_pfx (U : List w64) (p : w64) (hU : U.Nodup)
+    (hp : ∀ u ∈ U, idPfx u = p) : (U.map (· &&& leaseIdMask)).Nodup :=
+  List.pairwise_map.2 (hU.imp_of_mem fun hx hy hne heq =>
+    hne (leaseIdMask_inj_pfx _ _ ((hp _ hx).trans (hp _ hy).symm) heq))
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
@@ -447,14 +605,16 @@ state's ghost variable whole, `kvStQ`. No client's `etcdKV` can then exist, so e
 true there vacuously: a granting cluster makes no claim about etcd's KV service. At `γk.lg = false`
 it means what it meant. A grant is plain there, `plainLogM γk.cmp γk.lg`.) (2026-11-03, the auth-on
 pair's F8) And the cluster's auth mode off (`SrvRaft.authOn`, the image certificate its snapshots
-carry): the member runs in its cluster's mode (`kvInv_authOn`). -/
+carry): the member runs in its cluster's mode (`kvInv_authOn`). (The lease-expiry plan's E3 (b),
+2026-11-04) And, last, the claim rights of the generated ids behind the log's revocable-mode grant
+ids (`kvGrantIds`; empty in another mode). -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
     ⌜plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log ∧ γ.raft.authOn = false⌝ ∗
-      kvWork γ.raft γk L)
+      kvWork γ.raft γk L ∗ kvGrantIds γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -822,6 +982,36 @@ theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
   iframe HL
   ipureintro; omega
 
+open Iris.ProofMode in
+/-- **The law of the log's grant ids** (the lease-expiry plan's E3 (b)): with the KV invariant, the
+revocable-mode grant ids of a prefix `L₀` of the requested log (`srvReqLogLb`) are distinct
+generated ids masked: `U` has no repeat (each id's claim right is exclusive). So they are distinct
+when `U`'s ids share one prefix (`leaseIdMask_nodup_of_pfx`: the ids of one member's generators). -/
+theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E)
+    (L₀ : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvReqLogLb γ L₀ ={E}=∗
+      ⌜∃ U : List w64, logRevGrantIds γk.lm L₀ = U.map (· &&& leaseIdMask) ∧ U.Nodup⌝ := by
+  iintro #Hinv #Hlb
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  icases srvReqLogLb_prefix γ L L₀ $$ [$HL $Hlb] with ⟨HL, %Hpre⟩
+  iunfold kvGrantIds at HG
+  icases HG with ⟨%U, %HU, HUs⟩
+  imod Hclose $$ [HL Hσ HUs] with -
+  · inext; iexists L; iframe HL Hσ Hw
+    isplitr
+    · ipureintro; exact Hok
+    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
+  imodintro
+  ipureintro
+  obtain ⟨R, rfl⟩ := Hpre
+  have hU := HU.1
+  unfold logRevGrantIds at hU ⊢
+  rw [List.filterMap_append] at hU
+  refine ⟨U.take (L₀.filterMap (entryRevGrantId γk.lm)).length, ?_, HU.2.sublist (List.take_sublist _ _)⟩
+  rw [List.map_take, ← hU, List.take_left]
+
 omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
 theorem kvRevLbZ_same (γk γk' : KVNames) (h : kvSame γk γk') (n : Int) :
@@ -915,7 +1105,7 @@ theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   iintro #Hinv #Hlb Hc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   iunfold etcdKV at Hc
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
   iunfold kvRevLbZ at Hlb
@@ -925,8 +1115,8 @@ theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   ihave #H0' : monoListLbOwn γ.raft.log L₀ $$ []
   · iExactEq H0; rw [hrl]
   ihave %Hp := mono_list_auth_lb_valid γ.raft.log _ L L₀ $$ HL H0'
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   iunfold etcdKV
   iframe Hc
@@ -952,7 +1142,9 @@ its result trivial. (The lease-grant stage's §2.7, 2026-11-03, the user's (C):)
 that grants leases, a grant (`grantPropOk`), its result trivial and no client's update: the KV
 invariant owns the KV state whole there. At `γk.lg = false` the grant form is refuted
 (`grantPropOk_false`). (The lease-expiry stage's X7, 2026-11-04:) or, in the revocable mode, a
-revocation (`revokePropOk`), alike. -/
+revocation (`revokePropOk`), alike. (The lease-expiry plan's E3 (b):) The grant form hands its
+generated id's claim right in the revocable mode (`grantIdOwn`), which the commit deposits in the
+KV invariant (`kvGrantIds`). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
@@ -960,7 +1152,7 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)) ∨
     ⌜(grantPropOk γk.lm rq ∨ revokePropOk γk.lm rq) ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
-      Qr = fun _ => iprop(True)⌝)
+      Qr = fun _ => iprop(True)⌝ ∗ grantIdOwn γk rq)
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
@@ -973,7 +1165,7 @@ theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMode
     (h : γk.cmp = false) (hl : γk.lg = false) :
     reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
   unfold reqPropOk
-  iintro (H | ⟨%hc, -⟩ | %hg)
+  iintro (H | ⟨%hc, -⟩ | ⟨%hg, -⟩)
   · iexact H
   · rw [h] at hc; exact absurd hc.1 (by decide)
   · have hn : γk.lm = .none := by simpa [KVNames.lg_eq] using hl

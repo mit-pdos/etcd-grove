@@ -135,12 +135,12 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     exact ⟨hd, ht⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ HG] with -
+  · inext; iexists L'; iframe HL' Hσ Hw HG; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh

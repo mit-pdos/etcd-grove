@@ -195,7 +195,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
       ⌜plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ cmpLogOk γk γk.cmp L ∧
         γk.rlog = γs.raft.log ∧ γs.raft.authOn = false⌝ ∗
-        kvWork γs.raft γk L))
+        kvWork γs.raft γk L ∗ kvGrantIds γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
@@ -206,14 +206,17 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     · ipureintro
       exact ⟨plainLogM_of _ _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
         cmpLogOk_plain _ _ _ hok.1, hrl, hao⟩
-    iunfold kvWork
-    iframe Hcl
-    ipureintro
     have hconf : ∀ m ∈ bootEntries bootLog, m.typ ≠ W32 0 := by
       intro m hm
       obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
       obtain ⟨-, ht, -, -⟩ := hent' n m hn
       rw [ht]; decide
+    isplitr
+    rotate_left
+    · iapply kvGrantIds_nil γk _ (logRevGrantIds_none _ _ hconf)
+    iunfold kvWork
+    iframe Hcl
+    ipureintro
     exact ⟨logShape_mono _ _ hshape, hccl, fun m hm => entryPutsOk_conf m (hconf m hm), hlk,
       fun m hm => attrEntryOk_conf _ m (hconf m hm)⟩
   imodintro
