@@ -1,0 +1,195 @@
+/-
+`Bucket.spill`'s root loop (U9q, `notes/bbolt-proof-plan.md`): **the invariant's steps**, pure
+(statements; proofs to come). At the `i`-th key `k` (child `c`, record `C`, not visited):
+
+- `rinv_bkPre`: `child.spill()`'s pre, the other children's and the root's slots as `O`;
+- `rinv_nil`: no root node, `continue` (`nilc`);
+- `rinv_spilled`: after `child.spill()`, the header of its new tree as the staged value;
+- `rinv_freePre`/`rinv_inline`: `child.free()`'s premise, and after it and `child.write()` the
+  inline value as the staged value;
+- `rinv_entry`, `rinv_ready`, `rinv_putPre`, `rinv_put`: the root bucket's search for `k`
+  (`seek`, `Cursor.node`), and the staged value put into its leaf.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
+public import Proof.go_etcd_io.bbolt.Spill.Inlineable
+public import Proof.go_etcd_io.bbolt.Spill.PageBuf
+
+@[expose] public section
+
+noncomputable section
+
+set_option linter.unusedSectionVars false
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+namespace Spill
+
+section step
+variable [GooseExts]
+
+/-- `f` with `k` mapped to `b`. -/
+def upd {β : Type} (f : GoString → β) (k : GoString) (b : β) : GoString → β :=
+  fun k' => if k' = k then b else f k'
+
+/-- The slots owned by everything but the child `k`: the root's and the other children's. -/
+def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Nat)
+    (k : GoString) : List Nat :=
+  Lroot ++ (keys.filter fun k' => decide (k' ≠ k)).flatMap Dc
+
+/-- The inline value `b.write()` makes of a bucket (header `ib`) whose root leaf holds `ws`. -/
+def inlineVal (ib : InBucket) (ws : List WEntry) : List w8 :=
+  encode ib ++ encode (hdrWritten ⟨W64 0, W16 0, W16 0, W32 0⟩ true (wsMs ws).length) ++
+    pageBody true (wsMs ws)
+
+/-- The root entry the loop puts for child `k` with the value `v` (the value persistent). -/
+def rootEnt (k v : List w8) : WEntry := ⟨W32 1, W64 0, k, v, Src.heap, Src.heap⟩
+
+variable {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString} {Lroot : List Nat}
+  {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+
+theorem rinv_todo (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    (hks : ks k = .todo) (hc : B0.bm !! k = some c) : childTodo X0 X w w0.wtxid c (Dc k) := by
+  have h := hI.kids k c hc
+  rw [hks] at h
+  exact h
+
+theorem getElem?_inj_nodup {α : Type} {l : List α} (hnd : l.Nodup) {i j : Nat} {a : α}
+    (hi : l[i]? = some a) (hj : l[j]? = some a) : i = j := by
+  obtain ⟨hi', -⟩ := List.getElem?_eq_some_iff.1 hi
+  exact hnd.eq_of_getElem?_eq hi' (hi.trans hj.symm)
+
+/-- **The next key's state**: the `i`-th key visited (`s`, neither `todo` nor staged). -/
+theorem ksAt_step {keys : List GoString} {i : Nat} {ks : GoString → KSt} (hnd : keys.Nodup)
+    (h : ksAt keys i ks) {k : GoString} (hk : keys[i]? = some k) (s : KSt)
+    (hs : s ≠ .todo ∧ ∀ v, s ≠ .val v false) : ksAt keys (i + 1) (upd ks k s) := by
+  intro j k' hj
+  unfold upd
+  by_cases e : k' = k
+  · subst e
+    have hij := getElem?_inj_nodup hnd hj hk
+    subst hij
+    rw [if_pos rfl]
+    exact ⟨fun _ => hs, fun h => absurd h (by omega)⟩
+  · rw [if_neg e]
+    have hne : j ≠ i := by
+      intro hji; subst hji; rw [hk] at hj; cases hj; exact e rfl
+    obtain ⟨h1, h2⟩ := h j k' hj
+    exact ⟨fun hl => h1 (by omega), fun hl => h2 (by omega)⟩
+
+/-- The `i`-th key's state before its visit. -/
+theorem ksAt_todo {keys : List GoString} {i : Nat} {ks : GoString → KSt} (h : ksAt keys i ks)
+    {k : GoString} (hk : keys[i]? = some k) : ks k = .todo :=
+  (h i k hk).2 (Nat.le_refl _)
+
+theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
+  unfold upd; rw [if_pos rfl]
+
+/-- A staged state's key, then put. -/
+theorem upd_upd {β : Type} (f : GoString → β) (k : GoString) (b b' : β) :
+    upd (upd f k b) k b' = upd f k b' := by
+  funext k'; unfold upd; by_cases e : k' = k <;> simp [e]
+
+/-- **`child.spill()`'s pre.** -/
+theorem rinv_bkPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
+    {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
+    (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) :
+    ∃ h F N, bkPre X w c C (othersO Lroot keys Dc k) h F (Dc k) N := by
+  sorry
+
+/-- **No root node: nothing changes** (`continue`). -/
+theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    {C : BRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C)
+    (hnull : C.bv.rootNode' = null) :
+    RInv X0 w0 B0 keys Lroot X w st Dc (upd ks k .nilc) := by
+  sorry
+
+/-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
+theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
+    {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
+    (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) (hnn : C.bv.rootNode' ≠ null)
+    {X' : WX} {w' : WDb} {st' : List FLStep}
+    (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st') :
+    ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧
+      RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k D')
+        (upd ks k (.val (encode C'.ib) false)) := by
+  sorry
+
+/-- **`child.free()`'s premise** for an inlineable child (its root node a leaf). -/
+theorem rinv_freePre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    {C : BRec} {rn : NRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c)
+    (hC : X.t.bs !! c = some C) (hrn : X.node c C.bv.rootNode' = some rn)
+    (hleaf : rn.nv.isLeaf' = true) :
+    C.ib.root' ≠ W64 0 → bktLocalOK X c ∧ (∀ pid ∈ X.positions c, X.t.pm !! pid = none) ∧
+      w.fl.canFreeAll w.wtxid (X.extents c) ∧ rtOK X c ∧ X.t.mv.txid' = w.wtxid := by
+  sorry
+
+/-- **After `child.free()`, for `child.write()`**: the child's record and root leaf after the free,
+`write`'s premises, and the inline value staged. -/
+theorem rinv_inline (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    {C : BRec} {rn : NRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c)
+    (hC : X.t.bs !! c = some C) (hrn : X.node c C.bv.rootNode' = some rn)
+    (hleaf : rn.nv.isLeaf' = true) (hinl : inlineIns rn.ins) {X' : WX} {w' : WDb}
+    (hfree : (C.ib.root' = W64 0 ∧ X' = X ∧ w' = w) ∨
+      (C.ib.root' ≠ W64 0 ∧ bktFreed X X' c ∧
+        w' = w.withFl (w.fl.freeAll w.wtxid (X.extents c)))) :
+    ∃ C1 rn1 st', X'.t.bs !! c = some C1 ∧ C1.bv.rootNode' = C.bv.rootNode' ∧
+      C1.ns !! C.bv.rootNode' = some rn1 ∧ C.bv.rootNode' ∈ X'.live ∧ c ∈ X'.liveB ∧
+      X'.v = X.v ∧ rn1.nv.isLeaf' = true ∧ wsLive rn1.ws ∧
+      (wsMs rn1.ws).length < 0xFFFF ∧ pageFits (wsMs rn1.ws) ∧
+      insSize rn1.ins = 16 + (pageBody true (wsMs rn1.ws)).length ∧ insSize rn1.ins < 2 ^ 31 ∧
+      RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k [])
+        (upd ks k (.val (inlineVal C1.ib rn1.ws) false)) := by
+  sorry
+
+/-- **The child's entry in the root bucket** (what the search finds). -/
+theorem rinv_entry (hpre : spillPre X0 w0.fl) (hB0 : X0.t.bs !! X0.rl = some B0)
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    (hc : B0.bm !! k = some c) :
+    ∃ we ∈ X.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags := by
+  sorry
+
+/-- **The root bucket's search can materialize its path** (`Cursor.node`'s `matReady`). -/
+theorem rinv_ready (hpre : spillPre X0 w0.fl) (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks)
+    {B : BRec} (hB : X.t.bs !! X0.rl = some B) {els : List elemRef} {pids : List w64}
+    (hp : lPath X X0.rl els pids) :
+    B.ib.root' ≠ W64 0 ∧ viewWF X.v ∧ ∀ pid ∈ pids, resolve B pid = none →
+      ∃ pg, X.v.pages !! pid.toNat = some pg ∧ X.t.pm !! pid = none := by
+  sorry
+
+/-- **`node.put`'s premises at the leaf the search lands on** (after `Cursor.node`). -/
+theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
+    (hm : matGrow X X1 X0.rl) {els : List elemRef} {pids : List w64} {k : List w8}
+    (hp : lPath X X0.rl els pids) (hr : lRoutes X X0.rl els pids k) {B1 : BRec} {pid : w64}
+    {l : Loc} (hB1 : X1.t.bs !! X0.rl = some B1) (hlast : pids.getLast? = some pid)
+    (hres : resolve B1 pid = some l) :
+    ∃ rl, B1.ns !! l = some rl ∧ l ∈ X1.live ∧ rl.nv.bucket' = X0.rl ∧ rl.capOwn = true ∧
+      wsSorted rl.ws ∧ wsLive rl.ws ∧ 0 < X1.t.mv.pgid'.toNat ∧ X1.v = X.v ∧
+      rl.nv.parent' ≠ l := by
+  sorry
+
+/-- **The staged value put into the root bucket's leaf.** -/
+theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
+    {v : List w8} (hks : ks k = .val v false) (hc : B0.bm !! k = some c) {X1 : WX}
+    (hm : matGrow X X1 X0.rl) {els : List elemRef} {pids : List w64}
+    (hp : lPath X X0.rl els pids) (hr : lRoutes X X0.rl els pids k) {B1 : BRec} {pid : w64}
+    {l : Loc} {rl : NRec} (hB1 : X1.t.bs !! X0.rl = some B1) (hlast : pids.getLast? = some pid)
+    (hres : resolve B1 pid = some l) (hrl : B1.ns !! l = some rl) (s : GoSlice)
+    (ins : List Inode) :
+    RInv X0 w0 B0 keys Lroot
+      (X1.setNode X0.rl l (rl.withEnts s ins (wsPutAt rl.ws k (rootEnt k v)))) w st Dc
+      (upd ks k (.val v true)) := by
+  sorry
+
+end step
+
+end Spill
+
+end bbolt
+end EtcdGrove
+end Perennial
