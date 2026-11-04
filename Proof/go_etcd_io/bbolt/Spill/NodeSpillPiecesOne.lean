@@ -21,6 +21,11 @@ public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesStep
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesAlloc
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillHeap
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesHeap
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesWOwn
+public import Proof.go_etcd_io.bbolt.Read.Bytes
+public import Proof.go_etcd_io.bbolt.Inv.WtxBase
+public import Proof.go_etcd_io.bbolt.Spill.AllocDeref
 
 @[expose] public section
 
@@ -57,6 +62,38 @@ theorem wtxW_pers (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     iframe; iframe #
     ipureintro; exact Hr
   · imodintro; iframe #
+
+omit package_sem in
+/-- `wtxW`'s heap facts. -/
+theorem wtxW_heapOK (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗ ⌜heapOK (GF := GF) tx X⌝ := by
+  iintro Hw
+  icases (wtxW_split K tx r m X).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+  unfold wtxCore
+  icases Hc with ⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  isplitl
+  · iapply (wtxW_split K tx r m X).2
+    unfold wtxCore
+    iframe; iframe #
+    ipureintro; exact Hr
+  · ipureintro; exact Hok
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+theorem wsMs_congr {ws ws' : List WEntry} (h : ws'.map wDat = ws.map wDat) : wsMs ws' = wsMs ws := by
+  unfold wsMs
+  induction ws generalizing ws' with
+  | nil => cases ws' with
+    | nil => rfl
+    | cons _ _ => simp at h
+  | cons a ws ih => cases ws' with
+    | nil => simp at h
+    | cons b ws' =>
+      simp only [List.map_cons, List.cons.injEq] at h ⊢
+      refine ⟨?_, ih h.2⟩
+      have h1 := h.1
+      simp only [wDat, Prod.mk.injEq] at h1
+      rw [h1.1, h1.2.1, h1.2.2.1, h1.2.2.2]
 
 omit package_sem in
 /-- **A live node's struct and inodes, and the transaction's `db` field, out of `wtxW` and
@@ -120,6 +157,8 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     (hG : ∀ X1 w1 st, pcFreed X w bl l rl X1 w1 st → spG X1 w.wtxid (mapLen w1.ms))
     (hne : 0 < rl.ws.length) (hil : rl.ins.length = rl.ws.length)
     (hsz : insSize rl.ins + 4096 < 2 ^ 62) (hfit : pageFits (wsMs rl.ws))
+    (hn16 : rl.ws.length < 0xFFFF)
+    (hbody : 16 + (pageBody true (wsMs rl.ws)).length ≤ pcCount (insSize rl.ins) * 4096)
     (hid : ∀ X1 w1 st X2 fl2 p id, pcFreed X w bl l rl X1 w1 st →
       allocRes X1 X2 w1.fl fl2 w.wtxid (pcCount (insSize rl.ins)) p id →
       id.toNat < X2.t.mv.pgid'.toNat ∧ (rl.nv.isLeaf' = false → ∀ e ∈ rl.ws, e.pgid ≠ id))
@@ -184,6 +223,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     have : insSize rl.ins + 4096 < 2 ^ 62 := hsz
     word
   rw [hcnt]
+  icases wtxW_heapOK K tx r m X1 $$ Hw with ⟨Hw, %Hok1⟩
   obtain ⟨hG1, hG2, hG3, hG4, hG5, hG6, hG7⟩ := hG X1 w1 st1 Hfr1
   have hwtx : w1.wtxid = w.wtxid := by
     rcases Hfr1 with ⟨-, -, rfl, -⟩ | ⟨pg, -, -, -, rfl, -⟩ <;> rfl
@@ -206,16 +246,81 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     simp only
     wp_auto
     icases Hres2 with (⟨Hw, Hdb⟩ | ⟨%X', %w', Hw, Hdb, %Hl⟩)
-    · iapply HΦe $$ %err %X1 %w1 %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
+    · iapply HΦe $$ %(GoInterface.ok ii) %X1 %w1 %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
       · ipureintro; exact ⟨Herr, hfw.1, hfw.2, by rw [hv1]⟩
       · ileft; iframe
     · obtain ⟨⟨Xd, b, hd, rfl⟩, hC, hfl⟩ := Hl
-      iapply HΦe $$ %err %(Xd.rebase b) %w' %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
+      iapply HΦe $$ %(GoInterface.ok ii) %(Xd.rebase b) %w' %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
       · ipureintro
         refine ⟨Herr, hC.trans hfw.1, hfl.trans hfw.2, ?_⟩
-        show Xd.v.pages = X.v.pages
-        rw [hd.2.1, hv1]
+        show Xd.v.pages = X1.v.pages
+        rw [hd.2.1]
       · iright; iframe
+  -- `allocate`'s success
+  obtain ⟨Hal, HC2, Hml2, Hw2⟩ := Hal
+  subst Herr
+  have Hal' : allocRes X1 X2 w1.fl w2.fl w.wtxid (pcCount (insSize rl.ins)) p id := by
+    have hsn : sint.nat (W64 (pcCount (insSize rl.ins) : Int)) = pcCount (insSize rl.ins) := by
+      unfold pcCount at hc0 ⊢; word
+    rw [← hwtx, ← hsn]; exact Hal
+  obtain ⟨hpm2, hbs2⟩ := allocRes_buf Hal'
+  obtain ⟨⟨ra, hna, hsa⟩, hliv⟩ := allocRes_node Hal' hn1
+  have hlv2 : l ∈ X2.live := hliv.2 hlv1
+  obtain ⟨hidlt, hidch⟩ := hid X1 w1 st1 X2 w2.fl p id Hfr1 Hal'
+  wp_auto
+  ihave %Hbase := wtxW_base_pos K tx r m X2 $$ Hw
+  have hlf2 : liveFresh X2 :=
+    (allocRes_derefPre' X1 X2 _ _ _ _ _ _ Hal' Hok1.2.1 hG3 hG4 hG5).2.1
+  obtain ⟨B2, hB2, hra⟩ := node_bs_of hna
+  have hwl : wsLive ra.ws := (hlf2 bl B2 l ra hB2 hra hlv2).1
+  have hms : wsMs ra.ws = wsMs rl.ws := wsMs_congr (by
+    have := hsa.2.2.1
+    rw [hrl1] at this; exact this)
+  have hlenws : ra.ws.length = rl.ws.length := by
+    have := congrArg List.length hms; simp only [wsMs_length] at this; exact this
+  icases wtxW_open K tx r m X2 $$ Hw with ⟨#-, #-, #-, Hh, Hv, Hst, Hclose⟩
+  icases wtxHeap_node_buf_acc tx X2 bl l ra id p _ hna hlv2 hpm2 hbs2 $$ Hh
+    with ⟨Hno, Hp, Hmeta, Hmv, Hback⟩
+  icases Read.bytesPointsto_bounds _ _ _ (by
+      rw [ne_eq, List.append_eq_nil_iff]; intro h
+      have := congrArg List.length h.1; rw [ByteEncoding.encode_length] at this; simp at this)
+    $$ Hp with ⟨Hp, %Hpb⟩
+  icases (pageBuf_split p (DFrac.own 1) _ _ Hpb.1).1 $$ Hp with ⟨Hhdr, Hrest⟩
+  wp_apply (hId p _ (DFrac.own 1)) $$ [Hhdr] as Hhdr
+  · iframe
+  wp_apply (hPgid X2.t.t.meta' X2.t.mv (DFrac.own 1)) $$ [Hmv] as Hmv
+  · iframe
+  rw [decide_eq_false (show ¬ (uint.Z X2.t.mv.pgid' ≤ uint.Z id) by have := hidlt; word)]
+  wp_auto
+  wp_apply (hId p _ (DFrac.own 1)) $$ [Hhdr] as Hhdr
+  · iframe
+  icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+  iStructNamed Hn
+  wp_auto
+  icases wOwns_write_acc X2.v Hbase ra.ins ra.ws wq hwl $$ [Hws Hv] with ⟨%qk, %qv, Hbytes, Hbb⟩
+  · iframe
+  ihave Hn : (l ↦ ({ ra.nv with pgid' := id } : node) : IProp GF)
+    $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  wp_apply (hWrite l { ra.nv with pgid' := id } ra.ins (wsMs ra.ws) (DFrac.own 1) (DFrac.own 1) qk qv p
+    (⟨id, W16 0, W16 0, W32 ((pcCount (insSize rl.ins) - 1 : Nat) : Int)⟩ : Page)
+    (pcCount (insSize rl.ins) * 4096 - 16) rfl rfl (by rw [wsMs_length, hlenws]; exact hn16)
+    (by rw [hms]; exact hfit) (by rw [hms]; omega)
+    (fun hlf m hm => by
+      rw [hms] at hm
+      obtain ⟨e, he, rfl⟩ := List.mem_map.1 hm
+      show e.pgid ≠ id
+      exact hidch (by
+        have := nodeSim_isLeaf hsa; rw [hrl1] at this; simp only at hlf this
+        rw [← this]; exact hlf) e he)
+    Hpb.1 (by have := Hpb.2; simp [ByteEncoding.encode_length] at this; omega))
+    $$ [Hn Hins Hbytes Hhdr Hrest] as ⟨Hn, Hins, Hbytes, Hhdr, Hrest⟩
+  · iframe
+    iunfold insBytes at Hbytes
+    iexact Hbytes
   trace_state
   sorry
 
