@@ -6,8 +6,7 @@ compactor off (`notes/decisions.md`, "The compactor's slot"). Its client-only ca
 and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 below first said.
 K2's Draft 2 approved with U1-U4 (2026-11-04), its specs written
 (`Spec/k8s_io/apiserver/pkg/storage/etcd3/`, `CompactorDefs.lean`; `notes/decisions.md`,
-"Kubernetes' compactor: the specs"), and U2's `strconv` specs. Next: U1 (`txn.Commit`'s lower
-bound), G1 (goose, Perennial), K3 (the example `k8s/compactor` and its client-only starter). It follows the phases of
+"Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). Next: G1 (goose, Perennial; awaiting the user's sign-off), K3 (the example `k8s/compactor` and its client-only starter). It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).

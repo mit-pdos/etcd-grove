@@ -31138,3 +31138,24 @@ its own branch, before K4's `Compact` proof.
 **One revision of Draft 2, found while writing.** `Stop` returns nothing. Draft 2 had it give back
 the loop's thread token through an exclusive `stopTok`, but `sync.Once` passes out only a persistent
 result (`isOnce`'s `Q`), so the token stays with the wait group. `stopTok` is dropped.
+
+## A writing transaction's reply gives its revision reached: `txn.Commit.spec`'s `txnRevLb` (2026-11-04 · U1 of K2, the user's approval · branch `txn-revlb`)
+
+**Was:** `kv.Put.spec`'s reply gave `kvRevLb γ m.hdr.revision` (the client's `kv.Compact`,
+2026-11-01, `a64a9feef7`); `txn.Commit.spec`'s did not. So a client whose writes are transactions,
+such as Kubernetes' compactor, whose round is a compare-and-swap, had no source for the revision its
+next round compacts at.
+
+**Now:** the same chain as `Put`'s:
+- `etcdTxnSpec`'s continuation takes `txnRevLb γw.kv t m` (`KVService.lean`: `kvRevLb` of the reply's
+  revision for a writing `t`, `True` for a read-only one);
+- the auth-off handler (`etcd_txnHandlerOk`, now taking `ρ.rd = γr` as `Put`'s does) proves it from
+  the store's certificate of the log after the transaction (`writeRev < (commitLog …).length`,
+  `kvRevLb_of_srvRevLb`);
+- `txnAns` carries it;
+- `txnStOk γ` (now at the client's names) and `txnAns_st` convert it under `kvSame`
+  (`txnRevLb_same`);
+- `txnCallOut_st` and `txn.Commit.spec`'s post (last) end the chain.
+
+The auth-on side is unchanged, as for `Put` (its model is `kvModelOn`). The post is only stronger,
+with no new premise; the one caller that destructures it (`KMTxn.lean`) drops the new conjunct.
