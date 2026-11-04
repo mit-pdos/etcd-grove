@@ -65,12 +65,13 @@ def fileOK (xs : List w8) (size : Nat) (D : Data) : Prop :=
     1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧ treeData C = D
 
 /-- **The file at `path` holds a database with the data `D`** (what `fileHolds` is sealed
-to). -/
+to). The file's size is below `2 ^ 62` (maintainer 12, item 5: true of every file bbolt writes,
+whose mapping is at most `maxMapSize = 2 ^ 48`; `Open`'s `metasZero` and `mmap` need it). -/
 def fileHoldsDef (path : GoString) (D : Data) : IProp GF :=
   iprop((osMeta path (DFrac.own 1) none ∗ ⌜D = ∅⌝) ∨
     (∃ (m : OsMeta) (xs : List (w8 × Bool)), osMeta path (DFrac.own 1) (some m) ∗
       osBytes path 0 (DFrac.own 1) xs ∗
-      ⌜m.maps = ∅ ∧ xs.length = m.size ∧ fileOK (xs.map Prod.fst) m.size D⌝))
+      ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧ fileOK (xs.map Prod.fst) m.size D⌝))
 
 /-! ## Lemma statements (U11) -/
 
@@ -96,7 +97,7 @@ theorem fileHoldsDef_new (path : GoString) (mo : Option OsMeta) :
     iright; iexists m, []
     iframe H Hb
     ipureintro
-    exact ⟨hm.2, by simp [hm.1], Or.inl ⟨hm.1, rfl⟩⟩
+    exact ⟨hm.2, by simp [hm.1], by rw [hm.1]; decide, Or.inl ⟨hm.1, rfl⟩⟩
 
 /-- **Decoding for `Open`**: a fresh file, or the initial committed state `C` of a well-formed
 one (with its bytes). -/
@@ -104,7 +105,7 @@ theorem fileHolds_decode (path : GoString) (D : Data) :
     fileHoldsDef (GF := GF) path D ⊢
       (osMeta path (DFrac.own 1) none ∗ ⌜D = ∅⌝) ∨
       (∃ (m : OsMeta) (xs : List (w8 × Bool)), osMeta path (DFrac.own 1) (some m) ∗
-        osBytes path 0 (DFrac.own 1) xs ∗ ⌜m.maps = ∅ ∧ xs.length = m.size⌝ ∗
+        osBytes path 0 (DFrac.own 1) xs ∗ ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62⌝ ∗
         (⌜m.size = 0 ∧ D = ∅⌝ ∨
          ∃ C, ⌜fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧
            flFileOK (xs.map Prod.fst) C ∧ C.hwm * 4096 ≤ m.size ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
@@ -114,9 +115,9 @@ theorem fileHolds_decode (path : GoString) (D : Data) :
   · ileft; iexact H
   · iright; iexists m, xs
     iframe Hm Hb
-    obtain ⟨h1, h2, h3⟩ := h
+    obtain ⟨h1, h2, h0, h3⟩ := h
     isplitr
-    · ipureintro; exact ⟨h1, h2⟩
+    · ipureintro; exact ⟨h1, h2, h0⟩
     rcases h3 with h3 | ⟨C, hC⟩
     · ileft; ipureintro; exact h3
     · iright; iexists C; ipureintro; exact hC

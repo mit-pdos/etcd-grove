@@ -140,7 +140,10 @@ for the transaction) or into the transaction's nodes. -/
 /-- **The file at `path` holds a database with the data `D`** (exclusive): what `Open` reads.
 Defined over the Linux file extension (`GooseLang/Ext/OsFs`: the file's whole `osMeta`, with no
 mapping, and its `osBytes`; round 2: *not* "every byte synced": the in-process specs read the
-page cache, and durability is out of scope), and either
+page cache, and durability is out of scope), **its size below `2 ^ 62`** (2026-11-04, decided by
+the coordinator: true of every file bbolt writes, whose mapping is at most `maxMapSize = 2 ^ 48`
+on 64-bit; `Open` reads the size as an `int64` and computes the mapping's size from it), and
+either
 - **fresh**: no file, or an empty one (`Open` runs `init`), and then `D = ∅` (`fileHolds_new`);
 - or **well-formed**: a bbolt file whose **every valid meta records page size `4096`**
   (`DefaultPageSize`; round 8: D18's `getPageSize` takes page 0's size whenever page 0 is valid,
