@@ -341,8 +341,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hlgon : on = true → ρ.rd.kv.lg = false := lease.bootCfg_auth Hlbc
   have Hckok : ckptEffectsOk := lease.bootCfg_ckpt Hlbc
-  have Hslg : ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF) := fun h =>
-    ⟨lease.bootCfg_noExpiry (h ▸ Hlbc), lease.bootCfg_open (h ▸ Hlbc)⟩
+  have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lg m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
@@ -2067,7 +2066,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨(Hslg hlg).1, rfl, hon⟩
+            ipureintro; exact ⟨lease.bootCfg_noExpiry (hlg ▸ Hlbc), rfl, hon⟩
           · iexact Hlmode
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]

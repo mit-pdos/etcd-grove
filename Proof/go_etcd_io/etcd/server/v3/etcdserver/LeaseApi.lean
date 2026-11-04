@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+import all Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun
 
 @[expose] public section
 
@@ -39,15 +40,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-- **The lease mode of a cluster** (the caller's choice): `none`, the cluster grants no lease;
-`mono`, it grants leases that never expire during the run (the deployment premise
-`lease.leasesNoExpiry`); `revocable`, it grants leases the server expires and revokes (not yet
-admitted: `lease.bootCfg` is `False` there until the expiry stage's Part X). -/
-inductive lease.Mode
-  | none
-  | mono
-  | revocable
-  deriving DecidableEq
+-- `lease.Mode`: `LeaseRun.lean` (2026-11-04, for `lease.runCfg`).
 
 section slots
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -122,6 +115,26 @@ theorem lease.bootCfg_noExpiry {m : lease.Mode} {on : Bool}
   | none => exact absurd hlg (by decide)
   | mono => exact (hmono rfl).1
   | revocable => exact (hrev rfl).elim
+
+/-- **The running server's lease premise from the boot slot** (`NewServer`'s construction premise
+for `start` and `run`, `srvBuilt`'s `%Hslg`): `lease.runCfg` at the same flag and mode. -/
+theorem lease.bootCfg_run {lg : Bool} {m : lease.Mode} {on : Bool}
+    (h : lease.bootCfg (GF := GF) lg m on) : lease.runCfg (GF := GF) lg m := by
+  unfold lease.bootCfg at h
+  unfold lease.runCfg
+  obtain ⟨hlg, -, hmono, hrev, -⟩ := h
+  exact ⟨hlg, hmono, hrev⟩
+
+/-- **The boot slot from the running server's lease premise** (`etcdstart`'s `newServerMode`, from
+`memberBoot`'s `lease.runCfg`): with the auth/lease coupling at the auth mode `on` and the lessor's
+checkpointer. -/
+theorem lease.bootCfg_of_run {lg : Bool} {m : lease.Mode} {on : Bool}
+    (h : lease.runCfg (GF := GF) lg m) (hon : on = true → m = .none) (hck : ckptEffectsOk) :
+    lease.bootCfg (GF := GF) lg m on := by
+  unfold lease.runCfg at h
+  unfold lease.bootCfg
+  obtain ⟨hlg, hmono, hrev⟩ := h
+  exact ⟨hlg, hon, hmono, hrev, hck⟩
 
 -- `m` is not read yet (Part X)
 set_option linter.unusedVariables false in

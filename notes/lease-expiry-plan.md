@@ -486,6 +486,28 @@ Likewise `etcdstart`'s `memberBoot`/`memberBootOn`/`alloc1` (pre-`NewServer`; `a
 below `InvRun` (moving `srvGrantOpen`), carried as `∃ m, lease.runCfg lg m` by the inner predicates,
 `lease.bootCfg_run` its intro; (b) `m` threaded through the inner predicates; (c) inline until Part X.
 
+Option (a), done (2026-11-04, the user's decision below): the inner predicates' piece behind a slot.
+- `etcdserver/LeaseRun.lean` (new, sealed in `etc/import-all.txt`, `import all`-ed by `LeaseApi.lean`
+  only): `lease.Mode` (moved from `LeaseApi.lean`), `runSnapLgOkBody` and `srvGrantOpen` (moved from
+  `InvRun.lean`, names and docstrings kept), and `@[no_expose] lease.runCfg (lg : Bool) (m :
+  lease.Mode) : Prop := lg = decide (m ≠ .none) ∧ (m = .mono → leasesNoExpiry ∧ srvGrantOpen) ∧ (m =
+  .revocable → False)` (the last conjunct a placeholder until Part X). Laws: `lease.runCfg_none`,
+  `lease.runCfg_mono` (intros before `NewServer`: `alloc1`'s callers), `lease.runCfg_lg`,
+  `lease.runCfg_open` (`run_job_snap`). In `LeaseApi.lean`: `lease.bootCfg_run` (the intro from the
+  boot slot, `NewServer`) and `lease.bootCfg_of_run` (`newServerMode`, from `memberBoot`'s).
+- To put it below `InvRun.lean`, `InvRun.lean` is split: its vocabulary (`ApplyCtx`, `applyRes`,
+  `applyStart`, `srvMetaSnap`, ..., which `runSnapLgOkBody` names) is `InvRunRes.lean`; then
+  `LeaseRun.lean`; `InvRun.lean` keeps `isServerRun` and `srvSnapDisk_of_RO`. No definition changed.
+- `%Hslg` is `⌜∃ m : lease.Mode, lease.runCfg γr.kv.lg m⌝` in `srvBuilt`, `srvBuiltG`,
+  `isServerBuilt`, `isServerBuiltOn`, `isServerRun`, `isServerRunOn`, and the same conjunct in
+  `etcdstart`'s `memberBoot`/`memberBootOn` and `alloc1`'s premise `hlg` (no new premise: `∃ m,
+  lease.runCfg lg m` is equivalent to the old `lg = true → leasesNoExpiry ∧ srvGrantOpen`, by
+  `m := if lg then mono else none`). `run_job_snap`'s `hslg` likewise. Callers: `NewServer`
+  (`bootCfg_run`; the grant guard now from `bootCfg_noExpiry` directly), `newServerMode` (the mode
+  is `memberBoot`'s, `bootCfg_of_run`), `alloc1_false`, `Alloc3`, auth's `MainAlloc`, `lease`'s and
+  `leasegrant`'s `Main` (`runCfg_none`/`runCfg_mono`). `InvRestart`'s `%Hprt` untouched (not the
+  slot). `lease.bootCfg`'s body unchanged (it repeats `lease.runCfg`'s conjuncts; Part X edits both).
+
 ## Plumbing: R5 and S1 (2026-11-04, branch `lease-expiry-recover`)
 
 **R5, done** (`3498242493`). `LSnap` is `(lease map, item map, TTL map)`. The reader invariant

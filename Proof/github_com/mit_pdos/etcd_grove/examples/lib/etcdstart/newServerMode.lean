@@ -55,6 +55,7 @@ theorem newServerMode.wp_proof
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
+  obtain ⟨m, hslg⟩ := hslg
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -79,7 +80,7 @@ theorem newServerMode.wp_proof
   have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
   simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd (if ρ.rd.kv.lg then .mono else .none) hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd m hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (by cases cmp <;> simpa using Hmode) hcmp0 Htb Hrb48 HrbN
@@ -89,11 +90,9 @@ theorem newServerMode.wp_proof
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       -- auth off: the auth mode's premise holds vacuously
       (fun h => absurd h (by decide))
-      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot, at the mode of the member's
-      -- grant flag: monotone with `memberBoot`'s open cases, or none
-      (by cases hlg : ρ.rd.kv.lg
-          · exact lease.bootCfg_none _ _ rfl Hck
-          · exact lease.bootCfg_mono _ _ rfl rfl (hslg hlg).1 (hslg hlg).2 Hck)
+      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot, at the mode of `memberBoot`'s
+      -- running-server premise (`lease.runCfg`), auth off
+      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ Hlg rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)

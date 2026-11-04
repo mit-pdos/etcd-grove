@@ -48,7 +48,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (cmp : Bool) (cret : Nat) (lg : Bool)
-    (hlg : lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) :
+    (hlg : ∃ m : lease.Mode, lease.runCfg (GF := GF) lg m) :
     ⊢ bootMarshal (GF := GF) [id] ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
@@ -104,7 +104,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   isplitr
   · ipureintro
     exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-      hpfx, rfl, trivial, by rw [hkc', hkc], fun h => hlg (by rw [← hklg, ← hklg']; exact h)⟩
+      hpfx, rfl, trivial, by rw [hkc', hkc], by rw [hklg', hklg]; exact hlg⟩
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0
@@ -126,7 +126,7 @@ theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
   have h := alloc1 (GF := GF) id ctxs boot Hlow HB Hcc dir Hone Hrb Hrb2 cmp cret false
-    (fun h => by cases h)
+    ⟨.none, lease.runCfg_none⟩
   simp only [Bool.false_eq_true, ↓reduceIte] at h
   iintro #Hmarsh
   imod h $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, Hnet, Hetcd⟩

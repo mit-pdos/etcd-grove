@@ -25,3 +25,9 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 # (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's boot and server slots, sealed;
 # callers use their laws only.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
+
+# (2026-11-04, the lease-expiry plan's Part C, option (a)) the running server's lease premise
+# (`lease.runCfg`) and the open cases of a granting cluster, sealed; the boot slot's module relates
+# the two slots.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRun Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi

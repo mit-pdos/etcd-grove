@@ -1,0 +1,158 @@
+/-
+**The lease subsystem's premise on the running server** (2026-11-04; the lease-expiry plan's Part C,
+option (a), `notes/lease-expiry-plan.md`, "Plumbing: Part C"). Lean-first.
+
+The server's inner predicates (`srvBuilt`, `srvBuiltG`, `isServerBuilt(On)`, `isServerRun(On)`, and
+the examples' `memberBoot`) carried the lease subsystem's premise inline, `lg = true →
+lease.leasesNoExpiry ∧ srvGrantOpen`. They now carry `∃ m, lease.runCfg lg m`: the sealed
+`lease.runCfg` at the KV names' grant flag `lg` and the lease mode `m`, introduced from the boot
+slot (`lease.bootCfg_run`, `LeaseApi.lean`) or, before `NewServer`, by the mode's intro law. A later
+change of what the running server takes of the lease subsystem (the expiry stage's Part X: the
+revocable mode) changes `lease.runCfg`'s body and laws, not the inner predicates' text.
+
+Below `InvRun.lean` (which `isServerRun` needs) and `LeaseApi.lean` (whose `lease.bootCfg` names
+`srvGrantOpen`), with the open cases of a granting cluster (`srvGrantOpen`, `runSnapLgOkBody`, moved
+from `InvRun.lean`). Sealed (`etc/import-all.txt`; `LeaseApi.lean` alone imports it with `import
+all`, for the laws relating the two slots).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRunRes
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (open, the lease-grant plan's D2, 2026-11-02) **A snapshot payload's job in a cluster that
+grants leases** (`KVNames.lg = true`; `run_job_snap`'s statement there): the obligation `run` takes
+as `isServerRun`'s `%Hslg` (from `NewServer`'s precondition) instead of proving it. `applyAll.specSnap`
+takes a cluster that grants none: its lessor is monotone, and `Recover` (the snapshot's restore)
+takes a revocable one; besides, the snapshot's image then has leases (`specSnap`'s `hlease` is
+false). It quantifies over every apply context, so it covers a member of a multi-member cluster,
+which a leader may send a snapshot (a lagging follower, `raft.go`'s `maybeSendSnapshot`): it is not
+vacuous outside the single-member examples, and restoring a snapshot with leases is a stage of its
+own. Sealed (`srvGrantOpen`); `run` opens it with `srvGrantOpen_snap`. -/
+def runSnapLgOkBody : Prop :=
+  ∀ (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
+    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
+    (γn : RNNames) (rt : w64),
+  uint.nat C.ai₀ = 0 → uint.Z C.c₀ ≤ uint.Z C.ai₀ → γn.pre = [] →
+  γn.node = C.γr.raft.raft → C.ρ.raft = C.γr.raft →
+  C.γr.raft.pre = γn.pre → C.γs = γn.γs → C.γw = C.ρ.wait →
+  A.length < A'.length →
+  (γn.pre ++ A').length = uint.nat sv.Metadata'.Index' →
+  uint.Z sv.Metadata'.Index' < 2 ^ 61 →
+  (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
+  C.γr.kv.lg = true →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
+        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
+        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γn.node; iprop(
+          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
+        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+        taRaftAdvancedCAddr apL ↦□ rac ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
+          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length ∗
+            rnWalHanded γn (γn.pre ++ A').length)) ∗
+        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
+        schedule.schedRunning γs ∗ applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
+      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
+        (Val #apL))
+    {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }}
+
+/-- (review S4, 2026-11-02; the lease-grant plan's B1/B2 commit 1, 2026-11-02: the bundle, until then
+`runSnapLgOk`, the snapshot case alone) **The open cases of a lease-granting cluster, by name**: what
+`NewServer`'s precondition names (`%Hslg`, gated on `lg = true`), sealed so that the statement a
+client reads is a name, not the triples. Each case is a named field, opened by its law: the
+snapshot job's triple (`runSnapLgOkBody`; `srvGrantOpen_snap` is how `run` uses it); the later
+commits of the lease-grant plan add the grant's open cases as further fields. A cluster that
+grants none discharges the gated premise by its `lg = false`; the open cases are in the trust base
+of the lease-granting results only (`srvGrantOpen_open`, `EtcdServer__run.lean`). -/
+@[no_expose] def srvGrantOpen : Prop := runSnapLgOkBody (GF := GF)
+
+/-- The bundle's snapshot field (`run_job_snap`'s premise at `lg = true`). -/
+theorem srvGrantOpen_snap : srvGrantOpen (GF := GF) → runSnapLgOkBody (GF := GF) := id
+end defs
+
+/-- **The lease mode of a cluster** (the caller's choice): `none`, the cluster grants no lease;
+`mono`, it grants leases that never expire during the run (the deployment premise
+`lease.leasesNoExpiry`); `revocable`, it grants leases the server expires and revokes (not yet
+admitted: `lease.bootCfg` and `lease.runCfg` are `False` there until the expiry stage's Part X).
+(Moved from `LeaseApi.lean`, 2026-11-04, for `lease.runCfg`.) -/
+inductive lease.Mode
+  | none
+  | mono
+  | revocable
+  deriving DecidableEq
+
+section runCfg
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **What the running server takes of the lease subsystem** (sealed), at the KV names' grant flag
+`lg` and the lease mode `m`: `lg` is whether `m` grants; in the monotone mode, no lease expires
+during the run and the open cases of a granting cluster (`srvGrantOpen`); the revocable mode not
+admitted (`False`: a placeholder until the expiry stage's Part X admits it). The server's inner
+predicates carry `∃ m, lease.runCfg lg m`, which is `lg = true → lease.leasesNoExpiry ∧
+srvGrantOpen`, the premise they stated inline until 2026-11-04 (`lease.runCfg_none` and
+`lease.runCfg_mono` give it, `lease.runCfg_open` and `LeaseApi.lean`'s `lease.bootCfg_of_run` use
+it). -/
+@[no_expose] def lease.runCfg (lg : Bool) (m : lease.Mode) : Prop :=
+  lg = decide (m ≠ .none) ∧ (m = .mono → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) ∧
+    (m = .revocable → False)
+
+/-- `lease.runCfg` for a cluster that grants no lease. -/
+theorem lease.runCfg_none : lease.runCfg (GF := GF) false .none := by
+  unfold lease.runCfg
+  refine ⟨by decide, ?_, ?_⟩ <;> intro h <;> cases h
+
+/-- `lease.runCfg` for a cluster that grants monotone leases: no lease expiring during the run, the
+open cases. -/
+theorem lease.runCfg_mono (hne : lease.leasesNoExpiry) (hopen : srvGrantOpen (GF := GF)) :
+    lease.runCfg (GF := GF) true .mono := by
+  unfold lease.runCfg
+  refine ⟨by decide, fun _ => ⟨hne, hopen⟩, ?_⟩
+  intro h; cases h
+
+/-- **The grant flag is the mode's**: `lg` is whether the mode grants leases (the auth-on members,
+whose `lg = false` gives the mode `none` that `lease.bootCfg` takes with auth on). -/
+theorem lease.runCfg_lg {lg : Bool} {m : lease.Mode} (h : lease.runCfg (GF := GF) lg m) :
+    lg = decide (m ≠ .none) := h.1
+
+/-- **What `run`'s snapshot job takes from `lease.runCfg`** in a granting cluster: the open cases
+(`srvGrantOpen`). -/
+theorem lease.runCfg_open {m : lease.Mode} (h : lease.runCfg (GF := GF) true m) :
+    srvGrantOpen (GF := GF) := by
+  obtain ⟨hlg, hmono, hrev⟩ := h
+  cases m with
+  | none => exact absurd hlg (by decide)
+  | mono => exact (hmono rfl).2
+  | revocable => exact (hrev rfl).elim
+
+end runCfg
+
+end EtcdGrove
+end Perennial

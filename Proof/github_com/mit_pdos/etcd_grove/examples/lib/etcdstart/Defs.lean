@@ -228,8 +228,9 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
-      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none
-      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF))⌝ ∗
+      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise at some mode
+      (∃ m : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lg m)⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
@@ -386,8 +387,9 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
-      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none
-      (ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) ∧
+      -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise at some mode
+      (∃ m : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lg m) ∧
       -- (the lease-grant stage, 2.13) `NewServer.specM true`'s: auth on grants none
       ρ.rd.kv.lg = false⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
