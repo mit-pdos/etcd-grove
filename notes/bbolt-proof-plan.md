@@ -119,6 +119,61 @@ error paths (`close_owned`), `loadFreelist` (its local freelist published under 
      `ForEachBucket_w` is stated where it never calls back (`rootShape`: no nested bucket below a
      top-level one).
 
+## U3: findings (2026-11-04; the store's statements that are false or unprovable)
+
+Proved: `Pm_fractional`, `Ps_fractional`, `wdbOK_partition`; `mvccView_release`, `_releaseRange`;
+`lent_lt_half`; `storeOK_deregister`, `_wreturn`, `_gather`, `_carve`, `_setFl`, `_reload`;
+`store_deregister`, `store_wreturn`, `store_wborrow`, `store_reload`, `meta_take`, `meta_put` (with
+the cells' lending machinery, private in `Inv/Store.lean`: a page's cells as its slots', borrowing
+and returning a view's fraction, `|R| · rfrac ≤ 1` from the deposits). The rest is false as
+stated, or unprovable from what the statement gives; each needs a statement or invariant change
+(design decisions, not made here):
+
+1. **`storeOK` lacks the current tree's MVCC rule** (F1). Nothing in `storeOK` says that the current
+   tree's slots are not free, that `allocs` of its pages are at most `C.txid`, or that they are not
+   pending for a committed transaction (that is `wdbOK`'s B2, which the store cannot see). False:
+   `storeOK_register`/`store_register`, `storeOK_wbegin`/`store_wbegin` (counterexample: no reader,
+   no writer, `fl.free = [W64 2]` with slot 2 the root page: `storeOK` holds, the new view's
+   `mvccView` fails); `storeOK_wclose`/`store_wclose` (`pub = true`, `wtx = some C.txid`, a tree slot
+   pending for `C.txid`: allowed by the last clause, which fails once `wtx = none`). Fix: add
+   `mvccView σ.fl (View.ofC b σ.C)` (base irrelevant) to `storeOK`; `store_publish` then needs the
+   new tree's slots not pending and not free, its `allocs` at most `w`.
+2. **`allocs` unbounded**: `storeOK_free`/`store_free` break `flBelow`'s `alloctx < t` when
+   `allocs[id] ≥ w` (nothing bounds `allocs`; with `wv = none` no view constrains it). Fix: an
+   `allocs` clause (values `≤ C.txid + 1`, or the F1 clause plus the writer's allocations).
+3. **The mapping bound for slots entering the store** (`storeOK` clause `s < l / 4096`):
+   `storeOK_free`/`store_free` (the freelist-page branch) and `storeOK_publish`/`store_publish`
+   give no bound for the new store slots (counterexample: a new tree slot at `≥ l / 4096`).
+   `store_publish` also gives no per-slot length 4096 of `bs`. Fix: hypotheses
+   `∀ s ∈ S, s < l / 4096 ∧ (bs s).length = 4096` (the caller's `wdbOK` has them).
+4. **`storeOK_publish` (pure)**: `hbytes` does not say a new page is either an old page (same id,
+   same bytes) or wholly new; `pagesAgree C'.pages r.v.pages` fails for a page of `C'` starting
+   inside an old extent. `store_publish`'s `hbytes` is the right form; restate the pure one so.
+5. **`storeOK_rollback`/`store_rollback`**: after `store_free` of the old synced freelist page a
+   reader older than `C.txid` may (by `storeOK`) cover it when its `alloctx` is 0 (unknown); the
+   rollback then removes it from the store under that reader. Fix: a clause "before the publish, a
+   slot pending only for the writer and not in the tree is covered by no view" (true: `store_free`
+   adds such slots only from `W`).
+6. **`storeOK_release`/`store_release`**: a reader of txid 0 makes `releasePending [0]` run
+   `releaseRange 0 (2^64-1)`, freeing its pages (`0 - 1` wraps). Fix: readers' txids `≥ 1` (bbolt's
+   first meta has txid 1), in `rOK` or as a hypothesis on `ro`.
+7. **`storeOK_alloc`/`store_alloc`, `mvccView_alloc`**: with `n = 0`, `canAlloc r 0` holds for any
+   `r` and `alloc` still records `allocs[r] := txid`, breaking a view whose page is `r`. Fix:
+   `0 < n` in `canAlloc` (Allocate's post gives `r ≠ 0`, which implies it for the code).
+8. **`mvccView_free`**: false for views covering slots `≥ 2^64` (`W64` wraps: a view page at
+   `2^64 + 4` with overflow 1, freeing id 5 with `allocs[5] = 100 > v.txid`). Fix: hypothesis
+   `∀ s, coversSlot v.pages s → s < 2^64` (store views satisfy it).
+9. **`storeOK_wborrow`**: false when `σ.wv = none` (then `wlent := true` breaks `wv = none →
+   wlent = false`); add `σ.wv ≠ none` (`store_wborrow` has it, and is proved).
+10. **`metaLend`'s second case** (`out ½ true`) records nothing a reader could contradict:
+    `meta_borrow` (a reader with `mlk` finds the cells out with the writer) and `meta_return` (case
+    1 or 2: no `mlk`/`mtok` to give back) are unprovable; `store_gather` too (it does not take `out`).
+    Fix: a token for the reader's loan (minibolt's `0 ↪[γl]{½}`), and `store_gather` taking the
+    writer's `ghostVar B.out ½ false`.
+11. **`store_carve`**: `bs` is unconstrained, but the store's cells must hold `σ.bytes` (the
+    page cache, owned whole by the invariant, so the caller cannot read it). Fix: `store_gather`
+    hands out a witness of the bytes (a ghost variable) that `store_carve` takes back.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
