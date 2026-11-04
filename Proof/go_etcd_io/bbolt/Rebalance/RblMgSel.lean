@@ -37,7 +37,7 @@ theorem rblX_sibMat (X1 X2 : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B1 :
       (∀ bl', bl' ≠ bl → X2.t.bs !! bl' = X1.t.bs !! bl') ∧
       r2.nv = { r1.nv with children' := r2.nv.children' } ∧ r2.ws = r1.ws ∧ r2.ins = r1.ins ∧
       r2.key = r1.key ∧ r2.ksrc = r1.ksrc ∧ r2.capOwn = r1.capOwn ∧
-      (∀ y, y ≠ p → y ≠ lc → B2.ns !! y = B1.ns !! y) ∧
+      (∀ y ry, y ≠ p → B1.ns !! y = some ry → B2.ns !! y = some ry) ∧
       (∀ c l, B1.nm !! c = some l → B2.nm !! c = some l) ∧
       (∀ y ry', B2.ns !! y = some ry' → ry'.nv.unbalanced' = true →
         ∃ ry, B1.ns !! y = some ry ∧ ry.nv.unbalanced' = true ∧ ry'.nv.pgid' = ry.nv.pgid') := by
@@ -46,7 +46,7 @@ theorem rblX_sibMat (X1 X2 : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B1 :
   rcases hmat with ⟨hlc, rfl⟩ | hadd
   · obtain ⟨-, rc, hrc, -⟩ := hc.2.2.2.2.1 _ _ hlc
     exact ⟨B1, r1, rc, hb, hr, hlc, hrc, hI, rblRel_refl _ _ _, fun _ _ => rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, fun _ _ _ => rfl, fun _ _ h => h, fun y ry' hy hu => ⟨ry', hy, hu, rfl⟩⟩
+      rfl, rfl, fun _ _ _ h => h, fun _ _ h => h, fun y ry' hy hu => ⟨ry', hy, hu, rfl⟩⟩
   have hadd' := hadd
   obtain ⟨B0, pa, pg, r, ns', bv', hB0, -, hnone, -, hobj, -, -, -, -, -, -, -, -, -, -, -, -,
     -, -, -, hcase, hX'⟩ := hadd'
@@ -67,13 +67,17 @@ theorem rblX_sibMat (X1 X2 : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B1 :
       some { B1 with nm := B1.nm.insert w0.pgid lc, ns := (B1.ns.insert p rp').insert lc r } := by
     rw [hX']; exact GMap.lookup_insert _ _ _
   refine ⟨_, rp', r, hb2, ?_, GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _, hI2, hR2, ?_, hc6,
-    hc2, hc3, hc4, hc5, hcp, fun y h1 h2 => ?_, fun c l h => ?_, hU2 B1 _ hb hb2⟩
+    hc2, hc3, hc4, hc5, hcp, fun y ry h1 hy => ?_, fun c l h => ?_, hU2 B1 _ hb hb2⟩
   · show ((B1.ns.insert p rp').insert lc r) !! p = _
     rw [GMap.lookup_insert_ne _ _ hlcn]; exact GMap.lookup_insert _ _ _
   · intro bl' hne
     rw [hX']; exact GMap.lookup_insert_ne _ _ (Ne.symm hne)
-  · show ((B1.ns.insert p rp').insert lc r) !! y = _
-    rw [GMap.lookup_insert_ne _ _ (Ne.symm h2), GMap.lookup_insert_ne _ _ (Ne.symm h1)]
+  · have h2 : y ≠ lc := by
+      intro he; subst he
+      have := (objs_isSome X1.t y).2 (Or.inr ⟨bl, B1, hb, by rw [hy]; rfl⟩)
+      rw [Option.isNone_iff_eq_none] at hobj; rw [hobj] at this; cases this
+    show ((B1.ns.insert p rp').insert lc r) !! y = _
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm h2), GMap.lookup_insert_ne _ _ (Ne.symm h1)]; exact hy
   · show (B1.nm.insert w0.pgid lc) !! c = _
     have hcne : w0.pgid ≠ c := by intro he; subst he; rw [hnone] at h; cases h
     rw [GMap.lookup_insert_ne _ _ hcne]; exact h
