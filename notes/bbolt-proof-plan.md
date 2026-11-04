@@ -1277,7 +1277,7 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
   `Tx__close_w`, `Tx__Rollback`. **Active users to adapt**: `Tx__rollback` (its `iunfold wtxEnd`
   patterns, lines 168/240/353/449/470), `Tx__commitFreelist`, `Commit/AssembleEnd`,
   `Tx__Commit_err`.
-- **Batch 44.8 (`ba…`)**: `internal/freelist/Lemmas/Model.toList_lookup_perm` renamed
+- **Batch 44.8 (`fa83cfcff7`)**: `internal/freelist/Lemmas/Model.toList_lookup_perm` renamed
   `toList_lookup_perm_w64`.
 
 ### Maintainer 8's hand-off (2026-11-04): what is left, in the coordinator's order
