@@ -7,7 +7,7 @@ and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 
 K2's Draft 2 approved with U1-U4 (2026-11-04), its specs written
 (`Spec/k8s_io/apiserver/pkg/storage/etcd3/`, `CompactorDefs.lean`; `notes/decisions.md`,
 "Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). G1 done on a Perennial branch,
-waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). Next: K4. It follows the phases of
+waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). K4's first part done (below); next its `Main` and `k8s_compactor_safe`. It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).
@@ -210,6 +210,15 @@ server's statements, so it goes through the slot convention.
 `NewCompactor`. Link them (`etc/gen-link.py`: a new `--k8s` table entry). Then the example's
 `Main` and its adequacy theorem `k8s_compactor_safe`: no panic, and the checks hold. Add a
 collection, `etc/tcb-collections/k8s-compactor.txt`.
+
+*First part done (2026-11-04).* The six functions are proved and linked (`notes/decisions.md`,
+"Kubernetes' compactor proved"), with the collection.
+- **The context.** `runCompactLoop`'s `wait.ContextForChannel` needed `ctxOk`'s third case, the
+  user's choice.
+- **Found while proving.** `Compact.spec` and its callers take the receipt bound;
+  `NewCompactor.spec` drops `threadTok`; `klog.Errorf` is a new logging axiom; `RealClock.After`
+  is a named hypothesis.
+- **Left:** `Main` and `k8s_compactor_safe`.
 
 **K5 (later).**
 - Q1 (b) after G1 (the watch loop: a watch of one key from a revision; compaction cancels its watch,

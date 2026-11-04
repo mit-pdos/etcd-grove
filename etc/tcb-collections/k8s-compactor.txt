@@ -1,0 +1,10 @@
+# Kubernetes' etcd compactor (k8s.io/apiserver/pkg/storage/etcd3, compact.go;
+# notes/k8s-compactor-plan.md, K4): its linked results in
+# Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean (Compact, the compactor's methods,
+# runCompactLoop, NewCompactor).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s-compactor.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(Compact|NewCompactor|compactor__[A-Za-z]+)\.lean$
