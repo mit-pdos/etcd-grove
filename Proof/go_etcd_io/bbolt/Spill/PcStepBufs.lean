@@ -63,7 +63,10 @@ theorem pcStep_pendSub {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
 clause): the new buffer's header and length `node.write`'s, its id at least `2` (a free id's or
 the mark's), its run below the new mark and on no tree slot (a free id covers none, the mark is
 above them) and on no pending slot (a free id is not pending, the pending ids are below the mark;
-the freed page's slots are tree slots). -/
+the freed page's slots are tree slots); (maintainer 12, item 4) its run no longer free (taken out
+by the allocation, or at the mark, above every free id) and meeting no old buffer's extent (those
+are not free and below the old mark); the old buffers' slots stay non-free (the free ids only
+shrink) and their extents pairwise disjoint. -/
 theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
     {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
     (hn : Xi.node bl l = some rl) (hpl : rl.nv.parent' ≠ null → rl.nv.parent' ≠ l)
@@ -86,14 +89,19 @@ theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
   have hpend := pcStep_pendSub hs hv htl hm62
   have hp2 := (allocRes_fl hAl).1
   have hms : wsMs ra.ws = wsMs rl.ws := wsMs_congr' hsa.2.2.1
+  have hov : pageOverflow (pcPage id ra.nv.isLeaf' ra.ws count) = count - 1 := by
+    unfold pcPage; rw [wPage_overflow]; word
+  have hfree2 : ∀ x ∈ w2.fl.free, x ∈ wi.fl.free := by
+    intro x hx; rw [← hfree]
+    rcases (allocRes_basic hAl).2.2.2.2 with ⟨-, hf, -⟩ | ⟨-, hf, -⟩
+    · rw [hf] at hx; exact (List.mem_filter.1 hx).1
+    · rw [hf] at hx; exact hx
   intro y pg hy
   rw [hbuf3] at hy
   by_cases hyid : y = id
   · subst hyid
     rw [GMap.lookup_insert_eq] at hy
     cases hy
-    have hov : pageOverflow (pcPage y ra.nv.isLeaf' ra.ws count) = count - 1 := by
-      unfold pcPage; rw [wPage_overflow]; word
     rw [hov]
     refine ⟨by unfold pcPage; rw [wPage_id], ?_, ?_, by omega, ?_⟩
     · unfold pcPage
@@ -104,40 +112,70 @@ theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
       · exact hG.2.2.2.2.2.2.2.2.2.2 y (hcan.2 y (by unfold inRun; omega))
       · rw [hid]; exact hG.2.2.2.2.2.2.2.2.2.1
     · intro j hj
-      rcases (allocRes_basic hAl).2.2.2.2 with ⟨hcan, -, -⟩ | ⟨hid, -, hlt, -⟩
+      rcases (allocRes_basic hAl).2.2.2.2 with ⟨hcan, hf, -⟩ | ⟨hid, -, hlt, -⟩
       · have ht : (y + W64 (j : Int)).toNat = y.toNat + j := by have := hcan.1; word
         have hin : y + W64 (j : Int) ∈ wi.fl.free := by
           rw [← hfree]; exact hcan.2 _ (by unfold inRun; omega)
         have hnt : y.toNat + j ∉ treeSlots wi.C := by
           intro hm; unfold treeSlots at hm; rw [mem_pagesSlots_iff] at hm
           exact hfc _ hin (by rw [ht]; exact hm)
-        refine ⟨hnt, fun hm => ?_,
-          sorry /- OPEN (maintainer 12, item 4: U9w4): the run's slots are no longer free -/,
-          sorry /- OPEN (maintainer 12, item 4: U9w4): the new buffer's extent meets no other -/⟩
-        rcases hpend _ hm with hm | hm
-        · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
-          have hzi : z = y + W64 (j : Int) := BitVec.eq_of_toNat_eq (by rw [hze, ht])
-          rw [hzi] at hz
-          exact (List.nodup_append.1 hnd).2.2 _ hin _ hz rfl
-        · exact hnt hm
+        refine ⟨hnt, fun hm => ?_, fun x hx hxe => ?_, fun id' pg' hy' j' hj' he => ?_⟩
+        · rcases hpend _ hm with hm | hm
+          · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
+            have hzi : z = y + W64 (j : Int) := BitVec.eq_of_toNat_eq (by rw [hze, ht])
+            rw [hzi] at hz
+            exact (List.nodup_append.1 hnd).2.2 _ hin _ hz rfl
+          · exact hnt hm
+        · -- the run was taken out of the free ids
+          rw [hf] at hx
+          have hr := (List.mem_filter.1 hx).2
+          simp only [decide_eq_true_eq] at hr
+          exact hr (by unfold inRun; omega)
+        · -- a free run meets no old buffer's extent (an old buffer's slots are not free)
+          refine Classical.byContradiction fun hne => ?_
+          rw [hbuf3, GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hy'
+          obtain ⟨-, -, -, -, h5'⟩ := hB id' pg' hy'
+          exact (h5' j' hj').2.2.1 _ hin (by rw [ht]; exact he)
       · have hy0 : y.toNat = Xi.t.mv.pgid'.toNat := by rw [hid, hmv]
         have hnt : y.toNat + j ∉ treeSlots wi.C := fun hm => by have := htl _ hm; omega
-        refine ⟨hnt, fun hm => ?_,
-          sorry /- OPEN (maintainer 12, item 4: U9w4): the run's slots are no longer free -/,
-          sorry /- OPEN (maintainer 12, item 4: U9w4): the new buffer's extent meets no other -/⟩
-        rcases hpend _ hm with hm | hm
-        · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
-          have := hal z (List.mem_append_right _ hz)
+        refine ⟨hnt, fun hm => ?_, fun x hx hxe => ?_, fun id' pg' hy' j' hj' he => ?_⟩
+        · rcases hpend _ hm with hm | hm
+          · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
+            have := hal z (List.mem_append_right _ hz)
+            omega
+          · exact hnt hm
+        · -- free ids are below the mark
+          have := hal x (List.mem_append_left _ (hfree2 x hx))
           omega
-        · exact hnt hm
+        · -- the old buffers lie below the old mark
+          refine Classical.byContradiction fun hne => ?_
+          rw [hbuf3, GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hy'
+          obtain ⟨-, -, -, h4', -⟩ := hB id' pg' hy'
+          omega
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hyid)] at hy
     obtain ⟨h1, h2, h3, h4, h5⟩ := hB y pg hy
     refine ⟨h1, h2, h3, by omega, fun j hj => ⟨(h5 j hj).1, fun hm => ?_,
-      sorry /- OPEN (maintainer 12, item 4: U9w4): free ids only taken out -/,
-      sorry /- OPEN (maintainer 12, item 4: U9w4): an old buffer's extent meets not the new one's -/⟩⟩
-    rcases hpend _ hm with hm | hm
-    · exact (h5 j hj).2.1 hm
-    · exact (h5 j hj).1 hm
+      fun x hx => (h5 j hj).2.2.1 x (hfree2 x hx), fun id' pg' hy' j' hj' he => ?_⟩⟩
+    · rcases hpend _ hm with hm | hm
+      · exact (h5 j hj).2.1 hm
+      · exact (h5 j hj).1 hm
+    · rw [hbuf3] at hy'
+      by_cases hid' : id' = id
+      · -- the new run meets no old buffer's extent
+        exfalso
+        rw [hid'] at hy' he
+        rw [GMap.lookup_insert_eq] at hy'
+        cases hy'
+        rw [hov] at hj'
+        rcases (allocRes_basic hAl).2.2.2.2 with ⟨hcan, -, -⟩ | ⟨hid, -, -, -⟩
+        · have ht : (id + W64 (j' : Int)).toNat = id.toNat + j' := by have := hcan.1; word
+          have hin : id + W64 (j' : Int) ∈ wi.fl.free := by
+            rw [← hfree]; exact hcan.2 _ (by unfold inRun; omega)
+          exact (h5 j hj).2.2.1 _ hin (by rw [ht]; exact he.symm)
+        · have : id.toNat = Xi.t.mv.pgid'.toNat := by rw [hid, hmv]
+          omega
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hid')] at hy'
+        exact (h5 j hj).2.2.2 id' pg' hy' j' hj' he
 
 /-- **A piece's step is a spill step** for the slots `O` (owned with `L`, which holds the piece's
 own page, if any). -/
