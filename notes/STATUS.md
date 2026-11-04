@@ -1827,7 +1827,7 @@ exported or trusted switched:
   `kbWTSupplyM_of_poolR`, a logical mode field in `StoreNames` decided for the switch, laws in place
   of unfolds, sealed bodies). **Q7 for the user**: Q5 (a)'s `c ≤ c'` is false when a member applied
   a client's `Compact(0)` and installs an image with that compaction unfinished; Go issue
-  `nonissues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
+  `issues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
   jobs).
 
 - **Review round 4 repaired** (2026-10-30; the plan's "After review round 4"; step 2's second round,

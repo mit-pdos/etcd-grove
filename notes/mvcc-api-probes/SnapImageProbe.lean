@@ -28,7 +28,7 @@ give? Pure; no `sorry`, no `axiom`.
    - the compaction at revision `0` (`crev0_corner`, `image_crev0_impossible`): the API allows
      `Compact(0)` (`KV.Compact.contract`, `MvccReachable.compact`); mid-job the data's records are
      `(none, some 0)`, whose restored revision is `-1`, so no `mvccImage D σ.log 0 u` of the
-     docstring's form exists (`nonissues/etcd-restore-scheduled-compact-zero.md`).
+     docstring's form exists (`issues/etcd-restore-scheduled-compact-zero.md`).
 -/
 module
 

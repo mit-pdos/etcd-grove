@@ -66,5 +66,5 @@ or reject `Compact` at a revision `≤ 0`, which deletes nothing.
 
 ## Notes
 
-Another edge of a compaction at revision 0: `nonissues/etcd-restore-scheduled-compact-zero.md`
+Another edge of a compaction at revision 0: [`etcd-restore-scheduled-compact-zero`](etcd-restore-scheduled-compact-zero.md)
 (rejecting `Compact(0)` would close both).
