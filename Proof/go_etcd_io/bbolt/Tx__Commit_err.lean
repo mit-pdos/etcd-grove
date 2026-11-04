@@ -356,7 +356,8 @@ theorem Tx.Commit_err.wp_proof'
   have hmv1 : X1.t.mv = X.t.mv := sorry -- Gap 6: `rebalance`'s post should say the meta copy is unchanged
   rw [← hv1]
   have hmap1 : X1.t.mv.pgid'.toNat * 4096 ≤ mapLen (w.withFl fl1).ms := by
-    sorry
+    rw [hmv1, show (w.withFl fl1).ms = w.ms from rfl, Hmeta.2.2.2.1]
+    exact Hwok.1.2.2.2.2.2.2.2.2.1 _ _ Hwok.2.1
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
     hreach1 hmap1 hflv1 $$ [Hw Hwdb] as %err1 Hsp
   · iframe
@@ -377,7 +378,6 @@ theorem Tx.Commit_err.wp_proof'
     · iframe; iframe #
     ihave Hw := Hwb $$ Hst2
     try wp_auto
-    trace_state
     sorry
   · -- `spill` failed: log, roll back, return the error
     obtain ⟨ii, rfl⟩ : ∃ ii, err1 = GoInterface.ok ii := by
