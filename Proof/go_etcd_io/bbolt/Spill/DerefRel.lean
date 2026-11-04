@@ -252,6 +252,91 @@ theorem objs_isSome_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (n
       have := hs.2 n; rw [h2] at this; exact optRel_none_l this
     rw [objs_other X.t n hoth, objs_other X'.t n hoth', h.2.2.2.2.2.2.2.2.2.1]
 
+/-! ## Buckets reached from a bucket -/
+
+/-- The buckets reached from `b` through the `buckets` caches (`b` itself, then its cached
+children's). -/
+inductive reachFrom (X : WX) : Loc → Loc → Prop
+  | self (b : Loc) : reachFrom X b b
+  | step (b c d : Loc) (B : BRec) (k : GoString) :
+      X.t.bs !! b = some B → B.bm !! k = some c → reachFrom X c d → reachFrom X b d
+
+theorem reachFrom_tail {X : WX} {a b c : Loc} {B : BRec} {k : GoString} (h : reachFrom X a b)
+    (hB : X.t.bs !! b = some B) (hk : B.bm !! k = some c) : reachFrom X a c := by
+  induction h with
+  | self b => exact .step b c c B k hB hk (.self c)
+  | step b c' d B' k' hB' hk' _ ih => exact .step b c' c B' k' hB' hk' (ih hB)
+
+theorem reachFrom_of_bktReach {X : WX} {d : Loc} (h : bktReach X d) : reachFrom X X.rl d := by
+  induction h with
+  | root => exact .self _
+  | child bl c B n hB hn _ ih => exact reachFrom_tail ih hB hn
+
+theorem reachFrom_step {X X' : WX} (h : derefStep X X') {b d : Loc} (hr : reachFrom X b d) :
+    reachFrom X' b d := by
+  induction hr with
+  | self b => exact .self b
+  | step b c d B k hB hk _ ih =>
+    obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ derefStep_bs h b)
+    exact .step b c d B' k hB' (by rw [(bktStep_fields hs).2.2.2.1]; exact hk) ih
+
+theorem reachFrom_step' {X X' : WX} (h : derefStep X X') {b d : Loc} (hr : reachFrom X' b d) :
+    reachFrom X b d := by
+  induction hr with
+  | self b => exact .self b
+  | step b c d B' k hB' hk _ ih =>
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h b)
+    exact .step b c d B k hB (by rw [← (bktStep_fields hs).2.2.2.1]; exact hk) ih
+
+theorem nodeRootIn_step' {B B' : BRec} (h : bktStep B B') {n rt : Loc} (hd : nodeRootIn B' n rt) :
+    nodeRootIn B n rt := by
+  induction hd with
+  | top n r' hr' hp =>
+    obtain ⟨r, hr, hs⟩ := optRel_some_r (hr' ▸ h.2 n)
+    refine .top n r hr ?_
+    have := (nodeStep_nv hs).1; rw [this] at hp; exact hp
+  | up n rt r' hr' hp _ ih =>
+    obtain ⟨r, hr, hs⟩ := optRel_some_r (hr' ▸ h.2 n)
+    have e : r'.nv.parent' = r.nv.parent' := by rw [(nodeStep_nv hs).1]
+    refine .up n rt r hr (by rw [← e]; exact hp) ?_
+    rw [← e]; exact ih
+
+/-- **The buckets reached from `b` hold no view slice below their root nodes' roots** (what
+`b.dereference()` leaves). -/
+def bktCov (X : WX) (b : Loc) : Prop :=
+  ∀ bl B rt, reachFrom X b bl → X.t.bs !! bl = some B → nodeRootIn B B.bv.rootNode' rt →
+    covered X bl rt
+
+theorem bktCov_step {X X' : WX} (h : derefStep X X') {b : Loc} (hc : bktCov X b) : bktCov X' b := by
+  intro bl B' rt hr hB' hrt
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+  have hrt' := nodeRootIn_step' hs hrt
+  rw [(bktStep_fields hs).1] at hrt'
+  exact covered_step h (hc bl B rt (reachFrom_step' h hr) hB hrt')
+
+theorem bktReach_step {X X' : WX} (h : derefStep X X') {d : Loc} (hr : bktReach X d) :
+    bktReach X' d := by
+  induction hr with
+  | root => rw [← h.2.2.2.2.1]; exact .root
+  | child bl c B n hB hn _ ih =>
+    obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ derefStep_bs h bl)
+    exact .child bl c B' n hB' (by rw [(bktStep_fields hs).2.2.2.1]; exact hn) ih
+
+theorem liveReach_step {X X' : WX} (h : derefStep X X') (hl : liveReach X) : liveReach X' := by
+  have hlive := h.2.1
+  refine ⟨?_, ?_⟩
+  · intro bl B' hB' hbl
+    obtain ⟨B, hB, -⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+    rw [hlive] at hbl
+    exact bktReach_step h (hl.1 bl B hB hbl)
+  · intro bl B' l r' hB' hr' hll
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+    obtain ⟨r, hr, -⟩ := optRel_some_r (hr' ▸ hs.2 l)
+    rw [hlive] at hll
+    obtain ⟨rt, hrt, hd⟩ := hl.2 bl B l r hB hr hll
+    refine ⟨rt, ?_, descIn_step hs hd⟩
+    rw [(bktStep_fields hs).1]; exact nodeRootIn_step hs hrt
+
 /-- **The coverage contract from the buckets' coverage**: if every reachable bucket's nodes
 below its root node's root hold no view slice, no live node does. -/
 theorem derefOK_of_cov (X : WX) (hd : objsDisj X.t) (hpre : derefPre X) (hreach : liveReach X)
