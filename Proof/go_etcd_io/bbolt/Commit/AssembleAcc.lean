@@ -25,6 +25,8 @@ def WX.withMv (X : WX) (mv : Meta) : WX := { X with t := { X.t with mv := mv } }
 
 @[simp] theorem WX.withMv_tt (X : WX) (mv : Meta) : (X.withMv mv).t.t = X.t.t := rfl
 @[simp] theorem WX.withMv_mv (X : WX) (mv : Meta) : (X.withMv mv).t.mv = mv := rfl
+@[simp] theorem WX.withMv_withMv (X : WX) (a b : Meta) : (X.withMv a).withMv b = X.withMv b := rfl
+@[simp] theorem WX.withMv_v (X : WX) (mv : Meta) : (X.withMv mv).v = X.v := rfl
 
 end pure
 

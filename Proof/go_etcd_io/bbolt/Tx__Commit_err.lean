@@ -434,6 +434,30 @@ theorem Tx.Commit_err.wp_proof'
       · -- `commitFreelist`
         ihave Hw := Hwb $$ Hdbp
         try wp_auto
+        simp only [WX.withMv_withMv, WX.withMv_mv]
+        generalize hX3 : X2.withMv ({ X2.t.mv with
+          root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket) } : Meta) = X3
+        have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
+        have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
+        have hrl3 : (X3.t.bs !! X3.rl).isSome := by rw [← hX3]; exact hrl2
+        have hwr3 : X3.t.t.writable' = true := by rw [htt3, htt2, htt1]; exact hwr
+        have htx3 : X3.t.mv.txid' = w2.wtxid := by
+          have h1 : X3.t.mv.txid' = X.t.mv.txid' := by rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
+          have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+          have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+          rw [h1]
+          unfold WDb.wtxid
+          rw [hC2]
+          apply BitVec.eq_of_toNat_eq
+          rw [← h2, h3]
+          have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+          word
+        have hmap3 : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms := by
+          rw [← hX3]; exact hmap2
+        -- local gap: `derefRel` (a remap inside `allocate`) keeps the transaction's fields and the
+        -- root bucket's record (it says so of the meta copy, `pm`, `bufs`, `rl` only)
+        have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
+            ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := sorry
         sorry
       · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
         ihave Hw := Hwb $$ Hdbp
