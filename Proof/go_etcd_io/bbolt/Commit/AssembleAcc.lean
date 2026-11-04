@@ -23,6 +23,9 @@ variable [GooseExts]
 /-- The records with the meta copy `mv`. -/
 def WX.withMv (X : WX) (mv : Meta) : WX := { X with t := { X.t with mv := mv } }
 
+@[simp] theorem WX.withMv_tt (X : WX) (mv : Meta) : (X.withMv mv).t.t = X.t.t := rfl
+@[simp] theorem WX.withMv_mv (X : WX) (mv : Meta) : (X.withMv mv).t.mv = mv := rfl
+
 end pure
 
 section acc

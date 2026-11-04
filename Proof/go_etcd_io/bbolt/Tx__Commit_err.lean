@@ -10,7 +10,8 @@ module
 
 public import Spec.go_etcd_io.bbolt.Tx__Commit_err
 public import Proof.go_etcd_io.bbolt.Tx__Rollback
-public import Proof.go_etcd_io.bbolt.DB__Begin_err
+public import Proof.go_etcd_io.bbolt.Commit.AssembleLog
+public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Commit.Getters
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
 public import Proof.go_etcd_io.bbolt.Commit.Step
@@ -37,6 +38,7 @@ public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
+public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -175,7 +177,7 @@ theorem Tx.Commit_err.wp_proof'
   ihave Hg := txExclWGap_holds K tx r X c hdb $$ [Hx Hv]
   · iframe
   icases Hg with ⟨Hv, Hd, Hrwl, Hcls, Hg⟩
-  icases Hg with ⟨%w, %extra, Hwdb, Hshape, %Hflv⟩
+  icases Hg with ⟨%w, %extra, Hwdb, -, %Hflv⟩
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
@@ -186,7 +188,7 @@ theorem Tx.Commit_err.wp_proof'
   · iframe #; unfold dbLogger; iexact Hlgok
   try wp_auto
   wp_bind (App (Val (GoInstruction (Convert go.untypedBool go.bool))) _)
-  wp_apply wp_logger_ne_discard lg Hlgty $$ [] as %bl -
+  wp_apply cm_logger_ne_discard lg Hlgty $$ [] as %bl -
   · iframe #; unfold dbLogger; iexact Hlgok
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ txId_ptr ↦ X.t.mv.txid' ∗ lg_ptr ↦ lg ∗
@@ -306,7 +308,7 @@ theorem Tx.Commit_err.wp_proof'
     rw [Hf.2.2.1]
     have e : X.v.data = (View.ofC X.v.base w.C).data := congrArg View.data Hwok.2.2
     rw [e]; rfl
-  ihave Hex : cmExcl K r X (treeData w.C) $$ [Hrwl Hcls Hshape Hv Hst]
+  ihave Hex : cmExcl K r X (treeData w.C) $$ [Hrwl Hcls Hv Hst]
   · unfold cmExcl; rw [← hbase]
     iframe
   have hvwf : viewWF X.v := Hf.1.2.2.2.2.2.2.2
@@ -315,7 +317,7 @@ theorem Tx.Commit_err.wp_proof'
   wp_apply wp_rebalance K tx r false X w Hf.1 hld (wOK_liveReach X Hf.1) Hflv $$ [Hw Hwdb]
     as ⟨%X1, %fl1, Hw, Hwdb, %Hrb⟩
   · iframe
-  imod cm_excl_update K r X X1 _ (fun e => txShape_rebalOK r.n.pg X X1 w.fl fl1 _ e Hrb.1) $$ Hex
+  imod cm_excl_update K r X X1 _ $$ Hex
     with Hex
   icases cm_stats_acc K tx r false X1 $$ Hw with ⟨-, -, Hst1, Hwb⟩
   wp_apply wp_GetRebalance K tx r false 1 $$ [Hst1] as %nrb Hst1
@@ -378,7 +380,57 @@ theorem Tx.Commit_err.wp_proof'
     · iframe; iframe #
     ihave Hw := Hwb $$ Hst2
     try wp_auto
-    sorry
+    -- `tx.meta.RootBucket().SetRootPage(tx.root.RootPage())`
+    -- Gap 7 (success side): `spill`'s post keeps the root bucket's record
+    have hrl2 : (X2.t.bs !! X2.rl).isSome := sorry
+    icases cm_heapOK K tx r false X2 $$ Hw with ⟨%Hhok2, Hw⟩
+    obtain ⟨B2, hB2⟩ := Option.isSome_iff_exists.1 hrl2
+    have hB2' : X2.t.bs !! (tx.[Tx, go!"root"]) = some B2 := by
+      rw [← hB2, Hhok2.1]; rfl
+    icases wtxW_bkt_acc K tx r false X2 _ B2 hB2' $$ Hw with ⟨Ho, Hwb⟩
+    isimp only [objOwn] at Ho
+    icases Ho with ⟨HIB, Htxf, Hbks, Hpage, Hroot, Hnodes, Hib, Hnm, Hbm, Hpo⟩
+    try wp_auto
+    wp_method_call; wp_call
+    try wp_auto
+    wp_apply wp_RootPage $$ [Hib] as Hib
+    · iframe
+    ihave Hw := Hwb $$ [HIB Htxf Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
+    · simp only [objOwn]; iframe
+    icases cm_meta_acc K tx r false X2 $$ Hw with ⟨Hme, Hmv, Hwb⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hmv with ⟨Hmv, %Hmvn2⟩
+    try wp_auto
+    wp_apply wp_RootBucket
+    icases cm_meta_root _ _ Hmvn2 $$ Hmv with ⟨Hrt, Hmvb⟩
+    wp_apply wp_SetRootPage $$ [Hrt] as Hrt
+    · iframe #; iframe
+    ihave Hmv := Hmvb $$ %_ Hrt
+    ihave Hw := Hwb $$ %_ Hme Hmv
+    try wp_auto
+    -- the old freelist page freed, when the committed state has one
+    -- Gap 7 (success side): `spill`'s post keeps the meta copy's fields but the high-water mark
+    have hmv2 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' } := sorry
+    have hfl2 : metaFlpg X2.t.mv = w2.C.flpg := by
+      rw [hC2, ← Hmeta.2.2.2.2, ← hmv1, hmv2]; rfl
+    icases cm_meta_acc K tx r false _ $$ Hw with ⟨Hme, Hmv, Hwb⟩
+    simp only [WX.withMv_tt, WX.withMv_mv]
+    try wp_auto
+    wp_apply wp_Freelist $$ [Hmv] as Hmv
+    · iframe #; iframe
+    ihave Hw := Hwb $$ %_ Hme Hmv
+    try wp_auto
+    by_cases hnf : X2.t.mv.freelist' = W64 18446744073709551615
+    · -- no synced freelist page (`NoFreelistSync`'s files): nothing to free
+      have hC2fl : w2.C.flpg = none := by
+        rw [← hfl2]; unfold metaFlpg pgidNoFreelist; rw [hnf]; rfl
+      rw [decide_eq_true hnf]
+      try wp_auto
+      sorry
+    · -- the synced freelist page `f` freed (`store_free_fl`): the writer side's weaker invariant
+      -- from here on (batch 44's flagged `wdbW'`)
+      rw [decide_eq_false hnf]
+      try wp_auto
+      sorry
   · -- `spill` failed: log, roll back, return the error
     obtain ⟨ii, rfl⟩ : ∃ ii, err1 = GoInterface.ok ii := by
       cases err1 with
@@ -403,7 +455,7 @@ theorem Tx.Commit_err.wp_proof'
     have hwr2 : X2.t.t.writable' = true := sorry
     have hrl2 : (X2.t.bs !! X2.rl).isSome := sorry
     have htx2 : X2.t.mv.txid' = W64 ((w2.C.txid + 1 : Nat) : Int) := sorry
-    imod cm_excl_update K r X1 X2 _ (by intro e; sorry) $$ Hex with Hex
+    imod cm_excl_update K r X1 X2 _ $$ Hex with Hex
     ihave Hex : cmExcl K r X2 (treeData w2.C) $$ [Hex]
     · rw [hC2]; iexact Hex
     icases Hres with (⟨Hw, Hwdb⟩ | ⟨Hw, Hwdb⟩)
