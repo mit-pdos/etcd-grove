@@ -166,7 +166,7 @@ theorem Tx.rollback.wp_proof
   obtain ⟨v, wt, pb, wl, rfl, htid, hwl, hwlv, hpbms⟩ := hrb
   wp_start as Hend
   iunfold wtxEnd at Hend
-  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, Hcls, Hshape, Hv, Hst, %Hok⟩
+  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, Hcls, Hv, Hst, %Hok⟩
   obtain ⟨hwok, hwr, hrl⟩ := Hok
   icases wtxEL_fields K tx r X $$ Hw with ⟨#Hpkg, #Hkc, %hdb, Hdb, Hwr, Hme, Hmv, Hback⟩
   rw [hdb]
@@ -217,9 +217,11 @@ theorem Tx.rollback.wp_proof
     simp only at hbl
     wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
     · iframe
+    ihave Hfb := fbTok_of_wdbOK (GF := GF) K.B w hwok (some v, some (w.C.txid + 1), false, false) ∅
     imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms
-      (some v, some (w.C.txid + 1), false, false) (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
-      with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
+      (some v, some (w.C.txid + 1), false, false) (w.C.txid + 1) ∅ rfl rfl
+      $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfb]
+      with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, -⟩
     · iframe; iframe #
     icases wdb_rollback' K.p w _ S bs hwok rfl HS (pendSlots_two _ hwf) Hbs
       $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
@@ -235,10 +237,10 @@ theorem Tx.rollback.wp_proof
       ⟨v, w'.C.txid + 1, false, false, rfl,
         Or.inr (by rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
         Iff.intro (fun h => by cases h) (fun h => absurd hms2 h), fun h => by cases h⟩
-      $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+      $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
         Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
     · iunfold wtxEnd
-      iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+      iframe Hfull Hw Hrwl Hcls Hv Hst
       isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
         Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
       · unfold wdbLive wdbCoreG
@@ -284,9 +286,11 @@ theorem Tx.rollback.wp_proof
       simp only at hbl
       wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
       · iframe
+      ihave Hfb := fbTok_of_wdbOK (GF := GF) K.B w hwok (some v, some (w.C.txid + 1), false, wl) ∅
       imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms
-        (some v, some (w.C.txid + 1), false, wl) (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
-        with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
+        (some v, some (w.C.txid + 1), false, wl) (w.C.txid + 1) ∅ rfl rfl
+        $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfb]
+        with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, -⟩
       · iframe; iframe #
       icases wdb_rollback' K.p w _ S bs hwok rfl HS (pendSlots_two _ hwf) Hbs
         $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
@@ -348,10 +352,10 @@ theorem Tx.rollback.wp_proof
           ⟨v, w'.C.txid + 1, false, wl, rfl,
             Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
             by simp only; rw [hms']; exact hwl, hwlv⟩
-          $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+          $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
             Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
         · iunfold wtxEnd
-          iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+          iframe Hfull Hw Hrwl Hcls Hv Hst
           isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
             Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
           · unfold wdbLive wdbCoreG
@@ -444,10 +448,10 @@ theorem Tx.rollback.wp_proof
           ⟨v, w'.C.txid + 1, false, wl, rfl,
             Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
             by simp only; rw [hms']; exact hwl, hwlv⟩
-          $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+          $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
             Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
         · iunfold wtxEnd
-          iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+          iframe Hfull Hw Hrwl Hcls Hv Hst
           isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
             Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
           · unfold wdbLive wdbCoreG
@@ -465,10 +469,10 @@ theorem Tx.rollback.wp_proof
       ihave Hmc : metaCellsQ (1 : Qp).half.half w.ms w.C $$ [Hmc2]
       · rw [hbl']; iexact Hmc2
       wp_apply wp_close K tx r X _ w ⟨v, w.C.txid, true, wl, rfl, Or.inl rfl, hwl, hwlv⟩
-        $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+        $$ [Hw Hfull Hrwl Hcls Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
           Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
       · iunfold wtxEnd
-        iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+        iframe Hfull Hw Hrwl Hcls Hv Hst
         isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
           Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
         · unfold wdbLive wdbCoreG
