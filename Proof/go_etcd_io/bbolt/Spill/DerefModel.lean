@@ -3,7 +3,8 @@
 `nodeDerefd r r'` (`n.dereference()` on one node: every key and value copied to persistent heap
 bytes, the node's key too, by data unchanged), `derefStep X X'` (some nodes of `X` dereferenced,
 nothing else changed; reflexive and transitive), the nodes a call covers (`noView`), and what
-the calls need of `X` (`derefPre`).
+the calls need of `X` (`derefPre`: beyond `liveFresh` and `liveReach`, which the frozen spec
+takes, what `node.dereference`'s asserts and the code's reads need).
 -/
 module
 
@@ -147,7 +148,9 @@ def derefPre (X : WX) : Prop :=
     (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧ ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
   (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live →
     (∀ k c, B.bm !! k = some c → c ∈ X.live ∧ (X.t.bs !! c).isSome) ∧
-    (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live))
+    (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live)) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live ∧ B.ns !! null = none) ∧
+  (X.t.bs !! X.rl).isSome ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-! ## What a step keeps -/
 
@@ -223,8 +226,8 @@ theorem covered_step {X X' : WX} (h : derefStep X X') {bl n : Loc} (hc : covered
   exact noView_step hrs (hc B d r hB (descIn_step' hs hd) hr)
 
 theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : derefPre X' := by
-  obtain ⟨-, hlive, -, -, -, -, -, -, -, -, hbs⟩ := h
-  refine ⟨?_, ?_⟩
+  obtain ⟨-, hlive, -, -, hrl, -, -, -, -, hdead, hbs⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro bl B' l r' hB' hr' hl
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
     obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 l)
@@ -248,7 +251,7 @@ theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : deref
   · intro bl B' hB' hl
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
     rw [hlive] at hl ⊢
-    obtain ⟨h1, h2⟩ := hp.2 bl B hB hl
+    obtain ⟨h1, h2⟩ := hp.2.1 bl B hB hl
     have hf := bktStep_fields hs
     refine ⟨?_, ?_⟩
     · intro k c hk
@@ -263,6 +266,18 @@ theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : deref
       obtain ⟨rt, hrt, hrl⟩ := h2 hrn
       refine ⟨rt, ?_, hrl⟩
       exact nodeRootIn_step hs hrt
+  · intro bl B' hB'
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+    rw [hlive]
+    refine ⟨(hp.2.2.1 bl B hB).1, ?_⟩
+    have := hs.2 null
+    rw [(hp.2.2.1 bl B hB).2] at this
+    exact optRel_none_l this
+  · have := hbs X.rl
+    rw [hrl]
+    revert this; have := hp.2.2.2.1; revert this
+    cases X.t.bs !! X.rl <;> cases X'.t.bs !! X.rl <;> simp [optRel]
+  · intro l hl; rw [hlive]; rw [hdead] at hl; exact hp.2.2.2.2 l hl
 
 theorem liveFresh_step {X X' : WX} (h : derefStep X X') (hp : liveFresh X) : liveFresh X' := by
   obtain ⟨-, hlive, -, -, -, -, -, -, -, -, hbs⟩ := h
