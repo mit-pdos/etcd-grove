@@ -664,3 +664,50 @@ schema.MustUnsafeGetAllLeases.wp_proof`).
   `applySnapshot`'s proofs, linked). The receiver's cell `s_ptr` is made persistent for the
   closure; the members loop's invariant holds it persistently.
 - Not done here: S2-S4 (the monotone restore, the image's lease bucket, `srvGrantOpen`).
+
+## Plumbing: Part X-a (2026-11-04)
+
+**Done (commit 1): the revocable mode in the slots, X1, X3/X4, `run`'s expiry arm.**
+- `Spec/.../etcdserver/EtcdServer__revokeExpiredLeases.lean` (new; no proof file, names-only): pre
+  `isPkgInit ∗ srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
+  lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls`, post `True`. Only what is below
+  `LeaseRun.lean` can be named (the spec is `srvRevokeOpen`'s body, and `lease.runCfg` is under
+  `InvRun`): so `srvFieldsAt` (auth off; `run` converts `srvFieldsAtM` by the guard's `on = false`),
+  not `isServerRun`. The proof will add P1's thread resources and X6's.
+- `LeaseRun.lean`: `@[no_expose] srvRevokeOpen := EtcdServer.revokeExpiredLeases.spec`,
+  `srvRevokeOpen_spec`. `lease.runCfg lg m := lg = decide (m ≠ none) ∧ (m = mono →
+  leasesNoExpiry) ∧ (m ≠ none → srvGrantOpen) ∧ (m = revocable → srvRevokeOpen)` (the open cases
+  at every granting mode, as revision 4 says, so `runCfg_open` holds at `revocable`); laws
+  `_revocable`, `_noExpiry`, `_revoke` added. `LeaseApi.lean`'s `lease.bootCfg` the same plus
+  `on = true → m = none` and `ckptEffectsOk`; `bootCfg_revocable` added, `bootCfg_noExpiry` removed
+  (its only user was the guard).
+- X3: `lease.expiredLeases GA ls := ∃ ps, ⌜ps ≠ []⌝ ∗ ls ↦*□ ps ∗ [∗list] p ∈ ps, ⌜p ≠ null⌝ ∗ ∃ id,
+  lsF "ID" p ↦□ id ∗ GA id` (`LessorBackend.lean`); `lessorExpiredC`'s payload `⌜¬ leasesNoExpiry⌝ ∗
+  expiredLeases GA ls`. **Deviation:** `ps ≠ []` is added (Go: `if len(ls) != 0`); without it the
+  `none` mode's arm is not dead (an empty slice meets any guard). With it the new payload implies the
+  old one (`∃ id, GA id`).
+- X1: `srvGrantGuard lg on := ⌜lg = true ∧ on = false⌝`. It keeps the flag `lg`, not the mode: its
+  callers (`NewServer`'s `NewLessor` call, the field predicates through `E.lg`) have the flag, and
+  `lg = decide (m ≠ none)` (`runCfg_lg`) gives the same guard. `srvGrantGuard_expired` restated: an
+  expired slice gives `⌜lg = true ∧ on = false⌝`.
+- X4: `lessorOk lg on l`'s `ExpiredLeasesC` bag carries `⌜¬ leasesNoExpiry⌝ ∗ expiredLeases
+  (srvGrantGuard lg on)` (was `False`). The field predicates (`srvFieldsAt`, `srvFieldsAtM`,
+  `srvFieldsBuilt`, `srvFieldsBuiltNA`) hold `lessorOk E.lg E.authMode.isOn v.lessor` (`authMode.isOn`,
+  not `authOn`, so that the literal environment's projections match by `iframe`).
+- `run`'s expiry arm: by the mode of `isServerRun`'s `∃ m, lease.runCfg γr.kv.lg m`: `none` dead
+  (`γr.kv.lg = false`, `isServerC_lg` off, the guard's `E.lg = true`); `mono` dead (`runCfg_noExpiry`
+  against `¬ leasesNoExpiry`); `revocable` calls `revokeExpiredLeases` through `srvRevokeOpen` and
+  goes round the loop.
+
+**Stopped before X2 (a design problem: the mode does not reach the client consumer).** X2 makes
+`NewLessor`'s mode `decide (m = mono)`, so the grant chain (`grantPre`) cannot hold `lessorModeIs …
+true` and its answer must be the mode-free `leaseLiveFrom`; the conversion to `leaseGrantedAt` then
+needs `lease.srvInv … .mono` at v3rpc's `lessorGrantOkL_of_server`, whose caller is
+`etcdstart.kv_lease_served`. That lemma sees the server only through `memberUp`'s `srvLeaseRd s E`,
+which has no mode, and `memberUp`/`memberBuilt`/`memberBoot` (`∃ m`, not a parameter) do not carry
+one. Options: (a) thread `m` as a parameter through `etcdstart`'s member predicates (`memberBoot`,
+`memberBuilt`, `memberUp`, `srvLeaseRd`, `kv_lease_served`: about 100 sites in 33 files); (b) put the
+lessor's mode in the apply environment (an `AEnv` field the stand-in `E₀`'s `envAgree` carries), at
+the cost of a lease field in `AEnv` (against the slot convention's "never a field of `AEnv`");
+(c) `srvLeaseRd` carrying `∃ m, lease.srvInv …` — not enough: `leasegrant` could not learn `m = mono`,
+so its client spec would weaken. Recommended: (a).
