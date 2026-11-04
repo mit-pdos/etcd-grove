@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.bbolt.Spill.StepComp
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
 public import Proof.go_etcd_io.bbolt.Spill.TreeDataSpill
 public import Proof.go_etcd_io.bbolt.Spill.STreeBuild
+public import Proof.go_etcd_io.bbolt.Spill.PcStepG
 
 @[expose] public section
 
@@ -37,19 +38,6 @@ theorem sTree_root_mem {P : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h 
   obtain ⟨pg, hpg⟩ := treeWF_page_some hs.wf
   exact (hs.has id).1 (treeHas.root id pg hpg)
 
-/-- **The spill's global state after a piece's step.** -/
-theorem pcStepX_spG {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
-    {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
-    (hn : Xi.node bl l = some rl) (hlv : l ∈ Xi.live) (hne : rl.nv.parent' ≠ null → 0 < rl.ws.length)
-    (hpl : rl.nv.parent' ≠ null → rl.nv.parent' ≠ l ∧ rl.nv.parent' ∈ Xi.live)
-    (hd : objsDisj Xi.t)
-    (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl)
-    (hfl : ∀ y ∈ wi.fl.allIds, y.toNat < Xi.t.mv.pgid'.toNat)
-    (hfv : ∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none)
-    (hvb : ∀ y pg, Xi.v.pages !! y = some pg → y < Xi.t.mv.pgid'.toNat) :
-    spG X3 wi.wtxid (mapLen w2.ms) w2.fl := by
-  sorry
-
 /-- **The frame of a piece's step**: the piece and its parent touched. -/
 theorem pcStepX_frame {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
     {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
@@ -68,16 +56,6 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     (hown : rl.nv.pgid' ≠ W64 0 → rl.nv.pgid'.toNat ∈ L) :
     spStep Xi X3 wi w2 O st := by
   sorry
-
-theorem setNode_t_mv (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.mv = X.t.mv := by
-  unfold WX.setNode; split <;> rfl
-
-theorem setNode_t_bufs (X : WX) (bl l : Loc) (r : NRec) :
-    (X.setNode bl l r).t.bufs = X.t.bufs := by
-  unfold WX.setNode; split <;> rfl
-
-theorem setNode_t_pm (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.pm = X.t.pm := by
-  unfold WX.setNode; split <;> rfl
 
 /-- **A piece's free** keeps all but the piece's record and the freelist's pending part. -/
 theorem pcFreed_basic {X X1 : WX} {w w1 : WDb} {bl l : Loc} {r : NRec} {st : List FLStep}
@@ -200,32 +178,6 @@ theorem spP_bufs_insert {X X' : WX} {id : w64} {pg : List w8}
       intro he; apply hy; rw [e, he]
     · rw [bufPages_big _ _ (by omega), bufPages_big _ _ (by omega)]
 
-/-- **What a successful `allocate` changes**: the buffer and page-cache entry `id`, the mark (at
-the free ids, unchanged; at the mark, past the run). -/
-theorem allocRes_basic {X X' : WX} {fl fl' : FLPg} {txid : w64} {count : Nat} {p : Loc}
-    {id : w64} (h : allocRes X X' fl fl' txid count p id) :
-    X'.v.pages = X.v.pages ∧ X'.live = X.live ∧ X'.t.mv.txid' = X.t.mv.txid' ∧
-    X'.t.bufs = X.t.bufs.insert id
-      (encode (⟨id, W16 0, W16 0, W32 ((count - 1 : Nat) : Int)⟩ : Page) ++
-        List.replicate (count * 4096 - 16) (W8 0)) ∧
-    ((fl.canAlloc id count ∧ fl' = fl.alloc txid id count ∧ X'.t.mv.pgid' = X.t.mv.pgid') ∨
-     (id = X.t.mv.pgid' ∧ fl' = fl ∧ id.toNat + count < 2 ^ 62 ∧
-       X'.t.mv.pgid'.toNat = id.toNat + count)) := by
-  obtain ⟨-, -, Xr, hXr, hX'⟩ := h
-  have hR : Xr.v.pages = X.v.pages ∧ Xr.live = X.live ∧ Xr.t.mv = X.t.mv ∧
-      Xr.t.bufs = X.t.bufs := by
-    rcases hXr with rfl | ⟨Xd, b, hdr, rfl⟩
-    · exact ⟨rfl, rfl, rfl, rfl⟩
-    · exact ⟨(congrArg View.pages hdr.2.1 : Xd.v.pages = X.v.pages), hdr.2.2.1, hdr.2.2.2.2.2.2.1,
-        hdr.2.2.2.2.2.2.2.2.1⟩
-  obtain ⟨h1, h2, h3, h4⟩ := hR
-  rcases hX' with ⟨hc, hf, rfl⟩ | ⟨hid, hf, hlt, rfl⟩
-  · refine ⟨h1, h2, by simp only [WX.addPage, h3], by simp only [WX.addPage, h4],
-      Or.inl ⟨hc, hf, by simp only [WX.addPage, h3]⟩⟩
-  · refine ⟨h1, h2, by simp only [WX.addPage, h3], by simp only [WX.addPage, h4],
-      Or.inr ⟨hid, hf, hlt, ?_⟩⟩
-    simp only [WX.addPage]; try word
-
 /-- **The records and buffers after a piece's step**: the piece's record written (`pcRec`) over
 its record after the allocation `ra` (its own but the sources and page id), the parent's with its
 entry (`pcPar`, over its record modulo sources), the buffer `id` the written page; the view's
@@ -328,6 +280,44 @@ theorem pcStepX_state {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count
       hcom.2.2.1, hcom.2.2.2.1, hcom.2.2.2.2, hc0, hbuf, hrun.2.2⟩
     rw [hfin, hpf, decide_eq_false hp]
     exact WX.setNode_node_same hra _
+
+/-- **The spill's global state after a piece's step.** -/
+theorem pcStepX_spG {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
+    {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
+    (hn : Xi.node bl l = some rl) (hlv : l ∈ Xi.live) (hne : rl.nv.parent' ≠ null → 0 < rl.ws.length)
+    (hpl : rl.nv.parent' ≠ null → rl.nv.parent' ≠ l ∧ rl.nv.parent' ∈ Xi.live)
+    (hd : objsDisj Xi.t)
+    (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl)
+    (hfl : ∀ y ∈ wi.fl.allIds, y.toNat < Xi.t.mv.pgid'.toNat)
+    (hfv : ∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none)
+    (hvb : ∀ y pg, Xi.v.pages !! y = some pg → y < Xi.t.mv.pgid'.toNat) :
+    spG X3 wi.wtxid (mapLen w2.ms) w2.fl := by
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, hml, -, hra, hrp, rfl⟩ := hs
+  have hG := hG1 X1 w1 stf hfr
+  obtain ⟨hmv, -, -, hv1, hlv1, -, -, hfree, -⟩ := pcFreed_basic hfr
+  obtain ⟨q, hn1⟩ : ∃ q, X1.node bl l = some { rl with nv := { rl.nv with pgid' := q } } := by
+    rcases hfr with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+    · exact ⟨rl.nv.pgid', hn⟩
+    · exact ⟨W64 0, WX.setNode_node_same hn _⟩
+  have hd1 : objsDisj X1.t := by
+    rcases hfr with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+    · exact hd
+    · exact objsDisj_setNode hd hn _
+  have hG2 := spG_alloc hal hd1 hG hml (fun y hy => by rw [hv1]; exact hfv y (hfree ▸ hy))
+    (fun y hy => by rw [hmv]; exact hfl y (List.mem_append_left _ (hfree ▸ hy)))
+  obtain ⟨-, hab2, -, hab4, -⟩ := allocRes_basic hal
+  obtain ⟨⟨ra', hra', hsa⟩, -⟩ := allocRes_node hal hn1
+  rw [hra] at hra'; cases hra'
+  refine spG_pcFin hG2 hra (by rw [hab2, hlv1]; exact hlv) ?_ (by rw [hab4]; simp)
+  intro hp
+  have hp' : rl.nv.parent' ≠ null := by simpa using hp
+  obtain ⟨hrp', -, -⟩ := hrp hp'
+  refine ⟨hrp', by rw [hab2, hlv1]; exact (hpl hp').2, (hpl hp').1, ?_⟩
+  have := congrArg List.length hsa.2.2.1
+  simp only [List.length_map] at this
+  rw [this]; exact hne hp'
+
+
 
 end state
 
