@@ -210,6 +210,13 @@ seven for each of the three types; the stream's seven), the constructors' (`New`
 `mvccBackendFor_open`, `mvccImage_fresh`, `mvccImage_snapshot`, `reach_logWf` (pure: better a theorem
 in `ApiState`), `mvccTxn_leaseDelete`, `wsSentLb_zero`, `names_nonempty`).
 
+**From the probes** (2026-11-04): export `persistent.law`'s facts as `instance`s once `ApiImpl.lean`
+defines the predicates (clients otherwise re-declare them); `wsChanNames ι` defined as the stream's
+channel's names; M1's obligations (`WsRecvOkProbe.lean`'s header): a registration's stamp the exact
+sent count (the channel invariant opened at the registration), a `-1` send seeing every
+registration made by then, `Restore`'s `pending = none` from the writer's state, the filters'
+agreement by plain equality (`savedFilters`).
+
 **Round 16's obligations** (the review, `~/mvcc-api-candidates/review-r16.md`):
 - The receipts at the notify step (`Txn.End`, `Put`, `DeleteRange`, the lease delete): from the open
   transaction's writer state, `⧖ (logCh ilog + pend.length)`; at `Restore`'s step, from

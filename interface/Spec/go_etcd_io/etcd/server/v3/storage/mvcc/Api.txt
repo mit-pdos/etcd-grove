@@ -759,6 +759,8 @@ def mvcc.api.WatchStream.RequestProgress.contract (ty : go.GoType) (v : val) : P
                 (intoVal id))
               {{ Φ }}
 
+def (sealed) mvcc.api.wsChanNames (ι : mvcc.api.WsName) : ChanNames
+
 def mvcc.api.store.Range.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Range.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
@@ -852,26 +854,25 @@ def mvcc.api.Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
 def mvcc.api.wsChan_recv.law : Prop :=
   ∀ (ws : GoInterface) (γ : mvcc.api.MvccName) (ι : mvcc.api.WsName),
     mvcc.api.isMvccWatchStream ws γ ι ⊢
-      ∃ γch,
-        isChan (mvcc.api.wsChanOf ι) γch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
-          (□
-              ∀ rs Φ,
-                mvcc.api.wsRecv ι rs -∗
+      isChan (mvcc.api.wsChanOf ι) (mvcc.api.wsChanNames ι) go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
+        (□
+            ∀ rs Φ,
+              mvcc.api.wsRecv ι rs -∗
+                (∀ v ok,
+                    (if ok = true then ∃ r, mvcc.api.wsRecv ι (rs ++ [r]) ∗ mvcc.api.wrespIs v r
+                      else mvcc.api.wsRecv ι rs) -∗
+                      Φ v ok) -∗
+                  recvAu (mvcc.api.wsChanNames ι) go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ) ∗
+          □
+            ∀ rs n Φ Ψ,
+              mvcc.api.wsRecv ι rs -∗
+                mvcc.api.wsSentLb ι n -∗
                   (∀ v ok,
-                      (if ok = true then ∃ r, mvcc.api.wsRecv ι (rs ++ [r]) ∗ mvcc.api.wrespIs v r
-                        else mvcc.api.wsRecv ι rs) -∗
-                        Φ v ok) -∗
-                    recvAu γch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ) ∗
-            □
-              ∀ rs n Φ Ψ,
-                mvcc.api.wsRecv ι rs -∗
-                  mvcc.api.wsSentLb ι n -∗
-                    (∀ v ok,
-                          (if ok = true then ∃ r, mvcc.api.wsRecv ι (rs ++ [r]) ∗ mvcc.api.wrespIs v r
-                            else mvcc.api.wsRecv ι rs) -∗
-                            Φ v ok) ∧
-                        (mvcc.api.wsRecv ι rs -∗ ⌜n ≤ rs.length⌝ -∗ Ψ) -∗
-                      nonblockingRecvAuAlt γch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ Ψ
+                        (if ok = true then ∃ r, mvcc.api.wsRecv ι (rs ++ [r]) ∗ mvcc.api.wrespIs v r
+                          else mvcc.api.wsRecv ι rs) -∗
+                          Φ v ok) ∧
+                      (mvcc.api.wsRecv ι rs -∗ ⌜n ≤ rs.length⌝ -∗ Ψ) -∗
+                    nonblockingRecvAuAlt (mvcc.api.wsChanNames ι) go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ Ψ
 
 def mvcc.api.watchableStore.Rev.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Rev.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s)

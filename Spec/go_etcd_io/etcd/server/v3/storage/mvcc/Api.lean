@@ -94,7 +94,7 @@ Scratch file (outside the repository, never committed); typechecks against the r
 Opaque Iris predicates (8): `mvccState`, `isMvcc`, `mvccOpen`, `mvccBackend`, `mvccTxn`,
 `isMvccWatchStream`, `wsState`, `wsRecv`; and at the backend boundary (made and consumed once each,
 by the laws and the constructors): `mvccW`, `mvccWReg`, `mvccBackendFor`, `backendRest`. Opaque pure names: the types `MvccName`, `WsName`;
-`mvccLeases`, `wsChanOf`. Definitions: `hookRun`, `mvccDeleter`, `compactChanOk`, `hashStoreOk`,
+`mvccLeases`, `wsChanOf`, `wsChanNames`. Definitions: `hookRun`, `mvccDeleter`, `compactChanOk`, `hashStoreOk`,
 `wrespIs`, the contracts and bundles, the pure state and `wsRecvOk`.
 -/
 module
@@ -130,6 +130,11 @@ opaque WsName : Type
 opaque mvccLeases (γ : MvccName) : GName
 /-- **The stream's channel** (fixed at its creation). -/
 opaque wsChanOf (ι : WsName) : GoChan
+/-- **The stream's channel's ghost names** (fixed at its creation; the probe of v3rpc's watch,
+2026-11-04: named, so that a client's definitions can mention them, in place of an existential in
+`wsChan_recv.law`). -/
+opaque wsChanNames (ι : WsName) : ChanNames :=
+  ⟨default, default, default, default, default, 0⟩
 
 /-! ## The vocabulary -/
 
@@ -859,19 +864,19 @@ non-blocking receive (`nonblockingRecvAuAlt`, a `select` with a `default`: v3rpc
 the same, or the channel empty, every response the stream had sent (at least `n`, from a
 `wsSentLb ι n` taken before the poll) received. -/
 abbrev wsChan_recv.law : Prop :=
-  ∀ ws γ ι, isMvccWatchStream (GF := GF) ws γ ι ⊢ ∃ γch : ChanNames,
-    isChan (wsChanOf ι) γch WatchResponse ∗
+  ∀ ws γ ι, isMvccWatchStream (GF := GF) ws γ ι ⊢
+    isChan (wsChanOf ι) (wsChanNames ι) WatchResponse ∗
     □ (∀ (rs : List WResp) (Φ : WatchResponse → Bool → IProp GF),
       wsRecv ι rs -∗
       (∀ (v : WatchResponse) (ok : Bool),
         (if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs) -∗ Φ v ok) -∗
-      recvAu γch WatchResponse Φ) ∗
+      recvAu (wsChanNames ι) WatchResponse Φ) ∗
     □ (∀ (rs : List WResp) (n : Nat) (Φ : WatchResponse → Bool → IProp GF) (Ψ : IProp GF),
       wsRecv ι rs -∗ wsSentLb ι n -∗
       ((∀ (v : WatchResponse) (ok : Bool),
           (if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs) -∗ Φ v ok) ∧
         (wsRecv ι rs -∗ ⌜n ≤ rs.length⌝ -∗ Ψ)) -∗
-      nonblockingRecvAuAlt γch WatchResponse Φ Ψ)
+      nonblockingRecvAuAlt (wsChanNames ι) WatchResponse Φ Ψ)
 
 /-- **The stream has sent at least nothing** (the review of round 14: v3rpc's drain before a
 refused create, which has no stamp). -/

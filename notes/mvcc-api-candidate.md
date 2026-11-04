@@ -789,3 +789,12 @@ unchanged (the server's `srvBeSnapOk_of_backend` instantiates the new argument a
 `mvccImage_snapshot.law` drops its never-compacted premise (`σ.crev = -1`): a compacting sender is
 covered. The axiom is to be re-attacked with the `axiom` skill.
 
+**The probes (2026-11-04, `notes/mvcc-api-probes/`, `notes/mvcc-api-risk.md`).** M1
+(`WsRecvOkProbe.lean`): `wsRecvOk` follows from pure facts each response records at its send, with
+monotone agreement (no later, credit or fancy update); its obligations on the implementation are in
+its header. C1 (`WatchClientProbe.lean`): v3rpc's `drain_empty`, `snap_after_recv` (a `|={⊤}=>`
+with no credit) and `progressCov`'s core are provable over the API's laws; it found
+`wsChan_recv.law`'s `∃ γch` unnameable by a client's definitions, so the channel's ghost names are
+an opaque `wsChanNames ι` (decided by me: a strengthening, clear by the skill), and asks that
+`persistent.law`'s instances be real `instance`s once the predicates are defined (stage 2).
+
