@@ -31617,3 +31617,29 @@ corollaries stay in `ModeSpecs.lean`. (The pilot also found `applyEntryNormal`'s
 **Left** (the Freeze's deferrals): the request side (`Put`/`DeleteRange`/`Range`/`Txn`'s pairs,
 v3rpc, `Serve`, D4); layer A, one KV model (D1); `applyEntryNormal`'s twins (the pilot); `NewServer`
 (D6); `AppliedIndex` as it is (D7 (b)).
+## The stop's pieces kept from construction: `srvStopKeep`, and `bootOk`'s backend file (2026-11-04 · R2b-3d stage 1, the user's approval of `bootOk`'s change · branch `r2b3`)
+
+**Before:** `NewServer` dropped what only the stop needs (the raft loop's stop claim, the storage
+registry's authority, the lessor's stop right), `wal.bootOk_start` dropped the WAL's directory
+(`walDirOf w = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'`, `walOpened`'s), and nothing
+said the boot backend's file is at `<DataDir>/member/snap/db`. **Now:** `srvStopKeep s γrn wdir`
+(defined, `InvRestart.lean`, R2b-2's opaque draft until now) holds the first four, and
+`NewServer.spec`'s post gives it as its last conjunct (a stronger post, no new premise; the last
+place so that clients' patterns are unchanged); `NodeStartSpec`'s post keeps the stop claim. The
+examples' drafts state `memberBuiltS` (`memberBuilt`'s rows with `srvStopKeep` at the same raft names
+and configuration: repeated, not added to `memberBuilt`, whose clients unpack it positionally).
+`bootOk` gains `bFile d.γB (backendPathOf cfg.DataDir')` (**trusted**: `bootstrapContract` is a premise
+of the examples' results; the user's approval; true because `bootstrapBackend` calls `OpenBackend`,
+whose post gives it), and `srvSnapRes` carries the current backend's `bFile` (the snapshot path's
+from `OpenSnapshotBackend`), for the image's `fileHolds (backendPathOf dd) D` (`bFile_agree`).
+
+## The readers' open shares at the server's stop (2026-11-04, R2b-3d gap 4; the user's choice)
+
+`backend.Close` needs every reader's open share (`bOpen γ 1`): a share is the reader's proof that the
+backend is not stopped. The server lends the shares through a thread pool that is a plain invariant,
+so the shutdown could never collect them. Of three options (a cancelable pool with a quiescent
+request path, readers that tolerate a stopped backend, or a restart scope with no request in
+flight), the user chose the first. It has two consequences: a general Perennial change (a cancelable
+`ThreadPool`), and a new premise on the exported restart result, that the members' request paths
+stopped before the server, which matches `embed.Close`'s order. Plan: `notes/restart-plan.md`,
+"R2b-3d ... gap 4".

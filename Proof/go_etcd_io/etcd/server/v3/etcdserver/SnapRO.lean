@@ -559,7 +559,9 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
     backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
-    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    -- (2026-11-04, the restart plan's R2b-3d) the backend's file is there (the stop image's)
+    backend.bFile d.γB (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
 snapshot-taken counter, its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);

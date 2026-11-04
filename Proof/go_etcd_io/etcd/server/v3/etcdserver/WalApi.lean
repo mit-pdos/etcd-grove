@@ -222,7 +222,9 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
       |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
         storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
-        walPurgeRight (walDirOf w) := by
+        walPurgeRight (walDirOf w) ∗
+        -- (2026-11-04, R2b-3d) the WAL's directory, the configuration's (the stop image's `srvFiles`)
+        ⌜walDirOf w = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
   unfold wal.bootOk
   iintro ⟨Hw, Hp⟩
   icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
@@ -231,7 +233,7 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   iexists ν
   rw [Hrd.2]
   iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
-  ipureintro; exact Hrd.1
+  ipureintro; exact ⟨Hrd.1, rfl⟩
 
 end defs
 

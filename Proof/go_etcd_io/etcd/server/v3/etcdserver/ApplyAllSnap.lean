@@ -150,7 +150,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   obtain ⟨tI, hmeta⟩ := Hif.hmetaI
   -- the backend's own resources
   iunfold srvSnapRes at Hsres
-  icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath⟩
+  icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath, -⟩
   rw [hkb] at Hkb0
   cases Hkb0
   icombine Half Hal0 gives %Hale
@@ -207,7 +207,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   · iunfold srvGoRes; iframe HgrW HthT
   iunfold srvSnapApplied at Hsapp
   icases Hsapp with ⟨%γ', %TM', %E', %b', %st', %d', %x', %cs', %L, %Hsa1, #Hsrv1, Hai, Hat, Hsd,
-    Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,
+    Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, #Hbf', Htlive,
     ⟨%kv', #Hkvf', #Hkvi'⟩⟩
   obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, hxcr, hxch, hL⟩ := Hsa1
   have hoff' : E'.authMode = auth.AuthMode.off := by
@@ -308,7 +308,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
     iframe Hstopc Hbo Half Hcfdd Hpath
     isplitr
     · ipureintro; exact hkb'
-    iexact HKC
+    iframe HKC
+    iexact Hbf'
   iunfold epConfState at Hcs
   icases Hcs with ⟨Hcs, #Hcsok⟩
   -- the step's end, shared by the selects' branches: the apply thread at a state `stF` of the

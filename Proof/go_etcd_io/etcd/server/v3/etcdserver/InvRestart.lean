@@ -198,30 +198,31 @@ def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStr
     token c)
 
 /-- (DRAFT, R2b-2/R2b-3) **What `Cleanup` closes besides the apply thread's resources** (opaque
-until R2b-3): the lessor's stop right (`lessor.Stop` is `close(le.stopC)`: a second call panics,
-so it is exclusive; `isServerRun` holds only the persistent `lessorOk`) and the auth store's
-closer (its lock and token provider). The KV store's closer and the backend's (`srvKVCloserW`,
+until R2b-3): the auth store's closer (its token provider's `tpAdmin`, for `authStore.Close`). (The
+lessor's stop right moved to `srvStopKeep`, 2026-11-04.) The KV store's closer and the backend's (`srvKVCloserW`,
 `bOpen ½`, `pathOwn`, in `srvSnapRes`) come back from the apply thread, through `sched.Stop`'s last
 job's post (R2b-2 review F3). -/
 opaque srvCleanupOwn (s : Loc) : IProp GF
 
-/-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`): the claim
-on the raft loop's stop escrow (`rnStopClaim`, which `raftNode.stop`'s stop variant takes), the
-data directory (`srvDataDir`, which the image names), the storage registry's authority (R2c
-review F3: the image hands it to the restart; `bootOk` returns it to `NewServer`, which drops it
-today and must keep it), and what `Cleanup` closes (`srvCleanupOwn`). Its sources (R2b-2 review
-F3): `NewServer` keeps all but the raft loop's claim for `Start` (`srvStopKeep`), `newRaftNode`
-allocates the claim with the loop's `done`, and `start` hands them to `run`. -/
-def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) : IProp GF :=
-  iprop(rnStopClaim γn ∗ srvDataDir s dd ∗
+/-- (R2b-2's draft; defined 2026-11-04, R2b-3d) **What `NewServer` keeps for the stop**, at the
+raft wrapper's names `γn` and the configuration's WAL directory `wdir`: the claim on the raft loop's
+stop escrow (`rnStopClaim`, `newRaftNode`'s), the storage registry's authority (`bootOk`'s: the
+image hands it to the restart, R2c review F3), the lessor's stop right (`NewLessor`'s, for
+`Cleanup`), and the WAL's directory, the configuration's (`bootstrap`'s `walOpened`: the stop
+image's `srvFiles` names the WAL's files by the data directory). -/
+def srvStopKeep (s : Loc) (γn : RNNames) (wdir : GoString) : IProp GF :=
+  iprop(rnStopClaim γn ∗
     (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
-    srvCleanupOwn s)
+    (∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
+    (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗ ⌜walDirOf (storage.walOf st) = wdir⌝))
 
-/-- (DRAFT, R2b-2) **What `NewServer` keeps for the stop** (opaque until R2b-2's proof): the raft
-loop's stop claim and the storage registry's authority (at the raft names `NewServer` builds),
-and what `Cleanup` closes (`srvCleanupOwn`): `srvShutdownPre`'s parts but the data directory,
-which `Start` hands to `run` (R2b-2 review F3: until then nothing named their source). -/
-opaque srvStopKeep (s : Loc) : IProp GF
+/-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`; restated
+2026-11-04, R2b-3d, over `srvStopKeep`): what `NewServer` kept for the stop, at the data
+directory's WAL directory with no dedicated one (the scope), the data directory (`srvDataDir`, which
+the image names) and what `Cleanup` closes besides (`srvCleanupOwn`). Its sources (R2b-2 review F3):
+`NewServer` keeps `srvStopKeep`, `start` hands it to `run`. -/
+def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) : IProp GF :=
+  iprop(srvStopKeep s γn (config.walDirOf dd "") ∗ srvDataDir s dd ∗ srvCleanupOwn s)
 
 end defs
 

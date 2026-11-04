@@ -452,7 +452,9 @@ abbrev NodeStartSpec : Prop :=
           -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
           -- frame) and its hard state
           memStorInv bv.storage' γs γr.cl γw.key ∗
-          memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) }}
+          memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+          -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
+          rnStopClaim γw }}
 
 set_option maxHeartbeats 0 in
 /-- **The composition** (see `NodeStartSpec` and the file header): from
@@ -555,7 +557,7 @@ theorem raftNode_of_StartNode
   · ipureintro
     refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Hminv Hmeta
+  iframe Hr Hmu Hloop Happly Hb Hminv Hmeta Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node)
