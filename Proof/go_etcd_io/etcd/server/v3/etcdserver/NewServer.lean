@@ -336,8 +336,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hRevS : cmp = true → mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlgon Hbco Hbcf Hbwb
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
+  -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
+  have Hlgon : on = true → ρ.rd.kv.lg = false := lease.bootCfg_auth Hlbc
+  have Hckok : ckptEffectsOk := lease.bootCfg_ckpt Hlbc
+  have Hslg : ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF) := fun h =>
+    ⟨lease.bootCfg_noExpiry (h ▸ Hlbc), lease.bootCfg_open (h ▸ Hlbc)⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
@@ -1735,6 +1740,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hγw.2.1]; iexact Hlinv
   ihave #HlPool' : lease.lessorRdPool (GF := GF) γw.st.leases $$ []
   · rw [Hγw.2.1]; iexact HlPool
+  -- (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's slot
+  ihave #HLsrv : lease.srvInv on s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lg, γlt⟩ : apply.AEnv GF) m $$ [HLnil HpeerRt HlessRd HlPool']
+  · iapply lease.srvInv_intro
+    iframe HLnil HpeerRt HlessRd HlPool'
   imodintro
   wp_auto
   iapply HΦ
@@ -1748,7 +1757,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool'
+  iframe HLsrv HBF ClientCertAuthEnabledS
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr

@@ -111,6 +111,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
 
 @[expose] public section
 
@@ -148,7 +149,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
     (γn : NetNames GF) (dir : w64 → List GoString)
     -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (`SrvRaft.snapLoc`;
     -- raft's `RaftNames.reSnapLoc` until 2026-10-27)
-    (γd : GName),
+    (γd : GName)
+    -- (2026-11-04, the lease-expiry plan's Part C) the cluster's lease mode, the caller's choice
+    (m : lease.Mode),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
   -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
@@ -222,9 +225,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
-  -- (the lease-grant stage, 2.13) with auth on, a cluster that grants no lease (the granting
-  -- example is auth off: `srvGrantGuard`)
-  (on = true → ρ.rd.kv.lg = false) →
+  -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease subsystem's boot
+  -- premise at the mode `m` (`lease.bootCfg`, `LeaseApi.lean`): the KV names' grant flag the mode's,
+  -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring and
+  -- the open cases (`srvGrantOpen`; lease-grant D2), and the lessor's checkpointer's effects
+  -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
+  lease.bootCfg (GF := GF) ρ.rd.kv.lg m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
@@ -282,18 +288,15 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
-      -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
-      -- checkpointer's effects and the auth store's record bound
-      "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
+      -- bound (the lessor's checkpointer's effects: `lease.bootCfg`)
+      "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       -- (D22 S-j2, 2026-10-20; an environment assumption the user approved) bbolt's `Open`
       -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
-      -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
-      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
-      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -339,22 +342,17 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
-          -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
-          -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
-          □ (⌜on = true⌝ → srvLessorNil srv) ∗
+          -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
+          -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no
+          -- lease (E3zb, lease-grant D1), the peers' round tripper and the lessor's reader side (K7),
+          -- the lessor's reader pool (the lease-src plan); until then four conjuncts here
+          lease.srvInv on srv E m ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
           -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
-          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
-          -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
-          -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
-          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
-          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
-          lease.lessorRdPool E.γ.leases }}
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/
