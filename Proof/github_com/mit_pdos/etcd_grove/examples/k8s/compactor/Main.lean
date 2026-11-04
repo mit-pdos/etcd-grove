@@ -4,16 +4,17 @@ The proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Main.le
 
 As `examples/k8s/etcd3`'s `Main` to the served member (the one-member premises in the shared start's
 form, `bootPremise_of`; the ghost state `NewServer` takes, `alloc1_false` in compaction mode at
-retention `0`; `StartCompactingServer`; `Serve`, the member refusal-free and its KV calls registered),
-with the example's invariant allocated at the member's start state (no key; `cinv_alloc`). Then
-`DisableSnapshotList` (`gateOff`), the writer's client and its readiness check, the writer
-(`go writer(wcli)`), and the API servers, each with a client of its own (its KV handle,
-`isKv_of_newClient`), forked under a wait group (`sync.join`) that `Main` waits for.
+retention `0`; `StartCompactingServer`; `Serve`, the member refusal-free and its KV calls registered,
+with the watch server's facts at the address as `compactwatch`'s `Main` serves them, `wk_served_nd`:
+no revision writes a key twice, `noDupKeys_of_one`), with the example's invariant allocated at the
+member's start state (no key; `cinv_alloc`). Then the writer's client and its readiness check, the
+writer (`go writer(wcli)`), and the API servers, each with a client of its own (its KV handle,
+`isKv_of_newClient`, and its watcher, `isNewClient_watcher`: the compactor's watch loop runs, Q1 (b)),
+forked under a wait group (`sync.join`) that `Main` waits for.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.DisableSnapshotList
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver
@@ -27,6 +28,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMem
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Perennial.Proof.sync.Results
+public import Spec.context.ErrAny
+public import Proof.go_etcd_io.etcd.client.v3.KMClient
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Served
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.NoDup
 
 @[expose] public section
 
@@ -64,7 +70,7 @@ theorem Main.wp_proof
     (wp_StartCompactingServer : etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG))
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : etcdstart.NewClient.spec (GF := GF) (hG := hG))
-    (wp_DisableSnapshotList : DisableSnapshotList.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_ready : ready.spec (GF := GF) (hG := hG))
     (wp_writer : writer.spec (GF := GF) (hG := hG))
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
@@ -80,6 +86,13 @@ theorem Main.wp_proof
       (etcdstart.urls1 memberName peerAddr clientAddr) (fun _ h => h) (fun _ h => h) $$ Hboot
   ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
   · iunfold etcdstart.commonPremises; iframe #
+  -- `io.EOF` (the server's and the watch client's)
+  ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
+  · iapply v3rpc.eofVar_of_init
+    iPkgInit
+  ihave #Heo : client.eofOk (GF := GF) $$ []
+  · iapply (client.eofOk_of_init hAs)
+    iPkgInit
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -93,6 +106,10 @@ theorem Main.wp_proof
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply wp_NewNop as %lg %Hlg
@@ -133,57 +150,89 @@ theorem Main.wp_proof
       (srvBootLogOk_of_BootLog _ _ _ Hbf.boot),
       etcdstart.kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
   rw [hboot0] at *
-  imod (cinv_alloc ρ.rd.kv (kvStateOf [[], []]) (by unfold k8s.keyValue; rw [kvStateOf_kvs]; rfl) ⊤) $$ Hetcd with ⟨%γc, #Hinv⟩
-  -- `Serve(s, clientAddr)`: (D29) the member never refuses, and etcd's KV calls registered
+  imod (cinv_alloc ρ.rd.kv ⊤) $$ Hetcd with ⟨%γc, #Hinv⟩
+  -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
+  -- facts at the address; watches across a compaction: no revision writes a key twice, from the
+  -- invariant, `noDupKeys_of_one`), the member refusal-free (D29) first
   haveI := Hms
   wp_apply (wp_Serve srv clientAddr E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid _ => iprop(etcdstart.etcdKVAt clientAddr E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt clientAddr⌝))
+      (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗
+        client.kvRegsAt (⟨clientAddr, E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
+        watchAddrFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv)))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
-    ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
-      clientAddr cid mid R HEo $$ [Hg]
+    iunfold etcdstart.grpcUp at Hg
+    icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
+    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
+    subst hRE
+    icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
+    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
+    ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
+        (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+        (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+        $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
+    · iframe
+    ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
+    · rw [hRw, hRγ]
+      iframe HWRs
+      isplitl [Hrd1]
+      · simp only [List.replicate]
+        iapply BigSepL.bigSepL_cons.2
+        iframe Hrd1
+        iapply BigSepL.bigSepL_nil.2; itrivial
+      ipureintro
+      rw [sync.rwmutex.actualMaxReaders_unseal]
+      omega
+    ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
+    ihave #H00 := etcd_watch.cert0_of_server pw R $$ Hws
+    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) $$ []
+    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
+      iframe Hinvs
+      iapply mvcc.idxCert_sealed; iexact H00
+    -- the store's fact for watches: no revision writes a key twice (each has one change)
+    ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
+    · iunfold mvcc.watchNoDup; iright
+      iapply (noDupKeys_of_one (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl)
+      iframe Hkf
+      iapply oneChangeAu $$ Hinv
+    ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
+    rw [HCA]
+    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal clientAddr gs q p srv lis R.E
+        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
+      [Hgsn Hlis]
+    · iframe Hgsn Hlis; iframe #
+    imod (etcd_watch.wk_served_nd (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) clientAddr
+        gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
+      $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
-    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis clientAddr cid mid R Hrb48 Hrf
-        rfl) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
-    · unfold etcdstart.kvServeStocks
-      iframe; iframe #
+      iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb48
     imodintro
-    iframe Hserv Hkv
-    ipureintro; exact Hnr
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, %Hnr⟩)
+    iframe Hserv HKV HWF
+    ipureintro; exact ⟨rfl, Hnr⟩
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #Hreg1, #HWF⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
     wp_auto
     iapply HΦ; itrivial
   subst Hserr
-  wp_auto
-  -- `DisableSnapshotList()`
-  wp_apply wp_DisableSnapshotList as %derr Hd
-  icases Hd with (%Hderr | ⟨%Hderr, #Hgate⟩)
-  · cases derr with
-    | nil => exact absurd rfl Hderr
-    | ok ei => ?_
-    wp_auto
-    iapply HΦ; itrivial
-  subst Hderr
+  obtain ⟨HRE, Hnr⟩ := HRQ
   wp_auto
   -- the one member: its registrations, its start, refusal-free
   let x : client.SrvAt GF := ⟨clientAddr, E, ρ.rd, cid, mid⟩
-  iunfold etcdstart.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  ihave #Hreg1 : client.kvRegsAt x $$ []
-  · iunfold client.kvRegsAt
-    iframe #
   imod (client.srvStart_alloc (GF := GF) [x]) with #Hst
   ihave #Hregs : ([∗list] y ∈ [x], client.kvRegsAt y) $$ []
   · iapply BigSepL.bigSepL_cons.2; iframe Hreg1; iapply BigSepL.bigSepL_nil.2; itrivial
   have hrb : receiptBound GF ≤ 2 ^ 62 := by omega
   have htb : threadBound GF ≤ 2 ^ 31 := by omega
-  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R clientAddr [] null null [] null default
+  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient clientAddr lg V Hlg (by unfold plainEndpoint; decide) htb)
     as %wcl %werr Hwc
@@ -267,6 +316,12 @@ theorem Main.wp_proof
     · iframe #
     ihave #Hcko : k8s.clientKvOk (GF := GF) cl ρ.rd.kv $$ []
     · iunfold k8s.clientKvOk; iexists capi, false; iframe #
+    -- its watcher handle, with the watch server's facts (D19f)
+    ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := EtcdGrove.isNewClient_watcher wp_ErrAny hAs cl
+      [clientAddr] V rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
+    · iframe #
+    ihave #Hcwo : k8s.clientWatchOk (GF := GF) cl ρ.rd.kv $$ []
+    · iunfold k8s.clientWatchOk; iexists w, _; iframe #; ipureintro; rfl
     -- `wg.Add(1)`
     wp_apply (sync.join.WaitGroup.wp_Add iprop(True) wg_ptr iprop(True) k) $$ [Hadd]
       as ⟨Hadd, Hdone⟩

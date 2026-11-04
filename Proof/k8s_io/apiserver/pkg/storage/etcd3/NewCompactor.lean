@@ -5,12 +5,14 @@ The proof of `NewCompactor`: the compactor's struct, its `stop` channel (a broad
 lock invariant (revision `0`, its counter at `0`), its wait group (`sync.join`'s, one `Add`) and
 `stopOnce` (holding the channel's closing right and the wait group's adder); then, at the nonzero
 interval, the loop goroutine (`runCompactLoop.spec`, given the client's resources and `casOk`),
-and the feature gate's answer `false` (`gateOff`): no watch loop.
+and the feature gate's answer either way (`featureInit`): on, the watch loop in a second goroutine,
+its `Add(1)` before `stopOnce` is set up with the adder.
 -/
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__runCompactLoop
+public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
@@ -39,12 +41,18 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 /-- `NewCompactor`'s proof. The `if` binds the constant `features.ListFromCacheSnapshot` before
 calling `Enabled`: translated (`features.toml`), a value, not a panic. -/
 theorem NewCompactor.wp_proof
-    (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG)) :
+    (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG))
+    (wp_runWatchLoop : compactor.runWatchLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv
-  wp_start as ⟨#Hgate, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
+  wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  · iPkgInit
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pft
+  icases Hft with ⟨%g, #Hg, #Hen⟩
   wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %sc %γs ⟨#Hsch, %_, Hsoc⟩
   (try wp_auto)
@@ -72,6 +80,18 @@ theorem NewCompactor.wp_proof
     iframe
     unfold recRevOk
     ileft; ipureintro; rfl
+  ihave #Hch : compactorChanOk c sc γs $$ []
+  · unfold compactorChanOk
+    iframe #
+  ihave #Hcore : compactorCore c cl γk recorded γc $$ []
+  · unfold compactorCore
+    isplitr
+    · ipureintro; intro r; infer_instance
+    iframe #
+    isplitr
+    · ipureintro; exact hiv
+    iexists ck
+    itrivial
   -- the wait group
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg")
     (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) $$ wg
@@ -86,24 +106,6 @@ theorem NewCompactor.wp_proof
     ipureintro; decide
   ihave Hadd := sync.join.ownAdder_wand iprop(True) _ _ _ $$ [] Hadd
   · iintro _; itrivial
-  imod sync.init_Once (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c)
-    (iprop(ownBroadcastChan sc γs iprop(True) .Pending ∗
-      sync.join.ownAdder (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c)
-        (W32 1) iprop(True))) iprop(True) ⊤
-    $$ [stopOnce Hpend Hadd] with #Honce
-  · iframe
-  ihave #Hstop : compactorStopOk c sc γs $$ []
-  · unfold compactorStopOk
-    iframe #
-  ihave #Hc : isCompactor c cl γk recorded γc $$ []
-  · unfold isCompactor
-    isplitr
-    · ipureintro; intro r; infer_instance
-    iframe #
-    isplitr
-    · ipureintro; exact hiv
-    iexists ck
-    itrivial
   (try wp_auto)
   wp_apply wp_fork $$ [Hone Hregs Hdone]
   · (try wp_auto)
@@ -119,18 +121,65 @@ theorem NewCompactor.wp_proof
     (try wp_auto)
     (try itrivial)
   (try wp_auto)
-  iunfold gateOff at Hgate
-  icases Hgate with ⟨%g, #Hg, #Hen⟩
   have hnp : k8s_io.apiserver.pkg.features.ListFromCacheSnapshot.isPanic = false := by
     simp [k8s_io.apiserver.pkg.features.ListFromCacheSnapshot]
   (try wp_auto)
-  wp_apply Hen
+  wp_apply Hen as %b
   (try wp_auto)
-  iapply HΦ
-  iframe #
-  unfold compactRevLb
-  iExactEq Hlb0
-  simp [γc]
+  -- the stop machinery, once the wait group's last `Add` is done
+  ihave Hfin : (∀ n : w32, sync.join.ownAdder
+      (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) n iprop(True) -∗
+      ownBroadcastChan sc γs iprop(True) .Pending -∗
+      structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c ↦ zero_val sync.Once -∗
+      |={⊤}=> isCompactor c cl γk recorded γc) $$ []
+  · iintro %n Hadd Hpend Honce
+    imod sync.init_Once (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c)
+      (iprop(ownBroadcastChan sc γs iprop(True) .Pending ∗
+        ∃ n : w32, sync.join.ownAdder
+          (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) n iprop(True)))
+      iprop(True) ⊤
+      $$ [Honce Hpend Hadd] with #Honce
+    · iframe
+    imodintro
+    unfold isCompactor
+    iframe Hcore
+    iexists sc, γs
+    unfold compactorStopOk
+    iframe #
+  cases b
+  · imod Hfin $$ Hadd Hpend stopOnce with #Hc
+    (try wp_auto)
+    iapply HΦ
+    iframe #
+    unfold compactRevLb
+    iExactEq Hlb0
+    simp [γc]
+  · (try wp_auto)
+    wp_apply sync.join.WaitGroup.wp_Add iprop(True) _ iprop(True) (W32 1) $$ [Hadd]
+      as ⟨Hadd, Hdone⟩
+    · iframe #; iframe
+      ipureintro; decide
+    ihave Hadd := sync.join.ownAdder_wand iprop(True) _ _ _ $$ [] Hadd
+    · iintro _; itrivial
+    imod Hfin $$ Hadd Hpend stopOnce with #Hc
+    (try wp_auto)
+    wp_apply wp_fork $$ [Hdone]
+    · (try wp_auto)
+      wp_apply wp_with_defer as %defer defer
+      (try wp_auto)
+      wp_apply (wp_runWatchLoop c cl (ms.map client.SrvAt.addr) V γk recorded γc sc γs) $$ []
+      · iframe #
+      (try wp_auto)
+      wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
+      · iframe #; iframe
+      (try wp_auto)
+      (try itrivial)
+    (try wp_auto)
+    iapply HΦ
+    iframe #
+    unfold compactRevLb
+    iExactEq Hlb0
+    simp [γc]
 
 end proof
 

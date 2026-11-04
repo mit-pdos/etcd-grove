@@ -2,9 +2,10 @@
 `Main()` (`examples/k8s/compactor/compactor.go`; K4 of `notes/k8s-compactor-plan.md`): one etcd member
 started in process in compaction mode with etcd's compactor off (`etcdstart.StartCompactingServer` at
 retention `0`, member `k8scompactor`, peer address `127.0.0.1:23986`, client address
-`127.0.0.1:23976`), served (`etcdstart.Serve`), `ListFromCacheSnapshot` turned off
-(`DisableSnapshotList`), a client that waits for the member to serve (`ready`), a writer
-goroutine, and three API servers, each with its own client and compactor, which `Main` waits for.
+`127.0.0.1:23976`), served (`etcdstart.Serve`), a client that waits for the member to serve
+(`ready`), a writer goroutine, and three API servers, each with its own client and compactor (both
+loops: `ListFromCacheSnapshot` is on by default since Kubernetes 1.34; until Q1 (b), 2026-11-04,
+`Main` turned it off), which `Main` waits for.
 Lean-first.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address, the main

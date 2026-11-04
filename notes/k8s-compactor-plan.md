@@ -231,8 +231,18 @@ collection, `etc/tcb-collections/k8s-compactor.txt`.
 - Shared: `etcdstart/OneMember.lean` (one-member `BootFacts`, `premises`, `kvModel_boot`), first user.
 
 **K5 (later).**
-- Q1 (b) after G1 (the watch loop: a watch of one key from a revision; compaction cancels its watch,
-  `notes/k8s-etcd3-plan.md` item 4).
+- Q1 (b), the watch loop, *done (2026-11-04)* (the user's approval of D1 (a), the axioms' change,
+  D2, D3; `notes/decisions.md`, "The compactor's watch loop"):
+  - W1: the client's watch takes any context it can use (`watchCtx`), so a `channelContext` too.
+  - W2/W3: `getCompactRev`, `fromWatchResponse` (translated since G1), `runWatchLoop` proved; the
+    contract `keyReadOk` (the caller's read update, result `keyHistOk`: every value the key held is
+    `FormatInt c` of a recorded `c`, reached or `0`, and the state is past revision 1); the client's
+    watcher handle `clientWatchOk`; `NewCompactor` with the gate either way (`gateOff` gone); the
+    loops see the compactor as `compactorCore` (the `Once` takes the adder after the last `Add`).
+  - W4: the example in Kubernetes' default configuration (`DisableSnapshotList` gone, its axiom
+    with it); its invariant keeps the key's history (`histOk`, `KeyHist.lean`) and one change per
+    revision (the watch server's `noDupKeys`, `NoDup.lean`); `Main` serves watches as
+    `compactwatch`'s (`wk_served_nd`).
 - Q1 (c).
 - Three members and partitions, as `etcd/partition`.
 - Q2 (ii) with the store's phase 5.

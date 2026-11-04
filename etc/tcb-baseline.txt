@@ -548,7 +548,6 @@ axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom k8s_compactor.DisableSnapshotList.wp_proof
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof

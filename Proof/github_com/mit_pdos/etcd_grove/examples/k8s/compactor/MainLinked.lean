@@ -4,7 +4,7 @@
 shared start (`etcdstart`'s `Link.lean`), of Kubernetes' compactor (etcd3's `Link.lean`, whose
 `NewCompactor` is linked under the named hypothesis of `clock.RealClock.After`, as in client-go's link),
 of `context`, to `ready`, `writer` and `apiserver` over them, and to the trust-boundary axioms of
-`zap.NewNop`, `strconv.Itoa` and `DisableSnapshotList`. `Results.lean` restates it.
+`zap.NewNop` and `strconv.Itoa`. `Results.lean` restates it.
 -/
 module
 
@@ -12,7 +12,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.DisableSnapshotList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -66,7 +65,7 @@ theorem k8s_compactor.wp_Main [Float64ToInt64Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
-    etcdstart.wp_Serve etcdstart.wp_NewClient k8s_compactor.DisableSnapshotList.wp_proof
+    etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny
     k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After)
 
 end results

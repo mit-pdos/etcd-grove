@@ -16,8 +16,9 @@
 // recorded revision, the key's values increasing, one interval between reaching a revision and
 // compacting it) are compactor_test.go's.
 //
-// ListFromCacheSnapshot is turned off first (DisableSnapshotList), so that NewCompactor starts no
-// watch loop: the specs cover the compaction loop only (the plan's Q1 (a)).
+// The API servers run Kubernetes' default configuration: ListFromCacheSnapshot (beta, on by default
+// since 1.34) makes NewCompactor also start its watch loop, which follows compact_rev_key through a
+// watch (the plan's Q1 (b)).
 package compactor
 
 import (
@@ -29,7 +30,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"k8s.io/apiserver/pkg/storage/etcd3"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/utils/clock"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
@@ -58,13 +58,6 @@ const samples = 10
 
 // The number of the writer's Puts.
 const writes = 400
-
-// DisableSnapshotList turns the feature ListFromCacheSnapshot off in the API server's default
-// feature gate, as an API server started with --feature-gates=ListFromCacheSnapshot=false does
-// (the feature is beta and on by default since 1.34). NewCompactor then starts no watch loop.
-func DisableSnapshotList() error {
-	return utilfeature.DefaultMutableFeatureGate.Set("ListFromCacheSnapshot=false")
-}
 
 // writer puts writeKey writes times, each Put in a context with the request timeout; a failed Put
 // is skipped.
@@ -133,8 +126,8 @@ func apiserver(cli *clientv3.Client) {
 	}
 }
 
-// Main starts one member of a new cluster in compaction mode with etcd's compactor off, turns
-// ListFromCacheSnapshot off, waits for the member to serve, and runs the writer and the API servers, each on its own client, until
+// Main starts one member of a new cluster in compaction mode with etcd's compactor off, waits for
+// the member to serve, and runs the writer and the API servers, each on its own client, until
 // every API server has stopped its compactor and made its checks. An error before the API servers
 // start (the member not serving within the request timeout) ends Main without a check.
 func Main() {
@@ -144,9 +137,6 @@ func Main() {
 		return
 	}
 	if err := etcdstart.Serve(s, clientAddr); err != nil {
-		return
-	}
-	if err := DisableSnapshotList(); err != nil {
 		return
 	}
 	wcli, err := etcdstart.NewClient(clientAddr, lg)

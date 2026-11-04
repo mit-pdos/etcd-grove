@@ -901,7 +901,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h172 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h9, h4, h5, h40, h24, h87, h48, h44, h171, True.intro⟩
+    exact ⟨h6, h9, h4, h5, h40, h24, h87, h44, h171, True.intro⟩
   exact h172
 
 end table

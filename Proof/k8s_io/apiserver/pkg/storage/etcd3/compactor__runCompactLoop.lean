@@ -57,10 +57,10 @@ theorem compactor.runCompactLoop.wp_proof
   intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
   wp_start as ⟨#Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
   ihave #Hc' := Hc
-  iunfold isCompactor at Hc'
+  iunfold compactorCore at Hc'
   icases Hc' with ⟨%Hpers, #Hclf, ⟨%iv, #Hiv, %hiv⟩, ⟨%ck, #Hck⟩, #Honc, #Hmu, -⟩
-  iunfold compactorStopOk at Hstop
-  icases Hstop with ⟨#Hsc, #Hbc, #Honce⟩
+  iunfold compactorChanOk at Hstop
+  icases Hstop with ⟨#Hsc, #Hbc⟩
   icases ownBroadcastChan_open _ _ _ _ $$ Hbc with ⟨%γi, #Hint, -⟩
   ihave #Pw : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait $$ []
   · iPkgInit
