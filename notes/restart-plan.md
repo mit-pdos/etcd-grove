@@ -1204,3 +1204,16 @@ moved.
   order of the records' base and commit around the handed log.
 - `raftNode.stop.specStop` proved (`wp_proofStop`, over `rn_esc_take`: the claim takes the image,
   the apply side's token at `A` makes the handed log `A`). `spec` stays (its callers don't stop).
+
+### R2b-3c, part 1: the backend's file at its `Close` (2026-11-04)
+
+The user approved the trusted change (scratch candidate 1): bbolt's `Open_kv` records the file
+(`dbFile db path`), `DB.Close_kv` takes `ownDB db γ D` and gives `fileHolds path D`. Proved over it:
+the backend's names gain `dbf` (the database and its file, `bDBAt`, discarded: `isBackend`,
+`batchPhys` name it, so the stop and `Close` agree); `unsafeCommit`/`commit`/`CommitAndStop` give the
+stopped batch transaction's database out (`bDBOut`); `run` escrows it on `donec` (`bDoneEsc`, until
+then `True`); `Close` keeps half of the close right as its claim (`stop_take`), takes the database
+out (`bDoneEsc_take`) and closes it: its post gives the file (`bFile γ path ∗ fileHolds path D`).
+`applySnapshot` drops the old backend's file. Trust base: +2 (`dbFile`, `dbFile_persistent`).
+Next (part 2): `D` observed (the store's view at the consistent index, as `backend.Snapshot`'s
+observation), `New` giving `bFile γ cfg.Path`, `Cleanup`'s spec, `srvFiles` defined.

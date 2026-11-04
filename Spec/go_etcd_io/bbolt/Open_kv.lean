@@ -12,7 +12,8 @@ fails), the default page size (`Open` initializes a new file with `4 * PageSize`
 one panics) and the default `OpenFile`; their logger nil or one bbolt may call (`boltLogger`).
 Until then the spec took no options at all, which was false of bbolt for read-only options. The
 database's data is `fileHolds path D`: for a new member's empty file, `D = ∅` (`Open` creates the
-file and writes its meta pages).
+file and writes its meta pages). (2026-11-04, R2b-3c, the user's approval) The success case also
+records which file the database is (`dbFile db path`), which `DB.Close_kv` gives back.
 -/
 module
 
@@ -43,7 +44,9 @@ abbrev bbolt.Open_kv.spec : Prop :=
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
       (⌜err ≠ GoInterface.nil⌝ ∨
-       (⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db)) }}
+       (⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db ∗
+          -- (2026-11-04, R2b-3c, the user's approval) which file it is (`DB.Close_kv` gives it back)
+          dbFile db path)) }}
 
 end spec
 

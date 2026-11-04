@@ -31049,3 +31049,16 @@ handed, the stop's post at the apply side's `A`; equating them needs every sent 
 which Go's unbuffered channel gives and `isSpsc` (which admits a value in flight) does not.
 Perennial's `SyncSpsc` idiom records each side's pending operation, so the two tokens together
 exclude a value in flight; its statements are otherwise `Spsc`'s, so the switch was a rename.
+
+## bbolt's `Close` gives the file back (2026-11-04 · the user's approval, R2b-3c)
+
+**Before:** `bbolt.Open_kv` consumed `fileHolds path D` and `bbolt.DB.Close_kv` gave only an error,
+so a stopped member's bbolt file was owned by no one, and the restart image's `srvFiles` (R2c) had
+no source. **Now** (the trust boundary changes, approved as drafted): `Open_kv`'s success also
+gives `dbFile db path` (a new persistent axiom predicate: the open database is the file at `path`),
+and `DB.Close_kv` takes `dbFile db path ∗ ownDB db γ D` and gives `fileHolds path D` on success.
+True of bbolt: `ownDB` at `D` excludes an open write transaction; every commit wrote its pages and
+meta page before returning; `Close` writes nothing; in one process an unsynced write reads back
+(graceful stops only, the restart plan's Q4). The proved `backend.Close` carries the file to its
+caller with an observation of the committed data in the pattern of `backend.Snapshot`'s.
+**Rejected:** an axiom at the backend's level (would make the proved `backend.Close` assumed).
