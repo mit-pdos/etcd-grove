@@ -1644,3 +1644,10 @@ parts (bbolt's writer heap, `wtxHeap`) cannot get `Fractional` by instance searc
 private `ownMap_dfractional'` in `Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (U5c's proof: through
 `ownMap_unseal` and `heapPointsto_dfractional`, persistence by `ownMap_discarded_persist` /
 `ownMap_persist`), which is general. The general change: that instance next to `ownMap_fractional`.
+
+## `sync.Once`'s spec is fixed to `HasLC.hasLC` (2026-11-04, bbolt batch 38)
+
+Perennial's `sync.Once` spec (`isOnce`, `Once.Do`) is stated at `HasLC.hasLC` only, so a proof
+generic in `hlc` (bbolt's, every internal spec) cannot use it. bbolt's `Open` steps `Do` on an owned
+zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_Do_own`, any
+`hlc`). The general change: an `hlc`-generic `Once` spec in Perennial.
