@@ -246,7 +246,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave Hmf : mapFields K.db (DFrac.own (1 : Qp).half) (some (b, l) : MapSt) $$ [Hdr Hd Hm0 Hm1]
   · simp only [mapFields]; iframe; ipureintro; exact Hb
   wp_apply wp_Tx_init wp_meta wp_Copy wp_RootBucket wp_IncTxid «$r0_ptr» K.db b l w.C _ _ true _ _ _ _ hok
-    $$ [writable db meta' root pages Hmf Hmc] as %m %ibp %bm %nm %pm ⟨Hw, Hdb, Hme, Hrt, Hpg, Hmv, Hib, Hmaps, Hmf, Hmc⟩
+    $$ [writable db meta' root pages Hmf Hmc] as %m %ibp %bm %nm %pm ⟨Hw, Hdb, Hme, Hrt, Hpg, Hmv, Hib, Hmaps, Hmf, Hmc, %Hmpos⟩
   · iframe
   icases Hmaps with ⟨Hpm, Hbm, Hnm⟩
   -- `ReleasePendingPages`
@@ -405,7 +405,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · unfold viewOf; iexact Hvw
   ipureintro
   refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
-    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, wrFacts_wx0 _ _ _ _ _ _ rfl⟩
+    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, Hmpos, wrFacts_wx0 _ _ _ _ _ _ rfl⟩
   trivial
 
 end proof

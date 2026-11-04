@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Meta__Copy
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__RootBucket
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__IncTxid
 public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
+public import Proof.go_etcd_io.bbolt.Txn.MetaAlloc
 
 @[expose] public section
 
@@ -119,15 +120,23 @@ theorem wp_Tx_init (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
         (if w then iprop(pm ↦$ (∅ : GMap w64 Loc) ∗ bm ↦$ (∅ : GMap GoString Loc) ∗
             nm ↦$ (∅ : GMap w64 Loc))
          else iprop(⌜pm = null ∧ bm = null ∧ nm = null⌝)) ∗
-        mapFields db dq (some (b, l) : MapSt) ∗ metaCellsQ q (some (b, l) : MapSt) C }} := by
+        mapFields db dq (some (b, l) : MapSt) ∗ metaCellsQ q (some (b, l) : MapSt) C ∗
+        ⌜0 < m.addr⌝ }} := by
   wp_start as ⟨Hw, Hdb, Hm, Hr, Hp, Hmf, Hmc⟩
+  wp_pures
+  wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
+  repeat (wp_pures; first | wp_load | wp_store)
+  wp_pures
+  wp_apply +noauto Meta.wp_alloc_pos as %mp ⟨Hmp, %Hmpos⟩
   wp_auto
   wp_apply wp_meta db b l C dq q hok $$ [Hmf Hmc] as ⟨Hmf, Hmc⟩
   · iframe
   icases metaCells_cur_acc b l C q hok $$ Hmc with ⟨Hc, Hcl⟩
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
-  wp_apply wp_Copy _ _ _ _ _ $$ [Hc «$r0»] as ⟨Hc, Hmv⟩
+  wp_apply wp_Copy _ _ _ _ _ $$ [Hc Hmp] as ⟨Hc, Hmv⟩
   · iframe
   ihave Hmc := Hcl $$ Hc
   generalize metaOf (C.slot C.txid) = mv
@@ -142,7 +151,7 @@ theorem wp_Tx_init (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     wp_auto
     iapply HΦ
     iframe
-    ipureintro; exact ⟨rfl, rfl, rfl⟩
+    ipureintro; exact ⟨⟨rfl, rfl, rfl⟩, Hmpos⟩
   · simp only [↓reduceIte]
     wp_auto
     wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %pm Hpm
@@ -150,6 +159,7 @@ theorem wp_Tx_init (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     · iframe
     iapply HΦ
     iframe
+    ipureintro; exact Hmpos
 
 end proof
 

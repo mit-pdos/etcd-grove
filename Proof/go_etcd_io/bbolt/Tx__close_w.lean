@@ -150,7 +150,7 @@ theorem Tx.close_w.wp_proof
   icases Hw with ⟨Hcore, %ms', Hmf', Hcells⟩
   iunfold wtxCore at Hcore
   icases Hcore with ⟨#Hpkg, #Hkc, %Hc, #Hreg, Hh, -, -, -, Hdb, -, Hstok⟩
-  obtain ⟨hdb, -, htxn, -, hrootn⟩ := Hc
+  obtain ⟨hdb, -, htxn, -, hrootn, -⟩ := Hc
   rw [hdb]
   iunfold wdbLive at Hlive
   icases Hlive with ⟨Hcg, Hflo, Hpair, Hrcpt⟩

@@ -141,7 +141,7 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
-      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ wrFacts X⌝)
+      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr ∧ wrFacts X⌝)
 
 /-- **A read transaction over the core** (A2, round 4 N5): `boltTx`'s reader part with
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/

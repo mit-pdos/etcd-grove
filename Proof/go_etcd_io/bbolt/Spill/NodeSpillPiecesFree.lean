@@ -223,7 +223,8 @@ theorem pieceFree_wp (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := h
   rw [htxid]
   iframe; iframe #
   isplitr
-  · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, by unfold WX.setNode; split <;> exact Hr.2.2.2.1, Hr.2.2.2.2⟩, Hlen, Hl⟩
+  · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, by unfold WX.setNode; split <;> exact Hr.2.2.2.1, Hr.2.2.2.2.1,
+    by unfold WX.setNode; split <;> exact Hr.2.2.2.2.2⟩, Hlen, Hl⟩
   isplitl [Hflo]
   · isplitl [Hflo]
     · rw [← hhid]; simp only [pageHdr, pageOverflow]; iexact Hflo

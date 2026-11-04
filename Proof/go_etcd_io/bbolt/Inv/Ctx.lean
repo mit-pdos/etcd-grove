@@ -63,11 +63,13 @@ def statsTok (r : TxReg) (m : Bool) (q : Qp) : IProp GF :=
 
 /-- The writer's state but the view's cells and its mapping fields' quarter: the database's core,
 its registration, its heap `X` at `1`, its handles' fills, its handle and node registries'
-auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`). -/
+auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`); its meta
+copy at a positive address (maintainer 13: `writeMeta`'s premise; `Tx.init` allocates it, and
+Go's allocation gives a positive address, `struct_wp_alloc_pos`). -/
 def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
-      txRoot (GF := GF) tx ≠ null⌝ ∗ reg tx K.B r ∗
+      txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
     ghostMapAuth r.n.bk 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)
@@ -407,7 +409,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
-    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, h9⟩ := Hfacts
+    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
@@ -423,7 +425,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       iframe Hpk Hc Hreg Hh Hf Hbk Hnl Hvc Hvo Hex
       iframe Hdb
       isplitr
-      · ipureintro; exact ⟨hdb, hrw', h6, h7, h8⟩
+      · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
   · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
@@ -445,7 +447,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     · iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro
     exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
-      Hr.2.2.2.2, Hfacts.2.2.2.2⟩
+      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩
 
 /-- **A reader is a reader with its view** (U6 proves; the read path's internal reader specs are
 over `rdTxK`). -/

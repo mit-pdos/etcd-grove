@@ -184,7 +184,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave Hmf : mapFields K.db (DFrac.own sync.rfrac.half) (some (b, l) : MapSt) $$ [Hdr Hd Hm0 Hm1]
   · simp only [mapFields]; iframe; ipureintro; exact Hb
   wp_apply wp_Tx_init wp_meta wp_Copy wp_RootBucket wp_IncTxid «$r0_ptr» K.db b l C _ _ false _ _ _ _ hok
-    $$ [writable db meta' root pages Hmf Hmc] as %m %ibp %bm %nm %pm ⟨Hw, Hdb, Hme, Hrt, Hpg, Hmv, Hib, Hmaps, Hmf, Hmc⟩
+    $$ [writable db meta' root pages Hmf Hmc] as %m %ibp %bm %nm %pm ⟨Hw, Hdb, Hme, Hrt, Hpg, Hmv, Hib, Hmaps, Hmf, Hmc, %Hmpos⟩
   · iframe
   imod meta_return K.B K.N K.p ⊤ CoPset.subseteq_top C (some (b, l)) $$ [Hpi Hmc Hmln Hcur' Hmap']
     with ⟨Hmlk, Hmt2, Hcur', Hmap'⟩
