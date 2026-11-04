@@ -346,12 +346,24 @@ def leafShape (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → r.nv.isLeaf' = true →
     ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)
 
+/-- **The root shape on the view pages under the writer's page positions** (batch 35, U7e's
+finding): every leaf page of the view tree under a page position of a bucket `bl` (`posRoot`: its
+root page without a root node, or an unmaterialized child of one of its branch nodes; `ownHas`:
+the pages below it) holds bucket entries iff `bl` is the root bucket. What a materialization's new
+leaf node inherits for `leafShape`. Established at `beginRWTx` from `rootShape` (U5d), kept by
+`Bucket.Bucket_w`'s open (U6e, from the parent's value), materialization (U7), rebalance (U8d),
+dereferencing (`Spill/DerefWOK.posShape_step`) and spill (U9). -/
+def posShape (X : WX) : Prop :=
+  ∀ bl B, X.t.bs !! bl = some B → ∀ c p pg, posRoot B c → ownHas X.v.pages c p →
+    X.v.pages !! p = some pg → pageFlags pg = leafPageFlag →
+    ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl)
+
 /-- The clean invariant of the transaction (old `txClean`), its root bucket at `X.rl`; batch 30
 (U9d), in its second clause beside `pm = ∅` (so that the six-clause patterns stand): no dirty-page
-buffers yet (`spill` allocates them; `WX.bufPages` reads all of `bufs`), and the leaves' root
-shape (`leafShape`). -/
+buffers yet (`spill` allocates them; `WX.bufPages` reads all of `bufs`), the leaves' root shape
+(`leafShape`), and (batch 35) the view pages' under the page positions (`posShape`). -/
 def txClean (X : WX) : Prop :=
-  X.t.t.writable' = true ∧ (X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X) ∧
+  X.t.t.writable' = true ∧ (X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X ∧ posShape X) ∧
   2 ≤ X.t.mv.pgid'.toNat ∧ X.v.txid + 1 = X.t.mv.txid'.toNat ∧ (X.t.bs !! X.rl).isSome ∧
   ∀ bl B, X.t.bs !! bl = some B → bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     ∀ name c, B.bm !! name = some c → (X.t.bs !! c).isSome

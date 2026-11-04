@@ -50,13 +50,47 @@ theorem leafShape_step {X X' : WX} (h : derefStep X X') (hs : leafShape X) : lea
     rw [← hf]
     exact hs bl B hB l r hr hl w0 hw0
 
+/-- A page position of a dereferenced bucket is one of the bucket's before (batch 35): the
+header, the root node and the node cache are kept, a node's `isLeaf` and its entries' page ids
+too. -/
+theorem posRoot_bktStep {B B' : BRec} (hst : bktStep B B') {c : Nat} (h : posRoot B' c) :
+    posRoot B c := by
+  have e := hst.1
+  have hbv : B'.bv = B.bv := by rw [← e]
+  have hib : B'.ib = B.ib := by rw [← e]
+  have hnm : B'.nm = B.nm := by rw [← e]
+  rcases h with ⟨h1, h2, h3⟩ | ⟨l, i, ⟨r', w, hr', hlf, hw, hpg, hnm'⟩, hc⟩
+  · exact Or.inl ⟨hbv ▸ h1, hib ▸ h2, hib ▸ h3⟩
+  · right
+    obtain ⟨r, hr, hns⟩ := optRel_some_r (hr' ▸ hst.2 l)
+    rcases hns with rfl | hd
+    · exact ⟨l, i, ⟨r', w, hr, hlf, hw, hpg, hnm ▸ hnm'⟩, hc⟩
+    · have hl : r.nv.isLeaf' = false := by rw [← hlf, hd.1]
+      have hm := congrArg (fun L => L[i]?) hd.2.2.1
+      simp only [List.getElem?_map, hw, Option.map_some] at hm
+      cases hri : r.ws[i]? with
+      | none => rw [hri] at hm; cases hm
+      | some w0 =>
+        rw [hri] at hm
+        have : w0.pgid = w.pgid := congrArg (fun x => x.2.1) (Option.some.inj hm).symm
+        exact ⟨l, i, ⟨r, w0, hr, hl, hri, this.trans hpg, hnm ▸ hnm'⟩, hc⟩
+
+/-- Dereferencing keeps the view pages' root shape under the page positions (batch 35). -/
+theorem posShape_step {X X' : WX} (h : derefStep X X') (hs : posShape X) : posShape X' := by
+  intro bl B' hB' c p pg hc hp hpg hl i hi
+  obtain ⟨B, hB, hst⟩ := derefStep_bwd h hB'
+  rw [h.1] at hp hpg
+  rw [h.2.2.2.2.1]
+  exact hs bl B hB c p pg (posRoot_bktStep hst hc) hp hpg hl i hi
+
 theorem txClean_step {X X' : WX} (h : derefStep X X') (hc : txClean X) : txClean X' := by
   obtain ⟨hv, -, -, -, hrl, htt, hmv, hpm, hbuf, -, -, -⟩ := id h
-  obtain ⟨c1, ⟨c2, c2b, c2s⟩, c3, c4, c5, c6⟩ := hc
+  obtain ⟨c1, ⟨c2, c2b, c2s, c2p⟩, c3, c4, c5, c6⟩ := hc
   have c2s' := leafShape_step h c2s
+  have c2p' := posShape_step h c2p
   unfold txClean
   rw [hv, hrl, htt, hmv, hpm, hbuf, derefStep_bs_isSome h]
-  refine ⟨c1, ⟨c2, c2b, c2s'⟩, c3, c4, c5, ?_⟩
+  refine ⟨c1, ⟨c2, c2b, c2s', c2p'⟩, c3, c4, c5, ?_⟩
   intro bl B' hB'
   obtain ⟨B, hB, hs⟩ := derefStep_bwd h hB'
   obtain ⟨d1, d2⟩ := c6 bl B hB

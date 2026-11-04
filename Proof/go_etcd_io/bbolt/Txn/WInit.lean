@@ -83,10 +83,13 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact hi.writable
   · -- batch 30: no buffers, no node (so `leafShape`)
-    refine ⟨rfl, rfl, ?_⟩
-    intro bl B hB l r hr
-    obtain ⟨rfl, rfl⟩ := hbs bl B hB
-    exact absurd hr (by simp [brec0])
+    refine ⟨rfl, rfl, ?_, ?_⟩
+    · intro bl B hB l r hr
+      obtain ⟨rfl, rfl⟩ := hbs bl B hB
+      exact absurd hr (by simp [brec0])
+    · -- batch 35: `posShape` of the initial records (the root bucket's root page: `rootShape`;
+      -- owner U5d)
+      sorry
   · show 2 ≤ mv.pgid'.toNat; rw [hi.pgid]; omega
   · show C.txid + 1 = mv.txid'.toNat; rw [hi.txid]
   · simp [wx0]

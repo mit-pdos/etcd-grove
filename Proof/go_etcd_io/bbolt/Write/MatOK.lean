@@ -114,7 +114,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hpid : r.nv.pgid'.toNat = pgid.toNat)
     (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)) :
     wOK (matX X bl l pgid B') := by
-  obtain ⟨⟨hw, ⟨hpm, hbuf, hsh⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
+  obtain ⟨⟨hw, ⟨hpm, hbuf, hsh, hps⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
     hv⟩ := hok
   have hbs' := matX_bs X bl l pgid B'
   have hcase : ∀ c C, (matX X bl l pgid B').t.bs !! c = some C →
@@ -151,7 +151,8 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       have : (X.t.objs !! l).isSome = true := by
         rw [objs_isSome]; exact Or.inl (by rw [h]; rfl)
       rw [hlo] at this; cases this
-  refine ⟨⟨hw, ⟨hpm, hbuf, leafShape_matX X bl l pgid B B' r hsh hB hnew hnsN hshape⟩, hpg2, htxid,
+  refine ⟨⟨hw, ⟨hpm, hbuf, leafShape_matX X bl l pgid B B' r hsh hB hnew hnsN hshape,
+    sorry /- batch 35: `posShape` through the materialization (owner U7f) -/⟩, hpg2, htxid,
     by rw [hdom]; exact hrl, fun c C hC => ?_⟩, fun c C hC => ?_,
     ?_, ?_, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hv⟩
   · -- txClean
