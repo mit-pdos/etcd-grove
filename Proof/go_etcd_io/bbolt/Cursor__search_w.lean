@@ -65,7 +65,8 @@ theorem Cursor.search_w.wp_aux
         ▷ (∀ (stk' : GoSlice) (path : List elemRef) (pids : List w64),
           (wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
             ownSliceCap elemRef stk' (DFrac.own 1) ∗
-            ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb⌝) -∗ Φ #()) -∗
+            ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧
+              ∀ p ∈ pids, posOK X bl B p⌝) -∗ Φ #()) -∗
         WP (App (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key))
           (Val #pid)) {{ Φ }}
       : IProp GF) := by
@@ -83,6 +84,7 @@ theorem Cursor.search_w.wp_aux
   ihave %Hmax := wtxW_page_maxMap K tx r m X $$ Hw
   wp_method_call; wp_call
   wp_auto
+  have hpos0 := hpos
   rcases hpos with ⟨l, rn, hres, hrn⟩ | hpage
   · -- a materialized node
     have hlv : l ∈ X.live := hnsl l rn hrn
@@ -336,7 +338,11 @@ theorem Cursor.search_w.wp_aux
       rw [hleaf] at hlt
       refine ⟨lPathFrom_cons X bl pid ⟨null, n, ri⟩ rn.ws w path' pids'
           (refAt_node X bl B pid n _ hB hres rfl) hlt (by rw [hri]; exact Hw_lookup) Hrt.1,
-        lRoutes_cons X bl pid ⟨null, n, ri⟩ rn.ws path' pids' kb hlt ?_ Hrt.2⟩
+        lRoutes_cons X bl pid ⟨null, n, ri⟩ rn.ws path' pids' kb hlt ?_ Hrt.2.1,
+        fun p hp => by
+          rcases List.mem_cons.1 hp with rfl | hp
+          · exact hpos0
+          · exact Hrt.2.2 p hp⟩
       show ri.toNat < _ ∧ _
       rw [hri]; exact nRoute_lroute rn.ws kb k hR1
     · -- a leaf node
@@ -353,7 +359,8 @@ theorem Cursor.search_w.wp_aux
       have hix : wsIdx rn.ws kb ≤ rn.ws.length := by
         unfold wsIdx; exact (List.takeWhile_sublist _).length_le
       refine ⟨lPathFrom_leaf X bl pid _ rn.ws (refAt_node X bl B pid n _ hB hres rfl) hlt,
-        lRoutes_leaf X bl pid _ rn.ws kb hlt ?_⟩
+        lRoutes_leaf X bl pid _ rn.ws kb hlt ?_,
+        fun p hp => by simp at hp; subst hp; exact hpos0⟩
       show (W64 (wsIdx rn.ws kb : Int)).toNat = wsIdx rn.ws kb
       simp; omega
   · -- a page: the inline page, or a view page
@@ -421,7 +428,8 @@ theorem Cursor.search_w.wp_aux
         rw [ltree_page X bl B pid pa pg hB hres hw, hlf]; rfl
       have hix := pageSeekIdx_le pg kb
       refine ⟨lPathFrom_leaf X bl pid _ (pageWs pg) (refAt_page X bl B pid pg _ hB hres rfl hw) hlt,
-        lRoutes_leaf X bl pid _ (pageWs pg) kb hlt ?_⟩
+        lRoutes_leaf X bl pid _ (pageWs pg) kb hlt ?_,
+        fun p hp => by simp at hp; subst hp; exact hpos0⟩
       show (W64 (pageSeekIdx pg kb : Int)).toNat = wsIdx (pageWs pg) kb
       rw [← pageSeekIdx_wsIdx pg kb hlf]
       simp; omega
@@ -668,7 +676,11 @@ theorem Cursor.search_w.wp_aux
       refine ⟨lPathFrom_cons X bl pid ⟨pa, null, ri⟩ (pageWs pg) (pageW pg k) path' pids'
           (refAt_page X bl B pid pg _ hB hres rfl hw) hlt
           (by show (pageWs pg)[ri.toNat]? = _; rw [hri]; exact pageWs_get pg k hkc) Hrt.1,
-        lRoutes_cons X bl pid ⟨pa, null, ri⟩ (pageWs pg) path' pids' kb hlt ?_ Hrt.2⟩
+        lRoutes_cons X bl pid ⟨pa, null, ri⟩ (pageWs pg) path' pids' kb hlt ?_ Hrt.2.1,
+        fun p hp => by
+          rcases List.mem_cons.1 hp with rfl | hp
+          · exact hpos0
+          · exact Hrt.2.2 p hp⟩
       show ri.toNat < _ ∧ _
       have hsk : (sint.Z ri).toNat = k := by omega
       rw [hri]; rw [hsk] at hR1

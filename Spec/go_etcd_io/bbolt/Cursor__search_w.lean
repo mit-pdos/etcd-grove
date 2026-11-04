@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `c.search(key, pid)` in the writer's searchable bucket `bl` (record `B`) from its searchable
 position `pid` (position `0` of an inline bucket): the stack grows by a logical path from `pid`
-routing `kb`. Nothing of `X` changes. -/
+routing `kb`, through searchable positions. Nothing of `X` changes. -/
 abbrev Cursor.search_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
     (stk : GoSlice) (els : List elemRef) (pid : w64) (key : GoSlice) (ks : Src) (kb : List w8),
@@ -39,7 +39,7 @@ abbrev Cursor.search_w.spec : Prop :=
   {{ RET #(); ∃ (stk' : GoSlice) (path : List elemRef) (pids : List w64),
       wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
       ownSliceCap elemRef stk' (DFrac.own 1) ∗
-      ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb⌝ }}
+      ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧ ∀ p ∈ pids, posOK X bl B p⌝ }}
 
 end spec
 
