@@ -747,3 +747,49 @@ example picks its mode (`.none` everywhere but `leasegrant`, `.mono`; `leaseexpi
   `etcdLeaseServedAt m`: `none` the KV calls, `mono` `etcdLeaseGrantAt` (as before), `revocable`
   `etcdLeaseGrantLiveAt` (the live grant; the listing the lease reads' `etcdLeaseLeasesSpecAny`).
   `alloc1` takes the mode with its `runCfg`.
+
+## Plumbing: Part X-b (2026-11-04): stopped at X7's design point, before any edit
+
+The brief's gate: count the sites the mode must reach, do (i) (the mode a parameter of what needs it)
+if under about 150, else stop with both options. Counted on `2c9b9fcd8b` (lines, `Proof`, `Spec`,
+`examples`):
+
+- **What reads the flag today.** The admission is pure and fed from the workload facts, not from
+  `rqOk` alone: the apply thread's `rqOk E.lg x.log rq` (`uberApplier.Apply.spec`, `dispatch.spec`,
+  `ApplyRec`) comes from `kvWork`'s `logShape γk.lg` (`entryShape` → `rqShape lg` → `rqOk lg` at every
+  log), and `kvInv`'s `plainLogM γk.cmp γk.lg` (`plainEntryM`, `grantPropOk`). `γk` (`KVNames`) and
+  `E` (`AEnv`, with `AEnv.lg`, tied by `srvKVInvs`' `γr.kv.lg = E.lg`) carry no mode.
+- **(i), the mode a parameter.** Every predicate on that path gains `m`, and every binder above it:
+  the pure names (`rqOk`, `rqShape`, `entryShape`, `logShape(M)`, `plainEntryM`, `plainLogM`,
+  `grantPropOk`, their lemmas) 319 lines in 51 files; `kvInv`/`kvInvOn`/`kvInvM`/`kvWork`/
+  `srvKVInvs(On, M)` 383 lines in 63 files; the apply side's `E.lg` 120 lines in 33 files (a mode
+  binder in `Apply.spec`/`dispatch.spec` and their callers, since `AEnv` has none). The union of the
+  flag's sites is 548 lines in 93 files; the changed lines are several hundred, well over 150.
+- **(ii), a cluster flag `KVNames.lr : Bool := false`** (revocations admitted; `lr = decide (m =
+  .revocable)` in `lease.runCfg`/`lease.bootCfg`). The pure names take it beside `lg`: 106 lines pass
+  the flag explicitly (`… γk.lg`, `… lg`/`false`), the rest unfold; no binder threaded (it rides in
+  `γk`). It needs an apply-side twin too (`AEnv.lr`, tied in `srvKVInvs` as `lg` is), since the apply
+  thread reads `rqOk E.lg`: about 110-130 lines. Against the slot convention (a lease field in
+  `KVNames` and in `AEnv`), as X-a's option (b) was.
+
+Not decided here (the brief: (ii) is the user's). Two further points X7 meets whichever is chosen:
+- `revokeRes` (`apply/Chain.lean:1314`) takes `⌜E.lg = false⌝ ∗ lease.lessorRevocable`: in a granting
+  cluster the apply thread holds the live set's half `ltHalf` (48 sites) and the lessor's mode, so the
+  revocation arm's resources must be reworked (the live set's half updated by `restRevoke`'s id), as
+  the grant's were in lease-grant's 3b-4g.
+- The KV model already has the revocation (`backendLog`/`backendTable`'s `.leaseRevoke` arms); the
+  identity needs `revokeChanges (stateAfter log) id = []` from the plain log's lease-free keys and
+  `commitLog log [] = log`.
+
+**X6 not started**: `LeaseRevoke.spec`'s post (the revocation applied at some index) goes through
+`raftRequest`, whose proposal needs X7's `reqPropOk` form.
+
+**`revokeExpiredLeases.spec`'s pre (item 3, checked).** It has `srvFieldsAt` and `srvRunFieldsAt`
+(with `srvGoAttachOk`: `s.ctx ↦□ c`, `s.stopping`, the wait group). A proof calling `LeaseRevoke` on
+`LeaseGrant.spec`'s model lacks: `isServerReq s E ρ` (the request path's fields: `reqIDGen`, the raft
+node, `kvInv`, the mint invariant; `srvFieldsAt` has only `waitInv`) and its `ρ` (the spec binds
+none); `srvAuthAt s E` (`requireAuthInfo`, `WithRoot`'s `IsAuthEnabled`); a context fact for
+`s.ctx` (`context.isContext c cd`: `srvGoAttachOk` has the field only) and a spec of
+`authStore.WithRoot` (none exists; at auth off it returns its argument); per goroutine
+`srvLeadTimeReader s`, `E.RD` and `□ (|==> idCred ρ.ids 1)` (P1's pools); and the mode
+(`m = .revocable`: the guard gives only `E.lg = true ∧ auth off`). Not changed (the brief).
