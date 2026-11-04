@@ -536,6 +536,264 @@ private theorem R_empty_of_tok (B : BNs) (R : GMap Nat RdInfo) :
       grind
   exact GMap.map_size_empty_inv R hsz
 
+private theorem W64_toNat_of_lt' (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
+  simp only [W64, BitVec.toNat_ofInt]; omega
+
+private theorem W64_toNat_eq (x : w64) : W64 (x.toNat : Int) = x := by
+  simp only [W64, BitVec.ofInt_natCast, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+
+private theorem mem_pagesSlots' (P : Pages) (s : Nat) : s ∈ pagesSlots P ↔ coversSlot P s := by
+  simp only [pagesSlots, List.mem_flatMap, List.mem_range', coversSlot]
+  constructor
+  · rintro ⟨⟨id, pg⟩, hip, j, hj, rfl⟩
+    exact ⟨id, pg, (GMap.mem_toList _ _ _).1 hip, by omega, by simp only at hj; omega⟩
+  · rintro ⟨id, pg, hp, h1, h2⟩
+    exact ⟨(id, pg), (GMap.mem_toList _ _ _).2 hp, s - id, by simp only; omega, by omega⟩
+
+private theorem tree_in_store' (σ : StoreSt) (s : Nat) (h : coversSlot σ.C.pages s) :
+    s ∈ storeSlots σ := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append]
+  exact Or.inl ((mem_pagesSlots' _ _).2 h)
+
+private theorem treeSlot_lt64 (σ : StoreSt) (h : storeOK σ) (s : Nat) (hs : coversSlot σ.C.pages s) :
+    s < 2 ^ 64 := by
+  obtain ⟨id, pg, hp, h1, h2⟩ := hs
+  have := h.2.1.2.2.2.1 id pg hp
+  have hm := h.1.2.2.2.2.2.2.1.2.2.1
+  have := (metaOf (σ.C.slot σ.C.txid)).pgid'.isLt
+  omega
+
+private theorem mem_pendSlots (fl : FLPg) (s : Nat) :
+    s ∈ pendSlots fl ↔ ∃ t pd x, fl.pending !! t = some pd ∧ x ∈ pd.ids ∧ x.toNat = s := by
+  simp only [pendSlots, FLPg.pendingIds, List.mem_map, List.mem_flatMap]
+  constructor
+  · rintro ⟨x, ⟨⟨t, pd⟩, hkv, hx⟩, rfl⟩
+    exact ⟨t, pd, x, (GMap.mem_toList _ _ _).1 hkv, hx, rfl⟩
+  · rintro ⟨t, pd, x, hp, hx, rfl⟩
+    exact ⟨x, ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩, rfl⟩
+
+private theorem run_toNat (id : w64) (n j : Nat) (hj : j < n) (hn : id.toNat + n < 2 ^ 64) :
+    (id + W64 (j : Int)).toNat = id.toNat + j := by
+  simp only [W64, BitVec.toNat_add, BitVec.toNat_ofInt]; omega
+
+private theorem mem_runIds' (id : w64) (n : Nat) (x : w64) :
+    x ∈ runIds id n ↔ ∃ j < n, x = id + W64 (j : Int) := by
+  simp only [runIds, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+
+private theorem mem_runIds_toNat (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (x : w64) :
+    x ∈ runIds id n ↔ id.toNat ≤ x.toNat ∧ x.toNat < id.toNat + n := by
+  rw [mem_runIds']
+  constructor
+  · rintro ⟨j, hj, rfl⟩; rw [run_toNat id n j hj hn]; omega
+  · intro ⟨h1, h2⟩
+    refine ⟨x.toNat - id.toNat, by omega, ?_⟩
+    apply BitVec.eq_of_toNat_eq
+    rw [run_toNat id n _ (by omega) hn]; omega
+
+private theorem inRun_W64 (id : w64) (n s : Nat) (hs : s < 2 ^ 64) :
+    inRun id n (W64 (s : Int)) ↔ id.toNat ≤ s ∧ s < id.toNat + n := by
+  unfold inRun; rw [W64_toNat_of_lt' s hs]
+
+private theorem freePages_lookup (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : (fl.freePages T id n).pending !! t = some pd) :
+    (t ≠ T ∧ fl.pending !! t = some pd) ∨
+    (t = T ∧ ∃ P : Pending, (fl.pending !! T).getD ⟨[], [], 0⟩ = P ∧
+      pd = ⟨P.ids ++ runIds id n, P.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0),
+        P.lastReleaseBegin⟩) := by
+  simp only [FLPg.freePages, GMap.lookup_insert_eq_iff] at h
+  split at h
+  · rename_i he; cases h; exact Or.inr ⟨he.symm, _, rfl, rfl⟩
+  · rename_i he; exact Or.inl ⟨fun e => he e.symm, h⟩
+
+private theorem freePages_pending_old (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : fl.pending !! t = some pd) : ∃ pd', (fl.freePages T id n).pending !! t = some pd' ∧
+      ∀ x, x ∈ pd.ids → x ∈ pd'.ids := by
+  by_cases ht : t = T
+  · subst ht
+    refine ⟨⟨pd.ids ++ runIds id n, pd.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0),
+      pd.lastReleaseBegin⟩, by simp [FLPg.freePages, h], fun x hx => ?_⟩
+    simp only [List.mem_append]; exact Or.inl hx
+  · exact ⟨pd, by simp [FLPg.freePages, Ne.symm ht, h], fun x hx => hx⟩
+
+private theorem pendSlots_free (fl : FLPg) (T id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (s : Nat) :
+    s ∈ pendSlots (fl.freePages T id n) ↔
+      s ∈ pendSlots fl ∨ (id.toNat ≤ s ∧ s < id.toNat + n) := by
+  rw [mem_pendSlots, mem_pendSlots]
+  constructor
+  · rintro ⟨t, pd, x, hp, hx, rfl⟩
+    rcases freePages_lookup fl T id n t pd hp with ⟨-, hp⟩ | ⟨rfl, P, hP, rfl⟩
+    · exact Or.inl ⟨t, pd, x, hp, hx, rfl⟩
+    · simp only [List.mem_append] at hx
+      rcases hx with hx | hx
+      · left
+        rcases hq : fl.pending !! t with _ | q
+        · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; simp at hx
+        · rw [hq] at hP; simp only [Option.getD_some] at hP; subst hP
+          exact ⟨t, q, x, hq, hx, rfl⟩
+      · exact Or.inr ((mem_runIds_toNat id n hn x).1 hx)
+  · rintro (⟨t, pd, x, hp, hx, rfl⟩ | ⟨h1, h2⟩)
+    · obtain ⟨pd', hp', hsub⟩ := freePages_pending_old fl T id n t pd hp
+      exact ⟨t, pd', x, hp', hsub x hx, rfl⟩
+    · refine ⟨T, _, W64 (s : Int), GMap.lookup_insert_eq _ _ _, ?_,
+        W64_toNat_of_lt' s (by omega)⟩
+      simp only [List.mem_append]
+      right
+      rw [mem_runIds_toNat id n hn, W64_toNat_of_lt' s (by omega)]; omega
+
+private theorem mem_storeSlots (σ : StoreSt) (s : Nat) :
+    s ∈ storeSlots σ ↔ s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append]
+
+private theorem lent_none_of (σ : StoreSt) (s : Nat)
+    (hR : ∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s)
+    (hW : ∀ v, σ.wv = some v → σ.wlent = true → ¬ coversSlot v.pages s) : lent σ s = none := by
+  classical
+  have hfold : ∀ L : List (Nat × RdInfo), (∀ kv ∈ L, ¬ coversSlot kv.2.v.pages s) →
+      L.foldr (fun kv acc => if coversSlot kv.2.v.pages s then optAdd rq acc else acc) none =
+        none := by
+    intro L hL
+    induction L with
+    | nil => rfl
+    | cons kv L ih =>
+      simp only [List.foldr_cons]
+      rw [if_neg (hL kv (by simp)), ih fun kv' h => hL kv' (by simp [h])]
+  unfold lent
+  have hr : GMap.mapFold (fun _ (ri : RdInfo) acc =>
+      if coversSlot ri.v.pages s then optAdd rq acc else acc) none σ.R = none :=
+    hfold _ fun kv h => hR kv.1 kv.2 ((GMap.mem_toList _ _ _).1 h)
+  rw [hr]
+  split
+  · rename_i v hv hl
+    rw [if_neg (hW v hv hl)]
+  · rfl
+
+private theorem slots_leave_perm (σ σ' : StoreSt) (hsub : ∀ s ∈ storeSlots σ', s ∈ storeSlots σ) :
+    (storeSlots σ).Perm (storeSlots σ' ++
+      (storeSlots σ).filter (fun s => decide (s ∉ storeSlots σ'))) := by
+  refine (List.perm_ext_iff_of_nodup (nodup_list_dedup _) ?_).2 fun s => ?_
+  · refine List.nodup_append.2 ⟨nodup_list_dedup _, (nodup_list_dedup _).filter _,
+      fun a ha b hb e => ?_⟩
+    subst e; simp only [List.mem_filter, decide_eq_true_eq] at hb; exact hb.2 ha
+  · simp only [List.mem_append, List.mem_filter, decide_eq_true_eq]
+    constructor
+    · intro hs; by_cases h : s ∈ storeSlots σ'
+      · exact Or.inl h
+      · exact Or.inr ⟨hs, h⟩
+    · rintro (h | h)
+      · exact hsub s h
+      · exact h.1
+
+private theorem slots_leave (p : GoString) (σ σ' : StoreSt) (hms : σ'.ms = σ.ms)
+    (hb : σ'.bytes = σ.bytes) (hlent : lent σ' = lent σ)
+    (hsub : ∀ s ∈ storeSlots σ', s ∈ storeSlots σ)
+    (hnone : ∀ s ∈ storeSlots σ, s ∉ storeSlots σ' → lent σ s = none) :
+    storeCells (GF := GF) σ ∗ ([∗list] s ∈ storeSlots σ, osSlot (GF := GF) p s (σ.bytes s)) ⊢
+      storeCells σ' ∗ ([∗list] s ∈ storeSlots σ', osSlot p s (σ'.bytes s)) ∗
+      slotsOwn σ.ms p ((storeSlots σ).filter (fun s => decide (s ∉ storeSlots σ'))) σ.bytes := by
+  have hP := slots_leave_perm σ σ' hsub
+  generalize hS : (storeSlots σ).filter (fun s => decide (s ∉ storeSlots σ')) = S at hP
+  have hSm : ∀ s ∈ S, s ∈ storeSlots σ ∧ s ∉ storeSlots σ' := by
+    intro s hs; rw [← hS] at hs; simp only [List.mem_filter, decide_eq_true_eq] at hs; exact hs
+  rw [hb]
+  unfold slotsOwn
+  iintro ⟨Hc, Ho⟩
+  ihave Ho := (BigSepL.bigSepL_perm hP).1 $$ Ho
+  icases BigSepL.bigSepL_append.1 $$ Ho with ⟨Ho, HoS⟩
+  rcases hm : σ.ms with _ | ⟨b, l⟩
+  · have e1 : storeCells (GF := GF) σ = iprop(emp) := by unfold storeCells; rw [hm]
+    have e2 : storeCells (GF := GF) σ' = iprop(emp) := by unfold storeCells; rw [hms, hm]
+    rw [e1, e2]
+    iframe
+    iapply (BigSepL.bigSepL_sep_eqv).2
+    isplitl []
+    · iapply BigSepL.bigSepL_emp.2; iempintro
+    · iexact HoS
+  · rw [storeCells_some σ b l hm, storeCells_some σ' b l (hms.trans hm), hb, hlent]
+    ihave Hc := (BigSepL.bigSepL_perm hP).1 $$ Hc
+    icases BigSepL.bigSepL_append.1 $$ Hc with ⟨Hc, HcS⟩
+    ihave HcS := (cells_unlent S (slotPt b σ.bytes) (lent σ)
+      (fun s hs => hnone s (hSm s hs).1 (hSm s hs).2)).1 $$ HcS
+    iframe
+    iapply (BigSepL.bigSepL_sep_eqv).2
+    iframe
+
+private theorem fltx_all (B : BNs) (F : GMap Nat w64) (R : GMap Nat RdInfo) :
+    ghostMapAuth B.fltx 1 F ∗
+      ([∗map] k ↦ r ∈ R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ⊢
+    (ghostMapAuth (GF := GF) B.fltx 1 F ∗
+      ([∗map] k ↦ r ∈ R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ())) ∗
+    ⌜∀ k r, R !! k = some r → F !! k = some (W64 (r.v.txid : Int))⌝ := by
+  refine sep_keep_pure ?_
+  refine (forall_intro fun k => ?_).trans pure_forall.2
+  refine (forall_intro fun r => ?_).trans pure_forall.2
+  by_cases hk : R !! k = some r
+  · refine (sep_mono .rfl (BigSepM.bigSepM_lookup (Φ := fun k' (r' : RdInfo) =>
+      iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ())) hk)).trans ?_
+    iintro ⟨Ha, Hf, -⟩
+    ihave %h := ghost_map_lookup $$ Ha Hf
+    ipureintro; exact fun _ => h
+  · iintro -; ipureintro; exact fun h => absurd h hk
+
+private theorem listDedup_sublist {α : Type} [DecidableEq α] (l : List α) : (listDedup l).Sublist l := by
+  induction l with
+  | nil => exact List.Sublist.refl _
+  | cons a l ih =>
+    unfold listDedup; split
+    · exact ih.cons a
+    · exact ih.cons₂ a
+
+private def wUpd (W : GMap Nat (List w8)) (S : List Nat) (f : Nat → List w8) : GMap Nat (List w8) :=
+  S.foldr (fun s m => m.insert s (f s)) W
+
+private theorem wUpd_lookup (W : GMap Nat (List w8)) (S : List Nat) (f : Nat → List w8) (s : Nat) :
+    wUpd W S f !! s = if s ∈ S then some (f s) else W !! s := by
+  induction S with
+  | nil => simp [wUpd]
+  | cons a S ih =>
+    simp only [wUpd, List.foldr_cons, GMap.lookup_insert_eq_iff] at ih ⊢
+    by_cases h : a = s
+    · subst h; simp
+    · rw [if_neg h, ih]; simp [Ne.symm h]
+
+private theorem slots_enter (p : GoString) (σ σ' : StoreSt) (S : List Nat) (bs : Nat → List w8)
+    (hms : σ'.ms = σ.ms) (hlent : lent σ' = lent σ)
+    (hperm : (storeSlots σ').Perm (storeSlots σ ++ S))
+    (hold : ∀ s ∈ storeSlots σ, σ'.bytes s = σ.bytes s)
+    (hnew : ∀ s ∈ S, σ'.bytes s = bs s ∧ lent σ s = none) :
+    storeCells (GF := GF) σ ∗ ([∗list] s ∈ storeSlots σ, osSlot (GF := GF) p s (σ.bytes s)) ∗
+      slotsOwn σ.ms p S bs ⊢
+    storeCells σ' ∗ ([∗list] s ∈ storeSlots σ', osSlot p s (σ'.bytes s)) := by
+  unfold slotsOwn
+  iintro ⟨Hc, Ho, HS⟩
+  icases (BigSepL.bigSepL_sep_eqv).1 $$ HS with ⟨HcS, HoS⟩
+  isplitl [Hc HcS]
+  · rcases hm : σ.ms with _ | ⟨b, l⟩
+    · have e2 : storeCells (GF := GF) σ' = iprop(emp) := by unfold storeCells; rw [hms, hm]
+      rw [e2]; iempintro
+    · rw [storeCells_some σ b l hm, storeCells_some σ' b l (hms.trans hm), hlent]
+      iapply (BigSepL.bigSepL_perm hperm).2
+      iapply BigSepL.bigSepL_append.2
+      isplitl [Hc]
+      · iapply bigSepL_mono_mem (fun s hs => ?_) $$ Hc
+        simp only [slotPt]; rw [hold s hs]
+      · iapply (cells_unlent S (slotPt b σ'.bytes) (lent σ) (fun s hs => (hnew s hs).2)).2
+        iapply bigSepL_mono_mem (fun s hs => ?_) $$ HcS
+        simp only [slotPt]; rw [(hnew s hs).1]
+  · iapply (BigSepL.bigSepL_perm hperm).2
+    iapply BigSepL.bigSepL_append.2
+    isplitl [Ho]
+    · iapply bigSepL_mono_mem (fun s hs => ?_) $$ Ho
+      rw [hold s hs]
+    · iapply bigSepL_mono_mem (fun s hs => ?_) $$ HoS
+      rw [(hnew s hs).1]
+
+private theorem bigSepL_dedup {Φ : Nat → IProp GF} (S Sr : List Nat) (h : S.Perm (listDedup S ++ Sr)) :
+    ([∗list] s ∈ S, Φ s) ⊢ [∗list] s ∈ listDedup S, Φ s :=
+  BigSepL.bigSepL_submseteq h.symm
+
 end helpers
 
 section lemmas
@@ -882,7 +1140,159 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half (fl.freePages (W64 (w : Int)) id n) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Hcase⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl hms hws
+  have hwσ : σ.wtx = some w := hw
+  have hpσ : σ.pub = false := hpub
+  have hcn : id.toNat + n < 2 ^ 64 := hcan.2.1
+  have hslt : ∀ s, s ∈ storeSlots σ → s < 2 ^ 64 := by
+    intro s hs
+    rw [mem_storeSlots] at hs
+    rcases hs with hs | hs
+    · exact treeSlot_lt64 σ Hok s ((mem_pagesSlots' _ _).1 hs)
+    · obtain ⟨t, pd, x, -, -, rfl⟩ := (mem_pendSlots _ _).1 hs; exact x.isLt
+  -- the run's store slots: the freed page's, or new
+  have hstore : ∀ pg' s, s ∈ storeSlots (σ.free (W64 (w : Int)) id n pg') ↔
+      s ∈ storeSlots σ ∨ (id.toNat ≤ s ∧ s < id.toNat + n) := by
+    intro pg' s
+    rw [mem_storeSlots, mem_storeSlots]
+    simp only [StoreSt.free]
+    rw [pendSlots_free σ.fl _ id n hcn s]
+    exact or_assoc.symm
+  imod ghostVar_update_halves (σ.fl.freePages (W64 (w : Int)) id n) B.fl _ _ $$ Hfl Hfl'
+    with ⟨Hfl, Hfl'⟩
+  icases Hcase with (%hA | ⟨%hB, HS⟩)
+  · -- a page of the current tree: its slots are store slots already
+    obtain ⟨q, hq, hqn⟩ := hA
+    let σ' := σ.free (W64 (w : Int)) id n σ.bytes
+    have hok' := storeOK_free σ w id n σ.bytes Hok hwσ hpσ hcan (Or.inl ⟨⟨q, hq, hqn⟩,
+      fun _ _ => rfl⟩)
+    have hrun : ∀ s, id.toNat ≤ s → s < id.toNat + n → s ∈ storeSlots σ := fun s h1 h2 =>
+      tree_in_store' σ s ⟨id.toNat, q, hq, h1, by omega⟩
+    have hb : σ'.bytes = σ.bytes := by
+      funext s; simp only [σ', StoreSt.free]; split <;> rfl
+    have hperm : (storeSlots σ').Perm (storeSlots σ ++ []) := by
+      rw [List.append_nil]
+      refine (List.perm_ext_iff_of_nodup (nodup_list_dedup _) (nodup_list_dedup _)).2 fun s => ?_
+      refine (hstore σ.bytes s).trans ⟨fun h => ?_, Or.inl⟩
+      rcases h with h | h
+      · exact h
+      · exact hrun s h.1 h.2
+    ihave Hcs := slots_enter p σ σ' [] σ.bytes rfl rfl hperm (fun s _ => by rw [hb])
+      (fun s hs => by simp at hs) $$ [Hcells Hos]
+    · iframe
+      unfold slotsOwn
+      iapply BigSepL.bigSepL_nil.2; iempintro
+    icases Hcs with ⟨Hcells, Hos⟩
+    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+    · inext
+      iexists σ', W
+      have e2 : metaLend (GF := GF) B σ' = metaLend B σ := rfl
+      rw [e2]
+      unfold bytesWit
+      icases Hbw with ⟨Hb1, Hb2, %hW⟩
+      simp only [σ', StoreSt.free]
+      iframe
+      isplitr
+      · ipureintro
+        intro s hs
+        have := (hstore σ.bytes s).1 hs
+        rcases this with h | h
+        · rw [hW s h]; split <;> rfl
+        · rw [hW s (hrun s h.1 h.2)]; split <;> rfl
+      · ipureintro; exact hok'
+    imodintro; iframe
+  · -- the old synced freelist page: its slots enter the store
+    obtain ⟨hflpg, hmsn, hhwm, hj⟩ := hB
+    obtain ⟨b, l, hms'⟩ : ∃ b l, σ.ms = some (b, l) := by
+      rcases hm : σ.ms with _ | ⟨b, l⟩
+      · exact absurd hm hmsn
+      · exact ⟨b, l, rfl⟩
+    let σ' := σ.free (W64 (w : Int)) id n pg
+    have hok' := storeOK_free σ w id n pg Hok hwσ hpσ hcan (Or.inr ⟨⟨hflpg, fun j hjn =>
+      ⟨(hj j hjn).1, (hj j hjn).2.1, (hj j hjn).2.2⟩⟩, hhwm⟩)
+    have hnew : ∀ s, id.toNat ≤ s → s < id.toNat + n → s ∉ storeSlots σ := by
+      intro s h1 h2 hs
+      rw [mem_storeSlots] at hs
+      rcases hs with hs | hs
+      · exact (hj (s - id.toNat) (by omega)).1 (by
+          rw [show id.toNat + (s - id.toNat) = s by omega]; exact (mem_pagesSlots' _ _).1 hs)
+      · obtain ⟨t, pd, x, hp, hx, hxs⟩ := (mem_pendSlots _ _).1 hs
+        apply hcan.2.2.1 x ((mem_runIds_toNat id n hcn x).2 (by omega))
+        simp only [FLPg.allIds, FLPg.pendingIds, List.mem_append, List.mem_flatMap]
+        exact Or.inr ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩
+    have hbo : ∀ s, s ∈ storeSlots σ → σ'.bytes s = σ.bytes s := by
+      intro s hs
+      simp only [σ', StoreSt.free]
+      rw [if_neg (fun h => hnew s ((inRun_W64 id n s (hslt s hs)).1 h).1
+        ((inRun_W64 id n s (hslt s hs)).1 h).2 hs)]
+    have hbn : ∀ s, id.toNat ≤ s → s < id.toNat + n → σ'.bytes s = pg s := by
+      intro s h1 h2
+      simp only [σ', StoreSt.free]
+      rw [if_pos ((inRun_W64 id n s (by omega)).2 ⟨h1, h2⟩)]
+    have hperm : (storeSlots σ').Perm (storeSlots σ ++ List.range' id.toNat n) := by
+      refine (List.perm_ext_iff_of_nodup (nodup_list_dedup _) ?_).2 fun s => ?_
+      · refine List.nodup_append.2 ⟨nodup_list_dedup _, List.nodup_range', fun a ha c hc e => ?_⟩
+        subst e; simp only [List.mem_range'] at hc
+        obtain ⟨j, hj', rfl⟩ := hc
+        exact hnew (id.toNat + 1 * j) (by omega) (by omega) ha
+      · refine (hstore pg s).trans ?_
+        rw [List.mem_append, List.mem_range']
+        constructor
+        · rintro (h | h)
+          · exact Or.inl h
+          · exact Or.inr ⟨s - id.toNat, by omega, by omega⟩
+        · rintro (h | ⟨j, hj', rfl⟩)
+          · exact Or.inl h
+          · exact Or.inr ⟨by omega, by omega⟩
+    have hlent0 : ∀ s, id.toNat ≤ s → s < id.toNat + n → lent σ s = none := by
+      intro s h1 h2
+      refine lent_none_of σ s (fun k r hr hc => hnew s h1 h2 ((Hok.2.2.2.2.2.2.1 k r hr).2.2.1 s hc))
+        (fun v hv _ hc => hnew s h1 h2 ((Hok.2.2.2.2.2.2.2.1 v hv).2.2.1 s hc))
+    ihave Hcs := slots_enter p σ σ' (List.range' id.toNat n) pg rfl rfl hperm hbo
+      (fun s hs => by
+        simp only [List.mem_range'] at hs
+        obtain ⟨j, hj', rfl⟩ := hs
+        exact ⟨hbn _ (by omega) (by omega), hlent0 _ (by omega) (by omega)⟩) $$ [Hcells Hos HS]
+    · iframe
+    icases Hcs with ⟨Hcells, Hos⟩
+    -- the bytes witness, updated with both halves
+    unfold bytesWit
+    rw [hms']
+    icases Hbw with ⟨Hb1, Hb2, %hW⟩
+    imod ghostVar_update_halves (wUpd W (List.range' id.toNat n) pg) B.byt _ _ $$ Hb1 Hb2
+      with ⟨Hb1, Hb2⟩
+    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hml] with _
+    · inext
+      iexists σ', wUpd W (List.range' id.toNat n) pg
+      have e2 : metaLend (GF := GF) B σ' = metaLend B σ := rfl
+      rw [e2, show σ'.ms = some (b, l) from hms']
+      simp only
+      iframe
+      isplitr
+      · ipureintro
+        intro s hs
+        rw [wUpd_lookup]
+        have hs' := (hstore pg s).1 hs
+        split
+        · rename_i hr
+          simp only [List.mem_range'] at hr
+          obtain ⟨j, hj', rfl⟩ := hr
+          rw [hbn (id.toNat + 1 * j) (by omega) (by omega)]
+        · rename_i hr
+          rcases hs' with hs' | hs'
+          · rw [hbo s hs', hW s hs']
+          · exact absurd (List.mem_range'.2 ⟨s - id.toNat, by omega, by omega⟩) hr
+      · ipureintro; exact hok'
+    imodintro; iframe
 
 /-- `Allocate` by the live writer: the ids leave the free list (their slots are `W` slots
 already). -/
@@ -926,7 +1336,60 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Ha⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl hms
+  simp only [StoreSt.wst, wIdle, Prod.mk.injEq] at hws
+  obtain ⟨hwv, hwtx, hpub, hwl⟩ := hws
+  icases fltx_all B F σ.R $$ [Ha Hdep] with ⟨⟨Ha, Hdep⟩, %hF⟩
+  · iframe
+  have hroR : ∀ k r, σ.R !! k = some r → W64 (r.v.txid : Int) ∈ ro := by
+    intro k r hr
+    refine hro.symm.subset (List.mem_map.2 ⟨(k, _), (GMap.mem_toList _ _ _).2 (hF k r hr), rfl⟩)
+  have hro' : ∀ t ∈ ro, t.toNat ≤ σ.C.txid ∧ 1 ≤ t.toNat := by
+    intro t ht
+    obtain ⟨⟨k, t'⟩, hkv, rfl⟩ := List.mem_map.1 (hro.subset ht)
+    have := hro1 k _ ((GMap.mem_toList _ _ _).1 hkv)
+    exact ⟨this.2, this.1⟩
+  have hok' := storeOK_release σ ro Hok hwtx.symm hwl.symm hroR (fun t ht => (hro' t ht).1)
+    (fun t ht => (hro' t ht).2)
+  imod ghostVar_update_halves (σ.fl.releasePending ro) B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
+  have hsub : ∀ s ∈ storeSlots (σ.release ro), s ∈ storeSlots σ := fun s hs =>
+    storeSlots_release_sub σ ro (fun t ht => ⟨(hro' t ht).2, by
+      have := (hro' t ht).1; have := Hok.2.1.2.2.2.2.2; omega⟩) Hok.2.2.2.1 s hs
+  have hnone : ∀ s ∈ storeSlots σ, s ∉ storeSlots (σ.release ro) → lent σ s = none := by
+    intro s _ hs'
+    refine lent_none_of σ s (fun k r hr hc => hs' ?_) (fun v hv _ => by rw [← hwv] at hv; cases hv)
+    exact (hok'.2.2.2.2.2.2.1 k r hr).2.2.1 s hc
+  icases slots_leave p σ (σ.release ro) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
+    ⟨Hcells, Hos, HS⟩
+  · iframe
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.release ro, W
+    have e2 : metaLend (GF := GF) B (σ.release ro) = metaLend B σ := rfl
+    rw [e2]
+    unfold bytesWit
+    simp only [StoreSt.release]
+    icases Hbw with ⟨Hb1, Hb2, %hW⟩
+    iframe
+    isplitr
+    · ipureintro; intro s hs; exact hW s (hsub s hs)
+    · ipureintro; exact hok'
+  imodintro
+  iexists _, σ.bytes
+  iframe
+  ipureintro
+  intro s
+  simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
+  rfl
 
 /-- **The commit point** (U10): the committed state moves `C → C'` (with `metaR`'s half and the
 writer's quarter of `cur`), the new tree's slots `S` move `W → store` with their bytes; the
@@ -952,7 +1415,127 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ((some v, some w, true, wl) : WSt) ∗
       ghostVar B.out (1 : Qp).half true := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hcurq, Hfl, Hmap, Hwv, HS, Hout⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl'⟩
+  icombine Hmap Hmap' gives % ⟨_, hms'⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl' hms'
+  simp only [StoreSt.wst, Prod.mk.injEq] at hws
+  obtain ⟨hwv, hwtx, hpb, hwl⟩ := hws
+  obtain ⟨b, l, hmsb⟩ : ∃ b l, σ.ms = some (b, l) := by
+    rcases hm : σ.ms with _ | ⟨b, l⟩
+    · exact absurd hm hms
+    · exact ⟨b, l, rfl⟩
+  -- the new slots: deduplicated
+  have hSd := listDedup_sublist S
+  obtain ⟨Sr, hSr⟩ := hSd.exists_perm_append
+  have hS0 : ∀ s, s ∈ listDedup S ↔ s ∈ S := fun s => mem_list_dedup
+  have hSnot : ∀ s ∈ S, s ∉ storeSlots σ := fun s hs => ((hS s).1 hs).2
+  have hnew : ∀ s ∈ treeSlots C', s ∉ treeSlots σ.C → s ∉ pendSlots σ.fl ∧
+      (∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s) ∧ (bs s).length = 4096 ∧
+      W64 (s : Int) ∉ σ.fl.free ∧ (∀ b l, σ.ms = some (b, l) → s < l / 4096) ∧ 2 ≤ s := by
+    intro s hs ht'
+    have hsS : s ∈ S := (hS s).2 ⟨hs, fun h => by
+      have h' : s ∈ storeSlots σ := h
+      rw [mem_storeSlots] at h'
+      rcases h' with h | h
+      · exact ht' h
+      · exact hnp s hs h⟩
+    obtain ⟨h1, h2, h3, h4⟩ := hSb s hsS
+    exact ⟨hnp s hs, fun k r hr hc => hSnot s hsS ((Hok.2.2.2.2.2.2.1 k r hr).2.2.1 s hc),
+      h1, h2, h3, h4⟩
+  have hok' := storeOK_publish σ w C' bs Hok hwtx.symm hpb.symm ht hmeta htree hhwm hdrop hnew
+    hnp (fun id' pg hp => (hbytes id' pg hp).imp (fun h => h) fun ⟨h1, h2⟩ =>
+      ⟨fun j hj => hSnot _ (h1 j hj), h2⟩) hfl
+  let σ' := σ.publish C' bs
+  have hbo : ∀ s ∈ storeSlots σ, σ'.bytes s = σ.bytes s := by
+    intro s hs
+    rw [mem_storeSlots] at hs
+    simp only [σ', StoreSt.publish, if_pos hs]
+  have hbn : ∀ s ∈ S, σ'.bytes s = bs s := by
+    intro s hs
+    have := hSnot s hs
+    rw [mem_storeSlots] at this
+    simp only [σ', StoreSt.publish, if_neg this]
+  have hperm : (storeSlots σ').Perm (storeSlots σ ++ listDedup S) := by
+    refine (List.perm_ext_iff_of_nodup (nodup_list_dedup _) ?_).2 fun s => ?_
+    · refine List.nodup_append.2 ⟨nodup_list_dedup _, nodup_list_dedup _, fun a ha c hc e => ?_⟩
+      subst e; exact hSnot a ((hS0 a).1 hc) ha
+    · refine (mem_storeSlots σ' s).trans ?_
+      rw [List.mem_append, hS0, mem_storeSlots]
+      simp only [σ', StoreSt.publish]
+      constructor
+      · rintro (h | h)
+        · by_cases ho : s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl
+          · exact Or.inl ho
+          · right; refine (hS s).2 ⟨h, fun h' => ho ?_⟩
+            have h'' : s ∈ storeSlots σ := h'
+            rwa [mem_storeSlots] at h''
+        · exact Or.inl (Or.inr h)
+      · rintro ((h | h) | h)
+        · by_cases h' : s ∈ treeSlots C'
+          · exact Or.inl h'
+          · exact Or.inr (hdrop s h h')
+        · exact Or.inr h
+        · exact Or.inl ((hS s).1 h).1
+  have hlent0 : ∀ s ∈ listDedup S, lent σ s = none := by
+    intro s hs
+    have hsS := (hS0 s).1 hs
+    exact lent_none_of σ s (fun k r hr hc => hSnot s hsS ((Hok.2.2.2.2.2.2.1 k r hr).2.2.1 s hc))
+      (fun v hv _ hc => hSnot s hsS ((Hok.2.2.2.2.2.2.2.1 v hv).2.2.1 s hc))
+  -- the new slots, deduplicated (the rest dropped)
+  unfold slotsOwn
+  ihave HS := bigSepL_dedup S Sr hSr $$ HS
+  ihave Hcs := slots_enter p σ σ' (listDedup S) bs rfl rfl hperm hbo
+    (fun s hs => ⟨hbn s ((hS0 s).1 hs), hlent0 s hs⟩) $$ [Hcells Hos HS]
+  · iframe; unfold slotsOwn; iexact HS
+  icases Hcs with ⟨Hcells, Hos⟩
+  -- the committed state, all three parts
+  icases ((ghostVar_fractional (GF := GF) B.cur σ.C).fractional _ _).2 $$ [Hcur Hcurq] with Hc34
+  · iframe
+  imod ghostVar_update_2 C' B.cur _ _ _ _ (by
+      rw [Qp.ext_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind) $$ Hc34 Hcur'
+    with ⟨Hc34, Hcur'⟩
+  icases ((ghostVar_fractional (GF := GF) B.cur C').fractional _ _).1 $$ Hc34 with ⟨Hcur, Hcurq⟩
+  imod ghostVar_update_halves ((some v, some w, true, wl) : WSt) B.wv _ _ $$ Hwv Hwv'
+    with ⟨Hwv, Hwv'⟩
+  -- the bytes witness
+  unfold bytesWit
+  rw [hmsb]
+  icases Hbw with ⟨Hb1, Hb2, %hW⟩
+  imod ghostVar_update_halves (wUpd W (listDedup S) bs) B.byt _ _ $$ Hb1 Hb2 with ⟨Hb1, Hb2⟩
+  -- the meta cells: out with the writer
+  unfold metaLend
+  icases Hml with (⟨-, Hout', -⟩ | Hml | ⟨Hout', -, -⟩)
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
+  rotate_left
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hml] with _
+  · inext
+    iexists σ', wUpd W (listDedup S) bs
+    rw [show σ'.ms = some (b, l) from hmsb]
+    have ew : σ'.wst = ((some v, some w, true, wl) : WSt) := by
+      simp only [σ', StoreSt.wst, StoreSt.publish, hwv, hwtx, hwl]
+    rw [ew]
+    simp only
+    iframe
+    isplitr
+    · ipureintro
+      intro s hs
+      rw [wUpd_lookup]
+      split
+      · rename_i hr; rw [hbn s ((hS0 s).1 hr)]
+      · rename_i hr
+        rcases List.mem_append.1 (hperm.subset hs) with h | h
+        · rw [hbo s h, hW s h]
+        · exact absurd h hr
+    · ipureintro; exact hok'
+  imodintro; iframe
 
 /-- `freelist.Rollback(w)` by the live writer before its publish: `w`'s pending pages are not
 pending; slots leaving the store (B3: a freed old synced freelist page) move `store → W`. -/
@@ -966,7 +1549,49 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
       ghostVar B.fl (1 : Qp).half (fl.rollback (W64 (w : Int))) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.rollback (W64 (w : Int)))⌝ := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl hms hws
+  have hwσ : σ.wtx = some w := hw
+  have hpσ : σ.pub = false := hpub
+  have hok' := storeOK_rollback σ w Hok hwσ hpσ
+  imod ghostVar_update_halves (σ.fl.rollback (W64 (w : Int))) B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
+  have hsub : ∀ s ∈ storeSlots (σ.rollback (W64 (w : Int))), s ∈ storeSlots σ :=
+    fun s hs => storeSlots_rollback_sub σ _ s hs
+  have hnone : ∀ s ∈ storeSlots σ, s ∉ storeSlots (σ.rollback (W64 (w : Int))) →
+      lent σ s = none := by
+    intro s _ hs'
+    exact lent_none_of σ s (fun k r hr hc => hs' ((hok'.2.2.2.2.2.2.1 k r hr).2.2.1 s hc))
+      (fun v hv _ hc => hs' ((hok'.2.2.2.2.2.2.2.1 v hv).2.2.1 s hc))
+  icases slots_leave p σ (σ.rollback (W64 (w : Int))) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
+    ⟨Hcells, Hos, HS⟩
+  · iframe
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.rollback (W64 (w : Int)), W
+    have e2 : metaLend (GF := GF) B (σ.rollback (W64 (w : Int))) = metaLend B σ := rfl
+    rw [e2]
+    unfold bytesWit
+    simp only [StoreSt.rollback]
+    icases Hbw with ⟨Hb1, Hb2, %hW⟩
+    iframe
+    isplitr
+    · ipureintro; intro s hs; exact hW s (hsub s hs)
+    · ipureintro; exact hok'
+  imodintro
+  iexists _, σ.bytes
+  iframe
+  ipureintro
+  intro s
+  simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
+  rfl
 
 /-- `Reload`/`NoSyncReload`: the free ids rebuilt from `W` slots below the high-water mark. -/
 theorem store_reload (C : CommitSt) (fl : FLPg) (ids : List w64)
