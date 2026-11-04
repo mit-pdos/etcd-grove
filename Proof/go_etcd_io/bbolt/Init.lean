@@ -2,7 +2,9 @@
 Package initialization of `go_etcd_io.bbolt`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variables, initializes its imports and
+Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS` is
+`"linux"` (the trust-boundary axiom `runtime.GOOS_linux` of `runtime`'s `Init.lean`; bbolt compares
+`GOOS` with `"windows"` in `DB.grow`, `DB.mmap` and `DB.allocate`). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
@@ -90,6 +92,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) discardLogger _ as HdiscardLogger
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIncompatibleValue _ as HErrIncompatibleValue
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrValueTooLarge _ as HErrValueTooLarge
@@ -189,6 +192,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   iframe Hown
   is_pkg_init_finish
+  ipureintro
+  exact ⟨isPanic_intoVal _, runtime.GOOS_linux⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

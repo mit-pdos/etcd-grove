@@ -6,6 +6,13 @@ Its fact is `True`. Its initializer initializes its imports, runs the untranslat
 initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
 `init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+
+And the trust-boundary assumption `GOOS_linux`: the program runs on Linux (`runtime.GOOS`, a
+constant that goose leaves an axiom `val`, is `"linux"`), as the repository's other platform facts
+assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
+extension `osFsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+packages that branch on `GOOS` state it in their own facts from this axiom (bbolt's root package,
+`bboltRootInit`).
 -/
 module
 
@@ -150,6 +157,16 @@ axiom initFuncsOk :
 
 end runtime
 end opaqueInits
+
+namespace runtime
+
+/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant
+`"linux"` (Go's `GOOS` of the build; goose translates `runtime` names-only, so it is an
+axiom `val` with no value). Satisfiable: `GOOS` is an uninterpreted constant. -/
+axiom GOOS_linux [GooseExts] [GoGlobalContext] :
+    _root_.Perennial.runtime.GOOS = #(go!"linux")
+
+end runtime
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
