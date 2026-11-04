@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 at one depth, to records satisfying `rebalOK` (`spill`'s pre: well-formed, the same data, no empty
 non-root node, branches of at least two entries, leaves at one depth, every base slot covered or
 pending), the frees `Free` steps for the writer's txid (store-side `store_free`); the database side
-otherwise unchanged; (batch 44.6) the transaction's fields and its meta copy kept. Map iteration order is the Go runtime's: the post holds for any. -/
+otherwise unchanged; (batch 44.6) the transaction's fields and its meta copy kept; (coordinator, 44.1 addition 2) the root bucket's children map `bm` kept. Map iteration order is the Go runtime's: the post holds for any. -/
 abbrev Bucket.rebalance.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
   wOK X → (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) → liveReach X → flViewU X w.fl →
@@ -38,7 +38,8 @@ abbrev Bucket.rebalance.spec : Prop :=
       (Val #()))
   {{ RET #(); ∃ (X' : WX) (fl' : FLPg), wtxW K tx r m X' ∗ wdbW K tx X.v (w.withFl fl') ∗
       ⌜rebalOK X X' w.fl fl' w.wtxid ∧ liveReach X' ∧ flViewU X' fl' ∧
-        X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv⌝ }}
+        X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv ∧
+        (X'.t.bs !! X.rl).map BRec.bm = (X.t.bs !! X.rl).map BRec.bm⌝ }}
 
 end spec
 

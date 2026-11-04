@@ -455,12 +455,19 @@ theorem Bucket.rebalance.wp_proof
     rw [toNat_W64_of_lt _ (by have := X.t.mv.txid'.isLt; omega)]
     omega
   rw [htxw] at h1
+  have hbm : (X'.t.bs !! X.rl).map BRec.bm = (X.t.bs !! X.rl).map BRec.bm := by
+    have hs := hR.2.2.2.2.2.2.2.2.1 X.rl
+    have hb := hR.2.2.2.2.2.2.2.2.2.1 X.rl
+    generalize X.t.bs !! X.rl = o0 at hs hb ⊢
+    generalize X'.t.bs !! X.rl = o1 at hs hb ⊢
+    cases o0 <;> cases o1 <;> simp at hs ⊢
+    exact (hb _ _ rfl rfl).2.2
   obtain ⟨-, -, -, -, -, -, -, -, -, hcU, hE, hA, -, -⟩ := hI'
   iapply HΦ
   iexists X', fl'
   iframe
   ipureintro
-  exact ⟨h1, h2, ⟨h3, hcU, hE, hA⟩, hR.2.2.2.2.1, hR.2.2.2.2.2.1⟩
+  exact ⟨h1, h2, ⟨h3, hcU, hE, hA⟩, hR.2.2.2.2.1, hR.2.2.2.2.2.1, hbm⟩
 
 end proof
 
