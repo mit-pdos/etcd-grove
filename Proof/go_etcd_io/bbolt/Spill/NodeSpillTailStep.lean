@@ -82,6 +82,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   have hpl1 : rl.nv.parent' ≠ null → rl.nv.parent' ≠ x.1 := fun h => (hparp h).elim fun _ hh => hh.2.2.1
   obtain ⟨ra, rp, s, ins, q, hX3l, hsa, hpar3, hlive3, hpg3, htx3, hmk3, hext3, hc0, hbuf3,
     hbnone⟩ := pcStepX_state hs hrl hpl1 hG1
+    (fun y hy => hL.slot.2.2.2 y (List.mem_append_left _ hy))
   have hG3 := pcStepX_spG hs hrl hlv hne (fun h => ⟨hpl1 h, (hparp h).elim fun _ hh => hh.2.1⟩) hd hG1
     (fun y hy => hL.slot.2.2.2 y hy) hfv hL.vb
   have hfr3 := pcStepX_frame hs hrl hd hG1
