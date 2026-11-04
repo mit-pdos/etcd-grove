@@ -1,0 +1,90 @@
+/-
+The freelist's steps at a writer's begin and rollback, as the writer side sees them (U5 of
+`notes/bbolt-proof-plan.md`): `ReleasePendingPages` moves pending ids to the free ids, every
+pending entry after it a part of one before (`Model/Store`'s private `relOK`, read through
+`import all`); `Rollback` deletes the writer's pending entry, the free ids unchanged.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Model.Store
+import all Proof.go_etcd_io.bbolt.Model.Store
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+section flfacts
+variable [GooseExts]
+set_option linter.unusedSectionVars false
+
+/-- Membership in the pending slots, by entry. -/
+theorem pendSlots_mem_iff (fl : FLPg) (s : Nat) :
+    s ∈ pendSlots fl ↔ ∃ t pd x, fl.pending !! t = some pd ∧ x ∈ pd.ids ∧ x.toNat = s :=
+  mem_pendSlots fl s
+
+/-- Membership in the pending ids, by entry. -/
+theorem pendingIds_mem_iff (fl : FLPg) (x : w64) :
+    x ∈ fl.pendingIds ↔ ∃ t pd, fl.pending !! t = some pd ∧ x ∈ pd.ids := by
+  simp only [FLPg.pendingIds, List.mem_flatMap]
+  constructor
+  · rintro ⟨⟨t, pd⟩, hkv, hx⟩
+    exact ⟨t, pd, (GMap.mem_toList _ _ _).1 hkv, hx⟩
+  · rintro ⟨t, pd, hp, hx⟩
+    exact ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩
+
+/-- **`ReleasePendingPages`' bookkeeping**: a free id after it was free or pending before; a
+pending entry after it is part of the same transaction's entry before; the free and pending ids
+together unchanged. -/
+theorem releasePending_sub (fl : FLPg) (ro : List w64)
+    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    (∀ x ∈ (fl.releasePending ro).free, x ∈ fl.free ∨
+        ∃ t pd, fl.pending !! t = some pd ∧ x ∈ pd.ids) ∧
+    (∀ t pd' x, (fl.releasePending ro).pending !! t = some pd' → x ∈ pd'.ids →
+        ∃ pd, fl.pending !! t = some pd ∧ x ∈ pd.ids) ∧
+    (∀ x, x ∈ (fl.releasePending ro).allIds ↔ x ∈ fl.allIds) := by
+  obtain ⟨-, r2, r3, r4, -, -⟩ := relOK_releasePending fl ro hro hwf
+  refine ⟨fun x hx => ?_, fun t pd' x hp hx => ?_, fun x => r4.mem_iff⟩
+  · rcases r2 x hx with h | ⟨t, pd, i, hp, hi, -⟩
+    · exact .inl h
+    · exact .inr ⟨t, pd, hp, List.mem_of_getElem? hi⟩
+  · obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+    obtain ⟨pd, j, hp0, hj, -⟩ := r3 t pd' i x hp hi
+    exact ⟨pd, hp0, List.mem_of_getElem? hj⟩
+
+/-- `Rollback` keeps the free ids. -/
+theorem rollback_free (fl : FLPg) (T : w64) : (fl.rollback T).free = fl.free := by
+  unfold FLPg.rollback; split
+  · rfl
+  · rfl
+
+/-- `Rollback(T)` keeps every other transaction's pending entry. -/
+theorem rollback_pending_ne (fl : FLPg) (T t : w64) (h : t ≠ T) :
+    (fl.rollback T).pending !! t = fl.pending !! t := by
+  unfold FLPg.rollback; split
+  · rfl
+  · simp only [FLPg.rollbackEntry]
+    exact GMap.lookup_delete_ne _ (fun e => h e.symm)
+
+/-- A pending entry after `Rollback` was one before. -/
+theorem rollback_pending_sub (fl : FLPg) (T t : w64) (pd : Pending)
+    (h : (fl.rollback T).pending !! t = some pd) : fl.pending !! t = some pd := by
+  unfold FLPg.rollback at h; split at h
+  · exact h
+  · exact (rollback_pending fl T t pd h).2
+
+/-- The pending slots after `Rollback` were pending slots before. -/
+theorem pendSlots_rollback_sub (fl : FLPg) (T : w64) (s : Nat)
+    (h : s ∈ pendSlots (fl.rollback T)) : s ∈ pendSlots fl := by
+  obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 h
+  exact (mem_pendSlots _ _).2 ⟨t, pd, x, rollback_pending_sub fl T t pd hp, hx, rfl⟩
+
+end flfacts
+
+end bbolt
+end EtcdGrove
+end Perennial
