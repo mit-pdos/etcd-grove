@@ -128,6 +128,10 @@ theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
     --    `derefRel`/`rebase`), `node.write` (`Spill/PageBuf`, `sTree_wLeaf`/`sTree_wBranch`),
     --    `parent.put` (child case: `parentSpilled`; top case: the new root's entries);
     -- 6. the top case's new root: Löb `IH` on it (`spCtx .top`).
+    -- U9f's pure lemmas for step 2: `Spill/UTreeParent.uBr_of_uTree` (the branch facts `uBr`),
+    -- `Spill/ChildStep.uBr_childStep` (one unspilled child's spill: `uBr`, `slotInv`, `spFree`
+    -- after, from its `spDone`; built on `Spill/UTreeReplace2.uBr_replace`), the spilled
+    -- children kept by `spilledN_frame`; after the loop `uEnt_fin_of_spilled` on every entry.
     sorry
 
 /-- **`node.spill.spec'`**, from `wp_aux`. -/
