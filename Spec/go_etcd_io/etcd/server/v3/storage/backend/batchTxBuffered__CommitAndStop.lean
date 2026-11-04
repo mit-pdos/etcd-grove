@@ -29,8 +29,9 @@ abbrev backend.batchTxBuffered.CommitAndStop.spec : Prop :=
       dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"CommitAndStop")) (Val #()))
-  -- (2026-11-04, R2b-3c) and bbolt's database, owned at its committed data, for `Close`
-  {{ RET #(); bStopped γ ∗ bDBOut γ }}
+  -- (2026-11-04, R2b-3c) and bbolt's database, owned at its committed data, with the lock's ghost
+  -- shares there and its client resources `W ∗ Pk` (part 2), for `Close`
+  {{ RET #(); bStopped γ ∗ bDBOut γ P W Pk }}
 
 end spec
 

@@ -1698,6 +1698,45 @@ noncomputable def authStore.AuthDisable.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))
   (Val #()))))
 
+/-- go: store.go:327:22 -/
+noncomputable def authStore.Close.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve TokenProvider.ty go!"disable"))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 /-- go: store.go:337:22 -/
 noncomputable def authStore.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
@@ -5452,6 +5491,7 @@ class authStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Authenticate" authStore.Authenticate.impl
   ptr_BcryptCost_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"BcryptCost" authStore.BcryptCost.impl
   ptr_CheckPassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"CheckPassword" authStore.CheckPassword.impl
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Close" authStore.Close.impl
   ptr_GenTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"GenTokenPrefix" authStore.GenTokenPrefix.impl
   ptr_HasRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"HasRole" authStore.HasRole.impl
   ptr_IsAdminPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
@@ -5513,6 +5553,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_Authenticate_unfold
   authStore.TypeAssumptions.ptr_BcryptCost_unfold
   authStore.TypeAssumptions.ptr_CheckPassword_unfold
+  authStore.TypeAssumptions.ptr_Close_unfold
   authStore.TypeAssumptions.ptr_GenTokenPrefix_unfold
   authStore.TypeAssumptions.ptr_HasRole_unfold
   authStore.TypeAssumptions.ptr_IsAdminPermitted_unfold

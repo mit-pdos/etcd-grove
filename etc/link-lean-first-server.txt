@@ -573,6 +573,7 @@ bcrypt_CompareHashAndPassword:
 auth_authStore__CheckPassword: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx bcrypt_CompareHashAndPassword zap_String zap_Logger__Info
 auth_authStore__UserChangePassword: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Strings zap_Logger__Info
 auth_authStore__AuthDisable: auth_authStore__commitRevision zap_Logger__Info
+auth_authStore__Close:
 auth_authStore__AuthEnable: auth_authStore__refreshRangePermCache auth_authStore__setRevision auth_hasRootRole zap_Logger__Info
 auth_authStore__Recover: auth_authStore__refreshRangePermCache auth_authStore__setRevision
 auth_authStore__lockedReadTx:
@@ -679,6 +680,7 @@ v3alarm_NewAlarmStore:
 # (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
 # `SetBackend`, axioms true of the Go code (their specs' docstrings).
 lease_lessor__Recover:
+lease_lessor__Stop:
 membership_RaftCluster__SetBackend:
 # (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
 # the Go code over an image good for the cluster (its spec's docstring).

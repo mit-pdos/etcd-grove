@@ -9,11 +9,13 @@ theorem backend.backend.Close.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_o
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-            backend.isBackend γ P W Pk b ∗ backend.isStopChans γ b ∗ backend.bOpen γ 1 -∗
+            backend.isBackend γ P W Pk b ∗ backend.isStopChans γ P W Pk b ∗ backend.bOpen γ 1 -∗
           (▷
               ∀ err,
-                (⌜err = GoInterface.nil⌝ ∗ ∃ path D, backend.bFile γ path ∗ backend.fileHolds path D) ∨
-                    ⌜¬backend.dbCloseOk⌝ -∗
+                (∃ D,
+                    backend.bStopView γ P W Pk D ∗
+                      ((⌜err = GoInterface.nil⌝ ∗ ∃ path, backend.bFile γ path ∗ backend.fileHolds path D) ∨
+                        ⌜¬backend.dbCloseOk⌝)) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal

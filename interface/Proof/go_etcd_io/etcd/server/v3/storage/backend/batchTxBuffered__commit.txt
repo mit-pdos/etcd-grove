@@ -30,7 +30,8 @@ theorem backend.batchTxBuffered.commit.wp_proof [go_etcd_io.bbolt.Assumptions]
                     backend.payOut γ stop m ∗
                       if stop = true then
                         sync.ownMutex (backend.muOf t) ∗
-                          typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗ backend.bStopped γ ∗ backend.bDBOut γ
+                          typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗
+                            backend.bStopped γ ∗ backend.bDBOutG γ P
                       else
                         ∃ st' db,
                           sync.ownMutex (backend.muOf t) ∗

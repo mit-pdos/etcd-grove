@@ -626,7 +626,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) ρ.rd.kv.lg trivial HlP)
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
@@ -1682,9 +1682,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- alarm store's field; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
     iexists ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal), alst, cfg.DataDir'
-    iframe HSC Hopen alarmStore DataDirS Hpath
+    ihave #HSCE := backend.isStopChansE_intro d.γB d.P _ _ d.be $$ [HB HSC]
+    · iframe HB HSC
+    ihave #HSCE := isStopChansE_withCm d cmp tt $$ HSCE
+    iframe Hopen alarmStore DataDirS Hpath
     isplitr
     · ipureintro; exact Hγw.2.2.1
+    isplitr
+    · iexact HSCE
     iexact Hcl
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]

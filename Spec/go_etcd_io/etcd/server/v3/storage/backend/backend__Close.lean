@@ -31,18 +31,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 begun before it needs no share of the token (the guard is at the acquisition, `readTx.RLock` and
 `ConcurrentReadTx`: the backend-auth-split stage's decision 1) and finishes first: the stop's
 commit takes `readTx.Lock()`, which waits for every `readTx.RLock` holder, and bbolt's `Close`
-waits for the read transactions (a `ConcurrentReadTx`'s). (2026-11-04, R2b-3c) On success, the
-backend's file (`bFile`) holds the data the stop's commit left (bbolt's `DB.Close_kv`, the database
-taken from the stop's escrow, `bDoneEsc`). -/
+waits for the read transactions (a `ConcurrentReadTx`'s). (2026-11-04, R2b-3c) The stop's commit left
+the data `D`: what the stopped batch lock held comes back at `D` (`bStopView`: its client resources
+`W ∗ Pk` and its ghost shares, which the stopped lock no longer holds; part 2), and on success the
+backend's file (`bFile`) holds `D` (bbolt's `DB.Close_kv`, the database taken from the stop's
+escrow, `bDoneEsc`). -/
 abbrev backend.backend.Close.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ isStopChans γ b ∗
-      bOpen γ 1 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
+      isStopChans γ P W Pk b ∗ bOpen γ 1 }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      -- (2026-11-04, R2b-3c) the backend's file, holding the data its last commit left
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (path : GoString) (D : Data), bFile γ path ∗ fileHolds path D) ∨
-      ⌜¬ dbCloseOk⌝ }}
+      -- (2026-11-04, R2b-3c) the data `D` the stop's commit left: the stopped lock's resources and
+      -- ghost shares at it (part 2), and the backend's file holding it
+      ∃ D : Data, bStopView γ P W Pk D ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ path : GoString, bFile γ path ∗ fileHolds path D) ∨
+          ⌜¬ dbCloseOk⌝) }}
 
 end spec
 

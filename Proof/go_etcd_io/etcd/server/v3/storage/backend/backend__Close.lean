@@ -48,9 +48,12 @@ theorem backend.backend.Close.wp_proof
   iintro ⟨#Hesc, -⟩
   -- (R2b-3c) bbolt's database out of the stop's escrow, with `Close`'s claim
   icases isBackend_dbFile γ P W Pk b $$ Hb with ⟨%db2, %path, #Hmug2, #Hisdb2, #Hdbat, #Hfile⟩
-  imod (bDoneEsc_take γ sc γsc) $$ Hesc Hinv Hq Hclaim Hlc1 Hlc2 with Hout
+  imod (bDoneEsc_take γ P W Pk sc γsc) $$ Hesc Hinv Hq Hclaim Hlc1 Hlc2 with Hout
   iunfold bDBOut at Hout
-  icases Hout with ⟨%db', %C, #Hbdb, Hown⟩
+  iunfold bDBOutG at Hout
+  icases Hout with ⟨⟨%db', %C, #Hbdb, Hown, Hg⟩, HW, HPk⟩
+  -- (R2b-3c part 2) what the stopped lock held, at the committed data
+  ihave Hsv := bStopG_view γ P W Pk C $$ [$Hg $HW $HPk]
   iunfold bDB at Hbdb
   icases Hbdb with ⟨%path', #Hdbat'⟩
   ihave %Hag := bDBAt_agree γ db' db2 path' path $$ [Hdbat' Hdbat]
@@ -61,8 +64,10 @@ theorem backend.backend.Close.wp_proof
   wp_apply (hClose db' γ.db C path') $$ [$Hisdb2 $Hfile $Hown] as %err Herr
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
+  iexists C
+  iframe Hsv
   icases Herr with (⟨%He, Hf⟩ | %Hbad)
-  · ileft; iframe %He; iexists path', C; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
+  · ileft; iframe %He; iexists path'; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
   · iright; ipureintro; exact Hbad
 
 end proof

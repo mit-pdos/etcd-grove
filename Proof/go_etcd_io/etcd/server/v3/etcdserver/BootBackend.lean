@@ -114,7 +114,7 @@ theorem bootBackend_of_bootLeft
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hnc : mvcc.noCmpData D) :
     backend.newPostK γ P W Pk (bootLeft N) b D ⊢ |={E}=>
-      backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.isStopChans γ b ∗ backend.plHook γ func.nil ∗
+      backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.isStopChans γ P (W γ) (Pk γ) b ∗ backend.plHook γ func.nil ∗
       backend.bOpen γ (1 : Qp).half ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
       ownToks γ.wb (N + 7) ∗ backend.rbOwn γ (backend.rbData P D) ∗
       ([∗list] _x ∈ List.replicate backend.rdStockN (),

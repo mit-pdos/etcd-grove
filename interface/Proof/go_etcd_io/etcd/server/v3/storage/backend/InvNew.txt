@@ -23,7 +23,7 @@ def backend.bFresh (γ : backend.BNames) : IProp GF :=
 def backend.newPost (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.BNames → IProp GF) (b
     : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         backend.bOpen γ 1 ∗
           backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
             backend.plHook γ func.nil ∗
@@ -43,7 +43,7 @@ theorem backend.hook_fresh_false (γ : backend.BNames) (P : backend.BParams) (b 
 def backend.newPostK (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp GF)
     (b : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         K γ ∗
           backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
             backend.plHook γ func.nil ∗
