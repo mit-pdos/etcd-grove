@@ -219,6 +219,18 @@ def rebalBw : IProp GF :=
         (∀ c, bReach X bl c → balanced X' c) ∧ (∀ c, balanced X c → balanced X' c)⌝ -∗ Φ #()) -∗
     WP (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"rebalance")) (Val #())) {{ Φ }})
 
+/-- The writer's heap facts (its root bucket the transaction's `root` field, its objects
+disjoint). -/
+theorem wtxW_rl (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ ⌜heapOK (GF := GF) tx X⌝ ∗ wtxW K tx r m X := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  isplitr
+  · ipureintro; exact Hok
+  · iframe
+    ipureintro; exact Hr
+
 theorem rebalB_loeb (hn : node.rebalance.spec' (GF := GF) (hG := hG)) : ⊢ rebalBw (GF := GF) := by
   iloeb as IH
   unfold rebalBw
@@ -250,8 +262,9 @@ theorem rebalB_loeb (hn : node.rebalance.spec' (GF := GF) (hG := hG)) : ⊢ reba
     have hI1 : rblX X1 fl1 dbl none := HP.2.2.2.1
     have hX1v : X1.v = X.v := HP.2.2.2.2.1.1
     obtain ⟨rv, hrv⟩ := ns_of_nm X1 fl1 dbl bl B1 hI1 HP.1 key v (by rw [HP.2.1]; exact Hm')
+    icases wtxW_rl K tx r m X1 $$ Hw with ⟨%Hhok1, Hw⟩
     wp_apply hn K tx r m X1 (w.withFl fl1) bl B1 v rv none (rblX_none X1 fl1 dbl bl hI1) HP.1 hrv
-      (Or.inl rfl) $$ [Hw Hdb] as ⟨%X2, %fl2, Hw, Hdb, %Hpost⟩
+      (Or.inl rfl) (Hhok1.2.2.2.2.2 bl B1 HP.1) $$ [Hw Hdb] as ⟨%X2, %fl2, Hw, Hdb, %Hpost⟩
     · rw [hX1v]; iframe
     rw [hX1v]
     obtain ⟨hI2, hR2, hS2⟩ := Hpost
@@ -377,18 +390,6 @@ theorem bReach_of_bktReach (X : WX) (c : Loc) (h : bktReach X c) : bReach X X.rl
   | root => exact .self _
   | child bl c B n hb hn _ ih => exact bReach_snoc X X.rl bl c B n ih hb hn
 
-/-- The writer's heap facts (its root bucket the transaction's `root` field, its objects
-disjoint). -/
-theorem wtxW_rl (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
-    wtxW (GF := GF) K tx r m X ⊢ ⌜heapOK (GF := GF) tx X⌝ ∗ wtxW K tx r m X := by
-  unfold wtxW wtxCore
-  iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩
-  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
-  isplitr
-  · ipureintro; exact Hok
-  · iframe
-    ipureintro; exact Hr
-
 /-- The writer's view is the committed state's. -/
 theorem wdbW_view (K : BC) (tx : Loc) (v : View) (w : WDb) :
     wdbW (GF := GF) K tx v w ⊢ ⌜v = View.ofC v.base w.C⌝ ∗ wdbW K tx v w := by
@@ -422,10 +423,13 @@ theorem Bucket.rebalance.wp_proof
   -- `wOK` the live nodes.
   obtain ⟨hfl, hcov, hext, hlen⟩ := hflU
   have hns : nsLive X := wOK_nsLive X hok
-  have hrh : ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome := by sorry
   wp_start_folded as ⟨Hw, Hdb⟩
   icases wtxW_rl K tx r m X $$ Hw with ⟨%Hhok, Hw⟩
   have Hrl := Hhok.1
+  have hrh : ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome := by
+    intro bl h
+    obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 h
+    exact Hhok.2.2.2.2.2 bl B hB
   have hI := rblX_init X w.fl X.rl hok hlr hfl hcov hns hext hlen Hhok.2.1 hrh
   icases wdbW_view K tx X.v w $$ Hdb with ⟨%Hv, Hdb⟩
   have e : (tx.[Tx, go!"root"] : Loc) = X.rl := by rw [Hrl]; rfl
