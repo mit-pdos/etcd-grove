@@ -56,6 +56,9 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       iframe
       isplitl []
       · isplitl [] <;> iassumption
+      isplitr
+      rotate_left
+      · ipureintro; intro ii h; cases h
       ileft
       iexists fs_ptr
       unfold os.ownFileStat
@@ -72,6 +75,9 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       iframe
       isplitl []
       · isplitl [] <;> iassumption
+      isplitr
+      rotate_left
+      · ipureintro; intro ii h; cases h; exact ⟨_, pe, rfl, rfl⟩
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 

@@ -402,7 +402,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   (try wp_auto)
   icases (csOwn_idle00 path γc m0 (F.map (·, true))).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
   wp_apply wp_Stat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) _ m0
-      $$ [Hf Hfdo Hm] as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, #_⟩
+      $$ [Hf Hfdo Hm] as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, #_, -⟩
   · iframe; iframe #; iexact Hm
   ihave Hown := (csOwn_idle00 path γc m0 (F.map (·, true))).2 $$ [Hv Hm Hb]
   · iframe; ipureintro; exact Hl

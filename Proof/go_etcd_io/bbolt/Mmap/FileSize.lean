@@ -72,7 +72,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
   subst hp
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, Hm, #Hps⟩
   wp_auto
-  wp_apply hStat f fd d.path dqo dqd dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek⟩
+  wp_apply hStat f fd d.path dqo dqd dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, -⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   ihave Hfo : fileOwn f fd d.path dqo $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
