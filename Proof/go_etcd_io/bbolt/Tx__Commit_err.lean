@@ -780,7 +780,26 @@ theorem Tx.Commit_err.wp_proof'
             · exact ((mem_cmTail _ _ _ s).1 h).2.1
           have hmax : m'.size ≤ max wg.m.size (mapLen wg.ms) := Hm'.2.1
           icases Hres with (⟨%He4, %Hch, Hwl, HSB⟩ | ⟨%He4, #Hfe4, Hwl⟩)
-          · sorry
+          · subst He4
+            obtain ⟨-, -, -, -, hroot, hflp, h2hwm, -, -, Pg, hpg⟩ := hpre'
+            have hinSB : ∀ s ∈ (bufSlots Xt.t.bufs), 4096 * (s + 1) ≤ mapLen wg.ms ∧ 4096 * (s + 1) ≤ m'.size := by
+              intro s hs
+              refine ⟨?_, Hch.1 s hs⟩
+              obtain ⟨id, pg, hp, h1, h2⟩ := (mem_bufSlots Xt.t.bufs s).1 hs
+              have h4 := (hbok id pg hp).2.2.2
+              have h5 : 4096 * (mapLen wg.ms / 4096) ≤ mapLen wg.ms := Nat.mul_div_le _ _
+              omega
+            icases cm_slots_split K.B K.db K.p K.sp K.t0 tx (wLive Xt.v wg.C)
+              (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)) Xt.v.base (mapLen wg.ms) (bufSlots Xt.t.bufs) wb'
+              (pubP wg Xt Pg) hms
+              (fun s hs hSB => by
+                rcases List.mem_append.1 hs with h | h
+                · exact ((mem_cmTail _ _ _ s).1 h).2.2.2 hSB
+                · exact ((mem_wMinus _ _ s).1 h).2 (List.mem_append_left _ hSB))
+              hinSB (fun s hs => Hm'.2.2.2 s (List.mem_append_left _ hs) (Hch.1 s hs))
+              $$ [Hwl HSB] with ⟨Hwl, HS⟩
+            · iframe
+            sorry
           · -- `write` failed: log, roll back, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err4 = GoInterface.ok ii := by
               cases err4 with
