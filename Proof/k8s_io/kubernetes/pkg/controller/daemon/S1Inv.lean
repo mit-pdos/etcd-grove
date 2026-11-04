@@ -99,6 +99,15 @@ def claimTok (γ : S1Names) (o : Owner) (n : GoString) (v : Option (Bool × Key 
     IProp GF :=
   ghostMapElem γ.claim (o, n) (DFrac.own 1) v
 
+/-- **A registered owner's entry**: the invariant's half of its bound, a lower bound of the pod
+informer's version, and its sync token or the work queue's token of its key. -/
+def s1Entry (γ : S1Names) (c : DscComp) (o : Owner) (Lr : Nat × Bool) : IProp GF :=
+  iprop(seenTok γ o Lr ∗ infRvLb c.podI.γi Lr.1 ∗ (syncTok γ c o ∨ keyTok c.γq.tq (ownerKey o)))
+
+/-- **A claim's deposit**: a fraction of its owner's token. -/
+def claimDep (c : DscComp) (on : Owner × GoString) : IProp GF :=
+  iprop(∃ q, ownerTok c on.1 q)
+
 /-- **S1's invariant's content**: the mirror's half at `σ`, the consistency store's state `M`,
 the owner tokens' authority and the bounds `Lm` (each registered owner: the invariant's half of
 its bound, a lower bound of the pod informer's version, and its sync token or the work queue's
@@ -110,9 +119,8 @@ def s1Res (γ : S1Names) (c : DscComp) : IProp GF :=
     apiMirror γ σ ∗ consState c.γc M ∗
     ghostMapAuth c.tok 1 D ∗ ⌜∀ o, (D !! o).isSome = (Lm !! o).isSome⌝ ∗
     ghostMapAuth γ.lb 1 Lm ∗
-    ([∗map] o ↦ Lr ∈ Lm, seenTok γ o Lr ∗ infRvLb c.podI.γi Lr.1 ∗
-      (syncTok γ c o ∨ keyTok c.γq.tq (ownerKey o))) ∗
-    ghostMapAuth γ.claim 1 C ∗ ([∗map] on ↦ _v ∈ C, ∃ q, ownerTok c on.1 q) ∗
+    ([∗map] o ↦ Lr ∈ Lm, s1Entry γ c o Lr) ∗
+    ghostMapAuth γ.claim 1 C ∗ ([∗map] on ↦ _v ∈ C, claimDep c on) ∗
     infRvLb c.dsI.γi Ld ∗ ⌜s1Ok σ M Lm C Ld⌝)
 
 /-- The invariant's namespace. -/
