@@ -455,3 +455,33 @@ R1-R4, R6 and R7 repaired below; R5 and R8 go to the user; then the glue against
   - The invariant: each id's first appearance in the lessor history is the one grant of that
     generated id.
   - The law: an id absent at `i` after its grant at `i₀ ≤ i` stays absent at every `j ≥ i`.
+
+## Plumbing: Part C (2026-11-04)
+
+Done (revision 4's C1, with `revocable` refused by the slot until Part X):
+- `etcdserver/LeaseApi.lean` (sealed, `etc/import-all.txt`): `lease.Mode` (`none | mono | revocable`);
+  `lease.bootCfg lg m on := lg = decide (m ≠ none) ∧ (on = true → m = none) ∧ (m = mono →
+  leasesNoExpiry ∧ srvGrantOpen) ∧ (m = revocable → False) ∧ ckptEffectsOk`, intros `_none`,
+  `_mono`, eliminations `_lg`, `_auth`, `_ckpt`, `_open`, `_noExpiry`; `lease.srvInv on s E m`
+  (persistent; `□ (⌜on⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s E.γ.leases ∗
+  lessorRdPool E.γ.leases`, `m` not read yet), `srvInv_intro` and the eliminations `_lessorNil`,
+  `_peerRt`, `_lessorRd`.
+- `NewServer.specG`: a binder `m : lease.Mode`, the premise `lease.bootCfg ρ.rd.kv.lg m on` in place
+  of `on = true → lg = false`, `%Hckok` and `%Hslg`; `lease.srvInv on srv E m` in place of the post's
+  four lease conjuncts. `spec`/`specM` unchanged as abbreviations (the binder is inside `specG`).
+- Callers: `newServerMode` (`m := if lg then mono else none`, from `memberBoot`'s fact and its
+  `ckptEffectsOk` premise), authkv's `startServer` (`none`). `Results`/`Link` pass proofs only (no
+  edit; `Link.lean` regenerates identically). No v3rpc consumer reads the post's lease conjuncts
+  (the served lease reads take them through `etcdstart.srvLeaseRd`, now from `srvInv_lessorRd`).
+
+Deviation: the inner predicates keep their piece inline. `isServerRun` and `srvGrantOpen` are both in
+`InvRun.lean`, upstream of `ckptEffectsOk` (`InvBoot`) and `srvLessorNil` (`ServerOn`), so `srvBuilt`,
+`srvBuiltG`, `isServerBuilt(On)`, `isServerRun(On)` cannot name `lease.bootCfg` without moving
+`srvGrantOpen` (with `runSnapLgOkBody`) and `ckptEffectsOk` below them; and they have no `m` or `on`
+(threading them is about 140 sites). They keep `%Hslg` (`lg = true → leasesNoExpiry ∧
+srvGrantOpen`), the plan's "needed half", which `NewServer`'s proof derives with `_noExpiry`/`_open`.
+Likewise `etcdstart`'s `memberBoot`/`memberBootOn`/`alloc1` (pre-`NewServer`; `alloc1` has no
+`ckptEffectsOk`), and `InvRestart`'s `%Hprt` (`bootstrap`'s round tripper, not the slot). For Part X
+(the revocable arm needs `m` in `isServerRun`): options (a) a sealed `lease.runCfg lg m` in a module
+below `InvRun` (moving `srvGrantOpen`), carried as `∃ m, lease.runCfg lg m` by the inner predicates,
+`lease.bootCfg_run` its intro; (b) `m` threaded through the inner predicates; (c) inline until Part X.
