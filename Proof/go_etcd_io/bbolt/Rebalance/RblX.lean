@@ -144,7 +144,7 @@ theorem wtxData_rblRel (X0 X : WX) (fl0 fl : FLPg) (txid : w64) (h : rblRel X0 f
 
 /-- **At the end, `rebalOK`** (no deficient node and no node unbalanced). -/
 theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
-    (hI : rblX X fl dbl none) (hR : rblRel X0 fl0 X fl txw)
+    (hI : rblX X fl dbl none) (hR : rblRel X0 fl0 X fl txw) (hbufs : X0.t.bufs = ∅)
     (hbal : ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.unbalanced' = false) :
     rebalOK X0 X fl0 fl txw ∧ liveReach X ∧ flView X fl := by
   obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -, -, -, -, -⟩ := hI
@@ -154,8 +154,9 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     intro bl B hb
     have := (hB bl B hb).1
     rwa [ite_self] at this
-  -- batch 30: txClean's `bufs = ∅` and `leafShape`; batch 35: `posShape` (rblX to carry them; owner U8d)
-  refine ⟨⟨⟨⟨hw, ⟨hpm, sorry, sorry, sorry⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
+  have hbufs' : X.t.bufs = ∅ := hR.2.2.2.2.2.2.2.1.trans hbufs
+  -- batch 30: txClean's `leafShape`; batch 35: `posShape` (rblX to carry them; owner U8d/U8e)
+  refine ⟨⟨⟨⟨hw, ⟨hpm, hbufs', sorry, sorry⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
       fun bl B hb => ⟨?_, (hB bl B hb).2.2.1⟩, ?_, hEB, hH, hL, hN, hV⟩,
     wtxData_rblRel X0 X fl0 fl txw hR, hv, hh, hrl', hnl, ?_, ?_, ⟨es, hcan, hfl, hes⟩, ?_⟩,
     hLR, hFV⟩
