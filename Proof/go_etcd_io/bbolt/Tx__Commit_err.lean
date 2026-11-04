@@ -875,8 +875,32 @@ theorem Tx.Commit_err.wp_proof'
                   · rw [hDn]; iexact Hstq
                   ipureintro
                   exact ⟨hokF, hwrt, hrlt⟩
+                -- no commit handler
+                ihave Hch5 : tx.[Tx, go!"commitHandlers"] ↦ (slice.nil : GoSlice) $$ [Hch5]
+                · rw [← hcht]; iexact Hch5
                 try wp_auto
-                sorry
+                ihave IH : iprop("i" ∷ i_ptr ↦ (W64 0)) $$ [i]
+                · iframe
+                wp_for IH
+                wp_if_destruct
+                · exfalso
+                  rw [hcht] at Hif
+                  simp [slice.nil] at Hif
+                · wp_bind (App (Val #_) (Val #()))
+                  iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil)))
+                    $$ [err HtxId Hlgp]
+                  · iapply Hdf $$ [] err HtxId Hlgp
+                    ileft; ipureintro; rfl
+                  iintro %vret ⟨%hvret, err⟩
+                  subst hvret
+                  wp_auto
+                  iapply HΦ
+                  unfold txDone
+                  iframe Hdone
+                  ileft
+                  isplitr
+                  · ipureintro; rfl
+                  iexact HQ
               · exact absurd rfl Hne
             · sorry
           · -- `write` failed: log, roll back, return the error
