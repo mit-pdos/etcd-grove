@@ -122,6 +122,10 @@ at least `r`. -/
 def compactRevLb (γc : CompactorNames) (r : w64) : IProp GF :=
   monoNatLbOwn γc.lb (sint.Z r).toNat
 
+instance compactRevLb_persistent (γc : CompactorNames) (r : w64) :
+    Persistent (compactRevLb (GF := GF) γc r) := by
+  unfold compactRevLb; infer_instance
+
 /-- The compactor's lock invariant: `compactRevision`, recorded and reached or `0`, its counter. -/
 def compactorLockInv (c : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γc : CompactorNames) :
     IProp GF :=
