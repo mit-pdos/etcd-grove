@@ -52,7 +52,8 @@ def bkRooted (B : BRec) (rt : Loc) (pgid : w64) : BRec :=
 child bucket, the spill's global state; its root node nil, or (`node.spill.spec'`'s top case
 at it) the top of an unspilled tree within `(-∞, ∞)` of height `h`, owning `F`, `D`, `N`, its
 slots owned with `O`, its pages freeable, its leaf elements `E` plain (`plainEls`) and, as
-key/value pairs, the bucket's entries (`lbktEnts`); (coordinator, U9x3, for `spPre`'s slot facts)
+key/value pairs, the bucket's entries (`lbktEnts`), its nodes' parent pointers (`parOK`, U9w3's
+`spPre` clause); (coordinator, U9x3, for `spPre`'s slot facts)
 the committed tree's slots below the mark (the root loop's `rinv_treeLt`). -/
 def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D : List Nat)
     (N : List Loc) : Prop :=
@@ -62,7 +63,7 @@ def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D
    ∃ rn E, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
      uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N E ∧
      slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F ∧
-     E.map (fun e => (e.2.1, e.2.2)) = lbktEnts X bl ∧ plainEls E)
+     E.map (fun e => (e.2.1, e.2.2)) = lbktEnts X bl ∧ plainEls E ∧ parOK X bl)
 
 /-- **A nested bucket's spill's success** (pure), from `(X, w)` to `(X', w')` by the steps `st`: a
 spill step (`spStep`); if its root node was nil, nothing changed; else, after `node.spill`
@@ -92,14 +93,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **A nested bucket's spill's post**: on success `bkDone`, on an error (an `allocate`'s) the
-freelist after free and allocation steps, the base pages kept, the mapping intact or lost. -/
+/-- **A nested bucket's spill's post**: on success `bkDone`, on an error (an `allocate`'s)
+`spErr` (the freelist after free and allocation steps, the base pages, the transaction's record,
+root and meta but its mark kept), the mapping intact or lost. -/
 def bkPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec)
     (O D : List Nat) (err : GoInterface) : IProp GF :=
   iprop((⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
       wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗ ⌜bkDone X X' w w' bl B O D st⌝) ∨
     (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
-      ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages⌝ ∗
+      ⌜spErr X X' w w' st⌝ ∗
       ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))))
 
 /-- **`child.spill()` for a nested bucket** (see the module doc). -/

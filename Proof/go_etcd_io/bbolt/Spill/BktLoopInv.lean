@@ -152,6 +152,13 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   /-- (U9x5) Once a value is put, the root bucket has a root node (`Cursor.node` materialized
   its root). -/
   putRoot : (∃ k v, ks k = .val v true) → ∀ B, X.t.bs !! X0.rl = some B → B.bv.rootNode' ≠ null
+  /-- (U9x4) The meta copy but the high-water mark kept (`spFrame`'s meta clause; the spill's
+  post). -/
+  mvEq : X.t.mv = { X0.t.mv with pgid' := X.t.mv.pgid' }
+  /-- (coordinator, for `rinv_end`'s `spPre`) The root's own base pages can be freed by the
+  writer (`spFree`). -/
+  rootFree : ∀ F : List Nat, (∀ id ∈ F, id ∈ Lroot ∧ (X0.v.pages !! id).isSome ∧ id < 2 ^ 62) →
+    spFree X w.fl w0.wtxid F
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
@@ -169,6 +176,13 @@ def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Na
 
 theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
   unfold upd; rw [if_pos rfl]
+
+/-- Meta copies but the high-water mark compose (`RInv.mvEq`). -/
+theorem mv_trans {a b c : Meta} (h1 : b = { a with pgid' := b.pgid' })
+    (h2 : c = { b with pgid' := c.pgid' }) : c = { a with pgid' := c.pgid' } := by
+  have e : ({ b with pgid' := c.pgid' } : Meta) = { a with pgid' := c.pgid' } := by
+    rw [h1]
+  exact h2.trans e
 
 /-- `RInv.same`'s premise fails once a key's value is staged. -/
 theorem same_upd_val {keys : List GoString} {ks : GoString → KSt} {k : GoString} (hk : k ∈ keys)

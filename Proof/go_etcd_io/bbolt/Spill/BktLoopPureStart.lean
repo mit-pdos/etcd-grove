@@ -305,7 +305,13 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       ⟨hs.2.1.1, hs.2.1.2, hs.2.2 rfl⟩
     hwm0 := hS.hwm
     freeNC := freeNoCov_of_wdbOK hw.1
-    tt := rfl }
+    tt := rfl
+    same := fun _ => ⟨rfl, rfl, rfl⟩
+    putRoot := fun ⟨_, _, e⟩ => by cases e
+    mvEq := rfl
+    rootFree := fun F hF => by
+      rw [← htxid]
+      exact spFree_start htc hfv.1.2.1 (fun x hx => ⟨(hF x hx).2.1, (hF x hx).2.2⟩) }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/

@@ -176,7 +176,7 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
   rw [hC] at hC0; cases hC0
   have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
   have hcX0 : c ≠ X0.rl := by rw [← hI.rl]; exact hcne
-  obtain ⟨f1, -, -, f4, -, -, f7, -, f9, -, -, f12, f13, -, -, -, f17⟩ := hfr
+  obtain ⟨f1, -, -, f4, -, -, f7, f8, f9, -, -, f12, f13, -, -, -, f17⟩ := hfr
   subst hX'
   -- the other buckets
   have hkept : ∀ bl, bl ≠ c → bktKept X (X1.setBkt c (bkRooted B1 rt rr.nv.pgid')) bl := by
@@ -324,7 +324,19 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
     shape0 := hI.shape0
     hwm0 := hI.hwm0
     freeNC := hI.freeNC
-    tt := (f7 : X1.t.t = X.t.t).trans hI.tt }
+    tt := (f7 : X1.t.t = X.t.t).trans hI.tt
+    same := fun h => absurd h (same_upd_val hk _ _)
+    putRoot := by
+      intro hp B hB
+      rw [hBr'] at hB; cases hB
+      rw [hsr.1]
+      exact hI.putRoot (putRoot_upd (fun _ e => by cases e) hp) Br hBr
+    mvEq := mv_trans hI.mvEq (f8 : X1.t.mv = { X.t.mv with pgid' := X1.t.mv.pgid' })
+    rootFree := by
+      intro F hF
+      have h := s8.1 F (fun id hid => List.mem_append_left _ (hF id hid).1)
+        (by rw [hwx]; exact hI.rootFree F hF)
+      rw [← hwx]; exact h }
 
 end spilled
 

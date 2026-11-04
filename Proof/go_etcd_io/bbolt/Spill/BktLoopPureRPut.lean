@@ -515,7 +515,18 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     shape0 := hI.shape0
     hwm0 := hI.hwm0
     freeNC := hI.freeNC
-    tt := by rw [hX', setNode_tt, matGrow_tt hm]; exact hI.tt }
+    tt := by rw [hX', setNode_tt, matGrow_tt hm]; exact hI.tt
+    same := fun h => absurd h (same_upd_val (hI.keysAll k (by rw [hc]; rfl)) _ _)
+    putRoot := by
+      intro _ B' hB' hnull
+      rw [x_root] at hB'; cases hB'
+      obtain ⟨-, Bc', hBc', hcl', -⟩ := hloc1
+      rw [hB1] at hBc'; cases hBc'
+      have he := (hcl'.2.2.1 hnull).1
+      rw [he] at hrl
+      simp at hrl
+    mvEq := by rw [x_mv]; exact hI.mvEq
+    rootFree := fun F hF id hid => by rw [x_pm]; exact hI.rootFree F hF id hid }
 
 end rput
 

@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktValKey
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureRPut
 public import Proof.go_etcd_io.bbolt.Spill.BktInlineVal
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureInline
 
 @[expose] public section
 
@@ -83,19 +84,30 @@ theorem upd_upd {β : Type} (f : GoString → β) (k : GoString) (b b' : β) :
     upd (upd f k b) k b' = upd f k b' := by
   funext k'; unfold upd; by_cases e : k' = k <;> simp [e]
 
+/-- A searchable bucket's nodes' parent pointers (`nodeClean`'s last clause; U9x5's
+`BktEnd.parOK_of_local`, repeated here for `rinv_bkPre`). -/
+theorem parOK_of_bktLocal {X : WX} {bl : Loc} (h : bktLocalOK X bl) : parOK X bl := by
+  obtain ⟨-, B, hB, hcl, -⟩ := h
+  intro m rm hm _ c hc
+  unfold WX.node at hm ⊢
+  rw [hB] at hm ⊢
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h17⟩ := hcl.2.2.2.2.2.2.2.1 m rm hm
+  exact h17 c hc
+
 /-- **`child.spill()`'s pre.** -/
 theorem rinv_bkPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
     {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
     (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) :
     ∃ h F N, bkPre X w c C (othersO Lroot keys Dc k) h F (Dc k) N := by
-  obtain ⟨C', hC', hcl, hbm, -, -, -, hents, -, htree⟩ := rinv_todo hI hks hc
+  obtain ⟨C', hC', hcl, hbm, -, hloc, -, hents, -, htree⟩ := rinv_todo hI hks hc
   rw [hC] at hC'; cases hC'
   have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
   have hG : spG X w.wtxid (mapLen w.ms) w.fl := by rw [hwx]; exact hI.G
   by_cases hn : C.bv.rootNode' = null
   · exact ⟨0, [], [], hC, hcl, hbm, hG, rinv_treeLt hI, Or.inl hn⟩
   obtain ⟨rn, h, F, N, E, hrn, hpar, hu, hfr, hE, hpl⟩ := htree hn
-  refine ⟨h, F, N, hC, hcl, hbm, hG, rinv_treeLt hI, Or.inr ⟨rn, E, hrn, hpar, hu, ?_, ?_, ?_, hpl⟩⟩
+  refine ⟨h, F, N, hC, hcl, hbm, hG, rinv_treeLt hI,
+    Or.inr ⟨rn, E, hrn, hpar, hu, ?_, ?_, ?_, hpl, parOK_of_bktLocal (hloc hn)⟩⟩
   · apply slotInv_perm _ hI.slots
     unfold othersO
     rw [List.append_assoc]
@@ -110,7 +122,10 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
     RInv X0 w0 B0 keys Lroot X w st Dc (upd ks k .nilc) := by
   obtain ⟨C', hC', -, -, -, -, -, -, hnil, -⟩ := rinv_todo hI hks hc
   rw [hC] at hC'; cases hC'
-  refine { hI with kids := ?_, ents := ?_ }
+  have hsame : (∀ k' ∈ keys, ∀ v p, upd ks k .nilc k' ≠ .val v p) → X = X0 ∧ w = w0 ∧ st = [] :=
+    fun h => hI.same (same_upd_nv hks h)
+  have hput := fun hp => hI.putRoot (putRoot_upd (k := k) (s := .nilc) (fun _ e => by cases e) hp)
+  refine { hI with kids := ?_, ents := ?_, same := hsame, putRoot := hput }
   · intro k' c' hc'
     unfold upd
     by_cases e : k' = k
@@ -173,13 +188,15 @@ theorem rinv_freePre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString}
   rinv_freePre' hI hks hc hC hrn hleaf
 
 /-- **After `child.free()`, for `child.write()`**: the child's record and root leaf after the free,
-`write`'s premises, and the inline value staged (a `sorry`; the value's facts are
-`BktInlineVal.inlineVal_ok`, U9x3's hand-off has the plan for the rest). (U9x3) The inodes'
-lengths (`insLens`, `NodeSpillTailWp.wtxW_lens` at the caller) give `write`'s size relation. -/
+`write`'s premises, and the inline value staged (`BktLoopPureInline.rinv_inline'`). The inodes'
+lengths (`insLens`, `NodeSpillTailWp.wtxW_lens` at the caller) give `write`'s size relation; the
+view's pages are the committed state's (`hv`, the caller's `wdbW`): the freed page's slots are
+tree slots, no buffer's. -/
 theorem rinv_inline (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {C : BRec} {rn : NRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c)
     (hC : X.t.bs !! c = some C) (hrn : X.node c C.bv.rootNode' = some rn)
     (hleaf : rn.nv.isLeaf' = true) (hinl : inlineIns rn.ins) (hlens : insLens rn.ins rn.ws)
+    (hnd : keys.Nodup) (hv : X.v.pages = w.C.pages)
     {X' : WX} {w' : WDb}
     (hfree : (C.ib.root' = W64 0 ∧ X' = X ∧ w' = w) ∨
       (C.ib.root' ≠ W64 0 ∧ bktFreed X X' c ∧
@@ -190,8 +207,8 @@ theorem rinv_inline (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} 
       (wsMs rn1.ws).length < 0xFFFF ∧ pageFits (wsMs rn1.ws) ∧
       insSize rn1.ins = 16 + (pageBody true (wsMs rn1.ws)).length ∧ insSize rn1.ins < 2 ^ 31 ∧
       RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k [])
-        (upd ks k (.val (inlineVal C1.ib rn1.ws) false)) := by
-  sorry
+        (upd ks k (.val (inlineVal C1.ib rn1.ws) false)) :=
+  rinv_inline' hI hnd hks hc hC hrn hleaf hinl hlens hv hfree
 
 theorem isBktFlag_of_mod' (f : Nat) (h : f % 2 = 1) : isBktFlag (W32 (f : Int)) := by
   unfold isBktFlag

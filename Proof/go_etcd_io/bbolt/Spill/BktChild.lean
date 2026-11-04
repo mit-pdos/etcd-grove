@@ -177,12 +177,24 @@ theorem bk_slotFacts {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h 
       (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) :=
   ⟨freeNoCov_of_wdbOK hok, hpre.2.2.2.2.1⟩
 
-/-- **The nested bucket's parent pointers** `spPre` takes (U9w3; a named `sorry`: `bkPre` does
-not carry `parOK X bl`; U9x3 to add it, from `nodeClean`'s last clause at the commit's start,
-kept by the other buckets' spills' frames). -/
+/-- **The nested bucket's parent pointers** `spPre` takes (U9w3): `bkPre`'s, with a root node;
+without one, no node of the bucket is live (`liveReach`: a live node descends from the root node's
+root, and `null` is no node). -/
 theorem bk_parOK {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h : Nat}
     {F D : List Nat} {N : List Loc} (hpre : bkPre X w bl B O h F D N) : parOK X bl := by
-  sorry
+  obtain ⟨hB, -, -, hG, -, hcase⟩ := hpre
+  rcases hcase with hnull | ⟨-, -, -, -, -, -, -, -, -, hpo⟩
+  · -- no root node: no live node (a live node descends from the root node's root)
+    intro m rm hm hl
+    obtain ⟨B', hB', hr⟩ := bk_node_of_bs hm
+    rw [hB] at hB'; cases hB'
+    obtain ⟨rt, hrt, -⟩ := hG.2.2.2.2.1.2 bl B m rm hB hr hl
+    rw [hnull] at hrt
+    have hnn := (hG.2.2.1.2.2.1 bl B hB).2
+    cases hrt with
+    | top _ r h0 _ => rw [hnn] at h0; cases h0
+    | up _ _ r h0 _ _ => rw [hnn] at h0; cases h0
+  · exact hpo
 
 omit package_sem in
 /-- `wdbW`'s `wdbOK`. -/
@@ -237,7 +249,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   iintro %m' %Hm' Hbm
   subst Hm'
   try wp_auto
-  rcases Hcase with Hnull | ⟨rn, E, Hrn0, Hpar, Hu, Hsi, Hsf, HEd, HEp⟩
+  rcases Hcase with Hnull | ⟨rn, E, Hrn0, Hpar, Hu, Hsi, Hsf, HEd, HEp, -⟩
   · rw [decide_eq_true Hnull]
     try wp_auto
     ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -394,7 +406,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     · iexact HeOk
     iexists X1, w1, st
     isplitr
-    · ipureintro; exact ⟨Hst1.1, Hst1.2.1, Hst1.2.2.1⟩
+    · ipureintro; exact Hst1
     iexact Hcase
 
 end proof
