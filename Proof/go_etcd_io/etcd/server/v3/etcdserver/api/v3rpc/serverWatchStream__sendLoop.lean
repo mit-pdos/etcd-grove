@@ -766,7 +766,7 @@ local macro "send_fail" k:tactic : tactic => `(tactic| (
   · itrivial
   iintro !> -
   wp_auto
-  wp_apply +noauto HErrU $$ [] as %cerr -
+  wp_apply +noauto HErrU $$ [] as %cerr - -
   wp_auto
   wp_apply hICE as %bc -
   wp_if_destruct

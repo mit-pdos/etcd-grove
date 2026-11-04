@@ -336,7 +336,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hRevS : cmp = true → mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hcb Hcon Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlgon Hbco Hbcf Hbwb
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
@@ -795,7 +795,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist kv
   wp_join iprop(err_ptr ↦ GoInterface.nil ∗ srv_ptr ↦ s ∗ ∃ cpv : GoInterface,
       s.[EtcdServer, go!"compactor"] ↦ cpv ∗ compactorOk cpv ∗
-      (⌜cpv = GoInterface.nil⌝ ∨ ⌜cmp = true⌝ ∗ ∃ (T : IProp GF) (γf : GName),
+      (⌜cpv = GoInterface.nil⌝ ∨ ⌜cmp = true⌝ ∗
+        -- (K1, 2026-11-04) the mode's permit, from the compactor's slot where it is built
+        ⌜if cfg.AutoCompactionMode' = go!"revision" then
+            0 ≤ sint.Z cfg.AutoCompactionRetention' ∧
+              ((ρ.rd.kv.cret : Nat) : Int) ≤ sint.Z cfg.AutoCompactionRetention'
+          else ρ.rd.kv.cret = 0⌝ ∗ ∃ (T : IProp GF) (γf : GName),
         v3compactor.compactorOk cpv T (v3compactor.runPre
           ⟨srvRevLb γw.st, interface.mkOk (go.GoType.PointerType
               go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws,
@@ -811,17 +816,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · iunfold compactorOk; ileft; ipureintro; rfl
     ileft; ipureintro; rfl
-  · -- `num != 0`: the compaction mode on (`specG`'s premise), `v3compactor.New` in revision mode
-    cases cmp
-    · exact absurd (by simpa using Hacr) Hif
-    simp only [↓reduceIte] at Hacr
-    obtain ⟨Hmode, -⟩ := Hacr
-    -- (periodic mode, 2026-11-02) in revision or periodic mode
-    have Hmode' : cfg.AutoCompactionMode' = go!"revision" ∨
-        cfg.AutoCompactionMode' = go!"periodic" := by
-      rcases Hmode with h | h
-      · exact Or.inl h.1
-      · exact Or.inr h.1
+  · -- `num != 0`: by the compactor's slot (`v3compactor.bootCfg_build`), the compaction mode on,
+    -- `v3compactor.New` in revision or periodic mode, and the mode's permit
+    obtain ⟨hcmpT, Hmode', hPer, Hcrm⟩ := v3compactor.bootCfg_build Hcb
+      (by first | exact Hif | simpa using Hif | (intro h; exact Hif (by simp [h])))
+    subst hcmpT
     ihave #Hcppkg : isPkgInit (PROP := IProp GF)
         pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor $$ []
     · iPkgInit
@@ -830,10 +829,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws,
           interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s,
           iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ RD ∗ mvcc.storeReaderC kst γw.st)⟩
-        (fun hm => by
-          rcases Hmode with h | h
-          · exact absurd (h.1.symm.trans hm) (by decide)
-          · exact h.2.1)
+        hPer
     simp only at hNew
     wp_apply hNew as %cp %cperr Hcp
     icases Hcp with (⟨%Hcpe, %T, %γf, #Hcpo, HT⟩ | %Hcpe)
@@ -853,6 +849,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iright
     isplitr
     · ipureintro; rfl
+    isplitr
+    · ipureintro; exact Hcrm
     iexists T, γf
     iframe Hcpo HT
   -- the auth store's reader slots: one for the auth applier (2026-11-01, J8a; since P6.2 the apply
@@ -1010,9 +1008,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Hwtl Hwstop
     iunfold rnFixed at Hfix
     iNamed Hfix
-    iexists rvr.raftNodeConfig'.storage', id, _
+    iexists rvr.raftNodeConfig'.storage', _
     iframe storageC
     rw [Hrnwal]
+    -- (R2b-3b) the metadata names the member, the wrapper's id
+    have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
+    rw [hidr]
     iframe Hwmeta Hwpurge
   ipersist memberID
   ipersist beHooks
@@ -1824,21 +1825,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists cpv
     iframe compactor
     iunfold compactorRun
-    icases Hcpt with (%Hn | ⟨%Hcm, %T, %γf, #Hcpo, HT⟩)
+    icases Hcpt with (%Hn | ⟨%Hcm, %Hcrm, %T, %γf, #Hcpo, HT⟩)
     · ileft; ipureintro; exact Hn
     iright
     subst Hcm
-    simp only [↓reduceIte] at Hacr
-    obtain ⟨Hmode, Hon⟩ := Hacr
-    -- (periodic mode, 2026-11-02) the mode's permit: at least the cluster's retention in revision
-    -- mode, a cluster retention of `0` in periodic mode
-    have Hcrm : if cfg.AutoCompactionMode' = go!"revision" then
-        0 ≤ sint.Z cfg.AutoCompactionRetention' ∧
-          ((ρ.rd.kv.cret : Nat) : Int) ≤ sint.Z cfg.AutoCompactionRetention'
-        else ρ.rd.kv.cret = 0 := by
-      rcases Hmode with ⟨hm, hr, hc⟩ | ⟨hm, hr, hc⟩
-      · rw [ite_cond_eq_true _ _ (eq_true hm)]; exact ⟨Int.le_of_lt hr, hc⟩
-      · rw [ite_cond_eq_false _ _ (eq_false (by rw [hm]; decide))]; exact hc
+    -- (K1) auth off in compaction mode; the mode's permit carried from where the compactor is built
+    have Hon : on = false := Hcon rfl
     isplitr
     · icases HM with %HM; ipureintro; show M.isOn = false; rw [HM.1, Hon]
     iexists T, _
@@ -1896,12 +1888,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplit
       · iframe Hkci Hsrl Hkvinv Htie HcpIs
         ipureintro
-        -- (#7-on) auth on, the compaction mode off (`specG`'s compactor premise)
+        -- (#7-on) auth on, the compaction mode off (`specG`'s `cmp = true → on = false`)
         -- (the lease-grant merge) and a cluster that grants no lease (`specG`'s `on → lg = false`)
         refine ⟨Hγw.2.2.2.2.trans Hcok.symm, Hcmp0.trans ?_, Hlgon rfl⟩
         cases hc : cmp
         · rfl
-        · rw [hc] at Hacr; simp at Hacr
+        · first | exact absurd (Hcon hc) (by decide) | (have := Hcon hc; simp_all)
       · iapply srvUberOn_of_kit hKit
         iPkgInit
   isplitr

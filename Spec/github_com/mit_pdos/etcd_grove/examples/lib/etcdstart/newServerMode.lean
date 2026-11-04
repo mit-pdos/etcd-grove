@@ -4,10 +4,11 @@
 a parameter -- member `name` of a new cluster with token `token` built, its configuration and
 `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 
-**The triple:** `newServer`'s (`Spec/.../common/newServer.lean`), in the compaction mode `cmp`: off
-(the retention zero), or on in revision mode (a positive retention, the cluster's retention at most
-it) or in periodic mode (a period of at least 10ns, the cluster's retention `0`), as `NewServer`'s
-premise; at `N` write tokens (`N + N` on until M2's item 15, stage B3), on with the boot bundle in
+**The triple:** `newServer`'s (`Spec/.../common/newServer.lean`), in the compaction mode `cmp`, with the
+auto-compactor's configuration by the compactor's slot (`v3compactor.bootCfg`, `NewServer`'s
+premise: off in either mode, the retention zero; or on in compaction mode, in revision mode at a
+positive retention of at least the cluster's, or in periodic mode at a period of at least 10ns and a
+cluster retention of `0`); at `N` write tokens (`N + N` on until M2's item 15, stage B3), on with the boot bundle in
 compaction mode (`memberBoot … true`).
 -/
 module
@@ -51,12 +52,9 @@ abbrev newServerMode.spec : Prop :=
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null →
-  -- the compactor: on in revision mode at a positive retention at least the cluster's, or in
-  -- periodic mode at a period of at least 10ns and the cluster's retention `0`; or off
-  (if cmp then
-      (mode = go!"revision" ∧ 0 < sint.Z retention ∧ (ρ.rd.kv.cret : Int) ≤ sint.Z retention) ∨
-        (mode = go!"periodic" ∧ 10 ≤ sint.Z retention ∧ ρ.rd.kv.cret = 0)
-    else retention = W64 0) →
+  -- the compactor's slot (`v3compactor.bootCfg`, `NewServer`'s premise; K1 of
+  -- `notes/k8s-compactor-plan.md`): off in either compaction mode, or on in compaction mode
+  v3compactor.bootCfg mode retention cmp ρ.rd.kv.cret →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back

@@ -58,7 +58,7 @@ set_option hygiene false in
 /-- `if ctx.Err() != nil { return false, longest }`: a non-`nil` error makes the context done
 (`isContext`'s `Err()`), which `checkSingle`'s postcondition allows. -/
 macro "ctx_check" : tactic => `(tactic| (
-  wp_apply HErrU as %err Herr
+  wp_apply HErrU as %err Herr -
   cases err
   · simp only [reduceCtorEq, ↓reduceIte]
     icases Herr with ⟨#HPD, -⟩

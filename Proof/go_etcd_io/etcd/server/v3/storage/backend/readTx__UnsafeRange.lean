@@ -39,7 +39,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   subst Hrtx
   unfold isBackend
   icases Hb with ⟨%t, %rt2, %tm, %db, %lg, %h, -, #Hrt2, -, -, -, -, -, #Htm, -, -, -, #Hg, -, -, -,
-    -, -, %HPwf⟩
+    -, -, %HPwf, -⟩
   icombine Hrt Hrt2 gives %Heq
   subst Heq
   unfold crTok

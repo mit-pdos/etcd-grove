@@ -11,7 +11,8 @@ variables (non-`nil`, and for the three the proofs compare against, of a pointer
 
 Three things are not facts of the model, and are premises:
 * `os`'s initializer is only partly translated (the standard library's names-only `os`,
-  Perennial's; `strconv`'s is Perennial's own since it translates `strconv`, 24bef275e), so it calls opaque values `X.init`: the
+  Perennial's, whose initializers with translated callees are translated since Perennial
+  `11ac2f242`, so `os.wp_initialize'` initializes `io/fs`, `sync` and `errors`; `strconv`'s is Perennial's own since it translates `strconv`, 24bef275e), so it calls opaque values `X.init`: the
   trust-boundary axioms `<pkg>.opaqueInitsOk` say these run (the generated `Init.lean` files'
   method, `etc/gen-init.py`), `os.initFuncsOk` that its untranslated `func init()`s (`init.0`, as
   gc names it) return (2026-10-19, when Goose began calling a package's `init`s by name), and
@@ -36,6 +37,8 @@ public import Perennial.Proof.strconv.Link
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.io.fs
+public import Perennial.Proof.errors.NewVar
 public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 
@@ -96,19 +99,17 @@ variable [sem : go.Semantics]
 namespace os
 
 /-- **The trust boundary: `os`'s untranslated variable initializers run.** Perennial
-translates `os` names-only, so each `X.init` is an axiom of the translation; Go runs them at
-program start (`ErrInvalid = fs.ErrInvalid`, ..., `Stdin = NewFile(...)`, `dirBufPool =
-sync.Pool{...}`, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, the `var _ I = ...`
-assertions), and every Go program starts, so each returns without panicking. Satisfiable
+translates `os` names-only but for the initializers whose callees are translated (since
+Perennial `11ac2f242`: `ErrInvalid = fs.ErrInvalid`, ..., the `errors.New` errors, `dirBufPool`,
+`lstat`, the `var _ I = ...` assertions, which `os.wp_initialize'` runs), so each remaining
+`X.init` is an axiom of the translation; Go runs them at program start (`Stdin =
+NewFile(...)`, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, `Interrupt`, `ErrNoDeadline`, the
+`internal/poll` functions), and every Go program starts, so each returns without panicking. Satisfiable
 whatever the semantics (the `X.init`s are uninterpreted constants). `Stderr`'s, which the
 fact reads, is `Stderr_init`. -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, errPatternHasSeparator.init,
-        checkPidfdOnce.init, «_».init, checkWrapErr.init, lstat.init, errPathEscapes.init,
-        errWriteAtInAppendMode.init, Stdout.init, Stdin.init, Kill.init, Interrupt.init,
-        ErrNoHandle.init, errProcessReleased.init, ErrProcessDone.init,
-        ErrDeadlineExceeded.init, ErrNoDeadline.init, ErrClosed.init, ErrNotExist.init,
-        ErrExist.init, ErrPermission.init, ErrInvalid.init, dirBufPool.init] : List val),
+    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, checkPidfdOnce.init, Stdout.init, Stdin.init,
+        Kill.init, Interrupt.init, ErrDeadlineExceeded.init, ErrNoDeadline.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
@@ -146,7 +147,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 omit package_sem in
-theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.os get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
       (App (Val os.initialize') (Val #()))
@@ -158,32 +159,50 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (os.opaqueInitsOk os.dirBufPool.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrInvalid.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrPermission.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrExist.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrNotExist.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrClosed.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.errPatternHasSeparator go.error as _
+  wp_apply wp_GlobalAlloc (V := Bool) os.checkWrapErr go.bool as _
+  wp_apply wp_GlobalAlloc (V := GoFunc) os.lstat _ as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.errPathEscapes go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.errWriteAtInAppendMode go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNoHandle go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.errProcessReleased go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrProcessDone go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrClosed go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNotExist go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrExist go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrPermission go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrInvalid go.error as _
+  wp_apply wp_GlobalAlloc (V := sync.Pool) os.dirBufPool sync.Pool.ty as _
+  wp_apply errors.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Herrors⟩
+  wp_apply sync.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hsync⟩
+  wp_apply io.fs.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hfs⟩
+  -- `ErrInvalid = fs.ErrInvalid`, ...: io/fs's error variables, which its fact gives
+  ihave #Hfsi := io.fs.isInit_access $$ Hfs
+  icases Hfsi with ⟨#VIn, #VPe, #VEx, #VNE, #VCl, -⟩
+  iunfold errors.newVar at VIn VPe VEx VNE VCl
+  icases VIn with ⟨%_, #_, -⟩
+  icases VPe with ⟨%_, #_, -⟩
+  icases VEx with ⟨%_, #_, -⟩
+  icases VNE with ⟨%_, #_, -⟩
+  icases VCl with ⟨%_, #_, -⟩
+  -- `dirBufPool`'s `New`, a function literal
+  rw [recv_eq_func_mk BAnon BAnon]
+  wp_auto
   wp_apply (os.opaqueInitsOk os.ErrNoDeadline.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.ErrDeadlineExceeded.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrProcessDone.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errProcessReleased.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrNoHandle.init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply (os.opaqueInitsOk os.Interrupt.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.Kill.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.Stdin.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.Stdout.init (by mem_tac))
   wp_apply os.Stderr_init as ⟨%stderr, Hstderr⟩
-  wp_apply (os.opaqueInitsOk os.errWriteAtInAppendMode.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errPathEscapes.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.lstat.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.checkWrapErr.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+  try wp_auto
   wp_apply (os.opaqueInitsOk os.checkPidfdOnce.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.errPatternHasSeparator.init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
   wp_apply (os.initFuncsOk os.init.«0» (by mem_tac))
@@ -469,7 +488,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply _root_.Perennial.context.wp_New_errorString as %_ #_)
+    | (wp_apply _root_.Perennial.context.wp_New_errorString as %_ ⟨-, #_⟩)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu

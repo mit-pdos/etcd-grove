@@ -43,7 +43,7 @@ theorem newServer.wp_proof
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn false Htb Hrb48 HrbN HwbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (by simpa using Hret) Hck Haf Hbuq Hdbo)
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (v3compactor.bootCfg_off _ _ _ _ Hret) Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   (try wp_auto)
@@ -62,7 +62,7 @@ theorem newServer.wp_proofCompact
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (by simp only [↓reduceIte]; exact Or.inl ⟨trivial, Hret, Hcret⟩) Hck Haf Hbuq Hdbo)
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (v3compactor.bootCfg_revision _ _ Hret Hcret) Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   (try wp_auto)

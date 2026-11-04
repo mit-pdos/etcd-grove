@@ -150,7 +150,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
   -- translated initializer of ErrLeaseTTLTooLarge))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩

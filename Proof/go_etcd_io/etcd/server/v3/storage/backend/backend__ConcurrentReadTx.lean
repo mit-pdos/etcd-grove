@@ -101,7 +101,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   ihave #Hb' := Hb
   unfold isBackend
   icases Hb' with ⟨%t, %rt2, %tm, %db, %lg, %h, -, #Hrt2, -, -, -, -, -, #Htm, -, -, -, #Hg,
-    #Hcm, #Hci, -, -, -, %HPwf⟩
+    #Hcm, #Hci, -, -, -, %HPwf, -⟩
   icombine Hrt Hrt2 gives %Heq
   subst Heq
   wp_auto

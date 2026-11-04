@@ -113,7 +113,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   iunfold _root_.Perennial.context.isContextDef at Hcc
   iNamed Hcc
   wp_for
-  wp_apply HErr $$ %Broadcast.Pending as %ce Hce
+  wp_apply HErr $$ %Broadcast.Pending as %ce Hce -
   rcases ce with cei | _
   · -- the loop ends: the context is done
     (try wp_auto)

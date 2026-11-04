@@ -38,20 +38,32 @@ theorem backend.backend.Close.wp_proof
   ihave #Hdcc := ownBroadcastChan_is_chan _ _ _ _ $$ Hdcb
   wp_auto
   wp_apply (lc := 1) wp_with_defer as %defer defer
-  imod (stop_take γ sc γsc) $$ [$Hinv $Ho] with ⟨Hpend, #Hq⟩
+  imod (stop_take γ sc γsc) $$ [$Hinv $Ho] with ⟨Hpend, #Hq, Hclaim⟩
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 Hpend with Hpend
   wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))
     sc γsc (stopQ γ)) $$ [$Hpend $Hq] as -
   wp_apply_core chan.wp_receive (V := Unit) dc γdc $$ Hdcc
   iintro ⟨Hlc1, Hlc2, Hlc3, Hlc4⟩
   iapply broadcast_chan_receive _ _ _ _ _ $$ Hdcb
-  iintro ⟨-, -⟩
+  iintro ⟨#Hesc, -⟩
+  -- (R2b-3c) bbolt's database out of the stop's escrow, with `Close`'s claim
+  icases isBackend_dbFile γ P W Pk b $$ Hb with ⟨%db2, %path, #Hmug2, #Hisdb2, #Hdbat, #Hfile⟩
+  imod (bDoneEsc_take γ sc γsc) $$ Hesc Hinv Hq Hclaim Hlc1 Hlc2 with Hout
+  iunfold bDBOut at Hout
+  icases Hout with ⟨%db', %C, #Hbdb, Hown⟩
+  iunfold bDB at Hbdb
+  icases Hbdb with ⟨%path', #Hdbat'⟩
+  ihave %Hag := bDBAt_agree γ db' db2 path' path $$ [Hdbat' Hdbat]
+  · iframe Hdbat' Hdbat
+  obtain ⟨rfl, rfl⟩ := Hag
   wp_auto
-  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug] as ⟨Hwl, Hdbp⟩
-  wp_apply (hClose db) $$ [$Hisdb] as %err %Herr
+  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug2] as ⟨Hwl, Hdbp⟩
+  wp_apply (hClose db' γ.db C path') $$ [$Hisdb2 $Hfile $Hown] as %err Herr
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
-  ipureintro; exact Herr
+  icases Herr with (⟨%He, Hf⟩ | %Hbad)
+  · ileft; iframe %He; iexists path', C; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
+  · iright; ipureintro; exact Hbad
 
 end proof
 

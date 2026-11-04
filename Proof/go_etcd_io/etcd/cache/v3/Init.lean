@@ -90,9 +90,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrKeyRangeInvalid))
   -- translated initializer of ErrCacheTimeout))
   -- translated initializer of ErrNotReady))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xUR ⟨-, #MUR⟩
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xKR ⟨-, #MKR⟩
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xCT ⟨-, #MCT⟩
   wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))
       $$ [] as %eNR -
   · isplitl

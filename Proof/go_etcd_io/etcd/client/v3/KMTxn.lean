@@ -353,7 +353,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     inext
     iintro %resp %err Hout
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmSeenQ at HQ
       icases HQ with ⟨#Hlb, %Hpre⟩
@@ -395,7 +395,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     inext
     iintro %resp %err Hout
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmWriteQ at HQ
       icases HQ with ⟨#Hlb2, #Hlb, %Hpre, Htok⟩
