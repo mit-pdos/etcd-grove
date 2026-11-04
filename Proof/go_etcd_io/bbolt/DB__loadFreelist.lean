@@ -188,16 +188,19 @@ theorem wdbCore_lf (B : BNs) (db : Loc) (p : GoString) (w : WDb) :
       ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli ∗
       db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
+      metaCellsQ (1 : Qp).half.half w.ms w.C ∗
       (∀ (fl : FLPg) (fli : GoInterface),
         ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half fl ∗
         ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
         db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
-        db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
+        db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
+        metaCellsQ (1 : Qp).half.half w.ms w.C -∗
         wdbCore B db p { w with fl := fl, fli := fli }) := by
   unfold wdbCore wdbCoreG
-  iintro ⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hop, Hrest⟩
-  iframe Hcur Hfl Hmap Hwv Hfli Hop
-  iintro %fl %fli ⟨Hcur, Hfl, Hmap, Hwv, Hfli, Hop⟩
+  iintro ⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hop, Hwa, Hrw, Hf, Hp, Hds, Hmf, Hom, Hfo, Hfd, Hmq,
+    Hrest⟩
+  iframe Hcur Hfl Hmap Hwv Hfli Hop Hmq
+  iintro %fl %fli ⟨Hcur, Hfl, Hmap, Hwv, Hfli, Hop, Hmq⟩
   iframe
 
 /-- The loaded freelist `FLPg.ofInit ids`'s facts (`Model/Store.storeOK_setFl`'s premise). -/
@@ -321,11 +324,11 @@ theorem DB.loadFreelist.wp_proof_open
       iunfold isBoltCoreP at Hcore'
       icases Hcore' with ⟨-, -, -, -, -, -, #Hmlk, -, -, #Hpinv, -⟩
       -- `freepages`, on the spare reader pair
-      icases wdbCore_lf _ _ _ _ $$ Hw with ⟨Hcur, Hgfl, Hmap, Hwv, Hfl2, Hop2, Hwb⟩
+      icases wdbCore_lf _ _ _ _ $$ Hw with ⟨Hcur, Hgfl, Hmap, Hwv, Hfl2, Hop2, Hmq, Hwb⟩
       have hhwm62 : C.hwm ≤ 2 ^ 62 := by omega
       wp_auto
       wp_apply hFP ⟨B, N, db, p, sp, C.txid⟩ C b L hmeta htree hhwm62 $$
-        [Hcore Hsp Hcur Hmap Hop2] as %s ⟨Hs, Hcap, %hidsF, Hsp, Hcur, Hmap, Hop2⟩
+        [Hcore Hsp Hcur Hmap Hmq Hop2] as %s ⟨Hs, Hcap, %hidsF, Hsp, Hcur, Hmap, Hmq, Hop2⟩
       · unfold BC.core; iframe Hcore; iframe
       ihave #Hflpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist $$ []
       · iPkgInit
@@ -366,7 +369,7 @@ theorem DB.loadFreelist.wp_proof_open
         · unfold flRoOpt; simp only [hfli, ↓reduceIte]; iexists []; iframe; ipureintro; simp
         ipureintro
         exact ⟨fun _ => Hok rfl, fun k t h => by simp at h⟩
-      ihave Hw := Hwb $$ %(FLPg.ofInit (freeIdsOf C)) %fli [Hcur Hgfl Hmap Hwv Hfl2 Hop2]
+      ihave Hw := Hwb $$ %(FLPg.ofInit (freeIdsOf C)) %fli [Hcur Hgfl Hmap Hwv Hfl2 Hop2 Hmq]
       · iframe
       have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) := by
         unfold lfW openWb
