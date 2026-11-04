@@ -12,7 +12,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.Rebase
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
-public import Proof.go_etcd_io.bbolt.Mmap.RemapLost
+public import Proof.go_etcd_io.bbolt.Mmap.RemapEnd
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGaps
 public import Spec.go_etcd_io.bbolt.Bucket__dereference
 public import Spec.go_etcd_io.bbolt.DB__page
@@ -84,6 +84,27 @@ theorem wdbW_file_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
     · iframe
     · ipureintro; exact Hwok
   · ipureintro; exact Hwok
+
+/-- A `bool` field's points-to as the heap's. -/
+theorem bool_heap (l : Loc) (dq : DFrac) (b : Bool) :
+    l ↦{dq} b ⊢ heapPointsto (GF := GF) l dq #b := by
+  rw [typedPointsto_unseal]; unfold typedPointstoWrap
+  iintro ⟨H, -⟩
+  simp only [typedPointsto_bool, typedPointstoDef_heap]
+  iexact H
+
+attribute [local instance] go.tagged_internal_inst in
+/-- **A `bool` load split at its atomic first step** (`StartRead`, the step that `store_cells_agree`
+opens the page store around). -/
+theorem wp_load_bool_split (l : Loc) (s : Stuckness) (E : CoPset) (Φ : val → IProp GF) :
+    WP (StartRead (Val #l)) @ s; E
+      {{ v, WP (Let "v" (Val v) (Seq (FinishRead (Val #l)) (Var "v"))) @ s; E {{ Φ }} }} ⊢
+      WP (App (Val (GoInstruction (GoLoad go.bool))) (Val #l)) @ s; E {{ Φ }} := by
+  iintro H
+  wp_pures
+  wp_call
+  wp_bind (StartRead _)
+  iexact H
 
 /-- `mmapSizeOf`'s result: at least the size, at least 32 KiB, a mapping's length. -/
 theorem mmapSizeOf_props (size s : Nat) (h : mmapSizeOf size = some s) :
@@ -287,7 +308,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   have hb0 : X.v.base = b0 := by
     rw [hmsL] at hms; exact (Prod.mk.inj (Option.some.inj hms)).1.symm
   have hok' := hok
-  obtain ⟨hk1, hk2, hk3, hk4, hk5, hk6, hk7, hk8, hk9, hk10, hk11⟩ := hok'
+  obtain ⟨hk1, hk2, hk3, hk4, hk5, hk6, hk7, hk8, hk9, hk10, hk11, hk12⟩ := hok'
   have hL8 : 8192 ≤ L := by
     by_cases h : L ≤ 0x1000000
     · have := hk10 b0 L hmsL h; omega
@@ -453,6 +474,113 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
 
+  obtain ⟨rfl, hbpos⟩ := hbase
+  iclear Hmlk
+  wp_auto
+  -- the carve (step 7), around the first step of the `Mlock` load
+  icases BC.core_mmapFields K $$ Hcore with ⟨-, #Hmlk, -⟩
+  ihave %hdisj := core_osN_disj K $$ Hcore
+  have hE' : (↑osN : CoPset) ⊆ ⊤ \ ↑(pagesN K.N) := fun x hx =>
+    CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp => hdisj x ⟨hx, hp⟩⟩
+  have hLn : nsz.toNat = L' := by
+    have h1 := hnszZ
+    simp only [sint.Z] at h1
+    rw [BitVec.toInt_eq_toNat_cond] at h1
+    split at h1 <;> omega
+  have hll : l ≤ L' := by
+    have h1 : (L' : Int) ≥ sint.Z sz0 := by
+      have := hL'p.1; have e : sint.nat sz0 = (sint.Z sz0).toNat := rfl; omega
+    have e2 : sint.nat minsz = (sint.Z minsz).toNat := rfl
+    have h3 : mapLen w.ms = l := by rw [hmsL]; rfl
+    have h4 : sint.Z minsz ≤ sint.Z sz0 := by rw [Hsz0]; exact Int.le_max_right _ _
+    omega
+  have hsl' : ∀ s ∈ slotsOf w.C w.fl, 2 ≤ s ∧ s < L' / 4096 := fun s hs =>
+    ⟨(hgat.2.2 s hs).1, Nat.lt_of_lt_of_le (hgat.2.2 s hs).2 (Nat.div_le_div_right hll)⟩
+  have hP' := slots_partition (L' / 4096) (slotsOf w.C w.fl) (wSlots (L' / 4096) w.C w.fl)
+    (by have := hL'p.2.1; omega) (slotsOf_nodup _ _) (wSlots_nodup _ _ _) hsl'
+    (fun s => by rw [mem_wSlots])
+  have hb2 : ({ { w.m with maps := GMap.delete b0 w.m.maps } with
+      maps := <[base := L']> (GMap.delete b0 w.m.maps) } : OsMeta).maps !! base = some L' :=
+    GMap.lookup_insert _ _ _
+  unfold mapCells
+  icases Hmc with ⟨%bs', -, Hc⟩
+  rw [hLn]
+  icases mapCells_scatter base L' _ _ _ hP' $$ Hc with ⟨Hc01, HS, Hws, Hpart⟩
+  wp_bind (App (Val (GoInstruction (GoLoad go.bool))) (Val #(K.db.[DB, go!"Mlock"])))
+  iapply wp_load_bool_split
+  iapply (store_cells_agree K.B K.N K.p ⊤ CoPset.subseteq_top _
+    (StartRead (Val #(K.db.[DB, go!"Mlock"]))) rfl inferInstance hE' w.C w.fl
+    _ base L' _ (DFrac.own 1) W hb2 (fun s hs => (hsl' s hs).2) _)
+    $$ Hpinv Hos Hcur Hgfl Hgmap Hgwv Hbyt Hosm HS
+  iintro %bs2 %hW2 Hcur Hgfl Hgmap Hgwv Hbyt Hosm HS
+  unfold metaOsBytes
+  icases Hmob with ⟨%xs, Hxs, %hxs⟩
+  have hxl : xs.length = 8192 := by
+    have := congrArg List.length hxs
+    simp only [List.length_map, List.length_append] at this
+    rw [this, hgat.2.1.1, hgat.2.1.2.1]
+  rw [← hxl]
+  iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) _ base L' hb2 _
+    hE' _ xs 0 _ (by omega) $$ Hos Hosm Hxs Hc01
+  iintro Hosm Hxs Hcm
+  -- the metas' bytes at the new mapping, at a half
+  have hm0 := hgat.2.1.1
+  have hm1 := hgat.2.1.2.1
+  ihave Hmb : bytesPointsto base (DFrac.own (1 : Qp).half) (w.C.m0 ++ w.C.m1) $$ [Hcm]
+  · rw [← hxs]
+    have e := cellsR_bytes (GF := GF) base (xs.map Prod.fst) 0
+    rw [List.length_map, Int.natCast_zero, loc_add_0] at e
+    iapply e $$ Hcm
+  icases (bytesPointsto_app base _ w.C.m0 w.C.m1).1 $$ Hmb with ⟨H0, H1⟩
+  rw [hm0]
+  icases (bytes_quarters base w.C.m0).2 $$ H0 with ⟨H0a, H0b⟩
+  icases (bytes_quarters _ w.C.m1).2 $$ H1 with ⟨H1a, H1b⟩
+  -- the step
+  ihave Hml := bool_heap _ _ _ $$ Hmlk
+  iapply (wp_start_read _ _ _) $$ [Hml]
+  · iexact Hml
+  inext
+  iintro ⟨Hst, Hrest⟩
+  -- the store's cells back (`store_carve`), the view re-borrowed (`store_wborrow`)
+  imod store_carve K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl base L' _ bs2 W
+    (fun s hs => (hsl' s hs).2) hW2 $$ [Hpinv Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hbyt HS H0a H1a]
+    with ⟨Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv⟩
+  · isplitr
+    · iexact Hpinv
+    isplitl [Hcur]
+    · iexact Hcur
+    isplitl [Hgfl]
+    · iexact Hgfl
+    isplitl [Hgmap]
+    · iexact Hgmap
+    isplitl [Hpmap]
+    · iexact Hpmap
+    isplitl [Hptok]
+    · iexact Hptok
+    isplitl [Hgwv]
+    · iexact Hgwv
+    isplitl [Hbyt]
+    · iexact Hbyt
+    isplitl [HS]
+    · iexact HS
+    · simp only [metaCellsQ]
+      iframe H0a
+      iexact H1a
+  imod store_wborrow K.B K.N K.p ⊤ CoPset.subseteq_top X.v (some (w.C.txid + 1)) false base L'
+    $$ [Hpinv Hgwv Hgmap] with ⟨Hgwv, Hgmap, Hvc⟩
+  · isplitr
+    · iexact Hpinv
+    isplitl [Hgwv]
+    · iexact Hgwv
+    · iexact Hgmap
+  wp_pures
+  wp_bind (FinishRead _)
+  iapply (wp_finish_read _ _ _) $$ [Hst Hrest]
+  · iframe
+  inext
+  iintro -
+  wp_pures
+  wp_auto
   sorry
 
 end body
