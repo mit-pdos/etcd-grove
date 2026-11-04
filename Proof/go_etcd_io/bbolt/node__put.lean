@@ -47,7 +47,7 @@ theorem node.put.wp_proof (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG
     (hE : bytes.Equal.spec (GF := GF) (hG := hG)) :
     node.put.spec (GF := GF) (hG := hG) := by
   intro v n bl r tx mp mv dqb qv oldKey newKey value okb nkb vb oks nks vs pgId flags
-    Hbk Hcapo Hsorted Hlive Hpg Hok0 Hnk0 Hoks Hnks Hvs
+    Hbk Hcapo Hsorted Hlive Hpg Hok0 Hnk0 Hoks Hnks Hvs Hbase
   wp_start as ⟨Ho, Hv, Hbt, Htm, Hm, Hokp, #Hnkp, #Hvp⟩
   unfold objOwn
   simp only [Hcapo, ↓reduceIte]
@@ -55,10 +55,10 @@ theorem node.put.wp_proof (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
   icases (viewCells_halves qv v).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases srcOwn_acc qv.half v oldKey oks okb Hoks $$ [Hokp Hv1] with ⟨%dk, Hokp, Hokb⟩
+  icases srcOwn_acc qv.half v oldKey oks okb Hoks Hbase $$ [Hokp Hv1] with ⟨%dk, Hokp, Hokb⟩
   · iframe
   ihave %Hokl := ownSlice_len _ _ _ $$ Hokp
-  icases srcOwn_acc qv.half v newKey nks nkb Hnks $$ [Hnkp Hv2] with ⟨%dnk, Hnks', Hnkb⟩
+  icases srcOwn_acc qv.half v newKey nks nkb Hnks Hbase $$ [Hnkp Hv2] with ⟨%dnk, Hnks', Hnkb⟩
   · iframe; iexact Hnkp
   ihave %Hnkl := ownSlice_len _ _ _ $$ Hnks'
   icases Hnkb $$ Hnks' with ⟨-, Hv2⟩
@@ -109,7 +109,7 @@ theorem node.put.wp_proof (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG
       simp only [↓reduceIte]
       icases Hw1 with ⟨%Hfp, Hik, Hiv⟩
       have Hwks : w.ks ≠ Src.stale := (Hlive w (List.mem_of_getElem? Hw_lookup)).1
-      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
       · iframe
       wp_apply hC $$ [Hik Hk] as ⟨Hik, Hk⟩
       · iframe
@@ -167,7 +167,7 @@ theorem node.put.wp_proof (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG
         simp only [↓reduceIte]
         icases Hw1 with ⟨%Hfp, Hik, Hiv⟩
         have Hwks : w.ks ≠ Src.stale := (Hlive w (List.mem_of_getElem? Hw_lookup)).1
-        icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+        icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
         · iframe
         wp_apply hE $$ [Hik Hokp] as ⟨Hik, Hokp⟩
         · iframe

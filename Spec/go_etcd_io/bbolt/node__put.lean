@@ -32,13 +32,14 @@ entry `⟨flags, pgId, newKey, value⟩` replaces the one of key `oldKey`, or is
 `value`'s with their sources (`srcOwn`, persistent: view bytes or heap bytes `↦*□`), which the
 node keeps; `oldKey`'s and the entries' keys are read through the view's cells (`viewCells`, any
 fraction). It reads `n.bucket.tx.meta.pgid` (fractions of the three). It panics if `pgId` is not
-below that high-water mark or a key is empty: excluded by the premises. -/
+below that high-water mark or a key is empty: excluded by the premises. The view's base is a
+mapped address (`0 < v.base.addr`, from `mapFields`), as reading an empty view slice needs. -/
 abbrev node.put.spec : Prop :=
   ∀ (v : View) (n bl : Loc) (r : NRec) (tx mp : Loc) (mv : Meta) (dqb : DFrac) (qv : Qp)
     (oldKey newKey value : GoSlice) (okb nkb vb : List w8) (oks nks vs : Src) (pgId : w64)
     (flags : w32),
   r.nv.bucket' = bl → r.capOwn = true → wsSorted r.ws → wsLive r.ws → pgId.toNat < mv.pgid'.toNat →
-  0 < okb.length → 0 < nkb.length → oks ≠ Src.stale → nks ≠ Src.stale → vs ≠ Src.stale →
+  0 < okb.length → 0 < nkb.length → oks ≠ Src.stale → nks ≠ Src.stale → vs ≠ Src.stale → 0 < v.base.addr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗
       bl.[Bucket, go!"tx"] ↦{dqb} tx ∗ tx.[Tx, go!"meta"] ↦{dqb} mp ∗ mp ↦{dqb} mv ∗

@@ -63,14 +63,14 @@ theorem wsIdx_of_bounds (ws : List WEntry) (kb : List w8) (idx : Nat) (hle : idx
 theorem node.childIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     node.childIndex.spec (GF := GF) (hG := hG) := by
-  intro v n bl r dq qv child cv dqc ks kb Hsorted Hlive Hks
+  intro v n bl r dq qv child cv dqc ks kb Hsorted Hlive Hks Hbase
   wp_start as ⟨Ho, Hv, Hc, Hck⟩
   unfold objOwn
   icases Ho with ⟨Hn, Hs, Hcap, Hws, Hch, Hchcap, Hkey⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
   icases (viewCells_halves qv v).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases srcOwn_acc qv.half v cv.key' ks kb Hks $$ [Hck Hv1] with ⟨%dk, Hck, Hckb⟩
+  icases srcOwn_acc qv.half v cv.key' ks kb Hks Hbase $$ [Hck Hv1] with ⟨%dk, Hck, Hckb⟩
   · iframe
   icases typedPointsto_not_null_dup _ _ _ $$ Hc with ⟨Hc, %Hcnn⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
@@ -109,7 +109,7 @@ theorem node.childIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
       simp only [↓reduceIte]
       icases Hw1 with ⟨%Hfp, Hik, Hiv⟩
       have Hwks : w.ks ≠ Src.stale := (Hlive w (List.mem_of_getElem? Hw_lookup)).1
-      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
       · iframe
       icases typedPointsto_not_null_dup _ _ _ $$ Hc with ⟨Hc, %Hcnn'⟩
       iStructNamed Hc

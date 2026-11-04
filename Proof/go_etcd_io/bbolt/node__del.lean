@@ -35,7 +35,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG))
     (hE : bytes.Equal.spec (GF := GF) (hG := hG)) :
     node.del.spec (GF := GF) (hG := hG) := by
-  intro v n bl r qv key kb ks Hcapo Hsorted Hlive Hks
+  intro v n bl r qv key kb ks Hcapo Hsorted Hlive Hks Hbase
   wp_start as ⟨Ho, Hv, Hkp⟩
   unfold objOwn
   simp only [Hcapo, ↓reduceIte]
@@ -44,7 +44,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
   ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
   ihave %Hcw := ownSliceCap_wf _ _ $$ Hcap
   icases (viewCells_halves qv v).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases srcOwn_acc qv.half v key ks kb Hks $$ [Hkp Hv1] with ⟨%dk, Hkp, Hkb⟩
+  icases srcOwn_acc qv.half v key ks kb Hks Hbase $$ [Hkp Hv1] with ⟨%dk, Hkp, Hkb⟩
   · iframe
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
@@ -83,7 +83,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
       simp only [↓reduceIte]
       icases Hw1 with ⟨%Hfp, Hik, Hiv⟩
       have Hwks : w.ks ≠ Src.stale := (Hlive w (List.mem_of_getElem? Hw_lookup)).1
-      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+      icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
       · iframe
       wp_apply hC $$ [Hik Hk] as ⟨Hik, Hk⟩
       · iframe
@@ -147,7 +147,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
   icases BigSepL2.bigSepL2_lookup_acc Hit_lookup Hw_lookup $$ Hws with ⟨Hw1, Hwsback⟩
   icases (Write.wOwn_live v it w).1 $$ Hw1 with ⟨%Hfp, Hik, Hiv⟩
   have Hwks : w.ks ≠ Src.stale := (Hlive w (List.mem_of_getElem? Hw_lookup)).1
-  icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+  icases srcOwn_acc qv.half v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
   · iframe
   wp_apply hE $$ [Hik Hk] as ⟨Hik, Hk⟩
   · iframe
@@ -184,8 +184,8 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
     · iright
       isplitr
       · ipureintro; exact Hf
-      iexists _, _
-      simp only [NRec.withEntsU, Hcapo, wsDelAt, Hf, Hidx, ↓reduceIte]
+      iexists _
+      simp only [NRec.withEntsU, Hcapo, wsDelAt, Hf, Hidx, ↓reduceIte, List.eraseIdx_eq_take_drop_succ]
       iframe
     iframe
   · -- a different key there: not found

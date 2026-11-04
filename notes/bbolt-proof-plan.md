@@ -750,6 +750,18 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   child of `Bucket_r` stays `rBkt`). `Proof/Bucket__ForEachBucket_r`'s `wp_proof` is U6c's
   `ForEachBucket_rP.wp_proof`; `Bucket__Bucket_r`'s proof adapted (no `rBkt_eq` unpacking).
 
+## Shared-statement fixes, batch 30 (maintainer 4's queue, 2026-11-04; decided by the coordinator)
+
+- **1. A positive view base for the three node specs**: `node.put.spec`, `node.del.spec`,
+  `node.childIndex.spec` take `0 < v.base.addr` as their last premise (after the `Src.stale`
+  ones): `Rebalance/Base.srcOwn_acc` needs it since `d77c9ad08a`. Callers get it from
+  `mapFields`; for a writer, `Inv/WtxBase.wtxW_base_pos` (new module, so that `Inv/Ctx`'s
+  importers do not rebuild): `wtxW … X ⊢ ⌜0 < X.v.base.addr⌝`. Proofs adapted mechanically:
+  `node__put`, `node__del` (also batch 28's line 187: one existential, `List.eraseIdx_eq_take_drop_succ`),
+  `node__childIndex`, `node__nextSibling`, `node__prevSibling` (all build). **Open for U8b**:
+  `node__rebalance.lean:463`'s `wp_apply hDel …` needs the premise (`wtxW_base_pos`, or
+  `mapFields_base_nonnull` of the opened `wtxW`), not edited (U8b's WIP).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

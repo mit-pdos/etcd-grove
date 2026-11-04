@@ -26,11 +26,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `n.childIndex(child)` on a live node whose entries are sorted and not stale: the search index
-of `child.key` (its bytes `kb`, from their source) in `n`'s entries. -/
+of `child.key` (its bytes `kb`, from their source) in `n`'s entries. The view's base is a mapped address (`0 < v.base.addr`, from `mapFields`). -/
 abbrev node.childIndex.spec : Prop :=
   ∀ (v : View) (n bl : Loc) (r : NRec) (dq : DFrac) (qv : Qp) (child : Loc) (cv : node)
     (dqc : DFrac) (ks : Src) (kb : List w8),
-  wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale →
+  wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale → 0 < v.base.addr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ objOwn v n dq true (WObj.node bl r) ∗
       viewCells qv v ∗ child ↦{dqc} cv ∗ srcOwn v cv.key' ks kb }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"childIndex")) (Val #child))

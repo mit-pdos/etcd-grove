@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.bbolt.node__childAt
 public import Proof.go_etcd_io.bbolt.Rebalance.Heap
 public import Proof.go_etcd_io.bbolt.Rebalance.Base
 public import Proof.go_etcd_io.bbolt.Read.Base
+public import Proof.go_etcd_io.bbolt.Inv.WtxBase
 
 @[expose] public section
 
@@ -33,6 +34,7 @@ theorem node.prevSibling.wp_proof (hCI : node.childIndex.spec (GF := GF) (hG := 
     node.prevSibling.spec (GF := GF) (hG := hG) := by
   intro K tx r m X bl B n rn hb hn hbl hnl hbll hnodes hpar
   wp_start as Hw
+  ihave %Hbase := wtxW_base_pos K tx r m X $$ Hw
   unfold wtxW wtxCore
   icases Hw with ⟨⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
@@ -74,7 +76,7 @@ theorem node.prevSibling.wp_proof (hCI : node.childIndex.spec (GF := GF) (hG := 
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   wp_apply hCI X.v rn.nv.parent' bl rp (DFrac.own 1) wq n rn.nv (DFrac.own 1) rn.ksrc rn.key
-    hps hplive hks $$ [Hop Hcells Hn] as ⟨Hop, Hcells, Hn⟩
+    hps hplive hks Hbase $$ [Hop Hcells Hn] as ⟨Hop, Hcells, Hn⟩
   · iframe; iframe #
   try wp_auto
   unfold objOwn
