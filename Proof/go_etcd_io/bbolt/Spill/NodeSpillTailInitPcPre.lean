@@ -40,7 +40,7 @@ theorem splitRec_ins (rN : NRec) (x : Loc × node × List Inode) (ws : List WEnt
 theorem setNode_mv (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.mv = X.t.mv := by
   unfold WX.setNode; split <;> rfl
 
-theorem nilCh_pm (X : WX) (bl n : Loc) (r : NRec) : (X.nilCh bl n r).t.pm = X.t.pm := by
+theorem nilCh_pm' (X : WX) (bl n : Loc) (r : NRec) : (X.nilCh bl n r).t.pm = X.t.pm := by
   unfold WX.nilCh WX.killL WX.setNode; split <;> rfl
 
 theorem nodup_len_le {L : List w64} {B : Nat} (hn : L.Nodup) (hb : ∀ x ∈ L, x.toNat < B) :
@@ -172,7 +172,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     have hpg0 : rk.nv.pgid' = r'.nv.pgid' := by rw [hnv.2.1, hpg, if_pos rfl]; rfl
     rw [hpg0] at h0 ⊢
     have hv : Xi.v = X'.v := by rw [hsr.same.2.2.2, nilCh_v]
-    have hpm : Xi.t.pm = X'.t.pm := by rw [hsr.same.2.2.1, nilCh_pm]
+    have hpm : Xi.t.pm = X'.t.pm := by rw [hsr.same.2.2.1, nilCh_pm']
     have hfr0 := spEnd_free0 hpre hsp hend r'.nv.pgid'.toNat (by unfold ownF; rw [if_neg h0]; exact List.mem_singleton_self _)
     obtain ⟨pg, hpgv, h16, hid, hfl, h2, h62⟩ := hun'.2.2.2.2.2.2.2 h0
     have hwtx : wi.wtxid = w.wtxid := wtxid_of_C (spEnd_db hend).1

@@ -134,8 +134,10 @@ theorem wdbW_freeView (K : BC) (tx : Loc) (v : View) (w : WDb) :
     wdbW (GF := GF) K tx v w ⊢ wdbW K tx v w ∗ ⌜∀ y ∈ w.fl.free, v.pages !! y.toNat = none⌝ := by
   unfold wdbW
   iintro ⟨H, %Hp⟩
-  isplitr
-  · iframe; ipureintro; exact Hp
+  isplitl [H]
+  · isplitl [H]
+    · iexact H
+    · ipureintro; exact Hp
   · ipureintro; exact free_notView Hp.1 Hp.2.2
 
 /-- **`spillTail` over an invariant of the pieces' loop** (see the module doc). -/

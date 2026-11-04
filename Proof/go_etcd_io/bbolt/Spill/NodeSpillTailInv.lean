@@ -1,7 +1,7 @@
 /-
 `node.spill` after its children's loop (U9s, `notes/bbolt-proof-plan.md`; pure): **the pieces'
 loop's invariant** (`pcInv`) and the facts `Spill/NodeSpillTailWp.spillTail_gen` takes of it
-(`tail_pre`, `pcInv_init`, `pcInv_pre`, `pcInv_step`, `pcInv_err`, `pcInv_end`, `pcInv_done`,
+(`tail_pre`, `pcInv_step`, `pcInv_err`, `pcInv_end`, `pcInv_done`,
 `pcInv_top`), which `Spill/NodeSpillPieces.spillTail_wp` passes it.
 
 The invariant, at iteration `i` of the loop over the split's pieces `xs` (under the parent `pl`),
@@ -304,30 +304,6 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         rcases hcs' pl hm with hm | hm
         · exact hplN (hcsN pl hm)
         · rw [node_none_of_objs hm] at hrp; cases hrp
-
-/-- **The invariant at the loop's start**, after the split. -/
-theorem pcInv_init {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
-    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) (hlens : insLens r'.ins r'.ws)
-    (X2 : WX) (xs : List (Loc × node × List Inode)) (wss : List (List WEntry)) (pl : Loc)
-    (rp' : NRec) (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp')
-    (hfit : ∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) :
-    pcInv X w bl n rn O lo hi h D N E cs xs pl 0 X2 w' st := by
-  sorry
-
-/-- **A piece's premises** (`pieceOne_wp`'s) at iteration `i`: proved as
-`Spill/NodeSpillTailInitPcPre.pcInv_pre'` (U9w; this stub goes once its users switch). -/
-theorem pcInv_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (xs : List (Loc × node × List Inode)) (pl : Loc) (i : Nat) (Xi : WX) (wi : WDb)
-    (st : List FLStep) (x : Loc × node × List Inode)
-    (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) (hx : xs[i]? = some x) :
-    ∃ rl, Xi.node bl x.1 = some rl ∧ x.1 ∈ Xi.live ∧ wsLive rl.ws ∧
-      (insLens rl.ins rl.ws → pcPre Xi wi bl x.1 rl) := by
-  sorry
 
 /-- **A piece's step** keeps the invariant. -/
 theorem pcInv_step {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}

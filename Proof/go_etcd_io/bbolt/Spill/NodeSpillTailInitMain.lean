@@ -77,8 +77,8 @@ theorem pcOwn_zero (X' : WX) (r' : NRec) (Ds : List (List Nat)) (Xi : WX) :
     pcOwn X' r' Ds 0 [] Xi = ownSl X'.v r'.nv.pgid' ++ Ds.flatten := by
   simp [pcOwn, pcSlots]
 
-/-- **The invariant at the loop's start**, after the split (`NodeSpillTailInv.pcInv_init`'s
-statement). -/
+/-- **The invariant at the loop's start**, after the split (the statement of the stub it replaced,
+`NodeSpillTailInv.pcInv_init`). -/
 theorem pcInv_init' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
