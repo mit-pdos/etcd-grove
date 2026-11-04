@@ -93,6 +93,61 @@ theorem treeEls_wBranch {P : Pages} {hwm : Nat} {wid : w64} {ms : List InodeM} {
   have hbp := (wPage_branch (id := wid) (ovf := ovf) (tail := tail) hi' hb).2.2.1
   rw [List.getElem?_eq_getElem hi', Option.map_some, Option.getD_some, hbp, hsub i hi']
 
+/-- **A written leaf page is a finished subtree** from its first key: over its nested buckets'
+values, its leaf elements its inodes'. -/
+theorem fTree_wLeaf {P : Pages} {hwm : Nat} {hi : Option (List w8)}
+    (wid : w64) (ms : List InodeM) (ovf : w32) (tail : List w8) (Sb : Nat → List Nat)
+    (hpg : P !! wid.toNat = some (wPage wid true ms ovf tail)) (h2 : 2 ≤ wid.toNat)
+    (hlen : (wPage wid true ms ovf tail).length = (1 + ovf.toNat) * 4096)
+    (hn0 : 0 < ms.length) (hn : ms.length < 2 ^ 16)
+    (hb : 16 + (pageBody true ms).length ≤ maxAllocSize) (hs : msSorted ms)
+    (hk0 : ∀ m ∈ ms, 0 < m.key.length) (hkin : ∀ m ∈ ms, keyIn (some (msKey ms 0)) hi m.key)
+    (hbv : ∀ i (hix : i < ms.length), ms[i].flags.toNat % 2 = bucketLeafFlag →
+      bvalS P hwm ms[i].value (Sb i))
+    (hb0 : ∀ i (hix : i < ms.length), ms[i].flags.toNat % 2 ≠ bucketLeafFlag → Sb i = [])
+    (hd : subsDisj P wid.toNat (wPage wid true ms ovf tail) ms.length Sb)
+    (hext : wid.toNat + (1 + ovf.toNat) ≤ hwm) :
+    fTree P hwm wid.toNat (msKey ms 0) hi 0 (nodePages wid.toNat ms.length Sb) (ms.map mEl) := by
+  have hb32 : 16 + (pageBody true ms).length < 2 ^ 32 := by unfold maxAllocSize at hb; omega
+  refine ⟨sTree_wLeaf wid ms ovf tail Sb hpg h2 (by omega) hlen hn hb hs hk0 hkin hbv hb0 hd hext,
+    ⟨_, hpg, ?_, ?_⟩, treeEls_wLeaf hpg hn hb32⟩
+  · rw [wPage_count hn]; exact hn0
+  · have hfl : pageFlags (wPage wid true ms ovf tail) = leafPageFlag := by
+      rw [wPage_flags]; rfl
+    unfold pageKey
+    rw [if_pos (by rw [hfl]; rfl), (wPage_leaf (id := wid) (ovf := ovf) (tail := tail) hn0 hb32).2.2.2.2.1,
+      msKey_of hn0]
+
+/-- **A written branch page is a finished subtree** from its first key, over its children's
+`sTree`s (of height `h`, within the entries' bounds, first keys the entries'): of height `h + 1`,
+its leaf elements its children's in order. -/
+theorem fTree_wBranch {P : Pages} {hwm : Nat} {hi : Option (List w8)} {h : Nat}
+    (wid : w64) (ms : List InodeM) (ovf : w32) (tail : List w8) (Sc : Nat → List Nat)
+    (hpg : P !! wid.toNat = some (wPage wid false ms ovf tail)) (h2 : 2 ≤ wid.toNat)
+    (hlen : (wPage wid false ms ovf tail).length = (1 + ovf.toNat) * 4096)
+    (hn2 : 2 ≤ ms.length) (hn : ms.length < 2 ^ 16)
+    (hb : 16 + (pageBody true ms).length ≤ maxAllocSize) (hs : msSorted ms)
+    (hk0 : ∀ m ∈ ms, 0 < m.key.length) (hkin : ∀ m ∈ ms, keyIn (some (msKey ms 0)) hi m.key)
+    (hch : ∀ i (hix : i < ms.length), sTree P hwm ms[i].pgid.toNat
+      (childLo (some (msKey ms 0)) (msKey ms) i) (childHi hi (msKey ms) ms.length i) h (Sc i))
+    (hfirst : ∀ i (hix : i < ms.length), ∃ cpg, P !! ms[i].pgid.toNat = some cpg ∧
+      0 < pageCount cpg ∧ pageKey cpg 0 = ms[i].key)
+    (hd : subsDisj P wid.toNat (wPage wid false ms ovf tail) ms.length Sc)
+    (hext : wid.toNat + (1 + ovf.toNat) ≤ hwm) :
+    fTree P hwm wid.toNat (msKey ms 0) hi (h + 1) (nodePages wid.toNat ms.length Sc)
+      (ms.flatMap fun m => treeEls P m.pgid.toNat) := by
+  have hb32 : 16 + (pageBody true ms).length < 2 ^ 32 := by unfold maxAllocSize at hb; omega
+  have hn0 : 0 < ms.length := by omega
+  refine ⟨sTree_wBranch wid ms ovf tail Sc hpg h2 (by omega) hlen hn2 hn hb hs hk0 hkin hch hfirst
+      hd hext, ⟨_, hpg, ?_, ?_⟩,
+    treeEls_wBranch hpg hn hb32 Sc _ _ _ hch hd.own⟩
+  · rw [wPage_count hn]; exact hn0
+  · have hfl : pageFlags (wPage wid false ms ovf tail) = branchPageFlag := by
+      rw [wPage_flags]; rfl
+    unfold pageKey
+    rw [if_neg (by rw [hfl]; decide), (wPage_branch (id := wid) (ovf := ovf) (tail := tail) hn0 hb32).2.2.2,
+      msKey_of hn0]
+
 end els
 
 end Spill
