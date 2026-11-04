@@ -252,3 +252,83 @@ no leased put), then `ForceCommit`.
   until `Promote`). Built on `leasegrant_cluster_test.go`'s cluster.
 
 Order: C, then X, then S (S needs X2's mode and X7's revocations in the image), then E.
+
+## Review round 1 (2026-11-04, a fresh `spec-reviewer` on `7a22a6c177`)
+
+Requirements (each checked against the code; R1's and R2's premises re-verified by hand):
+- **R1. X2 breaks every grant in `leaseexpiry`.** The grant path assumes a monotone lessor whenever
+  `lg = true` (`srvGrantable`, `InvRest.lean:621`: `lessorModeIs … true`; `grantPermRq`/`grantPre`,
+  `apply/Chain.lean:1576-1610`; `leaseGrantedAt`, `InvLessor.lean:453`), so with X2's mode `false`
+  no grant is provable; `srvRest_revocable` ("revocable ⇒ `lg = false`", `InvRest.lean:648`) stops
+  describing reachable states; and `decide leasesNoExpiry` keeps the premise inside the server.
+- **R2. E2 is false on the forwarded path.** A follower forwards `TimeToLive` to the leader; the
+  examples' peer listeners serve only the raft handler (`etcdstart/common.go:170`), so
+  `/leases/internal` answers 404, which `TimeToLiveHTTP` reads as `ErrLeaseNotFound` for a live lease
+  (`leaseTimeToLive.spec`'s docstring records it). Also: E2 is at the wrong level (the server returns
+  the error; the gRPC handler builds `TTL = -1, GrantedTTL = 0`, `v3rpc/lease.go:67-73`), and
+  `GrantedTTL ≠ 0` on the found arm needs `MinLeaseTTL ≥ 1` (false at `ElectionTicks = 0`).
+- **R3. P1 is a blocker.** `GoAttach.spec` gives `f` only `P` and takes back `True`; the expiry
+  goroutines need a token, `wgMu`'s and the logger's and read loop's reader slots per round, and
+  rounds are unbounded (an unrevoked lease is re-sent each retry interval).
+- **R4. X6.** Go's `LeaseRevoke` is `requireAuthInfo`, a span, `raftRequest` (not
+  `raftRequestOnce`), and a type assertion that panics unless the response is a
+  `*LeaseRevokeResponse`. P2's `¬ leasesNoExpiry` premise is unneeded. v3rpc's `lessorRevokeOk`
+  (`InvLease.lean:156`, no premise) is still an undischarged premise of client results; X6
+  discharges only a mode-gated version.
+- **R5. X3** also needs the slice itself read-only (`ls ↦*□`).
+- **R6. Part S.** `MustUnsafeGetAllLeases` needs a premise that every record decodes as a
+  `leasepb.Lease` whose ID is its key (it keys the map by the decoded ID, `lessor.go:816`), which
+  S3's image fact supplies (`persistTo` → `MustUnsafePutLease`), and a `proto.Unmarshal` law for
+  `leasepb`; S3 relates lease **ids** only (TTLs differ between members: `MinLeaseTTL` is per
+  member, checkpoints rewrite `RemainingTTL`); the image's KV keys lease-free is a fact S3 states
+  (`kv.Restore` calls `Attach` for leased keys, `kvstore.go:396-398`).
+
+Preferences: C's inventory misses `%Hslg` in `InvStart`, `ServerOn`, `RunOn`, `StartOn`,
+`etcdstart/Defs`, `Alloc`, and `srvPeerRt` in `InvRestart`; C1's `on` argument is a coupling lease
+owns (say so), `_noExpiry` stays internal; `hlease` is in the twins `SnapImageFacts`/
+`SnapImageFactsOn` of hub 3 (`applySnapshot.specSnap`/`specSnapM`): collapse them or put the image's
+lease fact behind a sealed `lease.imageOk`; lease-id masking (`& (2^63-1)`) can make two members'
+ids collide (an `ErrLeaseExists`, not a wrong result).
+
+## Draft, revision 2 (2026-11-04, the round-1 repairs)
+
+- **C2 reversed for the mode: `lease.Names`** (`LeaseApi.lean`) with `mode : lease.Mode` (`none |
+  mono | revocable`, chosen by the caller as `lg` is) and the lessor's name (`E.γ.leases`).
+  `KVNames.lg` stays (C2's 190-site argument stands for it; `lg = (mode ≠ none)`, a law).
+  `lease.bootCfg γl on := (on = true → γl.mode = none) ∧ (γl.mode = mono → leasesNoExpiry) ∧
+  ckptEffectsOk` (until S4 also `γl.mode ≠ none → srvGrantOpen`). The premise appears only
+  there; `mono` is how `leasegrant` keeps its proof; `leaseexpiry` takes `revocable`.
+- **X2 (replaced).** `NewLessor`'s mode from `γl.mode`; `srvGrantable`, `grantPermRq`, `grantPre`
+  generalized to `lessorModeIs E.γ.leases m`; a mode-free grant fact (`leaseLiveAt γl i id`) for the
+  grant's reply, `leaseGrantedAt` its monotone strengthening; `srvRest_revocable` restated
+  (revocable ⇒ `mode ≠ mono`).
+- **X1/X4.** The guard `⌜mode ≠ none ∧ on = false⌝`; in mode `mono`, `expiredC`'s `¬ leasesNoExpiry`
+  makes `run`'s arm dead (as now), in `revocable` the arm is X5.
+- **X3** adds `ls ↦*□` (R5). The `axiom` skill before Freeze.
+- **X5 with R3's fix: lend the token.** `GoAttach.spec` generalized (proved): `f` gets the counted
+  `threadTok` (`{P ∗ threadTok} f {threadTok}`), the wait group holding a loan receipt
+  (`notes/bounds-plan.md` B2, `ownThreadLoan`); with it the outer goroutine borrows `wgMu`'s, the
+  logger's and the read loop's reader slots from server-owned pools; `run` needs nothing per round.
+  `GoAttach`'s callers re-checked (the spec is a generalization).
+- **X6 (R4).** `LeaseRevoke.spec` over `requireAuthInfo`, the span, `raftRequest`, and the response's
+  type (`chain_revoke`'s answer a `*LeaseRevokeResponse`); premise `mode = revocable`; v3rpc's
+  `lessorRevokeOk` discharged mode-gated, the ungated one stays a premise of the client results
+  (said in its docstring).
+- **X7.** `rqOk` at `.leaseRevoke`: `mode = revocable` (no `leasesNoExpiry`).
+- **E2 (replaced).** At the handler: `leaseTTLOut`'s not-found arm gives `lease.leaseAbsentAt γl i
+  id ∗ lessorLb γl i` **under a single-voter row** (`□ (⌜single voter⌝ → …)`, the forwarded path the
+  margin), the found arm `GrantedTTL ≠ 0` from a configuration fact (`ElectionTicks ≥ 1` with the
+  heartbeat, carried by `lessorCfg`). Trusted where it rests on `leaseTimeToLive` (`axiom` skill).
+  The example is single-member, so the row applies.
+- **E3 (a), reshaped.** An exclusive "granted at most once" right per id, handed out with the fresh
+  id the server's generator claims (after the mask), and required by a grant with an explicit `ID`
+  (the admin-history pattern); absence at `i` then lasts.
+- **S1** with R6: `MustUnsafeGetAllLeases`'s spec takes every record to decode as a lease whose ID
+  is its key; check Perennial's `proto` specs for `leasepb`'s `Unmarshal`.
+- **S3** behind a sealed `lease.imageOk D ids` (ids only, TTLs existential; records decodable; KV keys
+  lease-free), one conjunct in each of `SnapImageFacts`/`SnapImageFactsOn` (no collapse of hub 3's
+  twins in this stage; `lease.imageOk` keeps the next lease change out of them).
+- **Hubs touched**: the boot hub (C), the name records (`lease.Names`), hub 3 (`specSnap`/
+  `specSnapM`, one sealed conjunct), the examples' entry points (`leaseexpiry`).
+
+Round 2: a fresh reviewer on this revision, hardest on R1-R3's repairs.
