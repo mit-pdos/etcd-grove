@@ -78,7 +78,32 @@ theorem errMaxSizeOk_holds : errMaxSizeOk (GF := GF) (hG := hG) := by
   unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
   icases Hei with ⟨%_, #-, %_, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
   unfold go_etcd_io.bbolt.errors.bboltErrVar
-  iexact Hm
+  icases Hm with ⟨%e, #He, %Hp, #Hf⟩
+  iexists e
+  iframe He Hf
+  ipureintro; exact Hp.1
+
+open Iris.ProofMode in
+/-- **`ErrInvalid` is an `errors.New` error, a `*errorString`** (batch 36: `bboltErrVar` records
+the type; U11's `Open/PageSize.errInvalidStr`, same statement). -/
+theorem errInvalid_errorString :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ⊢
+      ∃ x : Loc, globalAddr go_etcd_io.bbolt.errors.ErrInvalid ↦□
+        interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x := by
+  iintro #Hep
+  ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hep
+  unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
+  icases Hei with ⟨%_, #-, %_, -, #HEi, -⟩
+  unfold go_etcd_io.bbolt.errors.bboltErrVar
+  icases HEi with ⟨%e, #He, %Hp, -⟩
+  obtain ⟨⟨T, x, hT, hv⟩, hty⟩ := Hp
+  iexists x
+  have : GoInterface.ok e =
+      interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x := by
+    cases e; simp only at hty hv; subst hty hv; rfl
+  rw [← this]
+  iexact He
 
 open Iris.ProofMode in
 /-- A value read from one of bbolt's error variables is `fmtErrorOk` (batch 30). -/

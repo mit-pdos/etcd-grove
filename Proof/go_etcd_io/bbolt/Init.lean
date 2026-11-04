@@ -8,7 +8,8 @@ Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
+`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`).
 And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
 `Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.
 -/
@@ -191,10 +192,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrInvalid))
   -- translated initializer of _root_.Perennial.go_etcd_io.bbolt.errors.ErrDatabaseNotOpen))
   try wp_auto
+  ipersist HdiscardLogger
   iframe Hown
   is_pkg_init_finish
-  ipureintro
-  exact ⟨isPanic_intoVal _, runtime.GOOS_linux, runtime.GOARCH_amd64⟩
+  isplitr
+  · ipureintro; exact isPanic_intoVal _
+  imodintro
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨runtime.GOOS_linux, runtime.GOARCH_amd64⟩
+  iexists _
+  iexact HdiscardLogger
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

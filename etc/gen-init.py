@@ -266,7 +266,7 @@ SPECIAL['go_etcd_io.bbolt.errors'] = dict(
 holds an `errors.New` error, a leaf pointer error without an `Is` method
 (`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
 variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
-Perennial's `errors.wp_New_errorString`); the other variables' errors are pointer errors and
+Perennial's `errors.wp_New_errorString`); the other variables' errors are `*errorString` pointer errors and
 `fmtErrorOk` (`EtcdGrove.errorString_fmtErrorOk`, `Proof/errors/ErrorStringOk.lean`).''',
     imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.NewVar', 'Proof.errors.ErrorStringOk'],
     alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
@@ -280,9 +280,9 @@ Perennial's `errors.wp_New_errorString`); the other variables' errors are pointe
            # (batch 30) each other variable: an `errors.New` pointer error, `fmtErrorOk` by
            # `EtcdGrove.errorString_fmtErrorOk` of its method spec `M{x}`
            [l for x in _BBOLT_VARS[:-1] for l in ['isplitr', f'· iexists _; iframe H{x}; isplitr',
-                                                   '  · ipureintro; exact ⟨_, _, rfl, rfl⟩',
+                                                   '  · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
                                                    f'  iapply EtcdGrove.errorString_fmtErrorOk; iexact M{x}']] +
-           [f'iexists _; iframe H{_BBOLT_VARS[-1]}; isplitr', '· ipureintro; exact ⟨_, _, rfl, rfl⟩',
+           [f'iexists _; iframe H{_BBOLT_VARS[-1]}; isplitr', '· ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
             f'iapply EtcdGrove.errorString_fmtErrorOk; iexact M{_BBOLT_VARS[-1]}'],
 )
 
@@ -344,7 +344,8 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
+`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`).
 And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
 `Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
     imports=['Perennial.Proof.errors.NewVar'],
@@ -360,7 +361,11 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
-    finish=['iframe Hown', 'is_pkg_init_finish', 'ipureintro', 'exact ⟨isPanic_intoVal _, runtime.GOOS_linux, runtime.GOARCH_amd64⟩'],
+    # (batch 34) the fact's `discardLogger` clause: the store of `&nopLogger{}`, persisted
+    finish=['ipersist HdiscardLogger', 'iframe Hown', 'is_pkg_init_finish',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _', 'imodintro', 'imodintro', 'isplitr',
+            '· ipureintro; exact ⟨runtime.GOOS_linux, runtime.GOARCH_amd64⟩',
+            'iexists _', 'iexact HdiscardLogger'],
 )
 
 # (2026-11-03) `os` is this repository's (project bboltfs's), for every project: names only (its

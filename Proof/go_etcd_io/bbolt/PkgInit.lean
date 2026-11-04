@@ -64,11 +64,14 @@ end encoding.hex
 
 namespace go_etcd_io.bbolt.errors
 
-/-- The variable at `a` holds an `errors.New` error for good: a pointer error that `fmt` formats
+/-- The variable at `a` holds an `errors.New` error for good: a pointer error, a `*errorString`
+(batch 36: `err != ErrInvalid` tells another pointer error from it), that `fmt` formats
 (`bboltErrorsVars`' clause; a `def` with its own instance, as `bboltErrorsVars`). -/
 def bboltErrVar (a : Loc) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, a ↦□ GoInterface.ok e ∗
-    ⌜_root_.Perennial.errors.IsPointerError e⌝ ∗ EtcdGrove.fmtErrorOk (GoInterface.ok e))
+    ⌜_root_.Perennial.errors.IsPointerError e ∧
+      e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty⌝ ∗
+    EtcdGrove.fmtErrorOk (GoInterface.ok e))
 
 instance bboltErrVar_persistent (a : Loc) : Persistent (bboltErrVar (GF := GF) a) := by
   unfold bboltErrVar; infer_instance
@@ -156,10 +159,14 @@ namespace go_etcd_io.bbolt
 `Proof/runtime/Init.lean`, which bbolt's `wp_initialize'` uses; `runtime`'s own `IsPkgInit` is
 Perennial's, with the fact `True`). bbolt compares `GOOS` with `"windows"` in `DB.grow`, `DB.mmap`
 and `DB.allocate`, and its loggers format both; a proof gets the equations from `isPkgInit` by
-`bboltRootInit_goos`/`bboltRootInit_goarch`. -/
+`bboltRootInit_goos`/`bboltRootInit_goarch`. And (batch 34) `discardLogger` holds `&nopLogger{}`
+for good, a `*nopLogger` (`db.go`'s `lg != discardLogger` compares it at that pointer type):
+`bboltRootInit_discard`. -/
 abbrev bboltRootInit : IProp GF :=
   iprop(⌜_root_.Perennial.runtime.GOOS = #(go!"linux") ∧
-    _root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝)
+    _root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝ ∗
+    ∃ l : Loc, globalAddr discardLogger ↦□
+      interface.mkOk (go.GoType.PointerType nopLogger.ty) #l)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
   define_is_pkg_init bboltRootInit
@@ -169,14 +176,21 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbo
 /-- **`runtime.GOOS` is `"linux"`**, from bbolt's package facts. -/
 theorem bboltRootInit_goos :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
-      ⌜_root_.Perennial.runtime.GOOS = #(go!"linux")⌝ :=
-  (isPkgInit_access _).trans (BI.pure_mono And.left)
+      ⌜_root_.Perennial.runtime.GOOS = #(go!"linux")⌝ := 
+  (isPkgInit_access _).trans (BIBase.Entails.trans sep_elim_left (pure_mono And.left))
 
 /-- **`runtime.GOARCH` is `"amd64"`**, from bbolt's package facts. -/
 theorem bboltRootInit_goarch :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
-      ⌜_root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝ :=
-  (isPkgInit_access _).trans (BI.pure_mono And.right)
+      ⌜_root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝ := 
+  (isPkgInit_access _).trans (BIBase.Entails.trans sep_elim_left (pure_mono And.right))
+
+/-- **`discardLogger` holds a `*nopLogger`**, from bbolt's package facts (batch 34). -/
+theorem bboltRootInit_discard :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
+      ∃ l : Loc, globalAddr discardLogger ↦□
+        interface.mkOk (go.GoType.PointerType nopLogger.ty) #l := 
+  (isPkgInit_access _).trans sep_elim_right
 
 end go_etcd_io.bbolt
 

@@ -31,14 +31,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-omit hos package_sem in
-/-- **`lg != discardLogger`** (U5c's finding: open). Go's interface comparison panics on equal
-uncomparable dynamic types; the model steps only when it knows the dynamic types' values
-(`Interface.lean`'s `go_eq_interface`: equal types, then `CheckComparable` and the type's own
-`==`). Needs bbolt's package facts to say `discardLogger` holds `&nopLogger{}` (a pointer:
-`discardLogger_boltLogger`, owner U11, gives only `boltLogger`), and of the database's logger
-(`dbLogger`) that a pointer-typed value is a location (as `errPtrTyped` for errors). -/
-theorem wp_logger_ne_discard (lg : GoInterface) :
+omit hos in
+/-- **`lg != discardLogger`** (batch 34). Go's interface comparison panics on equal uncomparable
+dynamic types; the model compares the dynamic types, then (equal) checks comparability and uses the
+type's own `==` (`Interface.lean`'s `go_eq_interface`). `discardLogger` holds a `*nopLogger`
+(bbolt's package facts, `bboltRootInit_discard`), so the types differ, or both are pointers and
+`lg`'s value is a location (`logPtrTyped`, `dbFixed`'s). -/
+theorem wp_logger_ne_discard (lg : GoInterface) (hty : logPtrTyped lg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ boltLogger lg }}
       (App (Val (GoInstruction (Convert go.untypedBool go.bool)))
         (App (Val (GoInstruction (GoUnOp GoNot go.bool)))
@@ -46,7 +45,26 @@ theorem wp_logger_ne_discard (lg : GoInterface) :
             (Pair (Val #lg) (App (Val (GoInstruction (GoLoad Logger.ty)))
               (Val #(globalAddr discardLogger)))))))
     {{ (b : Bool), RET #b; True }} := by
-  sorry
+  wp_start as -
+  ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt $$ []
+  · iPkgInit
+  icases bboltRootInit_discard $$ Hpkg with ⟨%l, #Hd⟩
+  wp_auto
+  cases lg with
+  | nil =>
+    simp only [interface.mkOk]
+    wp_auto
+    iapply HΦ; itrivial
+  | ok ii =>
+    simp only [interface.mkOk]
+    by_cases h : ii.ty = go.GoType.PointerType nopLogger.ty
+    · obtain ⟨l', hl⟩ := hty ii rfl _ h
+      rw [if_pos h, h, hl]
+      wp_auto
+      iapply HΦ; itrivial
+    · rw [if_neg h]
+      wp_auto
+      iapply HΦ; itrivial
 
 omit package_sem in
 /-- A reader's registration, out of its `rdTxK` (what `txDB` needs). -/
@@ -116,6 +134,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, -⟩
+  ihave %Hlgty := dbFixed_logPtrTyped db sp lg $$ Hfix Hlg
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
@@ -124,7 +143,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
   · iframe #; unfold dbLogger; iexact Hlgok
   try wp_auto
   wp_bind (App (Val (GoInstruction (Convert go.untypedBool go.bool))) _)
-  wp_apply wp_logger_ne_discard lg $$ [] as %bl -
+  wp_apply wp_logger_ne_discard lg Hlgty $$ [] as %bl -
   · iframe #; unfold dbLogger; iexact Hlgok
   ihave #HK : BC.full (GF := GF) ⟨bnsOf γ.gs, γ.ns, db, p, sp, t0⟩ $$ []
   · unfold BC.full; iexact HbP

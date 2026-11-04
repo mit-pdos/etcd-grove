@@ -58,10 +58,18 @@ def pageBuf (v : GoAny) : IProp GF :=
   iprop(∃ s : GoSlice, ⌜v = interface.mkOk (go.GoType.SliceType go.byte) #s⌝ ∗
     s ↦* List.replicate 4096 (W8 0))
 
+/-- A logger whose dynamic type is a pointer type holds a location (batch 34: Go's `lg !=
+discardLogger` compares at the dynamic type, a pointer type's `==` on locations; the model's
+interface values pair a type with any value). -/
+def logPtrTyped (lg : GoInterface) : Prop :=
+  ∀ ii : GoInterfaceOk, lg = GoInterface.ok ii → ∀ T : go.GoType, ii.ty = go.GoType.PointerType T →
+    ∃ l : Loc, ii.v = #l
+
 /-- **`db`'s fields written only by `Open`** (persistent, design §3.4): the page size, the
 statistics pointer, the logger, `readOnly`, the exported options (`StrictMode` and `Mlock` off),
 `openFile`, the page pool (its `New` not nil, batch 29: `Open` sets it, and `Get().([]byte)`
-asserts on its result), the never-used batch fields. `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
+asserts on its result), the never-used batch fields, and (batch 34, last so that the patterns
+ending in `-` stand) the logger's value a location if its type is a pointer type (`logPtrTyped`). `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
 `mmap`'s `unix.Mmap`). `AllocSize` is `DefaultAllocSize` (16 MiB, batch 24: `Open` sets it;
 `isBolt` forbids writing `DB`'s exported fields after `Open`), for `DB.grow`'s size. (Not `freelistLoad`'s `sync.Once`:
 Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
@@ -80,7 +88,8 @@ def dbFixed (db sp : Loc) : IProp GF :=
     db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
     (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝) ∗
-    sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null)
+    sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null ∗
+    (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
 statistics pointer `sp` and receipts' base `t0`. -/
@@ -147,6 +156,16 @@ theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : GoString) (sp
   icombine Ht Ht' gives %h1
   icombine Hsp Hsp' gives %h2
   ipureintro; exact ⟨h2, h1.2⟩
+
+/-- **The database's logger is `logPtrTyped`** (batch 34; `dbFixed`'s last clause, read against the
+caller's copy of the logger field). -/
+theorem dbFixed_logPtrTyped (db sp : Loc) (lg : GoInterface) :
+    dbFixed (GF := GF) db sp ⊢ db.[DB, go!"logger"] ↦□ lg -∗ ⌜logPtrTyped lg⌝ := by
+  unfold dbFixed
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %lg', #H, %Ht⟩ #Hl
+  ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ H Hl
+  subst Heq
+  ipureintro; exact Ht
 
 end bolt
 
