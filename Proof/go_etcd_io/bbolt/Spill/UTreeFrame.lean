@@ -253,6 +253,29 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
       exact H)
     hu
 
+/-! ## After the children's loop -/
+
+/-- An unspilled node is not a spilled one. -/
+theorem uTree_not_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {c : Loc} {lo hi h F D N}
+    (hu : uTree X bl P hwm c lo hi h F D N) : ¬ spilledN X bl c := by
+  intro ⟨_, rc, hrc, _, hsp, _⟩
+  cases hu with
+  | leaf _ r _ _ _ hr hun =>
+    rw [hr] at hrc; cases hrc; rw [hun.2.2.1] at hsp; cases hsp
+  | branch _ r _ _ _ _ hr hun =>
+    rw [hr] at hrc; cases hrc; rw [hun.2.2.1] at hsp; cases hsp
+
+/-- **Every entry finished** once every child is spilled (`node.spill`'s children's loop done):
+each entry's descriptor is a finished subtree's. -/
+theorem uEnt_fin_of_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
+    {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
+    {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) (hcs : ∀ c ∈ cs, spilledN X bl c) :
+    ∃ S, e = ⟨none, [], pgSlots P S, []⟩ ∧
+      fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S := by
+  cases he with
+  | child _ _ _ _ _ _ _ _ c rc F D N hc _ _ _ _ _ hut => exact absurd (hcs c hc) (uTree_not_spilled hut)
+  | fin _ _ _ _ _ _ _ _ S hf => exact ⟨S, rfl, hf⟩
+
 end frame
 
 end Spill
