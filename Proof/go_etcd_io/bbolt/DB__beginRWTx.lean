@@ -261,6 +261,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     $$ [Hpi Hcur Hgfl Hgmap Hgwv] with ⟨Hcur, Hgfl, Hgmap, Hgwv, %Hσ⟩
   · iframe; iframe #
   obtain ⟨σ, hσC, hσfl, hσms, hσws, hσok⟩ := Hσ
+  iunfold fltxAuth at Hfa
+  icases Hfa with ⟨Hfa, Hspr⟩
   imod store_release_len K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl (some (b, l)) F ro Hperm HF
     $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfa] with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hfa, Hso, %HS, %Hbs⟩
   · iframe; iframe #
@@ -359,8 +361,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     iexists _; iframe Hrol; ipureintro; exact (sortPgids_perm ro).trans Hperm
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-    Hfl' Hwa' Hob Hmlk Hfa Hro]
-  · iunfold metaR; iexists w.C, F, false, w.fli, wa; iframe; ipureintro
+    Hfl' Hwa' Hob Hmlk Hfa Hspr Hro]
+  · iunfold metaR; iexists w.C, F, false, w.fli, wa; iunfold fltxAuth; iframe; ipureintro
     exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
   iapply HΦ
   ileft
