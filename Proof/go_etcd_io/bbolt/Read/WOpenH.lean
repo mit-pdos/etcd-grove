@@ -198,7 +198,51 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   iframe
   ipureintro; exact Hnan
 
+/-- **The writer's statistics token**, with its core and registration, out of `wtxW` and back
+(`Bucket.Cursor_i`'s pre). -/
+theorem wtxW_stats_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ K.core ∗ reg tx K.B r ∗ statsTok r m 1 ∗
+      (statsTok r m 1 -∗ wtxW K tx r m X) := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
+  iframe Hst; iframe Hcore; iframe Hreg
+  iintro Hst
+  iframe; iframe #
+  ipureintro; exact Hr
+
 end heap
+
+section heap2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- **Two live slices' bytes**, out of `wtxW` (the view's cells, halved) and back. -/
+theorem wtxW_src2_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (s1 s2 : GoSlice)
+    (a1 a2 : Src) (b1 b2 : List w8) (h1 : a1 ≠ Src.stale) (h2 : a2 ≠ Src.stale) :
+    wtxW (GF := GF) K tx r m X ∗ srcOwn X.v s1 a1 b1 ∗ srcOwn X.v s2 a2 b2 ⊢
+      ∃ d1 d2 : DFrac, s1 ↦*{d1} b1 ∗ s2 ↦*{d2} b2 ∗
+        (s1 ↦*{d1} b1 -∗ s2 ↦*{d2} b2 -∗ wtxW K tx r m X) := by
+  iintro ⟨Hw, #Hs1, #Hs2⟩
+  icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hc, Hwb⟩
+  icases (viewCells_halves wq X.v).1 $$ Hc with ⟨Hc1, Hc2⟩
+  icases viewCells_src_acc wq.half X.v Hbase s1 a1 b1 h1 $$ [Hc1] with ⟨%d1, Hb1, Hcb1⟩
+  · iframe; iframe #
+  icases viewCells_src_acc wq.half X.v Hbase s2 a2 b2 h2 $$ [Hc2] with ⟨%d2, Hb2, Hcb2⟩
+  · iframe; iframe #
+  iexists d1, d2
+  iframe Hb1 Hb2
+  iintro Hb1 Hb2
+  ihave Hc1 := Hcb1 $$ Hb1
+  ihave Hc2 := Hcb2 $$ Hb2
+  iapply Hwb
+  iapply (viewCells_halves wq X.v).2
+  iframe
+
+end heap2
 
 end bbolt
 end EtcdGrove
