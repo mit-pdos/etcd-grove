@@ -54,8 +54,8 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runCompactLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret hrb
-  wp_start as ⟨#Hc, #Hstop, #Hcl, Hone, Hregs, #Hcas⟩
+  intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
+  wp_start as ⟨#Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
   ihave #Hc' := Hc
   iunfold isCompactor at Hc'
   icases Hc' with ⟨%Hpers, #Hclf, ⟨%iv, #Hiv, %hiv⟩, ⟨%ck, #Hck⟩, #Honc, #Hmu, -⟩
@@ -101,8 +101,8 @@ theorem compactor.runCompactLoop.wp_proof
   isplit
   · iintro %t
     (try wp_auto)
-    wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret
-        hrb) $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr⟩
+    wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
+        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr⟩
     · iframe #
     cases err with
     | ok ei =>

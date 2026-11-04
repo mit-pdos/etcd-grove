@@ -41,8 +41,8 @@ calling `Enabled`: translated (`features.toml`), a value, not a panic. -/
 theorem NewCompactor.wp_proof
     (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv hrb
-  wp_start as ⟨#Hgate, #Hcl, Hone, Hregs, #Hcas⟩
+  intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv
+  wp_start as ⟨#Hgate, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -109,7 +109,7 @@ theorem NewCompactor.wp_proof
   · (try wp_auto)
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
-    wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret hrb)
+    wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret)
       $$ [Hone Hregs]
     · iframe #
       iframe

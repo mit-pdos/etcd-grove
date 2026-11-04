@@ -10,8 +10,8 @@ linkvtxn's `txn_Commit_st` with the reply's revision reached kept: `txnRevLb`); 
   `ParseInt` reads `c` back;
 - it held: at `rev ≠ 0` the client's `Compact(rev)` (`rev` reached, the caller's `revOk`).
 
-The client's `Compact` goes through `kv.Compact.spec`, whose `isKv` needs the store's receipts
-bounded (`Compact.spec`'s `receiptBound GF ≤ 2 ^ 62`).
+The client's `Compact` goes through `kv.Compact.spec`, at the client's KV handle (`clientKvOk`: its
+`isKv` carries the store's receipt bound).
 -/
 module
 
@@ -248,8 +248,8 @@ theorem Compact.wp_proof
     (wp_V : EtcdGrove.klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret hrb
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
+  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
@@ -499,11 +499,10 @@ theorem Compact.wp_proof
     iunfold revOk at Hrev'
     icases Hrev' with (%Hr0 | ⟨%Hrpos, #Hrlb⟩)
     · exact absurd Hr0 Hif
-    ihave #HkvOk : client.isKv api γk true $$ []
-    · iapply (client.isKv_intro api γk true ms hsame (fun h => by cases h) hrb)
-      iframe #
-      iunfold client.kvRegs; iframe #
-    wp_apply (client.client_Compact_kv cl api γk true ci cd rev (by word) hcmp) $$ []
+    ihave #Hko' := Hko
+    iunfold clientKvOk at Hko'
+    icases Hko' with ⟨%api', %dup, #Hkvf', #HkvOk⟩
+    wp_apply (client.client_Compact_kv cl api' γk dup ci cd rev (by word) hcmp) $$ []
       as %cresp %cerr Hcout
     · iframe #
       rw [hcret]

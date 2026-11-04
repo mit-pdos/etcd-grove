@@ -31435,9 +31435,12 @@ revocations and checkpoints are outside the verified code; the image needs nothi
   `ctxOk`'s third case (the entry "A context outside Perennial's model").
 
 **Spec changes, found while proving** (none of these specs has a client outside the package):
-- **The receipt bound.** `Compact.spec`, `runCompactLoop.spec` and `NewCompactor.spec` take
-  `receiptBound GF ≤ 2 ^ 62`. The client's `kv.Compact.spec` (`isKv`) needs it, and K2's specs
-  had not carried it.
+- **The client's KV handle.** `Compact.spec`, `runCompactLoop.spec` and `NewCompactor.spec` take
+  `clientKvOk cl γk`: the client's `KV` field holds a `*kv` with `isKv` (`CompactorDefs.lean`).
+  The client's `kv.Compact.spec` needs `isKv`, whose introduction takes the store's receipt bound.
+  A first version took `receiptBound GF ≤ 2 ^ 62` as a premise and failed `etc/bounds-check.py`
+  (`spec-receipt`). `notes/bounds-plan.md` has the owner fix the bound: here the `isKv`, built
+  once by `Main` (`isKv_of_newClient`) at the adequacy theorem's constant.
 - **No thread token.** `NewCompactor.spec` drops `threadTok`. The stop machinery's wait group is
   `sync.join`'s, whose one `Add` needs no token. `sync.tokJoin` would have needed
   `threadBound GF ≤ 2^31`, a premise `NewCompactor.spec` lacked.

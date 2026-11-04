@@ -215,7 +215,7 @@ collection, `etc/tcb-collections/k8s-compactor.txt`.
 "Kubernetes' compactor proved"), with the collection.
 - **The context.** `runCompactLoop`'s `wait.ContextForChannel` needed `ctxOk`'s third case, the
   user's choice.
-- **Found while proving.** `Compact.spec` and its callers take the receipt bound;
+- **Found while proving.** `Compact.spec` and its callers take the client's KV handle (`clientKvOk`, its `isKv`);
   `NewCompactor.spec` drops `threadTok`; `klog.Errorf` is a new logging axiom; `RealClock.After`
   is a named hypothesis.
 - **Left:** `Main` and `k8s_compactor_safe`.

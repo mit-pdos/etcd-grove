@@ -40,12 +40,11 @@ abbrev Compact.spec : Prop :=
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (ev rev : w64),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
-  -- the store's receipts bounded, as the client's `kv.Compact.spec`'s `isKv` needs
-  receiptBound GF ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      clientKvOk cl γk ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
       casOk ms γk Seen recorded ∗ (⌜ev = W64 0⌝ ∨ Seen) ∗ revOk γk rev }}
     (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.Compact))

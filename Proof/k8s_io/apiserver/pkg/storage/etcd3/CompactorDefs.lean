@@ -64,6 +64,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The client's KV handle** (persistent; K4, 2026-11-04): the client's `KV` field holds a `*kv`
+that is a client of etcd's KV at `γk` (`isKv`, which carries the store's receipt bound: its owner
+fixes it, `notes/bounds-plan.md`). The round's `Compact(rev)` goes through it. -/
+def clientKvOk [go_etcd_io.etcd.client.v3.Assumptions] (cl : Loc) (γk : KVNames) : IProp GF :=
+  iprop(∃ (api : Loc) (dup : Bool),
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+      GoInterface.ok (client.kvIfaceOf api) ∗ client.isKv api γk dup)
+
+instance clientKvOk_persistent [go_etcd_io.etcd.client.v3.Assumptions] (cl : Loc) (γk : KVNames) :
+    Persistent (clientKvOk (GF := GF) cl γk) := by
+  unfold clientKvOk; infer_instance
+
 /-- **A revision a round may hold**: `0` (none yet), or positive and reached by the cluster `γk`. -/
 def revOk (γk : KVNames) (r : w64) : IProp GF :=
   iprop(⌜r = W64 0⌝ ∨ ⌜0 < sint.Z r⌝ ∗ kvRevLbZ γk (sint.Z r))
