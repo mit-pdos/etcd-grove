@@ -22,9 +22,9 @@ axiom Perennial.os.Stderr_init : ⊢ ∀ Φ, True -∗ ▷ ((∃ f, typedPointst
     (DFrac.own 1)) -∗ Φ (intoVal ())) -∗ WP (os.Stderr.init (intoVal ())) {{ Φ }}
 
 axiom Perennial.os.opaqueInitsOk (v : val) : v ∈ [os.pollSplice.init, os.pollCopyFileRange.init,
-    os.checkPidfdOnce.init, os.Stdout.init, os.Stdin.init, os.Kill.init, os.Interrupt.init,
-    os.ErrDeadlineExceeded.init, os.ErrNoDeadline.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ()))
-    -∗ WP (v (intoVal ())) {{ Φ }}
+    os.Stdout.init, os.Stdin.init, os.Kill.init, os.Interrupt.init, os.ErrDeadlineExceeded.init,
+    os.ErrNoDeadline.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP (v (intoVal ())) {{ Φ
+    }}
 
 theorem Perennial.go_etcd_io.raft.v3.confchange.wp_initialize' [package_sem : Assumptions]
     (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp

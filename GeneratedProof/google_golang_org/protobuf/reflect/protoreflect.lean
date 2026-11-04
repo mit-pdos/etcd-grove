@@ -474,6 +474,234 @@ noncomputable instance ifaceHeader_access_store_Data (l : Loc) (v : google_golan
 end def_
 end ifaceHeader
 
+namespace «struct#39c24ac0»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#39c24ac0_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#39c24ac0» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#39c24ac0_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#39c24ac0» google_golang_org.protobuf.reflect.protoreflect.«struct#39c24ac0».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#39c24ac0»
+
+namespace «struct#09ab9bd9»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#09ab9bd9_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#09ab9bd9» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#09ab9bd9_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#09ab9bd9» google_golang_org.protobuf.reflect.protoreflect.«struct#09ab9bd9».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#09ab9bd9»
+
+namespace «struct#85bf90eb»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#85bf90eb_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#85bf90eb» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#85bf90eb_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#85bf90eb» google_golang_org.protobuf.reflect.protoreflect.«struct#85bf90eb».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#85bf90eb»
+
+namespace «struct#69fc66c6»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#69fc66c6_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#69fc66c6» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#69fc66c6_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#69fc66c6» google_golang_org.protobuf.reflect.protoreflect.«struct#69fc66c6».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#69fc66c6»
+
+namespace «struct#a47ca8a7»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#a47ca8a7_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#a47ca8a7» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#a47ca8a7_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#a47ca8a7» google_golang_org.protobuf.reflect.protoreflect.«struct#a47ca8a7».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#a47ca8a7»
+
+namespace «struct#9d85598c»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#9d85598c_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9d85598c» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#9d85598c_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9d85598c» google_golang_org.protobuf.reflect.protoreflect.«struct#9d85598c».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#9d85598c»
+
+namespace «struct#07f26e0d»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#07f26e0d_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#07f26e0d» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#07f26e0d_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#07f26e0d» google_golang_org.protobuf.reflect.protoreflect.«struct#07f26e0d».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#07f26e0d»
+
+namespace «struct#dc47f379»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#dc47f379_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#dc47f379» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#dc47f379_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#dc47f379» google_golang_org.protobuf.reflect.protoreflect.«struct#dc47f379».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#dc47f379»
+
+namespace «struct#26ca81e8»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#26ca81e8_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#26ca81e8» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#26ca81e8_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#26ca81e8» google_golang_org.protobuf.reflect.protoreflect.«struct#26ca81e8».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#26ca81e8»
+
+namespace «struct#9d8af3ce»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#9d8af3ce_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9d8af3ce» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#9d8af3ce_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9d8af3ce» google_golang_org.protobuf.reflect.protoreflect.«struct#9d8af3ce».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#9d8af3ce»
+
+namespace «struct#f228ed0d»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#f228ed0d_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#f228ed0d» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#f228ed0d_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#f228ed0d» google_golang_org.protobuf.reflect.protoreflect.«struct#f228ed0d».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#f228ed0d»
+
+namespace «struct#9f4eeae4»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
+
+noncomputable instance «struct#9f4eeae4_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9f4eeae4» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#9f4eeae4_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.«struct#9f4eeae4» google_golang_org.protobuf.reflect.protoreflect.«struct#9f4eeae4».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#9f4eeae4»
+
 end google_golang_org.protobuf.reflect.protoreflect
 end
 end Perennial
