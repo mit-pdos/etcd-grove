@@ -98,7 +98,7 @@ theorem remap_W_file' (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b0 : Loc) (L L'
 /-- **The writer side on the new mapping**, from its pieces (batch 44.1: flagged, with the writer's
 `fbTok`). -/
 theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
-    (v0 : View) (F : GMap Nat (List w8)) (b : Loc) (L' : Nat) (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = GMap.singleton b L')
+    (v0 : View) (F : GMap Nat (List w8)) (hF : fbRel w F) (b : Loc) (L' : Nat) (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = GMap.singleton b L')
     (hfile : w.m.size ≤ L') (hsub : ∀ s ∈ (w.remap b L' m').W, 4096 * s < w.m.size → s ∈ w.W)
     (hv : v = View.ofC b w.C) :
     ⊢ ghostVar (GF := GF) K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
@@ -136,14 +136,16 @@ theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (
     · subst hv; rfl
     · subst hv; rfl
   iexists F
-  simp only [WDb.remap]
-  iexact Htok
+  isplitl [Htok]
+  · simp only [WDb.remap]
+    iexact Htok
+  · ipureintro; exact fbRel_congr w _ F rfl rfl rfl hF
 
 /-- **The remap's success state** (step 9), from its pieces: `Pm 1` back, the writer's records
 re-based on the new mapping (`wtxCore_rebase`, its view registered there: gap 3), the writer side
 remapped. -/
 theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd : WX) (w : WDb)
-    (hok : wdbOK' fr w) (F : GMap Nat (List w8)) (b0 base : Loc) (l L' : Nat) (m2 : OsMeta) (hcov : derefOK Xd)
+    (hok : wdbOK' fr w) (F : GMap Nat (List w8)) (hF : fbRel w F) (b0 base : Loc) (l L' : Nat) (m2 : OsMeta) (hcov : derefOK Xd)
     (hXd : Xd.v = X.v) (hv : X.v = View.ofC X.v.base w.C) (hrdb : r.db = K.db)
     (hms : w.ms = some (b0, l)) (hll : l ≤ L') (hal : l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF)
     (hL'max : L' ≤ 0xFFFFFFFFFFFF) (hsz : m2.size = w.m.size)
@@ -184,7 +186,7 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
     show { Xd.v with base := base } = _; rw [hXd]
   have hvc : (Xd.rebase base).v = View.ofC base w.C := by
     rw [hv', hv]; rfl
-  ihave Hwd := wdbW'_remap_intro fr K tx (Xd.rebase base).v w hok X.v F base L' m2 hsz hmaps hfile
+  ihave Hwd := wdbW'_remap_intro fr K tx (Xd.rebase base).v w hok X.v F hF base L' m2 hsz hmaps hfile
     (remap_W_file' fr w hok b0 l L' hms hll hal hL'max) hvc
     $$ Hcur Hfl Hmap Hout [Hwv] Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmc Hmob [Hwc']
       Hwb Hj Hflo Hrd Hrc Htok

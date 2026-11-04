@@ -253,7 +253,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe
   unfold wdbW' wdbLive wdbCoreG
   icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
-    Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok⟩
+    Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok, %HfR⟩
   wp_auto
   wp_apply hAlloc w.fli w.fl w.wtxid count hc0 $$ [Hflo] as %rid Hflo
   · iframe
@@ -418,7 +418,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · iframe
       isplitr
       · ipureintro; exact Hwok
-      iexists F; iexact Htok
+      iexists F; iframe Htok; ipureintro; exact HfR
     subst hv
     wp_auto
     have hml : sint.Z (W64 ((mapLen w.ms : Nat) : Int)) = (mapLen w.ms : Int) := by word
@@ -443,7 +443,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · iframe
         isplitr
         · ipureintro; exact Hwok
-        iexists F; iexact Htok
+        iexists F; iframe Htok; ipureintro; exact HfR
       have hmL : mapLen w.ms ≤ sint.nat ((pg + count + W64 1) * W64 4096) := by
         have e : sint.nat ((pg + count + W64 1) * W64 4096) =
             (sint.Z ((pg + count + W64 1) * W64 4096)).toNat := rfl
@@ -461,7 +461,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
         unfold wdbW' wdbLive wdbCoreG
         icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath,
-          Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok', %F2, Htok⟩
+          Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok', %F2, Htok, %HfR2⟩
         wp_auto
         wp_apply hPgid Xd.t.t.meta' X.t.mv (DFrac.own 1) $$ [Hmv] as Hmv
         · rw [← hmv, show Xd.t.t.meta' = (Xd.rebase b).t.t.meta' from rfl]; iexact Hmv
@@ -499,7 +499,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           isplitr
           · ipureintro; exact Hwok'
           iexists F2
-          iapply fbTok_wLive $$ Htok
+          isplitl [Htok]
+          · iapply fbTok_wLive $$ Htok
+          · ipureintro; exact HfR2
         iframe Hp
         ipureintro
         refine ⟨?_, hrmp.1, ?_, .inr ⟨hpg.symm, by omega, rfl, .inr ⟨Xd, b, hdr, rfl, hrmp⟩⟩⟩
@@ -648,7 +650,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · iframe
       isplitr
       · ipureintro; exact Hwok
-      iexists F; iexact Htok
+      iexists F; iframe Htok; ipureintro; exact HfR
     iframe Hp
     ipureintro
     refine ⟨?_, rfl, ?_, .inr ⟨hpg.symm, by omega, rfl, .inl ⟨rfl, rfl⟩⟩⟩
@@ -692,8 +694,10 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · ipureintro
       exact ⟨wdbOK'_alloc fr w _ rid _ Hwok.1, Hwok.2⟩
     iexists F
-    iapply fbTok_alloc
-    iexact Htok
+    isplitl [Htok]
+    · iapply fbTok_alloc
+      iexact Htok
+    · ipureintro; exact fbRel_alloc w F _ _ _ HfR
   iframe Hp
   ipureintro
   refine ⟨?_, rfl, hhwm, .inl ⟨rfl, hcan.2, rfl, rfl⟩⟩

@@ -318,7 +318,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   · iframe
   unfold wdbW' wdbLive wdbCoreG
   icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
-    Hmfw, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, -, %F, Htok⟩
+    Hmfw, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, -, %F, Htok, %HfR⟩
   ihave %Htx := wtxW_tx_ne K tx r m X $$ Hw
   try wp_auto
   rw [decide_eq_false Htx.1]
@@ -383,7 +383,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
         ((some (Xd.rebase Xd.v.base).v, some (w.C.txid + 1), false, false) : WSt) $$ [Hgwv]
     · rw [hv']; iexact Hgwv
     icases Hun with (Hosm | ⟨Hosm, Hcells⟩)
-    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F HfR
         { w.m with maps := GMap.delete b0 w.m.maps } none rfl
         (Or.inl (by rw [hk1 b0 l hmsL]; exact GMap.delete_singleton _ _))
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
@@ -400,7 +400,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iexists Xd, Xd.v.base, _
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
-    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F w.m (some (b0, l)) rfl
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F HfR w.m (some (b0, l)) rfl
         (Or.inr ⟨b0, l, rfl, hk1 b0 l hmsL⟩)
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
           [Hcells] Hflo Hrd Hrcpt Htok
@@ -464,7 +464,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
         ((some (Xd.rebase Xd.v.base).v, some (w.C.txid + 1), false, false) : WSt) $$ [Hgwv]
     · rw [hv']; iexact Hgwv
     icases Hres with (Hosm | ⟨%base, %hbase, Hosm, Hmc⟩)
-    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F HfR
         { w.m with maps := GMap.delete b0 w.m.maps } none rfl (Or.inl hmaps1)
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
           [] Hflo Hrd Hrcpt Htok
@@ -480,7 +480,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iexists Xd, Xd.v.base, _
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
-    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F HfR
         { { w.m with maps := GMap.delete b0 w.m.maps } with
           maps := <[base := nsz.toNat]> (GMap.delete b0 w.m.maps) } (some (base, nsz.toNat)) rfl
         (Or.inr ⟨base, nsz.toNat, rfl, by rw [hmaps1]; exact GMap.insert_empty _ _⟩)
@@ -684,7 +684,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
     · iframe
     try rw [hnszE]
-    imod remap_post' fr K tx r m X Xd w hok F b0 base l L'
+    imod remap_post' fr K tx r m X Xd w hok F HfR b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb
@@ -735,7 +735,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
     · iframe
     try rw [hnszE]
-    imod remap_post' fr K tx r m X Xd w hok F b0 base l L'
+    imod remap_post' fr K tx r m X Xd w hok F HfR b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb

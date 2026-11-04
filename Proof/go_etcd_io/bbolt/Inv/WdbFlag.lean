@@ -13,6 +13,7 @@ form.
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+import Proof.go_etcd_io.bbolt.Txn.WJoin
 
 @[expose] public section
 
@@ -143,6 +144,57 @@ theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (h : flCla
     · exact .inl fun hm => hn (hsub _ hm)
     · exact .inr ⟨fun hm => hnf ((List.mem_filter.1 hm).1), hp⟩
 
+/-- **The freed freelist page's recorded bytes are the writer side's** (maintainer 11, for the
+flagged rollback): a slot of the synced page's extent that is pending is pending because the
+writer freed the page (the page's id is in the writer's pending entry: `fbCond`), and the bytes
+`F` recorded at the free (`store_free_fl`'s `fbRec`) are `w.wb`'s there. Vacuous under `wdbOK`
+(no slot of the extent is pending: `fbRel_of_wdbOK`). -/
+def fbRel (w : WDb) (F : GMap Nat (List w8)) : Prop :=
+  ∀ f, w.C.flpg = some f → ∀ s, f ≤ s → s < f + (1 + pageOverflow (w.wb f)) →
+    s ∈ pendSlots w.fl →
+    (∃ pd, w.fl.pending !! w.wtxid = some pd ∧ ∃ x ∈ pd.ids, x.toNat = f) ∧
+    F !! s = some (w.wb s)
+
+/-- `fbRel` reads only the committed state, the freelist's pending entries and the slots' bytes. -/
+theorem fbRel_congr (w w' : WDb) (F : GMap Nat (List w8)) (hC : w'.C = w.C)
+    (hp : w'.fl.pending = w.fl.pending) (hwb : w'.wb = w.wb) (h : fbRel w F) : fbRel w' F := by
+  have hps : pendSlots w'.fl = pendSlots w.fl := by
+    simp only [pendSlots, FLPg.pendingIds, hp]
+  intro f hf s h1 h2 hs
+  rw [hC] at hf
+  rw [hwb] at h2 ⊢
+  rw [hps] at hs
+  have := h f hf s h1 h2 hs
+  simp only [WDb.wtxid, hC, hp] at this ⊢
+  exact this
+
+/-- Under `wdbOK` no slot of the synced page's extent is pending: `fbRel` holds of any `F`. -/
+theorem fbRel_of_wdbOK (w : WDb) (hok : wdbOK w) (F : GMap Nat (List w8)) : fbRel w F := by
+  intro f hf s h1 h2 hs
+  exfalso
+  have h16 := wb_header w hok f hf
+  have hov : pageOverflow (extentBytes w.wb f) = pageOverflow (w.wb f) := by
+    unfold pageOverflow pageHdr bytesAt
+    congr 3
+    unfold extentBytes
+    rw [show 1 + pageOverflow (w.wb f) = (pageOverflow (w.wb f)) + 1 by omega, List.range'_succ,
+      List.flatMap_cons, List.drop_zero, List.drop_zero,
+      List.take_append_of_le_length h16]
+  obtain ⟨-, -, -, -, -, c6, -⟩ := hok
+  obtain ⟨-, -, -, -, -, -, -, -, h9, -⟩ := c6 f hf f hf
+  have hn := (h9 s h1 (by rw [hov]; exact h2)).2
+  apply hn
+  simp only [pendSlots, List.mem_map] at hs
+  obtain ⟨x, hx, rfl⟩ := hs
+  have : W64 (x.toNat : Int) = x := BitVec.eq_of_toNat_eq (toNat_W64_of_lt x.toNat x.isLt)
+  rw [this]
+  exact List.mem_append_right _ hx
+
+/-- An allocation keeps `fbRel` (it keeps the pending entries). -/
+theorem fbRel_alloc (w : WDb) (F : GMap Nat (List w8)) (txid r : w64) (n : Nat) (h : fbRel w F) :
+    fbRel { w with fl := w.fl.alloc txid r n } F :=
+  fbRel_congr w _ F rfl rfl rfl h
+
 end pure
 
 section res
@@ -158,7 +210,7 @@ reads). -/
 def wdbW' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
   iprop(wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
     ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ ∗
-    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (wLive v w.C) F)
+    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (wLive v w.C) F ∗ ⌜fbRel w F⌝)
 
 /-- `wdbW` is `wdbW'` at either flag, with no recorded bytes (`fbTok_of_wdbOK`). -/
 theorem wdbW_wdbW' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
@@ -169,7 +221,9 @@ theorem wdbW_wdbW' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   isplitr
   · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
   iexists ∅
-  iapply (fbTok_of_wdbOK K.B w h.1 (wLive v w.C) ∅)
+  isplitl
+  · iapply (fbTok_of_wdbOK K.B w h.1 (wLive v w.C) ∅)
+  · ipureintro; exact fbRel_of_wdbOK w h.1 ∅
 
 /-- `wdbW' false` is `wdbW` (its token dropped: under `wdbOK` it is empty). -/
 theorem wdbW'_wdbW (K : BC) (tx : Loc) (v : View) (w : WDb) :
@@ -196,7 +250,8 @@ the writer's `fbTok`). -/
 def wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
   iprop(wdbLive K.B K.db K.p K.sp K.t0 tx (some v, some (w.C.txid + 1), false, false) w ∗
     ⌜wdbOK' fr w ∧ w.ms = none⌝ ∗
-    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (some v, some (w.C.txid + 1), false, false) F)
+    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (some v, some (w.C.txid + 1), false, false) F ∗
+      ⌜fbRel w F⌝)
 
 /-- `wdbLost` is `wdbLost'` at either flag, with no recorded bytes. -/
 theorem wdbLost_wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
@@ -207,7 +262,9 @@ theorem wdbLost_wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   isplitr
   · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
   iexists ∅
-  iapply (fbTok_of_wdbOK K.B w h.1 _ ∅)
+  isplitl
+  · iapply (fbTok_of_wdbOK K.B w h.1 _ ∅)
+  · ipureintro; exact fbRel_of_wdbOK w h.1 ∅
 
 /-- `wdbLost' false` is `wdbLost` (its token dropped). -/
 theorem wdbLost'_wdbLost (K : BC) (tx : Loc) (v : View) (w : WDb) :
@@ -215,6 +272,41 @@ theorem wdbLost'_wdbLost (K : BC) (tx : Loc) (v : View) (w : WDb) :
   unfold wdbLost wdbLost'
   iintro ⟨H, %h, -⟩
   iframe H
+  ipureintro; exact h
+
+/-- **A write transaction ready to close, flagged** (maintainer 11): `wtxEnd` with `wdbOK' fr` in
+place of `wdbOK`, and the writer's `fbTok` for the store's writer state `ws` (with `fbRel`: after
+`Commit`'s free of the synced freelist page, `store_rollback` returns the page's bytes through it).
+`wtxEnd_wtxEnd'` (any flag), `wtxEnd'_wtxEnd` (flag `false`). -/
+def wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
+    IProp GF :=
+  iprop(K.full ∗ (wtxW K tx r false X ∨ wtxLost K tx r false X) ∗
+    wdbLive K.B K.db K.p K.sp K.t0 tx ws w ∗ sync.ownMutex K.db.[DB, go!"rwlock"] ∗
+    ghostVar K.B.cls (1 : Qp).half false ∗
+    (∃ c : TxViewC, ghostVar r.n.v 1 (c, TxX.wr X)) ∗
+    ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+    ⌜wdbOK' fr w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝ ∗
+    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl ws F ∗ ⌜fbRel w F⌝)
+
+/-- `wtxEnd` is `wtxEnd'` at either flag, with no recorded bytes. -/
+theorem wtxEnd_wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
+    wtxEnd (GF := GF) K tx r X ws w ⊢ wtxEnd' fr K tx r X ws w := by
+  unfold wtxEnd wtxEnd'
+  iintro ⟨H1, H2, H3, H4, H5, H6, H7, %h⟩
+  iframe H1 H2 H3 H4 H5 H6 H7
+  isplitr
+  · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
+  iexists ∅
+  isplitl
+  · iapply (fbTok_of_wdbOK K.B w h.1 ws ∅)
+  · ipureintro; exact fbRel_of_wdbOK w h.1 ∅
+
+/-- `wtxEnd' false` is `wtxEnd` (its token dropped). -/
+theorem wtxEnd'_wtxEnd (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
+    wtxEnd' (GF := GF) false K tx r X ws w ⊢ wtxEnd K tx r X ws w := by
+  unfold wtxEnd wtxEnd'
+  iintro ⟨H1, H2, H3, H4, H5, H6, H7, %h, -⟩
+  iframe H1 H2 H3 H4 H5 H6 H7
   ipureintro; exact h
 
 omit [GooseSemantics] go_gctx hos sem in

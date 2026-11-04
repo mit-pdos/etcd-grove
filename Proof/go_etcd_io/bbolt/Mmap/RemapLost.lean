@@ -79,7 +79,7 @@ def junkRes (j : Option (Loc × Nat)) : IProp GF :=
 /-- **The writer side after a failed remap**, from its pieces (batch 44.1: flagged, with the
 writer's `fbTok`). -/
 theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
-    (v0 : View) (F : GMap Nat (List w8)) (m' : OsMeta)
+    (v0 : View) (F : GMap Nat (List w8)) (hF : fbRel w F) (m' : OsMeta)
     (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     ⊢ ghostVar (GF := GF) K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
@@ -120,8 +120,10 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
   · ipureintro
     exact ⟨wdbOK'_lost fr w hok m' j hsz hmaps, rfl⟩
   iexists F
-  simp only [WDb.lost]
-  iexact Htok
+  isplitl [Htok]
+  · simp only [WDb.lost]
+    iexact Htok
+  · ipureintro; exact fbRel_congr w _ F rfl rfl rfl hF
 
 end lost
 
