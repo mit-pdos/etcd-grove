@@ -126,7 +126,7 @@ theorem walk_keys {X : WX} {B : BRec} (hok : wOKR X) (hB : X.t.bs !! X.rl = some
           rw [(mat_pageW_leaf pg i hfl).2.2.1]
           unfold leafKey
           have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i) (leafKsize pg i)
-          have := hs.2.2 rfl
+          have := hs.2.2.1 rfl
           omega
         · rw [decide_eq_false hfl] at hws
           obtain ⟨w, hw, hws'⟩ := List.mem_flatMap.1 hws

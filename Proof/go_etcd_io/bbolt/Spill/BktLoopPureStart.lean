@@ -302,7 +302,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     rootPos := fun B hB => by rw [hB0] at hB; cases hB; exact rootUnder_refl _ _
     shape0 := fun c p pg h1 h2 h3 h4 i hi =>
       have hs := htc.2.1.2.2.2.1 X.rl B0 hB0 c p pg h1 h2 h3 h4 i hi
-      ⟨hs.2.1.1, hs.2.1.2, hs.2.2 rfl⟩
+      ⟨hs.2.1.1, hs.2.1.2, hs.2.2.1 rfl⟩
     hwm0 := hS.hwm
     freeNC := freeNoCov_of_wdbOK hw.1
     tt := rfl
