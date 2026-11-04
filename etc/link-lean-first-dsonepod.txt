@@ -1,0 +1,48 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/dsmain/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --dsonepod`: `<fn>: <callees in the order of
+# <fn>.wp_proof's hypotheses>` (`?`: specified, not linked here yet). The DaemonSet run's driver
+# (`examples/k8sdaemonset/dsmain`, notes/k8s-daemonset-run/, track C); the results are in the
+# namespace `dsonepod`. Stage 3: the driver's own functions are linked; every callee of another
+# package is pending (`?`), its result supplied by `Pending.lean` beside the Link (the model API
+# server's from its Link, the others `sorry`: the stubs of the other tracks, not linked yet).
+#
+# the model API server (linked in its own Link, with its pending hypotheses: `Pending.lean`)
+apimodel_NewServer: ?
+apimodel_Server__AdminClientset: ?
+apimodel_Server__Clientset: ?
+apimodel_Clientset__CoreV1: ?
+apimodel_Clientset__AppsV1: ?
+apimodel_coreV1__Nodes: ?
+apimodel_coreV1__Pods: ?
+apimodel_appsV1__DaemonSets: ?
+apimodel_nodeClient__Create: ?
+apimodel_daemonSetClient__Create: ?
+apimodel_podClient__List: ?
+#
+# the informer factory (track A)
+informers_NewSharedInformerFactory: ?
+informers_sharedInformerFactory__Apps: ?
+informers_sharedInformerFactory__Core: ?
+informers_sharedInformerFactory__Start: ?
+apps_group__V1: ?
+core_group__V1: ?
+v1_version__DaemonSets: ?
+v1_version__ControllerRevisions: ?
+v1_version__Pods: ?
+v1_version__Nodes: ?
+#
+# the controller (tracks B and C) and its helpers
+daemon_NewDaemonSetsController: ?
+daemon_DaemonSetsController__Run: ?
+flowcontrol_NewBackOff: ?
+util_GetTargetNodeName: ?
+#
+# the driver (`dsmain.go`)
+serverConfig:
+setFeatureGates:
+newNode:
+newDaemonSet:
+controlledBy:
+check: apimodel_Clientset__CoreV1 apimodel_coreV1__Pods apimodel_podClient__List controlledBy util_GetTargetNodeName
+run: setFeatureGates apimodel_NewServer apimodel_Server__AdminClientset =_root_.Perennial.context.wp_Background =_root_.Perennial.context.wp_WithCancel apimodel_Clientset__CoreV1 apimodel_coreV1__Nodes apimodel_nodeClient__Create newNode apimodel_Server__Clientset informers_NewSharedInformerFactory informers_sharedInformerFactory__Apps apps_group__V1 informers_sharedInformerFactory__Core core_group__V1 v1_version__DaemonSets v1_version__ControllerRevisions v1_version__Pods v1_version__Nodes flowcontrol_NewBackOff daemon_NewDaemonSetsController informers_sharedInformerFactory__Start =_root_.Perennial.context.cancelCtx.wp_Done daemon_DaemonSetsController__Run apimodel_Clientset__AppsV1 apimodel_appsV1__DaemonSets apimodel_daemonSetClient__Create newDaemonSet check =_root_.Perennial.time.wp_Sleep
+Main: serverConfig run

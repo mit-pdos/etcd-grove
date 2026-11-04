@@ -85,7 +85,7 @@ variable [sem : go.Semantics]
 `GroupVersionKind` (`GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: kind}`).
 (Called through the variable's address, `apps.SchemeGroupVersion`, whose initializer is
 untranslated: any address.) -/
-axiom GroupVersion_WithKind_any (l : Loc) (k : GoString) :
+axiom k8s_io.kubernetes.pkg.controller.daemon.GroupVersion_WithKind_any (l : Loc) (k : GoString) :
     {{ (True : IProp GF) }}
       (App (Val #(methods (go.GoType.PointerType k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty) go!"WithKind" #l))
         (Val #k))
