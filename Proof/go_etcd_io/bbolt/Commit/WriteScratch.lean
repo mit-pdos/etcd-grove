@@ -195,9 +195,97 @@ theorem Tx.write.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   have HL'm : ∀ e ∈ L', bufs !! e.1 = some e.2.2 := fun e he => HLm e (Hperm.mem_iff.2 he)
   have HL'len : L'.length ≤ min om.size l / 4096 := by rw [← Hperm.length_eq]; exact hLlen
   clear HLk HLm Hperm
+  have hlenL : ∀ e ∈ L', e.2.2.length = 4096 * (1 + pageOverflow e.2.2) :=
+    fun e he => (hok e.1 e.2.2 (HL'm e he)).2.1
   try wp_auto
-  trace_state
-  all_goals sorry
+  ihave IH : (∃ (j : w64) (pv : Loc) (om' : OsMeta),
+      "i" ∷ i_ptr ↦ j ∗ "p" ∷ p_ptr ↦ pv ∗ "Hst" ∷ statsTok r sm q ∗
+      "Hm" ∷ osMeta K.p (DFrac.own 1) (some om') ∗
+      "Hdone" ∷ ([∗list] e ∈ L'.take (sint.nat j), pgDone b K.p e) ∗
+      "Htodo" ∷ ([∗list] e ∈ L'.drop (sint.nat j), pgRest b K.p e) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ L'.length ∧ om'.size = om.size ∧
+        om'.maps = om.maps⌝ : IProp GF) $$ [i p Hst Hm HLr]
+  · iexists W64 0, _, om
+    rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero]
+    simp only [named]
+    iframe
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    ipureintro; simp
+  wp_for IH
+  ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+  rw [List.length_map] at Hsll
+  wp_if_destruct
+  · have Hlt : sint.Z j < sint.Z sl.len := by simpa using Hif
+    clear Hif
+    have Hjn : sint.nat j < L'.length := by have := Hsll.1; word
+    obtain ⟨c, Hc⟩ : ∃ c, L'[sint.nat j]? = some c := ⟨_, List.getElem?_eq_getElem Hjn⟩
+    have Hcm : c ∈ L' := List.mem_of_getElem? Hc
+    have Hget : (L'.map (fun e => e.2.1))[(sint.Z j).toNat]? = some c.2.1 := by
+      rw [List.getElem?_map, show (sint.Z j).toNat = sint.nat j from rfl, Hc]; rfl
+    try rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len
+      from ⟨Hj.1, Hlt⟩))]
+    wp_apply wp_load_slice_index _ (sint.Z j) _ _ c.2.1 Hj.1 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact Hget
+    try wp_auto
+    icases BigSepL.bigSepL_mem_acc Hcm $$ HLh with ⟨Hh, HLhb⟩
+    wp_apply hOv c.2.1 (pageHdr c.2.2) (DFrac.own 1) $$ [$Hpkc $Hh] as Hh
+    try wp_auto
+    wp_apply hId c.2.1 (pageHdr c.2.2) (DFrac.own 1) $$ [$Hpkc $Hh] as Hh
+    try wp_auto
+    -- the page's values
+    obtain ⟨hcid, hclen, hc2, hcin⟩ := hok c.1 c.2.2 (HL'm c Hcm)
+    have hov : pageOverflow c.2.2 < 2 ^ 32 := by
+      unfold pageOverflow; exact BitVec.isLt _
+    have e1 : (decode (List.drop 2 (List.drop 2 (List.drop 8 (bytesAt c.2.2 0 16)))) : w32) =
+        (pageHdr c.2.2).overflow' := rfl
+    have e2 : (decode (List.take 8 (bytesAt c.2.2 0 16)) : w64) = (pageHdr c.2.2).id' := rfl
+    have hremv : (W64 (uint.Z (pageHdr c.2.2).overflow') + W64 1) * W64 4096 =
+        W64 ((c.2.2.length - 0 : Nat) : Int) := by
+      rw [hclen]; unfold pageOverflow at hov ⊢; word
+    have hoffv : (pageHdr c.2.2).id' * W64 4096 = W64 ((4096 * c.1.toNat + 0 : Nat) : Int) := by
+      unfold pageId at hcid
+      have : c.1.toNat < 2 ^ 52 := by omega
+      rw [← hcid] at this ⊢; word
+    rw [e1, e2, hremv, hoffv, show (zero_val w64 : w64) = W64 ((0 : Nat) : Int) from rfl]
+    -- the page's buffer and its slots as one run
+    rw [wr_drop_cons _ _ _ Hc]
+    icases BigSepL.bigSepL_cons.1 $$ Htodo with ⟨Hcr, Htodo⟩
+    icases rest_run b K.p c (by omega) $$ [Hh Hcr] with ⟨%Hcp, Hpb, Hro, Hrc⟩
+    · iframe
+    rw [← hclen]
+    have hcne : c.2.2 ≠ [] := List.ne_nil_of_length_pos (by omega)
+    icases Read.bytesPointsto_bounds _ _ _ hcne $$ Hpb with ⟨Hpb, %Hcb⟩
+    ihave Hd1 : osBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
+    · iapply (osBytes_nil' (GF := GF) K.p _ _).2; iempintro
+    ihave Hd2 : bytesPointsto (GF := GF) (b +ₗ ((4096 * c.1.toNat : Nat) : Int))
+        (DFrac.own (1 : Qp).half) (c.2.2.take 0) $$ []
+    · rw [List.take_zero]; unfold bytesPointsto; iempintro
+    ihave IH2 : (∃ (w : Nat) (ysd : List (w8 × Bool)) (om2 : OsMeta),
+        "rem" ∷ rem_ptr ↦ W64 ((c.2.2.length - w : Nat) : Int) ∗
+        "offset" ∷ offset_ptr ↦ W64 ((4096 * c.1.toNat + w : Nat) : Int) ∗
+        "written" ∷ written_ptr ↦ W64 ((w : Nat) : Int) ∗ "Hst" ∷ statsTok r sm q ∗
+        "Hm" ∷ osMeta K.p (DFrac.own 1) (some om2) ∗
+        "Hd1" ∷ osBytes K.p (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
+        "Hd2" ∷ bytesPointsto (b +ₗ ((4096 * c.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half)
+          (c.2.2.take w) ∗
+        "Hro" ∷ oAny K.p (4096 * c.1.toNat + w) (c.2.2.length - w) ∗
+        "Hrc" ∷ cAny b (4096 * c.1.toNat + w) (c.2.2.length - w) ∗
+        "%Hw" ∷ ⌜w < c.2.2.length ∧ ysd.map Prod.fst = c.2.2.take w ∧ om2.size = om.size ∧
+          om2.maps = om.maps⌝ : IProp GF) $$ [rem offset written Hst Hm Hd1 Hd2 Hro Hrc]
+    · iexists 0, [], om'
+      simp only [named, Nat.sub_zero, Nat.add_zero]
+      iframe
+      ipureintro
+      exact ⟨by omega, by simp, Hj.2.2.1, Hj.2.2.2⟩
+    wp_for IH2
+    obtain ⟨Hwlt, Hysd, Hom2s, Hom2m⟩ := Hw
+    obtain ⟨cs, Hcs⟩ : ∃ cs : Nat, cs = min (c.2.2.length - w) 2147483646 := ⟨_, rfl⟩
+    have Hcs0 : 0 < cs := by omega
+    trace_state
+    all_goals sorry
+  · trace_state
+    all_goals sorry
 
 end proof
 
