@@ -485,16 +485,15 @@ theorem rebal_loeb
       · iexact Hnm
       try wp_auto
       -- the heap on `X2`: the parent without the entry and the child, the cache without `n`
-      let rp' : NRec := rmParent rp i n sI sC
       let B2 : BRec := { rblStart B n rn with
         nm := GMap.delete (rblClear rn).nv.pgid' (rblStart B n rn).nm,
-        ns := (rblStart B n rn).ns.insert rn.nv.parent' rp' }
+        ns := (rblStart B n rn).ns.insert rn.nv.parent' (rmParent rp i n sI sC) }
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
         $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
       · iapply typedPointsto_combine _ _ _ Hnn2
         simp only [TypedPointsto.typedPointstoDef]
         iframe
-      ihave Hh := Hback $$ %B2 %(fun l => if l = n then rblClear rn else rp')
+      ihave Hh := Hback $$ %B2 %(fun l => if l = n then rblClear rn else (rmParent rp i n sI sC))
         [] [Hn Hins Hcap Hws Hch Hchcap Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
         [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
       · ipureintro
@@ -503,26 +502,38 @@ theorem rebal_loeb
           simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
           rcases hl with rfl | rfl
           · simp only [ite_true]
-            show ((rblStart B l rn).ns.insert rn.nv.parent' rp') !! l = _
+            show ((rblStart B l rn).ns.insert rn.nv.parent' (rmParent rp i l sI sC)) !! l = _
             rw [GMap.lookup_insert_ne _ _ hpln]; exact hr1
           · simp only [if_neg hpln]; exact GMap.lookup_insert _ _ _
         · intro l hl
           simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hl
-          show ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! l = _
+          show ((rblStart B n rn).ns.insert rn.nv.parent' (rmParent rp i n sI sC)) !! l = _
           exact GMap.lookup_insert_ne _ _ (Ne.symm hl.2)
         · intro l hl
           simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
           rcases hl with rfl | rfl
           · simp only [ite_true]; exact Hok1.2.2.2.1 bl _ l _ hb1 hr1
           · simp only [if_neg hpln]; exact hpp
-      · simp only [if_pos (rfl : n = n), if_neg hpln]
-        rw [decide_eq_true hnl1, decide_eq_true hpl1]
+      · iapply BigSepL.bigSepL_cons.2
         isplitl [Hn Hins Hcap Hws Hch Hchcap]
-        · iapply (objOwn_live_node _ _ _ _ _).2
-          rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+        · simp only [↓reduceIte]
+          rw [decide_eq_true hnl1]
+          iapply (objOwn_live_node _ _ _ _ _).2
+          first
+            | rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+            | rw [if_pos (show True ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨trivial, hkey⟩)]
           iframe; iframe #
+        iapply BigSepL.bigSepL_cons.2
         isplitl [Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
-        · iapply (objOwn_live_node _ _ _ _ _).2
+        · simp only [if_neg hpln]
+          rw [decide_eq_true hpl1]
+          iapply (objOwn_live_node _ _ _ _ _).2
+          dsimp only [rmParent, NRec.withEntsU, WX.setBkt_v]
+          simp only [hncp.2.1, ↓reduceIte]
+          by_cases hpk : rp.nv.key' = slice.nil
+          · simp only [hpk, ne_eq, not_true_eq_false, and_false, ↓reduceIte]
+            rw [cs_erase]; iframe
+          simp only [hpk, ne_eq, not_false_eq_true, _root_.and_self, ↓reduceIte]
           isplitl [Hp]
           · iexact Hp
           isplitl [Hpins]
@@ -532,12 +543,11 @@ theorem rebal_loeb
           isplitl [Hpws]
           · iexact Hpws
           isplitl [Hpch]
-          · show (sC ↦* rp.cs.eraseIdx (rp.cs.idxOf n) : IProp GF)
-            rw [cs_erase]; iexact Hpch
+          · rw [cs_erase]; iexact Hpch
           isplitl [Hpchcap]
           · iexact Hpchcap
           iexact Hpkey
-        iempintro
+        iapply BigSepL.bigSepL_nil.2; iempintro
       · iapply (objOwn_bkt_unf _ _ _ _ _).2
         iframe
         simp only [ite_true, eq_self_iff_true, if_true]
@@ -563,7 +573,7 @@ theorem rebal_loeb
       subst hpgeq
       have hX2n : ((X.setBkt bl (rblStart B n rn)).setBkt bl B2).node bl n = some (rblClear rn) := by
         unfold WX.node; rw [hb2]
-        show ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! n = _
+        show ((rblStart B n rn).ns.insert rn.nv.parent' (rmParent rp i n sI sC)) !! n = _
         rw [GMap.lookup_insert_ne _ _ hpln]; exact hr1
       wp_apply hFree K tx r m _ w bl n (rblClear rn) hX2n hnc.1
         (fun _ => ⟨by show X.t.pm !! _ = none; rw [hI.1.2.1]; rfl, htxid, pgc, hpgc, hlenc, hidc,
@@ -598,7 +608,7 @@ theorem rebal_loeb
         iframe
       ihave Hh := Hback $$ Hn
       -- `n` goes dead: the records after the removal
-      let B4 : BRec := rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' rp'
+      let B4 : BRec := rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' (rmParent rp i n sI sC)
       have hns4 : B4.ns = GMap.delete n B3.ns := by
         apply GMap.ext
         intro y
@@ -616,7 +626,7 @@ theorem rebal_loeb
           · rw [if_neg hy2, GMap.lookup_delete_ne _ (Ne.symm hy2)]
             show _ = (B2.ns.insert n r1') !! y
             rw [GMap.lookup_insert_ne _ _ (Ne.symm hy2)]
-            show _ = ((rblStart B n rn).ns.insert rn.nv.parent' rp') !! y
+            show _ = ((rblStart B n rn).ns.insert rn.nv.parent' (rmParent rp i n sI sC)) !! y
             rw [GMap.lookup_insert_ne _ _ (Ne.symm hy1)]
       ihave Hh := wtxHeap_kill_node tx (DFrac.own 1) _ bl B3 B4 n r1' hb3 hr3 rfl rfl rfl rfl rfl rfl
         rfl hns4 $$ Hh
@@ -624,7 +634,7 @@ theorem rebal_loeb
           (X.setBkt bl (rblStart B n rn)).kill bl B4 n r1' := by
         unfold WX.setNode; rw [hb2]; simp only [WX.kill, WX.setBkt, GMap.insert_insert]
       rw [hK]
-obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _ n (rblClear rn)
+      obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _ n (rblClear rn)
         rn.nv.parent' rp i wi sI sC pgc hI1 hb1 hr1 hleaf hemp rfl hpn hrp1 hwi hwp hpgc
       have hfl : w.fl.freePages (X.setBkt bl (rblStart B n rn)).t.mv.txid' (rblClear rn).nv.pgid'
           (1 + pageOverflow pgc) =
@@ -633,8 +643,8 @@ obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _
       rw [hfl] at hI4 hR4
       have hb4 : ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1').t.bs !! bl = some B4 :=
         GMap.lookup_insert _ _ _
-      have hrp4 : B4.ns !! rn.nv.parent' = some rp' := by
-        show (rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' rp').ns !! _ = _
+      have hrp4 : B4.ns !! rn.nv.parent' = some (rmParent rp i n sI sC) := by
+        show (rmBkt (rblStart B n rn) n rn.nv.parent' (rblClear rn).nv.pgid' (rmParent rp i n sI sC)).ns !! _ = _
         rw [rm_ns, if_pos rfl]
       ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1') $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
@@ -644,12 +654,12 @@ obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _
       -- `n.parent.rebalance()`
       wp_apply IH $$ %K %tx %r %m %((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1')
         %(w.withFl (w.fl.freePages w.wtxid (rblClear rn).nv.pgid' (1 + pageOverflow pgc))) %bl %B4
-        %rn.nv.parent' %rp' %(some rn.nv.parent') [] [Hw Hdb] as ⟨%X5, %fl5, Hw, Hdb, %Hp5⟩
+        %rn.nv.parent' %(rmParent rp i n sI sC) %(some rn.nv.parent') [] [Hw Hdb] as ⟨%X5, %fl5, Hw, Hdb, %Hp5⟩
       · ipureintro
         exact ⟨hI4, hb4, hrp4, Or.inr ⟨rfl, rfl⟩, hfp⟩
       · isplitl [Hw]
         · iexact Hw
-        simp only [WX.kill_v]
+        simp only [WX.kill_v, WX.setBkt_v]
         iexact Hdb
       try wp_auto
       obtain ⟨h5I, h5R, h5S⟩ := Hp5
@@ -657,7 +667,7 @@ obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _
       iexists X5, fl5
       iframe Hw
       isplitl [Hdb]
-      · rw [← WDb.withFl_withFl w _ fl5]; simp only [WX.kill_v]; iexact Hdb
+      · rw [← WDb.withFl_withFl w _ fl5]; simp only [WX.kill_v, WX.setBkt_v]; iexact Hdb
       ipureintro
       refine ⟨h5I, rblRel_trans _ _ _ _ _ _ _ hR1 (rblRel_trans _ _ _ _ _ _ _ hR4 h5R), ?_, ?_⟩
       · intro bl' hne
@@ -666,7 +676,7 @@ obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _
         rw [GMap.lookup_insert_ne _ _ (Ne.symm hne), GMap.lookup_insert_ne _ _ (Ne.symm hne)]
       · intro B0 B5 h0 h5
         rw [hb] at h0; cases h0
-        exact rblStep_comp B B4 B5 n rn.nv.parent' (rblPre_rm B n rn rn.nv.parent' rp')
+        exact rblStep_comp B B4 B5 n rn.nv.parent' (rblPre_rm B n rn rn.nv.parent' (rmParent rp i n sI sC))
           (h5S.2 B4 B5 hb4 h5)
     · -- merged with a sibling
       have hne0 : rn.nv.inodes'.len ≠ W64 0 := Hif
