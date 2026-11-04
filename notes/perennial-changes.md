@@ -1651,3 +1651,25 @@ Perennial's `sync.Once` spec (`isOnce`, `Once.Do`) is stated at `HasLC.hasLC` on
 generic in `hlc` (bbolt's, every internal spec) cannot use it. bbolt's `Open` steps `Do` on an owned
 zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_Do_own`, any
 `hlc`). The general change: an `hlc`-generic `Once` spec in Perennial.
+
+## `sync.Pool`'s `New` may assume a caller-lent resource (2026-11-04, bbolt U11h)
+
+- **Limitation.** `isPool p f P` required a persistent `{{ True }} New() {{ P x }}` at the pool's
+  creation. A `New` closure reading a variable its creator writes again later has no such spec:
+  bbolt's `Open` sets `pagePool.New = func() any { return make([]byte, db.pageSize) }` over its named
+  result `db`, which every `return` writes. The Go code is safe (`New` runs only in `Get`, reached
+  only while the database is open); the spec is too strict.
+- **Needed by.** bbolt's `Open` (the pool `sorry` in `Proof/go_etcd_io/bbolt/Open.lean`).
+- **Workaround here.** A named `sorry` in `Open`, where `dbFixed`'s `isPool` is produced.
+- **Proposed change.** Perennial branch `pool-new-later` (`/home/ubuntu/perennial`, commit
+  `3b91c3ee1`, off the pin `b3e996d84`): `isPool p f R P` with
+  `newSpec f R P := ⌜f = nil⌝ ∨ {{ R }} f() {{ x, P x ∗ R }}`; `Get` takes and returns `R`; `Put`
+  and `init_Pool` take the parameter; `R := True` is the old spec (`newSpec_of_true`);
+  `init_Pool` consumes the pool's points-to, so the spec can be chosen after `Pool{New: f}` is
+  stored. No model or trusted change.
+- **bbolt adaptation.** `R := iprop(True)` on the local branch `bbolt-pool-new-later` (`345b9d17b1`,
+  unbuilt, unpushed).
+- **Status.** Not landed. Necessary, not sufficient: `Open`'s final non-atomic store into `db`
+  must also not race with a `New` running under a writer, which needs a bbolt protocol (writers
+  gated on a "returned" one-shot inside the sealed `isBolt`, or a lease threaded through `Open`'s
+  own commit).
