@@ -84,7 +84,7 @@ theorem pcStepX_slot {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl)
     (hsl : slotInv wi.fl Xi.t.mv.pgid'.toNat (O ++ (ownSl Xi.v rl.nv.pgid' ++ L))) :
     slotInv w2.fl X3.t.mv.pgid'.toNat (O ++ L ++ List.range' id.toNat count) := by
-  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, -, -, -, -, rfl⟩ := hs
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, -, -, -, -, -, rfl⟩ := hs
   have hG := hG1 X1 w1 stf hfr
   obtain ⟨hmv, -, -, -, -, -, -, -, -⟩ := pcFreed_basic hfr
   have hsl1 : slotInv w1.fl Xi.t.mv.pgid'.toNat (O ++ L) := by
@@ -187,7 +187,7 @@ theorem pcStepX_state {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count
       0 < count ∧
       X3.t.bufs = Xi.t.bufs.insert id (pcPage id ra.nv.isLeaf' ra.ws count) ∧
       Xi.t.bufs !! id = none := by
-  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, -, -, hra, hrp, rfl⟩ := hs
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, -, -, -, hra, hrp, rfl⟩ := hs
   have hG := hG1 X1 w1 stf hfr
   obtain ⟨hmv, hbf, -, hv1, hlv1, -, -, hfree, -⟩ := pcFreed_basic hfr
   obtain ⟨hab1, hab2, hab3, hab4, hab5⟩ := allocRes_basic hal
@@ -281,7 +281,7 @@ theorem pcStepX_spG {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count :
     (hfv : ∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none)
     (hvb : ∀ y pg, Xi.v.pages !! y = some pg → y < Xi.t.mv.pgid'.toNat) :
     spG X3 wi.wtxid (mapLen w2.ms) w2.fl := by
-  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, hml, -, hra, hrp, rfl⟩ := hs
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, -, hal, -, -, -, hml, -, hra, hrp, rfl⟩ := hs
   have hG := hG1 X1 w1 stf hfr
   obtain ⟨hmv, -, -, hv1, hlv1, -, -, hfree, -⟩ := pcFreed_basic hfr
   obtain ⟨q, hn1⟩ : ∃ q, X1.node bl l = some { rl with nv := { rl.nv with pgid' := q } } := by
@@ -328,7 +328,7 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     (hown : rl.nv.pgid' ≠ W64 0 → rl.nv.pgid'.toNat ∈ L) :
     spStep Xi X3 wi w2 O st := by
   have hfresh := pcStepX_fresh hs hsl
-  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, hC, -, -, -, -, hX3⟩ := hs
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, -, hC, -, -, -, -, hX3⟩ := hs
   obtain ⟨hmv, hbf, hpm1, hv1, -, hC1, -, hfree, hfl1⟩ := pcFreed_basic hfr
   obtain ⟨hpd1, hal1⟩ := pcFreed_fl hfr
   obtain ⟨hpd2, hal2⟩ := allocRes_fl hal

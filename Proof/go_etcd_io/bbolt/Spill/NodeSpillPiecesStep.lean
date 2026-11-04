@@ -121,7 +121,7 @@ def pcStep (X : WX) (w : WDb) (bl l : Loc) (r : NRec) (count : Nat) (X3 : WX) (w
     (st : List FLStep) (id : w64) : Prop :=
   ∃ X1 w1 X2 p ra rp s ins stf sta, pcFreed X w bl l r X1 w1 stf ∧ st = stf ++ sta ∧
     allocRes X1 X2 w1.fl w2.fl w.wtxid count p id ∧ w2.fl = w1.fl.applySteps w.wtxid sta ∧
-    w2.C = w1.C ∧
+    (sta = [FLStep.alloc id count] ∨ sta = [] ∧ id = X1.t.mv.pgid') ∧ w2.C = w1.C ∧
     X2.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms ∧ (w2 = w1.withFl w2.fl ∨ wdbRemap w1 w2) ∧
     X2.node bl l = some ra ∧
     (r.nv.parent' ≠ null → X2.node bl r.nv.parent' = some rp ∧
