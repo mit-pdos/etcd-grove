@@ -436,12 +436,13 @@ theorem rebal_loeb
         col_basic X2.v _ bl B2 n rn2 w0 lc rc hc2 ha2 hrn2 hbr2 hpn2 hws2' hlc hrc
       obtain ⟨hchar, hnd, hkn⟩ :=
         col_kids X2 w.fl bl (some n) B2 n rn2 w0 lc rc hI2 hb2 hrn2 hbr2 hpn2 hws2' hlc hrc
+      have hX2v : X2.v = X.v := hR2.1
       have hlive2 : ∀ y ry, B2.ns !! y = some ry → y ∈ X2.live :=
         fun y ry h => (hI2.2.1 bl B2 hb2).2.2.2.2 y ry h
       -- open the root, the child and the child's children
       icases (wtxW_split K tx r m X2).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
       unfold wtxCore
-      icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+      icases Hc with ⟨-, -, %Hr2, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
       ihave %Hok2 := wtxHeap_heapOK tx (DFrac.own 1) _ $$ Hh
       icases wtxHeap_setBkt_live_acc tx (DFrac.own 1) X2 bl B2 ([n, lc] ++ kidsOf B2 rc.ws)
         (fun l => if l = n then rn2 else if l = lc then rc else colKid B2 rc.ws n rc 0 l) hb2 hnd
@@ -635,7 +636,104 @@ theorem rebal_loeb
           iframe
         · iframe
         · iframe
-        sorry
+        have hb3 : ({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with live := GMap.delete lc X2.live } :
+            WX).t.bs !! bl = some (colBktL B2 n lc rn2 rc) := GMap.lookup_insert _ _ _
+        ihave Hw : wtxW K tx r m
+            { X2.setBkt bl (colBktL B2 n lc rn2 rc) with live := GMap.delete lc X2.live } $$
+          [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+        · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+          simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc]
+          iframe; iframe #; ipureintro; exact Hr2
+        -- `child.free()`
+        icases wdbW_view_rbl K tx X.v w $$ Hdb with ⟨%Hwv, Hdb⟩
+        have htxid2 : X2.t.mv.txid' = w.wtxid :=
+          rblX_wtxid X2 w.fl bl _ w hI2 (by rw [hX2v]; simpa using Hwv)
+        obtain ⟨pgc0, -, hp0c⟩ := rbl_node_page X2 w.fl bl (some n) bl B2 lc rc hI2 hb2 hrc hroot2
+        obtain ⟨pgc, hpgc, hlenc, hidc, hflc, hcanc⟩ :=
+          rblX_canFree X2 w.fl bl (some n) B2 lc rc hI2 hb2 hrc hp0c
+        have hX3n : ({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with live := GMap.delete lc X2.live } :
+            WX).node bl lc = some (colRe rc null) := by
+          unfold WX.node; rw [hb3]; exact GMap.lookup_insert _ _ _
+        have hbk3 : (colRe rc null).nv.bucket' = bl := (hc2.2.2.2.2.2.2.2.1 lc rc hrc).1
+        wp_apply hFree K tx r m _ w bl lc (colRe rc null) hX3n hbk3
+          (fun _ => ⟨by show X2.t.pm !! _ = none; rw [hI2.1.2.1]; rfl, htxid2, pgc, hpgc, hlenc, hidc,
+            hflc, by rw [← htxid2]; exact hcanc⟩)
+          $$ [Hw Hdb] as ⟨%X4, %w4, Hw, Hdb, %Hfr⟩
+        · rw [show ({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with live := GMap.delete lc X2.live } :
+            WX).v = X.v from hX2v]
+          iframe
+        obtain ⟨hX4, hw4⟩ : X4 = ({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with
+              live := GMap.delete lc X2.live } : WX).setNode bl lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } } ∧
+            w4 = w.withFl (w.fl.freePages w.wtxid rc.nv.pgid' (1 + pageOverflow pgc)) := by
+          rcases Hfr with ⟨h0, -, -⟩ | ⟨pg', -, hpg', hX4, hw4⟩
+          · exact absurd h0 hp0c
+          · have := hpgc.symm.trans hpg'; cases this; exact ⟨hX4, hw4⟩
+        subst hX4 hw4
+        try wp_auto
+        -- the child goes dead: the collapse's records
+        icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+        unfold wtxCore
+        icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+        have hb4 : (({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with
+              live := GMap.delete lc X2.live } : WX).setNode bl lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }).t.bs !! bl =
+            some { colBktL B2 n lc rn2 rc with ns := ((colBktL B2 n lc rn2 rc).ns.insert lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }) } := by
+          unfold WX.setNode; rw [hb3]; exact GMap.lookup_insert _ _ _
+        have hns5 : (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')).ns =
+            GMap.delete lc ((colBktL B2 n lc rn2 rc).ns.insert lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }) := by
+          show _ = GMap.delete lc
+            (((colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')).ns.insert lc
+              (colRe rc null)).insert lc _)
+          rw [GMap.insert_insert, GMap.delete_insert_eq,
+            GMap.delete_notin _ _ (by rw [col_ns, if_neg hlcn, if_pos rfl])]
+        ihave Hh := wtxHeap_kill_node tx (DFrac.own 1) _ bl _
+          (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')) lc
+          { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } } hb4
+          (GMap.lookup_insert _ _ _) rfl rfl rfl rfl rfl rfl rfl hns5 $$ Hh
+        have hK : (({ X2.setBkt bl (colBktL B2 n lc rn2 rc) with
+              live := GMap.delete lc X2.live } : WX).setNode bl lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }).kill bl
+              (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')) lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } } =
+            X2.kill bl (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')) lc
+              { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } } := by
+          unfold WX.setNode; rw [hb3]
+          simp only [WX.kill, WX.setBkt, GMap.insert_insert, GMap.delete_idemp]
+        rw [hK]
+        obtain ⟨hIc, hRc, -, hUc⟩ := rblX_col X2 w.fl bl B2 n rn2 w0 lc rc rc.nv.inodes' pgc hI2 hb2
+          hrn2 hbr2 hpn2 hws2' hlc hrc hpgc
+        have hflc' : w.fl.freePages X2.t.mv.txid' rc.nv.pgid' (1 + pageOverflow pgc) =
+            (w.withFl (w.fl.freePages w.wtxid rc.nv.pgid' (1 + pageOverflow pgc))).fl := by
+          rw [htxid2]; rfl
+        rw [hflc'] at hIc hRc
+        obtain ⟨hRf, hothf, hstepf⟩ := rbl_col_post X X2 w.fl _ bl B B2 _ n lc rn rn2 _ hb hR1 hR2
+          hb2 hoth2 hU2 (by rw [hnv2]; rfl) hRc hUc ⟨rfl, rfl, rfl⟩
+        ihave Hw : wtxW K tx r m (X2.kill bl (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes'))
+            lc { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }) $$
+          [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+        · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+          simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles,
+            WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+          iframe; iframe #; ipureintro; exact Hr2
+        iapply HΦ
+        iexists _, w.fl.freePages w.wtxid rc.nv.pgid' (1 + pageOverflow pgc)
+        isplitl [Hw]
+        · iexact Hw
+        isplitl [Hdb]
+        · isimp only [WX.setNode_v, WX.setBkt_v] at Hdb
+          rw [← hX2v]
+          iexact Hdb
+        ipureintro
+        refine ⟨hIc, hRf, hothf, fun B0 B5 h0 h5 => ?_⟩
+        rw [hb] at h0; cases h0
+        rw [show (X2.kill bl (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')) lc
+          { rc with nv := { rc.nv with parent' := null, pgid' := W64 0 } }).t.bs !! bl =
+          some (colBkt B2 n lc rc.nv.pgid' (colRoot rn2 rc rc.nv.inodes')) from
+          GMap.lookup_insert _ _ _] at h5
+        cases h5; exact hstepf
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
         $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
