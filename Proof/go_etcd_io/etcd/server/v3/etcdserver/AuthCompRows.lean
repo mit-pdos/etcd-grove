@@ -245,6 +245,26 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
+/-- **The apply thread's resources at the log `A`** (`applyRes` off, `applyResOn` on: `run`'s
+loop invariant and its jobs' `Prev`/`Post`), over the component `K`: the server's view, the
+applier row and the KV's ghost state at the mode's, the token rights the component's. -/
+def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
+  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
+      (sa : auth.AuthState),
+    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerC K C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
+    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
+    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
+    srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
+    (∃ w : Nat, srvWTTaken C.wt w) ∗ acTok K (ciEff B.γ st.k) ∗
+    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
+      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
+      lastTermIs A at'⌝)
+
 end defs
 
 section bridges
@@ -565,6 +585,23 @@ theorem isServerRunOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci :
     · iapply hL.1 $$ Hlnil
     iapply hA.2 $$ Hstart
 
+/-- `isServerBuilt_mid`'s, over the component: the member id field, a voter. -/
+theorem isServerBuiltC_mid (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
+    (γn : RNNames) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuiltC (GF := GF) C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
+      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
+        srvMemberIDAddr s ↦□ γn.id ∗ ⌜γn.id ∈ ρ.raft.raft.cfg⌝ := by
+  iintro H
+  iunfold isServerBuiltC at H
+  iNamed H
+  have hm : γn.id ∈ ρ.raft.raft.cfg := by rw [ReqNames.raft, Hρrd]; exact Hmidc
+  iframe Hmid
+  isplitl
+  · iunfold isServerBuiltC
+    iframe % # ∗
+  ipureintro; exact hm
+
 /-- **`start`'s construction premise from `NewServer`'s built part**, the component's
 (`isServerBuilt_of_gapM` and the bridge). -/
 theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
@@ -575,6 +612,252 @@ theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N :=
   (isServerBuilt_of_gapM C.isOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N).trans
     (isServerBuiltM_C C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hC).1
+
+/-! ### The views `start` makes (the auth component's 2c) -/
+
+/-- **The request view's bound request side**, from the read side. -/
+theorem srvAuthBoundM_of_read (C : AuthC) (s : Loc) (E : apply.AEnv GF)
+    (hC : E.authMode = C.mode) : acRead (GF := GF) C s E ⊢ srvAuthBoundM C.isOn s E := by
+  cases C with
+  | off =>
+    iintro -
+    dsimp only [AuthC.isOn, srvAuthBoundM]
+    ipureintro; rw [apply.AEnv.authOn_eq, hC]; rfl
+  | on γa =>
+    iintro #H
+    dsimp only [AuthC.isOn, srvAuthBoundM]
+    isplitl
+    · iapply acRead_bound (GF := GF) (.on γa) γa rfl s E $$ H
+    ipureintro; rw [apply.AEnv.authOn_eq, hC]; rfl
+
+/-- **The read view's request-side bound** at the store field's value `au`, from the read side. -/
+theorem readBound_of_read (C : AuthC) (s : Loc) (E : apply.AEnv GF) (au : GoInterface)
+    (hC : E.authMode = C.mode) :
+    acRead (GF := GF) C s E ∗ srvAuthStoreAddr s ↦□ au ⊢
+      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode) := by
+  cases C with
+  | off =>
+    iintro -
+    iintro !> %h
+    simp [hC, AuthC.mode, auth.AuthMode.isOn] at h
+  | on γa =>
+    iintro ⟨#H, #Ha⟩
+    ihave #Hb := acRead_bound (GF := GF) (.on γa) γa rfl s E $$ H
+    iunfold srvAuthBound at Hb
+    icases Hb with ⟨%st, #Hst, #HB⟩
+    ihave #Hst' : srvAuthStoreAddr s ↦□ st $$ []
+    · iexact Hst
+    icombine Ha Hst' gives %Heq
+    iintro !> %_
+    rw [Heq]
+    iexact HB
+
+/-- **The read loop's composition** at the mode's model state, from the KV invariants. -/
+theorem readCompose_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsC (GF := GF) C s E γr ⊢ readCompose γr (kvStM C.isOn γr.kv) := by
+  iintro #H
+  ihave #H' := (srvKVInvsM_C (GF := GF) C s E γr).2 $$ H
+  cases C with
+  | off =>
+    dsimp only [AuthC.isOn] at *
+    rw [kvStM_false]
+    rw [srvKVInvsM_false] at *
+    iunfold readCompose
+    iintro !> %gs #Hgs
+    iunfold srvKVInvs at H'
+    icases H' with ⟨#HkvI, -⟩
+    iapply kv_read_compose γr.raft γr.kv gs $$ HkvI Hgs
+  | on γa =>
+    dsimp only [AuthC.isOn] at *
+    iapply readCompose_on s E γr $$ H'
+
+/-- The KV names' tie gives the request view's (`kvTieM`). -/
+theorem kvTieM_of_names (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
+    (h : kvNameTiesM (GF := GF) on E γr) : kvTieM (GF := GF) on γr.kv.cmp E := by
+  cases on
+  · exact h.1.1
+  · trivial
+
+/-! ### What `applyAll`'s merged-snapshot window takes of the rows (the auth component's 2c) -/
+
+/-- **The applier row lends its core and the component's part** (`srvApplyKV_core` off,
+`srvApplyKVOn_coreA` on). -/
+theorem srvApplyKVC_coreA (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVC (GF := GF) C s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗ acRes C s E ua st ∗
+        (srvApplyKVCore s E γw x ua -∗ acRes C s E ua st -∗ srvApplyKVC C s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVC at H
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  iexists ua
+  isplitl [Hua Hkv Hbo Hra Hw]
+  · iunfold srvApplyKVCore
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hap
+    isplitl [Hkv]
+    · iexact Hkv
+    isplitl [Hbo]
+    · iexact Hbo
+    isplitl [Hra]
+    · iexact Hra
+    iexact Hw
+  isplitl [Har]
+  · iexact Har
+  iintro Hc Har
+  iunfold srvApplyKVCore at Hc
+  icases Hc with ⟨Hua, -, Hkv, Hbo, Hra, Hw⟩
+  iunfold srvApplyKVC
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [Hra]
+  · iexact Hra
+  isplitl [Har]
+  · iexact Har
+  iexact Hw
+
+/-- **The applier row's index certificate**. -/
+theorem srvApplyKVC_idxCert (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvApplyKVC (GF := GF) C s E γw x st ⊢ srvApplyKVC C s E γw x st ∗ mvcc.idxCert E.γ.idx x.log := by
+  iintro H
+  iunfold srvApplyKVC at H
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
+  icases applyKV_idxCert E ua x $$ Hkv with ⟨Hkv, #Hc⟩
+  iframe Hc
+  iunfold srvApplyKVC
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  iexact Hrest
+
+/-- **The merged image's certificate** (`merged_image` off, `merged_imageOn` on): the window's
+observation, with the component's buckets at its image (`acImg`, `acBkts`). -/
+theorem merged_imageC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (sa : auth.AuthState) (D : backend.Data) (hC : E.authMode = C.mode)
+    (hlen : uint.Z ai = A.length) (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
+    ⌜mergedObsM E.authMode γr E.cmp E.lg ai A x.log x.crev D ∧
+        ∃ r, acImg C sa r ∧ ∀ n, acBkts C n → D.lookup n = r.lookup n⌝ ∗
+      ⧖ (mvcc.logCh x.log) ∗ isServerM C.isOn s γ ci TM E ρ γr ∗
+      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ⊢
+      |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗
+        □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
+  cases C with
+  | off =>
+    dsimp only [AuthC.isOn]
+    rw [kvAppliedM_false, isServerM_false]
+    iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
+    iapply (merged_image s γ ci TM E ρ γr ai A x D hlen h0)
+    iframe Hrc Hsrv Hka
+    ipureintro
+    exact mergedObs_of_M (by simpa [AuthC.mode] using hC) hobs.1
+  | on γa =>
+    dsimp only [AuthC.isOn]
+    rw [kvAppliedM_true]
+    iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
+    iapply (merged_imageOn s γ ci TM E ρ γr γa ai A x sa D (by simpa [AuthC.mode] using hC) hlen h0)
+    iframe Hrc Hsrv Hka
+    ipureintro
+    obtain ⟨h1, r, hQ, hr⟩ := hobs
+    exact ⟨h1, authBucketsAt_congr sa D r hr hQ⟩
+
+/-- `kvRunM`'s parts: the KV's ghost state at the mode's and the start's indices. -/
+theorem kvRunM_split (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvRunM (GF := GF) on γr ai₀ c₀ A x st =
+      iprop(kvAppliedM on γr.raft γr.kv srvAuthSt0 A x st ∗ ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝) := by
+  cases on <;> rfl
+
+theorem kvRunM_false (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV)
+    (st : auth.AuthState) : kvRunM (GF := GF) false γr ai₀ c₀ A x st = kvRun γr ai₀ c₀ A x := rfl
+
+theorem kvRunM_true (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV)
+    (st : auth.AuthState) : kvRunM (GF := GF) true γr ai₀ c₀ A x st = kvRunAtOn γr ai₀ c₀ A x st :=
+  rfl
+
+/-- **`applyResC` off is `applyRes`** (the component's auth state unused). -/
+theorem applyResC_off (C : ApplyCtx GF) (A : List EntryModel) :
+    applyResC (GF := GF) .off C A ⊣⊢ applyRes C A := by
+  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) .off C.s B.γ C.ci B.TM B.E C.ρ C.γr
+  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) .off C.s B.E C.γw x sa
+  simp only [AuthC.isOn, isServerM_false, srvApplyKVM_false] at hS hK
+  unfold applyResC applyRes
+  simp only [AuthC.isOn, acTok_off, kvRunM_false]
+  constructor
+  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
+      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, -, H19, %Hp⟩
+    ihave #Hsrv := (hS B).2 $$ Hsrv
+    ihave HKV := (hK B x sa).2 $$ HKV
+    iexists B, st, ai, at', a, t, cs, x
+    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
+    ipureintro; exact ⟨HB, Hp⟩
+  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
+      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, H19, %Hp⟩
+    ihave #Hsrv := (hS B).1 $$ Hsrv
+    ihave HKV := (hK B x srvAuthSt0).1 $$ HKV
+    iexists B, st, ai, at', a, t, cs, x, srvAuthSt0
+    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
+    ipureintro; exact ⟨HB, Hp⟩
+
+/-- **`applyResC` on is `applyResOn`**, the environment's mode the component's. -/
+theorem applyResC_on (γa : auth.AuthNames) (C : ApplyCtx GF) (A : List EntryModel)
+    (hM : C.E.authMode = .on γa) :
+    applyResC (GF := GF) (.on γa) C A ⊣⊢ applyResOn C A := by
+  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) (.on γa) C.s B.γ C.ci B.TM B.E C.ρ C.γr
+  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) (.on γa) C.s B.E C.γw x sa
+  simp only [AuthC.isOn, srvApplyKVM_true] at hS hK
+  have hT : ∀ (B : ApplyBe GF) k, beSucc C.γ C.E B.γ B.E →
+      acTok (GF := GF) (.on γa) k = srvTokRights B.E k := fun B k hB =>
+    (srvTokRights_eq (.on γa) B.E k ((beSucc_authMode hB).trans hM)).symm
+  unfold applyResC applyResOn
+  simp only [AuthC.isOn, kvRunM_true]
+  constructor
+  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
+      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
+    ihave #Hsrv := (hS B).2 $$ Hsrv
+    ihave HKV := (hK B x sa).2 $$ HKV
+    rw [hT B _ HB]
+    iexists B, st, ai, at', a, t, cs, x, sa
+    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
+    ipureintro; exact ⟨HB, Hp⟩
+  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
+      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
+    ihave #Hsrv := (hS B).1 $$ Hsrv
+    ihave HKV := (hK B x sa).1 $$ HKV
+    iexists B, st, ai, at', a, t, cs, x, sa
+    rw [hT B _ HB]
+    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
+    ipureintro; exact ⟨HB, Hp⟩
+
+/-- **The server's view's names** (`isServer_lg`'s): the request names' reads the view's, and off
+the KV names' lease mode the environment's. -/
+theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ (K.isOn = false → γr.kv.lg = E.lg)⌝ := by
+  refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
+  cases K with
+  | off =>
+    refine (isServer_lg s γ ci TM E ρ γr).trans ?_
+    iintro %h; ipureintro; exact ⟨h.1, fun _ => h.2⟩
+  | on γa =>
+    iintro H
+    iunfold isServerM at H
+    icases H with ⟨%h, -⟩
+    ipureintro; exact ⟨h, fun h' => by cases h'⟩
 
 end bridges
 

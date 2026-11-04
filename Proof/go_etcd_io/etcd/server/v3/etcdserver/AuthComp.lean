@@ -460,6 +460,30 @@ theorem acRead_of_res (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterfac
     · iapply srvAuthLb_of_uberBase s ua E $$ Hb
     · iapply srvAuthBound_of_uberBase s ua E (by rw [hC]; rfl) $$ Hb
 
+/-- `acRead_of_res`, keeping the row (the auth component's 2c: `start` builds its views from the
+row it hands the apply thread). -/
+theorem acRes_read (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
+    (st : auth.AuthState) (hC : E.authMode = C.mode) :
+    acRes C s E ua st ⊢ acRes C s E ua st ∗ acRead C s E := by
+  cases C with
+  | off =>
+    unfold acRes acRead srvAuthApplyRes srvAuthLb
+    iintro ⟨%stl, #Hf, H⟩
+    isplitl
+    · iexists stl; iframe Hf; iexact H
+    iexists (auth.authIface stl)
+    iframe Hf
+    rw [hC]
+    simp only [AuthC.mode, authStoreLbM]
+    itrivial
+  | on γa =>
+    dsimp only [acRes, acRead, AuthC.mode, AuthC.isOn]
+    iintro ⟨#Hb, HR⟩
+    iframe Hb HR
+    isplitl
+    · iapply srvAuthLb_of_uberBase s ua E $$ Hb
+    · iapply srvAuthBound_of_uberBase s ua E (by rw [hC]; rfl) $$ Hb
+
 theorem acRead_lb (C : AuthC) (s : Loc) (E : apply.AEnv GF) :
     acRead C s E ⊢ srvAuthLb s E := by
   cases C with

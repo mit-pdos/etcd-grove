@@ -4,7 +4,7 @@
 `applyAll.specSnap` (`ApplyAllSnap.lean`), its `on` case `wp_proofSnap`'s twin: the image's facts
 in the mode (`snapRecv_imageOn`), the KV's ghost state's jump (`snapRecv_kv_jumpOn`), the applied
 index's with the auth state published (`srvApplyKVOn_appliedPub`, `applied_jumpM`), and the merge
-branch as `applyAll.wp_proofOn`'s (`merged_imageOn`). Lean-first. `run`'s auth-on snapshot case uses
+branch as `applyAll.wp_proofBatch`'s on (`merged_imageOn`, through `merged_imageC`). Lean-first. `run`'s auth-on snapshot case uses
 it.
 -/
 module

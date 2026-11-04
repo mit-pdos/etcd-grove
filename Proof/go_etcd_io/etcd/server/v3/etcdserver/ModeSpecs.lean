@@ -1671,6 +1671,14 @@ abbrev EtcdServer.applyAll.specOff : Prop :=
   EtcdServer.applyAll.specBatchOff (GF := GF) (hG := hG) ∧
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG)
 
+/-- The merged `applyAll.specBatch`'s running-token match is `srvRunH` (the auth component's 2c). -/
+theorem srvRunH_applyAll_specBatch (γs : ServerRaftNames) (dv : Option Loc) :
+    _root_.Perennial.EtcdGrove.EtcdServer.applyAll.specBatch.match_1 (fun _ => IProp GF) dv
+      (fun _ => iprop(True))
+      (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
+      srvRunH γs dv := by
+  cases dv <;> rfl
+
 /-- `srvRunH_applyAll_spec` for `specBatchOff`'s own matcher (`specOn`'s is the same). -/
 theorem srvRunH_applyAll_specOff (γs : ServerRaftNames) (dv : Option Loc) :
     _root_.Perennial.EtcdGrove.EtcdServer.applyAll.specBatchOff.match_1 (fun _ => IProp GF) dv

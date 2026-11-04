@@ -1817,7 +1817,7 @@ theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2
 
-/-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
+/-- **`run` with auth on** (the auth plan's E3q; until the auth component's stage 2c `EtcdServer__run.lean`'s `wp_proofOn`): from
 `isServerRunOn`, every scheduled job `server_apply_all_on` (a snapshot payload's
 `server_apply_all_snap_m`) over the apply thread's mode-`on` resources (`applyResOn`). (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `run`
 (`run.spec_on`). -/
@@ -1825,7 +1825,7 @@ theorem server_run_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assu
     EtcdServer.run.specOn (GF := GF) (hG := hG) :=
   EtcdServer.run.spec_on EtcdServer.wp_run
 
-/-- **`start` with auth on** (the auth plan's E3r, `EtcdServer__start.lean`'s `wp_proofOn`): from the
+/-- **`start` with auth on** (the auth plan's E3r; until the auth component's stage 2c `EtcdServer__start.lean`'s `wp_proofOn`): from the
 mode-`on` construction premise and the lessor finding no lease, `run` started with auth on
 (`server_run_on`), the request and read views in the mode, and the read loop's precondition at the
 mode-`on` model's state (`kv_read_compose_on`). Every callee linked. (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `start`
