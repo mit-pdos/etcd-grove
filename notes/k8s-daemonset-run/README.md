@@ -75,3 +75,12 @@ Then: review rounds (fresh `spec-reviewer`), the freeze, the invariant walk-thro
   fixed at creation (`crevPermIs`, `c3-store-law.md`); the old statements are its instance
   `Pk := fun _ => True`; the only clients are this run's stubs. The controller's `Pk` is
   `keyCanon` (every key it adds comes from `KeyFunc` of a namespaced object).
+- R6 (2026-11-04, track A's question): handler registration and `AddIndexers` are specified for
+  before `Start` only, by a **per-informer "not started" token** (a fractional ghost variable under
+  a new name of `InfNames`: the start lock holds part, kept in step with `started`; `Informer()`
+  hands out the callers' part; `AddEventHandlerWithOptions`/`AddIndexers` borrow a fraction;
+  `RunWithContext` needs it whole, so the factory's `Start` takes the callers' parts of every
+  informer it made). Chosen over a factory-wide token because `isInformer` then names nothing of the
+  factory (locality). A thaw of `Start`, `StartWithContext`, `Informer()`; track C threads the
+  tokens from the constructor to `factory.Start`. (`AddIndexers` succeeds after the start in Go:
+  only a stopped informer refuses; the restriction is the spec's, which the controller meets.)
