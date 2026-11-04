@@ -43,6 +43,11 @@ theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : ∃ n, (n, cv) ∈ treeEntries v.pages v.root := by
   sorry
 
+/-- A top-level bucket's value holds its header. -/
+theorem top_len (v : View) (h : viewWF v) (kb cv : List w8)
+    (he : bktEntry v.pages (rootVal v) kb cv) : 16 ≤ cv.length := by
+  sorry
+
 /-- A top-level bucket has no nested bucket. -/
 theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : bktNames v.pages cv = [] := by
@@ -51,7 +56,7 @@ theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
 /-- A top-level bucket stored in pages is a tree root. -/
 theorem top_ownRootOK (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) (hf : inBucketRoot cv ≠ 0) :
-    ownRootOK v.pages (inBucketRoot cv) ∧ 16 ≤ cv.length := by
+    ownRootOK v.pages (inBucketRoot cv) := by
   sorry
 
 /-- The root's own pages are not in a top-level bucket's tree. -/
