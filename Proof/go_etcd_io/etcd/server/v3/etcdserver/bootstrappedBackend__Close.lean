@@ -41,7 +41,6 @@ theorem bootstrappedBackend.Close.wp_proof
   wp_auto
   wp_apply hClose γ P W Pk be $$ [Hopen] as %err -
   · iframe Hopen; iframe #
-  wp_auto
   iapply HΦ
   itrivial
 

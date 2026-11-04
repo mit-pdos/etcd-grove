@@ -30464,7 +30464,8 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 
 ## The whole-`bootOk` review: `bootstrap`'s contracts restated (2026-11-03 · the user's approval of candidate 3 and its seven recommendations · branch `bootok-review`)
 
-*Superseded in part (2026-11-03, "The boot premises"): `bootCfgOk` no longer has `TickMs ≠ 0`
+*Superseded in part (2026-11-04, "R-D1: the one-shot Close"): D is done, `#Hclose` gone from both
+contracts.* *Superseded in part (2026-11-03, "The boot premises"): `bootCfgOk` no longer has `TickMs ≠ 0`
 (`Hraft` states the heartbeat Go computes, `NewServer` takes its sign); `Hdirps` left `bootOk` for
 `NewServer`'s `srvBootEnvOk`; the final round's S1, S2, M1, M2 are repaired there.*
 
@@ -31023,3 +31024,55 @@ approved ones changed):
   advance channel's content), and `run_snap_jobOn` takes `C.rn = γn`, as lean's `run_job_snap`.
 - `snapRecv_imageOn` takes `E.lg = false` (`srvRest_false`), as lean's `snapRecv_image`; the caller
   gets it from `srvRest_revocable`.
+
+## R-D1: the one-shot Close (2026-11-04 · the user's split of R-D and their approval of `authAbandonM` · branch `oneshot-close`)
+
+**What `#Hclose` was.** `bootOk` and `bootOkR` (`InvBoot.lean`, `InvRestart.lean`) carried
+`"#Hclose" ∷ □ {{ True }} b.Close() {{ RET #(); True }}`: a persistent triple for
+`bootstrappedServer.Close`, which `NewServer`'s deferred cleanup runs on its error paths after
+`bootstrap` (`server.go:306-310`). It is false of Go: `Close` reaches `backend.Close`, whose
+`close(b.stopc)` panics on a second call (`TestSpecBootstrapFalseCases`). It was D of the whole-`bootOk`
+review, deferred because the honest triple takes the backend's whole open token, and on the
+second error path (`Transport.Start` failing, after `mvcc.New`) that token is spread over the store's
+~8·10⁸ readers.
+
+**The change (R2, readers by variant (b)).** The three `Close` methods are translated (Goose config,
+`Code/go_etcd_io/etcd/server/v3/etcdserver.toml`) and proved: `bootstrappedServer.Close.spec` takes
+the record's read-only path to the backend, `isBackend`, `isStopChans` and `bOpen γ 1`, returns
+`True` (`bootstrappedStorage.Close`, `bootstrappedBackend.Close` likewise, down to
+`backend.backend.Close.spec`). `#Hclose` is gone from both contracts: a trusted, false conjunct
+less. `NewServer`'s three proofs take `hBSC : bootstrappedServer.Close.spec` (the link passes the
+proof), and reassemble the token on both paths:
+- **path 1** (`auth.NewTokenProvider` fails, before `mvcc.New`): the constructors' half, the pool's
+  shares (`bkRPool` unfolded, as `SnapApplyWalk` does) and the stock's (the readers' tokens, still
+  whole), by `bOpen_one_pool`.
+- **path 2** (`Start` fails): `watchableStore.Close` now returns the two loops' readers
+  (`mvcc.wsLoopN`, the user's Q6: the loops leave their reader at `Done`, the wait group's invariant
+  keeps them, with a token as the closer's claim; `wsWgInv` is no longer timeless) and
+  `store.Close` returns the compaction job's resource (`compactJobResM`, from `Stop`'s last
+  payload, `compactQueue_stopped`). Every reader of the store is retired at once
+  (`mvcc.storeReaders_retire`, `ReaderRetire.lean`, one later credit), and with the job's resource
+  gives the stock's shares (`mvcc.storeRTs_shares`). The auth store is abandoned:
+  `authAbandonM M stl d RD` (new conjunct of `authStoreKit`'s post, `AuthSrv.lean`) turns every
+  ticket (`authRdSupply RD`) and the apply thread's resources (`authApplyResPre`) into the
+  realization's share (`authOpenM M d`: `authOpenQ` with auth on, `True` otherwise), and
+  `authOpenM_join` puts it back with `srvOpenQ M` into the constructors' half.
+
+**The split (the user's, 2026-11-04).** R-D1 is the above, with `authAbandonM` proved for auth off
+(trivially, `authStoreKit_off`) and a `sorry` for auth on: `authStoreKit_on` takes the clause as a
+premise (`hAbandon`) and `authSrvTP_on` passes it `sorry` (the only new `sorry`; it is not derivable
+from today's `beRd`, whose currency `beMu`'s resource holds for good). R-D2 is option (d) of the
+candidate, later: the auth store's currency moved out of `beMu`'s resource into a proved invariant
+keyed by tickets inside `beRd` (approved by the user with `authAbandonM`), which proves the premise
+and removes the `sorry`.
+
+**Deviations from the frozen candidate, all local.** No `backend.bkRPool_shares` or
+`txn.kvWriter_frag` law: `NewServer` already unfolds both (`SnapApplyWalk`, `NewServer`'s own reader
+retirement), so no backend interface moved. `InvStore`'s `storeReader_retire` is kept, not re-derived
+from the bulk form (no `InvStore` rebuild). `snap_oldReaders` (`SnapRestoreM`) is not reused: it
+would make `NewServer` import the snapshot path, so `storeRTs_shares` (mvcc) does the same at the
+stock's full count. `Hb`/`Hsto`/`Hbk` are persisted only inside the two error branches (the
+remotes loop's frame keeps `b ↦ bs`).
+
+**What it found.** The leak on both paths (the WAL and three goroutines), with the retry hazards:
+`nonissues/etcd-newserver-error-path-leaks.md`, measured by `TestSpecBootstrapNewServerErrorLeak`.

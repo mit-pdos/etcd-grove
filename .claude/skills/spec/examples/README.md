@@ -29,6 +29,7 @@ principles match your target.
 | [wal-api.md](wal-api.md) | a trust-boundary API grown piecewise, designed whole (etcd's WAL: records, files, purge) | refute file claims with sequences; the environment's other actors (a purge) as tokens; trusted pure helpers what Go computes; mechanical sealing of trusted ghost state; list every strengthened trusted statement |
 | [porcupine-dag-check.md](porcupine-dag-check.md) | a public result whose old statement is false of new code (porcupine PR #46's search) | the closest true spec with the old statement a corollary; pure premises in the precondition |
 | [bootok-whole.md](bootok-whole.md) | a trusted contract (an untranslated function's post) changed piecemeal, false as a whole | check a trusted post whole against Go in every mode; a bound the caller meets is a precondition; a creation total is false after the function spent some; an entailment premise mints no exclusive token; the contract states every configuration field it relies on |
+| [oneshot-close.md](oneshot-close.md) | a trusted persistent triple for a closer, false (a second close panics), replaced by proved one-shot specs on a constructor's error paths | a closer takes the exclusive token and gives back what its goroutines held; a clause is stated over what its user holds (counts, names, a conclusion the producer can give); a proved option before a trusted clause, a named `sorry` to split |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

@@ -4,7 +4,8 @@ backend tokens of their own in bulk, at one later credit (`storeReaders_retire`,
 `storeReader_retire`, `InvStore.lean`), for `NewServer`'s transport-start failure, where the backend's
 `Close` needs every share of the open token back (its ~8·10⁸ idle readers retired at once). And the
 law the loops use to leave their reader of the inner store (`watchReader_storeReader`,
-`InvWatchSync.lean`). Lean-first (no Rocq counterpart).
+`InvWatchSync.lean`). And every retired reader's open share back (`storeRTs_shares`). Lean-first
+(no Rocq counterpart).
 -/
 module
 
@@ -128,6 +129,36 @@ theorem storeReaders_retire (s : Loc) (γ : StoreNames) (m n : Nat) :
   iunfold writerFrag
   iexists o
   iexact Hpin
+
+/-- **Every reader retired, with the compaction job's resource, gives the backend's stock of open
+shares** (R-D1, 2026-11-04): the store's `nReaders - nJobRd` readers' backend tokens and, compacting,
+the job's reader (`compactJobResM`'s), each with the share `rdOpen` of the backend open, for its
+`Close` (`backend.bOpen_one_pool`). -/
+theorem storeRTs_shares (γ : StoreNames) (dk : KBReal) (hk : γ.kb = some dk) :
+    ([∗list] _x ∈ List.replicate (backend.rdStockN - nJobRd γ.kb) (), storeRT (GF := GF) γ) ∗
+      compactJobResM γ.kb ⊢
+      [∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen dk.γB backend.rdOpen := by
+  have hsh : storeRT (GF := GF) γ ⊢ backend.bOpen dk.γB backend.rdOpen := by
+    unfold storeRT; rw [hk]; unfold kbRT; iintro ⟨-, H⟩; iexact H
+  unfold compactJobResM nJobRd
+  rw [hk]
+  cases hcm : dk.cm with
+  | false =>
+    have hoff : ¬ kbCmpM (some dk) := by unfold kbCmpM; simp [hcm]
+    simp only [hoff, hcm, ↓reduceIte, Nat.sub_zero, Bool.false_eq_true]
+    iintro ⟨H, -⟩
+    iapply rep_mono _ _ hsh _ $$ H
+  | true =>
+    have hon : kbCmpM (some dk) := by unfold kbCmpM; simp [hcm]
+    simp only [hon, hcm, ↓reduceIte]
+    obtain ⟨k, hk1⟩ : ∃ k, backend.rdStockN = k + 1 :=
+      ⟨backend.rdStockN - 1, by rw [backend.rdStockN_val]⟩
+    rw [hk1, Nat.add_sub_cancel, List.replicate_succ]
+    iintro ⟨H, Hrt, -⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hrt]
+    · unfold kbRT; icases Hrt with ⟨-, Hrt⟩; iexact Hrt
+    iapply rep_mono _ _ hsh _ $$ H
 
 end retire
 

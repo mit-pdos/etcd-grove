@@ -437,11 +437,11 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-    -- the error paths' close
-    "#Hclose" ∷ □ ({{ True }}
-      (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
-      {{ RET #(); True }}))
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir'))
+    -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
+    -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
+    -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque
+    -- `"#Hclose" ∷ □ {{ True }} b.Close() {{ True }}`, false (a second call panics)
 
 
 /-- **`bootstrap`'s contract on a stopped member's data directory** (DRAFT, R2c; L3; a premise, as
