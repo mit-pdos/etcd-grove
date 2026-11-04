@@ -2,6 +2,10 @@
 `Bucket.spill` for a nested bucket (U9g, `notes/bbolt-proof-plan.md`): `Spill/BktSpec`'s
 `Bucket.spill.specC`, over `node.spill.spec'` (top case), `node.root`, `Meta.Pgid` and
 `InBucket.SetRootPage`. The loop over `b.buckets` runs no iteration (`B.bm = ∅`).
+
+Status: proved but for `bkDone`'s two data clauses (the written tree's entries are the bucket's,
+`treeEntries … = lbktEnts X bl`, and `plainTree`): `node.spill.spec'`'s top-case post says nothing
+of the written tree's entries (`uTree` and `spDone` carry no data), so they cannot follow from it.
 -/
 module
 
@@ -198,9 +202,9 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
       Or.inl ⟨Hnull, rfl, rfl⟩⟩
   obtain ⟨B0, HB0, Hrn1⟩ := bk_node_of_bs Hrn0
   rw [HB] at HB0; cases HB0
-  have Hnn : B.bv.rootNode' ≠ null := by
+  have HrnN : B.bv.rootNode' ≠ null := by
     intro h0; rw [h0, (HG.2.2.1.2.2.1 bl B HB).2] at Hrn1; cases Hrn1
-  rw [decide_eq_false Hnn]
+  rw [decide_eq_false HrnN]
   try wp_auto
   ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
   · dsimp only; iframe
@@ -278,8 +282,47 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     wp_method_call
     try wp_call
     try wp_auto
-    trace_state
-    sorry
+    wp_apply hSRP B1.bv.InBucket' B1.ib rr.nv.pgid' $$ [Hibv] as Hibv
+    · iframe
+    try wp_auto
+    ihave Hn : (rt ↦ rr.nv : IProp GF)
+      $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hn := Hnback $$ Hn
+    ihave Htx := Htxb $$ Htx
+    have Hrt0 : rt ≠ null := by
+      intro h0; rw [h0, (Hstep.2.2.2.1.2.2.1.2.2.1 bl B1 HB1).2] at Hrr; cases Hrr
+    ihave Hh := Hback $$ %(bkRooted B1 rt rr.nv.pgid') %(fun _ => rr) [] [Hn] [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs] Hrf
+    · ipureintro
+      refine ⟨?_, fun _ _ => rfl, rfl, ?_⟩
+      · intro l hl; rw [List.mem_singleton.1 hl]; exact Hrr
+      · intro l hl; rw [List.mem_singleton.1 hl, Hrpar]; exact Ne.symm Hrt0
+    · iapply BigSepL.bigSepL_singleton.2; rw [decide_eq_true Hrtl]; iexact Hn
+    · dsimp only [bkRooted]
+      iframe
+    · iframe
+    ihave Hw := Hclose $$ %(X1.setBkt bl (bkRooted B1 rt rr.nv.pgid')) [] Hh Hv Hst
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    try wp_auto
+    iapply HΦ
+    unfold bkPost
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists X1.setBkt bl (bkRooted B1 rt rr.nv.pgid'), w1, st
+    iframe
+    ipureintro
+    refine ⟨?_, Or.inr ⟨HrnN, X1, N ++ T, B1, rt, rr, S, D', h', Hfr, HB1, Hrr, Hrtl, Hrsp, Hrpar,
+      rfl, HsT, HD', Hsi', HD1, HD2, ?_, ?_⟩⟩
+    · obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hstep
+      exact ⟨s1, s2, s3, spG_bkRooted _ s4 HB1 Hrr Hrpar Hrtl Hroot, s5, s6, s7, s8⟩
+    · -- The written tree's entries: `node.spill.spec'` does not relate the tree it writes to the
+      -- entries of the unspilled tree (`uTree`/`spDone` carry no data); see the U9g report.
+      sorry
+    · -- The nested clause of `rootShape`: the same gap (the entries' flags and sizes).
+      sorry
   · cases err with
     | nil => exact absurd rfl hne
     | ok ii =>
