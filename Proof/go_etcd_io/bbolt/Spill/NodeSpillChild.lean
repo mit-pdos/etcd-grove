@@ -109,7 +109,7 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
       · cases hx : X.t.objs !! l with
         | none => rfl
         | some _ =>
-          have := hl.frame.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 l (by simp [hx])
+          have := hl.frame.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 l (by simp [hx])
           rw [h0] at this; cases this
       · simp [h0] at hne
   have hEE : (es.take j ++ ps.map (pcUE (spP X'')) ++ es.drop (j + 1)).flatMap UE.E = E0 := by

@@ -190,11 +190,18 @@ bytes. -/
 def bktSim (B B' : BRec) : Prop :=
   B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.nm = B.nm ∧ B'.bm = B.bm ∧ B'.ipg = B.ipg
 
+/-- **A node's leaf bucket entries' value sources** (`nodeClean`'s): the view's or persistent
+heap bytes (`dereference` turns the first into the second; a remap stales neither). -/
+def leafVs (r : NRec) : Prop :=
+  r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.heap
+
 /-- **The frame of a spill in bucket `bl`** from `X` to `X'`, the nodes `T` touched: the other
 buckets' records modulo sources, `bl`'s struct, header and caches, its untouched nodes modulo
 sources (live as before), and the transaction's root, handles, registry, live buckets, base pages
 and txid unchanged; the buffers and page cache grown (old buffers kept), the mark not lower; every
-object still one (U9h: a node fresh after a later step was fresh at the start). -/
+object still one (U9h: a node fresh after a later step was fresh at the start); every untouched
+node's `leafVs` kept (U9q: `Bucket.spill`'s root bucket stays `bktLocalOK` across a child's
+spill). -/
 def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   X'.rl = X.rl ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.liveB = X.liveB ∧
   X'.v.pages = X.v.pages ∧ X'.v.txid = X.v.txid ∧ X'.t.t = X.t.t ∧
@@ -208,7 +215,9 @@ def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
     ∀ l, l ∉ T → optRel nodeSim (B.ns !! l) (B'.ns !! l)) ∧
   (∀ l, l ∉ T → (∃ bl' B, X.t.bs !! bl' = some B ∧ (B.ns !! l).isSome) →
     (l ∈ X'.live ↔ l ∈ X.live)) ∧
-  (∀ l, (X.t.objs !! l).isSome → (X'.t.objs !! l).isSome)
+  (∀ l, (X.t.objs !! l).isSome → (X'.t.objs !! l).isSome) ∧
+  (∀ bl' B B' l r r', X.t.bs !! bl' = some B → X'.t.bs !! bl' = some B' → B.ns !! l = some r →
+    B'.ns !! l = some r' → (bl' = bl → l ∉ T) → leafVs r → leafVs r')
 
 /-! ## What every step of the spill keeps -/
 
