@@ -134,17 +134,83 @@ theorem walkF_cover (P : Pages) (pht : Nat → Nat) (hht : pageHts P pht) {r id 
   | child r pg i id hpg hbr hi _ ih =>
     intro n ids hl hn
     obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-    rw [pageWalkF_succ' P m ids r pg hl hpg, if_pos hbr]
+    rw [pageWalkF_succ' P m ids r pg hl hpg, ite_eq_left hbr]
     have hc := (hht r pg hpg).2 hbr i hi
     have := ih m (ids ++ [branchPgid pg i]) (by simp) (by omega)
     simp only [List.map_cons, List.mem_cons, List.map_flatMap]
     right
     exact List.mem_flatMap.mpr ⟨i, List.mem_range.mpr hi, this⟩
 
+omit [GooseExts] in
+theorem nodup_flatMap' {α β : Type} (f : α → List β) : ∀ l : List α,
+    (∀ a ∈ l, (f a).Nodup) → l.Pairwise (fun a b => ∀ x, x ∈ f a → x ∉ f b) →
+      (l.flatMap f).Nodup := by
+  intro l
+  induction l with
+  | nil => intro _ _; simp
+  | cons a l ih =>
+    intro hn hp
+    rw [List.flatMap_cons, List.nodup_append]
+    rw [List.pairwise_cons] at hp
+    refine ⟨hn a (by simp), ih (fun b hb => hn b (by simp [hb])) hp.2, ?_⟩
+    intro x hx y hy hxy
+    subst hxy
+    obtain ⟨b, hb, hyb⟩ := List.mem_flatMap.mp hy
+    exact hp.1 b hb x hx hyb
+
+theorem ownHas_treeHas' {P : Pages} {r id : Nat} (h : ownHas P r id) : treeHas P r id := by
+  induction h with
+  | root r pg hpg => exact treeHas.root r pg hpg
+  | child r pg i id hpg hbr hi _ ih =>
+    exact treeHas.sub r pg id hpg (pageHas.child pg i id hbr hi ih)
+
+/-- The walk below a well-formed page of a view without shared pages visits each page once. -/
+theorem walkF_nodup (P : Pages) (hwm : Nat) (hu : viewUnique P) : ∀ (n : Nat) (ids : List Nat)
+    (id : Nat), ids.getLast? = some id → treeWF P hwm id →
+      ((pageWalkF P n ids).map Prod.fst).Nodup := by
+  intro n
+  induction n with
+  | zero => intro ids id _ _; simp [pageWalkF]
+  | succ n ih =>
+    intro ids id hl hwf
+    obtain ⟨pg, hpg, hpt⟩ : ∃ pg, P !! id = some pg ∧ pageTreeWF P hwm pg pg.length := by
+      cases hwf with | page _ pg _ _ hpg _ _ hpt => exact ⟨pg, hpg, hpt⟩
+    rw [pageWalkF_succ' P n ids id pg hl hpg]
+    split
+    · rename_i hbr
+      have hch : ∀ j < pageCount pg, treeWF P hwm (branchPgid pg j) := by
+        cases hpt with
+        | leaf _ _ hf _ _ => rw [hf] at hbr; exact absurd hbr (by decide)
+        | branch _ _ _ _ hc => exact hc
+      obtain ⟨hdj, hnot⟩ := hu.1 id pg hpg hbr
+      have hmem : ∀ j < pageCount pg, ∀ x ∈ (pageWalkF P n (ids ++ [branchPgid pg j])).map
+          Prod.fst, treeHas P (branchPgid pg j) x := by
+        intro j hj x hx
+        obtain ⟨e, he, rfl⟩ := List.mem_map.mp hx
+        exact ownHas_treeHas' (walkF_mem P hwm n _ _ (by simp) (hch j hj) e he).2
+      rw [List.map_cons, List.nodup_cons, List.map_flatMap]
+      constructor
+      · intro hm
+        obtain ⟨j, hj, hm⟩ := List.mem_flatMap.mp hm
+        have hj' := List.mem_range.mp hj
+        exact hnot j hj' (hmem j hj' id hm)
+      · refine nodup_flatMap' _ _ ?_ ?_
+        · intro j hj
+          exact ih _ _ (by simp) (hch j (List.mem_range.mp hj))
+        · refine List.Pairwise.imp_of_mem ?_ List.nodup_range
+          intro a b ha hb hab
+          have ha' := List.mem_range.mp ha
+          have hb' := List.mem_range.mp hb
+          intro x hxa hxb
+          exact hdj a b ha' hb' hab x (hmem a ha' x hxa) (hmem b hb' x hxb)
+    · simp
+
 /-- **A root's walk visits each page once.** -/
 theorem walk_nodup (P : Pages) (r : Nat) (h : ownRootOK P r) :
     ((pageWalk P r).map Prod.fst).Nodup := by
-  sorry
+  obtain ⟨C, hok, hCP, hwf, -⟩ := h
+  have hu : viewUnique P := by rw [← hCP]; exact hok.1.2.1.2
+  exact walkF_nodup P C.hwm hu _ [r] r (by simp) hwf
 
 /-- **A root's walk visits all its own pages.** -/
 theorem walk_cover (P : Pages) (r : Nat) (h : ownRootOK P r) (id : Nat) (ho : ownHas P r id) :
@@ -167,12 +233,40 @@ def walkSlot (P : Pages) (r i x : Nat) : Prop :=
 theorem walkSlot_disj (P : Pages) (r : Nat) (h : ownRootOK P r) (i id : Nat) (ids : List Nat)
     (pg : List w8) (hi : (pageWalk P r)[i]? = some (id, ids)) (hpg : P !! id = some pg) (x : Nat)
     (hx : walkSlot P r i x) : ¬ (id ≤ x ∧ x ≤ id + pageOverflow pg) := by
-  sorry
+  rintro ⟨h1, h2⟩
+  obtain ⟨j, hj, id', ids', pg', hj', hpg', h3, h4⟩ := hx
+  have hnd := walk_nodup P r h
+  obtain ⟨C, hok, hCP, -⟩ := h
+  have hdisj : pagesDisjoint P := by rw [← hCP]; exact hok.2.2.1
+  have hne : id' ≠ id := by
+    intro e
+    have hi' : ((pageWalk P r).map Prod.fst)[i]? = some id := by
+      rw [List.getElem?_map, hi]; rfl
+    have hj'' : ((pageWalk P r).map Prod.fst)[j]? = some id := by
+      rw [List.getElem?_map, hj', e]; rfl
+    have hlt : j < ((pageWalk P r).map Prod.fst).length := by
+      rcases Nat.lt_or_ge j ((pageWalk P r).map Prod.fst).length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hj''; cases hj''
+    have := (List.Nodup.getElem?_inj hlt hnd).1 (hj''.trans hi'.symm)
+    omega
+  rcases hdisj id' pg' id pg hpg' hpg hne with h | h <;> omega
 
 /-- **The walk's pages' slots are the own pages' slots.** -/
 theorem walkSlot_all (P : Pages) (r : Nat) (h : ownRootOK P r) (x : Nat) :
     walkSlot P r (pageWalk P r).length x ↔ ownSlot P r x := by
-  sorry
+  constructor
+  · rintro ⟨j, -, id, ids, pg, hj, hpg, h1, h2⟩
+    obtain ⟨pg', hpg', hown, -⟩ := walk_entry P r h j id ids hj
+    rw [hpg] at hpg'; cases hpg'
+    exact ⟨id, pg, hown, hpg, h1, h2⟩
+  · rintro ⟨id, pg, hown, hpg, h1, h2⟩
+    obtain ⟨k, ids, hk⟩ := walk_cover P r h id hown
+    have hlt : k < (pageWalk P r).length := by
+      rcases Nat.lt_or_ge k (pageWalk P r).length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hk; cases hk
+    exact ⟨k, hlt, id, ids, pg, hk, hpg, h1, h2⟩
 
 end pure
 
