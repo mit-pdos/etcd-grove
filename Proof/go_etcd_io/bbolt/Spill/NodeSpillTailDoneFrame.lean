@@ -164,7 +164,7 @@ theorem spFrame_nilCh {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some 
     spFrame X (X.nilCh bl n r) bl (n :: r.cs) := by
   obtain ⟨B, hB, hr⟩ := node_bs_of hn
   rw [nilCh_eq hB]
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
     ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro bl' hne B0 hB0
     refine ⟨B0, ?_, bktSim_refl B0, fun _ => optRel_nodeSim_refl _⟩

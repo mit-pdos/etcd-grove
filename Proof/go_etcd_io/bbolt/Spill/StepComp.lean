@@ -58,8 +58,15 @@ theorem optRel_nodeSim_isSome {o1 o2 : Option NRec} (h : optRel nodeSim o1 o2) :
 
 /-! ## The frame -/
 
+/-- A meta is itself with its own mark (structure eta). -/
+theorem meta_with_pgid_self (m : Meta) : m = { m with pgid' := m.pgid' } := rfl
+
+/-- A meta equal to `m` is `m` with its own mark. -/
+theorem meta_with_pgid_of_eq {m m' : Meta} (h : m' = m) : m' = { m with pgid' := m'.pgid' } := by
+  subst h; exact meta_with_pgid_self _
+
 theorem spFrame_refl (X : WX) (bl : Loc) (T : List Loc) : spFrame X X bl T :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
     fun _ _ B hB => ⟨B, hB, bktSim_refl B, fun _ => optRel_nodeSim_refl _⟩,
     fun _ _ h => h,
     fun B hB => ⟨B, hB, bktSim_refl B, fun _ _ => optRel_nodeSim_refl _⟩,
@@ -84,7 +91,7 @@ theorem spFrame_trans {X1 X2 X3 : WX} {bl : Loc} {T1 T2 : List Loc} (h1 : spFram
   obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1, m1, n1, o1, p1, q1, z1⟩ := h1
   obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2, m2, n2, o2, p2, q2, z2⟩ := h2
   refine ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1,
-    g2.trans g1, i2.trans i1, Nat.le_trans j1 j2, fun id bs h => k2 id bs (k1 id bs h),
+    g2.trans g1, by rw [i2, i1], Nat.le_trans j1 j2, fun id bs h => k2 id bs (k1 id bs h),
     fun id p h => l2 id p (l1 id p h), ?_, fun bl' hne h => n2 bl' hne (n1 bl' hne h), ?_, ?_,
     fun l h => q2 l (q1 l h), ?_⟩
   · intro bl' hne B hB
@@ -186,6 +193,11 @@ theorem newSlot_mono {st st' : List FLStep} {hwm hwm' s : Nat} (h : newSlot st h
   rcases h with ⟨id, n, hm, h1, h2⟩ | h
   · exact Or.inl ⟨id, n, hst _ hm, h1, h2⟩
   · exact Or.inr (Nat.le_trans hle h)
+
+/-- The frame keeps the meta's txid. -/
+theorem spFrame_txid {X X' : WX} {bl : Loc} {T : List Loc} (h : spFrame X X' bl T) :
+    X'.t.mv.txid' = X.t.mv.txid' := by
+  rw [h.2.2.2.2.2.2.2.1]
 
 end comp
 

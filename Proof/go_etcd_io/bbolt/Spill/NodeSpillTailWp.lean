@@ -177,8 +177,7 @@ theorem spillTail_gen
       objsDisj Xi.t → (∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none) →
       insLens rl.ins rl.ws → I xs pl (i + 1) X3 w2 (sti ++ st'))
     (H4 : ∀ xs pl i Xi wi sti (X'' : WX) (w'' : WDb) st', I xs pl i Xi wi sti →
-      (w''.C = wi.C ∧ w''.fl = wi.fl.applySteps wi.wtxid st' ∧ X''.v.pages = Xi.v.pages) →
-      w''.C = w.C ∧ w''.fl = w.fl.applySteps w.wtxid (sti ++ st') ∧ X''.v.pages = X.v.pages)
+      spErr Xi X'' wi w'' st' → spErr X X'' w w'' (sti ++ st'))
     (H5 : ∀ xs pl Xf wf sti, I xs pl xs.length Xf wf sti → ∃ rf, Xf.node bl n = some rf ∧
       n ∈ Xf.live ∧ rf.nv.parent' = pl ∧ rf.nv.children' = slice.nil ∧ rf.cs = [] ∧
       (pl ≠ null → ∃ rp, Xf.node bl pl = some rp ∧ pl ∈ Xf.live))

@@ -266,7 +266,7 @@ theorem spPost_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
     iexists X', w', st
     iframe
     ipureintro
-    exact ⟨Hf.1, Hf.2.1, by rw [Hf.2.2, hv]⟩
+    exact spErr_st (spErr_trans (spErr_setNode X w bl n _) Hf) (List.nil_append _)
 
 end iprop
 

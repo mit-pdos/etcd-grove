@@ -177,15 +177,25 @@ def spDone (X X' : WX) (w w' : WDb) (bl n : Loc) (rn : NRec) (O : List Nat)
         sTree (spP X') X'.t.mv.pgid'.toNat rr.nv.pgid'.toNat lo hi h' S ∧
         D' = pgSlots (spP X') S ∧ treeEls (spP X') rr.nv.pgid'.toNat = E))
 
-/-- **`n.spill()`'s post**: on success `spDone`, on an error the freelist after free and allocation
-steps, the base pages kept, the mapping intact or lost. -/
+/-- **A spill's error facts** from `(X, w)` to `(X', w')` by the steps `st`: the committed state
+kept, the freelist after free and allocation steps, the base pages kept, and (U9w3, for
+`Bucket.spill`'s error post) the transaction's record and root kept, the root bucket kept, the
+meta kept but its mark. -/
+def spErr (X X' : WX) (w w' : WDb) (st : List FLStep) : Prop :=
+  w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
+  X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ ((X.t.bs !! X.rl).isSome → (X'.t.bs !! X'.rl).isSome) ∧
+  X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }
+
+/-- **`n.spill()`'s post**: on success `spDone`, on an error `spErr` (the freelist after free and
+allocation steps, the base pages, the transaction's record, root and meta but its mark kept), the
+mapping intact or lost. -/
 def spPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc)
     (rn : NRec) (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (D : List Nat)
     (N : List Loc) (E : List El) (cs : SpCase) (err : GoInterface) : IProp GF :=
   iprop((⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
       wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗ ⌜spDone X X' w w' bl n rn O lo hi h D N E cs st⌝) ∨
     (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
-      ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages⌝ ∗
+      ⌜spErr X X' w w' st⌝ ∗
       ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))))
 
 /-- **`n.spill()`** (see the module doc). The pre: the spill's global state, `n` a node of `bl`,

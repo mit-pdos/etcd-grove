@@ -10,6 +10,7 @@ pre (`spLoop_childPre`), an error's post (`spLoop_err`), and every entry finishe
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.StepComp
+public import Proof.go_etcd_io.bbolt.Spill.SpErr
 public import Proof.go_etcd_io.bbolt.Spill.ChildStep
 public import Proof.go_etcd_io.bbolt.Spill.UTreeBnd
 
@@ -219,12 +220,8 @@ theorem spLoop_err {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {D0 : List Nat} {N0 : List Loc} {E0 : List El} {X' : WX} {w' : WDb}
     {r' : NRec} {es : List UE} {i : Nat} {st : List FLStep} {T : List Loc}
     (hl : spLoop X w bl n r O lo hi h D0 N0 E0 X' w' r' es i st T) {X'' : WX} {w'' : WDb}
-    {st' : List FLStep}
-    (he : w''.C = w'.C ∧ w''.fl = w'.fl.applySteps w'.wtxid st' ∧ X''.v.pages = X'.v.pages) :
-    w''.C = w.C ∧ w''.fl = w.fl.applySteps w.wtxid (st ++ st') ∧ X''.v.pages = X.v.pages := by
-  obtain ⟨hC, hfl, hpg, -⟩ := hl.step
-  refine ⟨he.1.trans hC, ?_, he.2.2.trans hpg⟩
-  rw [he.2.1, wtxid_of_C hC, hfl, applySteps_append]
+    {st' : List FLStep} (he : spErr X' X'' w' w'' st') : spErr X X'' w w'' (st ++ st') :=
+  spErr_trans (spErr_of_frame hl.frame hl.step.1 hl.step.2.1 hl.step.2.2.1) he
 
 /-! ## After the loop -/
 

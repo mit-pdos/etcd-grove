@@ -235,7 +235,7 @@ theorem spFrame_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
     spFrame X (X.setNode bl n { rn with cs := l }) bl [n] := by
   have ho := objs_perm hd hB hr { rn with cs := l }
   rw [setNode_perm_eq hB] at ho ⊢
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, meta_with_pgid_self _, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
     ?_, ?_, ?_, fun _ _ _ _ _ _ => Iff.rfl, ?_, ?_⟩
   · intro bl' hne B0 hB0
     refine ⟨B0, ?_, bktSim_refl B0, fun _ => optRel_nodeSim_refl _⟩

@@ -22,6 +22,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailDefs
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesKill
 public import Proof.go_etcd_io.bbolt.Spill.SplitModel
+public import Proof.go_etcd_io.bbolt.Spill.SpErr
 
 @[expose] public section
 
@@ -325,11 +326,22 @@ theorem pcInv_err {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {cs : SpCase} (xs : List (Loc × node × List Inode)) (pl : Loc) (i : Nat) (Xi : WX)
     (wi : WDb) (st : List FLStep) (X'' : WX) (w'' : WDb) (st' : List FLStep)
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st)
-    (he : w''.C = wi.C ∧ w''.fl = wi.fl.applySteps wi.wtxid st' ∧ X''.v.pages = Xi.v.pages) :
-    w''.C = w.C ∧ w''.fl = w.fl.applySteps w.wtxid (st ++ st') ∧ X''.v.pages = X.v.pages := by
-  obtain ⟨hC, hfl, hpg⟩ := pcInv_db hI
-  refine ⟨he.1.trans hC, ?_, he.2.2.trans hpg⟩
-  rw [he.2.1, wtxid_of_C hC, hfl, applySteps_append]
+    (he : spErr Xi X'' wi w'' st') : spErr X X'' w w'' (st ++ st') := by
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
+    -, -, hL⟩ := hI
+  have h1 : spErr X X' w w' st0 := by
+    rcases hend with ⟨-, rfl, rfl, -, rfl, -⟩ | ⟨-, h', es, i, -, hl, -⟩
+    · exact spErr_refl _ _
+    · exact spErr_of_frame hl.frame hl.step.1 hl.step.2.1 hl.step.2.2.1
+  have h2 : spErr X' (X'.nilCh bl n r') w' w' [] := by
+    obtain ⟨a, b, c, d, e, f, g⟩ := spErr_setNode X' w' bl n r'.nilCh
+    exact ⟨a, b, c, d, e, f, g⟩
+  have h3 : spErr (X'.nilCh bl n r') X2 w' w' [] :=
+    spErr_of_frame hsr.frame rfl rfl (by rw [hsr.same.2.2.2])
+  have h4 : spErr X2 Xi w' wi stl :=
+    spErr_of_frame hL.frame hL.step.1 hL.step.2.1 hL.step.2.2.1
+  exact spErr_st (spErr_trans (spErr_trans (spErr_trans (spErr_trans h1 h2) h3) h4) he)
+    (by simp only [List.append_nil, List.append_assoc])
 
 /-- **The loop's end**: `n`'s record, its parent the pieces'. -/
 theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}

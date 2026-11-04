@@ -387,7 +387,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     · iexact HeOk
     iexists X1, w1, st
     isplitr
-    · ipureintro; exact Hst1
+    · ipureintro; exact ⟨Hst1.1, Hst1.2.1, Hst1.2.2.1⟩
     iexact Hcase
 
 end proof

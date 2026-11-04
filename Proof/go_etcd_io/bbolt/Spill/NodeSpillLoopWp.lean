@@ -100,7 +100,7 @@ def spLoopPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 : WDb) (
     (⌜v = returnVal #()⌝ ∗ n_ptr ↦ n ∗ (∃ j : w64, i_ptr ↦ j) ∗
       ∃ err : GoInterface, res_ptr ↦ err ∗ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
       ∃ (X' : WX) (w' : WDb) (st : List FLStep),
-        ⌜w'.C = w0.C ∧ w'.fl = w0.fl.applySteps w0.wtxid st ∧ X'.v.pages = X0.v.pages⌝ ∗
+        ⌜spErr X0 X' w0 w' st⌝ ∗
         ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))))
 
 /-- **The children's loop** (see the module doc). -/

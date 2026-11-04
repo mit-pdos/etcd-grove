@@ -128,7 +128,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     iframe
     ipureintro
     refine ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx,
-      fun F _ h => h⟩, Or.inl ⟨Hsp, rfl, rfl⟩⟩
+      fun F _ h => h, id⟩, Or.inl ⟨Hsp, rfl, rfl⟩⟩
   · -- the unspilled case: the sort, the children's loop, the rest (`spillTail_wp`), from the
     -- permuted state `Xp` (`n`'s children sorted) and back (`spPost_unperm`)
     obtain ⟨Hut, Hctx, Hsl, Hfr, Hvc, Hfc, Hts⟩ := Hu
@@ -263,7 +263,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
         · iexact Hok
         iexists X', w', st
         isplitr
-        · ipureintro; exact ⟨Hf.1, Hf.2.1, by rw [Hf.2.2, hXv]⟩
+        · ipureintro; exact spErr_st (spErr_trans (spErr_setNode X w bl n _) Hf) (List.nil_append _)
         iexact Hst
 
 /-- **`node.spill.spec'`**, from `wp_aux`. -/

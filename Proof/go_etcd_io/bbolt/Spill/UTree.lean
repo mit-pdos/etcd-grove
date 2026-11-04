@@ -198,7 +198,7 @@ def leafVs (r : NRec) : Prop :=
 /-- **The frame of a spill in bucket `bl`** from `X` to `X'`, the nodes `T` touched: the other
 buckets' records modulo sources, `bl`'s struct, header and caches, its untouched nodes modulo
 sources (live as before), and the transaction's root, handles, registry, live buckets, base pages
-and txid unchanged; the buffers and page cache grown (old buffers kept), the mark not lower; every
+and meta but its mark `pgid'` unchanged (U9w3); the buffers and page cache grown (old buffers kept), the mark not lower; every
 object still one (U9h: a node fresh after a later step was fresh at the start); every untouched
 live node's `leafVs` kept (U9q: `Bucket.spill`'s root bucket stays `bktLocalOK` across a child's
 spill; only a live one's: a remap stales a dead node's sources). The liveness of every node of
@@ -207,7 +207,7 @@ another bucket is kept too, touched or not (a node of bucket `bl'` is touched on
 def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   X'.rl = X.rl ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.liveB = X.liveB ∧
   X'.v.pages = X.v.pages ∧ X'.v.txid = X.v.txid ∧ X'.t.t = X.t.t ∧
-  X'.t.mv.txid' = X.t.mv.txid' ∧ X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat ∧
+  X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' } ∧ X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat ∧
   (∀ id bs, X.t.bufs !! id = some bs → X'.t.bufs !! id = some bs) ∧
   (∀ id p, X.t.pm !! id = some p → X'.t.pm !! id = some p) ∧
   (∀ bl', bl' ≠ bl → ∀ B, X.t.bs !! bl' = some B → ∃ B', X'.t.bs !! bl' = some B' ∧
