@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSSim
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSFree
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSRm
 
 @[expose] public section
 
@@ -115,8 +116,8 @@ theorem rblX_rm (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) 
     rblRel X fl (X.kill bl (rmBkt B n pl r.nv.pgid' (rmParent rp i n sI sC)) n
         { r with nv := { r.nv with pgid' := W64 0 } })
       (fl.freePages X.t.mv.txid' r.nv.pgid' (1 + pageOverflow pg)) X.t.mv.txid' ∧
-    r.nv.pgid' ≠ W64 0 ∧ 2 ≤ rp.ws.length := by
-  sorry
+    r.nv.pgid' ≠ W64 0 ∧ 2 ≤ rp.ws.length :=
+  rblX_rm' X fl bl B n r pl rp i w sI sC pg hI hb hr hleaf hemp hpl hpn hrp hw hwp hpg
 
 /-- **The root collapsed into its only child** `lc` (materialized; its record `rc`): the child
 dead with its parent nil and its page freed; no deficient node. -/
