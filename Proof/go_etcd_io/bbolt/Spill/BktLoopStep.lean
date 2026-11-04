@@ -129,24 +129,17 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
     · rw [if_pos h, h, hks]; rfl
     · rw [if_neg h]
 
-/-- **The view after a child's spill is the committed state's** (a `sorry`: `bkDone` does not
-state it; the caller has it from `wdbW K tx X'.v w'`, whose pure part is
-`X'.v = View.ofC X'.v.base w'.C`. U9x's report: `rinv_spilled` should take it as a premise, the
-call in `Bucket__spill.lean` passing `wdbW`'s fact, or `spFrame` should keep the view's root.) -/
-theorem spilled_view {X X' : WX} {w w' : WDb} {c : Loc} {C : BRec} {O D : List Nat}
-    {st' : List FLStep} (hd : bkDone X X' w w' c C O D st') : X'.v = View.ofC X'.v.base w'.C := by
-  sorry
-
 /-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
 theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
     {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
     (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) (hnn : C.bv.rootNode' ≠ null)
     {X' : WX} {w' : WDb} {st' : List FLStep}
-    (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st') :
+    (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st')
+    (hv' : X'.v = View.ofC X'.v.base w'.C) :
     ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧ c ∈ X'.liveB ∧
       RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k D')
         (upd ks k (.val (encode C'.ib) false)) :=
-  rinv_spilled' hI hnd hk hks hc hC hnn hd (spilled_view hd)
+  rinv_spilled' hI hnd hk hks hc hC hnn hd hv'
 
 /-- **A todo child's root node** (for `b.inlineable()`): live, its entries live and bounded. -/
 theorem rinv_inlPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}

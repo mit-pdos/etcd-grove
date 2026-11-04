@@ -324,6 +324,9 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
       icases Hpost with (⟨%he, %X2, %w2, %st2, Hw, Hdb, %Hdone⟩ |
         ⟨%hne, #HeOk, %X2, %w2, %st2, %Hst2, Hcase⟩)
       · subst he
+        icases keep_pure (Q := wdbW K tx X2.v w2)
+            (P := wdbOK w2 ∧ w2.ms = some (X2.v.base, mapLen w2.ms) ∧ X2.v = View.ofC X2.v.base w2.C)
+            (by unfold wdbW; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hdb with ⟨Hdb, %Hwf2⟩
         obtain ⟨C2, Dc2, s2, st3, HC2, HcL2, HI2, Hs2⟩ : ∃ C2 Dc2 s2 st3,
             X2.t.bs !! c = some C2 ∧ c ∈ X2.liveB ∧
             RInv X w B0 keys Lroot X2 w2 st3 Dc2 (upd ks key s2) ∧
@@ -331,7 +334,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
              (C2.bv.rootNode' ≠ null ∧ s2 = .val (encode C2.ib) false)) := by
           rcases Hdone.2 with ⟨hn, rfl, rfl⟩ | ⟨hn, -⟩
           · exact ⟨C, Dc, .nilc, st, HC, HcL, rinv_nil HI Htodo Hc HC hn, Or.inl ⟨hn, rfl⟩⟩
-          · obtain ⟨C', D', HC', Hnn, HcL', HI'⟩ := rinv_spilled HI Hknd Hkm Htodo Hc HC hn Hdone
+          · obtain ⟨C', D', HC', Hnn, HcL', HI'⟩ := rinv_spilled HI Hknd Hkm Htodo Hc HC hn Hdone Hwf2.2.2
             exact ⟨C', upd Dc key D', _, _, HC', HcL', HI', Or.inr ⟨Hnn, rfl⟩⟩
         try wp_auto
         wp_apply wp_slice_make2 (V := w8) $$ [] as %val ⟨Hv, Hcap⟩
