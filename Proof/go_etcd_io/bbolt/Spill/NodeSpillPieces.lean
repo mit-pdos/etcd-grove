@@ -33,7 +33,7 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInv
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPcPre
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitMain
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailStep
-public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailDoneMain
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailTopMain
 
 @[expose] public section
 
@@ -89,7 +89,7 @@ theorem spillTail_wp
     (pcInv X w bl n rn O lo hi h D N E cs) hn' hlv' (tail_wsLive hpre hsp hend) hS
     (fun hl hd => pcInv_init' hpre hsp hend hl hd)
     (pcInv_pre' hpre hsp) (pcInv_stepX hpre hsp) pcInv_err pcInv_end (pcInv_doneX hpre hsp)
-    (pcInv_top hpre hsp)
+    (pcInv_topX hpre hsp)
 
 end proof
 

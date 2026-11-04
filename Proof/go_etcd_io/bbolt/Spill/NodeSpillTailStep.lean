@@ -1,7 +1,7 @@
 /-
 `node.spill` after its children's loop (U9y, `notes/bbolt-proof-plan.md`; pure): **a piece's step
-keeps the pieces' loop's invariant** (`pcInv_stepX`, what `Spill/NodeSpillTailInv.pcInv_step`
-states, with the objects disjoint, the free ids no view pages and the piece's `insLens`).
+keeps the pieces' loop's invariant** (`pcInv_stepX`, `spillTail_gen`'s `H3`: with the objects
+disjoint, the free ids no view pages and the piece's `insLens`).
 `pcStep` (U9y) carries the allocation's freelist steps, the parent's inodes' count after its put and
 the piece's key slice not nil, which the invariant needs.
 -/

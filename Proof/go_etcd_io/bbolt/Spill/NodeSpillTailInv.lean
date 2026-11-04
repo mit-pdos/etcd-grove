@@ -1,9 +1,9 @@
 /-
 `node.spill` after its children's loop (U9s, `notes/bbolt-proof-plan.md`; pure): **the pieces'
 loop's invariant** (`pcInv`) and the facts `Spill/NodeSpillTailWp.spillTail_gen` takes of it
-(`tail_pre`, `pcInv_err`, `pcInv_end`, `pcInv_top`), which `Spill/NodeSpillPieces.spillTail_wp`
-passes it; the step is `Spill/NodeSpillTailStep.pcInv_stepX`, the end without a new root
-`Spill/NodeSpillTailDoneMain.pcInv_doneX`.
+(`tail_pre`, `pcInv_err`, `pcInv_end`), which `Spill/NodeSpillPieces.spillTail_wp` passes it;
+the step is `Spill/NodeSpillTailStep.pcInv_stepX`, the end without a new root
+`Spill/NodeSpillTailDoneMain.pcInv_doneX`, the new root's spill `Spill/NodeSpillTailTopMain.pcInv_topX`.
 
 The invariant, at iteration `i` of the loop over the split's pieces `xs` (under the parent `pl`),
 relative to the spill's start `(X, w)` (`n`'s record `rn`) through the state after the children's
@@ -357,20 +357,6 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   refine ⟨rk, hrk, hlv, hpar, hch, hcs, fun hpl => ?_⟩
   obtain ⟨rpi, hrpi, hplv, -⟩ := hL.par hpl
   exact ⟨rpi, hrpi, hplv⟩
-
-/-- **The new root's spill** (a top node split in two or more): its pre, and its success giving
-`n`'s. -/
-theorem pcInv_top {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (xs : List (Loc × node × List Inode)) (pl : Loc) (Xf : WX) (wf : WDb) (st : List FLStep)
-    (rp : NRec) (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl xs.length Xf wf st)
-    (hpl : pl ≠ null) (hrp : Xf.node bl pl = some rp) (hpg : rp.nv.pgid' = W64 0)
-    (hvc : Xf.v = View.ofC Xf.v.base wf.C) :
-    ∃ h2 F2 D2 N2, spPre Xf wf bl pl rp O lo hi h2 F2 D2 N2 E .top ∧
-      ∀ Xg wg st2, spDone Xf Xg wf wg bl pl rp O lo hi h2 D2 N2 E .top st2 →
-        spDone X Xg w wg bl n rn O lo hi h D N E cs (st ++ st2) := by
-  sorry
 
 end lemmas
 
