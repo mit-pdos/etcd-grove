@@ -47,9 +47,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- **An error whose value is a location when its dynamic type is a pointer type** (U4c): what
+`err == ErrMaxSizeReached` needs to step (`go_eq_interface` compares at the dynamic type, and
+pointer equality is over locations; cf. Perennial's `errors.TreeTyped`). Every error `DB.mmap`
+returns is one (`errors.New`'s, `fmt.Errorf`'s pointers, `syscall.Errno`). -/
+def errPtrTyped [GooseExts] [GoGlobalContext] (e : GoInterface) : Prop :=
+  ∀ ii : GoInterfaceOk, e = GoInterface.ok ii → ∀ T : go.GoType, ii.ty = go.GoType.PointerType T →
+    ∃ l : Loc, ii.v = #l
+
 /-- **`db.mmap(minsz)` by the live writer `tx`**: on success the records dereferenced and
 re-based on the new mapping (`derefRel`, `WX.rebase`), the writer side remapped (`wdbRemap`),
-the mapping at least `minsz` long; on an error (`fmtErrorOk`), nothing changed (before
+the mapping at least `minsz` long; on an error (`fmtErrorOk`, `errPtrTyped`), nothing changed (before
 `dereference`: `fileSize`, `mmapSize`, `ErrMaxSizeReached`), or the mapping lost. -/
 abbrev DB.mmap.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
@@ -60,7 +68,7 @@ abbrev DB.mmap.spec : Prop :=
       (⌜err = interface.nil⌝ ∗ ∃ (Xd : WX) (b : Loc) (w' : WDb),
         wtxW K tx r m (Xd.rebase b) ∗ wdbW K tx (Xd.rebase b).v w' ∗
         ⌜derefRel X Xd ∧ wdbRemap w w' ∧ sint.nat minsz ≤ mapLen w'.ms⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
+      (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
         ((wtxW K tx r m X ∗ wdbW K tx X.v w) ∨
          (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
            wdbLost K tx (Xd.rebase b).v w' ∗

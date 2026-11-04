@@ -137,6 +137,33 @@ omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
 theorem hwm_fit' (a n L : Nat) (h : (a + n + 1) * 4096 ≤ L) : (a + n) * 4096 ≤ L :=
   Nat.le_trans (Nat.mul_le_mul_right _ (Nat.le_succ _)) h
 
+/-- `wdbW` unfolded (as the proof's goals have it). -/
+theorem wdbW_unf (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ iprop(wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
+      ⌜wdbOK w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝) := by
+  unfold wdbW; exact .rfl
+
+/-- The view of `Xd.rebase b` as `wp_auto` leaves it. -/
+theorem wdbLost_rebase (K : BC) (tx : Loc) (Xd : WX) (b : Loc) (w : WDb) :
+    wdbLost (GF := GF) K tx { base := b, txid := Xd.v.txid, pages := Xd.v.pages, root := Xd.v.root } w ⊢
+      wdbLost K tx (Xd.rebase b).v w := .rfl
+
+/-- `DB.mmap`'s error state as `DB.allocate`'s. -/
+theorem mmapErr_state (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) :
+    ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
+      (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
+        wdbLost K tx (Xd.rebase b).v w' ∗ ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) ⊢
+    ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
+      (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
+        ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) := by
+  iintro (H | ⟨%Xd, %b, %w', H1, H2, %h⟩)
+  · ileft; iexact H
+  · iright
+    iexists Xd.rebase b, w'
+    iframe
+    ipureintro
+    exact ⟨⟨Xd, b, h.1, rfl⟩, h.2⟩
+
 theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
@@ -411,7 +438,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       wp_apply hMmap K tx r m X w _ (by rw [hM]; omega) hdp hlf hlr $$ [Hw Hdb] as %err Hres
       · iframe
       try wp_auto
-      icases Hres with (⟨%he, %Xd, %b, %w', Hw, Hdb, %hrel⟩ | ⟨%hne, #HeOk, Hcase⟩)
+      icases Hres with (⟨%he, %Xd, %b, %w', Hw, Hdb, %hrel⟩ | ⟨%hnp, #HeOk, Hcase⟩)
       · subst he
         wp_auto
         obtain ⟨hdr, hrmp, hlen⟩ := hrel
@@ -473,7 +500,103 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
               (sint.Z ((pg + count + W64 1) * W64 4096)).toNat from rfl, hM, Int.toNat_natCast]
           rw [h3] at hlen
           exact hwm_fit' _ _ _ hlen
-      · sorry
+      · -- `mmap`'s error: returned, or wrapped
+        obtain ⟨hne, hpt⟩ := hnp
+        cases err with
+        | nil => exact absurd rfl hne
+        | ok ii =>
+        simp only
+        wp_auto
+        icases hErrMax $$ Hpkg with ⟨%e, #He, %hep, #HeOk2⟩
+        wp_auto
+        by_cases hty : ii.ty = e.ty
+        · obtain ⟨T, l, hT, hl⟩ := hep
+          obtain ⟨l', hl'⟩ := hpt ii rfl T (hty.trans hT)
+          simp only [hty, ↓reduceIte]
+          rw [hT, hl, hl']
+          wp_auto
+          by_cases hll : l' = l
+          · rw [decide_eq_true hll]
+            wp_auto
+            iapply HΦ
+            iright
+            isplitr
+            · ipureintro; exact hne
+            iframe HeOk
+            icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
+            · ileft
+              iframe H1
+              iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
+                unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+            · iright
+              iexists Xd.rebase b, w'
+              iframe H1
+              isplitl [H2]
+              · iapply wdbLost_rebase $$ H2
+              ipureintro
+              exact ⟨⟨Xd, b, h.1, rfl⟩, h.2⟩
+          · rw [decide_eq_false hll]
+            wp_auto
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sl2 ⟨Hsl2, -⟩
+            wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+            · iframe
+              simp only [fmt.argsOk]
+              isplitl
+              · iapply fmtErrorOk_argOk $$ HeOk
+              · itrivial
+            try wp_auto
+            iapply HΦ
+            iright
+            isplitr
+            · ipureintro; exact fun h => nomatch h
+            isplitr
+            · iapply fmtErrorOk_of_errorf ei Hty $$ HiS
+            icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
+            · ileft
+              iframe H1
+              iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
+                unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+            · iright
+              iexists Xd.rebase b, w'
+              iframe H1
+              isplitl [H2]
+              · iapply wdbLost_rebase $$ H2
+              ipureintro
+              exact ⟨⟨Xd, b, h.1, rfl⟩, h.2⟩
+        · simp only [hty, ↓reduceIte]
+          wp_auto
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %sl2 ⟨Hsl2, -⟩
+          wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+          · iframe
+            simp only [fmt.argsOk]
+            isplitl
+            · iapply fmtErrorOk_argOk $$ HeOk
+            · itrivial
+          try wp_auto
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; exact fun h => nomatch h
+          isplitr
+          · iapply fmtErrorOk_of_errorf ei Hty $$ HiS
+          icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
+          · ileft
+            iframe H1
+            iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
+              unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+          · iright
+            iexists Xd.rebase b, w'
+            iframe H1
+            isplitl [H2]
+            · iapply wdbLost_rebase $$ H2
+            ipureintro
+            exact ⟨⟨Xd, b, h.1, rfl⟩, h.2⟩
     rw [decide_eq_false hrm]
     wp_auto
     wp_apply hPgid $$ [Hmv] as Hmv
