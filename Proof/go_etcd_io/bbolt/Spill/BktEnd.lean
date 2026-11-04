@@ -7,6 +7,7 @@ after it, the spill's success. The pieces are `Spill/BktEnd*`.
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktEndNil
+public import Proof.go_etcd_io.bbolt.Spill.BktEndRoot
 
 @[expose] public section
 
