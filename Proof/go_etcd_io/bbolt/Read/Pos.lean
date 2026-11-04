@@ -408,6 +408,42 @@ theorem rPosF_det : ∀ (n pid : Nat) (B : List elemRef) (i s i2 s2 : Nat),
   rw [hs, hs2, rPosF_det n _ _ _ _ _ _ hr hr2]
 
 
+/-- **The positions below a prefix are well-formed** (and within the height bound). -/
+theorem rPreF_tree (pht : Nat → Nat) (hht : pageHts v.pages pht) (A : List elemRef) :
+    ∀ (n pid m pid' o : Nat), rPreF v bv pp n pid A m pid' o → rTree v bv pid →
+      (inBucketRoot bv = 0 ∨ pht pid < n) → rTree v bv pid' ∧ (inBucketRoot bv = 0 ∨ pht pid' < m) := by
+  induction A with
+  | nil =>
+    intro n pid m pid' o h ht hh
+    simp only [rPreF] at h
+    obtain ⟨rfl, rfl, rfl⟩ := h
+    exact ⟨ht, hh⟩
+  | cons a A ih =>
+    intro n pid m pid' o h ht hh
+    obtain ⟨n', pg, j, o', rfl, hbr, hp, -⟩ := h
+    obtain ⟨l, pg', hpa, -, hpg⟩ := rTree_page v bv pp pid ht
+    have hpg' := rPageAt_same hbr.2.1 hpa
+    subst hpg'
+    rcases hpg with ⟨hl, -⟩ | ⟨-, hi, hpv, -, -, hch⟩
+    · rw [hbr.2.2.2.1] at hl; simp [branchPageFlag, leafPageFlag] at hl
+    · have hc := (hht pid pg hpv).2 hbr.2.2.2.1 j hbr.2.2.2.2.1
+      refine ih n' _ m pid' o' hp (hch j hbr.2.2.2.2.1) ?_
+      rcases hh with h | h
+      · exact absurd h hi
+      · right; omega
+
+/-- **A well-formed reader bucket's root** is within the height bound of its fuel. -/
+theorem rRoot_ok (pht : Nat → Nat) (hht : pageHts v.pages pht) (hok : rBktOK v bv) :
+    rTree v bv (inBucketRoot bv) ∧ (inBucketRoot bv = 0 ∨ pht (inBucketRoot bv) < rFuel v bv) := by
+  refine ⟨hok.2.1, ?_⟩
+  by_cases hi : inBucketRoot bv = 0
+  · exact Or.inl hi
+  · right
+    unfold rFuel; rw [if_neg hi]
+    rcases hok.2.1 with ⟨h, -⟩ | ⟨-, hwm, hw⟩
+    · exact absurd h hi
+    · exact pht_lt_size v.pages hwm pht hht _ hw
+
 /-- **`next`'s up-loop invariant** at `k` kept elements: the elements from `k` on are at their
 end. -/
 def rUpInv (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (s k : Nat) : Prop :=
