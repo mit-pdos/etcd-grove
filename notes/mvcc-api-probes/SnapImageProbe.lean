@@ -509,18 +509,16 @@ theorem thin_not_cut :
 
 /-! ### The compaction at revision `0` -/
 
-/-- **The corner the docstring's obligations miss**: `Compact(0)` is a step of the API
-(`MvccReachable.compact`, `KV.Compact.contract`: `σ.crev = -1 < 0 ≤ σ.rev`). Until its job
-finishes, the data's records are `(none, some 0)` (`updateCompactRev` force-commits the scheduled
-one), which `restore()` restores to `-1` (a scheduled `0` is never resumed) and which are not past
-`0` (`recsPos`). -/
+/-- **The corner the docstring's obligations missed**: `Compact(0)` was a step of the API (until
+2026-11-04, when the user ruled it out: `KV.Compact.contract`'s `1 ≤ rev`, `MvccReachable.compact`'s
+`1 ≤ r`; `issues/etcd-restore-scheduled-compact-zero.md`). Until its job finishes, the data's
+records are `(none, some 0)` (`updateCompactRev` force-commits the scheduled one), which `restore()`
+restores to `-1` (a scheduled `0` is never resumed) and which are not past `0` (`recsPos`). -/
 theorem crev0_corner :
-    api.MvccReachable (api.mvccStart.compactTo 0) ∧ (api.mvccStart.compactTo 0).crev = 0 ∧
       (⟨none, some (W64 0)⟩ : CmpRecs).crev = -1 ∧
       (⟨none, some (W64 0)⟩ : CmpRecs).resumes = false ∧
       ¬ recsPos ⟨none, some (W64 0)⟩ := by
-  refine ⟨api.MvccReachable.compact _ 0 api.MvccReachable.start rfl (by decide) (by decide), rfl,
-    by decide, by decide, ?_⟩
+  refine ⟨by decide, by decide, ?_⟩
   rintro ⟨-, h⟩
   have := h (W64 0) rfl
   revert this; decide
@@ -570,7 +568,7 @@ theorem reach_shape (σ : api.MvccState) (h : api.MvccReachable σ) :
       rcases List.mem_append.1 hcs with h | h
       · exact hne cs h
       · rw [List.mem_singleton.1 h]; exact hp
-  | compact σ r _ _ _ _ ih => exact ih
+  | compact σ r _ _ _ _ _ ih => exact ih
 
 end pure
 

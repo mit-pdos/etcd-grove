@@ -88,7 +88,7 @@ inductive mvcc.api.MvccReachable : mvcc.api.MvccState → Prop
   | mvcc.api.MvccReachable.commit (σ : mvcc.api.MvccState) : mvcc.api.MvccReachable σ →
       mvcc.api.MvccReachable σ.commitPending
   | mvcc.api.MvccReachable.compact (σ : mvcc.api.MvccState) (r : Int) : mvcc.api.MvccReachable σ →
-      σ.pending = none → σ.crev < r → r ≤ ↑σ.rev → mvcc.api.MvccReachable (σ.compactTo r)
+      σ.pending = none → 1 ≤ r → σ.crev < r → r ≤ ↑σ.rev → mvcc.api.MvccReachable (σ.compactTo r)
 
 structure mvcc.api.BkRef : Type where
   γB : backend.BNames

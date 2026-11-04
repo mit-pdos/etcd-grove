@@ -376,11 +376,14 @@ abbrev KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
 /-- **`Compact(trace, rev)`**, by the caller's update at the state it compacts: above the compaction
 revision and at most the current one, the hook once under the batch lock (`Pre` to `Q'`, giving `P`
 back) and the backend's commit (`X` to `Y`); at or below it, `ErrCompacted`; past the current
-revision, `ErrFutureRev` and no channel. -/
+revision, `ErrFutureRev` and no channel. A revision of at least 1 (the user, 2026-11-04: a
+`Compact(0)` mid-job restores to compaction revision -1, `issues/etcd-restore-scheduled-compact-zero.md`;
+`EtcdServer.Compact.spec` requires it too). -/
 abbrev KV.Compact.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (rev : w64) (q : Qp) (B : BkRef)
     (P : IProp GF) (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccOpen γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
+      ⌜1 ≤ sint.Z rev⌝ ∗
       traceutil.ownTrace trace te ∗ mvccBackend γ q B P ∗ hookIs B f ∗
       X ∗ backend.commitReq B.γB B.P P B.b X Y ∗
       Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗

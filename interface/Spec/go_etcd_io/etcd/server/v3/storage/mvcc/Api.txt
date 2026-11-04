@@ -673,19 +673,20 @@ def mvcc.api.KV.Compact.contract (ty : go.GoType) (v : val) : Prop :=
               mvcc.api.mvccOpen γ ∗
                 threadTok ∗
                   ⌜trace ≠ null⌝ ∗
-                    traceutil.ownTrace trace te ∗
-                      mvcc.api.mvccBackend γ q B P ∗
-                        mvcc.api.hookIs B f ∗
-                          X ∗
-                            backend.commitReq B.γB B.P P B.b X Y ∗
-                              Pre ∗
-                                mvcc.api.hookRun P f Pre Q' ∗
-                                  (Q' ={⊤}=∗ P ∗ Post) ∗
-                                    AU <{ ∃∃ σ, mvcc.api.mvccState γ σ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                        mvcc.api.mvccState γ
-                                          (if σ.crev < sint.Z rev ∧ sint.Z rev ≤ ↑σ.rev then σ.compactTo (sint.Z rev)
-                                          else σ),
-                                        COMM Q σ }> -∗
+                    ⌜1 ≤ sint.Z rev⌝ ∗
+                      traceutil.ownTrace trace te ∗
+                        mvcc.api.mvccBackend γ q B P ∗
+                          mvcc.api.hookIs B f ∗
+                            X ∗
+                              backend.commitReq B.γB B.P P B.b X Y ∗
+                                Pre ∗
+                                  mvcc.api.hookRun P f Pre Q' ∗
+                                    (Q' ={⊤}=∗ P ∗ Post) ∗
+                                      AU <{ ∃∃ σ, mvcc.api.mvccState γ σ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                          mvcc.api.mvccState γ
+                                            (if σ.crev < sint.Z rev ∧ sint.Z rev ≤ ↑σ.rev then σ.compactTo (sint.Z rev)
+                                            else σ),
+                                          COMM Q σ }> -∗
           (▷
               ∀ ch err,
                 (mvcc.api.mvccOpen γ ∗

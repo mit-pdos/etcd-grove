@@ -485,7 +485,7 @@ theorem reach_pending_ne_nil : ∀ σ : MvccState, MvccReachable σ → σ.pendi
     simp only [MvccState.notify]
     split <;> simp_all
   | commit σ _ _ => simp [MvccState.commitPending]
-  | compact σ r _ _ _ _ ih => exact ih
+  | compact σ r _ _ _ _ _ ih => exact ih
 
 /-- The store's steps only extend the notified log and raise the compaction revision. -/
 theorem lbsOk_mono {σ σ' : MvccState} {F : List SentFact} (hl : σ.notifiedLog <+: σ'.notifiedLog)

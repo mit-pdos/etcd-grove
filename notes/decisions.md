@@ -30438,3 +30438,13 @@ the side (mvcc's proofs of the API, or the clients' proofs over it) likelier to 
 statement wrong goes first; a client's proof over the API can take the API's contracts and laws as
 hypotheses, so it needs only `Api.lean` to build.
 
+## mvcc's API: `Compact` at a revision of at least 1; the snapshot restores correctly (2026-11-04 · the user · branch `mvcc-api`)
+
+**What it was.** Probe M2 (`notes/mvcc-api-probes/SnapImageProbe.lean`) found the snapshot law
+unprovable twice over: a `Compact(0)` mid-job leaves data that restores to compaction revision -1,
+and the backend's `Snapshot` axiom gives the Key bucket only thin of the logical view, which admits
+a gap restore misreads. **Decision.** `KV.Compact.contract` takes `1 ≤ rev` (`MvccReachable.compact`
+`1 ≤ r`), a premise added to a frozen spec, with the user's approval. The `Snapshot` axiom is
+strengthened again, to the user's criterion: from it, a snapshot restored from gives a correct view
+of the abstract state the snapshot is of (the safe-range bucket's deletes tracked exactly).
+

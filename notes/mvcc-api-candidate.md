@@ -798,3 +798,16 @@ with no credit) and `progressCov`'s core are provable over the API's laws; it fo
 an opaque `wsChanNames ι` (decided by me: a strengthening, clear by the skill), and asks that
 `persistent.law`'s instances be real `instance`s once the predicates are defined (stage 2).
 
+**Probe M2's two obstructions, decided (the user, 2026-11-04).** (1) `Compact(0)`: ruled out,
+`KV.Compact.contract` takes `1 ≤ rev` and `MvccReachable.compact` `1 ≤ r` (a `Compact(0)` mid-job
+restores to compaction revision -1: `issues/etcd-restore-scheduled-compact-zero.md`; etcd's
+`EtcdServer.Compact.spec` requires it too; the tester never compacts). (2) The Key bucket's cut:
+the `Snapshot` axiom gives the bucket only thin of the logical view (`thinV`: each missing entry
+`KeyDel`), which does not exclude a gap (a tombstone deleted before the put it kills, which restore
+resurrects: `SnapImageProbe.lean`'s `thin_not_cut`). The user: "the snapshot axiom should imply
+that the snapshot when restored from will give a correct view of the abstract etcd state
+associated with that snapshot": the axiom is strengthened so that the snapshot's Key bucket is
+known exactly (the safe-range bucket's physical deletes tracked by the backend, as the compaction
+keys' values are), and the criterion of done is the image (what `restore()` reads) proved from it
+with no gap.
+

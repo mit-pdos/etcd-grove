@@ -64,7 +64,7 @@ inductive MvccReachable : MvccState → Prop
       MvccReachable σ → σ.pending = none → LogWf (σ.log ++ [pend]) → MvccReachable (σ.notify pend)
   | commit (σ : MvccState) : MvccReachable σ → MvccReachable σ.commitPending
   | compact (σ : MvccState) (r : Int) :
-      MvccReachable σ → σ.pending = none → σ.crev < r → r ≤ (σ.rev : Int) →
+      MvccReachable σ → σ.pending = none → 1 ≤ r → σ.crev < r → r ≤ (σ.rev : Int) →
       MvccReachable (σ.compactTo r)
 
 /-- **A transaction's view**: a read transaction at the state `σ`, or a write transaction begun at
@@ -273,7 +273,7 @@ private theorem reach_logWf_aux : ∀ σ : MvccState, MvccReachable σ →
         · simpa [hp] using ih.1
         · simpa [hp] using h2
     exact ⟨hl, hc ▸ hl⟩
-  | compact σ r _ _ _ _ ih =>
+  | compact σ r _ _ _ _ _ ih =>
     exact ih
 
 /-- **A reachable state's history is well formed, its notified history too** (`reach_logWf.law`). -/
