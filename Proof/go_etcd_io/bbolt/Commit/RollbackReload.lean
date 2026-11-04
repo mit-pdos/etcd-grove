@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.bbolt.Commit.RollbackFacts
 public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Freelist
+public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
 
 @[expose] public section
 
@@ -323,6 +324,55 @@ theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none
     · iapply (bytesPointsto_app _ _ _ _).2
       rw [hl, ext_loc]
       iframe
+
+variable [package_sem : go_etcd_io.bbolt.Assumptions] in
+/-- **`db.meta().Freelist()`** of a synced freelist page `f`: its id. -/
+theorem wp_meta_Freelist (wp_Freelist : internal.common.Meta.Freelist.spec (GF := GF) (hG := hG))
+    (b : Loc) (l : Nat) (C : CommitSt) (q : Qp) (hok : C.metaOk) (f : Nat) (hf : C.flpg = some f) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗
+        metaCellsQ q (some (b, l) : MapSt) C }}
+      (App (Val ((b +ₗ ((16 + 4096 * (C.txid % 2) : Nat) : Int)) @!! go.GoType.PointerType Meta.ty
+        @!! go!"Freelist")) (Val #()))
+    {{ RET #(W64 (f : Int)); metaCellsQ q (some (b, l) : MapSt) C }} := by
+  iintro %Φ ⟨#Hpkc, Hmc⟩ HΦ
+  obtain ⟨hl0, hl1, -, -, -, -, ⟨-, -, -, hfl⟩, -⟩ := hok
+  have hfl' : ∀ v : Meta, metaFlpg v = C.flpg → v.freelist' = W64 (f : Int) := by
+    intro v hv
+    rw [hf] at hv
+    unfold metaFlpg at hv
+    split at hv
+    · cases hv
+    · cases hv; apply BitVec.eq_of_toNat_eq; simp
+  simp only [metaCellsQ]
+  icases Hmc with ⟨H0, H1⟩
+  rcases Nat.mod_two_eq_zero_or_one C.txid with hT | hT
+  · unfold CommitSt.slot at hfl
+    simp only [hT, ↓reduceIte] at hfl
+    rw [show ((16 + 4096 * (C.txid % 2) : Nat) : Int) = ((16 : Nat) : Int) by simp [hT]]
+    ihave %Hp0 := bytesPointsto_pos _ _ _ (by intro h; rw [h] at hl0; simp at hl0) $$ H0
+    icases bytesPointsto_view_read (V := Meta) b (DFrac.own q) C.m0 16 _ rfl (by omega) Hp0
+      $$ H0 with ⟨M0, C0⟩
+    rw [show (decode ((C.m0.drop 16).take 64) : Meta) = metaOf C.m0 from rfl]
+    rw [← hfl' _ hfl]
+    generalize metaOf C.m0 = v0
+    wp_apply wp_Freelist _ v0 (DFrac.own q) $$ [M0] as M0
+    · iframe
+    ihave H0 := C0 $$ M0
+    iapply HΦ; iframe
+  · unfold CommitSt.slot at hfl
+    simp only [show C.txid % 2 ≠ 0 by omega, ↓reduceIte] at hfl
+    rw [show ((16 + 4096 * (C.txid % 2) : Nat) : Int) = (4096 : Int) + ((16 : Nat) : Int) by
+      simp [hT], ← loc_add_assoc]
+    ihave %Hp1 := bytesPointsto_pos _ _ _ (by intro h; rw [h] at hl1; simp at hl1) $$ H1
+    icases bytesPointsto_view_read (V := Meta) (b +ₗ (4096 : Int)) (DFrac.own q) C.m1 16 _ rfl
+      (by omega) Hp1 $$ H1 with ⟨M1, C1⟩
+    rw [show (decode ((C.m1.drop 16).take 64) : Meta) = metaOf C.m1 from rfl]
+    rw [← hfl' _ hfl]
+    generalize metaOf C.m1 = v1
+    wp_apply wp_Freelist _ v1 (DFrac.own q) $$ [M1] as M1
+    · iframe
+    ihave H1 := C1 $$ M1
+    iapply HΦ; iframe
 
 end iris
 
