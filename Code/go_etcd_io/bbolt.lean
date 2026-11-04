@@ -5486,7 +5486,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "txErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DB.ty)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "txErr"))
@@ -5538,7 +5538,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Options.ty go!"InitialMmapSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Options.ty)))) (Var "options"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"mmap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"mmapUnlocked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
@@ -5895,7 +5895,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
     to read the first meta page firstly. If the first page is invalid,
     then it tries to read the second page using the default page size.
 
-    go: db.go:340:15 -/
+    go: db.go:343:15 -/
 noncomputable def DB.getPageSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6023,7 +6023,7 @@ noncomputable def DB.getPageSize.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getPageSizeFromFirstMeta reads the pageSize from the first meta page
 
-    go: db.go:383:15 -/
+    go: db.go:386:15 -/
 noncomputable def DB.getPageSizeFromFirstMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6119,7 +6119,7 @@ noncomputable def DB.getPageSizeFromFirstMeta.impl [GooseExts] [GoGlobalContext]
 
 /-- getPageSizeFromSecondMeta reads the pageSize from the second meta page
 
-    go: db.go:401:15 -/
+    go: db.go:404:15 -/
 noncomputable def DB.getPageSizeFromSecondMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6270,7 +6270,7 @@ noncomputable def DB.getPageSizeFromSecondMeta.impl [GooseExts] [GoGlobalContext
     by scanning the DB if it is not synced. It assumes there are no
     concurrent accesses being made to the freelist.
 
-    go: db.go:445:15 -/
+    go: db.go:448:15 -/
 noncomputable def DB.loadFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6281,29 +6281,46 @@ noncomputable def DB.loadFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad FreelistType.ty))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"FreelistType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))
   (App (App (Val (GoInstruction (FuncResolve newFreelist []))) (Val #())) (Var "$a0")))
+  (Let "fl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "fl"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Stats.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Stats.ty)))) (Val UntypedNil))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"FreeCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"FreeCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "fl"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Stats.ty go!"FreePageN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$r0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"statlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Stats.ty go!"FreePageN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"statlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))
   (App (Val doExecute)
   (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"metalock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Pair (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"metalock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"hasSyncedFreelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #())))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"freepages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"Init"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"Init"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "fl"))) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Freelist"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"meta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"page"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "fl"))) (Var "$a0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Pair (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Pair (Var "fl") (Var "$r0"))))))))
   (Val #())))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Once.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"freelistLoad"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: db.go:461:15 -/
+/-- go: db.go:473:15 -/
 noncomputable def DB.hasSyncedFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6318,7 +6335,7 @@ noncomputable def DB.hasSyncedFreelist.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: db.go:465:15 -/
+/-- go: db.go:477:15 -/
 noncomputable def DB.fileSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6393,8 +6410,39 @@ noncomputable def DB.fileSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- mmap opens the underlying memory-mapped file and initializes the meta references.
     minsz is the minimum size that the new mmap can be.
 
-    go: db.go:479:15 -/
+    go: db.go:491:15 -/
 noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "db"
+  (Lam "minsz"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (Var "db"))
+  (Let "minsz" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minsz"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "minsz"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"mmapUnlocked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"mmaplock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"mmaplock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- mmapUnlocked is mmap without taking mmaplock: the caller holds it, or no
+    other goroutine can reach db yet (Open, before it returns).
+
+    go: db.go:499:15 -/
+noncomputable def DB.mmapUnlocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "minsz"
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -6403,8 +6451,6 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$defer"
   (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (Var "db"))
   (Let "minsz" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minsz"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6652,18 +6698,10 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "fileSize") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"mmaplock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))
-  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
-  (Lam BAnon
-  (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"mmaplock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: db.go:578:15 -/
+/-- go: db.go:595:15 -/
 noncomputable def DB.invalidate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6692,7 +6730,7 @@ noncomputable def DB.invalidate.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- munmap unmaps the data file from memory.
 
-    go: db.go:588:15 -/
+    go: db.go:605:15 -/
 noncomputable def DB.munmap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -6747,7 +6785,7 @@ noncomputable def DB.munmap.impl [GooseExts] [GoGlobalContext] : val :=
     of the database. The minimum size is 32KB and doubles until it reaches 1GB.
     Returns an error if the new mmap size is greater than the max allowed.
 
-    go: db.go:604:15 -/
+    go: db.go:621:15 -/
 noncomputable def DB.mmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "size"
@@ -6842,7 +6880,7 @@ noncomputable def DB.mmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "i") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: db.go:638:15 -/
+/-- go: db.go:655:15 -/
 noncomputable def DB.munlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fileSize"
@@ -6888,7 +6926,7 @@ noncomputable def DB.munlock.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:648:15 -/
+/-- go: db.go:665:15 -/
 noncomputable def DB.mlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fileSize"
@@ -6934,7 +6972,7 @@ noncomputable def DB.mlock.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:658:15 -/
+/-- go: db.go:675:15 -/
 noncomputable def DB.mrelock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fileSizeFrom"
@@ -6986,7 +7024,7 @@ noncomputable def DB.mrelock.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- init creates a new database file and initializes its meta pages.
 
-    go: db.go:669:15 -/
+    go: db.go:686:15 -/
 noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7232,7 +7270,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
     interrupted before its metas reached the disk (init writes the other pages first), which a
     database never otherwise has.
 
-    go: db.go:731:15 -/
+    go: db.go:748:15 -/
 noncomputable def DB.metasZero.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "size"
@@ -7327,7 +7365,7 @@ noncomputable def DB.metasZero.impl [GooseExts] [GoGlobalContext] : val :=
     It will block waiting for any open transactions to finish
     before closing the database and returning.
 
-    go: db.go:751:15 -/
+    go: db.go:768:15 -/
 noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7373,7 +7411,7 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"rwlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:764:15 -/
+/-- go: db.go:781:15 -/
 noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7506,7 +7544,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
     IMPORTANT: You must close read-only transactions after you are finished or
     else the database will not reclaim old pages.
 
-    go: db.go:824:15 -/
+    go: db.go:841:15 -/
 noncomputable def DB.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "writable"
@@ -7585,7 +7623,7 @@ noncomputable def DB.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: db.go:842:15 -/
+/-- go: db.go:859:15 -/
 noncomputable def DB.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7610,7 +7648,7 @@ noncomputable def DB.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "$res0"))))))
 
-/-- go: db.go:849:15 -/
+/-- go: db.go:866:15 -/
 noncomputable def DB.beginTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7710,7 +7748,7 @@ noncomputable def DB.beginTx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"metalock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: db.go:896:15 -/
+/-- go: db.go:913:15 -/
 noncomputable def DB.beginRWTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7811,7 +7849,7 @@ noncomputable def DB.beginRWTx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- removeTx removes a transaction from the database.
 
-    go: db.go:932:15 -/
+    go: db.go:949:15 -/
 noncomputable def DB.removeTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "tx"
@@ -7859,7 +7897,7 @@ noncomputable def DB.removeTx.impl [GooseExts] [GoGlobalContext] : val :=
 
     Attempting to manually commit or rollback within the function will cause a panic.
 
-    go: db.go:962:15 -/
+    go: db.go:979:15 -/
 noncomputable def DB.Update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -7946,7 +7984,7 @@ noncomputable def DB.Update.impl [GooseExts] [GoGlobalContext] : val :=
 
     Attempting to manually rollback within the function will cause a panic.
 
-    go: db.go:993:15 -/
+    go: db.go:1010:15 -/
 noncomputable def DB.View.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -8046,7 +8084,7 @@ noncomputable def DB.View.impl [GooseExts] [GoGlobalContext] : val :=
 
     Batch is only useful when there are multiple goroutines calling it.
 
-    go: db.go:1037:15 -/
+    go: db.go:1054:15 -/
 noncomputable def DB.Batch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -8121,7 +8159,7 @@ noncomputable def DB.Batch.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- trigger runs the batch if it hasn't already been run.
 
-    go: db.go:1075:17 -/
+    go: db.go:1092:17 -/
 noncomputable def batch.trigger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -8135,7 +8173,7 @@ noncomputable def batch.trigger.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run performs the transactions in the batch and communicates results
     back to DB.Batch.
 
-    go: db.go:1081:17 -/
+    go: db.go:1098:17 -/
 noncomputable def batch.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -8263,7 +8301,7 @@ noncomputable def batch.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"batchMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef batch.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batch.ty)))) (Var "b")))))) (Val #()))))))
   (Val #()))))
 
-/-- go: db.go:1131:19 -/
+/-- go: db.go:1148:19 -/
 noncomputable def panicked.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -8304,7 +8342,7 @@ noncomputable def panicked.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: db.go:1138:6 -/
+/-- go: db.go:1155:6 -/
 noncomputable def safelyCall.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fn"
   (Lam "tx"
@@ -8351,7 +8389,7 @@ noncomputable def safelyCall.impl [GooseExts] [GoGlobalContext] : val :=
     This is not necessary under normal operation, however, if you use NoSync
     then it allows you to force the database file to sync against the disk.
 
-    go: db.go:1151:15 -/
+    go: db.go:1168:15 -/
 noncomputable def DB.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8409,7 +8447,7 @@ noncomputable def DB.Sync.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Stats retrieves ongoing performance stats for the database.
     This is only updated when a transaction closes.
 
-    go: db.go:1168:15 -/
+    go: db.go:1185:15 -/
 noncomputable def DB.Stats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8441,7 +8479,7 @@ noncomputable def DB.Stats.impl [GooseExts] [GoGlobalContext] : val :=
 /-- This is for internal access to the raw data bytes from the C cursor, use
     carefully, or not at all.
 
-    go: db.go:1180:15 -/
+    go: db.go:1197:15 -/
 noncomputable def DB.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8466,7 +8504,7 @@ noncomputable def DB.Info.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- page retrieves a page reference from the mmap based on the current page size.
 
-    go: db.go:1186:15 -/
+    go: db.go:1203:15 -/
 noncomputable def DB.page.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "id"
@@ -8489,7 +8527,7 @@ noncomputable def DB.page.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pageInBuffer retrieves a page reference from a given byte array based on the current page size.
 
-    go: db.go:1192:15 -/
+    go: db.go:1209:15 -/
 noncomputable def DB.pageInBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "b"
@@ -8509,7 +8547,7 @@ noncomputable def DB.pageInBuffer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- meta retrieves the current meta page reference.
 
-    go: db.go:1197:15 -/
+    go: db.go:1214:15 -/
 noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8571,7 +8609,7 @@ noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- allocate returns a contiguous block of memory starting at a given page.
 
-    go: db.go:1221:15 -/
+    go: db.go:1238:15 -/
 noncomputable def DB.allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "txid"
@@ -8762,7 +8800,7 @@ noncomputable def DB.allocate.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- grow grows the size of the database to the given sz.
 
-    go: db.go:1279:15 -/
+    go: db.go:1296:15 -/
 noncomputable def DB.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "sz"
@@ -8913,7 +8951,7 @@ noncomputable def DB.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:1319:15 -/
+/-- go: db.go:1336:15 -/
 noncomputable def DB.growSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "mmapSize"
@@ -8938,7 +8976,7 @@ noncomputable def DB.growSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
-/-- go: db.go:1329:15 -/
+/-- go: db.go:1346:15 -/
 noncomputable def DB.IsReadOnly.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8953,7 +8991,7 @@ noncomputable def DB.IsReadOnly.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: db.go:1333:15 -/
+/-- go: db.go:1350:15 -/
 noncomputable def DB.freepages.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -9093,7 +9131,7 @@ noncomputable def DB.freepages.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "$res0"))))))
 
-/-- go: db.go:1370:6 -/
+/-- go: db.go:1387:6 -/
 noncomputable def newFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "freelistType"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Val #())))
@@ -9117,7 +9155,7 @@ noncomputable def newFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "$res0")))))
 
-/-- go: db.go:1454:19 -/
+/-- go: db.go:1471:19 -/
 noncomputable def Options.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
@@ -9163,7 +9201,7 @@ noncomputable def Options.String.impl [GooseExts] [GoGlobalContext] : val :=
     This is useful when obtaining stats at two different points and time and
     you need the performance counters that occurred within that time span.
 
-    go: db.go:1494:17 -/
+    go: db.go:1511:17 -/
 noncomputable def Stats.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -15768,7 +15806,7 @@ class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   get_readOnly : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"readOnly") #x (Val #(x.readOnly'))
   set_readOnly : ∀ (x : DB) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"readOnly") (PairV #x #y) (Val #(({ x with readOnly' := y } : DB)))
   method_set : go.MethodSetIs DB.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Batch", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"Begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType Info.ty)]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Logger", (some (go.signature.Signature [] false [Logger.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"Stats", (some (go.signature.Signature [] false [Stats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"View", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.beginRWTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.beginTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.fileSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.freepages", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))), (go!"go.etcd.io/bbolt.getPageSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromFirstMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromSecondMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.grow", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.growSize", (some (go.signature.Signature [go.int, go.int] false [go.int]))), (go!"go.etcd.io/bbolt.hasSyncedFreelist", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.invalidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.loadFreelist", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)]))), (go!"go.etcd.io/bbolt.metasZero", (some (go.signature.Signature [go.int64] false [go.bool, go.error]))), (go!"go.etcd.io/bbolt.mlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmapSize", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.mrelock", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.pageInBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.removeTx", (some (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Batch", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"Begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType Info.ty)]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Logger", (some (go.signature.Signature [] false [Logger.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"Stats", (some (go.signature.Signature [] false [Stats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"View", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.beginRWTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.beginTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.fileSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.freepages", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))), (go!"go.etcd.io/bbolt.getPageSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromFirstMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromSecondMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.grow", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.growSize", (some (go.signature.Signature [go.int, go.int] false [go.int]))), (go!"go.etcd.io/bbolt.hasSyncedFreelist", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.invalidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.loadFreelist", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)]))), (go!"go.etcd.io/bbolt.metasZero", (some (go.signature.Signature [go.int64] false [go.bool, go.error]))), (go!"go.etcd.io/bbolt.mlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmapSize", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.mmapUnlocked", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mrelock", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.pageInBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.removeTx", (some (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [])))]
   ptr_Batch_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Batch" DB.Batch.impl
   ptr_Begin_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Begin" DB.Begin.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Close" DB.Close.impl
@@ -15802,6 +15840,7 @@ class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   ptr_mlock_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mlock" DB.mlock.impl
   ptr_mmap_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mmap" DB.mmap.impl
   ptr_mmapSize_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mmapSize" DB.mmapSize.impl
+  ptr_mmapUnlocked_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mmapUnlocked" DB.mmapUnlocked.impl
   ptr_mrelock_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mrelock" DB.mrelock.impl
   ptr_munlock_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"munlock" DB.munlock.impl
   ptr_munmap_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"munmap" DB.munmap.impl
@@ -15918,6 +15957,7 @@ attribute [instance] DB.TypeAssumptions.type_repr
   DB.TypeAssumptions.ptr_mlock_unfold
   DB.TypeAssumptions.ptr_mmap_unfold
   DB.TypeAssumptions.ptr_mmapSize_unfold
+  DB.TypeAssumptions.ptr_mmapUnlocked_unfold
   DB.TypeAssumptions.ptr_mrelock_unfold
   DB.TypeAssumptions.ptr_munlock_unfold
   DB.TypeAssumptions.ptr_munmap_unfold
