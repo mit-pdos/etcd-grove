@@ -48,7 +48,11 @@ def nsLive (X : WX) : Prop :=
 /-- **At `Commit`, the invariant** (no deficient node). -/
 theorem rblX_init (X : WX) (fl : FLPg) (dbl : Loc) (hok : wOK X) (hr : liveReach X)
     (hfl : flView X fl) (hu : covU X) (hl : nsLive X) : rblX X fl dbl none := by
-  sorry
+  have hok' := hok
+  obtain ⟨⟨htw, hpm, hhwm, htx, hrl, hcl⟩, hkn, -, hEB, hH, hL, hN, hV⟩ := hok'
+  refine ⟨⟨htw, hpm, hhwm, htx, hrl⟩, fun bl B hb => ?_, hEB, hH, hL, hN, hV, hr, hfl, hu⟩
+  refine ⟨by rw [ite_self]; exact rblB_of_wOK X hok bl B hb, (hcl bl B hb).2, (hkn bl B hb).2,
+    rtOK_init X bl hok hV (by rw [hb]; rfl), fun l r hr => hl bl B l r hb hr⟩
 
 /-- **The node's `unbalanced` cleared** (`n.unbalanced = false`): the node is the deficient
 one. -/
