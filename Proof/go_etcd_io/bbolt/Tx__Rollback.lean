@@ -151,11 +151,13 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
   · iframe
   -- the store's freelist rolled back; the slots leaving the store join the `W` slots
-  imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
+  imod store_rollback_len K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
     (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
-    with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS⟩
+    with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
   · iframe; iframe #
-  icases wdb_rollback K.p w _ S bs hwok rfl HS hpend $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+  icases wdb_rollback K.p w _ S bs hwok rfl HS hpend (by rw [hwms]; simp) Hbs
+    -- U5d's finding: `wdbOK` does not say that the synced freelist page's bytes hold a header
+    (fun f hf => sorry) $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
   · iframe
   obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
   have hvd : X.v.data = treeData w.C := by
