@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPcPre
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailStepState
 public import Proof.go_etcd_io.bbolt.Spill.PcStepSlots
 public import Proof.go_etcd_io.bbolt.Spill.PcStepFrame
+public import Proof.go_etcd_io.bbolt.Spill.PcStepPar
 
 @[expose] public section
 
@@ -199,6 +200,22 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       pcSlots (spP Xi) ps ++ (List.range' id.toNat (pcCount (insSize rl.ins)) ++
         Ds.getD i []) := by
     rw [← hpn, ← hPS]; unfold pcSlots; simp
+  -- the piece's first key
+  have hw0k : ra.w0.key = wssKey wss i := by
+    have hwd : ra.ws.map wDat = ws.map wDat := hsa.2.2.1.trans (hsim.2.2.1.trans (by
+      unfold splitRec; split <;> rfl))
+    unfold wssKey; rw [hws]
+    show (ra.ws.headD default).key = wKey ws 0
+    cases ews : ws with
+    | nil => rw [ews] at hwd; simp at hwd; rw [hwd]; rfl
+    | cons e es =>
+      rw [ews] at hwd
+      cases era : ra.ws with
+      | nil => rw [era] at hwd; simp at hwd
+      | cons e' es' =>
+        rw [era] at hwd
+        simp only [List.map_cons, List.cons.injEq] at hwd
+        simp [wKey, wDat_key hwd.1]
   refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
     hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
   rotate_left
@@ -350,9 +367,18 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       obtain ⟨hX3p, hsimp, hinsl, -⟩ := hpar3 hpn' rpi0 (by rw [hrpl]; exact hrpi0)
       rw [hrpl] at hX3p
       -- the parent's put: the piece's entry spliced in after the done pieces'
-      have hcore : wsSorted (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)) ∧
-          (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)).map wDat =
-            parWs bs j (i + 1) (ps ++ [pn]) := sorry
+      -- the keys around the piece's entry in the parent (TODO U9z2: from spCtx's entry `j`, n's
+      -- entries within `[lo, hi)` and sorted, the split's pieces' keys, splitRec's `key'`)
+      have hkeys : (j < bs.length ∨ (bs = [] ∧ j = 0)) ∧
+          (i = 0 → bs ≠ [] → wKey bs j = pcOldKey ra) ∧ (i ≠ 0 → pcOldKey ra = pn.k) ∧
+          (i = 0 → 0 < j → go.GoStringLt (wKey bs (j - 1)) pn.k) ∧
+          (i ≠ 0 → ∀ p, ps[i - 1]? = some p → go.GoStringLt p.k pn.k) ∧
+          (j + 1 < bs.length → go.GoStringLt pn.k (wKey bs (j + 1))) := sorry
+      obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hkeys
+      have hcore := parPut (ws := rp.ws) (k := pcOldKey ra) (e := pcEnt ra id) (pn := pn)
+        (by rw [hsimp.2.2.1]; exact hpw) (wsSorted_of_dat hsimp.2.2.1 hsort) hplen k1
+        (by show (W32 0, id, ra.w0.key, ([] : List w8)) = (W32 0, id, wssKey wss i, []); rw [hw0k])
+        k2 k3 k4 k5 k6
       refine ⟨_, hX3p, by rw [hlive3]; exact hplv, hnot, ?_, hcore.1, hcore.2, hinsl,
         by show rp.cs = _; rw [hsimp.2.2.2.2.1]; exact hcs0, ?_,
         by show rp.key = _; rw [hsimp.2.2.2.2.2.1]; exact hkey0,
