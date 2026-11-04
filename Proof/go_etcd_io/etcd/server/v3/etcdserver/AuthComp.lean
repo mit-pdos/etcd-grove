@@ -21,8 +21,8 @@ Nothing imports this module until stage 2. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyAuthM
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MergedImageOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn

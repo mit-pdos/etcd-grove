@@ -49,21 +49,6 @@ theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyK
   unfold srvAuthAtLog
   rw [← He]
 
-/-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
-(`authSnapKitM`) and the image's committed log. -/
-theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
-    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ∗
-      srvRLogLb γr.raft A' ⊢ snapAuthResM E.authMode s ast E.RD γr A' := by
-  rw [hM]
-  simp only [authSnapKitM, snapAuthResM]
-  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩, #Hl⟩
-  iframe Hl
-  iunfold srvAuthSnapOk
-  iexists ast, R
-  iframe Ha Hi Hs
-  ipureintro; exact Hrd
-
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.applyAll.wp_proofSnapM
