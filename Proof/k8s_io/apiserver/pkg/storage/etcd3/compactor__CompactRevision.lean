@@ -42,6 +42,8 @@ theorem compactor.CompactRevision.wp_proof :
   · iPkgInit
   iunfold compactRevLb at Hlb
   iunfold isCompactor at Hc
+  icases Hc with ⟨#Hc, -⟩
+  iunfold compactorCore at Hc
   icases Hc with ⟨%Hpers, #Hcl, #Hiv, #Hck, #Honc, #Hmu, #Hstop⟩
   (try wp_auto)
   wp_apply wp_with_defer as %defer defer

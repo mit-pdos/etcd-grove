@@ -7,8 +7,9 @@ is at most the `Get`'s header revision, and the key, if present, parses to a rev
 Lean-first.
 
 **The triple:** with `New`'s client of the members `ms` (a refusal-free member, `clientWriteOnce`;
-their registrations and start), its KV handle (`clientKvOk`), `ListFromCacheSnapshot` off
-(`gateOff`), the example's invariant (`cinv`) and the KV invariant of the cluster (`kvInv`, for the
+their registrations and start), its KV handle (`clientKvOk`) and watcher handle (`clientWatchOk`:
+the compactor's watch loop runs, `ListFromCacheSnapshot` being on by default; Q1 (b)), the
+example's invariant (`cinv`) and the KV invariant of the cluster (`kvInv`, for the
 read-side law: a reached revision is at most a read's), `apiserver` returns: no check panics and
 no compactor round panics. In compaction mode with etcd's compactor off (`γk.cmp`, `γk.cret = 0`).
 -/
@@ -44,9 +45,10 @@ abbrev apiserver.spec : Prop :=
     (γk : KVNames) (γ : CNames),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      gateOff ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+      isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
-      ([∗list] x ∈ ms, client.srvStart x) ∗ clientKvOk cl γk ∗ cinv γk γ ∗ kvInv γr γk }}
+      ([∗list] x ∈ ms, client.srvStart x) ∗ clientKvOk cl γk ∗ clientWatchOk cl γk ∗ cinv γk γ ∗
+      kvInv γr γk }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver)) (Val #cl))
   {{ RET #(); True }}
 

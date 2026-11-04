@@ -51,7 +51,7 @@ theorem compactor.UpdateCompactRevision.wp_proof :
   wp_start as ⟨#Hc, Hrev⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  iunfold isCompactor at Hc
+  iunfold compactorCore at Hc
   icases Hc with ⟨%Hpers, #Hcl, #Hiv, #Hck, #Honc, #Hmu, #Hstop⟩
   haveI := Hpers
   (try wp_auto)

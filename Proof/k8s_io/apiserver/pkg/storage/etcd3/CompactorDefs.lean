@@ -15,6 +15,14 @@ transaction, the caller's atomic update at each member, whose result gives the r
 caller's ghost state: `Seen` (persistent: the key was written) and `recorded c` (persistent: a
 compactor put `FormatInt c`).
 
+The watch loop (`runWatchLoop`, Q1 (b) of the plan, the user's approval of D2 2026-11-04) reads
+the key with `Get` and watches it: it learns every value the key held since the revision it read,
+not only the current one. So it takes a second contract, `keyReadOk`: the caller's read update of
+the cluster's KV state, whose result `keyHistOk` says that every value the key held in the state's
+history (each event of the key, and its current value) is `FormatInt c` of a recorded `c`, reached
+or `0` (`keyValOk`), and that the state is past etcd's first revision (a watch starts at a revision
+`≥ 1`; a read update cannot learn it from the cluster's invariant, which it masks out).
+
 `isCompactor` (persistent, sealed internals) is the compactor object: its fields, the mutex over
 `compactRevision` (a recorded, reached revision or `0`, with a monotone lower bound), and its stop
 machinery (`stopOnce`, the `stop` channel, the wait group of its loop goroutine).
@@ -29,6 +37,8 @@ public import Perennial.Proof.sync.Results
 public import Perennial.Ghost.MonoNat
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import GeneratedProof.k8s_io.utils.clock
+public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
 
@@ -113,6 +123,63 @@ instance casOk_persistent (ms : List (client.SrvAt GF)) (γk : KVNames) (Seen : 
     (recorded : w64 → IProp GF) : Persistent (casOk ms γk Seen recorded) := by
   unfold casOk; infer_instance
 
+/-- **A value the compactors' key may hold**: `FormatInt(c, 10)` of a recorded `c`, reached or `0`. -/
+def keyValOk (γk : KVNames) (recorded : w64 → IProp GF) (v : GoString) : IProp GF :=
+  iprop(∃ c : w64, ⌜v = fmtInt c (W64 10)⌝ ∗ recorded c ∗ revOk γk c)
+
+instance keyValOk_persistent (γk : KVNames) (recorded : w64 → IProp GF)
+    [∀ c, Persistent (recorded c)] (v : GoString) : Persistent (keyValOk (GF := GF) γk recorded v) := by
+  unfold keyValOk; infer_instance
+
+/-- **What a read of the key tells the watch loop** at the state `σ` (persistent; see the file
+header): `σ` is past revision `1`, the key's current value and the value of each of its events
+through `σ`'s revision are `keyValOk`. -/
+def keyHistOk (γk : KVNames) (recorded : w64 → IProp GF) (σ : KVState) : IProp GF :=
+  iprop(⌜1 ≤ σ.rev⌝ ∗
+    □ (∀ v : GoString, ⌜keyValue σ compactRevKey = some v⌝ -∗ keyValOk γk recorded v) ∗
+    □ (∀ (r : Nat) (ev : mvcc.EvM), ⌜r ≤ σ.rev ∧ ev ∈ σ.revEvents r ∧ ev.kv.key = compactRevKey⌝ -∗
+        keyValOk γk recorded ev.kv.value))
+
+instance keyHistOk_persistent (γk : KVNames) (recorded : w64 → IProp GF) (σ : KVState) :
+    Persistent (keyHistOk (GF := GF) γk recorded σ) := by
+  unfold keyHistOk; infer_instance
+
+/-- **The watch loop's contract** (persistent; the caller's, see the file header): its read update
+of the cluster's KV state `γk`, whose result is `keyHistOk`. -/
+def keyReadOk (γk : KVNames) (recorded : w64 → IProp GF) : IProp GF :=
+  kvReadAu γk (keyHistOk γk recorded)
+
+instance keyReadOk_persistent (γk : KVNames) (recorded : w64 → IProp GF) :
+    Persistent (keyReadOk (GF := GF) γk recorded) := by
+  unfold keyReadOk; infer_instance
+
+/-- **The client's watcher handle** (persistent): the client's `Watcher` field holds a `*watcher`
+of a watch environment over the cluster's KV state `γk` (`isClientWatcher`, what the client's
+`Watch` takes). -/
+def clientWatchOk [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (cl : Loc)
+    (γk : KVNames) : IProp GF :=
+  iprop(∃ (w : Loc) (V : client.WEnv GF),
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
+      GoInterface.ok (client.watcherIfaceOf w) ∗ client.isClientWatcher V w ∗ ⌜V.kst = γk.st⌝)
+
+instance clientWatchOk_persistent [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (γk : KVNames) : Persistent (clientWatchOk (GF := GF) cl γk) := by
+  unfold clientWatchOk; infer_instance
+
+/-- **A watch response of the key, as `fromWatchResponse` reads it** (persistent): its close error
+is a status error (what `Err()` takes), it is modelled by `r` (`respAt`), and, unless it is an
+error, each of its events' key-value holds a `keyValOk` value. -/
+def respKeyOk (γk : KVNames) (recorded : w64 → IProp GF)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+  iprop(go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' ∗ ∃ r : RespModel, respAt v r ∗
+    (⌜watchErr v⌝ ∨ □ ∀ (i : Nat) (e : EvModel), ⌜r.events[i]? = some e⌝ -∗
+      ∃ kv : EtcdKv, kvValAt e.kv kv ∗ keyValOk γk recorded kv.value))
+
+instance respKeyOk_persistent (γk : KVNames) (recorded : w64 → IProp GF)
+    [∀ c, Persistent (recorded c)] (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    Persistent (respKeyOk (GF := GF) γk recorded v) := by
+  unfold respKeyOk; infer_instance
+
 /-- The compactor's ghost names: its revision's monotone counter. -/
 structure CompactorNames where
   lb : GName
@@ -133,30 +200,41 @@ def compactorLockInv (c : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γ
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"compactRevision" c ↦ r ∗
     monoNatAuthOwn γc.lb 1 (sint.Z r).toNat ∗ recRevOk γk recorded r)
 
-/-- **The compactor's stop machinery**: the `stop` channel, a broadcast channel only closed; the
-right to close it and to wait for the loop goroutine (the wait group's adder, its one goroutine
-added), held by `stopOnce` until `Stop` runs (`sync.Once`'s `P`; its `Q` is `True`: `Stop` returns
-nothing). The wait group is `sync.join`'s (its counter bounded by its `Add`s, one in the compactor's
-life), not `sync.tokJoin`'s: that one's invariant needs `threadBound GF ≤ 2 ^ 31`, which
-`NewCompactor.spec` does not take (K4, 2026-11-04). -/
-def compactorStopOk [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) : IProp GF :=
+/-- **The compactor's stop channel** (persistent): the `stop` field holds `sc`, a broadcast channel
+only closed. What the loops need of the stop machinery (they wait on it). -/
+def compactorChanOk (c : Loc) (sc : GoChan) (γs : ChanNames) : IProp GF :=
   iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stop" c ↦□ sc ∗
-    ownBroadcastChan sc γs iprop(True) .Unknown ∗
+    ownBroadcastChan sc γs iprop(True) .Unknown)
+
+instance compactorChanOk_persistent (c : Loc) (sc : GoChan) (γs : ChanNames) :
+    Persistent (compactorChanOk (GF := GF) c sc γs) := by
+  unfold compactorChanOk; infer_instance
+
+/-- **The compactor's stop machinery**: the `stop` channel (`compactorChanOk`); the right to close
+it and to wait for the loop goroutines (the wait group's adder, its goroutines added: the
+compaction loop's, and the watch loop's when the feature gate is on), held by `stopOnce` until
+`Stop` runs (`sync.Once`'s `P`; its `Q` is `True`: `Stop` returns nothing). The wait group is
+`sync.join`'s (its counter bounded by its `Add`s, at most two in the compactor's life), not
+`sync.tokJoin`'s: that one's invariant needs `threadBound GF ≤ 2 ^ 31`, which `NewCompactor.spec`
+does not take (K4, 2026-11-04). -/
+def compactorStopOk [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) : IProp GF :=
+  iprop(compactorChanOk c sc γs ∗
     sync.isOnce (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c)
       iprop(ownBroadcastChan sc γs iprop(True) .Pending ∗
-        sync.join.ownAdder (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c)
-          (W32 1) iprop(True))
+        ∃ n : w32, sync.join.ownAdder
+          (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) n iprop(True))
       iprop(True))
 
 instance compactorStopOk_persistent [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) :
     Persistent (compactorStopOk (GF := GF) c sc γs) := by
   unfold compactorStopOk; infer_instance
 
-/-- **A compactor** (persistent; see the file header): its client `cl`, its interval (nonzero), a
-`RealClock`, no `onClose`, the mutex over its revision, and its stop machinery (the `stop`
-channel `sc`); and the caller's `recorded` is persistent (`NewCompactor.spec`'s instance), so that
-the revision under the mutex can be both kept and returned. -/
-@[no_expose] def isCompactor [sync.Assumptions] (c cl : Loc) (γk : KVNames)
+/-- **A compactor, as its loops see it** (persistent; Q1 (b), 2026-11-04): its client `cl`, its
+interval (nonzero), a `RealClock`, no `onClose`, the mutex over its revision and its stop channel;
+and the caller's `recorded` is persistent (`NewCompactor.spec`'s instance), so that the revision
+under the mutex can be both kept and returned. Not the right to stop it (`stopOnce`'s): the loop
+goroutines start before the wait group's last `Add`, whose adder the `Once` then holds. -/
+@[no_expose] def compactorCore (c cl : Loc) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) : IProp GF :=
   iprop(⌜∀ r, Persistent (recorded r)⌝ ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"client" c ↦□ cl ∗
@@ -168,6 +246,18 @@ the revision under the mutex can be both kept and returned. -/
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"onClose" c ↦□ func.nil ∗
     sync.isMutex (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"mux" c)
       (compactorLockInv c γk recorded γc) ∗
+    ∃ (sc : GoChan) (γs : ChanNames), compactorChanOk c sc γs)
+
+instance compactorCore_persistent (c cl : Loc) (γk : KVNames)
+    (recorded : w64 → IProp GF) (γc : CompactorNames) :
+    Persistent (compactorCore c cl γk recorded γc) := by
+  unfold compactorCore; infer_instance
+
+/-- **A compactor** (persistent; see the file header): as its loops see it (`compactorCore`), and
+its stop machinery (the `stop` channel `sc`, `compactorStopOk`). -/
+@[no_expose] def isCompactor [sync.Assumptions] (c cl : Loc) (γk : KVNames)
+    (recorded : w64 → IProp GF) (γc : CompactorNames) : IProp GF :=
+  iprop(compactorCore c cl γk recorded γc ∗
     ∃ (sc : GoChan) (γs : ChanNames), compactorStopOk c sc γs)
 
 instance isCompactor_persistent [sync.Assumptions] (c cl : Loc) (γk : KVNames)
@@ -175,20 +265,13 @@ instance isCompactor_persistent [sync.Assumptions] (c cl : Loc) (γk : KVNames)
     Persistent (isCompactor c cl γk recorded γc) := by
   unfold isCompactor compactorStopOk; infer_instance
 
-/-- **`ListFromCacheSnapshot` off** (U3 of K2, the user's approval 2026-11-04; a scope
-restriction, the default since Kubernetes 1.34 is on): `DefaultFeatureGate`'s `Enabled` answers
-`false` for it, so `NewCompactor` starts no watch loop (`runWatchLoop`, Q1 (b) of the plan). Its
-only producer is the trusted spec of the example's own `Set("ListFromCacheSnapshot=false")` call
-(not `featureInit`'s axiom, which answers some `bool`). -/
-def gateOff : IProp GF :=
-  iprop(∃ g : GoInterfaceOk,
-    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
-    □ ∀ (Φ : val → IProp GF), ▷ Φ #false -∗
-      WP (App (Val #(methods g.ty go!"Enabled" g.v))
-        (Val k8s_io.apiserver.pkg.features.ListFromCacheSnapshot)) {{ Φ }})
-
-instance gateOff_persistent : Persistent (gateOff (GF := GF)) := by
-  unfold gateOff; infer_instance
+/-- A compactor is one as its loops see it. -/
+theorem isCompactor_core [sync.Assumptions] (c cl : Loc) (γk : KVNames)
+    (recorded : w64 → IProp GF) (γc : CompactorNames) :
+    isCompactor (GF := GF) c cl γk recorded γc ⊢ compactorCore c cl γk recorded γc := by
+  unfold isCompactor
+  iintro ⟨#H, -⟩
+  iexact H
 
 end defs
 

@@ -40,13 +40,17 @@ theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := b
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isCompactor at Hc
-  icases Hc with ⟨%Hpers, #Hcl, #Hiv, #Hck, #Honc, #Hmu, %sc, %γs, #Hstop⟩
+  icases Hc with ⟨#Hcore, %sc, %γs, #Hstop⟩
+  iunfold compactorCore at Hcore
+  icases Hcore with ⟨%Hpers, #Hcl, #Hiv, #Hck, #Honc, #Hmu, -⟩
   iunfold compactorStopOk at Hstop
-  icases Hstop with ⟨#Hsc, #Hbc, #Honce⟩
+  icases Hstop with ⟨#Hch, #Honce⟩
+  iunfold compactorChanOk at Hch
+  icases Hch with ⟨#Hsc, #Hbc⟩
   (try wp_auto)
   ipersist c
   wp_apply sync.Once.wp_Do $$ [$Honce]
-  · iintro !> %Φ' ⟨HP, Hadd⟩ HΦ'
+  · iintro !> %Φ' ⟨HP, %n, Hadd⟩ HΦ'
     (try wp_auto)
     wp_apply wp_broadcast_chan_close $$ [$HP] as -
     · itrivial

@@ -40,6 +40,7 @@ public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
 public import Proof.k8s_io.klog.v2.Verbose__Infof
 public import Proof.go_etcd_io.etcd.client.v3.Version
+public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
@@ -48,7 +49,10 @@ public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__CompactRevision
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRevision
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__fromWatchResponse
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__getCompactRev
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runCompactLoop
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
@@ -90,8 +94,10 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.txnError
 public import Proof.k8s_io.klog.v2.Errorf
 public import Proof.k8s_io.klog.v2.V
 public import Proof.go_etcd_io.etcd.client.v3.Compare
+public import Perennial.Proof.time.Link
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
+public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
 
 @[expose] public section
@@ -183,6 +189,10 @@ theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
 
+theorem v3.wp_WithRev :
+    EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRev.wp_proof
+
 theorem reflect.wp_TypeOf :
     EtcdGrove.reflect.TypeOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.TypeOf.wp_proof
@@ -269,6 +279,18 @@ theorem compactor.wp_UpdateCompactRevision :
 theorem klog.wp_Errorf :
     EtcdGrove.klog.Errorf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.klog.Errorf.wp_proof
+
+theorem compactor.wp_getCompactRev :
+    EtcdGrove.k8s.compactor.getCompactRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.getCompactRev.wp_proof strconv.wp_ParseInt fmt.wp_Errorf
+
+theorem compactor.wp_fromWatchResponse :
+    EtcdGrove.k8s.compactor.fromWatchResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.fromWatchResponse.wp_proof client.v3.WatchResponse.wp_Err strconv.wp_ParseInt
+
+theorem compactor.wp_runWatchLoop :
+    EtcdGrove.k8s.compactor.runWatchLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.runWatchLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err _root_.Perennial.time.wp_After compactor.wp_getCompactRev compactor.wp_UpdateCompactRevision v3.wp_WithRev client.v3.watcher.wp_Watch compactor.wp_fromWatchResponse v3.Client.wp_Endpoints klog.wp_Errorf
 
 theorem wp_NewDefaultLeaseManagerConfig :
     EtcdGrove.k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) :=
@@ -461,7 +483,7 @@ theorem compactor.wp_runCompactLoop :
 
 theorem wp_NewCompactor :
     EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After)
+  EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After) compactor.wp_runWatchLoop
 
 end links_pending
 

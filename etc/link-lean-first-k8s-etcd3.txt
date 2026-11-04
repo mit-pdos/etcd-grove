@@ -28,6 +28,10 @@ fmt_Errorf: @
 Client__Get: @
 Client__OptimisticPut: @
 Client__OptimisticDelete: @
+# (Q1 (b), the watch loop) the client's watch and the response's error, its watch option
+watcher__Watch: @
+WatchResponse__Err: @
+WithRev:
 #
 # k8s.io/apiserver/pkg/storage
 PrepareKey: HasSuffix strings_Contains fmt_Errorf
@@ -109,4 +113,7 @@ compactor__CompactRevision:
 compactor__UpdateCompactRevision:
 compactor__Stop:
 compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
-NewCompactor: compactor__runCompactLoop
+compactor__getCompactRev: strconv_ParseInt fmt_Errorf
+compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
+compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
+NewCompactor: compactor__runCompactLoop compactor__runWatchLoop

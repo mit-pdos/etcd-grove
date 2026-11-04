@@ -86,7 +86,7 @@ theorem readAu_check (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (
   unfold atomic_acc
   iunfold cinv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ, Hrv, Hk⟩
+  icases Hi with ⟨%σ, Hσ, Hrv, Hk, #Hh⟩
   ihave %Hv := monoNatLbOwn_valid γ.rv 1 σ.rev r $$ Hrv Hlb
   rw [etcdKV_same γk γk' hs]
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
@@ -98,14 +98,14 @@ theorem readAu_check (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (
   · iintro Hσ
     imod Hmask with -
     imod Hclose $$ [Hσ Hrv Hk] with -
-    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe
+    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe; iexact Hh
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
     ihave ⟨Hk, #HQ⟩ := keyOk_check γk γ σ r Hv.2 $$ Hk
     imod Hclose $$ [Hσ Hrv Hk] with -
-    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe
+    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe; iexact Hh
     imodintro
     iintro !>
     iexact HQ
@@ -116,6 +116,35 @@ theorem cinv_step (γk : KVNames) (γ : CNames) (σ σ' : KVState) (h : σ.rev �
   iintro Hrv
   imod (mono_nat_own_update (GF := GF) (γ := γ.rv) σ'.rev h) $$ Hrv with ⟨Hrv, -⟩
   imodintro; iexact Hrv
+
+/-- The writer's put of another key keeps the key's history. -/
+theorem histOk_put_other (γk : KVNames) (σ : KVState) (k v : GoString) (hk : k ≠ compactRevKey) :
+    histOk (GF := GF) γk σ ⊢ histOk γk (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) := by
+  iintro #H
+  iunfold histOk at H
+  unfold histOk
+  icases H with ⟨%C, %HC, #Hc⟩
+  iexists C
+  iframe Hc
+  ipureintro
+  exact ⟨KeyHist_put_other k v hk HC.1, OneChange_put k v HC.2.1,
+    Nat.le_trans HC.2.2 (client.kvOpStep_rev _ σ)⟩
+
+/-- A compactor's round keeps the key's history, its revision added. -/
+theorem histOk_cas (γk : KVNames) (σ : KVState) (ev rev : w64) :
+    histOk (GF := GF) γk σ ∗ k8s.revOk γk rev ⊢
+      histOk γk (kvOpStep (.txn (casTxn ev rev)) σ) := by
+  iintro ⟨#H, #Hr⟩
+  iunfold histOk at H
+  unfold histOk
+  icases H with ⟨%C, %HC, #Hc⟩
+  iexists rev :: C
+  isplitr
+  · ipureintro
+    exact ⟨KeyHist_cas ev rev HC.1, OneChange_cas ev rev HC.2.1,
+      Nat.le_trans HC.2.2 (client.kvOpStep_rev _ σ)⟩
+  iapply BigSepL.bigSepL_cons.2
+  iframe #
 
 /-- **The writer's put of another key** (persistent; see the file header). -/
 theorem putAu_other (γk : KVNames) (γ : CNames) (k v : GoString) (hk : k ≠ compactRevKey) :
@@ -130,7 +159,7 @@ theorem putAu_other (γk : KVNames) (γ : CNames) (k v : GoString) (hk : k ≠ c
   unfold atomic_acc
   iunfold cinv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ, Hrv, Hk⟩
+  icases Hi with ⟨%σ, Hσ, Hrv, Hk, #Hh⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -140,17 +169,18 @@ theorem putAu_other (γk : KVNames) (γ : CNames) (k v : GoString) (hk : k ≠ c
   · iintro Hσ
     imod Hmask with -
     imod Hclose $$ [Hσ Hrv Hk] with -
-    · inext; iexists σ; iframe
+    · inext; iexists σ; iframe; iexact Hh
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
     imod (cinv_step γk γ σ (kvOpStep (.put (putWireOf (opPutModel k v []))) σ)
       (client.kvOpStep_rev _ σ)) $$ Hrv with Hrv
+    ihave #Hh' := histOk_put_other γk σ k v hk $$ Hh
     imod Hclose $$ [Hσ Hrv Hk] with -
     · inext
       iexists (kvOpStep (.put (putWireOf (opPutModel k v []))) σ)
-      iframe Hσ Hrv
+      iframe Hσ Hrv Hh'
       have hko : keyOk (GF := GF) γk γ (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) =
           keyOk γk γ σ := by
         unfold keyOk; rw [keyValue_put_other k v σ hk]
@@ -172,7 +202,7 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
   unfold atomic_acc
   iunfold cinv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ, Hrv, Hk⟩
+  icases Hi with ⟨%σ, Hσ, Hrv, Hk, #Hh⟩
   rw [etcdKV_same γk γk' hs]
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -183,7 +213,7 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
   · iintro Hσ
     imod Hmask with -
     imod Hclose $$ [Hσ Hrv Hk] with -
-    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe
+    · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe; iexact Hh
     imodintro
     itrivial
   · iintro Hσ
@@ -204,7 +234,7 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
           ihave %Hag := dghostVar_agree _ _ _ _ _ $$ Hf Hs
           cases Hag
       · imod Hclose $$ [Hσ Hrv] with -
-        · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe Hσ Hrv
+        · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe Hσ Hrv Hh
           iunfold keyOk; iright; iframe Hs; iexists c; iframe Hrc; ipureintro; exact Hc
         imodintro
         iunfold casPost
@@ -223,9 +253,11 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
           imodintro; iunfold seenOk; iexact Hf
         · imodintro; iexact Hs
       imod Hseen with #Hs
+      ihave #Hh' := histOk_cas γk σ ev rev $$ [Hh Hrev]
+      · iframe #
       imod Hclose $$ [Hσ Hrv] with -
       · inext; iexists (kvOpStep (.txn (casTxn ev rev)) σ)
-        rw [etcdKV_same γk γk' hs]; iframe Hσ Hrv
+        rw [etcdKV_same γk γk' hs]; iframe Hσ Hrv Hh'
         iunfold keyOk; iright; iframe Hs; iexists rev; iframe Hrev
         ipureintro; exact casTxn_win_value ev rev σ hw
       imodintro
@@ -234,6 +266,90 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
       rw [hw]
       simp only [↓reduceIte]
       itrivial
+
+/-- **What the key's history gives a read** (Q1 (b)): the watch loop's read result. -/
+theorem histOk_keyHist (γk : KVNames) (σ : KVState) :
+    histOk (GF := GF) γk σ ⊢ k8s.keyHistOk γk (fun _ => iprop(True)) σ := by
+  iintro #H
+  iunfold histOk at H
+  icases H with ⟨%C, ⟨%HK, -, %H1⟩, #Hc⟩
+  unfold k8s.keyHistOk
+  isplitr
+  · ipureintro; exact H1
+  isplitr
+  · iintro !> %v %hv
+    obtain ⟨c, hc, rfl⟩ := HK.1 v hv
+    unfold k8s.keyValOk
+    iexists c
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · itrivial
+    iapply (BigSepL.bigSepL_mem (Φ := fun c => k8s.revOk (GF := GF) γk c) hc) $$ Hc
+  · iintro !> %r %ev ⟨%hr, %hm, %hk⟩
+    obtain ⟨c, hc, hv⟩ := HK.2 r ev hr hm hk
+    unfold k8s.keyValOk
+    iexists c
+    isplitr
+    · ipureintro; exact hv
+    isplitr
+    · itrivial
+    iapply (BigSepL.bigSepL_mem (Φ := fun c => k8s.revOk (GF := GF) γk c) hc) $$ Hc
+
+/-- **A read update whose result is the invariant's state's** `Q` (persistent): from a fact `Q` of
+the invariant's contents at every state. -/
+theorem readAu_of_cinv (γk : KVNames) (γ : CNames) (Q : KVState → IProp GF)
+    (hQ : ∀ σ, histOk (GF := GF) γk σ ⊢ □ Q σ) :
+    cinv (GF := GF) γk γ ⊢ kvReadAu γk Q := by
+  have Hm := cinvN_mask
+  iintro #Hinv
+  iunfold kvReadAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold cinv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ, Hrv, Hk, #Hh⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hrv Hk] with -
+    · inext; iexists σ; iframe; iexact Hh
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hrv Hk] with -
+    · inext; iexists σ; iframe; iexact Hh
+    imodintro
+    iapply (hQ σ) $$ Hh
+
+/-- **The watch loop's contract, from the invariant** (Q1 (b); see the file header). -/
+theorem keyReadOk_of_cinv (γk : KVNames) (γ : CNames) :
+    cinv (GF := GF) γk γ ⊢ k8s.keyReadOk γk (fun _ => iprop(True)) := by
+  iintro #Hinv
+  unfold k8s.keyReadOk
+  iapply (readAu_of_cinv γk γ _ (fun σ => by
+    iintro #H
+    imodintro
+    iapply histOk_keyHist $$ H)) $$ Hinv
+
+/-- **No revision writes a key twice, as a read update** (the watch server's `noDupKeys`). -/
+theorem oneChangeAu (γk : KVNames) (γ : CNames) :
+    cinv (GF := GF) γk γ ⊢ kvReadAu γk (fun σ => iprop(⌜OneChange σ⌝)) := by
+  iintro #Hinv
+  iapply (readAu_of_cinv γk γ _ (fun σ => by
+    iintro #H
+    iunfold histOk at H
+    icases H with ⟨%C, ⟨-, %HO, -⟩, -⟩
+    imodintro
+    ipureintro; exact HO)) $$ Hinv
 
 /-- **The compactors' contract, from the invariant** (see the file header), for members at the
 invariant's KV names. -/

@@ -61,7 +61,7 @@ type keyPut struct {
 }
 
 // startMember starts a member at the given addresses, in compaction mode with etcd's compactor
-// off, with ListFromCacheSnapshot off, and returns a client of it.
+// off, and returns a client of it.
 func startMember(t *testing.T, name, peer, client string) *clientv3.Client {
 	t.Chdir(t.TempDir())
 	lg := zap.NewNop()
@@ -70,9 +70,6 @@ func startMember(t *testing.T, name, peer, client string) *clientv3.Client {
 		t.Fatal(err)
 	}
 	if err := etcdstart.Serve(s, client); err != nil {
-		t.Fatal(err)
-	}
-	if err := DisableSnapshotList(); err != nil {
 		t.Fatal(err)
 	}
 	cli, err := etcdstart.NewClient(client, lg)

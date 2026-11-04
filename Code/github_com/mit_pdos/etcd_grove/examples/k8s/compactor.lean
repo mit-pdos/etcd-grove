@@ -8,7 +8,6 @@ public import Perennial.Code.time
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_uber_org.zap
 public import Code.k8s_io.apiserver.pkg.storage.etcd3
-public import Code.k8s_io.apiserver.pkg.util.feature
 public import Code.k8s_io.utils.clock
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Perennial.Golang.Defn
@@ -54,9 +53,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 @[reducible] noncomputable def writes [GooseExts] [GoGlobalContext] : val :=
   #(400 : Int)
 
-noncomputable def DisableSnapshotList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.DisableSnapshotList"
-
 noncomputable def writer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.writer"
 
@@ -69,28 +65,10 @@ noncomputable def apiserver [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.Main"
 
-/-- DisableSnapshotList turns the feature ListFromCacheSnapshot off in the API server's default
-    feature gate, as an API server started with --feature-gates=ListFromCacheSnapshot=false does
-    (the feature is beta and on by default since 1.34). NewCompactor then starts no watch loop.
-
-    go: compactor.go:65:6 -/
-noncomputable def DisableSnapshotList.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$a0" (Val #(go!"ListFromCacheSnapshot=false"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate))) (Val #())))) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
-
 /-- writer puts writeKey writes times, each Put in a context with the request timeout; a failed Put
     is skipped.
 
-    go: compactor.go:71:6 -/
+    go: compactor.go:64:6 -/
 noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Seq (App (Val exceptionDo)
@@ -142,7 +120,7 @@ noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ready reports whether a latest Get through cli succeeds within the request timeout.
 
-    go: compactor.go:80:6 -/
+    go: compactor.go:73:6 -/
 noncomputable def ready.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -195,7 +173,7 @@ noncomputable def ready.impl [GooseExts] [GoGlobalContext] : val :=
     issued after the first returned it: a revision the cluster reached is at most the revision of a
     read that starts after it is known (the read-side law the proof uses).
 
-    go: compactor.go:92:6 -/
+    go: compactor.go:85:6 -/
 noncomputable def apiserver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Seq (App (Val exceptionDo)
@@ -376,12 +354,12 @@ noncomputable def apiserver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Pair (Var "c") (Var "$r0")))))))))
   (Val #())))
 
-/-- Main starts one member of a new cluster in compaction mode with etcd's compactor off, turns
-    ListFromCacheSnapshot off, waits for the member to serve, and runs the writer and the API servers, each on its own client, until
+/-- Main starts one member of a new cluster in compaction mode with etcd's compactor off, waits for
+    the member to serve, and runs the writer and the API servers, each on its own client, until
     every API server has stopped its compactor and made its checks. An error before the API servers
     start (the member not serving within the request timeout) ends Main without a check.
 
-    go: compactor.go:140:6 -/
+    go: compactor.go:133:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -400,7 +378,6 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -488,16 +465,6 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "wcli") (Var "$r0")))))))))))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve DisableSnapshotList []))) (Val #())) (Val #()))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (Val #()))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -524,13 +491,12 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.strconv, pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_uber_org.zap, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.utils.clock, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.strconv, pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_uber_org.zap, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.k8s_io.utils.clock, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -554,14 +520,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.util.feature.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.utils.clock.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DisableSnapshotList_unfold : FuncUnfold DisableSnapshotList [] DisableSnapshotList.impl
   writer_unfold : FuncUnfold writer [] writer.impl
   ready_unfold : FuncUnfold ready [] ready.impl
   apiserver_unfold : FuncUnfold apiserver [] apiserver.impl
@@ -573,12 +536,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_etcd3_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
   import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.DisableSnapshotList_unfold
-  Assumptions.writer_unfold
+attribute [instance] Assumptions.writer_unfold
   Assumptions.ready_unfold
   Assumptions.apiserver_unfold
   Assumptions.Main_unfold
@@ -589,7 +550,6 @@ attribute [instance] Assumptions.DisableSnapshotList_unfold
   Assumptions.import_clientv3_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_etcd3_Assumption
-  Assumptions.import_feature_Assumption
   Assumptions.import_clock_Assumption
   Assumptions.import_etcdstart_Assumption
 

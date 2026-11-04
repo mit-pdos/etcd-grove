@@ -1,7 +1,7 @@
 /-
 The proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/apiserver.lean`. Lean-first.
 
-- `NewCompactor` with the compactors' contract from the invariant (`casOk_of_cinv`, at
+- `NewCompactor` with the compactors' contracts from the invariant (`casOk_of_cinv`, `keyReadOk_of_cinv`, at
   `Seen := seenOk γ`, `recorded := True`).
 - The samples: a loop keeping `last` a lower bound of the compactor's revision (`compactRevLb`), so
   `CompactRevision` never returns less (its spec), and `last ≥ 0` (`recRevOk`).
@@ -99,7 +99,7 @@ theorem apiserver.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     apiserver.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl ms V γr γk γ hsame hcmp hcret
-  wp_start as ⟨#Hgate, #Hcl, #Hone, #Hregs, #Hst, #Hko, #Hinv, #Hkvi⟩
+  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hst, #Hko, #Hwo, #Hinv, #Hkvi⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.compactRevKey = #k8s.compactRevKey
     from rfl]
   ihave #Pe3 : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
@@ -111,6 +111,7 @@ theorem apiserver.wp_proof
   ihave #Pstr : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
   ihave #Hcas := casOk_of_cinv ms γk hsame γ $$ Hinv
+  ihave #Hkr := keyReadOk_of_cinv γk γ $$ Hinv
   wp_auto
   wp_apply (wp_NewCompactor cl ms V γk (seenOk γ) (fun _ => iprop(True)) _ _ hsame hcmp hcret
       (by decide)) $$ [] as %c %γc ⟨#Hc, #H0⟩

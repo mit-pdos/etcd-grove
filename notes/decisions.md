@@ -31789,3 +31789,37 @@ metadata, `outgoingOf`), and `valCtx`'s `Done()` is etcd's own channel, so Go's 
 runs the same branch for any `inctx` (the axioms' files). The alternative, widening Perennial's
 `isContext` to contexts without a `*cancelCtx` ancestor (D1 (b)), stays the general fix; not needed
 here.
+
+## The compactor's watch loop (2026-11-04 · Q1 (b) of `notes/k8s-compactor-plan.md`, W2-W4; the user's approval of D2 and D3 · branch `watchloop`)
+
+**The contract (D2).** The watch loop learns every value `compact_rev_key` held since the revision
+its `Get` read, so it takes a second contract beside `casOk`: `keyReadOk γk recorded`, the caller's
+read update of the cluster's KV state whose result `keyHistOk` says the key's current value and the
+value of each of its events through the state's revision are `FormatInt c` of a recorded `c`,
+reached or `0` (`keyValOk`), and that the state is past revision 1. One read update, not one per
+member: the client's `Get` and `Watch` take the cluster's. *Why `1 ≤ σ.rev` is the caller's:* the
+watch must start at a revision `≥ 1`; a read update cannot learn it from the cluster's invariant
+(`kv_revLbZ_le` needs `kvInv`, which the update masks out), while the example's invariant can keep
+it (the boot state is at revision 1).
+
+**The gate (D3).** `NewCompactor.spec` covers both answers of `ListFromCacheSnapshot` (`featureInit`:
+some `bool`); `gateOff` and the example's `DisableSnapshotList` (its trusted spec, an axiom) are gone:
+the example runs Kubernetes' default configuration.
+
+**Found while proving.**
+- *The compactor as its loops see it, `compactorCore`.* The loops start before the wait group's
+  last `Add`, whose adder `stopOnce` must then hold (`sync.join`'s adder does not split), so the
+  `Once` is set up after the last `Add`; the loops, `getCompactRev` and `UpdateCompactRevision` take
+  `compactorCore` (fields, mutex, stop channel), `isCompactor` adds the stop machinery
+  (`NewCompactor`'s post, `Stop`'s premise, unchanged statements; `isCompactor_core`).
+- *`compactorStopOk`'s broadcast stays `True`.* The watch's `watchCtx` of a `channelContext`
+  (`chanCtx_watch`) needs the channel's proposition to give the context's closed flag; the flag is
+  the broadcast's own done flag (`γi.doneGn`) and the invariant is restated with it
+  (`broadcast_closed_flag`, `inv_alter`), so W0's proposal (a flag set by `Stop`) was not needed.
+- *`Client.Watch`'s promoted method* translated (`client/v3.toml`: its `MethodUnfold` rule only).
+- *The example's invariant* keeps the key's history (`histOk`: `KeyHist σ C` with `revOk` of every
+  `c ∈ C`) and one change per revision (`OneChange`: the watch server's `noDupKeys`, as
+  `compactwatch`'s `noDupKeys_of_rounds`).
+- *A kernel rejection* of auto-abstracted inline `omega`/`word` proofs in two proofs
+  (`getCompactRev`, `fromWatchResponse`): moved to standalone lemmas (an "application type mismatch"
+  in an auxiliary `_proof_…` term after elaboration succeeded).
