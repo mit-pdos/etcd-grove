@@ -213,6 +213,209 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
     rw [w4096] at this
     exact ⟨this.1, fun _ => this.2⟩
 
+/-- **The split's resources out of the writer's state, a child** (`n`'s parent a live node of
+its bucket). -/
+theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl n : Loc)
+    (rN : NRec) (hn : X1.node bl n = some rN) (hlv : n ∈ X1.live) (hbl : rN.nv.bucket' = bl)
+    (hcap : rN.capOwn = true) (hsp : rN.nv.spilled' = false) (hil : rN.ins.length = rN.ws.length)
+    (hch : rN.nv.children' = slice.nil) (h0 : rN.nv.parent' ≠ null) (rp : NRec)
+    (hrpX : X1.node bl rN.nv.parent' = some rp) (hplv : rN.nv.parent' ∈ X1.live) :
+    wtxW (GF := GF) K tx r m X1 ⊢ ∃ (f : w64) (dqb : DFrac),
+      ⌜¬ float64IsNaN f ∧ r.db = K.db⌝ ∗
+      □ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ reg tx K.B r) ∗
+      statsTok r m 1 ∗ n ↦ rN.nv ∗ rN.nv.inodes' ↦* rN.ins ∗
+      ownSliceCap Inode rN.nv.inodes' (DFrac.own 1) ∗
+      rN.nv.bucket'.[Bucket, go!"FillPercent"] ↦ f ∗ rN.nv.bucket'.[Bucket, go!"tx"] ↦{dqb} tx ∗
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ parentOwn rN.nv.parent' rp.nv rp.cs ∗
+      (∀ xs : List (Loc × node × List Inode), statsTok r m 1 -∗
+        rN.nv.bucket'.[Bucket, go!"FillPercent"] ↦ f -∗
+        rN.nv.bucket'.[Bucket, go!"tx"] ↦{dqb} tx -∗
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db -∗
+        ⌜(xs.map (·.2.2)).flatten = rN.ins⌝ -∗
+        splitPost n rN rp.nv rp.cs xs -∗ splitBack K tx r m X1 bl n rN xs) := by
+  obtain ⟨B, hb, hrn⟩ := node_bs_of hn
+  have hrp : B.ns !! rN.nv.parent' = some rp := by
+    unfold WX.node at hrpX; rw [hb] at hrpX; exact hrpX
+  iintro Hw
+  icases (wtxW_frame K tx r m X1).1 $$ Hw with ⟨Hh, Hfills, Hdb, Hst, Hfr⟩
+  icases splitFr_pers K tx r X1 $$ Hfr with ⟨#Hpers, %Hrdb, Hfr⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X1 $$ Hh
+  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have hpn : rN.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rN hb hrn
+  have hrpp : rp.nv.parent' ≠ rN.nv.parent' := Hok.2.2.2.1 bl B _ rp hb hrp
+  have hnd2 : [n, rN.nv.parent'].Nodup := by simp [Ne.symm hpn]
+  icases wtxHeap_splitX tx X1 bl B [n, rN.nv.parent'] (fun l => if l = n then rN else rp) hb hnd2
+    (by
+      intro l hl
+      simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, _root_.or_false] at hl
+      rcases hl with rfl | rfl
+      · simp [hrn]
+      · simp [hpn, hrp]) $$ Hh
+    with ⟨HL, Hbo, Htf, Hrf, Hback⟩
+  icases fill_acc tx X1 bl Hok.1 (Hok.2.2.2.2.2 bl B hb) $$ [Hrf Hfills]
+    with ⟨%f, %Hnan, Hfp, Hfpb⟩
+  · iframe
+  icases objOwn_bkt_tx_acc X1.v bl _ B $$ Hbo with ⟨%dqb, Htx, Htxb⟩
+  icases BigSepL.bigSepL_cons.1 $$ HL with ⟨HN, HL⟩
+  icases BigSepL.bigSepL_singleton.1 $$ HL with HP
+  simp only [↓reduceIte, if_neg hpn]
+  rw [decide_eq_true hlv, decide_eq_true hplv]
+  icases (objOwn_live_node (GF := GF) X1.v n _ bl rN).1 $$ HN
+    with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+  icases (objOwn_live_node (GF := GF) X1.v _ _ bl rp).1 $$ HP
+    with ⟨Hpn, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
+  icases (ite_true_acc _ hcap).1 $$ Hcap with Hcap
+  rw [hbl]
+  iexists f, dqb
+  rw [htx]
+  unfold parentOwn
+  rw [if_neg h0]
+  iframe Hst Hn Hins Hcap Hfp Htx Hdb Hpn Hpch Hpchcap
+  isplitl []
+  · ipureintro; exact ⟨Hnan, Hrdb⟩
+  isplitl []
+  · iexact Hpers
+  iintro %xs Hst Hfp Htx Hdb %Hflat Hpost
+  icases Hfpb $$ Hfp with ⟨Hrf, Hfills⟩
+  ihave Hbo := Htxb $$ Htx
+  unfold splitPost splitBack parentOwn
+  rw [if_neg h0]
+  icases Hpost with (⟨%Hone, Hn, Hins, Hcap, Hpn, Hpch, Hpchcap⟩ |
+    ⟨%pl, %pv', %pcs', %Hsp, Hps, Hpl, Hplc, Hplcap⟩)
+  · -- unsplit
+    obtain ⟨rfl, hfit⟩ := Hone
+    ihave HN : objOwn X1.v n (DFrac.own 1) true (.node bl rN) $$ [Hn Hins Hcap Hws Hch Hchcap Hkey]
+    · iapply (objOwn_live_node (GF := GF) X1.v n _ bl rN).2
+      iframe
+      iapply (ite_true_acc _ hcap).2
+      iexact Hcap
+    ihave HP : objOwn X1.v rN.nv.parent' (DFrac.own 1) true (.node bl rp)
+      $$ [Hpn Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
+    · iapply (objOwn_live_node (GF := GF) X1.v _ _ bl rp).2
+      iframe
+    icases Hback $$ %([(n, rN), (rN.nv.parent', rp)] : List (Loc × NRec))
+      %([] : List (Loc × NRec)) [] [HN HP] [Hbo] [Htf] [Hrf] [] with ⟨-, Hh⟩
+    · ipureintro
+      refine ⟨rfl, by simpa using hnd2, ?_⟩
+      intro p hp
+      simp only [List.append_nil, List.mem_cons, List.mem_singleton, List.not_mem_nil, _root_.or_false] at hp
+      rcases hp with rfl | rfl
+      · exact hpn
+      · exact hrpp
+    · iapply BigSepL.bigSepL_cons.2
+      simp only [decide_eq_true hlv, decide_eq_true hplv]
+      iframe
+      iapply BigSepL.bigSepL_singleton.2
+      simp only [decide_eq_true hplv]
+      iexact HP
+    · iexact Hbo
+    · iexact Htf
+    · iexact Hrf
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    obtain ⟨rp', hrel⟩ := splitRel_one hb hlv hbl hcap hsp hil hch [(n, rN), (rN.nv.parent', rp)]
+      (by simpa using hnd2) (by simp)
+      (by
+        intro p hp
+        simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, _root_.or_false] at hp
+        rcases hp with rfl | rfl
+        · exact hrn
+        · exact hrp)
+      (by
+        intro p hp
+        simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, _root_.or_false] at hp
+        rcases hp with rfl | rfl
+        · exact Or.inl rfl
+        · exact Or.inr rfl)
+      (fun _ => ⟨rp, by simp⟩)
+    iexists splitX X1 bl B [(n, rN), (rN.nv.parent', rp)] [], [rN.ws], rN.nv.parent', rp'
+    isplitl [Hh Hfills Hdb Hst Hfr]
+    · iapply (wtxW_frame K tx r m _).2
+      rw [splitFr_splitX, splitX_handles]
+      iframe
+    ipureintro
+    refine ⟨hrel, ?_⟩
+    intro x hx; simp at hx; subst hx
+    exact ⟨by rw [← w4096]; exact hfit, fun h => by simp at h⟩
+  · -- split, under n's parent
+    obtain ⟨h2, hpl, hsh, hpa⟩ := Hsp
+    obtain ⟨hplp, hpv, hpcs⟩ : pl = rN.nv.parent' ∧ pv' = { rp.nv with children' := pv'.children' } ∧
+        pcs' = rp.cs ++ (xs.map (·.1)).drop 1 := by
+      rcases hpa with ⟨h, -⟩ | ⟨-, a, b, c⟩
+      · exact absurd h h0
+      · exact ⟨a, b, c⟩
+    subst hplp
+    have hfits := hsh.1
+    icases ptsL_nodup (fun x : Loc × node × List Inode => (x.2.1.inodes' ↦* x.2.2 : IProp GF)) xs
+      $$ Hps with ⟨%Hnd, Hps⟩
+    icases ptsL_notin (fun x : Loc × node × List Inode => (x.2.1.inodes' ↦* x.2.2 : IProp GF)) xs
+      _ pv' $$ [Hpl Hps] with ⟨%Hplx, Hpl, Hps⟩
+    · iframe
+    have hrel := splitRel_child hb hlv hbl hsp hil hch h0 hsh h2 rfl hrp hplv hrpp hpv hpcs Hflat
+      Hnd Hplx
+    obtain ⟨-, x0, rest, rfl, hx0n, hx0s, hrest⟩ := hsh
+    dsimp only at hrel
+    obtain ⟨hA, hB, hC, hD⟩ := hrel
+    ihave Hws := bigSepL2_cut (fun it w => wOwn (GF := GF) X1.v true it w)
+      ((x0 :: rest).map (·.2.2)) rN.ws (by rw [Hflat, hil]) $$ [Hws]
+    · rw [Hflat]; iexact Hws
+    rw [List.map_cons, cutWs]
+    icases BigSepL2.bigSepL2_cons.1 $$ Hws with ⟨Hw0, Hwr⟩
+    icases Hps with ⟨⟨Hx0, Hx0i⟩, Hrest⟩
+    rw [hx0n]
+    ihave HN := headObj X1.v bl n rN x0 (rN.ws.take x0.2.2.length) (by rw [hx0s])
+      (by rw [hx0s]) $$ [Hx0 Hx0i Hw0 Hch Hchcap Hkey]
+    · iframe
+    ihave HT := tailObjs X1.v bl rN rest (rN.ws.drop x0.2.2.length)
+      (fun x hx => by rw [(hrest x hx).2]; exact ⟨rfl, rfl⟩) $$ [Hrest Hwr]
+    · iframe
+    have hi : pv'.inodes' = rp.nv.inodes' := by rw [hpv]
+    have hk : pv'.key' = rp.nv.key' := by rw [hpv]
+    ihave HP : objOwn X1.v rN.nv.parent' (DFrac.own 1) true
+        (.node bl { rp with nv := pv', cs := pcs' }) $$ [Hpl Hplc Hplcap Hpins Hpcap Hpws Hpkey]
+    · iapply (objOwn_live_node (GF := GF) X1.v _ _ bl _).2
+      simp only
+      rw [hi, hk]
+      iframe
+    have e1 : (pieceRecs rN false (x0 :: rest) (cutWs ((x0 :: rest).map (·.2.2)) rN.ws) true).take 1
+        = [(n, splitRec rN x0 (rN.ws.take x0.2.2.length) true false)] := by
+      rw [← hx0n]; rfl
+    have e2 : (pieceRecs rN false (x0 :: rest) (cutWs ((x0 :: rest).map (·.2.2)) rN.ws) true).drop 1
+        = pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false := rfl
+    have hdrop := pieceRecs_drop_fst rN (x0 :: rest)
+    rw [e1] at hA
+    rw [e1, e2] at hB hC hD
+    rw [e2] at hdrop
+    icases Hback $$ %([(n, splitRec rN x0 (rN.ws.take x0.2.2.length) true false)] ++
+        [(rN.nv.parent', { rp with nv := pv', cs := pcs' })] : List (Loc × NRec))
+      %(pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false)
+      [] [HN HP] [Hbo] [Htf] [Hrf] [HT]
+      with ⟨%Hfresh, Hh⟩
+    · ipureintro; exact ⟨hA, hB, hC⟩
+    · iapply (BigSepL.bigSepL_append).2
+      isplitl [HN]
+      · iapply BigSepL.bigSepL_singleton.2; simp only [decide_eq_true hlv]; iexact HN
+      · iapply BigSepL.bigSepL_singleton.2; simp only [decide_eq_true hplv]; iexact HP
+    · iexact Hbo
+    · iexact Htf
+    · iexact Hrf
+    · iexact HT
+    have hrel := hD (fun x hx => by
+        have hm : x.1 ∈ (pieceRecs rN false rest (cutWs (rest.map (·.2.2))
+            (rN.ws.drop x0.2.2.length)) false).map (·.1) := by
+          rw [hdrop]; exact List.mem_map.2 ⟨x, hx, rfl⟩
+        obtain ⟨p, hp, e⟩ := List.mem_map.1 hm
+        rw [← e]; exact Hfresh p hp)
+    iexists _, _, rN.nv.parent', { rp with nv := pv', cs := pcs' }
+    isplitl [Hh Hfills Hdb Hst Hfr]
+    · iapply (wtxW_frame K tx r m _).2
+      rw [splitFr_splitX, splitX_handles]
+      iframe
+    ipureintro
+    refine ⟨hrel, fun x hx => ?_⟩
+    have := hfits x hx
+    rw [w4096] at this
+    exact ⟨this.1, fun _ => this.2⟩
+
 end open_
 
 end Spill
