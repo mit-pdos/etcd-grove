@@ -98,9 +98,9 @@ theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List
     rw [hlen]
     iexists _; iexact H
 
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
 /-- The bytes of the extent from `f` read from `wb'`, which agrees with `wb` wherever an id of
 `fl` is not, are `wb`'s, when `flCurOK` holds of them and `f`'s bytes hold a page header. -/
-omit [GooseSemantics] [GooseInterp] go_gctx hos in
 theorem extentBytes_congr (fl : FLPg) (C : CommitSt) (wb wb' : Nat → List w8) (f : Nat)
     (hf : C.flpg = some f) (h : flCurOK fl C (extentBytes wb f)) (h16 : 16 ≤ (wb f).length)
     (hhwm : C.hwm < 2 ^ 64)
