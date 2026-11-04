@@ -54,6 +54,47 @@ theorem errPtrTyped_mkOk (T : go.GoType) (l : Loc) [GoGlobalContext] :
   cases h
   exact ⟨l, rfl⟩
 
+/-- The probe at `k` inside meta slot 0 reads the meta at `k` of the file. -/
+theorem metaOf_drop_probe (X : List w8) (k : Nat) (hk : k + 80 ≤ 4096) :
+    metaOf ((bytesAt X 0 4096).drop k) = metaOf (bytesAt X k 4096) := by
+  unfold metaOf bytesAt
+  congr 1
+  apply List.ext_getElem?
+  intro i
+  simp only [List.getElem?_take, List.getElem?_drop, List.drop_zero]
+  by_cases hi : i < 64
+  · simp only [hi, ite_true]
+    rw [if_pos (by omega)]
+    rw [if_pos (show 16 + i < 4096 by omega)]
+  · simp only [hi, ite_false]
+
+/-- **What `getPageSize` needs of a committed state's metas** (`C.metaOk`): page 0's meta, if valid,
+has page size 4096; if it is not, page 1's is valid with page size 4096; the probes at 1 and 2 KiB
+are not valid metas. -/
+theorem metaOk_pageSize (X : List w8) (C : CommitSt) (h : C.metaOk)
+    (h0 : C.m0 = bytesAt X 0 4096) (h1 : C.m1 = bytesAt X 4096 4096) :
+    (metaValid (metaOf (bytesAt X 0 4096)) →
+      (metaOf (bytesAt X 0 4096)).pageSize'.toNat = 4096) ∧
+    (¬ metaValid (metaOf (bytesAt X 0 4096)) →
+      metaValid (metaOf (bytesAt X 4096 4096)) ∧
+        (metaOf (bytesAt X 4096 4096)).pageSize'.toNat = 4096) ∧
+    ¬ metaValid (metaOf (bytesAt X 1024 4096)) ∧ ¬ metaValid (metaOf (bytesAt X 2048 4096)) := by
+  obtain ⟨-, -, hps, h1k, h2k, hv, -⟩ := h
+  have s0 : C.slot 0 = C.m0 := by simp [CommitSt.slot]
+  have s1 : C.slot 1 = C.m1 := by simp [CommitSt.slot]
+  refine ⟨fun hv0 => ?_, fun hv0 => ?_, ?_, ?_⟩
+  · have := hps 0; rw [s0, h0] at this; exact this hv0
+  · have hm1 : metaValid (metaOf C.m1) := by
+      unfold CommitSt.slot at hv
+      split at hv
+      · rw [h0] at hv; exact absurd hv hv0
+      · exact hv
+    rw [h1] at hm1
+    refine ⟨hm1, ?_⟩
+    have := hps 1; rw [s1, h1] at this; exact this hm1
+  · rw [h0, metaOf_drop_probe X 1024 (by omega)] at h1k; exact h1k
+  · rw [h0, metaOf_drop_probe X 2048 (by omega)] at h2k; exact h2k
+
 end pure
 
 section spec
@@ -383,6 +424,123 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
       iright
       iframe Hek
       ipureintro; exact ⟨hne, Hpt⟩
+
+/-- **`ErrInvalid` is an `errors.New` error** (`*errorString`): what `getPageSize`'s
+`err != ErrInvalid` needs to tell a read's `*PathError` from it. bbolt's `errors` package facts say
+only `IsPointerError` (`bboltErrVar`, of some pointer type); its initializer
+(`Proof/go_etcd_io/bbolt/errors/Init.lean`, `errors.wp_New_errorString`) knows the type. To
+discharge: `bboltErrVar` with `e.ty = *errorString` (reported, U11). -/
+def errInvalidStr : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ⊢
+    ∃ x : Loc, globalAddr go_etcd_io.bbolt.errors.ErrInvalid ↦□
+      interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x
+
+/-- **`db.getPageSize()`** in `Open`'s owned phase (D18), over a file whose meta slots are a
+committed state's (`C.metaOk`), held whole with its `OsMeta`: the page size 4096, or an error
+(`Stat`'s or a read's; `fmt` formats it). -/
+abbrev DB.getPageSize.spec_own : Prop :=
+  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
+    (xs : List (w8 × Bool)) (C : CommitSt),
+  d.readable = true → d.path = p → xs.length = m.size → 8192 ≤ m.size → m.size < 2 ^ 62 →
+  C.metaOk → C.m0 = bytesAt (xs.map Prod.fst) 0 4096 → C.m1 = bytesAt (xs.map Prod.fst) 4096 4096 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+      db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
+      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p dqm (some m) ∗ osBytes p 0 dqb xs }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"getPageSize")) (Val #()))
+  {{ (sz : w64) (err : GoInterface), RET (PairV #sz #err);
+      db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
+      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p dqm (some m) ∗ osBytes p 0 dqb xs ∗
+      ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨ (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
+
+theorem DB.getPageSize.wp_proof_own
+    (hFirst : DB.getPageSizeFromFirstMeta.spec_own (GF := GF) (hG := hG))
+    (hSecond : DB.getPageSizeFromSecondMeta.spec_own (GF := GF) (hG := hG))
+    (hEI : errInvalidStr (GF := GF) (hG := hG)) :
+    DB.getPageSize.spec_own (GF := GF) (hG := hG) := by
+  intro db f fd p dqdb dqf dq dqm dqb d m xs C hrd hp hxl hsz hsz' hok h0 h1
+  unfold errInvalidStr at hEI
+  obtain ⟨hps0, hm1, hp1, hp2⟩ := metaOk_pageSize _ C hok h0 h1
+  wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hm, Hb⟩
+  ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
+  · iPkgInit
+  ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hep
+  unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
+  icases Hei with ⟨%_, #-, %_, -, #HEi, -⟩
+  unfold go_etcd_io.bbolt.errors.bboltErrVar
+  icases HEi with ⟨%ei0, #HEi, -, #HEiOk⟩
+  icases hEI $$ Hep with ⟨%l0, #HEi2⟩
+  ihave %Hei0 := typedPointsto_agree_wand _ _ _ _ _ $$ HEi HEi2
+  unfold interface.mkOk at Hei0
+  injection Hei0 with Hei0
+  subst Hei0
+  wp_auto
+  wp_apply hFirst db f fd p dqdb dqf dq dqb d xs hrd hp (by omega) (by omega)
+    $$ [Hf Hps Hfo Hfd Hb] as %sz %cr %err ⟨Hf, Hps, Hfo, Hfd, Hb, Hr⟩
+  · iframe; iframe #
+  try wp_auto
+  icases Hr with (%Hr | ⟨#Herr, %Hr⟩ | ⟨%Hr, #Hek⟩)
+  · obtain ⟨rfl, hv, rfl⟩ := Hr
+    wp_auto
+    iapply HΦ
+    iframe
+    ileft
+    ipureintro
+    refine ⟨rfl, ?_⟩
+    show W64 ((metaOf (bytesAt (List.map Prod.fst xs) 0 4096)).pageSize'.toNat : Int) = W64 4096
+    rw [hps0 hv]; rfl
+  · ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ HEi Herr
+    subst Heq
+    wp_auto
+    obtain ⟨hv1, hps1⟩ := hm1 Hr
+    wp_apply hSecond db f fd p dqdb dqf dq dqm dqb d m xs hrd hp hxl hsz hsz' hp1 hp2 hv1 hps1
+      $$ [Hf Hps Hfo Hfd Hm Hb] as %sz2 %cr2 %err2 ⟨Hf, Hps, Hfo, Hfd, Hm, Hb, Hr2⟩
+    · iframe; iframe #
+    try wp_auto
+    icases Hr2 with (%Hr2 | ⟨%Hr2, #Hek2⟩)
+    · obtain ⟨rfl, rfl⟩ := Hr2
+      wp_auto
+      iapply HΦ
+      iframe
+      ileft
+      ipureintro; exact ⟨rfl, rfl⟩
+    · obtain ⟨hne2, hpt2⟩ := Hr2
+      cases err2 with
+      | nil => exact absurd rfl hne2
+      | ok ii =>
+      wp_auto
+      by_cases hty : ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty
+      · obtain ⟨l, hl⟩ := hpt2 ii rfl _ hty
+        rw [if_pos hty, hty, hl]
+        wp_auto
+        by_cases hll : l = l0
+        · rw [decide_eq_true hll]
+          wp_auto
+          cases cr <;> cases cr2 <;> wp_auto <;> iapply HΦ <;> iframe <;>
+            first
+            | (ileft; ipureintro; exact ⟨rfl, rfl⟩)
+            | (iright; iframe HEiOk; ipureintro; intro h; cases h)
+        · rw [decide_eq_false hll]
+          wp_auto
+          iapply HΦ
+          iframe
+          iright
+          iframe Hek2
+          ipureintro; exact hne2
+      · rw [if_neg hty]
+        wp_auto
+        iapply HΦ
+        iframe
+        iright
+        iframe Hek2
+        ipureintro; exact hne2
+  · obtain ⟨pe, rfl⟩ := Hr
+    wp_auto
+    iapply HΦ
+    iframe
+    iright
+    iframe Hek
+    ipureintro; intro h; cases h
 
 end spec
 
