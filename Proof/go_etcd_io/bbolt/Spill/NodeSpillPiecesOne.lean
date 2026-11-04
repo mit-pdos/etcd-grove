@@ -349,8 +349,33 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     exact ⟨rfl, rfl, rfl⟩
   have hparl : ra.nv.parent' = rl.nv.parent' := by
     have := nodeSim_parent hsa; rw [hrl1] at this; exact this
-  trace_state
-  sorry
+  by_cases hp : ra.nv.parent' = null
+  · -- no parent: the stats, done
+    rw [decide_eq_true hp]
+    wp_auto
+    icases wtxW_open K tx r m _ $$ Hw with ⟨#-, #-, #-, Hh, Hv, Hst, Hclose⟩
+    wp_apply (hInc K tx r m 1 (W64 1)) $$ [Hst] as %_ Hst
+    · iframe; iframe #
+    ihave Hw := Hclose $$ %_ [] Hh Hv Hst
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    have hpl : rl.nv.parent' = null := hparl ▸ hp
+    have hv3 : ((X2.setNode bl l (pcRec ra id false)).setBuf id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).v = X2.v :=
+      WX.setNode_v _ _ _ _
+    iapply HΦ $$ %((X2.setNode bl l (pcRec ra id false)).setBuf id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) %w2 %st1 %id
+      [] [Hw] [Hdb] Htxp Hnodep Hres
+    · ipureintro
+      refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], Hfr1, Hal', HC2, Hml2, Hw2, hna,
+        fun h => absurd hpl h, ?_⟩
+      simp only [pcFin, hpl, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true,
+        ↓reduceIte]
+    · iexact Hw
+    · rw [hv3]; iexact Hdb
+  · -- a parent: the put
+    rw [decide_eq_false hp]
+    trace_state
+    sorry
 
 end proof
 
