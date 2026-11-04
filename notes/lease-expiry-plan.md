@@ -855,3 +855,40 @@ a post naming the outcome as `grantPost` does, with `revokeIds`/`revokeRest` fun
 `revokeRes` gains the live set's other half (`ltHalf E T`) and `⌜E.lm = .revocable⌝`; after an
 applied revocation the live set is `T.filter (· != id)`. (The mode-baseline raise 187 → 191 of the
 `lit-mode` bridges is approved.)
+
+## Plumbing: Part X-b, C2b (2026-11-04): the apply layer done, stopped at the KV identity
+
+**Done** (`f18737307f`, on the decision above): `revokeKindOk` and `rqOk`'s live revocation arm at
+`lm = .revocable` (`rqOk_leaseRevoke`); `revokeRes E T rs` with `ltHalf E T` and the mode; the
+revoke specs' posts `kvPost … (fun o => revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs o)`
+(`revokeIds`/`revokeRest` of the outcome, with their `_rejected`/`_nonRevoke`/`_noV3`/`_applied`
+laws); the backend's proof updates the live set (`ltHalf_agree`, `ltHalf_update`; not live:
+`L.filter (· != id) = L`); `dispatch.spec`/`Apply.spec` (and `Apply.specRec`) take and give back
+`revokeOwn E rq` (`rdAt ∗ lessorRevocable` for a revocation, `True` otherwise) and compose
+`revokeIds(A)`/`revokeRest(A)` over the grant's; `chain_revoke` restated with `T`.
+`applyEntryNormal`'s four `Apply` sites supply `revokeOwn` as `True` and drop the wrappers
+(`revokeA_drop`), since no revocation reaches them yet (`plainOrCmpG_rev`). No new axiom or `sorry`.
+
+**Stopped: the KV identity needs a fact `kvInv` does not carry.** To admit a revocation at
+`applyEntryNormal`, `kv_certPre_G`'s revocation case must certify the apply layer's log after the
+outcome, `revokeLog log id = commitLog log (leaseDels (stateAfter log) id)`, from the KV model's
+entry log, `backendLog`'s `if id ∈ lt.ids then commitLog log (revokeChanges …) else log`. They agree
+when the state is lease-free (`mvcc.LeaseZero`: `leaseDels` is `[]`, and `revokeChanges` is `[]` for
+`id ≠ 0`, with `0 ∉` the table's ids by `leaseGrantOk`), and lease-freeness of the model's log
+follows from `plainLogM` (puts carry lease `0`; a grant keeps the log; a revocation commits only
+deletions: `kvRaftSt_restorable`, generalized from `.none`) **given `mvcc.LogNoLease γk.log0`**,
+which `kvInv` does not state (it has `γk.log0 ≠ []`; every allocation has `log0 = [[], []]`).
+Without lease-freeness the two can differ (a key leased to `id ∈ L` but `id ∉ kvLeases γk A`: the
+model's table folds `A` alone, the apply thread's set `appliedTable`'s `pre ++ A`). The apply
+thread's `txn.leasesKnown L s` does not close the gap (case `id ∈ L`, `id ∉ lt`). Options:
+
+- (a) `kvInv`'s conjunct `γk.log0 ≠ []` becomes `γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0`
+  (a strengthening of `kvInv`, a definition the server's exported statements use; its 23 openings
+  and its allocations, all at `log0 = [[], []]`, change mechanically). Recommended.
+- (b) the fact as a premise of `applyEntryNormal.spec`, threaded up the apply loop's specs to
+  etcdstart (spec changes along that chain).
+
+Left for after the decision: `revokePropOk` in `plainEntryM`/`reqPropOk(W)`, the server-side
+revocation case (`srvRest_applyPG`'s, `AppliedTable`'s `T.filter`, the `restRevoke`/`restLeasesWith`
+commute, `revokeOwn` from `srvApplyKV`'s `rdAt` and the revocable lessor), then X6 and the
+mode-gated discharge of `lessorRevokeOk`.
