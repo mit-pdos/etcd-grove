@@ -36,6 +36,7 @@ public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
 public import Proof.go_etcd_io.bbolt.Commit.TailPure
+public import Proof.go_etcd_io.bbolt.Commit.TailDefs
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
@@ -431,93 +432,133 @@ theorem Tx.Commit_err.wp_proof'
       iunfold dbFixed at Hfix2
       icases Hfix2 with ⟨-, -, -, -, -, -, -, -, ⟨%nfs, #Hnfs⟩, -⟩
       try wp_auto
-      cases nfs
-      · -- `commitFreelist`
-        ihave Hw := Hwb $$ Hdbp
-        try wp_auto
-        simp only [WX.withMv_withMv, WX.withMv_mv]
-        generalize hX3 : X2.withMv ({ X2.t.mv with
-          root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket) } : Meta) = X3
-        have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
-        have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
-        have hrl3 : (X3.t.bs !! X3.rl).isSome := by rw [← hX3]; exact hrl2
-        have hwr3 : X3.t.t.writable' = true := by rw [htt3, htt2, htt1]; exact hwr
-        have htx3 : X3.t.mv.txid' = w2.wtxid := by
-          have h1 : X3.t.mv.txid' = X.t.mv.txid' := by rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
-          have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
-          have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
-          rw [h1]
-          unfold WDb.wtxid
-          rw [hC2]
-          apply BitVec.eq_of_toNat_eq
-          rw [← h2, h3]
-          have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
-          word
-        have hmap3 : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms := by
-          rw [← hX3]; exact hmap2
-        have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
-            ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := fun Xd b hd =>
-          cm_derefKeep X3 Xd b hd hwr3 hrl3
-        have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
-            wtxW K tx r false X3 ∗ wdbW K tx X3.v w2 ⊢
-            |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
-          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
-          imodintro
-          iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
-          iframe; iframe #
-        have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
-            w'.C = w2.C → w'.fl = w2.fl →
-            iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
-              wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
-            |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
-          rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
-          obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
-          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
-          imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
-          imodintro
-          iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
-          rw [hC]; iframe; iframe #
-        rw [show X2.v = X3.v from hv3.symm]
-        imod cm_excl_update K r X1 X3 _ $$ Hex with Hex
-        ihave Hex : cmExcl K r X3 (treeData w2.C) $$ [Hex]
-        · rw [hC2]; iexact Hex
-        icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
-        icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
-        wp_apply wp_commitFreelist K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
-          htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
-          (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
-            (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w2 Hw2ok.1 Hbd2.1 Hbd2.2) hrb1 hrb2
-          $$ [Hex Hw Hwdb] as %err2 Hcf
-        · iframe; iframe #
-        icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
-          ⟨%He2, #Hfe2, Hdone⟩)
-        · -- `grow`, `write`, `writeMeta`, `close`
+      -- the freelist's branches join before `grow` (`cmTailOK`), or return an error rolled back
+      wp_bind (If _ _ _)
+      iapply (wp_wand (Φ := fun v => iprop(
+          (⌜v = executeVal⌝ ∗ err_ptr ↦ GoInterface.nil ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
+            ∃ (Xt : WX) (wt : WDb), wtxW K tx r false Xt ∗ wdbW K tx Xt.v wt ∗
+              cmExcl K r Xt (treeData wt.C) ∗ ⌜cmTailOK T.cur Xt wt X1.t.mv.pgid'⌝) ∨
+          (⌜v = returnVal #()⌝ ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
+            ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗ txDoneDef tx))))
+        $$ [Hwb Hdbp Hwdb Hex err Hlgp tx]
+      · cases nfs
+        · -- `commitFreelist`
+          ihave Hw := Hwb $$ Hdbp
+          try wp_auto
+          simp only [WX.withMv_withMv, WX.withMv_mv]
+          generalize hX3 : X2.withMv ({ X2.t.mv with
+            root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket) } : Meta) = X3
+          have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
+          have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
+          have hrl3 : (X3.t.bs !! X3.rl).isSome := by rw [← hX3]; exact hrl2
+          have hwr3 : X3.t.t.writable' = true := by rw [htt3, htt2, htt1]; exact hwr
+          have htx3 : X3.t.mv.txid' = w2.wtxid := by
+            have h1 : X3.t.mv.txid' = X.t.mv.txid' := by rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
+            have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+            have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+            rw [h1]
+            unfold WDb.wtxid
+            rw [hC2]
+            apply BitVec.eq_of_toNat_eq
+            rw [← h2, h3]
+            have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+            word
+          have hmap3 : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms := by
+            rw [← hX3]; exact hmap2
+          have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
+              ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := fun Xd b hd =>
+            cm_derefKeep X3 Xd b hd hwr3 hrl3
+          have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
+              wtxW K tx r false X3 ∗ wdbW K tx X3.v w2 ⊢
+              |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
+            iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+            imodintro
+            iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
+            iframe; iframe #
+          have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
+              w'.C = w2.C → w'.fl = w2.fl →
+              iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
+                wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
+              |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
+            rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
+            obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
+            iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+            imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
+            imodintro
+            iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
+            rw [hC]; iframe; iframe #
+          rw [show X2.v = X3.v from hv3.symm]
+          imod cm_excl_update K r X1 X3 _ $$ Hex with Hex
+          ihave Hex : cmExcl K r X3 (treeData w2.C) $$ [Hex]
+          · rw [hC2]; iexact Hex
+          icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
+          icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+          wp_apply wp_commitFreelist K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
+            htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
+            (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
+              (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w2 Hw2ok.1 Hbd2.1 Hbd2.2) hrb1 hrb2
+            $$ [Hex Hw Hwdb] as %err2 Hcf
+          · iframe; iframe #
+          icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
+            ⟨%He2, #Hfe2, Hdone⟩)
+          · -- joins the tail
+            imod cm_excl_update K r X3 (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))) _
+              $$ Hex with Hex
+            ihave Hex : cmExcl K r (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl)))
+                (treeData w4.C) $$ [Hex]
+            · rw [Hal.2.1]; iexact Hex
+            subst He2
+            try wp_auto
+            ileft
+            isplitr
+            · ipureintro; rfl
+            iframe err Hlgp tx
+            iexists X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl)), w4
+            rw [show (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))).v = X4.v from rfl]
+            iframe
+            ipureintro
+            sorry
+          · -- `commitFreelist` failed (rolled back): log, return the error
+            obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
+              cases err2 with
+              | nil => exact absurd rfl He2
+              | ok ii => exact ⟨ii, rfl⟩
+            irename Hfe2 => Hfe1
+            try wp_auto
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sl ⟨Hsl, -⟩
+            try wp_auto
+            wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
+              (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
+            · iframe
+            · try simp only [List.zip_cons_cons, List.zip_nil_left]
+              isplitl
+              · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
+              · iempintro
+            try wp_auto
+            iright
+            isplitr
+            · ipureintro; rfl
+            iframe; iframe #
+            ipureintro; exact He2
+        · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
+          ihave Hw := Hwb $$ Hdbp
+          try wp_auto
           sorry
-        · -- `commitFreelist` failed (rolled back): log, return the error
-          obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
-            cases err2 with
-            | nil => exact absurd rfl He2
-            | ok ii => exact ⟨ii, rfl⟩
-          irename Hfe2 => Hfe1
-          try wp_auto
-          wp_apply wp_slice_literal
-          isplitr
-          · ipureintro; rfl
-          iintro %sl ⟨Hsl, -⟩
-          try wp_auto
-          wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
-            (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
-          · iframe
-          · try simp only [List.zip_cons_cons, List.zip_nil_left]
-            isplitl
-            · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
-            · iempintro
-          try wp_auto
-          cm_return
-      · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
-        ihave Hw := Hwb $$ Hdbp
+      iintro %v Hv
+      icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
+        ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
+      · subst hv
         try wp_auto
         sorry
+      · subst hv
+        cases e1 with
+        | nil => exact absurd rfl He1
+        | ok ii =>
+        try wp_auto
+        cm_return
     · -- the synced freelist page `f` freed (`store_free_fl`): the writer side's weaker invariant
       -- from here on (batch 44's flagged `wdbW'`)
       rw [decide_eq_false hnf]
