@@ -336,13 +336,27 @@ theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG
       (wFractional_sep (wFractional_bigSepM _ _ (fun w st => memberRes_fractional γ σ w st))
       (wFractional_sep (wFractional_persistent _) (wFractional_pure _))))))))))))))))))
 
+/-- The lock's slot is fractional (its parts agree on the pending revision). -/
+theorem wsSlot_fractional (γ : WsNames) (L : Log) : Fractional (fun q => wsSlot (GF := GF) γ q L) := by
+  unfold wsSlot
+  refine fractional_exists_agree _ (fun p => wFractional_sep
+    (wFractional_half (wFractional_half (api.pndPart_fractional γ.st.api p))) (wFractional_pure _)) ?_
+  intro p1 p2 q1 q2
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  iapply api.pndPart_agree γ.st.api _ _ p1 p2
+  iframe H1 H2
+
+theorem relAuth_fractional (γ : WsNames) (L : Log) : Fractional (fun q => relAuth (GF := GF) γ q L) := by
+  unfold relAuth
+  exact wFractional_sep (monoNatAuthOwn_fractional γ.rel L.length) (wsSlot_fractional γ L)
+
 /-- **The lock invariant is fractional** (through the tree's pending fractionality): two parts
 agree on the state through `γ.wst`. -/
 theorem watchStoreInv_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : WsNames) : Fractional (watchStoreInv (GF := GF) s γ) := by
   unfold watchStoreInv
   refine fractional_exists_agree _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
-    (wFractional_sep (monoNatAuthOwn_fractional γ.rel σ.Lmu.length)
+    (wFractional_sep (relAuth_fractional γ σ.Lmu)
       (wFractional_sep (wsFields_fractional s γ) (wFractional_persistent _)))) ?_
   intro σ1 σ2 q1 q2
   unfold watchStoreBody

@@ -192,7 +192,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
     [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
   -- (D25) the committed log is released
+  iunfold mvcc.relAuth at Hrel
+  icases Hrel with ⟨Hrel, Hslot⟩
   ihave #HrlC0 := monoNatLbOwn_get γ.rel 1 _ $$ Hrel
+  ihave Hrel : mvcc.relAuth γ 1 σ.Lmu $$ [Hrel Hslot]
+  · iunfold mvcc.relAuth; iframe Hrel Hslot
   ihave #HrlC : mvcc.relLb γ C.length $$ []
   · iunfold mvcc.relLb; rw [HCL]; iexact HrlC0
   wp_auto

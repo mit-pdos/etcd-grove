@@ -3,6 +3,7 @@ Proof of the spec of the same name (D22 receiver epochs, S6). Lean-first (no Roc
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
@@ -437,7 +438,14 @@ theorem mvcc.watchableStore.Restore.wp_proof
   ihave HwlL : monoListAuthOwn γ.wlog (1 : Qp).half L $$ [HwlL]
   · rw [HLL]; iexact HwlL
   imod mvcc.wlog_update_halves γ L L' hLR $$ HwlW HwlL with ⟨HwlW, HwlL⟩
+  iunfold mvcc.relAuth at Hrel
+  icases Hrel with ⟨Hrel, Hslot⟩
   imod mono_nat_own_update L'.length hLL' $$ Hrel with ⟨Hrel, -⟩
+  -- the API's slot at the restored log (a placeholder until `KV.Restore.contract`)
+  ihave Hrel : mvcc.relAuth γ 1 L' $$ [Hrel Hslot]
+  · iunfold mvcc.relAuth; isplitl [Hrel]
+    · iexact Hrel
+    · iapply (mvcc.wsSlot_step_M1 L'); iexact Hslot
   ihave Hmem' : [∗map] w ↦ x ∈ (σ.restoreSt L').ST, mvcc.memberRes γ 1 (σ.restoreSt L') w x $$ [Hmem]
   · rw [show (σ.restoreSt L').ST = mvcc.gmapMapK (fun w st => if (σ.Ws !! w).isSome then
         mvcc.setRestore st else st) σ.ST from rfl]

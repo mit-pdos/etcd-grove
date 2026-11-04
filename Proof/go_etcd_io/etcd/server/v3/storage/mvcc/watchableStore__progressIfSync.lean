@@ -324,7 +324,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
-      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrel" ∷ mvcc.relAuth γ sync.rfrac σ.Lmu ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
       "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
@@ -502,7 +502,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
-      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrel" ∷ mvcc.relAuth γ sync.rfrac σ.Lmu ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
       "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS)) $$ Hm

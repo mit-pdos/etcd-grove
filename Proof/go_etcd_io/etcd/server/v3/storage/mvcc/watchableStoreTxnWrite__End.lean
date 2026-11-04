@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
@@ -505,6 +506,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
   · iunfold mvcc.evLog; iframe Hsl Hok
   -- (D25) the revision released before its events go out: the released length bumped
+  iunfold mvcc.relAuth at Hrel
+  icases Hrel with ⟨Hrel, Hslot⟩
   imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
   ihave #Hrlb : mvcc.relLb γ (ilog ++ [pend]).length $$ []
   · iunfold mvcc.relLb; iexact Hrl
@@ -531,6 +534,11 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩
   (try wp_auto)
+  -- the API's slot at the notified log (a placeholder until `Txn.End.contract`'s notify step)
+  ihave Hrel : mvcc.relAuth γ 1 (σ'.Lmu ++ [pend]) $$ [Hrel Hslot]
+  · iunfold mvcc.relAuth; isplitl [Hrel]
+    · iexact Hrel
+    · iapply (mvcc.wsSlot_step_M1 (σ'.Lmu ++ [pend])); iexact Hslot
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel Hwsf]
   · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
       refine ⟨?_, ?_⟩

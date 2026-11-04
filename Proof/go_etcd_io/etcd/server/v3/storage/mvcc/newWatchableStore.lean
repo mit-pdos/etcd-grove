@@ -10,6 +10,7 @@ public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchFrac
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
 
 @[expose] public section
@@ -108,6 +109,10 @@ theorem mvcc.newWatchableStore.wp_proof
   -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
   ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw Hwsd]
   · iunfold mvcc.wsFields; iexists st; iframe store Hfw; iunfold mvcc.wsDep at Hwsd; iexact Hwsd
+  -- the API's slot (strict M1): the lock's quarter of the pending revision, which today's
+  -- `NewStore` does not return (a placeholder until `New.spec`)
+  ihave Hrel : mvcc.relAuth γ 1 mvcc.wsInit.Lmu $$ [Hrel]
+  · iunfold mvcc.relAuth; iframe Hrel; iapply mvcc.wsSlot_make_M1
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel Hwsf]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit

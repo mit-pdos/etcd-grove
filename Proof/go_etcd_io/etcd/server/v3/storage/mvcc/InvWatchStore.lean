@@ -1619,10 +1619,26 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
     "#Hout" ∷ ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ∗
     "%Hok" ∷ ⌜WsOk σ⌝)
 
-/-- The released length's authority at a log of the same length (`watchStoreInv`'s, re-established
-after a step that keeps the notified log). -/
+/-- **A pending revision agrees with the notified log**: a pending revision is the notified log's
+last (the watchable `End` notifies, extending the notified log, before it bumps). -/
+def pndOk (Lmu : Log) (p : Option (List Change)) : Prop :=
+  ∀ ps, p = some ps → Lmu.getLast? = some ps
+
+/-- **The watchable store's lock's part of the API's ghost state** (the mvcc API, stage 1, strict
+M1; `notes/mvcc-api-invariants.md` §1) at fraction `q`: a quarter of `q` of the pending revision,
+agreeing with the lock's notified log `Lmu`. -/
+def wsSlot (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
+  iprop(∃ p : Option (List Change), api.pndPart γ.st.api q.half.half p ∗ ⌜pndOk Lmu p⌝)
+
+/-- **The lock's parts at the notified log `Lmu`** (D25; the mvcc API, stage 1): the released
+length's authority at `Lmu`'s length, and the API's slot (`wsSlot`). -/
+def relAuth (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
+  iprop(monoNatAuthOwn γ.rel q Lmu.length ∗ wsSlot γ q Lmu)
+
+/-- The lock's parts at a log equal to the notified log (`watchStoreInv`'s, re-established after a
+step that keeps the notified log). -/
 theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
-    monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
+    relAuth (GF := GF) γ q L1 ⊢ relAuth γ q L2 := by
   subst h; exact .rfl
 
 /-- **The watchable store's share of its inner store's fields** (D22 receiver epochs, S3,
@@ -1664,7 +1680,7 @@ instance wsFields_fractional (s : Loc) (γ : WsNames) : Fractional (wsFields (GF
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
 section); D22 receiver epochs, S3: with the share of the inner store's fields (`wsFields`). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
-  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
+  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ relAuth γ q σ.Lmu ∗
     wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length ∧ σ.unsRst⌝)
 
 /-! ## The store -/

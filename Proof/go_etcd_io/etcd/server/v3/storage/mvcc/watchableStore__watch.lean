@@ -718,13 +718,13 @@ theorem mvcc.watchableStore.watch.wp_proof
   -- under `s.mu` the committed log is the notified one
   icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
     [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
-  ihave Hrel : monoNatAuthOwn γ.rel 1 C.length $$ [Hrel]
+  ihave Hrel : mvcc.relAuth γ 1 C $$ [Hrel]
   · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu C HCL.symm); iexact Hrel
   ihave Hwlog : mvcc.wlogQ γ 1 C $$ [Hwlog]
   · rw [HCL]; iexact Hwlog
   ihave Hwlog : mvcc.wlogQ γ 1 σ.Lmu $$ [Hwlog]
   · rw [← HCL]; iexact Hwlog
-  ihave Hrel : monoNatAuthOwn γ.rel 1 σ.Lmu.length $$ [Hrel]
+  ihave Hrel : mvcc.relAuth γ 1 σ.Lmu $$ [Hrel]
   · iapply (mvcc.relAuth_of_eq γ _ C σ.Lmu HCL); iexact Hrel
   ihave %HCwf : ⌜C.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
