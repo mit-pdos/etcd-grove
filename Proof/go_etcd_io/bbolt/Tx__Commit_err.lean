@@ -754,7 +754,77 @@ theorem Tx.Commit_err.wp_proof'
           ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
         · subst hv
           try wp_auto
-          sorry
+          -- `write`: the dirty pages, possibly past the file's end
+          wp_apply time.wp_Now as %t2 -
+          try wp_auto
+          have hpre' := cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre
+          icases (cm_keep_pure (cm_wdbW_ok K tx Xt.v wg)) $$ Hwdb with ⟨Hwdb, %Hwgok⟩
+          iunfold wdbW at Hwdb
+          icases Hwdb with ⟨Hwl, -⟩
+          icases (cm_keep_pure (cm_wdbLive_mapLen K.B K.db K.p K.sp K.t0 tx _ wg)) $$ Hwl
+            with ⟨Hwl, %Hml⟩
+          have hms : wg.ms = some (Xt.v.base, mapLen wg.ms) := Hwgok.2.1
+          have hmapl : Xt.t.mv.pgid'.toNat * 4096 ≤ mapLen wg.ms := by rw [Hgr.2.2.1]; exact hmapt
+          obtain ⟨hbok, hsub, hW, hlen, hinW⟩ :=
+            cm_write_pre T.cur Xt wg _ _ hpre' Hwgok.1 hms hmapl
+          have hsz63 : wg.m.size < 2 ^ 63 := Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.1
+          wp_apply cm_write_step wp_write K tx r Xt (wLive Xt.v wg.C) wg Xt.v.base (mapLen wg.ms) hms
+            (Hwgok.1.1 _ _ hms) hsz63 (by omega) hpre'.1 hbok hpre'.2.2.1 hsub hW hlen hinW
+            $$ [Hw Hwl] as %err4 ⟨%pml, %m', %wb', %Hm', Hw, Hres⟩
+          · iframe
+          have hsub' : ∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
+              s ∈ wg.W := by
+            intro s hs
+            rcases List.mem_append.1 hs with h | h
+            · exact hsub s h
+            · exact ((mem_cmTail _ _ _ s).1 h).2.1
+          have hmax : m'.size ≤ max wg.m.size (mapLen wg.ms) := Hm'.2.1
+          icases Hres with (⟨%He4, %Hch, Hwl, HSB⟩ | ⟨%He4, #Hfe4, Hwl⟩)
+          · sorry
+          · -- `write` failed: log, roll back, return the error
+            obtain ⟨ii, rfl⟩ : ∃ ii, err4 = GoInterface.ok ii := by
+              cases err4 with
+              | nil => exact absurd rfl He4
+              | ok ii => exact ⟨ii, rfl⟩
+            try wp_auto
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sl ⟨Hsl, -⟩
+            try wp_auto
+            wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
+              (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
+            · iframe
+            · try simp only [List.zip_cons_cons, List.zip_nil_left]
+              isplitl
+              · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe4
+              · iempintro
+            try wp_auto
+            have hok4 := wdbOK_written wg m' _ wb' Hwgok.1 hsub' Hm'.1 hmax (by omega) Hm'.2.2.1
+              Hm'.2.2.2 (cm_rest wg _ _ hinW) (by rw [Hgr.1]; exact hflt)
+            imod cm_excl_update K r Xt (Xt.clearPages pml) _ $$ Hex with Hex
+            ihave Hend := cm_wtxEnd_live K tx r (Xt.clearPages pml)
+              (wg.reslot m' ((bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ wMinus wg.W (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))) (wbUpd (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)) hwrt hrlt
+              $$ [Hw Hwl Hex]
+            · iframe; iframe #
+              isplitl [Hwl]
+              · iunfold wdbW
+                isplitl
+                · rw [WX.clearPages_v, WDb.reslot.proj_C]; iexact Hwl
+                · ipureintro; exact ⟨hok4, Hwgok.2.1, Hwgok.2.2⟩
+              · rw [WDb.reslot.proj_C, Hgr.1]; iexact Hex
+            have htxg : (Xt.clearPages pml).t.mv.txid' =
+                W64 (((wg.reslot m' ((bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ wMinus wg.W (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))) (wbUpd (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).C.txid + 1 : Nat) : Int) := by
+              rw [WX.clearPages_mv, htxt, WDb.reslot.proj_C, Hgr.1]; rfl
+            wp_apply wp_rollback K tx r (Xt.clearPages pml) (wLive (Xt.clearPages pml).v (wg.reslot m' ((bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ wMinus wg.W (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))) (wbUpd (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).C)
+              (wg.reslot m' ((bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ wMinus wg.W (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))) (wbUpd (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb))
+              ⟨Xt.v, _, false, true, rfl, htxg,
+                ⟨fun _ => by rw [WDb.reslot.proj_ms, hms]; simp, fun _ => rfl⟩, fun _ => rfl,
+                fun h => absurd h (by simp)⟩
+              $$ [Hend] as Hdone
+            · iexact Hend
+            irename Hfe4 => Hfe1
+            cm_return
         · subst hv
           cases e1 with
           | nil => exact absurd rfl He1

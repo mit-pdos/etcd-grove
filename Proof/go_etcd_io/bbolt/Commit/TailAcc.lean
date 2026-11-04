@@ -141,6 +141,14 @@ theorem cm_file_acc (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (t
   simp only [WDb.reslot]
   iframe
 
+/-- The writer side's mapping is at most `maxMapSize` long. -/
+theorem cm_wdbLive_mapLen (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc)
+    (ws : WSt) (w : WDb) :
+    wdbLive (GF := GF) B db p sp t0 tx ws w ⊢ ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF⌝ := by
+  unfold wdbLive wdbCoreG
+  iintro ⟨⟨-, -, -, -, -, -, -, -, -, -, -, -, Hmf, -⟩, -⟩
+  iapply cm_mapFields_len db _ w.ms $$ Hmf
+
 end acc
 
 end bbolt
