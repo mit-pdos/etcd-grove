@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSMatT
 public import Proof.go_etcd_io.bbolt.Rebalance.RblMat
 public import Proof.go_etcd_io.bbolt.Write.MatOK
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXShape
 
 @[expose] public section
 
@@ -36,8 +37,8 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
         ry'.nv.unbalanced' = true →
         ∃ ry, B.ns !! y = some ry ∧ ry.nv.unbalanced' = true ∧ ry'.nv.pgid' = ry.nv.pgid' := by
   obtain ⟨B, hb, hpp⟩ := hpos
-  obtain ⟨⟨htw, hpm, hhwm, htx, hrlS⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU, hX, hPL, hOD, hRH⟩ :=
-    hI
+  obtain ⟨⟨htw, hpm, hhwm, htx, hrlS⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU, hX, hPL, hOD, hRH, hLS,
+    hPS⟩ := hI
   obtain ⟨hrb, hbmt, hnest0, -, hlive⟩ := hBk bl B hb
   rw [if_pos rfl] at hrb
   have hrb' := hrb
@@ -129,6 +130,27 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
   rw [hB'] at hB1; cases hB1
   let B' := matBkt B w.pgid parent l rp' r
   have hrid' : r.nv.pgid' = w.pgid := by rw [hrid, hid]
+  -- U8f: the materialized page is under a page position of `B` (`posShape`), with exact keys
+  have hposw : posRoot B w.pgid.toNat := by
+    refine Or.inr ⟨parent, i, ?_, BitVec.isLt _⟩
+    rw [Write.w64_toNat_cast]
+    exact ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩
+  have htkw : ∃ lo hi, treeKeys X.v.pages w.pgid.toNat lo hi := by
+    obtain ⟨-, -, kind, hkd⟩ := (hk.2.2 parent rp hrp).2.2.1 hbr
+    obtain ⟨pg', hpg', -, -, -, htk⟩ := (hkd i w hw).2 hnone
+    exact ⟨_, _, htk⟩
+  obtain ⟨lo, hi, htkw⟩ := htkw
+  have hkeysEM : ∀ j < pageCount pg, (pageKey pg j).length ≤ bboltEntryMax :=
+    pageKeys_le_of_treeKeysN X.v.pages w.pgid.toNat bboltEntryMax
+      (fun p pg0 ho hp hf j hj => by
+        have := (hPS bl B hb _ p pg0 hposw ho hp hf j hj).2.1.2; omega)
+      _ _ _ htkw (ownHas.root _ pg hpg) pg hpg
+  have hkeysMax : bl = X.rl → ∀ j < pageCount pg, (pageKey pg j).length ≤ maxKeySize := by
+    intro hroot
+    have hBr : X.t.bs !! X.rl = some B := by rw [← hroot]; exact hb
+    exact Write.pageKeys_le_of_treeKeys X.v.pages _ (Write.posShape_rootLeaf X hPS B hBr _ hposw)
+      _ _ _ htkw (ownHas.root _ pg hpg) pg hpg
+  have hd9 : r.ws.map wDat = (pageWs pg).map wDat := by rw [hrws, mat_pageWsAs_wDat]
   -- the extents
   have hext : ∀ c q, X'.posExtent c q = X.posExtent c q := by
     intro c q
@@ -219,11 +241,31 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
   have hliveB : X'.liveB = X.liveB := by rw [hX']
   have hobjB : ∀ k, (X.t.bobjs !! k).isSome = true → (X'.t.bobjs !! k).isSome = true :=
     bobjs_isSome_mono X.t X'.t (fun k hk => by rw [hX']; exact hk) (fun c h => by rw [hbs]; exact h)
+  -- U8f: the root shapes (the new node's leaf entries from its page under the position `w.pgid`;
+  -- its children's positions under it)
+  have hshape : leafShape X' ∧ posShape X' := by
+    refine shapes_frame X X' bl B (matBkt B w.pgid parent l rp' r) hvv hrl' hb hbsX ?_ ?_ hLS hPS
+    · intro y ry' hy hlf x hx
+      rcases hB'cases y ry' hy with ⟨rfl, rfl⟩ | ⟨-, ry0, h1, h3, h4, -⟩
+      · exact Or.inl (Write.newNode_shape pg ry' (bl = X.rl) hd9 hrleaf (fun hf j hj =>
+          (hPS bl B hb _ _ pg hposw (ownHas.root _ pg hpg) hpg hf j hj).1) hlf x hx)
+      · exact Or.inr ⟨y, ry0, h1, by rw [← h3]; exact hlf, by rw [← h4]; exact hx⟩
+    · intro c p hc' ho
+      unfold posRoot at hc'
+      rcases hc' with h1 | ⟨y, j, hp, hlt⟩
+      · exact ⟨c, Or.inl h1, ho⟩
+      · rcases mat_pos X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr
+          hp' y j _ hp with ⟨-, hfb, hj, hce⟩ | ⟨hp0, -⟩
+        · have hce' : c = branchPgid pg j :=
+            w64_natCast_inj _ _ hlt (Write.branchPgid_lt pg j) hce
+          subst hce'
+          exact ⟨_, hposw, ownHas.child _ pg j p hpg hfb hj ho⟩
+        · exact ⟨c, Or.inr ⟨y, j, hp0, hlt⟩, ho⟩
   refine ⟨⟨⟨by rw [hX']; exact htw, by rw [hX']; exact hpm, by rw [hX']; exact hhwm,
       by rw [hX']; exact htx, by rw [hrl', hbs]; exact hrlS⟩, ?_, ?_, ?_, ?_, ?_,
       by rw [hvv]; exact hV, ?_, Write.flView_congr X X' fl hvv hlc hFV,
       by unfold covU; rw [hcovW]; exact hU, by rw [hvv]; exact hX, hPL, ?_,
-      fun c hc' => by rw [hrl']; rw [hX']; exact hRH c (by rw [← hbs]; exact hc')⟩, ?_, ?_⟩
+      fun c hc' => by rw [hrl']; rw [hX']; exact hRH c (by rw [← hbs]; exact hc'), hshape⟩, ?_, ?_⟩
   · -- buckets
     intro c C hC
     rw [hbsX] at hC
@@ -269,36 +311,24 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
     · rename_i hcb; subst hcb; cases hC
       rcases hB'cases y ry hy with ⟨hyl, hre⟩ | ⟨-, ry0, h1, h2, h3, -⟩
       · subst ry; subst y
-        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_,
-          -- item 3/batch 43.4: a root-bucket key at most `MaxKeySize` (the view page's: a leaf's
-          -- by `posShape`'s name clause, a branch's by exact branch keys): OPEN, owner U8
-          fun _ => sorry⟩
-        -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry:
-        -- OPEN, owner U8 (as `Write/MatOK.newNodeBnd`, U7)
-        by_cases hlf' : r.nv.isLeaf' = false
-        · sorry
-        have hlf : r.nv.isLeaf' = true := by simpa using hlf'
-        by_cases hnb : isBktFlag x.flags
-        · sorry
         obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hxw
-        have hd : r.ws.map wDat = (pageWs pg).map wDat := by rw [hrws, mat_pageWsAs_wDat]
-        obtain ⟨hjl, hjd⟩ := mat_at hd j x hj
-        have hfl : pageFlags pg = leafPageFlag := by
-          rw [hrleaf] at hlf; simpa using hlf
-        obtain ⟨e1, -, e3, e4⟩ := mat_wDat_eq hjd
-        obtain ⟨f1, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
-        rw [e1, f1] at hnb
-        have h2 : leafFlags pg j % 2 = 0 := by
-          have : ¬ (leafFlags pg j % 2 = bucketLeafFlag) :=
-            fun h => hnb ((mat_isBktFlag_iff _ (mat_leafFlags_lt pg j)).2 h)
-          unfold bucketLeafFlag at this; omega
-        have hbd := Write.viewWF_leafBnd X.v hV _ pg hpg hfl j hjl h2
-        rw [e3, f3, e4, f4]
-        unfold leafKey leafValue bytesAt
-        have := List.length_take_le (leafKsize pg j) (pg.drop (elemOff j + leafPos pg j))
-        have := List.length_take_le (leafVsize pg j)
-          (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
-        omega
+        obtain ⟨hjl, hjd⟩ := mat_at hd9 j x hj
+        obtain ⟨-, -, e3, e4⟩ := mat_wDat_eq hjd
+        have hkey : x.key = pageKey pg j := by rw [e3, mat_pageW_key]
+        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_,
+          fun hroot => by rw [hkey]; exact hkeysMax (by rw [hroot, hrl']) j hjl⟩
+        by_cases hfl : pageFlags pg = leafPageFlag
+        · obtain ⟨-, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
+          have hbd := (hPS _ B hb _ _ pg hposw (ownHas.root _ pg hpg) hpg hfl j hjl).2.1.2
+          rw [e3, f3, e4, f4]
+          unfold leafKey leafValue bytesAt
+          have := List.length_take_le (leafKsize pg j) (pg.drop (elemOff j + leafPos pg j))
+          have := List.length_take_le (leafVsize pg j)
+            (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
+          omega
+        · have hv0 : x.value = [] := by rw [e4]; unfold pageW; rw [if_neg hfl]
+          rw [hv0, List.length_nil, Nat.add_zero, hkey]
+          exact hkeysEM j hjl
       · rw [h3] at hxw
         rw [hrl']; exact hEB c B hb y ry0 h1 x hxw
     · rw [hrl']; exact hEB c C hC y ry hy x hxw

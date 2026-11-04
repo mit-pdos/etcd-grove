@@ -5,7 +5,7 @@
   bucket cache's buckets in the transaction, its nested buckets' entries, its logical tree finite
   with its leaves at one depth (`rtOK`), its nodes live; entries bounded, handles, live set,
   registry, the view well-formed, the live objects reached, and the records agreeing with the
-  writer's freelist (`flView`);
+  writer's freelist (`flView`); (U8f) `txClean`'s root shapes `leafShape` and `posShape`;
   The covered slots are covered once (`covU`); the view's page extents end below `2^62` and
   the pending entries' ids and allocating transactions align (what `Free` and `flView` need of
   a free).
@@ -46,7 +46,9 @@ def rblX (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) : Prop :=
   flView X fl ∧ covU X ∧
   (∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) ≤ 2 ^ 62) ∧
   (∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) ∧ objsDisj X.t ∧
-  ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome
+  (∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome) ∧
+  -- U8f: `txClean`'s root shapes (`leafShape`, `posShape`), kept by every step
+  leafShape X ∧ posShape X
 
 /-- **What the steps so far kept, grew and freed** (see the module doc). -/
 def rblRel (X0 : WX) (fl0 : FLPg) (X : WX) (fl : FLPg) (txid : w64) : Prop :=
@@ -148,7 +150,7 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     (hrni : rootNotInline X0)
     (hbal : ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.unbalanced' = false) :
     rebalOK X0 X fl0 fl txw ∧ liveReach X ∧ flView X fl := by
-  obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -, -, -, -, -⟩ := hI
+  obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -, -, -, -, -, hLS, hPS⟩ := hI
   have hR' := hR
   obtain ⟨hv, hh, hrl', hnl, -, -, -, -, -, -, -, es, hcan, hfl, hes⟩ := hR'
   have hBn : ∀ bl B, X.t.bs !! bl = some B → rblB X.v X.t.mv.pgid'.toNat bl B none := by
@@ -156,7 +158,6 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     have := (hB bl B hb).1
     rwa [ite_self] at this
   have hbufs' : X.t.bufs = ∅ := hR.2.2.2.2.2.2.2.1.trans hbufs
-  -- batch 30: txClean's `leafShape`; batch 35: `posShape` (rblX to carry them; owner U8d/U8e)
   -- batch 37: the root bucket stays not inline (`rblRel` keeps the headers)
   have hrni' : rootNotInline X := by
     intro B hb
@@ -167,7 +168,7 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     | some B0 =>
       rw [(hR.2.2.2.2.2.2.2.2.2.1 X0.rl B0 B hb0 hb).2.1]
       exact hrni B0 hb0
-  refine ⟨⟨⟨⟨hw, ⟨hpm, hbufs', sorry, sorry, hrni'⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
+  refine ⟨⟨⟨⟨hw, ⟨hpm, hbufs', hLS, hPS, hrni'⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
       fun bl B hb => ⟨?_, (hB bl B hb).2.2.1⟩, ?_, hEB, hH, hL, hN, hV⟩,
     wtxData_rblRel X0 X fl0 fl txw hR, hv, hh, hrl', hnl, ?_, ?_,
     fun bl hne => (hB bl _ (Option.ne_none_iff_exists'.1 hne).choose_spec).2.2.2.1,

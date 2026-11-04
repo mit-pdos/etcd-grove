@@ -175,7 +175,9 @@ theorem rblX_rm' (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (r : NRec)
       · rw [hpl'] at hy; cases hy
         exact ⟨y, rp, hrp, rfl, List.mem_of_mem_eraseIdx hx⟩
       · exact ⟨y, ry', hy', rfl, hx⟩)
-    hk3 hB' hent ((kill_rtOK X bl B' n rn bl).2 hrt') hlvx hfl hlr hcan ⟨pg, hpg, rfl⟩
+    hk3 (fun y j c hp => ⟨_, _, rm_pos X.v _ bl B n r pl rp i w sI sC hc hr hleaf hpl hpn hrp hw hwp
+      h2 y j c hp⟩)
+    hB' hent ((kill_rtOK X bl B' n rn bl).2 hrt') hlvx hfl hlr hcan ⟨pg, hpg, rfl⟩
   exact ⟨h1, h2', hp0, h2⟩
 
 end rm

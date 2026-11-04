@@ -203,7 +203,9 @@ theorem rblX_col' (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (rn : NRe
         exact ⟨lc, rc, hrc, hlf.symm, by rw [← hws']; exact hx⟩
       · rw [if_neg hyn] at hlf hws'
         exact ⟨y, ry, hry, hlf.symm, by rw [← hws']; exact hx⟩)
-    hk3 hB' hent ((kill_rtOK X bl B' lc rn' bl).2 hrt') hlvx hfl hlr hcan ⟨pg, hpg, rfl⟩
+    hk3 (fun y j c hp => ⟨_, _, (col_pos X.v _ bl B n rn w0 lc rc hc ha hrn hbr hpn hws hlc hrc sI
+      y j c hp).2⟩)
+    hB' hent ((kill_rtOK X bl B' lc rn' bl).2 hrt') hlvx hfl hlr hcan ⟨pg, hpg, rfl⟩
   exact ⟨h1, h2', hp0, hunb⟩
 
 end col

@@ -86,6 +86,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     (k2b : ∀ y ry', B'.ns !! y = some ry' → ∀ w ∈ ry'.ws, ∃ y2 ry2, B.ns !! y2 = some ry2 ∧
       ry2.nv.isLeaf' = ry'.nv.isLeaf' ∧ w ∈ ry2.ws)
     (k3 : ∀ y ry, B.ns !! y = some ry → y ≠ n → (B'.ns !! y).isSome = true)
+    (kpp : ∀ y j c, pagePosAt B' y j c → ∃ y' j', pagePosAt B y' j' c)
     (hB' : rblB X.v X.t.mv.pgid'.toNat bl B' dfc')
     (hent : ∀ k v, entryIn X.v B k v → entryIn X.v B' k v)
     (hrt : rtOK (X.kill bl B' n rn) bl)
@@ -96,8 +97,14 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     (hcan : fl.canFree txid E N) (hpg : ∃ pg, X.v.pages !! E.toNat = some pg ∧ 1 + pageOverflow pg = N) :
     rblX (X.kill bl B' n rn) (fl.freePages txid E N) bl dfc' ∧
       rblRel X fl (X.kill bl B' n rn) (fl.freePages txid E N) txid := by
-  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, -, -, hX, hPL, hOD, hRH⟩ :=
-    hI
+  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, -, -, hX, hPL, hOD, hRH, hLS,
+    hPS⟩ := hI
+  have hshape : leafShape (X.kill bl B' n rn) ∧ posShape (X.kill bl B' n rn) :=
+    shapes_frame X (X.kill bl B' n rn) bl B B' rfl rfl hb (kill_look X bl B' n rn)
+      (fun y ry' hy hl w hw => by
+        obtain ⟨y2, ry2, h2, hl2, hw2⟩ := k2b y ry' hy w hw
+        exact Or.inr ⟨y2, ry2, h2, by rw [hl2]; exact hl, hw2⟩)
+      (posRoot_of_pagePos k1.1 k1.2.1 kpp _) hLS hPS
   have hdom : ∀ c, ((X.kill bl B' n rn).t.bs !! c).isSome = (X.t.bs !! c).isSome := by
     intro c; rw [kill_look]; split
     · subst c; rw [hb]; rfl
@@ -151,7 +158,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     bobjs_isSome_mono X.t (X.kill bl B' n rn).t (fun _ h => h) (fun c h => by rw [hdom]; exact h)
   obtain ⟨pg, hpgE, hNe⟩ := hpg
   refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, hfl.1, hfl.2,
-    hX, freePages_len fl txid E N hPL, ?_, fun c h => hRH c (by rw [← hdom]; exact h)⟩, ?_⟩
+    hX, freePages_len fl txid E N hPL, ?_, fun c h => hRH c (by rw [← hdom]; exact h), hshape⟩, ?_⟩
   · -- the buckets
     intro c C hC
     obtain ⟨C0, hC0, hcase⟩ := hback c C hC

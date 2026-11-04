@@ -284,7 +284,9 @@ theorem rblX_mg (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (pl : Loc) 
     (fun y ry' hy => by
       obtain ⟨-, -, -, -, -, hw⟩ := hlook y ry' hy
       exact hw)
-    hk3 hB' hent ((kill_rtOK X bl B' lr rn' bl).2 hrt') hlvx hfl hlr' hcan ⟨pg, hpg, rfl⟩
+    hk3 (fun y j c hp => ⟨_, _, (mg_pos X.v _ bl B pl rp k wl wr ll lr rl rr hc ha hpn hrp hbr hwl hwr
+      hll hlr hrl hrr sI sC sI' sC' hkind y j c hp).2⟩)
+    hB' hent ((kill_rtOK X bl B' lr rn' bl).2 hrt') hlvx hfl hlr' hcan ⟨pg, hpg, rfl⟩
   exact ⟨h1, h2', hp0, hunb⟩
 
 end steps

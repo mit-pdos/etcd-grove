@@ -10,6 +10,7 @@ module
 public import Proof.go_etcd_io.bbolt.Rebalance.RblX
 public import Proof.go_etcd_io.bbolt.Rebalance.RblFrame
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSObjs
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXShape
 
 @[expose] public section
 
@@ -221,8 +222,16 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     (hB' : rblB X.v X.t.mv.pgid'.toNat bl B' dfc')
     (hent : ∀ k v, entryIn X.v B k v → entryIn X.v B' k v) :
     rblX (X.setBkt bl B') fl bl dfc' ∧ rblRel X fl (X.setBkt bl B') fl txid := by
-  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU, hX, hPL, hOD, hRH⟩ := hI
+  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU, hX, hPL, hOD, hRH, hLS,
+    hPS⟩ := hI
   have hdom := sim_dom X bl B B' hb hs
+  have hshape : leafShape (X.setBkt bl B') ∧ posShape (X.setBkt bl B') :=
+    shapes_frame X (X.setBkt bl B') bl B B' rfl rfl hb (setBkt_look X bl B')
+      (fun y ry' hy _ w hw => by
+        obtain ⟨ry, hry, e⟩ := hs.2.2.2.2.2.2.2.2 y ry' hy
+        exact Or.inr ⟨y, ry, hry, by rw [← e.2.2.2.2.2.2.1]; assumption, by rw [← e.1]; exact hw⟩)
+      (posRoot_of_pagePos hs.1 hs.2.1 (fun y j c hp => ⟨y, j, (pagePosAt_sim hs y j c).1 hp⟩) _)
+      hLS hPS
   -- buckets of X' from X's
   have hback : ∀ c C, (X.setBkt bl B').t.bs !! c = some C → ∃ C0, X.t.bs !! c = some C0 ∧
       (c = bl ∧ C0 = B ∧ C = B' ∨ c ≠ bl ∧ C = C0) := by
@@ -247,7 +256,7 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
       fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h)⟩
   refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, ?_, ?_, hX, hPL, ?_,
-    fun c h => hRH c (by rw [← hdom]; exact h)⟩, ?_⟩
+    fun c h => hRH c (by rw [← hdom]; exact h), hshape⟩, ?_⟩
   · intro c C hC
     obtain ⟨C0, hC0, hcase⟩ := hback c C hC
     obtain ⟨h1, h2, h3, h4, h5⟩ := hBk c C0 hC0
