@@ -190,6 +190,44 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
       cap := hpar.2.2.2.2.2.1.trans hl.cap
       live := hlive'' }⟩
 
+/-- **The loop's next child** `c` (the `i`-th of `n`'s children): its spill's pre, and from its
+success the invariant at `i + 1` (a spilled child, `spLoop_spilled`; an unspilled one, an
+entry's child, `spLoop_child`). What the children loop's body needs of the pure layer. -/
+theorem spLoop_next {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {D0 : List Nat} {N0 : List Loc} {E0 : List El}
+    {X' : WX} {w' : WDb} {r' : NRec} {es : List UE} {i : Nat} {st : List FLStep}
+    {T : List Loc} {c : Loc}
+    (hl : spLoop X w bl n r O lo hi h D0 N0 E0 X' w' r' es i st T)
+    (hc : r'.cs[i]? = some c) (hnn : n ≠ null) :
+    ∃ (rc : NRec) (O' : List Nat) (lo' hi' : Option (List w8)) (h' : Nat) (F' D' : List Nat)
+      (N' : List Loc) (E' : List El) (cs' : SpCase),
+      X'.node bl c = some rc ∧ spPre X' w' bl c rc O' lo' hi' h' F' D' N' E' cs' ∧
+      ∀ (X'' : WX) (w'' : WDb) (st' : List FLStep),
+        spDone X' X'' w' w'' bl c rc O' lo' hi' h' D' N' E' cs' st' →
+        ∃ r'' es' T', spLoop X w bl n r O lo hi h D0 N0 E0 X'' w'' r'' es' (i + 1) (st ++ st') T' := by
+  have hcm : c ∈ r'.cs := List.mem_of_getElem? hc
+  have hG : spG X' w'.wtxid (mapLen w'.ms) := by
+    rw [wtxid_of_C hl.step.1]; exact hl.step.2.2.2.1
+  rcases hl.br.cs c hcm with ⟨e, he, hec⟩ | hs
+  · obtain ⟨j, Fc, Dc, Nc, Ec, hj, rc, hrc, hsp⟩ := uBr_ch_unspilled hl.br he hec
+    obtain ⟨rc', hrc', -, hpre⟩ := spLoop_childPre hl hj hnn
+    rw [hrc] at hrc'; cases hrc'
+    refine ⟨rc, _, _, _, h, Fc, Dc, Nc, Ec, _, hrc, hpre, fun X'' w'' st' hd => ?_⟩
+    exact spLoop_child hl hc hj hsp hd
+  · obtain ⟨hlv, rc, hrc, hbk, hsp, hcs0, hne0⟩ := hs
+    refine ⟨rc, O, none, none, 0, [], [], [], [], .top, hrc,
+      spLoop_spilledPre ⟨hlv, rc, hrc, hbk, hsp, hcs0, hne0⟩ hrc hG
+        O none none 0 [] [] [] [] .top, fun X'' w'' st' hd => ?_⟩
+    obtain ⟨hstep, hcase⟩ := hd
+    rcases hcase with ⟨-, rfl, rfl⟩ | ⟨hsp', -⟩
+    · obtain ⟨hl', -⟩ := spLoop_spilled hl hc hrc hsp
+      have hDn : ∀ s ∈ ownSl X''.v r'.nv.pgid' ++ es.flatMap UE.D,
+          s ∈ D0 ∨ newSlot (st ++ st') X.t.mv.pgid'.toNat s := fun s hs =>
+        (hl'.Dn s hs).imp_right fun h0 =>
+          newSlot_mono h0 (fun x hx => List.mem_append_left _ hx) (Nat.le_refl _)
+      exact ⟨r', es, T, { hl' with step := spStep_trans hl.step hstep, Dn := hDn }⟩
+    · rw [hsp] at hsp'; cases hsp'
+
 end child
 
 end Spill
