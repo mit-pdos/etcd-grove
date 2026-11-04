@@ -147,6 +147,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     DB.allocate.spec (GF := GF) (hG := hG) := by
   intro K tx r m X w txid count htxid hc0 hc hhwm hdp hlf hlr
   subst htxid
+  unfold errMaxSizeOk at hErrMax
   wp_start as ⟨Hw, Hdb⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   icases BC.core_allocFields K $$ Hcore with ⟨#Hps, #Has, ⟨%mx, #Hmx⟩, ⟨%lg, #Hlg, #Hlgok⟩,
@@ -294,14 +295,90 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iapply fmtErrorOk_of_errorf ei Hty $$ HiS
         · iintro %hok
           obtain ⟨rfl, hsz⟩ := hok
+          ihave %hgoos : ⌜goosLinux⌝ $$ []
+          · iapply goosLinux_of_pkgInit $$ Hpkg
+          ihave %hgoarch : ⌜goarchAmd64⌝ $$ []
+          · iapply goarchAmd64_of_pkgInit $$ Hpkg
+          unfold goosLinux at hgoos
+          unfold goarchAmd64 at hgoarch
+          rw [hgoos]
           wp_auto
-          sorry
+          wp_apply hGrowSize $$ []
+          · iframe #
+          try wp_auto
+          by_cases hgt : sint.Z mx < sint.Z (growSizeOf nms ((pg + count + W64 1) * W64 4096))
+          · rw [decide_eq_true hgt, hgoarch]
+            wp_auto
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sl ⟨Hsl, -⟩
+            try wp_auto
+            wp_apply hLogger K.db lg Hdb $$ []
+            · iframe; iframe #
+            try wp_auto
+            cases lg with
+            | nil => unfold boltLogger; iexfalso; iexact Hlgok
+            | ok li =>
+            simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl,
+              show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
+              show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl,
+              show sint.nat (W64 (0 + 1 + 1 + 1 + 1)) = 4 from rfl,
+              List.set_cons_succ, List.set_cons_zero]
+            wp_apply wp_boltLog li _ _ [W8 115, W8 115, W8 100, W8 100, W8 100] _
+              [interface.mkOk go.string #(go!"linux"), interface.mkOk go.string #(go!"amd64"),
+                interface.mkOk go.int #((pg + count + W64 1) * W64 4096),
+                interface.mkOk go.int #(growSizeOf nms ((pg + count + W64 1) * W64 4096)),
+                interface.mkOk go.int #mx] _ iprop(True) _
+              (by decide) (by decide) rfl $$ Hlgok [Hsl] [] [] as Hsl -
+            · iframe
+            · log_args_ok
+            try wp_auto
+            icases hErrMax $$ Hpkg with ⟨%e, #He, %hep, #HeOk⟩
+            wp_auto
+            iframe
+            iright
+            isplitr
+            · ipureintro; rfl
+            iexists GoInterface.ok e
+            iframe
+            isplitr
+            · ipureintro; exact fun h => nomatch h
+            iexact HeOk
+          · rw [decide_eq_false hgt]
+            wp_auto
+            iframe
+            ileft
+            ipureintro; rfl
       · rw [decide_eq_false hmx]
         wp_auto
         iframe
         ileft
         ipureintro; rfl
     iintro %v ⟨db, minsz, «$res0», Hv⟩
+    icases Hv with (⟨%hv, «$res1»⟩ | ⟨%hv, %e, «$res1», %hne, #HeOk⟩)
+    rotate_left
+    · -- `MaxSize`'s error: nothing changed
+      subst hv
+      wp_auto
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact hne
+      iframe HeOk
+      ileft
+      isplitl [Hwback Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+      · iapply Hwback $$ %X.t [] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+        · ipureintro; exact ⟨rfl, rfl, rfl⟩
+        · iframe
+      isplitl
+      · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
+        · iexists wa
+          iframe
+        · iframe
+      · ipureintro; exact Hwok
+    subst hv
+    wp_auto
     sorry
   icases Hflo with (⟨%h0, -⟩ | ⟨%hcan, Hflo⟩)
   · exact absurd h0 hr0
