@@ -170,6 +170,89 @@ theorem wp_curMeta_Freelist (hFreelist : internal.common.Meta.Freelist.spec (GF 
     ihave H1 := C1 $$ M1
     iapply HΦ; iframe
 
+omit package_sem in
+/-- Two halves of a points-to, as the whole. -/
+theorem pt_join_lf {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
+    typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
+      typedPointsto l v (DFrac.own (1 : Qp).half) ⊢ typedPointsto l v (DFrac.own 1) := by
+  refine ((typedPointsto_dfractional (GF := GF) l v).dfractional
+    (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2.trans ?_
+  rw [DFrac.op_own, Qp.half_add_half]
+
+omit package_sem in
+/-- The idle writer side's parts `loadFreelist` touches (for `freepages` and the publish), and
+the side back with any freelist. -/
+theorem wdbCore_lf (B : BNs) (db : Loc) (p : GoString) (w : WDb) :
+    wdbCore (GF := GF) B db p w ⊢
+      ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
+      ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+      db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli ∗
+      db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
+      (∀ (fl : FLPg) (fli : GoInterface),
+        ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half fl ∗
+        ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+        db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
+        db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
+        wdbCore B db p { w with fl := fl, fli := fli }) := by
+  unfold wdbCore wdbCoreG
+  iintro ⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hop, Hrest⟩
+  iframe Hcur Hfl Hmap Hwv Hfli Hop
+  iintro %fl %fli ⟨Hcur, Hfl, Hmap, Hwv, Hfli, Hop⟩
+  iframe
+
+/-- The loaded freelist `FLPg.ofInit ids`'s facts (`Model/Store.storeOK_setFl`'s premise). -/
+theorem ofInit_loadOK (C : CommitSt) (ids : List w64) (hnd : ids.Nodup)
+    (h2 : ∀ x ∈ ids, 2 ≤ x.toNat) (hlt : ∀ x ∈ ids, x.toNat < C.hwm)
+    (hcov : ∀ x ∈ ids, ¬ coversSlot C.pages x.toNat) (hhwm : C.hwm < 2 ^ 62)
+    (htx : C.txid < 2 ^ 62) :
+    (FLPg.ofInit ids).WF ∧ (FLPg.ofInit ids).pending = ∅ ∧ flBelow (FLPg.ofInit ids) C none ∧
+      (∀ x ∈ (FLPg.ofInit ids).free, ¬ coversSlot C.pages x.toNat) ∧
+      (FLPg.ofInit ids).allocs = ∅ := by
+  have hmem : ∀ x, x ∈ (FLPg.ofInit ids).free ↔ x ∈ ids := fun x => mem_sortPgids_lf ids x
+  have hall : (FLPg.ofInit ids).allIds = sortPgids ids := by
+    unfold FLPg.allIds; rw [ofInit_pendingIds, List.append_nil]; rfl
+  have hlen := nodup_below_length ids C.hwm hnd hlt
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩, rfl, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl⟩
+  · rw [hall]; exact (sortPgids_perm ids).nodup_iff.2 hnd
+  · intro x hx; rw [hall] at hx; exact h2 x ((sortPgids_perm ids).mem_iff.1 hx)
+  · exact sortPgids_incr hnd
+  · rw [hall, (sortPgids_perm ids).length_eq]; omega
+  · intro t p hp; rw [ofInit_pending] at hp; cases hp
+  · intro x hx; exact hlt x ((hmem x).1 hx)
+  · intro t pd x hp; rw [ofInit_pending] at hp; cases hp
+  · intro t pd hp; rw [ofInit_pending] at hp; cases hp
+  · omega
+  · intro x hx; have := hlt x ((hmem x).1 hx); omega
+  · intro x hx; rw [ofInit_pendingIds] at hx; cases hx
+  · intro x hx; exact hcov x ((hmem x).1 hx)
+
+/-- `freepages`' ids are off the tree's pages. -/
+theorem freeIdsOf_cov (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64) (hx : x ∈ freeIdsOf C) :
+    ¬ coversSlot C.pages x.toNat := by
+  unfold freeIdsOf at hx
+  obtain ⟨s, hs, rfl⟩ := List.mem_map.1 hx
+  obtain ⟨hr, hc⟩ := List.mem_filter.1 hs
+  rw [List.mem_range'_1] at hr
+  have hs' : (W64 (s : Int)).toNat = s := by simp; omega
+  rw [hs']
+  simpa using hc
+
+/-- **Gap (unsynced `loadFreelist`)**: the store's freelist set to the loaded one once
+`freepages`' read transaction is gone. `Model/Store.storeOK_setFl` needs `σ.R = ∅`, true here (the
+only reader since the core phase, `freepages`', has deregistered) but recorded by no invariant:
+`pagesInv`'s readers `σ.R` are hidden, and nothing `Open` holds excludes a registered reader. A
+shared-statement gap (reported): e.g. `freepages`' spec could give back a witness that its
+reader left, or `Open` could hold an exclusive token every reader registration needs until the
+freelist is published. -/
+theorem open_setFl_gap (B : BNs) (N : Namespace) (p : GoString) (C : CommitSt) (fl : FLPg)
+    (hfl : fl.WF ∧ fl.pending = ∅ ∧ flBelow fl C none ∧
+      (∀ x ∈ fl.free, ¬ coversSlot C.pages x.toNat) ∧ fl.allocs = ∅) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half FLPg.empty ∗ ghostVar B.wv (1 : Qp).half wIdle ⊢
+    |={⊤}=> ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
+      ghostVar B.wv (1 : Qp).half wIdle := by
+  sorry
+
 theorem DB.loadFreelist.wp_proof_open
     (hNF : newFreelist.spec (GF := GF) (hG := hG))
     (hSync : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
@@ -211,7 +294,132 @@ theorem DB.loadFreelist.wp_proof_open
     · iframe
     have hxL : xs.length ≤ L := by omega
     rcases hfp : C.flpg with _ | g
-    · sorry
+    · -- no synced freelist: the core phase first, then `freepages` on it
+      simp only [decide_true, Bool.not_true, Bool.not_false]
+      have hysl : (xs.map Prod.fst).length = xs.length := List.length_map ..
+      ihave Hb' := Hmcw $$ Hmc
+      ihave Hb := (bytes_half_quarters b _).2 $$ [Hb Hb']
+      · iframe
+      icases open_carve p b L C xs vf himg htree hhwm h8 hxL $$ [Hxs Hb Hc] with
+        ⟨Hmo1, Hmo2, HSo, HWo, Hq1, Hq2, HSc, HWc⟩
+      · iframe
+      rw [hxm]
+      have hok' : storeOK { openSigma b L C (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096) with
+          fl := FLPg.empty } :=
+        storeOK_open (xs.map Prod.fst) C b L himg hmeta htree (by rw [hysl]; exact hhwm)
+          (by rw [hysl]; omega) (by rw [hysl]; omega) htx2
+      ihave Hrop : flRoOpt (GF := GF) interface.nil ∅ $$ []
+      · unfold flRoOpt; simp only [↓reduceIte]; iempintro
+      imod open_core_fl ⊤ N db sp f fd p C b L m
+        (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
+        FLPg.empty interface.nil rfl hok' ⟨htx1, htx2⟩ hN hdb $$
+        [Hfix Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
+          HWo Hq1 Hq2 HSc HWc] with ⟨%B, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate⟩
+      · iframe Hpkg Hos Hfix Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+        iframe
+      ihave Hcore' := Hcore
+      iunfold isBoltCoreP at Hcore'
+      icases Hcore' with ⟨-, -, -, -, -, -, #Hmlk, -, -, #Hpinv, -⟩
+      -- `freepages`, on the spare reader pair
+      icases wdbCore_lf _ _ _ _ $$ Hw with ⟨Hcur, Hgfl, Hmap, Hwv, Hfl2, Hop2, Hwb⟩
+      have hhwm62 : C.hwm ≤ 2 ^ 62 := by omega
+      wp_auto
+      wp_apply hFP ⟨B, N, db, p, sp, C.txid⟩ C b L hmeta htree hhwm62 $$
+        [Hcore Hsp Hcur Hmap Hop2] as %s ⟨Hs, Hcap, %hidsF, Hsp, Hcur, Hmap, Hop2⟩
+      · unfold BC.core; iframe Hcore; iframe
+      ihave #Hflpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist $$ []
+      · iPkgInit
+      wp_apply hInit fli s (freeIdsOf C) hidsF.1 hidsF.2.1 hidsF.2.2 $$ [Hflo Hs Hcap] as Hflo
+      · iframe
+      -- publish under `metalock`, now shared
+      wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hmlk] as ⟨Hlk, HR⟩
+      iunfold metaR at HR
+      icases HR with ⟨%C', %F, %cl, %fli', %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk',
+        Hfa, Hro', %Hok, %HF⟩
+      icombine Hcur Hcur' gives % ⟨_, hC⟩
+      subst hC
+      icombine Hcls Hcls' gives % ⟨_, hcl⟩
+      subst hcl
+      icombine Hfl2 Hfl' gives %hfli
+      subst hfli
+      ihave Hfl2 := pt_join_lf _ _ $$ [Hfl2 Hfl']
+      · iframe
+      try wp_auto
+      icases pt_halves _ _ $$ Hfl2 with ⟨Hfl2, Hfl'⟩
+      -- gap: no reader is registered any more (`freepages`' has left), so `F` is empty
+      have hF : F = ∅ := by
+        sorry
+      subst hF
+      have hnd : (freeIdsOf C).Nodup := hidsF.1.imp (fun {x y} h e => by subst e; omega)
+      have hld := ofInit_loadOK C (freeIdsOf C) hnd hidsF.2.1
+        (fun x hx => (freeIdsOf_facts C (by omega) x hx).1) (freeIdsOf_cov C (by omega))
+        (by omega) htx2
+      imod open_setFl_gap B N p C _ hld $$ [Hcur Hgfl Hwv] with ⟨Hcur, Hgfl, Hwv⟩
+      · iframe; iexact Hpinv
+      wp_apply sync.Mutex.wp_Unlock _ (metaR B db p) $$
+        [$Hsync $Hmlk $Hlk Hcur' Hst' Hcls' Hop' Hfl' Hwa' Hob Hmlk' Hfa Hro]
+      · iunfold metaR
+        iexists C, ∅, false, fli, wa
+        simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte]
+        iframe
+        isplitl [Hro]
+        · unfold flRoOpt; simp only [hfli, ↓reduceIte]; iexists []; iframe; ipureintro; simp
+        ipureintro
+        exact ⟨fun _ => Hok rfl, fun k t h => by simp at h⟩
+      ihave Hw := Hwb $$ %(FLPg.ofInit (freeIdsOf C)) %fli [Hcur Hgfl Hmap Hwv Hfl2 Hop2]
+      · iframe
+      have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) := by
+        unfold lfW openWb
+        refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
+          (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_
+        · intro x hx; exact freeIdsOf_facts C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
+        · intro g' hg'; rw [hfp] at hg'; cases hg'
+      ihave Hw : wdbCore B db p (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) $$ [Hw]
+      · unfold lfW openWb; simp only [openW]; iexact Hw
+      generalize FLPg.ofInit (freeIdsOf C) = fl0 at hwok ⊢
+      -- the free count under `statlock`
+      ihave Hcore' := Hcore
+      iunfold isBoltCoreP at Hcore'
+      icases Hcore' with ⟨-, -, -, -, -, -, -, -, #Hslg, -⟩
+      by_cases hsp : sp = null
+      · try wp_auto
+        rw [decide_eq_true hsp]
+        wp_auto
+        iapply HΦ'
+        iunfold lfPost
+        iexists B, fl0, fli
+        unfold lfW openWb
+        iframe Hcore Hpool
+        iframe
+        ipureintro; exact hwok
+      · try wp_auto
+        rw [decide_eq_false hsp]
+        try wp_auto
+        wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hsync $Hslg] as ⟨Hsw, HPs⟩
+        iunfold Ps at HPs
+        simp only [hsp, ↓reduceIte]
+        icases HPs with ⟨%st, Hs⟩
+        icases typedPointsto_not_null_dup _ _ _ $$ Hs with ⟨Hs, %Hspn⟩
+        iStructNamed Hs
+        try wp_auto
+        wp_apply hFC fli fl0 $$ [Hflo] as Hflo
+        · iframe
+        try wp_auto
+        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hsw TxStats FreePageN PendingPageN FreeAlloc
+          FreelistInuse TxN OpenTxN]
+        · iunfold Ps; simp only [hsp, ↓reduceIte]
+          iexists { st with FreePageN' := W64 (fl0.free.length : Int) }
+          iapply typedPointsto_combine _ _ _ Hspn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        try wp_auto
+        iapply HΦ'
+        iunfold lfPost
+        iexists B, fl0, fli
+        unfold lfW openWb
+        iframe Hcore Hpool
+        iframe
+        ipureintro; exact hwok
     -- the synced freelist page: read it before the core phase
     simp only [reduceCtorEq, decide_false, Bool.not_false, Bool.not_true]
     wp_auto
