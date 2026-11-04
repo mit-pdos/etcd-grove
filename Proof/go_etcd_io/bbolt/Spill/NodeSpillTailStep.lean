@@ -11,7 +11,7 @@ nil (`pcRec`'s `r.k0`: `n.key = n.inodes[0].Key()`, a non-empty key).
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInv
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPcPre
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailStepState
 
 @[expose] public section
@@ -57,7 +57,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hd : objsDisj Xi.t) (hfv : ∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none)
     (hlr : insLens rl.ins rl.ws) :
     pcInv X w bl n rn O lo hi h D N E cs xs pl (i + 1) X3 w2 (st ++ st') := by
-  obtain ⟨rl', hrl', -, -, hpp⟩ := pcInv_pre hpre hsp xs pl i Xi wi st x hI hx
+  obtain ⟨rl', hrl', -, -, hpp⟩ := pcInv_pre' hpre hsp xs pl i Xi wi st x hI hx
   rw [hrl] at hrl'; cases hrl'
   replace hpp := hpp hlr
   obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hsr, hfit, rfl,
