@@ -1,8 +1,9 @@
 /-
 `node.spill` after its children's loop (U9s, `notes/bbolt-proof-plan.md`; pure): **the pieces'
 loop's invariant** (`pcInv`) and the facts `Spill/NodeSpillTailWp.spillTail_gen` takes of it
-(`tail_pre`, `pcInv_step`, `pcInv_err`, `pcInv_end`, `pcInv_done`,
-`pcInv_top`), which `Spill/NodeSpillPieces.spillTail_wp` passes it.
+(`tail_pre`, `pcInv_err`, `pcInv_end`, `pcInv_top`), which `Spill/NodeSpillPieces.spillTail_wp`
+passes it; the step is `Spill/NodeSpillTailStep.pcInv_stepX`, the end without a new root
+`Spill/NodeSpillTailDoneMain.pcInv_doneX`.
 
 The invariant, at iteration `i` of the loop over the split's pieces `xs` (under the parent `pl`),
 relative to the spill's start `(X, w)` (`n`'s record `rn`) through the state after the children's
@@ -307,19 +308,6 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         · exact hplN (hcsN pl hm)
         · rw [node_none_of_objs hm] at hrp; cases hrp
 
-/-- **A piece's step** keeps the invariant. -/
-theorem pcInv_step {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (xs : List (Loc × node × List Inode)) (pl : Loc) (i : Nat) (Xi : WX) (wi : WDb)
-    (st : List FLStep) (x : Loc × node × List Inode) (rl : NRec) (X3 : WX) (w2 : WDb)
-    (st' : List FLStep) (id : w64)
-    (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) (hx : xs[i]? = some x)
-    (hrl : Xi.node bl x.1 = some rl)
-    (hs : pcStep Xi wi bl x.1 rl (pcCount (insSize rl.ins)) X3 w2 st' id) :
-    pcInv X w bl n rn O lo hi h D N E cs xs pl (i + 1) X3 w2 (st ++ st') := by
-  sorry
-
 /-- **An error at iteration `i`**: the error's facts from the spill's start. -/
 theorem pcInv_err {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc} {E : List El}
@@ -369,16 +357,6 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   refine ⟨rk, hrk, hlv, hpar, hch, hcs, fun hpl => ?_⟩
   obtain ⟨rpi, hrpi, hplv, -⟩ := hL.par hpl
   exact ⟨rpi, hrpi, hplv⟩
-
-/-- **The post without a new root** (the child case, or an unsplit top node). -/
-theorem pcInv_done {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (xs : List (Loc × node × List Inode)) (pl : Loc) (Xf : WX) (wf : WDb) (st : List FLStep)
-    (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl xs.length Xf wf st)
-    (hc : pl = null ∨ ∃ rp, Xf.node bl pl = some rp ∧ rp.nv.pgid' ≠ W64 0) :
-    spDone X Xf w wf bl n rn O lo hi h D N E cs st := by
-  sorry
 
 /-- **The new root's spill** (a top node split in two or more): its pre, and its success giving
 `n`'s. -/
