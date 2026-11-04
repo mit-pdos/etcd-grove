@@ -1309,8 +1309,8 @@ of them. At the server's stop they are not collectable:
   `watchableStore.Close` returns only its loops' `wsLoopN`.
 
 The Go code agrees that this is a real condition: `Cleanup` closes the backend whatever the request
-path is doing (etcd's `embed` stops the gRPC servers before `Server.Stop`; `EtcdServer.Stop`
-alone does not), and a read on a closed bbolt transaction fails. Options:
+path is doing (etcd's `embed.Close` stops the gRPC servers before `Server.Stop`, `stopServers` under a
+`ReqTimeout` deadline, `server/embed/etcd.go`; `EtcdServer.Stop` alone does not), and a read on a closed bbolt transaction fails. Options:
 1. **A cancelable reader pool and a quiescent request path** (recommended): a general Perennial
    change, `ThreadPool` with a cancelable invariant whose cancel, with every loan back
    (`ownTokAuth γ 0`), returns the copies; the stop's caller gives back the request path's loans
