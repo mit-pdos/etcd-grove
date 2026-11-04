@@ -85,6 +85,26 @@ theorem wdbW_file_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
     · ipureintro; exact Hwok
   · ipureintro; exact Hwok
 
+/-- A mapping's length facts, the fields kept. -/
+theorem mapFields_pure (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
+    mapFields (GF := GF) db dq (some (b, l)) ⊢
+      ⌜l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF⌝ ∗ mapFields (GF := GF) db dq (some (b, l)) := by
+  simp only [mapFields]
+  iintro ⟨H1, H2, H3, H4, %h⟩
+  isplitr
+  · ipureintro; exact h.2.2
+  iframe
+  ipureintro; exact h
+
+/-- Bytes' bounds, the bytes kept. -/
+theorem bytes_bounds_keep (l : Loc) (dq : DFrac) (bs : List w8) (h : bs ≠ []) :
+    bytesPointsto (GF := GF) l dq bs ⊢
+      ⌜0 < l.addr ∧ l.addr + bs.length ≤ maxAddr⌝ ∧ bytesPointsto (GF := GF) l dq bs := by
+  iintro H
+  isplit
+  · iapply internal.common.bytesPointsto_in_bounds l dq bs h $$ H
+  · iexact H
+
 /-- A `bool` field's points-to as the heap's. -/
 theorem bool_heap (l : Loc) (dq : DFrac) (b : Bool) :
     l ↦{dq} b ⊢ heapPointsto (GF := GF) l dq #b := by
@@ -321,6 +341,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   icases mapFields_agree K.db _ _ _ _ _ _ $$ [Hmft Hmfw] with ⟨%hag, Hmft, Hmfw⟩
   · iframe
   obtain ⟨hb0', rfl⟩ := hag
+  icases mapFields_pure K.db _ _ _ $$ Hmfw with ⟨%hal, Hmfw⟩
   rw [hXd] at hpb
   ihave Hmft : mapFields K.db (DFrac.own (1 : Qp).half.half) (some (b0, l) : MapSt) $$ [Hmft]
   · rw [← hb0', hXd]; iexact Hmft
@@ -581,7 +602,166 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   iintro -
   wp_pures
   wp_auto
-  sorry
+  -- the metas (step 8): `db.meta0/1 = db.page(0/1).Meta()`, both `Validate`d
+  ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
+  · iPkgInit
+  have hm0ne : w.C.m0 ≠ [] := fun h => by rw [h] at hm0; simp at hm0
+  have hm1ne : w.C.m1 ≠ [] := fun h => by rw [h] at hm1; simp at hm1
+  icases bytes_bounds_keep base _ w.C.m0 hm0ne $$ H0b with ⟨%Hb0, H0b⟩
+  icases bytes_bounds_keep _ _ w.C.m1 hm1ne $$ H1b with ⟨%Hb1, H1b⟩
+  rw [hm0] at Hb0
+  rw [hm1] at Hb1
+  replace Hb1 : 0 < (base +ₗ (4096 : Int)).addr ∧ (base +ₗ (4096 : Int)).addr + 4096 ≤ maxAddr := Hb1
+  wp_apply hPage K.db base (W64 0) (DFrac.own 1) hbpos (by decide) $$ [Hdd] as Hdd
+  · iframe; iframe #
+  rw [show (((0 * 4096 : Nat)) : Int) = 0 from rfl, loc_add_0]
+  wp_apply hMeta base hbpos (by omega)
+  try wp_auto
+  wp_apply hPage K.db base (W64 1) (DFrac.own 1) hbpos (by decide) $$ [Hdd] as Hdd
+  · iframe; iframe #
+  rw [show (((1 * 4096 : Nat)) : Int) = 4096 from rfl]
+  wp_apply hMeta (base +ₗ (4096 : Int)) Hb1.1 (by omega)
+  try wp_auto
+  have e0 : base +ₗ (16 : Int) = base +ₗ ((16 : Nat) : Int) := by simp
+  have hl0' : 16 + 64 ≤ w.C.m0.length := by omega
+  have hl1' : 16 + 64 ≤ w.C.m1.length := by omega
+  icases bytesPointsto_view_read (V := Meta) base _ w.C.m0 16 _ e0 hl0' hbpos $$ H0b with ⟨M0, C0⟩
+  have e1 : base +ₗ (4096 : Int) +ₗ (16 : Int) = base +ₗ (4096 : Int) +ₗ ((16 : Nat) : Int) := by simp
+  icases bytesPointsto_view_read (V := Meta) (base +ₗ (4096 : Int)) _ w.C.m1 16 _ e1 hl1' Hb1.1
+    $$ H1b with ⟨M1, C1⟩
+  rw [show (decode ((w.C.m0.drop 16).take 64) : Meta) = metaOf w.C.m0 from rfl,
+    show (decode ((w.C.m1.drop 16).take 64) : Meta) = metaOf w.C.m1 from rfl]
+  have hpA : 0 < (base +ₗ (16 : Int)).addr := by simp only [Loc.add]; omega
+  have hpB : 0 < (base +ₗ (4096 : Int) +ₗ (16 : Int)).addr := by
+    simp only [Loc.add] at Hb1 ⊢; omega
+  wp_apply hValidate _ (metaOf w.C.m0) (DFrac.own (1 : Qp).half.half) hpA $$ [M0]
+    as %ev0 ⟨M0, %He0⟩
+  · iframe
+  try wp_auto
+  wp_apply hValidate _ (metaOf w.C.m1) (DFrac.own (1 : Qp).half.half) hpB $$ [M1]
+    as %ev1 ⟨M1, %He1⟩
+  · iframe
+  try wp_auto
+  -- the current meta is valid (`metaOk`): not both invalid
+  have hval : metaValid (metaOf w.C.m0) ∨ metaValid (metaOf w.C.m1) := by
+    have h := hgat.2.1.2.2.2.2.2.1
+    unfold CommitSt.slot at h
+    split at h
+    · exact .inl h
+    · exact .inr h
+  have hnszE : nsz = W64 (L' : Int) := by
+    apply BitVec.toInt_inj.mp
+    have : sint.Z (W64 (L' : Int)) = (L' : Int) := by
+      have := hL'p.2.2.1; word
+    simp only [sint.Z] at this hnszZ
+    rw [hnszZ, this]
+  have hfile : w.m.size ≤ L' := by
+    have := hL'p.1; have e : sint.nat sz0 = (sint.Z sz0).toNat := rfl
+    have h4 : (w.m.size : Int) ≤ sint.Z sz0 := by rw [Hsz0]; exact Int.le_max_left _ _
+    omega
+  have hminL : sint.nat minsz ≤ L' := by
+    have := hL'p.1; have e : sint.nat sz0 = (sint.Z sz0).toNat := rfl
+    have e2 : sint.nat minsz = (sint.Z minsz).toNat := rfl
+    have h4 : sint.Z minsz ≤ sint.Z sz0 := by rw [Hsz0]; exact Int.le_max_right _ _
+    omega
+  cases ev0 with
+  | nil =>
+    ihave H0b := C0 $$ M0
+    ihave H1b := C1 $$ M1
+    ihave Hmf : mapFields K.db (DFrac.own 1) (some (base, L') : MapSt) $$ [Hdr Hdd Hm0f Hm1f]
+    · simp only [mapFields]
+      try rw [← hnszE]
+      rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
+      iframe
+      ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
+    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
+    ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
+      (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
+    · iframe
+    try rw [hnszE]
+    imod remap_post K tx r m X Xd w hok b0 base l L'
+      { { w.m with maps := GMap.delete b0 w.m.maps } with
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
+      rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb wa
+      $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
+        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt with ⟨Hpm, Hw, Hdb⟩
+    · simp only [metaCellsQ]; iframe H0b; iexact H1b
+    · unfold junkRes; iexact Hjunk
+    try wp_auto
+    iapply HΦ
+    iframe Hpm
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists Xd, base, w.remap base L' { { w.m with maps := GMap.delete b0 w.m.maps } with
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) }
+    iframe Hw
+    unfold wdbW wdbLive wdbCoreG
+    icases Hdb with ⟨⟨⟨%wa', Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8, Hd9, Hd10, Hd11, Hd12, Hd13, Hd14,
+      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp⟩
+    isplitl
+    · simp only [WDb.remap, mapFields, metaOsBytes]
+      iframe
+      ipureintro
+      simp only [WDb.remap, mapLen] at Hdp ⊢
+      exact Hdp
+    ipureintro
+    refine ⟨hrel, wdbRemap_remap w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
+    simp only [WDb.remap, mapLen]
+    exact hminL
+  | ok i0 =>
+    have hv1 : metaValid (metaOf w.C.m1) := by
+      rcases hval with h | h
+      · exact absurd (He0.2 h) (fun e => nomatch e)
+      · exact h
+    have he1 : ev1 = GoInterface.nil := He1.2 hv1
+    subst he1
+    ihave H0b := C0 $$ M0
+    ihave H1b := C1 $$ M1
+    ihave Hmf : mapFields K.db (DFrac.own 1) (some (base, L') : MapSt) $$ [Hdr Hdd Hm0f Hm1f]
+    · simp only [mapFields]
+      try rw [← hnszE]
+      rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
+      iframe
+      ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
+    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
+    ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
+      (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
+    · iframe
+    try rw [hnszE]
+    imod remap_post K tx r m X Xd w hok b0 base l L'
+      { { w.m with maps := GMap.delete b0 w.m.maps } with
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
+      rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb wa
+      $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
+        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt with ⟨Hpm, Hw, Hdb⟩
+    · simp only [metaCellsQ]; iframe H0b; iexact H1b
+    · unfold junkRes; iexact Hjunk
+    try wp_auto
+    iapply HΦ
+    iframe Hpm
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists Xd, base, w.remap base L' { { w.m with maps := GMap.delete b0 w.m.maps } with
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) }
+    iframe Hw
+    unfold wdbW wdbLive wdbCoreG
+    icases Hdb with ⟨⟨⟨%wa', Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8, Hd9, Hd10, Hd11, Hd12, Hd13, Hd14,
+      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp⟩
+    isplitl
+    · simp only [WDb.remap, mapFields, metaOsBytes]
+      iframe
+      ipureintro
+      simp only [WDb.remap, mapLen] at Hdp ⊢
+      exact Hdp
+    ipureintro
+    refine ⟨hrel, wdbRemap_remap w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
+    simp only [WDb.remap, mapLen]
+    exact hminL
+
 
 end body
 
