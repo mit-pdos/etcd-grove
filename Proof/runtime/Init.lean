@@ -7,11 +7,12 @@ initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
 `init` functions, which the trust-boundary axiom `initFuncsOk` says return.
 
-And the trust-boundary assumption `GOOS_linux`: the program runs on Linux (`runtime.GOOS`, a
-constant that goose leaves an axiom `val`, is `"linux"`), as the repository's other platform facts
+And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
+linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
+`"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
 extension `osFsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
-packages that branch on `GOOS` state it in their own facts from this axiom (bbolt's root package,
+packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).
 -/
 module
@@ -165,6 +166,12 @@ namespace runtime
 axiom `val` with no value). Satisfiable: `GOOS` is an uninterpreted constant. -/
 axiom GOOS_linux [GooseExts] [GoGlobalContext] :
     _root_.Perennial.runtime.GOOS = #(go!"linux")
+
+/-- **The trust boundary: the program runs on amd64.** `runtime.GOARCH` is the constant
+`"amd64"` (Go's `GOARCH` of the build; an axiom `val` with no value, as `GOOS`). Satisfiable:
+`GOARCH` is an uninterpreted constant. -/
+axiom GOARCH_amd64 [GooseExts] [GoGlobalContext] :
+    _root_.Perennial.runtime.GOARCH = #(go!"amd64")
 
 end runtime
 

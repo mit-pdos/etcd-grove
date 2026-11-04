@@ -8,7 +8,7 @@ the instances of every package it imports: Perennial's, `os`'s (`Proof/os/PkgIni
 `hash`'s and `hash/fnv`'s (`Proof/hash/PkgInit.lean`), `reflect`'s (`Proof/reflect/PkgInit.lean`)
 and this repository's `syscall`'s and `golang.org/x/sys/unix`'s.
 
-The facts are `True`, but for the root package (`bboltRootInit`: `runtime.GOOS` is `"linux"`),
+The facts are `True`, but for the root package (`bboltRootInit`: `runtime.GOOS` is `"linux"`, `GOARCH` `"amd64"`),
 `errors` (`bboltErrorsInit`: `ErrBucketNotFound`, an `errors.New`
 error, which the backend compares with `errors.Is`, and the other errors' values) and
 `internal/common` (`bboltCommonInit`: `DefaultPageSize` holds 4096). Each package's `wp_initialize'` is its
@@ -138,13 +138,15 @@ end go_etcd_io.bbolt.internal.freelist
 
 namespace go_etcd_io.bbolt
 
-/-- bbolt's root package facts: the program runs on Linux, `runtime.GOOS = "linux"` (the
-trust-boundary axiom `runtime.GOOS_linux` of `Proof/runtime/Init.lean`, which bbolt's
-`wp_initialize'` uses; `runtime`'s own `IsPkgInit` is Perennial's, with the fact `True`). bbolt
-compares `GOOS` with `"windows"` in `DB.grow`, `DB.mmap` and `DB.allocate`; a proof gets the
-equation from `isPkgInit` by `bboltRootInit_goos`. -/
+/-- bbolt's root package facts: the program runs on linux/amd64, `runtime.GOOS = "linux"` and
+`runtime.GOARCH = "amd64"` (the trust-boundary axioms `runtime.GOOS_linux`/`GOARCH_amd64` of
+`Proof/runtime/Init.lean`, which bbolt's `wp_initialize'` uses; `runtime`'s own `IsPkgInit` is
+Perennial's, with the fact `True`). bbolt compares `GOOS` with `"windows"` in `DB.grow`, `DB.mmap`
+and `DB.allocate`, and its loggers format both; a proof gets the equations from `isPkgInit` by
+`bboltRootInit_goos`/`bboltRootInit_goarch`. -/
 abbrev bboltRootInit : IProp GF :=
-  iprop(⌜_root_.Perennial.runtime.GOOS = #(go!"linux")⌝)
+  iprop(⌜_root_.Perennial.runtime.GOOS = #(go!"linux") ∧
+    _root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
   define_is_pkg_init bboltRootInit
@@ -155,7 +157,13 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbo
 theorem bboltRootInit_goos :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
       ⌜_root_.Perennial.runtime.GOOS = #(go!"linux")⌝ :=
-  isPkgInit_access _
+  (isPkgInit_access _).trans (BI.pure_mono And.left)
+
+/-- **`runtime.GOARCH` is `"amd64"`**, from bbolt's package facts. -/
+theorem bboltRootInit_goarch :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
+      ⌜_root_.Perennial.runtime.GOARCH = #(go!"amd64")⌝ :=
+  (isPkgInit_access _).trans (BI.pure_mono And.right)
 
 end go_etcd_io.bbolt
 

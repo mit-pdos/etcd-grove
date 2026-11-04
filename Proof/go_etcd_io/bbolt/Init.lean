@@ -3,8 +3,9 @@ Package initialization of `go_etcd_io.bbolt`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS` is
-`"linux"` (the trust-boundary axiom `runtime.GOOS_linux` of `runtime`'s `Init.lean`; bbolt compares
-`GOOS` with `"windows"` in `DB.grow`, `DB.mmap` and `DB.allocate`). Its initializer allocates its variables, initializes its imports and
+`"linux"` and `runtime.GOARCH` `"amd64"` (the trust-boundary axioms `runtime.GOOS_linux` and
+`runtime.GOARCH_amd64` of `runtime`'s `Init.lean`; bbolt compares `GOOS` with `"windows"` in
+`DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
@@ -193,7 +194,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   is_pkg_init_finish
   ipureintro
-  exact ⟨isPanic_intoVal _, runtime.GOOS_linux⟩
+  exact ⟨isPanic_intoVal _, runtime.GOOS_linux, runtime.GOARCH_amd64⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

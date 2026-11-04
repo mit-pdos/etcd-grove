@@ -298,8 +298,9 @@ _BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'Er
                     'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound',
                     'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge',
                     'ErrValueTooLarge', 'ErrIncompatibleValue']
-# (2026-11-04) the trust-boundary assumption that the program runs on Linux: `runtime.GOOS` (a
-# constant, an axiom `val` of Perennial's names-only `runtime`) is `"linux"`. Stated here, in
+# (2026-11-04) the trust-boundary assumption that the program runs on linux/amd64: `runtime.GOOS`
+# and `runtime.GOARCH` (constants, axiom `val`s of Perennial's names-only `runtime`) are `"linux"`
+# and `"amd64"`. Stated here, in
 # `runtime`'s initialization, since it is a fact of the platform the program starts on; `runtime`'s
 # `IsPkgInit` instance is Perennial's (fact `True`), so the fact is surfaced through bbolt's, the one
 # package that branches on `GOOS` (`Proof/go_etcd_io/bbolt/PkgInit.lean`, `bboltRootInit`).
@@ -309,11 +310,12 @@ initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
 `init` functions, which the trust-boundary axiom `initFuncsOk` says return.
 
-And the trust-boundary assumption `GOOS_linux`: the program runs on Linux (`runtime.GOOS`, a
-constant that goose leaves an axiom `val`, is `"linux"`), as the repository's other platform facts
+And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
+linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
+`"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
 extension `osFsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
-packages that branch on `GOOS` state it in their own facts from this axiom (bbolt's root package,
+packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
     pre=['namespace runtime', '',
          '/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant',
@@ -321,13 +323,19 @@ packages that branch on `GOOS` state it in their own facts from this axiom (bbol
          'axiom `val` with no value). Satisfiable: `GOOS` is an uninterpreted constant. -/',
          'axiom GOOS_linux [GooseExts] [GoGlobalContext] :',
          '    _root_.Perennial.runtime.GOOS = #(go!"linux")', '',
+         '/-- **The trust boundary: the program runs on amd64.** `runtime.GOARCH` is the constant',
+         '`"amd64"` (Go\'s `GOARCH` of the build; an axiom `val` with no value, as `GOOS`). Satisfiable:',
+         '`GOARCH` is an uninterpreted constant. -/',
+         'axiom GOARCH_amd64 [GooseExts] [GoGlobalContext] :',
+         '    _root_.Perennial.runtime.GOARCH = #(go!"amd64")', '',
          'end runtime', ''],
 )
 
 SPECIAL['go_etcd_io.bbolt'] = dict(
     doc='''Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS` is
-`"linux"` (the trust-boundary axiom `runtime.GOOS_linux` of `runtime`'s `Init.lean`; bbolt compares
-`GOOS` with `"windows"` in `DB.grow`, `DB.mmap` and `DB.allocate`). Its initializer allocates its variables, initializes its imports and
+`"linux"` and `runtime.GOARCH` `"amd64"` (the trust-boundary axioms `runtime.GOOS_linux` and
+`runtime.GOARCH_amd64` of `runtime`'s `Init.lean`; bbolt compares `GOOS` with `"windows"` in
+`DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
 `errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger).
@@ -346,7 +354,7 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
-    finish=['iframe Hown', 'is_pkg_init_finish', 'ipureintro', 'exact ⟨isPanic_intoVal _, runtime.GOOS_linux⟩'],
+    finish=['iframe Hown', 'is_pkg_init_finish', 'ipureintro', 'exact ⟨isPanic_intoVal _, runtime.GOOS_linux, runtime.GOARCH_amd64⟩'],
 )
 
 # (2026-11-03) `os` is this repository's (project bboltfs's), for every project: names only (its
