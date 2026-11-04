@@ -49,10 +49,7 @@ theorem liveReach_addPage (X : WX) (id : w64) (p : Loc) (count : Nat) (hwm : w64
 
 /-! ## The remap's re-base -/
 
-/-- A node after a remap (`BRec.unview`'s nodes). -/
-def NRec.unview (r : NRec) : NRec :=
-  { r with ws := r.ws.map (fun w => { w with ks := w.ks.unview, vs := w.vs.unview }),
-           ksrc := r.ksrc.unview }
+-- `NRec.unview` (a node after a remap, `BRec.unview`'s nodes): `Inv/WtxHeap` (batch 14).
 
 theorem rebase_bs (X : WX) (b bl : Loc) :
     (X.rebase b).t.bs !! bl = (X.t.bs !! bl).map BRec.unview := by
@@ -65,7 +62,7 @@ theorem unview_bv (B : BRec) : B.unview.bv = B.bv := rfl
 theorem unview_bm (B : BRec) : B.unview.bm = B.bm := rfl
 
 theorem NRec.unview_keys (r : NRec) : r.unview.ws.map WEntry.key = r.ws.map WEntry.key := by
-  simp [NRec.unview, Function.comp_def]
+  simp [NRec.unview, WEntry.unview, Function.comp_def]
 
 theorem rebase_bs_some {X : WX} {b bl : Loc} {B' : BRec} (h : (X.rebase b).t.bs !! bl = some B') :
     ∃ B, X.t.bs !! bl = some B ∧ B' = B.unview := by
@@ -156,7 +153,7 @@ theorem liveFresh_rebase (X : WX) (b : Loc) (hd : objsDisj X.t) (hc : derefOK X)
   simp only at hv
   obtain ⟨hvw, hvk⟩ := hv
   refine ⟨fun w hw => ?_, fun hne => ?_⟩
-  · simp only [NRec.unview, List.mem_map] at hw
+  · simp only [NRec.unview, WEntry.unview, List.mem_map] at hw
     obtain ⟨w0, hw0, rfl⟩ := hw
     exact ⟨Src.unview_ne_stale (h1 w0 hw0).1 (hvw w0 hw0).1,
       Src.unview_ne_stale (h1 w0 hw0).2 (hvw w0 hw0).2⟩

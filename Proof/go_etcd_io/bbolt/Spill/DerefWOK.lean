@@ -79,15 +79,20 @@ theorem entriesBounded_step {X X' : WX} (h : derefStep X X') (he : entriesBounde
 theorem handlesOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hh : handlesOK X) :
     handlesOK X' := by
   intro b nm hb
-  rw [objs_isSome_step h hd]
   rw [h.2.2.1] at hb
+  have e : (X'.t.bobjs !! b).isSome = (X.t.bobjs !! b).isSome := by
+    simp only [WTx.bobjs, GMap.lookup_union, h.2.2.2.2.2.2.2.2.2.2.1]
+    have := derefStep_bs_isSome h b
+    revert this
+    cases X.t.bs !! b <;> cases X'.t.bs !! b <;> simp
+  rw [e]
   exact hh b nm hb
 
 theorem liveOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hl : liveOK X) :
     liveOK X' := by
   obtain ⟨l1, l2, l3, l4, l5⟩ := hl
   unfold liveOK
-  rw [h.2.1, h.2.2.2.2.1]
+  rw [h.2.1, h.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.2.2.1]
   refine ⟨l1, fun l hl => by rw [objs_isSome_step h hd]; exact l2 l hl, ?_, ?_, ?_⟩
   · intro bl B' hB'
     obtain ⟨B, hB, -⟩ := derefStep_bwd h hB'
@@ -95,7 +100,7 @@ theorem liveOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hl : l
   · intro bl B' l r' hB' hr'
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
     obtain ⟨r, hr, -⟩ := optRel_some_r (hr' ▸ hs.2 l)
-    exact l4 bl B l r hB hr
+    rw [h.2.1]; exact l4 bl B l r hB hr
   · intro l hl
     rw [h.2.2.2.2.2.2.2.2.2.1] at hl
     exact l5 l hl

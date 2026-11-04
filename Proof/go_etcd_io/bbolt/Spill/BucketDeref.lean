@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem Bucket.dereference.wp_aux (hRoot : node.root.spec (GF := GF) (hG := hG))
     (hND : node.dereference.spec (GF := GF) (hG := hG)) :
     ⊢ (∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc) (B : BRec),
-      ⌜X.t.bs !! b = some B ∧ b ∈ X.live ∧ derefPre X ∧ liveFresh X⌝ →
+      ⌜X.t.bs !! b = some B ∧ b ∈ X.liveB ∧ derefPre X ∧ liveFresh X⌝ →
       ∀ Φ, wtxW K tx r m X -∗
         ▷ (∀ X', wtxW K tx r m X' ∗ ⌜derefStep X X' ∧ bktCov X' b⌝ -∗ Φ #()) -∗
         WP (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"dereference")) (Val #())) {{ Φ }}
@@ -87,7 +87,7 @@ theorem Bucket.dereference.wp_aux (hRoot : node.root.spec (GF := GF) (hG := hG))
     rw [nodeRootIn_unique hrt' Hrt]; exact HX1.2
   obtain ⟨B1, HB1, Hs1⟩ := optRel_some_l (HB ▸ derefStep_bs HX1.1 b)
   have Hf1 := bktStep_fields Hs1
-  have Hlive1 : b ∈ X1.live := by rw [HX1.1.2.1]; exact Hlive
+  have Hlive1 : b ∈ X1.liveB := by rw [HX1.1.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hlive
   icases wtxW_open K tx r m X1 $$ Hw with ⟨-, -, -, Hh, Hv, Hst, Hclose⟩
   icases wtxHeap_bkt_peek tx _ X1 b B1 HB1 Hlive1 $$ Hh with ⟨Ho, Hhb⟩
   unfold objOwn
@@ -123,18 +123,18 @@ theorem Bucket.dereference.wp_aux (hRoot : node.root.spec (GF := GF) (hG := hG))
     obtain ⟨Bi, HBi, Hsi⟩ := optRel_some_l (HB ▸ derefStep_bs HXi b)
     have HpreI := derefPre_step HXi Hpre
     have HfreshI := liveFresh_step HXi Hfresh
-    have HliveI : b ∈ Xi.live := by rw [HXi.2.1]; exact Hlive
+    have HliveI : b ∈ Xi.liveB := by rw [HXi.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hlive
     obtain ⟨Hvl, Hvb⟩ := (HpreI.2.1 b Bi HBi HliveI).1 key v
       (by rw [(bktStep_fields Hsi).2.2.2.1]; exact Hv)
     obtain ⟨Bv, HBv⟩ := Option.isSome_iff_exists.1 Hvb
     try wp_auto
-    have Hcpre : Xi.t.bs !! v = some Bv ∧ v ∈ Xi.live ∧ derefPre Xi ∧ liveFresh Xi :=
+    have Hcpre : Xi.t.bs !! v = some Bv ∧ v ∈ Xi.liveB ∧ derefPre Xi ∧ liveFresh Xi :=
       ⟨HBv, Hvl, HpreI, HfreshI⟩
     wp_apply IH $$ %K %tx %r %m %Xi %v %Bv %Hcpre [Hw] as %X' ⟨Hw, %HX'⟩
     · iexact Hw
     obtain ⟨B', HB', Hs'⟩ := optRel_some_l (HB ▸ derefStep_bs (derefStep_trans _ _ _ HXi HX'.1) b)
     have Hf' := bktStep_fields Hs'
-    have Hlive' : b ∈ X'.live := by rw [HX'.1.2.1]; exact HliveI
+    have Hlive' : b ∈ X'.liveB := by rw [HX'.1.2.2.2.2.2.2.2.2.2.2.2.1]; exact HliveI
     icases wtxW_open K tx r m X' $$ Hw with ⟨-, -, -, Hh, Hv, Hst, Hclose⟩
     icases wtxHeap_bkt_peek tx _ X' b B' HB' Hlive' $$ Hh with ⟨Ho, Hhb⟩
     unfold objOwn

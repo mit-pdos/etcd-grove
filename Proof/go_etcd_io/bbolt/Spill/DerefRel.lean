@@ -214,43 +214,35 @@ theorem optRel_isSome {α β : Type} {R : α → β → Prop} {o1 : Option α} {
 
 theorem objsDisj_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) : objsDisj X'.t := by
   have hbs := derefStep_bs h
-  intro bl B' hB' n hn
+  intro bl B' hB' n hn bl2 B2' hB2' hne
   obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
   have hn' : (B.ns !! n).isSome := by rw [← optRel_isSome (hs.2 n)]; exact hn
-  obtain ⟨hnb, hno⟩ := hd bl B hB n hn'
-  refine ⟨?_, ?_⟩
-  · have := hbs n; rw [hnb] at this; exact optRel_none_l this
-  · intro bl2 B2' hB2' hne
-    obtain ⟨B2, hB2, hs2⟩ := optRel_some_r (hB2' ▸ hbs bl2)
-    have := hs2.2 n; rw [hno bl2 B2 hB2 hne] at this; exact optRel_none_l this
+  have hno := hd bl B hB n hn'
+  obtain ⟨B2, hB2, hs2⟩ := optRel_some_r (hB2' ▸ hbs bl2)
+  have := hs2.2 n; rw [hno bl2 B2 hB2 hne] at this; exact optRel_none_l this
 
 /-- The objects' locations are kept by a step. -/
 theorem objs_isSome_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (n : Loc) :
     (X'.t.objs !! n).isSome = (X.t.objs !! n).isSome := by
   have hd' := objsDisj_step h hd
   have hbs := derefStep_bs h
-  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (n = bl ∨ (B.ns !! n).isSome)
-  · obtain ⟨bl, B, hB, hnb | hn⟩ := hex
-    · subst hnb
-      obtain ⟨B', hB', -⟩ := optRel_some_l (hB ▸ hbs n)
-      rw [objs_bkt X.t n B hd hB, objs_bkt X'.t n B' hd' hB']; rfl
+  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (B.ns !! n).isSome
+  · obtain ⟨bl, B, hB, hn⟩ := hex
     · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hn
       obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ hbs bl)
       obtain ⟨r', hr', -⟩ := optRel_some_l (hr ▸ hs.2 n)
       rw [objs_node X.t bl B n r hd hB hr, objs_node X'.t bl B' n r' hd' hB' hr']; rfl
-  · have hoth : ∀ bl B, X.t.bs !! bl = some B → n ≠ bl ∧ B.ns !! n = none := by
+  · have hoth : ∀ bl B, X.t.bs !! bl = some B → B.ns !! n = none := by
       intro bl B hB
-      refine ⟨fun e => hex ⟨bl, B, hB, Or.inl e⟩, ?_⟩
       cases e : B.ns !! n with
       | none => rfl
-      | some r => exact absurd ⟨bl, B, hB, Or.inr (by simp [e])⟩ hex
-    have hoth' : ∀ bl B', X'.t.bs !! bl = some B' → n ≠ bl ∧ B'.ns !! n = none := by
+      | some r => exact absurd ⟨bl, B, hB, by simp [e]⟩ hex
+    have hoth' : ∀ bl B', X'.t.bs !! bl = some B' → B'.ns !! n = none := by
       intro bl B' hB'
       obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
-      obtain ⟨h1, h2⟩ := hoth bl B hB
-      refine ⟨h1, ?_⟩
-      have := hs.2 n; rw [h2] at this; exact optRel_none_l this
-    rw [objs_other X.t n hoth, objs_other X'.t n hoth', h.2.2.2.2.2.2.2.2.2.1]
+      have := hs.2 n; rw [hoth bl B hB] at this; exact optRel_none_l this
+    rw [objs_other X.t n hoth, objs_other X'.t n hoth']
+    simp only [WTx.deadObjs, h.2.2.2.2.2.2.2.2.2.1]
 
 /-! ## Buckets reached from a bucket -/
 
@@ -324,10 +316,11 @@ theorem bktReach_step {X X' : WX} (h : derefStep X X') {d : Loc} (hr : bktReach 
 
 theorem liveReach_step {X X' : WX} (h : derefStep X X') (hl : liveReach X) : liveReach X' := by
   have hlive := h.2.1
+  have hliveB := h.2.2.2.2.2.2.2.2.2.2.2.1
   refine ⟨?_, ?_⟩
   · intro bl B' hB' hbl
     obtain ⟨B, hB, -⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
-    rw [hlive] at hbl
+    rw [hliveB] at hbl
     exact bktReach_step h (hl.1 bl B hB hbl)
   · intro bl B' l r' hB' hr' hll
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
@@ -367,25 +360,22 @@ theorem derefOK_of_cov (X : WX) (hd : objsDisj X.t) (hpre : derefPre X) (hreach 
       ∀ rt, nodeRootIn B B.bv.rootNode' rt → covered X bl rt) :
     derefOK X := by
   intro l o ho hl
-  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (l = bl ∨ (B.ns !! l).isSome)
-  · obtain ⟨bl, B, hB, hlb | hn⟩ := hex
-    · subst hlb
-      rw [objs_bkt X.t l B hd hB] at ho
-      cases ho; trivial
+  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (B.ns !! l).isSome
+  · obtain ⟨bl, B, hB, hn⟩ := hex
     · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hn
       rw [objs_node X.t bl B l r hd hB hr] at ho
       cases ho
       obtain ⟨rt, hrt, hdesc⟩ := hreach.2 bl B l r hB hr hl
       have hbl := hreach.1 bl B hB (hpre.2.2.1 bl B hB).1
       exact hcov bl B hB hbl rt hrt B l r hB hdesc hr
-  · have hoth : ∀ bl B, X.t.bs !! bl = some B → l ≠ bl ∧ B.ns !! l = none := by
+  · have hoth : ∀ bl B, X.t.bs !! bl = some B → B.ns !! l = none := by
       intro bl B hB
-      refine ⟨fun h => hex ⟨bl, B, hB, Or.inl h⟩, ?_⟩
       cases h : B.ns !! l with
       | none => rfl
-      | some r => exact absurd ⟨bl, B, hB, Or.inr (by simp [h])⟩ hex
+      | some r => exact absurd ⟨bl, B, hB, by simp [h]⟩ hex
     rw [objs_other X.t l hoth] at ho
-    exact absurd hl (hpre.2.2.2.2 l (by simp [ho]))
+    simp only [WTx.deadObjs, GMap.lookup_fmap] at ho
+    exact absurd hl (hpre.2.2.2.2 l (by revert ho; cases X.t.dead !! l <;> simp))
 
 end rel
 

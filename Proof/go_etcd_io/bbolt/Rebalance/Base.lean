@@ -48,9 +48,10 @@ theorem viewCells_halves (q : Qp) (v : View) :
   exact h
 
 /-- **A kept slice's bytes, read** (not stale): through the view's cells for a view source, the
-persistent bytes for a heap one; and back. -/
+persistent bytes for a heap one; and back. The view's base is positive (`mapFields`; batch 21:
+`viewCells_slices_acc` needs it for an empty slice). -/
 theorem srcOwn_acc (q : Qp) (v : View) (s : GoSlice) (src : Src) (bs : List w8)
-    (hs : src ≠ Src.stale) :
+    (hs : src ≠ Src.stale) (hb : 0 < v.base.addr) :
     srcOwn (GF := GF) v s src bs ∗ viewCells q v ⊢ ∃ dq : DFrac, s ↦*{dq} bs ∗
       (s ↦*{dq} bs -∗ srcOwn v s src bs ∗ viewCells q v) := by
   cases src with
@@ -65,7 +66,7 @@ theorem srcOwn_acc (q : Qp) (v : View) (s : GoSlice) (src : Src) (bs : List w8)
   | view =>
     unfold srcOwn
     iintro ⟨%Hin, Hv⟩
-    icases viewCells_slices_acc q v [(s, bs)] (by simpa using Hin) $$ Hv with ⟨%dq, Hs, Hback⟩
+    icases viewCells_slices_acc q v [(s, bs)] hb (by simpa using Hin) $$ Hv with ⟨%dq, Hs, Hback⟩
     iexists dq
     ihave Hs := BigSepL.bigSepL_singleton.1 $$ Hs
     iframe Hs

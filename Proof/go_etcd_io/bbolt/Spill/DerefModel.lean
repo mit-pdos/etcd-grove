@@ -78,14 +78,14 @@ theorem bktStep_trans (B1 B2 B3 : BRec) (h1 : bktStep B1 B2) (h2 : bktStep B2 B3
   rw [← e2]
 
 theorem derefStep_refl (X : WX) : derefStep X X :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => optRel_refl bktStep_refl _⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => optRel_refl bktStep_refl _⟩
 
 theorem derefStep_trans (X1 X2 X3 : WX) (h1 : derefStep X1 X2) (h2 : derefStep X2 X3) :
     derefStep X1 X3 := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2⟩ := h2
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, m1, n1, l1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, m2, n2, l2⟩ := h2
   exact ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1,
-    g2.trans g1, i2.trans i1, j2.trans j1, k2.trans k1,
+    g2.trans g1, i2.trans i1, j2.trans j1, k2.trans k1, m2.trans m1, n2.trans n1,
     fun bl => optRel_trans bktStep_trans _ _ _ (l1 bl) (l2 bl)⟩
 
 /-- A node record holds no view slice (what `derefOK` asks of a live node). -/
@@ -164,7 +164,7 @@ theorem nodeRootIn_step {B B' : BRec} (h : bktStep B B') {n rt : Loc} (hd : node
     rw [e]; exact ih
 
 theorem derefStep_bs {X X' : WX} (h : derefStep X X') (bl : Loc) :
-    optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl) := h.2.2.2.2.2.2.2.2.2.2 bl
+    optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl) := h.2.2.2.2.2.2.2.2.2.2.2.2 bl
 
 /-- **The nodes below `n` in bucket `bl` hold no view slice** (what `n.dereference()` leaves). -/
 def covered (X : WX) (bl n : Loc) : Prop :=
@@ -178,7 +178,7 @@ theorem covered_step {X X' : WX} (h : derefStep X X') {bl n : Loc} (hc : covered
   exact noView_step hrs (hc B d r hB (descIn_step' hs hd) hr)
 
 theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : derefPre X' := by
-  obtain ⟨-, hlive, -, -, hrl, -, -, -, -, hdead, hbs⟩ := h
+  obtain ⟨-, hlive, -, -, hrl, -, -, -, -, hdead, -, hliveB, hbs⟩ := h
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro bl B' l r' hB' hr' hl
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
@@ -202,7 +202,7 @@ theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : deref
       cases B.ns !! c <;> cases B'.ns !! c <;> simp [optRel]
   · intro bl B' hB' hl
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
-    rw [hlive] at hl ⊢
+    simp only [hliveB, hlive] at hl ⊢
     obtain ⟨h1, h2⟩ := hp.2.1 bl B hB hl
     have hf := bktStep_fields hs
     refine ⟨?_, ?_⟩
@@ -220,7 +220,7 @@ theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : deref
       exact nodeRootIn_step hs hrt
   · intro bl B' hB'
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
-    rw [hlive]
+    rw [hliveB]
     refine ⟨(hp.2.2.1 bl B hB).1, ?_⟩
     have := hs.2 null
     rw [(hp.2.2.1 bl B hB).2] at this
@@ -232,7 +232,7 @@ theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : deref
   · intro l hl; rw [hlive]; rw [hdead] at hl; exact hp.2.2.2.2 l hl
 
 theorem liveFresh_step {X X' : WX} (h : derefStep X X') (hp : liveFresh X) : liveFresh X' := by
-  obtain ⟨-, hlive, -, -, -, -, -, -, -, -, hbs⟩ := h
+  obtain ⟨-, hlive, -, -, -, -, -, -, -, -, -, -, hbs⟩ := h
   intro bl B' l r' hB' hr' hl
   obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
   obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 l)
@@ -249,7 +249,7 @@ theorem derefStep_setNode (X : WX) (bl l : Loc) (B : BRec) (r r' : NRec)
     derefStep X (X.setNode bl l r') := by
   unfold WX.setNode WX.setBkt
   rw [hB]
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun bl' => ?_⟩
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun bl' => ?_⟩
   simp only
   by_cases he : bl = bl'
   · subst he

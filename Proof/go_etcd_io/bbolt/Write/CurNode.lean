@@ -32,7 +32,7 @@ materializations; the record's header, page, inline page and source kept; its ca
 pointing at live nodes of `bl`; the logical tree of `bl` kept by data (at position `0` only for
 an inline bucket). -/
 def curSt (X Y : WX) (bl : Loc) (B : BRec) : Prop :=
-  matGrow X Y bl ∧ (wOK X → wOK Y) ∧ Y.v = X.v ∧ Y.t.pm = X.t.pm ∧ bl ∈ Y.live ∧
+  matGrow X Y bl ∧ (wOK X → wOK Y) ∧ Y.v = X.v ∧ Y.t.pm = X.t.pm ∧ bl ∈ Y.liveB ∧
   ∃ BY, Y.t.bs !! bl = some BY ∧ BY.ib = B.ib ∧ BY.bv.nodes' = B.bv.nodes' ∧
     BY.bv.page' = B.bv.page' ∧ BY.ipg = B.ipg ∧ BY.isrc = B.isrc ∧ BY.pst = B.pst ∧
     (∀ c l, B.nm !! c = some l → BY.nm !! c = some l) ∧ nmOK Y bl BY ∧
@@ -140,7 +140,7 @@ theorem curSt_step (X Y Y' : WX) (bl l : Loc) (pid : w64) (parent : Loc) (B : BR
   have hbv : bv'.page' = BY.bv.page' ∧ bv'.nodes' = BY.bv.nodes' := by
     rcases hcase with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ <;> exact ⟨rfl, rfl⟩
   subst hX'
-  refine ⟨⟨hg', hok', by rw [← hv], by rw [← hpm], cmem_of () hlv, _,
+  refine ⟨⟨hg', hok', by rw [← hv], by rw [← hpm], hlv, _,
     GMap.lookup_insert _ _ _, hib, by rw [hbv.2, hnd], by rw [hbv.1, hpg], hipg, hisrc, hpst,
     ?_, ?_, ?_⟩, _, GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _⟩
   · intro c l0 hc

@@ -31,7 +31,7 @@ page's, or a materialized node's page's) freed for the writer's txid, the nodes 
 `0`, and its header's root `0` (`bktFreed`). -/
 abbrev Bucket.free.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec),
-  X.t.bs !! bl = some B → bl ∈ X.live →
+  X.t.bs !! bl = some B → bl ∈ X.liveB →
   (B.ib.root' ≠ W64 0 → bktLocalOK X bl ∧
     (∀ pid ∈ X.positions bl, resolve B pid = none → X.t.pm !! pid = none) ∧
     w.fl.canFreeAll w.wtxid (X.extents bl)) →

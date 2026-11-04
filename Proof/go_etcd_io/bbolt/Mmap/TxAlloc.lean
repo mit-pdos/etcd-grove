@@ -111,7 +111,7 @@ theorem wtxW_read_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
         X.t.t.meta' ↦ X.t.mv -∗ wtxW K tx r m X) := by
   unfold wtxW wtxCore wtxHeap txFields
   iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩,
-    Hroot, Hobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+    Hroot, Hobjs, Hbobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
   iframe Hdbf Hmeta Hmv
   isplitr
   · ipureintro; exact Hr.1
@@ -169,7 +169,7 @@ theorem wtxW_pages_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (Y : WX) :
         wtxW K tx r m { Y with t := { Y.t with pm := pm, bufs := bufs } }) := by
   unfold wtxW wtxCore wtxHeap txFields
   iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩,
-    Hroot, Hobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+    Hroot, Hobjs, Hbobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
   iframe Hdbf Hst Hpages Hpm Hbufs
   isplitr
   · ipureintro; exact Hr.1
@@ -199,7 +199,7 @@ theorem errState_meta_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w
     iapply Hb $$ Htdb Hmeta Hmv
   · unfold wtxLost wtxCore wtxHeap txFields
     icases Hw with ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm,
-      Hbufs⟩, Hroot, Hobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hmap⟩
+      Hbufs⟩, Hroot, Hobjs, Hbobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hmap⟩
     iexists X'.t.t.meta', X'.t.mv
     iframe Hmeta Hmv
     iintro Hmeta Hmv

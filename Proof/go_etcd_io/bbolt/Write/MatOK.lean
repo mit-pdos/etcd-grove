@@ -295,12 +295,11 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     intro c; rw [hbs']; split
     · rename_i h; subst h; rw [hB]; rfl
     · rfl
-  have hlB : B.ns !! l = none := (Write.objs_none X.t l hlo).2 bl B hB
+  have hlB : B.ns !! l = none := Write.objs_none X.t l hlo bl B hB
   -- the objects grow
   have hobj : ∀ k, (X.t.objs !! k).isSome = true →
       ((matX X bl l pgid B').t.objs !! k).isSome = true := by
-    refine objs_isSome_mono X.t (matX X bl l pgid B').t (fun k h => h)
-      (fun c h => by rw [hdom]; exact h) ?_
+    refine objs_isSome_mono X.t (matX X bl l pgid B').t (fun k h => h) ?_
     intro c C k hC hk
     refine Or.inr ?_
     by_cases hcb : c = bl
@@ -311,7 +310,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     · exact ⟨c, C, by rw [hbs', if_neg hcb]; exact hC, hk⟩
   have hlobj : ((matX X bl l pgid B').t.objs !! l).isSome = true := by
     rw [objs_isSome]
-    exact Or.inr ⟨bl, B', by rw [hbs', if_pos rfl], Or.inr (by rw [hnew]; rfl)⟩
+    exact Or.inr ⟨bl, B', by rw [hbs', if_pos rfl], by rw [hnew]; rfl⟩
   have hldead : X.t.dead !! l = none := by
     cases h : X.t.dead !! l with
     | none => rfl
@@ -359,17 +358,19 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       · rw [a1, a2]; exact heb c B hB y ry0 hry0
     · exact heb c C hC0 y ry hy
   · -- handles
-    intro b nm hb; exact hobj b (hho b nm hb)
+    intro b nm hb
+    exact bobjs_isSome_mono X.t (matX X bl l pgid B').t (fun k h => h)
+      (fun c h => by rw [hdom]; exact h) b (hho b nm hb)
   · -- live: the root
-    exact mem_ins_of_mem () hl1
+    exact hl1
   · intro k hk
     by_cases hkl : k = l
     · subst hkl; exact hlobj
     · exact hobj k (hl2 k (mem_of_mem_ins_ne hk hkl))
   · intro c C hC
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
-    · exact mem_ins_of_mem () (hl3 c B hB)
-    · exact mem_ins_of_mem () (hl3 c C hC0)
+    · exact hl3 c B hB
+    · exact hl3 c C hC0
   · intro c C y ry hC hy
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · rcases hnsN y ry hy with rfl | ⟨ry0, hry0, -⟩
@@ -967,7 +968,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     ⟨hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs, hrco, by rw [hrws, mat_pageWsAs_wDat], hrlive,
       hrkey, hrks⟩
   have hr9 := hr.2.2.2.2.2.2.2.2.1
-  have hfresh : B.ns !! l = none := (objs_none X.t l hlo').2 bl B hB
+  have hfresh : B.ns !! l = none := objs_none X.t l hlo' bl B hB
   have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
     rw [hX']; exact GMap.lookup_insert _ _ _
   have hns'l : ns' !! l = some r := by
@@ -1121,7 +1122,7 @@ theorem bktLocalOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NR
     (hleaf : nodePgLeaf r) : bktLocalOK (matX X bl l pgid B') bl := by
   obtain ⟨hlive, B0, hB0, -, -, hpl, hnl, hvw⟩ := hb
   rw [hB] at hB0; cases hB0
-  refine ⟨mem_ins_of_mem () hlive, B', by rw [matX_bs, if_pos rfl], hc', hk', ?_, ?_, hvw⟩
+  refine ⟨hlive, B', by rw [matX_bs, if_pos rfl], hc', hk', ?_, ?_, hvw⟩
   · intro c C hC y ry hy
     rw [GMap.lookup_singleton_Some] at hC
     obtain ⟨rfl, rfl⟩ := hC
@@ -1158,7 +1159,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
     ⟨hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs, hrco, by rw [hrws, mat_pageWsAs_wDat], hrlive,
       hrkey, hrks⟩
   have hr9 := hr.2.2.2.2.2.2.2.2.1
-  have hfresh : B.ns !! l = none := (objs_none X.t l hlo').2 bl B hB
+  have hfresh : B.ns !! l = none := objs_none X.t l hlo' bl B hB
   have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
     rw [hX']; exact GMap.lookup_insert _ _ _
   have hns'l : ns' !! l = some r := by

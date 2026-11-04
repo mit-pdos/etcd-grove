@@ -56,9 +56,9 @@ theorem Bucket.dereference.wp_proof (hRoot : node.root.spec (GF := GF) (hG := hG
   obtain ⟨B, HB⟩ := Option.isSome_iff_exists.1 Hpre.2.2.2.1
   have Hrl : X.rl = tx.[Tx, go!"root"] := Hok.1
   rw [Hrl] at HB
-  have Hlive : tx.[Tx, go!"root"] ∈ X.live := by
+  have Hlive : tx.[Tx, go!"root"] ∈ X.liveB := by
     rw [← Hrl]; exact (Hpre.2.2.1 X.rl B (by rw [Hrl]; exact HB)).1
-  have Hp : X.t.bs !! tx.[Tx, go!"root"] = some B ∧ tx.[Tx, go!"root"] ∈ X.live ∧ derefPre X ∧
+  have Hp : X.t.bs !! tx.[Tx, go!"root"] = some B ∧ tx.[Tx, go!"root"] ∈ X.liveB ∧ derefPre X ∧
     liveFresh X := ⟨HB, Hlive, Hpre, Hfresh⟩
   iapply (Bucket.dereference.wp_aux hRoot hND) $$ %K %tx %r %m %X %(tx.[Tx, go!"root"]) %B %Hp Hw
   inext

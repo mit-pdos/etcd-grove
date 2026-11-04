@@ -121,7 +121,7 @@ theorem rebal_loeb
   iStructNamed Hn
   wp_auto
   have hnl : n ∈ X.live := (hI.2.1 bl B hb).2.2.2.2 n rn hrn
-  have hbll : bl ∈ X.live := hI.2.2.2.2.1.2.2.1 bl B hb
+  have hbll : bl ∈ X.liveB := hI.2.2.2.2.1.2.2.1 bl B hb
   rcases Bool.eq_false_or_eq_true rn.nv.unbalanced' with hu | hu0
   rotate_left
   · -- balanced: nothing
@@ -448,7 +448,7 @@ theorem rebal_loeb
         with ⟨⟨Hno, Hpo, -⟩, Hbo, Htf, Hrf, Hback⟩
       isimp only [ite_true, if_neg hpln] at Hno Hpo
       have hnl1 : n ∈ (X.setBkt bl (rblStart B n rn)).live := hnl
-      have hbl1 : bl ∈ (X.setBkt bl (rblStart B n rn)).live := hbll
+      have hbl1 : bl ∈ (X.setBkt bl (rblStart B n rn)).liveB := hbll
       have hpl1 : rn.nv.parent' ∈ (X.setBkt bl (rblStart B n rn)).live := hplive
       rw [decide_eq_true hnl1, decide_eq_true hpl1, decide_eq_true hbl1]
       icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩

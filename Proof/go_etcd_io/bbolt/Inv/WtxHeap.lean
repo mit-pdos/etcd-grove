@@ -103,21 +103,25 @@ def rootFill (tx : Loc) (dq : DFrac) : IProp GF :=
 def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
   iprop([∗map] b ↦ _x ∈ H, ∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{dq} f)
 
-/-- **The writer's heap's facts** (`wtxHeap_heapOK` reads them): the root bucket's location, its
-objects disjoint (`objsDisj`), every bucket's `tx` field the transaction, and no node its own
-parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes), and every
-registered node an object (batch 8, moved from `nlocOK`: a fresh location is unregistered, for
-`Bucket.node`'s registry insert). -/
+/-- **The writer's heap's facts** (`wtxHeap_heapOK` reads them): the root bucket's location, a
+node in at most one bucket (`objsDisj`), every bucket's `tx` field the transaction, and no node
+its own parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes),
+every registered node a node object (batch 8, moved from `nlocOK`: a fresh location is
+unregistered, for `Bucket.node`'s registry insert), and every bucket the root bucket or a
+handle's (batch 20 item 5: its `FillPercent` is `rootFill`'s or `fills`'). -/
 def heapOK (tx : Loc) (X : WX) : Prop :=
   X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t ∧
   (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx) ∧
   (∀ bl B n r, X.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n) ∧
-  (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome)
+  (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl = X.rl ∨ (X.handles !! bl).isSome)
 
-/-- **The writer's heap** at `dq` (design §3.13). -/
+/-- **The writer's heap** at `dq` (design §3.13): its nodes (`objs`, live in `live`) and, apart,
+its buckets (`bobjs`, live in `liveB`; batch 14). -/
 def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
   iprop(⌜heapOK (GF := GF) tx X⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
-    [∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o)
+    ([∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o) ∗
+    [∗map] bl ↦ B ∈ X.t.bobjs, objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B))
 
 omit go_gctx hos sem in
 /-- An inserted map still has every key it had (for `heapOK`'s registry clause). -/
@@ -151,6 +155,12 @@ def BRec.unview (B : BRec) : BRec :=
            ns := B.ns.fmap fun r => { r with ws := r.ws.map fun w =>
              { w with ks := w.ks.unview, vs := w.vs.unview }, ksrc := r.ksrc.unview } }
 
+/-- An entry after a remap. -/
+def WEntry.unview (w : WEntry) : WEntry := { w with ks := w.ks.unview, vs := w.vs.unview }
+
+/-- A node's record after a remap (moved from U4's `Mmap/Rebase`, batch 14). -/
+def NRec.unview (r : NRec) : NRec := { r with ws := r.ws.map WEntry.unview, ksrc := r.ksrc.unview }
+
 /-- An object after a remap. -/
 def WObj.unview : WObj → WObj
   | .bkt B => .bkt B.unview
@@ -160,9 +170,11 @@ def WObj.unview : WObj → WObj
 /-- `X` after a remap to the base `b`: the view re-based, every view source stale. -/
 def WX.rebase (X : WX) (b : Loc) : WX :=
   { X with v := { X.v with base := b },
-           t := { X.t with bs := X.t.bs.fmap BRec.unview, dead := X.t.dead.fmap WObj.unview } }
+           t := { X.t with bs := X.t.bs.fmap BRec.unview,
+                           dead := X.t.dead.fmap fun p => (p.1, p.2.unview),
+                           deadB := X.t.deadB.fmap BRec.unview } }
 
-/-- **`dereference`'s coverage contract** (design §4.2, over the live objects, A3): no live
+/-- **`dereference`'s coverage contract** (design §4.2, over the live nodes, A3): no live
 node's entry or key is a view slice. (A bucket's `page` is outside it, N2.) -/
 def derefOK (X : WX) : Prop :=
   ∀ l o, X.t.objs !! l = some o → l ∈ X.live →
@@ -259,7 +271,7 @@ bucket and nodes): its facts are dropped, its points-tos kept. U8. -/
 theorem wtxHeap_kill (tx : Loc) (dq : DFrac) (X : WX) (l : Loc) :
     wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq { X with live := X.live.delete l } := by
   unfold wtxHeap txFields
-  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  iintro ⟨%Hrl, Hf, Hrf, Hm, Hb⟩
   iframe
   isplitr
   · ipureintro; exact Hrl

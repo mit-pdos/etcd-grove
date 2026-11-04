@@ -86,24 +86,28 @@ variable [sem : go.Semantics]
 buckets and dead objects (a new meta copy or page cache: `SetPgid`, `tx.pages[id] = p`). -/
 theorem wtxW_txFields_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢ txFields tx (DFrac.own 1) X ∗
-      ∀ T : WTx, ⌜T.t = X.t.t ∧ T.bs = X.t.bs ∧ T.dead = X.t.dead⌝ -∗
+      ∀ T : WTx, ⌜T.t = X.t.t ∧ T.bs = X.t.bs ∧ (T.dead, T.deadB) = (X.t.dead, X.t.deadB)⌝ -∗
         txFields tx (DFrac.own 1) { X with t := T } -∗ wtxW K tx r m { X with t := T } := by
   unfold wtxW wtxCore wtxHeap
-  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, Hf, Hroot, Hobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview,
-    Hst⟩, Hcells, Hmap⟩
+  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, Hf, Hroot, Hobjs, Hbobjs⟩, Hfills, Hbk, Hnl, Hdbf,
+    Hview, Hst⟩, Hcells, Hmap⟩
   iframe Hf
   iintro %T %hT Hf
   obtain ⟨h1, h2, h3⟩ := hT
-  have ho : T.objs = X.t.objs := by unfold WTx.objs; rw [h2, h3]
+  have h3a : T.dead = X.t.dead := congrArg Prod.fst h3
+  have h3b : T.deadB = X.t.deadB := congrArg Prod.snd h3
+  have ho : T.objs = X.t.objs := by unfold WTx.objs; rw [h2, h3a]
+  have hbo : T.bobjs = X.t.bobjs := by unfold WTx.bobjs; rw [h2, h3b]
   have hok' : heapOK (GF := GF) tx { X with t := T } := by
-    obtain ⟨k1, k2, k3, k4, k5⟩ := Hok
-    refine ⟨k1, ?_, ?_, ?_, ?_⟩
+    obtain ⟨k1, k2, k3, k4, k5, k6⟩ := Hok
+    refine ⟨k1, ?_, ?_, ?_, ?_, ?_⟩
     · unfold objsDisj at k2 ⊢; rw [h2]; exact k2
     · show ∀ bl B, T.bs !! bl = some B → _; rw [h2]; exact k3
     · show ∀ bl B n r, T.bs !! bl = some B → _; rw [h2]; exact k4
     · show ∀ n y, X.nloc !! n = some y → (T.objs !! n).isSome; rw [ho]; exact k5
+    · show ∀ bl B, T.bs !! bl = some B → _; rw [h2]; exact k6
   simp only
-  rw [ho, h1]
+  rw [ho, hbo, h1]
   iframe; iframe #
   ipureintro; exact ⟨Hr, hok'⟩
 

@@ -96,7 +96,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **The header of the page at a position of a live bucket** (`wpageAt`; for an inline bucket,
 its page field's bytes as its status says), at some fraction, and back. -/
 theorem wtxW_hdr_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
-    (pid : w64) (pa : Loc) (pg : List w8) (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.live)
+    (pid : w64) (pa : Loc) (pg : List w8) (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.liveB)
     (hw : wpageAt X.v B pid = some (pa, pg))
     (hsrc : B.ib.root' = W64 0 → B.pst = PageSt.view ∨ ∃ dq, B.isrc = Src.own dq)
     (hpa : 0 < pa.addr) (h16 : 16 ≤ pg.length) :
@@ -126,10 +126,9 @@ theorem wtxW_hdr_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
         intro e; rw [e] at hpa; simp [null] at hpa
       unfold wtxW wtxCore
       iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
-      ihave %Hd := wtxHeap_objsDisj tx (DFrac.own 1) X $$ Hh
-      have Ho := objs_bkt X.t bl B Hd hb
-      icases wtxHeap_obj_acc tx (DFrac.own 1) X bl (.bkt B) Ho $$ Hh with ⟨Ho, Hback⟩
-      rw [show decide (bl ∈ X.live) = true from decide_eq_true hl]
+      have Ho := bobjs_bkt X.t bl B hb
+      icases wtxHeap_bkt_obj_acc tx (DFrac.own 1) X bl B Ho $$ Hh with ⟨Ho, Hback⟩
+      rw [show decide (bl ∈ X.liveB) = true from decide_eq_true hl]
       unfold objOwn
       icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, Hpo⟩
       simp only [↓reduceIte]

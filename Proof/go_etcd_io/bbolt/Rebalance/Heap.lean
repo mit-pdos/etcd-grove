@@ -49,7 +49,7 @@ theorem wtxHeap_node_ptr_acc (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (r : 
     (ho : X.t.objs !! l = some (.node bl r)) :
     wtxHeap (GF := GF) tx dq X ⊢ l ↦{dq} r.nv ∗ (l ↦{dq} r.nv -∗ wtxHeap tx dq X) := by
   unfold wtxHeap
-  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  iintro ⟨%Hrl, Hf, Hrf, Hm, Hbk⟩
   icases (BigSepM.bigSepM_lookup_acc ho).1 $$ Hm with ⟨Ho, Hback⟩
   icases objOwn_node_ptr_acc X.v l dq _ bl r $$ Ho with ⟨Hl, Hob⟩
   iframe Hl
@@ -68,8 +68,25 @@ theorem wtxHeap_obj_acc (tx : Loc) (dq : DFrac) (X : WX) (l : Loc) (o : WObj)
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v l dq (decide (l ∈ X.live)) o ∗
       (objOwn X.v l dq (decide (l ∈ X.live)) o -∗ wtxHeap tx dq X) := by
   unfold wtxHeap
-  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  iintro ⟨%Hrl, Hf, Hrf, Hm, Hbk⟩
   icases (BigSepM.bigSepM_lookup_acc ho).1 $$ Hm with ⟨Ho, Hback⟩
+  iframe Ho
+  iintro Ho
+  iframe
+  isplitr
+  · ipureintro; exact Hrl
+  iapply Hback
+  iexact Ho
+
+omit hos in
+/-- **A bucket object, out and back unchanged** (its liveness as the heap has it; batch 14). -/
+theorem wtxHeap_bkt_obj_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
+    (hb : X.t.bobjs !! bl = some B) :
+    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) ∗
+      (objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) -∗ wtxHeap tx dq X) := by
+  unfold wtxHeap
+  iintro ⟨%Hrl, Hf, Hrf, Hm, Hbk⟩
+  icases (BigSepM.bigSepM_lookup_acc hb).1 $$ Hbk with ⟨Ho, Hback⟩
   iframe Ho
   iintro Ho
   iframe
@@ -99,7 +116,7 @@ theorem wtxHeap_two_acc (tx : Loc) (dq : DFrac) (X : WX) (a b : Loc) (oa ob : WO
       (objOwn X.v a dq (decide (a ∈ X.live)) oa -∗ objOwn X.v b dq (decide (b ∈ X.live)) ob -∗
         wtxHeap tx dq X) := by
   unfold wtxHeap
-  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  iintro ⟨%Hrl, Hf, Hrf, Hm, Hbk⟩
   icases (BigSepM.bigSepM_delete (M := GMap Loc) hoa).1 $$ Hm with ⟨Ha, Hm⟩
   have hob' : Iris.Std.get? (Iris.Std.delete X.t.objs a) b = some ob := by
     rw [Iris.Std.LawfulPartialMap.get?_delete_ne hne]; exact hob
@@ -132,8 +149,8 @@ theorem wtxHeap_two_nodes_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : B
 omit hos in
 /-- A big separating conjunction over a map with one entry replaced by one of the same
 resource. -/
-theorem bigSepM_insert_same {Φ : Loc → WObj → IProp GF} (m : GMap Loc WObj) (k : Loc)
-    (v v' : WObj) (hk : m !! k = some v) (heq : Φ k v' = Φ k v) :
+theorem bigSepM_insert_same {V : Type} {Φ : Loc → V → IProp GF} (m : GMap Loc V) (k : Loc)
+    (v v' : V) (hk : m !! k = some v) (heq : Φ k v' = Φ k v) :
     ([∗map] l ↦ o ∈ m.insert k v', Φ l o) ⊣⊢ [∗map] l ↦ o ∈ m, Φ l o := by
   refine (BigSepM.bigSepM_insert_delete (M := GMap Loc)).trans ?_
   rw [heq]
@@ -146,6 +163,44 @@ theorem setNode_eq (X : WX) (bl n : Loc) (B : BRec) (r' : NRec) (hb : X.t.bs !! 
   rw [hb]
 
 omit hos in
+/-- The heap's facts after a node's record changes (its parent not itself). -/
+theorem heapOK_setNode (tx : Loc) (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r r' : NRec)
+    (Hok : heapOK (GF := GF) tx X) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r)
+    (Hpar : r'.nv.parent' ≠ n) :
+    heapOK (GF := GF) tx { X with t := X.t.setNodeT bl n B r' } := by
+  have Hd := Hok.2.1
+  refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_, ?_, ?_⟩
+  · intro c C hc
+    by_cases hcb : c = bl
+    · subst hcb
+      simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
+      subst hc; exact Hok.2.2.1 c B hb
+    · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
+      exact Hok.2.2.1 c C hc
+  · intro c C k rk hc hk
+    by_cases hcb : c = bl
+    · subst hcb
+      simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
+      subst hc
+      by_cases hkn : k = n
+      · subst hkn
+        simp only [GMap.lookup_insert, Option.some.injEq] at hk
+        subst hk; exact Hpar
+      · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
+        exact Hok.2.2.2.1 c B k rk hb hk
+    · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
+      exact Hok.2.2.2.1 c C k rk hc hk
+  · intro m y hm
+    show ((X.t.setNodeT bl n B r').objs !! m).isSome
+    rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
+    exact isSome_insert_of _ _ _ _ (Hok.2.2.2.2.1 m y hm)
+  · intro c C hc
+    by_cases hcb : c = bl
+    · subst hcb; exact Hok.2.2.2.2.2 c B hb
+    · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
+      exact Hok.2.2.2.2.2 c C hc
+
+omit hos in
 /-- **A node's object, out, and back with a new record** (live or dead; its parent not
 itself): the heap of `X.setNode`. -/
 theorem wtxHeap_setNode (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
@@ -154,114 +209,60 @@ theorem wtxHeap_setNode (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (
       (∀ r', ⌜r'.nv.parent' ≠ n⌝ -∗ objOwn X.v n dq (decide (n ∈ X.live)) (.node bl r') -∗
         wtxHeap tx dq (X.setNode bl n r')) := by
   unfold wtxHeap
-  iintro ⟨%Hok, Hf, Hrf, Hm⟩
+  iintro ⟨%Hok, Hf, Hrf, Hm, Hbk⟩
   have Hd := Hok.2.1
   have Ho := objs_node X.t bl B n r Hd hb hr
-  have hnb : n ≠ bl := by
-    intro h; have := (Hd bl B hb n (by simp [hr])).1; rw [h, hb] at this; cases this
   icases (BigSepM.bigSepM_delete (M := GMap Loc) Ho).1 $$ Hm with ⟨Hn, Hm⟩
   iframe Hn
   iintro %r' %Hpar Hn
   rw [setNode_eq X bl n B r' hb]
   isplitr
-  · ipureintro
-    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_, ?_⟩
-    · intro c C hc
-      by_cases hcb : c = bl
-      · subst hcb
-        simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
-        subst hc; exact Hok.2.2.1 c B hb
-      · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.1 c C hc
-    · intro c C k rk hc hk
-      by_cases hcb : c = bl
-      · subst hcb
-        simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
-        subst hc
-        by_cases hkn : k = n
-        · subst hkn
-          simp only [GMap.lookup_insert, Option.some.injEq] at hk
-          subst hk; exact Hpar
-        · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
-          exact Hok.2.2.2.1 c B k rk hb hk
-      · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.2.1 c C k rk hc hk
-    · intro m y hm
-      show ((X.t.setNodeT bl n B r').objs !! m).isSome
-      rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
-      exact isSome_insert_of _ _ _ _ (isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm))
+  · ipureintro; exact heapOK_setNode tx X bl B n r r' Hok hb hr Hpar
   isplitl [Hf]
   · unfold txFields; simp only [WTx.setNodeT]; iexact Hf
   iframe
-  rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
-  have hlk : (X.t.objs.insert n (.node bl r')) !! bl = some (.bkt B) := by
-    rw [GMap.lookup_insert_ne _ _ hnb]; exact objs_bkt X.t bl B Hd hb
+  rw [objs_setNodeT X.t bl n B r r' Hd hb hr, bobjs_setNodeT X.t bl n B r']
   dsimp only
-  iapply (bigSepM_insert_same (Φ := fun l o => objOwn (GF := GF) X.v l dq (decide (l ∈ X.live)) o)
-    _ bl _ (.bkt { B with ns := B.ns.insert n r' }) hlk (by simp only [objOwn, pageOwn])).2
-  iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
-  iframe
+  isplitl [Hn Hm]
+  · iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
+    iframe
+  iapply (bigSepM_insert_same (Φ := fun l B => objOwn (GF := GF) X.v l dq (decide (l ∈ X.liveB))
+    (.bkt B)) _ bl B { B with ns := B.ns.insert n r' } (bobjs_bkt X.t bl B hb)
+    (by simp only [objOwn, pageOwn])).2
+  iexact Hbk
 
 omit hos in
 /-- The same, with the node's bucket and the transaction's fields out too. -/
 theorem wtxHeap_setNode_bkt (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
     (r : NRec) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v n dq (decide (n ∈ X.live)) (.node bl r) ∗
-      objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B) ∗ txFields tx dq X ∗
+      objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) ∗ txFields tx dq X ∗
       (∀ r', ⌜r'.nv.parent' ≠ n⌝ -∗ objOwn X.v n dq (decide (n ∈ X.live)) (.node bl r') -∗
-        objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B) -∗ txFields tx dq X -∗
+        objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) -∗ txFields tx dq X -∗
         wtxHeap tx dq (X.setNode bl n r')) := by
   unfold wtxHeap
-  iintro ⟨%Hok, Hf, Hrf, Hm⟩
+  iintro ⟨%Hok, Hf, Hrf, Hm, Hbk⟩
   have Hd := Hok.2.1
   have Ho := objs_node X.t bl B n r Hd hb hr
-  have hnb : n ≠ bl := by
-    intro h; have := (Hd bl B hb n (by simp [hr])).1; rw [h, hb] at this; cases this
   icases (BigSepM.bigSepM_delete (M := GMap Loc) Ho).1 $$ Hm with ⟨Hn, Hm⟩
-  have hob' : Iris.Std.get? (Iris.Std.delete X.t.objs n) bl = some (.bkt B) := by
-    rw [Iris.Std.LawfulPartialMap.get?_delete_ne hnb]; exact objs_bkt X.t bl B Hd hb
-  icases (BigSepM.bigSepM_lookup_acc hob').1 $$ Hm with ⟨Hb, Hmb⟩
+  icases (BigSepM.bigSepM_delete (M := GMap Loc) (bobjs_bkt X.t bl B hb)).1 $$ Hbk with ⟨Hb, Hbk⟩
   iframe Hn Hb Hf
   iintro %r' %Hpar Hn Hb Hf
-  ihave Hm := Hmb $$ Hb
   rw [setNode_eq X bl n B r' hb]
   isplitr
-  · ipureintro
-    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_, ?_⟩
-    · intro c C hc
-      by_cases hcb : c = bl
-      · subst hcb
-        simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
-        subst hc; exact Hok.2.2.1 c B hb
-      · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.1 c C hc
-    · intro c C k rk hc hk
-      by_cases hcb : c = bl
-      · subst hcb
-        simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
-        subst hc
-        by_cases hkn : k = n
-        · subst hkn
-          simp only [GMap.lookup_insert, Option.some.injEq] at hk
-          subst hk; exact Hpar
-        · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
-          exact Hok.2.2.2.1 c B k rk hb hk
-      · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.2.1 c C k rk hc hk
-    · intro m y hm
-      show ((X.t.setNodeT bl n B r').objs !! m).isSome
-      rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
-      exact isSome_insert_of _ _ _ _ (isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm))
+  · ipureintro; exact heapOK_setNode tx X bl B n r r' Hok hb hr Hpar
   isplitl [Hf]
   · unfold txFields; simp only [WTx.setNodeT]; iexact Hf
   iframe
-  rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
-  have hlk : (X.t.objs.insert n (.node bl r')) !! bl = some (.bkt B) := by
-    rw [GMap.lookup_insert_ne _ _ hnb]; exact objs_bkt X.t bl B Hd hb
+  rw [objs_setNodeT X.t bl n B r r' Hd hb hr, bobjs_setNodeT X.t bl n B r']
   dsimp only
-  iapply (bigSepM_insert_same (Φ := fun l o => objOwn (GF := GF) X.v l dq (decide (l ∈ X.live)) o)
-    _ bl _ (.bkt { B with ns := B.ns.insert n r' }) hlk (by simp only [objOwn, pageOwn])).2
-  iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
+  isplitl [Hn Hm]
+  · iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
+    iframe
+  iapply (bigSepM_insert_same (Φ := fun l B => objOwn (GF := GF) X.v l dq (decide (l ∈ X.liveB))
+    (.bkt B)) _ bl B { B with ns := B.ns.insert n r' } (bobjs_bkt X.t bl B hb)
+    (by simp only [objOwn, pageOwn])).2
+  iapply (BigSepM.bigSepM_delete (M := GMap Loc) (bobjs_bkt X.t bl B hb)).2
   iframe
 
 omit hos in
@@ -292,31 +293,29 @@ fields, and back. -/
 theorem wtxHeap_free_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
     (r : NRec) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r) :
     wtxHeap (GF := GF) tx dq X ⊢ n ↦{dq} r.nv ∗
-      objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B) ∗ txFields tx dq X ∗
-      (n ↦{dq} r.nv -∗ objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B) -∗ txFields tx dq X -∗
+      objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) ∗ txFields tx dq X ∗
+      (n ↦{dq} r.nv -∗ objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) -∗ txFields tx dq X -∗
         wtxHeap tx dq X) := by
   iintro H
   ihave %Hok := wtxHeap_heapOK tx dq X $$ H
   have Hd := Hok.2.1
   have Hon := objs_node X.t bl B n r Hd hb hr
-  have Hob := objs_bkt X.t bl B Hd hb
-  have hnb : n ≠ bl := by
-    intro h; have := (Hd bl B hb n (by simp [hr])).1; rw [h, hb] at this; cases this
+  have Hob := bobjs_bkt X.t bl B hb
   unfold wtxHeap
-  icases H with ⟨%Hok', Hf, Hrf, Hm⟩
+  icases H with ⟨%Hok', Hf, Hrf, Hm, Hbk⟩
   icases (BigSepM.bigSepM_delete (M := GMap Loc) Hon).1 $$ Hm with ⟨Hn, Hm⟩
-  have hob' : Iris.Std.get? (Iris.Std.delete X.t.objs n) bl = some (.bkt B) := by
-    rw [Iris.Std.LawfulPartialMap.get?_delete_ne hnb]; exact Hob
-  icases (BigSepM.bigSepM_lookup_acc hob').1 $$ Hm with ⟨Hb, Hback⟩
+  icases (BigSepM.bigSepM_lookup_acc Hob).1 $$ Hbk with ⟨Hb, Hback⟩
   icases objOwn_node_ptr_acc X.v n dq _ bl r $$ Hn with ⟨Hn, Hnb⟩
   iframe Hn Hb Hf
   iintro Hn Hb Hf
   iframe
   isplitr
   · ipureintro; exact Hok'
-  iapply (BigSepM.bigSepM_delete (M := GMap Loc) Hon).2
-  isplitl [Hn Hnb]
-  · iapply Hnb $$ Hn
+  isplitl [Hn Hnb Hm]
+  · iapply (BigSepM.bigSepM_delete (M := GMap Loc) Hon).2
+    isplitl [Hn Hnb]
+    · iapply Hnb $$ Hn
+    iexact Hm
   iapply Hback
   iexact Hb
 

@@ -218,7 +218,7 @@ leaf page facts (`wOK`'s, for this bucket alone, at the transaction's current hi
 `txPgLeaf` only, which also holds after `rebalance`), and its location live. Holds for every bucket under `wOK`, and for a bucket `Bucket.spill` searches
 after its children's spill. -/
 def bktLocalOK (X : WX) (bl : Loc) : Prop :=
-  bl ∈ X.live ∧ ∃ B, X.t.bs !! bl = some B ∧ bktClean X.v X.t.mv.pgid'.toNat bl B ∧
+  bl ∈ X.liveB ∧ ∃ B, X.t.bs !! bl = some B ∧ bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     bktKeys X.v B ∧ txPgLeaf (GMap.singleton bl B) ∧
     (∀ l r, B.ns !! l = some r → l ∈ X.live) ∧ viewWF X.v
 
@@ -242,7 +242,7 @@ persistent heap bytes), with the transaction's `tx`, empty caches and no node, f
 `fills`), cached in `bl`'s `buckets`, live, and the handle `(name, g)` registered. -/
 def bktOpened (X X' : WX) (bl c : Loc) (name : List w8) (g : Nat) : Prop :=
   ∃ (B C : BRec) (w : WEntry), X.t.bs !! bl = some B ∧ w ∈ X.allEnts bl ∧ w.key = name ∧
-    isBktFlag w.flags ∧ B.bm !! name = none ∧ c ≠ null ∧ (X.t.objs !! c).isNone ∧
+    isBktFlag w.flags ∧ B.bm !! name = none ∧ c ≠ null ∧ (X.t.bobjs !! c).isNone ∧
     C.ib = ibOf w.value ∧ C.bv.tx' = B.bv.tx' ∧ C.bv.rootNode' = null ∧ C.nm = ∅ ∧
     C.bm = ∅ ∧ C.ns = ∅ ∧
     (inBucketRoot w.value = 0 →
@@ -251,7 +251,7 @@ def bktOpened (X X' : WX) (bl c : Loc) (name : List w8) (g : Nat) : Prop :=
         (C.isrc = Src.own DFrac.discard ∧ C.pst = PageSt.none))) ∧
     (inBucketRoot w.value ≠ 0 → C.bv.page' = null ∧ C.pst = PageSt.none) ∧
     X' = { X with t := { X.t with bs := (X.t.bs.insert bl { B with bm := B.bm.insert name c }).insert c C },
-                  live := X.live.insert c (), handles := X.handles.insert c (name, g) }
+                  liveB := X.liveB.insert c (), handles := X.handles.insert c (name, g) }
 
 /-- The node `n` of `B` has the root `rt`: following `parent` within `B`'s nodes (`node.root`). -/
 inductive nodeRootIn (B : BRec) : Loc → Loc → Prop
@@ -467,7 +467,7 @@ inductive descIn (B : BRec) : Loc → Loc → Prop
 bucket is reached from the root bucket, and every live node of a bucket descends from the root of
 its root node's chain of parents (`b.rootNode.root()`, then `children`). -/
 def liveReach (X : WX) : Prop :=
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live → bktReach X bl) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.liveB → bktReach X bl) ∧
   ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
     ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ descIn B rt l
 
@@ -488,10 +488,10 @@ def derefPre (X : WX) : Prop :=
   (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
     r.nv.bucket' = bl ∧ (∀ w ∈ r.ws, 0 < w.key.length) ∧
     (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧ ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live →
-    (∀ k c, B.bm !! k = some c → c ∈ X.live ∧ (X.t.bs !! c).isSome) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.liveB →
+    (∀ k c, B.bm !! k = some c → c ∈ X.liveB ∧ (X.t.bs !! c).isSome) ∧
     (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live)) ∧
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live ∧ B.ns !! null = none) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.liveB ∧ B.ns !! null = none) ∧
   (X.t.bs !! X.rl).isSome ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-! ### `dereference`'s step (batch 12, moved from U9b's `Spill/DerefModel`) -/
@@ -527,7 +527,8 @@ changed. -/
 def derefStep (X X' : WX) : Prop :=
   X'.v = X.v ∧ X'.live = X.live ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.rl = X.rl ∧
   X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv ∧ X'.t.pm = X.t.pm ∧ X'.t.bufs = X.t.bufs ∧
-  X'.t.dead = X.t.dead ∧ ∀ bl, optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl)
+  X'.t.dead = X.t.dead ∧ X'.t.deadB = X.t.deadB ∧ X'.liveB = X.liveB ∧
+  ∀ bl, optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl)
 
 /-- The pages the writer's buffers hold (`tx.pages`' bytes, by id). -/
 def WX.bufPages (X : WX) : Pages := GMap.ofList (X.t.bufs.toList.map fun e => (e.1.toNat, e.2))

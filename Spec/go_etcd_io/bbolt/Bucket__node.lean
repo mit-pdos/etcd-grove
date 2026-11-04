@@ -33,7 +33,7 @@ made the root node or appended to the branch node `parent`'s children (`nodeAdde
 abbrev Bucket.node.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (pgid : w64)
     (parent : Loc),
-  X.t.bs !! bl = some B → bl ∈ X.live → B.bv.nodes' ≠ null →
+  X.t.bs !! bl = some B → bl ∈ X.liveB → B.bv.nodes' ≠ null →
   (∀ l, B.nm !! pgid = some l → l ≠ null) →
   (B.nm !! pgid = none → matReady X B pgid ∧
     (parent = null ∨ ∃ rp, B.ns !! parent = some rp ∧ rp.nv.isLeaf' = false ∧ parent ∈ X.live)) →

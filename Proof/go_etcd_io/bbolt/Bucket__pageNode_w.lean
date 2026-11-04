@@ -34,11 +34,11 @@ theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
     Bucket.pageNode_w.spec (GF := GF) (hG := hG) := by
   intro K tx r m X bl B id hB hlive hinl hnodes hnn hres
   unfold wtxW wtxCore wtxHeap
-  wp_start as ⟨⟨#Hpk, #Hcore, %Hr, #Hreg, ⟨%Hok, Htf, Hrf, Hobjs⟩, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩,
+  wp_start as ⟨⟨#Hpk, #Hcore, %Hr, #Hreg, ⟨%Hok, Htf, Hrf, Hnobjs, Hobjs⟩, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩,
     Hcells, ⟨%l, Hmf⟩⟩
-  have hobj := objs_bkt X.t bl B Hok.2.1 hB
+  have hobj := bobjs_bkt X.t bl B hB
   icases (BigSepM.bigSepM_lookup_acc hobj).1 $$ Hobjs with ⟨Hb, Hobjs⟩
-  rw [show decide (bl ∈ X.live) = true from decide_eq_true hlive]
+  rw [show decide (bl ∈ X.liveB) = true from decide_eq_true hlive]
   simp only [objOwn]
   icases Hb with ⟨HIB, Htx, Hbks, Hpage, Hroot, Hnodes, Hib, Hnm, Hbm, Hpo⟩
   wp_auto

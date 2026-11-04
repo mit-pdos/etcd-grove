@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 
 /-- **A live bucket's view-backed page has a view source** (what `bktOpened` builds). -/
 def pageSrcOK (X : WX) : Prop :=
-  ∀ l B, X.t.objs !! l = some (.bkt B) → l ∈ X.live → B.pst = .view → B.isrc = .view
+  ∀ l B, X.t.bobjs !! l = some B → l ∈ X.liveB → B.pst = .view → B.isrc = .view
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
 theorem BRec.unview_ns (B : BRec) : B.unview.ns = B.ns.fmap (fun r => { r with
@@ -41,51 +41,54 @@ theorem BRec.unview_ns (B : BRec) : B.unview.ns = B.ns.fmap (fun r => { r with
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
 theorem objsDisj_rebase (X : WX) (b : Loc) (hd : objsDisj X.t) : objsDisj (X.rebase b).t := by
-  intro bl B hb n hn
+  intro bl B hb n hn bl' B' hb' hne
   simp only [WX.rebase, GMap.lookup_fmap] at hb
   obtain ⟨B0, hb0, rfl⟩ := Option.map_eq_some_iff.1 hb
   have hn0 : (B0.ns !! n).isSome := by
     rw [BRec.unview_ns, GMap.lookup_fmap] at hn; simpa using hn
-  obtain ⟨h1, h2⟩ := hd bl B0 hb0 n hn0
-  refine ⟨by simp [WX.rebase, h1], fun bl' B' hb' hne => ?_⟩
   simp only [WX.rebase, GMap.lookup_fmap] at hb'
   obtain ⟨B1, hb1, rfl⟩ := Option.map_eq_some_iff.1 hb'
-  rw [BRec.unview_ns, GMap.lookup_fmap, h2 bl' B1 hb1 hne]; rfl
+  rw [BRec.unview_ns, GMap.lookup_fmap, hd bl B0 hb0 n hn0 bl' B1 hb1 hne]; rfl
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
-/-- The rebased objects are the objects, each `unview`ed. -/
+/-- The rebased node objects are the node objects, each `unview`ed. -/
 theorem objs_rebase (X : WX) (b : Loc) (hd : objsDisj X.t) :
     (X.rebase b).t.objs = X.t.objs.fmap WObj.unview := by
   have hd' := objsDisj_rebase X b hd
   apply GMap.ext; intro k
   show (X.rebase b).t.objs !! k = (X.t.objs.fmap WObj.unview) !! k
   rw [GMap.lookup_fmap]
-  by_cases hk : ∃ B, X.t.bs !! k = some B
-  · obtain ⟨B, hB⟩ := hk
-    rw [objs_bkt X.t k B hd hB, objs_bkt _ k B.unview hd' (by simp [WX.rebase, hB])]; rfl
-  · by_cases hn : ∃ bl B r, X.t.bs !! bl = some B ∧ B.ns !! k = some r
-    · obtain ⟨bl, B, r, hB, hr⟩ := hn
-      rw [objs_node X.t bl B k r hd hB hr, objs_node _ bl B.unview k _ hd'
-        (by simp [WX.rebase, hB]) (by rw [BRec.unview_ns, GMap.lookup_fmap, hr]; rfl)]
-      rfl
-    · have hother : ∀ bl B, X.t.bs !! bl = some B → k ≠ bl ∧ B.ns !! k = none := by
-        intro bl B hB
-        refine ⟨fun e => hk ⟨B, e ▸ hB⟩, ?_⟩
-        cases h : B.ns !! k with
-        | none => rfl
-        | some r => exact absurd ⟨bl, B, r, hB, h⟩ hn
-      rw [objs_other X.t k hother, objs_other _ k ?_]
-      · rfl
-      · intro bl B hB
-        simp only [WX.rebase, GMap.lookup_fmap] at hB
-        obtain ⟨B0, hb0, rfl⟩ := Option.map_eq_some_iff.1 hB
-        obtain ⟨h1, h2⟩ := hother bl B0 hb0
-        exact ⟨h1, by rw [BRec.unview_ns, GMap.lookup_fmap, h2]; rfl⟩
+  by_cases hn : ∃ bl B r, X.t.bs !! bl = some B ∧ B.ns !! k = some r
+  · obtain ⟨bl, B, r, hB, hr⟩ := hn
+    rw [objs_node X.t bl B k r hd hB hr, objs_node _ bl B.unview k _ hd'
+      (by simp [WX.rebase, hB]) (by rw [BRec.unview_ns, GMap.lookup_fmap, hr]; rfl)]
+    rfl
+  · have hother : ∀ bl B, X.t.bs !! bl = some B → B.ns !! k = none := by
+      intro bl B hB
+      cases h : B.ns !! k with
+      | none => rfl
+      | some r => exact absurd ⟨bl, B, r, hB, h⟩ hn
+    rw [objs_other X.t k hother, objs_other _ k ?_]
+    · simp only [WTx.deadObjs, WX.rebase, GMap.lookup_fmap]
+      cases X.t.dead !! k <;> rfl
+    · intro bl B hB
+      simp only [WX.rebase, GMap.lookup_fmap] at hB
+      obtain ⟨B0, hb0, rfl⟩ := Option.map_eq_some_iff.1 hB
+      rw [BRec.unview_ns, GMap.lookup_fmap, hother bl B0 hb0]; rfl
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
+/-- The rebased bucket objects are the bucket objects, each `unview`ed. -/
+theorem bobjs_rebase (X : WX) (b : Loc) :
+    (X.rebase b).t.bobjs = X.t.bobjs.fmap BRec.unview := by
+  apply GMap.ext; intro k
+  show (X.rebase b).t.bobjs !! k = (X.t.bobjs.fmap BRec.unview) !! k
+  simp only [WTx.bobjs, WX.rebase, GMap.lookup_fmap, GMap.lookup_union]
+  cases X.t.bs !! k <;> rfl
 
 theorem heapOK_rebase (tx : Loc) (X : WX) (b : Loc) (h : heapOK (GF := GF) tx X) :
     heapOK (GF := GF) tx (X.rebase b) := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  refine ⟨h1, objsDisj_rebase X b h2, ?_, ?_, ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  refine ⟨h1, objsDisj_rebase X b h2, ?_, ?_, ?_, ?_⟩
   · intro bl B hB
     simp only [WX.rebase, GMap.lookup_fmap] at hB
     obtain ⟨B0, hb0, rfl⟩ := Option.map_eq_some_iff.1 hB
@@ -100,6 +103,10 @@ theorem heapOK_rebase (tx : Loc) (X : WX) (b : Loc) (h : heapOK (GF := GF) tx X)
     rw [objs_rebase X b h2, GMap.lookup_fmap]
     have := h5 n y hn
     revert this; cases X.t.objs !! n <;> simp
+  · intro bl B hB
+    simp only [WX.rebase, GMap.lookup_fmap] at hB
+    obtain ⟨B0, hb0, rfl⟩ := Option.map_eq_some_iff.1 hB
+    exact h6 bl B0 hb0
 
 /-- A kept slice not in the view, on any view. -/
 theorem srcOwn_rebase (v v' : View) (s : GoSlice) (src : Src) (bs : List w8) (h : src ≠ .view) :
@@ -151,11 +158,7 @@ omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
 theorem Src.unview_of_ne (s : Src) (h : s ≠ .view) : s.unview = s := by
   cases s <;> first | exact absurd rfl h | rfl
 
-/-- An entry after a remap. -/
-def WEntry.unview (w : WEntry) : WEntry := { w with ks := w.ks.unview, vs := w.vs.unview }
-
-/-- A node's record after a remap. -/
-def NRec.unview (r : NRec) : NRec := { r with ws := r.ws.map WEntry.unview, ksrc := r.ksrc.unview }
+-- `WEntry.unview`, `NRec.unview`: `Inv/WtxHeap` (batch 14: `WX.rebase`'s dead nodes).
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
 theorem WObj.unview_node (bl : Loc) (r : NRec) : WObj.unview (.node bl r) = .node bl r.unview :=
@@ -224,19 +227,29 @@ contract), the heap is the re-based `X`'s; nothing of it reads the old mapping. 
 theorem wtxHeap_rebase (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X) :
     wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq (X.rebase b) := by
   unfold wtxHeap
-  iintro ⟨%Hok, Hf, Hr, Hobjs⟩
+  iintro ⟨%Hok, Hf, Hr, Hobjs, Hbobjs⟩
   have ho := objs_rebase X b Hok.2.1
   isplitr
   · ipureintro; exact heapOK_rebase tx X b Hok
   have et : txFields (GF := GF) tx dq (X.rebase b) = txFields tx dq X := rfl
   rw [et]
   iframe Hf Hr
-  rw [ho, show (X.rebase b).live = X.live from rfl]
-  iapply (fmap_bigSepM _ _ _).2
-  iapply BigSepM.bigSepM_mono (fun {l o} hlo => objOwn_rebase X.v (X.rebase b).v l dq
-    (decide (l ∈ X.live)) o (fun hl bl r e => by
-      have := hcov l o hlo (of_decide_eq_true hl); rw [e] at this; exact this))
-  iexact Hobjs
+  rw [ho, bobjs_rebase X b, show (X.rebase b).live = X.live from rfl,
+    show (X.rebase b).liveB = X.liveB from rfl]
+  isplitl [Hobjs]
+  · iapply (fmap_bigSepM _ _ _).2
+    iapply BigSepM.bigSepM_mono (fun {l o} hlo => objOwn_rebase X.v (X.rebase b).v l dq
+      (decide (l ∈ X.live)) o (fun hl bl r e => by
+        have := hcov l o hlo (of_decide_eq_true hl); rw [e] at this; exact this))
+    iexact Hobjs
+  iapply (fmap_bigSepM (fun l B => objOwn (GF := GF) (X.rebase b).v l dq (decide (l ∈ X.liveB))
+    (.bkt B)) BRec.unview _).2
+  iapply (BigSepM.bigSepM_mono (m := X.t.bobjs)
+    (Φ := fun l B => objOwn (GF := GF) X.v l dq (decide (l ∈ X.liveB)) (.bkt B))
+    (Ψ := fun l B => objOwn (GF := GF) (X.rebase b).v l dq (decide (l ∈ X.liveB)) (.bkt B.unview))
+    (fun {l B} _ => objOwn_rebase X.v (X.rebase b).v l dq
+      (decide (l ∈ X.liveB)) (.bkt B) (fun _ bl r e => by cases e)))
+  iexact Hbobjs
 
 end rebase
 

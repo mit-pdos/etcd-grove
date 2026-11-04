@@ -299,7 +299,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
     have HX1 : derefStep X (X.setNode bl n (rn.derefTo k1 insD wsD)) :=
       derefStep_setNode X bl n B rn _ HB Hrn (Or.inr Hr1)
     ihave Hw := Hclose $$ %(X.setNode bl n (rn.derefTo k1 insD wsD)) [] Hh Hv Hst
-    · ipureintro; exact ⟨HX1.1, HX1.2.2.1, HX1.2.2.2.1⟩
+    · ipureintro; exact ⟨HX1.1, HX1.2.2.1, by rw [HX1.2.2.2.1, HX1.2.2.2.2.2.1]⟩
     ihave IH3 : (∃ (i : Nat) (Xi : WX) (cv : Loc),
         "i" ∷ i_ptr ↦ W64 (i : Int) ∗ "child" ∷ child_ptr ↦ cv ∗ "Hw" ∷ wtxW K tx r m Xi ∗
         "%Hi" ∷ ⌜i ≤ rn.cs.length ∧ derefStep X Xi ∧
@@ -397,7 +397,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
       ihave Hh := Hhb $$ [Hn Hins Hcap Hws Hcs Hcsc Hkey]
       · iframe
       ihave %HokI := wtxHeap_heapOK tx _ Xi $$ Hh
-      have HblL : bl ∈ Xi.live := (HpreI.2.2.1 bl Bi HBi).1
+      have HblL : bl ∈ Xi.liveB := (HpreI.2.2.1 bl Bi HBi).1
       icases wtxHeap_bkt_peek tx _ Xi bl Bi HBi HblL $$ Hh with ⟨Hb, Hbb⟩
       unfold objOwn
       icases Hb with ⟨Hb1, Hbtx, Hb3⟩

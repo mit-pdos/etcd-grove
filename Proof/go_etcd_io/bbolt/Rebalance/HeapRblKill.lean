@@ -36,19 +36,10 @@ theorem wtxHeap_kill_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B B' : BR
   iintro H
   ihave %Hok := wtxHeap_heapOK tx dq X $$ H
   have Hd := Hok.2.1
-  have hnb : n ≠ bl := by
-    intro h; have := (Hd bl B hb n (by simp [hr])).1; rw [h, hb] at this; cases this
   have Hon := objs_node X.t bl B n rn Hd hb hr
-  have Hob := objs_bkt X.t bl B Hd hb
-  have ho : ∀ l ∈ [n, bl], X.t.objs !! l =
-      some ((fun l => if l = n then WObj.node bl rn else WObj.bkt B) l) := by
-    intro l hl
-    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
-    rcases hl with rfl | rfl
-    · simp [Hon]
-    · simp [Hob, Ne.symm hnb]
+  have Hob := bobjs_bkt X.t bl B hb
   -- the new transaction's facts
-  let T' : WTx := { X.t with bs := X.t.bs.insert bl B', dead := X.t.dead.insert n (.node bl rn) }
+  let T' : WTx := { X.t with bs := X.t.bs.insert bl B', dead := X.t.dead.insert n (bl, rn) }
   have hT' : (X.kill bl B' n rn).t = T' := rfl
   have hbs' : ∀ c, T'.bs !! c = if c = bl then some B' else X.t.bs !! c := by
     intro c
@@ -75,53 +66,53 @@ theorem wtxHeap_kill_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B B' : BR
       · exact hk
     · rw [hc] at hc'; cases hc'; exact hk
   have Hd' : objsDisj T' := objsDisj_sub X.t T' Hd hdom hsub
-  have hagree := objs_agree X.t T' [n, bl] Hd Hd' hdom
-    (fun c hc => by
-      rw [hbs']; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hc
-      rw [if_neg hc.2])
+  have hagree := objs_agree X.t T' [n] Hd Hd' hdom
     (fun c C C' k hc hc' hk => by
-      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hk
+      simp only [List.mem_singleton] at hk
       rw [hbs'] at hc'
       split at hc'
       · rename_i h; subst h; cases hc'; rw [hb] at hc; cases hc
-        rw [hns', if_neg hk.1]
+        rw [hns', if_neg hk]
       · rw [hc] at hc'; cases hc'; rfl)
     (fun k hk => by
-      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hk
+      simp only [List.mem_singleton] at hk
       show (X.t.dead.insert n _) !! k = _
-      exact GMap.lookup_insert_ne _ _ (Ne.symm hk.1))
+      exact GMap.lookup_insert_ne _ _ (Ne.symm hk))
+  have hagreeB := bobjs_agree X.t T' [bl]
+    (fun c hc => by
+      simp only [List.mem_singleton] at hc
+      rw [hbs', if_neg hc])
+    (fun k _ => rfl)
   have Hon' : T'.objs !! n = some (.node bl rn) := by
     rw [objs_other T' n]
-    · show (X.t.dead.insert n _) !! n = _; exact GMap.lookup_insert _ _ _
+    · show (X.t.dead.insert n (bl, rn)).fmap _ !! n = _
+      simp [GMap.lookup_fmap, GMap.lookup_insert]
     · intro c C' hc'
-      obtain ⟨C, hc⟩ : ∃ C, X.t.bs !! c = some C := by
-        have := hdom c; rw [hc'] at this; exact Option.isSome_iff_exists.1 this.symm
-      refine ⟨fun h => ?_, ?_⟩
-      · rw [← h] at hc; have := (Hd bl B hb n (by simp [hr])).1; rw [hc] at this; cases this
-      · rw [hbs'] at hc'
-        split at hc'
-        · rename_i h; subst h; cases hc'; rw [hns', if_pos rfl]
-        · rename_i hcb
-          have hcC : X.t.bs !! c = some C' := hc'
-          exact (Hd bl B hb n (by simp [hr])).2 c C' hcC hcb
-  have Hob' : T'.objs !! bl = some (.bkt B') := objs_bkt T' bl B' Hd' (by rw [hbs', if_pos rfl])
-  icases wtxHeap_reshape tx dq X [n, bl] _ (by simp [hnb]) ho $$ H with ⟨⟨Hn, Hb, -⟩, Hf, Hrf, Hback⟩
-  iapply Hback $$ %(X.kill bl B' n rn)
-    %(fun l => if l = n then WObj.node bl rn else WObj.bkt B') [] [Hn Hb] [Hf] [Hrf]
+      rw [hbs'] at hc'
+      split at hc'
+      · rename_i h; subst h; cases hc'; rw [hns', if_pos rfl]
+      · rename_i hcb
+        have hcC : X.t.bs !! c = some C' := hc'
+        exact Hd bl B hb n (by simp [hr]) c C' hcC hcb
+  have Hob' : T'.bobjs !! bl = some B' := bobjs_bkt T' bl B' (by rw [hbs', if_pos rfl])
+  icases wtxHeap_reshape tx dq X [n] (fun _ => WObj.node bl rn) [bl] (fun _ => B)
+    (nodup_one n) (by intro l hl; rw [List.mem_singleton.1 hl]; exact Hon)
+    (nodup_one bl) (by intro l hl; rw [List.mem_singleton.1 hl]; exact Hob) $$ H
+    with ⟨⟨Hn, -⟩, ⟨Hb, -⟩, Hf, Hrf, Hback⟩
+  iapply Hback $$ %(X.kill bl B' n rn) %(fun _ => WObj.node bl rn) %(fun _ => B')
+    [] [Hn] [Hb] [Hf] [Hrf]
   · ipureintro
-    refine ⟨?_, rfl, ?_, ?_⟩
-    · intro l hl
-      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
-      rw [hT']
-      rcases hl with rfl | rfl
-      · simp only [ite_true]; exact Hon'
-      · simp only [if_neg (Ne.symm hnb)]; exact Hob'
+    refine ⟨?_, ?_, rfl, ?_, ?_, ?_⟩
+    · intro l hl; rw [List.mem_singleton.1 hl, hT']; exact Hon'
+    · intro l hl; rw [List.mem_singleton.1 hl, hT']; exact Hob'
     · intro k hk
       refine ⟨by rw [hT']; exact hagree k hk, ?_⟩
-      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hk
+      simp only [List.mem_singleton] at hk
       show k ∈ X.live.delete n ↔ k ∈ X.live
-      simp only [GMap.mem_iff, GMap.lookup_delete_ne _ (Ne.symm hk.1)]
-    · refine heapOK_of tx X _ Hok rfl Hd' ?_ ?_ rfl ?_
+      simp only [GMap.mem_iff, GMap.lookup_delete_ne _ (Ne.symm hk)]
+    · intro k hk
+      exact ⟨by rw [hT']; exact hagreeB k hk, Iff.rfl⟩
+    · refine heapOK_of tx X _ Hok rfl Hd' ?_ ?_ rfl ?_ rfl
       · intro c C' hc'
         rw [hT', hbs'] at hc'
         split at hc'
@@ -137,27 +128,18 @@ theorem wtxHeap_kill_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B B' : BR
         · exact Hok.2.2.2.1 c C' k rk hc' hk
       · intro k hk
         rw [hT']
-        by_cases hkL : k ∈ [n, bl]
-        · simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hkL
-          rcases hkL with rfl | rfl
-          · rw [Hon']; rfl
-          · rw [Hob']; rfl
+        by_cases hkL : k ∈ [n]
+        · rw [List.mem_singleton.1 hkL, Hon']; rfl
         · rw [hagree k hkL]; exact hk
-  · isplitl [Hn]
-    · simp only [ite_true]
-      iapply objOwn_weaken X.v n dq _ _ _ ?_ $$ Hn
-      intro h
-      simp only [decide_eq_true_eq] at h
-      exact absurd h (by show ¬ (n ∈ X.live.delete n); simp [GMap.mem_iff])
-    isplitl [Hb]
-    · simp only [if_neg (Ne.symm hnb)]
-      have hbl' : decide (bl ∈ (X.kill bl B' n rn).live) = decide (bl ∈ X.live) := by
-        apply decide_eq_decide.2
-        show bl ∈ X.live.delete n ↔ bl ∈ X.live
-        simp only [GMap.mem_iff, GMap.lookup_delete_ne _ hnb]
-      rw [hbl', objOwn_bkt_eq _ _ _ _ B B' h1 h2 h3 h4 h5 h6 h7]
-      iexact Hb
-    iempintro
+  · iapply BigSepL.bigSepL_singleton.2
+    iapply objOwn_weaken X.v n dq _ _ _ ?_ $$ Hn
+    intro h
+    simp only [decide_eq_true_eq] at h
+    exact absurd h (by show ¬ (n ∈ X.live.delete n); simp [GMap.mem_iff])
+  · iapply BigSepL.bigSepL_singleton.2
+    have hbl' : decide (bl ∈ (X.kill bl B' n rn).liveB) = decide (bl ∈ X.liveB) := rfl
+    rw [hbl', objOwn_bkt_eq _ _ _ _ B B' h1 h2 h3 h4 h5 h6 h7]
+    iexact Hb
   · rw [txFields_congr tx dq (X.kill bl B' n rn) X rfl rfl rfl rfl]; iexact Hf
   · iexact Hrf
 

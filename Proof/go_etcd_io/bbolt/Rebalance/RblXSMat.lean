@@ -53,24 +53,14 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
     cases hl' : B.ns !! l with
     | none => rfl
     | some _ =>
-      have := (objs_isSome X.t l).2 (Or.inr ⟨bl, B, hb, Or.inr (by rw [hl']; rfl)⟩)
+      have := (objs_isSome X.t l).2 (Or.inr ⟨bl, B, hb, by rw [hl']; rfl⟩)
       rw [Option.isNone_iff_eq_none] at hlo; rw [hlo] at this; cases this
-  have hlbs : ∀ c, X.t.bs !! c = some B → c ≠ l := by
-    intro c hC he; subst he
-    have := (objs_isSome X.t c).2 (Or.inr ⟨c, B, hC, Or.inl rfl⟩)
-    rw [Option.isNone_iff_eq_none] at hlo; rw [hlo] at this; cases this
   have hlns : ∀ c C, X.t.bs !! c = some C → C.ns !! l = none := by
     intro c C hC
     cases hl' : C.ns !! l with
     | none => rfl
     | some _ =>
-      have := (objs_isSome X.t l).2 (Or.inr ⟨c, C, hC, Or.inr (by rw [hl']; rfl)⟩)
-      rw [Option.isNone_iff_eq_none] at hlo; rw [hlo] at this; cases this
-  have hlbs' : X.t.bs !! l = none := by
-    cases hl' : X.t.bs !! l with
-    | none => rfl
-    | some C =>
-      have := (objs_isSome X.t l).2 (Or.inr ⟨l, C, hl', Or.inl rfl⟩)
+      have := (objs_isSome X.t l).2 (Or.inr ⟨c, C, hC, by rw [hl']; rfl⟩)
       rw [Option.isNone_iff_eq_none] at hlo; rw [hlo] at this; cases this
   have hdead : X.t.dead !! l = none := by
     cases hl' : X.t.dead !! l with
@@ -183,7 +173,6 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
   have hlc : ∀ s, lCovers X' s ↔ lCovers X s := by
     intro s; rw [lCovers_iff, lCovers_iff, hcovW]
   have hblX : X.t.bs !! bl ≠ none := by rw [hb]; simp
-  have hlbl : l ≠ bl := fun he => by rw [he, hb] at hlbs'; cases hlbs'
   -- the finite trees
   have hrtx : ∀ c, rtOK X c → rtOK X' c := by
     intro c ⟨t, ht, hp, hh, D, hD⟩
@@ -219,7 +208,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
     · obtain ⟨ry0, h1, -, h3, h4, h5, -⟩ := hold y ry' hy hyl
       exact Or.inr ⟨hyl, ry0, h1, h3, h4, h5⟩
   have hobj : ∀ k, (X.t.objs !! k).isSome = true → (X'.t.objs !! k).isSome = true := by
-    apply objs_isSome_mono X.t X'.t (fun k hk => by rw [hX']; exact hk) (fun c h => by rw [hbs]; exact h)
+    apply objs_isSome_mono X.t X'.t (fun k hk => by rw [hX']; exact hk)
     intro c C k hC hk; right
     by_cases hcb : c = bl
     · subst hcb; rw [hb] at hC; cases hC
@@ -230,6 +219,9 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
   have hdead' : X'.t.dead = X.t.dead := by rw [hX']
   have hmv : X'.t.mv = X.t.mv := by rw [hX']
   have hhd : X'.handles = X.handles := by rw [hX']
+  have hliveB : X'.liveB = X.liveB := by rw [hX']
+  have hobjB : ∀ k, (X.t.bobjs !! k).isSome = true → (X'.t.bobjs !! k).isSome = true :=
+    bobjs_isSome_mono X.t X'.t (fun k hk => by rw [hX']; exact hk) (fun c h => by rw [hbs]; exact h)
   refine ⟨⟨⟨by rw [hX']; exact htw, by rw [hX']; exact hpm, by rw [hX']; exact hhwm,
       by rw [hX']; exact htx, by rw [hrl', hbs]; exact hrlS⟩, ?_, ?_, ?_, ?_, ?_,
       by rw [hvv]; exact hV, ?_, Write.flView_congr X X' fl hvv hlc hFV,
@@ -303,16 +295,16 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
       · rw [h2] at hxw; rw [h1]
         exact hEB c B hb y ry0 h1 x hxw
     · exact hEB c C hC y ry hy x hxw
-  · intro b nm h; rw [hhd] at h; exact hobj b (hH b nm h)
+  · intro b nm h; rw [hhd] at h; exact hobjB b (hH b nm h)
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hL
-    refine ⟨by rw [hrl']; exact (hliveX _).2 (Or.inr l1), fun y hy => ?_, fun c C hC => ?_,
+    refine ⟨by rw [hrl', hliveB]; exact l1, fun y hy => ?_, fun c C hC => ?_,
       fun c C y ry hC hy => ?_, fun y hy hyl => ?_⟩
     · rcases (hliveX y).1 hy with rfl | hy
-      · exact (objs_isSome X'.t y).2 (Or.inr ⟨bl, _, hB', Or.inr (by rw [hrl]; rfl)⟩)
+      · exact (objs_isSome X'.t y).2 (Or.inr ⟨bl, _, hB', by rw [hrl]; rfl⟩)
       · exact hobj y (l2 y hy)
     · rw [hbsX] at hC; split at hC
-      · rename_i hcb; subst hcb; exact (hliveX _).2 (Or.inr (l3 c B hb))
-      · exact (hliveX _).2 (Or.inr (l3 c C hC))
+      · rename_i hcb; subst hcb; rw [hliveB]; exact l3 c B hb
+      · rw [hliveB]; exact l3 c C hC
     · rw [hbsX] at hC; split at hC
       · rename_i hcb; subst hcb; cases hC
         rcases hB'cases y ry hy with ⟨rfl, -⟩ | ⟨-, ry0, h1, -⟩
@@ -346,8 +338,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
         · rename_i hcb; subst hcb; exact ⟨B, hb⟩
         · exact ⟨C, hC⟩
       obtain ⟨C0, hC0⟩ := hC0
-      have hcl : c ≠ l := fun he => by rw [he, hlbs'] at hC0; cases hC0
-      have hcx : c ∈ X.live := ((hliveX c).1 hl').resolve_left hcl
+      have hcx : c ∈ X.liveB := by rw [← hliveB]; exact hl'
       refine bktReach_mono X X' hrl' (fun d D hD => ?_) c (r1 c C0 hC0 hcx)
       by_cases hdb : d = bl
       · subst hdb; rw [hb] at hD; cases hD; exact ⟨_, hB', rfl⟩
@@ -365,27 +356,20 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
         have hyl' : y ≠ l := fun he => by rw [he, hlns c C hC] at hy; cases hy
         exact r2 c C y ry hC hy (((hliveX y).1 hyl).resolve_left hyl')
   · -- disjoint
-    intro c C' hC' k hk
-    have hbsk : ∀ k, X.t.bs !! k = none → X'.t.bs !! k = none := by
-      intro k hk'; rw [hbsX]; split
-      · rename_i hkb; subst hkb; rw [hb] at hk'; cases hk'
-      · exact hk'
+    intro c C' hC' k hk c' C2 hC2 hne
     rw [hbsX] at hC'
     split at hC'
     · rename_i hcb; subst hcb; cases hC'
+      rw [hbsX, if_neg hne] at hC2
       by_cases hkl : k = l
       · subst hkl
-        refine ⟨hbsk k hlbs', fun c' C2 hC2 hne => ?_⟩
-        rw [hbsX, if_neg hne] at hC2; exact hlns c' C2 hC2
+        exact hlns c' C2 hC2
       · obtain ⟨ry', hry'⟩ := Option.isSome_iff_exists.1 hk
         obtain ⟨ry0, h1, -⟩ := hold k ry' hry' hkl
-        obtain ⟨o1, o2⟩ := hOD c B hb k (by rw [h1]; rfl)
-        refine ⟨hbsk k o1, fun c' C2 hC2 hne => ?_⟩
-        rw [hbsX, if_neg hne] at hC2; exact o2 c' C2 hC2 hne
+        exact hOD c B hb k (by rw [h1]; rfl) c' C2 hC2 hne
     · rename_i hcb
-      obtain ⟨o1, o2⟩ := hOD c C' hC' k hk
+      have o2 := hOD c C' hC' k hk
       have hkl : k ≠ l := fun he => by rw [he, hlns c C' hC'] at hk; cases hk
-      refine ⟨hbsk k o1, fun c' C2 hC2 hne => ?_⟩
       rw [hbsX] at hC2; split at hC2
       · rename_i hcb'; subst hcb'; cases hC2
         have hBk' := o2 c' B hb hne

@@ -440,7 +440,7 @@ theorem Bucket.rebalance.wp_proof
     have hs := hR.2.2.2.2.2.2.2.2.1 bl
     rw [hb'] at hs
     obtain ⟨B0, hb0⟩ := Option.isSome_iff_exists.1 hs.symm
-    have hlive : bl ∈ X.live := hok.2.2.2.2.2.1.2.2.1 bl B0 hb0
+    have hlive : bl ∈ X.liveB := hok.2.2.2.2.2.1.2.2.1 bl B0 hb0
     exact hreach bl (bReach_of_bktReach X bl (hlr.1 bl B0 hb0 hlive)) B hb' l r hr
   obtain ⟨h1, h2, h3⟩ := rebalOK_of_rbl X X' w.fl fl' X.rl X.t.mv.txid' hI' hR hbal
   have htxw : X.t.mv.txid' = w.wtxid := by

@@ -60,12 +60,11 @@ variable [sem : go.Semantics]
 theorem wtxW_bkt_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
     (hb : X.t.bs !! bl = some B) :
     wtxW (GF := GF) K tx r m X ⊢
-      objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.live)) (.bkt B) ∗
-      (objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.live)) (.bkt B) -∗ wtxW K tx r m X) := by
+      objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.liveB)) (.bkt B) ∗
+      (objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.liveB)) (.bkt B) -∗ wtxW K tx r m X) := by
   unfold wtxW wtxCore
   iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
-  ihave %Hd := wtxHeap_objsDisj tx (DFrac.own 1) X $$ Hh
-  icases wtxHeap_obj_acc tx (DFrac.own 1) X bl (.bkt B) (objs_bkt X.t bl B Hd hb) $$ Hh
+  icases wtxHeap_bkt_obj_acc tx (DFrac.own 1) X bl B (bobjs_bkt X.t bl B hb) $$ Hh
     with ⟨Ho, Hback⟩
   iframe Ho
   iintro Ho

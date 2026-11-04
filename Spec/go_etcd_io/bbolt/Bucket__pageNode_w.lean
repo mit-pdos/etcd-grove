@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 inline bucket, and `tx.page` on a bad page header: excluded by the premises. -/
 abbrev Bucket.pageNode_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (id : w64),
-  X.t.bs !! bl = some B → bl ∈ X.live → (B.ib.root' = W64 0 → id = W64 0) →
+  X.t.bs !! bl = some B → bl ∈ X.liveB → (B.ib.root' = W64 0 → id = W64 0) →
   (B.bv.nodes' = null → B.nm = ∅) →
   (∀ c l, B.nm !! c = some l → l ≠ null) →
   (resolve B id = none → ∃ pa pg, wpageAt X.v B id = some (pa, pg) ∧

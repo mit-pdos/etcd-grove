@@ -31,7 +31,7 @@ abbrev node.childAt.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
     (rn : NRec) (i : w64) (w : WEntry),
   X.t.bs !! bl = some B → B.ns !! n = some rn → rn.nv.bucket' = bl → rn.nv.isLeaf' = false →
-  n ∈ X.live → bl ∈ X.live → B.bv.nodes' ≠ null → 0 ≤ sint.Z i →
+  n ∈ X.live → bl ∈ X.liveB → B.bv.nodes' ≠ null → 0 ≤ sint.Z i →
   rn.ws[sint.nat i]? = some w →
   (∀ l, B.nm !! w.pgid = some l → l ≠ null) → (B.nm !! w.pgid = none → matReady X B w.pgid) →
   {{ wtxW (GF := GF) K tx r m X }}

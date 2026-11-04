@@ -48,76 +48,67 @@ theorem setBkt_ns (X : WX) (bl : Loc) (B B' : BRec) (hb : X.t.bs !! bl = some B)
 
 theorem objsDisj_setBkt (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
     (hb : X.t.bs !! bl = some B) : objsDisj (X.setBkt bl { B' with ns := B.ns }).t := by
-  intro c C hC n hn
+  intro c C hC n hn c' C' hC' hne
   obtain ⟨C0, hC0, hns, -⟩ := setBkt_ns X bl B B' hb c C hC
   rw [hns] at hn
-  have h := hd c C0 hC0 n hn
-  refine ⟨?_, fun c' C' hC' hne => ?_⟩
-  · rw [setBkt_t_bs]
-    by_cases hnb : n = bl
-    · subst hnb; rw [hb] at h; cases h.1
-    · simp only [hnb, ↓reduceIte]; exact h.1
-  · obtain ⟨C0', hC0', hns', -⟩ := setBkt_ns X bl B B' hb c' C' hC'
-    rw [hns']; exact h.2 c' C0' hC0' hne
+  obtain ⟨C0', hC0', hns', -⟩ := setBkt_ns X bl B B' hb c' C' hC'
+  rw [hns']; exact hd c C0 hC0 n hn c' C0' hC0' hne
 
+/-- **The nodes are unchanged by replacing a bucket's record, its nodes kept.** -/
 theorem objs_setBkt (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
     (hb : X.t.bs !! bl = some B) :
-    (X.setBkt bl { B' with ns := B.ns }).t.objs = X.t.objs.insert bl (.bkt { B' with ns := B.ns }) := by
+    (X.setBkt bl { B' with ns := B.ns }).t.objs = X.t.objs := by
   have hd' := objsDisj_setBkt X bl B B' hd hb
   apply GMap.map_eq
   intro k
-  by_cases hk1 : k = bl
-  · subst hk1
-    rw [GMap.lookup_insert]
-    exact objs_bkt _ _ _ hd' (by rw [setBkt_t_bs]; simp)
-  rw [GMap.lookup_insert_ne _ _ (Ne.symm hk1)]
-  by_cases hkb : ∃ C, X.t.bs !! k = some C
-  · obtain ⟨C, hC⟩ := hkb
-    rw [objs_bkt X.t k C hd hC]
-    exact objs_bkt _ k C hd' (by rw [setBkt_t_bs]; simp [hk1, hC])
-  · have hkb' : X.t.bs !! k = none := by
-      cases h : X.t.bs !! k with
-      | none => rfl
-      | some C => exact absurd ⟨C, h⟩ hkb
-    by_cases hkn : ∃ c C rk, X.t.bs !! c = some C ∧ C.ns !! k = some rk
-    · obtain ⟨c, C, rk, hC, hrk⟩ := hkn
-      rw [objs_node X.t c C k rk hd hC hrk]
-      by_cases hcb : c = bl
-      · subst hcb
-        rw [hb] at hC; cases hC
-        exact objs_node _ c { B' with ns := B.ns } k rk hd' (by rw [setBkt_t_bs]; simp) hrk
-      · exact objs_node _ c C k rk hd' (by rw [setBkt_t_bs]; simp [hcb, hC]) hrk
-    · have hno : ∀ c C, X.t.bs !! c = some C → k ≠ c ∧ C.ns !! k = none := by
-        intro c C hC
-        refine ⟨fun h => (by rw [← h, hkb'] at hC; cases hC), ?_⟩
-        cases h : C.ns !! k with
-        | none => rfl
-        | some rk => exact absurd ⟨c, C, rk, hC, h⟩ hkn
-      rw [objs_other X.t k hno, objs_other]
-      · rfl
+  by_cases hkn : ∃ c C rk, X.t.bs !! c = some C ∧ C.ns !! k = some rk
+  · obtain ⟨c, C, rk, hC, hrk⟩ := hkn
+    rw [objs_node X.t c C k rk hd hC hrk]
+    by_cases hcb : c = bl
+    · subst hcb
+      rw [hb] at hC; cases hC
+      exact objs_node _ c { B' with ns := B.ns } k rk hd' (by rw [setBkt_t_bs]; simp) hrk
+    · exact objs_node _ c C k rk hd' (by rw [setBkt_t_bs]; simp [hcb, hC]) hrk
+  · have hno : ∀ c C, X.t.bs !! c = some C → C.ns !! k = none := by
       intro c C hC
-      obtain ⟨C0, hC0, hns, -⟩ := setBkt_ns X bl B B' hb c C hC
-      rw [hns]; exact hno c C0 hC0
+      cases h : C.ns !! k with
+      | none => rfl
+      | some rk => exact absurd ⟨c, C, rk, hC, h⟩ hkn
+    rw [objs_other X.t k hno, objs_other]
+    · rfl
+    intro c C hC
+    obtain ⟨C0, hC0, hns, -⟩ := setBkt_ns X bl B B' hb c C hC
+    rw [hns]; exact hno c C0 hC0
+
+/-- The buckets after replacing a bucket's record. -/
+theorem bobjs_setBkt (X : WX) (bl : Loc) (B' : BRec) :
+    (X.setBkt bl B').t.bobjs = X.t.bobjs.insert bl B' := by
+  apply GMap.map_eq
+  intro k
+  by_cases hk : k = bl
+  · subst hk; simp [WX.setBkt, WTx.bobjs, GMap.lookup_insert]
+  · have hk' : bl ≠ k := Ne.symm hk
+    simp [WX.setBkt, WTx.bobjs, GMap.lookup_insert_ne _ _ hk', hk']
 
 /-- **A bucket of the writer's heap, out and back** (`wtxHeap_bkt_acc` with its premise: the new
 record's `tx` field is the transaction's). -/
 theorem wtxHeap_bkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
-    (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.live) :
+    (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.liveB) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
       (∀ B', ⌜B'.bv.tx' = tx⌝ -∗ objOwn X.v bl dq true (WObj.bkt B') -∗
         wtxHeap tx dq (X.setBkt bl { B' with ns := B.ns })) := by
   unfold wtxHeap
-  iintro ⟨%Hok, Hf, Hrf, Hm⟩
+  iintro ⟨%Hok, Hf, Hrf, Hm, Hbk⟩
   have Hd := Hok.2.1
-  have Ho := objs_bkt X.t bl B Hd hb
-  have hlv : decide (bl ∈ X.live) = true := by simp [hl]
-  icases (BigSepM.bigSepM_delete (M := GMap Loc) Ho).1 $$ Hm with ⟨Hb, Hm⟩
+  have Ho := bobjs_bkt X.t bl B hb
+  have hlv : decide (bl ∈ X.liveB) = true := by simp [hl]
+  icases (BigSepM.bigSepM_delete (M := GMap Loc) Ho).1 $$ Hbk with ⟨Hb, Hbk⟩
   rw [hlv]
   iframe Hb
   iintro %B' %Htx Hb
   isplitr
   · ipureintro
-    refine ⟨Hok.1, objsDisj_setBkt X bl B B' Hd hb, ?_, ?_, fun m y hm => ?_⟩
+    refine ⟨Hok.1, objsDisj_setBkt X bl B B' Hd hb, ?_, ?_, fun m y hm => ?_, ?_⟩
     · intro c C hc
       rw [setBkt_t_bs] at hc
       by_cases hcb : c = bl
@@ -129,20 +120,26 @@ theorem wtxHeap_bkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
       exact Hok.2.2.2.1 c C0 k rk hC0 hk
     · show ((X.setBkt bl { B' with ns := B.ns }).t.objs !! m).isSome
       rw [objs_setBkt X bl B B' Hd hb]
-      exact isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm)
+      exact Hok.2.2.2.2.1 m y hm
+    · intro c C hc
+      obtain ⟨C0, hC0, -, -⟩ := setBkt_ns X bl B B' hb c C hc
+      exact Hok.2.2.2.2.2 c C0 hC0
   isplitl [Hf]
   · unfold txFields WX.setBkt; iexact Hf
   isplitl [Hrf]
   · iexact Hrf
-  rw [objs_setBkt X bl B B' Hd hb]
+  rw [objs_setBkt X bl B B' Hd hb, bobjs_setBkt X bl]
   have hv : (X.setBkt bl { B' with ns := B.ns }).v = X.v := rfl
   have hlive : (X.setBkt bl { B' with ns := B.ns }).live = X.live := rfl
-  simp only [hv, hlive]
+  have hliveB : (X.setBkt bl { B' with ns := B.ns }).liveB = X.liveB := rfl
+  simp only [hv, hlive, hliveB]
+  isplitl [Hm]
+  · iexact Hm
   iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
   simp only [hl, decide_true]
   isplitl [Hb]
   · unfold objOwn pageOwn; iexact Hb
-  · iexact Hm
+  · iexact Hbk
 
 end heap
 end bbolt

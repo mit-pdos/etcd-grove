@@ -102,9 +102,8 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     intro c; rw [kill_look]; split
     · subst c; rw [hb]; rfl
     · rfl
-  have hnb : X.t.bs !! n = none := (hOD bl B hb n hn).1
   have hnoth : ∀ c C, X.t.bs !! c = some C → c ≠ bl → C.ns !! n = none :=
-    fun c C hC hc => (hOD bl B hb n hn).2 c C hC hc
+    fun c C hC hc => hOD bl B hb n hn c C hC hc
   have hback : ∀ c C, (X.kill bl B' n rn).t.bs !! c = some C → ∃ C0, X.t.bs !! c = some C0 ∧
       (c = bl ∧ C0 = B ∧ C = B' ∨ c ≠ bl ∧ C = C0) := by
     intro c C hC
@@ -132,15 +131,14 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
       ((X.kill bl B' n rn).t.objs !! k).isSome = true := by
     apply objs_isSome_mono X.t (X.kill bl B' n rn).t
     · intro k hk
-      show ((X.t.dead.insert n (WObj.node bl rn)) !! k).isSome = true
+      show ((X.t.dead.insert n (bl, rn)) !! k).isSome = true
       rw [GMap.lookup_insert_eq_iff]; split
       · rfl
       · exact hk
-    · intro c h; rw [hdom]; exact h
     · intro c C k hC hk
       by_cases hkn : k = n
       · subst hkn; left
-        show ((X.t.dead.insert k (WObj.node bl rn)) !! k).isSome = true
+        show ((X.t.dead.insert k (bl, rn)) !! k).isSome = true
         rw [GMap.lookup_insert]; rfl
       · right
         by_cases hc : c = bl
@@ -148,6 +146,9 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
           obtain ⟨ry, hry⟩ := Option.isSome_iff_exists.1 hk
           exact ⟨c, B', by rw [kill_look, if_pos rfl], k3 k ry hry hkn⟩
         · exact ⟨c, C, by rw [kill_look, if_neg hc]; exact hC, hk⟩
+  have hobjsB : ∀ k, (X.t.bobjs !! k).isSome = true →
+      ((X.kill bl B' n rn).t.bobjs !! k).isSome = true :=
+    bobjs_isSome_mono X.t (X.kill bl B' n rn).t (fun _ h => h) (fun c h => by rw [hdom]; exact h)
   obtain ⟨pg, hpgE, hNe⟩ := hpg
   refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, hfl.1, hfl.2,
     hX, freePages_len fl txid E N hPL, ?_, fun c h => hRH c (by rw [← hdom]; exact h)⟩, ?_⟩
@@ -176,17 +177,13 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
       have := hEB bl B hC0 y2 ry2 hy2 w hw2
       rw [hlf] at this; exact this
     · exact hEB c C hC0 l r hr w hw
-  · intro b nm h; exact hobjs b (hH b nm h)
+  · intro b nm h; exact hobjsB b (hH b nm h)
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hL
-    refine ⟨(kill_live X bl B' n rn _).2 ⟨fun he => ?_, l1⟩, fun l h => hobjs l (l2 l
+    refine ⟨l1, fun l h => hobjs l (l2 l
       ((kill_live X bl B' n rn l).1 h).2), fun c C hC => ?_, fun c C l r hC hr => ?_,
       fun l hl => ?_⟩
-    · obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 hrl
-      have he' : X.rl = n := he
-      rw [he', hnb] at hR; cases hR
     · obtain ⟨C0, hC0, -⟩ := hback c C hC
-      exact (kill_live X bl B' n rn c).2 ⟨(fun he => by rw [he, hnb] at hC0; cases hC0),
-        l3 c C0 hC0⟩
+      exact l3 c C0 hC0
     · obtain ⟨C0, hC0, hcase⟩ := hback c C hC
       rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
       · subst C; subst C0; subst c
@@ -197,7 +194,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     · intro hlv'
       obtain ⟨hln, hlx⟩ := (kill_live X bl B' n rn l).1 hlv'
       have : (X.t.dead !! l).isSome = true := by
-        have h' : ((X.t.dead.insert n (WObj.node bl rn)) !! l).isSome = true := hl
+        have h' : ((X.t.dead.insert n (bl, rn)) !! l).isSome = true := hl
         rw [GMap.lookup_insert_ne _ _ (Ne.symm hln)] at h'; exact h'
       exact l5 l this hlx
   · -- the registry
@@ -215,7 +212,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     obtain ⟨r1, r2⟩ := hLR
     refine ⟨fun c C hC hl => ?_, fun c C l r hC hr hl => ?_⟩
     · obtain ⟨C0, hC0, -⟩ := hback c C hC
-      refine bktReach_mono X (X.kill bl B' n rn) rfl (fun d D hD => ?_) c (r1 c C0 hC0 ((kill_live X bl B' n rn c).1 hl).2)
+      refine bktReach_mono X (X.kill bl B' n rn) rfl (fun d D hD => ?_) c (r1 c C0 hC0 hl)
       obtain ⟨D', hD', -, -, hbm⟩ := hfwd d D hD
       exact ⟨D', hD', hbm⟩
     · obtain ⟨C0, hC0, hcase⟩ := hback c C hC

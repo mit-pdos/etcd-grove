@@ -32,7 +32,7 @@ abbrev node.nextSibling.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
     (rn : NRec),
   X.t.bs !! bl = some B → B.ns !! n = some rn → rn.nv.bucket' = bl → n ∈ X.live →
-  bl ∈ X.live → B.bv.nodes' ≠ null →
+  bl ∈ X.liveB → B.bv.nodes' ≠ null →
   (rn.nv.parent' ≠ null → rn.nv.key' ≠ slice.nil ∧ rn.ksrc ≠ Src.stale ∧
     ∃ rp, B.ns !! rn.nv.parent' = some rp ∧ rp.nv.isLeaf' = false ∧ rp.nv.bucket' = bl ∧
       rn.nv.parent' ∈ X.live ∧

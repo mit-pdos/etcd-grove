@@ -8,7 +8,8 @@ bucket's page) is in the view (`Src.view`, a pure fact on `X.v`), held at a frac
 (`Src.own dq`: heap copies, the caller's values), or in an old mapping (`Src.stale`).
 
 **Records.** A node (`NRec`), a bucket (`BRec`, with its nodes `ns`), the transaction (`WTx`,
-its buckets `bs` and the objects no longer reachable, `dead`). `WX` adds the live set, the handle
+its buckets `bs` and the nodes and buckets no longer reachable, `dead`, `deadB`). `WX` adds the
+live sets (nodes', buckets'), the handle
 map, the node-location registry and the base view (§3.13). Its `wOK` is the old clean invariant
 (`txClean`), keys (`bktKeys`), nested buckets (`bktNested`) and nodes' pages (`txPg`).
 
@@ -170,49 +171,61 @@ instance WObj.countable : Pos.Countable WObj :=
 
 /-- A write transaction: its struct, its meta copy, its page cache `pages` (`pm`) and the
 buffers' bytes, its reachable buckets (`bs`, each with its nodes), and the objects removed from
-them (by `rebalance`, `DeleteBucket`; still owned, never read: `dead`). -/
+them (still owned, never read): the dead nodes (`dead`, each with its bucket's location: by
+`rebalance`, `DeleteBucket`) and the dead buckets (`deadB`: `DeleteBucket`'s). Nodes and buckets
+are kept apart (batch 14): a node's location and a bucket's may coincide as far as the heap can
+tell (`structFieldRef` is abstract for non-plain structs). -/
 structure WTx where
   t : Tx
   mv : Meta
   pm : GMap w64 Loc
   bufs : GMap w64 (List w8)
   bs : GMap Loc BRec
-  dead : GMap Loc WObj
+  dead : GMap Loc (Loc × NRec)
+  deadB : GMap Loc BRec := ∅
 
 instance WTx.countable : Pos.Countable WTx :=
-  countableOfLeftInverse (fun T => (T.t, T.mv, T.pm, T.bufs, T.bs, T.dead))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun T => (T.t, T.mv, T.pm, T.bufs, T.bs, T.dead, T.deadB))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
-/-- Every object the transaction ever materialized (round 4, N2): its buckets, their nodes, and
-the dead ones. -/
+/-- Every node the transaction ever materialized (round 4, N2; batch 14: nodes only): its
+buckets' nodes and the dead ones. -/
 def WTx.objs (T : WTx) : GMap Loc WObj :=
   T.bs.toList.foldl (fun m bB =>
-    (bB.2.ns.toList.foldl (fun m' lr => m'.insert lr.1 (.node bB.1 lr.2)) m).insert bB.1
-      (.bkt bB.2)) T.dead
+    bB.2.ns.toList.foldl (fun m' lr => m'.insert lr.1 (.node bB.1 lr.2)) m)
+    (T.dead.fmap fun p => .node p.1 p.2)
 
-/-- **The transaction's objects are disjoint** (`wtxHeap` keeps it: every object is added at a
-fresh location, `nodeAdded`, `bktOpened`): a node of a bucket is no bucket and no other bucket's
-node. Under it a bucket's node record is its object (`objs_node`, `objs_bkt`). -/
+/-- Every bucket the transaction ever opened (batch 14): its buckets and the dead ones. -/
+def WTx.bobjs (T : WTx) : GMap Loc BRec := T.bs ∪ T.deadB
+
+/-- **A node is in at most one bucket** (`wtxHeap` keeps it: every node is added at a fresh
+location, `nodeAdded`). Under it a bucket's node record is its object (`objs_node`). (Batch 14:
+nodes and buckets are separate maps, so a node need not be shown to be no bucket.) -/
 def objsDisj (T : WTx) : Prop :=
-  ∀ bl B, T.bs !! bl = some B → ∀ n, (B.ns !! n).isSome → T.bs !! n = none ∧
+  ∀ bl B, T.bs !! bl = some B → ∀ n, (B.ns !! n).isSome →
     ∀ bl' B', T.bs !! bl' = some B' → bl' ≠ bl → B'.ns !! n = none
 
-/-- **The writer's logical state** (design §3.13): the records, the live objects (those the code
-reaches from `tx.root`: `b.buckets` recursively, then each `b.rootNode` through `children`), every
+/-- **The writer's logical state** (design §3.13): the records, the live nodes (those the code
+reaches from `tx.root`: `b.buckets` recursively, then each `b.rootNode` through `children`) and
+the live buckets (`liveB`, batch 14: one live set for both would let a node's death un-live a
+bucket at the same location), every
 handle given out (name and generation), the node-location registry (node ↦ its bucket's location
 and the page id it was read from, N3), the base view (re-based by a remap), and the root bucket's
 location (`txRoot tx`). -/
 structure WX where
   t : WTx
   live : GMap Loc Unit
+  liveB : GMap Loc Unit
   handles : GMap Loc (GoString × Nat)
   nloc : GMap Loc (Loc × Nat)
   v : View
   rl : Loc
 
 instance WX.countable : Pos.Countable WX :=
-  countableOfLeftInverse (fun X => (X.t, X.live, X.handles, X.nloc, X.v, X.rl))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun X => (X.t, X.live, X.liveB, X.handles, X.nloc, X.v, X.rl))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 /-! ## Entries -/
 
@@ -414,18 +427,18 @@ def entriesBounded (X : WX) : Prop :=
 /-- The handles: each is a bucket of the transaction (current handles are in `buckets`'
 caches, stale ones are dead objects). -/
 def handlesOK (X : WX) : Prop :=
-  ∀ b nm, X.handles !! b = some nm → (X.t.objs !! b).isSome
+  ∀ b nm, X.handles !! b = some nm → (X.t.bobjs !! b).isSome
 
 /-- Every node of every bucket is live (U8b's, moved here, batch 20: `liveOK`'s fourth clause). -/
 def nsLive (X : WX) : Prop :=
   ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live
 
-/-- The live objects are objects, the root bucket among them; every bucket of `bs` is live, and
-every node of one (batch 12); no dead object is live (batch 12: what `dereference` needs,
-`wOKR_derefPre`). -/
+/-- The live nodes are node objects; the root bucket is live, and every bucket of `bs` (`liveB`,
+batch 14), and every node of one (batch 12); no dead node is live (batch 12: what `dereference`
+needs, `wOKR_derefPre`). -/
 def liveOK (X : WX) : Prop :=
-  X.rl ∈ X.live ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live) ∧
+  X.rl ∈ X.liveB ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.liveB) ∧
   nsLive X ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-- The node-location registry (round 4, N3): each live registered node is a node of its

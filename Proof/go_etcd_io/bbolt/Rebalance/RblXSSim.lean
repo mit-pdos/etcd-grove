@@ -173,8 +173,7 @@ theorem sim_rtOK (c : Loc) (h : rtOK X c) : rtOK (X.setBkt bl B') c := by
 
 theorem sim_objs (k : Loc) (h : (X.t.objs !! k).isSome = true) :
     ((X.setBkt bl B').t.objs !! k).isSome = true := by
-  apply objs_isSome_mono X.t (X.setBkt bl B').t (fun _ h => h)
-    (fun c h => by rw [sim_dom X bl B B' hb hs]; exact h) _ k h
+  apply objs_isSome_mono X.t (X.setBkt bl B').t (fun _ h => h) _ k h
   intro c C k hC hk
   right
   by_cases hc : c = bl
@@ -273,7 +272,9 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
         rw [e.1] at hw; rw [e.2.2.2.2.2.2.1]
         exact hEB bl B hC0 l ry h1 w hw
     · exact hEB c C hC0 l r hr w hw
-  · intro b nm h; exact sim_objs X bl B B' hb hs b (hH b nm h)
+  · intro b nm h
+    exact bobjs_isSome_mono X.t (X.setBkt bl B').t (fun _ h => h)
+      (fun c h => by rw [sim_dom X bl B B' hb hs]; exact h) b (hH b nm h)
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hL
     refine ⟨l1, fun l h => sim_objs X bl B B' hb hs l (l2 l h), fun c C hC => ?_,
       fun c C l r hC hr => ?_, l5⟩

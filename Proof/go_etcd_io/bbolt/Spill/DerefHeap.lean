@@ -39,7 +39,7 @@ theorem wtxW_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ reg tx K.B r ∗
       wtxHeap tx (DFrac.own 1) X ∗ viewCells wq X.v ∗ statsTok r m 1 ∗
-      (∀ X', ⌜X'.v = X.v ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc⌝ -∗
+      (∀ X', ⌜X'.v = X.v ∧ X'.handles = X.handles ∧ (X'.nloc, X'.t.t) = (X.nloc, X.t.t)⌝ -∗
         wtxHeap tx (DFrac.own 1) X' -∗ viewCells wq X.v -∗ statsTok r m 1 -∗ wtxW K tx r m X') := by
   unfold wtxW wtxCore
   iintro ⟨⟨#Hpk, #Hcore, %Hr, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, Hvo, Hst⟩, Hv, Hmap⟩
@@ -51,8 +51,10 @@ theorem wtxW_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
   isplitr
   · iexact Hreg
   iintro %X' %He Hh Hv Hst
-  obtain ⟨hv, hh, hn⟩ := He
-  rw [hv, hh, hn]
+  obtain ⟨hv, hh, hnt⟩ := He
+  have hn : X'.nloc = X.nloc := congrArg Prod.fst hnt
+  have htt : X'.t.t = X.t.t := congrArg Prod.snd hnt
+  rw [hv, hh, hn, htt]
   iframe
   isplitr
   · iexact Hpk
@@ -65,9 +67,9 @@ theorem wtxW_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 /-- The heap's facts are kept by a `derefStep` (no object moves, no bucket or parent changes). -/
 theorem heapOK_step (tx : Loc) (X X' : WX) (h : derefStep X X') (hok : heapOK (GF := GF) tx X) :
     heapOK (GF := GF) tx X' := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := hok
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hok
   have hbs := derefStep_bs h
-  refine ⟨by rw [h.2.2.2.2.1]; exact h1, objsDisj_step h h2, ?_, ?_, ?_⟩
+  refine ⟨by rw [h.2.2.2.2.1]; exact h1, objsDisj_step h h2, ?_, ?_, ?_, ?_⟩
   · intro bl B' hB'
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
     rw [(bktStep_fields hs).1]; exact h3 bl B hB
@@ -78,6 +80,9 @@ theorem heapOK_step (tx : Loc) (X X' : WX) (h : derefStep X X') (hok : heapOK (G
   · intro n y hn
     rw [h.2.2.2.1] at hn
     rw [objs_isSome_step h h2]; exact h5 n y hn
+  · intro bl B' hB'
+    obtain ⟨B, hB, -⟩ := optRel_some_r (hB' ▸ hbs bl)
+    rw [h.2.2.2.2.1, h.2.2.1]; exact h6 bl B hB
 
 theorem setNode_self (X : WX) (bl l : Loc) (B : BRec) (r : NRec) (hB : X.t.bs !! bl = some B)
     (hr : B.ns !! l = some r) : X.setNode bl l r = X := by
@@ -101,7 +106,7 @@ theorem wtxHeap_node_peek (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRe
 
 /-- A live bucket of the heap, out and back unchanged. -/
 theorem wtxHeap_bkt_peek (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
-    (hB : X.t.bs !! bl = some B) (hl : bl ∈ X.live) :
+    (hB : X.t.bs !! bl = some B) (hl : bl ∈ X.liveB) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
       (objOwn X.v bl dq true (WObj.bkt B) -∗ wtxHeap tx dq X) := by
   iintro Hh
