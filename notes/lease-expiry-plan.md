@@ -711,3 +711,39 @@ lessor's mode in the apply environment (an `AEnv` field the stand-in `E₀`'s `e
 the cost of a lease field in `AEnv` (against the slot convention's "never a field of `AEnv`");
 (c) `srvLeaseRd` carrying `∃ m, lease.srvInv …` — not enough: `leasegrant` could not learn `m = mono`,
 so its client spec would weaken. Recommended: (a).
+
+**Decided (the user, 2026-11-04):** (a). The lease mode `m` becomes a parameter of etcdstart's
+`memberBoot`, `memberBuilt`, `memberUp`, `srvLeaseRd`, `kv_lease_served` and what lies between; each
+example picks its mode (`.none` everywhere but `leasegrant`, `.mono`; `leaseexpiry` later
+`.revocable`). Then X2 as specified (revision 4 and the X-a brief).
+
+**Plumbing: Part X2 (2026-11-04).** As decided, with these choices:
+
+- Server: `NewLessor`'s mode `decide (m = mono)`; `srvGrantable`, `grantPermRq` and `grantPre` lose
+  the mode conjunct; the grant's reply (`leaseGrantedResp`, `grantAnswer`) carries the mode-free
+  `∃ l, leaseLiveFrom E.γ.leases i id l`. `lease.srvInv on s E m` gains `□ lessorModeIs E.γ.leases
+  (decide (m = mono))`, and `lease.srvInv_grantedAt` turns the live fact into `leaseGrantedAt` at
+  `.mono`. `srvSnapRO`'s mode conjunct is `∃ m, ⌜γr.kv.lg = decide (m ≠ none) ∧ E.lg = γr.kv.lg⌝ ∗
+  lessorModeIs E.γ.leases (decide (m = mono))` (the `E.lg` tie: the auth-on install had none).
+  `srvRest_revocable` is mode-generic (`m ≠ revocable`, `E.lg = decide (m ≠ none)`).
+  `applySnapshot.specSnapM` takes `E.lg = false` until S4 (its walk used the lessor's revocable mode
+  to refute the rest's leased arm, which the revocable mode no longer gives).
+- v3rpc: `lessorGrantOkLive_of_server` (the server's grant at the mode-free `grantLiveG E`, no
+  `srvInv`), `lessorGrantOkG_mono`, and `lessorGrantOkL_of_server` from the two at `lease.srvInv …
+  .mono`; linked as `lessorGrantOkLive_server`, `lessorGrantOkL_server`.
+- client: `etcdLeaseGrantSpecG G` (`etcdLeaseGrantSpec_eq`: the old spec at the grant at the
+  history, by `rfl`), `etcdLeaseGrantSpecLive γl` (at `leaseLiveFrom`; weaker than nothing the
+  clients use: `isGrpcRpc_leaseGrantLive_any`); `etcd_leaseGrantHandlerOkG` (the handler at any
+  persistent `G`; `…OkL` its instance); `etcdLeaseGrantLiveMethods` / `etcd_leaseGrantLiveMethodsOk`
+  (the lease reads, the listing at `etcdLeaseLeasesSpecAny`, the live grant).
+- etcdstart: `memberBoot … (cmp) (m := none)` holds `lease.runCfg ρ.rd.kv.lg m`; `memberBuilt`,
+  `memberUp` take `m` (default `none`); `srvLeaseRd s E m := ∃ on, lease.srvInv on s E m`
+  (`srvLeaseRd_lessorRd`: the reader side it was). The start specs (`newServerMode`, `newServer`,
+  `NewMember`, `StartServer`, `StartMember`, `StartPeriodicServer`, `StartCompactingServer`,
+  `BuildServer.spec`/`specStop`, partition's `startMember`) quantify over the mode `lm` (stronger:
+  the old ones are their instances at the mode of `memberBoot`'s former `∃ m`). The restart drafts
+  (`specRestart`, `Start_builtR_spec`, `Start_builtS_spec`, restart's `startMember`) stay at the
+  default `none`. `kv_lease_served … m (hm : ρ.rd.kv.lg = decide (m ≠ none))` posts
+  `etcdLeaseServedAt m`: `none` the KV calls, `mono` `etcdLeaseGrantAt` (as before), `revocable`
+  `etcdLeaseGrantLiveAt` (the live grant; the listing the lease reads' `etcdLeaseLeasesSpecAny`).
+  `alloc1` takes the mode with its `runCfg`.
