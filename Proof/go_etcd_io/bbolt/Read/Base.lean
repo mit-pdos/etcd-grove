@@ -14,7 +14,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section base
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,7 +33,33 @@ instance reg_persistent (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
+instance viewOf_persistent (r : TxReg) (v : View) : Persistent (viewOf (GF := GF) r v) := by
+  unfold viewOf; infer_instance
+
+theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ db.[DB, go!"pageSize"] ↦□ W64 4096 := by
+  unfold isBoltCoreP dbFixed
+  iintro ⟨-, -, -, -, -, ⟨H, -⟩, -⟩
+  iexact H
+
+theorem isBoltCoreP_pkgInit' (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
+  unfold isBoltCoreP
+  iintro ⟨-, -, -, H, -⟩
+  iexact H
+
 end base
+
+/-- Two halves of `q` (as `QpMul q ½`). -/
+theorem qpMul_half_add (q : Qp) : QpMul q (1 : Qp).half + QpMul q (1 : Qp).half = q := by
+  apply Subtype.ext
+  show q.val * ((1 : Rat) / 2) + q.val * ((1 : Rat) / 2) = q.val
+  grind
+
+/-- `txDbQ q` is `QpMul q ½` and a quarter. -/
+theorem txDbQ_eq (q : Qp) : txDbQ q = QpMul q (1 : Qp).half + QpMul q (1 : Qp).half.half := rfl
 
 end bbolt
 end EtcdGrove
