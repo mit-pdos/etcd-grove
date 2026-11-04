@@ -9,11 +9,11 @@ Every lemma is about the records after all of a step's code (the WP proof of `no
 tracks the heap through the step and ends there):
 - `rblX_init`: at `Commit`, from `wOK` (the premises the spec has, and `covU`, `nsLive`);
 - `rblX_start` / `rblX_done`: the node's `unbalanced` cleared; done if big enough or a root;
-- `rblX_mat`: a sibling or the root's child materialized (`nodeAdded`);
 - `rblX_canFree`: a live node's page can be freed (`node.free`'s premises);
 - `rblX_rm`: an empty leaf removed from its parent;
 - `rblX_col`: the root collapsed into its only child.
-(The merge, `rblX_mg`, is over `Rebalance/RblMg*`.)
+(The merge, `rblX_mg`, is over `Rebalance/RblMg*`; a materialization, `rblX_mat`, is
+`Rebalance/RblXSMat`'s.)
 -/
 module
 
@@ -80,16 +80,6 @@ theorem rblX_done (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) 
   obtain ⟨hB', hst, hent⟩ := rbl_done _ _ bl B n r dfc hB hr hd h2 h1
   obtain ⟨h1, h2⟩ := rblX_sim X fl bl dfc none B _ X.t.mv.txid' hI hb hs hB' hent
   exact ⟨h1, h2, hst⟩
-
-/-- **A sibling, or the root's only child, materialized** (`b.node` of the parent's entry `i`, a
-page position). The new node is not unbalanced. -/
-theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc) (pgid : w64)
-    (parent : Loc) (i : Nat) (hI : rblX X fl bl dfc) (h : nodeAdded X X' bl l pgid parent)
-    (hpos : ∃ B, X.t.bs !! bl = some B ∧ pagePosAt B parent i pgid) :
-    rblX X' fl bl dfc ∧ rblRel X fl X' fl X.t.mv.txid' ∧
-      ∀ B B', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' → ∀ y ry', B'.ns !! y = some ry' →
-        ry'.nv.unbalanced' = true → B.ns !! y = some ry' := by
-  sorry
 
 /-- **A live node's page can be freed** (`node.free`'s premises: the page of the view, its
 header, and `Free`'s `canFree` for the writer's txid). -/

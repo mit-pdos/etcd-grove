@@ -3,8 +3,8 @@
 `rblX_mat`): a branch node's unmaterialized child page made a node (`nodeAdded`). The bucket's
 `rblB` is `RblMat`'s `rbl_nodeAdded`; the logical tree changes by data only (U7's
 `Write.ltree_nodeAdded'`), so the trees, positions, extents and covers are kept; the new node is
-fresh, live, registered and reached through its parent. (WIP: not yet checked against the
-current shared definitions; not imported by `RblXSteps` until it builds.)
+fresh, live, registered and reached through its parent. `l` unregistered (`hnl`) is `heapOK`'s
+(a registered node is an object; `nodeAdded`'s `l` is none).
 -/
 module
 
@@ -25,12 +25,11 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 section mat
 variable [GooseExts]
 
-theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc) (pgid : w64)
+/-- **A sibling, or a branch's child, materialized** (`b.node` of the parent's entry `i`, a page
+position): the invariant kept; the unbalanced nodes after are the ones before. -/
+theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc) (pgid : w64)
     (parent : Loc) (i : Nat) (hI : rblX X fl bl dfc) (h : nodeAdded X X' bl l pgid parent)
     (hpos : ∃ B, X.t.bs !! bl = some B ∧ pagePosAt B parent i pgid)
-    (hx : ∀ B' r', X'.t.bs !! bl = some B' → B'.ns !! l = some r' → matExtra r')
-    (hcap : ∀ B B' rp rp', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' →
-      B.ns !! parent = some rp → B'.ns !! parent = some rp' → rp'.capOwn = rp.capOwn)
     (hnl : X.nloc !! l = none) :
     rblX X' fl bl dfc ∧ rblRel X fl X' fl X.t.mv.txid' ∧
       ∀ B B', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' → ∀ y ry', B'.ns !! y = some ry' →
@@ -89,7 +88,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
   -- the records
   have h' := h
   obtain ⟨B0, pa, pg, r, ns', bv', hB0, hwpg, -, hl0, -, hrbk, hrpar, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h'
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := h'
   rw [hb] at hB0; cases hB0
   have hpnl : parent ≠ null := (hc.2.2.2.2.1 _ _ (ncol_nm (hc.2.2.2.2.2.2.2.1 parent rp hrp))).1
   have hpg : X.v.pages !! w.pgid.toNat = some pg := by
@@ -98,7 +97,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
     | none => rw [h2] at hwpg; cases hwpg
     | some pg0 => rw [h2] at hwpg; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hwpg
                   rw [hwpg.2]
-  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, hc6, hns⟩
+  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, hcp, hc6, hns⟩
   · exact absurd hpn hpnl
   rw [hrp] at hrp0; cases hrp0
   subst hbv; subst hns
@@ -116,7 +115,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
   have hr : matNew bl parent pg r :=
     ⟨hrbk, hrpar, hrid, hrleaf, hru, hrs, hrcs, hrco, by rw [hrws, mat_pageWsAs_wDat], hrlive,
       hrkey, hrks⟩
-  have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcap B _ rp rp' hb hB' hrp hrp'⟩
+  have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcp⟩
   have hstrict := mat_strict X.v hV
   have hl : l ≠ null := hl0
   obtain ⟨-, -, -, hlnl, hpgc, hid, -, -, -⟩ :=
@@ -126,8 +125,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
   have hold := mat_old X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg hpg
     r rp' hr hp'
   obtain ⟨B1, hB1, hv1, hrbB1, hent1, -, -, -, -, -, hunb1, -⟩ :=
-    rbl_nodeAdded X X' _ bl l w.pgid parent B dfc i hb hV hrb h hpp hfresh hx
-      (fun B2 rp2 rp2' hB2 h1 h2 => hcap B B2 rp2 rp2' hb hB2 h1 h2)
+    rbl_nodeAdded X X' _ bl l w.pgid parent B dfc i hb hV hrb h hpp hfresh
   rw [hB'] at hB1; cases hB1
   let B' := matBkt B w.pgid parent l rp' r
   have hrid' : r.nv.pgid' = w.pgid := by rw [hrid, hid]
@@ -162,10 +160,9 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
     cases c with
     | pos c q =>
       unfold coverW
-      have hd : (X'.t.bs !! c = none) = (X.t.bs !! c = none) := by
-        apply propext; rw [← Option.isNone_iff_eq_none, ← Option.isNone_iff_eq_none,
-          Option.isNone_iff_eq_false_isSome, Option.isNone_iff_eq_false_isSome, hbs]
-      simp only [coverW, hd, hpos', hext]
+      have hd : (X'.t.bs !! c ≠ none) ↔ (X.t.bs !! c ≠ none) := by
+        rw [Ne, Ne, ← Option.not_isSome_iff_eq_none, ← Option.not_isSome_iff_eq_none, hbs]
+      simp only [hd, hpos', hext]
     | bkt nm =>
       unfold coverW
       rw [hroot, hvv]
@@ -292,7 +289,7 @@ theorem rblX_mat' (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc
         have := List.length_take_le (leafVsize pg j)
           (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
         omega
-      · rw [h2] at hxw; rw [h1]
+      · rw [h3] at hxw; rw [h2]
         exact hEB c B hb y ry0 h1 x hxw
     · exact hEB c C hC y ry hy x hxw
   · intro b nm h; rw [hhd] at h; exact hobjB b (hH b nm h)

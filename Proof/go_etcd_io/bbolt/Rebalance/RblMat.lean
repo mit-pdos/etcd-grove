@@ -1034,10 +1034,7 @@ parent's `capOwn`). -/
 theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent : Loc)
     (B : BRec) (dfc : Option Loc) (i : Nat) (hB : X.t.bs !! bl = some B) (hv : viewWF X.v)
     (HB : rblB X.v hwm bl B dfc) (hadd : nodeAdded X X' bl l pgid parent)
-    (hpos : pagePosAt B parent i pgid) (hfresh : B.ns !! l = none)
-    (hx : ∀ B' r', X'.t.bs !! bl = some B' → B'.ns !! l = some r' → matExtra r')
-    (hcap : ∀ B' rp rp', X'.t.bs !! bl = some B' → B.ns !! parent = some rp →
-      B'.ns !! parent = some rp' → rp'.capOwn = rp.capOwn) :
+    (hpos : pagePosAt B parent i pgid) (hfresh : B.ns !! l = none) :
     ∃ B', X'.t.bs !! bl = some B' ∧ X'.v = X.v ∧ rblB X'.v hwm bl B' dfc ∧
       (∀ k v, entryIn X.v B k v → entryIn X'.v B' k v) ∧
       B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.bm = B.bm ∧ B'.nm !! pgid = some l ∧
@@ -1061,7 +1058,7 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
     | none => rw [h] at hwp; cases hwp
     | some pg0 => rw [h] at hwp; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hwp
                   rw [hwp.2]
-  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, -, hc6, hns⟩
+  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, hcp, hc6, hns⟩
   · exact absurd hpn hpnl
   rw [hrp] at hrp0; cases hrp0
   subst hbv; subst hns
@@ -1074,14 +1071,18 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
   have hr : matNew bl parent pg r :=
     ⟨hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs, hrco, by rw [hrws, mat_pageWsAs_wDat], hrlive,
       hrkey, hrks⟩
-  have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcap _ rp rp' hB' hrp hrp'⟩
-  have hxr := hx _ r hB' hrl
+  have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcp⟩
   have hstrict := mat_strict X.v hv
   have hl : l ≠ null := hl0
   obtain ⟨-, -, hrpk3, -, -⟩ := hk.2.2 parent rp hrp
   obtain ⟨-, -, kind, hkd⟩ := hrpk3 hbr
   obtain ⟨pg', hpg', hcnt, -⟩ := (hkd i w hw).2 hnone
   rw [hpg] at hpg'; cases hpg'
+  have hxr : matExtra r := by
+    refine ⟨hrins, fun hn => ?_, hrvs⟩
+    have h0 := hrkn.1 hn
+    have := mat_len hr.2.2.2.2.2.2.2.2.1
+    rw [h0] at this; simp only [List.length_nil] at this; omega
   have hnsB := mat_nsB X.v hwm bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg hpg
     r rp' hr hp'
   refine ⟨_, hB', hv', ?_, ?_, rfl, rfl, rfl, by rw [mat_nm, if_pos rfl], ⟨r, hrl, hrpar⟩, ?_, ?_⟩
