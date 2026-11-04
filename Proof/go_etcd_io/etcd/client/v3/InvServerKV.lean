@@ -137,6 +137,7 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_todo
   iapply ctxErrClient_todo hAs ⟨γc, γc⟩
   iexact Hc
@@ -192,6 +193,7 @@ theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpcty
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_background
   iapply ctxErrClient_background hAs ⟨γc, γc⟩
   iexact Hc

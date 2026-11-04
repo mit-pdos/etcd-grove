@@ -870,14 +870,45 @@ def ctxQuiet (ci : GoInterfaceOk) : IProp GF :=
 instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := GF) ci) := by
   unfold ctxQuiet; infer_instance
 
+/-- **A context whose `Err()` follows Go's contract, with client errors** (persistent; 2026-11-04,
+K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`, or, once the
+context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
+is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
+`context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return). Nothing about
+`Done()`. The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`). It is what a context
+outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
+`Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
+whose `parentCancelCtx` finds a `*cancelCtx`). -/
+def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
+    (match cl with
+     | .Done => context.ContextClosed cd.Done_gn
+     | _ => iprop(True)) -∗
+    ▷ (∀ err : GoInterface,
+        (match cl with
+         | .Done => iprop(⌜err ≠ interface.nil⌝)
+         | _ => if err = interface.nil then iprop(True)
+                else context.ContextClosed cd.Done_gn) -∗
+        ⌜clientErr err⌝ -∗ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
+        go_etcd_io.etcd.cache.v3.errCellOk err -∗ Φ #err) -∗
+    WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxErrs_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxErrs (GF := GF) ci cd) := by
+  unfold ctxErrs; infer_instance
+
 /-- **A context a client call takes** (persistent; the vertical slice's unit V2): one with the
-context model (`isContext`), or a quiet one (`ctxQuiet`: `context.TODO()`, which the recipes pass
-to every call). grpc's `invoke` and etcd's client interceptor accept either: the trust boundary's
-contracts below (`grpcInvokerOk`; the client's `withVersion`, `waitRetryBackoff`) are stated for
-`ctxOk`, true of Go's quiet contexts as of the others (a `nil` `Done()` channel never fires); the
-client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its `ContextError`). -/
+context model (`isContext`), a quiet one (`ctxQuiet`: `context.TODO()`, which the recipes pass
+to every call), or (2026-11-04) one whose `Err()` follows Go's contract with client errors
+(`ctxErrs`: k8s's `wait.ContextForChannel`, Kubernetes' compactor's). grpc's `invoke` and etcd's
+client interceptor accept any: the trust boundary's contracts below (`grpcInvokerOk`; the
+client's `withVersion`, `waitRetryBackoff`) are stated for `ctxOk`, true of Go's quiet contexts as
+of the others (a `nil` `Done()` channel never fires; grpc turns a done context's error into a
+status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`);
+the client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its
+`ContextError`). -/
 def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(context.isContext ci cd ∨ ctxQuiet ci)
+  iprop(context.isContext ci cd ∨ ctxQuiet ci ∨ ctxErrs ci cd)
 
 instance ctxOk_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxOk (GF := GF) ci cd) := by
@@ -886,6 +917,10 @@ instance ctxOk_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp 
 theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
   iintro #H; unfold ctxOk; ileft; iexact H
+
+theorem ctxOk_of_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxErrs (GF := GF) ci cd ⊢ ctxOk ci cd := by
+  iintro #H; unfold ctxOk; iright; iright; iexact H
 
 /-- **A method of etcd's KV service** (`/etcdserverpb.KV/Range`, `Put`, `DeleteRange`, `Txn`,
 `Compact`: the full method names grpc sends; 2026-10-23). -/
