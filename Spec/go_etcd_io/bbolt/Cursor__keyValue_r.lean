@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **The result of `keyValue` at index `i` of the leaf page `pg`**: entry `i`'s key, value
-(each from a live source) and flags, or nil, nil, `0` past the end. -/
+/-- **The result of `keyValue` at index `i` of the leaf page `pg`**: entry `i`'s key (a non-nil
+slice), value (each from a live source) and flags, or nil, nil, `0` past the end. -/
 def rKV (v : View) (pg : List w8) (i : Nat) (k vl : GoSlice) (fl : w32) : IProp GF :=
   if i < pageCount pg then
-    iprop(∃ ks vs : Src, ⌜ks ≠ Src.stale ∧ vs ≠ Src.stale ∧ fl = (leafElem pg i).flags'⌝ ∗
+    iprop(∃ ks vs : Src, ⌜k ≠ slice.nil ∧ ks ≠ Src.stale ∧ vs ≠ Src.stale ∧ fl = (leafElem pg i).flags'⌝ ∗
       srcOwn v k ks (leafKey pg i) ∗ srcOwn v vl vs (leafValue pg i))
   else iprop(⌜k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0⌝)
 

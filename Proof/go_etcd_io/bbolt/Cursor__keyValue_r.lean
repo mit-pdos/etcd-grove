@@ -166,7 +166,13 @@ theorem Cursor.keyValue_r.wp_proof
       from rfl]
   iexists ks, vs
   isplitr
-  · ipureintro; exact ⟨hks0, hvs0, by rw [hle]⟩
+  · ipureintro
+    refine ⟨?_, hks0, hvs0, by rw [hle]⟩
+    intro h
+    injection h with h1
+    have := congrArg Loc.addr h1
+    simp [Loc.add, null] at this
+    omega
   isplitl
   · iexact Hks
   · iexact Hvs

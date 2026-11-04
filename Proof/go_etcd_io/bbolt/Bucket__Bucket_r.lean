@@ -70,7 +70,7 @@ theorem Bucket.Bucket_r.wp_proof
   unfold rKV
   by_cases hic : pageSeekIdx pg2 nb < pageCount pg2
   · rw [if_pos hic]
-    icases Hkv with ⟨%ks', %vs', ⟨%hks', %hvs', %hfl'⟩, #Hks, #Hvs⟩
+    icases Hkv with ⟨%ks', %vs', ⟨-, %hks', %hvs', %hfl'⟩, #Hks, #Hvs⟩
     icases rdTxK_src2_acc K tx src q T v name k ks ks' nb (leafKey pg2 (pageSeekIdx pg2 nb)) hks
       hks' $$ [Hk] with ⟨%d1, %d2, Hnm, Hkk, Hback⟩
     · iframe; iframe #
