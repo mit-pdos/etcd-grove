@@ -29,11 +29,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`tx.allocate(count)`** (design §4.2): a buffer of `count` pages for the writer, from the
 freelist or at the high-water mark (`allocRes`; a `store_alloc` step), added to `tx.pages`; the
 mapping grown first if need be (a remap: `dereference`, `munmap`, `mmap`, the view re-based,
-`wdbRemap`). On an error (`fmtErrorOk`): before any unmap, nothing changed; or the mapping lost
+`wdbRemap`; `derefPre`, `liveFresh`, `liveReach` are `dereference`'s premises, batch 12, kept
+by a success: `allocRes_derefPre`). On an error (`fmtErrorOk`): before any unmap, nothing changed; or the mapping lost
 (the records dereferenced and re-based, `wtxLost`, `wdbLost`). -/
 abbrev Tx.allocate.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (count : w64),
-  0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 → liveFresh X → liveReach X →
+  0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 → derefPre X → liveFresh X → liveReach X →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"allocate")) (Val #count))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);

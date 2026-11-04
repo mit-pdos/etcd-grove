@@ -132,6 +132,7 @@ def nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) : Prop :=
     r.nv.spilled' = false ∧ r.cs = [] ∧ r.capOwn = true ∧
     r.ws.map wDat = (pageWsAs pg (posSrc B)).map wDat ∧ wsLive r.ws ∧
     r.key = wKey r.ws 0 ∧ r.ksrc ≠ Src.stale ∧
+    r.ins.length = r.ws.length ∧ (r.nv.key' = slice.nil ↔ r.ws = []) ∧
     ((parent = null ∧ bv' = { B.bv with rootNode' := l } ∧ ns' = B.ns.insert l r) ∨
      (parent ≠ null ∧ bv' = B.bv ∧ ∃ rp rp', B.ns !! parent = some rp ∧
         rp.nv.isLeaf' = false ∧ rp'.cs = rp.cs ++ [l] ∧ rp'.ws = rp.ws ∧ rp'.ins = rp.ins ∧
@@ -406,19 +407,6 @@ theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hok
     fl.canFree txid r.nv.pgid' (1 + pageOverflow pg) := by
   sorry
 
-/-- **`flView` through a leaf's new entries** (U7: `Put`, `Delete`; the logical tree's positions
-and the root bucket's entries unchanged). -/
-theorem flView_withWs (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv : flView X fl)
-    (hleaf : ∀ B r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.isLeaf' = true)
-    (hroot : bl ≠ X.rl) : flView (X.withWs bl l ws') fl := by
-  sorry
-
-/-- **`flView` through a materialization** (U7: the logical tree by data unchanged). -/
-theorem flView_nodeAdded (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (parent : Loc)
-    (hv : flView X fl) (hok : wOK X) (h : nodeAdded X X' bl l pgid parent)
-    (hpos : matPos X bl pgid parent) : flView X' fl := by
-  sorry
-
 /-- **`flView` through `node.free`** (U8b: the node's page leaves the logical tree's cover and
 becomes pending for the writer). -/
 theorem flView_nodeFree (X : WX) (fl : FLPg) (txid : w64) (bl n : Loc) (B : BRec) (r : NRec)
@@ -451,10 +439,63 @@ def liveReach (X : WX) : Prop :=
   ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
     ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ descIn B rt l
 
-/-- No live node holds a stale slice (what `dereference` copies from). -/
+/-- No live node holds a stale slice (what `dereference` copies from): its entries', and its
+key's if it has one (batch 12: a nil key's source is never read). -/
 def liveFresh (X : WX) : Prop :=
   ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
-    wsLive r.ws ∧ r.ksrc ≠ Src.stale
+    wsLive r.ws ∧ (r.nv.key' ≠ slice.nil → r.ksrc ≠ Src.stale)
+
+/-- **What `dereference` needs of `X`** (batch 12, U9b; beyond `liveFresh` and `liveReach`): every
+live node's keys are not empty (`node.dereference` asserts it), its key nil or not empty
+(`n.pgid == 0 || len(n.key) > 0`), and its children live nodes of its bucket; every live bucket's
+cached buckets live buckets, and its root node, if any, a live node of it below a root
+(`b.rootNode.root()`); every bucket live, `null` none of its nodes; the root bucket a bucket; no
+dead object live. Follows from `wOKR` (`wOKR_derefPre`); `spill` keeps it between its
+`allocate`s (U9c); `allocate` keeps it (`allocRes_derefPre`). -/
+def derefPre (X : WX) : Prop :=
+  (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
+    r.nv.bucket' = bl ∧ (∀ w ∈ r.ws, 0 < w.key.length) ∧
+    (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧ ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live →
+    (∀ k c, B.bm !! k = some c → c ∈ X.live ∧ (X.t.bs !! c).isSome) ∧
+    (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live)) ∧
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live ∧ B.ns !! null = none) ∧
+  (X.t.bs !! X.rl).isSome ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
+
+/-! ### `dereference`'s step (batch 12, moved from U9b's `Spill/DerefModel`) -/
+
+/-- Two options related by `R` (both none, or both some and related). -/
+def optRel {α β : Type} (R : α → β → Prop) : Option α → Option β → Prop
+  | none, none => True
+  | some a, some b => R a b
+  | _, _ => False
+
+/-- The persistent heap source a copy gives. -/
+abbrev Src.heap : Src := Src.own DFrac.discard
+
+/-- **`r'` is the node `r` after `n.dereference()`'s copies**: every entry's key and value
+copied (persistent heap bytes), the node's key too if it has one; the data, the children, the
+struct but its `key` field, unchanged. (Its key's source is the heap even for a nil key:
+`derefOK` asks `ksrc ≠ view` of every live node.) -/
+def nodeDerefd (r r' : NRec) : Prop :=
+  r'.nv = { r.nv with key' := r'.nv.key' } ∧ (r'.nv.key' = slice.nil ↔ r.nv.key' = slice.nil) ∧
+  r'.ws.map wDat = r.ws.map wDat ∧ (∀ w ∈ r'.ws, w.ks = Src.heap ∧ w.vs = Src.heap) ∧
+  r'.ins.length = r.ins.length ∧ r'.cs = r.cs ∧ r'.key = r.key ∧ r'.capOwn = r.capOwn ∧
+  r'.ksrc = Src.heap
+
+/-- A node's record kept or dereferenced. -/
+def nodeStep (r r' : NRec) : Prop := r' = r ∨ nodeDerefd r r'
+
+/-- A bucket's record with some of its nodes dereferenced. -/
+def bktStep (B B' : BRec) : Prop :=
+  { B' with ns := B.ns } = B ∧ ∀ l, optRel nodeStep (B.ns !! l) (B'.ns !! l)
+
+/-- **`X'` is `X` with some nodes dereferenced** (by `n.dereference()` calls); nothing else
+changed. -/
+def derefStep (X X' : WX) : Prop :=
+  X'.v = X.v ∧ X'.live = X.live ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.rl = X.rl ∧
+  X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv ∧ X'.t.pm = X.t.pm ∧ X'.t.bufs = X.t.bufs ∧
+  X'.t.dead = X.t.dead ∧ ∀ bl, optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl)
 
 /-- The pages the writer's buffers hold (`tx.pages`' bytes, by id). -/
 def WX.bufPages (X : WX) : Pages := GMap.ofList (X.t.bufs.toList.map fun e => (e.1.toNat, e.2))
@@ -570,6 +611,54 @@ theorem lRoutes_leafFor (X X' : WX) (bl l : Loc) (els : List elemRef) (pids : Li
       ∃ pid, pids.getLast? = some pid ∧ resolve B pid = some l) :
     leafFor X' bl k l := by
   sorry
+
+/-! ## `dereference`'s premises from `wOKR` (batch 12) -/
+
+/-- **`derefPre` holds of well-formed records** (`wOKR`, so `wOK`): the nodes' keys and children
+from `nodeClean`, the root nodes from `bktClean` and `bktKeys`, liveness from `liveOK`. -/
+theorem wOKR_derefPre (X : WX) (h : wOKR X) : derefPre X := by
+  obtain ⟨⟨-, -, -, -, hrl, hbs⟩, hkn, -, -, -, ⟨-, -, hbl, hL, hD⟩, -, -⟩ := h
+  refine ⟨?_, ?_, ?_, hrl, hD⟩
+  · intro bl B l r hB hr _
+    obtain ⟨n1, -, -, -, n5, -, -, -, -, -, n11, -, -, -, -, -, n17⟩ :=
+      (hbs bl B hB).1.2.2.2.2.2.2.2.1 l r hr
+    refine ⟨n1, n5, ?_, ?_⟩
+    · rcases n11 with h | h
+      · exact Or.inl h
+      · exact Or.inr h.1
+    · intro c hc
+      obtain ⟨rc, hrc, -⟩ := n17 c hc
+      exact ⟨hL bl B c rc hB hrc, by simp [hrc]⟩
+  · intro bl B hB _
+    refine ⟨fun k c hk => ?_, fun hrn => ?_⟩
+    · have hs := (hbs bl B hB).2 k c hk
+      obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 hs
+      exact ⟨hbl c C hC, hs⟩
+    · have h4 := (hbs bl B hB).1.2.2.2.1 hrn
+      obtain ⟨-, r, hr, -⟩ := (hbs bl B hB).1.2.2.2.2.1 _ _ h4
+      obtain ⟨bnd, -, hk2, -⟩ := (hkn bl B hB).1
+      exact ⟨_, nodeRootIn.top _ r hr (hk2 r hr), hL bl B _ r hB hr⟩
+  · intro bl B hB
+    refine ⟨hbl bl B hB, ?_⟩
+    cases hn : B.ns !! null with
+    | none => rfl
+    | some r =>
+      obtain ⟨-, -, -, -, -, -, -, n8, -⟩ := (hbs bl B hB).1.2.2.2.2.2.2.2.1 null r hn
+      exact absurd rfl ((hbs bl B hB).1.2.2.2.2.1 _ _ n8).1
+
+/-- **`liveFresh` holds of well-formed records** (`nodeClean`'s `wsLive` and key source). -/
+theorem wOKR_liveFresh (X : WX) (h : wOKR X) : liveFresh X := by
+  obtain ⟨⟨-, -, -, -, -, hbs⟩, -⟩ := h
+  intro bl B l r hB hr _
+  obtain ⟨-, -, -, -, -, n6, -, -, -, -, n11, -⟩ := (hbs bl B hB).1.2.2.2.2.2.2.2.1 l r hr
+  refine ⟨n6, fun hne => ?_⟩
+  rcases n11 with h | h
+  · exact absurd h hne
+  · exact h.2
+
+theorem wOK_derefPre (X : WX) (h : wOK X) : derefPre X := wOKR_derefPre X (wOK_wOKR X h)
+
+theorem wOK_liveFresh (X : WX) (h : wOK X) : liveFresh X := wOKR_liveFresh X (wOK_wOKR X h)
 
 end wops
 

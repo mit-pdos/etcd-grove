@@ -3,8 +3,8 @@
 `nodeDerefd r r'` (`n.dereference()` on one node: every key and value copied to persistent heap
 bytes, the node's key too, by data unchanged), `derefStep X X'` (some nodes of `X` dereferenced,
 nothing else changed; reflexive and transitive), the nodes a call covers (`noView`), and what
-the calls need of `X` (`derefPre`: beyond `liveFresh` and `liveReach`, which the frozen spec
-takes, what `node.dereference`'s asserts and the code's reads need).
+the calls need of `X` (`derefPre`). The definitions (`optRel`, `nodeDerefd`, `nodeStep`, `bktStep`,
+`derefStep`, `derefPre`) moved to `Model/WOps` (batch 12); their lemmas are here.
 -/
 module
 
@@ -24,12 +24,6 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section deref
 variable [GooseExts]
-
-/-- Two options related by `R` (both none, or both some and related). -/
-def optRel {α β : Type} (R : α → β → Prop) : Option α → Option β → Prop
-  | none, none => True
-  | some a, some b => R a b
-  | _, _ => False
 
 theorem optRel_refl {α : Type} {R : α → α → Prop} (h : ∀ a, R a a) (o : Option α) :
     optRel R o o := by
@@ -52,18 +46,6 @@ theorem optRel_some_r {α β : Type} {R : α → β → Prop} {b : β} {o : Opti
     (h : optRel R o (some b)) : ∃ a, o = some a ∧ R a b := by
   cases o <;> simp_all [optRel]
 
-/-- The persistent heap source a copy gives. -/
-abbrev Src.heap : Src := Src.own DFrac.discard
-
-/-- **`r'` is the node `r` after `n.dereference()`'s copies**: every entry's key and value
-copied (persistent heap bytes), the node's key too if it has one; the data, the children, the
-struct but its `key` field, unchanged. -/
-def nodeDerefd (r r' : NRec) : Prop :=
-  r'.nv = { r.nv with key' := r'.nv.key' } ∧ (r'.nv.key' = slice.nil ↔ r.nv.key' = slice.nil) ∧
-  r'.ws.map wDat = r.ws.map wDat ∧ (∀ w ∈ r'.ws, w.ks = Src.heap ∧ w.vs = Src.heap) ∧
-  r'.ins.length = r.ins.length ∧ r'.cs = r.cs ∧ r'.key = r.key ∧ r'.capOwn = r.capOwn ∧
-  r'.ksrc = Src.heap
-
 /-- The node `r` with its key slice `k`, its inodes `ins` and entries `ws` copied. -/
 def NRec.derefTo (r : NRec) (k : GoSlice) (ins : List Inode) (ws : List WEntry) : NRec :=
   { r with nv := { r.nv with key' := k }, ins := ins, ws := ws, ksrc := Src.heap }
@@ -75,9 +57,6 @@ theorem nodeDerefd_trans {r1 r2 r3 : NRec} (h1 : nodeDerefd r1 r2) (h2 : nodeDer
   refine ⟨?_, b2.trans b1, c2.trans c1, d2, e2.trans e1, f2.trans f1, g2.trans g1, i2.trans i1, j2⟩
   · rw [a2, a1]
 
-/-- A node's record kept or dereferenced. -/
-def nodeStep (r r' : NRec) : Prop := r' = r ∨ nodeDerefd r r'
-
 theorem nodeStep_refl (r : NRec) : nodeStep r r := Or.inl rfl
 
 theorem nodeStep_trans (r1 r2 r3 : NRec) (h1 : nodeStep r1 r2) (h2 : nodeStep r2 r3) :
@@ -88,10 +67,6 @@ theorem nodeStep_trans (r1 r2 r3 : NRec) (h1 : nodeStep r1 r2) (h2 : nodeStep r2
   · exact Or.inr h1
   · exact Or.inr (nodeDerefd_trans h1 h2)
 
-/-- A bucket's record with some of its nodes dereferenced. -/
-def bktStep (B B' : BRec) : Prop :=
-  { B' with ns := B.ns } = B ∧ ∀ l, optRel nodeStep (B.ns !! l) (B'.ns !! l)
-
 theorem bktStep_refl (B : BRec) : bktStep B B :=
   ⟨rfl, fun l => optRel_refl nodeStep_refl _⟩
 
@@ -101,13 +76,6 @@ theorem bktStep_trans (B1 B2 B3 : BRec) (h1 : bktStep B1 B2) (h2 : bktStep B2 B3
   have e1 := h1.1; have e2 := h2.1
   rw [← e1]
   rw [← e2]
-
-/-- **`X'` is `X` with some nodes dereferenced** (by `n.dereference()` calls); nothing else
-changed. -/
-def derefStep (X X' : WX) : Prop :=
-  X'.v = X.v ∧ X'.live = X.live ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.rl = X.rl ∧
-  X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv ∧ X'.t.pm = X.t.pm ∧ X'.t.bufs = X.t.bufs ∧
-  X'.t.dead = X.t.dead ∧ ∀ bl, optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl)
 
 theorem derefStep_refl (X : WX) : derefStep X X :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => optRel_refl bktStep_refl _⟩
@@ -135,20 +103,6 @@ theorem noView_step {r r' : NRec} (h : nodeStep r r') (hv : noView r) : noView r
 
 /-- The nodes of bucket `B` below the node `n` (through `children`). -/
 def subNodes (B : BRec) (n : Loc) : Loc → Prop := fun d => descIn B n d
-
-/-- **What `dereference` needs of `X`** (beyond `liveFresh`): every live node's keys are not
-empty (`node.dereference` asserts it), its key nil or not empty, and its children live nodes of
-its bucket; every live bucket's cached buckets live buckets, and its root node, if any, a live
-node of it below a root (`b.rootNode.root()`). -/
-def derefPre (X : WX) : Prop :=
-  (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
-    r.nv.bucket' = bl ∧ (∀ w ∈ r.ws, 0 < w.key.length) ∧
-    (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧ ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live →
-    (∀ k c, B.bm !! k = some c → c ∈ X.live ∧ (X.t.bs !! c).isSome) ∧
-    (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live)) ∧
-  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live ∧ B.ns !! null = none) ∧
-  (X.t.bs !! X.rl).isSome ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-! ## What a step keeps -/
 
@@ -286,7 +240,7 @@ theorem liveFresh_step {X X' : WX} (h : derefStep X X') (hp : liveFresh X) : liv
   obtain ⟨h1, h2⟩ := hp bl B l r hB hr hl
   rcases hrs with rfl | ⟨-, -, -, hw, -, -, -, -, hks⟩
   · exact ⟨h1, h2⟩
-  · refine ⟨fun w hw' => ⟨by rw [(hw w hw').1]; simp, by rw [(hw w hw').2]; simp⟩, ?_⟩
+  · refine ⟨fun w hw' => ⟨by rw [(hw w hw').1]; simp, by rw [(hw w hw').2]; simp⟩, fun _ => ?_⟩
     rw [hks]; simp
 
 /-- Setting one node's record to a dereferenced one is a step. -/

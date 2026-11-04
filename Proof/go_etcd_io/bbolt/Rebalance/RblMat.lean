@@ -1048,7 +1048,7 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
   obtain ⟨hc, ⟨bnd, hk⟩, ha, hht⟩ := HB
   obtain ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩ := hpos
   obtain ⟨B0, pa, pg, r, ns', bv', hB0, hwp, -, hl0, -, hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hcase, hX'⟩ := hadd
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := hadd
   rw [hB] at hB0; cases hB0
   have hroot : B.ib.root' ≠ W64 0 := by
     intro h0; have := hc.2.2.2.2.2.2.1 h0 parent rp hrp; rw [hbr] at this; cases this

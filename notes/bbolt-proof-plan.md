@@ -460,6 +460,55 @@ arise: U5 at `beginRWTx` (no pending entry for the new txid, every base slot cov
 5. `notes/perennial-changes.md`: `|==>` binds tighter than `∗` in iris-lean; no other occurrence in
    bbolt's `Inv/`, `Model/`, `Spec/`.
 
+## Shared-statement fixes, batch 12 (U9b's finding, 2026-11-04; decided by the coordinator)
+
+`Bucket.dereference.spec` was not provable from `liveFresh X ∧ liveReach X` (a live node with an
+empty-key entry panics at `Assert(len(inode.Key()) > 0)`; a non-nil zero-length key fails
+`Assert(n.pgid == 0 || len(n.key) > 0)`; a live node's child, cached child bucket or root node
+need not be an object of the heap; `null ∈ B.ns`; a dead object live).
+
+1. **`derefPre X`** (U9b's, moved from `Spill/DerefModel` to `Model/WOps`, same statement) is a
+   premise of `Bucket.dereference.spec` and of `Tx.allocate.spec` (its remap calls `dereference`),
+   before `liveFresh`/`liveReach`. U9b's `wp_proof'` is the `wp_proof` (no `sorry`).
+2. **Derived, not maintained**: `wOKR_derefPre`, `wOKR_liveFresh`, `wOK_derefPre`,
+   `wOK_liveFresh` (`Model/WOps`, proved). For that:
+   - **`liveOK`** (in `wOK`/`wOKR`) gains two clauses at its end: every node of a bucket of
+     `X.t.bs` is live, and no dead object is live (`liveOK`'s third clause is now `.2.2.1`).
+     `bktLocalOK` already assumed the first for its bucket. Kept by: U7 (materialization: the new
+     node is live and fresh; `CreateBucket`/`DeleteBucket`), U8b (`rebalance`'s post `wOKR`: a
+     removed node goes dead and leaves `live`), U5 (`beginRWTx`: no nodes, no dead objects).
+   - **`liveFresh`** asks `ksrc ≠ stale` only of a node with a non-nil key (`objOwn` owns a nil
+     key's nothing; `nodeClean` holds the key's source only for a non-nil key). U9b's
+     `liveFresh_step` and `node.dereference`'s proof adapted (`Hrnf.2 Hif`).
+3. **`derefRel` ends with `derefStep X X'`** (moved with `optRel`, `Src.heap`, `nodeDerefd`,
+   `nodeStep`, `bktStep` from `Spill/DerefModel` to `Model/WOps`; their lemmas stay there): without
+   it nothing after a remap says the records' structure (children, caches, root nodes, dead
+   objects) is unchanged, so `spill`'s next `allocate` could not re-establish `derefPre` or
+   `liveReach` (already a gap for `liveReach`). U9b's `derefRel_of_step` gives it.
+4. **Stubs (`sorry`), owner U9c**: `allocRes_derefPre` (`Inv/Ctx`: a successful `allocate` keeps
+   `derefPre ∧ liveFresh ∧ liveReach`, through `derefStep`, `WX.rebase` (after `derefOK` nothing
+   live becomes stale) and `WX.addPage`) and `derefRel_rebase_derefPre` (the lost branch). Between
+   its `allocate`s `spill` keeps `derefPre` through its own steps (split pieces, `node.write`,
+   the parent's `put`: non-empty keys, the pieces live nodes of the bucket, the new root's
+   children live): U9c's own lemmas.
+5. **`Bucket.spill.spec`'s success post** adds `derefPre X' ∧ liveFresh X' ∧ liveReach X'`
+   (`commitFreelist`'s `allocate`, U10). Its pre is unchanged (`spillPre`'s `wOKR` gives
+   `derefPre` and `liveFresh`).
+
+Adapted in others' working files (uncommitted, not committed by me): `node__rebalance.lean`,
+`Bucket__rebalance.lean` (`liveOK`'s `.2.2` → `.2.2.1`).
+
+## Shared-statement fixes, batch 13 (U7's finding, 2026-11-04; decided by the coordinator)
+
+1. **`nodeAdded`** constrains the new node's inodes and key (`wOK_nodeAdded` was unprovable): after
+   `r.ksrc ≠ Src.stale`, `r.ins.length = r.ws.length ∧ (r.nv.key' = slice.nil ↔ r.ws = [])`
+   (`node.read`'s post: `pageInodesAt`, `keySliceAt` when the page has elements). The destructuring
+   patterns in `Write/Mat` (2), `Write/FlView`, `Rebalance/RblMat` get `hrins, hrkn` (U8b's
+   `matExtra` premise of `rbl_nodeAdded` can now come from them).
+2. **`flView_withWs`/`flView_nodeAdded`**: `Model/WOps`' `sorry` stubs are deleted; the shared
+   lemmas are U7's `Write.flView_withWs'` and `Write.flView_nodeAdded'` (`Write/FlView`, proved,
+   same statements; names kept so U7's files are unchanged).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

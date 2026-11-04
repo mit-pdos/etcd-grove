@@ -43,7 +43,7 @@ theorem ltree_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     (hpid : bl' = bl → ∀ B, X.t.bs !! bl = some B → B.ib.root' = W64 0 → pid = W64 0) :
     ldat (ltree X' bl' pid) = ldat (ltree X bl' pid) := by
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp, hrid, hrleaf, hru, hrs, hrcs, hrco,
-    hrws, hrlive, hrkey, hrks, hcase, rfl⟩ := h
+    hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, rfl⟩ := h
   obtain ⟨hfnm, hfroot⟩ := hf B hB
   by_cases hbl : bl' = bl
   · subst hbl
@@ -193,7 +193,7 @@ theorem nodeAdded_facts (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     (∀ c, (X'.t.bs !! c).isSome = (X.t.bs !! c).isSome) := by
   have hlt := ltree_nodeAdded' X X' bl l pgid parent h hf
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp, hrid, hrleaf, hru, hrs, hrcs, hrco,
-    hrws, hrlive, hrkey, hrks, hcase, hX'⟩ := h
+    hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
   have hv : X'.v = X.v := by rw [hX']
   have hrl : X'.rl = X.rl := by rw [hX']
   have hfuel : X'.fuel = X.fuel := by

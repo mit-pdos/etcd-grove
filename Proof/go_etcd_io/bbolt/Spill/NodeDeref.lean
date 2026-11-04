@@ -114,7 +114,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
     ipureintro; exact Or.inl ⟨Hif, Hif⟩
   · have Hkne := Hif
     rw [if_pos (show True ∧ rn.nv.key' ≠ slice.nil from ⟨trivial, Hif⟩)]
-    ihave %Hkl := srcOwn_len X.v rn.nv.key' rn.ksrc rn.key Hrnf.2 $$ Hkey
+    ihave %Hkl := srcOwn_len X.v rn.nv.key' rn.ksrc rn.key (Hrnf.2 Hif) $$ Hkey
     have Hkpos : 0 < rn.key.length := by
       rcases Hrnl.2.2.1 with h | h
       · exact absurd h Hif
@@ -124,7 +124,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
     · ipureintro; exact Hkl.2
     rw [← Hkl.1, show (zero_val w8 : w8) = W8 0 from rfl]
     try wp_auto
-    wp_apply wp_copy_kept wq X.v kn rn.nv.key' rn.ksrc rn.key Hrnf.2 $$ [Hkn Hv Hkey]
+    wp_apply wp_copy_kept wq X.v kn rn.nv.key' rn.ksrc rn.key (Hrnf.2 Hif) $$ [Hkn Hv Hkey]
       as %c ⟨Hkn, Hv⟩
     · iframe
     ihave %Hknl := ownSlice_len _ _ _ $$ Hkn

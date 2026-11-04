@@ -409,10 +409,14 @@ caches, stale ones are dead objects). -/
 def handlesOK (X : WX) : Prop :=
   ∀ b nm, X.handles !! b = some nm → (X.t.objs !! b).isSome
 
-/-- The live objects are objects, the root bucket among them; every bucket of `bs` is live. -/
+/-- The live objects are objects, the root bucket among them; every bucket of `bs` is live, and
+every node of one (batch 12); no dead object is live (batch 12: what `dereference` needs,
+`wOKR_derefPre`). -/
 def liveOK (X : WX) : Prop :=
   X.rl ∈ X.live ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
-  ∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live
+  (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live) ∧
+  (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live) ∧
+  ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-- The node-location registry (round 4, N3): each live registered node is a node of its
 bucket, read from the page id it records (U8 fix: a node `rebalance` or `DeleteBucket` removed is

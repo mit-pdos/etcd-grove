@@ -85,13 +85,20 @@ theorem handlesOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hh 
 
 theorem liveOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hl : liveOK X) :
     liveOK X' := by
-  obtain ⟨l1, l2, l3⟩ := hl
+  obtain ⟨l1, l2, l3, l4, l5⟩ := hl
   unfold liveOK
   rw [h.2.1, h.2.2.2.2.1]
-  refine ⟨l1, fun l hl => by rw [objs_isSome_step h hd]; exact l2 l hl, ?_⟩
-  intro bl B' hB'
-  obtain ⟨B, hB, -⟩ := derefStep_bwd h hB'
-  exact l3 bl B hB
+  refine ⟨l1, fun l hl => by rw [objs_isSome_step h hd]; exact l2 l hl, ?_, ?_, ?_⟩
+  · intro bl B' hB'
+    obtain ⟨B, hB, -⟩ := derefStep_bwd h hB'
+    exact l3 bl B hB
+  · intro bl B' l r' hB' hr'
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+    obtain ⟨r, hr, -⟩ := optRel_some_r (hr' ▸ hs.2 l)
+    exact l4 bl B l r hB hr
+  · intro l hl
+    rw [h.2.2.2.2.2.2.2.2.2.1] at hl
+    exact l5 l hl
 
 theorem nlocOK_step {X X' : WX} (h : derefStep X X') (hn : nlocOK X) : nlocOK X' := by
   intro n b p hnl hl

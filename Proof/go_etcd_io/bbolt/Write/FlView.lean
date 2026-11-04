@@ -316,7 +316,7 @@ theorem flView_nodeAdded' (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (par
   refine lCovers_congr X X' hvv hroot hbkt hbs ?_
   intro c hcs
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp0, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hcase, hX'⟩ := h
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
   obtain ⟨hfnm, hfroot⟩ := hf B hB
   -- the records of the other positions' nodes keep their page ids
   have hns_pg : ∀ l0, l0 ≠ l → (ns' !! l0).map (fun r => r.nv.pgid') = (B.ns !! l0).map (fun r => r.nv.pgid') := by

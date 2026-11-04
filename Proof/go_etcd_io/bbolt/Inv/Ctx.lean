@@ -147,7 +147,9 @@ def wdbRemap (w w' : WDb) : Prop :=
   w'.m.size = w.m.size ∧ ∀ s, s ∈ w.W → s ∈ w'.W ∧ w'.wb s = w.wb s
 
 /-- **`dereference`'s effect** (`tx.root.dereference()`): every live node's keys and values
-copied to the heap (the coverage contract, `derefOK`), by data unchanged; nothing else. -/
+copied to the heap (the coverage contract, `derefOK`), by data unchanged; nothing else
+(`derefStep`, batch 12: so that the records' structure, which `allocate`'s premises
+`derefPre`/`liveReach` are about, is known after a remap). -/
 def derefRel (X X' : WX) : Prop :=
   derefOK X' ∧ X'.v = X.v ∧ X'.live = X.live ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧
   X'.rl = X.rl ∧ X'.t.mv = X.t.mv ∧ X'.t.pm = X.t.pm ∧ X'.t.bufs = X.t.bufs ∧
@@ -155,7 +157,7 @@ def derefRel (X X' : WX) : Prop :=
     (X.node bl l).map (fun r => (r.ws.map wDat, r.key, r.nv.pgid', r.nv.isLeaf'))) ∧
   (∀ bl pid, (ltree X' bl pid).map (fun x => (x.1, x.2.map wDat)) =
     (ltree X bl pid).map (fun x => (x.1, x.2.map wDat))) ∧
-  wtxData X' = wtxData X ∧ (wOK X → wOK X')
+  wtxData X' = wtxData X ∧ (wOK X → wOK X') ∧ derefStep X X'
 
 /-- **`tx.allocate(count)`'s success** for the writer's txid `txid`, from `X` (writer side's
 freelist `fl`) to `X'` (`fl'`): the page `id` from the freelist (`fl.canAlloc`, the high-water
@@ -170,6 +172,22 @@ def allocRes (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc) (i
         X' = Xr.addPage id p count X.t.mv.pgid') ∨
      (id = X.t.mv.pgid' ∧ fl' = fl ∧ id.toNat + count < 2 ^ 62 ∧
         X' = Xr.addPage id p count (id + W64 (count : Int))))
+
+/-- **`allocate` keeps its own premises** (batch 12; for `spill`'s next `allocate` and
+`commitFreelist`'s): a successful allocation, with or without a remap (`derefStep`, then
+`WX.rebase`: no live view slice is left to become stale, `derefOK`), then `WX.addPage`.
+Owner: U9c (from U9b's step lemmas, `Spill/DerefModel`, `Spill/DerefRel`). -/
+theorem allocRes_derefPre (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc)
+    (id : w64) (h : allocRes X X' fl fl' txid count p id) (hp : derefPre X) (hf : liveFresh X)
+    (hr : liveReach X) : derefPre X' ∧ liveFresh X' ∧ liveReach X' := by
+  sorry
+
+/-- **A failed `allocate`'s lost records keep its premises** (batch 12; the error path of `spill`
+needs nothing, but `Tx.allocate`'s `wtxLost` branch is `derefRel` then `WX.rebase`). Owner: U9c. -/
+theorem derefRel_rebase_derefPre (X Xd : WX) (b : Loc) (h : derefRel X Xd) (hp : derefPre X)
+    (hf : liveFresh X) (hr : liveReach X) :
+    derefPre (Xd.rebase b) ∧ liveFresh (Xd.rebase b) ∧ liveReach (Xd.rebase b) := by
+  sorry
 
 /-- **`DB.grow`'s effect on the writer side**: the file's size grows (or stays), its pages'
 bytes kept; nothing else changes (the new slots inside the mapping become `W` slots). -/

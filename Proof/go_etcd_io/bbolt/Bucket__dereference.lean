@@ -1,11 +1,9 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/Bucket__dereference.lean` (U9b, `notes/bbolt-proof-plan.md`).
 
-`wp_proof'` proves the frozen triple under one more premise, `derefPre X` (`Spill/DerefModel`):
-the frozen spec's `liveFresh X` and `liveReach X` do not give what the code needs (its asserts on
-non-empty keys, the cached children and root nodes being objects of the heap, no dead object
-live). The frozen `wp_proof` stays a `sorry` until the spec takes it (reported to the
-coordinator, U9b).
+U9b's proof; the spec's premise `derefPre X` (batch 12) is what the code needs beyond `liveFresh`
+and `liveReach` (its asserts on non-empty keys, the cached children and root nodes being objects
+of the heap, no dead object live).
 -/
 module
 
@@ -39,21 +37,16 @@ theorem derefRel_of_step (X X' : WX) (h : derefStep X X') (hd : objsDisj X.t)
   have hd' := objsDisj_step h hd
   refine ⟨?_, h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.1,
     h.2.2.2.2.2.2.2.2.1, derefStep_node h, fun bl pid => derefStep_ltree h bl pid,
-    derefStep_wtxData h, wOK_derefStep X X' h hd⟩
+    derefStep_wtxData h, wOK_derefStep X X' h hd, h⟩
   apply derefOK_of_cov X' hd' (derefPre_step h hpre) (liveReach_step h hreach)
   intro bl B hB hbr rt hrt
   have := reachFrom_of_bktReach hbr
   rw [h.2.2.2.2.1] at this
   exact hcov bl B rt this hB hrt
 
-theorem Bucket.dereference.wp_proof' (hRoot : node.root.spec (GF := GF) (hG := hG))
+theorem Bucket.dereference.wp_proof (hRoot : node.root.spec (GF := GF) (hG := hG))
     (hND : node.dereference.spec (GF := GF) (hG := hG)) :
-    ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX),
-    derefPre X → liveFresh X → liveReach X →
-    {{ wtxW (GF := GF) K tx r m X }}
-      (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"dereference"))
-        (Val #()))
-    {{ RET #(); ∃ X' : WX, wtxW K tx r m X' ∗ ⌜derefRel X X'⌝ }} := by
+    Bucket.dereference.spec (GF := GF) (hG := hG) := by
   intro K tx r m X Hpre Hfresh Hreach
   iintro %Φ Hw HΦ
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
@@ -76,9 +69,6 @@ theorem Bucket.dereference.wp_proof' (hRoot : node.root.spec (GF := GF) (hG := h
   ipureintro
   exact derefRel_of_step X X' HX'.1 Hok.2.1 Hpre Hreach (by rw [Hrl]; exact HX'.2)
 
-/-- The frozen spec: not provable from its premises alone (see the module doc). -/
-theorem Bucket.dereference.wp_proof : Bucket.dereference.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 
