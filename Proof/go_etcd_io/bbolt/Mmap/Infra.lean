@@ -136,7 +136,7 @@ theorem beginErrs_fmtErrorOk (err : GoInterface) :
 /-- **The page pool's `New` is not nil** (U4c, see the header). -/
 def pagePoolNew : Prop :=
   ∀ db sp : Loc, dbFixed (GF := GF) db sp ⊢
-    ∃ f : GoFunc, sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝
+    ∃ f : GoFunc, sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f iprop(True) pageBuf ∗ ⌜f ≠ func.nil⌝
 
 open Iris.ProofMode in
 /-- `pagePoolNew` holds (batch 29): `dbFixed` holds the pool with its `New` not nil. -/

@@ -81,7 +81,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
     db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
-    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝) ∗
+    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f iprop(True) pageBuf ∗ ⌜f ≠ func.nil⌝) ∗
     sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null ∗
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 

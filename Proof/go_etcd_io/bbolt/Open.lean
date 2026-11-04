@@ -710,7 +710,7 @@ theorem Open.wp_proof [sync.Assumptions]
   -- **A gap (`sorry`, reported):** the page pool's `New` closure reads `Open`'s named result
   -- `db` (by reference: `return nil, err` later writes it), so its spec needs a persistent
   -- `db_ptr ↦□ dbl` that `Open` cannot give while it still writes `db` on return.
-  ihave #Hpool : (∃ pf : GoFunc, sync.isPool dbl.[DB, go!"pagePool"] pf pageBuf ∗
+  ihave #Hpool : (∃ pf : GoFunc, sync.isPool dbl.[DB, go!"pagePool"] pf iprop(True) pageBuf ∗
       ⌜pf ≠ func.nil⌝) $$ [pagePool]
   · sorry
   ihave #Hfix : dbFixed (GF := GF) dbl sp $$ []

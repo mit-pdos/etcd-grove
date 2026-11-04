@@ -203,7 +203,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       wp_auto
       wp_apply hGet $$ [Hpool]
       · iframe #
-      iintro %x Hx
+      iintro %x ⟨Hx, -⟩
       icases Hx with (Hx | %hx)
       rotate_left
       · exact absurd hx.1 Hf

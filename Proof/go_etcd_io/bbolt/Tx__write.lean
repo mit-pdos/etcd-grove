@@ -751,7 +751,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             have Hke : sint.nat k = c2.2.2.length := by rw [Hpsl] at hk; word
             rw [Hke, List.drop_length, List.append_nil, hl2']
             try wp_auto
-            wp_apply sync.Pool.wp_Put _ pf pageBuf _ $$ [Hbuf]
+            wp_apply sync.Pool.wp_Put _ pf iprop(True) pageBuf _ $$ [Hbuf]
             · iframe #
               unfold pageBuf
               iexists _
