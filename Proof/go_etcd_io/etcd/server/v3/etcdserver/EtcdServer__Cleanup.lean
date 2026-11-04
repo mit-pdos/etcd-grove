@@ -46,7 +46,8 @@ theorem EtcdServer.Cleanup.wp_proof
   -- `s.kv.Close()`
   ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  wp_apply (hKC wsl st γw c) $$ [$Hwcl]
+  -- (R-D1: `Close` gives back the loops' readers and the compaction job's resource; dropped here)
+  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨-, -⟩
   · iframe #
   (try wp_auto)
   -- `s.authStore.Close()`
