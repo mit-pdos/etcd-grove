@@ -9,9 +9,8 @@ unchanged (`Begin`, `Commit`, over the client's `boltState` it then returns).
 Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once the transaction
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
 Open: one named `sorry`, the page pool's `New` (it reads the named result `db`, which the
-returns write; reported) and `Open/FileFacts`' size bound (`fileHolds` gains it, maintainer 12).
-Local assumptions until the shared specs say them: `DB.Begin_err.spec_w` (an error's `tx` is
-nil) and `fs.FileMode.String.spec` (the method is not translated yet).
+returns write; reported).
+A local assumption until the method is translated: `fs.FileMode.String.spec`.
 -/
 module
 
@@ -50,29 +49,6 @@ namespace EtcdGrove
 namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **`db.Begin(true)` with no transaction on an error** (`DB.Begin_err.spec` at `w = true`, with
-`tx = nil` on an error: `beginRWTx` returns `nil, err` on each of its errors). `Open` calls
-`tx.Commit()` only if `tx != nil`; `DB.Begin_err.spec` does not say that an error's `tx` is nil
-(reported). Assumed here until the shared spec says it. -/
-abbrev DB.Begin_err.spec_w : Prop :=
-  ∀ (db : Loc) (γ : BoltName),
-  {{ isBolt (GF := GF) db γ }}
-    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #true))
-  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
-      (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data, boltTx tx γ 1 (TxView.wr D)) ∨
-      (⌜err ≠ GoInterface.nil ∧ tx = null⌝ ∗ fmtErrorOk err) }}
-
-end spec
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -268,7 +244,7 @@ theorem Open.wp_proof [sync.Assumptions]
     (hMmap : ∀ [HasExt osFsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
     (hLoad : ∀ [HasExt osFsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : ∀ [HasExt osFsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hBegin : ∀ [HasExt osFsExt], DB.Begin_err.spec_w (GF := GF) (hG := hG))
+    (hBegin : ∀ [HasExt osFsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
     (hCommit : ∀ [HasExt osFsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.spec (GF := GF) (hG := hG))
     (hclose : ∀ [HasExt osFsExt], DB.close.spec_owned (GF := GF) (hG := hG))
@@ -792,9 +768,13 @@ theorem Open.wp_proof [sync.Assumptions]
   -- no synced freelist: a write transaction, committed unchanged
   ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
   · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
-  wp_apply hBegin dbl ⟨mkGs B, N⟩ $$ [] as %tx %txErr Hb
-  · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
-  icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek⟩)
+  wp_apply hBegin dbl ⟨mkGs B, N⟩ true (fun _ => iprop(emp)) $$ [] as %tx %txErr Hb
+  · simp only [↓reduceIte]; unfold isBolt; rw [bnsOf_mkGs]
+    isplitl
+    · iexact Hbolt
+    iempintro
+  try simp only [↓reduceIte]
+  icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek, -⟩)
   rotate_left
   · obtain ⟨Hne, rfl⟩ := Hte
     cases txErr with
