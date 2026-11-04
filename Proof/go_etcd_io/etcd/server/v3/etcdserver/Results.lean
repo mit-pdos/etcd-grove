@@ -205,7 +205,7 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
-batch over the component `C`, the snapshot payload `specSnapM`; its off corollary `applyAll.spec_off`. -/
+batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -2241,7 +2241,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
-(`isServer…C`), its off and on corollaries `run.spec_off`, `run.spec_on`. -/
+(`isServer…C`), its on corollary `run.spec_on`. -/
 theorem server_run [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
 
 /-- **The server's `start`** (the request path's unit 4c; `Spec/.../EtcdServer__start.lean`): from
