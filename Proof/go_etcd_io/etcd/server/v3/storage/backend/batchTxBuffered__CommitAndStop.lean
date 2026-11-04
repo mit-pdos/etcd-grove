@@ -34,8 +34,8 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.CommitAndStop.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t
-  wp_start as ⟨#Hb, #Ht, Ho, Hq⟩
+  intro γ P W Pk b t X Y
+  wp_start as ⟨#Hb, #Ht, Ho, Hq, HX, #Hreq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
   wp_auto
@@ -44,8 +44,8 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P W Pk b t rt st false true 0 0 iprop(True) iprop(True) (vData P (st.C, st.R))) $$ [$Hl $HWR Ho Hq]
-    as ⟨-, HWR, -, Hpost⟩
+  wp_apply (hC γ P W Pk b t rt st false true 0 0 X Y (vData P (st.C, st.R))) $$ [$Hl $HWR Ho Hq HX]
+    as ⟨HY, HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
@@ -60,9 +60,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     · isplitl [Ho]
       · iexact Ho
       · iexact Hq
-    isplitr
-    · itrivial
-    iapply commitReq_true
+    iexact HX
   try simp only [↓reduceIte]
   icases Hpost with ⟨Hown, Hpend, #Hbs, Hout⟩
   wp_method_call
@@ -73,7 +71,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     iright
     iframe
   iapply HΦ
-  iframe Hbs
+  iframe Hbs HY
   -- (R2b-3c part 2) the stopped lock's client resources go with the database
   unfold bDBOut
   iframe Hout HWv HWR

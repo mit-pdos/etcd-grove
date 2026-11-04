@@ -34,9 +34,9 @@ theorem EtcdServer.Cleanup.wp_proof
     (hAC : auth.authStore.Close.spec (GF := GF) (hG := hG))
     (hBC : backend.backend.Close.spec (GF := GF) (hG := hG)) :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) := by
-  intro s lp wsl st γw c stl R M γbe d W Pk cp
+  intro s lp wsl st γw c stl R M γbe d W Pk cp X Y
   wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hwcl, #Hauf, #Hainv, Htpa, Hbr, Hbe, Hγbe, #Hb, #Hsc, Hopen,
-    #Hcpf, #Hcpok⟩
+    HX, #Hreq, #Hcpf, #Hcpok⟩
   (try wp_auto)
   -- `s.lessor.Stop()`
   ihave #Hlpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
@@ -65,7 +65,7 @@ theorem EtcdServer.Cleanup.wp_proof
   (try wp_auto)
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
-  wp_apply (hBC d.γB d.P W Pk d.be) $$ [$Hopen] as %berr ⟨%D, Hsv, Hres⟩
+  wp_apply (hBC d.γB d.P W Pk d.be X Y) $$ [$Hopen $HX] as %berr ⟨HY, %D, Hsv, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hbl Hbm] as Hbr
@@ -79,6 +79,8 @@ theorem EtcdServer.Cleanup.wp_proof
     iapply HΦ
     iunfold srvBemuReaderAt
     iframe Htpa Hbr Hbe Hγbe
+    isplitl [HY]
+    · iexact HY
     iexists D
     iframe Hsv
     icases Hres with (⟨-, Hf⟩ | %Hbad)
@@ -97,6 +99,8 @@ theorem EtcdServer.Cleanup.wp_proof
   iapply HΦ
   iunfold srvBemuReaderAt
   iframe Htpa Hbr Hbe Hγbe
+  isplitl [HY]
+  · iexact HY
   iexists D
   iframe Hsv
   icases Hres with (⟨-, Hf⟩ | %Hbad)

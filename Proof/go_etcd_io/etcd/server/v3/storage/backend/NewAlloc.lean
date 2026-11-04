@@ -370,18 +370,25 @@ theorem stop_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc dc : GoChan)
     (b : Loc) :
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
-    dghostVar γ.sdn (DFrac.own 1) false ⊢
+    dghostVar γ.sdn (DFrac.own 1) false ∗ savedPropOwn γ.rq (DFrac.own 1) iprop(True) ⊢
     |={⊤}=> isStopChansAt (GF := GF) γ P W Pk b sc dc γsc γdc ∗
       ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Pending := by
-  iintro ⟨#Hsc, #Hdc, #Hscc, Hsco, #Hdcc, Hdco, Hsdn⟩
+  iintro ⟨#Hsc, #Hdc, #Hscc, Hsco, #Hdcc, Hdco, Hsdn, Hrq⟩
+  ihave ⟨Hrq1, Hrq2⟩ : iprop(savedPropOwn (GF := GF) γ.rq (DFrac.own (1 : Qp).half) iprop(True) ∗
+      savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True)) $$ [Hrq]
+  · iapply ((saved_prop_fractional γ.rq iprop(True)).fractional (1 : Qp).half (1 : Qp).half).1
+    rw [Qp.half_add_half]; iexact Hrq
   imod alloc_broadcast_chan (E := ⊤) (stopQ γ) γsc sc $$ Hscc Hsco with Hsb
   icases bchan_dup_unknown _ _ _ _ $$ Hsb with ⟨Hsb, #Hsbu⟩
   imod alloc_broadcast_chan (E := ⊤) (bDoneEsc γ P W Pk) γdc dc $$ Hdcc Hdco with Hdb
   icases bchan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
   imod inv_alloc (bN.@"stop") ⊤
-    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
-     (ghostVar γ.cls (1 : Qp).half () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ)))
-    $$ [Hsb Hsdn] with #Hinv
+    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True) ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True)) ∨
+     (ghostVar γ.cls (1 : Qp).half () ∗
+       ((dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗ stopReq γ P Pk b) ∨ runTok γ)))
+    $$ [Hsb Hsdn Hrq1 Hrq2] with #Hinv
   · inext; ileft; iframe
   imodintro
   iframe Hdb
@@ -537,9 +544,11 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (2026-11-04, R2b-3c) the database and its file
   imod dghostVar_alloc ((db, path) : Loc × GoString) with ⟨%gdbf, Hdbf⟩
   imod dghostVar_persist gdbf 1 ((db, path) : Loc × GoString) $$ Hdbf with #Hdbf
+  -- (2026-11-04, R2b-3d stage 3) the stop's request's result, `True` until `Close`
+  imod saved_prop_alloc (GF := GF) iprop(True) (DFrac.own 1) DFrac.valid_own_one with ⟨%grq, Hrq⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    gpv, gck, gdbf, rbDomOf P D⟩
+    gpv, gck, gdbf, grq, rbDomOf P D⟩
   ihave #Hdbat : bDBAt γ db path $$ []
   · unfold bDBAt; iexact Hdbf
   ihave #Hbdb : bDB γ db $$ []
@@ -673,7 +682,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     iunfold hooksOk at Hhk
     iapply Hhk $$ Hb' Ht'
   -- the stop protocol
-  imod stop_init γ P (W γ) (Pk γ) sc dc γsc γdc b $$ [Hsco Hdco Hsdn] with ⟨#Hstop, Hdcp⟩
+  imod stop_init γ P (W γ) (Pk γ) sc dc γsc γdc b $$ [Hsco Hdco Hsdn Hrq] with ⟨#Hstop, Hdcp⟩
   · iframe
     iframe #
   -- the readers' tokens

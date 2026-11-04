@@ -24,14 +24,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.CommitAndStop()` (the `run` goroutine's, at the stop): the batch transaction committed and no new one begun, the backend stopped (the whole open token: the clients' half and the `run` goroutine's quarter). -/
 abbrev backend.batchTxBuffered.CommitAndStop.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
-      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false }}
+      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      -- (2026-11-04, the restart plan's R2b-3d stage 3) the caller's request `X ⇒ Y` (`commitReq`),
+      -- served by the stop's commit's hook (`Close`'s caller's, through the stop invariant)
+      X ∗ commitReq γ P Pk b X Y }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"CommitAndStop")) (Val #()))
   -- (2026-11-04, R2b-3c) and bbolt's database, owned at its committed data, with the lock's ghost
   -- shares there and its client resources `W ∗ Pk` (part 2), for `Close`
-  {{ RET #(); bStopped γ ∗ bDBOut γ P W Pk }}
+  {{ RET #(); bStopped γ ∗ bDBOut γ P W Pk ∗ Y }}
 
 end spec
 

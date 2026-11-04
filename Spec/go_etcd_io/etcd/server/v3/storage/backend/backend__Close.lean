@@ -37,14 +37,17 @@ the data `D`: what the stopped batch lock held comes back at `D` (`bStopView`: i
 backend's file (`bFile`) holds `D` (bbolt's `DB.Close_kv`, the database taken from the stop's
 escrow, `bDoneEsc`). -/
 abbrev backend.backend.Close.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      isStopChans γ P W Pk b ∗ bOpen γ 1 }}
+      isStopChans γ P W Pk b ∗ bOpen γ 1 ∗
+      -- (2026-11-04, the restart plan's R2b-3d stage 3) the caller's request `X ⇒ Y` of the stop's
+      -- commit (`commitReq`; none: `commitReq_true`), its result `Y` given back
+      X ∗ commitReq γ P Pk b X Y }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       -- (2026-11-04, R2b-3c) the data `D` the stop's commit left: the stopped lock's resources and
       -- ghost shares at it (part 2), and the backend's file holding it
-      ∃ D : Data, bStopView γ P W Pk D ∗
+      Y ∗ ∃ D : Data, bStopView γ P W Pk D ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ path : GoString, bFile γ path ∗ fileHolds path D) ∨
           ⌜¬ dbCloseOk⌝) }}
 

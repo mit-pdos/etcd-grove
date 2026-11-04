@@ -671,9 +671,12 @@ theorem applySnapshot_walk
     -- (R2b-3c part 2) the old backend with its stop channels, at their client resources
     iunfold srvStopChans at HoSC
     icases HoSC with ⟨#HbC, #HsC⟩
-    wp_apply hClose d.γB d.P (mvcc.lateWD d) (batchLockInv γ (metaTM d.γB d.P)) d.be $$ [HoO1]
-      as %cerr Hcerr
+    wp_apply hClose d.γB d.P (mvcc.lateWD d) (batchLockInv γ (metaTM d.γB d.P)) d.be
+      iprop(True) iprop(True) $$ [HoO1] as %cerr ⟨-, Hcerr⟩
     · iframe #; iframe HoO1
+      isplitr
+      · itrivial
+      iapply backend.commitReq_true
     -- (R2b-3c) the old backend's file and what its stopped lock held, given back by `Close`,
     -- dropped (the snapshot's replaces it)
     icases Hcerr with ⟨%Dc, -, (⟨%h, -⟩ | %h)⟩
