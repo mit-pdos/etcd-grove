@@ -184,12 +184,13 @@ def allocRes (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc) (i
 -- `allocate` keeps its own premises: U9c's `allocRes_derefPre'` and `derefRel_rebase_derefPre'`
 -- (`Spill/AllocDeref`, proved, with `objsDisj X.t`: batch 27; the stubs here were false without it).
 
-/-- **`DB.grow`'s effect on the writer side**: the file's size grows (or stays), its pages'
-bytes kept; nothing else changes (the new slots inside the mapping become `W` slots). -/
+/-- **`DB.grow`'s effect on the writer side**: the file's size grows (or stays), the bytes of
+its whole pages kept (batch 30: a slot reaching past the old end is zeroed there by `Truncate`);
+nothing else changes (the new slots inside the mapping become `W` slots). -/
 def wdbGrown (w w' : WDb) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl ∧ w'.ms = w.ms ∧ w'.fli = w.fli ∧ w'.f = w.f ∧ w'.fd = w.fd ∧
   w'.junk = w.junk ∧ w'.m.maps = w.m.maps ∧ w.m.size ≤ w'.m.size ∧
-  ∀ s, s ∈ w.W → s ∈ w'.W ∧ w'.wb s = w.wb s
+  ∀ s, s ∈ w.W → s ∈ w'.W ∧ (4096 * (s + 1) ≤ w.m.size → w'.wb s = w.wb s)
 
 /-! ## Lemma statements -/
 

@@ -28,12 +28,19 @@ theorem wdbOK_free (w : WDb) (id : w64) (pg : List w8) (hok : wdbOK w)
     (hpg : w.C.pages !! id.toNat = some pg)
     (hcan : w.fl.canFree w.wtxid id (1 + pageOverflow pg)) :
     wdbOK (w.withFl (w.fl.freePages w.wtxid id (1 + pageOverflow pg))) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm⟩ := hok
+  obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots⟩ := hok
   have hn : id.toNat + (1 + pageOverflow pg) < 2 ^ 64 := hcan.2.1
   have hS : ∀ s, id.toNat ≤ s → s < id.toNat + (1 + pageOverflow pg) → s ∈ treeSlots w.C :=
     fun s a b => (mem_pagesSlots_iff _ _).2 ⟨id.toNat, pg, hpg, a, b⟩
   have hT : w.wtxid.toNat = w.C.txid + 1 := toNat_W64_of_lt _ htx
-  refine ⟨h1, h2, h3, fun s => ?_, h5, fun f hf => ?_, htx, hhwm⟩
+  refine ⟨h1, h2, h3, fun s => ?_, h5, fun f hf => ?_, htx, hhwm, hmap, hsmall, fun s hs => ?_⟩
+  rotate_right
+  · show s < w.C.hwm
+    rcases hs with ht | hp
+    · exact hslots s (.inl ht)
+    · rcases (pendSlots_freePages _ _ _ _ hn s).1 hp with hp | ⟨a, b⟩
+      · exact hslots s (.inr hp)
+      · exact hslots s (.inl (hS s a b))
   · show s ∈ w.W ↔ _
     rw [h4 s]
     show _ ↔ _ ∧ _ ∧ _ ∧ s ∉ pendSlots (w.fl.freePages w.wtxid id (1 + pageOverflow pg))

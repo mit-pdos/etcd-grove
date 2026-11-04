@@ -187,7 +187,17 @@ def wdbOK (w : WDb) : Prop :=
   (∀ f, w.C.flpg = some f → flCurOK w.fl w.C (extentBytes w.wb f)) ∧
   -- the writer's txid and the high-water mark do not wrap (batch 6, `Free`'s pending entry of
   -- `C.txid + 1`: `treeOK`'s `txid < 2 ^ 63`, the current meta's `pgid`)
-  w.C.txid + 1 < 2 ^ 64 ∧ w.C.hwm < 2 ^ 64
+  w.C.txid + 1 < 2 ^ 64 ∧ w.C.hwm < 2 ^ 64 ∧
+  -- batch 30: the high-water mark's pages lie inside the mapping (`Open` maps at least the file,
+  -- `DB.allocate` remaps whenever the mark passes the mapping; `Commit` gives `Bucket.spill`'s
+  -- premise `X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms` from it)
+  (∀ b l, w.ms = some (b, l) → w.C.hwm * 4096 ≤ l) ∧
+  -- batch 30 (`DB.grow`): a mapping of at most `AllocSize` covers the file (every mapping is at
+  -- least the file when made; `grow` then truncates to the mapping's length, `growSize`)
+  (∀ b l, w.ms = some (b, l) → l ≤ 0x1000000 → w.m.size ≤ l) ∧
+  -- batch 30 (`DB.grow`): the tree and pending slots lie below the high-water mark, so every slot
+  -- past the file's end is a `W` slot (`Truncate`'s cells of `[size, len)` come from `wCells`)
+  (∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s < w.C.hwm)
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,

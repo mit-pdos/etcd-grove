@@ -762,6 +762,30 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   `node__rebalance.lean:463`'s `wp_apply hDel …` needs the premise (`wtxW_base_pos`, or
   `mapFields_base_nonnull` of the opened `wtxW`), not edited (U8b's WIP).
 
+- **2. The high-water mark inside the mapping** (batch 29's proposal, applied): `wdbOK` ends
+  `… ∧ w.C.hwm < 2 ^ 64 ∧ (∀ b l, w.ms = some (b, l) → w.C.hwm * 4096 ≤ l) ∧ …` (items 2 and 4's
+  three clauses at the end, so `obtain ⟨…, htx, hhwm⟩` still binds and `refine ⟨…, htx, hhwm⟩`
+  passes them on). U10's `Commit` gives `Bucket.spill`'s premise `X.t.mv.pgid'.toNat * 4096 ≤
+  mapLen w.ms` from it (`X.t.mv.pgid' = C.hwm` at the start). Establishing it: `wdbOK` lives in
+  `rwR` (the invariant), so `beginRWTx` (U5) takes it from there; its producers are `Open` (U11:
+  the mapping is at least the file, `hwm·4096 ≤ size`), the publish (U10: spill's post bound),
+  `DB.mmap`'s remap (U4, a `sorry`: the new length is at least the file's size), `DB.grow` (ms and
+  `C` unchanged), the freelist steps (`wdbOK_alloc`, `wdbOK_free`: adapted, `ms`/`C` unchanged).
+- **4. C(4), for `DB.grow`**: `wdbOK` gains `(∀ b l, w.ms = some (b, l) → l ≤ 0x1000000 →
+  w.m.size ≤ l)` (`growSize` truncates to the mapping's length when it is at most `AllocSize`,
+  `dbFixed`'s `0x1000000`; `Truncate`'s spec needs `m.size ≤ sz`: every mapping is at least the
+  file when made, and a grow past it happens only above `AllocSize`; stated over `ms = some` as an
+  unmapped writer has `mapLen = 0`) and `(∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s <
+  w.C.hwm)` (with `hwm·4096 ≤ size` and `W`'s characterization, every slot from the file's end on is
+  a `W` slot, so `Truncate`'s `mcellsAny` of `[size, len)` comes from `wCells`: no store lemma
+  needed; `wdbOK_free` proves it for the freed run from `treeSlots`). **`wdbGrown`** keeps `wb s` only
+  for `4096 · (s + 1) ≤ w.m.size` (`Truncate` zeroes the partial slot's tail): `∀ s ∈ w.W, s ∈ w'.W
+  ∧ (4096 * (s + 1) ≤ w.m.size → w'.wb s = w.wb s)`. Its only user is `DB.grow.spec` (proof a
+  `sorry`, U4) and its caller `Commit` (U10). Built: `Rebalance/Free`, `Mmap/AllocBase`,
+  `node__free`, `Mmap/Alloc`. **Producers to prove** (all `sorry`s today): `Open` (U11), the
+  publish in `Commit` (U10: spill's pending frees are of committed pages, `< hwm`), `DB.mmap`
+  (U4), `beginRWTx`'s release of pending pages (U5: free/pending ids are below `hwm` by `flBelow`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
