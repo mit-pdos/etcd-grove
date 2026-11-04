@@ -66,7 +66,7 @@ theorem readQ_of_ansOn (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → I
     iintro ⟨%L, -, %HL, #HQ⟩
     rcases h with ⟨rfl, rfl⟩ | rfl
     · iintro !>; itrivial
-    · simp only [v3rpc.rangeDepQOn, kvStM_true, kvStOn]
+    · simp only [v3rpc.rangeDepQOn, v3rpc.rangeDepQM, kvStM_true, kvStOn]
       rw [← HL, kvModelM_true]
       iintro !>
       iexact HQ
@@ -406,6 +406,7 @@ theorem etcd_rangeHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       ⟨%Herr, %e, Hcr, -, Hlt⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOkOn at Hans
+      iunfold v3rpc.rangeAnsOkM at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
       imod readM_keys true s E γr log $$ Hsrd Hcert Hcok with %Hkeys
       ihave #HQl' := readQ_of_ansOn γr d Q o.base.serializable log Hdd $$ HQl
@@ -700,6 +701,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         simp only [hro, ↓reduceIte]
         icases Hans with ⟨-, Hans, Hau⟩
         iunfold v3rpc.txnReadAnsOn at Hans
+        iunfold v3rpc.txnReadAnsM at Hans
         icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
         imod readM_keys true s E γr log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by

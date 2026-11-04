@@ -37,8 +37,8 @@ of the state the update fired at; with auth on, the header bound to the context 
 the grant at the committed log `L` before the entry (`grantedAt`), the auth state after it
 published (`pubAfterM`). Failure: no response and an error the gRPC layer can take
 (`applyErrIs`): the apply's (`appliedErr`, at a header bound to the context with auth on), or the
-proposal's (made or not; if made, deposited: it may still be applied). The two modes' former specs
-are instances (`ModeSpecs.lean`, `Put.spec_off`, `Put.spec_on`). -/
+proposal's (made or not; if made, deposited: it may still be applied). Its clients take it at
+`E.authOn` (the auth component's stage 4 deleted the two modes' former specs, `specOff`/`specOn`). -/
 abbrev EtcdServer.Put.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
