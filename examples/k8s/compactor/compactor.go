@@ -8,7 +8,7 @@
 //
 //   - CompactRevision never decreases (across the samples and after Stop);
 //   - after Stop it is at most the revision of a later latest Get (a revision the cluster reached);
-//   - compact_rev_key, if present, holds a decimal revision, at most that Get's revision.
+//   - compact_rev_key, if present, holds a decimal revision, at most a later latest Get's revision.
 //
 // Main panics if a check fails; the theorem to prove (notes/k8s-compactor-plan.md, K4) is that it
 // does not, and that no compactor panics (Compact reads the key's value only when it exists:
@@ -86,7 +86,9 @@ func ready(cli *clientv3.Client) bool {
 
 // apiserver runs one API server's compactor on cli: it starts it, samples its CompactRevision
 // every interval, stops it and checks the package's guarantees, panicking if one fails. An error
-// from the final Get skips the checks against it.
+// from a final Get skips the checks against it. The key's value is checked against a second Get,
+// issued after the first returned it: a revision the cluster reached is at most the revision of a
+// read that starts after it is known (the read-side law the proof uses).
 func apiserver(cli *clientv3.Client) {
 	c := etcd3.NewCompactor(cli, interval, clock.RealClock{}, nil)
 	var last int64
@@ -118,7 +120,14 @@ func apiserver(cli *clientv3.Client) {
 		if err != nil {
 			panic("k8scompactor: compact_rev_key does not hold a revision")
 		}
-		if v > resp.Header.Revision {
+		// v is a revision the cluster reached: at most a later latest Get's revision.
+		ctx2, cancel2 := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
+		resp2, err := cli.Get(ctx2, compactRevKey)
+		cancel2()
+		if err != nil {
+			return
+		}
+		if v > resp2.Header.Revision {
 			panic("k8scompactor: compact_rev_key ahead of the cluster")
 		}
 	}
