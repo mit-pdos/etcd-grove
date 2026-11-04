@@ -336,7 +336,21 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
       intro F hF
       have h := s8.1 F (fun id hid => List.mem_append_left _ (hF id hid).1)
         (by rw [hwx]; exact hI.rootFree F hF)
-      rw [← hwx]; exact h }
+      rw [← hwx]; exact h
+    lroot := hI.lroot
+    notKeys := notKeys_upd hI.notKeys hk
+    nilKids := by
+      refine nilKids_upd hI ?_ ?_
+      · intro c0 C0 hc0 hC0 hn
+        rw [hc] at hc0; cases hc0
+        rcases hI.nilKids k c C0 hc hC0 hn with h | ⟨-, h⟩
+        · rw [hks] at h; cases h
+        · exact absurd (h C hC) hnn
+      · intro k' c' Cx e hc' _ hCx hn C' hC'
+        have hcc : c' ≠ c := by
+          intro h; subst h; exact e (hI.inj k' k c' hc' hc)
+        obtain ⟨B', hB', hs, -⟩ := hkept c' hcc Cx hCx
+        rw [hB'] at hC'; cases hC'; rw [hs.1]; exact hn }
 
 end spilled
 

@@ -241,6 +241,20 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     obtain ⟨⟨c, D⟩, hcD, hsD⟩ := List.mem_flatMap.1 hs
     obtain ⟨hne, Cc, h, F, N, E, hc, hu⟩ := hcs c D hcD
     exact ((uTree_start_cov hpre hreach hfv hc hne hu).2 s hsD).1
+  have hkids : ∀ k c, B0.bm !! k = some c → childTodo X X w w.wtxid c (Dc k) := by
+    intro k c hc
+    have hne := hS.notRoot k c hc
+    obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 ((htc.2.2.2.2.2 X.rl B0 hB0).2 k c hc)
+    refine ⟨C, hC, hok.2.2.2.2.2.1.2.2.1 c C hC, child_bm_empty hok hC hne, hne,
+      fun _ => bktLocalOK_of_wOKR hok hC, hpre.2.2.2.1 c (by rw [hC]; simp), rfl, ?_, ?_⟩
+    · intro hn
+      exact ⟨(hDc k).2 (fun ⟨c', C', hc', hC', hrn⟩ => by
+        rw [hc] at hc'; cases hc'; rw [hC] at hC'; cases hC'; exact hrn hn), C, hC, hn⟩
+    · intro hn
+      obtain ⟨rn, h, F, N, E, h1, h2, h3, h4, h5⟩ := (hDc k).1 c C hc hC hn
+      refine ⟨rn, h, F, N, E, h1, h2, h3, ?_, h4, h5⟩
+      rw [← htxid]
+      exact spFree_start htc hfv.1.2.1 (uTree_F_view h3)
   refine ⟨rootOwn X (keys.flatMap Dc), Dc, ?_⟩
   exact {
     C := rfl
@@ -275,21 +289,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       · exact (mem_rootOwn.1 h).1
       · exact hcov s h
     agree := fun _ _ => rfl
-    kids := by
-      intro k c hc
-      show childTodo X X w w.wtxid c (Dc k)
-      have hne := hS.notRoot k c hc
-      obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 ((htc.2.2.2.2.2 X.rl B0 hB0).2 k c hc)
-      refine ⟨C, hC, hok.2.2.2.2.2.1.2.2.1 c C hC, child_bm_empty hok hC hne, hne,
-        fun _ => bktLocalOK_of_wOKR hok hC, hpre.2.2.2.1 c (by rw [hC]; simp), rfl, ?_, ?_⟩
-      · intro hn
-        exact ⟨(hDc k).2 (fun ⟨c', C', hc', hC', hrn⟩ => by
-          rw [hc] at hc'; cases hc'; rw [hC] at hC'; cases hC'; exact hrn hn), C, hC, hn⟩
-      · intro hn
-        obtain ⟨rn, h, F, N, E, h1, h2, h3, h4, h5⟩ := (hDc k).1 c C hc hC hn
-        refine ⟨rn, h, F, N, E, h1, h2, h3, ?_, h4, h5⟩
-        rw [← htxid]
-        exact spFree_start htc hfv.1.2.1 (uTree_F_view h3)
+    kids := hkids
     ents := by
       show rootEnts X = (rootEnts X).map fun e => (e.1, e.2)
       rw [List.map_id']
@@ -311,7 +311,10 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     mvEq := rfl
     rootFree := fun F hF => by
       rw [← htxid]
-      exact spFree_start htc hfv.1.2.1 (fun x hx => ⟨(hF x hx).2.1, (hF x hx).2.2⟩) }
+      exact spFree_start htc hfv.1.2.1 (fun x hx => ⟨(hF x hx).2.1, (hF x hx).2.2⟩)
+    lroot := ⟨Dc, rfl, hkids⟩
+    notKeys := fun _ _ => rfl
+    nilKids := fun _ _ _ _ hC0 hn => Or.inr ⟨rfl, fun _ hC => by rw [hC0] at hC; cases hC; exact hn⟩ }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/

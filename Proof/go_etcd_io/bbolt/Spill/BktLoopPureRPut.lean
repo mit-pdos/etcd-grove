@@ -526,7 +526,17 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
       rw [he] at hrl
       simp at hrl
     mvEq := by rw [x_mv]; exact hI.mvEq
-    rootFree := fun F hF id hid => by rw [x_pm]; exact hI.rootFree F hF id hid }
+    rootFree := fun F hF id hid => by rw [x_pm]; exact hI.rootFree F hF id hid
+    lroot := hI.lroot
+    notKeys := notKeys_upd hI.notKeys (hI.keysAll k (by rw [hc]; rfl))
+    nilKids := by
+      refine nilKids_upd hI (nilKids_self_val hI hks _) ?_
+      intro k' c' Cx _ hc' htd hCx hn C' hC'
+      have hold := hI.kids k' c' hc'
+      rw [htd] at hold
+      have hne : c' ≠ X0.rl := by
+        obtain ⟨C, -, -, -, hne, -⟩ := hold; rw [← hrlX]; exact hne
+      rw [x_oth c' hne, hCx] at hC'; cases hC'; exact hn }
 
 end rput
 

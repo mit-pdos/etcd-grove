@@ -125,7 +125,10 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
   have hsame : (∀ k' ∈ keys, ∀ v p, upd ks k .nilc k' ≠ .val v p) → X = X0 ∧ w = w0 ∧ st = [] :=
     fun h => hI.same (same_upd_nv hks h)
   have hput := fun hp => hI.putRoot (putRoot_upd (k := k) (s := .nilc) (fun _ e => by cases e) hp)
-  refine { hI with kids := ?_, ents := ?_, same := hsame, putRoot := hput }
+  have hnk := notKeys_upd (s := .nilc) hI.notKeys (hI.keysAll k (by rw [hc]; rfl))
+  have hnil' := nilKids_upd (X' := X) (k := k) (s := .nilc) hI (fun _ _ _ _ _ => Or.inl rfl)
+    (fun _ _ _ _ _ _ hCx hn _ hC' => by rw [hCx] at hC'; cases hC'; exact hn)
+  refine { hI with kids := ?_, ents := ?_, same := hsame, putRoot := hput, notKeys := hnk, nilKids := hnil' }
   · intro k' c' hc'
     unfold upd
     by_cases e : k' = k

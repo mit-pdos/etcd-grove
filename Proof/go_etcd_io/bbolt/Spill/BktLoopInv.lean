@@ -159,6 +159,26 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   writer (`spFree`). -/
   rootFree : ∀ F : List Nat, (∀ id ∈ F, id ∈ Lroot ∧ (X0.v.pages !! id).isSome ∧ id < 2 ^ 62) →
     spFree X w.fl w0.wtxid F
+  /-- (U9x7) The root's own slots are those `rinv_start` gave: the start's covered slots that no
+  child's unspilled tree owned (`rootOwn`), the children's slots at the start `Dc0`. -/
+  lroot : ∃ Dc0 : GoString → List Nat, Lroot = rootOwn X0 (keys.flatMap Dc0) ∧
+    ∀ k c, B0.bm !! k = some c → childTodo X0 X0 w0 w0.wtxid c (Dc0 k)
+  /-- (U9x7) A name not iterated is never visited. -/
+  notKeys : ∀ k, k ∉ keys → ks k = .todo
+  /-- (U9x7) A child with no root node at the start is skipped (`continue`: Go's `child.spill()`
+  returns at once and `child.rootNode == nil`; it is not `inlineable`): `nilc`, or not yet
+  visited and still without a root node. Never `val` (`rinv_nilKid`). -/
+  nilKids : ∀ k c C0, B0.bm !! k = some c → X0.t.bs !! c = some C0 → C0.bv.rootNode' = null →
+    ks k = .nilc ∨ (ks k = .todo ∧ ∀ C, X.t.bs !! c = some C → C.bv.rootNode' = null)
+
+/-- **A child with no root node at the start never gets a value** (`RInv.nilKids`). -/
+theorem rinv_nilKid {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc} {C0 : BRec}
+    (hc : B0.bm !! k = some c) (hC0 : X0.t.bs !! c = some C0) (hn : C0.bv.rootNode' = null)
+    (v : List w8) (p : Bool) : ks k ≠ .val v p := by
+  intro e
+  rcases hI.nilKids k c C0 hc hC0 hn with h | ⟨h, -⟩ <;> rw [e] at h <;> cases h
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
@@ -173,6 +193,65 @@ def upd {β : Type} (f : GoString → β) (k : GoString) (b : β) : GoString →
 def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Nat)
     (k : GoString) : List Nat :=
   Lroot ++ (keys.filter fun k' => decide (k' ≠ k)).flatMap Dc
+
+/-- **`RInv.notKeys` through a visit of an iterated key.** -/
+theorem notKeys_upd {keys : List GoString} {ks : GoString → KSt} {k : GoString} {s : KSt}
+    (h : ∀ k, k ∉ keys → ks k = .todo) (hk : k ∈ keys) :
+    ∀ k', k' ∉ keys → upd ks k s k' = .todo := by
+  intro k' hk'
+  unfold upd
+  rw [if_neg (fun e => hk' (by rw [e]; exact hk))]; exact h k' hk'
+
+/-- **`RInv.nilKids` through a step** to `X'` that sets `k`'s state to `s`: `k`'s own case, and
+the other todo children's records keep no root node. -/
+theorem nilKids_upd {X0 X X' : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {s : KSt}
+    (hself : ∀ c C0, B0.bm !! k = some c → X0.t.bs !! c = some C0 → C0.bv.rootNode' = null →
+      s = .nilc ∨ (s = .todo ∧ ∀ C, X'.t.bs !! c = some C → C.bv.rootNode' = null))
+    (hother : ∀ k' c' C, k' ≠ k → B0.bm !! k' = some c' → ks k' = .todo →
+      X.t.bs !! c' = some C → C.bv.rootNode' = null →
+      ∀ C', X'.t.bs !! c' = some C' → C'.bv.rootNode' = null) :
+    ∀ k' c C0, B0.bm !! k' = some c → X0.t.bs !! c = some C0 → C0.bv.rootNode' = null →
+      upd ks k s k' = .nilc ∨
+      (upd ks k s k' = .todo ∧
+        ∀ C, X'.t.bs !! c = some C → C.bv.rootNode' = null) := by
+  intro k' c C0 hc hC0 hn
+  unfold upd
+  by_cases e : k' = k
+  · subst e; rw [if_pos rfl]; exact hself c C0 hc hC0 hn
+  · rw [if_neg e]
+    rcases hI.nilKids k' c C0 hc hC0 hn with h | ⟨h1, h2⟩
+    · exact Or.inl h
+    · refine Or.inr ⟨h1, ?_⟩
+      have hk := hI.kids k' c hc
+      rw [h1] at hk
+      obtain ⟨C, hC, -⟩ := hk
+      exact hother k' c C e hc h1 hC (h2 C hC)
+
+/-- `nilKids_upd`'s own case for a visited child that had a root node. -/
+theorem nilKids_self_todo {X0 X X' : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc} {C : BRec}
+    (hks : ks k = .todo) (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C)
+    (hnn : C.bv.rootNode' ≠ null) (s : KSt) :
+    ∀ c0 C0, B0.bm !! k = some c0 → X0.t.bs !! c0 = some C0 → C0.bv.rootNode' = null →
+      s = .nilc ∨ (s = .todo ∧ ∀ C, X'.t.bs !! c0 = some C → C.bv.rootNode' = null) := by
+  intro c0 C0 hc0 hC0 hn
+  rw [hc] at hc0; cases hc0
+  rcases hI.nilKids k c C0 hc hC0 hn with h | ⟨-, h⟩
+  · rw [hks] at h; cases h
+  · exact absurd (h C hC) hnn
+
+/-- `nilKids_upd`'s own case for a child with a staged value. -/
+theorem nilKids_self_val {X0 X X' : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {v : List w8} {p : Bool}
+    (hks : ks k = .val v p) (s : KSt) :
+    ∀ c0 C0, B0.bm !! k = some c0 → X0.t.bs !! c0 = some C0 → C0.bv.rootNode' = null →
+      s = .nilc ∨ (s = .todo ∧ ∀ C, X'.t.bs !! c0 = some C → C.bv.rootNode' = null) := by
+  intro c0 C0 hc0 hC0 hn
+  rcases hI.nilKids k c0 C0 hc0 hC0 hn with h | ⟨h, -⟩ <;> rw [hks] at h <;> cases h
 
 theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
   unfold upd; rw [if_pos rfl]

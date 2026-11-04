@@ -230,6 +230,12 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
   have hk : k ∈ keys := hI.keysAll k (by rw [hc]; rfl)
   have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
   have hcX0 : c ≠ X0.rl := by rw [← hI.rl]; exact hcne
+  have hnnC : C.bv.rootNode' ≠ null := by
+    intro e
+    have h1 := (hI.G.2.2.1.2.2.1 c C hC).2
+    have h2 := hns
+    rw [e, h1] at h2; cases h2
+  have hnk := notKeys_upd (s := .val (inlineVal C.ib rn.ws) false) hI.notKeys hk
   rcases hfree with ⟨h0, hX', hw'⟩ | ⟨h0, hfd, rfl⟩
   · -- already inline: no page, nothing freed
     rw [hX', hw']
@@ -248,7 +254,10 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
       fun h => absurd h (same_upd_val hk _ _)
     have hput := fun hp => hI.putRoot (putRoot_upd (k := k)
       (s := .val (inlineVal C.ib rn.ws) false) (fun _ e => by cases e) hp)
-    refine { hI with kids := ?_, ents := ents_upd hks hI.ents, same := hsame, putRoot := hput }
+    have hnil' := nilKids_upd (X' := X) (s := .val (inlineVal C.ib rn.ws) false) hI
+      (nilKids_self_todo hI hks hc hC hnnC _)
+      (fun _ _ _ _ _ _ hCx hn _ hC' => by rw [hCx] at hC'; cases hC'; exact hn)
+    refine { hI with kids := ?_, ents := ents_upd hks hI.ents, same := hsame, putRoot := hput, notKeys := hnk, nilKids := hnil' }
     intro k' c' hc'
     unfold upd
     by_cases e : k' = k
@@ -446,7 +455,15 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
       · intro he
         have hxO : x ∈ othersO Lroot keys Dc k := List.mem_append_left _ (hF x hx).1
         have hxid : x = rn.nv.pgid'.toNat := by rw [he, w64_toNat_of_lt (hF x hx).2.2]
-        exact (List.nodup_append.1 hndO).2.2 _ hxO _ hidL hxid }
+        exact (List.nodup_append.1 hndO).2.2 _ hxO _ hidL hxid
+    lroot := hI.lroot
+    notKeys := notKeys_upd hI.notKeys hk
+    nilKids := by
+      refine nilKids_upd hI (nilKids_self_todo hI hks hc hC hnnC _) ?_
+      intro k' c' Cx e hc' _ hCx hn C' hC'
+      have hcc : c' ≠ c := by
+        intro h; subst h; exact e (hI.inj k' k c' hc' hc)
+      rw [hbs c' hcc, hCx] at hC'; cases hC'; exact hn }
 
 end inline
 
