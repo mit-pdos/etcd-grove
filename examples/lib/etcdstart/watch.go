@@ -101,10 +101,7 @@ func Collect(wch clientv3.WatchChan, upTo int64) ([]Event, bool) {
 		if wresp.Err() != nil {
 			return evs, false
 		}
-		// Gooseable: mvccpb.Event rather than its alias clientv3.Event (the same type): Goose does
-		// not resolve a type alias when it selects a field through a pointer.
-		var es []*mvccpb.Event = wresp.Events
-		for _, e := range es {
+		for _, e := range wresp.Events {
 			evs = append(evs, Event{Rev: e.Kv.ModRevision, Key: string(e.Kv.Key),
 				Val: string(e.Kv.Value), Put: e.Type == mvccpb.Event_PUT})
 			last = e.Kv.ModRevision
