@@ -356,7 +356,77 @@ theorem Cursor.search_w.wp_aux
         lRoutes_leaf X bl pid _ rn.ws kb hlt ?_⟩
       show (W64 (wsIdx rn.ws kb : Int)).toNat = wsIdx rn.ws kb
       simp; omega
-  · sorry
+  · -- a page: the inline page, or a view page
+    obtain ⟨hres, pa, pg, hw, h16, hsrc, hpa, hpre, hkind⟩ :=
+      posOK_page_facts X bl B pid hB hloc hpm hinl Hmax hpage
+    icases wtxW_page_srcLoc K tx r m X bl B pid pa pg hB hlive hw hsrc hpa $$ Hw with ⟨Hw, #Hsrc⟩
+    wp_apply hpn K tx r m X bl B pid hB hlive hpid0 (fun h => absurd h Hnodes) hnmnn
+      (fun _ => ⟨pa, pg, hw, hsrc, hpre⟩) $$ [Hw] as %p %n ⟨Hw, %Hpn⟩
+    · iexact Hw
+    rw [hres] at Hpn
+    obtain ⟨rfl, pg', hw'⟩ := Hpn
+    rw [hw] at hw'
+    simp only [Option.some.injEq, Prod.mk.injEq] at hw'
+    obtain ⟨rfl, rfl⟩ := hw'
+    icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
+    icases cells_page_key_acc wq X.v Hbase pa (pgSrc B) pg key ks kb hks $$ [Hcells]
+      with ⟨%dq, %dk, Hp, Hk, Hpb⟩
+    · iframe; iframe #
+    icases Read.bytesPointsto_bounds pa dq pg (by intro e; simp [e] at h16) $$ Hp with ⟨Hp, %Hlb⟩
+    have hlnn : pa ≠ null := by intro e; subst e; simp [null] at Hlb
+    icases bytesPointsto_view_read (V := Page) pa dq pg 0 pa (by simp) (by omega) Hlb.1 $$ Hp
+      with ⟨Hh, Hhb⟩
+    rw [show (decode (List.take 16 (List.drop 0 pg)) : Page) = pageHdr pg from rfl]
+    obtain ⟨hd, hH⟩ : ∃ hd, pageHdr pg = hd := ⟨_, rfl⟩
+    have hfz : pageFlags pg = hd.flags'.toNat := by unfold pageFlags; rw [hH]
+    rw [hH]
+    rw [decide_eq_false hlnn]
+    wp_auto
+    wp_apply hIB pa hd dq $$ [Hh] as Hh
+    · iexact Hh
+    have hra : refAt X bl pid ⟨pa, null, W64 0⟩ := refAt_page X bl B pid pg _ hB hres rfl hw
+    rcases hkind with ⟨hlf, hlwf⟩ | ⟨hbr, hroot, hpgv, hbwf, htw, hnmf⟩
+    · -- a leaf page
+      have hf2 : hd.flags' = W16 2 := by
+        apply BitVec.eq_of_toNat_eq; rw [← hfz, hlf]; rfl
+      rw [hf2]
+      wp_auto
+      wp_apply hIL pa hd dq $$ [Hh] as Hh
+      · iexact Hh
+      rw [hf2]
+      wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl] as %s1 ⟨Hs, Hcap, -⟩
+      try wp_auto
+      wp_method_call; wp_call
+      wp_auto
+      wp_apply hIL pa hd dq $$ [Hh] as Hh
+      · iexact Hh
+      rw [hf2]
+      wp_auto
+      ihave Hp := Hhb $$ Hh
+      wp_apply hnp c bl s1 els ⟨pa, null, W64 0⟩ dq pg key dk kb rfl hlf hlwf
+        $$ [Hc Hs Hp Hk] as ⟨Hc, Hs, Hp, Hk⟩
+      · iframe
+      ihave Hcells := Hpb $$ Hp Hk
+      ihave Hw := Hwb $$ Hcells
+      try wp_auto
+      iapply HΦ $$ %s1 %([⟨pa, null, W64 (pageSeekIdx pg kb : Int)⟩] : List elemRef) %([pid] : List w64)
+      iframe
+      ipureintro
+      have hlt : ltree X bl pid = some (true, pageWs pg) := by
+        rw [ltree_page X bl B pid pa pg hB hres hw, hlf]; rfl
+      have hix := pageSeekIdx_le pg kb
+      refine ⟨lPathFrom_leaf X bl pid _ (pageWs pg) (refAt_page X bl B pid pg _ hB hres rfl hw) hlt,
+        lRoutes_leaf X bl pid _ (pageWs pg) kb hlt ?_⟩
+      show (W64 (pageSeekIdx pg kb : Int)).toNat = wsIdx (pageWs pg) kb
+      rw [← pageSeekIdx_wsIdx pg kb hlf]
+      simp; omega
+    · -- a branch page: `searchPage`, inlined
+      sorry
 
 end proof
 
