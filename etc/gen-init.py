@@ -83,7 +83,10 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # not yet: its `math/rand` instance is the gRPC server's, `Proof/k8s_io/client_go/Base.lean`)
          'k8s_io.client_go.util.workqueue', 'k8s_io.client_go.util.consistency',
          'k8s_io.client_go.util.retry', 'k8s_io.client_go.listers.apps.v1',
-         'k8s_io.client_go.listers.core.v1']
+         'k8s_io.client_go.listers.core.v1',
+         # the DaemonSet run's driver (2026-11-04, notes/k8s-daemonset-run/, track C): the
+         # controller, client-go's informers and the model API server
+         'github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -545,6 +548,98 @@ initializers.''',
     alloc_types={x: '_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff'
                  for x in ['DefaultRetry', 'DefaultBackoff']},
     before={'$end': ['try wp_auto']},
+)
+
+# The DaemonSet run's packages with translated variable initializers (2026-11-04, track C,
+# notes/k8s-daemonset-run/): their facts are `True` but the model API server's.
+SPECIAL['k8s_io.component_helpers.scheduling.corev1.nodeaffinity'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`nodeaffinity.go`:
+`validSelectorOperators`, `validFieldSelectorOperators`, slice literals of constants), initializes
+its imports and runs their translated initializers. **Pending** (`sorry`, Stage 3 of the DaemonSet
+run): the slice literals' steps (`wp_slice_literal` over the operator constants).''',
+    alloc_types={'validSelectorOperators': 'GoSlice', 'validFieldSelectorOperators': 'GoSlice'},
+    before={'$end': ['try wp_auto', 'sorry']},
+    finish=[],
+)
+
+# the pending steps of the DaemonSet run's package initializers (Stage 3, track C)
+_DS_INIT_PENDING = ['sorry']
+
+SPECIAL['k8s_io.kubernetes.pkg.controller'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`controller_utils.go`: the
+key functions `KeyFunc`, `ExpKeyFunc`, `UIDSetKeyFunc`, the `wait.Backoff` literals
+`UpdateTaintBackoff`, `UpdateLabelBackoff`, the map literal `podPhaseToOrdinal`), initializes its
+imports and runs their translated initializers. **Pending** (`sorry`, Stage 3 of the DaemonSet run):
+the steps after the map literal, the `var _ I = &T{}` assertions (`Convert` of a pointer to an
+interface, which need the method sets).''',
+    alloc_types={'UIDSetKeyFunc': 'GoFunc', 'ExpKeyFunc': 'GoFunc', 'KeyFunc': 'GoFunc',
+                 'podPhaseToOrdinal': 'GoMap',
+                 'UpdateLabelBackoff': '_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff',
+                 'UpdateTaintBackoff': '_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff'},
+    before={'$end': ['try wp_auto',
+                     'wp_apply (wp_map_make1 (K := GoString) (V := w64) _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty go.int) as %mref Hmap',
+                     'try wp_auto',
+                     'repeat (wp_apply (wp_mapInsert (K := GoString) (V := w64) _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty) $$ Hmap as Hmap; try wp_auto)',
+                     'try wp_auto'] + _DS_INIT_PENDING},
+    finish=[],
+)
+
+_DSN = 'k8s_io.apimachinery.pkg.runtime.schema'
+SPECIAL['k8s_io.kubernetes.pkg.controller.daemon'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`daemon_controller.go`: the
+group resources `daemonsetGroupResource`, `podGroupResource`, struct literals, and `controllerKind
+= apps.SchemeGroupVersion.WithKind("DaemonSet")`), initializes its imports and runs their
+translated initializers; `WithKind` (apimachinery's `schema`, names only) is the trust-boundary
+axiom `GroupVersion_WithKind_any`: it returns some `GroupVersionKind` (its body builds one from its
+receiver's fields and the kind).''',
+    pre=['section withKind',
+         'variable [GooseExts] [GooseSemantics] [GooseInterp]',
+         'variable [go_gctx : GoGlobalContext]',
+         'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
+         'variable [sem : go.Semantics]',
+         '',
+         '/-- **The trust boundary: `schema.GroupVersion.WithKind`** (names only): returns some',
+         '`GroupVersionKind` (`GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: kind}`).',
+         '(Called through the variable\'s address, `apps.SchemeGroupVersion`, whose initializer is',
+         'untranslated: any address.) -/',
+         f'axiom GroupVersion_WithKind_any (l : Loc) (k : GoString) :',
+         '    {{ (True : IProp GF) }}',
+         f'      (App (Val #(methods (go.GoType.PointerType {_DSN}.GroupVersion.ty) go!"WithKind" #l))',
+         '        (Val #k))',
+         f'    {{{{ (r : {_DSN}.GroupVersionKind), RET #r; True }}}}',
+         '',
+         'end withKind',
+         ''],
+    alloc_types={'controllerKind': f'{_DSN}.GroupVersionKind',
+                 'podGroupResource': f'{_DSN}.GroupResource',
+                 'daemonsetGroupResource': f'{_DSN}.GroupResource'},
+    before={'$end': ['try wp_auto', 'wp_apply GroupVersion_WithKind_any as %r -', 'try wp_auto']},
+)
+
+SPECIAL['k8s_io.kubernetes.pkg.controller.daemon.metrics'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`metrics.go`: the zero
+`registerMetrics`, and `DaemonsetRequeueSkips = metrics.NewCounterVec(...)`), initializes its
+imports and runs the translated initializer. **Pending** (`sorry`, Stage 3 of the DaemonSet
+run): the `CounterOpts` literal and `NewCounterVec` (component-base, names only: a trust-boundary
+spec, it returns some `*CounterVec` and changes no registry).''',
+    alloc_types={'registerMetrics': '_root_.Perennial.sync.Once', 'DaemonsetRequeueSkips': 'Loc'},
+    before={'$end': ['try wp_auto'] + _DS_INIT_PENDING},
+    finish=[],
+)
+
+_AME = [('errStorage', 'S'), ('errRead', 'R')]
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel'] = dict(
+    doc='''Its fact (`apimodelInit`, `Base.lean`): its error variables (`server.go`: `errStorage`,
+`errRead`, translated `errors.New` calls) hold some error each and `errAmbiguous` some string, for
+good. Its initializer allocates them, initializes its imports and runs their translated
+initializers.''',
+    imports=['Proof.errors.NewVarCell'],
+    alloc_types={'errStorage': 'GoInterface', 'errRead': 'GoInterface', 'errAmbiguous': 'GoString'},
+    before={'$end': ['try wp_auto'] + [l for _, t in _AME for l in [
+        f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩', 'try wp_auto']]},
+    finish=['ipersist HerrStorage', 'ipersist HerrRead', 'ipersist HerrAmbiguous'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold apimodelInit', 'isplitr', '· iexists _; iexact HerrStorage',
+            'isplitr', '· iexists _; iexact HerrRead', 'iexists _; iexact HerrAmbiguous'],
 )
 
 # the driver's error variables and the tags of their `errors.New` results
@@ -2137,7 +2232,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'github_com.mit_pdos.etcd_grove.examples.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/dsmain/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
