@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, bbolt or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -31,6 +31,9 @@ may itself translate into such a root (`root`): for a Go path two sources transl
 witness experiment, the parallel tree `RaftWitness/` of projects raft-witness and kvwitness; until
 stage R6 of the raft v3.7 retarget, 2026-10-16, etcd's raft dependency in `EtcdDeps/` and the raft
 proof's parallel tree `Raft37/`, both raft's path).
+A project's prophecy patches (`etc/proph-patches/<project>/*.patch`: changes that only add
+prophecy variables and their resolutions, checked by etc/proph_patch.py) are applied to a copy of
+its source (`.lake/goose/<project>.proph`) before translation, in --check mode too.
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -208,12 +211,15 @@ PROJECTS = [
         # the snapshot record of the highest index (nonissues/etcd-wal-snapshot-record-order.md);
         # then (the WAL API's axiom review, 2026-11-03, 323320bb8) a restart at a received snapshot
         # names its next WAL file after it, and `LatestSnapshotEntry` takes the highest record
-        # (nonissues/etcd-wal-restart-file-below-snapshot.md).
+        # (nonissues/etcd-wal-restart-file-below-snapshot.md). Then (2026-11-03) branch
+        # `goose-lean-noproph2` (on 323320bb8): bc9c3868c reverted (673da07c8), its prophecy now the
+        # prophecy patch etc/proph-patches/etcd/01-client-get-revision.patch (notes/decisions.md,
+        # "Prophecies as patches of the Go code"); the fork carries no code for verification only.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="323320bb8909744ca4420f8156f4fd2972303ddb",
+        rev="673da07c8fabc5a544d0017ff0cc241802bcd9b1",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -509,6 +515,19 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
+    ),
+    Project(
+        name="prophkv",
+        # GetAny's logically atomic spec over a prophecy of its random choice (`examples/goose/prophkv`,
+        # a port of Perennial's goose/testdata/examples/prophkv): the prophecy is a prophecy patch
+        # (etc/proph-patches/prophkv/), the first one of this repository. A package of the
+        # examples' Go module (examples/go.mod), importing only goose-lang/primitive.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "goose", "prophkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "goose", "prophkv")],
     ),
     Project(
         name="bboltfs",
@@ -1341,6 +1360,17 @@ def source(proj, local, check):
     return local, f"{proj.rev[:12]} (local checkout {local})"
 
 
+def with_proph_patches(proj, src, desc):
+    """The source to translate: `src`, or a copy with the project's prophecy patches applied
+    (`etc/proph-patches/<project>/`, checked by etc/proph_patch.py)."""
+    import proph_patch
+    n = len(proph_patch.patches(proj.name))
+    if n == 0:
+        return proj, src, desc
+    dest = os.path.join(WORK, proj.name + ".proph")
+    return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -1413,6 +1443,7 @@ def main():
     else:
         perennial, rev = pinned_perennial()
     sources = [(p,) + source(p, local.get(p.name), args.check) for p in projects]
+    sources = [with_proph_patches(p, src, desc) for p, src, desc in sources]
 
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)

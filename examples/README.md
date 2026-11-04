@@ -66,6 +66,12 @@ names).
 | `osfs/bboltfs` | `bboltfs` | minibolt, the file extension's acceptance test |
 | `osfs/crashlog` | `crashlog` | the smallest crash-safe program: a commit flag guarding 8 bytes |
 
+## `goose/`: proof techniques over goose's primitives
+
+| dir | was | what it is | headline result |
+|---|---|---|---|
+| `goose/prophkv` | (new) | `GetAny` reads a map twice and returns one answer, chosen at random afterwards: a plain logically atomic spec over a prophecy patch (`etc/proph-patches/prophkv/`) | `goose_prophkv_safe` |
+
 `axiomcx/` holds counterexamples to trust-boundary axioms (`notes/axiom-review/`), not examples.
 
 The raft key-value stores repeat their harness (`check.go`, `cluster.go`, `kv.go`): each is a

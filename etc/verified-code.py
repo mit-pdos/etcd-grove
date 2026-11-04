@@ -167,6 +167,11 @@ def go_sources(base):
             if not ok:
                 sys.exit(f"verified-code: could not check out {p.repo} at {p.rev}")
         dirs[name] = d
+    # the code translated is the code with the prophecy patches applied (etc/proph_patch.py)
+    import proph_patch
+    for name in dirs:
+        dirs[name] = proph_patch.patched_copy(name, dirs[name],
+                                              os.path.join(base, name + ".proph"), quiet=True)
     return dirs
 
 
