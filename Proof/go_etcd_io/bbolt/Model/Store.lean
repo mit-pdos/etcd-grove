@@ -1893,6 +1893,29 @@ theorem storeOK_setFl (σ : StoreSt) (fl : FLPg) (h : storeOK σ) (hR : σ.R = �
     rw [W64_toNat_of_lt s (hlt s (tree_in_store σ s hs))] at this
     exact this hs
 
+
+/-- The store slots after `freelist.Rollback` are store slots before (U3, for `store_rollback`). -/
+theorem storeSlots_rollback_sub (σ : StoreSt) (T : w64) (s : Nat)
+    (h : s ∈ storeSlots (σ.rollback T)) : s ∈ storeSlots σ := by
+  rw [mem_storeSlots] at h ⊢
+  simp only [StoreSt.rollback, FLPg.rollback] at h
+  split at h
+  · exact h
+  · exact h.imp id (pendSlots_rollback σ.fl T s)
+
+/-- The store slots after `ReleasePendingPages` are store slots before (U3, for
+`store_release`). -/
+theorem storeSlots_release_sub (σ : StoreSt) (ro : List w64)
+    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64) (hwf : σ.fl.WF) (s : Nat)
+    (h : s ∈ storeSlots (σ.release ro)) : s ∈ storeSlots σ := by
+  rw [mem_storeSlots] at h ⊢
+  simp only [StoreSt.release] at h
+  refine h.imp id fun hs => ?_
+  obtain ⟨t, pd', x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+  obtain ⟨pd, j, hp0, hj, -⟩ := (relOK_releasePending σ.fl ro hro hwf.2.2.2.2).2.2.1 t pd' i x hp hi
+  exact (mem_pendSlots _ _).2 ⟨t, pd, x, hp0, List.mem_of_getElem? hj, rfl⟩
+
 end store
 
 end bbolt

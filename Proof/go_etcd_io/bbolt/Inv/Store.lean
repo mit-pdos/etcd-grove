@@ -930,7 +930,8 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
 
 /-- **The commit point** (U10): the committed state moves `C → C'` (with `metaR`'s half and the
 writer's quarter of `cur`), the new tree's slots `S` move `W → store` with their bytes; the
-writer has published. The side conditions are spill's post (design §4.2). -/
+writer has published. The meta cells are out with the writer (`meta_take`, `out := true`: the
+meta lend does not hold the old metas). The side conditions are spill's post (design §4.2). -/
 theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w : Nat)
     (wl : Bool) (S : List Nat) (bs : Nat → List w8)
     (ht : C'.txid = w) (hmeta : C'.metaOk) (htree : treeOK C') (hhwm : C'.hwm ≤ 2 ^ 62)
@@ -945,10 +946,12 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half ((some v, some w, false, wl) : WSt) ∗ slotsOwn ms p S bs ⊢
+      ghostVar B.wv (1 : Qp).half ((some v, some w, false, wl) : WSt) ∗ slotsOwn ms p S bs ∗
+      ghostVar B.out (1 : Qp).half true ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half C' ∗ ghostVar B.cur (1 : Qp).half.half C' ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half ((some v, some w, true, wl) : WSt) := by
+      ghostVar B.wv (1 : Qp).half ((some v, some w, true, wl) : WSt) ∗
+      ghostVar B.out (1 : Qp).half true := by
   sorry
 
 /-- `freelist.Rollback(w)` by the live writer before its publish: `w`'s pending pages are not
