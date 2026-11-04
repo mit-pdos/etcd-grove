@@ -241,22 +241,6 @@ theorem freeIdsOf_cov (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64) (hx : x �
   rw [hs']
   simpa using hc
 
-/-- **Gap (unsynced `loadFreelist`)**: the store's freelist set to the loaded one once
-`freepages`' read transaction is gone. `Model/Store.storeOK_setFl` needs `σ.R = ∅`, true here (the
-only reader since the core phase, `freepages`', has deregistered) but recorded by no invariant:
-`pagesInv`'s readers `σ.R` are hidden, and nothing `Open` holds excludes a registered reader. A
-shared-statement gap (reported): e.g. `freepages`' spec could give back a witness that its
-reader left, or `Open` could hold an exclusive token every reader registration needs until the
-freelist is published. -/
-theorem open_setFl_gap (B : BNs) (N : Namespace) (p : GoString) (C : CommitSt) (fl : FLPg)
-    (hfl : fl.WF ∧ fl.pending = ∅ ∧ flBelow fl C none ∧
-      (∀ x ∈ fl.free, ¬ coversSlot C.pages x.toNat) ∧ fl.allocs = ∅) :
-    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.fl (1 : Qp).half FLPg.empty ∗ ghostVar B.wv (1 : Qp).half wIdle ⊢
-    |={⊤}=> ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
-      ghostVar B.wv (1 : Qp).half wIdle := by
-  sorry
-
 theorem DB.loadFreelist.wp_proof_open
     (hNF : newFreelist.spec (GF := GF) (hG := hG))
     (hSync : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
@@ -350,16 +334,40 @@ theorem DB.loadFreelist.wp_proof_open
       · iframe
       try wp_auto
       icases pt_halves _ _ $$ Hfl2 with ⟨Hfl2, Hfl'⟩
-      -- gap: no reader is registered any more (`freepages`' has left), so `F` is empty
+      -- no reader is registered any more: the spare state is idle (`spareTok`, given back by
+      -- `freepages`) and the opening pending, so `metaR`'s `sprCl none F` makes `F` empty
+      iunfold sparePair at Hsp
+      icases Hsp with ⟨Hrdp, Hspt⟩
+      iunfold fltxAuth at Hfa
+      icases Hfa with ⟨Hfx, %o, Ho, Hcl⟩
+      iunfold spareTok at Hspt
+      icombine Hspt Ho gives % ⟨_, ho⟩
+      icases Hcl with (#Hshot | %hcl)
+      · iexfalso
+        icases opnShot_pending B $$ [Hshot Hopn] with %hf
+        · iframe; iframe #
+        exact hf.elim
       have hF : F = ∅ := by
-        sorry
+        apply (GMap.lookup_empty_iff F).1
+        intro k
+        rcases h : F !! k with _ | v
+        · rfl
+        · have := hcl k v h; rw [← ho] at this; cases this
       subst hF
+      ihave Hfa : fltxAuth (GF := GF) B ∅ $$ [Hfx Ho]
+      · unfold fltxAuth; iframe Hfx; iexists o; iframe Ho; iright; ipureintro
+        intro k v h; simp at h
+      ihave Hsp : spareTok (GF := GF) B $$ [Hspt]
+      · unfold spareTok; iexact Hspt
       have hnd : (freeIdsOf C).Nodup := hidsF.1.imp (fun {x y} h e => by subst e; omega)
       have hld := ofInit_loadOK C (freeIdsOf C) hnd hidsF.2.1
         (fun x hx => (freeIdsOf_facts C (by omega) x hx).1) (freeIdsOf_cov C (by omega))
         (by omega) htx2
-      imod open_setFl_gap B N p C _ hld $$ [Hcur Hgfl Hwv] with ⟨Hcur, Hgfl, Hwv⟩
+      imod store_setFl B N p ⊤ CoPset.subseteq_top C _ hld $$ [Hcur Hgfl Hwv Hsp Hopn] with
+        ⟨Hcur, Hgfl, Hwv, Hsp, Hopn⟩
       · iframe; iexact Hpinv
+      ihave Hsp : sparePair (GF := GF) B db sp $$ [Hrdp Hsp]
+      · unfold sparePair; iframe
       wp_apply sync.Mutex.wp_Unlock _ (metaR B db p) $$
         [$Hsync $Hmlk $Hlk Hcur' Hst' Hcls' Hop' Hfl' Hwa' Hob Hmlk' Hfa Hro]
       · iunfold metaR
