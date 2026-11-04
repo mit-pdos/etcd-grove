@@ -1415,3 +1415,14 @@ To be designed next.
   stop's: `X = applyThread γ s`, `Y = freezeY γ s`, `commitReq_freeze`). The stop invariant passes
   it to `run`, whose `CommitAndStop` commits with it, and the done escrow (`bDoneEsc`) returns `Y`
   with `bStopView`. `Close`'s callers without a request pass `commitReq_true`. Step 2b.
+- **Refinement (same day).** Step 2a landed (`a2887278cb`). The request can't simply be fixed in
+  the stop channels: `New` allocates `stopInv`/`bDoneEsc`, but `X = applyThread γ s` is known only at
+  `Close`. Two ways for step 2b:
+  - **(a1) per call.** `stopInv`'s second state holds `∃ X Y, commitReq … X Y ∗ X ∗ savedProp γY Y`;
+    `run` commits with the request and escrows `Y` in `bDoneEsc` under the same saved name; `Close`
+    reads it back. This needs a saved-proposition ghost.
+  - **(a2) armed in the apply protocol.** The idle apply thread arms a freeze in `consInv`
+    (depositing its state), and every hook commit (`commit_save_au`) that finds it armed freezes,
+    while `Pk`'s `metaTM` records that it did. After `Close` the apply thread finds the protocol
+    frozen at `ciEff γ s.k`. This changes the hook's commit AU and touches every commit.
+  Leaning to (a1), local to the backend's stop protocol.
