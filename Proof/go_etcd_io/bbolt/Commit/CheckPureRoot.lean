@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Commit.CheckPure
 public import Proof.go_etcd_io.bbolt.Inv.Tx
+public import Proof.go_etcd_io.bbolt.Read.BktOK
 
 @[expose] public section
 
@@ -30,13 +31,18 @@ def chSlot (v : View) (i x : Nat) : Prop :=
     ownSlot v.pages (inBucketRoot cv) x
 
 /-- The root bucket's value names the view's root page. -/
-theorem rootVal_root (v : View) (h : viewWF v) : inBucketRoot (rootVal v) = v.root ∧
+theorem rootVal_root (v : View) (h : v.root < 2 ^ 64) : inBucketRoot (rootVal v) = v.root ∧
     16 ≤ (rootVal v).length := by
-  sorry
+  rw [inBucketRoot_rootVal, rootVal_length]
+  exact ⟨Nat.mod_eq_of_lt h, Nat.le_refl _⟩
 
 /-- The view's root is a tree root. -/
 theorem root_ownRootOK (v : View) (h : viewWF v) : ownRootOK v.pages v.root := by
-  sorry
+  obtain ⟨C, hok, hvC⟩ := h
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  have hrv : v.root = C.root := by rw [← hvC]; rfl
+  rw [hpv, hrv]
+  exact ⟨C, hok, rfl, hok.1.1, hok.1.2.2.1⟩
 
 /-- A top-level bucket is an entry of the root's tree. -/
 theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)

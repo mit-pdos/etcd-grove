@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.bbolt.Commit.CheckInv
 public import Proof.go_etcd_io.bbolt.Commit.CheckSplit
 public import Proof.go_etcd_io.bbolt.Commit.CheckPureRoot
 public import Proof.go_etcd_io.bbolt.Read.Root
+public import Proof.go_etcd_io.bbolt.Inv.RdMeta
 public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_r
 public import Spec.go_etcd_io.bbolt.Bucket__Bucket_r
 
@@ -135,7 +136,15 @@ theorem Tx.recursivelyCheckBucket_root.wp_proof
   ihave #Hpkg := rdTxK_pkgInit K tx src q T v $$ Hk
   icases (persistent_entails_left (rdTxK_view K tx src q T v)) $$ Hk with ⟨Hk, %Hvw⟩
   have hvw := Hvw.2
-  obtain ⟨hrr, hlen⟩ := rootVal_root v hvw
+  have hrok := root_ownRootOK v hvw
+  obtain ⟨pgr, hpgr⟩ : ∃ pg, v.pages !! v.root = some pg := by
+    obtain ⟨C, -, -, hwf, -⟩ := hrok
+    cases hwf with | page _ pg _ _ hpg _ _ _ => exact ⟨pg, hpg⟩
+  icases rdTxK_meta_pgid_acc K tx src q T v $$ Hk with ⟨%mp, %mv, Hmf, Hmv, %Hmeta, Hmb⟩
+  have h64 : v.root < 2 ^ 64 := by
+    have := Hmeta.2 v.root pgr hpgr; have := mv.pgid'.isLt; omega
+  ihave Hk := Hmb $$ Hmf Hmv
+  obtain ⟨hrr, hlen⟩ := rootVal_root v h64
   icases rdTxK_root_split K tx src q T v $$ Hk with ⟨%ibp, %pp, Hk, Hb, Hback⟩
   wp_auto
   unfold rBktP
@@ -146,7 +155,6 @@ theorem Tx.recursivelyCheckBucket_root.wp_proof
   · iframe
   rw [show (decode (List.take 8 (bytesAt (rootVal v) 0 16)) : w64) = (inBucketOf (rootVal v)).root'
     from rfl]
-  have hrok := root_ownRootOK v hvw
   have hr2 : 2 ≤ v.root := by
     obtain ⟨C, -, -, hwf, -⟩ := hrok
     cases hwf with | page _ _ h2 _ _ _ _ _ => exact h2
