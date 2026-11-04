@@ -1105,6 +1105,24 @@ Not done (in this order, the coordinator's):
   `Options.String.wp_proof`, the backend's package-initialization axiom (`Init.lean`, through
   `boltOpenOptionsOk`'s `o.ok`).
 
+- **39. `Bucket.spill.spec`'s success post ends `… ∧ flViewU X' w'.fl ∧ spillBufs X' w.C w'.fl`**
+  (`spillBufs`, defined in the spec file so that only its importers rebuild: `pm`'s domain is
+  `bufs`'s; each buffer `pageId pg = id`, `pg.length = 4096·(1+overflow)`, `2 ≤ id`, `id + (1 +
+  overflow) ≤ X'.t.mv.pgid'`, and each extent slot `∉ treeSlots C` and `∉ pendSlots fl'`; with
+  `pgid·4096 ≤ mapLen` and `wdbOK`'s `W` clause these are `W` slots). The spill unit proves it
+  (`Bucket__spill.lean`'s `spillPost` copy must gain the conjunct). New **`Inv/Publish`**:
+  `WDb.publish w C' S := {w with C := C', W := W.filter (∉ S)}` and **`wdbOK_publish`** (premises:
+  `store_publish`'s `hdrop`, `hS`, `hnp`, its `hSb`'s "not free", the new synced freelist page's
+  `flCurOK w.fl C' (extentBytes w.wb f)`, and the new state's bounds `C'.txid + 1 < 2^64`, `C'.hwm <
+  2^64`, `w.C.hwm ≤ C'.hwm`, `C'.hwm·4096 ≤ w.m.size`, `≤ l` of the mapping, tree slots `< C'.hwm`;
+  proved). The written bytes are the writer's before the publish: `tx.write`'s `wb'` goes into
+  `w.wb` first (`wSlots_return`/`wbUpd`), then `publish`. New **`Inv/WSlots`** (proved):
+  `wSlots_carve` (`wCells (some (b,len)) W ∗ wBytes p W wb size ⊢ wrSlots b p S wb ∗ wCells …
+  (wMinus W S) ∗ wBytes p (wMinus W S) wb size`, for `S` nodup, `⊆ W`, whole inside mapping and
+  file), `wSlots_return` (back as `S ++ W'`, bytes `wbUpd S wb' wb`; `S ++ wMinus W S` has `W`'s
+  members, all `wdbOK` reads), `wrSlots_agree` (the list `cellsR_agree_bytes`: `wrSlots` of whole
+  pages inside the mapping → `slotsOwn`, around a step).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

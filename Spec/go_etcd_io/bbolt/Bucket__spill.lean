@@ -26,12 +26,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- **The dirty pages after the spill** (batch 39 of `notes/bbolt-proof-plan.md`, `Commit`'s
+`tx.write` premises): every page of `tx.pages` has its buffer and back (`pm`'s domain is `bufs`'s);
+each buffer's header names its id, its length is its extent's, and its extent lies in `[2,
+pgid)`; its extent's slots are no tree slots of the committed state `C` and not pending in the
+freelist `fl'` (so, below the mapping, `W` slots: `wdbOK`'s `W` clause). -/
+def spillBufs (X' : WX) (C : CommitSt) (fl' : FLPg) : Prop :=
+  (∀ id, (X'.t.pm !! id).isSome = (X'.t.bufs !! id).isSome) ∧
+  ∀ id pg, X'.t.bufs !! id = some pg → pageId pg = id.toNat ∧
+    pg.length = 4096 * (1 + pageOverflow pg) ∧ 2 ≤ id.toNat ∧
+    id.toNat + (1 + pageOverflow pg) ≤ X'.t.mv.pgid'.toNat ∧
+    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl'
+
 /-- **`tx.root.spill()`** (design §4.2, spill's post): from records satisfying `spillPre`, on
 success the spilled tree (`spillOK`: `treeOK`, the writer's data, dropped base pages pending,
 new pages allocated and written in `tx.pages`), possibly after remaps (the view re-based),
 and `allocate`'s premises for `commitFreelist`'s (`derefPre`, `liveFresh`, `liveReach`; batch 12;
 the high-water mark's pages inside the mapping, batch 29); the records agree with the freelist
-(`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before and after. On an
+(`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before and after;
+the dirty pages `tx.write` takes (`spillBufs`, batch 39). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
 abbrev Bucket.spill.spec : Prop :=
@@ -43,7 +56,8 @@ abbrev Bucket.spill.spec : Prop :=
       (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗
         ⌜spillOK X X' w.C w.fl w'.fl w.wtxid ∧ w'.C = w.C ∧
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
-          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl⌝) ∨
+          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl ∧
+          spillBufs X' w.C w'.fl⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages⌝ ∗
