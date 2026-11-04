@@ -1,9 +1,9 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__free.lean` (U7e, `notes/bbolt-proof-plan.md`), of the
-variant `Bucket.free.spec'` (premises the shared spec lacks, see its doc): `RootPage`, the walk
-(`Write/Walk`'s `walk_aux` over the bucket's finite tree, `rtOK`), its callback freeing each
-position's page (`Free`, a `store_free` step) or node (`node.free`) over the invariant `freeI`
-(`Write/Free`'s `freedAt`), and `SetRootPage(0)`.
+The proof of `Spec/go_etcd_io/bbolt/Bucket__free.lean` (U7e, `notes/bbolt-proof-plan.md`; the
+spec is U7e's variant since batch 35): `RootPage`, the walk (`Write/Walk`'s `walk_aux` over the
+bucket's finite tree, `rtOK`), its callback freeing each position's page (`Free`, a `store_free`
+step) or node (`node.free`) over the invariant `freeI` (`Write/Free`'s `freedAt`), and
+`SetRootPage(0)`.
 -/
 module
 
@@ -35,24 +35,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **`Bucket.free.spec` with the premises its proof needs** (U7e): in the tree case, the bucket's
-logical tree finite (`rtOK`: the walk visits `X.positions bl`), the writer's txid the one `Free`
-is given (`tx.meta.Txid()`), and no position (a page's or a node's) in `tx.pages` (`node.free`'s
-`Tx.page` premise); `DeleteBucket` has all three from `wOK` (`rtOK_init`, `txClean`), `spill`
-from `wOKR`. -/
-abbrev Bucket.free.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec),
-  X.t.bs !! bl = some B → bl ∈ X.liveB →
-  (B.ib.root' ≠ W64 0 → bktLocalOK X bl ∧
-    (∀ pid ∈ X.positions bl, X.t.pm !! pid = none) ∧
-    w.fl.canFreeAll w.wtxid (X.extents bl) ∧ rtOK X bl ∧ X.t.mv.txid' = w.wtxid) →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
-    (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"free")) (Val #()))
-  {{ RET #(); ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X.v w' ∗
-      ⌜(B.ib.root' = W64 0 ∧ X' = X ∧ w' = w) ∨
-       (B.ib.root' ≠ W64 0 ∧ bktFreed X X' bl ∧
-         w' = w.withFl (w.fl.freeAll w.wtxid (X.extents bl)))⌝ }}
 
 /-- The free walk's invariant: the records with the positions `ps` freed, the freelist with
 their extents freed, and the callback's `tx` variable. -/
@@ -144,7 +126,7 @@ theorem wtxW_heapOK' (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
   · iframe
     ipureintro; exact Hr
 
-theorem Bucket.free.wp_proof' (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG))
+theorem Bucket.free.wp_proof (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
     (hSRP : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG))
     (hIB : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG))
@@ -155,7 +137,7 @@ theorem Bucket.free.wp_proof' (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG
     (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (hFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG))
     (hnf : node.free.spec (GF := GF) (hG := hG)) :
-    Bucket.free.spec' (GF := GF) (hG := hG) := by
+    Bucket.free.spec (GF := GF) (hG := hG) := by
   intro K tx r m X w bl B hB hlive hpre
   wp_start as ⟨Hw, Hdb⟩
   icases wtxW_heapOK' K tx r m X $$ Hw with ⟨%Hok, Hw⟩
@@ -265,10 +247,94 @@ theorem Bucket.free.wp_proof' (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG
         Write.freeAll_append, Write.freeAll_cons]
       rfl
     | none =>
-      -- a page position: `tx.db.freelist.Free(tx.meta.Txid(), p)` (node__free.lean's `Free`
-      -- part without `Tx.page`: the header from the view cells, `store_free`, `wdbOK_free`); the
-      -- pure facts are `Write.posExtent_page`, `Write.canFree_at`, `Write.freedAt_page`. U7e WIP.
-      sorry
+      rw [hres] at hpr
+      obtain ⟨rfl, pg0, hw0⟩ := hpr
+      have hw0' := hw0
+      unfold wpageAt at hw0'
+      rw [if_neg h0] at hw0'
+      obtain ⟨pg, hpg, hpe⟩ := Option.map_eq_some_iff.mp hw0'
+      simp only [Prod.mk.injEq] at hpe
+      obtain ⟨rfl, rfl⟩ := hpe
+      obtain ⟨h2, hid, h4096, hfl⟩ := Read.viewWF_page X.v hvw _ pg hpg
+      have hp0 : pid ≠ W64 0 := by intro h; rw [h] at h2; simp at h2
+      have he := Write.posExtent_page X bl B pid pg hB hres hp0 hpg
+      have hcf := Write.canFree_at w.fl w.wtxid _ (X.positions bl) ps pid _ hpq he hcanP
+      have hfr' := Write.freedAt_page X Y bl B ps pid hres hfr
+      obtain ⟨ns', rfl, -⟩ := hfr
+      rw [show (X.v.base +ₗ ((pid.toNat * 4096 : Nat) : Int)) = pageLoc X.v pid.toNat from rfl]
+      unfold wtxW wtxCore
+      icases Hw with ⟨⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+      unfold wtxHeap
+      icases Hh with ⟨%Hok', Hf, Hrf, Hm, Hbk'⟩
+      unfold txFields
+      icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
+      have hv : (X.setBkt bl { B with ns := ns' }).v = X.v := rfl
+      have ht : (X.setBkt bl { B with ns := ns' }).t.t = X.t.t := rfl
+      have hmv' : (X.setBkt bl { B with ns := ns' }).t.mv = X.t.mv := rfl
+      rw [hv, ht, hmv']
+      icases viewCells_page_acc _ _ pid.toNat pg hpg $$ Hcells with ⟨Hpg, Hcells⟩
+      have hpgne : pg ≠ [] := by intro h; rw [h] at h4096; simp at h4096
+      ihave %Hpos := bytesPointsto_pos _ _ _ hpgne $$ Hpg
+      have hpnn : pageLoc X.v pid.toNat ≠ null := by intro e; rw [e] at Hpos; simp [null] at Hpos
+      obtain ⟨w0, hw0e⟩ : ∃ w0, w0 = w.withFl (w.fl.freeAll w.wtxid (ps.filterMap (X.posExtent bl))) :=
+        ⟨_, rfl⟩
+      rw [← hw0e]
+      have hfl0 : w0.fl = w.fl.freeAll w.wtxid (ps.filterMap (X.posExtent bl)) := by subst hw0e; rfl
+      have hwt0 : w0.wtxid = w.wtxid := by subst hw0e; rfl
+      unfold wdbW wdbLive wdbCoreG
+      icases Hdb with ⟨⟨⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
+      rw [Hr.1]
+      wp_auto
+      rw [decide_eq_false hpnn]
+      wp_auto
+      wp_apply hTxid $$ [Hmv] as Hmv
+      · iframe
+      wp_auto
+      icases bytesPointsto_view_read (V := Page) (pageLoc X.v pid.toNat) (DFrac.own wq) pg 0
+        (pageLoc X.v pid.toNat) (by simp [loc_add_0]) (by omega) Hpos $$ Hpg with ⟨Hhdr, Hclose⟩
+      rw [show (decode ((pg.drop 0).take 16) : Page) = pageHdr pg from rfl]
+      have hhid : (pageHdr pg).id' = pid := by
+        apply BitVec.eq_of_toNat_eq; exact hid
+      have hcan0 : w0.fl.canFree w0.wtxid pid (1 + pageOverflow pg) := by
+        rw [hfl0, hwt0]; exact hcf
+      have hcan' : w0.fl.canFree X.t.mv.txid' (pageHdr pg).id' (1 + (pageHdr pg).overflow'.toNat) := by
+        rw [htxid, hhid, ← hwt0]; exact hcan0
+      ihave #Hpinv : (inv (pagesN K.N) (pagesInv (GF := GF) K.B K.p) : IProp GF) $$ []
+      · unfold BC.core isBoltCoreP
+        icases Hcore with ⟨-, -, -, -, -, -, -, -, -, #Hpi, -⟩
+        iexact Hpi
+      have hCpg : w0.C.pages = X.v.pages := by rw [Hwok.2.2]; rfl
+      imod (store_free K.B K.N K.p ⊤ CoPset.subseteq_top w0.C w0.fl w0.ms (wLive X.v w0.C)
+        (w0.C.txid + 1) pid (1 + pageOverflow pg) (fun _ => []) rfl rfl (by exact hcan0))
+        $$ [Hpinv Hcur Hgfl Hgmap Hgwv] with ⟨Hcur, Hgfl, Hgmap, Hgwv⟩
+      · iframe; iframe #
+        ileft
+        ipureintro
+        exact ⟨pg, by rw [hCpg]; exact hpg, rfl⟩
+      wp_apply hFree w0.fli w0.fl X.t.mv.txid' _ (pageHdr pg) (DFrac.own wq) hcan' $$ [Hflo Hhdr]
+        as ⟨Hflo, Hhdr⟩
+      · iframe
+      ihave Hpg := Hclose $$ Hhdr
+      ihave Hcells := Hcells $$ Hpg
+      iapply HΦ
+      iexists X.setBkt bl { B with ns := ns' }, w0.withFl (w0.fl.freePages w0.wtxid pid (1 + pageOverflow pg))
+      rw [hv, ht, hmv']
+      simp only [WDb.withFl]
+      rw [htxid, ← hwt0]
+      iframe; iframe #
+      isplitr
+      · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, Hr.2.2.2.1, Hr.2.2.2.2⟩, Hok'⟩
+      isplitl [Hflo]
+      · isplitl [Hflo]
+        · rw [← hhid]; simp only [pageHdr, pageOverflow]; iexact Hflo
+        · ipureintro
+          exact ⟨wdbOK_free w0 pid pg Hwok.1 (by rw [hCpg]; exact hpg) hcan0, Hwok.2.1, Hwok.2.2⟩
+      ipureintro
+      refine ⟨hfr', ?_⟩
+      subst hw0e
+      simp only [WDb.withFl, List.filterMap_append, List.filterMap_cons, List.filterMap_nil, he,
+        Write.freeAll_append, Write.freeAll_cons]
+      rfl
   · unfold freeI
     iexists X, w
     iframe
@@ -302,11 +368,6 @@ theorem Bucket.free.wp_proof' (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG
   refine Or.inr ⟨h0, ⟨B, ns', hB, by rw [Write.setBkt_setBkt], ?_⟩, by rw [WX.extents, hpos]⟩
   rw [hpos]
   exact Write.freedAt_ns B t.pos ns' hns
-
-/-- The shared statement: its premises do not give `rtOK`, the txid, or `tx.pages` at the node
-positions (`Bucket.free.spec'`); a `sorry` until the shared spec takes them. -/
-theorem Bucket.free.wp_proof : Bucket.free.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 
