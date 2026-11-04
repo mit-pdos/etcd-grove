@@ -35,6 +35,7 @@ public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.Commit.AssembleGaps
 public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
+public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 import all Spec.go_etcd_io.bbolt.Api
 
@@ -73,6 +74,47 @@ theorem logArgOk_int (R : IProp GF) (v : w8) (n : w64) :
   have hi : IsIntType go.int := by simp [IsIntType]
   refine ⟨fun h => absurd h (by simp [go.int, go.string]), fun _ => ⟨_, .int n⟩,
     Or.inr (Or.inl hi)⟩
+
+/-- The tail of an error path after the rollback: return `err` (the deferred line runs on it). -/
+syntax "cm_return" : tactic
+set_option hygiene false in
+macro_rules
+  | `(tactic| cm_return) => `(tactic| (
+      try wp_auto
+      wp_bind (App (Val #_) (Val #()))
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ _))) $$ [err HtxId Hlgp]
+      · iapply Hdf $$ [] err HtxId Hlgp
+        iright; iexact Hfe1
+      iintro %vret ⟨%hvret, err⟩
+      subst hvret
+      wp_auto
+      iapply HΦ
+      unfold txDone
+      iframe Hdone
+      iright
+      isplitr
+      · ipureintro; exact fun h => by cases h
+      iframe Hfe1
+      iright
+      iexact Hau))
+
+omit package_sem in
+private theorem cm_wdbW_ok (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ ⌜wdbOK w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by
+  unfold wdbW; iintro ⟨-, %h⟩; ipureintro; exact h
+
+omit package_sem in
+private theorem cm_wdbLost_ok (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbLost (GF := GF) K tx v w ⊢ ⌜wdbOK w ∧ w.ms = none⌝ := by
+  unfold wdbLost; iintro ⟨-, %h⟩; ipureintro; exact h
+
+omit hos sem package_sem in
+private theorem cm_keep_pure {Q : IProp GF} {P : Prop} (h : Q ⊢ ⌜P⌝) : Q ⊢ Q ∗ ⌜P⌝ := by
+  refine (BI.and_intro h .rfl).trans ?_
+  refine persistent_and_affinely_sep_left_mp.trans ?_
+  iintro ⟨%HP, HQ⟩
+  iframe
+  ipureintro; exact HP
 
 theorem Tx.Commit_err.wp_proof'
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
@@ -150,7 +192,7 @@ theorem Tx.Commit_err.wp_proof'
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ txId_ptr ↦ X.t.mv.txid' ∗ lg_ptr ↦ lg ∗
       ∃ f : GoFunc, defer ↦ f ∗ □ (∀ e : GoInterface, (⌜e = interface.nil⌝ ∨ fmtErrorOk e) -∗
         err_ptr ↦ e -∗ txId_ptr ↦ X.t.mv.txid' -∗ lg_ptr ↦ lg -∗
-        WP (App (Val #f) (Val #())) {{ _v, err_ptr ↦ e }})))) $$ [txId lg defer]
+        WP (App (Val #f) (Val #())) {{ v, ⌜v = #()⌝ ∗ err_ptr ↦ e }})))) $$ [txId lg defer]
   · cases bl
     · wp_auto
       iframe
@@ -159,7 +201,7 @@ theorem Tx.Commit_err.wp_proof'
       imodintro
       iintro %e - Herr - -
       wp_auto
-      iexact Herr
+      iframe; try (ipureintro; rfl)
     · cases lg with
       | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
       | ok li =>
@@ -174,7 +216,7 @@ theorem Tx.Commit_err.wp_proof'
       wp_apply wp_boltLog li _ _ [W8 100] _ [interface.mkOk go.int #X.t.mv.txid'] _ iprop(True) _
         (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
       · iframe
-      · try simp only [List.zip_cons_cons, List.zip_nil_left, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+      · try simp only [List.zip_cons_cons, List.zip_nil_left]
         isplitl
         · iapply logArgOk_int
         · iempintro
@@ -196,12 +238,12 @@ theorem Tx.Commit_err.wp_proof'
         wp_apply wp_boltLog li _ _ [W8 100] _ [interface.mkOk go.int #X.t.mv.txid'] _ iprop(True) _
           (by decide) (by decide) rfl $$ Hlgok' [Hsl2] [] [] as Hsl2 -
         · iframe
-        · try simp only [List.zip_cons_cons, List.zip_nil_left, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+        · try simp only [List.zip_cons_cons, List.zip_nil_left]
           isplitl
           · iapply logArgOk_int
           · iempintro
         try wp_auto
-        iexact Herr
+        iframe; try (ipureintro; rfl)
       · cases e with
         | nil =>
           wp_auto
@@ -213,12 +255,12 @@ theorem Tx.Commit_err.wp_proof'
           wp_apply wp_boltLog li _ _ [W8 100] _ [interface.mkOk go.int #X.t.mv.txid'] _ iprop(True) _
             (by decide) (by decide) rfl $$ Hlgok' [Hsl2] [] [] as Hsl2 -
           · iframe
-          · try simp only [List.zip_cons_cons, List.zip_nil_left, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+          · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
             · iapply logArgOk_int
             · iempintro
           try wp_auto
-          iexact Herr
+          iframe; try (ipureintro; rfl)
         | ok ii =>
           wp_auto
           wp_apply wp_slice_literal
@@ -229,12 +271,12 @@ theorem Tx.Commit_err.wp_proof'
           wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
             (by decide) (by decide) rfl $$ Hlgok' [Hsl2] [] [] as Hsl2 -
           · iframe
-          · try simp only [List.zip_cons_cons, List.zip_nil_left, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+          · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
             · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe
             · iempintro
           try wp_auto
-          iexact Herr
+          iframe; try (ipureintro; rfl)
   iintro %v ⟨%hv, HtxId, Hlgp, %f, Hdefer, #Hdf⟩
   subst hv
   have hwr : X.t.t.writable' = true := Hf.1.1.1
@@ -256,12 +298,25 @@ theorem Tx.Commit_err.wp_proof'
     iframe #
     ipureintro
     exact ⟨⟨rfl, hrwr, htxn, rfl, hrootn⟩, Hhok⟩
+  icases cm_keep_pure (wtx_wMetaOK K tx r false X w) $$ [Hw Hwdb] with ⟨⟨Hw, Hwdb⟩, %Hmeta⟩
+  · iframe
+  icases (cm_keep_pure (cm_wdbW_ok K tx X.v w)) $$ Hwdb
+    with ⟨Hwdb, %Hwok⟩
+  have hbase : T.base = treeData w.C := by
+    rw [Hf.2.2.1]
+    have e : X.v.data = (View.ofC X.v.base w.C).data := congrArg View.data Hwok.2.2
+    rw [e]; rfl
+  ihave Hex : cmExcl K r X (treeData w.C) $$ [Hrwl Hcls Hshape Hv Hst]
+  · unfold cmExcl; rw [← hbase]
+    iframe
   have hvwf : viewWF X.v := Hf.1.2.2.2.2.2.2.2
   have hld : ∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl := fun bl hb =>
     leafDepthOK_rt X bl (rtOK_init X bl Hf.1 hvwf (Option.isSome_iff_ne_none.2 hb))
   wp_apply wp_rebalance K tx r false X w Hf.1 hld (wOK_liveReach X Hf.1) Hflv $$ [Hw Hwdb]
     as ⟨%X1, %fl1, Hw, Hwdb, %Hrb⟩
   · iframe
+  imod cm_excl_update K r X X1 _ (fun e => txShape_rebalOK r.n.pg X X1 w.fl fl1 _ e Hrb.1) $$ Hex
+    with Hex
   icases cm_stats_acc K tx r false X1 $$ Hw with ⟨-, -, Hst1, Hwb⟩
   wp_apply wp_GetRebalance K tx r false 1 $$ [Hst1] as %nrb Hst1
   · iframe; iframe #
@@ -284,8 +339,93 @@ theorem Tx.Commit_err.wp_proof'
   iintro %v ⟨%hv, Hst1, startTime, tx⟩
   subst hv
   ihave Hw := Hwb $$ Hst1
-  trace_state
-  sorry
+  -- `opgid`
+  icases cm_meta_acc K tx r false X1 $$ Hw with ⟨Hme, Hmv, Hwb⟩
+  wp_auto
+  wp_apply wp_Pgid $$ [Hmv] as Hmv
+  · iframe #; iframe
+  ihave Hw := Hwb $$ %X1.t.mv Hme Hmv
+  have eX1 : X1.withMv X1.t.mv = X1 := rfl
+  rw [eX1]
+  try wp_auto
+  wp_apply time.wp_Now as %t1 -
+  try wp_auto
+  -- `spill`
+  obtain ⟨hrbOK, hreach1, hflv1⟩ := Hrb
+  have hv1 : X1.v = X.v := hrbOK.2.2.1
+  have hmv1 : X1.t.mv = X.t.mv := sorry -- Gap 6: `rebalance`'s post should say the meta copy is unchanged
+  rw [← hv1]
+  have hmap1 : X1.t.mv.pgid'.toNat * 4096 ≤ mapLen (w.withFl fl1).ms := by
+    sorry
+  wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
+    hreach1 hmap1 hflv1 $$ [Hw Hwdb] as %err1 Hsp
+  · iframe
+  cases lg with
+  | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
+  | ok li =>
+  ihave #Hlgok' : boltLogger (GF := GF) (.ok li) $$ []
+  · unfold dbLogger; iexact Hlgok
+  icases Hsp with (⟨%He1, %X2, %w2, Hw, Hwdb, %Hsp⟩ | ⟨%He1, #Hfe1, %X2, %w2, %st, %Hsp, Hres⟩)
+  · -- spilled
+    subst He1
+    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hflv2, hbufs2⟩ := Hsp
+    try wp_auto
+    wp_apply time.wp_Since as %d -
+    try wp_auto
+    icases cm_stats_acc K tx r false X2 $$ Hw with ⟨-, -, Hst2, Hwb⟩
+    wp_apply wp_IncSpillTime K tx r false 1 $$ [Hst2] as %_ Hst2
+    · iframe; iframe #
+    ihave Hw := Hwb $$ Hst2
+    try wp_auto
+    trace_state
+    sorry
+  · -- `spill` failed: log, roll back, return the error
+    obtain ⟨ii, rfl⟩ : ∃ ii, err1 = GoInterface.ok ii := by
+      cases err1 with
+      | nil => exact absurd rfl He1
+      | ok ii => exact ⟨ii, rfl⟩
+    obtain ⟨hC2, -, -⟩ := Hsp
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    try wp_auto
+    wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
+      (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
+    · iframe
+    · try simp only [List.zip_cons_cons, List.zip_nil_left]
+      isplitl
+      · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
+      · iempintro
+    try wp_auto
+    -- Gap 7: `spill`'s error post says nothing of the records but their view's pages
+    have hwr2 : X2.t.t.writable' = true := sorry
+    have hrl2 : (X2.t.bs !! X2.rl).isSome := sorry
+    have htx2 : X2.t.mv.txid' = W64 ((w2.C.txid + 1 : Nat) : Int) := sorry
+    imod cm_excl_update K r X1 X2 _ (by intro e; sorry) $$ Hex with Hex
+    ihave Hex : cmExcl K r X2 (treeData w2.C) $$ [Hex]
+    · rw [hC2]; iexact Hex
+    icases Hres with (⟨Hw, Hwdb⟩ | ⟨Hw, Hwdb⟩)
+    · icases (cm_keep_pure (cm_wdbW_ok K tx X2.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+      ihave Hend := cm_wtxEnd_live K tx r X2 w2 hwr2 hrl2 $$ [Hw Hwdb Hex]
+      · iframe; iframe #
+      wp_apply wp_rollback K tx r X2 (wLive X2.v w2.C) w2
+        ⟨X2.v, w2.C.txid + 1, false, true, rfl, htx2,
+          ⟨fun _ => by rw [Hw2ok.2.1]; simp, fun _ => rfl⟩, fun _ => rfl, fun h => absurd h (by simp)⟩
+        $$ [Hend] as Hdone
+      · iexact Hend
+      cm_return
+    · icases (cm_keep_pure (cm_wdbLost_ok K tx X2.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+      ihave Hend := cm_wtxEnd_lost K tx r X2 w2 hwr2 hrl2 $$ [Hw Hwdb Hex]
+      · iframe; iframe #
+      wp_apply wp_rollback K tx r X2 _ w2
+        ⟨X2.v, w2.C.txid + 1, false, false, rfl, htx2,
+          ⟨fun h => absurd h (by simp), fun h => absurd Hw2ok.2 h⟩, fun h => absurd h (by simp),
+          fun h => absurd h (by simp)⟩
+        $$ [Hend] as Hdone
+      · iexact Hend
+      cm_return
 
 end proof
 
