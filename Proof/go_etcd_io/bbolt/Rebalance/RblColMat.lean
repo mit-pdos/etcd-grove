@@ -135,7 +135,7 @@ theorem col_kids (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (
     (hbr : rn.nv.isLeaf' = false) (hpn : rn.nv.parent' = null) (hws : rn.ws = [w0])
     (hlc : B.nm !! w0.pgid = some lc) (hrc : B.ns !! lc = some rc) :
     (∀ c, c ∈ kidsOf B rc.ws ↔ ∃ rk, B.ns !! c = some rk ∧ rk.nv.parent' = lc) ∧
-      ([nl, lc] ++ kidsOf B rc.ws).Nodup := by
+      ([nl, lc] ++ kidsOf B rc.ws).Nodup ∧ (∀ c ∈ kidsOf B rc.ws, c ≠ nl ∧ c ≠ lc) := by
   have hB := (hI.2.1 bl B hb).1
   rw [if_pos rfl] at hB
   obtain ⟨hc, ⟨bnd, hk⟩, ha, -⟩ := hB
@@ -196,13 +196,56 @@ theorem col_kids (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (
     · have : kidsOf B rc.ws = [] := by
         unfold kidsOf; rw [List.filterMap_eq_nil_iff]; exact hleaf0 hb'
       rw [this]; exact List.nodup_nil
-  refine ⟨hchar, ?_⟩
-  simp only [List.cons_append, List.nil_append, List.nodup_cons, List.mem_cons, not_or]
-  refine ⟨⟨Ne.symm hlcn, fun h => ?_⟩, fun h => ?_, hnd⟩
-  · obtain ⟨rk, hrk, hpk⟩ := (hchar nl).1 h
+  have hn : nl ∉ kidsOf B rc.ws := fun h => by
+    obtain ⟨rk, hrk, hpk⟩ := (hchar nl).1 h
     rw [hrn] at hrk; cases hrk; rw [hpn] at hpk; exact hlcnull hpk.symm
-  · obtain ⟨rk, hrk, hpk⟩ := (hchar lc).1 h
+  have hl : lc ∉ kidsOf B rc.ws := fun h => by
+    obtain ⟨rk, hrk, hpk⟩ := (hchar lc).1 h
     rw [hrc] at hrk; cases hrk; rw [hp1] at hpk; exact hlcn hpk.symm
+  refine ⟨hchar, ?_, fun c hcm => ⟨fun h => hn (h ▸ hcm), fun h => hl (h ▸ hcm)⟩⟩
+  simp only [List.cons_append, List.nil_append, List.nodup_cons, List.mem_cons, not_or]
+  exact ⟨⟨Ne.symm hlcn, hn⟩, hl, hnd⟩
+
+/-- **The collapse's steps composed** (`rblStart`, the child's materialization, the collapse
+`rblX_col`): the steps' relation, the other buckets unchanged, `n` no longer unbalanced and no
+node newly so. -/
+theorem rbl_col_post (X X2 : WX) (fl fl' : FLPg) (bl : Loc) (B B2 Bc : BRec) (n lc : Loc)
+    (rn rn2 rcf : NRec) (hb : X.t.bs !! bl = some B)
+    (hR1 : rblRel X fl (X.setBkt bl (rblStart B n rn)) fl X.t.mv.txid')
+    (hR2 : rblRel (X.setBkt bl (rblStart B n rn)) fl X2 fl X.t.mv.txid')
+    (hb2 : X2.t.bs !! bl = some B2)
+    (hoth2 : ∀ bl', bl' ≠ bl → X2.t.bs !! bl' = (X.setBkt bl (rblStart B n rn)).t.bs !! bl')
+    (hU2 : ∀ y ry', B2.ns !! y = some ry' → ry'.nv.unbalanced' = true →
+      ∃ ry, (rblStart B n rn).ns !! y = some ry ∧ ry.nv.unbalanced' = true ∧
+        ry'.nv.pgid' = ry.nv.pgid')
+    (hun2 : rn2.nv.unbalanced' = false)
+    (hRc : rblRel X2 fl (X2.kill bl Bc lc rcf) fl' X2.t.mv.txid')
+    (hUc : ∀ y ry', Bc.ns !! y = some ry' → ry'.nv.unbalanced' = true →
+      y = n ∧ rn2.nv.unbalanced' = true ∨ (y ≠ lc ∧ ∃ ry, B2.ns !! y = some ry ∧
+        ry.nv.unbalanced' = true ∧ ry'.nv.pgid' = ry.nv.pgid'))
+    (hbc : Bc.bv = B2.bv ∧ Bc.ib = B2.ib ∧ Bc.bm = B2.bm) :
+    rblRel X fl (X2.kill bl Bc lc rcf) fl' X.t.mv.txid' ∧
+      (∀ bl', bl' ≠ bl → (X2.kill bl Bc lc rcf).t.bs !! bl' = X.t.bs !! bl') ∧ rblStep B Bc n := by
+  have hmv : X2.t.mv = X.t.mv := hR2.2.2.2.2.2.1
+  rw [hmv] at hRc
+  have hb1 : (X.setBkt bl (rblStart B n rn)).t.bs !! bl = some (rblStart B n rn) :=
+    GMap.lookup_insert _ _ _
+  obtain ⟨e1, e2, e3⟩ := hR2.2.2.2.2.2.2.2.2.2.1 bl _ B2 hb1 hb2
+  refine ⟨rblRel_trans _ _ _ _ _ _ _ hR1 (rblRel_trans _ _ _ _ _ _ _ hR2 hRc), fun bl' hne => ?_,
+    hbc.1.trans e1, hbc.2.1.trans e2, hbc.2.2.trans e3, fun y ry' hy hu => ?_⟩
+  · show (X2.t.bs.insert bl Bc) !! bl' = _
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hne), hoth2 bl' hne]
+    show (X.t.bs.insert bl _) !! bl' = _
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]
+  rcases hUc y ry' hy hu with ⟨-, h⟩ | ⟨-, ry2, hy2, hu2, hp2⟩
+  · rw [hun2] at h; cases h
+  obtain ⟨ry1, hy1, hu1, hp1⟩ := hU2 y ry2 hy2 hu2
+  change (<[n := rblClear rn]> B.ns) !! y = some ry1 at hy1
+  rw [rf_lookup] at hy1
+  split at hy1
+  · cases hy1; cases hu1
+  · rename_i hyn
+    exact ⟨hyn, ry1, hy1, hu1, hp2.trans hp1⟩
 
 end colmat
 
