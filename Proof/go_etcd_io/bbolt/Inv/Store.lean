@@ -1442,7 +1442,8 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half (fl.releasePending ro) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
-      ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ := by
+      ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ ∗
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
   iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Ha⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
@@ -1493,10 +1494,16 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
   imodintro
   iexists _, σ.bytes
   iframe
+  isplitr
+  · ipureintro
+    intro s
+    simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
+    rfl
+  -- batch 34: the released slots were store slots, whose bytes are whole pages (`storeOK`)
   ipureintro
-  intro s
-  simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
-  rfl
+  intro s hs
+  simp only [List.mem_filter, decide_eq_true_eq] at hs
+  exact (Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs.1).2
 
 /-- **The commit point** (U10): the committed state moves `C → C'` (with `metaR`'s half and the
 writer's quarter of `cur`), the new tree's slots `S` move `W → store` with their bytes; the

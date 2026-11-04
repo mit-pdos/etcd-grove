@@ -56,8 +56,7 @@ include hE
 /-- **`store_release` with its released slots' bytes whole pages** (U5c's finding: the slots
 `store_release` hands out were store slots, whose bytes `storeOK` keeps at 4096, and its `bs` are
 the store's bytes, but its post does not say so; `wCells` needs whole-page cells). The same
-statement as `store_release` plus the length fact; proof: `store_release`'s, with
-`storeOK`'s bytes clause (open, the maintainer's: `Inv/Store`). -/
+statement as `store_release` plus the length fact; batch 34: `store_release`'s post now has it. -/
 theorem store_release_len (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
     (ro : List w64) (hro : ro.Perm (F.toList.map Prod.snd))
     (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid) :
@@ -69,8 +68,8 @@ theorem store_release_len (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat 
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
-  sorry
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ :=
+  store_release B N p E hE C fl ms F ro hro hro1
 
 end store
 
