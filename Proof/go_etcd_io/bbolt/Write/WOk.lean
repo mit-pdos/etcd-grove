@@ -1,7 +1,7 @@
 /-
 U7's (`notes/bbolt-proof-plan.md`) facts `wOK` gives a materialization: the new node is fresh in
-its bucket (`wOK_matFresh'`), and an inline bucket's page, read while it has no root node, is a
-leaf (`wOK_inlineLeaf'`; `Model/WOps`' `wOK_inlineLeaf` lacks the `rootNode = nil` premise and is
+its bucket (`wOK_matFresh`), and an inline bucket's page, read while it has no root node, is a
+leaf (`wOK_inlineLeaf`; `Model/WOps`' `wOK_inlineLeaf` lacks the `rootNode = nil` premise and is
 false without it: `bktClean`'s `inlineGood` is only for a bucket with no root node).
 -/
 module
@@ -30,7 +30,7 @@ theorem wOK_bktClean (X : WX) (hok : wOK X) (bl : Loc) (B : BRec) (hb : X.t.bs !
   (hok.1.2.2.2.2.2 bl B hb).1
 
 /-- `wOK_matFresh` (`Model/WOps`). -/
-theorem wOK_matFresh' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok : wOK X)
+theorem wOK_matFresh (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok : wOK X)
     (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) : matFresh X bl l := by
   obtain ⟨B0, -, -, -, -, -, hB0, -, -, -, hlo, -⟩ := h
   intro B hB
@@ -48,7 +48,7 @@ theorem wOK_matFresh' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok 
 
 /-- `wOK_inlineLeaf` with the inline bucket's root node nil (what a materialization of it
 reads: `matFresh`). -/
-theorem wOK_inlineLeaf' (X : WX) (bl : Loc) (pgid : w64) (hok : wOK X) :
+theorem wOK_inlineLeaf (X : WX) (bl : Loc) (pgid : w64) (hok : wOK X) :
     ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
       wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag := by
   intro B pa pg hB hin hrn hpg

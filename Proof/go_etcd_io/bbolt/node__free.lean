@@ -184,7 +184,7 @@ theorem node.free.wp_proof (hTxid : internal.common.Meta.Txid.spec (GF := GF) (h
   ihave Hno := Hnback $$ [Hn]
   · simp only; rw [hbl]; iexact Hn
   ihave Hh := Hback $$ %({ rn with nv := { rn.nv with pgid' := W64 0 } }) [] [Hno] [Hb1 Hbtx Hbo] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
-  · ipureintro; exact Hok.2.2.2 bl B n rn hb hr
+  · ipureintro; exact Hok.2.2.2.1 bl B n rn hb hr
   · simp only; rw [hbl]; iexact Hno
   · iframe
   · iframe

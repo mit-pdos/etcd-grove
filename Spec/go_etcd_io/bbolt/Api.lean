@@ -155,7 +155,9 @@ page cache, and durability is out of scope), and either
   probes past page 1 only after successful reads with a bad checksum, i.e. both metas invalid),
   nothing about user values is assumed. Its tree holding `D`:
   - the root holds top-level buckets only (no nested bucket, no plain value); every key
-    non-empty; every entry within `bboltEntryMax`;
+    non-empty; every entry within `bboltEntryMax` (key and value together: every write goes
+    through `Put`, whose spec takes it, and `WriteTo` copies such a database; a file with entries
+    near `MaxValueSize` is one bbolt cannot use anyway, `issues/bbolt-max-value-size-unusable.md`);
   - (round 4: over *extents*) every tree page's extent (`id` through `id + overflow`) and the
     synced freelist page's extent lie in `[2, hwm)` (so within the file, by the high-water-mark
     clause below: a mapped load past the end of the file is a hole in OsFs, stuck); the extents

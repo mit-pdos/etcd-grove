@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Search`'s spec does not name the evaluated indices (2026-11-04, bbolt's read path, U6)
+
+- **Limitation.** Perennial's `sort.Search` spec gives the result's position (the first index
+  where the predicate holds) but not that a result `< n` was one of the indices the closure was
+  evaluated at, so a closure with a side effect on the evaluated indices (bbolt's `searchPage`
+  sets a captured `exact` flag when the key at the evaluated index equals the sought one) cannot be
+  reasoned about.
+- **Needed by.** bbolt's `Cursor.searchPage`/`search_r` (U6).
+- **Here.** U6 proved a stronger spec from Perennial's translated `sort.Search`
+  (`Proof/go_etcd_io/bbolt/Read/SearchEv.lean`: an invariant indexed by the evaluated indices).
+- **Proposal.** Perennial's `sort.Search` spec with the closure's invariant indexed by the
+  evaluated indices (the result `< n` among them), as U6's.
+- **Status.** Not started.
+
 ### `delete` on a named map type has no semantics (2026-11-04, bbolt's freelist, U2)
 
 - **Limitation.** `MapSemantics.delete_map` unfolds `go.delete` only at a literal map type

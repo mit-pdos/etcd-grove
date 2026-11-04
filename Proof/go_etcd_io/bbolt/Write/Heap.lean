@@ -1,7 +1,7 @@
 /-
 U7's (`notes/bbolt-proof-plan.md`) heap facts: every bucket and every bucket's node is an object
 (`objs_isSome_bkt`, `objs_isSome_node`, without `objsDisj`), and a fresh node joins the heap
-(`wtxHeap_node_insert'`, `Inv/WtxHeap`'s `wtxHeap_node_insert`).
+(`wtxHeap_node_insert`, `Inv/WtxHeap`'s `wtxHeap_node_insert`).
 -/
 module
 
@@ -216,7 +216,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **A fresh node into the heap** (`Inv/WtxHeap`'s `wtxHeap_node_insert`). -/
-theorem wtxHeap_node_insert' (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRec) (r : NRec)
+theorem wtxHeap_node_insert (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRec) (r : NRec)
     (hb : X.t.bs !! bl = some B) (hl : X.t.objs !! l = none) (hp : r.nv.parent' ≠ l) :
     wtxHeap (GF := GF) tx dq X ∗ objOwn X.v l dq true (.node bl r) ⊢
       wtxHeap tx dq (X.addNode bl l B r) := by
@@ -230,7 +230,7 @@ theorem wtxHeap_node_insert' (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : 
   have hnb : l ≠ bl := by intro h; subst h; rw [hb] at hlb; cases hlb
   isplitr
   · ipureintro
-    refine ⟨Hok.1, objsDisj_setNodeT_fresh X.t bl l B r Hd hb hl, ?_, ?_⟩
+    refine ⟨Hok.1, objsDisj_setNodeT_fresh X.t bl l B r Hd hb hl, ?_, ?_, ?_⟩
     · intro c C hc
       by_cases hcb : c = bl
       · subst hcb
@@ -248,9 +248,13 @@ theorem wtxHeap_node_insert' (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : 
           simp only [GMap.lookup_insert, Option.some.injEq] at hk
           subst hk; exact hp
         · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
-          exact Hok.2.2.2 c B k rk hb hk
+          exact Hok.2.2.2.1 c B k rk hb hk
       · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.2 c C k rk hc hk
+        exact Hok.2.2.2.1 c C k rk hc hk
+    · intro m y hm
+      show ((X.t.setNodeT bl l B r).objs !! m).isSome
+      rw [objs_setNodeT_fresh X.t bl l B r Hd hb hl]
+      exact isSome_insert_of _ _ _ _ (isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm))
   isplitl [Hf]
   · unfold txFields; simp only [WTx.setNodeT]; iexact Hf
   iframe

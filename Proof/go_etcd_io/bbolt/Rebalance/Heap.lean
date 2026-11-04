@@ -165,7 +165,7 @@ theorem wtxHeap_setNode (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (
   rw [setNode_eq X bl n B r' hb]
   isplitr
   · ipureintro
-    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_⟩
+    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_, ?_⟩
     · intro c C hc
       by_cases hcb : c = bl
       · subst hcb
@@ -183,9 +183,13 @@ theorem wtxHeap_setNode (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (
           simp only [GMap.lookup_insert, Option.some.injEq] at hk
           subst hk; exact Hpar
         · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
-          exact Hok.2.2.2 c B k rk hb hk
+          exact Hok.2.2.2.1 c B k rk hb hk
       · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.2 c C k rk hc hk
+        exact Hok.2.2.2.1 c C k rk hc hk
+    · intro m y hm
+      show ((X.t.setNodeT bl n B r').objs !! m).isSome
+      rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
+      exact isSome_insert_of _ _ _ _ (isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm))
   isplitl [Hf]
   · unfold txFields; simp only [WTx.setNodeT]; iexact Hf
   iframe
@@ -223,7 +227,7 @@ theorem wtxHeap_setNode_bkt (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRe
   rw [setNode_eq X bl n B r' hb]
   isplitr
   · ipureintro
-    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_⟩
+    refine ⟨Hok.1, objsDisj_setNodeT X.t bl n B r r' Hd hb hr, ?_, ?_, ?_⟩
     · intro c C hc
       by_cases hcb : c = bl
       · subst hcb
@@ -241,9 +245,13 @@ theorem wtxHeap_setNode_bkt (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRe
           simp only [GMap.lookup_insert, Option.some.injEq] at hk
           subst hk; exact Hpar
         · simp only [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at hk
-          exact Hok.2.2.2 c B k rk hb hk
+          exact Hok.2.2.2.1 c B k rk hb hk
       · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
-        exact Hok.2.2.2 c C k rk hc hk
+        exact Hok.2.2.2.1 c C k rk hc hk
+    · intro m y hm
+      show ((X.t.setNodeT bl n B r').objs !! m).isSome
+      rw [objs_setNodeT X.t bl n B r r' Hd hb hr]
+      exact isSome_insert_of _ _ _ _ (isSome_insert_of _ _ _ _ (Hok.2.2.2.2 m y hm))
   isplitl [Hf]
   · unfold txFields; simp only [WTx.setNodeT]; iexact Hf
   iframe

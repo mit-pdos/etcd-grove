@@ -59,7 +59,7 @@ theorem node.nextSibling.wp_proof (hCI : node.childIndex.spec (GF := GF) (hG := 
   rw [decide_eq_false hp0]
   wp_auto
   obtain ⟨hkey, hks, rp, hrp, hpleaf, hpbl, hpl, hps, hplive, hready⟩ := hpar hp0
-  have hne : n ≠ rn.nv.parent' := fun h => Hok.2.2.2 bl B n rn hb hn h.symm
+  have hne : n ≠ rn.nv.parent' := fun h => Hok.2.2.2.1 bl B n rn hb hn h.symm
   icases wtxHeap_two_nodes_acc tx (DFrac.own 1) X bl B n rn.nv.parent' rn rp hb hn hrp hnl hpl hne
     $$ Hh with ⟨Hon, Hop, Hback⟩
   unfold objOwn

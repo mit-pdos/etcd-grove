@@ -414,11 +414,10 @@ def liveOK (X : WX) : Prop :=
   X.rl ∈ X.live ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
   ∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live
 
-/-- The node-location registry (round 4, N3): every registered node is an object (so a fresh
-location is unregistered), and each live one is a node of its bucket, read from the page id it
-records (U8 fix: a node `rebalance` or `DeleteBucket` removed is dead, its entry kept). -/
+/-- The node-location registry (round 4, N3): each live registered node is a node of its
+bucket, read from the page id it records (U8 fix: a node `rebalance` or `DeleteBucket` removed is
+dead, its entry kept). That every registered node is an object is `wtxHeap`'s `heapOK`. -/
 def nlocOK (X : WX) : Prop :=
-  (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome) ∧
   ∀ n b p, X.nloc !! n = some (b, p) → n ∈ X.live → ∃ B r, X.t.bs !! b = some B ∧
     B.ns !! n = some r ∧ r.nv.pgid'.toNat = p
 
@@ -427,7 +426,7 @@ invariant, keys, nested buckets and nodes' pages, entries bounded, and the handl
 node registry consistent. -/
 def wOK (X : WX) : Prop :=
   txClean X ∧ (∀ bl B, X.t.bs !! bl = some B → bktKeys X.v B ∧ bktNested X.v X.t B) ∧
-  txPg X.v X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X
+  txPg X.v X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X ∧ viewWF X.v
 
 /-- A leaf node's entries have no child page (`nodePg`'s leaf part: what `spill` needs). -/
 def nodePgLeaf (r : NRec) : Prop := r.nv.isLeaf' = true → ∀ w ∈ r.ws, w.pgid = W64 0
@@ -441,7 +440,7 @@ def txPgLeaf (bs : GMap Loc BRec) : Prop :=
 pages: only `txPgLeaf`. -/
 def wOKR (X : WX) : Prop :=
   txClean X ∧ (∀ bl B, X.t.bs !! bl = some B → bktKeys X.v B ∧ bktNested X.v X.t B) ∧
-  txPgLeaf X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X
+  txPgLeaf X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X ∧ viewWF X.v
 
 theorem txPg_txPgLeaf (v : View) (bs : GMap Loc BRec) (h : txPg v bs) : txPgLeaf bs :=
   fun bl B hb l r hr hl => ((h bl B hb l r hr).1 hl).1

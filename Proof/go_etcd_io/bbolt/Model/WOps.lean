@@ -474,17 +474,7 @@ def freeIdsOf (C : CommitSt) : List w64 :=
 
 /-! ## Lemma statements -/
 
-/-- **`wOK` gives the freshness of a materialization** (U7). -/
-theorem wOK_matFresh (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok : wOK X)
-    (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) : matFresh X bl l := by
-  sorry
-
-/-- **`wOK`'s inline pages are leaves** (U7): an inline bucket's page, the one a materialization
-reads, is a leaf page (`bktClean`'s `inlineGood`). -/
-theorem wOK_inlineLeaf (X : WX) (bl : Loc) (pgid : w64) (hok : wOK X) :
-    ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 →
-      wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag := by
-  sorry
+-- `wOK_matFresh`, `wOK_inlineLeaf`: U7's `Write/WOk.lean` (proved; batch 8).
 
 /-- **Leaf and branch pages hold their elements** (`pageElemsIn`, for `matReady`). -/
 theorem leafWF_elemsIn (pg : List w8) (len : Nat) (h : leafWF pg len)

@@ -99,16 +99,27 @@ def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
 
 /-- **The writer's heap's facts** (`wtxHeap_heapOK` reads them): the root bucket's location, its
 objects disjoint (`objsDisj`), every bucket's `tx` field the transaction, and no node its own
-parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes). -/
+parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes), and every
+registered node an object (batch 8, moved from `nlocOK`: a fresh location is unregistered, for
+`Bucket.node`'s registry insert). -/
 def heapOK (tx : Loc) (X : WX) : Prop :=
   X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t ∧
   (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx) ∧
-  (∀ bl B n r, X.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n)
+  (∀ bl B n r, X.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n) ∧
+  (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome)
 
 /-- **The writer's heap** at `dq` (design §3.13). -/
 def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
   iprop(⌜heapOK (GF := GF) tx X⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
     [∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o)
+
+omit go_gctx hos sem in
+/-- An inserted map still has every key it had (for `heapOK`'s registry clause). -/
+theorem isSome_insert_of {V : Type} (m : GMap Loc V) (k j : Loc) (v : V) (h : (m !! j).isSome) :
+    ((m.insert k v) !! j).isSome := by
+  by_cases hk : k = j
+  · subst hk; rw [GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ hk]; exact h
 
 omit hos in
 open Iris.ProofMode in
@@ -256,15 +267,7 @@ def WX.addNode (X : WX) (bl l : Loc) (B : BRec) (r : NRec) : WX :=
   { X with t := { X.t with bs := X.t.bs.insert bl { B with ns := B.ns.insert l r } },
            live := X.live.insert l () }
 
-/-- **A fresh node into the heap** (U7, `Bucket.node`'s materialization; the registry's insert
-is `wtxCore`'s `ghostMapAuth r.n.nl`, at the fresh key): the node's object, at a location no
-object has, joins its bucket's nodes, live; `objsDisj` is kept (fresh), and its parent is not
-itself. -/
-theorem wtxHeap_node_insert (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRec) (r : NRec)
-    (hb : X.t.bs !! bl = some B) (hl : X.t.objs !! l = none) (hp : r.nv.parent' ≠ l) :
-    wtxHeap (GF := GF) tx dq X ∗ objOwn X.v l dq true (.node bl r) ⊢
-      wtxHeap tx dq (X.addNode bl l B r) := by
-  sorry
+-- `wtxHeap_node_insert`: U7's `Write/Heap.lean` (proved; batch 8).
 
 /-- **The remap** (U4): after `dereference` (the coverage contract), the heap is the re-based
 `X`'s; nothing of it reads the old mapping. -/

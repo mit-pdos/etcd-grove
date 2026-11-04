@@ -265,7 +265,7 @@ theorem wtxData_matGrow (X X' : WX) (bl : Loc) (hok : wOK X) (h : matGrow X X' b
     intro hok
     rw [ih (wOK_nodeAdded X Y bl l pgid parent hok hadd hpos)]
     exact wtxData_nodeAdded' X Y bl l pgid parent hadd
-      (wOK_matFresh' X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf' X bl pgid hok)
+      (wOK_matFresh X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf X bl pgid hok)
 
 end mat
 

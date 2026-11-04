@@ -374,6 +374,32 @@ items 4 and 5 and need the same edits.
    nodes, live (`WX.addNode`); the registry insert is `wtxCore`'s `ghostMapAuth r.n.nl` at the
    fresh key (`nlocOK`: a registered node is an object, so the key is fresh).
 
+## Shared-statement fixes, batch 8 (U7's findings, 2026-11-04; decided by the coordinator)
+
+1. **U7's proofs replace the shared `sorry`s**: `Write.wOK_matFresh` (`Write/WOk`),
+   `Write.wOK_inlineLeaf` (with the premise `B.bv.rootNode' = null` the shared statement lacked:
+   `inlineGood` is only for a bucket without a root node), `Write.wtxHeap_node_insert`
+   (`Write/Heap`); `Model/WOps`' and `Inv/WtxHeap`'s statements are deleted (their only user,
+   `Write/Mat`'s `wtxData_matGrow`, is U7's).
+2. **"Every registered node is an object"** moved from `nlocOK` (`wOK`) to `heapOK` (its last
+   clause, `∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome`), so `Bucket.node` gets the
+   registry's freshness of a new location from `wtxW`. Users adapted: `heapOK`'s parent clause is
+   now `Hok.2.2.2.1` (U8's siblings, `node.free`, `Rebalance/Heap`, `Write/Heap`); the constructions
+   in `Rebalance/Heap` (`wtxHeap_setNode`, two) and `Write/Heap` prove it (objects only grow,
+   `isSome_insert_of`); U9b's `Spill/DerefHeap` and U4's `Mmap/Rebase` already had it.
+3. **`wOK` and `wOKR` end with `viewWF X.v`** (the base view is a `treeOK` committed state's):
+   non-empty keys and `pageReadable` (`treeStrict`'s page facts), and `rootShape`'s entries within
+   `bboltEntryMax`. **`fileHolds` already had the bound** (`treeOK`'s `rootShape`: "every entry
+   within `bboltEntryMax`" in the frozen docstring, clarified: every write goes through `Put`, whose
+   spec takes it; `WriteTo` copies such a database; `issues/bbolt-max-value-size-unusable.md`);
+   `fileHolds_new` is unaffected (empty); the backend's `snapshot.WriteTo` docstring notes it. It
+   reaches the store and the views through `treeOK` (`storeOK`, `viewWF`). **`wOK_nodeAdded`** is
+   then provable: the new node's entries are its page's (`pageWsAs`), a page of the bucket's base
+   tree (`matPos`: the bucket's root page, from `bktNested`'s entry value, or a child of a branch
+   page), so `rootShape` bounds them (`entriesBounded`); its `nodeClean`/`bktKeys`/`txPg` facts
+   come from `viewWF`'s `treeStrict` (the page's keys, bounds and header id), the registry and
+   live facts from the step.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
