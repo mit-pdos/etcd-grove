@@ -136,7 +136,7 @@ theorem Tx.close_w.wp_proof
   obtain ⟨v, wt, pb, wl, rfl, hp, hwl, hv⟩ := hws
   wp_start as Hend
   iunfold wtxEnd at Hend
-  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, Hcls, -, -, Hst, %Hwok'⟩
+  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, Hcls, -, Hst, %Hwok'⟩
   obtain ⟨Hwok, hwr, hrl⟩ := Hwok'
   obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 hrl
   -- the writer's records, mapped or lost: their core, the mapping fields' quarter, the cells

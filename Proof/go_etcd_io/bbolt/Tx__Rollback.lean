@@ -190,8 +190,6 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
       Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
     · unfold wdbLive wdbCoreG
       iframe
-    isplitl [Hshape]
-    · iexists extra; iexact Hshape
     isplitl [Hv]
     · iexists c; iexact Hv
     ipureintro; exact ⟨hok', hwr, Hf.1.1.2.2.2.2.1⟩

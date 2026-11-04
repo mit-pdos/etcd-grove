@@ -111,14 +111,13 @@ def wdbLost (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
 the publish, after it, after a failed remap): the full database, the writer's records (mapped or
 not), its database side live with the store's writer state `ws`, its exclusive part's other
 contents (the locked `rwlock`, the writer side's half of the closed flag, which `rwR`'s idle
-branch takes back, its page tokens, both halves of its agreed state), and the data's quarter of
+branch takes back, both halves of its agreed state), and the data's quarter of
 the committed state `w.C` (the new one after the publish); `wdbOK w`, and (batch 34) the records'
 `writable` flag (`close` branches on it) and their root bucket (`close` writes `tx.root` whole). -/
 def wtxEnd (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) : IProp GF :=
   iprop(K.full ∗ (wtxW K tx r false X ∨ wtxLost K tx r false X) ∗
     wdbLive K.B K.db K.p K.sp K.t0 tx ws w ∗ sync.ownMutex K.db.[DB, go!"rwlock"] ∗
     ghostVar K.B.cls (1 : Qp).half false ∗
-    (∃ extra : GMap Nat Unit, txShape r.n.pg X extra) ∗
     (∃ c : TxViewC, ghostVar r.n.v 1 (c, TxX.wr X)) ∗
     ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
     ⌜wdbOK w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝)
