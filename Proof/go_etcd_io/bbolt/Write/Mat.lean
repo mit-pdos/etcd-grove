@@ -153,6 +153,11 @@ theorem lleaves_dat (L L' : LTree) (bl : Loc) (h : ∀ pid, ldat (L' bl pid) = l
         | false =>
           exact flatMap_dat _ _ (lleaves_dat L L' bl h n) y2 x2 e2
 
+theorem bktDataOf_eq (X : WX) (n : GoString) (v : List w8) :
+    bktDataOf X n v = match bktLoc X n with
+      | some c => GMap.ofList (lbktEnts X c)
+      | none => bktOfPage X.v.pages v := rfl
+
 /-- Leaves' plain entries and bucket entries by data. -/
 theorem flatMap_filterMap_dat {β : Type} (G : w32 × w64 × List w8 × List w8 → Option β)
     (L1 L2 : List (List WEntry)) (h : L1.map (List.map wDat) = L2.map (List.map wDat)) :
@@ -178,11 +183,14 @@ theorem lbktEnts_eq_of_dat (X X' : WX) (c : Loc) (h : (X'.leaves c).map (List.ma
 
 /-- **A materialization keeps the writer's data** (one `nodeAdded` step; `wtxData_matGrow` by
 induction, with `matFresh` and an inline page a leaf at each step: `wOK` gives both). -/
-theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
+theorem nodeAdded_facts (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     (h : nodeAdded X X' bl l pgid parent) (hf : matFresh X bl l)
     (hleaf : ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
       wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag) :
-    wtxData X' = wtxData X := by
+    rootEnts X' = rootEnts X ∧ (∀ n, bktLoc X' n = bktLoc X n) ∧
+    (∀ c, (X'.leaves c).map (List.map wDat) = (X.leaves c).map (List.map wDat)) ∧
+    X'.v = X.v ∧ X'.fuel = X.fuel ∧ (∀ c, X'.rootPid c = X.rootPid c) ∧ X'.rl = X.rl ∧
+    (∀ c, (X'.t.bs !! c).isSome = (X.t.bs !! c).isSome) := by
   have hlt := ltree_nodeAdded' X X' bl l pgid parent h hf
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp, hrid, hrleaf, hru, hrs, hrcs, hrco,
     hrws, hrlive, hrkey, hrks, hcase, hX'⟩ := h
@@ -237,20 +245,31 @@ theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rw [hB] at hB'; cases hB'
       exact absurd ⟨hc, hin'⟩ hin
   have hroot := rootEnts_eq_of_dat X X' (by rw [hrl]; exact hleaves X.rl)
+  have hbkt : ∀ n, bktLoc X' n = bktLoc X n := by
+    intro n
+    unfold bktLoc
+    have hb := hbs X'.rl
+    rw [hrl] at hb ⊢
+    cases h1 : X'.t.bs !! X.rl <;> cases h2 : X.t.bs !! X.rl <;> rw [h1, h2] at hb <;> simp_all
+  refine ⟨hroot, hbkt, hleaves, hv, hfuel, hrp', hrl, fun c => ?_⟩
+  have := hbs c
+  cases h1 : X'.t.bs !! c <;> cases h2 : X.t.bs !! c <;> rw [h1, h2] at this <;> simp_all
+
+/-- **A materialization keeps the writer's data** (one `nodeAdded` step). -/
+theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
+    (h : nodeAdded X X' bl l pgid parent) (hf : matFresh X bl l)
+    (hleaf : ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
+      wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag) :
+    wtxData X' = wtxData X := by
+  obtain ⟨hroot, hbkt, hleaves, hv, -⟩ := nodeAdded_facts X X' bl l pgid parent h hf hleaf
   unfold wtxData
   rw [hroot]
   congr 1
   apply List.map_congr_left
   intro e _
   congr 1
-  unfold bktDataOf
-  have hb := hbs X'.rl
-  rw [hrl] at hb ⊢
-  have hbm : (X'.t.bs !! X.rl).bind (fun B => B.bm !! e.1) =
-      (X.t.bs !! X.rl).bind (fun B => B.bm !! e.1) := by
-    cases h1 : X'.t.bs !! X.rl <;> cases h2 : X.t.bs !! X.rl <;> rw [h1, h2] at hb <;> simp_all
-  rw [hbm, hv]
-  cases (X.t.bs !! X.rl).bind (fun B => B.bm !! e.1) with
+  rw [bktDataOf_eq, bktDataOf_eq, hbkt, hv]
+  cases bktLoc X e.1 with
   | none => rfl
   | some c => simp only; rw [lbktEnts_eq_of_dat X X' c (hleaves c)]
 
