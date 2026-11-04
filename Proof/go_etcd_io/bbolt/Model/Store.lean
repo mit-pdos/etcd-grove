@@ -263,6 +263,9 @@ private theorem not_pend_of_only_none (fl : FLPg) (s : Nat) (hs : s < 2 ^ 64)
   obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots fl s).1 hm
   exact absurd (h t pd hp (by rw [W64_toNat_eq]; exact hx)) (by simp)
 
+private theorem W64_toNat_of_lt' (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
+  simp only [W64, BitVec.toNat_ofInt]; omega
+
 /-! ## Lemma statements (U3) -/
 
 omit [GooseExts] in
@@ -531,13 +534,63 @@ theorem storeOK_wreturn (σ : StoreSt) (h : storeOK σ) : storeOK σ.wreturn := 
 theorem storeOK_wborrow (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ)
     (hwl : σ.wlent = false) (hms : σ.ms = some (b, l)) (hwv : σ.wv ≠ none) :
     storeOK (σ.wborrow b) := by
-  sorry
+  obtain ⟨v, hwv⟩ : ∃ v, σ.wv = some v := Option.ne_none_iff_exists'.1 hwv
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  have hw' : (σ.wborrow b).wv = some { v with base := b } := by
+    simp [StoreSt.wborrow, hwv]
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, fun v' hv' => ?_, h9, fun k r hr => ⟨(h10 k r hr).1,
+      fun v' hv' => ?_⟩, fun v' hv' => ?_, h12, h13, fun hm => ?_, fun hm => ?_,
+    fun hw => ?_, h17, h18, h19, h20⟩
+  · rw [hw'] at hv'; cases hv'
+    obtain ⟨a, b1, c, ⟨C, hC, hv⟩, e, f, -⟩ := h8 v hwv
+    refine ⟨a, b1, c, ⟨C, hC, ?_⟩, e, f, fun _ b' l' hb => ?_⟩
+    · rw [← hv]; rfl
+    · simp only [StoreSt.wborrow, hms, Option.some.injEq, Prod.mk.injEq] at hb
+      exact hb.1
+  · rw [hw'] at hv'; cases hv'; exact (h10 k r hr).2 v hwv
+  · rw [hw'] at hv'; cases hv'; exact h11 v hwv
+  · simp [StoreSt.wborrow, hms] at hm
+  · rw [hw'] at hm; cases hm
+  · rw [h16 hw] at hwv; cases hwv
 
 /-- The writer's `close`: published, or with nothing pending for it (rolled back). -/
 theorem storeOK_wclose (σ : StoreSt) (h : storeOK σ)
     (hp : σ.pub = true ∨ ∀ w, σ.wtx = some w → σ.fl.pending !! W64 (w : Int) = none) :
     storeOK σ.wclose := by
-  sorry
+  have hlt := treeSlot_lt64 σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  have hsm : σ.C.txid + 1 < 2 ^ 64 := h3.2.2.2.1
+  -- every pending entry is a committed transaction's
+  have hpt : ∀ t pd, σ.fl.pending !! t = some pd → t.toNat ≤ σ.C.txid := by
+    intro t pd hpd
+    rcases h3.2.2.1 t pd hpd with h' | ⟨h', -⟩
+    · exact h'
+    · rcases hp with hp | hp
+      · have := h5 _ h'; simp only [hp, ite_true, Nat.add_zero] at this; omega
+      · have := hp _ h'
+        rw [W64_toNat_eq] at this; rw [this] at hpd; cases hpd
+  have hnp : ∀ s, s ∈ treeSlots σ.C → s ∉ pendSlots σ.fl := by
+    intro s hs hm
+    obtain ⟨t, pd, x, hpd, hx, rfl⟩ := (mem_pendSlots _ _).1 hm
+    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+    have := ((h18 default).2 x.toNat ((mem_pagesSlots' _ _).1 hs)).2.2 t pd i hpd
+      (by rw [W64_toNat_eq]; exact hi)
+    have := hpt t pd hpd
+    simp only [View.ofC] at *
+    omega
+  refine ⟨h1, h2, ⟨h3.1, h3.2.1, fun t pd hpd => Or.inl (hpt t pd hpd), h3.2.2.2⟩, h4,
+    fun w hw => (by simp [StoreSt.wclose] at hw), fun _ => rfl, h7,
+    fun v hv => (by simp [StoreSt.wclose] at hv), h9,
+    fun k r hr => ⟨(h10 k r hr).1, fun v hv => (by simp [StoreSt.wclose] at hv)⟩,
+    fun v hv => (by simp [StoreSt.wclose] at hv), h12, h13,
+    fun hm => ⟨(h14 hm).1, rfl⟩, fun _ => rfl, fun _ => rfl,
+    fun s hs => Or.inl (hnp s hs), h18, h19, fun _ s hs _ hpo => ?_⟩
+  exfalso
+  obtain ⟨t, pd, x, hpd, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
+  have := hpo t pd hpd (by rw [W64_toNat_eq]; exact hx)
+  simp [StoreSt.wclose] at this
 
 /-- `Free` by the live writer `w` (before its publish) of a page of the current tree, or of the
 old synced freelist page (whose bytes `pg` then enter the store). -/
@@ -556,7 +609,35 @@ theorem storeOK_free (σ : StoreSt) (w : Nat) (id : w64) (n : Nat) (pg : Nat →
 theorem storeOK_alloc (σ : StoreSt) (w : Nat) (r : w64) (n : Nat) (h : storeOK σ)
     (hw : σ.wtx = some w) (ha : σ.fl.canAlloc r n) (hn : 0 < n) :
     storeOK (σ.alloc (W64 (w : Int)) r n) := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  have hsm : σ.C.txid + 1 < 2 ^ 64 := h3.2.2.2.1
+  have hww := h5 w hw
+  have hfree : ∀ x, x ∈ (σ.fl.alloc (W64 (w : Int)) r n).free → x ∈ σ.fl.free := by
+    intro x hx; simp only [FLPg.alloc, List.mem_filter] at hx; exact hx.1
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6⟩ := h3
+  obtain ⟨w1, w2, w3, w4, w5⟩ := h4
+  have hsub : ((σ.fl.alloc (W64 (w : Int)) r n).allIds).Sublist σ.fl.allIds := by
+    simp only [FLPg.allIds, FLPg.alloc, FLPg.pendingIds]
+    exact List.Sublist.append List.filter_sublist (List.Sublist.refl _)
+  refine ⟨h1, h2, ⟨fun x hx => hb1 x (hfree x hx), hb2, hb3, hb4,
+      fun x hx => hb5 x (hfree x hx), hb6⟩,
+    ⟨w1.sublist hsub, fun x hx => w2 x (hsub.subset hx), ?_, ?_, w5⟩, h5, h6,
+    fun k r' hr => ?_, fun v hv => ?_, h9, h10, h11, h12, h13, h14, h15, h16, h17,
+    fun b => mvccView_alloc _ _ _ _ _ (h18 b) ha hn, fun x a hx => ?_, h20⟩
+  · simp only [PgidsIncr, FLPg.alloc]; exact w3.filter _
+  · have := hsub.length_le; simp only [StoreSt.alloc]; omega
+  · obtain ⟨a, b, c, d, e, f⟩ := h7 k r' hr
+    exact ⟨a, mvccView_alloc _ _ _ _ _ b ha hn, c, d, e, f⟩
+  · obtain ⟨a, b, c, d, e, f, g⟩ := h8 v hv
+    exact ⟨a, mvccView_alloc _ _ _ _ _ b ha hn, c, d, e, f, g⟩
+  · simp only [StoreSt.alloc, FLPg.alloc, GMap.lookup_insert_eq_iff] at hx
+    split at hx
+    · cases hx
+      show _ ≤ σ.C.txid + 1
+      rw [W64_toNat_of_lt' w (by split at hww <;> omega)]
+      split at hww <;> omega
+    · exact h19 x a hx
 
 /-- `ReleasePendingPages` with no live writer, `ro` holding every registered reader's txid
 (`metaR`'s `F`, design §3.6). -/
