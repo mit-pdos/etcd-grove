@@ -92,7 +92,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
-      wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %e ⟨-, #HeS⟩
+      wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %e ⟨-, #HeS0, %Hty0, %Hptr0⟩
       · iframe
         fmt_args_ok
       try wp_auto
@@ -101,7 +101,10 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; exact fun h => nomatch h
-      · iapply errorf_fmtErrorOk $$ HeS
+      · iapply errorf_fmtErrorOk
+        isplitl
+        · iexact HeS0
+        · ipureintro; exact Hty0
     · rw [decide_eq_false hs]
       wp_auto
       iapply HΦ
@@ -120,7 +123,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
-      wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %e ⟨-, #HeS⟩
+      wp_apply hErrorf _ _ _ _ $$ [$Hsl] as %e ⟨-, #HeS0, %Hty0, %Hptr0⟩
       · iframe
         simp only [fmt.argsOk]
         isplitl
@@ -132,7 +135,10 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; exact fun h => nomatch h
-      · iapply errorf_fmtErrorOk $$ HeS
+      · iapply errorf_fmtErrorOk
+        isplitl
+        · iexact HeS0
+        · ipureintro; exact Hty0
 
 end fsz
 

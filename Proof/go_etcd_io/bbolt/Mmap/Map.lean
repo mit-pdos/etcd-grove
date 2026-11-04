@@ -162,7 +162,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         · ipureintro; exact fun h => nomatch h
         isplitr
         · simp only [fmtErrorOk, noArgStringSig]
-          icases HiS with ⟨HiS, %Hty⟩
+          icases HiS with ⟨HiS, %Hty, %Hptr⟩
           iframe HiS; ipureintro; exact Hty
         · iright
           iexists base

@@ -118,7 +118,7 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
-    wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+    wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
     · iframe
       simp only [fmt.argsOk]
       isplitl

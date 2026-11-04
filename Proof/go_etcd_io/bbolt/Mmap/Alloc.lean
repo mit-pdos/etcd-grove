@@ -311,7 +311,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           isplitr
           · ipureintro; rfl
           iintro %sl2 ⟨Hsl2, -⟩
-          wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+          wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
           · iframe
             simp only [fmt.argsOk]
             isplitl
@@ -542,7 +542,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             isplitr
             · ipureintro; rfl
             iintro %sl2 ⟨Hsl2, -⟩
-            wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+            wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
             · iframe
               simp only [fmt.argsOk]
               isplitl
@@ -573,7 +573,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           isplitr
           · ipureintro; rfl
           iintro %sl2 ⟨Hsl2, -⟩
-          wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty⟩
+          wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
           · iframe
             simp only [fmt.argsOk]
             isplitl
