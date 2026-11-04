@@ -47,9 +47,10 @@ theorem wdbOK_size_page (w : WDb) (hok : wdbOK w) (b : Loc) (l : Nat) (hms : w.m
 Fix: `wtxCore` holds the writer's `ghostMapAuth r.n.vw 1 V` with every entry the view at its key
 (`∀ k u, V !! k = some u → u = { X.v with base := k }`), so that a remap inserts the new base (or
 finds it). -/
-theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc) :
+theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc)
+    (E : CoPset) :
     wtxCore (GF := GF) K tx r m X ⊢
-      |==> wtxCore K tx r m X ∗ viewOf r { X.v with base := b } := by
+      |={E}=> wtxCore K tx r m X ∗ viewOf r { X.v with base := b } := by
   sorry
 
 /-- **Gap 4 (`isBoltCoreP`): the database's namespace is disjoint from OsFs's.** `store_cells_agree`

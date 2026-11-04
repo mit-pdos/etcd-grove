@@ -31,8 +31,8 @@ theorem wdbOK_lost [GooseExts] (w : WDb) (hok : wdbOK w) (m' : OsMeta) (j : Opti
     (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     wdbOK (w.lost m' j) := by
-  obtain ⟨_, _, hk3, _, hk5, hk6, hk7, hk8, _, _, hk11⟩ := hok
-  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hk6, hk7, hk8, ?_, ?_, hk11⟩
+  obtain ⟨_, _, hk3, _, hk5, hk6, hk7, hk8, _, _, hk11, hk12⟩ := hok
+  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hk6, hk7, hk8, ?_, ?_, hk11, hk12⟩
   · intro b l h; simp [WDb.lost] at h
   · simp only [WDb.lost]; rw [hsz]; exact hk3
   · intro s
