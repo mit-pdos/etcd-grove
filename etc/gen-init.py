@@ -81,6 +81,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
+         # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
+         'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -2112,6 +2114,8 @@ def gen_ext():
 # D19r, 2026-10-18): the root package and the module of the generated table.
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
