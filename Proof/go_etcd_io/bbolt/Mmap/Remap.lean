@@ -1,6 +1,8 @@
 /-
 The remap, `db.mmap(minsz)` by the live writer (U4, `notes/bbolt-proof-plan.md`; design §3.11,
-risk R5): stated; the proof is to do, split across modules (the plan below).
+risk R5): stated here; proved (U4d) in `Proof/go_etcd_io/bbolt/DB__mmap` (the lock) over
+`Mmap/RemapBody` (the body below), with `Mmap/RemapBase`, `RemapCells`, `RemapGather`, `RemapLost`,
+`RemapEnd`; the shared facts it still lacks are `Mmap/RemapGaps`' `sorry`s.
 
 `DB.mmap` is `mmaplock.Lock()`, `defer mmaplock.Unlock()`, `db.mmapUnlocked(minsz)`, which:
 1. `lg := db.Logger()`; `fileSize, err := db.fileSize()` (error: logged, returned: nothing changed);
@@ -21,8 +23,7 @@ risk R5): stated; the proof is to do, split across modules (the plan below).
 9. `store_wborrow` (the view re-borrowed at the new base), `wtxHeap_rebase` (`Mmap/Rebase`) for
    the writer's records, `Unlock` with `Pm 1` back.
 
-Proof modules to write: `Mmap/RemapLock` (1-3 and the lock), `Mmap/RemapUnmap` (4-5),
-`Mmap/RemapMap` (6-8), `Mmap/RemapEnd` (9), this file assembling them.
+Step 7's agreement is read at the first step (`StartRead`) of the `db.Mlock` load after `mmap`.
 -/
 module
 
@@ -74,9 +75,6 @@ abbrev DB.mmap.spec : Prop :=
          (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
            wdbLost K tx (Xd.rebase b).v w' ∗
            ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
-
-theorem DB.mmap.wp_proof : DB.mmap.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end remap
 
