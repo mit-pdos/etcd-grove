@@ -31581,3 +31581,14 @@ and configuration: repeated, not added to `memberBuilt`, whose clients unpack it
 of the examples' results; the user's approval; true because `bootstrapBackend` calls `OpenBackend`,
 whose post gives it), and `srvSnapRes` carries the current backend's `bFile` (the snapshot path's
 from `OpenSnapshotBackend`), for the image's `fileHolds (backendPathOf dd) D` (`bFile_agree`).
+
+## The readers' open shares at the server's stop (2026-11-04, R2b-3d gap 4; the user's choice)
+
+`backend.Close` needs every reader's open share (`bOpen γ 1`): a share is the reader's proof that the
+backend is not stopped. The server lends the shares through a thread pool that is a plain invariant,
+so the shutdown could never collect them. Of three options (a cancelable pool with a quiescent
+request path, readers that tolerate a stopped backend, or a restart scope with no request in
+flight), the user chose the first. It has two consequences: a general Perennial change (a cancelable
+`ThreadPool`), and a new premise on the exported restart result, that the members' request paths
+stopped before the server, which matches `embed.Close`'s order. Plan: `notes/restart-plan.md`,
+"R2b-3d ... gap 4".

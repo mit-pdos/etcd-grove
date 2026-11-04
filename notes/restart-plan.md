@@ -1324,3 +1324,15 @@ path is doing (etcd's `embed.Close` stops the gRPC servers before `Server.Stop`,
    join, and it is valid only for the examples whose clients finish first.
 
 Stages 3 (gap 2) and 4 (gap 3) do not depend on it and go first.
+
+**Gap 4, decided (the user, 2026-11-04): option 1**, a cancelable reader pool and a quiescent
+request path. Steps:
+- (4a) Perennial, a general change on a branch off its `lean`: `ThreadPool`'s cancelable form
+  (`isThreadPoolC N γ c R`, a `cinv`), with `cancel` giving back the `m` copies left and the count
+  of loans out (`ownTokAuth γ b`), and a law that the auth at `b` with `b` loans `ownThreadLoan γ`
+  gives `b` more copies. Record it in `notes/perennial-changes.md`; land it by Perennial's workflow
+  and bump the pin.
+- (4b) `bkRPool` over it, its cancel token kept with the constructors' half (`srvSnapRes`).
+- (4c) The stop's caller returns the request path's loans, and the stores' readers come back from
+  their closes. The exported restart result gains the premise that the members' request paths
+  stopped first.
