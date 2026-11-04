@@ -49,22 +49,31 @@ proj_simps WDb.reslot
 /-- The writer side re-slotted with its own values is itself. -/
 theorem WDb.reslot_self (w : WDb) : w.reslot w.m w.W w.wb = w := rfl
 
-/-- **`wdbOK` with the `W` slots re-listed and re-written**: the same slots, the file's size and
-mappings kept, the slots inside the file whole pages, the synced freelist page's bytes kept. -/
+/-- **`wdbOK` with the `W` slots re-listed and re-written**: the same slots, the file's mappings
+kept, its size grown at most to the mapping's end (a write past the end, `Tx.write_ext`), the
+slots inside the file whole pages, the synced freelist page's bytes kept. -/
 theorem wdbOK_reslot (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) (hok : wdbOK w)
-    (hW : ∀ s, s ∈ W ↔ s ∈ w.W) (hsz : m.size = w.m.size) (hmaps : m.maps = w.m.maps)
-    (hwb : ∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (wb s).length = 4096)
+    (hW : ∀ s, s ∈ W ↔ s ∈ w.W) (hsz1 : w.m.size ≤ m.size)
+    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
+    (hmaps : m.maps = w.m.maps)
+    (hwb : ∀ s ∈ w.W, 4096 * (s + 1) ≤ m.size → (wb s).length = 4096)
     (hfl : ∀ f, w.C.flpg = some f → extentBytes wb f = extentBytes w.wb f) :
     wdbOK (w.reslot m W wb) := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := hok
+  have hmax : max (mapLen w.ms) m.size = max (mapLen w.ms) w.m.size := by omega
   simp only [wdbOK, WDb.reslot]
   refine ⟨fun b l e => by rw [hmaps]; exact h1 b l e, fun e => by rw [hmaps]; exact h2 e,
-    by rw [hsz]; exact h3, fun s => by rw [hW, hsz]; exact h4 s, h5,
+    by omega, fun s => by rw [hW, hmax]; exact h4 s, h5,
     fun f hf => by rw [hfl f hf]; exact h6 f hf, h7, h8, h9,
-    fun b l e hl => by rw [hsz]; exact h10 b l e hl, h11, h12, by rw [hsz]; exact h13,
-    fun b l e => by rw [hsz]; exact h14 b l e, fun s hs hz => ?_⟩
-  rw [hsz] at hz
-  exact hwb s ((hW s).1 hs) hz
+    fun b l e hl => ?_, h11, h12, hsz63, fun b l e => ?_, fun s hs hz => hwb s ((hW s).1 hs) hz⟩
+  · have := h10 b l e hl
+    rw [e] at hsz2; simp only [mapLen] at hsz2
+    omega
+  · rw [e] at hsz2; simp only [mapLen] at hsz2
+    rcases Nat.lt_or_ge w.m.size m.size with h | h
+    · left; omega
+    · have : m.size = w.m.size := by omega
+      rw [this]; exact h14 b l e
 
 end pure
 
