@@ -42,7 +42,7 @@ abbrev hashMap.FreeCount.spec : Prop :=
     (App (Val (h @!! go.GoType.PointerType hashMap.ty @!! go!"FreeCount")) (Val #()))
   {{ RET #(W64 (free.length : Int)); ownHashPart h s free }}
 
-theorem hashMap.FreeCount.wp_proof (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+theorem hashMap.FreeCount.wp_proof (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hSlow : hashMap.hashmapFreeCountSlow.spec (GF := GF) (hG := hG)) :
     hashMap.FreeCount.spec (GF := GF) (hG := hG) := by
   intro h s free

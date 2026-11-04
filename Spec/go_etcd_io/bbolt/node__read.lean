@@ -34,6 +34,7 @@ abbrev node.read.spec : Prop :=
   ∀ (v : View) (n : Loc) (nv : node) (p : Loc) (src : Src) (pg : List w8) (qv : Qp),
   pageReadable pg → (pageFlags pg = leafPageFlag ∨ pageFlags pg = branchPageFlag) →
   0 < p.addr → p.addr + pg.length ≤ maxAddr → (∀ i < pageCount pg, p.addr + elemEnd pg i ≤ maxAddr) →
+  pageElemsIn pg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦ nv ∗ srcLoc v p src pg ∗
       viewCells qv v }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"read")) (Val #p))

@@ -64,6 +64,11 @@ def pageReadable (pg : List w8) : Prop :=
     0 < (if pageFlags pg = leafPageFlag then leafKsize pg i else branchKsize pg i) ∧
     elemEnd pg i ≤ maxAllocSize
 
+/-- **Every element of `pg` lies inside its bytes** (U7 fix: `node.read`'s inodes are then the
+page's entries; `pageReadable` bounds them by `MaxAllocSize` only). `leafWF`/`branchWF` give it
+(`leafWF_elemsIn`, `branchWF_elemsIn`). -/
+def pageElemsIn (pg : List w8) : Prop := ∀ i < pageCount pg, elemEnd pg i ≤ pg.length
+
 end pageAt
 
 end bbolt

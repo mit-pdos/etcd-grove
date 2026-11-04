@@ -14,6 +14,7 @@ item 4 moves them to `Spec/` (as trust-boundary specs, or proves `Verify`'s).
 module
 
 public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Own
+public import Spec.go_etcd_io.bbolt.internal.common.Verify
 
 @[expose] public section
 
@@ -33,14 +34,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `Verify(f)` runs the optional check `f` if the environment asks for it: so `Q` must follow
-from `f` returning, and hold if it does not run. -/
-abbrev common.Verify.spec [go_etcd_io.bbolt.internal.common.Assumptions] : Prop :=
-  ∀ (f : GoFunc) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗
-      (WP (App (Val #f) (Val #())) {{ fun _ => Q }} ∧ Q) }}
-    (App (Val #(functions go_etcd_io.bbolt.internal.common.Verify [])) (Val #f))
-  {{ RET #(); Q }}
+-- `common.Verify`'s spec is `Spec/go_etcd_io/bbolt/internal/common/Verify.lean` (shared).
 
 /-- `sort.SliceIsSorted(x, less)` on a slice `s` (element type `t`), `less(i, j)` returning
 `lt i j` for indices of `s` and keeping `P`: whether no element is `less` than the one before it

@@ -34,7 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 theorem arrayImpl_contract
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hMerge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG))
     (a : Loc) : (arrayImpl (GF := GF) a).Contract :=
   ⟨arrayImpl_freeCount a, arrayImpl_freePageIds a, arrayImpl_init a,

@@ -45,7 +45,7 @@ abbrev hashMap.mergeSpans.spec : Prop :=
   {{ RET #(); ownHashPart h s (sortPgids (free ++ ys)) }}
 
 theorem hashMap.mergeSpans.wp_proof
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hIF : hashMap.idsFromFreemaps.spec (GF := GF) (hG := hG))
     (hIFw : hashMap.idsFromForwardMap.spec (GF := GF) (hG := hG))
     (hIBw : hashMap.idsFromBackwardMap.spec (GF := GF) (hG := hG))

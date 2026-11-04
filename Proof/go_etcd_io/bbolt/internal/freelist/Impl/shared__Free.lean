@@ -40,7 +40,7 @@ abbrev shared.Free.spec : Prop :=
 theorem shared.Free.wp_proof
     (hId : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hOv : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG)) :
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG)) :
     shared.Free.spec (GF := GF) (hG := hG) := by
   intro s fli fl txid p pv dq Hcan
   wp_start as ⟨Hsh, Hp⟩

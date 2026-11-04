@@ -2,13 +2,8 @@
 The proof of `Spec/go_etcd_io/bbolt/node__read.lean` (U7, `notes/bbolt-proof-plan.md`; ported from
 `old/bbolt/Proof/go_etcd_io/bbolt/node__read.lean`).
 
-**The frozen spec is false** (U7's finding, in the plan): `pageReadable` lets an element's key or
-value lie past the page's bytes (it bounds them by `MaxAllocSize` only), and then the inode's
-slice (`keySliceAt`, of the element's `ksize`) is not the entry's key (`leafKey`, `bytesAt`
-truncated at the page's end), so the post's `wOwn` (`inViewAt`'s length, or `↦*□`) fails. Proved
-here with the extra premise `Write.elemsIn pg` (every element inside the page, which `leafWF`/
-`branchWF` give: `node.read.specIn`); `node.read.wp_proof` stays a `sorry` until the frozen
-statement (and `matReady`, `Bucket.node`'s pre) takes the premise.
+The spec takes `pageElemsIn pg` (U7's fix: every element inside the page, which `leafWF`/
+`branchWF` give; without it an inode's slice is not the entry's key).
 -/
 module
 
@@ -38,32 +33,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `node.read.spec` with every element inside the page (`Write.elemsIn`). -/
-abbrev node.read.specIn : Prop :=
-  ∀ (v : View) (n : Loc) (nv : node) (p : Loc) (src : Src) (pg : List w8) (qv : Qp),
-  pageReadable pg → (pageFlags pg = leafPageFlag ∨ pageFlags pg = branchPageFlag) →
-  0 < p.addr → p.addr + pg.length ≤ maxAddr → (∀ i < pageCount pg, p.addr + elemEnd pg i ≤ maxAddr) →
-  Write.elemsIn pg →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦ nv ∗ srcLoc v p src pg ∗
-      viewCells qv v }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"read")) (Val #p))
-  {{ RET #(); ∃ s : GoSlice,
-      n ↦ nodeAfterRead nv pg s (if 0 < pageCount pg then keySliceAt p pg 0 else slice.nil) ∗
-      s ↦* pageInodesAt p pg ∗ ownSliceCap Inode s (DFrac.own 1) ∗
-      ([∗list] it;w ∈ pageInodesAt p pg;pageWsAs pg src, wOwn v true it w) ∗
-      srcLoc v p src pg ∗ viewCells qv v }}
-
 theorem w16_eq_two_iff (x : w16) : x = W16 2 ↔ x.toNat = 2 := by
   constructor
   · intro h; subst h; rfl
   · intro h; apply BitVec.eq_of_toNat_eq; simpa using h
 
-theorem node.read.wp_proof_in (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
+theorem node.read.wp_proof (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hIL : internal.common.Page.IsLeafPage.spec (GF := GF) (hG := hG))
     (hR : internal.common.ReadInodeFromPage.spec (GF := GF) (hG := hG))
     (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG)) :
-    node.read.specIn (GF := GF) (hG := hG) := by
+    node.read.spec (GF := GF) (hG := hG) := by
   intro v n nv p src pg qv Hrd Hfl Hp0 Hpm Hend Hin
   wp_start as ⟨Hn, #Hsrc, Hv⟩
   have Hns : srcLoc (GF := GF) v p src pg ⊢ ⌜src ≠ Src.stale⌝ := by
@@ -157,8 +137,6 @@ theorem node.read.wp_proof_in (hId : internal.common.Page.Id.spec (GF := GF) (hG
     iframe
     iframe #
 
-theorem node.read.wp_proof : node.read.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

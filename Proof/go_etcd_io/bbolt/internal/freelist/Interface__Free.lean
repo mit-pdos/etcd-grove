@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 theorem Interface.Free.wp_proof
     (hId : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hOv : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG)) :
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG)) :
     Interface.Free.spec (GF := GF) (hG := hG) := by
   intro fli fl txid p pv dq Hcan
   wp_start_folded as ⟨Hfl, Hp⟩

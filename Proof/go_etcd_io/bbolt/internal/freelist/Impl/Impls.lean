@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 /-- The callee specs (and the Perennial gap `PidSetDeleteUnfold`) U2's freelist proofs rest on:
 U1's `internal/common` specs and the trust-boundary specs of `Lemmas/Callees.lean`. -/
 structure FLCallees : Prop where
-  verify : bbolt.common.Verify.spec (GF := GF) (hG := hG)
+  verify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG)
   merge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG)
   sliceIsSorted : bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG)
   deepEqual : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG)

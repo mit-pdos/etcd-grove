@@ -2,11 +2,10 @@
 U7's (`notes/bbolt-proof-plan.md`) materialization lemmas: a `nodeAdded` step keeps the logical
 tree by data and the writer's data.
 
-`Model/WOps`' `ltree_nodeAdded` and `wtxData_matGrow` are false as stated (U7's findings, in the
-plan): `nodeAdded` does not say that the new node is no cached node of its bucket, nor, for an
-inline bucket, that it had no root node; and an inline bucket's `resolve` ignores the position, so
-after materializing its root every position resolves to it (and a branch inline page would make
-the walk descend). The primed statements here take what the callers have (`wOK` gives all of it).
+The shared `ltree_nodeAdded`/`wtxData_matGrow` (false as first stated: `nodeAdded` does not say
+that the new node is no cached node of its bucket, nor, for an inline bucket, that it had no root
+node, and an inline bucket's `resolve` ignores the position) are these: `ltree_nodeAdded'` over
+`matFresh` (`Model/WOps`), `wtxData_matGrow` over `wOK` (2026-11-04).
 -/
 module
 
@@ -35,11 +34,7 @@ theorem pageWsAs_wDat (pg : List w8) (src : Src) :
     (pageWsAs pg src).map wDat = (pageWs pg).map wDat := by
   unfold pageWsAs; simp only [List.map_map]; rfl
 
-/-- What a `nodeAdded` step needs to keep the logical tree: the new node is not a cached node of
-its bucket, and an inline bucket had no root node. -/
-def matFresh (X : WX) (bl l : Loc) : Prop :=
-  ∀ B, X.t.bs !! bl = some B → (∀ c, B.nm !! c ≠ some l) ∧
-    (B.ib.root' = W64 0 → B.bv.rootNode' = null)
+-- `matFresh` is in `Model/WOps.lean` (shared, 2026-11-04).
 
 /-- **Materialization keeps the logical tree by data** (`ltree_nodeAdded`, at every position of a
 file bucket, at position `0` of an inline one). -/
@@ -258,6 +253,19 @@ theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
   cases (X.t.bs !! X.rl).bind (fun B => B.bm !! e.1) with
   | none => rfl
   | some c => simp only; rw [lbktEnts_eq_of_dat X X' c (hleaves c)]
+
+/-- **Materializations keep the writer's data** (`Model/WOps`' former `wtxData_matGrow`, with
+`wOK` at the start: each step keeps it, `wOK_nodeAdded`, and gives the step's freshness). -/
+theorem wtxData_matGrow (X X' : WX) (bl : Loc) (hok : wOK X) (h : matGrow X X' bl) :
+    wtxData X' = wtxData X := by
+  revert hok
+  induction h with
+  | refl => intro _; rfl
+  | step X Y Z bl l pgid parent hadd hpos _ ih =>
+    intro hok
+    rw [ih (wOK_nodeAdded X Y bl l pgid parent hok hadd hpos)]
+    exact wtxData_nodeAdded' X Y bl l pgid parent hadd
+      (wOK_matFresh X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf X bl pgid hok)
 
 end mat
 

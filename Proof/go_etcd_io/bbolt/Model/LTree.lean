@@ -128,10 +128,19 @@ def leafFor (X : WX) (bl : Loc) (k : List w8) (l : Loc) : Prop :=
 
 /-! ## Lemma statements -/
 
+/-- **The walk of a well-formed writer's tree ends within its fuel** (U7; the termination
+`wtxData_put`/`wtxData_del` need): before `Commit` a branch node's entries are its page's
+(`wOK`'s `txPg`), so bucket `bl`'s logical tree is its base tree's shape, whose depth the view's
+strict tree bounds by its page count, below `X.fuel`; more fuel walks the same leaves. -/
+theorem wOK_leaves_fuel (X : WX) (bl : Loc) (hok : wOK X) (k : Nat) :
+    lleaves (ltree X) bl (X.fuel + k) (X.rootPid bl) = X.leaves bl := by
+  sorry
+
 /-- **`Put`'s data** (U7): putting a plain entry `(k, v)` into the leaf where `k` lands, in the
 opened bucket `n`, sets `k` to `v` in bucket `n`. -/
 theorem wtxData_put (X : WX) (n : GoString) (bl l : Loc) (ws : List WEntry) (e : WEntry)
-    (hok : wOK X) (hb : bktLoc X n = some bl) (hl : leafFor X bl e.key l)
+    (hok : wOK X) (hb : bktLoc X n = some bl) (hinj : ∀ n', bktLoc X n' = some bl → n' = n)
+    (hl : leafFor X bl e.key l)
     (hws : nodeWs X bl l = some ws) (hflag : ¬ isBktFlag e.flags) (hk : e.key ≠ [])
     (hnb : ∀ w ∈ ws, w.key = e.key → ¬ isBktFlag w.flags) :
     wtxData (X.withWs bl l (wsPut ws e)) =
@@ -140,7 +149,8 @@ theorem wtxData_put (X : WX) (n : GoString) (bl l : Loc) (ws : List WEntry) (e :
 
 /-- **`Delete`'s data** (U7): deleting the plain entry `k` from the leaf where `k` lands. -/
 theorem wtxData_del (X : WX) (n : GoString) (bl l : Loc) (ws : List WEntry) (k : List w8)
-    (hok : wOK X) (hb : bktLoc X n = some bl) (hl : leafFor X bl k l)
+    (hok : wOK X) (hb : bktLoc X n = some bl) (hinj : ∀ n', bktLoc X n' = some bl → n' = n)
+    (hl : leafFor X bl k l)
     (hws : nodeWs X bl l = some ws) (hnb : ∀ w ∈ ws, w.key = k → ¬ isBktFlag w.flags) :
     wtxData (X.withWs bl l (wsDel ws k)) =
       (wtxData X).insert n (((wtxData X) !! n).getD ∅ |>.delete k) := by

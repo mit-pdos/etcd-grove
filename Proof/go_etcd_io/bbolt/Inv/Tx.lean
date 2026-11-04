@@ -106,6 +106,16 @@ def gensOK (T : TxView) (X : WX) : Prop :=
   (∀ b n g, X.handles !! b = some (n, g) → g ≤ T.gen n) ∧
   ∀ n b, bktLoc X n = some b → X.handles !! b = some (n, T.gen n)
 
+/-- **The root bucket's cache is injective** (`gensOK`'s second clause: the handle registry
+records each opened bucket's name). -/
+theorem gensOK_bktLoc_inj (T : TxView) (X : WX) (h : gensOK T X) (n n' : GoString) (b : Loc)
+    (hn : bktLoc X n = some b) (hn' : bktLoc X n' = some b) : n' = n := by
+  have h1 := h.2 n b hn
+  have h2 := h.2 n' b hn'
+  rw [h1] at h2
+  simp only [Option.some.injEq, Prod.mk.injEq] at h2
+  exact h2.1.symm
+
 /-- **A writer's part at fraction `q`** (design §3.10, F3): its heap at `q`, its handles'
 `FillPercent`s at `q`, its base view's cells at `q · wq`, the library's quarter of the committed
 data at `q`, its handle and node registries' auths at `q`, its fields' share, `mmaplock`'s

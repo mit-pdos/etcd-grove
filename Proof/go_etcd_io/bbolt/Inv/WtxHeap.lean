@@ -251,6 +251,21 @@ theorem wtxHeap_kill (tx : Loc) (dq : DFrac) (X : WX) (l : Loc) :
   simp only [decide_eq_true_eq, GMap.mem_iff, GMap.lookup_delete_iff] at h ⊢
   split at h <;> simp_all
 
+/-- `X` with the node `l` (record `r`) added to bucket `bl` (record `B`), live. -/
+def WX.addNode (X : WX) (bl l : Loc) (B : BRec) (r : NRec) : WX :=
+  { X with t := { X.t with bs := X.t.bs.insert bl { B with ns := B.ns.insert l r } },
+           live := X.live.insert l () }
+
+/-- **A fresh node into the heap** (U7, `Bucket.node`'s materialization; the registry's insert
+is `wtxCore`'s `ghostMapAuth r.n.nl`, at the fresh key): the node's object, at a location no
+object has, joins its bucket's nodes, live; `objsDisj` is kept (fresh), and its parent is not
+itself. -/
+theorem wtxHeap_node_insert (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRec) (r : NRec)
+    (hb : X.t.bs !! bl = some B) (hl : X.t.objs !! l = none) (hp : r.nv.parent' ≠ l) :
+    wtxHeap (GF := GF) tx dq X ∗ objOwn X.v l dq true (.node bl r) ⊢
+      wtxHeap tx dq (X.addNode bl l B r) := by
+  sorry
+
 /-- **The remap** (U4): after `dereference` (the coverage contract), the heap is the re-based
 `X`'s; nothing of it reads the old mapping. -/
 theorem wtxHeap_rebase (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X) :

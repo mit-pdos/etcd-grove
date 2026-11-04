@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- The hash map's `FreeCount` meets the contract's spec. -/
-theorem hashImpl_freeCount (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG)) (h : Loc) :
+theorem hashImpl_freeCount (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG)) (h : Loc) :
     (hashImpl (GF := GF) h).FreeCountSpec := by
   unfold FLImpl.FreeCountSpec
   rw [hashImpl_ity, hashImpl_iv]
@@ -45,7 +45,7 @@ theorem hashImpl_freeCount (hVerify : bbolt.common.Verify.spec (GF := GF) (hG :=
 
 /-- The hash map's `mergeSpans` meets the contract's spec. -/
 theorem hashImpl_mergeSpans (hdel : PidSetDeleteUnfold (GF := GF))
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hDeep : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG)) (h : Loc) :
     (hashImpl (GF := GF) h).MergeSpansSpec := by
   unfold FLImpl.MergeSpansSpec
@@ -65,7 +65,7 @@ theorem hashImpl_mergeSpans (hdel : PidSetDeleteUnfold (GF := GF))
 /-- **The `*hashMap` meets the contract** (given `delete`'s semantics at `pidSet`,
 `Lemmas/HashDelete.lean`, a Perennial gap). -/
 theorem hashImpl_contract (hdel : PidSetDeleteUnfold (GF := GF))
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hSorted : bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG))
     (hDeep : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG))
     (a : Loc) : (hashImpl (GF := GF) a).Contract where

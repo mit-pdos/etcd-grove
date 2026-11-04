@@ -142,12 +142,26 @@ def nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) : Prop :=
                                                                   ns := ns', bv := bv' } },
                   live := X.live.insert l (), nloc := X.nloc.insert l (bl, pgid.toNat) }
 
+/-- **A position `nodeAdded` materializes** (U7 fix): the root page of a bucket with no root
+node, or a child page its branch node `parent` has not materialized. -/
+def matPos (X : WX) (bl : Loc) (pgid : w64) (parent : Loc) : Prop :=
+  ∃ B, X.t.bs !! bl = some B ∧
+    ((parent = null ∧ B.bv.rootNode' = null ∧ pgid = B.ib.root') ∨ ∃ i, pagePosAt B parent i pgid)
+
+/-- **The new node is fresh in its bucket** (U7 fix; what `nodeAdded` needs to keep the logical
+tree): no cached node of the bucket, and an inline bucket had no root node. `wOK` gives it
+(`wOK_matFresh`). -/
+def matFresh (X : WX) (bl l : Loc) : Prop :=
+  ∀ B, X.t.bs !! bl = some B → (∀ c, B.nm !! c ≠ some l) ∧
+    (B.ib.root' = W64 0 → B.bv.rootNode' = null)
+
 /-- **Materializations in bucket `bl`** (`Cursor.node`, `childAt`): zero or more
 `nodeAdded` steps. -/
 inductive matGrow : WX → WX → Loc → Prop
   | refl (X : WX) (bl : Loc) : matGrow X X bl
   | step (X Y Z : WX) (bl l : Loc) (pgid : w64) (parent : Loc) :
-      nodeAdded X Y bl l pgid parent → matGrow Y Z bl → matGrow X Z bl
+      nodeAdded X Y bl l pgid parent → matPos X bl pgid parent → matGrow Y Z bl →
+      matGrow X Z bl
 
 /-- The page at position `pgid` of `B` can be materialized (`Bucket.node`'s uncached case): its
 page is in the view (or the inline page, not stale), readable by `ReadInodeFromPage`, a leaf or
@@ -156,7 +170,7 @@ location's page offsets within the address space. -/
 def matReady (X : WX) (B : BRec) (pgid : w64) : Prop :=
   ∃ pa pg, wpageAt X.v B pgid = some (pa, pg) ∧ pageReadable pg ∧
     (pageFlags pg = leafPageFlag ∨ pageFlags pg = branchPageFlag) ∧
-    (pageHdr pg).id' = pgid ∧ X.t.pm !! pgid = none ∧
+    pageElemsIn pg ∧ (pageHdr pg).id' = pgid ∧ X.t.pm !! pgid = none ∧
     (B.ib.root' = W64 0 → B.pst = PageSt.view ∨ ∃ dq, B.isrc = Src.own dq) ∧
     0 < pa.addr ∧ pa.addr + pg.length ≤ maxAddr ∧ ∀ i < pageCount pg, pa.addr + elemEnd pg i ≤ maxAddr
 
@@ -460,26 +474,40 @@ def freeIdsOf (C : CommitSt) : List w64 :=
 
 /-! ## Lemma statements -/
 
-/-- **Materialization keeps the logical tree** (by data) and the data. U7 proves it; U8 and U9
-use it (through `childAt`, `Cursor.node`). -/
-theorem ltree_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
-    (h : nodeAdded X X' bl l pgid parent) (bl' : Loc) (pid : w64) :
-    (ltree X' bl' pid).map (fun x => (x.1, x.2.map wDat)) =
-      (ltree X bl' pid).map (fun x => (x.1, x.2.map wDat)) := by
+/-- **`wOK` gives the freshness of a materialization** (U7). -/
+theorem wOK_matFresh (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok : wOK X)
+    (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) : matFresh X bl l := by
   sorry
 
-/-- Materialization keeps the writer's data. U7. -/
-theorem wtxData_matGrow (X X' : WX) (bl : Loc) (h : matGrow X X' bl) :
-    wtxData X' = wtxData X := by
+/-- **`wOK`'s inline pages are leaves** (U7): an inline bucket's page, the one a materialization
+reads, is a leaf page (`bktClean`'s `inlineGood`). -/
+theorem wOK_inlineLeaf (X : WX) (bl : Loc) (pgid : w64) (hok : wOK X) :
+    ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 →
+      wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag := by
   sorry
+
+/-- **Leaf and branch pages hold their elements** (`pageElemsIn`, for `matReady`). -/
+theorem leafWF_elemsIn (pg : List w8) (len : Nat) (h : leafWF pg len)
+    (hf : pageFlags pg = leafPageFlag) : pageElemsIn pg := by
+  intro i hi
+  have h1 := (h.2.2.1 i hi).1
+  have h2 := h.1
+  simp only [elemEnd, hf, ite_true]
+  omega
+
+theorem branchWF_elemsIn (pg : List w8) (len hwm : Nat) (h : branchWF pg len hwm)
+    (hf : pageFlags pg = branchPageFlag) : pageElemsIn pg := by
+  intro i hi
+  have h1 := (h.2.2.2.1 i hi).1
+  have h2 := h.2.1
+  have hne : pageFlags pg ≠ leafPageFlag := by rw [hf]; decide
+  simp only [elemEnd, hne, ite_false]
+  omega
 
 /-- **Materializing a page position keeps `wOK`** (the root page of a bucket with no root node,
 or a child its branch node has not materialized). U7. -/
 theorem wOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
-    (hok : wOK X) (h : nodeAdded X X' bl l pgid parent)
-    (hpos : ∃ B, X.t.bs !! bl = some B ∧
-      ((parent = null ∧ B.bv.rootNode' = null ∧ pgid = B.ib.root') ∨
-        ∃ i, pagePosAt B parent i pgid)) :
+    (hok : wOK X) (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) :
     wOK X' := by
   sorry
 

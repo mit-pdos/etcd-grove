@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 theorem arrayImpl_mergeSpans
-    (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
+    (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
     (hMerge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG))
     (a : Loc) : (arrayImpl (GF := GF) a).MergeSpansSpec := by
   intro free idsl ys Hinc Hnd _ Hge2 Hlen

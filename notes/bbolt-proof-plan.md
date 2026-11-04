@@ -347,6 +347,33 @@ items 4 and 5 and need the same edits.
    meta's `pgid`; `Commit` from the new state's `treeOK`/`metaOk`, U10/U11).
 3. **For U11**: `BNs`' ghost names `mln` and `byt` (positions 16, 17) must be allocated at `Open`.
 
+## Shared-statement fixes, batch 7 (U7's findings, 2026-11-04; decided by the coordinator)
+
+1. **`node.read`** takes `pageElemsIn pg` (new, `Model/PageAt`: every element inside the page);
+   `matReady` holds it (before the header id); `leafWF_elemsIn`/`branchWF_elemsIn` (`Model/WOps`)
+   derive it for callers. U7's `wp_proof_in` is `node.read.wp_proof` (no `sorry`).
+2. **`ltree_nodeAdded` was false**; the shared statement is U7's `Write.ltree_nodeAdded'`
+   (`Write/Mat.lean`, proved) over `matFresh` (moved to `Model/WOps`: no cached node is the new
+   one, an inline bucket had no root node; inline buckets at position 0 only). `matGrow`'s step
+   carries `matPos X bl pgid parent` (new: the position is a root page without a root node, or a
+   branch node's unmaterialized child, `wOK_nodeAdded`'s `hpos`).
+3. **`wtxData_matGrow`** moved to `Write/Mat.lean`, with `wOK X`, proved by induction over
+   `wOK_nodeAdded`, the new `wOK_matFresh`, `wOK_inlineLeaf` (`Model/WOps`, `sorry`, owner U7) and
+   U7's `wtxData_nodeAdded'`.
+4. **`wtxData_put`/`wtxData_del`** take `hinj : ∀ n', bktLoc X n' = some bl → n' = n` (the root
+   bucket's cache injective: `gensOK_bktLoc_inj`, `Inv/Tx`, from `gensOK`'s second clause). The
+   walk's termination: `wOK_leaves_fuel` (`Model/LTree`, `sorry`, owner U7): under `wOK` more fuel
+   walks the same leaves (before `Commit` a branch node is its page, `txPg`, so the logical tree has
+   the base tree's shape, whose depth the strict tree bounds by its page count, below `X.fuel`);
+   `wOK` is what put/delete/materialization keep, and rebalance/spill run after it.
+5. **`common.Verify`'s spec** is `Spec/go_etcd_io/bbolt/internal/common/Verify.lean` (U2's
+   contract: `WP f {{ Q }} ∧ Q`), proof stub `Proof/.../internal/common/Verify.lean` (`sorry`:
+   `getEnvVerify`'s `os.Getenv`); U2's `Callees.lean` copy is gone, its users take
+   `bbolt.internal.common.Verify.spec`. **`wtxHeap_node_insert`** (`Inv/WtxHeap`, `sorry`, owner
+   U7): a fresh node's object (`X.t.objs !! l = none`, its parent not itself) into its bucket's
+   nodes, live (`WX.addNode`); the registry insert is `wtxCore`'s `ghostMapAuth r.n.nl` at the
+   fresh key (`nlocOK`: a registered node is an object, so the key is fresh).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
