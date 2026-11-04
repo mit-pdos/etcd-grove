@@ -93,6 +93,26 @@ private theorem pagesInv_timeless_r (B : BNs) (p : GoString) : Timeless (pagesIn
   unfold pagesInv
   infer_instance
 
+omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos sem in
+/-- The readers' txids without a leaving reader's: the freelist's `ro.erase t`. -/
+theorem ro_delete_perm (F : GMap Nat w64) (k : Nat) (t : w64) (ro ro' : List w64)
+    (hk : F !! k = some t) (hro : ro.Perm (F.toList.map Prod.snd)) (hro' : ro'.Perm (ro.erase t)) :
+    ro'.Perm ((GMap.delete k F).toList.map Prod.snd) := by
+  have hd : (GMap.delete k F) !! k = none := GMap.lookup_delete F k
+  have he : <[k := t]> (GMap.delete k F) = F := by
+    apply GMap.ext; intro k'
+    by_cases h : k = k'
+    · subst h; rw [GMap.lookup_insert, hk]
+    · rw [GMap.lookup_insert_ne _ _ h, GMap.lookup_delete_iff]
+      simp only [h, ↓reduceIte]
+  have h1 := ((toList_insert_fresh_perm (GMap.delete k F) k t hd).map Prod.snd)
+  rw [he] at h1
+  simp only [List.map_cons] at h1
+  have h2 : (ro.erase t).Perm ((t :: ((GMap.delete k F).toList.map Prod.snd)).erase t) :=
+    (hro.trans h1).erase t
+  simp only [List.erase_cons_head] at h2
+  exact hro'.trans h2
+
 section store
 variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
