@@ -62,18 +62,18 @@ def nodeDerefd (r r' : NRec) : Prop :=
   r'.nv = { r.nv with key' := r'.nv.key' } ∧ (r'.nv.key' = slice.nil ↔ r.nv.key' = slice.nil) ∧
   r'.ws.map wDat = r.ws.map wDat ∧ (∀ w ∈ r'.ws, w.ks = Src.heap ∧ w.vs = Src.heap) ∧
   r'.ins.length = r.ins.length ∧ r'.cs = r.cs ∧ r'.key = r.key ∧ r'.capOwn = r.capOwn ∧
-  r'.ksrc = (if r.nv.key' = slice.nil then r.ksrc else Src.heap)
+  r'.ksrc = Src.heap
+
+/-- The node `r` with its key slice `k`, its inodes `ins` and entries `ws` copied. -/
+def NRec.derefTo (r : NRec) (k : GoSlice) (ins : List Inode) (ws : List WEntry) : NRec :=
+  { r with nv := { r.nv with key' := k }, ins := ins, ws := ws, ksrc := Src.heap }
 
 theorem nodeDerefd_trans {r1 r2 r3 : NRec} (h1 : nodeDerefd r1 r2) (h2 : nodeDerefd r2 r3) :
     nodeDerefd r1 r3 := by
   obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1⟩ := h1
   obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2⟩ := h2
-  refine ⟨?_, b2.trans b1, c2.trans c1, d2, e2.trans e1, f2.trans f1, g2.trans g1, i2.trans i1, ?_⟩
+  refine ⟨?_, b2.trans b1, c2.trans c1, d2, e2.trans e1, f2.trans f1, g2.trans g1, i2.trans i1, j2⟩
   · rw [a2, a1]
-  · rw [j2, j1]
-    by_cases h : r1.nv.key' = slice.nil
-    · rw [if_pos (b1.2 h), if_pos h]
-    · rw [if_neg (fun h' => h (b1.1 h')), if_neg h]
 
 /-- A node's record kept or dereferenced. -/
 def nodeStep (r r' : NRec) : Prop := r' = r ∨ nodeDerefd r r'
@@ -123,17 +123,15 @@ theorem derefStep_trans (X1 X2 X3 : WX) (h1 : derefStep X1 X2) (h2 : derefStep X
 /-- A node record holds no view slice (what `derefOK` asks of a live node). -/
 def noView (r : NRec) : Prop := (∀ w ∈ r.ws, w.ks ≠ .view ∧ w.vs ≠ .view) ∧ r.ksrc ≠ .view
 
-theorem noView_derefd {r r' : NRec} (h : nodeDerefd r r') (hk : r.ksrc ≠ .view) : noView r' := by
+theorem noView_derefd {r r' : NRec} (h : nodeDerefd r r') : noView r' := by
   obtain ⟨-, -, -, hw, -, -, -, -, hks⟩ := h
   refine ⟨fun w hw' => ⟨by rw [(hw w hw').1]; simp, by rw [(hw w hw').2]; simp⟩, ?_⟩
-  rw [hks]; split
-  · exact hk
-  · simp
+  rw [hks]; simp
 
 theorem noView_step {r r' : NRec} (h : nodeStep r r') (hv : noView r) : noView r' := by
   rcases h with rfl | h
   · exact hv
-  · exact noView_derefd h hv.2
+  · exact noView_derefd h
 
 /-- The nodes of bucket `B` below the node `n` (through `children`). -/
 def subNodes (B : BRec) (n : Loc) : Loc → Prop := fun d => descIn B n d
@@ -289,9 +287,7 @@ theorem liveFresh_step {X X' : WX} (h : derefStep X X') (hp : liveFresh X) : liv
   rcases hrs with rfl | ⟨-, -, -, hw, -, -, -, -, hks⟩
   · exact ⟨h1, h2⟩
   · refine ⟨fun w hw' => ⟨by rw [(hw w hw').1]; simp, by rw [(hw w hw').2]; simp⟩, ?_⟩
-    rw [hks]; split
-    · exact h2
-    · simp
+    rw [hks]; simp
 
 /-- Setting one node's record to a dereferenced one is a step. -/
 theorem derefStep_setNode (X : WX) (bl l : Loc) (B : BRec) (r r' : NRec)
