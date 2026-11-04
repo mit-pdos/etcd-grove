@@ -1214,6 +1214,54 @@ Not done (in this order, the coordinator's):
 - **Interfaces** not regenerated (Options, Bucket.spill, os.File.Close, newBoltLoggerZap changed);
   TCB baseline update at the checkpoint (38.1's axioms, above).
 
+## Shared-statement fixes, batches 40B and 41 (maintainer 8, 2026-11-04; decided by the coordinator)
+
+`BNs` gained three names (`Inv/Names`, positions 18-20): `fpb`, `opn`, `spr`; `Open` must
+allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`metaR` construction).
+
+- **40B (`b83de5ce1c`): the freed freelist page's bytes.** `Inv/Store`: `fbCond C fl wtx pb` (the
+  live, unpublished writer `w` has `C.flpg = some f`, `f` no tree slot, in its pending entry, as
+  some `x` with `x.toNat = f`); **`fbInv B σ`** (inside `bytesWit`, so `pagesInv`'s patterns are
+  unchanged): `∃ F, ghostVar B.fpb ½ F ∗ (ghostVar B.fpb ½ F ∨ ⌜fbCond …⌝) ∗ ⌜fbCond … → the store
+  slots in F hold F's bytes⌝`; **`fbTok B C fl ws F`** (the writer's side: `⌜fbCond⌝ ∗ ghostVar
+  B.fpb ½ F`, or `⌜¬ fbCond⌝`); `fbRec id n pg` (the recorded run), `fbRec_lookup`;
+  `wdbOK_not_fbCond`, **`fbTok_of_wdbOK`** (under `wdbOK` there is no freed page, `flCurOK`).
+  Lemmas: `store_free` unchanged but its freelist-page case now takes `0 < n` (first conjunct;
+  it leaves the token home); new **`store_free_fl`** (`Commit`'s free of the old freelist page,
+  premises unbundled) returns `fbTok B C fl' ws (fbRec id n pg) ∗ ⌜fbCond C fl' ws.2.1 ws.2.2.1⌝`;
+  **`store_rollback`** takes `(F)` after `w` and `fbTok B C fl ws F` (last in the pre) and its
+  post ends `⌜fbCond C fl ws.2.1 ws.2.2.1 → ∀ s ∈ S, ∀ v, F !! s = some v → bs s = v⌝`;
+  **`store_publish`** takes `(F)` after `bs` and `fbTok B C fl (some v, some w, false, wl) F` (last
+  in the pre). `wdbOK` unchanged (batch 44 brings the flagged `wdbOK'`). Adapted: `Tx__Rollback`
+  (`fbTok_of_wdbOK … ∅`). **Broken, active units**: `Tx__rollback.lean:220,287` (`store_rollback`:
+  pass `F` and an `fbTok`; after `commitFreelist` the one from `store_free_fl`, otherwise
+  `fbTok_of_wdbOK`; the post has one more pure), `Commit/Step.lean:180` (`store_publish`: `F` and
+  the token), `Open/Core` (names; `bytesWit` now ends `∗ fbInv B σ`: `iexists ∅; ileft` both
+  halves of a fresh `fpb` at `∅`).
+- **41 (`c6406935ad`): the opening and the spare state.** `Inv/Locks`: **`opnShot B :=
+  dghostVar B.opn DFrac.discard true`** (persistent; `opnShot_pending` against `dghostVar B.opn
+  (own 1) false`, which `Open` holds until after `loadFreelist`); `sprCl o M := ∀ k v, M !! k = some
+  v → o = some k`; `B.spr : ghostVar (Option Nat)` (the plan's Bool refined: `some k` is the spare
+  reader's key, so the reset after its deregistration knows no reader is left): spare side ½
+  (**`spareTok B`** at `none`; **`sparePair B db sp := rdPair ∗ spareTok`**, now in `wdbOwn`,
+  `wdbLive`, `pairBack .spare`, and `DB.beginTx_s`'s/`DB.freepages`' pre (and the latter's post)
+  in place of `rdPair`), `metaR` ¼ (its `ghostMapAuth B.fltx 1 F` is now **`fltxAuth B F`** :=
+  that `∗ ∃ o, ghostVar B.spr ¼ o ∗ (opnShot B ∨ ⌜sprCl o F⌝)`), `pagesInv` ¼ (its
+  `ghostMapAuth B.rds 1 σ.R` is **`rdsAuth B σ.R`**, the same over `σ.R`). The spare reader holds
+  `ghostVar B.spr ½ (some k)`: `rdTx`'s and `rdTxK`'s non-loan case (in place of `emp`).
+  `isBoltP` ends `∗ opnShot B` (a pool reader has it). Store lemmas: **`store_register`** takes
+  `opnShot B` (last); new **`store_register_spare`** (`spareTok`, `metaR`'s quarter `o` → the
+  reader's `½ (some k)`, `metaR`'s `¼ (some k)`, `⌜o = none⌝`); `store_deregister` unchanged
+  (keeps the clause); new **`store_spr_reset k t o`** (the spare's `½ (some k)`, `metaR`'s `¼ o`
+  and its `fltx` fragment `k ↪ t`, under `metalock` after `store_deregister` and before deleting
+  `k` from `F`: back to `spareTok`, `¼ none`, `⌜o = some k⌝`); new **`store_setFl`** (=
+  `DB__loadFreelist.open_setFl_gap` with `spareTok B ∗ dghostVar B.opn (own 1) false` in pre and
+  post: proved, the gap can go). Users must repack `fltxAuth` after changing `F`: insert under
+  `opnShot` (pool) or after `store_register_spare` (`F` was empty: `sprCl none F`), delete keeps
+  `sprCl` (spare: after `store_spr_reset`, `F ⊆ {k}` minus `k`).
+  `DB.freepages`' spec: `sparePair` in pre and post is the decided `ghostVar K.B.spr ½ false`
+  (as `none`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
