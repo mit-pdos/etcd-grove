@@ -43,6 +43,12 @@ theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : ∃ n, (n, cv) ∈ treeEntries v.pages v.root := by
   sorry
 
+/-- A name of the root bucket names one top-level bucket. -/
+theorem top_entry_unique (v : View) (h : viewWF v) (kb cv cv' : List w8)
+    (he : bktEntry v.pages (rootVal v) kb cv) (he' : bktEntry v.pages (rootVal v) kb cv') :
+    cv = cv' := by
+  sorry
+
 /-- A top-level bucket's value holds its header. -/
 theorem top_len (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : 16 ≤ cv.length := by
