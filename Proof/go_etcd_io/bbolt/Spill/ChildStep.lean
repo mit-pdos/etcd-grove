@@ -85,11 +85,19 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       spFree X' w'.fl w.wtxid (ownF r'.nv.pgid' ++
         (es.take j ++ ps.map (pcUE (spP X')) ++ es.drop (j + 1)).flatMap UE.F) ∧
       spStep X X' w w'
-        (O ++ ownSl X.v r.nv.pgid' ++ (es.take j ++ es.drop (j + 1)).flatMap UE.D) st := by
+        (O ++ ownSl X.v r.nv.pgid' ++ (es.take j ++ es.drop (j + 1)).flatMap UE.D) st ∧
+      parentSpilled r r' j ps ∧ (ps.head?.map Piece.l) = some c ∧
+      piecesOK X' bl n (spP X') X'.t.mv.pgid'.toNat (childLo lo (wKey r.ws) j)
+        (childHi hi (wKey r.ws) r.ws.length j) h ps ∧
+      ps.flatMap (fun x => treeEls (spP X') x.id.toNat) = Ec ∧
+      (∃ Tc, spFrame X X' bl (Nc ++ Tc) ∧ ∀ l ∈ Tc, X.t.objs !! l = none ∨ l = n) ∧
+      (∀ s ∈ Dc, s ∈ pcSlots (spP X') ps ∨ s ∈ pendSlots w'.fl) ∧
+      (∀ s ∈ pcSlots (spP X') ps, s ∈ Dc ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
+      (∀ x, spP X' !! x ≠ spP X !! x → x ∉ Dc) := by
   obtain ⟨hstep, hcase⟩ := hdone
-  rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, -, -, -, rest⟩
+  rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, hDk, hDn, hPd, rest⟩
   · rw [hsp] at hsp'; cases hsp'
-  obtain ⟨ps, r', hps, hhd, hfr1, hD', -, hr', hpar, hlive⟩ := rest
+  obtain ⟨ps, r', hps, hhd, hfr1, hD', hE, hr', hpar, hlive⟩ := rest
   have hjes : j < es.length := (List.getElem?_eq_some_iff.1 hj).1
   have hpg : r'.nv.pgid' = r.nv.pgid' := by rw [hpar.2.2.1]
   -- the others' slots are in the frame
@@ -122,9 +130,15 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
       obtain ⟨_, _, _, _, _, _, _, _, _, _, _, h1, h2, _⟩ := hps.2.2 i x hi
       exact ⟨h1, h2⟩)
-  refine ⟨r', ps, hr', hpar.2.1, hpg, hlive, hbr, ?_, ?_, hstep⟩
+  have hT' : ∀ l ∈ T, X.t.objs !! l = none ∨ l = n := by
+    intro l hl
+    rcases hT l hl with h0 | ⟨pl, rp, j', plo, phi, hcs, rfl⟩
+    · exact Or.inl h0
+    · cases hcs; exact Or.inr rfl
+  subst hD'
+  refine ⟨r', ps, hr', hpar.2.1, hpg, hlive, hbr, ?_, ?_, hstep, hpar, hhd, hps, hE, ⟨T, hfr, hT'⟩,
+    hDk, hDn, hPd⟩
   · rw [hpg, ownSl_congr hfr.2.2.2.2.1, List.flatMap_append, List.flatMap_append, pcUE_D]
-    rw [hD'] at hsl
     refine slotInv_perm ?_ hsl
     simp only [List.flatMap_append, List.append_assoc]
     refine List.Perm.append_left _ (List.Perm.append_left _ ?_)

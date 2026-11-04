@@ -6,10 +6,6 @@ established at the start (`spLoop_init`), kept by a spilled child's spill (`spLo
 and by an unspilled child's (`spLoop_child`, over `ChildStep.uBr_childStep`), with the child's
 pre (`spLoop_childPre`), an error's post (`spLoop_err`), and every entry finished after the loop
 (`spLoop_fin`).
-
-Still to do (U9h hand-off): `spLoop_child`, an unspilled child's step, over a variant of
-`ChildStep.uBr_childStep` that names its pieces `ps` (the invariant's `Dk`/`Dn`/`EE` need the
-same `ps` as the child's `spDone`).
 -/
 module
 
