@@ -133,6 +133,28 @@ theorem mg_kids (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (p
   simp only [List.cons_append, List.nil_append, List.nodup_cons, List.mem_cons, not_or]
   exact ⟨⟨Ne.symm hllp, Ne.symm hlrp, hpk⟩, ⟨hllr, hlk⟩, hrk, hnd⟩
 
+theorem kidsOf_take_succ_eq (B : BRec) (ws : List WEntry) (j : Nat) (w : WEntry)
+    (hw : ws[j]? = some w) :
+    kidsOf B (ws.take (j + 1)) = kidsOf B (ws.take j) ++ (B.nm !! w.pgid).toList := by
+  unfold kidsOf
+  rw [List.take_succ, hw, List.filterMap_append]
+  simp only [Option.toList_some, List.filterMap_cons, List.filterMap_nil]
+  cases B.nm !! w.pgid <;> rfl
+
+/-- The merge's loop reaches each moved child once: at its entry, not yet reparented. -/
+theorem colKid_fresh (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (j : Nat) (w : WEntry)
+    (k : Loc) (hnd : (kidsOf B ws).Nodup) (hw : ws[j]? = some w) (hk : B.nm !! w.pgid = some k) :
+    colKid B ws nl dflt j k = (B.ns !! k).getD dflt := by
+  unfold colKid
+  rw [if_neg]
+  intro hm
+  have hsplit : kidsOf B ws = kidsOf B (ws.take (j + 1)) ++ kidsOf B (ws.drop (j + 1)) := by
+    unfold kidsOf; rw [← List.filterMap_append, List.take_append_drop]
+  rw [hsplit, kidsOf_take_succ_eq B ws j w hw, hk] at hnd
+  have := (List.nodup_append.1 (List.nodup_append.1 hnd).1).2.2
+  simp only [Option.toList_some, List.mem_singleton] at this
+  exact this k hm k rfl rfl
+
 /-- The right node after the merge's code, before its page is freed (its children slice `sCr` and
 list `csr`: the loop's `removeChild`s). -/
 def mgR (rr : NRec) (sCr : GoSlice) (csr : List Loc) : NRec :=
