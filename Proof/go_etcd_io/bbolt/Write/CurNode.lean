@@ -224,6 +224,19 @@ theorem resolve_root_none (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bkt
     · exact hrn
     · have := hc.2.2.2.1 hrn; rw [h] at this; cases this
 
+/-- A position's node is a cached node (`bktClean`: an inline bucket's root node is cached at the
+root's page id). -/
+theorem resolve_some_nm (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean v hwm bl B)
+    (pid : w64) (l : Loc) (h : resolve B pid = some l) : ∃ c, B.nm !! c = some l := by
+  unfold resolve at h
+  by_cases hin : B.ib.root' = W64 0
+  · rw [if_pos hin] at h
+    by_cases hrn : B.bv.rootNode' = null
+    · rw [if_pos hrn] at h; cases h
+    · rw [if_neg hrn] at h; cases h
+      exact ⟨_, hc.2.2.2.1 hrn⟩
+  · rw [if_neg hin] at h; exact ⟨pid, h⟩
+
 end curnode
 
 end Write
