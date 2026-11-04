@@ -143,11 +143,158 @@ its bucket; every live bucket's cached buckets live buckets, and its root node, 
 node of it below a root (`b.rootNode.root()`). -/
 def derefPre (X : WX) : Prop :=
   (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live →
-    (∀ w ∈ r.ws, 0 < w.key.length) ∧ (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧
-    ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
+    r.nv.bucket' = bl ∧ (∀ w ∈ r.ws, 0 < w.key.length) ∧
+    (r.nv.key' = slice.nil ∨ 0 < r.key.length) ∧ ∀ c ∈ r.cs, c ∈ X.live ∧ (B.ns !! c).isSome) ∧
   (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live →
     (∀ k c, B.bm !! k = some c → c ∈ X.live ∧ (X.t.bs !! c).isSome) ∧
     (B.bv.rootNode' ≠ null → ∃ rt, nodeRootIn B B.bv.rootNode' rt ∧ rt ∈ X.live))
+
+/-! ## What a step keeps -/
+
+theorem nodeStep_nv {r r' : NRec} (h : nodeStep r r') :
+    r'.nv = { r.nv with key' := r'.nv.key' } ∧ r'.cs = r.cs ∧ r'.key = r.key ∧
+      r'.capOwn = r.capOwn ∧ (r'.nv.key' = slice.nil ↔ r.nv.key' = slice.nil) ∧
+      r'.ws.map wDat = r.ws.map wDat := by
+  rcases h with rfl | ⟨a, b, c, -, -, f, g, i, -⟩
+  · exact ⟨rfl, rfl, rfl, rfl, Iff.rfl, rfl⟩
+  · exact ⟨a, f, g, i, b, c⟩
+
+theorem nodeStep_key_len {r r' : NRec} (h : nodeStep r r') : r'.ws.length = r.ws.length := by
+  have := congrArg List.length (nodeStep_nv h).2.2.2.2.2
+  simpa using this
+
+theorem nodeStep_keys {r r' : NRec} (h : nodeStep r r') : r'.ws.map WEntry.key = r.ws.map WEntry.key := by
+  have h' := congrArg (List.map fun d : w32 × w64 × List w8 × List w8 => d.2.2.1)
+    (nodeStep_nv h).2.2.2.2.2
+  simpa [List.map_map, wDat, Function.comp_def] using h'
+
+theorem bktStep_ns {B B' : BRec} (h : bktStep B B') (l : Loc) :
+    optRel nodeStep (B.ns !! l) (B'.ns !! l) := h.2 l
+
+theorem bktStep_fields {B B' : BRec} (h : bktStep B B') :
+    B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.nm = B.nm ∧ B'.bm = B.bm ∧ B'.ipg = B.ipg ∧ B'.isrc = B.isrc ∧
+      B'.pst = B.pst := by
+  have e := h.1
+  rw [← e]
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- `descIn` is kept by a step (children and node domains unchanged). -/
+theorem descIn_step {B B' : BRec} (h : bktStep B B') {n d : Loc} (hd : descIn B n d) :
+    descIn B' n d := by
+  induction hd with
+  | self n => exact .self n
+  | child n c d r hr hc _ ih =>
+    obtain ⟨r', hr', hs⟩ := optRel_some_l (hr ▸ h.2 n)
+    exact .child n c d r' hr' (by rw [(nodeStep_nv hs).2.1]; exact hc) ih
+
+theorem descIn_step' {B B' : BRec} (h : bktStep B B') {n d : Loc} (hd : descIn B' n d) :
+    descIn B n d := by
+  induction hd with
+  | self n => exact .self n
+  | child n c d r' hr' hc _ ih =>
+    obtain ⟨r, hr, hs⟩ := optRel_some_r (hr' ▸ h.2 n)
+    exact .child n c d r hr (by rw [← (nodeStep_nv hs).2.1]; exact hc) ih
+
+theorem nodeRootIn_step {B B' : BRec} (h : bktStep B B') {n rt : Loc} (hd : nodeRootIn B n rt) :
+    nodeRootIn B' n rt := by
+  induction hd with
+  | top n r hr hp =>
+    obtain ⟨r', hr', hs⟩ := optRel_some_l (hr ▸ h.2 n)
+    refine .top n r' hr' ?_
+    rw [(nodeStep_nv hs).1]; exact hp
+  | up n rt r hr hp _ ih =>
+    obtain ⟨r', hr', hs⟩ := optRel_some_l (hr ▸ h.2 n)
+    have e : r'.nv.parent' = r.nv.parent' := by rw [(nodeStep_nv hs).1]
+    refine .up n rt r' hr' (by rw [e]; exact hp) ?_
+    rw [e]; exact ih
+
+theorem derefStep_bs {X X' : WX} (h : derefStep X X') (bl : Loc) :
+    optRel bktStep (X.t.bs !! bl) (X'.t.bs !! bl) := h.2.2.2.2.2.2.2.2.2.2 bl
+
+/-- **The nodes below `n` in bucket `bl` hold no view slice** (what `n.dereference()` leaves). -/
+def covered (X : WX) (bl n : Loc) : Prop :=
+  ∀ B d r, X.t.bs !! bl = some B → descIn B n d → B.ns !! d = some r → noView r
+
+theorem covered_step {X X' : WX} (h : derefStep X X') {bl n : Loc} (hc : covered X bl n) :
+    covered X' bl n := by
+  intro B' d r' hB' hd hr'
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+  obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 d)
+  exact noView_step hrs (hc B d r hB (descIn_step' hs hd) hr)
+
+theorem derefPre_step {X X' : WX} (h : derefStep X X') (hp : derefPre X) : derefPre X' := by
+  obtain ⟨-, hlive, -, -, -, -, -, -, -, -, hbs⟩ := h
+  refine ⟨?_, ?_⟩
+  · intro bl B' l r' hB' hr' hl
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+    obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 l)
+    rw [hlive] at hl ⊢
+    obtain ⟨h0, h1, h2, h3⟩ := hp.1 bl B l r hB hr hl
+    obtain ⟨hnv, hcs, hkey, -, hnil, hws⟩ := nodeStep_nv hrs
+    refine ⟨by rw [hnv]; exact h0, ?_, ?_, ?_⟩
+    · intro w hw
+      have : w.key ∈ r'.ws.map WEntry.key := List.mem_map_of_mem hw
+      rw [nodeStep_keys hrs] at this
+      obtain ⟨w0, hw0, he⟩ := List.mem_map.1 this
+      rw [← he]; exact h1 w0 hw0
+    · rw [hkey, hnil]; exact h2
+    · intro c hc
+      rw [hcs] at hc
+      obtain ⟨hcl, hcs'⟩ := h3 c hc
+      refine ⟨hcl, ?_⟩
+      have := hs.2 c
+      revert this hcs'
+      cases B.ns !! c <;> cases B'.ns !! c <;> simp [optRel]
+  · intro bl B' hB' hl
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+    rw [hlive] at hl ⊢
+    obtain ⟨h1, h2⟩ := hp.2 bl B hB hl
+    have hf := bktStep_fields hs
+    refine ⟨?_, ?_⟩
+    · intro k c hk
+      rw [hf.2.2.2.1] at hk
+      obtain ⟨hcl, hcb⟩ := h1 k c hk
+      refine ⟨hcl, ?_⟩
+      have := hbs c
+      revert this hcb
+      cases X.t.bs !! c <;> cases X'.t.bs !! c <;> simp [optRel]
+    · intro hrn
+      rw [hf.1] at hrn ⊢
+      obtain ⟨rt, hrt, hrl⟩ := h2 hrn
+      refine ⟨rt, ?_, hrl⟩
+      exact nodeRootIn_step hs hrt
+
+theorem liveFresh_step {X X' : WX} (h : derefStep X X') (hp : liveFresh X) : liveFresh X' := by
+  obtain ⟨-, hlive, -, -, -, -, -, -, -, -, hbs⟩ := h
+  intro bl B' l r' hB' hr' hl
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+  obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 l)
+  rw [hlive] at hl
+  obtain ⟨h1, h2⟩ := hp bl B l r hB hr hl
+  rcases hrs with rfl | ⟨-, -, -, hw, -, -, -, -, hks⟩
+  · exact ⟨h1, h2⟩
+  · refine ⟨fun w hw' => ⟨by rw [(hw w hw').1]; simp, by rw [(hw w hw').2]; simp⟩, ?_⟩
+    rw [hks]; split
+    · exact h2
+    · simp
+
+/-- Setting one node's record to a dereferenced one is a step. -/
+theorem derefStep_setNode (X : WX) (bl l : Loc) (B : BRec) (r r' : NRec)
+    (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r) (hd : nodeStep r r') :
+    derefStep X (X.setNode bl l r') := by
+  unfold WX.setNode WX.setBkt
+  rw [hB]
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun bl' => ?_⟩
+  simp only
+  by_cases he : bl = bl'
+  · subst he
+    rw [GMap.lookup_insert, hB]
+    refine ⟨rfl, fun l' => ?_⟩
+    by_cases hl : l = l'
+    · subst hl; rw [GMap.lookup_insert, hr]; exact hd
+    · rw [GMap.lookup_insert_ne _ _ hl]; exact optRel_refl nodeStep_refl _
+  · rw [GMap.lookup_insert_ne _ _ he]
+    exact optRel_refl bktStep_refl _
 
 end deref
 
