@@ -55,7 +55,8 @@ and `allocate`'s premises for `commitFreelist`'s (`derefPre`, `liveFresh`, `live
 the high-water mark's pages inside the mapping, batch 29); the records agree with the freelist
 (`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before and after;
 the dirty pages `tx.write` takes (`spillBufs`, batch 39); (batch 44.7) the transaction's fields,
-its root bucket and its meta copy but the high-water mark kept. Its start takes `spillStartOK`
+its root bucket (present) and its meta copy but the high-water mark kept, on success and on an
+error (U10g's gap 7: the rollback after a failed spill needs `writable`, the root bucket, the txid). Its start takes `spillStartOK`
 (batch 43). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
@@ -71,10 +72,12 @@ abbrev Bucket.spill.spec : Prop :=
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
           X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl ∧
           spillBufs X' w.C w'.fl ∧
-          X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨
+          X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
+          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
-          X'.v.pages = X.v.pages⌝ ∗
+          X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
+          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝ ∗
         ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))) }}
 
 end spec
