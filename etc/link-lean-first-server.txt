@@ -100,6 +100,10 @@ lease_LeaseQueue__Less:
 lease_LeaseQueue__Swap:
 lease_LeaseQueue__Push:
 lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+# (the lease-expiry plan's S1, 2026-11-04) the notifier's `Init` (`Recover`'s), over container/heap's
+# `Init` (an axiom of this repository, Proof/container/heap/Init_.lean).
+heap_Init_:
+lease_LeaseExpiredNotifier__Init: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_
 lease_NewLease:
 lease_Lease__getRemainingTTL:
 lease_Lease__TTL:
