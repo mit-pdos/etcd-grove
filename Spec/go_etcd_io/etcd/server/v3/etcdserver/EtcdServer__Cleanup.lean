@@ -47,7 +47,8 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   nothing). -/
 abbrev EtcdServer.Cleanup.spec : Prop :=
   ∀ (s lp wsl st : Loc) (γw : mvcc.WsNames) (c : Int) (stl : Loc) (R : IProp GF)
-    (M : auth.AuthMode) (γbe : GName) (d : mvcc.KBReal) (W Pk : IProp GF) (cp : GoInterface),
+    (M : auth.AuthMode) (γbe : GName) (d : mvcc.KBReal) (W Pk : IProp GF) (cp : GoInterface)
+    (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp ∗
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
@@ -58,11 +59,13 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
       dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.isStopChans d.γB d.P W Pk d.be ∗
       backend.bOpen d.γB 1 ∗
+      -- (2026-11-04, R2b-3d stage 3) a request `X ⇒ Y` of the backend's stop commit
+      X ∗ backend.commitReq d.γB d.P Pk d.be X Y ∗
       srvCompactorAddr s ↦□ cp ∗ compactorOk cp }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
   {{ RET #(); auth.tpAdmin stl M ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-      dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
+      dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗ Y ∗
       ∃ D : backend.Data, backend.bStopView d.γB d.P W Pk D ∗
         ((∃ path : GoString, backend.bFile d.γB path ∗ backend.fileHolds path D) ∨
           ⌜¬ backend.dbCloseOk⌝) }}

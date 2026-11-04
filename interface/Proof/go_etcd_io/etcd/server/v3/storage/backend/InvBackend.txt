@@ -885,6 +885,7 @@ structure backend.BNames : Type where
   pv : GName
   ck : GName
   dbf : GName
+  rq : GName
   rbD : GMap GoString Unit
 
 def backend.bView (γ : backend.BNames) (q : Qp) (vd : backend.VData) : IProp GF :=
