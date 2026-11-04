@@ -15,6 +15,7 @@ module
 
 public import Spec.go_etcd_io.bbolt.Tx__allocate
 public import Proof.go_etcd_io.bbolt.Inv.WAccess
+public import Proof.go_etcd_io.bbolt.Commit.WriteFL
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Write
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__EstimatedWritePageSize
@@ -31,26 +32,6 @@ namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
-section pure
-variable [GooseExts]
-
-/-- The pages `commitFreelist` allocates for the freelist `fl`:
-`EstimatedWritePageSize() / pageSize + 1`. -/
-def flCount (fl : FLPg) : Nat :=
-  (16 + 8 * (fl.allIds.length + (if 0xFFFF ≤ fl.allIds.length then 1 else 0))) / 4096 + 1
-
-/-- The freelist page `freelist.Write` leaves in an allocated buffer of `count` pages at `id`:
-the header (id, `freelistPageFlag`, the count field, overflow `count - 1`), the count (when at
-least `0xFFFF` ids), the sorted ids, zeros. -/
-def flPageBytes (fl : FLPg) (id : w64) (count : Nat) : List w8 :=
-  let n := fl.allIds.length
-  let body := (if n < 0xFFFF then [] else encode (W64 (n : Int))) ++
-    (sortPgids fl.allIds).flatMap encode
-  encode (⟨id, W16 (freelistPageFlag : Int), W16 ((if n < 0xFFFF then n else 0xFFFF : Nat) : Int),
-      W32 ((count - 1 : Nat) : Int)⟩ : Page) ++
-    (body ++ List.replicate (count * 4096 - 16 - body.length) (W8 0))
-
-end pure
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -94,9 +75,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- Not yet (U10c): `EstimatedWritePageSize` and `Write` need the freelist's `flPgOwn` out of
-`wdbW` (`wdbLive`), `SetFreelist` and `Id` the meta copy's and the new buffer's header out of
-`wtxW` (`wtxHeap`): access lemmas of the shared predicates. -/
+set_option maxHeartbeats 0 in
+/-- **`tx.commitFreelist()`** proved: `EstimatedWritePageSize` over the freelist out of `wdbW`
+(`wdbW_fl_acc`), `allocate` of `flCount` pages; on an error the frame's entailment gives
+`wtxEnd` for `rollback` (`rbOK`: the live writer state, or the lost mapping's); on success the
+new buffer and the meta copy out of `wtxW` (`wtxW_flpage_acc`), the freelist written into it,
+`SetFreelist(p.Id())`, back as `setFlPage`. -/
 theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     (hRb : Tx.rollback.spec (GF := GF) (hG := hG))
     (hEst : internal.freelist.Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG))
@@ -104,7 +88,149 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
     (hSet : internal.common.Meta.SetFreelist.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG)) :
     Tx.commitFreelist.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro K tx r X w F htx hhwm hdp hlf hlr hlen hrb1 hrb2
+  wp_start as ⟨HF, Hw, Hd⟩
+  icases wtxW_db_acc K tx r false X $$ Hw with ⟨⟨#Hpkg, #Hcore, %Hrdb⟩, Hdb, Hwb⟩
+  icases wdbW_fl_acc K tx X.v w $$ Hd with ⟨%dqf, Hfl, Hflo, Hdb2⟩
+  ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
+  · unfold BC.core; iexact Hcore
+  unfold isBoltCoreP
+  icases Hcore' with ⟨-, -, -, -, -, #Hfix, -⟩
+  iunfold dbFixed at Hfix
+  icases Hfix with ⟨#Hps, -⟩
+  ihave #Hpkf : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist $$ []
+  · iPkgInit
+  ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply hEst w.fli w.fl $$ [$Hpkf $Hflo] as Hflo
+  try wp_auto
+  have hcnt : BitVec.sdiv (W64 ((16 + 8 * (w.fl.allIds.length +
+      (if 65535 ≤ w.fl.allIds.length then 1 else 0)) : Nat) : Int)) (W64 4096) + W64 1 =
+      W64 ((flCount w.fl : Nat) : Int) := by
+    unfold flCount
+    have : 16 + 8 * (w.fl.allIds.length + (if 65535 ≤ w.fl.allIds.length then 1 else 0)) < 2 ^ 52 := by
+      split <;> omega
+    have hm1 : (W64 ((16 + 8 * (w.fl.allIds.length +
+        (if 65535 ≤ w.fl.allIds.length then 1 else 0)) : Nat) : Int)).msb = false := by
+      rw [BitVec.msb_eq_decide]; simp; omega
+    have hm2 : (W64 4096).msb = false := by decide
+    rw [BitVec.sdiv_eq, hm1, hm2]
+    apply BitVec.eq_of_toNat_eq
+    simp [BitVec.toNat_udiv, BitVec.toNat_add]
+    omega
+  rw [hcnt]
+  ihave Hd := Hdb2 $$ Hfl Hflo
+  ihave Hw := Hwb $$ Hdb
+  have hc1 : 1 ≤ flCount w.fl := by unfold flCount; omega
+  have hc2 : flCount w.fl * 4096 < 2 ^ 62 := by unfold flCount; split <;> omega
+  have hsc : sint.Z (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
+  have hsn : sint.nat (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
+  icases persistent_entails_left (show wdbW (GF := GF) K tx X.v w ⊢
+      ⌜wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C⌝ by
+        unfold wdbW; iintro ⟨-, %h⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwd⟩
+  wp_apply hAlloc K tx r false X w (W64 ((flCount w.fl : Nat) : Int)) (by rw [hsc]; omega)
+    (by rw [hsn]; omega) htx hhwm hdp hlf hlr $$ [Hw Hd]
+    as %p %err Hres
+  · iframe
+  icases Hres with (⟨%He, %X1, %w1, %id, Hw, Hd, %Hal⟩ | ⟨%He, #Herr, Hfail⟩)
+  · subst He
+    try wp_auto
+    simp only [hsn] at Hal
+    obtain ⟨-, hpn, Xr, -, hcase⟩ := Hal.1
+    obtain ⟨hh, hX1⟩ : ∃ h, X1 = Xr.addPage id p (flCount w.fl) h := by
+      rcases hcase with ⟨-, -, e⟩ | ⟨-, -, -, e⟩
+      · exact ⟨_, e⟩
+      · exact ⟨_, e⟩
+    have hfl1 : w1.fl.allIds.length ≤ w.fl.allIds.length := by
+      rcases hcase with ⟨-, e, -⟩ | ⟨-, e, -, -⟩
+      · rw [e]; exact alloc_allIds_le _ _ _ _
+      · simp [e]
+    have hroom : 8 * (w1.fl.allIds.length + 1) ≤ flCount w.fl * 4096 - 16 := by
+      unfold flCount; exact flCount_room _ _ hfl1
+    obtain ⟨hpm, hbf⟩ := addPage_lookups Xr id p (flCount w.fl) hh
+    rw [← hX1] at hpm hbf
+    icases wtxW_flpage_acc K tx r false X1 id p _ hpm hbf $$ Hw
+      with ⟨%mp, %dqm, Hdb, Hme, Hmv, Hp, Hwb⟩
+    icases wdbW_fl_acc K tx X1.v w1 $$ Hd with ⟨%dqf1, Hfl, Hflo, Hdb2⟩
+    have hpl : (encode (⟨id, W16 0, W16 0, W32 ((flCount w.fl - 1 : Nat) : Int)⟩ : Page) ++
+        List.replicate (flCount w.fl * 4096 - 16) (W8 0)).length = flCount w.fl * 4096 := by
+      simp only [List.length_append, ByteEncoding.encode_length, List.length_replicate]; omega
+    have hpne : (encode (⟨id, W16 0, W16 0, W32 ((flCount w.fl - 1 : Nat) : Int)⟩ : Page) ++
+        List.replicate (flCount w.fl * 4096 - 16) (W8 0)) ≠ [] :=
+      List.ne_nil_of_length_pos (by rw [hpl]; omega)
+    icases Read.bytesPointsto_bounds _ _ _ hpne $$ Hp with ⟨Hp, %Hpb⟩
+    rw [hpl] at Hpb
+    icases (Spill.pageBuf_split p (DFrac.own 1) _ _ Hpb.1).1 $$ Hp with ⟨Hh, Hr⟩
+    try wp_auto
+    wp_apply hWrite w1.fli w1.fl p _ (flCount w.fl * 4096 - 16) hroom Hpb.1 (by omega)
+      $$ [$Hpkf $Hflo $Hh $Hr] as ⟨Hflo, Hh, Hr⟩
+    try wp_auto
+    wp_apply hId p _ (DFrac.own 1) $$ [$Hpkc $Hh] as Hh
+    try wp_auto
+    wp_apply hSet mp X1.t.mv _ $$ [$Hpkc $Hmv] as Hmv
+    try wp_auto
+    ihave Hp := (Spill.pageBuf_split p (DFrac.own 1) _ _ Hpb.1).2 $$ [Hh Hr]
+    · iframe
+    ihave Hw := Hwb $$ %(flPageBytes w1.fl id (flCount w.fl)) [] Hdb Hme Hmv [Hp]
+    · ipureintro; rw [flPageBytes_length _ _ _ hroom, hpl]
+    · rw [← flPage_eq]; iexact Hp
+    ihave Hd := Hdb2 $$ Hfl Hflo
+    try wp_auto
+    try iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists X1, w1, id, p
+    iframe
+    ipureintro; exact Hal
+  · cases err with
+    | nil => exact absurd rfl He
+    | ok ei =>
+    try wp_auto
+    icases Hfail with (⟨Hw, Hd⟩ | ⟨%X', %w', Hw, Hd, %Hrel⟩)
+    · ihave Hend : wtxEnd K tx r X (wLive X.v w.C) w $$ [HF Hw Hd]
+      · iapply hrb1; iframe
+      have hrbok : rbOK X (wLive X.v w.C) w := by
+        refine ⟨X.v, w.C.txid + 1, false, true, rfl, ?_,
+          ⟨fun _ => by rw [Hwd.2.1]; simp, fun _ => rfl⟩, fun _ => rfl, fun h => absurd h (by simp)⟩
+        rw [htx]; rfl
+      wp_apply hRb K tx r X (wLive X.v w.C) w hrbok $$ [Hend] as #Hdone
+      · iexact Hend
+      try wp_auto
+      try iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact fun h => nomatch h
+      isplitr
+      · iexact Herr
+      iexact Hdone
+    · icases persistent_entails_left (show wdbLost (GF := GF) K tx X'.v w' ⊢
+          ⌜wdbOK w' ∧ w'.ms = none⌝ by
+            unfold wdbLost; iintro ⟨-, %h⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwl⟩
+      obtain ⟨⟨Xd, b0, hder, hX'⟩, hC, hfl⟩ := Hrel
+      ihave Hend : wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
+        $$ [HF Hw Hd]
+      · iapply hrb2 X' w' ⟨Xd, b0, hder, hX'⟩ hC hfl; iframe
+      have hrbok : rbOK X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
+        refine ⟨X'.v, w'.C.txid + 1, false, false, rfl, ?_, ?_, ?_, ?_⟩
+        rotate_left
+        · simp [Hwl.2]
+        · intro h; cases h
+        · intro h; cases h
+        rw [hX']
+        show Xd.t.mv.txid' = _
+        rw [hder.2.2.2.2.2.2.1, htx, hC]; rfl
+      wp_apply hRb K tx r X' _ w' hrbok $$ [Hend] as #Hdone
+      · iexact Hend
+      try wp_auto
+      try iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact fun h => nomatch h
+      isplitr
+      · iexact Herr
+      iexact Hdone
 
 end proof
 
