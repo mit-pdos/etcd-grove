@@ -36,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem StartCompactingServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG))
-    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.specOff (GF := GF) (hG := hG)) :
     StartCompactingServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
     hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hret Hcret Hck Haf Hbuq Hdbo
@@ -77,7 +77,10 @@ theorem StartCompactingServer.wp_proof
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
-      (v3compactor.bootCfg_revision _ _ (by omega) Hcret) Hck Haf Hbuq
+      (if h : retention = W64 0 then v3compactor.bootCfg_off _ _ _ _ h
+       else v3compactor.bootCfg_revision _ _ (by
+         have : sint.Z retention ≠ 0 := fun h0 => h (by word)
+         omega) Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

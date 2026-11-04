@@ -642,6 +642,21 @@ instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp G
     Persistent (snapAuthResM (GF := GF) M s ast RD γr A') := by
   cases M <;> unfold snapAuthResM <;> infer_instance
 
+/-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
+(`authSnapKitM`) and the image's committed log. -/
+theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ∗
+      srvRLogLb γr.raft A' ⊢ snapAuthResM E.authMode s ast E.RD γr A' := by
+  rw [hM]
+  simp only [authSnapKitM, snapAuthResM]
+  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩, #Hl⟩
+  iframe Hl
+  iunfold srvAuthSnapOk
+  iexists ast, R
+  iframe Ha Hi Hs
+  ipureintro; exact Hrd
+
 end install
 
 end EtcdGrove

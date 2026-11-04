@@ -31175,6 +31175,181 @@ The other changes are proof-only:
 - `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
 - raft's `Base` imports `io/fs`'s package-init instance.
 
+## The auth component: one slot for the server's auth, stage 1 (2026-11-04 · the user's "go with your recommendations, start stage 1" and the Freeze of candidate 3 · branch `auth-comp`)
+
+Supersedes nothing yet. Stage 2 supersedes "The auth-mode merge" (`M`/`on : Bool`-indexed rows and
+twin `wp_proofOn` theorems) where it rewrites them.
+
+**What.** The server's proofs reach auth through one slot, `AuthC := off | on γa` (`AuthComp.lean`),
+with auth off its trivial instance. Today the server indexes 72 definitions by `on : Bool` and 103
+by `AuthMode`, and keeps about 14 twin theorems (`wp_proofOff`/`wp_proofOn`). The design is in
+three layers:
+- **B, the slot.** Sealed predicates and their laws. This is stage 1, done.
+- **C, the rows.** One definition per row, over the slot (stage 2).
+- **A, one KV model** (stage 3, optional).
+
+**Decisions** (the sketch's Q1–Q4, the user's "go with your recommendations"):
+- B and C come first. A is only worth it if auth on is ever extended to compaction or leases.
+- With auth off, the auth buckets stay in the rest resource (`acBkts .off` is empty), so the
+  trusted boot text does not change.
+- `.any` leaves the server (`AuthC`).
+- The verdict classes stay over `AuthMode`, applied at `C.mode`.
+
+**Divergence map** (an agent's point-by-point map of the twins, checked by two spec-reviewer rounds):
+- Most of the divergence is in resources: the auth row, token rights, publication, the merged
+  snapshot's lend, `Recover`'s facts, the reader's bound, the lessor premise, and the receipt.
+  The slot's laws cover these. The rest is in layer C's mode-indexed containers and per-mode KV
+  lemmas.
+- **Except `applyEntryNormal`'s whole entry step**: the model step at the top, the replayed
+  branch with its admin case below `c₀`, and the live branch. These differ in the KV model and in
+  the applier's contract (`apply.Apply` with the compaction and lease certificates, against
+  `uberKVC` at `latestResC`). No auth-resource law makes them one proof.
+- So stage 2 states the entry step as one law over `C`, `srvEntryStep C`, whose proof keeps its
+  two cases. The on case opens the slot through `acRes_on`/`acInv_on` (`⊣⊢` today's definitions).
+  This is a marked departure from the slot rule, until layer A.
+
+**Stage 1's choices:**
+- `AEnv` is unchanged. The laws that read the environment take `hC : E.authMode = C.mode`, which
+  stage 2's `AEnv.auth : AuthC` makes definitional.
+- `acTok` takes no environment, so `srvTokRights_congr` has no counterpart. The token rights are
+  kept apart from the row, because `apply`'s loop threads them at `ciEff γ st'.k`.
+- The pure pieces (`acBkts`, `acImg`, `acOpenQ`, `acModesOk`, `acReceiptOk`, `restSetC`) are
+  public, because layer C's image lemmas read them.
+- The bridges (`kvAuthM_eq`, `srvTokRights_eq`, …) exist for stage 2's rewriting, and stage 2
+  deletes them.
+
+**Stage 1's departures from the frozen text:**
+- `acTok` is not `Timeless`: `auth.freshBelow` has no `Timeless` instance. No twin needs it.
+- One extra bridge, `authPubAt_eq`.
+
+**Stage 2's acceptance:**
+- No definition outside `AuthComp` matches on `AuthC`, `AuthMode` or `on : Bool`, except the
+  entries of an allow file:
+  - the containers that differ in the KV model (`logShapeM`/`entryOkM`, `kvAppliedM`, `kvInvM`,
+    `kvCertInvM`, `kvModelM`, `kvStM`, `kvLogAtM`, `snapRestImgM`, `srvImageM`, `kvRunAtOn`),
+    until stage 3;
+  - the two-case bodies of `srvEntryStep` and of `NewServer`'s construction.
+- `srvSnapRO` carries `acSnapKit C` in place of its two auth conjuncts.
+- The row after `Recover` is `kvAuthM_snap` over `acRes`.
+- The trust base and every collection are unchanged, and the interfaces regenerated.
+- `AuthComp`'s imports move down: in stage 1 it imports the heavy modules where today's lemmas
+  live, `ApplyAllSnapOn` and `RunOn`. Stage 2 moves those lemmas under it.
+
+## The auth component, stage 2: the rows over the slot and the five linked twins merged (2026-11-04 · the Freeze of candidate 6, "freeze it, go ahead with stage 2" · branch `auth-comp`)
+
+Supersedes stage 1's "Stage 2's acceptance" above: the Freeze scoped stage 2 to what the five linked
+twins' proofs need, and replaced the acceptance's "no definition matches on a mode" by a ratchet.
+Supersedes "The auth-mode merge" for `run`, `start`, `Start`, `applyAll`'s batch and
+`AppliedIndex`: their twin proofs are gone.
+
+**What** (candidate 6, D1–D5; the spec example `auth-component.md` keeps the reviews' history):
+- **The rows** (`AuthCompRows.lean`): new `…C` rows for the resource rows and their containers
+  (`isServerC`, `srvAtomicsC`, `srvKVInvsC`, `srvApplyKVC`, `applyBuiltC`, `isServerBuiltC`,
+  `applyStartC`, `isServerRunC`, and in 2c `applyResC`, `run`'s loop invariant), each with a bridge
+  `XM C.isOn ⊣⊢ XC C` (under `hC : E.authMode = C.mode` where the row reads the environment).
+  Model and flag rows keep `on : Bool` and are used at `C.isOn`: a classification of all 72 bodies
+  showed the KV model, not the auth resource, is what most of them read.
+- **The specs** (D1: `AEnv` keeps `authMode`): `run`, `start`, `Start`, `applyAll.specBatch` and
+  `AppliedIndex` are one statement over `(C : AuthC)`, with `E.authMode = C.mode` (and
+  `acReceiptOk C`) in the precondition. The old texts are `ModeSpecs.lean`'s corollaries
+  `X.spec_off`/`X.spec_on` (D3: kept, with the M rows, until stage 3); off-only callers link
+  `EtcdServer.wp_Start_off` (`LinkedOff.lean`). `specStop` is restated over `isServerRunC` (D5).
+  `Txn` and `Serve` stay pairs (D4).
+- **The proofs** (2c): one proof over the slot each for `run` (with its job body `run_job_body`),
+  `start`, `Start` and `applyAll`'s batch. The divergence points became laws over `C`:
+  `acRes_read`, `srvAuthBoundM_of_read`, `readBound_of_read`, `readCompose_C`,
+  `isServerBuiltC_mid`, `srvApplyKVC_coreA`/`_idxCert`, `merged_imageC` (the merged snapshot's
+  image, `merged_image` off and `merged_imageOn` on), `isServerC_lg`, `kvRunM_split`. The callees'
+  batch specs, over `E.authOn`, are used at `E.authOn = C.isOn`.
+- **The gate** (D2): `etc/mode-check.py` counts, in the server, `client/v3` and the examples, a
+  `match`/`if` on a mode in a definition outside `AuthComp.lean`, a twin declaration outside
+  `ModeSpecs.lean`, and a literal mode argument to an `(on : Bool)` row. Every finding is classified
+  in `etc/mode-allow.txt` (model, flag, corollary, pair, bridge, unmoved); the counts are a baseline
+  (`etc/mode-baseline.txt`) that only goes down. In `etc/gates.sh` and CI.
+
+**Departures from the frozen text:**
+- `run`'s snapshot-payload job keeps its two proofs (`run_job_snap`, `run_snap_jobOn`) behind one
+  lemma over the slot, `run_job_snapC`, through `applyResC_off`/`applyResC_on`: they differ in
+  more than vocabulary (off has the lease-granting cluster's case, `srvGrantOpen_snap`; on threads
+  the token rights to the snapshot's consistent index). `run` itself is one proof.
+- The read loop's callers (`stop`, `ReadServer`) use the merged `AppliedIndex.spec` at a literal
+  mode; there is no `wp_AppliedIndex_off`.
+- The four merged results' `#print axioms` are the same sets off and on.
+
+## Kubernetes' compactor tested against Go: the example, the client-only starter, the gate's trust boundary (2026-11-04 · K3 of `notes/k8s-compactor-plan.md`, the user's approval of the plan and of U3 · branch `k8s-compactor-ex`)
+
+**The starter.** `StartCompactingServer.spec`'s premise `0 < sint.Z retention` becomes
+`0 ≤ sint.Z retention`. At `0` the Go function starts the member exactly as at a positive
+retention, except that etcd's compactor is off. The member is still in compaction mode
+(`memberBoot … true`): every compaction is a client's, as in Kubernetes. The slot (K1) already
+admits this case through `bootCfg_off`, and the existing premise `cret ≤ retention` makes the
+cluster's retention `0`. This is the plan's "a mode of an existing starter, not a new copy". The
+premise is only weaker, so its callers (`compacted`, `compactwatch`, `decide`) are unchanged.
+
+**The gate's trust boundary (U3).** `DisableSnapshotList` is the example's own one-line function,
+`DefaultMutableFeatureGate.Set("ListFromCacheSnapshot=false")`. It gets an axiom as its proof,
+with `gateOff` on success. The alternative was an axiom on featuregate's `Set` method itself, but
+the gate is names-only, and its method values are reached through `MethodResolve` on an interface
+type that no spec here describes. The axiom on the caller is one statement about one call, which
+the file argues is sound: no other mutator of the gate has a spec, and this one only records the
+same `false`.
+
+**The checks `Main` makes** are those K2's specs prove:
+- `CompactRevision` is monotone (`compactRevLb`);
+- it is a reached revision (`recRevOk`);
+- the key holds a reached revision, through the caller's `recorded`, which `Main`'s proof defines,
+  and the `ParseInt` read-back.
+
+Two properties are left to the Go test, because `casOk` does not give them. The key's values
+increase (a winner's revision is at least the previous put's revision, which the contract does
+not relate to the key). Each compaction is at a recorded revision (a compaction whose call returned
+an error is invisible to the caller).
+
+## Prophecies as patches of the Go code (2026-11-03 · the user's choice)
+
+A proof that needs a prophecy the Go code does not have (a read whose answer may be the one
+returned: `prophkv`'s `GetAny`, the etcd3 store's `Get`) gets it from a **prophecy patch**,
+`etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the project's
+source before translation (`etc/proph_patch.py`). A patch may only add prophecy statements:
+`primitive.NewProph()` declarations with fresh names, `ResolveBool`/`ResolveU64` calls (no-ops in
+Go: `goose-lang/primitive`'s `proph.go`) on read-only expressions, and `if`s on read-only
+conditions holding only such statements, plus the `primitive` import. `etc/prophcheck` checks
+this on syntax trees: the patched file with its prophecy statements erased must be the original.
+The proofs are of the patched code.
+
+Read-only expressions in general (field reads, dereferences, indexing, comparisons, arithmetic,
+`len`, conversions; no calls, channel operations or assignments) rather than only those that
+cannot fail (the user, 2026-11-03): a read-only expression has no effect but may fail (a nil
+dereference, a race), so the patched program has every behavior of the original plus possibly
+failing ones, and a proof that the patched program does not fail rules those out. This admits
+the fork's `Client.Get` prophecy as written (nil-guarded field reads).
+
+Why: proving prophecy erasure in Lean was too much machinery for now. Perennial branch
+`proph-erasure` (not landed) has two proved theorems: `goose_adequacy_withProph` (a prophecy of
+the whole program's result) and `goose_adequacy_funcProph` (one function's body under a prophecy
+of its result, in a patched Go model, with premises that the model returns no out-of-call
+reference to that function). A general erasure theorem needs either such premises or a new fact
+in `go.Semantics` (Go instructions commute with erasure), since the Go model is an abstract
+relation that could otherwise inspect prophecy code (`notes/perennial-changes.md`, "Prophecies in
+Lean only"). The in-Lean approach is dropped (the user, 2026-11-03): the branch stays, unused; the
+patches are the way prophecies are added.
+
+Patches rather than commits of the Go fork: the prophecy then shows as what it is, an addition
+for verification that is checked mechanically, instead of a fork commit read by hand among bug
+fixes. The fork's one prophecy commit (`bc9c3868c`, `kubernetes.Client.Get`'s revision
+prophecy, D30n) is now `etc/proph-patches/etcd/01-client-get-revision.patch` (the commit's diff,
+unchanged): the etcd pin moved to `673da07c8` (branch `goose-lean-noproph2`, the pin `323320bb8`
+with `bc9c3868c` reverted; first `bb1b80ca0` on `249d76bea`, branch `goose-lean-noproph`), the examples' `go.mod` replaces with it. The patched source is the old
+pin's tree file for file, and its translation the checked-in one. The fork carries no code for
+verification only.
+
+The first patch written as one: `examples/goose/prophkv` (a port of Perennial's prophkv; the layer
+`goose/`, examples of proof techniques over goose's primitives). Its patch adds
+a `bool` prophecy of `GetAny`'s random choice (`prophFirst.ResolveBool(r%2 == 0)`; Go's prophecy
+values are `bool`s or `uint64`s, so the choice rather than the returned string); `GetAny`'s spec
+is the plain logically atomic one, and `goose_prophkv_safe` follows from `goose_adequacy` with the
+standard axioms only (`Proof/.../goose/prophkv/Results.lean`).
+
 ## The backend's `Close` gives back what its stopped lock held; the lessor's stop (2026-11-04 · R2b-3c part 2a, the user's approval of the two trust-boundary changes · branch `r2b3`)
 
 **The data the file holds.** Part 1's `backend.Close` gave `fileHolds path D` for some `D`, nothing

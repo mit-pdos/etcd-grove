@@ -46,8 +46,8 @@ theorem stop.wp_proof
   -- the wait: `for m.s.AppliedIndex() < NBoot { time.Sleep(time.Millisecond) }`; on exit the
   -- member applied the bootstrap log
   wp_for Hrec
-  wp_apply (wp_AppliedIndex s E ρ.rd) as %v #Hv
-  · iframe #
+  wp_apply (wp_AppliedIndex false s E ρ.rd) as %v #Hv
+  · rw [srvAppliedInvM_false]; iframe #
   (try wp_auto)
   wp_if_destruct
   · wp_apply time.wp_Sleep
