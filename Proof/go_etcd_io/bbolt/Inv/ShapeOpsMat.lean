@@ -3,7 +3,7 @@
 `nodeAdded` replaces a position's tokens (`xPages` of its page) by the new node's (its page and
 its unmaterialized children's subtrees, or its leaf's unopened nested buckets' trees), a
 sub-multiset by the view's uniqueness (`Inv/ShapeOpsView`); `matGrow` by induction
-(`Write/MatGrow.wOK_nodeAdded` for `wOK` at each step). For U7's public writes (`Cursor.node`'s
+(`Write/MatOK.bktLocalOK_nodeAdded` for `bktLocalOK` at each step). For U7's public writes (`Cursor.node`'s
 post `matGrow X X' bl`) and U6's `Bucket_w`.
 -/
 module
@@ -146,16 +146,44 @@ theorem perm_shuffle (T own A C : List Nat) :
     (T ++ (own ++ (A ++ C))).Perm (own ++ (A ++ T ++ C)) :=
   List.perm_iff_count.2 fun a => by simp only [List.count_append]; omega
 
+/-- The page a materialization reads from a file bucket has the position's id (`treeWF`; as
+`Write.nodeAdded_pgid`, from the bucket's `bktClean`). -/
+theorem nodeAdded_pgid_c (X : WX) (bl : Loc) (B : BRec) (pgid : w64) (parent : Loc)
+    (pa : Loc) (pg : List w8) (hB : X.t.bs !! bl = some B)
+    (hc : bktClean X.v X.t.mv.pgid'.toNat bl B) (hpos : matPos X bl pgid parent)
+    (hpg : wpageAt X.v B pgid = some (pa, pg)) (hin : B.ib.root' ≠ W64 0) :
+    (pageHdr pg).id' = pgid := by
+  have hpg' : X.v.pages !! pgid.toNat = some pg := by
+    unfold wpageAt at hpg; rw [if_neg hin] at hpg
+    cases h : X.v.pages !! pgid.toNat with
+    | none => rw [h] at hpg; cases hpg
+    | some pg' => rw [h] at hpg; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hpg
+                  rw [hpg.2]
+  have htw : treeWF X.v.pages X.t.mv.pgid'.toNat pgid.toNat := by
+    obtain ⟨B1, hB1, hp⟩ := hpos
+    rw [hB] at hB1; cases hB1
+    rcases hp with ⟨-, hrn, rfl⟩ | ⟨i, r, w, hr, hleaf, hw, hwp, hnm⟩
+    · exact (hc.2.1 hin).2 hrn
+    · have hn := hc.2.2.2.2.2.2.2.1 parent r hr
+      have hb := hn.2.2.2.2.2.2.2.2.2.2.2.2.1 hleaf
+      have := (hb.2.2 w (List.mem_of_getElem? hw)).2.2
+      rw [hwp] at this; exact this hnm
+  cases htw with
+  | page _ pg0 _ _ hpg0 hid _ _ =>
+    rw [hpg'] at hpg0; cases hpg0
+    apply BitVec.eq_of_toNat_eq; exact hid
+
 /-- **One materialization keeps the tokens** (a sub-multiset; the view unchanged). -/
-theorem txTokL_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (hok : wOK X)
-    (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) :
+theorem txTokL_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
+    (hbl : bktLocalOK X bl) (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) :
     (txTokL X').Subperm (txTokL X) ∧ X'.v = X.v := by
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp, hrid, hrleaf, hru, hrs, hrcs,
     hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := h
   subst hX'
   refine ⟨?_, rfl⟩
-  have hc := Write.wOK_bktClean X hok bl B hB
-  have hu := viewWF_unique X.v hok.2.2.2.2.2.2.2
+  obtain ⟨-, B1, hB1, hc, -, -, -, hvw⟩ := hbl
+  rw [hB] at hB1; cases hB1
+  have hu := viewWF_unique X.v hvw
   have hlo' : X.t.objs !! l = none := by simpa using hlo
   have hfresh : B.ns !! l = none := Write.objs_none X.t l hlo' bl B hB
   have hrws' : r.ws.map wDat = (pageWs pg).map wDat := by rw [hrws, Write.pageWsAs_wDat]
@@ -170,7 +198,7 @@ theorem txTokL_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (h
       rw [hpg.2]
   have hown : B.ib.root' ≠ W64 0 → r.nv.pgid'.toNat = pgid.toNat := by
     intro hin
-    rw [hrid, Write.nodeAdded_pgid X hok bl B pgid parent pa pg hB hpos hpg hin]
+    rw [hrid, nodeAdded_pgid_c X bl B pgid parent pa pg hB hc hpos hpg hin]
   let B' : BRec := { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' }
   show (bktsTokL X.v (X.t.bs.insert bl B')).Subperm (bktsTokL X.v X.t.bs)
   refine flatMap_insert_subperm X.t.bs bl B B' _ _ hB ?_ fun _ _ _ _ => List.Subperm.refl _
@@ -303,14 +331,49 @@ theorem txTokL_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) (h
     rw [← List.append_assoc]
     exact subperm_append' (subperm_append' (hsub _) hT) (hsub _)
 
-/-- **Materializations keep the tokens** (`Cursor.node`'s `matGrow`; `wOK` at the start). -/
-theorem txTokL_matGrow (X X' : WX) (bl : Loc) (hok : wOK X) (h : matGrow X X' bl) :
+/-- **Materializations keep the tokens** (`Cursor.node`'s `matGrow`; the bucket searchable at the
+start, `bktLocalOK`, as `Cursor.node`'s pre). -/
+theorem txTokL_matGrow (X X' : WX) (bl : Loc) (hbl : bktLocalOK X bl) (h : matGrow X X' bl) :
     (txTokL X').Subperm (txTokL X) ∧ X'.v = X.v := by
   induction h with
   | refl => exact ⟨List.Subperm.refl _, rfl⟩
   | step X Y Z bl l pgid parent hadd hpos _ ih =>
-    have h1 := txTokL_nodeAdded X Y bl l pgid parent hok hadd hpos
-    have h2 := ih (Write.wOK_nodeAdded X Y bl l pgid parent hok hadd hpos)
+    have h1 := txTokL_nodeAdded X Y bl l pgid parent hbl hadd hpos
+    have hbl' : bktLocalOK Y bl := by
+      have hv : viewWF X.v := hbl.2.choose_spec.2.2.2.2.2
+      refine Write.bktLocalOK_nodeAdded X Y bl l pgid parent hv hbl hadd hpos ?_ ?_
+      · obtain ⟨B, pa, pg, r, ns', bv', hB, -, -, hl0, hlo, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+          hrvs, hcase, hX'⟩ := hadd
+        intro B' r' hb' hr'
+        have hB' : Y.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
+          rw [hX']; exact GMap.lookup_insert _ _ _
+        rw [hB'] at hb'; cases hb'
+        have hns'l : ns' !! l = some r := by
+          rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, -, rfl⟩ <;>
+            exact GMap.lookup_insert _ _ _
+        have e : ns' !! l = some r' := hr'
+        rw [hns'l] at e; cases e
+        exact hrvs
+      · obtain ⟨B, pa, pg, r, ns', bv', hB, -, -, hl0, hlo, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+          hrvs, hcase, hX'⟩ := hadd
+        have hlo' : X.t.objs !! l = none := by simpa using hlo
+        have hfresh : B.ns !! l = none := Write.objs_none X.t l hlo' bl B hB
+        have hB' : Y.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
+          rw [hX']; exact GMap.lookup_insert _ _ _
+        intro B0 B1 rp0 rp1 hb0 hb1 hrp0 hrp1
+        rw [hB] at hb0; cases hb0
+        rw [hB'] at hb1; cases hb1
+        have hpl : parent ≠ l := by intro e; rw [e, hfresh] at hrp0; cases hrp0
+        rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', hrp, -, -, -, -, -, -, hco, -, rfl⟩
+        · have e : (B.ns.insert l r) !! parent = some rp1 := hrp1
+          rw [GMap.lookup_insert_ne _ _ (Ne.symm hpl), hrp0] at e
+          cases e; rfl
+        · have e : ((B.ns.insert parent rp').insert l r) !! parent = some rp1 := hrp1
+          rw [GMap.lookup_insert_ne _ _ (Ne.symm hpl), GMap.lookup_insert] at e
+          cases e
+          rw [hrp0] at hrp; cases hrp
+          exact hco
+    have h2 := ih hbl'
     exact ⟨h2.1.trans h1.1, h2.2.trans h1.2⟩
 
 end mat
@@ -320,12 +383,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-/-- **`txShape` across materializations** (U7: `Cursor.node`'s post in `Put`, `Delete`,
+/-- **`txShape` across materializations** (`bktLocalOK X bl`: `Cursor.node`'s pre; U7:
+`Cursor.node`'s post in `Put`, `Delete`,
 `CreateBucket(IfNotExists)`, `DeleteBucket`; U6: `Bucket_w`'s search). -/
 theorem txShape_matGrow (γ : GName) (X X' : WX) (bl : Loc) (extra : GMap Nat Unit)
-    (hok : wOK X) (h : matGrow X X' bl) :
+    (hbl : bktLocalOK X bl) (h : matGrow X X' bl) :
     txShape (GF := GF) γ X extra ⊢ txShape γ X' extra := by
-  have ⟨hs, hv⟩ := txTokL_matGrow X X' bl hok h
+  have ⟨hs, hv⟩ := txTokL_matGrow X X' bl hbl h
   exact txShape_sub γ X X' extra (by rw [hv]) fun _ => hs
 
 end res
