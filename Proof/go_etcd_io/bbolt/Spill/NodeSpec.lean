@@ -50,13 +50,15 @@ def pcSlots (P : Pages) (ps : List Piece) : List Nat := ps.flatMap fun x => pgSl
 
 /-- **The pieces `ps` of a node spilled in bucket `bl`** under the parent `pl`, within `[lo, hi)`,
 of height `h`: live spilled nodes without children (`n.children = nil`), distinct, each written
-at its page, a finished subtree from its first key up to the next piece's (`hi` for the last). -/
+at its page, its first key not empty and fitting an entry (U9f: the parent's entry), a finished
+subtree from its first key up to the next piece's (`hi` for the last). -/
 def piecesOK (X : WX) (bl pl : Loc) (P : Pages) (hwm : Nat) (lo hi : Option (List w8)) (h : Nat)
     (ps : List Piece) : Prop :=
   ps ≠ [] ∧ (ps.map Piece.l).Nodup ∧
   ∀ i x, ps[i]? = some x → ∃ rl, X.node bl x.l = some rl ∧ x.l ∈ X.live ∧
     rl.nv.bucket' = bl ∧ rl.nv.spilled' = true ∧ rl.cs = [] ∧ rl.nv.parent' = pl ∧
     rl.nv.pgid' = x.id ∧ rl.key = x.k ∧ keyIn lo hi x.k ∧
+    0 < x.k.length ∧ x.k.length ≤ bboltEntryMax ∧
     fTree P hwm x.id.toNat x.k (childHi hi (pcKey ps) ps.length i) h x.S
 
 /-- **The parent `rp'` after its child's spill** (the child's entry `j` replaced by the pieces'
@@ -135,7 +137,8 @@ def spDone (X X' : WX) (w w' : WDb) (bl n : Loc) (rn : NRec) (O : List Nat)
     match cs with
     | .child pl rp j _ _ => ∃ ps rp',
         piecesOK X' bl pl (spP X') X'.t.mv.pgid'.toNat lo hi h ps ∧
-        (ps.head?.map Piece.l) = some n ∧ D' = pcSlots (spP X') ps ∧
+        (ps.head?.map Piece.l) = some n ∧ (∀ x ∈ ps.drop 1, X.t.objs !! x.l = none) ∧
+        D' = pcSlots (spP X') ps ∧
         X'.node bl pl = some rp' ∧ parentSpilled rp rp' j ps ∧ pl ∈ X'.live
     | .top => ∃ rt rr S h', X'.node bl rt = some rr ∧ rt ∈ X'.live ∧
         rr.nv.spilled' = true ∧ rr.nv.parent' = null ∧

@@ -210,7 +210,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
       obtain ⟨w1, x, h1, h2, hw⟩ := splice_mid hd hjl hk
       rw [hw'] at h1; cases h1
       rw [List.getElem?_eq_getElem hk] at h2; cases h2
-      obtain ⟨_, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ (List.getElem?_eq_getElem hk)
+      obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ (List.getElem?_eq_getElem hk)
       have hpgid : w'.pgid = ps[k].id := congrArg (fun d => d.2.1) hw
       have hkey : w'.key = ps[k].k := congrArg (fun d => d.2.2.1) hw
       refine uEnt.fin n lo hi r'.ws r'.cs h (j + k) w' ps[k].S ?_

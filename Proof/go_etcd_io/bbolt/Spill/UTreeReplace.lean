@@ -156,7 +156,7 @@ theorem pieces_sorted {X : WX} {bl pl : Loc} {P : Pages} {hwm : Nat} {lo hi : Op
   have hstep : ∀ k, k + 1 < ps.length → go.GoStringLt (pcKey ps k) (pcKey ps (k + 1)) := by
     intro k hk
     have hx : ps[k]? = some ps[k] := List.getElem?_eq_getElem (by omega)
-    obtain ⟨_, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ hx
+    obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ hx
     have H := fTree_keyLt hf
     unfold childHi at H
     rw [if_pos hk] at H
