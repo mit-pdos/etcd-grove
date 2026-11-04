@@ -494,7 +494,26 @@ theorem Tx.Commit_err.wp_proof'
         · -- `grow`, `write`, `writeMeta`, `close`
           sorry
         · -- `commitFreelist` failed (rolled back): log, return the error
-          sorry
+          obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
+            cases err2 with
+            | nil => exact absurd rfl He2
+            | ok ii => exact ⟨ii, rfl⟩
+          irename Hfe2 => Hfe1
+          try wp_auto
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %sl ⟨Hsl, -⟩
+          try wp_auto
+          wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
+            (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
+          · iframe
+          · try simp only [List.zip_cons_cons, List.zip_nil_left]
+            isplitl
+            · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
+            · iempintro
+          try wp_auto
+          cm_return
       · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
         ihave Hw := Hwb $$ Hdbp
         try wp_auto
