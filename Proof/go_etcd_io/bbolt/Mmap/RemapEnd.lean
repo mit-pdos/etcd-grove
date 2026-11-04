@@ -113,7 +113,7 @@ theorem wdbW_remap_intro (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK w
       metaCellsQ (1 : Qp).half.half (some (b, L')) w.C -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
       wCells (some (b, L')) (w.remap b L' m').W -∗ wBytes K.p w.W w.wb w.m.size -∗
-      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ rdPair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       wdbW K tx v (w.remap b L' m') := by
   iintro Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmc Hmob Hwc
     Hwb Hj Hflo Hrd Hrc
@@ -159,7 +159,7 @@ theorem remap_post (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd : WX) (w : W
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
       wCells (some (base, L')) (wSlots (max L' w.m.size / 4096) w.C w.fl) -∗
       wBytes K.p w.W w.wb w.m.size -∗
-      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ rdPair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       |={⊤}=> Pm K.B K.db 1 ∗ wtxW K tx r m (Xd.rebase base) ∗
         wdbW K tx (Xd.rebase base).v (w.remap base L' m2) := by
   iintro Hwc Hvc Hmf Hpmap Hptok Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm

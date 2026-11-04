@@ -92,7 +92,7 @@ theorem wdbLost_intro (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK w) (
       osMeta K.p (DFrac.own 1) (some m') -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
       osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗ wBytes K.p w.W w.wb w.m.size -∗
-      junkRes j -∗ flPgOwn w.fli w.fl -∗ rdPair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      junkRes j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       wdbLost K tx v (w.lost m' j) := by
   iintro Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
     Hflo Hrd Hrc
