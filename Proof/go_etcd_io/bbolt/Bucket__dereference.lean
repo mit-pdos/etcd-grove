@@ -1,11 +1,21 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__dereference.lean`: not yet (U9b, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/Bucket__dereference.lean` (U9b, `notes/bbolt-proof-plan.md`).
+
+`wp_proof'` proves the frozen triple under one more premise, `derefPre X` (`Spill/DerefModel`):
+the frozen spec's `liveFresh X` and `liveReach X` do not give what the code needs (its asserts on
+non-empty keys, the cached children and root nodes being objects of the heap, no dead object
+live). The frozen `wp_proof` stays a `sorry` until the spec takes it (reported to the
+coordinator, U9b).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__dereference
+public import Proof.go_etcd_io.bbolt.Spill.BucketDeref
+public import Proof.go_etcd_io.bbolt.Spill.DerefWOK
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -23,6 +33,50 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- `derefStep` and the coverage of every bucket reached from the root bucket give `derefRel`. -/
+theorem derefRel_of_step (X X' : WX) (h : derefStep X X') (hd : objsDisj X.t)
+    (hpre : derefPre X) (hreach : liveReach X) (hcov : bktCov X' X.rl) : derefRel X X' := by
+  have hd' := objsDisj_step h hd
+  refine ⟨?_, h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.1,
+    h.2.2.2.2.2.2.2.2.1, derefStep_node h, fun bl pid => derefStep_ltree h bl pid,
+    derefStep_wtxData h, wOK_derefStep X X' h hd⟩
+  apply derefOK_of_cov X' hd' (derefPre_step h hpre) (liveReach_step h hreach)
+  intro bl B hB hbr rt hrt
+  have := reachFrom_of_bktReach hbr
+  rw [h.2.2.2.2.1] at this
+  exact hcov bl B rt this hB hrt
+
+theorem Bucket.dereference.wp_proof' (hRoot : node.root.spec (GF := GF) (hG := hG))
+    (hND : node.dereference.spec (GF := GF) (hG := hG)) :
+    ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX),
+    derefPre X → liveFresh X → liveReach X →
+    {{ wtxW (GF := GF) K tx r m X }}
+      (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"dereference"))
+        (Val #()))
+    {{ RET #(); ∃ X' : WX, wtxW K tx r m X' ∗ ⌜derefRel X X'⌝ }} := by
+  intro K tx r m X Hpre Hfresh Hreach
+  iintro %Φ Hw HΦ
+  icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
+  ihave %Hok := wtxHeap_heapOK tx _ X $$ Hh
+  ihave Hw := Hclose $$ %X [] Hh Hv Hst
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
+  obtain ⟨B, HB⟩ := Option.isSome_iff_exists.1 Hpre.2.2.2.1
+  have Hrl : X.rl = tx.[Tx, go!"root"] := Hok.1
+  rw [Hrl] at HB
+  have Hlive : tx.[Tx, go!"root"] ∈ X.live := by
+    rw [← Hrl]; exact (Hpre.2.2.1 X.rl B (by rw [Hrl]; exact HB)).1
+  have Hp : X.t.bs !! tx.[Tx, go!"root"] = some B ∧ tx.[Tx, go!"root"] ∈ X.live ∧ derefPre X ∧
+    liveFresh X := ⟨HB, Hlive, Hpre, Hfresh⟩
+  iapply (Bucket.dereference.wp_aux hRoot hND) $$ %K %tx %r %m %X %(tx.[Tx, go!"root"]) %B %Hp Hw
+  inext
+  iintro %X' ⟨Hw, %HX'⟩
+  iapply HΦ
+  iexists X'
+  iframe
+  ipureintro
+  exact derefRel_of_step X X' HX'.1 Hok.2.1 Hpre Hreach (by rw [Hrl]; exact HX'.2)
+
+/-- The frozen spec: not provable from its premises alone (see the module doc). -/
 theorem Bucket.dereference.wp_proof : Bucket.dereference.spec (GF := GF) (hG := hG) := by
   sorry
 
