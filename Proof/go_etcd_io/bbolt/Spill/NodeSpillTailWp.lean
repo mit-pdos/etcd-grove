@@ -112,6 +112,32 @@ theorem wtxW_lens (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl n : Lo
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   · ipureintro; exact Hlens
 
+/-- **The free ids are no pages of the view** (`wdbOK`'s: a free id is no tree slot; the view's
+pages are the committed state's). -/
+theorem free_notView {w : WDb} {v : View} (hok : wdbOK w) (hv : v = View.ofC v.base w.C) :
+    ∀ y ∈ w.fl.free, v.pages !! y.toNat = none := by
+  intro y hy
+  have h5 := hok.2.2.2.2.1 y hy
+  cases e : v.pages !! y.toNat with
+  | none => rfl
+  | some pg =>
+    exfalso; apply h5
+    unfold treeSlots
+    rw [mem_pagesSlots_iff]
+    have hp : w.C.pages = v.pages := by rw [hv]; rfl
+    rw [hp]
+    exact ⟨y.toNat, pg, e, Nat.le_refl _, by omega⟩
+
+omit package_sem in
+/-- `free_notView` out of `wdbW`. -/
+theorem wdbW_freeView (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ wdbW K tx v w ∗ ⌜∀ y ∈ w.fl.free, v.pages !! y.toNat = none⌝ := by
+  unfold wdbW
+  iintro ⟨H, %Hp⟩
+  isplitr
+  · iframe; ipureintro; exact Hp
+  · ipureintro; exact free_notView Hp.1 Hp.2.2
+
 /-- **`spillTail` over an invariant of the pieces' loop** (see the module doc). -/
 theorem spillTail_gen
     (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
@@ -146,7 +172,8 @@ theorem spillTail_gen
         (insLens rl.ins rl.ws → pcPre Xi wi bl x.1 rl))
     (H3 : ∀ xs pl i Xi wi sti x rl X3 w2 st' id, I xs pl i Xi wi sti → xs[i]? = some x →
       Xi.node bl x.1 = some rl → pcStep Xi wi bl x.1 rl (pcCount (insSize rl.ins)) X3 w2 st' id →
-      I xs pl (i + 1) X3 w2 (sti ++ st'))
+      objsDisj Xi.t → (∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none) →
+      insLens rl.ins rl.ws → I xs pl (i + 1) X3 w2 (sti ++ st'))
     (H4 : ∀ xs pl i Xi wi sti (X'' : WX) (w'' : WDb) st', I xs pl i Xi wi sti →
       (w''.C = wi.C ∧ w''.fl = wi.fl.applySteps wi.wtxid st' ∧ X''.v.pages = Xi.v.pages) →
       w''.C = w.C ∧ w''.fl = w.fl.applySteps w.wtxid (sti ++ st') ∧ X''.v.pages = X.v.pages)
@@ -209,6 +236,8 @@ theorem spillTail_gen
     obtain ⟨rl, hrl, hrlv, hrwl, hpre⟩ := H2 xs pl _ Xi wi _ x HIj hx
     icases wtxW_lens K tx r m Xi bl x.1 rl hrl hrlv hrwl $$ Hw with ⟨Hw, %Hrlens⟩
     obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12⟩ := hpre Hrlens
+    icases wtxW_heapOK K tx r m Xi $$ Hw with ⟨Hw, %Hok⟩
+    icases wdbW_freeView K tx Xi.v wi $$ Hdb with ⟨Hdb, %Hfv⟩
     wp_pures
     wp_bind (App (Val (GoInstruction (GoLoad go.int))) _)
     wp_load
@@ -251,7 +280,7 @@ theorem spillTail_gen
         have : sint.Z s.len < 2 ^ 63 := by word
         word
       rw [hj1, ← List.append_assoc]
-      exact H3 xs pl _ Xi wi _ x rl X3 w2 st' id HIj hx hrl Hst
+      exact H3 xs pl _ Xi wi _ x rl X3 w2 st' id HIj hx hrl Hst Hok.2.1 Hfv Hrlens
     · iintro %err %X'' %w'' %st' %He #Hok Hst Htxp Hnode Hres ⟨Hnp, Hs, i⟩
       wp_for_post
       isplitr
