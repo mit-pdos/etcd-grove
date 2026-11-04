@@ -41,3 +41,56 @@ of the twins' divergence points.
 Principles exercised: PRINCIPLES' slot convention (a hub names a subsystem through sealed slots and
 laws); a law's trivial instance must be checked as carefully as the real one; a spec in shapes is
 not a candidate; map the clients' divergence points before stating the laws.
+
+# Stage 2: the rows over the slot and the merged linked specs (2026-11-04)
+
+**Kind:** five linked Hoare triples (`run`, `start`, `Start`, `applyAll`'s batch, `AppliedIndex`)
+merged from off/on twins into one statement over the slot `C`, with new `…C` rows
+(`AuthCompRows.lean`). Frozen by the user, candidate 6 ("freeze it, go ahead with stage 2"), after
+spec-reviewer rounds 1 to 5.
+
+## First version (candidate 1)
+
+Every mode-indexed row re-indexed by `C` (72 `on : Bool` definitions and the `AuthMode` ones),
+every spec over `E.authOn` restated over `C`, and literal `true` arguments replaced by `C.isOn`.
+
+## Critiques and what they changed
+
+1. (Round 1) **Most rows are model rows, not resource rows.** A classification of all 72 bodies
+   showed the KV model, not the auth resource, is what most rows read. → Only resource rows and
+   their containers move to `C`; model and flag rows keep `Bool`, used at `C.isOn`.
+2. (Round 2) **Renaming in place changes exported texts.** Re-indexing `isServerReqM` changed
+   `Put.specOn`, v3rpc's results and the admin `specOn`s. → New names for the `C` rows (`…C`),
+   with bridges `XM C.isOn ⊣⊢ XC C` under `hC`; the old rows stay.
+3. (Round 3) **The narrowing reached axioms.** Restating every spec over `C` changed four
+   trust-boundary axioms (`waitAppliedIndex`, `waitLeader`, `ensureLeadership`,
+   `leaseTimeToLive`) and v3rpc's exported results. → Scope cut to the five linked twins; every
+   other spec and every axiom keeps its text. A spec moves to the `C` rows when its proof does.
+4. (Round 3) **A gate that counts vocabulary, not divergence.** → The ratchet counts matches on a
+   mode outside the slot, twin declarations and literal mode arguments, not `C` binders.
+5. (Round 4) **A commit that cannot build.** One-way bridges could not carry the merged spec's
+   pre back to the twin proofs. → Bridges stated `⊣⊢`; the merged proofs case on `C` and call
+   the renamed twins (`X.wp_proofOff`, `X.wp_proofOn`) through them, until 2c gives one proof.
+6. (Round 4) **Exported results whose meaning changes must be listed** (`applyAll_model`,
+   `server_run`, `server_start`, `server_Start`: same text, stronger).
+7. (Round 4) **Callers incomplete, and `=term` link entries the script splits on spaces.** →
+   Every caller listed; off-only callers link a named corollary (`EtcdServer.wp_Start_off`,
+   `LinkedOff.lean`).
+8. (Round 4) **A bound count that grows**: `Start`'s reader stocks would appear three times. → One
+   row, `srvStartReaders`, folded in the merged post and its corollaries.
+9. (Round 4) **Pure premises belong in the precondition** of a changed spec (PRINCIPLES). → The
+   five merged specs carry `⌜E.authMode = C.mode ∧ acReceiptOk C ∧ …⌝` in the pre.
+10. (Round 5) **An import cycle and the twin proofs' names.** `AuthComp` imported the module the
+    merged `applyAll` spec needed below it. → `snapAuthResM_on` moved beside `snapAuthResM`; the
+    off twins renamed `wp_proofOff` so the merged proof takes the linked name.
+
+## The approved spec
+
+Candidate 6: the merged statements in `Spec/go_etcd_io/etcd/server/v3/etcdserver/
+EtcdServer__{run,start,Start,applyAll,AppliedIndex}.lean`, the rows in `AuthCompRows.lean`, the
+old texts as corollaries in `ModeSpecs.lean` (`X.spec_off`, `X.spec_on`).
+
+Principles exercised: classify before re-indexing (a row's index is what its body reads); a
+restatement's blast radius includes axioms and exported texts, so scope it to what the proof
+change needs; a merged statement must carry both twins (equivalent under the mode premise, the
+corollaries proved); keep a changed spec's pure premises in its precondition.
