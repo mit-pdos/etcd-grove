@@ -213,6 +213,56 @@ proj_simps StoreSt.carve
 def StoreSt.setFl (σ : StoreSt) (fl : FLPg) : StoreSt := { σ with fl := fl }
 proj_simps StoreSt.setFl
 
+private theorem W64_toNat_eq (x : w64) : W64 (x.toNat : Int) = x := by
+  simp only [W64, BitVec.ofInt_natCast, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+
+private theorem mem_pagesSlots' (P : Pages) (s : Nat) : s ∈ pagesSlots P ↔ coversSlot P s := by
+  simp only [pagesSlots, List.mem_flatMap, List.mem_range', coversSlot]
+  constructor
+  · rintro ⟨⟨id, pg⟩, hip, j, hj, rfl⟩
+    exact ⟨id, pg, (GMap.mem_toList _ _ _).1 hip, by omega, by simp only at hj; omega⟩
+  · rintro ⟨id, pg, hp, h1, h2⟩
+    exact ⟨(id, pg), (GMap.mem_toList _ _ _).2 hp, s - id, by simp only; omega, by omega⟩
+
+private theorem tree_in_store' (σ : StoreSt) (s : Nat) (h : coversSlot σ.C.pages s) :
+    s ∈ storeSlots σ := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append]
+  exact Or.inl ((mem_pagesSlots' _ _).2 h)
+
+private theorem treeSlot_lt64 (σ : StoreSt) (h : storeOK σ) (s : Nat) (hs : coversSlot σ.C.pages s) :
+    s < 2 ^ 64 := by
+  obtain ⟨id, pg, hp, h1, h2⟩ := hs
+  have := h.2.1.2.2.2.1 id pg hp
+  have hm := h.1.2.2.2.2.2.2.1.2.2.1
+  have := (metaOf (σ.C.slot σ.C.txid)).pgid'.isLt
+  omega
+
+private theorem pagesAgree_refl (P : Pages) (hd : pagesDisjoint P) : pagesAgree P P := by
+  intro i pi j pj s hi hj h1 h2 h3 h4
+  by_cases hij : i = j
+  · subst hij; rw [hi] at hj; cases hj; exact ⟨rfl, rfl⟩
+  · rcases hd i pi j pj hi hj hij with h | h <;> omega
+
+private theorem pagesAgree_symm (P Q : Pages) (h : pagesAgree P Q) : pagesAgree Q P := by
+  intro i pi j pj s hi hj h1 h2 h3 h4
+  obtain ⟨e1, e2⟩ := h j pj i pi s hj hi h3 h4 h1 h2
+  exact ⟨e1.symm, e2.symm⟩
+
+private theorem mem_pendSlots (fl : FLPg) (s : Nat) :
+    s ∈ pendSlots fl ↔ ∃ t pd x, fl.pending !! t = some pd ∧ x ∈ pd.ids ∧ x.toNat = s := by
+  simp only [pendSlots, FLPg.pendingIds, List.mem_map, List.mem_flatMap]
+  constructor
+  · rintro ⟨x, ⟨⟨t, pd⟩, hkv, hx⟩, rfl⟩
+    exact ⟨t, pd, x, (GMap.mem_toList _ _ _).1 hkv, hx, rfl⟩
+  · rintro ⟨t, pd, x, hp, hx, rfl⟩
+    exact ⟨x, ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp, hx⟩, rfl⟩
+
+private theorem not_pend_of_only_none (fl : FLPg) (s : Nat) (hs : s < 2 ^ 64)
+    (h : pendingOnlyFromWriter fl none s) : s ∉ pendSlots fl := by
+  intro hm
+  obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots fl s).1 hm
+  exact absurd (h t pd hp (by rw [W64_toNat_eq]; exact hx)) (by simp)
+
 /-! ## Lemma statements (U3) -/
 
 omit [GooseExts] in
@@ -388,7 +438,33 @@ theorem lent_lt_half (σ : StoreSt) (hR : σ.R.size ≤ Int.toNat sync.rwmutex.a
 theorem storeOK_register (σ : StoreSt) (k : Nat) (r : RdInfo) (b : Loc) (l : Nat)
     (h : storeOK σ) (hms : σ.ms = some (b, l)) (hk : σ.R !! k = none)
     (hv : r.v = View.ofC b σ.C) : storeOK (σ.register k r) := by
-  sorry
+  have hlt := treeSlot_lt64 σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  have hlook : ∀ k' r', (σ.register k r).R !! k' = some r' → (k' = k ∧ r' = r) ∨
+      (k' ≠ k ∧ σ.R !! k' = some r') := by
+    intro k' r' h'
+    simp only [StoreSt.register, GMap.lookup_insert_eq_iff] at h'
+    split at h'
+    · rename_i he; cases h'; exact Or.inl ⟨he.symm, rfl⟩
+    · rename_i he; exact Or.inr ⟨fun e => he e.symm, h'⟩
+  refine ⟨h1, h2, h3, h4, h5, h6, fun k' r' hr => ?_, h8, h9, fun k' r' hr => ?_, h11, h12, h13,
+    fun hm => (by simp [StoreSt.register, hms] at hm), h15, h16, h17, h18, h19,
+    fun hp s hs ht hpo k' r' hr => ?_⟩
+  · rcases hlook k' r' hr with ⟨-, rfl⟩ | ⟨-, hr⟩
+    · simp only [StoreSt.rOK, hv]
+      refine ⟨Nat.le_refl _, h18 b, fun s hs => tree_in_store' σ s hs, ⟨σ.C, h2, rfl⟩, h9,
+        fun b' l' hb => ?_⟩
+      simp only [StoreSt.register, hms, Option.some.injEq, Prod.mk.injEq] at hb
+      exact hb.1
+    · exact h7 k' r' hr
+  · rcases hlook k' r' hr with ⟨-, rfl⟩ | ⟨-, hr⟩
+    · simp only [hv]
+      exact ⟨pagesAgree_refl _ h2.2.2.1, fun v hv' => pagesAgree_symm _ _ (h11 v hv')⟩
+    · exact h10 k' r' hr
+  · rcases hlook k' r' hr with ⟨-, rfl⟩ | ⟨-, hr⟩
+    · simp only [hv]; intro hc; exact ht ((mem_pagesSlots' _ _).2 hc)
+    · exact h20 hp s hs ht hpo k' r' hr
 
 theorem storeOK_deregister (σ : StoreSt) (k : Nat) (h : storeOK σ) :
     storeOK (σ.deregister k) := by
@@ -405,7 +481,44 @@ theorem storeOK_deregister (σ : StoreSt) (k : Nat) (h : storeOK σ) :
 theorem storeOK_wbegin (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeOK σ)
     (hms : σ.ms = some (b, l)) (hw : σ.wtx = none) (hwv : σ.wv = none)
     (hv : v = View.ofC b σ.C) : storeOK (σ.wbegin v) := by
-  sorry
+  have hlt := treeSlot_lt64 σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  subst hv
+  have hpt : ∀ t pd, σ.fl.pending !! t = some pd → t.toNat ≤ σ.C.txid := by
+    intro t pd hp
+    rcases h3.2.2.1 t pd hp with h' | ⟨h', -⟩
+    · exact h'
+    · rw [hw] at h'; cases h'
+  have hsm : σ.C.txid + 1 < 2 ^ 64 := h3.2.2.2.1
+  refine ⟨h1, h2, ⟨h3.1, h3.2.1, fun t pd hp => Or.inl (hpt t pd hp), h3.2.2.2⟩, h4,
+    fun w hw' => ?_, fun h' => (by simp [StoreSt.wbegin] at h'), h7, fun v' hv' => ?_, h9,
+    fun k r hr => ⟨(h10 k r hr).1, fun v' hv' => ?_⟩, fun v' hv' => ?_, h12, h13,
+    fun hm => (by simp [StoreSt.wbegin, hms] at hm), fun h' => (by simp [StoreSt.wbegin] at h'),
+    fun h' => (by simp [StoreSt.wbegin] at h'), fun s hs => ?_, h18, h19,
+    fun _ s hs ht hpo k r hr => ?_⟩
+  · simp only [StoreSt.wbegin, Option.some.injEq, Bool.false_eq_true, ite_false] at hw' ⊢
+    omega
+  · simp only [StoreSt.wbegin, Option.some.injEq] at hv'; subst hv'
+    refine ⟨rfl, h18 b, fun s hs => tree_in_store' σ s hs, ⟨σ.C, h2, rfl⟩, h9,
+      fun _ => ⟨rfl, rfl⟩, fun _ b' l' hb => ?_⟩
+    simp only [StoreSt.wbegin, hms, Option.some.injEq, Prod.mk.injEq] at hb
+    exact hb.1
+  · simp only [StoreSt.wbegin, Option.some.injEq] at hv'; subst hv'
+    exact (h10 k r hr).1
+  · simp only [StoreSt.wbegin, Option.some.injEq] at hv'; subst hv'
+    exact pagesAgree_refl _ h2.2.2.1
+  · rcases h17 s hs with h' | h'
+    · exact Or.inl h'
+    · rw [hw] at h'
+      exact Or.inl (not_pend_of_only_none _ s
+        (hlt s ((mem_pagesSlots' _ _).1 hs)) h')
+  · exfalso
+    obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
+    have e := hpo t pd hp (by rw [W64_toNat_eq]; exact hx)
+    simp only [StoreSt.wbegin, Option.some.injEq] at e
+    have := hpt t pd hp
+    omega
 
 theorem storeOK_wreturn (σ : StoreSt) (h : storeOK σ) : storeOK σ.wreturn := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
