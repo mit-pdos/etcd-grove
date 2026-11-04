@@ -108,6 +108,14 @@ theorem pcStepX_fresh {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count
     ∀ s ∈ L, s < id.toNat ∨ id.toNat + count ≤ s := by
   sorry
 
+/-- **The slots after a piece's step**: the piece's own page's (`A`) freed, the run allocated. -/
+theorem pcStepX_slot {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
+    {st : List FLStep} {id : w64} {O L : List Nat} (hs : pcStepX Xi wi bl l rl count X3 w2 st id)
+    (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl)
+    (hsl : slotInv wi.fl Xi.t.mv.pgid'.toNat (O ++ (ownSl Xi.v rl.nv.pgid' ++ L))) :
+    slotInv w2.fl X3.t.mv.pgid'.toNat (O ++ L ++ List.range' id.toNat count) := by
+  sorry
+
 /-- The spill's page map after a buffer `id` is (re)written, the view's pages kept. -/
 theorem spP_bufs_insert {X X' : WX} {id : w64} {pg : List w8}
     (hb : X'.t.bufs = X.t.bufs.insert id pg) (hv : X'.v.pages = X.v.pages) :
