@@ -108,6 +108,22 @@ theorem cinv_revLb (γr : ServerRaftNames) (γk : KVNames) (γ : CNames) (E : Co
   imodintro
   iapply monoNatLbOwn_le n.toNat (by omega) $$ Hlb'
 
+open Iris.ProofMode in
+/-- **The invariant at a start state without the key** (`Main`'s, at the member's start state). -/
+theorem cinv_alloc (γk : KVNames) (σ : KVState) (h : keyValue σ compactRevKey = none) (E : CoPset) :
+    etcdKV (GF := GF) γk σ ⊢ |={E}=> ∃ γ : CNames, cinv γk γ := by
+  iintro Hσ
+  imod dghostVar_alloc (GF := GF) false with ⟨%γs, Hf⟩
+  imod (mono_nat_own_alloc (GF := GF) σ.rev) with ⟨%γrv, Hrv, -⟩
+  imod (inv_alloc cinvN E iprop(∃ σ' : KVState, etcdKV γk σ' ∗
+      monoNatAuthOwn γrv 1 σ'.rev ∗ keyOk γk ⟨γs, γrv⟩ σ')) $$ [Hσ Hf Hrv] with #Hinv
+  · inext; iexists σ; iframe Hσ Hrv
+    iunfold keyOk; ileft; iframe Hf; ipureintro; exact h
+  imodintro
+  iexists ⟨γs, γrv⟩
+  iunfold cinv
+  iexact Hinv
+
 end laws
 
 end k8s_compactor

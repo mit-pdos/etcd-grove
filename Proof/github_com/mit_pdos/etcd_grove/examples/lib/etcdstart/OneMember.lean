@@ -46,6 +46,33 @@ structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Pr
 URL `http://peer`. -/
 def dir1 (peer : GoString) (id : w64) : w64 → List GoString := dirOne id (go!"http://" ++ peer)
 
+/-- **A bootstrap log's KV model is the start log** (its entries conf changes: `kvTableOf_boot`'s,
+for the log). Shared copy of `compactwatch`'s (`NoDup.lean`). -/
+theorem kvModel_boot (γk : KVNames) (ps : List w64) (bootLog : List EntryM)
+    (hb : srvBootLogOk ps bootLog) : kvModel γk (bootEntries bootLog) = γk.log0 := by
+  obtain ⟨-, -, he⟩ := hb
+  unfold kvModel kvRaftOf kvRaftSt bootEntries
+  rw [List.foldl_map]
+  suffices h : ∀ (l : List EntryM) (s : mvcc.Log × LeaseTable), (∀ e ∈ l, e.Type' = W32 1) →
+      l.foldl (fun s e => kvEntrySt γk.c0 γk.ch0 s (EntryModel.ofM e)) s = s by
+    rw [h]
+    intro e hm
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm
+    exact (he k _ (List.getElem?_eq_getElem hk)).2.2.1
+  intro l
+  induction l with
+  | nil => intro _ _; rfl
+  | cons e l ih =>
+    intro s hl
+    rw [List.foldl_cons]
+    have ht : e.Type' = W32 1 := hl e (List.mem_cons_self ..)
+    have : kvEntrySt γk.c0 γk.ch0 s (EntryModel.ofM e) = s := by
+      unfold kvEntrySt kvEntry kvTable
+      simp only [EntryModel.ofM, ht]
+      rfl
+    rw [this]
+    exact ih s (fun e' h' => hl e' (List.mem_cons_of_mem _ h'))
+
 end pure
 
 section defs
