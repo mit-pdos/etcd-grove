@@ -57,6 +57,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
@@ -157,7 +158,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     simp only [hcl, hvs, hrule, SrvRaft.cfg]
     iframe Hst Hpol Hca0 Hfits Hsinv
     ipureintro
-    exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries]⟩
+    exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries],
+      by rw [hbt]; exact Hurl⟩
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0

@@ -237,7 +237,7 @@ theorem Main.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc
+  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,

@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -480,6 +481,20 @@ abbrev ccApplyOkM (γs : ServerRaftNames) (m : ConfChangeM) : Prop := ccApplyOkR
 def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOk cfg m
 
+/-- **The members the bootstrap log's conf changes add** (their contexts' members, in order). -/
+def bootMembers (bootLog : List EntryM) : List apply.MemberM :=
+  bootLog.filterMap fun e => (ccDecodeV1 e.Data').map fun m => membership.ccMemberOf m.context
+
+/-- **The boot members' peer URLs are valid UTF-8 and pairwise disjoint** (2026-11-04, the restart
+plan's R2b-3d gap 3, the user's choice: a premise on the bootstrap log, which etcd's
+`--initial-cluster` meets, distinct members at distinct URLs). It is what makes each boot `AddNode`
+validate against the members saved before it (`ccValidOn`: no member has its peer URLs), and the
+members read back as saved (`membersOf_decode`: `json.Marshal` keeps valid UTF-8), so that a
+restart's `members` bucket holds every boot member. -/
+def bootURLsOk (bootLog : List EntryM) : Prop :=
+  (∀ mm ∈ bootMembers bootLog, ∀ u ∈ mm.peerURLs, utf8Valid u) ∧
+  (bootMembers bootLog).Pairwise fun a b => ∀ u ∈ a.peerURLs, u ∉ b.peerURLs
+
 /-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
@@ -706,7 +721,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝ ∗
     -- (2026-11-01, J8b) the cluster's bootstrap log the server's (`cluster_alloc`'s `bootLen`):
     -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
-    ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝)
+    ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
+    -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
+    ⌜bootURLsOk γ.raft.boot⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance

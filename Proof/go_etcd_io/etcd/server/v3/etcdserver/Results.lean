@@ -2130,6 +2130,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
@@ -2155,7 +2156,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hurl Hpd Hp0
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/

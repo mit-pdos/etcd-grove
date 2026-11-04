@@ -1363,3 +1363,11 @@ etcd's `--initial-cluster` members are voters (`NewClusterFromURLsMap`). The fac
 premise on the boot log's contexts: `∀ cc of the boot log, (ccMemberAt cc).isLearner = false`, in
 `srvBootLogOk` (or the examples' `BootLog`), which the examples' configurations meet. This changes a
 premise of exported results, so it is the user's to approve.
+
+**Gap 3, done (2026-11-04).** The pure part is `RestConf.lean`'s `restModel_confState`: given the
+image's `members` bucket equal to the rest model's at `boot ++ R`, every `cs` with `v3ConfStateIs
+D cs` gives `confStateIs cs (Membership.simple cfg)`. Stage 5 discharges its premises:
+`srvBootLogOk`, distinct peers, `bootURLsOk` (`srvClusterOk`), the boot entries' and the log's conf
+changes `ccApplyOk` (`srv_committed_ccBoot`; empty V2 entries excluded by
+`committed_emptyV2_joint`), and the bucket from `imageAt`'s `bkRestAtL`. Trust added: three
+reviewed axioms (`notes/axiom-review/members-decode.md`).

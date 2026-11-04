@@ -31682,3 +31682,17 @@ flight), the user chose the first. It has two consequences: a general Perennial 
 `ThreadPool`), and a new premise on the exported restart result, that the members' request paths
 stopped before the server, which matches `embed.Close`'s order. Plan: `notes/restart-plan.md`,
 "R2b-3d ... gap 4".
+
+## The configuration a restart reads (2026-11-04, R2b-3d gap 3; the user's choices)
+
+`bootstrap` rebuilds raft's `ConfState` from the `members` bucket (`buildConfStateFromV3store`). The
+image needs it to be the cluster's membership at the backend's index. What changed:
+- R2c's opaque `v3ConfState D` became the relation `v3ConfStateIs D cs`. Go ranges over a map, so
+  the voters' order is not determined.
+- `ccApplyOk` gained `(ccMemberOf m.context).isLearner = false`: boot members are voters (the
+  user's choice of place).
+- A new boot-log premise, `bootURLsOk`, kept in `srvClusterOk`: the boot members' peer URLs are
+  valid UTF-8 and pairwise disjoint. Each example's `BootFacts` gained it as the field `urls`.
+- Three trust-boundary axioms, approved and reviewed (`notes/axiom-review/members-decode.md`):
+  `membersOf_decode` (buckets the apply thread wrote decode to their members; the draft without
+  `utf8Valid` was refuted by a Go test), `memberEnc_id_learner` and `memberKey_inj`.

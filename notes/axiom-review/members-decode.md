@@ -69,3 +69,26 @@ func TestPeerURLRoundTrip(t *testing.T) {
    (`membersOfBk_empty`) is the instance `ms = rs = []`, where both conclusions agree (empty maps).
    The read contract only passes `membersOfBk` through. `membersOf` defined as the fold Go performs
    (UTF-8 coercion included) satisfies both laws, so the pair is consistent.
+
+## `apply.memberEnc_id_learner` (2026-11-04, the same change)
+
+`memberEnc a = memberEnc b → a.id = b.id ∧ a.isLearner = b.isLearner`, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/RestModel.lean`. **Survives.**
+
+- **The id.** `Member.ID` is `types.ID`, a `uint64` with no `MarshalJSON` or `UnmarshalJSON`
+  (`client/pkg/types/id.go`), so it is written as `"id":<decimal>`, which is injective. No other field
+  is named `id`: `RaftAttributes` and `Attributes` are embedded, with fields `peerURLs`,
+  `isLearner`, `name` and `clientURLs`.
+- **The learner flag.** `IsLearner bool json:"isLearner,omitempty"`: `"isLearner":true` appears iff it
+  is true. A string field cannot imitate it, because json escapes the quotes inside strings.
+- **Coercion.** Only strings are coerced (invalid UTF-8 to U+FFFD), and neither field is a string.
+- **Consistency.** `memberEnc` is opaque. Its other statements (`membersDecode`, `membersOf_decode`)
+  constrain it only through `memberKey` and the decode, and both hold of the real `json.Marshal`.
+
+## `apply.memberKey_inj` (2026-11-04, the same change)
+
+`memberKey a = memberKey b → a = b`. **Survives.** `schema.BackendMemberKey(id)` is
+`[]byte(id.String())` (`server/storage/schema/bucket.go:106-108`). `types.ID.String()` is
+`strconv.FormatUint(uint64(i), 16)` (`client/pkg/types/id.go:27-29`): lowercase hex, no leading
+zeros, `"0"` for 0, so injective on `uint64`. `memberKey` is opaque, and its other statements
+(`membersDecode`, `membersOf_decode`) are true of this function, so the axioms are consistent.
