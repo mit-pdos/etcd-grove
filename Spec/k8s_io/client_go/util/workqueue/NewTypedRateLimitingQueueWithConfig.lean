@@ -27,9 +27,11 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `NewTypedRateLimitingQueueWithConfig(rl, cfg)` for a `rlConfigOk` configuration and a rate
 limiter whose `When` satisfies `P`: a rate-limiting queue over a new delaying queue, with all but
-one of the typed queue's shutdown tokens. -/
+one of the typed queue's shutdown tokens.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev NewTypedRateLimitingQueueWithConfig.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (rl : TypedRateLimiter K)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (Pk : K → Prop) (rl : TypedRateLimiter K)
     (P : time.Duration → Prop) (cfg : TypedRateLimitingQueueConfig K),
   rlConfigOk cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗
@@ -38,7 +40,7 @@ abbrev NewTypedRateLimitingQueueWithConfig.spec : Prop :=
   {{ (q : Loc) (γ : DNames),
       RET #(interface.mkOk (go.GoType.PointerType (rateLimitingType.ty T)) #q :
         TypedRateLimitingInterface K);
-      isRateLimitingQueue (K := K) q γ P ∗ shutdownToks γ.tq (shutdownPool - 1) }}
+      isRateLimitingQueue (K := K) q γ Pk P ∗ shutdownToks γ.tq (shutdownPool - 1) }}
 
 end spec
 

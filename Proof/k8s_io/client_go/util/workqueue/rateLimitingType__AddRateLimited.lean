@@ -28,8 +28,8 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem rateLimitingType.AddRateLimited.wp_proof
     (wp_AddAfter : delayingType.AddAfter.spec (GF := GF) (hG := hG)) :
     rateLimitingType.AddRateLimited.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ P k
-  wp_start as #Hq
+  intro K T _ q γ Pk P k
+  wp_start as ⟨#Hq, %HPk⟩
   iunfold isRateLimitingQueue at Hq
   icases Hq with ⟨%dq, %rl, #Hdf, #Hd, #Hrlf, #Hrl⟩
   iunfold isRateLimiter at Hrl
@@ -38,6 +38,7 @@ theorem rateLimitingType.AddRateLimited.wp_proof
   wp_auto
   wp_apply HWhen as %d %_
   wp_apply wp_AddAfter $$ [$Hd]
+  · ipureintro; exact HPk
   wp_end
 
 end proof

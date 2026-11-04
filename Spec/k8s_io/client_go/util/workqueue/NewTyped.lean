@@ -22,12 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-/-- `NewTyped()`: a typed queue (unnamed: no metrics) and its shutdown tokens. -/
+/-- `NewTyped()`: a typed queue (unnamed: no metrics) and its shutdown tokens.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev NewTyped.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T],
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (Pk : K → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue }}
     (App (Val #(functions NewTyped [T])) (Val #()))
-  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ ∗ shutdownToks γ shutdownPool }}
+  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ Pk ∗ shutdownToks γ shutdownPool }}
 
 end spec
 

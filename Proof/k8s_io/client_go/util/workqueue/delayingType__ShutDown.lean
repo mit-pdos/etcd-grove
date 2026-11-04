@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem delayingType.ShutDown.wp_proof
     (wp_ShutDown : Typed.ShutDown.spec (GF := GF) (hG := hG)) :
     delayingType.ShutDown.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ
+  intro K T _ q γ Pk
   wp_start as #Hq
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem rateLimitingType.ShutDownWithDrain.wp_proof
     (wp_ShutDownWithDrain : delayingType.ShutDownWithDrain.spec (GF := GF) (hG := hG)) :
     rateLimitingType.ShutDownWithDrain.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ P
+  intro K T _ q γ Pk P
   wp_start as ⟨#Hq, Htoks⟩
   iunfold isRateLimitingQueue at Hq
   icases Hq with ⟨%dq, %rl, #Hdf, #Hd, #Hrlf, #Hrl⟩

@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `insert(q, m, entry)` with an entry the caller owns: the heap and the map still agree
-(`byDataOk`). -/
+(`byDataOk`), and the heap holds only its old entries and the new item's. -/
 abbrev insert.spec : Prop :=
   ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (pq : Loc) (ws : List (Loc × K))
     (m : Loc) (mm : GMap K Loc) (w : Loc) (wf : waitFor K),
@@ -35,7 +35,8 @@ abbrev insert.spec : Prop :=
       m ↦$ mm ∗ wfFields (K := K) w wf }}
     (App (App (App (Val #(functions insert [T])) (Val #pq)) (Val #m)) (Val #w))
   {{ RET #(); ∃ (ws' : List (Loc × K)) (mm' : GMap K Loc),
-      wqHeap (K := K) pq ws' ∗ m ↦$ mm' ∗ ⌜byDataOk mm' ws'⌝ }}
+      wqHeap (K := K) pq ws' ∗ m ↦$ mm' ∗ ⌜byDataOk mm' ws'⌝ ∗
+      ⌜∀ x ∈ ws', x ∈ ws ∨ x.2 = wf.data'⌝ }}
 
 end spec
 

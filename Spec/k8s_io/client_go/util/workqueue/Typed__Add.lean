@@ -27,10 +27,12 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.Add(item)`: under the lock, the abstract state becomes `QState.add σ item`; nothing is
 returned to the caller (who holds no token for `item`: an `Add` of an item being processed only
-marks it dirty, so it is handed out again after `Done`). -/
+marks it dirty, so it is handed out again after `Done`).
+The item must satisfy the queue's item predicate `Pk` (`isTyped`); the statement without it is the
+instance `Pk := fun _ => True`. -/
 abbrev Typed.Add.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (k : K),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop) (k : K),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk ∗ ⌜Pk k⌝ }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"Add")) (Val #k))
   {{ RET #(); True }}
 

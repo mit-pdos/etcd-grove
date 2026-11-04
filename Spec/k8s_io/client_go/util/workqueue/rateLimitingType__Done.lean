@@ -27,10 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `(*rateLimitingType[T]).Done`, the method `rateLimitingType` promotes from its embedded `TypedDelayingInterface`: `Done(item)` (with the item's token), as `delayingType.Done`
-on the embedded queue. -/
+on the embedded queue.
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev rateLimitingType.Done.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (P : time.Duration → Prop) (k : K),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ P ∗ keyTok γ.tq k }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop) (P : time.Duration → Prop) (k : K),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ Pk P ∗ keyTok γ.tq k }}
     (App (Val (q @!! go.GoType.PointerType (rateLimitingType.ty T) @!! go!"Done")) (Val #k))
   {{ RET #(); True }}
 

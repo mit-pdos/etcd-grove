@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 theorem newQueue.wp_proof [EtcdGrove.MutexLitSemantics] : newQueue.spec (GF := GF) (hG := hG) := by
-  intro K T _ c l nm period
+  intro K T _ Pk c l nm period
   wp_start as Hfifo
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -69,13 +69,13 @@ theorem newQueue.wp_proof [EtcdGrove.MutexLitSemantics] : newQueue.spec (GF := G
   ipersist metrics
   ipersist stopCh
   let L : QLocs := ⟨l, dm, pm, cv, mu, ch⟩
-  imod sync.init_Mutex (qLockInv (K := K) «$r0_ptr» L γ) ⊤ mu $$ Hmu
+  imod sync.init_Mutex (qLockInv (K := K) «$r0_ptr» L γ Pk) ⊤ mu $$ Hmu
     [Hfifo Hdm Hpm shuttingDown drain Hpauth Hsdg] with #Hmux
   · inext; iunfold qLockInv
     iexists QState.init, false
     simp only [QState.init, sdGhost, Bool.false_eq_true, ↓reduceIte, γ, L]
     iframe
-    ipureintro; exact QState.init_wf
+    ipureintro; exact ⟨QState.init_wf, QState.init_allP Pk⟩
   imodintro
   iapply HΦ
   isplitr

@@ -38,7 +38,7 @@ theorem Typed.Done.wp_proof
     (wp_Push : queue.Push.spec (GF := GF) (hG := hG))
     (wp_done : noMetrics.done.spec (GF := GF) (hG := hG)) :
     Typed.Done.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ k
+  intro K T _ q γ Pk k
   wp_start as ⟨#Hq, Htok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -68,7 +68,7 @@ theorem Typed.Done.wp_proof
   · -- not added meanwhile
     wp_auto
     wp_apply (sets.Set.wp_ptr_Len_of (T := T) wp_Len) $$ [$Hproc $Hproc_i] as ⟨-, Hproc_i⟩
-    have Hwf' := σ.done_wf k Hwf_i Hp
+    have Hwf' := And.intro (σ.done_wf k Hwf_i.1 Hp) (σ.done_allP k Hwf_i.2)
     rw [QState.done_eq, if_neg (by simp [hd])] at Hwf'
     wp_if_destruct
     · wp_apply sync.Cond.wp_Signal $$ [$Hcv]
@@ -87,7 +87,7 @@ theorem Typed.Done.wp_proof
     wp_apply wp_Push $$ [$Hfifo_i] as Hfifo_i
     wp_apply sync.Cond.wp_Signal $$ [$Hcv]
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i]
-    · have Hwf' := σ.done_wf k Hwf_i Hp
+    · have Hwf' := And.intro (σ.done_wf k Hwf_i.1 Hp) (σ.done_allP k Hwf_i.2)
       rw [QState.done_eq, if_pos hd] at Hwf'
       inext; iunfold qLockInv
       iexists ({ σ with processing := GMap.delete k σ.processing, queue := σ.queue ++ [k] } : QState K), drain

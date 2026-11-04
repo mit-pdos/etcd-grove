@@ -29,13 +29,13 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem Typed.ShutDownWithDrain.wp_proof
     (wp_Len : sets.Set.Len.spec (GF := GF) (hG := hG)) :
     Typed.ShutDownWithDrain.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ
+  intro K T _ q γ Pk
   wp_start as ⟨#Hq, Hst⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iNamed Hq
   ihave #HL := isCond_L _ _ $$ Hcv
-  ihave #Hlocker := sync.Mutex_is_Locker L.mu (qLockInv (K := K) q L γ) $$ Hsync Hmu
+  ihave #Hlocker := sync.Mutex_is_Locker L.mu (qLockInv (K := K) q L γ Pk) $$ Hsync Hmu
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   ipersist q
@@ -51,7 +51,7 @@ theorem Typed.ShutDownWithDrain.wp_proof
   (try wp_auto)
   imod sdGhost_shut $$ Hsdg_i with #Hsdlb
   wp_apply sync.Cond.wp_Broadcast $$ [$Hcv]
-  ihave HI : (sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ : IProp GF)
+  ihave HI : (sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ Pk : IProp GF)
     $$ [Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i]
   · iframe; iunfold qLockInv
     iexists ({ σ with shuttingDown := true } : QState K), true
@@ -86,7 +86,7 @@ theorem Typed.ShutDownWithDrain.wp_proof
       simp only [_root_.decide_true, ↓reduceIte]
       wp_auto
       wp_apply sync.Cond.wp_Wait L.cond (interface.mk (go.GoType.PointerType sync.Mutex.ty) #L.mu)
-          (iprop(sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ))
+          (iprop(sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ Pk))
         $$ [Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i] as HI
       · isplitr
         · iexact Hcv

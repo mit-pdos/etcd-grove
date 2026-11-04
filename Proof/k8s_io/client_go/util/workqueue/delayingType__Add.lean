@@ -30,11 +30,12 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem delayingType.Add.wp_proof
     (wp_Add : Typed.Add.spec (GF := GF) (hG := hG)) :
     delayingType.Add.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ k
-  wp_start as #Hq
+  intro K T _ q γ Pk k
+  wp_start as ⟨#Hq, %HPk⟩
   iNamed Hq
   wp_auto
   wp_apply wp_Add $$ [$Htyped]
+  · ipureintro; exact HPk
   iapply HΦ; itrivial
 
 end proof

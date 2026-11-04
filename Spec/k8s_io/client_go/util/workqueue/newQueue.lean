@@ -25,15 +25,17 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `newQueue(c, queue, noMetrics{}, period)` with the default FIFO (empty, at `l`): a typed
-queue (`isTyped`) and its shutdown tokens. No goroutine is started. -/
+queue (`isTyped`) and its shutdown tokens. No goroutine is started.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev newQueue.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (c : k8s_io.utils.clock.WithTicker)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (Pk : K → Prop) (c : k8s_io.utils.clock.WithTicker)
     (l : Loc) (nm : noMetrics K) (period : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ ownFifo (GF := GF) (K := K) l [] }}
     (App (App (App (App (Val #(functions newQueue [T])) (Val #c))
         (Val #(interface.mkOk (go.GoType.PointerType (queue.ty T)) #l : Queue K)))
         (Val #(interface.mkOk (noMetrics.ty T) #nm : queueMetrics K))) (Val #period))
-  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ ∗ shutdownToks γ shutdownPool }}
+  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ Pk ∗ shutdownToks γ shutdownPool }}
 
 end spec
 

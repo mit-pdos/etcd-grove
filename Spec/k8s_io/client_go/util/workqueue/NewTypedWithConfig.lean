@@ -23,13 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `NewTypedWithConfig(config)` for a configuration the specs cover (`queueConfigOk`: the default
-FIFO, no metrics): a typed queue and its shutdown tokens. -/
+FIFO, no metrics): a typed queue and its shutdown tokens.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev NewTypedWithConfig.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (cfg : TypedQueueConfig K),
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (Pk : K → Prop) (cfg : TypedQueueConfig K),
   queueConfigOk cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue }}
     (App (Val #(functions NewTypedWithConfig [T])) (Val #cfg))
-  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ ∗ shutdownToks γ shutdownPool }}
+  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ Pk ∗ shutdownToks γ shutdownPool }}
 
 end spec
 

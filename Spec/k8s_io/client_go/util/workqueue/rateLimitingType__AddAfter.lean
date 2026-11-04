@@ -27,10 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `(*rateLimitingType[T]).AddAfter`, the method `rateLimitingType` promotes from its embedded `TypedDelayingInterface`: `AddAfter(item, d)`, as `delayingType.AddAfter`
-on the embedded queue. -/
+on the embedded queue.
+The item must satisfy the queue's item predicate `Pk` (`isTyped`); the statement without it is the
+instance `Pk := fun _ => True`. -/
 abbrev rateLimitingType.AddAfter.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (P : time.Duration → Prop) (k : K) (d : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ P }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop) (P : time.Duration → Prop) (k : K) (d : time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ Pk P ∗ ⌜Pk k⌝ }}
     (App (App (Val (q @!! go.GoType.PointerType (rateLimitingType.ty T) @!! go!"AddAfter")) (Val #k)) (Val #d))
   {{ RET #(); True }}
 

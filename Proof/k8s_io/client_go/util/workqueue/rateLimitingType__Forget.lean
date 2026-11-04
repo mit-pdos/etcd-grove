@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 theorem rateLimitingType.Forget.wp_proof :
     rateLimitingType.Forget.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ P k
+  intro K T _ q γ Pk P k
   wp_start as #Hq
   iunfold isRateLimitingQueue at Hq
   icases Hq with ⟨%dq, %rl, #Hdf, #Hd, #Hrlf, #Hrl⟩

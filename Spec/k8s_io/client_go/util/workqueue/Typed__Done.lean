@@ -28,10 +28,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.Done(item)`, with `item`'s token (from the `Get` that returned it), which it consumes:
-after it, `item` is no longer being processed (and is queued again if added meanwhile). -/
+after it, `item` is no longer being processed (and is queued again if added meanwhile).
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev Typed.Done.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (k : K),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ ∗
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop) (k : K),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk ∗
       keyTok γ k }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"Done")) (Val #k))
   {{ RET #(); True }}

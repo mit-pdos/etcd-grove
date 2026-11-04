@@ -45,7 +45,7 @@ theorem delayingType.waitingLoop.wp_proof
     (hPop : waitForPriorityQueue.Pop.spec (GF := GF) (hG := hG))
     (hPeek : waitForPriorityQueue.Peek.spec (GF := GF) (hG := hG)) :
     delayingType.waitingLoop.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ logger
+  intro K T _ q γ Pk logger
   wp_start as #Hdq
   ihave #Hq' := Hdq
   iNamed Hq'
@@ -84,13 +84,13 @@ theorem delayingType.waitingLoop.wp_proof
   icases Htk with ⟨%hi, %Hhi, #HhbC, -⟩
   subst Hhi
   ihave HI : iprop(∃ (ws : List (Loc × K)) (mm : GMap K Loc) (tm : k8s_io.utils.clock.Timer),
-      "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws⌝ ∗
+      "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws ∧ ∀ x ∈ ws, Pk x.2⌝ ∗
       "nextReadyAtTimer" ∷ nextReadyAtTimer_ptr ↦ tm ∗
       "#Htm" ∷ (⌜tm = GoInterface.nil⌝ ∨ isTimerI tm)) $$ [Hq Hm nextReadyAtTimer]
   · iexists [], ∅, GoInterface.nil
     iframe
     isplitr
-    · ipureintro; exact ⟨List.nodup_nil, fun k w => by simp⟩
+    · ipureintro; exact ⟨⟨List.nodup_nil, fun k w => by simp⟩, fun x hx => by simp at hx⟩
     ileft; ipureintro; rfl
   wp_for HI
   wp_apply wp_ShuttingDown $$ [$Htyped] as %b Hb
@@ -101,13 +101,13 @@ theorem delayingType.waitingLoop.wp_proof
     wp_apply HNow as %now -
     -- add the entries whose time has come
     wp_join iprop(∃ (ws : List (Loc × K)) (mm : GMap K Loc),
-        "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws⌝ ∗
+        "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws ∧ ∀ x ∈ ws, Pk x.2⌝ ∗
         "now" ∷ now_ptr ↦ now ∗ "waitingForQueue" ∷ waitingForQueue_ptr ↦ pq ∗
         "waitingEntryByData" ∷ waitingEntryByData_ptr ↦ m ∗ "q" ∷ q_ptr ↦ q) at next
         with [Hq Hm now waitingForQueue waitingEntryByData q]
         as ⟨%ws, %mm, Hq, Hm, %Hok, now, waitingForQueue, waitingEntryByData, q⟩
     · ihave HJ : iprop(∃ (ws : List (Loc × K)) (mm : GMap K Loc),
-          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws⌝) $$ [Hq Hm]
+          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws ∧ ∀ x ∈ ws, Pk x.2⌝) $$ [Hq Hm]
       · iexists ws, mm; iframe; ipureintro; exact Hok
       wp_for HJ
       wp_apply (wqHeap_Len_of (K := K) (T := T) @hLen pq ws) $$ [$Hq] as ⟨Hq, %Hwl⟩
@@ -145,13 +145,16 @@ theorem delayingType.waitingLoop.wp_proof
           icases Hb0 with ⟨#Hbd, Hbr, Hbi⟩
           wp_auto
           wp_apply wp_Add $$ [$Hdq]
+          · ipureintro
+            exact Hok.2 b0 (Hys.mem_iff.1 (List.mem_append_right _ (List.mem_singleton_self _)))
           wp_apply wp_mapDelete $$ Hm as Hm
           wp_for_post
           iframe
           iexists ys, _
           iframe
           ipureintro
-          exact byDataOk_delete b0 Hok Hys
+          exact ⟨byDataOk_delete b0 Hok.1 Hys,
+            fun x hx => Hok.2 x (Hys.mem_iff.1 (List.mem_append_left _ hx))⟩
         · -- not due yet: the loop ends
           wp_auto
           wp_for_post
@@ -292,12 +295,12 @@ theorem delayingType.waitingLoop.wp_proof
       iintro %w Hw
       wp_auto
       iunfold entryOk at Hw
-      icases Hw with ⟨%wf, Hw⟩
+      icases Hw with ⟨%wf, Hw, %HPkw⟩
       ihave Hw := wfFields_of (K := K) w wf $$ Hw
       iunfold wfFields at Hw
       icases Hw with ⟨Hd, Hr, Hi⟩
       wp_join iprop(∃ (ws : List (Loc × K)) (mm : GMap K Loc),
-          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws⌝ ∗
+          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws ∧ ∀ x ∈ ws, Pk x.2⌝ ∗
           "waitingForQueue" ∷ waitingForQueue_ptr ↦ pq ∗
           "waitingEntryByData" ∷ waitingEntryByData_ptr ↦ m ∗ "q" ∷ q_ptr ↦ q) at next
           with [Hq Hm waitingForQueue waitingEntryByData q waitEntry Hd Hr Hi]
@@ -309,21 +312,23 @@ theorem delayingType.waitingLoop.wp_proof
         · -- due: added
           (try wp_auto)
           wp_apply wp_Add $$ [$Hdq]
+          · ipureintro; exact HPkw
           wp_join_done
           iexists ws, mm
           iframe
           try (ipureintro; exact Hok)
         · -- later: inserted
           (try wp_auto)
-          wp_apply (wp_insert pq ws m mm w wf Hok) $$ [$Hq $Hm Hd Hr Hi] as ⟨%ws2, %mm2, Hq, Hm, %Hok2⟩
+          wp_apply (wp_insert pq ws m mm w wf Hok.1) $$ [$Hq $Hm Hd Hr Hi] as ⟨%ws2, %mm2, Hq, Hm, %Hok2, %Hsub⟩
           · iunfold wfFields; iframe
           wp_join_done
           iexists ws2, mm2
           iframe
-          try (ipureintro; exact Hok2)
+          ipureintro
+          exact ⟨Hok2, fun x hx => (Hsub x hx).elim (Hok.2 x) (fun e => by rw [e]; exact HPkw)⟩
       -- drain `waitingForAddCh`
       ihave HD : iprop(∃ (ws : List (Loc × K)) (mm : GMap K Loc) (d : Bool),
-          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws⌝ ∗
+          "Hq" ∷ wqHeap (K := K) pq ws ∗ "Hm" ∷ m ↦$ mm ∗ "%Hok" ∷ ⌜byDataOk mm ws ∧ ∀ x ∈ ws, Pk x.2⌝ ∗
           "drained" ∷ drained_ptr ↦ d) $$ [Hq Hm drained]
       · iexists ws, mm, false; iframe; ipureintro; exact Hok
       wp_for HD
@@ -347,7 +352,7 @@ theorem delayingType.waitingLoop.wp_proof
             iintro %w Hw
             wp_auto
             iunfold entryOk at Hw
-            icases Hw with ⟨%wf, Hw⟩
+            icases Hw with ⟨%wf, Hw, %HPkw⟩
             ihave Hw := wfFields_of (K := K) w wf $$ Hw
             iunfold wfFields at Hw
             icases Hw with ⟨Hd, Hr, Hi⟩
@@ -357,20 +362,22 @@ theorem delayingType.waitingLoop.wp_proof
             cases b
             · (try wp_auto)
               wp_apply wp_Add $$ [$Hdq]
+              · ipureintro; exact HPkw
               wp_for_post
               iframe
               iexists ws, mm, false
               iframe
               try (ipureintro; exact Hok)
             · (try wp_auto)
-              wp_apply (wp_insert pq ws m mm w wf Hok) $$ [$Hq $Hm Hd Hr Hi]
-                as ⟨%ws2, %mm2, Hq, Hm, %Hok2⟩
+              wp_apply (wp_insert pq ws m mm w wf Hok.1) $$ [$Hq $Hm Hd Hr Hi]
+                as ⟨%ws2, %mm2, Hq, Hm, %Hok2, %Hsub⟩
               · iunfold wfFields; iframe
               wp_for_post
               iframe
               iexists ws2, mm2, false
               iframe
-              try (ipureintro; exact Hok2)
+              ipureintro
+              exact ⟨Hok2, fun x hx => (Hsub x hx).elim (Hok.2 x) (fun e => by rw [e]; exact HPkw)⟩
           iapply BigAndL.bigAndL_nil.2
           itrivial
         · -- `default`: drained

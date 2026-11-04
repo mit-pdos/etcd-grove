@@ -30,9 +30,18 @@ processing set, so `keyTok γ k` means `k` is being processed and no second `key
 `ShutDownWithDrain` holds one for its duration (their deferred `wg.Wait()`: Perennial's
 `WaitGroup.Wait` spec bounds the concurrent waiters below `2^31`, `notes/perennial-changes.md`).
 
-**The queue** `isTyped T q γ` (persistent): `q` is a `*Typed[T]` built by `NewTyped*` with the
+**The queue** `isTyped q γ Pk` (persistent): `q` is a `*Typed[T]` built by `NewTyped*` with the
 default FIFO and no metrics (`noMetrics`: the queue is unnamed, or its metrics provider is the
 no-op one, the global default; so no goroutine runs and the wait group's counter stays `0`).
+
+**The item predicate** `Pk : K → Prop`, pure, fixed when the queue is created (the constructors
+take it, chosen by the caller): every item the queue holds satisfies it (`QState.allP`, in the
+lock invariant), so every adding operation takes `⌜Pk k⌝` and `Get` returns it with the item's
+token. With `Pk := fun _ => True` the specs are the ones without a predicate. A departure from
+the spec principles' "TaDa, not HoCAP" (a caller's predicate as a parameter of the library's),
+the approved one for a persistent predicate fixed at creation (`c3-store-law.md`): the lock
+already holds the items, and a client only reads the fact
+(`notes/k8s-daemonset-run/README.md`, decision R5).
 -/
 module
 
@@ -75,6 +84,11 @@ variable [GooseExts] {K : Type} [DecidableEq K]
 def QState.wf (σ : QState K) : Prop :=
   σ.queue.Nodup ∧
     ∀ k, k ∈ σ.queue ↔ ((σ.dirty !! k).isSome ∧ σ.processing !! k = none)
+
+/-- Every item the queue holds (queued, dirty or being processed) satisfies `Pk` (the queue's
+item predicate, `isTyped`). -/
+def QState.allP (Pk : K → Prop) (σ : QState K) : Prop :=
+  ∀ k, k ∈ σ.queue ∨ (σ.dirty !! k).isSome ∨ (σ.processing !! k).isSome → Pk k
 
 /-- `Add(k)`: ignored when shutting down or when `k` is dirty; otherwise `k` becomes dirty, and
 is queued unless it is being processed (then `Done` queues it). -/
@@ -222,8 +236,9 @@ theorem sdGhost_true (γ : QNames) : shutdownLb (GF := GF) γ ⊢ sdGhost γ tru
   unfold sdGhost; simp only [↓reduceIte]; exact .rfl
 
 /-- **The lock invariant** of the queue's mutex: the FIFO, the sets, the flags at the abstract
-state `σ` (`wf`), the processing set's ghost authority, the flag's ghost state. -/
-def qLockInv (q : Loc) (L : QLocs) (γ : QNames) : IProp GF :=
+state `σ` (`wf`, and every item it holds satisfies the item predicate `Pk`), the processing set's
+ghost authority, the flag's ghost state. -/
+def qLockInv (q : Loc) (L : QLocs) (γ : QNames) (Pk : K → Prop) : IProp GF :=
   iprop(∃ (σ : QState K) (drain : Bool),
     "Hfifo" ∷ ownFifo L.fifo σ.queue ∗
     "Hdirty" ∷ L.dirty ↦$ σ.dirty ∗
@@ -232,7 +247,7 @@ def qLockInv (q : Loc) (L : QLocs) (γ : QNames) : IProp GF :=
     "Hdrain" ∷ structFieldRef (Typed K) go!"drain" q ↦ drain ∗
     "Hauth" ∷ ghostMapAuth γ.proc 1 σ.processing ∗
     "Hsdg" ∷ sdGhost γ σ.shuttingDown ∗
-    "%Hwf" ∷ ⌜σ.wf⌝)
+    "%Hwf" ∷ ⌜σ.wf ∧ σ.allP Pk⌝)
 
 /-- The invariant of the wait group `wg` (whose counter stays `0`: no goroutine is started):
 the counter, the waiters' authority, one shutdown token per possible waiter, and the tokens'
@@ -242,8 +257,8 @@ abbrev wgInv (γ : QNames) : IProp GF :=
     sync.ownWaitGroup γ.wg (W32 0) ∗ sync.ownWaitGroupWaiters γ.wg w ∗ ownToks γ.pool w ∗
     ownTokAuth γ.pool shutdownPool)
 
-/-- **The typed queue** (persistent): see the file header. -/
-def isTyped (q : Loc) (γ : QNames) : IProp GF :=
+/-- **The typed queue** (persistent), with item predicate `Pk`: see the file header. -/
+def isTyped (q : Loc) (γ : QNames) (Pk : K → Prop) : IProp GF :=
   iprop(∃ L : QLocs,
     "#Hqueue" ∷ structFieldRef (Typed K) go!"queue" q ↦□
       (interface.mkOk (go.GoType.PointerType (queue.ty T)) #L.fifo : Queue K) ∗
@@ -251,7 +266,7 @@ def isTyped (q : Loc) (γ : QNames) : IProp GF :=
     "#Hproc" ∷ structFieldRef (Typed K) go!"processing" q ↦□ L.processing ∗
     "#Hcond" ∷ structFieldRef (Typed K) go!"cond" q ↦□ L.cond ∗
     "#Hcv" ∷ sync.isCond L.cond (interface.mk (go.GoType.PointerType sync.Mutex.ty) #L.mu) ∗
-    "#Hmu" ∷ sync.isMutex L.mu (qLockInv (K := K) q L γ) ∗
+    "#Hmu" ∷ sync.isMutex L.mu (qLockInv (K := K) q L γ Pk) ∗
     "#Hmetrics" ∷ structFieldRef (Typed K) go!"metrics" q ↦□
       (interface.mkOk (noMetrics.ty T) #(noMetrics.mk : noMetrics K) : queueMetrics K) ∗
     "#Hwg" ∷ sync.isWaitGroup (structFieldRef (Typed K) go!"wg" q) γ.wg (wqN.@"wg") ∗
@@ -266,8 +281,8 @@ theorem isCond_L (c : Loc) (m : GoInterfaceOk) :
   rw [sync.isCond_unseal]; unfold sync.isCondDef
   iintro ⟨-, $, -⟩
 
-instance isTyped_persistent (q : Loc) (γ : QNames) :
-    Persistent (isTyped (GF := GF) (K := K) q γ) := by
+instance isTyped_persistent (q : Loc) (γ : QNames) (Pk : K → Prop) :
+    Persistent (isTyped (GF := GF) (K := K) q γ Pk) := by
   unfold isTyped; simp only [named]; infer_instance
 
 end defs

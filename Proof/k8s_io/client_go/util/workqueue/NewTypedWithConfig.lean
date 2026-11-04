@@ -28,10 +28,10 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem NewTypedWithConfig.wp_proof
     (wp_newQueueWithConfig : newQueueWithConfig.spec (GF := GF) (hG := hG)) :
     NewTypedWithConfig.spec (GF := GF) (hG := hG) := by
-  intro K T _ cfg Hcfg
+  intro K T _ Pk cfg Hcfg
   wp_start
   wp_auto
-  wp_apply wp_newQueueWithConfig (K := K) (T := T) cfg _ Hcfg as %q %γ H
+  wp_apply wp_newQueueWithConfig (K := K) (T := T) Pk cfg _ Hcfg as %q %γ H
   iapply HΦ $$ H
 
 end proof

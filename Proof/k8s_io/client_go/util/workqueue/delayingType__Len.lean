@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem delayingType.Len.wp_proof
     (wp_Len : Typed.Len.spec (GF := GF) (hG := hG)) :
     delayingType.Len.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ
+  intro K T _ q γ Pk
   wp_start as #Hq
   iNamed Hq
   wp_auto

@@ -23,10 +23,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.ShuttingDown()`: `true` only once the queue is shutting down (`shutdownLb`, persistent;
-`false` says nothing: a `ShutDown` may follow at once). -/
+`false` says nothing: a `ShutDown` may follow at once).
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev Typed.ShuttingDown.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"ShuttingDown")) (Val #()))
   {{ (b : Bool), RET #b; if b then shutdownLb γ else True }}
 

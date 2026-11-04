@@ -27,10 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `(*rateLimitingType[T]).ShutDownWithDrain`, the method `rateLimitingType` promotes from its embedded `TypedDelayingInterface`: `ShutDownWithDrain()`, as `delayingType.ShutDownWithDrain`
-on the embedded queue. -/
+on the embedded queue.
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev rateLimitingType.ShutDownWithDrain.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (P : time.Duration → Prop) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ P ∗ shutdownToks γ.tq 1 }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop) (P : time.Duration → Prop) ,
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isRateLimitingQueue (K := K) q γ Pk P ∗ shutdownToks γ.tq 1 }}
     (App (Val (q @!! go.GoType.PointerType (rateLimitingType.ty T) @!! go!"ShutDownWithDrain")) (Val #()))
   {{ RET #(); shutdownLb γ.tq ∗ shutdownToks γ.tq 1 }}
 

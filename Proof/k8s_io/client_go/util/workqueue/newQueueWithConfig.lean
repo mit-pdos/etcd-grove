@@ -32,7 +32,7 @@ theorem newQueueWithConfig.wp_proof
     (wp_newQueueMetrics : newQueueMetrics.spec (GF := GF) (hG := hG))
     (wp_newQueue : newQueue.spec (GF := GF) (hG := hG)) :
     newQueueWithConfig.spec (GF := GF) (hG := hG) := by
-  intro K T _ cfg period Hcfg
+  intro K T _ Pk cfg period Hcfg
   wp_start
   ihave #Hgp := globalProvider_noop $$ Hpkg
   wp_auto
@@ -82,7 +82,7 @@ theorem newQueueWithConfig.wp_proof
   wp_auto
   wp_apply wp_DefaultQueue (K := K) (T := T) as %l Hfifo
   wp_apply wp_newQueueMetrics (K := K) (T := T) mp cfg1.Name' _ (by rw [Hcfg1.2]; exact Hmp)
-  wp_apply wp_newQueue $$ [$Hfifo] as %q %γ ⟨#Hq, Htoks⟩
+  wp_apply wp_newQueue (K := K) (T := T) Pk $$ [$Hfifo] as %q %γ ⟨#Hq, Htoks⟩
   iapply HΦ
   iframe #; iframe
 

@@ -37,8 +37,8 @@ theorem Typed.Add.wp_proof
     (wp_Touch : queue.Touch.spec (GF := GF) (hG := hG))
     (wp_add : noMetrics.add.spec (GF := GF) (hG := hG)) :
     Typed.Add.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ k
-  wp_start as #Hq
+  intro K T _ q γ Pk k
+  wp_start as ⟨#Hq, %HPk⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iNamed Hq
@@ -72,14 +72,14 @@ theorem Typed.Add.wp_proof
         wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i]
         · inext; iunfold qLockInv
           iexists ({ σ with dirty := <[k := sets.present]> σ.dirty, queue := σ.queue ++ [k] } : QState K), drain
-          simp only [hsd]; iframe; ipureintro; exact σ.wf_add_queue k Hwf_i hd hp
+          simp only [hsd]; iframe; ipureintro; exact ⟨σ.wf_add_queue k Hwf_i.1 hd hp, σ.allP_add_queue k Hwf_i.2 HPk⟩
         iapply HΦ; itrivial
       · -- being processed: `Done` queues it
         wp_auto
         wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i]
         · inext; iunfold qLockInv
           iexists ({ σ with dirty := <[k := sets.present]> σ.dirty } : QState K), drain
-          simp only [hsd]; iframe; ipureintro; exact σ.wf_add_dirty k Hwf_i hp
+          simp only [hsd]; iframe; ipureintro; exact ⟨σ.wf_add_dirty k Hwf_i.1 hp, σ.allP_add_dirty k Hwf_i.2 HPk⟩
         iapply HΦ; itrivial
     · -- already dirty: nothing changes (`Touch` if not being processed)
       wp_auto

@@ -27,17 +27,19 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `newDelayingQueue(logger, c, q, name, provider)` over a typed queue `q` (a `*Typed[T]`), with one
 of its shutdown tokens (kept by `stopOnce`, for `ShutDown`), a clock, and no retry metrics (unnamed,
-or the no-op providers): the delaying queue over `q`'s ghost names. -/
+or the no-op providers): the delaying queue over `q`'s ghost names.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev newDelayingQueue.spec : Prop :=
   ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (logger : github_com.go_logr.logr.Logger)
-    (c : GoInterface) (tq : Loc) (γq : QNames) (name : GoString) (provider : MetricsProvider),
+    (c : GoInterface) (tq : Loc) (γq : QNames) (Pk : K → Prop) (name : GoString) (provider : MetricsProvider),
   name = [] ∨ provider = interface.nil ∨ provider = noopProvider →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isClock c ∗
-      isTyped (K := K) tq γq ∗ shutdownToks γq 1 }}
+      isTyped (K := K) tq γq Pk ∗ shutdownToks γq 1 }}
     (App (App (App (App (App (Val #(functions newDelayingQueue [T])) (Val #logger)) (Val #c))
       (Val #(interface.mkOk (go.GoType.PointerType (Typed.ty T)) #tq : TypedInterface K)))
       (Val #name)) (Val #provider))
-  {{ (q : Loc) (γ : DNames), RET #q; ⌜γ.tq = γq⌝ ∗ isDelaying (K := K) q γ }}
+  {{ (q : Loc) (γ : DNames), RET #q; ⌜γ.tq = γq⌝ ∗ isDelaying (K := K) q γ Pk }}
 
 end spec
 

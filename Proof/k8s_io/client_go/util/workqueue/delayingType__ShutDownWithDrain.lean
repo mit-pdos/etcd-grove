@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem delayingType.ShutDownWithDrain.wp_proof
     (wp_ShutDownWithDrain : Typed.ShutDownWithDrain.spec (GF := GF) (hG := hG)) :
     delayingType.ShutDownWithDrain.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ
+  intro K T _ q γ Pk
   wp_start as ⟨#Hq, Htoks⟩
   iNamed Hq
   wp_auto

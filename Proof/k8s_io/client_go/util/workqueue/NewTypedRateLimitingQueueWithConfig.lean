@@ -29,7 +29,7 @@ theorem NewTypedRateLimitingQueueWithConfig.wp_proof
     (wp_NewTypedDelayingQueueWithConfig :
       NewTypedDelayingQueueWithConfig.spec (GF := GF) (hG := hG)) :
     NewTypedRateLimitingQueueWithConfig.spec (GF := GF) (hG := hG) := by
-  intro K T _ rl P cfg Hcfg
+  intro K T _ Pk rl P cfg Hcfg
   obtain ⟨hl, hc, hq, hn⟩ := Hcfg
   rcases cfg with ⟨lg, nm, mp, ck, dq⟩
   simp only at hl hc hq hn
@@ -40,7 +40,7 @@ theorem NewTypedRateLimitingQueueWithConfig.wp_proof
   rcases hc with rfl | rfl
   all_goals
     (try wp_auto)
-    wp_apply (wp_NewTypedDelayingQueueWithConfig (K := K) (T := T)
+    wp_apply (wp_NewTypedDelayingQueueWithConfig (K := K) (T := T) Pk
       (TypedDelayingQueueConfig.mk Loc.null nm mp (interface.mkOk k8s_io.utils.clock.RealClock.ty
         #(zero_val k8s_io.utils.clock.RealClock)) GoInterface.nil) ⟨rfl, Or.inr rfl, rfl, hn⟩)
       as %dq %γ ⟨#Hdq, Htoks⟩

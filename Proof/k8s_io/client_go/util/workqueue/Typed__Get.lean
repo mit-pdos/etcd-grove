@@ -38,19 +38,19 @@ theorem Typed.Get.wp_proof
     (wp_Pop : queue.Pop.spec (GF := GF) (hG := hG))
     (wp_get : noMetrics.get.spec (GF := GF) (hG := hG)) :
     Typed.Get.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ
+  intro K T _ q γ Pk
   wp_start as #Hq
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iNamed Hq
   ihave #HL := isCond_L _ _ $$ Hcv
-  ihave #Hlocker := sync.Mutex_is_Locker L.mu (qLockInv (K := K) q L γ) $$ Hsync Hmu
+  ihave #Hlocker := sync.Mutex_is_Locker L.mu (qLockInv (K := K) q L γ Pk) $$ Hsync Hmu
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HI⟩
   (try wp_auto)
-  ihave HI : (sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ : IProp GF) $$ [Hlocked HI]
+  ihave HI : (sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ Pk : IProp GF) $$ [Hlocked HI]
   · iframe
   wp_for HI
   icases HI with ⟨Hlocked, HI⟩
@@ -67,7 +67,7 @@ theorem Typed.Get.wp_proof
       simp only [Bool.not_false, decide_true, ↓reduceIte]
       wp_auto
       wp_apply sync.Cond.wp_Wait L.cond (interface.mk (go.GoType.PointerType sync.Mutex.ty) #L.mu)
-          (iprop(sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ))
+          (iprop(sync.ownMutex L.mu ∗ qLockInv (K := K) q L γ Pk))
         $$ [Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i] as HI
       · isplitr
         · iexact Hcv
@@ -126,15 +126,18 @@ theorem Typed.Get.wp_proof
     (try wp_auto)
     wp_apply (sets.Set.wp_ptr_Delete_of wp_Delete) $$ [$Hdirty $Hdirty_i $Hl2] as ⟨-, Hdirty_i, -⟩
     simp only [sets.insertAll_cons, sets.insertAll_nil, sets.deleteAll_cons, sets.deleteAll_nil]
-    have Hnp := σ.front_not_processing k rest Hwf_i hq
+    have Hnp := σ.front_not_processing k rest Hwf_i.1 hq
+    have HPk := σ.get_allP k rest Hwf_i.2 hq
     imod ghost_map_insert (γ := γ.proc) k sets.present Hnp $$ Hauth_i with ⟨Hauth_i, Htok⟩
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfifo_i Hdirty_i Hproc_i Hsd_i Hdrain_i Hauth_i Hsdg_i]
     · inext; iunfold qLockInv; iexists σ.get k rest, drain
-      simp only [QState.get]; iframe; ipureintro; exact σ.get_wf k rest Hwf_i hq
+      simp only [QState.get]; iframe; ipureintro; exact ⟨σ.get_wf k rest Hwf_i.1 hq, HPk.1⟩
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iunfold keyTok; iexact Htok
+    isplitl [Htok]
+    · iunfold keyTok; iexact Htok
+    ipureintro; exact HPk.2
 
 end proof
 

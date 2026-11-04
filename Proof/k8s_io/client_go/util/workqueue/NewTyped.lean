@@ -28,10 +28,10 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem NewTyped.wp_proof
     (wp_NewTypedWithConfig : NewTypedWithConfig.spec (GF := GF) (hG := hG)) :
     NewTyped.spec (GF := GF) (hG := hG) := by
-  intro K T _
+  intro K T _ Pk
   wp_start
   (try wp_auto)
-  wp_apply wp_NewTypedWithConfig (K := K) (T := T) _ ⟨rfl, Or.inl rfl⟩ as %q %γ H
+  wp_apply wp_NewTypedWithConfig (K := K) (T := T) Pk _ ⟨rfl, Or.inl rfl⟩ as %q %γ H
   iapply HΦ $$ H
 
 end proof

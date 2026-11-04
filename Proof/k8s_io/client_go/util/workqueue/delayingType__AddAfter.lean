@@ -30,8 +30,8 @@ theorem delayingType.AddAfter.wp_proof
     (wp_ShuttingDown : delayingType.ShuttingDown.spec (GF := GF) (hG := hG))
     (wp_Add : delayingType.Add.spec (GF := GF) (hG := hG)) :
     delayingType.AddAfter.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ k d
-  wp_start as #Hq
+  intro K T _ q γ Pk k d
+  wp_start as ⟨#Hq, %HPk⟩
   ihave #Hq' := Hq
   iNamed Hq'
   wp_auto
@@ -45,6 +45,7 @@ theorem delayingType.AddAfter.wp_proof
     wp_apply Hretry
     wp_if_destruct
     · wp_apply wp_Add $$ [$Hq]
+      · ipureintro; exact HPk
       wp_end
     · iunfold isClock at Hc
       icases Hc with ⟨%ci, %Hci, #HNow, -, -⟩
@@ -73,8 +74,10 @@ theorem delayingType.AddAfter.wp_proof
         · ipureintro; exact ⟨rfl, rfl⟩
         isplit
         · iapply is_bag_is_chan $$ Hbag
-        iapply bag_send_au γ.wch wch (entryOk (K := K)) «$v1_ptr» _ $$ [$Hlc1 $Hlc2] Hbag [«$v1»]
-        · iunfold entryOk; iexists _; iexact «$v1»
+        iapply bag_send_au γ.wch wch (entryOk (K := K) Pk) «$v1_ptr» _ $$ [$Hlc1 $Hlc2] Hbag [«$v1»]
+        · iunfold entryOk; iexists _; isplitl [«$v1»]
+          · iexact «$v1»
+          ipureintro; exact HPk
         inext
         wp_auto
         wp_end

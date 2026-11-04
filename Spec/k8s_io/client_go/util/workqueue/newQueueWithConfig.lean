@@ -24,14 +24,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-/-- `newQueueWithConfig(config, period)` for such a configuration: a typed queue. -/
+/-- `newQueueWithConfig(config, period)` for such a configuration: a typed queue.
+The caller chooses the queue's item predicate `Pk` (`isTyped`), which every item added must satisfy;
+the statement without it is the instance `Pk := fun _ => True`. -/
 abbrev newQueueWithConfig.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (cfg : TypedQueueConfig K)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (Pk : K → Prop) (cfg : TypedQueueConfig K)
     (period : time.Duration),
   queueConfigOk cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue }}
     (App (App (Val #(functions newQueueWithConfig [T])) (Val #cfg)) (Val #period))
-  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ ∗ shutdownToks γ shutdownPool }}
+  {{ (q : Loc) (γ : QNames), RET #q; isTyped (K := K) q γ Pk ∗ shutdownToks γ shutdownPool }}
 
 end spec
 

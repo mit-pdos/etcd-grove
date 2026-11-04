@@ -27,10 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `(*delayingType[T]).Add`, the method `delayingType` promotes from its embedded `TypedInterface`: `Add(item)`, as `Typed.Add`
-on the embedded queue. -/
+on the embedded queue.
+The item must satisfy the queue's item predicate `Pk` (`isTyped`); the statement without it is the
+instance `Pk := fun _ => True`. -/
 abbrev delayingType.Add.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (k : K),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop) (k : K),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ Pk ∗ ⌜Pk k⌝ }}
     (App (Val (q @!! go.GoType.PointerType (delayingType.ty T) @!! go!"Add")) (Val #k))
   {{ RET #(); True }}
 

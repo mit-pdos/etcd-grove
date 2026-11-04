@@ -1,7 +1,8 @@
 /-
 Pure facts about the typed queue's abstract state (`Defs.lean`): its invariant `QState.wf` holds
 initially and is preserved by `add`, by `get` of the front item, and by `done` of an item being
-processed. Lean-first.
+processed; so is `QState.allP Pk` (every item held satisfies the item predicate), `add` given
+`Pk k`, and `get` gives `Pk` of the front item. Lean-first.
 -/
 module
 
@@ -139,6 +140,78 @@ theorem QState.done_wf (σ : QState K) (k : K) (h : σ.wf)
       exact hd
     · simp only [GMap.lookup_delete_ne _ e]
       exact hmem k'
+
+/-! ### The item predicate -/
+
+theorem isSome_of_delete {V : Type} {m : GMap K V} {k k' : K}
+    (h : (GMap.delete k m !! k').isSome) : (m !! k').isSome := by
+  by_cases e : k = k'
+  · subst e; simp at h
+  · rwa [GMap.lookup_delete_ne _ e] at h
+
+theorem isSome_of_insert {V : Type} {m : GMap K V} {k k' : K} {v : V}
+    (h : (<[k := v]> m !! k').isSome) : k = k' ∨ (m !! k').isSome := by
+  by_cases e : k = k'
+  · exact Or.inl e
+  · rw [GMap.lookup_insert_ne _ _ e] at h; exact Or.inr h
+
+theorem QState.init_allP (Pk : K → Prop) : (QState.init : QState K).allP Pk := by
+  intro k hk; simp [QState.init] at hk
+
+/-- `allP` of an `add` that marks `k` dirty and queues it. -/
+theorem QState.allP_add_queue {Pk : K → Prop} (σ : QState K) (k : K) (h : σ.allP Pk)
+    (hk : Pk k) :
+    ({ σ with dirty := <[k := present]> σ.dirty, queue := σ.queue ++ [k] } : QState K).allP Pk := by
+  intro k' hk'
+  rcases hk' with h1 | h1 | h1
+  · rcases List.mem_append.1 h1 with h1 | h1
+    · exact h k' (Or.inl h1)
+    · rw [List.mem_singleton] at h1; exact h1 ▸ hk
+  · rcases isSome_of_insert h1 with e | h1
+    · exact e ▸ hk
+    · exact h k' (Or.inr (Or.inl h1))
+  · exact h k' (Or.inr (Or.inr h1))
+
+/-- `allP` of an `add` that marks `k` dirty only. -/
+theorem QState.allP_add_dirty {Pk : K → Prop} (σ : QState K) (k : K) (h : σ.allP Pk)
+    (hk : Pk k) : ({ σ with dirty := <[k := present]> σ.dirty } : QState K).allP Pk := by
+  intro k' hk'
+  rcases hk' with h1 | h1 | h1
+  · exact h k' (Or.inl h1)
+  · rcases isSome_of_insert h1 with e | h1
+    · exact e ▸ hk
+    · exact h k' (Or.inr (Or.inl h1))
+  · exact h k' (Or.inr (Or.inr h1))
+
+/-- `allP` of `get` of the front item, which satisfies `Pk`. -/
+theorem QState.get_allP {Pk : K → Prop} (σ : QState K) (k : K) (rest : List K) (h : σ.allP Pk)
+    (hq : σ.queue = k :: rest) : (σ.get k rest).allP Pk ∧ Pk k := by
+  have hk : Pk k := h k (Or.inl (by rw [hq]; exact List.mem_cons_self))
+  refine ⟨fun k' hk' => ?_, hk⟩
+  simp only [QState.get] at hk'
+  rcases hk' with h1 | h1 | h1
+  · exact h k' (Or.inl (by rw [hq]; exact List.mem_cons_of_mem _ h1))
+  · exact h k' (Or.inr (Or.inl (isSome_of_delete h1)))
+  · rcases isSome_of_insert h1 with e | h1
+    · exact e ▸ hk
+    · exact h k' (Or.inr (Or.inr h1))
+
+theorem QState.done_allP {Pk : K → Prop} (σ : QState K) (k : K) (h : σ.allP Pk) :
+    (σ.done k).allP Pk := by
+  intro k' hk'
+  rw [QState.done_eq] at hk'
+  split at hk'
+  · next hd =>
+    rcases hk' with h1 | h1 | h1
+    · rcases List.mem_append.1 h1 with h1 | h1
+      · exact h k' (Or.inl h1)
+      · rw [List.mem_singleton] at h1; subst h1; exact h _ (Or.inr (Or.inl hd))
+    · exact h k' (Or.inr (Or.inl h1))
+    · exact h k' (Or.inr (Or.inr (isSome_of_delete h1)))
+  · rcases hk' with h1 | h1 | h1
+    · exact h k' (Or.inl h1)
+    · exact h k' (Or.inr (Or.inl h1))
+    · exact h k' (Or.inr (Or.inr (isSome_of_delete h1)))
 
 end state
 

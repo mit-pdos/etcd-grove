@@ -23,10 +23,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-/-- `q.Len()`: some non-negative `int` (the FIFO's length at the time). -/
+/-- `q.Len()`: some non-negative `int` (the FIFO's length at the time).
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev Typed.Len.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"Len")) (Val #()))
   {{ (n : w64), RET #n; ⌜0 ≤ sint.Z n⌝ }}
 

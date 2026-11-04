@@ -14,15 +14,15 @@ existing.index)` in `insert` needs it in range); `container/heap`'s contract ove
 (`heap.heapIface`, `heap.heapPopIface`: `DelayingLemmas.lean`). The waiting loop's map
 `waitingEntryByData` holds exactly the heap's entries, by item, no item twice (`byDataOk`).
 
-**The delaying queue** `isDelaying q γ` (persistent): a `*delayingType[T]` over a typed queue
-(`isTyped`, its embedded `TypedInterface`), with its clock, its stop channel (closed once, by
+**The delaying queue** `isDelaying q γ Pk` (persistent): a `*delayingType[T]` over a typed queue
+with item predicate `Pk` (`isTyped`, its embedded `TypedInterface`), with its clock, its stop channel (closed once, by
 `ShutDown`, after the typed queue is shutting down: a broadcast of `shutdownLb`), its `stopOnce`
 (which holds the stop channel's closing right and one shutdown token of the typed queue), its
 heartbeat ticker, its channel `waitingForAddCh` of entries (a bag: a sent `*waitFor` is owned by
-whoever receives it), its retry metrics (whose `retry()` returns).
+whoever receives it, and its item satisfies `Pk`), its retry metrics (whose `retry()` returns).
 
-**The rate-limiting queue** `isRateLimitingQueue q γ P` (persistent): a `*rateLimitingType[T]`
-over a delaying queue and a rate limiter whose `When` satisfies `P`.
+**The rate-limiting queue** `isRateLimitingQueue q γ Pk P` (persistent): a `*rateLimitingType[T]`
+over a delaying queue with item predicate `Pk` and a rate limiter whose `When` satisfies `P`.
 
 What is not stated: when (or whether) an item given to `AddAfter` is added. That is liveness: the
 waiting loop adds each entry it receives once its time has come (or at once), unless the queue
@@ -201,9 +201,10 @@ theorem wfFields_of (w : Loc) (wf : waitFor K) :
   iunfold wfFields
   iframe
 
-/-- An entry sent on `waitingForAddCh`: a `*waitFor[T]` owned by its holder. -/
-def entryOk (w : Loc) : IProp GF :=
-  iprop(∃ wf : waitFor K, w ↦ wf)
+/-- An entry sent on `waitingForAddCh`: a `*waitFor[T]` owned by its holder, whose item
+satisfies the queue's item predicate `Pk`. -/
+def entryOk (Pk : K → Prop) (w : Loc) : IProp GF :=
+  iprop(∃ wf : waitFor K, w ↦ wf ∗ ⌜Pk wf.data'⌝)
 
 /-! ### The delaying queue -/
 
@@ -230,12 +231,12 @@ instance defaultRetryOk_persistent (m : Loc) : Persistent (defaultRetryOk (GF :=
   unfold defaultRetryOk; infer_instance
 
 /-- **The delaying queue** (persistent): see the file header. -/
-def isDelaying (q : Loc) (γ : DNames) : IProp GF :=
+def isDelaying (q : Loc) (γ : DNames) (Pk : K → Prop) : IProp GF :=
   iprop(∃ (tq : Loc) (c : GoInterface) (ch : Loc) (hb : k8s_io.utils.clock.Ticker) (wch : Loc)
       (rm : retryMetrics),
     "#Htq" ∷ structFieldRef (delayingType K) go!"TypedInterface" q ↦□
       (interface.mkOk (go.GoType.PointerType (Typed.ty T)) #tq : TypedInterface K) ∗
-    "#Htyped" ∷ isTyped (K := K) tq γ.tq ∗
+    "#Htyped" ∷ isTyped (K := K) tq γ.tq Pk ∗
     "#Hclock" ∷ structFieldRef (delayingType K) go!"clock" q ↦□ c ∗
     "#Hc" ∷ isClock c ∗
     "#HstopCh" ∷ structFieldRef (delayingType K) go!"stopCh" q ↦□ ch ∗
@@ -246,14 +247,14 @@ def isDelaying (q : Loc) (γ : DNames) : IProp GF :=
     "#Hhb" ∷ structFieldRef (delayingType K) go!"heartbeat" q ↦□ hb ∗
     "#Htk" ∷ isTickerI hb ∗
     "#Hwch" ∷ structFieldRef (delayingType K) go!"waitingForAddCh" q ↦□ wch ∗
-    "#Hbag" ∷ isChanBag γ.wch wch (V := Loc) (entryOk (K := K)) ∗
+    "#Hbag" ∷ isChanBag γ.wch wch (V := Loc) (entryOk (K := K) Pk) ∗
     "#Hmetrics" ∷ structFieldRef (delayingType K) go!"metrics" q ↦□ rm ∗
     "#Hrm" ∷ isRetryMetrics rm)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 1024 in
-instance isDelaying_persistent (q : Loc) (γ : DNames) :
-    Persistent (isDelaying (GF := GF) (K := K) q γ) := by
+instance isDelaying_persistent (q : Loc) (γ : DNames) (Pk : K → Prop) :
+    Persistent (isDelaying (GF := GF) (K := K) q γ Pk) := by
   unfold isDelaying; simp only [named]; infer_instance
 
 /-- `clock.RealClock{}` as a `clock.WithTicker`. -/
@@ -277,17 +278,19 @@ def rlConfigOk (cfg : TypedRateLimitingQueueConfig K) : Prop :=
     (cfg.Name' = [] ∨ cfg.MetricsProvider' = interface.nil ∨ cfg.MetricsProvider' = noopProvider)
 
 /-- **The rate-limiting queue** (persistent): a `*rateLimitingType[T]` over the delaying queue
-`dq` and a rate limiter whose `When` satisfies `P`. -/
-def isRateLimitingQueue (q : Loc) (γ : DNames) (P : time.Duration → Prop) : IProp GF :=
+`dq` with item predicate `Pk` and a rate limiter whose `When` satisfies `P`. -/
+def isRateLimitingQueue (q : Loc) (γ : DNames) (Pk : K → Prop) (P : time.Duration → Prop) :
+    IProp GF :=
   iprop(∃ (dq : Loc) (rl : TypedRateLimiter K),
     structFieldRef (rateLimitingType K) go!"TypedDelayingInterface" q ↦□
       (interface.mkOk (go.GoType.PointerType (delayingType.ty T)) #dq : TypedDelayingInterface K) ∗
-    isDelaying (K := K) dq γ ∗
+    isDelaying (K := K) dq γ Pk ∗
     structFieldRef (rateLimitingType K) go!"rateLimiter" q ↦□ rl ∗
     isRateLimiter (K := K) rl P)
 
-instance isRateLimitingQueue_persistent (q : Loc) (γ : DNames) (P : time.Duration → Prop) :
-    Persistent (isRateLimitingQueue (GF := GF) (K := K) q γ P) := by
+instance isRateLimitingQueue_persistent (q : Loc) (γ : DNames) (Pk : K → Prop)
+    (P : time.Duration → Prop) :
+    Persistent (isRateLimitingQueue (GF := GF) (K := K) q γ Pk P) := by
   unfold isRateLimitingQueue; infer_instance
 
 end defs

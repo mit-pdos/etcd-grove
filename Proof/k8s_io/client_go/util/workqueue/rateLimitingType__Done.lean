@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 theorem rateLimitingType.Done.wp_proof
     (wp_Done : delayingType.Done.spec (GF := GF) (hG := hG)) :
     rateLimitingType.Done.spec (GF := GF) (hG := hG) := by
-  intro K T _ q γ P k
+  intro K T _ q γ Pk P k
   wp_start as ⟨#Hq, Htok⟩
   iunfold isRateLimitingQueue at Hq
   icases Hq with ⟨%dq, %rl, #Hdf, #Hd, #Hrlf, #Hrl⟩

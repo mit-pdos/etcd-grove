@@ -26,11 +26,13 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.AddAfter(item, d)`: returns (it may block until the waiting loop takes the entry or the
-queue shuts down). When the item is added is not stated (liveness). -/
+queue shuts down). When the item is added is not stated (liveness).
+The item must satisfy the queue's item predicate `Pk` (`isTyped`); the statement without it is the
+instance `Pk := fun _ => True`. -/
 abbrev delayingType.AddAfter.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (k : K)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop) (k : K)
     (d : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ Pk ∗ ⌜Pk k⌝ }}
     (App (App (Val (q @!! go.GoType.PointerType (delayingType.ty T) @!! go!"AddAfter")) (Val #k))
       (Val #d))
   {{ RET #(); True }}

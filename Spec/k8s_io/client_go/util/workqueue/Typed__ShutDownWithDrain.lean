@@ -26,10 +26,12 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.ShutDownWithDrain()`, with a shutdown token (given back): afterwards the queue is
 shutting down. (It returns only once no item is being processed, or a `ShutDown` ran: a caller
-holding a `keyTok` blocks it, as Go's documentation says; liveness is not stated.) -/
+holding a `keyTok` blocks it, as Go's documentation says; liveness is not stated.)
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev Typed.ShutDownWithDrain.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ ∗
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk ∗
       shutdownToks γ 1 }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"ShutDownWithDrain")) (Val #()))
   {{ RET #(); shutdownLb γ ∗ shutdownToks γ 1 }}

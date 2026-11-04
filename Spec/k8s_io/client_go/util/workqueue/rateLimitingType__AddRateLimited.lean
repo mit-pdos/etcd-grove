@@ -23,12 +23,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-/-- `q.AddRateLimited(k)`: returns (the item added after the rate limiter's delay, a liveness matter not stated). -/
+/-- `q.AddRateLimited(k)`: returns (the item added after the rate limiter's delay, a liveness matter not stated).
+The item must satisfy the queue's item predicate `Pk` (`isTyped`); the statement without it is the
+instance `Pk := fun _ => True`. -/
 abbrev rateLimitingType.AddRateLimited.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop)
     (P : time.Duration → Prop) (k : K),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗
-      isRateLimitingQueue (K := K) q γ P }}
+      isRateLimitingQueue (K := K) q γ Pk P ∗ ⌜Pk k⌝ }}
     (App (Val (q @!! go.GoType.PointerType (rateLimitingType.ty T) @!! go!"AddRateLimited")) (Val #k))
   {{ RET #(); True }}
 

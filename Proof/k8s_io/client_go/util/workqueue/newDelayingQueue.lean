@@ -30,7 +30,7 @@ theorem newDelayingQueue.wp_proof
     (wp_newRetryMetrics : newRetryMetrics.spec (GF := GF) (hG := hG))
     (wp_waitingLoop : delayingType.waitingLoop.spec (GF := GF) (hG := hG)) :
     newDelayingQueue.spec (GF := GF) (hG := hG) := by
-  intro K T _ logger c tq γq name provider Hpre
+  intro K T _ logger c tq γq Pk name provider Hpre
   wp_start as ⟨#Hc, #Htyped, Htok⟩
   ihave #Hc' := Hc
   iunfold isClock at Hc'
@@ -51,7 +51,7 @@ theorem newDelayingQueue.wp_proof
   · iframe #
   ihave Hpend' := ownBroadcastChan_close sch γs (shutdownLb γq) Broadcast.Pending γi $$ [Hint Hpend]
   · iframe; iframe #
-  imod start_bag (entryOk (K := K)) (ChanState.Buffered []) wch γw trivial $$ Hwch Hwoc with #Hbag
+  imod start_bag (entryOk (K := K) Pk) (ChanState.Buffered []) wch γw trivial $$ Hwch Hwoc with #Hbag
   imod sync.init_Once (structFieldRef (delayingType K) go!"stopOnce" q)
     (iprop(ownBroadcastChan sch γs (shutdownLb γq) .Pending ∗ shutdownToks γq 1)) (shutdownLb γq) ⊤
     $$ [stopOnce Hpend' Htok] with #Honce
@@ -62,13 +62,13 @@ theorem newDelayingQueue.wp_proof
   ipersist heartbeat
   ipersist waitingForAddCh
   ipersist metrics
-  ihave #Hdq : isDelaying (K := K) q ⟨γq, γs, γw⟩ $$ []
+  ihave #Hdq : isDelaying (K := K) q ⟨γq, γs, γw⟩ Pk $$ []
   · unfold isDelaying
     iexists tq, _, sch, hb, wch, rm
     simp only [named]
     iframe #
   wp_apply wp_fork $$ []
-  · wp_apply (wp_waitingLoop (K := K) (T := T) q ⟨γq, γs, γw⟩ logger) $$ [$Hdq]
+  · wp_apply (wp_waitingLoop (K := K) (T := T) q ⟨γq, γs, γw⟩ Pk logger) $$ [$Hdq]
     first | itrivial | (ipureintro; simp) | (ipureintro; decide)
   iapply HΦ
   iframe #

@@ -27,11 +27,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-/-- `q.waitingLoop(logger)`: returns (when the queue shuts down), without panicking. -/
+/-- `q.waitingLoop(logger)`: returns (when the queue shuts down), without panicking.
+`Pk` is the queue's item predicate (`isTyped`); the statement without it is the instance `Pk := fun
+_ => True`. -/
 abbrev delayingType.waitingLoop.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames)
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : DNames) (Pk : K → Prop)
     (logger : github_com.go_logr.logr.Logger),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isDelaying (K := K) q γ Pk }}
     (App (Val (q @!! go.GoType.PointerType (delayingType.ty T) @!! go!"waitingLoop")) (Val #logger))
   {{ RET #(); True }}
 

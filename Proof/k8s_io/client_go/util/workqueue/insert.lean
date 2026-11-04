@@ -64,7 +64,10 @@ theorem insert.wp_proof
     iexists ys, _
     iframe
     ipureintro
-    exact byDataOk_insert w wf.data' Hok hk Hys
+    refine ⟨byDataOk_insert w wf.data' Hok hk Hys, fun x hx => ?_⟩
+    rcases List.mem_append.1 (Hys.mem_iff.1 hx) with h | h
+    · exact Or.inl h
+    · rw [List.mem_singleton.1 h]; exact Or.inr rfl
   · -- already waiting
     rename_i e
     have hin : (e, wf.data') ∈ ws := (Hok.2 wf.data' e).1 hk
@@ -98,7 +101,7 @@ theorem insert.wp_proof
         · iunfold wfAt; iframe; iframe #
         rw [list_set_lookup_self ws p _ hpl]
         iexact Hits
-      ipureintro; exact Hok
+      ipureintro; exact ⟨Hok, fun x hx => Or.inl hx⟩
     · -- earlier: moved, and the heap fixed
       wp_auto
       ihave Hits := Hits $$ [Hed Het Hei]
@@ -114,7 +117,7 @@ theorem insert.wp_proof
       iexists ys, mm
       iframe
       ipureintro
-      exact byDataOk_perm Hok Hys
+      exact ⟨byDataOk_perm Hok Hys, fun x hx => Or.inl (Hys.mem_iff.1 hx)⟩
 
 end proof
 

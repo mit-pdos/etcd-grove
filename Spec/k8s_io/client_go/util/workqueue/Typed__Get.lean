@@ -25,13 +25,15 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `q.Get()`: either an item `k` with its token (`keyTok γ k`: no other `Get` returns `k`
-until `Done(k)`), or the zero item and `true` once the queue is shutting down and drained. -/
+until `Done(k)`), or the zero item and `true` once the queue is shutting down and drained.
+The item handed out satisfies the queue's item predicate `Pk` (`isTyped`); the statement without it
+is the instance `Pk := fun _ => True`. -/
 abbrev Typed.Get.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ }}
+  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (q : Loc) (γ : QNames) (Pk : K → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ isTyped (K := K) q γ Pk }}
     (App (Val (q @!! go.GoType.PointerType (Typed.ty T) @!! go!"Get")) (Val #()))
   {{ (k : K) (sd : Bool), RET (PairV #k #sd);
-      if sd then ⌜k = zero_val K⌝ ∗ shutdownLb γ else keyTok γ k }}
+      if sd then ⌜k = zero_val K⌝ ∗ shutdownLb γ else keyTok γ k ∗ ⌜Pk k⌝ }}
 
 end spec
 
