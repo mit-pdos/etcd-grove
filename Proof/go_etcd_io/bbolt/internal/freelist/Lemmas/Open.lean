@@ -113,6 +113,26 @@ theorem flPgOwn_close (I : FLImpl (GF := GF)) (a s : Loc) (fli : GoInterface) (f
       · iexact Hown
     ipureintro; exact ⟨Hok.1, Hok.2⟩
 
+theorem flImplAt_array (a s : Loc) :
+    structFieldRef array' go!"shared" a ↦□ s ⊢
+      flImplAt (GF := GF) (arrayImpl (GF := GF) a).iface a s := by
+  iintro #H
+  iunfold flImplAt
+  ileft
+  isplit
+  · ipureintro; rfl
+  · iexact H
+
+theorem flImplAt_hash (a s : Loc) :
+    structFieldRef hashMap go!"shared" a ↦□ s ⊢
+      flImplAt (GF := GF) (hashImpl (GF := GF) a).iface a s := by
+  iintro #H
+  iunfold flImplAt
+  iright
+  isplit
+  · ipureintro; rfl
+  · iexact H
+
 end preds
 
 end bbolt
