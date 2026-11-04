@@ -1301,6 +1301,53 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
    `(f : GoFunc)`): not started.
 6. Interfaces: regenerate once every bbolt module builds.
 
+## Shared-statement fixes, item 3 and batches 43, 44 (maintainer 9, 2026-11-04; decided by the coordinator)
+
+- **Item 3 + 43.4 (`58750b5b17`): root-bucket names of `1..MaxKeySize` bytes.** `rootShape`
+  (`Model/Tree`; `treeOK`'s and `fileHolds`' docstrings, `Spec/.../Api.lean`) has the per-entry
+  tuple `⟨flags, (0 < ksize ∧ ksize ≤ maxKeySize), ksize + vsize ≤ max, nested⟩` (the name bound
+  merged into the second component: `.2.2.1`/`.2.2.2` users unchanged). `entriesBounded` per entry:
+  `0 < key ∧ key + value ≤ max ∧ (bl = X.rl → key ≤ maxKeySize)` (users of `.2` as the sum take
+  `.2.1`). `posShape` per entry: `(flags ↔ bl = X.rl) ∧ (0 < ksize ∧ ksize + vsize ≤ max) ∧ (bl =
+  X.rl → ksize ≤ maxKeySize)` (the bound unconditional: the root's view entries too, which gives
+  43.4's `rootKeys` on the root's page positions). Adapted: `Txn/WInit`, `Read/WOpenWOK`,
+  `Write/MatOK` (`newNodeBnd` takes `hroot : P → page keys ≤ maxKeySize`; its two callers pass
+  `sorry`, OPEN U7: the root bucket's page keys, a leaf's by `posShape`, a branch's by exact
+  branch keys), `Rebalance/RblXSMat` (same, OPEN U8), `Spill/DerefWOK`, `Spill/BktStart`.
+  **Broken, active**: `Spill/BktLoopPureStart.lean:116` (`rootLoc_start`: pass
+  `(hok.2.2.2.1 … w hw).2.1`-style, i.e. `⟨(…).1, (…).2.1⟩` for the pair it wants) and `:169`
+  (`hs.2 hne` → `hs.2.1`), U9x2. Producers still to prove the new conjuncts: spill (`rootShape` of
+  the new tree, `BktFinal.spillOK_of_root`'s `hshape`, from `entriesBounded`'s root clause),
+  `CreateBucket` (its premise `n.length ≤ maxKeySize`), Put/Delete (non-root buckets: vacuous).
+- **Batch 43 and 44.2, 44.4-44.7 (`39310f1a07`): the writer's carried facts, the spill's start.**
+  - `Inv/Tx.wrFacts X := liveReach X ∧ X.t.t.commitHandlers' = slice.nil ∧ (∀ B, X.t.bs !! X.rl =
+    some B → ∀ k c, B.bm !! k = some c → c ≠ X.rl)`, the last conjunct of `wtxFrac`'s facts and
+    of `boltTxDef_wtxW`'s (`⌜wOK X ∧ T.cur = … ∧ T.base = … ∧ gensOK T X ∧ wrFacts X⌝`: `Hf.2.2.2.1`
+    is `gensOK`, `Hf.2.2.2.2` `wrFacts`). 44.2: `Commit/AssembleGaps.wOK_liveReach` → `Hf.2.2.2.2.1`;
+    44.5: `wtx_handlers_nil` → `Hf.2.2.2.2.2.1`. Producer `Txn/WInit.wrFacts_wx0` (`beginRWTx`).
+  - `Inv/Txs.metaCopyOK mv C` (= U10g's `wMetaOK X w` with `mv = X.t.mv`, `C = w.C`); `txExcl`'s
+    writer facts end `flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C` (44.4, 43.1);
+    `Tx.Rollback`'s `TxExclWGap` post is `⌜flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C⌝`.
+    Producer `Txn/WInit.metaCopyOK_init` (`beginRWTx`).
+  - **The names that replace `spill_startFacts`** (U9x2): `Spec/.../Bucket__spill.spillStartOK X w
+    := treeOK w.C ∧ w.C.hwm ≤ X.t.mv.pgid'.toNat ∧ ∀ B0, X.t.bs !! X.rl = some B0 → (∀ k c, B0.bm
+    !! k = some c → c ≠ X.rl) ∧ (∀ k k' c, … → k = k')`, a new premise of `Bucket.spill.spec`
+    (after `flViewU X w.fl`), gives `StartFacts`' `cok`, `hwm`, `notRoot`, `inj`; `mark62` is
+    `Inv/WAccess.mark62_of_mapLen _ _ hml (wdbW_mapLen_le …)` (the latter `wdbW … ⊢ ⌜mapLen w.ms ≤
+    0xFFFFFFFFFFFF⌝`); `rootKeys` from `entriesBounded` (`.1`, nodes) and `posShape` (`.2.1.1`, the
+    root's page positions). `Commit` gives `spillStartOK X1 w1` from `txExcl` (`metaCopyOK`'s
+    `pgid = hwm`, `treeOK`), `gensOK_bktLoc_inj` and `wrFacts`, kept by `rebalance` (44.6).
+  - 44.6: `Bucket.rebalance.spec`'s post ends `… ∧ X'.t.t = X.t.t ∧ X'.t.mv = X.t.mv` (proved from
+    `rblRel`). 44.7: `Bucket.spill.spec`'s success post ends `… ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧
+    X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }` (the spill unit proves it).
+  - **Broken, active**: `Tx__Commit_err.lean:180` (`%Hflv` is now the triple: pass `Hflv.1` to
+    `wp_rebalance`, `:317`; `wtx_wMetaOK` → `Hflv.2.1`, `wOK_liveReach X Hf.1` → `Hf.2.2.2.2.1`;
+    the rebalance post's `%Hrb` has two more conjuncts at its end; the spill call takes
+    `spillStartOK`), `Commit/AssembleGaps` (gaps 1, 4, 5 can go), `Bucket__spill.lean` (U9x2: the
+    spec's new binder; its post's three new conjuncts).
+- **Not done**: 44.1 (flagged `wdbOK'`), 37.10's `os.OpenFile`, 37.9, 37.3, U10h's link: see the
+  hand-off below (or the next section).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
