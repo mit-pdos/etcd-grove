@@ -20,6 +20,14 @@ namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
+/-- `iStructNamed` without the anonymous end-of-fields hypothesis (which `wp_for`'s frame cannot
+name): split `H` and destructure it with `pat`. -/
+local macro "iStructSplit " H:ident " as " pat:icasesPat : tactic =>
+  `(tactic| (
+    icases typedPointsto_split _ _ _ $$ $H:ident with $H:ident
+    try simp only [TypedPointsto.typedPointstoDef]
+    icases $H:ident with $pat))
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -58,6 +66,35 @@ private theorem nodeAdded_resolve (Y Y' : WX) (bl l : Loc) (pgid : w64) (parent 
     · exact absurd hin hc
   · rw [if_neg hin, GMap.lookup_insert]
 
+omit [GooseSemantics] [GooseInterp] go_gctx hos hG sem package_sem in
+/-- The node at a resolved, cached position of the loop's state: a live node of `bl`, its
+logical data `X`'s at that position. -/
+private theorem curSt_node (X Y : WX) (bl : Loc) (B BY : BRec) (h : Write.curSt X Y bl B)
+    (hBY : Y.t.bs !! bl = some BY) (pk : w64) (nk : Loc) (hpk : BY.nm !! pk = some nk)
+    (hres : resolve BY pk = some nk) (hpk0 : B.ib.root' = W64 0 → pk = W64 0) :
+    ∃ rk, BY.ns !! nk = some rk ∧ rk.nv.bucket' = bl ∧ nk ∈ Y.live ∧
+      Write.ldat (ltree X bl pk) = some (rk.nv.isLeaf', rk.ws.map wDat) := by
+  obtain ⟨-, -, -, -, -, BY0, hBY0, -, -, -, -, -, -, -, hnm, hld⟩ := h
+  rw [hBY] at hBY0; cases hBY0
+  obtain ⟨-, rk, hrk, hb, hl⟩ := hnm pk nk hpk
+  refine ⟨rk, hrk, hb, hl, ?_⟩
+  rw [← hld pk hpk0]
+  unfold ltree; rw [hBY]; simp [hres, hrk, Write.ldat]
+
+omit [GooseExts] in
+private theorem ldat_some_eq {a b : Bool} {ws1 : List WEntry} {ws2 : List (w32 × w64 × List w8 × List w8)}
+    {x : Option (Bool × List WEntry)} (hx : x = some (b, ws1))
+    (h : Write.ldat x = some (a, ws2)) : b = a ∧ ws1.map wDat = ws2 := by
+  subst hx; simp only [Write.ldat, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h; exact h
+
+omit [GooseExts] in
+private theorem wDat_at {ws1 ws2 : List WEntry} (h : ws1.map wDat = ws2.map wDat) (i : Nat) (w2 : WEntry)
+    (h2 : ws2[i]? = some w2) : ∃ w1, ws1[i]? = some w1 ∧ w1.pgid = w2.pgid := by
+  have e := congrArg (fun l => l[i]?) h
+  simp only [List.getElem?_map, h2, Option.map_some] at e
+  obtain ⟨w1, hw1, e1⟩ := Option.map_eq_some_iff.1 e
+  exact ⟨w1, hw1, congrArg (fun d => d.2.1) e1⟩
+
 theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hN : Bucket.node.spec (GF := GF) (hG := hG))
@@ -86,7 +123,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
   subst hlfL
   have hidx : sint.Z (stk.len - W64 1) = ((els.length - 1 : Nat) : Int) := by word
   icases typedPointsto_not_null_dup _ _ _ $$ Hc with ⟨Hc, %Hcn⟩
-  iStructNamed Hc
+  iStructSplit Hc as ⟨bucket, stack, -⟩
   wp_auto
   rw [decide_eq_true (show sint.Z (W64 0) < sint.Z stk.len by word)]
   wp_apply hA
@@ -96,7 +133,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
   rw [hidx]
   rw [if_pos (by word)]
   icases typedPointsto_not_null_dup _ _ _ $$ He with ⟨He, %Hen⟩
-  iStructNamed He
+  iStructSplit He as ⟨page, node, index, -⟩
   wp_auto
   obtain ⟨B0, hB0, hrefL⟩ := hrefL
   rw [hB] at hB0; cases hB0
@@ -124,7 +161,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     icases ownSlice_elem_acc (sint.Z (W64 0)) e0 _ _ els (by decide) (by simpa using he0) $$ Hs
       with ⟨He0, Hs0back⟩
     icases typedPointsto_not_null_dup _ _ _ $$ He0 with ⟨He0, %He0n⟩
-    iStructNamed He0
+    iStructSplit He0 as ⟨page, node, index, -⟩
     wp_auto
     have hrn0 : ∀ l, resolve B p0 = some l → l ≠ null := by
       intro l hl
@@ -200,7 +237,161 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
         ipureintro
         exact ⟨Write.curSt_refl X bl B hloc hB, B, hB,
           Write.resolve_root_nm _ _ bl B hcB _ (hp0r ▸ hres0) |> (hp0r ▸ ·), hres0⟩
-    sorry
+    ihave He0 : (sliceIndexRef elemRef (sint.Z (W64 0)) stk ↦{dq} e0 : IProp GF) $$ [page node index]
+    · iapply typedPointsto_combine _ _ _ He0n
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hs := Hs0back $$ He0
+    rw [list_set_lookup_self _ _ _ (by simpa using he0)]
+    ihave %Hwf := ownSlice_wf _ _ _ $$ Hs
+    try wp_auto
+    rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (stk.len - W64 1) ∧
+      sint.Z (stk.len - W64 1) ≤ sint.Z stk.cap by refine ⟨by decide, by word, by word⟩)]
+    icases (ownSlice_split_all (stk.len - W64 1) stk _ els ⟨by word, by word⟩).1 $$ Hs
+      with ⟨Hpre, Hsuf⟩
+    ihave %Hprel := ownSlice_len _ _ _ $$ Hpre
+    wp_auto
+    ihave IH : (∃ (j : w64) (nk : Loc) (Yj : WX) (rv : elemRef),
+        "i" ∷ i_ptr ↦ j ∗ "ref" ∷ ref_ptr ↦ rv ∗ "n" ∷ n_ptr ↦ nk ∗ "Hw" ∷ wtxW K tx r m Yj ∗
+        "Hpre" ∷ slice.slice stk elemRef (W64 0) (stk.len - W64 1) ↦*{dq}
+          List.take (sint.nat (stk.len - W64 1)) els ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z (stk.len - W64 1) ∧ Write.curSt X Yj bl B ∧
+          ∃ BY pk, Yj.t.bs !! bl = some BY ∧ pids[sint.nat j]? = some pk ∧ BY.nm !! pk = some nk ∧
+            resolve BY pk = some nk⌝ : IProp GF) $$ [i ref n Hw Hpre]
+    · iexists W64 0, n0, Y, zero_val elemRef
+      simp only [named]
+      iframe
+      ipureintro
+      obtain ⟨hst, BY, hBY, hnm, hres⟩ := Hj
+      exact ⟨by decide, by word, hst, BY, p0, hBY, by rw [show sint.nat (W64 0) = 0 from rfl]; exact hp0,
+        hnm, hres⟩
+    wp_for IH
+    wp_if_destruct
+    · obtain ⟨Hj0, Hjk, hst, BY, pk, hBY, hpk, hnm, hres⟩ := Hj
+      have Hlt : sint.Z j < sint.Z (stk.len - W64 1) := by word
+      have hjl : sint.nat j + 1 < els.length := by word
+      obtain ⟨ej, hej⟩ : ∃ e, els[sint.nat j]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      obtain ⟨-, lf, ws, hlt, hbr, -⟩ := hstep _ ej pk hej hpk
+      obtain ⟨hlf, w0, hw0, hpk1⟩ := hbr hjl
+      subst hlf
+      have hin : B.ib.root' ≠ W64 0 := fun h0 => by
+        have := Write.ltree_inline_leaf X _ bl B hB hcB h0 pk false ws hlt; cases this
+      obtain ⟨rk, hrk, hrkb, hrkl, hld⟩ := curSt_node X Yj bl B BY hst hBY pk nk hnm hres
+        (fun h => absurd h hin)
+      obtain ⟨hleafk, hwsk⟩ := ldat_some_eq hlt hld
+      obtain ⟨w, hw, hwp⟩ := wDat_at hwsk.symm _ w0 hw0
+      have htk : (List.take (sint.nat (stk.len - W64 1)) els)[(sint.Z j).toNat]? = some ej := by
+        rw [List.getElem?_take_of_lt (by word)]; exact hej
+      rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z (stk.len - W64 1 - W64 0) by
+        constructor <;> word)]
+      wp_apply wp_load_slice_index _ (sint.Z j) _ _ ej Hj0 $$ [Hpre] as Hpre
+      · iframe; ipureintro; exact htk
+      try wp_auto
+      icases Write.wtxW_node_len K tx r m Yj bl BY nk rk hBY hrk hrkl $$ Hw with ⟨Hw, %Hwl⟩
+      icases Write.wtxW_node_ptr_acc K tx r m Yj bl BY nk rk hBY hrk $$ Hw with ⟨Hn, Hwb⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+      iStructSplit Hn as ⟨n1, n2, n3, n4, n5, n6, n7, n8, n9, -⟩
+      wp_auto
+      rw [← hleafk]
+      wp_apply hA
+      try wp_auto
+      ihave Hn : (nk ↦ rk.nv : IProp GF) $$ [n1 n2 n3 n4 n5 n6 n7 n8 n9]
+      · iapply typedPointsto_combine _ _ _ Hnn
+        simp only [TypedPointsto.typedPointstoDef]
+        rw [← hleafk]
+        iframe
+      ihave Hw := Hwb $$ Hn
+      icases typedPointsto_not_null_dup _ _ _ $$ ref with ⟨ref, %Hrn⟩
+      iStructSplit ref as ⟨r1, r2, r3, -⟩
+      try wp_auto
+      have hidx : ej.index'.toNat < rk.ws.length := (List.getElem?_eq_some_iff.1 hw).1
+      have hi0 : 0 ≤ sint.Z ej.index' := by word
+      have hin' : sint.nat ej.index' = ej.index'.toNat := by word
+      obtain ⟨-, -, -, -, hbll, BY0, hBY0, hib, hnd, -, -, -, -, hnmB, hnmok, -⟩ := id hst
+      rw [hBY] at hBY0; cases hBY0
+      have hnone : BY.nm !! w.pgid = none → matReady Yj BY w.pgid := by
+        intro hn
+        have hresB : resolve B w.pgid = none := by
+          rw [Write.resolve_file B hin]
+          cases h : B.nm !! w.pgid with
+          | none => rfl
+          | some l0 => rw [hnmB _ _ h] at hn; cases hn
+        refine Write.curSt_ready X Yj bl B BY hst hBY w.pgid
+          (hready w.pgid (List.mem_of_getElem? (hwp ▸ hpk1)) hresB)
+      ihave ref : (ref_ptr ↦ ej : IProp GF) $$ [r1 r2 r3]
+      · iapply typedPointsto_combine _ _ _ Hrn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      wp_apply hC K tx r m Yj bl BY nk rk ej.index' w hBY hrk hrkb hleafk.symm hrkl hbll
+        (by rw [hnd]; exact hnodes) hi0 (by rw [hin']; exact hw)
+        (fun l h => (hnmok _ l h).1) hnone $$ [Hw] as %l ⟨%Y', Hw, %Hpost⟩
+      · iexact Hw
+      try wp_auto
+      -- the next state
+      have hnext : Write.curSt X Y' bl B ∧ ∃ BY', Y'.t.bs !! bl = some BY' ∧
+          BY'.nm !! w.pgid = some l ∧ resolve BY' w.pgid = some l := by
+        rcases Hpost with ⟨h1, rfl⟩ | hadd
+        · exact ⟨hst, BY, hBY, h1, by rw [Write.resolve_file BY (by rw [hib]; exact hin)]; exact h1⟩
+        · have hnm0 : BY.nm !! w.pgid = none := by
+            obtain ⟨BY0, -, -, -, -, -, hBY0, -, h0, -⟩ := id hadd
+            rw [hBY] at hBY0; cases hBY0; exact h0
+          have hpos : matPos Yj bl w.pgid nk :=
+            ⟨BY, hBY, Or.inr ⟨ej.index'.toNat, rk, w, hrk, hleafk.symm, hw, rfl, hnm0⟩⟩
+          obtain ⟨hst', BY', hBY', hnmY'⟩ := Write.curSt_step X Yj Y' bl l w.pgid nk B hst hadd hpos
+            (fun BY1 hBY1 h0 => absurd (by rw [hBY] at hBY1; cases hBY1; rw [hib] at h0; exact h0) hin)
+          obtain ⟨BY'', hBY'', hresY⟩ := nodeAdded_resolve Yj Y' bl l w.pgid nk hadd BY hBY
+            (Or.inr (by rw [hib]; exact hin))
+          rw [hBY'] at hBY''; cases hBY''
+          exact ⟨hst', BY', hBY', hnmY', hresY⟩
+      wp_for_post
+      iframe
+      iexists j + W64 1, l, Y', ej
+      iframe
+      ipureintro
+      obtain ⟨hst', BY', hBY', hnmY', hresY⟩ := hnext
+      refine ⟨by word, by word, hst', BY', w.pgid, hBY', ?_, hnmY', hresY⟩
+      rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, hwp]; exact hpk1
+    · obtain ⟨Hj0, Hjk, hst, BY, pk, hBY, hpk, hnm, hres⟩ := Hj
+      have hje : sint.nat j = els.length - 1 := by word
+      rw [hje, hpL'] at hpk
+      cases hpk
+      have hpk0 : B.ib.root' = W64 0 → pL = W64 0 := by
+        intro h0
+        by_cases h1 : els.length = 1
+        · rw [h1] at hpL'
+          have e : some pL = some p0 := by rw [← hp0]; exact hpL'.symm
+          cases e
+          exact hp0r.trans h0
+        · obtain ⟨-, lf0, ws0, hlt0, hbr0, -⟩ := hstep 0 e0 p0 he0 hp0
+          obtain ⟨hlf0, -⟩ := hbr0 (by omega)
+          subst hlf0
+          have := Write.ltree_inline_leaf X _ bl B hB hcB h0 p0 false ws0 hlt0; cases this
+      obtain ⟨rk, hrk, -, -, hld⟩ := curSt_node X Yj bl B BY hst hBY pL nk hnm hres hpk0
+      obtain ⟨hleafk, -⟩ := ldat_some_eq hltL hld
+      icases Write.wtxW_node_ptr_acc K tx r m Yj bl BY nk rk hBY hrk $$ Hw with ⟨Hn, Hwb⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+      iStructSplit Hn as ⟨n1, n2, n3, n4, n5, n6, n7, n8, n9, -⟩
+      wp_auto
+      rw [← hleafk]
+      wp_apply hA
+      try wp_auto
+      ihave Hn : (nk ↦ rk.nv : IProp GF) $$ [n1 n2 n3 n4 n5 n6 n7 n8 n9]
+      · iapply typedPointsto_combine _ _ _ Hnn
+        simp only [TypedPointsto.typedPointstoDef]
+        rw [← hleafk]
+        iframe
+      ihave Hw := Hwb $$ Hn
+      ihave Hs := (ownSlice_split_all (stk.len - W64 1) stk _ els ⟨by word, by word⟩).2 $$ [Hpre Hsuf]
+      · iframe
+      ihave Hc : (c ↦{dq} Cursor.mk bl stk : IProp GF) $$ [bucket stack]
+      · iapply typedPointsto_combine _ _ _ Hcn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      iapply HΦ
+      iexists Yj
+      iframe
+      ipureintro
+      exact ⟨hst.1, hst.2.1, BY, pL, hBY, hpL, hres⟩
   · rw [decide_eq_false hnL]
     obtain ⟨l, hresL⟩ : ∃ l, resolve B pL = some l := by
       cases h : resolve B pL with
