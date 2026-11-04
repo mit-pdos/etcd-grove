@@ -370,11 +370,20 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       -- the keys around the piece's entry in the parent (TODO U9z2: from spCtx's entry `j`, n's
       -- entries within `[lo, hi)` and sorted, the split's pieces' keys, splitRec's `key'`)
       have hkeys : (j < bs.length ∨ (bs = [] ∧ j = 0)) ∧
-          (i = 0 → bs ≠ [] → wKey bs j = pcOldKey ra) ∧ (i ≠ 0 → pcOldKey ra = pn.k) ∧
+          (i = 0 → bs ≠ [] → wKey bs j = pcOldKey ra) ∧
           (i = 0 → 0 < j → go.GoStringLt (wKey bs (j - 1)) pn.k) ∧
           (i ≠ 0 → ∀ p, ps[i - 1]? = some p → go.GoStringLt p.k pn.k) ∧
           (j + 1 < bs.length → go.GoStringLt pn.k (wKey bs (j + 1))) := sorry
-      obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hkeys
+      obtain ⟨k1, k2, k4, k5, k6⟩ := hkeys
+      -- a later piece is put at its first key (its key slice nil)
+      have k3 : i ≠ 0 → pcOldKey ra = pn.k := by
+        intro hi0
+        have hxk := (hsr.prec i x ws hx hws).2.2.2.2.2.2.2.2
+        rw [if_neg hi0] at hxk
+        have hrk : ra.nv.key' = slice.nil := by
+          rw [hsa.2.1]; show rl.nv.key' = slice.nil
+          rw [hsim.2.1, splitRec_nv]; exact hxk
+        unfold pcOldKey; rw [if_pos hrk]; exact hw0k
       have hcore := parPut (ws := rp.ws) (k := pcOldKey ra) (e := pcEnt ra id) (pn := pn)
         (by rw [hsimp.2.2.1]; exact hpw) (wsSorted_of_dat hsimp.2.2.1 hsort) hplen k1
         (by show (W32 0, id, ra.w0.key, ([] : List w8)) = (W32 0, id, wssKey wss i, []); rw [hw0k])
