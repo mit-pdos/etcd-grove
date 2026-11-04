@@ -58,11 +58,15 @@ theorem authBoot_alloc (γt γf : GName) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗
       authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
       authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
-      capNext (.on γa) [bootState] (bump bootState) := by
+      capNext (.on γa) [bootState] (bump bootState) ∗
+      -- (2026-11-03, the auth-on snapshot plan's P3) the current backend's name, unset, the
+      -- succession right and the realization's half of the published index's authority
+      (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
+      authPubQ γa (1 : Qp).half 0 := by
   iintro
   imod (authHist_alloc (GF := GF) γt γf [bootState] bootState [bootState, bump bootState]
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl, Hbk, Hsucc⟩
   imodintro
   iexists γa
   isplitr
@@ -72,7 +76,8 @@ theorem authBoot_alloc (γt γf : GName) :
     iframe Hh
     iexists bootState; iframe Hc1; ipureintro; rfl
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
-  iframe Hown HI Hcap
+  icases authPubAuth_halves γa 0 $$ Hp with ⟨Hp, Hp'⟩
+  iframe Hown HI Hcap Hbk Hsucc Hp'
   isplitl [Hc2 Hp He Hk Hq]
   · iunfold authStoreInit; iframe Hc2 Hp Hq; isplitr
     · iapply (capLb_le γa [bootState] (by simp)) $$ Hcl
@@ -109,11 +114,13 @@ header): for any auth names with the token names `γt`, `γf`, the batch lock's 
 at the boot state makes schema's auth backend `ab` (`bi`) meet the store's backend contracts for
 those names: the read side for the reader resource `R`, the write side (`authWBackendOkR`) at the
 batch lock's contract `P f` with the write token `T`, and `CreateAuthBuckets` as one transaction
-keeping `T`. -/
+keeping `T`. The read side is of fresh backend names `γc`, with their whole currency (the auth-on
+snapshot plan's Prove step, 2026-11-03: the read contract is per backend). -/
 def authSchemaBoot (ab : GoInterface) (bi : GoInterfaceOk) (γt γf : GName) (R P : IProp GF)
     (f : val) (T : IProp GF) : IProp GF :=
   iprop(∀ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ -∗ authLockI (.on γa) bootState -∗
-    |==> (authBackendOk ab R (.on γa) ∗ authWBackendOkR ab (.on γa) P f T ∗
+    |==> ((∃ γc : AuthBkNames, authBackendOk ab R (.on γa) γc ∗ authCur γc 1) ∗
+      authWBackendOkR ab (.on γa) P f T ∗
       □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
         {{ RET #(); T }})))
 
@@ -170,21 +177,28 @@ theorem newAuthStore_boot
   wp_start_folded as ⟨%Hlg, %Hab, HD, HT, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  imod (authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn⟩
+  imod (authBoot_alloc (GF := GF) γt γf) with
+    ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
   iunfold authSchemaBoot at HD
   ihave HD' := HD $$ %γa [] HI
   · ipureintro; exact Hγ
-  imod HD' with ⟨#Hrd, #Hw, #Hcr⟩
+  imod HD' with ⟨⟨%γc, #Hrd, Hcu⟩, #Hw, #Hcr⟩
+  -- the current backend's names: the store's half (the other half, the apply thread's, unused)
+  imod (ghostVar_update γc γa.bk γ0) $$ Hbk with Hbk
+  icases (ghostVar_split_half γa.bk 1 γc).1 $$ Hbk with ⟨Hbk, -⟩
   iunfold tokenProviderBoot at Htp
   ihave #HtpA := Htp $$ %γa []
   · ipureintro; exact Hγ
   wp_apply (newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg ab tp cost bi
-      γa R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
-      ⟨bootState, List.mem_singleton_self _, rfl⟩) $$ [$Hpkg $Hrd $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
+      γa γc R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
+      ⟨bootState, List.mem_singleton_self _, rfl⟩)
+      $$ [$Hpkg $Hrd Hbk $Hcu $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
-    ipureintro; exact Hab
+    isplitr
+    · ipureintro; exact Hab
+    unfold authBkCur; iexact Hbk
   have Hhs' : hs' = [bootState, bump bootState] := by
     rcases Hhs with ⟨h0, -⟩ | ⟨-, h1⟩
     · exact absurd rfl h0

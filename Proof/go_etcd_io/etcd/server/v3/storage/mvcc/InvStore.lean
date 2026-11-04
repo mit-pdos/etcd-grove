@@ -5037,7 +5037,7 @@ stock (`backend.rdStockN`, past the backend's pool of `rdPoolN`); until then all
 abbrev nReaders : Nat := backend.rdStockN
 
 /-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
-theorem nReaders_val : nReaders = 805306367 := backend.rdStockN_val
+theorem nReaders_val : nReaders = 805306239 := backend.rdStockN_val
 
 /-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most
 the slots; 2026-11-02, the backend-auth-split stage). -/

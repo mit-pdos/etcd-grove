@@ -12,8 +12,8 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
   them only to judge A5, and they may change.
 - **Go**:
   - raft: `.lake/raft-fork`, `565c2bd` (a2);
-  - kvreconf: `examples/kvreconf/*.go`, read in full;
-  - kv: `examples/kv/kv.go`;
+  - kvreconf: `examples/raft/kvreconf/*.go`, read in full;
+  - kv: `examples/raft/kv/kv.go`;
   - etcd's server: `~/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261027220749-a20f6760ff43/
     etcdserver/server.go`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the main checkout's copy; this
@@ -224,7 +224,7 @@ call `Advance` after it. But the delayed deliveries' `Step`s and `Report*`s on s
 - `Cluster.Read` retries without bound (`cluster.go:325-333`: `for { … }`).
 - Each try is a fresh `ReadIndex`, and its forwarded `MsgReadIndex` may be duplicated (`cluster.go:261`).
 - kvreconf has no a-priori bound on either, so no static division of the supply exists.
-- kv and the server bound their reads by their id space (`readCredits γ.cl (2 ^ 48)`, `examples/common/
+- kv and the server bound their reads by their id space (`readCredits γ.cl (2 ^ 48)`, `examples/lib/etcdstart/
   Defs.lean:187`; `SrvRaftLog.lean:1572`). kvreconf's `nextRead` is a `uint64` per replica, with up to 9
   replicas.
 
@@ -341,7 +341,7 @@ input matches `nodeConfig`'s membership.
   wants a joiner's storage to answer `c0`'s. Either kvreconf's `Storage` takes a flag, or `StartNode.spec`
   accepts an initial `ConfState` that is empty or `c0`'s. Go accepts the latter: `Bootstrap` checks only
   `lastIndex == 0` (`bootstrap.go:36-43`), and its `AddNode` of a voter already present is a no-op.
-- **The joiner's `InitialState`.** The `c0` lists, as kv's does (`examples/kv/kv.go:68-71`): listed. Fine.
+- **The joiner's `InitialState`.** The `c0` lists, as kv's does (`examples/raft/kv/kv.go:68-71`): listed. Fine.
 
 ### B12. Stale or inaccurate text (Tier 3)
 

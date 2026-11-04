@@ -35,8 +35,8 @@ theorem lease.lessor.Checkpoint.wp_proof
     (hPrim : lease.lessor.isPrimary.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Checkpoint.spec (GF := GF) (hG := hG) := by
-  intro lp γl id rem P f T R Rb rb Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hcs, Hwtk, Hrtk, HRb⟩
+  intro lp γl id rem P f T Ln R Rb rb Pre Q Post
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hcs, Hwtk, Hln, Hrtk, HRb⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -70,7 +70,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     isplitr
@@ -88,21 +88,21 @@ theorem lease.lessor.Checkpoint.wp_proof
     wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗
         ((Post ∗ ∃ t : w64,
             Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t rem))) ∨
-          (Pre ∗ Rb rb)) ∗ R)
-      with [le l Hrem Hcs Hwtk Hrtk HRb] as ⟨le, l, Hrem, HPP, Hrtk⟩
+          (Pre ∗ Rb rb)) ∗ R ∗ Ln)
+      with [le l Hrem Hcs Hwtk Hln Hrtk HRb] as ⟨le, l, Hrem, HPP, Hrtk, Hln⟩
     · iunfold mvcc.csContract at Hcs
       icases Hcs with ⟨HPre, -, -⟩
       iframe
       iright; iframe
     · -- (S7c) `le.b`, read with the write token's fraction
-      ihave ⟨%dqb, Hb, Hwtk⟩ := Hlens $$ Hwtk
+      ihave ⟨%dqb, Hb, Hln⟩ := Hlens $$ Hln
       (try wp_auto)
-      ihave Hwtk := Hwtk $$ Hb
+      ihave Hln := Hln $$ Hb
       wp_apply (hPersist l b P f T R Rb rb Pre Q Post id t rem DFrac.discard DFrac.discard
         (DFrac.own 1))
         $$ [$Hpkg $Hbk $Hcs $Hwtk $Hrtk $HRb $HID $Httl $Hrem] as ⟨HPost, Hrtk, HRb, -, -, Hrem⟩
       wp_join_done
-      iframe le l Hrem Hrtk
+      iframe le l Hrem Hrtk Hln
       ileft; iframe HPost; iexists t; iexact HRb
     wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
     wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ lF go!"cp" lp ↦ cp ∗
@@ -134,7 +134,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     iframe
     ipureintro; rfl
 

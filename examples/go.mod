@@ -21,14 +21,14 @@ replace (
 // as translated.
 replace (
 	github.com/anishathalye/porcupine => ../third_party/porcupine
-	github.com/mit-pdos/etcd-grove/examples/lintest => ./lintest
+	github.com/mit-pdos/etcd-grove/examples/lib/lintest => ./lib/lintest
 	github.com/mit-pdos/etcd-grove/third_party/bridge => ../third_party/bridge
 )
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
-	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/gokv v0.1.1
 	go.etcd.io/bbolt v1.5.0

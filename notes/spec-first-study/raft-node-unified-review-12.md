@@ -19,11 +19,11 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
   - `Spec/google_golang_org/protobuf/proto/UnmarshalConfChangeV2Empty.lean:31`.
 - **Go**:
   - raft at `.lake/raft-fork` `565c2bd`: `raft.go:737-763` (`appliedTo`), `raft.go:1325-1372` (`stepLeader`, `MsgProp`), `bootstrap.go` (`Bootstrap`);
-  - kvreconf: `examples/kvreconf/{kv,reconf,cluster}.go`;
-  - kv: `examples/kv/kv.go`;
+  - kvreconf: `examples/raft/kvreconf/{kv,reconf,cluster}.go`;
+  - kv: `examples/raft/kv/kv.go`;
   - etcd's server: `etcdserver/server.go:1920-2110` (module `server/v3@v3.0.0-20261027220749-a20f6760ff43`).
 - **Clients' proofs**, read at `d9cdd1e4e1`:
-  - kv: `Proof/github_com/mit_pdos/etcd_grove/examples/kv/Defs.lean:257-280`;
+  - kv: `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Defs.lean:257-280`;
   - server: `Proof/go_etcd_io/etcd/server/v3/etcdserver/{InvApplier.lean:90-98,KVModelDefs.lean:160-200,InvCfgView.lean:1-130,NewServerAlloc.lean:216}`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md`. The worktree has no `spec/` skill.
 - **Not run**: lake build, lean-check, Go tests.
@@ -106,7 +106,7 @@ caller.)
   - §13.1 drops every empty V2 from `opsOf`. §13.3's U5 bullet makes "an automatic leave only at a joint
     configuration" raft's internal invariant. No law gives it to a client, so the server can no longer exclude a
     committed empty V2 and cannot prove its `apply` never panics.
-  - kv has the same gap (`examples/kv/kv.go:280,364`: a V2 entry is never passed to raft). Without the law, kv must
+  - kv has the same gap (`examples/raft/kv/kv.go:280,364`: a V2 entry is never passed to raft). Without the law, kv must
     keep tokens and decide `.skip` for V2 entries it never proposes.
   - The same gap makes §13.2's claim "the configuration is joint there, so it is allowed" unprovable for a client.
 - **Restatement.** Add to `InvNode`:
@@ -227,7 +227,7 @@ once.**
 - §4b, first bullet: "a rule keeps results `Valid`: `ConfRule.Ok`" and "its answer is `ConfRule.validated`'s"
   should become "its answer is whether `(.apply o).step m` is `some`".
 - §5, the `validConf` bullet: "so the answer is the rule's". The same stale wording is in Go, at
-  `examples/kvreconf/kv.go:239-241`. The check is still needed, since `confDecide` requires `Valid`, which includes
+  `examples/raft/kvreconf/kv.go:239-241`. The check is still needed, since `confDecide` requires `Valid`, which includes
   `< 2^62`.
 - §6, first bullet ("`γ.rule` … a deliberate departure from TaDa") is now reversed. Record the TaDa decision in its
   place. Keep its `shouldApplyV3` restriction: with `shouldApplyV3 = false`, a validated change never reaches raft

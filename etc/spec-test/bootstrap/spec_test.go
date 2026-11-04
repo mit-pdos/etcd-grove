@@ -4,7 +4,7 @@
 // returns.
 //
 // Two kinds of run, each in both compaction modes (a compaction run or none) and both auth modes
-// (auth enabled or not), at the examples' configuration (`examples/common/common.go`'s `newServer`,
+// (auth enabled or not), at the examples' configuration (`examples/lib/etcdstart/common.go`'s `newServer`,
 // `cfgOk`):
 //
 //   - a fresh boot: `bootstrap` on an empty data directory; every conjunct of `bootOk`
@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -43,6 +44,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"go.etcd.io/etcd/api/v3/authpb"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -168,7 +170,9 @@ func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 
 	r.add("HwalR/Hwalo", b.storage.wal.w != nil, "wal opened")
 	r.add("Hss", b.ss != nil, "snapshotter")
 	cv := b.raft.config
-	r.add("Hraft(lg, heartbeat)", b.raft.lg != nil && b.raft.heartbeat != 0, "heartbeat %v", b.raft.heartbeat)
+	// (S2) the heartbeat Go computes: `cfg.TickMs' * W64 1000000`, wrapping
+	r.add("Hraft(lg, heartbeat)", b.raft.lg != nil && uint64(b.raft.heartbeat) == uint64(cfg.TickMs)*1000000,
+		"heartbeat %v", b.raft.heartbeat)
 	r.add("Hraft(config fields)",
 		cv.MaxInflightMsgs < 1<<62 && !cv.DisableProposalForwarding && cv.ReadOnlyOption == raft.ReadOnlySafe &&
 			!cv.DisableConfChangeValidation && (cv.MaxCommittedSizePerReady != 0 || cv.MaxSizePerMsg != 0) &&
@@ -223,7 +227,9 @@ func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 
 	r.add("Hnew.newPostK(read buffer clean)", nb == 0, "read buffer buckets %d", nb)
 	// the contracts' configuration premises (`bootCfgOk`), which the examples' configuration meets
 	r.add("bootCfgOk", cfg.Logger != nil && cfg.QuotaBackendBytes == 0 && cfg.BackendBatchLimit == 0 &&
-		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1 && cfg.TickMs != 0, "")
+		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1, "")
+	// `NewServer`'s `raftNode.bootCfg`: the heartbeat positive
+	r.add("raftNode.bootCfg", int64(uint64(cfg.TickMs)*1000000) > 0, "")
 	return cv.ID
 }
 
@@ -509,4 +515,212 @@ func TestSpecBootstrapFalseCases(t *testing.T) {
 		t.Error("D: a second Close did not panic")
 	}
 	b.storage.wal.w.Close()
+}
+
+// ---- The final review's findings S1, S2, M1 (2026-11-03, branch `boot-premises`) ----
+
+// exampleCluster is an example's three-member cluster as its `Main` builds it: the members' names
+// (bound in its Lean `premises` to `id₁ id₂ id₃`, in this order), the cluster token, the peer
+// addresses.
+type exampleCluster struct {
+	token string
+	names [3]string
+	peers [3]string
+}
+
+var exampleClusters = []exampleCluster{
+	{"putget3", [3]string{"putget3-1", "putget3-2", "putget3-3"},
+		[3]string{"127.0.0.1:23801", "127.0.0.1:23802", "127.0.0.1:23803"}},
+	{"restart3", [3]string{"restart3-1", "restart3-2", "restart3-3"},
+		[3]string{"127.0.0.1:23861", "127.0.0.1:23862", "127.0.0.1:23863"}},
+	{"linkv3p", [3]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"},
+		[3]string{"127.0.0.1:23841", "127.0.0.1:23842", "127.0.0.1:23843"}},
+}
+
+func memberConfig(t *testing.T, dir string, c exampleCluster, i int) config.ServerConfig {
+	cfg := specConfig(t, dir, c.names[i])
+	m := types.URLsMap{}
+	for k := range c.names {
+		m[c.names[k]] = types.URLs{{Scheme: "http", Host: c.peers[k]}}
+	}
+	cfg.InitialPeerURLsMap = m
+	cfg.PeerURLs = m[c.names[i]]
+	cfg.InitialClusterToken = c.token
+	return cfg
+}
+
+func sortedIDs(ids []uint64) []uint64 {
+	s := append([]uint64(nil), ids...)
+	sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+	return s
+}
+
+// TestSpecBootstrapMemberOrder (S1): `bootOk`'s `Hraft` has `γ.vs = ps` with `ps` the peers
+// `bootstrap` returns (`bootstrapRaftFromCluster`, over `MemberIDs()`, sorted); an example's
+// `premises` instantiate the contract at `γ.vs = [id₁, id₂, id₃]` with `idᵢ` member `-i`'s id
+// (`bootPremise … nameᵢ … idᵢ`). For each example and each member, `bootstrap` is run: the test
+// checks that every member's peers are the same list, the ids sorted ascending, with the contexts in
+// that order (`BootLog ps ctxs`); prints whether the names' order is that order (the old
+// statement's, true of linkv3p only); and checks the restated premises' facts: the peers a
+// permutation of the names' ids (`BootFacts.perm`) and sorted (`sortIds`, the alternative).
+func TestSpecBootstrapMemberOrder(t *testing.T) {
+	for _, c := range exampleClusters {
+		dir := t.TempDir()
+		var byName [3]uint64
+		var peers [3][]uint64
+		for i := range c.names {
+			cfg := memberConfig(t, dir, c, i)
+			b, err := bootstrap(cfg)
+			if err != nil {
+				t.Fatalf("%s: %v", c.names[i], err)
+			}
+			byName[i] = b.raft.config.ID
+			for _, p := range b.raft.peers {
+				var m membership.Member
+				if err := json.Unmarshal(p.Context, &m); err != nil || uint64(m.ID) != p.ID {
+					t.Errorf("%s: a peer's context is not its member: %x", c.names[i], p.ID)
+				}
+				peers[i] = append(peers[i], p.ID)
+			}
+			b.Close()
+			b.storage.wal.w.Close()
+		}
+		ps := peers[0]
+		for i := range peers {
+			if fmt.Sprint(peers[i]) != fmt.Sprint(ps) {
+				t.Errorf("%s: member %d's peers %x differ from member 1's %x", c.token, i+1, peers[i], ps)
+			}
+		}
+		names := byName[:]
+		inOrder := fmt.Sprint(names) == fmt.Sprint(ps)
+		t.Logf("%s: ids by name (id₁ id₂ id₃) %x; bootstrap's peers (γ.vs) %x; names in id order: %v",
+			c.token, names, ps, inOrder)
+		if want := c.token == "linkv3p"; inOrder != want {
+			t.Errorf("%s: the old premise (γ.vs = [id₁, id₂, id₃]) holds: %v, expected %v", c.token, inOrder, want)
+		}
+		if fmt.Sprint(sortedIDs(names)) != fmt.Sprint(ps) {
+			t.Errorf("%s: the peers %x are not the names' ids sorted %x", c.token, ps, sortedIDs(names))
+		}
+		low := map[uint64]bool{}
+		for _, id := range names {
+			if id&0xffff == 0 || low[id&0xffff] {
+				t.Errorf("%s: BootFacts.idLow: %x", c.token, id)
+			}
+			low[id&0xffff] = true
+		}
+	}
+}
+
+// TestSpecBootstrapHeartbeat (S2): `time.NewTicker` panics for every `d ≤ 0` (the old `rnTickerOk`'s
+// `d ≠ 0` admitted a negative `d`; now `0 < d`); `bootstrap`'s heartbeat is `time.Duration(cfg.TickMs)
+// * time.Millisecond`, wrapping (`Hraft`'s equality, checked at each `TickMs`): the old `bootCfgOk`'s
+// `TickMs ≠ 0` admitted a `TickMs` whose heartbeat is 0 (`2 ^ 58`: the old `Hraft`'s `heartbeat ≠ 0`
+// false) or negative (`newRaftNode`'s `NewTicker` then panics). `NewServer`'s `raftNode.bootCfg`,
+// `0 < sint.Z (TickMs * 10^6)` (`int64`, wrapping), is checked to decide each.
+func TestSpecBootstrapHeartbeat(t *testing.T) {
+	for _, d := range []time.Duration{-1, 0, -time.Hour} {
+		if !panics(func() { time.NewTicker(d) }) {
+			t.Errorf("NewTicker(%v) did not panic", d)
+		}
+	}
+	tk := time.NewTicker(time.Nanosecond)
+	tk.Stop()
+	for _, ms := range []uint{100, 1 << 58, 1<<63/1000000 + 1, 1 << 63, 1<<64 - 1, 3*(1<<58) + 7} {
+		cfg := specConfig(t, t.TempDir(), "m1")
+		cfg.TickMs = ms
+		b, err := bootstrap(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		hb := b.raft.heartbeat
+		restated := int64(uint64(ms)*1000000) > 0
+		t.Logf("TickMs %d: heartbeat %d; TickMs ≠ 0: %v, raftNode.bootCfg: %v", ms, int64(hb), ms != 0, restated)
+		if uint64(hb) != uint64(ms)*1000000 {
+			t.Errorf("TickMs %d: heartbeat %d, not Hraft's TickMs * 10^6", ms, int64(hb))
+		}
+		if (hb > 0) != restated {
+			t.Errorf("TickMs %d: heartbeat %d, restated condition %v", ms, int64(hb), restated)
+		}
+		if ms == 1<<58 && hb != 0 {
+			t.Errorf("TickMs 2^58: heartbeat %d, expected 0", int64(hb))
+		}
+		if ms == 1<<63/1000000+1 && hb >= 0 {
+			t.Errorf("TickMs %d: heartbeat %d, expected negative", ms, int64(hb))
+		}
+		b.Close()
+		b.storage.wal.w.Close()
+	}
+}
+
+// TestSpecBootstrapDisk (M1): `bootstrap`'s own panics on a file system that does not cooperate,
+// each on a fresh data directory at the examples' configuration (`bootCfgOk`, `bootCfgFresh`): bbolt
+// cannot open the backend file (here a directory at `member/snap/db`: `newBackend`'s `lg.Panic`, on
+// `OpenBackend`'s goroutine, so in a child process); the WAL cannot be created (a dedicated WAL
+// directory under a regular file: `bootstrapNewWAL`'s `lg.Panic`); the snapshot directory cannot be
+// created (a regular file at `member/snap`: `bootstrapSnapshot`'s `lg.Fatal`, which exits; here
+// with a fatal hook that panics). Neither contract excludes them.
+func TestSpecBootstrapDisk(t *testing.T) {
+	if os.Getenv("SPEC_DISK_CHILD") == "db" {
+		cfg := specConfig(t, os.Getenv("SPEC_DISK_DIR"), "m1")
+		if err := os.MkdirAll(filepath.Join(cfg.SnapDir(), "db"), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		_, err := bootstrap(cfg)
+		t.Fatalf("bootstrap returned (%v) instead of panicking", err)
+	}
+	// bolt.Open fails
+	cmd := exec.Command(os.Args[0], "-test.run=^TestSpecBootstrapDisk$", "-test.count=1")
+	cmd.Env = append(os.Environ(), "SPEC_DISK_CHILD=db", "SPEC_DISK_DIR="+t.TempDir())
+	out, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "failed to open database") {
+		t.Errorf("db: child exited %v, output:\n%s", err, out)
+	} else {
+		t.Logf("db: bootstrap panicked: %s", firstLine(string(out), "panic:"))
+	}
+	// wal.Create fails
+	dir := t.TempDir()
+	f := filepath.Join(dir, "file")
+	if err := os.WriteFile(f, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := specConfig(t, dir, "m1")
+	cfg.DedicatedWALDir = filepath.Join(f, "wal")
+	var p any
+	func() {
+		defer func() { p = recover() }()
+		_, _ = bootstrap(cfg)
+	}()
+	if p == nil || !strings.Contains(fmt.Sprint(p), "failed to create WAL") {
+		t.Errorf("wal: bootstrap did not panic on wal.Create (%v)", p)
+	} else {
+		t.Logf("wal: bootstrap panicked: %v", p)
+	}
+	// the snapshot directory cannot be created: `Fatal`
+	cfg = specConfig(t, t.TempDir(), "m1")
+	cfg.Logger = zap.NewNop().WithOptions(zap.WithFatalHook(zapcore.WriteThenPanic))
+	if err := os.MkdirAll(cfg.MemberDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cfg.SnapDir(), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p = nil
+	func() {
+		defer func() { p = recover() }()
+		_, _ = bootstrap(cfg)
+	}()
+	if p == nil {
+		t.Error("snap: bootstrap did not call Fatal")
+	} else {
+		t.Logf("snap: bootstrap called Fatal: %v", p)
+	}
+}
+
+func firstLine(s, prefix string) string {
+	for _, l := range strings.Split(s, "\n") {
+		if strings.HasPrefix(l, prefix) {
+			return l
+		}
+	}
+	return ""
 }

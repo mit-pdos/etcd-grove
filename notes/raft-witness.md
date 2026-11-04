@@ -9,14 +9,14 @@ the parallel tree `RaftWitness/` (CLAUDE.md, "Layout"): the files named below as
 `Proof/go_etcd_io/raft/...`, `Spec/go_etcd_io/raft/...` (or by their names in the raft proof,
 `Protocol/LeaderCompleteness.lean`, `InvWitnessIfaceT.lean`, ...) are under
 `RaftWitness/{Proof,Spec}/go_etcd_io/raft/`, modules `RaftWitness.Proof.go_etcd_io.raft.v3.*`;
-`examples/kv` with a witness is `examples/kvwitness` (its own Go module, the Go package path
-`github.com/mit-pdos/etcd-grove/examples/kvwitness`, its proofs under
-`RaftWitness/{Proof,Spec}/github_com/mit_pdos/etcd_grove/examples/kvwitness/`); the
+`examples/raft/kv` with a witness is `examples/raft/kvwitness` (its own Go module, the Go package path
+`github.com/mit-pdos/etcd-grove/examples/raft/kvwitness`, its proofs under
+`RaftWitness/{Proof,Spec}/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/`); the
 translations are `etc/goose.py`'s projects `raft-witness` and `kvwitness`, the Links
 `etc/gen-link.py --raft-witness`/`--kvwitness`, the trust base
 `etc/tcb-collections/raft-witness.txt`; the model checker is
 `notes/raft-witness-reconfig-model/` (it was under `issues/`, but the defects it found are of an
-unmerged PR, `issues/README.md`). `examples/kv` and the main raft are `lean`'s, without a
+unmerged PR, `issues/README.md`). `examples/raft/kv` and the main raft are `lean`'s, without a
 witness. The server's, putget's, putget3's and linkv's witness-free adjustments of W1 (the
 `subterm` field of the server's `EntryModel`, the `IsWitness = false` premises) were not kept:
 those trees use the main raft.
@@ -125,7 +125,7 @@ Stages:
   Leader Completeness and Election Safety with a witness.
 - W3: the raft functions' witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
   `sendAppendToWitness`, `sendRequestVoteToWitness`) and `witness.go`.
-- W4: `examples/kv` with a witness (user request, 2026-10-19), its closed theorem re-proved.
+- W4: `examples/raft/kv` with a witness (user request, 2026-10-19), its closed theorem re-proved.
 
 ## W1: what the witness-free proof says (2026-10-19)
 
@@ -446,7 +446,7 @@ identity), `raft.applyConfChange` and the static `ApplyConfChange` (`RawNode`, `
 `γ.reWit = 0`) take it; `ccApplyM_wit`/`ccApplyM_wit0` without an `AddWitness`.
 
 **WIP (committed after CC1, `de432ffe86`; raft `Link` builds, the full build does not yet: two
-callers of the new premises, `examples/kv/StartCluster.lean` (~line 420: the node constructors'
+callers of the new premises, `examples/raft/kv/StartCluster.lean` (~line 420: the node constructors'
 `csm.Witness' = 0`, kv's `kvConfState` has witness `0`; and the `MemoryStorage` premises) and
 `etcdserver/bootstrappedRaft__newRaftNode.lean` (~line 76: `StartNode`'s new last premise)):**
 `ConfStateM.Witness'` (the field; `csPts` reads it; every `ConfStateM.mk` gained a 6th argument
@@ -485,7 +485,7 @@ the remaining step.
    needs `c.wit = 0 ∨ c.wit = γ.reWit`), building the node at `{CfgM.simple .. with wit := w}`
    (`ownRawNode_intro_static` uses `CfgM.simple`: generalize it to the witness configuration).
 4. A storage for W4 that hands out a conf state with a witness: not the `MemoryStorage` (which
-   now holds witness-free ones only); kv's own `Storage` (`examples/kv`), whose `InitialState` is
+   now holds witness-free ones only); kv's own `Storage` (`examples/raft/kv`), whose `InitialState` is
    what `RestartNode`'s premise asks.
 
 **Named premises left (all recorded above):** NoWitReconf (`raft.applyConfChange`,
@@ -498,7 +498,7 @@ and the temporary `csm.Witness' = 0` on the node constructors. (2026-10-21: done
 
 ## W4: the kv example with a witness (2026-10-21, branch `raft-witness`)
 
-**Done.** `examples/kv`'s `MainWitness()` (`check.go`, added with its Go test
+**Done.** `examples/raft/kv`'s `MainWitness()` (`check.go`, added with its Go test
 `TestMainWitnessPasses`): `StartClusterWitness([]uint64{1, 2}, 3)`, then the same
 `Check(kvs, CounterClock(), 4, 25)` as `Main`. Closed theorem `kv_witness_porcupine_safe`
 (`kv/Results.lean`, from `kv_witness_adequate`/`kv_witness_adequate_of`, `AdequacyLinked.lean`/

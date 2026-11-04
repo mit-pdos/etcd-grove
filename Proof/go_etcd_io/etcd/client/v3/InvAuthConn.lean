@@ -1,6 +1,6 @@
 /-
 **The client's Auth API over gRPC** (the auth plan's E2h, 2026-10-26): the vocabulary of the
-admin calls `examples/authkv`'s `SetUp` makes (`client/v3/auth.go`'s `authClient`, `retry.go`'s
+admin calls `examples/etcd/auth`'s `SetUp` makes (`client/v3/auth.go`'s `authClient`, `retry.go`'s
 `retryAuthClient`, the generated stub `api/etcdserverpb/rpc_grpc.pb.go`'s `authClient`), the
 shape of the KV path's (`InvKVConn.lean`). Lean-first (no Rocq counterpart); the design is in
 `notes/decisions.md`, "E2h of the auth plan".
@@ -22,7 +22,7 @@ precondition `□ ▷ Spec m Q` (the retry interceptor's contract for any number
 call that failed before it was sent, or with an expired token), so the client asks nothing of
 the server's spec but that it can be run again (D29's write-once mode is the KV methods' only,
 `kvMethod`). What the server's Auth service guarantees is the spec `Spec`: a premise of the
-callers (`examples/authkv`'s `SetUp`), for the server's side to discharge
+callers (`examples/etcd/auth`'s `SetUp`), for the server's side to discharge
 (`notes/decisions.md`, "E2h of the auth plan").
 
 **The objects**: `authStubAt ac conn` (the generated `*authClient` on `conn`), `retryAuthAt rac

@@ -156,8 +156,6 @@ public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
-public import Proof.time.NewTicker
-public import Proof.time.Ticker__Stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
@@ -852,17 +850,9 @@ theorem serverWatchStream.wp_recvLoop :
     EtcdGrove.v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.serverWatchStream.recvLoop.wp_proof mvcc.watchStream.wp_Watch mvcc.watchStream.wp_Rev mvcc.watchStream.wp_Cancel mvcc.watchStream.wp_RequestProgressAll serverWatchStream.wp_isWatchPermitted serverWatchStream.wp_newResponseHeader wp_FiltersFromRequest errors.wp_Is traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool zap.Logger.wp_Error zap.wp_Error
 
-theorem time.wp_NewTicker :
-    EtcdGrove.time.NewTicker.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.time.NewTicker.wp_proof
-
-theorem time.Ticker.wp_Stop :
-    EtcdGrove.time.Ticker.Stop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.time.Ticker.Stop.wp_proof
-
 theorem serverWatchStream.wp_sendLoop :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert time.wp_NewTicker time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan mvcc.wp_ReportEventReceived
+  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan mvcc.wp_ReportEventReceived
 
 theorem watchServer.wp_Watch :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=

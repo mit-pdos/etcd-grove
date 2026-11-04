@@ -27,7 +27,7 @@ lifts this to etcd's `kvOpStep`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TxnModel
 public import Perennial.Std.ByteString
 
 @[expose] public section

@@ -1,0 +1,97 @@
+/-
+**`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
+auto-compactor on (`etcdstart.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `etcdstart.StartCompactingServer`, revision mode, retention 1); putget's history
+below is the original's.
+
+The adequacy example's results (`examples/etcd/compacted/etcd_compacted.go`; item 9), restated, with the trust
+base of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
+
+* **`putgetc_Main`** (stage 2, 2026-10-18; `MainLinked.lean`): `Main` -- one etcd member started in
+  process (`NewServer`, `Start`), its gRPC server (`v3rpc.Server`) listening at `127.0.0.1:23791`
+  (`net.Listen`, `go gs.Serve(l)`), a client (`clientv3.New`), a `Put` of `k` with value `v`, a
+  `Get` of `k`, and a panic unless the `Get` returned `v` -- returns: it does not panic. From
+  `isPkgInit putgetc`, the right to listen on the address, the main thread's token and `Main`'s
+  named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Main.lean`).
+* **`etcd_compacted_safe`** (stage 3, 2026-10-18; `Adequacy.lean`'s `etcd_compacted_adequate`): the closed
+  theorem. Every real execution of `n` steps of `putgetc`'s initialization followed by `Main()`,
+  from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and the main
+  thread's result, if any, is `#()`; under hypotheses of D19a's kinds (`notes/decisions.md`,
+  D19r; the two marked ones it took until 2026-10-20, `EofFromIoInit` and
+  `ClosedchanFromContextInit`, are theorems of Perennial's package facts since `init-facts`).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Adequacy
+
+@[expose] public section
+
+set_option pp.fullNames true
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section results
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
+
+/-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_compacted.wp_Main`). -/
+theorem putgetc_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    etcd_compacted.Main.spec (GF := GF) (hG := hG) :=
+  etcd_compacted.wp_Main
+
+end results
+
+section adequacy
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+variable [go_gctx : GoGlobalContext]
+
+/-- **The adequacy example is safe, in the operational semantics** (`etcd_compacted_adequate`, see the
+file header and `Adequacy.lean`). -/
+theorem etcd_compacted_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [log.NewModel]
+    (Hctx : ∀ hG : HeapGS .hasLC putgetcGF, ContextReadErrs (GF := putgetcGF) (hG := heapAtC hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putgetcGF, ContextErrsClient (GF := putgetcGF) (hG := heapAtC hG lctx))
+    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : etcd_compacted.BootFacts id ctxs boot)
+    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
+    (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
+    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
+    (HDs : walDirsAbsent putgetcProgram [config.walDirOf go!"putgetc.etcd" go!""])
+    (n : Nat)
+    (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
+      ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([putgetcProgram], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  etcd_compacted_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs n Hprem σ g
+    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+
+end adequacy
+
+#print axioms putgetc_Main
+#print axioms etcd_compacted_adequate
+#print axioms etcd_compacted_safe
+
+end EtcdGrove
+end Perennial

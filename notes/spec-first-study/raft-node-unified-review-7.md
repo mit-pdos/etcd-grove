@@ -13,7 +13,7 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
     kv's `Defs.lean`.
 - **Go**:
   - raft a2, `.lake/raft-fork` `565c2bd`: `node.go`, `raft.go`, `storage.go`;
-  - kvreconf at `HEAD`: `examples/kvreconf/{kv,cluster,reconf}.go`.
+  - kvreconf at `HEAD`: `examples/raft/kvreconf/{kv,cluster,reconf}.go`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the worktree has no `spec/` skill).
 - **Not run**: lake build, lean-check, Go tests.
 

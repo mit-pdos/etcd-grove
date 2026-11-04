@@ -1,6 +1,6 @@
 /-
 `metadata.AppendToOutgoingContext` (grpc, `metadata/metadata.go`): the trust boundary (grpc's
-`metadata` is types and names only; the auth plan's E2f, contract C3 of `examples/authkv`).
+`metadata` is types and names only; the auth plan's E2f, contract C3 of `examples/etcd/auth`).
 Lean-first (no Rocq counterpart).
 -/
 module

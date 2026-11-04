@@ -78,7 +78,7 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (al ast lp cl : Loc)
     (d' : mvcc.KBReal) (γw : mvcc.WsNames) (ws : Loc) (R : mvcc.Log)
     (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
-    (hRok : mvcc.restoreLogOk R) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hRok : mvcc.restoreLogOk R) (hrb : receiptBound GF ≤ 2 ^ 48) (hlg : E.lg = false) :
     mvcc.isWatchableStore ws E.s γw ∗ mvcc.storeReader E.s E.γ ∗
       mvcc.writerFrag (γw.st.withPhys p') ∗ mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
@@ -120,7 +120,8 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     iexists []
     ihave #Hlk := leasesKnown_restore (GF := GF) R hRok
     iframe Hlk
-    rw [show (γw.st.withPhys p').leases = γw.st.leases from rfl]
+    rw [snapE_γ, ← hγw, show (γw.st.withPhys p').leases = γw.st.leases from rfl]
+    rw [apply.ltHalf_false _ _ (by rw [snapE_lg]; exact hlg)]
     ihave Hlo := lease.leaseOwn_eq (mvcc.leaseItemsOf_zero _
       (mvcc.stateAfter_leaseZero _ (logNoLease_restore R hRok))).symm $$ Hlo
     iframe Hlo Hlr Hrv

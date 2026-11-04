@@ -77,7 +77,7 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) 
       lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cs ms ids ∗
       leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
         leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
-    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
+    (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err))
 
 /-! ## The contract -/
 
@@ -166,8 +166,8 @@ def leaseLeasesOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfac
           leasesHdrDone E w.Header' cid mid ∗ leasesListIs w ids ∗
           leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
-        (leaseHdrDone w.Header' cid mid ∗ w.Leases' ↦* ([] : List Loc)))) ∨
-    ⌜resp = null ∧ err ≠ GoInterface.nil⌝)
+        (⌜E.authOn = true⌝ ∗ leaseHdrDone w.Header' cid mid ∗ w.Leases' ↦* ([] : List Loc)))) ∨
+    ⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝)
 
 end defs
 

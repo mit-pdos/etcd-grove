@@ -21,6 +21,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 - **Sound: true of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
+  A premise an example holds (a callee's triple, a pure fact of the program) is sound only if it is
+  true at every input it admits: a triple whose pre admits one input where the model panics is
+  false, and every adequacy theorem holding it is vacuous (`rnTickerOk` at `d ≠ 0`, where
+  `time.NewTicker` panics at `d < 0`; putget3's peers in the names' order, not `bootstrap`'s
+  sorted one). Check such a pre against the model's panics, and a computed fact against a Go run.
+  A trusted contract states what the code computes (the wrapping `TickMs * Millisecond`), not a
+  property of it the code does not ensure (`heartbeat ≠ 0`); the caller that needs the property
+  takes it as its own premise. (The boot premises, 2026-11-03, `notes/decisions.md`.)
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
   changes, the callers as restated. A contract an implementation must meet (an environment's
@@ -178,7 +186,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   library does not name the client's mechanism: no "disk" predicate in raft, because a client may
   keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
   and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
-  critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  critique of candidate 4: `notes/STATUS.md`, "examples/raft/kvdurable and the durable node API")
   The client-owned state is only the part the client's choice is about: for durability, raft's
   persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
   Then a restart is no transition of that state, only a fresh library-side half built over it.

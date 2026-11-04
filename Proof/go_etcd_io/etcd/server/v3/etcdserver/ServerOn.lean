@@ -26,6 +26,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
@@ -47,33 +48,32 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-- **The auth state the mode-`on` KV model starts from**: the store's latest at the server's
-start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
-once). -/
-def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
+-- `srvAuthSt0` is `ImageOn.lean`'s (moved there with the mode-on image, the auth-on pair's F8).
 
 section pure
 variable [GooseExts]
 
-/-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
-def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
+/-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
+leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
+def logShapeM (on lg : Bool) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape L
+  | false => logShape lg L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
-theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
+theorem logShapeM_cc (on lg : Bool) (L : List EntryModel) (h : logShapeM on lg L) :
     ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0 := by
   cases on
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+theorem logShapeM_false (lg : Bool) (L : List EntryModel) : logShapeM false lg L = logShape lg L :=
+  rfl
 
-theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+theorem logShapeM_true (lg : Bool) (L : List EntryModel) : logShapeM true lg L = logShapeOn L := rfl
 
-theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
-    logShapeM on A := by
+theorem logShapeM_append (on lg : Bool) (A B : List EntryModel) (h : logShapeM on lg (A ++ B)) :
+    logShapeM on lg A := by
   cases on
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
@@ -251,7 +251,7 @@ instance kvCertInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames
 /-- **The server's `E.C` in the auth mode `on`** (`srvC` with the mode's shapes). -/
 def srvCM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvCM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (L : List EntryModel) :
@@ -274,7 +274,7 @@ theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x�
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
 def clusterWorkloadOkM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOkM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOkM (GF := GF) on ρ E) := by
@@ -360,20 +360,22 @@ instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF)
 contracts, with auth on** (persistent): for every environment with auth on and every uber-applier
 the server holds (`applySnapshot` replaces it) with its base applier's auth layer (`srvUberBase`),
 its KV contract (`apply.uberKVC`) given that the lessor finds no lease, and its admin contract
-(`apply.uberAdmC`) at every admin row's store, backend and write token. Whoever constructs the
+(`apply.uberAdmC`) at every admin row's store, backend and write token. (Since the auth-on snapshot
+plan's Prove step, 2026-11-03, at the current backend's names `γc`: the latest-state family
+`auth.latestResC` carries the write token, the admin steps' resource is `adminWC`.) Whoever constructs the
 uber-applier establishes its contract: `NewServer` with auth on (`uberKitM`); `applyEntryNormal`
 reads it (`srvKVInvsM_uberOn`). -/
 def srvUberOn (s : Loc) : IProp GF :=
   iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
     srvUberBase s ua E -∗
-    (srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa))) ∗
-    (∀ (stl bel : Loc) (T : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
+    (∀ γc : auth.AuthBkNames, srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc)) ∗
+    (∀ (stl bel : Loc) (T : auth.AuthBkNames), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
         apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-          (adminW stl bel (.on γa) E.P E.f T) E.RD -∗
-        apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+          (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD -∗
+        apply.uberAdmC ua E (adminWC stl bel γa E.P E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-          (auth.latestRes stl (.on γa))))
+          (auth.latestResC stl (.on γa) T)))
 
 instance srvUberOn_persistent (s : Loc) : Persistent (srvUberOn (GF := GF) s) := by
   unfold srvUberOn; infer_instance
@@ -407,25 +409,25 @@ theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 /-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
 lessor finds no lease. -/
 theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (hM : E.authMode = .on γa) :
+    (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) := by
   iintro ⟨#H, #Hb, #Hln⟩
   iunfold srvUberOn at H
   ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
-  iapply Hkv $$ Hln
+  iapply Hkv $$ %γc Hln
 
 /-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
 row's store, backend and write token. -/
 theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (stl bel : Loc) (T : IProp GF) (hM : E.authMode = .on γa) :
+    (stl bel : Loc) (T : auth.AuthBkNames) (hM : E.authMode = .on γa) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
-      apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+        (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD ⊢
+      apply.uberAdmC ua E (adminWC stl bel γa E.P E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-        (auth.latestRes stl (.on γa)) := by
+        (auth.latestResC stl (.on γa) T) := by
   iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberOn at H
   ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb
@@ -465,8 +467,11 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
+    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
@@ -650,24 +655,10 @@ open Iris.ProofMode in
 
 /-- `srvCM` does not read the environment's names but through `envAgree` (`srvC_agree`'s). -/
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (h : envAgree E E') :
+    (x₀ : apply.ApplyKV) (_h : envAgree E E') :
     srvCM on ρ E ai₀ c₀ x₀ = srvCM on ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr, -, -⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  funext L
-  unfold srvCM batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
-
-/-- The ticker's contract does not read the transport's borrow (`rnTickerOk_srvEr_S`'s). -/
-theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S) ⊢
-      rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S') := by
-  unfold rnTickerOk isRNTicker srvErM
-  exact .rfl
+  -- (the lease-grant plan's 2.6) the contract reads no name of `E` (`reqWaitNone`)
+  rfl
 
 /-- **The claims give a batch's ids** (`batchWaitOk_of_work`, from the conf changes' ids alone:
 what both modes' shapes give, `logShapeM_cc`). -/
@@ -709,9 +700,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
@@ -789,7 +779,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL HatL $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lg L HshL) HcclL HatL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
@@ -917,7 +907,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
+    (hao : γs.raft.authOn = true) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
@@ -954,8 +945,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
-    refine ⟨?_, ?_, ?_, ?_, hch, hlog⟩
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true := by
+    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao⟩
     · intro m hm h0
       rw [hty m hm] at h0
       exact absurd h0 (by decide)
@@ -994,7 +985,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true⌝ ∗
+        kvWorkOn γs.raft γk L))
     $$ [HL Hv1 Hh] with #Hinv
   · inext
     iexists bootEntries bootLog

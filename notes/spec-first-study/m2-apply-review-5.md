@@ -157,7 +157,7 @@ Item 6 should list `reqPropOk_wire`'s header lemmas.
 
 ### S5-3. Item 14': the premise's producers
 
-The `KVNames` record is not built in `examples/common/Alloc.lean`. These places build or carry it:
+The `KVNames` record is not built in `examples/lib/etcdstart/Alloc.lean`. These places build or carry it:
 
 - **The cluster allocations:**
   - `srvClusterBoot_alloc` (`NewServerAlloc.lean:250-252`): a positional `⟨…⟩` literal of
@@ -168,7 +168,7 @@ The `KVNames` record is not built in `examples/common/Alloc.lean`. These places 
 - **The member allocations:** `srvMemberBoot(On)_alloc`, whose facts list `ρ.rd.kv.cok`
   (`NewServerAllocOn.lean:227`). They gain `ρ.rd.kv.cmp`.
 - **The examples:**
-  - the member bundle's pure facts (`examples/common/Defs.lean:186`) take the mode, `true` for
+  - the member bundle's pure facts (`examples/lib/etcdstart/Defs.lean:186`) take the mode, `true` for
     `putgetc`'s member;
   - `Alloc3.lean` (one `KVNames` for the three members);
   - `authkv/startServer.lean` (`specM true`, at `false`).

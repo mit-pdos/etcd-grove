@@ -64,7 +64,7 @@ tree of nested transactions with keys-only ranges at the leaves encodes to leave
   and `grpc.serve`, `grpc.serveStream`, `grpc.Server.Serve.wp_proof` (the token comes only from
   `grpc.start`, under the premise). No law turns a token into `⌜grpcRepliesFit⌝`.
 - **The start path** (`(Hrf : grpcRepliesFit)`): `client.etcd_kv_started` (`client/v3/Results.lean`),
-  `etcd_cache_served` (`cache/v3/Results.lean`), `common.kv_served` (`examples/common/Served.lean`),
+  `etcd_cache_served` (`cache/v3/Results.lean`), `common.kv_served` (`examples/lib/etcdstart/Served.lean`),
   `watchkv.wk_served` (`watchkv/Served.lean`), `authkv.ak_served_kv` (`authkv/MainServe.lean`).
 - **`Spec/` files** (`grpcRepliesFit →` after `apply.backendUnderQuota →`): the `Main.spec` of
   putget, putget3, putgetc, linkvtxn, k8setcd3, watchkv, cachekv, authkv, linkv3p and linkv3p's

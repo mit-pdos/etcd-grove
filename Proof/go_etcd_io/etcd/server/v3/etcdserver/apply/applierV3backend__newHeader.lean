@@ -31,7 +31,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.newHeader.wp_proof
     (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) := by
-  have hRev := mvcc.store.Rev.spec_R hRev
   intro E p log
   wp_start as ⟨#Hb, Hrd, Hsw⟩
   iunfold apply.backendIs at Hb
@@ -64,13 +63,23 @@ theorem apply.applierV3backend.newHeader.wp_proof
   wp_bind (App (Val #(methods kty _ kvv)) _)
   iapply mvcc.kvOver_rev_wp kty kvv E.s
   iframe Hko
+  ihave Hrd := mvcc.storeReader_toC E.s E.γ $$ Hrd
   wp_apply (hRev E.s rv E.γ (txn.soleBudget log) log) $$ [$Hrd $Htoks]
-    as %v ⟨Hrd, Htoks, -⟩
+    as %v ⟨Hrd, Htoks, %log', -, #Hc', %Hl'⟩
   · iframe #
+  ihave Hrd := mvcc.storeReader_of E.s E.γ $$ Hrd
+  obtain ⟨Hpre, Hbud, -, Hv⟩ := Hl'
+  have Hlen2 : 2 ≤ log.length := Hl2.1.1
+  have Hlen := Hpre.length_le
+  have Hle : log.length + 3 ≤ 2 ^ 63 := by unfold txn.soleBudget at Hbud; omega
+  have Heq : log' = log := (Hpre.eq_of_length (by unfold txn.soleBudget at Hbud; omega)).symm
+  subst Heq
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
   irename «$r0» => Hh
   generalize «$r0_ptr» = h at *
+  ihave %Hhn := typedPointsto_not_null $$ Hh
+  iStructNamed Hh
   iapply HΦ
   iframe Hrd
   isplitl [Htoks Hwl]
@@ -80,7 +89,15 @@ theorem apply.applierV3backend.newHeader.wp_proof
     iframe Htoks
     iframe #
     ipureintro; exact Hl2
-  iapply typedPointsto_not_null $$ Hh
+  isplitr
+  · ipureintro; exact Hhn
+  isplitl [ClusterId MemberId RaftTerm LeaderId]
+  · iunfold apply.hdrFields
+    iexists _, _, _, _
+    iframe
+  rw [← Hv]
+  iframe Revision Hc'
+  ipureintro; exact ⟨Hlen2, Hle⟩
 
 end proof
 

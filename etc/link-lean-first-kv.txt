@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Link.lean`
 # (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kv`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
 #
@@ -42,7 +42,7 @@ raftpb_ConfChangeType__Enum: @
 # the porcupine driver's functions the store's test calls, linked in lintest's `Link.lean`
 Run: @
 CounterClock: @
-# the store (examples/kv/kv.go)
+# the store (examples/raft/kv/kv.go)
 encode:
 decode:
 fits: raftpb_Entry__GetIndex
@@ -70,7 +70,7 @@ KV__install: decode
 # variants of 2026-10-28, stage U4a, linked in raft's `Linked.lean`, are gone)
 KV__run: fits KV__apply KV__answer KV__install encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
 kv_New: KV__run
-# the cluster driver (examples/kv/cluster.go)
+# the cluster driver (examples/raft/kv/cluster.go)
 kv_quietLogger__Debugf:
 kv_quietLogger__Errorf:
 kv_quietLogger__Infof:
@@ -80,7 +80,7 @@ kv_transfers__take:
 kv_deliver: kv_deliverable kv_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo proto_CloneSnapshot
 kv_tick: node__Tick
 kv_StartCluster: NewStorage Storage__InitialState Storage__Snapshot kv_New kv_deliver kv_tick kv_quietLogger__Debugf kv_quietLogger__Errorf kv_quietLogger__Infof kv_quietLogger__Warningf RestartNode MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries
-# the randomized linearizability test (examples/kv/check.go)
+# the randomized linearizability test (examples/raft/kv/check.go)
 kv_copyMap:
 kv_within:
 kv_hashString:

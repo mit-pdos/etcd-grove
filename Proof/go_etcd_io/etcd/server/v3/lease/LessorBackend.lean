@@ -24,7 +24,10 @@ lock's, half its user's, `lessorBeOn`, which the write token lends).
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
 the expiry loop sends only non-empty slices of leases of its map; until then no logical content);
-a server whose guard is `False` receives nothing from it.
+a server whose guard is `False` receives nothing from it. (The lease-grant plan, 2026-11-02, D1)
+A slice is sent only once a lease has expired, so each also refutes the deployment premise
+`leasesNoExpiry` (no lease granted in the run expires before the run ends): a server whose guard
+implies that premise receives nothing either.
 -/
 module
 
@@ -43,6 +46,32 @@ namespace EtcdGrove
 namespace lease
 
 open Iris Iris.BI Iris.ProofMode
+
+/-- **No lease of any lessor the program creates expires while the program runs** (a named premise
+about the program's deployment, as `leasePeersOk`; the lease-grant plan's S2 (a), the user's choice
+of 2026-11-02, restated by the review's S3, `notes/lease-grant-plan.md`, and after the axiom review
+of 2026-11-02, `notes/axiom-review/lease-grant-lessor.md`, which refuted the earlier "no lease the
+cluster grants": `NewLessor`'s payload reads the premise for every lessor, and a program with a
+standalone lessor and a 1 s lease met that wording yet saw an expiry): no lease of any lessor the
+program creates (in a cluster or none; granted there, or reloaded by `Recover`) expires, by the clock
+the lessor's expiry loop reads, while the program runs. So no lessor's loop (`runLoop`,
+`revokeExpiredLeases`, `lessor.go:620-660` at the etcd pin) finds an expired lease
+(`findExpiredLeases` returns only leases whose `expiry` is past) and none sends on `expiredC`.
+
+What the theorem reads it over: the program's run ends when `Main` returns (Go exits), but the
+adequacy theorem's executions also continue the other goroutines after that (steps Go never takes),
+and the premise is read over them too: as used (the payload of `expiredC` refutes it, below), it
+says no slice is ever sent on `expiredC`, in any of the theorem's executions.
+
+True of `examples/etcd/leasegrant`: its only lease is granted with TTL 600 s, and the read that must list
+it runs within two `RequestTimeout`s of the grant's apply (the expiry is set to at least the grant's
+apply plus the TTL, and `Promote`, `Demote`, `Renew`, checkpoints and `minLeaseTTL` only move it
+later, `lessor.go:301-303, 480-553`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
+whose clock jumps, and a lessor promoted with leases whose expiry has already passed. The
+trust-boundary `NewLessor` states it in the payload of `expiredC` (`lessorExpiredC`): a slice sent
+refutes it. `NewServer` takes it (gated on the cluster granting leases, `KVNames.lg = true`, review
+S1) for its apply thread, the one place a grant is minted. -/
+opaque leasesNoExpiry : Prop
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -89,17 +118,20 @@ instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R
     (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBackend b P f T R Rb) := by
   unfold leaseBackend; infer_instance
 
-/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the write token `T` lends a
+/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the lent part `Ln` lends a
 fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23: the field is no
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
-the writes read `le.b` under the lessor's lock, holding the token. -/
-def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
+the writes read `le.b` under the lessor's lock, holding it. (The lease-grant stage, 2.12,
+2026-11-02) The lent part is apart from the write token `T`, which the write spends: `Grant` and
+`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) -/
+def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗
-    □ (T -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ T)))
+    □ (Ln -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ Ln)))
 
-instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (lessorBackend lp P f T R Rb) := by
+instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) :
+    Persistent (lessorBackend lp P f T Ln R Rb) := by
   unfold lessorBackend; infer_instance
 
 /-- **The lessor `lp` is on the backend at `be`** (D22 receiver epochs, S7c, 2026-10-23; not
@@ -112,10 +144,11 @@ def lessorBeOn (lp be : Loc) : IProp GF :=
       #be : GoInterface))
 
 /-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases, some lease of
-each meeting the grant guard `GA` (D19n). -/
+each meeting the grant guard `GA` (D19n), (the lease-grant plan's D1, 2026-11-02) each sent only
+once a lease has expired, so refuting `leasesNoExpiry`. -/
 def lessorExpiredC (lp : Loc) (GA : w64 → IProp GF) : IProp GF :=
   iprop(∃ (c : GoChan) (γc : ChanNames), lF go!"expiredC" lp ↦□ c ∗
-    isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, GA id)))
+    isChanBag γc c (V := GoSlice) (fun _ => iprop(⌜¬ leasesNoExpiry⌝ ∗ ∃ id : w64, GA id)))
 
 instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by

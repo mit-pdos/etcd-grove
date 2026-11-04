@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean`
 # (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kvdurable`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in its package's
 # `Link.lean` (raft's); `=term`: a term given as is (Perennial's `time` results, raft's importable
@@ -76,10 +76,10 @@ raftpb_Snapshot__GetMetadata: @
 # context's trust-boundary axiom (`Proof/context/WithTimeoutBackground.lean`), linked here as in
 # kvreconf's list
 context_WithTimeoutBackground:
-# the durable files package (examples/durable): its trusted `Write`'s proved spec
+# the durable files package (examples/lib/durable): its trusted `Write`'s proved spec
 durable_Read:
 durable_Write:
-# the store (examples/kvdurable)
+# the store (examples/raft/kvdurable)
 kvdurable_Cluster__Crash: kvdurable_sleep kvdurable_Cluster__random kvdurable_Cluster__restart
 kvdurable_Cluster__Disrupt: kvdurable_sleep kvdurable_Cluster__random kvdurable_below node__TransferLeadership node__Campaign node__ForgetLeader node__Status context_WithTimeoutBackground
 kvdurable_Cluster__Get: kvdurable_Cluster__do

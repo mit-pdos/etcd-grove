@@ -23,7 +23,7 @@ proved.
   (`server/etcdserver/api/v3rpc/grpc.go:81`, `pb.RegisterWatchServer(grpcServer, NewWatchServer(s))`),
   and `watchServer.Watch` calls `NewWatchStream` for every incoming Watch stream.
 - The proof: the one compacting example, `putgetc`, serves through `common.Serve`
-  (`examples/common/common.go:143-151`; `Proof/.../examples/putgetc/Main.lean:133`,
+  (`examples/lib/etcdstart/common.go:143-151`; `Proof/.../examples/putgetc/Main.lean:133`,
   `MainLinked.lean:63`). `common.Serve`'s proof gets `v3rpc.grpcCfgOk` from `srvWatchReaders`
   (`Proof/.../examples/common/Serve.lean:63`). `grpcCfgOk` holds `v3rpc.watchSrvOk`
   unconditionally (`etcdserver/api/v3rpc/InvGrpcStart.lean:253-254`), and that is where

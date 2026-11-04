@@ -31,7 +31,7 @@ which may be etcd's zeroed one, or a rejection without a call;
 
 A doc fix: make doc.go's step 3 say what `Node.ApplyConfChange` says, and that a change may also
 be neutralized by zeroing `NodeID` (a `ConfChange`, or a `ConfChangeV2` with changes). Found
-2026-10-28 by the spec review of raft's node API for `examples/kvreconf`
+2026-10-28 by the spec review of raft's node API for `examples/raft/kvreconf`
 (`notes/spec-first-study/raft-node-unified-review-1.md`), which follows `node.go`
 (`Replica.applyConf`). Upstream searched 2026-11-02 (`ApplyConfChange`, `ApplyConfChange reject`):
 nothing.

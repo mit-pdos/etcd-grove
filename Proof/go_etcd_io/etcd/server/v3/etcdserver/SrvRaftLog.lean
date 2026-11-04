@@ -103,6 +103,10 @@ structure SrvRaft [GooseExts] where
   fired : GName
   rdFresh : GName
   pend : GName
+  /-- (2026-11-03, the auth-on pair's F8) whether the cluster runs auth on: the image certificate
+  its snapshots carry (`srvNet`'s `srvImageM authOn`); every member's KV invariant ties its own mode
+  to it (`kvInv`: off, `kvInvOn`: on) -/
+  authOn : Bool
 
 /-- The voters the cluster started with, as a set (raft's `reCfg` until 2026-10-27). -/
 def SrvRaft.cfg [GooseExts] (γ : SrvRaft) : GSet w64 := GMap.listToSet γ.vs
@@ -2114,14 +2118,14 @@ as given), the log invariant, the KV invariant's half of `Lf0`, and the authorit
 proposals' and the read contexts' fresh tokens (for the mints). -/
 theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
     (rule : ConfRule) (boot : List EntryM) (reg : GName) (snapLoc : w64 → Option GName)
-    (Lf0 : List EntryModel) (E : CoPset)
+    (authOn : Bool) (Lf0 : List EntryModel) (E : CoPset)
     (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
     (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0)
     -- (2026-10-30, the repair, T1c) its conf entries changes the server takes (`srvLogCore`'s)
     (hcc : ∀ m ∈ Lf0, m.typ = W32 1 → ccBootOk (GMap.listToSet vs) m.data) :
     ⊢ ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
       ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.rule = rule ∧ γr.boot = boot ∧ γr.reg = reg ∧
-        γr.snapLoc = snapLoc⌝ ∗
+        γr.snapLoc = snapLoc ∧ γr.authOn = authOn⌝ ∗
         srvLogInv (⟨γr, [], W64 0⟩ : ServerRaftNames) ∗ srvRLog ⟨γr, [], W64 0⟩ Lf0 ∗
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
@@ -2134,7 +2138,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := List EntryModel) with ⟨%γfired, HF⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrd, Hrd⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (GName × Nat)) with ⟨%γpend, HR, -⟩
-  let γr : SrvRaft := ⟨cl, vs, rule, boot, reg, snapLoc, γlog, γfresh, γprops, γfired, γrd, γpend⟩
+  let γr : SrvRaft := ⟨cl, vs, rule, boot, reg, snapLoc, γlog, γfresh, γprops, γfired, γrd, γpend, authOn⟩
   icases ((monoListAuthOwn_fractional (GF := GF) γlog Lf0).fractional
       (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
   · rw [Qp.half_add_half]; iexact Hlog
@@ -2169,7 +2173,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   iunfold srvLogInv
   iframe Hli Hfresh Hrd
   iunfold srvRLog

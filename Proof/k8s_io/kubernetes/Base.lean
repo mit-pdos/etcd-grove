@@ -14,7 +14,7 @@ initialization only once an `Init.lean` proves a package's `wp_initialize'` from
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Base
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.equality
 public import GeneratedProof.k8s_io.client_go.informers.internalinterfaces
 public import GeneratedProof.k8s_io.client_go.informers.apps.v1

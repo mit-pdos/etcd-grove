@@ -111,17 +111,26 @@ def loopOk (γ : ApplyNames) (st : ApplyState) (a : w64) : Prop :=
 skips it), or its data decode (`irrDecode`: the proposer marshalled an `InternalRaftRequest`) to
 a request with an id or a header (`irrId`: else `apply.Apply` panics; pre-3.0 entries), neither a
 compaction nor empty (`dispatchOk`), and satisfying the txn package's premises at `x.log`
-(`rqOk`: `apply.Apply.spec`'s). -/
-def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+(`rqOk`: `apply.Apply.spec`'s), in a cluster that grants leases or not (`lg`; the lease-grant
+stage's §2.8, 2026-11-03: `rqOk lg`, at `lg = false` what it was). -/
+def entryOk (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    apply.rqOk x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+    apply.rqOk lg x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+
+/-- **An entry's premise in a cluster that grants none is one in any.** -/
+theorem entryOk_of_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) (h : entryOk false x m) :
+    entryOk lg x m := by
+  rcases h with h | ⟨rq, hdec, hid, hrq, hd⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨rq, hdec, hid, apply.rqOk_of_false lg _ rq hrq, hd⟩
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
 small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
-theorem entryOk_of_shape [GooseExts] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape m)
+theorem entryOk_of_shape [GooseExts] (lg : Bool) (x : apply.ApplyKV) (m : EntryModel)
+    (hs : entryShape lg m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lg x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
   · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩
@@ -333,11 +342,13 @@ structure SrvFields where
 certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
 side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
 `kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
-track's `srvEnvOkD` makes the backend's mode the server's). -/
+track's `srvEnvOkD` makes the backend's mode the server's). (The lease-grant stage, B1,
+2026-11-02) The KV names' lease-granting mode the environment's (`γr.kv.lg = E.lg`, beside the
+retention's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝ ∗
-    ⌜γr.kv.cret = E.cret⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+    ⌜γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -467,17 +478,43 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 
 /-- **The server's grant guard** (D19n, 2026-10-18; D19q: the workload's): the predicate on lease
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
-granted, and the lessor's `expiredC` carries only such leases. `False`: no request the server's
-verified proposers send grants a lease (`plainReq` admits no `LeaseGrant`), so `run`'s receive
-from `expiredC` is dead (D45: until then the workload's `grant`). -/
-def srvGrantGuard : w64 → IProp GF := fun _ => iprop(False)
+granted, and the lessor's `expiredC` carries only such leases. (The lease-grant plan's D1,
+2026-11-02; until then `False`, D45.) It holds in a cluster whose requests may grant leases
+(`lg`, the KV names' `KVNames.lg`), with auth off (`on = false`: the auth layer's checks of a
+leased put assume the lessor finds no lease, `lookupNil`), under the deployment premise
+`lease.leasesNoExpiry`: so `run`'s receive from `expiredC`, whose every slice refutes that premise,
+is dead whatever the cluster, and with `lg = false` or auth on it is `False` as before.
+**Auth off is required** (the plan's question 2, settled 2026-11-02): with auth on, the auth layer's
+`srvLessorNil` (every lease the lessor looks up is absent) is what its leased-put and transaction
+checks rest on, and a granted lease would refute it; the lease-granting example is auth off. -/
+def srvGrantGuard (lg on : Bool) : w64 → IProp GF :=
+  fun _ => iprop(⌜lease.leasesNoExpiry ∧ lg = true ∧ on = false⌝)
+
+omit package_sem in
+/-- A slice of the server's `expiredC` refutes its grant guard (`run`'s dead receive). -/
+theorem srvGrantGuard_expired (lg on : Bool) :
+    (⌜¬ lease.leasesNoExpiry⌝ ∗ ∃ id : w64, srvGrantGuard (GF := GF) lg on id) ⊢ False := by
+  unfold srvGrantGuard
+  iintro ⟨%Hn, %id, %Hg⟩
+  exact absurd Hg.1 Hn
+
+omit package_sem in
+/-- With `lg = false` or auth on the guard is `False`. -/
+theorem srvGrantGuard_false (lg on : Bool) (h : lg = false ∨ on = true) (id : w64) :
+    srvGrantGuard (GF := GF) lg on id ⊢ False := by
+  unfold srvGrantGuard
+  iintro %Hg
+  rcases h with h | h <;> simp_all
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
-`ExpiredLeasesC` returns a channel of slices of expired leases, each carrying a lease of the
-lessor's grant guard `srvGrantGuard` (D19n; until D19n a bag with no logical content, which `run`
-passed to the names-only `revokeExpiredLeases`), `False`: nothing is sent on that channel. A
-trust-boundary contract (the lessor is names-only). -/
+`ExpiredLeasesC` returns a channel on which nothing is sent (a bag of `False`; review M1,
+2026-11-02). Why nothing: the lessor's `expiredC` carries a lease of its grant guard
+(`lease.lessorExpiredC` at `srvGrantGuard lg on`, D19n, the lease-grant plan's D1) in a slice that
+refutes `lease.leasesNoExpiry`, and the guard implies that premise (`srvGrantGuard_expired`;
+`lessorOk_of_lessorInv` turns the payload into `False`). Until D19n a bag with no logical content,
+which `run` passed to the names-only `revokeExpiredLeases`. A trust-boundary contract (the lessor
+is names-only), derived of the real lessor (`lessorOk_of_lessorInv`). -/
 def lessorOk (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
@@ -485,7 +522,7 @@ def lessorOk (l : GoInterface) : IProp GF :=
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
       {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-        isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, srvGrantGuard id)) }}))
+        isChanBag γc c (V := GoSlice) (fun _ => iprop(False)) }}))
 
 instance lessorOk_persistent (l : GoInterface) :
     Persistent (lessorOk (GF := GF) l) := by
@@ -521,7 +558,7 @@ interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in
 (`isWatchableStore_frozen`) for `Restore`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
-    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
+    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH E.authMode γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
 
@@ -629,6 +666,20 @@ theorem isServer_rdPoolN (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI →
   iunfold isServer at H
   icases H with ⟨-, -, -, -, -, -, %h⟩
   ipureintro; exact h
+
+/-- **The request path's lease-grant mode is the environment's** (the lease-grant stage's §2.8: the
+raft contract's shapes, `srvC`, are at the KV names' `lg`, the apply thread's at `E.lg`). -/
+theorem isServer_lg (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lg = E.lg⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨%hr, -, -, Hat, -, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hk⟩
+  iunfold srvKVInvs at Hk
+  icases Hk with ⟨-, -, -, -, -, %hl, -⟩
+  ipureintro; exact ⟨hr, hl.2⟩
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=

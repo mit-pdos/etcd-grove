@@ -1,17 +1,17 @@
-# putget3 (examples/putget3; D21 stage M5, 2026-10-19): putget with three members in one program,
+# putget3 (examples/etcd/putget3; D21 stage M5, 2026-10-19): putget with three members in one program,
 # each serving its raft handler on its own peer listener. The results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/putget3/Results.lean: `putget3_Main` (over
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Results.lean: `putget3_Main` (over
 # `startMember`, the server's, v3rpc's and the client's linked results and the trust-boundary
 # axioms, among them the two of D21 M5: `EtcdServer.RaftHandler` and `http.Serve`) and the closed
-# theorem `putget3_safe`/`putget3_adequate`, which also rests on the package initializers' axioms.
+# theorem `etcd_putget3_safe`/`etcd_putget3_adequate`, which also rests on the package initializers' axioms.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putget3/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -567,9 +567,6 @@ axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -605,6 +602,7 @@ axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walDirFresh
 axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof

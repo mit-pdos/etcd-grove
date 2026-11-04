@@ -6,7 +6,7 @@ round 1 for step 2's (restore in compaction mode).
 **Targets**
 - Every Draft module: mvcc `M2StorageDraft`, `M2StorageDraftSupply`, `M2StorageDraftRestore`;
   etcdserver `M2StorageDraft`, `M2StorageDraftRestore`; v3rpc; client/v3; cache/v3;
-  examples/common, watchkv, linkv3p.
+  examples/lib/etcdstart, watchkv, linkv3p.
 - The internals already switched (`git diff lean...HEAD -- Proof Spec`, the Drafts excluded):
   `writerOwn`/`writerOwn_off`, `bootBackend_of_newPost`'s `fkV`, `InstanceLaws`, and
   `store__Restore`/`NewServer` moved to `writerOwn_off`.

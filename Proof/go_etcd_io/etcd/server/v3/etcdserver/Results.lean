@@ -98,6 +98,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
 
 @[expose] public section
 
@@ -472,7 +473,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
+        ⌜st.pending = false ∧ entryOk false x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
               uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
@@ -506,7 +507,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo⟩
+    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
@@ -1122,16 +1123,16 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lp γl
 
 /-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
-(`lease.lessorInv`, its configuration, its `expiredC` at the grant guard `False`, D19n, D45)
-meets `lessorOk`: `ExpiredLeasesC` proved,
+(`lease.lessorInv`, its configuration, its `expiredC` at the server's grant guard, D19n, the
+lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
 `Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
 `lease.lessor.Demote.wp_proof`). -/
-theorem lessor_server_contract (lp : Loc) (γl : GName) :
+theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
-      lease.lessorCfg lp ∗ lease.lessorExpiredC lp srvGrantGuard ⊢
+      lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
       lessorOk (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
-    lease.lessor.wp_ExpiredLeasesC lp γl
+    lease.lessor.wp_ExpiredLeasesC lp γl lg on
 
 /-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
 at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,
@@ -1142,7 +1143,7 @@ lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`
 backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : EtcdGrove.apply.RestM → IProp GF)
-    (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    (RW : IProp GF) :
     ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.hookOk γ P f ∗
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
@@ -1152,8 +1153,11 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
-      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
+      □ (∀ d : mvcc.KBReal, ⌜γ.kb = some d⌝ →
+        lease.lessorBackend lp P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
+          (backend.rbPart d.γB (· = mvcc.leaseName))) ∗
+      □ (RW -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗ lease.lessorBeOn lp d.be ∗
+        ∃ r, backend.rbPart d.γB (· = mvcc.leaseName) r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
@@ -1162,7 +1166,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp s γ P f RO RW RW₀ Rb
+    lp s γ P f RO RW
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -1432,12 +1436,14 @@ theorem auth_admin_permitted_latest :
 
 /-- **The real store's checks at the latest state, as the apply package states them** (the auth
 plan's E2s, `apply/AuthLatest.lean`): `isAuthStoreL` of the store's interface, with the reader
-resource `authRd` and the apply thread's `latestRes`. -/
-theorem apply_auth_store_latest (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+resource `authRd` and the apply thread's `latestResC` (with its write token on the backend names
+`γc`; the auth-on snapshot plan's Prove step, 2026-11-03, the user's approval). -/
+theorem apply_auth_store_latest (st : Loc) (R : IProp GF) (M : auth.AuthMode) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      EtcdGrove.apply.isAuthStoreL (auth.authIface st) (auth.authRd st R M) M (auth.latestRes st M) :=
+      EtcdGrove.apply.isAuthStoreL (auth.authIface st) (auth.authRd st R M) M
+        (auth.latestResC st M γc) :=
   EtcdGrove.apply.isAuthStoreL_of_authInv auth_put_permitted_latest auth_range_permitted_latest
-    auth_delete_range_permitted_latest auth_admin_permitted_latest st R M
+    auth_delete_range_permitted_latest auth_admin_permitted_latest st R M γc
 
 /-- **The auth applier's KV methods on the apply thread** (the auth plan's E2s,
 `apply/AuthApplyLatest*.lean`): the outcome decided at the latest state, a rejection with a checked
@@ -1657,29 +1663,30 @@ theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv G
 
 /-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
 `UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
-invariant), at the family `auth.latestRes stl` of the store the server's `authStore` field holds;
-the lessor finding no lease stays a named premise. -/
+invariant), at the family `auth.latestResC stl (.on γa) γc` of the store the server's `authStore`
+field holds (at any backend's names `γc`); the lessor finding no lease stays a named premise. -/
 theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvLessorNil s ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) :=
+        EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) :=
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
-    s ua E γa hM
+    s ua E γa hM γc
 
 /-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
 plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
-thread's auth row, at the admin steps' resource `adminW` (blocker 1's row). -/
+thread's auth row, at the admin steps' resource `adminWC` (blocker 1's row; at the current
+backend's names `γc` since the auth-on snapshot plan's Prove step). -/
 theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames),
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa E.P E.f γc)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-          (auth.latestRes stl (.on γa)) :=
+          (auth.latestResC stl (.on γa) γc) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
     apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
     (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
@@ -1810,12 +1817,27 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
     schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
+/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
+`ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
+mode (the linked `applySnapshot`'s `specSnapM`). -/
+theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
+  EtcdServer.applyAll.wp_proofSnapM EtcdServer.wp_applyAll.2 EtcdServer.wp_applySnapshot.2
+    EtcdServer.wp_applyEntries.2 EtcdServer.wp_Backend EtcdServer.wp_Logger
+    backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog.2
+    raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata
+    raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage
+    EtcdServer.wp_sendMergedSnap mvcc.store.wp_Commit backend.backend.wp_Snapshot
+    storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
+    backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
+    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
 /-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
-`isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`
-resources (`applyResOn`). -/
+`isServerRunOn`, every scheduled job `server_apply_all_on` (a snapshot payload's
+`server_apply_all_snap_m`) over the apply thread's mode-`on` resources (`applyResOn`). -/
 theorem server_run_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.run.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.run.wp_proofOn server_apply_all_on EtcdServer.wp_Logger
+  EtcdServer.run.wp_proofOn server_apply_all_on server_apply_all_snap_m EtcdServer.wp_Logger
     raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm
     schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader
     notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex
@@ -1967,13 +1989,16 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
 `auth/NewAuthStoreOn.lean`): over the store's backend contracts and the token provider's, the
 store's invariant, the admin side's write resource, the provider's share, the authority (the
-first revision committed if the backend's state had none) and the readers' slots. -/
+first revision committed if the backend's state had none) and the readers' slots. (The auth-on
+snapshot plan's Prove step, 2026-11-03, the user's approval: at the backend's names `γc`, with the
+lock's half of the current backend and its whole currency.) -/
 theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γa : auth.AuthNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
+    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
     (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) γc ∗
+        auth.authBkCur γa (1 : Qp).half γc ∗ auth.authCur γc 1 ∗
         auth.authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
@@ -1992,7 +2017,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
   iintro %Φ Hpre HΦ
   iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
-    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa γc R P f T A Pre Q Post hs stl hlast
     hfit hempty) $$ Hpre
   iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, Hr⟩
   iapply HΦ
@@ -2178,7 +2203,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = false⌝ ∗
+          γk.cmp = false ∧ γk.lg = false⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2210,6 +2235,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
+          ρ.rd.kv.lg = γk.lg ∧
           ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=

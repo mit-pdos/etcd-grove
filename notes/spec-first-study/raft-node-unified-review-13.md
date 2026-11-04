@@ -16,8 +16,8 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
 - **Protocol**, at `d9cdd1e4e1`: `Protocol/Ghost.lean:1000-1100` (`Filler`, `propDataIs`).
 - **Go**:
   - raft at `.lake/raft-fork` `565c2bd`: `raft.go:737-763`, `raft.go:1320-1372`;
-  - kvreconf: `examples/kvreconf/kv.go:225-241,480-495`;
-  - kv: `examples/kv/kv.go:265-295`;
+  - kvreconf: `examples/raft/kvreconf/kv.go:225-241,480-495`;
+  - kv: `examples/raft/kv/kv.go:265-295`;
   - etcd's `etcdserver/server.go:1945-1961,2030-2110`.
 - **Clients' proofs**:
   - kv: `Defs.lean:250-285`;

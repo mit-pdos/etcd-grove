@@ -9,9 +9,9 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
   node__ProposeConfChange}.txt`, `etc/api/raft.txt`); `InvNode.lean`, `InvApi.lean`, `Protocol/GhostState.lean`
   at `eb59bb8d1b`; `notes/raft-unified-plan.md` at `HEAD`.
 - **Go**: raft a2 (`.lake/raft-fork`, `565c2bd`): `storage.go`, `node.go`, `raft.go`, `raftpb/confchange.go`;
-  kvreconf (`examples/kvreconf/{kv,cluster}.go`); kv (`examples/kv/kv.go`); etcd's server
+  kvreconf (`examples/raft/kvreconf/{kv,cluster}.go`); kv (`examples/raft/kv/kv.go`); etcd's server
   (`~/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261027220749-a20f6760ff43/etcdserver/{raft,server}.go`).
-- **Clients' proofs**: kv (`Proof/github_com/mit_pdos/etcd_grove/examples/kv/{Adequacy,KV__run,Cluster,
+- **Clients' proofs**: kv (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/{Adequacy,KV__run,Cluster,
   deliverable}.lean`), the server (`etcdserver/{SnapTake,EtcdServer__compactRaftLog}.lean`), at `eb59bb8d1b`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the worktree has no `spec/` skill).
 - **Not run**: lake build, lean-check, Go tests.
@@ -81,7 +81,7 @@ index `i`". Nothing ties `l` to the time of the append. A counterexample:
 - An entry appended in `Ready` k and committed in `Ready` k+1 is the common case for a follower. Its receipt is
   gone by the time it is committed.
 - kvreconf's `maybeSnapshot` (`kv.go:349`, `355`, `366-379`) and kv's `CreateSnapshot` after `Advance`
-  (`examples/kv/kv.go:290-295`) snapshot at the applied index. So most of their snapshots cannot get
+  (`examples/raft/kv/kv.go:290-295`) snapshot at the applied index. So most of their snapshots cannot get
   `storCommittedAt st i t`.
 
 **Evidence: other premises with no source.**

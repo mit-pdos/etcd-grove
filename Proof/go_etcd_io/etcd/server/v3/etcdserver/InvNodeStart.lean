@@ -10,8 +10,9 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
   `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
   dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
-  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (Perennial models no
-  ticker: `isRNTicker`, the tick credits with the ticks, D10; `rnTickerOk`); the server's package
+  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
+  since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
+  callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
@@ -39,6 +40,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Perennial.Spec.time.Ticker__Stop
 
 @[expose] public section
 
@@ -94,15 +96,29 @@ def rnTimeoutDetectorOk : IProp GF :=
 instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
   unfold rnTimeoutDetectorOk; infer_instance
 
-/-- **`time.NewTicker(d)`** (Perennial models no ticker): for a non-zero `d`, a ticker meeting
-`isRNTicker E` (its ticks carry `E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the
-ticker; now `True` for the server, `raftNode.tick` taking the credit, a time receipt, itself). -/
-def rnTickerOk (E : RNEnv GF) : IProp GF :=
-  iprop(□ ∀ d : time.Duration, {{ ⌜d ≠ W64 0⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
-    {{ (tk : Loc), RET #tk; isRNTicker E tk }})
-
-instance rnTickerOk_persistent (E : RNEnv GF) : Persistent (rnTickerOk E) := by
-  unfold rnTickerOk; infer_instance
+/-- **A ticker of `time.NewTicker` is the wrapper's ticker** at ticks carrying nothing (2026-11-03;
+until then `rnTickerOk`, a contract `newRaftNode`'s spec took, and from the final whole-`bootOk`
+review's S2 to here a theorem of this repository's `time` axioms, `rnTickerOk_of_time`): Perennial's
+`isTicker`'s channel bag is `isRNTicker`'s at `E.T = True`, and its `Stop` returns. Over `Stop`'s
+spec as a hypothesis (a callee spec: `newRaftNode`'s proof takes it). -/
+theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (E : RNEnv GF)
+    (h : E.T = iprop(True)) (tk ch : Loc) (γ : ChanNames) :
+    time.isTicker (GF := GF) tk ch γ ⊢ isRNTicker E tk := by
+  iintro #Ht
+  ihave #Ht' := Ht
+  iunfold time.isTicker at Ht'
+  icases Ht' with ⟨#HC, -, #Hbag⟩
+  iunfold isRNTicker
+  iexists ch
+  isplitr
+  · iexact HC
+  isplitr
+  · iright; iexists γ; rw [h]; iexact Hbag
+  iintro !> %Ψ !> - HΨ
+  wp_apply wpS tk
+  · iexists ch, γ; iexact Ht
+  iapply HΨ
+  ipureintro; trivial
 
 /-- **The package globals `raftStatus` and `raftStatusMu`** (`raft.go`): the mutex owns the
 function value (`raftStatus` is read by the `expvar` closure registered at init, under the
@@ -129,7 +145,7 @@ def rnNewStorageOk : IProp GF :=
   iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
-    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
+    {{ (st : GoInterface), RET #st; isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
 
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance

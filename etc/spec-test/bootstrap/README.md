@@ -5,7 +5,7 @@ whole-`bootOk` review, 2026-11-03): `bootOk`/`bootstrapContract`
 (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`) on a fresh data directory, and
 `srvDiskImage`, `bootOkR`/`bootstrapRestartContract` (`.../etcdserver/InvRestart.lean`) on a member's
 directory after a graceful stop, each with and without a compaction and with and without auth
-enabled, at the examples' configuration (`examples/common/common.go`). `spec_test.go` is an
+enabled, at the examples' configuration (`examples/lib/etcdstart/common.go`). `spec_test.go` is an
 in-package test (it calls the unexported `bootstrap` and reads private fields by reflection);
 `run.sh` extracts the pinned etcd (`etc/goose.py`'s `etcd` rev) to `.lake/spec-test/`, copies the
 test in and runs it.

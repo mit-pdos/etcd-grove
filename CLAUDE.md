@@ -52,7 +52,7 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
   and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
   operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
-  `durableExt` (`examples/durable`, whole-file durable state) is the first;
+  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -105,8 +105,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   witness support, a candidate implementation of etcd-io/raft#133, not merged upstream), a
   parallel tree with the main layout (`RaftWitness/{Code,TrustedCode,GeneratedProof,ManualProof,
   Spec,Proof}/`, modules `RaftWitness.*`): the raft of the fork's `raft-witness-goose-lean`
-  (`99cb9e2d9`, project `raft-witness` of `etc/goose.py`) with its proof, and `examples/kvwitness`
-  (project `kvwitness`, the key-value store with a witness, `kv_witness_porcupine_safe`). It
+  (`99cb9e2d9`, project `raft-witness` of `etc/goose.py`) with its proof, and `examples/raft/kvwitness`
+  (project `kvwitness`, the key-value store with a witness, `raft_kvwitness_porcupine_safe`). It
   imports the main tree but never the main raft or kv (its modules declare the same names), so
   it has its own copies of the main modules that reach them (raft's standard-library and `proto`
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
@@ -306,7 +306,7 @@ generated: never edit the `.lean` files by hand.
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,
-  `RaftWitness/Code/**.toml`) and `examples/kvwitness` (project `kvwitness`, a Go module whose
+  `RaftWitness/Code/**.toml`) and `examples/raft/kvwitness` (project `kvwitness`, a Go module whose
   `go.mod` replaces raft by that commit), modules `RaftWitness.Code.go_etcd_io.raft.v3`, ....
 
 A proof that needs a prophecy the Go code does not have gets it from a **prophecy patch**,
@@ -326,7 +326,7 @@ standard-library packages are Perennial's.
 editing the Goose configuration `Code/**/*.toml`; `--project NAME` for one);
 `etc/goose.py --check` exits 1 if they differ from what the pinned translator
 produces, or if the examples' Go modules (`examples/go.mod`, one for every example but
-`examples/kvwitness`, which has its own, and the driver `examples/lintest`) replace etcd or raft by another revision than the
+`examples/raft/kvwitness`, which has its own, and the driver `examples/lib/lintest`) replace etcd or raft by another revision than the
 pins (bump both together), and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,

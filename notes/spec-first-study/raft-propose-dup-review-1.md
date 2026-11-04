@@ -46,7 +46,7 @@ client can use it. Nothing in it needs a new axiom. Four things need fixing befo
   - `stepLeader` appends every entry of every copy (raft.go:1294-1352). It may replace a conf change
     with an empty normal entry in place (raft.go:1340). That entry is a filler: its ticket is dropped
     and the client's update never fires for that copy, which the spec allows.
-  - kvreconf's `deliver` clones before stepping a duplicate (`examples/kvreconf/cluster.go:263-271`),
+  - kvreconf's `deliver` clones before stepping a duplicate (`examples/raft/kvreconf/cluster.go:263-271`),
     so each copy has its own message ownership, as `stepIn_intro` needs. Its `msgPtsC` comes from
     `proto.Clone`'s spec (`Spec/google_golang_org/protobuf/proto/Clone.lean`).
 - **Each client can use it:**
@@ -54,7 +54,7 @@ client can use it. Nothing in it needs a new axiom. Four things need fixing befo
     `srvNet.once st := MsgReadIndex ∨ MsgProp`, with `dup` from `msgCredits_none`
     (Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBuild.lean:136-141). rafthttp delivers a POST at
     most once (notes/rafthttp-plan.md:53, 248-258), so `dup = false` is right for it.
-  - **kv.** Steps each message once (examples/kv/cluster.go:123).
+  - **kv.** Steps each message once (examples/raft/kv/cluster.go:123).
   - **kvreconf.** Retries a proposal with the same bytes (`kv.go:554-567`). It dedups on
     `applied[string(data)]`, where the data carries a fresh id (`kv.go:69-76`, `kv.go:503-526`,
     `cluster.go:314-325`). Its `applied` table is in its snapshots (`kv.go:196-200`). So the

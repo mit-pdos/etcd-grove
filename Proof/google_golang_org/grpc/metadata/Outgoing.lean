@@ -9,7 +9,7 @@ the call's header fields), a function of the context value (`outgoingOf`, opaque
 reason: a context is immutable. `mdAdd md k v` is the metadata with `v` appended to the values of
 `k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case `k`); `mdSet md k vs`, with
 them set to `vs` (`MD.Set`). The client's auth
-contract (`examples/authkv/ClientAuth.lean`, C1-C4) is stated over the two.
+contract (`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over the two.
 -/
 module
 

@@ -17,7 +17,7 @@ answer as a function of the state `σ` the update fired at.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 
 @[expose] public section
 
@@ -34,7 +34,7 @@ variable [GooseExts]
 
 /-! ### The requests' sizes (2026-10-30, `notes/invoke-size-b.md`) -/
 
-open linkvtxn in
+open etcd_txnlin in
 /-- The optimistic transactions' payload: the key three times at most (comparison, operation,
 `GetOnFailure`'s get) and the value. -/
 theorem clientTxn_size {cs : List (linkv.MCmp GoString GoString)}

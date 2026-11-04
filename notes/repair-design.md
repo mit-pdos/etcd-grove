@@ -1,4 +1,4 @@
-# Repairing etcd's server and examples/kv against raft's new API: design study
+# Repairing etcd's server and examples/raft/kv against raft's new API: design study
 
 2026-10-30. A read-only study. Raft's API is `repair`'s (68a3b730c6 = raft-final + kvreconf-final). The client
 trees are **origin/lean's** (08b447f059), extracted to `/home/ubuntu/.claude-E/jobs/c8379647/tmp/lean-tree/`, because
@@ -6,7 +6,7 @@ lean is merged into `repair` before the repair starts. At the time of writing th
 the worktree. Line numbers of server and kv files are lean's.
 
 Abbreviations: `P/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`; `S/` = `Spec/go_etcd_io/etcd/server/v3/etcdserver/`;
-`K/` = `Proof/github_com/mit_pdos/etcd_grove/examples/kv/`; `R/` = `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/`;
+`K/` = `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/`; `R/` = `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/`;
 `I/` = `interface/Proof/go_etcd_io/raft/v3/`; `IS/` = `interface/Spec/go_etcd_io/raft/v3/`.
 
 The study had three parts: (1) the server's node, net and allocation side, (2) the server's storage, snapshot and
@@ -155,17 +155,17 @@ Where lean's server differs from repair's copy:
 | `server_built_gap_on`, `server_start(_on)`, `server_run(_on)` (:2195/2223/1814/1827) | — | Only their composed premises (`isServerBuilt`/`srvBuildGap`) move. `rnSnapOnce` is to be rechecked. |
 | `snapshotIfNeededAndCompactRaftLog.spec`/`specOn` (`ModeSpecs:50-90`, linked) | `1 ≤ γs.cap`, `ai ≤ w` ("no snapshot installed"), `srvSnapState`, `memFloorAtLeast` | `srvStorAp` (§4b(1)) and the `raftAdvancedC` fact |
 
-**Downstream, not in this repair's scope:** `examples/common` and the eight server-based examples (`putget`, `putget3`,
+**Downstream, not in this repair's scope:** `examples/lib/etcdstart` and the eight server-based examples (`putget`, `putget3`,
 `watchkv`, `authkv`, `linkv3p`, `linkvtxn`, `cachekv`, `k8setcd3`) consume `NewServer`'s statements and the allocation
 (`common/Alloc.lean`, `Alloc3.lean`, `newServer.lean`). They break when those statements change, and are repaired after
 the server (the memory note "raft first").
 
 ---
 
-## 3. Gap table: examples/kv (lean's tree)
+## 3. Gap table: examples/raft/kv (lean's tree)
 
 Lean changed kv only trivially since the merge base (4 files, 21 lines: `Check`, `Model`, `NewStorage`,
-`Storage__InitialState`). kv's Go needs **no change** under D4(a). kv calls only `RestartNode` (`examples/kv/cluster.go:150`),
+`Storage__InitialState`). kv's Go needs **no change** under D4(a). kv calls only `RestartNode` (`examples/raft/kv/cluster.go:150`),
 never `StartNode`. Its storage wrapper already answers the voters' ConfState (`kv.go:59-74`). No node is stopped. One
 goroutine writes the storage: `run` calls `ApplySnapshot`/`CreateSnapshot`/`Compact` at `kv.go:274,295,298`.
 
@@ -443,7 +443,7 @@ add the fork's Go changes, re-translation and their proofs instead of R5.
   `receiptBound ≤ SnapshotCount` (the run never reaches a snapshot), REPLACING the old
   `receiptBound ≤ SnapshotCatchUpEntries`. The sender/receiver proofs stay dead; R4 is not needed.
 - D3: static membership after boot (the server need not support membership changes for now).
-- D4: remove examples/kv's `RemoveMember` — its Go code, spec and proof (kv_porcupine_safe doesn't reach it);
+- D4: remove examples/raft/kv's `RemoveMember` — its Go code, spec and proof (kv_porcupine_safe doesn't reach it);
   note in the plan that it can return later with kvreconf's validConf guard (verified-code count drops by it;
   the user approved).
 - D5: the §2c trusted-statement changes approved (with D2(i)'s premise in place of the run-length one).

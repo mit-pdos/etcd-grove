@@ -146,7 +146,7 @@ a byte.
 - **D2 (changed 2026-10-31):** a failed fsync marks the dirty bytes *lost*: arbitrary at a
   crash until written again and synced. Linux marks failed pages clean, so a later successful
   sync does not redo them. The first choice, a poisoned bit making the whole file arbitrary,
-  made every crash property unprovable once a sync can fail: `examples/bboltfs`'s minibolt
+  made every crash property unprovable once a sync can fail: `examples/osfs/bboltfs`'s minibolt
   needed a premise "no fsync fails".
 - **Fsync never fails with EINTR (2026-11-01).** `fsync(2)` on a local ext4 or xfs file does not
   return EINTR, and Go's `File.Sync` retries it. With EINTR allowed, a successful `Sync` could
@@ -185,11 +185,11 @@ every change marks what it changes as dirty, but the trusted file does not state
 
 1. `GooseLang/Ext/OsFs/Impl.lean`: state, `render`, step, crash.
 2. The `os`/`syscall`/`unix` translation, its trusted models (`TrustedCode/...`) and `.toml`s (done, `dc1e2a2999`).
-3. Test programs: `examples/bboltfs` (targets, stuck probes, unprovable probes, a minibolt).
+3. Test programs: `examples/osfs/bboltfs` (targets, stuck probes, unprovable probes, a minibolt).
 4. `Specs.lean` (untrusted): mapped cells use the ordinary byte points-to; per-byte file ghost state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.
 5. Adequacy with the environment assumptions as premises.
-6. minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/`, linked by
+6. minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/`, linked by
    `etc/gen-link.py --bboltfs`), as of 2026-11-01: every function of `page.go` and `minibolt.go`
    (`Open`, `init`, `mmap`, `munmap`, `meta`, `readPageSize`, `Get`, `Snapshot`, `commit`,
    `Commit`, `Close`, `close`, `flock`, the page helpers) and the two non-crash programs,
@@ -258,7 +258,7 @@ in goose's form), a trust-base item. `OpenFile` and `Stat` take them as instance
 
 ### Crash-aware specs and the first end-to-end crash proof (2026-11-01, branch `osfs-crashex`)
 
-`examples/crashlog` (project `crashlog`): a flag byte at offset 8 guarding 8 bytes of data at 0,
+`examples/osfs/crashlog` (project `crashlog`): a flag byte at offset 8 guarding 8 bytes of data at 0,
 proved crash-safe end to end (`Proof/.../examples/crashlog/Results.lean`, `crash_safety`, no
 `sorryAx`). The flag is after the data: the first write to an empty file extends it over offset 0,
 and an unsynced extended byte is arbitrary after a crash (D1), so a flag at 0 could read nonzero
@@ -312,7 +312,7 @@ pgid 4; FNV-64a's top byte is 0, so the zero completes the checksum):
 After the `Fdatasync`, a crash leaves that valid meta durable; the third boot's `Open` takes it
 (`readPageSize` validates it), and `Get` finds page 3 (`init`'s root page, `count` 0) under txid
 59: `BootMinibolt` panics. It is a checksum collision on garbage, not on a torn meta, so P1 does
-not exclude it. Proposed fix (a change to `examples/bboltfs/minibolt.go`, for the user): `init`'s
+not exclude it. Proposed fix (a change to `examples/osfs/bboltfs/minibolt.go`, for the user): `init`'s
 first `WriteAt` writes all four pages from offset 0 with pages 0–1 zero, then `Fdatasync`, then the
 metas, then `Fdatasync`. A torn first write then leaves every slot dirty, and P1 makes a valid one
 the durable slot (one `goodImg` already had invalid) or zeros. (Alternative: `Truncate(0)` before

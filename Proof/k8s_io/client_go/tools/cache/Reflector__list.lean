@@ -24,7 +24,7 @@ public import Spec.k8s_io.utils.trace.Trace__LogIfLong
 public import Spec.k8s_io.utils.trace.Trace__Step
 public import Perennial.Proof.context.Background
 public import Perennial.Golang.Theory.Defer
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.ClientLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.ClientLemmas
 
 @[expose] public section
 

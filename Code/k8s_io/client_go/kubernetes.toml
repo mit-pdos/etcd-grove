@@ -1,5 +1,5 @@
 # Types and names only (project k8s-apiserver; notes/k8s-apimodel-goose.md): `Interface`, which the
-# model API server's clientset embeds (examples/k8sdaemonset/apimodel) and the programs over it
+# model API server's clientset embeds (examples/k8s/daemonset/apimodel) and the programs over it
 # convert to. It is concrete (an interface type) only if every type its methods name is translated:
 # `discovery.DiscoveryInterface` and the group interfaces of the 56 typed packages (names only, each
 # its .toml). The structs (the real `Clientset`, over `rest`) stay axiomatized.

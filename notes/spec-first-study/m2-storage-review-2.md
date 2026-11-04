@@ -79,8 +79,8 @@ job's extra takes do not falsify them.
 The repair needs `crevFrozen E.γ` from `NewServer.spec`'s post. The plan (`m2-storage-plan.md:353-357`)
 and the client Draft's header (`client/M2StorageDraft.lean:15-17`) say the watching examples "pass
 it on" at three sites:
-- `examples/watchkv/Served.lean:98`;
-- `examples/linkv3p/WatchEnv.lean:82`;
+- `examples/etcd/watch/Served.lean:98`;
+- `examples/etcd/partition/WatchEnv.lean:82`;
 - `cache/v3/Results.lean:269`.
 
 Those are lemmas that take `isWatchServer` as a premise. The real chain from `NewServer` to them goes
@@ -92,11 +92,11 @@ through the common example library:
   (`Spec/.../common/StartServer.lean:59`, `common/Start.lean:41`).
 - The examples unfold `memberUp` (`watchkv/Main.lean:201`), and linkv3p uses `memberWatch`.
 
-`memberBuilt` and `memberUp` (`examples/common/Defs.lean:211-251`) are mentioned in 36 places across
+`memberBuilt` and `memberUp` (`examples/lib/etcdstart/Defs.lean:211-251`) are mentioned in 36 places across
 the examples. Two of their properties matter here:
 - They are shared by both server specs: `newServer.specCompact`'s post is the same
   `memberBuilt … false`, proved from `NewServer.specCompact`
-  (`examples/common/newServer.lean:141-146`; `StartCompactingServer.lean:38`).
+  (`examples/lib/etcdstart/newServer.lean:141-146`; `StartCompactingServer.lean:38`).
 - They do not know the mode. Their pure facts give `E.authOn = false` but nothing about `E.γ.kb`.
 
 So the step the plan names ("`NewServer.spec`'s post gains `crevFrozen E.γ`") does not reach the
@@ -157,7 +157,7 @@ package destructures `watchMemberFacts` by position:
 - `InvWatch.lean:469-470`, `⟨-, -, %Hst, -⟩`;
 - `watcher__Watch.lean:54-55`, `⟨-, -, -, -, #Hkf0⟩`;
 - `InvClientNewResult.lean:112`, which unfolds all three;
-- outside the package, `examples/linkv3p/WatchEnv.lean:89`, which unfolds it (an existing missing
+- outside the package, `examples/etcd/partition/WatchEnv.lean:89`, which unfolds it (an existing missing
   law).
 
 The plan's cost list names only the three create sites.

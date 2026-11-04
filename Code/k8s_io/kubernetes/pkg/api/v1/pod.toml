@@ -1,5 +1,5 @@
 # With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the DaemonSet controller's
-# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8sdaemonset/go.mod).
+# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8s/daemonset/go.mod).
 # Names only: `VisitContainers` ranges over a function (`ContainerIter`), gap D1.
 translate = ["*", "!VisitContainers"]
 imports = ["*"]

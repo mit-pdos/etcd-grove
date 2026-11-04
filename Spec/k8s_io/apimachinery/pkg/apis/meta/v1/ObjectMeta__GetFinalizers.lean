@@ -1,6 +1,6 @@
 /-
 `(*metav1.ObjectMeta).GetFinalizers` (`k8s.io/apimachinery/pkg/apis/meta/v1/meta.go`): returns the field `Finalizers`. Lean-first
-(no Rocq counterpart); the model API server's accessors (`examples/k8sdaemonset/apimodel`).
+(no Rocq counterpart); the model API server's accessors (`examples/k8s/daemonset/apimodel`).
 -/
 module
 

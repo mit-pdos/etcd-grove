@@ -15,3 +15,9 @@ allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etc
 # with `import all`.
 sealed Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+
+# The boot hub's slots (the slot convention, `notes/spec-first-plan.md`; 2026-11-03, the final
+# whole-`bootOk` review's S2 and M2): the raft node's configuration slot and the transport's
+# directory slot, sealed; callers use their laws only.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net

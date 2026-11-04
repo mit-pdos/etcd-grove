@@ -149,6 +149,72 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   · iunfold appliedLogAt; iexact HLv'
   ipureintro; exact hv
 
+/-- **The ghost applied index jumps, in the mode** (`applied_jump`'s counterpart, a snapshot's
+install): with the auth state at `i` published (`appliedPubM`: with auth on, the state after the
+image's log, `srvApplyKVOn_appliedPub`), the apply thread raises the ghost index to `i` and
+publishes `L`, the mode's KV model of the committed log through `i`. -/
+theorem applied_jumpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
+    (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
+    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
+      kvLogAtM on γr i L -∗ mvcc.idxCert E.γ.idx L -∗ appliedPubM on E γr i ={⊤}=∗
+      srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
+  iintro #Hinv Hown #HL₀ #HkA #HcL #Hpub
+  iunfold srvAppliedInvM at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold srvAppliedBodyM at Hi
+  icases Hi with ⟨%vat, %v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
+  iunfold srvAppliedOwn at Hown
+  icases Hown with ⟨Hown, Hpo⟩
+  ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+  have hv0 : v0 = a := by
+    have h2 := Hag.2
+    unfold uint.nat at h2
+    exact (BitVec.eq_of_toNat_eq h2).symm
+  subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
+  ihave %HLeq := appliedLogAt_agree γr v0 Lc L₀ $$ HLc HL₀
+  subst HLeq
+  ihave %HMv : iprop(⌜M.lookup v0 = some Lc⌝) $$ [HM]
+  · iunfold appliedLogAt at HLc
+    iapply ghost_map_lookup $$ HM HLc
+  have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
+    intro k L' h
+    rcases HMk.2.1 k L' h with h | ⟨h, -⟩
+    · exact h
+    · cases h
+  have hfresh : M.lookup i = none := by
+    cases h : M.lookup i with
+    | none => rfl
+    | some L' => have := hk i L' h; omega
+  imod ghost_map_insert_persist i L hfresh $$ HM with ⟨HM, #HLi⟩
+  ihave #Hkl' := kvLogsPubM_insert on E γr M v0 i L $$ [Hkl HkA]
+  · iframe Hkl HkA
+  ihave #Hkl'' := kvLogsPubM_move on E γr (M.insert i L) v0 i $$ [Hkl' Hpub]
+  · iframe Hkl' Hpub
+  imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat i) (by word) $$ Hown Hauth
+    with ⟨Hown, Hauth, #Hlb⟩
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext
+    iunfold srvAppliedBodyM
+    iexists vat, i, L, M.insert i L, false
+    iframe Hat Hauth HM Hp HcL Hkl''
+    isplitr
+    · ipureintro
+      refine ⟨by omega, ?_, appliedMonoMap_insert M v0 i Lc L hk HMk.2.2 HMv hp hi⟩
+      intro k L' h
+      rw [GMap.lookup_insert_Some] at h
+      rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
+      · exact Or.inl (Int.le_refl _)
+      · exact Or.inl (by have := hk k L' h; omega)
+    iunfold appliedLogAt; iexact HLi
+  imodintro
+  iunfold srvAppliedOwn
+  iframe Hown Hpo
+  iunfold appliedAtLeast
+  iframe Hlb
+  iunfold appliedLogAt; iexact HLi
+
 /-- **An applied log is the mode's KV model of the committed raft log through its index**
 (`appliedLogAt_kvLogAt`'s counterpart). -/
 theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)

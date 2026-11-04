@@ -169,8 +169,6 @@ axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.RangeSecObserve.wp_proof

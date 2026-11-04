@@ -18,7 +18,7 @@ conn` (a `*retryLeaseClient` over one), `lessorRemoteAt l addr` (what `Grant`, `
 keep-alive loop read of a `*lessor`: its `remote`, a retry lease client over a connection to
 `addr`, and its call options, both fixed since `NewLeaseFromLeaseClient`).
 
-**etcd's specs** (`etcdLeaseGrantSpec`, `etcdLeaseRevokeSpec`; predicate transformers, at any etcd
+**etcd's specs** (`etcdLeaseGrantSpecAny`, `etcdLeaseRevokeSpec`; predicate transformers, at any etcd
 model `EM`): whatever the request, a reply message whose header revision etcd has reached
 (`etcdReached`), and for a grant a lease ID other than `NoLease` (`0`): what `isEtcdLease`
 promises of `Grant` and `Revoke`. That etcd's server registers them (`EtcdServer.LeaseGrant`,
@@ -90,16 +90,21 @@ instance leaseRevokeRespMsg_persistent (l : Loc) (m : LeaseRevokeRespM) :
     Persistent (leaseRevokeRespMsg (GF := GF) l m) := by
   unfold leaseRevokeRespMsg; infer_instance
 
-/-- **A `*pb.LeaseGrantRequest`** on the wire: its `(TTL, ID)`. -/
+/-- **A `*pb.LeaseGrantRequest`** on the wire: its `(TTL, ID)`; decoded, its `TTL` read-only and
+(the lease-grant plan, 2026-11-02, `recvOwn`, as `UserAdd`'s password) its `ID` owned: the server's
+`LeaseGrant` writes a fresh id there when it is `0` (`v3_server.go:436-439`), which every client
+request is (`clientv3`'s `Grant` sends `ID: 0`). Until then both read-only, which the Go server's
+write contradicted. Not `null` (amendment (H), 2026-11-03, as `pbAuthUserAddRequest.recv`): the
+generated handler decodes into its own `new(LeaseGrantRequest)`. -/
 def pbLeaseGrantRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseGrantRequest.ty
   M := w64 × w64
   send inp m := iprop(∃ req : etcdserverpb.LeaseGrantRequest, inp ↦ req ∗
     ⌜m = (req.TTL', req.ID') ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
-  recv r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1 ∗
-    structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦□ m.2)
+  recv r m := iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1)
   recv_persistent _ _ := inferInstance
+  recvOwn r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ m.2)
   blank l := iprop(l ↦ (zero_val etcdserverpb.LeaseGrantRequest))
   own l := iprop(∃ v : etcdserverpb.LeaseGrantRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
@@ -197,9 +202,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [EM : EtcdModel GF]
 
-/-- **etcd's spec of `LeaseGrant`** (see the file header): any request gets a reply whose lease ID
-is not `NoLease` and whose header revision etcd has reached. -/
-def etcdLeaseGrantSpec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+/-- **etcd's old spec of `LeaseGrant`** (see the file header): any request gets a reply whose lease
+ID is not `NoLease` and whose header revision etcd has reached. Since the lease-grant review's S6
+(2026-11-02) a corollary of the contract `etcdLeaseGrantSpec` (`client/v3/InvLeaseGrant.lean`, which
+adds the grant's fact: `isGrpcRpc_leaseGrant_any`); kept for its callers. -/
+def etcdLeaseGrantSpecAny : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ Φ m)
 

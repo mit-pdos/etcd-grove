@@ -5,7 +5,7 @@ write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
 
 @[expose] public section
 
@@ -25,25 +25,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.Recover(be)`** with a new backend `be` (not nil) meeting the read contract in the
-store's mode (its states recorded: a premise on the restored backend) and the write contract with
-the hook: replaces the store's backend under `beMu` (both halves: the lock's and the admin
-side's), reads the new backend's state `sta` (its flag, its revision, its users for the cache)
-under its read transaction (the read resource `R`), appends it to the history and sets the flag
-and the revision to it; the new state's permissions fit the cache (a premise, as `stepOk`'s).
-`Recover` takes no batch lock, so it appends with the whole authority (`authOwnF`, the auth plan's
-S4f): the backend swap (D22's restore, `Recover`'s caller) hands it the old backend's lock share
-and installs the share of the history with `sta` appended under the new backend's lock, whose
-write side is given as the backend states it (`authWBackendOkR`). -/
+/-- **`as.Recover(be)`**, one spec over the mode (the auth-on snapshot plan's decision 5 and
+candidate (ii), the Freeze of 2026-11-03): the new backend `be` (not nil) with its read contract in
+the mode (in `on γa` at its names `γc`, with its write token and whole currency and the apply
+thread's share of the old backend's names `γc₀`: `recoverIn`), the store's user's half of the field
+`be`, the admin side's halves of the flag and the cache, and the pending authority (`authOwnPM`: in
+`on γa` the history caught up to `hs ++ N` beforehand, the latest state still `hs`'s last).
+`Recover` swaps the backend under `beMu` (in `on γa` the new names current, the old backend's whole
+currency taken out), reads the new backend's state under its read transaction (the read resource
+`R`; in `on γa` the latest clause, with the write token: the caught-up history's last `stI`, which
+fits the cache, `recoverFit`), stores its revision (the latest state moves to it) and sets the flag
+and the cache from it: the authority at `hs ++ N`, with the halves tied to the latest state
+(`authOwnT`). It writes nothing, so it takes no write contract and appends no state. (Until then:
+the write contract, the whole authority with the lock's share, and an append of the state read.) -/
 abbrev auth.authStore.Recover.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
-    (hs : List AuthState) (be : GoInterface),
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (hs N : List AuthState) (stI : AuthState)
+    (be : GoInterface) (γc₀ γc : AuthBkNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwnF M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
-      authBackendOk be R M ∗ authWBackendOkR be M P f T ∗
-      □ (∀ s : AuthState, authSnap M s -∗ ⌜permsFit s⌝) ∗ □ (∀ s : AuthState, capNext M hs s) }}
+      authOwnPM M hs N ∗ (∃ be0 : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be0) ∗
+      enabledHalf st M ∗ cacheHalf st M ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
+      authBackendOk be R M γc ∗ recoverIn M γc₀ γc ∗ recoverFit M hs N stI }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Recover")) (Val #be))
-  {{ RET #(); tpAdmin st M ∗ authWR st M P f T ∗ R ∗ ∃ sta : AuthState, authSnap M sta ∗ authOwnF M (hs ++ [sta]) }}
+  {{ RET #(); tpAdmin st M ∗ R ∗ aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
+      authOwnT st M (hs ++ N) ∗ recoverOut M γc₀ γc }}
 
 end spec
 

@@ -25,12 +25,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
-variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
+variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions]
 
 /-- **`r.CreatePods(ctx, ns, tp, ds, cref)`**: as `CreatePodsWithGenerateName`'s with `""`. -/
 abbrev RealPodControl.CreatePods.spec : Prop :=
   ∀ [ApiDeps] (r : RealPodControl) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ctx : GoInterface) (ns : GoString) (tp : Loc) (dq : DFrac) (t : kd.core.PodTemplateSpec)
     (l : Loc) (dd : kd.apps.DaemonSet) (cref : Loc) (ref : kd.meta.OwnerReference)
     (Ψ : Except ApiErr (Bool × Obj) → IProp GF) (Ψ' : kd.core.Pod → IProp GF),

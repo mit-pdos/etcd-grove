@@ -23,7 +23,7 @@ linked specs with auth on (`EtcdServer.{Put,DeleteRange,Txn}.specOn`, `Range.spe
   its entry (`grantedAt`), the header's user is the empty one or the one `tok` was issued to
   (`hdrBoundT`), and `L` followed by the write's own entry is committed (`pubAfterM`, with the auth
   state after it published). An error answer says nothing more: a refused request's caller needs
-  nothing from it (`examples/authkv`'s `Work` panics only when a refused request succeeds).
+  nothing from it (`examples/etcd/auth`'s `Work` panics only when a refused request succeeds).
 
 Lean-first (no Rocq counterpart).
 -/

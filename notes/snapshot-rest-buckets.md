@@ -25,7 +25,7 @@ today's runs.
 The workload is fixed by the following (Lean):
 - `plainCover` (`E/KVModelDefs.lean:59-80`) admits only `put`, `deleteRange`, `txn`,
   `clusterVersionSet` and `clusterMemberAttrSet` (`_ => False`). `putgetWorkload` (`:134`) admits
-  exactly these. `watchkv`'s workload (`examples/watchkv/Workload.lean:41`) admits less.
+  exactly these. `watchkv`'s workload (`examples/etcd/watch/Workload.lean:41`) admits less.
 - `noGrant` (`:125`).
 - Auth is off (`isAuthStore … false`).
 - `srvCCPolicy` (`E/InvRequest.lean:284`) with `ccApplyOk` (`:264`) admits only `AddNode` of a
@@ -35,7 +35,7 @@ The workload is fixed by the following (Lean):
 
 | # | Writer (Go) | Bucket | Reachable in putget / putget3? |
 |---|---|---|---|
-| B1 | `bootstrap`: `schema.CreateMetaBucket` (`etcdserver/bootstrap.go:266`); `Finalize` → `c.cl.SetBackend` → `MustCreateBackendBuckets` (`bootstrap.go:496`, `membership/cluster.go:247-250`, `storage/schema/membership.go:171-178`) | creates `members`, `members_removed`, `cluster` (empty) | **Yes**, at boot. It is part of `bootstrapContract`, a premise (`putget.premises`, `examples/putget/Defs.lean:114-128`). On a fresh data directory it writes no contents. `Recover` is only called with a WAL (`bootstrap.go:497`). |
+| B1 | `bootstrap`: `schema.CreateMetaBucket` (`etcdserver/bootstrap.go:266`); `Finalize` → `c.cl.SetBackend` → `MustCreateBackendBuckets` (`bootstrap.go:496`, `membership/cluster.go:247-250`, `storage/schema/membership.go:171-178`) | creates `members`, `members_removed`, `cluster` (empty) | **Yes**, at boot. It is part of `bootstrapContract`, a premise (`putget.premises`, `examples/etcd/putget/Defs.lean:114-128`). On a fresh data directory it writes no contents. `Recover` is only called with a WAL (`bootstrap.go:497`). |
 | B2 | `NewServer` → `lease.NewLessor` → `initAndRecover`: `UnsafeCreateLeaseBucket` and `ForceCommit` (`server.go:348`, `lease/lessor.go:808-835`) | creates `lease` | **Yes** (creation only). The TTL clamp at `:817-818` is in memory only. |
 | B3 | `NewServer` → `auth.NewAuthStore`: `CreateAuthBuckets`, then **`commitRevision` (`authRevision = 1`)** (`server.go:373`, `auth/store.go:974, 994-995, 1014-1016`) | creates `auth`, `authUsers`, `authRoles`; **puts `auth/authRevision`** | **Yes.** This is the only content write at boot. |
 | B4 | `NewServer` → `restoreAlarms` → `v3alarm.NewAlarmStore` → `restore`: `CreateAlarmBucket` (`server.go:391, 2409-2416`, `api/v3alarm/alarms.go:103-104`) | creates `alarm` | **Yes** (creation only). |
@@ -239,7 +239,7 @@ without a WAL: bbolt creates the file empty, and B1 creates the membership bucke
   it);
 - every member's bootstrap in-memory member list is the same function of the initial-cluster map
   and token. putget3's three configurations do share the map and the token
-  (`examples/putget3/putget3.go`, `startMember`).
+  (`examples/etcd/putget3/putget3.go`, `startMember`).
 
 No premise is needed about other processes: the gRPC and peer network is the program's closed
 world.

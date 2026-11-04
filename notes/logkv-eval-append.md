@@ -1,7 +1,7 @@
 # logkvappend: logkv plus Append, proved by adapting logkv's proof (2026-10-28, branch `logkv-eval`)
 
 One of the four feature variants of the logkv experiment (`notes/logkv-eval.md` is the base).
-`examples/lintest/logkvappend/logkvappend.go` is logkv with a second kind of write, `Append(v)`,
+`examples/lib/lintest/logkvappend/logkvappend.go` is logkv with a second kind of write, `Append(v)`,
 which appends `v` to the register's value. In the code: `Op` gets an `Append` field and
 `Model.Step` an append case; the log's entries become a struct `entry{app bool; val string}`;
 `Put`'s body becomes the internal `write(e entry)`, with `Put` and `Append` one-line wrappers;

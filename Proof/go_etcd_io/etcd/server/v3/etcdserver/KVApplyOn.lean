@@ -295,10 +295,15 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
   unfold authHistTie; split <;> infer_instance
 
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`). -/
+store's history's tie to the log (`authHistTie`); (#7-on, 2026-11-03) the store's compaction mode
+off (`NewServer.spec`'s `E₀.cmp = false`, which a restore keeps): what the merged snapshot's image
+reads its compaction records with (`merged_imageOn`); (the lease-grant merge, 2026-11-03) and a
+cluster that grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the
+snapshot install's revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv) ∗
+    ⌜E.cmp = false ∧ γr.kv.lg = false⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by

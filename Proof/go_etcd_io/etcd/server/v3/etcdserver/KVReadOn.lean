@@ -151,12 +151,12 @@ theorem kvInvOn_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     (L : List EntryModel) (e : EntryModel)
     (hok : plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [])
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e]))
     (hc : commitOkOn γk.c0 γk.ch0 (st₀, γk.log0) L e) :
     plainLogOn (L ++ [e]) ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (L ++ [e]) ∧
       srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true := by
   obtain ⟨hp, hd, -, hc0, hch, h0⟩ := hok
   obtain ⟨hp', hd'⟩ := logOn_snoc γk.c0 γk.ch0 (st₀, γk.log0) L e hp hd hc
   exact ⟨hp', hd', hidx', hc0, hch, h0⟩

@@ -37,7 +37,7 @@ It ends with the open questions to settle before proving anything (§7).
 - **No new program-logic primitive.** Perennial's Lean port has crash semantics without a crash
   WP (§1.1). A generation is proved with the standard WP. What survives a crash is ordinary
   Iris invariants, plus a crash frame that each generation proves at boot from the per-generation
-  `crashed` token. That is enough for raft and for `examples/durablekv`, because every change to
+  `crashed` token. That is enough for raft and for `examples/raft/kvfile`, because every change to
   durable state is one atomic step of a durable-state extension (§3.1). Old Perennial's
   `own_crash`, NC tokens and crash borrows are either not needed or derivable here (§3.3).
 - **No separate handoff machinery.** What crosses a crash is named per node and kept in the
@@ -54,7 +54,7 @@ It ends with the open questions to settle before proving anything (§7).
   - `node.Stop` gives `halted`.
 
   Raft's promises are minted at the write, not at `Step` as today.
-- **First target:** `examples/durablekv`, which is already written, tested and translated, but
+- **First target:** `examples/raft/kvfile`, which is already written, tested and translated, but
   not proved. It persists its whole state through `durableExt` and restarts with
   `RestartNode`. Its first proof runs its in-process restart with plain WP (stage D3). Real
   crash semantics come after (D4). etcd's WAL, server loop and backend come last (D5, D6).
@@ -95,13 +95,13 @@ It ends with the open questions to settle before proving anything (§7).
   the files survive a crash unchanged. Its specs include logically atomic ones
   (`wp_DurableWrite_atomic`), so `durableOwn` can live in an invariant. There is **no
   `ExtCrashInterp` instance yet** (`notes/STATUS.md`).
-- `examples/durablekv`: a replica keeps its hard state, log and latest snapshot in one file,
+- `examples/raft/kvfile`: a replica keeps its hard state, log and latest snapshot in one file,
   rewritten whole before it sends the messages of a `Ready` (`kv.go`, `handle`). It restarts
   with `RestartNode` from the file, with `Applied` at the snapshot's index.
   - Crashes are simulated in-process (`Cluster.Restart`: a `crashed` flag stops `persist`).
   - It has Go crash tests.
   - It is translated (`Code/.../durablekv.lean`), but there is no proof.
-- `examples/kv` and `examples/kvwitness` persist nothing (they have no `SetHardState`).
+- `examples/raft/kv` and `examples/raft/kvwitness` persist nothing (they have no `SetHardState`).
   Their adequacy theorems state "no crash or restart".
 
 ### 1.3 The raft proof: durability is absent, not assumed
@@ -158,7 +158,7 @@ election-safety bug, and it is outside the proof today (main's `notes/journal.md
 
    As today, the client guarantees are the specs; there is no separate model theorem
    (`go-api-specs-are-the-boundary` in memory).
-2. **T-dkv.** `examples/durablekv` is linearizable (the porcupine check answers `Ok`) in every
+2. **T-dkv.** `examples/raft/kvfile` is linearizable (the porcupine check answers `Ok`) in every
    execution in which replicas crash and restart any number of times.
    - D3 proves it with the example's in-process restart.
    - D4 proves it with real crash semantics: `goose_dist_crash_adequacy`, one node per
@@ -260,9 +260,9 @@ not, the general fix is a Perennial change, designed apart, not a local primitiv
 **One spec, for every client.** The node API (`Spec/.../Api.lean`, `InvNode.lean`) changes
 so that one spec serves both:
 
-- a client that makes nothing durable (`examples/kv`, `kvwitness`, etcd's server under a
+- a client that makes nothing durable (`examples/raft/kv`, `kvwitness`, etcd's server under a
   theorem with no crashes);
-- a client that does (`examples/durablekv`, and etcd with its WAL).
+- a client that does (`examples/raft/kvfile`, and etcd with its WAL).
 
 The `Ready` contract is the main change. `Advance` gains one premise. `RestartNode` and
 `StartNode` generalize from an empty storage to any restart point. `node.Stop` gets a spec in

@@ -1,7 +1,7 @@
 # Stage P of the client repair: the common brief for every track helper
 
 You are one of up to four helpers proving, in parallel and IN THE SAME WORKTREE, the `sorry`s Stage F
-left in etcd's server and examples/kv, each exactly once, against frozen statements.
+left in etcd's server and examples/raft/kv, each exactly once, against frozen statements.
 
 Worktree: /home/ubuntu/etcd-grove/.claude/worktrees/raft-spec-review (branch `repair`). Do not cd
 elsewhere, do not create worktrees, do not switch branches. Scratch: /home/ubuntu/.claude-E/jobs/c8379647/tmp
@@ -16,7 +16,7 @@ elsewhere, do not create worktrees, do not switch branches. Scratch: /home/ubunt
 - Raft's API as clients see it: interface/Proof/go_etcd_io/raft/v3/*.txt, interface/Spec/go_etcd_io/raft/v3/*.txt.
 - Each broken proof's old body is in a `/- REPAIR-OLD … -/` comment beside it: your starting point.
   Delete the REPAIR-OLD comment once the proof replacing it is done.
-- examples/kvreconf's proofs (Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/) are proved over
+- examples/raft/kvreconf's proofs (Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/) are proved over
   the same unified raft API: templates for the storage wrapper, the run loop, allocation, Ready/Advance.
 
 ## Rules

@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseGrant
 
 @[expose] public section
 
@@ -1182,7 +1183,7 @@ end endToEnd
 
 /-! ## The Auth service over gRPC (the auth plan's E3za, 2026-10-27)
 
-The five admin methods `examples/authkv`'s `SetUp` calls, as grpc runs them (`etcd_*MethodOk`, from
+The five admin methods `examples/etcd/auth`'s `SetUp` calls, as grpc runs them (`etcd_*MethodOk`, from
 each handler's E3y result, `etcd_*HandlerOk`), and served at an address (`etcd_auth_served`), with
 etcd's specs (`AuthService.lean`). -/
 
@@ -1742,6 +1743,16 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         (mvcc.storeReader E.s E.γ) :=
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
     s E ρ γr γl cs ms hT hR hP
+
+/-- **The grant contract at the lessor's history, discharged** (`lessorGrantOkL_of_server` at the
+linked `EtcdServer.LeaseGrant`; the lease-grant plan's 2.4), in a cluster that grants leases. -/
+theorem lessorGrantOkL_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (h : srvGrantsLeases E ρ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorGrantOkL s E S :=
+  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h
 
 /-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
 `srvHeaderFacts` premise needs no source of its own). -/

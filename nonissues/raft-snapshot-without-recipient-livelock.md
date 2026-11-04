@@ -46,14 +46,14 @@ FAIL
 
 ## Proof
 
-no: liveness, outside the safety theorems; the examples' stores avoid it (`examples/kvreconf`'s
-`Replica.run` snapshots after every conf change it applies; `examples/kv` adds no member).
+no: liveness, outside the safety theorems; the examples' stores avoid it (`examples/raft/kvreconf`'s
+`Replica.run` snapshots after every conf change it applies; `examples/raft/kv` adds no member).
 
 ## Notes
 
-Found 2026-10-28 writing `examples/kvreconf`'s randomized test (a joint change whose incoming
+Found 2026-10-28 writing `examples/raft/kvreconf`'s randomized test (a joint change whose incoming
 voters were newcomers never committed again, and the automatic leave never happened); the copy
-asserting the bug is `examples/kvreconf/livelock_test.go`. Fixes: document on `Storage.Snapshot`
+asserting the bug is `examples/raft/kvreconf/livelock_test.go`. Fixes: document on `Storage.Snapshot`
 that the snapshot must include the recipient (take one after a conf change adding a member, or
 return `ErrSnapshotTemporarilyUnavailable` until one exists); in raft, `maybeSendSnapshot` could
 treat a snapshot without the recipient as temporarily unavailable, which stops the useless sends

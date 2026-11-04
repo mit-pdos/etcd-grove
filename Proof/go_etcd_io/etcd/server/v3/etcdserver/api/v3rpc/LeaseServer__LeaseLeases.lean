@@ -110,7 +110,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     ipureintro
     refine ⟨Hlog.1, fun h0 => ?_⟩
     rw [← Hlog.2.2.2]; exact Hrr (by rw [Hlog.2.2.2]; exact h0)
-  · obtain ⟨rfl, Hen⟩ := Hn
+  · obtain ⟨rfl, Hen, HaOn⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen
     | ok ei =>
@@ -131,7 +131,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
         iframe HS HR
         iunfold v3rpc.leaseLeasesOut
         iright
-        ipureintro; exact ⟨rfl, He⟩
+        ipureintro; exact ⟨rfl, He, HaOn⟩
       | true =>
         wp_auto
         -- `if errors.Is(err, lease.ErrLeaseNotFound)`, again
@@ -175,6 +175,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
           iexists _
           iframe «$r0»
           iright
+          isplitr
+          · ipureintro; exact HaOn
           isplitl [Hfd Hrev]
           · iunfold v3rpc.leaseHdrDone
             iframe Hfd

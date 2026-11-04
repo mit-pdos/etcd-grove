@@ -69,6 +69,16 @@ theorem leaseCheckErrs [_root_.Perennial.errors.Assumptions]
   · iapply errVarLeaf_get
     iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HOR
 
+open Iris.ProofMode in
+/-- `IsAuthEnabled` answers `true` (from an index) only in a mode that may refuse (the lease-grant
+plan's (F3): the lease checks fail only with auth on). -/
+theorem enabledVerdictFrom_true_isOn (M : auth.AuthMode) (n : Nat) :
+    auth.enabledVerdictFrom (GF := GF) M n true ⊢ ⌜M.isOn = true⌝ := by
+  cases M
+  · unfold auth.enabledVerdictFrom; iintro %H; cases H
+  · iintro -; ipureintro; rfl
+  · iintro -; ipureintro; rfl
+
 end proof
 
 end EtcdGrove

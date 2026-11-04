@@ -1,5 +1,5 @@
 /-
-The pure model of bbolt's page-id lists (`common.Pgids`): page ids are `uint64`s, ordered
+The pure model of bbolt's page-id lists (`etcdstart.Pgids`): page ids are `uint64`s, ordered
 unsigned (`Pgids.Less`, and `Mergepgids`'s `lead[i] > follow[0]`).
 -/
 module

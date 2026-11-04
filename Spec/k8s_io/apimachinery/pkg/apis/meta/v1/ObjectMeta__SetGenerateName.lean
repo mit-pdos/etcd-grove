@@ -1,6 +1,6 @@
 /-
 `(*metav1.ObjectMeta).SetGenerateName` (`k8s.io/apimachinery/pkg/apis/meta/v1/meta.go`): sets the field `GenerateName`. Lean-first
-(no Rocq counterpart); the model API server's accessors (`examples/k8sdaemonset/apimodel`).
+(no Rocq counterpart); the model API server's accessors (`examples/k8s/daemonset/apimodel`).
 -/
 module
 

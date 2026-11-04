@@ -5,8 +5,8 @@ tokens with a client-owned authority, `ownConfDecisions γ D`. This review was b
 settles are marked **stale**, and the section "Rev 1: the authority form" judges the change. I read it against HEAD `14d4505fe1`
 (committed state, `git show HEAD:`). I also read the interim API (`interface/Proof/go_etcd_io/raft/v3/InvNodeRule.txt`,
 `ConfRule.txt`, `InvNode.txt`, the four `unifiedSpec`s) and candidate 13 §13 with reviews 12 and 13. I read the
-feasibility study, kv's proof (`KV__run.lean`, `Reconf.lean`, `Defs.lean`, `StartCluster.lean`), `examples/kv/kv.go`,
-`examples/kvreconf/kv.go` and `.lake/raft-fork/confchange`. Nothing was built, and no file in the repository was
+feasibility study, kv's proof (`KV__run.lean`, `Reconf.lean`, `Defs.lean`, `StartCluster.lean`), `examples/raft/kv/kv.go`,
+`examples/raft/kvreconf/kv.go` and `.lake/raft-fork/confchange`. Nothing was built, and no file in the repository was
 changed.
 
 ## Verdict
@@ -156,7 +156,7 @@ entries (§4).**
     - `ApplyConfChange` needs an `.apply`;
     - `Advance`'s premise `NoConfChangeIn st.delivered v.applied st.delivered.length` excludes the entry at `j`.
   - That is the ordinary case for a client that skips. kvreconf's `applyEntry` applies normal ops, then
-    `applyConf` rejects (`examples/kvreconf/kv.go:452-487`). etcd's `shouldApplyV3 = false` path does the same.
+    `applyConf` rejects (`examples/raft/kvreconf/kv.go:452-487`). etcd's `shouldApplyV3 = false` path does the same.
   - The `⊢` is probably also unprovable as stated (uncertain: I did not try).
     - `nodeConfig` holds the half `dghostVar γn.cap ½ (ca, cfg)` at exactly `ca = v.applied`
       (`InvApiDyn.lean:375-378`, `InvNodeChan.lean:808-811`). The other half is on the driver's side.

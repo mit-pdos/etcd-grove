@@ -73,7 +73,7 @@ wording" below):
 
 - Producers. `grpc.start` is the only axiom whose conclusion contains one of the three tokens. It
   is applied in exactly two places, `client/v3/Results.lean:2649` (`etcd_kv_started`) and
-  `examples/authkv/MainServe.lean:92` (`ak_served_kv`), and each passes its own `Hrf` hypothesis.
+  `examples/etcd/auth/MainServe.lean:92` (`ak_served_kv`), and each passes its own `Hrf` hypothesis.
 - Serving facts. `grpcServes` and `grpcServesStream` come only from `grpc.serve` and
   `grpc.serveStream`, which consume the tokens. Every axiomatized `Spec/` file was checked for one
   that mentions a serving fact or token. `ClientConn.NewStream` consumes them. `Server.Serve`

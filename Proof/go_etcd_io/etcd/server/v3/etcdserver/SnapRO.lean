@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSnapKit
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
@@ -119,12 +120,15 @@ tracked bucket, D22) with the lease bucket's part (`backend.rbPart d.γB (· = "
 the lessor's put writes `Lease` only; 2026-11-01, the backend-auth-split stage: until then the
 whole client half `backend.rbOwn`), given back with the record put (leases T3, L3c, 2026-10-27:
 until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
-real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
+real backend's `LockInsideApply` does not need it, its `UnsafePut` does). (The lease-grant stage,
+2.12, 2026-11-02, the user's freeze) The counted write-back token is spent and the lent part `RW`
+given back (until then spent with it): true of Go, `persistTo(le.b)` reads the field before
+`BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
+    lease.lessorBackend lp Pk #f (backend.wbTok d.γB) RW (mvcc.bkRTx d.γB d.P d.be)
       (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
@@ -171,22 +175,24 @@ part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until
 client half, given back at any buckets.) -/
 theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
-    (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
-    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
+    (hlp : mvcc.leaseParams d.P) (M : auth.AuthMode) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) M d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
           ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
           mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
-          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+          srvRestOwnH M d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
-  have hset : ∀ n, (¬ membership.clusterBkts n) ↔
-      (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
+  have hls : restSet M mvcc.leaseName := restSet_of M _ hlc (by
+    simp [auth.authBkts, mvcc.leaseName, go_etcd_io.etcd.server.v3.storage.schema.leaseName])
+  have hset : ∀ n, restSet M n ↔
+      (n = mvcc.leaseName ∨ (restSet M n ∧ n ≠ mvcc.leaseName)) := by
     intro n
     by_cases h : n = mvcc.leaseName
-    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hlc⟩
+    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hls⟩
     · exact ⟨fun hc => Or.inr ⟨hc, h⟩, fun hx => hx.elim (fun e => absurd e h) And.left⟩
   have hd : ∀ n, n = mvcc.leaseName →
-      (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
+      (restSet M n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
   iintro !> %rs Hro
   iunfold srvRestOwnH at Hro
   iunfold srvObjsOn at Hro
@@ -195,7 +201,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   icases Hro with ⟨Hcl, Hnc, Hmem, %Hmi⟩
   ihave Hnc := (backend.rbPart_set (GF := GF) d.γB _ _ rs.bk hset).1 $$ Hnc
   icases (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
-    (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
+    (fun n => restSet M n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
   iexists d
   unfold mvcc.storeRb
   rw [hk]
@@ -216,7 +222,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   isplitl [Hl Hnc]
   · iapply (backend.rbPart_set (GF := GF) d.γB _ _ bk hset).2
     iapply (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
-      (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
+      (fun n => restSet M n ∧ n ≠ mvcc.leaseName) bk hd).2
     iframe Hl
     iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
   · ipureintro; exact ⟨Hmi.1, restPresent_lens _ _ hbk hl Hmi.2⟩
@@ -241,13 +247,15 @@ the rows' premises, the version not above the server's and `UpdateAttributes`' m
 `SetVersion`'s callback fixed with its package initializations; the rest resource and the write
 right hold the rest buckets present, and the members' client URLs are read-only. Until then the
 rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
-`isCluster` says.) -/
+`isCluster` says.) (The auth-on snapshot plan's P5, 2026-11-03, the user's approval: at every auth
+mode `M`, the rest resource's part `srvRestOwn M` mode-indexed; true of Go: the rows write only the
+cluster's buckets and in-memory members, never the part's buckets.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
+  iprop(□ ∀ (M : auth.AuthMode) (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
     ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
+    roLens RO (fun r => iprop(srvRestOwn M d.γB c r ∗ clusterBeOn c d.be)) -∗
     rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
     apply.isCluster c γ' Pk #f RO RW)
 
@@ -268,7 +276,9 @@ contract, an open share, a pooled reader's resource and the caller's thread toke
 `Recover(ab)` moves the store's user's half `authBeOn ast oldbe` to the new backend, all else given
 back. (2026-11-02, the backend-auth-split stage: until then the reader's token and open share
 `mvcc.bkRTx` and the writer's half `rbOwn`, with `authRoles` empty too; `NewAuthStore.spec`'s last
-two bullets say why.) -/
+two bullets say why.) (The auth-on snapshot plan's P2, 2026-11-03: the auth buckets in the new
+backend's table, a premise; without it the triple was false at other parameters, unreachable with
+the server's: review R1's F5.) -/
 def authRecoverOk (ast : Loc) : IProp GF :=
   iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
           (r : GMap GoString backend.BktData),
@@ -279,7 +289,10 @@ def authRecoverOk (ast : Loc) : IProp GF :=
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
             backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
             backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
-            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ }}
+            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ ∗
+            -- (the auth-on snapshot plan's P2, review R1's F5) the auth buckets in the new
+            -- backend's table, as `NewAuthStore`'s axiom takes them
+            ⌜dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI⌝ }}
           (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
             go!"Recover")) (Val #(authBkIface abl)))
         {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.be ∗
@@ -390,10 +403,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       storage.snapOpensOk ∧ d.cm = E.cmp ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
       storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ mvcc.leaseParams d.P ∧
       -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table, which the alarm
-      -- store's `Recover` takes (`bootOk`'s)
-      d.P.has mvcc.alarmBI ∧
+      -- store's `Recover` takes (`bootOk`'s); (the auth-on snapshot plan's P2/P5, 2026-11-03) and
+      -- the auth buckets, which the auth store's `Recover` takes (`authRecoverOk`)
+      (d.P.has mvcc.alarmBI ∧
+        d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.γ.watchQ = true ∧
-      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
+      E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
@@ -408,14 +423,18 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    -- the member's snapshot directory, at raft's names for the member (D22 J2)
+    -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
+    -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (srvSnapRm γt γr)) ∗
+    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (srvSnapRm γt γr)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗
     isAlarmStore al ∗ alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗
     □ (⌜E.authMode = auth.AuthMode.off⌝ → authRecoverOk ast) ∗
+    -- (the auth-on snapshot plan's decision 8) with auth on, the store's invariant and snapshot
+    -- clause at the server's `E.RD` (`authSnapKitM`)
+    authSnapKitM E.authMode ast E.RD ∗
     lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗
     membership.isRaftCluster cl ∗ clusterApplyOk cl ∗
     (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗ srvMembersDir cl ps dir ∗
@@ -423,6 +442,9 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
     -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the watchable store
     lease.lessorInv lp E.γ.leases ∗
+    -- (the lease-grant plan's D2, 2026-11-02) its mode: monotone when the cluster grants leases
+    -- (`KVNames.lg`), revocable (what `Recover` takes) otherwise
+    lease.lessorModeIs E.γ.leases γr.kv.lg ∗
     (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
      mvcc.isWatchableStore wsl E.s γw0) ∗
@@ -454,7 +476,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
     (γt : GName) (d d' : mvcc.KBReal) (al ast lp cl : Loc)
     (hb : beSucc γ E γ' E') (hkb : E.γ.kb = some d) (hkb' : E'.γ.kb = some d')
     (hcm' : d'.cm = E.cmp) (hP : d'.P = d.P)
-    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
+    (hRO : E'.RO = srvRestOwnH E'.authMode d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
     srvSnapRO s ci E γr γt ∗ srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ⊢
     srvSnapRO s ci E' γr γt := by
@@ -463,7 +485,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3
@@ -525,8 +547,8 @@ theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.
 
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
-the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
-token (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
+the new one (`srvSnapApplied`): the backend's stop channels and the apply thread's share of its open
+token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, P5) (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
 2026-11-01, J8a-5, also its `Get` under a resource `Tal`, `zal`: `specSnap` now gets `Get` with no
 alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
 `store.Restore`) and the backend file's directory entry at the configuration's data directory
@@ -534,7 +556,7 @@ alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.γ.kb = some d⌝ ∗
-    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
+    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))

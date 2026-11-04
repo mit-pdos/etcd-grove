@@ -1,6 +1,6 @@
-# The prophecy-patch example (examples/prophkv, 2026-11-03): the results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/prophkv/Results.lean and Link.lean: `GetAny`'s
-# logically atomic spec (`wp_GetAny`) and the closed theorem `prog_safe`, both over the code with
+# The prophecy-patch example (examples/goose/prophkv, 2026-11-03): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Results.lean and Link.lean: `GetAny`'s
+# logically atomic spec (`wp_GetAny`) and the closed theorem `goose_prophkv_safe`, both over the code with
 # its prophecy patch (etc/proph-patches/prophkv/). `#print axioms` of either lists Lean's 3 only:
 # no trust-boundary axiom, no `sorry` (the package's initialization is proved directly, not through
 # `initLb_of_spec`).
@@ -11,4 +11,4 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/prophkv/(Results|Link)\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/(Results|Link)\.lean$

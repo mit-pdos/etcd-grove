@@ -106,7 +106,7 @@ contexts that may carry the caller's metadata).
 
 ## What rests on it
 
-Only `authkv.reqCtx.wp_proof` (`Proof/github_com/mit_pdos/etcd_grove/examples/authkv/reqCtx.lean:46`),
+Only `authkv.reqCtx.wp_proof` (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/reqCtx.lean:46`),
 and through it authkv's `Link`/`Results`/`Main` (the closed authkv result). Its use is true in Go:
 `reqCtx` applies the axiom to `context.WithTimeout(context.Background(), d)`, a fresh `*timerCtx`
 over `Background()`, which has no `mdOutgoingKey{}` value. The fault is the statement's

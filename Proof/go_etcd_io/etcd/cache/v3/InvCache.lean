@@ -1095,6 +1095,17 @@ instance cacheWatchLog_persistent (C : DemuxCert GF) (pred : Option (GoString �
     (L : List RespModel) : Persistent (cacheWatchLog C pred sr L) := by
   unfold cacheWatchLog; infer_instance
 
+omit EM package_sem in
+/-- `cacheWatchLog`'s cases: the watcher's publication of an open log; a log closed by the demux's
+cancel at `n` (the publication of its responses before); a single cancel response. -/
+theorem cacheWatchLog_cases {C : DemuxCert GF} {pred : Option (GoString → Bool)} {sr : w64}
+    {L : List RespModel} :
+    cacheWatchLog C pred sr L ⊢ demuxPubBody C pred sr none L ∨
+      (∃ (L0 : List RespModel) (n : w64), ⌜L = L0 ++ [cancelModel n]⌝ ∗
+        demuxPubBody C pred sr (some (some n)) L0) ∨
+      ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝ := by
+  unfold cacheWatchLog; iintro H; iexact H
+
 /-- Certificate chains are monotone in the certificate. -/
 theorem certChain_mono (C C' : DemuxCert GF) (h : ∀ p b, C.cert p b ⊢ C'.cert p b) :
     ∀ (last : Int) (bs : List Batch), certChain C last bs ⊢ certChain C' last bs
@@ -1162,6 +1173,22 @@ def cacheWatchConsumer (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option 
     (sr : w64) (rs : List RespModel) : IProp GF :=
   iprop(∃ vs : List go_etcd_io.etcd.client.v3.WatchResponse, spscConsumer γ.spsc vs ∗
     ⌜vs.length = rs.length⌝ ∗ monoListLbOwn γ.fwd rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr rs))
+
+omit EM package_sem in
+/-- The log a cache watch's consumer received (persistent). -/
+theorem cacheWatchConsumer_log (γ : CacheWatchNames) (C : DemuxCert GF)
+    (pred : Option (GoString → Bool)) (sr : w64) (rs : List RespModel) :
+    cacheWatchConsumer γ C pred sr rs ⊢
+      cacheWatchConsumer γ C pred sr rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr rs) := by
+  iintro H
+  iunfold cacheWatchConsumer at H
+  icases H with ⟨%vs, Hc, %Hl, #Hlb, #Hlog⟩
+  isplitl
+  · iunfold cacheWatchConsumer
+    iexists vs
+    iframe Hc Hlb Hlog
+    ipureintro; exact Hl
+  · iexact Hlog
 
 /-- What `Cache.Watch`'s caller needs: one of the demux's tokens (the watch's goroutine registers,
 sends progress notifications and unregisters with it) and a goroutine slot of the cache's wait

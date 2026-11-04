@@ -132,7 +132,7 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
   simp only [descNames, h1, h.2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
   decide
 
-/-- The Auth service's methods `v3rpc.Server` registers that `examples/authkv`'s `SetUp` calls, with
+/-- The Auth service's methods `v3rpc.Server` registers that `examples/etcd/auth`'s `SetUp` calls, with
 the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
 `RoleGrantPermission`, `AuthEnable`, and (C1's A5, 2026-10-31) `Authenticate`, which a client's `New`
 calls. -/

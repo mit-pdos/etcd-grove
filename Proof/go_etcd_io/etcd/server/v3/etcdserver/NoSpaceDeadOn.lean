@@ -97,7 +97,7 @@ theorem dispatchAnswer_notNoSpaceOn (rq : apply.IRRModel) (log : mvcc.Log) (skip
   rcases ho with rfl | ho
   rotate_left
   · iapply dispatchAnswer_notNoSpace rq log skip resp err tr o hp ho $$ Hv H
-  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap⟩
+  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap, -⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
     iunfold notNoSpaceErr; iintro; ileft; ipureintro; rfl
   unfold plainCover at hp

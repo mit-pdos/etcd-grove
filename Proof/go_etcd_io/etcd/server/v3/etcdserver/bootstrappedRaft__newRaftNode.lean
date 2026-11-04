@@ -37,9 +37,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       StartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre pv ps ctxs Q
+  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q
   letI := srvStor (GF := GF) γr
-  intro Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
+  intro Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
     Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal
   wp_start as Hpre
   iNamed Hpre
@@ -121,10 +121,11 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · ipureintro; exact Hwal
   (try wp_auto)
   -- `newRaftNode(cfg)`
-  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K
+  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K ν
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-      bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+      bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
+    ipureintro; exact ⟨Hlg, Hhb, HT⟩
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn
@@ -134,9 +135,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iexists n, γw, _, st
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hγw
-    exact ⟨h1, h2, h3, h4, h5, h6⟩
-  obtain ⟨-, -, -, -, -, -, hkey⟩ := Hγw
+    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8⟩ := Hγw
+    exact ⟨h1, h2, h3, h4, h5, h6, h8⟩
+  obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
   iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
   isplitl [Hdrv]

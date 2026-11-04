@@ -1,16 +1,16 @@
-# The watch example (examples/watchkv; D23): the results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Results.lean: `watchkv_Main` (over the
+# The watch example (examples/etcd/watch; D23): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Results.lean: `watchkv_Main` (over the
 # server's, v3rpc's, the client's and `context`'s linked results and putget's trust-boundary
-# axioms) and the closed theorem `watch_safe`/`watch_adequate` (putget's hypotheses at watchkv's
+# axioms) and the closed theorem `etcd_watch_safe`/`etcd_watch_adequate` (putget's hypotheses at watchkv's
 # configuration and the watch path's), which also rest on the package initializers' axioms.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/watchkv.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/watchkv.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/watchkv.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_watch.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_watch.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_watch.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -562,9 +562,6 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -600,6 +597,7 @@ axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walDirFresh
 axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof

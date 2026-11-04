@@ -58,7 +58,7 @@ retryKVClient__DeleteRange: kVClient__DeleteRange
 retryKVClient__Txn: kVClient__Txn
 # (2026-10-26, the auth plan's E2h) the Auth stub (api/etcdserverpb/rpc_grpc.pb.go), the retry
 # client's Auth calls (client/v3/retry.go) and the client's Auth API (client/v3/auth.go) of the
-# admin calls `examples/authkv`'s `SetUp` makes
+# admin calls `examples/etcd/auth`'s `SetUp` makes
 NewAuthClient:
 RetryAuthClient: NewAuthClient
 etcdserverpb_authClient__UserAdd: grpc_StaticMethod grpc_ClientConn__Invoke

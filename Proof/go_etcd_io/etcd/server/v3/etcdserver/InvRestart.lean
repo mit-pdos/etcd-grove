@@ -2,7 +2,7 @@
 **A member's stop and restart: the server's vocabulary, drafted** (the restart plan's R2a,
 2026-11-02, `notes/restart-plan.md`). Lean-first (no Rocq counterpart).
 
-R2a states what the example (`examples/restart3`) needs of the server at a stop and a restart, over
+R2a states what the example (`examples/etcd/restart`) needs of the server at a stop and a restart, over
 the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
 until then, so that no statement over them can be proved by unfolding them.
 
@@ -16,7 +16,7 @@ until then, so that no statement over them can be proved by unfolding them.
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
   (L2): the ghost image handed from one incarnation to the next; graceful stops only (the plan's
   Q4). It holds what the restarted member's `NewServer` takes of the ghost state in place of a
-  first start's `memberBoot` (`examples/common/Defs.lean`): the node API's restart token in place
+  first start's `memberBoot` (`examples/lib/etcdstart/Defs.lean`): the node API's restart token in place
   of `nodeBoot` (R2e, raft's restart from a durable state), the cluster's invariants at the
   recorded names. (R2c, 2026-11-02: no id state. A restart makes its incarnation's id share anew,
   at a fresh incarnation key, `idutil/Incarnations.lean`'s `idIncarnation_alloc`, with its new
@@ -59,8 +59,12 @@ variable [sem : go.Semantics]
 
 
 /-- **The files of a stopped member's data directory hold `σ` and `D`** (opaque, exclusive; a
-trust-boundary token, DRAFT R2c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its last
-snapshot record) as the records `σ` -- the snapshot record at `σ.b`, the hard state `σ.hs`, the
+trust-boundary token, DRAFT R2c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its newest
+valid snapshot record: of the highest index at or below the last hard state's commit,
+`wal.ValidSnapshotEntries`, `newestSnapshotEntry`, `bootstrap.go:437-462`; 2026-11-03, the final
+whole-`bootOk` review: until then "its last snapshot record", which Go does not read when the apply
+loop's snapshot record follows a newer received one, and which did not exclude `recoverSnapshot`'s
+panic, `bootstrap.go:482`) as the records `σ` -- the snapshot record at `σ.b`, the hard state `σ.hs`, the
 entries `σ.ents` -- and the bbolt file at `<dd>/member/snap/db` holds `D`; the WAL's metadata names the member `id`
 (R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). Exclusivity per directory
 (two tokens of one directory) is not stated: an open question for R2b, which makes it. Made by the stop's
@@ -282,7 +286,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
+    -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
+    -- (`bootstrap.go:574`, wrapping)
+    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
       sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
@@ -292,7 +298,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
       cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
       -- [R2c] no peers: `bootstrapRaftFromWAL` sets none, so `newRaftNode` calls `RestartNode`
-      -- (`len(b.peers) == 0`); `ps` is the cluster's members (`Hdirps`, `Hmembers`), not peers
+      -- (`len(b.peers) == 0`); `ps` is the cluster's members (`Hmembers`), not peers
       pv = [] ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
@@ -324,11 +330,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- no remotes: `bootstrapClusterWithWAL` sets none (`bootstrap.go:430-433`), so `NewServer`
     -- calls `AddRemote` never
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
-    -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
-    -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
-    -- any request), at most `2 ^ 20` of them (each peer's goroutines borrow eight of `lgMu`'s
-    -- reader slots)
-    "%Hdirps" ∷ ⌜(∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20⌝ ∗
+    -- (2026-11-03, the final whole-`bootOk` review's M2: until then `Hdirps`, a fact of the
+    -- caller's `dir` and `γ.vs`; a restart's `NewServer`, when one is stated, will take it as a premise, `rafthttp.bootCfg`)
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
     -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
@@ -465,6 +468,9 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
     ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
       σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
+      -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
+      -- `newBackend`'s `lg.Panic`)
+      storage.dbOpensOk ∧
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗

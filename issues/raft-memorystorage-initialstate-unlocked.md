@@ -46,7 +46,7 @@ before any concurrent use).
 
 Raft's own goroutine is a writer too: `MemoryStorage.Snapshot`, reached from `maybeSendSnapshot`,
 writes `ms.snapshot` under the lock, so an application that reads its hard state back through
-`InitialState` while its node runs races with raft itself. This repository's `examples/kvdurable`
+`InitialState` while its node runs races with raft itself. This repository's `examples/raft/kvdurable`
 did so until 2026-10-31 (its `encode`; `go test -race -run TestRounds` reported it), and now keeps
 its own copy of the hard state it last set. Our fix branch
 `fix/raft-memorystorage-initialstate-unlocked` (upamanyus/etcd-raft, not pushed: ecb890e test,

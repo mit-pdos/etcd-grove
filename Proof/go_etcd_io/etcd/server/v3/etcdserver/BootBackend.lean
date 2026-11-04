@@ -106,7 +106,8 @@ for a compacting store: M2's); (M2, the storage side, 2026-10-30; the backend-cm
 compaction keys' values tracked (`backend.fkV γ true`, persistent: `mvcc.bkNoCmp_fkV_of_fkCl`), what a
 compacting store's `NewStore` takes. (2026-11-02, the backend-auth-split stage) Its reader slots
 pooled (as `backend.newPost_pool`, for a thread bound within the pool): the backend's pool of readers
-(`bkRPool`, the apply thread's) and a read token per slot of the counted stock (`rdStockN`). -/
+(`bkRPool`, the apply thread's) and a read token per slot of the counted stock (`rdStockN`); (the
+auth-on snapshot plan's P1) the auth store's share of the slots (`rdAuth`). -/
 theorem bootBackend_of_bootLeft
     [go_etcd_io.etcd.server.v3.storage.backend.Assumptions] (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset)
     (γ : backend.BNames) (P : backend.BParams)
@@ -125,14 +126,16 @@ theorem bootBackend_of_bootLeft
       -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
       backend.srSlot b ∗
       -- (the backend-auth-split stage) the backend's pool of readers
-      backend.bkRPool γ P b := by
+      backend.bkRPool γ P b ∗
+      -- (the auth-on snapshot plan's P1) the auth store's share of the reader slots
+      backend.rdAuth γ P b := by
   unfold backend.newPostK bootLeft
   iintro ⟨#HnB, #HnSC, ⟨HnWb, Ho⟩, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr⟩
   icases (backend.bOpen_one_pool γ).1 $$ Ho with ⟨Ho, Hop, Hos⟩
-  imod backend.rdToks_pool hT E γ P b $$ HnRd with ⟨HnPool, HnRT⟩
+  imod backend.rdToks_pool hT E γ P b $$ HnRd with ⟨HnPool, HnRA, HnRT⟩
   ihave HbkP := backend.bkRPool_intro γ P b $$ [$HnPool $Hop]
   imodintro
-  iframe HnB HnSC HnH HnRB HnDl HnSr HbkP HnWb
+  iframe HnB HnSC HnH HnRB HnDl HnSr HbkP HnRA HnWb
   ihave ⟨Hnc, Hfv⟩ := mvcc.bkNoCmp_fkV_of_fkCl γ _ hnc $$ HnFk
   iframe Hnc Hfv
   iunfold backend.rdStock at HnRT

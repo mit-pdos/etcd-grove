@@ -54,6 +54,14 @@ def latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
   iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ cacheAt st M sc ∗
     enabledVerdict M b ∗ authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
+/-- **The apply thread's latest-state resource with its write token** on the backend names `γc`
+(the auth-on snapshot plan's Prove step, 2026-11-03): `latestRes` and `authWHeldM M γc`, what the
+checks' `specL`s take since the read contract's latest clause is at the write token (`beP`'s
+backend's `authReadTxOk`). The apply thread lends it from its authority with the tie and its
+admin steps' resource, which holds the token (`adminW`). -/
+def latestResC (st : Loc) (M : AuthMode) (γc : AuthBkNames) (hs : List AuthState) : IProp GF :=
+  iprop(latestRes st M hs ∗ authWHeldM M γc)
+
 /-- **The latest state recorded** (persistent): in `on γa`, the last state of `hs` at its index;
 otherwise nothing. What turns a verdict at the latest state into S3's verdict over recorded states
 (`permVerdict_of_L`). -/
@@ -139,13 +147,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 its half of the flag (at `b`) tied to the latest state, the latest state's verdict
 (`adminVerdictL`); the resources back. -/
 abbrev auth.authStore.IsAdminPermitted.specL : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (γw : auth.AuthBkNames) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (ai : Option AuthInfo) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ flagAt st M b ∗ ⌜latestTie M hs b sc⌝ }}
+      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗
+      ⌜latestTie M hs b sc⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAdminPermitted")) (Val #a))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ authInfoAt a dq ai ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st M b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
+      authOwn M hs ∗ authWHeldM M γw ∗ flagAt st M b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
 
 end spec
 
@@ -177,8 +186,8 @@ theorem auth.authStore.IsAdminPermitted.wp_latest
     (h_lockedReadTx : auth.authStore.lockedReadTx.specL (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG) := by
-  intro st R M hs b sc a ai dq
-  wp_start as ⟨#Hinv, Hrd, Ha, Hown, Hfl, %Htie⟩
+  intro st R M hs γw b sc a ai dq
+  wp_start as ⟨#Hinv, Hrd, Ha, Hown, Hw, Hfl, %Htie⟩
   iunfold authRd at Hrd
   icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
   ihave Hai : (authInit : IProp GF) $$ []
@@ -276,7 +285,7 @@ theorem auth.authStore.IsAdminPermitted.wp_latest
       | off => exact absurd rfl Hnoff
       | any => trivial
     have hname : info.Username' ≠ [] := Hif
-    wp_apply (h_lockedReadTx st R M hs) $$ [$Hinv $Hbr $HR $Hown] as %tx ⟨Hbr, Htx, Hown⟩
+    wp_apply (h_lockedReadTx st R M hs γw) $$ [$Hinv $Hbr $HR $Hown $Hw] as %tx ⟨Hbr, Htx, Hown, Hw⟩
     iunfold authReadTxLockedL at Htx
     icases Htx with ⟨%ti, %Hti, Htx⟩
     subst Hti

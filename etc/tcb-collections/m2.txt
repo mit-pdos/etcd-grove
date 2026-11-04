@@ -1,8 +1,8 @@
 # M2, compaction in the server's model (notes/m2-plan.md): its first result, putgetc's
-# (examples/putgetc: putget with the auto-compactor on, revision mode), `putgetc_Main` and the
-# closed theorem `putgetc_safe`, in Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/Results.lean.
+# (examples/etcd/compacted: putget with the auto-compactor on, revision mode), `putgetc_Main` and the
+# closed theorem `etcd_compacted_safe`, in Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Results.lean.
 # Its `sorry`s are M2's remaining work (the skeleton's, phase 1 of notes/spec-first-plan.md).
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -539,9 +539,6 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -576,6 +573,7 @@ axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walDirFresh
 axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof

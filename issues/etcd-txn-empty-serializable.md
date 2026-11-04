@@ -48,8 +48,8 @@ so it is true for a txn with no operations.
 ## Proof
 
 yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the server's model has the same rule, so a compare-only txn's reply carries no linearization
-point, and the linearizability result of `examples/linkvtxn` takes the premise that the workload
-sends none (`GenIn`, `Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Calls.lean`).
+point, and the linearizability result of `examples/etcd/txnlin` takes the premise that the workload
+sends none (`GenIn`, `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Calls.lean`).
 
 ## Fix
 

@@ -816,7 +816,7 @@ two declarations clash in importers of both); `opsTAt_one : sl ↦*□ [v] ∗
 (Round 0's L11, "decides by `simp`", is dropped: `txnSibSafeL` with deletes needs `inRange` on concrete
 strings; callers use L8 or `txnSibSafeL_of_noDel`.)
 
-## The requester's instance (authkv `Work`, `examples/authkv/authkv.go:250`)
+## The requester's instance (authkv `Work`, `examples/etcd/auth/authkv.go:250`)
 
 `cli.Txn(ctx).Then(clientv3.OpTxn(nil, []clientv3.Op{clientv3.OpPut(k, "vt")}, nil)).Commit()`:
 
@@ -843,7 +843,7 @@ strings; callers use L8 or `txnSibSafeL_of_noDel`.)
 | Statement | Callers | How |
 |---|---|---|
 | `txn.Then.spec`/`Else.spec` (S1) | `txn.Then.wp_proof`/`Else.wp_proof` (re-proved: the loop reads each op's tree, `opListAtC_get`; `wp_isWrite`/`wp_toRequestOp` at the tree, L5) | re-proof |
-| | `KMTxn.lean:581,598`, `ServerKVTxn.lean:1143,1160`, `examples/linkvtxn/callTxn.lean:85,91`, `kubernetes/Client__OptimisticDelete.lean:117,197`, `Client__OptimisticPut.lean:138,218`, authkv `Work.lean:269,361` (akr3) (12 calls, all plain ops) | the lemma's name only: `wp_Then_plain`/`wp_Else_plain` (S1′) |
+| | `KMTxn.lean:581,598`, `ServerKVTxn.lean:1143,1160`, `examples/etcd/txnlin/callTxn.lean:85,91`, `kubernetes/Client__OptimisticDelete.lean:117,197`, `Client__OptimisticPut.lean:138,218`, authkv `Work.lean:269,361` (akr3) (12 calls, all plain ops) | the lemma's name only: `wp_Then_plain`/`wp_Else_plain` (S1′) |
 | | authkv `Work` (branch `authkv-hist`): the nested T3' (the instance above) | the general `wp_Then` with L1, L15 |
 | `Op.toRequestOp.spec` (S2), `Op.isWrite.spec` (S3) | only `txn.Then`/`Else` proofs (and `toTxnRequest`'s) | re-proof (the leaf case is the old proof) |
 | `OpTxn.spec` (S5) | leasing `txnLeasing.serverTxn` (unchanged), authkv `Work` | unchanged; leasing's `userTxn_tree` may become L1's corollary |

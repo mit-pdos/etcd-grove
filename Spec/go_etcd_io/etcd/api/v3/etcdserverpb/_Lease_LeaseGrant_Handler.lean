@@ -26,15 +26,17 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Lease_LeaseGrant_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
 implements `LeaseServer` (a method-set fact) and whose `LeaseGrant` meets `Spec` with the resource `S`
-(`grpcHandlerOk`), for messages whose types are `*LeaseGrantRequest`/`*LeaseGrantResponse` (a zero
+(`grpcHandlerOwnOkMd`: at the run's incoming metadata, given what the run owns of the decoded
+request, `Req.recvOwn`; the lease-grant plan, 2026-11-02, as `Compact`'s; a plain spec is
+`GrpcSpec.md`'s), for messages whose types are `*LeaseGrantRequest`/`*LeaseGrantResponse` (a zero
 `*LeaseGrantRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
 `srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
-`dec` for the request at `m` and `Spec m Φ`: decodes a new `*LeaseGrantRequest` and runs `srv.LeaseGrant`
+`dec` for the request at `m` and `Spec` of the run's metadata at `m` and `Φ`: decodes a new `*LeaseGrantRequest` and runs `srv.LeaseGrant`
 through the chain; the resources come back, and on success the response (as `any`) is at some
 `m'` with `Φ m'`. -/
 abbrev etcdserverpb._Lease_LeaseGrant_Handler.spec : Prop :=
-  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
@@ -42,11 +44,11 @@ abbrev etcdserverpb._Lease_LeaseGrant_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseGrantRequest) -∗ Req.blank l) ∗
-      grpcHandlerOk #(methods srv.ty go!"LeaseGrant" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"LeaseGrant" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
     (methodHandlerCall (@! etcdserverpb._Lease_LeaseGrant_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

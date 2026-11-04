@@ -86,15 +86,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **The freshness read by a reader with the lower bound `i`**: the atomic's value is no older
-than `i` (the published index is at least the reader's bound, `authPubAuth_lb_le`). -/
+than `i` (the published index is at least the reader's bound, `authPubQ_lb_le`). -/
 theorem revFresh_from (M : AuthMode) (i : Nat) (r : w64) :
     revFresh (GF := GF) M r ⊢ authPubLbM M i -∗ revFresh M r ∗ revisionVerdictFrom M i r := by
   cases M with
   | on γa =>
     simp only [revFresh, authPubLbM, revisionVerdictFrom]
     iintro ⟨%p, Hp, #Hsp, ⟨%j, %s, #Hs, %Hj⟩, Hen⟩ #Hlb
-    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa i))
-      .rfl (authPubAuth_lb_le γa p i)).trans persistent_and_sep_mp) $$ [Hp]
+    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro
+      (P := iprop(authPubQ (GF := GF) γa (1 : Qp).half p ∗ authPubLb γa i))
+      .rfl (authPubQ_lb_le γa (1 : Qp).half p i)).trans persistent_and_sep_mp) $$ [Hp]
     · iframe Hp Hlb
     isplitl [Hp Hen]
     · iexists p; iframe Hp Hsp Hen; iexists j, s; iframe Hs; ipureintro; exact Hj
@@ -123,8 +124,9 @@ theorem enG_fresh (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat) (q : Qp) (b
     obtain ⟨-, Hb0⟩ := Hb0
     subst Hb0
     iunfold authPubLbM at Hlb
-    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa i))
-      .rfl (authPubAuth_lb_le γa p i)).trans persistent_and_sep_mp) $$ [Hp]
+    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro
+      (P := iprop(authPubQ (GF := GF) γa (1 : Qp).half p ∗ authPubLb γa i))
+      .rfl (authPubQ_lb_le γa (1 : Qp).half p i)).trans persistent_and_sep_mp) $$ [Hp]
     · iframe Hp Hlb
     imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0 Hcf] with -
     · inext
@@ -167,15 +169,20 @@ the published index to the latest one, `hs.length - 1`, and gets its lower bound
 reply is to carry: a client then holds what it observed). -/
 theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState) (b : Bool)
     (sc stl : AuthState) (hl : ∀ γa, M = .on γa → hs.getLast? = some stl)
-    (hb : ∀ γa, M = .on γa → b = stl.enabled) (hc : ∀ γa, M = .on γa → permView sc = permView stl) :
-    authInv (GF := GF) st R M ⊢ authOwn M hs -∗ flagAt st M b -∗ cacheAt st M sc ={⊤}=∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ authPubLbM M (hs.length - 1) := by
+    (hb : ∀ γa, M = .on γa → b = stl.enabled) (hc : ∀ γa, M = .on γa → permView sc = permView stl)
+    (γc : AuthBkNames) (K : IProp GF) :
+    authInv (GF := GF) st R M ⊢ authPubRes M γc K -∗ authOwn M hs -∗ flagAt st M b -∗
+      cacheAt st M sc ={⊤}=∗
+      authPubRes M γc K ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+        authPubLbM M (hs.length - 1) := by
   cases M with
   | on γa =>
     have hl := hl γa rfl
     have hb := hb γa rfl
     have hc := hc γa rfl
-    iintro #Hinv Hown Hfl Hca
+    iintro #Hinv Hpr Hown Hfl Hca
+    iunfold authPubRes at Hpr
+    icases Hpr with ⟨#Hlife, HT, Htok⟩
     iunfold flagAt at Hfl
     icases Hfl with ⟨Hfp, Hfq⟩
     iunfold enG at Hfq
@@ -210,9 +217,17 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
     icombine Hcur Hcur' gives %Hcc
     obtain ⟨-, Hcc⟩ := Hcc
     have h2 : stl'' = stl := by rw [hl] at Hl''; exact (Option.some.inj Hl'').symm
-    -- the published index raised to the latest one
-    iunfold authPubAuth at Hp
-    imod (mono_nat_own_update (γ := γa.pub) (hs.length - 1) Hl'.2) $$ Hp with ⟨Hp, #Hlb⟩
+    -- the published index raised to the latest one (the backend's publish clause)
+    ihave #Hlife' := Hlife
+    iunfold authBkLife at Hlife'
+    icases Hlife' with ⟨-, -, #Hpub⟩
+    imod Hpub $$ %hs %p HT Htok Hhh Hp [] with ⟨HT, Htok, Hhh, Hp⟩
+    · ipureintro
+      have := Hl'.2
+      have : hs ≠ [] := by intro h; subst h; cases hl
+      have : 0 < hs.length := List.length_pos_iff.2 this
+      omega
+    ihave ⟨Hp, #Hlb⟩ := authPubQ_lb γa (1 : Qp).half (hs.length - 1) $$ Hp
     imod Hclose $$ [Hr Hv Hcur Hrq Hp Hq0 Hcq0] with -
     · inext
       iunfold revInv
@@ -223,7 +238,7 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
       iunfold revFresh
       iexists hs.length - 1
       isplitl [Hp]
-      · iunfold authPubAuth; iexact Hp
+      · iexact Hp
       isplitl []
       · iexists stl'; iexact Hst
       isplitl []
@@ -236,6 +251,8 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
       iexists (mp, jc); iframe Hcq0; iexists sjc, hs.length - 1, stl'; iframe Hsjc Hst; ipureintro
       exact ⟨Nat.le_refl _, by rw [Hpv, hc, hstl]⟩
     imodintro
+    isplitl [HT Htok]
+    · simp only [authPubRes]; iframe Hlife HT Htok
     isplitl [Hhh Hcur']
     · iunfold authOwn
       isplitl [Hhh]
@@ -246,17 +263,17 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
     isplitl [Hcp Hcq]
     · iunfold cacheAt; iexists mp, Mp; iframe Hcp HM Hof; iunfold caA; iexists jc, sjc; iframe Hcq Hsjc
       ipureintro; exact Hpv
-    iunfold authPubLbM; iunfold authPubLb; iexact Hlb
+    simp only [authPubLbM]; iexact Hlb
   | off =>
     simp only [authPubLbM]
-    iintro - Hown Hfl Hca
+    iintro - Hpr Hown Hfl Hca
     imodintro
-    iframe Hown Hfl Hca
+    iframe Hpr Hown Hfl Hca
   | any =>
     simp only [authPubLbM]
-    iintro - Hown Hfl Hca
+    iintro - Hpr Hown Hfl Hca
     imodintro
-    iframe Hown Hfl Hca
+    iframe Hpr Hown Hfl Hca
 
 end ghost
 

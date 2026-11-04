@@ -3,12 +3,15 @@
 v3.7 retarget, 2026-10-16; D12). Lean-first (no Rocq counterpart); see `InvNodeStart.lean`.
 
 With `cfg.lg` non-nil (etcd always passes a logger: the `else` branch, `NewRaftLogger` of the
-default zap config and `log.Fatalf`, is dead) and `cfg.heartbeat` non-zero (etcd's `TickMs > 0`:
-the `heartbeat == 0` branch's `&time.Ticker{}` is dead), it sets raft's logger
+default zap config and `log.Fatalf`, is dead) and `cfg.heartbeat` positive (a scope restriction,
+2026-11-03, the final whole-`bootOk` review's S2, `notes/decisions.md`: Go's `heartbeat == 0` branch,
+`&time.Ticker{}`, a ticker that never fires, is not covered; a negative one makes `NewTicker` panic), it sets raft's logger
 (`NewRaftLoggerZap`, `raft.SetLogger`: contracts), allocates `tickMu`, takes `time.Now()`, the
 timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a contract), the channels
 (`readStateC` of capacity 1, `msgSnapC` of capacity `maxInFlightMsgSnap`, `applyc`, `stopped` and
-`done` unbuffered) and the ticker (`time.NewTicker(heartbeat)`: a contract, D10's tick credits),
+`done` unbuffered) and the ticker (`time.NewTicker(heartbeat)`: since 2026-11-03 a callee of the
+proof, Perennial's proved spec; until then a contract, `rnTickerOk`, in the precondition; its ticks
+carry nothing, `E.T = True`, as the server's `E` has it since D19b),
 and returns the struct `r` as `rnBuilt` describes it: its fields read-only but `transport`
 (`cfg`'s, nil, which `NewServer` sets), the channels' and the mutex's predicates, both halves of
 `applyc`'s SPSC channel and the right to close `done`. The wrapper's names `γ` are the caller's
@@ -39,17 +42,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
-    (ms : Loc) (γs : MemStorNames) (key : GName) (cv : raftNodeConfig),
-  cv.lg' ≠ null →
-  cv.heartbeat' ≠ W64 0 →
+    (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames) (cv : raftNodeConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- the contracts (`InvNodeStart.lean`)
-      rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnTickerOk E }}
+      -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, the ticker proved)
+      rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗
+      -- (2026-11-03: until then the implication `cv.lg' ≠ null →`) a logger; (S2: until then the
+      -- implication `heartbeat ≠ 0`) a positive heartbeat; (2026-11-03) ticks carrying nothing
+      -- (see the file header)
+      ⌜cv.lg' ≠ null⌝ ∗ ⌜0 < sint.Z cv.heartbeat'⌝ ∗ ⌜E.T = iprop(True)⌝ }}
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.key = key⌝ ∗
+          γ.key = key ∧ γ.wal = wal⌝ ∗
         rnBuilt E γ r cv }}
 
 end spec

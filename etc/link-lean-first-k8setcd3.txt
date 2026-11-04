@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --k8setcd3`: `<fn>: <callees in the order of
 # <fn>.wp_proof's hypotheses>`. The results are in the namespace `k8setcd3`
 # (notes/k8s-etcd3-plan.md, phase 6).
@@ -27,7 +27,7 @@ removeAt:
 addConfig: configEqual
 closure: addConfig mstep removeAt
 step: isWrite mstep outEqual
-k8setcd3_Model: step addConfig closure configEqual
+etcd3_Model: step addConfig closure configEqual
 #
 # the codec, versioner, transformer and decoder (`codec.go`)
 encodeWith:
@@ -61,24 +61,24 @@ etcd3_store__Delete: @
 etcd3_store__GuaranteedUpdate: @
 etcd3_store__Get: @
 errOut:
-k8setcd3_call: errOut objOut storeKey validateFor tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
-k8setcd3_Apply: k8setcd3_call
+etcd3_call: errOut objOut storeKey validateFor tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
+etcd3_Apply: etcd3_call
 workloadKeys:
 workloadVals:
 pick:
 genFrom: workloadKeys workloadVals pick
-k8setcd3_Gen: genFrom
+etcd3_Gen: genFrom
 Run: @
 CounterClock: @
-k8setcd3_Check: Run CounterClock k8setcd3_Model k8setcd3_Gen k8setcd3_Apply
+etcd3_Check: Run CounterClock etcd3_Model etcd3_Gen etcd3_Apply
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
 seedOne: storeKey encodeV0 setItem
 seed: seedOne
-common_StartServer: @
-common_Serve: @
+etcdstart_StartServer: @
+etcdstart_Serve: @
 kubernetes_New: @
 etcd3_New: @
 NewDefaultLeaseManagerConfig: @
 zap_NewNop:
-k8setcd3_Main: zap_NewNop common_StartServer common_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue k8setcd3_Check
+etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue etcd3_Check
