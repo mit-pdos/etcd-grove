@@ -718,6 +718,152 @@ theorem newNodeBnd (pg : List w8) (r : NRec) (hr9 : r.ws.map wDat = (pageWs pg).
 
 end newnode
 
+/-! ## The child case's exact keys (without `rebalance`'s `brFirst`) -/
+
+section childkeys
+variable [GooseExts]
+variable (W : View) (hwm : Nat) (bl : Loc) (B : BRec) (hv : pagesStrict W.pages)
+    (hc : bktClean W hwm bl B) (nl : Loc) (rp : NRec) (i : Nat) (w : WEntry)
+    (hrp : B.ns !! nl = some rp) (hbr : rp.nv.isLeaf' = false) (hw : rp.ws[i]? = some w)
+    (hnone : B.nm !! w.pgid = none) (l : Loc) (hfresh : B.ns !! l = none) (hl : l ≠ null)
+    (pg : List w8) (hpg : W.pages !! w.pgid.toNat = some pg) (r rp' : NRec)
+    (hr : matNew bl nl pg r) (hp' : matParent rp rp' l)
+include hv hc hrp hbr hw hnone hfresh hl hpg hr hp'
+
+/-- **Materializing the page position `w.pgid` (entry `i` of the branch node `nl`) keeps the
+bucket's exact keys**, the new node's bounds its entry's (`wEntryBnd (bnd nl) rp.ws i`). The
+direct form of U8b's `rblKeys_addChild`, needing no `brFirst` (so no `txPg`). -/
+theorem bktKeys_addChild (hx : matExtra r) (bnd : Loc → Option (List w8) × Option (List w8))
+    (hk : bktKeysB W B bnd) :
+    bktKeysB W (matBkt B w.pgid nl l rp' r)
+      (fun x => if x = l then wEntryBnd (bnd nl) rp.ws i else bnd x) := by
+  obtain ⟨hroot, hrn, hnl, hlnl, hpgc, hcid, hwfc, hpt, hpos⟩ :=
+    mat_basic W hwm bl B hv hc nl rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr hp'
+  have hnsB := mat_nsB W hwm bl B hv hc nl rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr hp'
+  have hold' := mat_old W hwm bl B hv hc nl rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr hp'
+  have hfree := mat_free W hwm bl B hv hc nl rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr hp'
+  obtain ⟨hr1, hr2, hr3, hr4, hr5, hr6, hr7, hr8, hr9, hr10, hr11, hr12⟩ := hr
+  obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7⟩ := hp'
+  obtain ⟨hk1, hk2, hk3⟩ := hk
+  have hns' := mat_ns B w.pgid nl l rp' r
+  have hnm' := mat_nm B w.pgid nl l rp' r
+  obtain ⟨-, -, -, hrpk3, -, -⟩ := hk3 nl rp hrp
+  obtain ⟨-, kind, hkd⟩ := hrpk3 hbr
+  obtain ⟨pg', hpg', hcnt, hkind0, hkey0, htk⟩ := (hkd i w hw).2 hnone
+  rw [hpg] at hpg'; cases hpg'
+  have hold : ∀ x, (B.ns !! x).isSome → x ≠ l := by
+    intro x hx he; rw [he, hfresh] at hx; cases hx
+  have hpar : ∀ y ry, B.ns !! y = some ry → ry.nv.parent' ≠ null →
+      (B.ns !! ry.nv.parent').isSome := by
+    intro y ry hy hp
+    obtain ⟨rq, hrq, -⟩ := ncol_par (hc.2.2.2.2.2.2.2.1 y ry hy) hp
+    rw [hrq]; rfl
+  refine ⟨fun h => hk1 h, ?_, ?_⟩
+  · intro r0 h0
+    have hrs := hc.2.2.2.1 hrn
+    obtain ⟨-, rr, hrr, -⟩ := hc.2.2.2.2.1 _ _ hrs
+    change (matBkt B w.pgid nl l rp' r).ns !! B.bv.rootNode' = some r0 at h0
+    obtain ⟨ry0, hry0, hpar0, -⟩ := hold' _ r0 h0 (hold _ (by rw [hrr]; rfl))
+    rw [hpar0]; exact hk2 ry0 hry0
+  intro y ry hy
+  by_cases hyl : y = l
+  · rw [hns', if_pos hyl] at hy; cases hy
+    have hnlb : (if nl = l then wEntryBnd (bnd nl) rp.ws i else bnd nl) = bnd nl := by
+      rw [if_neg (Ne.symm hlnl)]
+    have hybF : (fun x => if x = l then wEntryBnd (bnd nl) rp.ws i else bnd x) y =
+        wEntryBnd (bnd nl) rp.ws i := by simp only [if_pos hyl]
+    have hk0 : r.key = w.key := by
+      rw [hr11, mat_wKey hr9, mat_wKey_page pg 0 hcnt]; exact hkey0
+    have htk' := mat_treeKeys_key _ _ _ _ pg htk hpg
+    refine ⟨?_, fun h => absurd hr2 (fun h' => hnl (h'.symm.trans h)), fun _ => ⟨hx.2.1, ?_⟩,
+      fun hlf => ?_, fun _ _ _ => by rw [mat_len hr9]; exact hcnt, fun hlf x hxm => ?_⟩
+    · intro x hxm
+      obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hxm
+      obtain ⟨hjc, hd⟩ := mat_at hr9 j x hj
+      rw [hybF, (mat_wDat_eq hd).2.2.1, mat_pageW_key]; exact htk' j hjc
+    · rw [hr2]
+      refine ⟨rp', i, w, by rw [hns', if_neg (Ne.symm hlnl), if_pos rfl], by rw [hp2]; exact hw,
+        by rw [hr3, hcid], hk0.symm, ?_⟩
+      show (fun x => if x = l then wEntryBnd (bnd nl) rp.ws i else bnd x) y =
+        wEntryBnd ((fun x => if x = l then wEntryBnd (bnd nl) rp.ws i else bnd x) nl) rp'.ws i
+      rw [hybF]; simp only [hnlb, hp2]
+    · have hnleaf : pageFlags pg ≠ leafPageFlag := by
+        intro h; rw [hr4, h] at hlf; simp at hlf
+      cases htk with
+      | leaf _ pg' _ _ hpg' hl' _ _ => rw [hpg] at hpg'; cases hpg'; exact absurd hl' hnleaf
+      | branch _ pg' _ _ kindN hpg' hbr' h2 _ hch hsub =>
+        rw [hpg] at hpg'; cases hpg'
+        refine ⟨by rw [mat_len hr9]; exact h2, decide (kindN = leafPageFlag), fun j x hj => ?_⟩
+        obtain ⟨hjc, hd⟩ := mat_at hr9 j x hj
+        obtain ⟨cpg, hcpg, hcc, hcf, hck⟩ := hch j hjc
+        have hpj : x.pgid = W64 (branchPgid pg j : Int) := by
+          rw [(mat_wDat_eq hd).2.1, (mat_pageW_branch pg j hnleaf).1]
+        have hnm0 := hfree j hjc hbr'
+        rw [← hpj] at hnm0
+        refine ⟨fun l' hl' => (by rw [hnm0] at hl'; cases hl'), fun _ => ⟨cpg, ?_, hcc,
+          by rw [hcf], ?_, ?_⟩⟩
+        · rw [hpj, toNat_W64_of_lt _ (mat_branchPgid_lt pg j)]; exact hcpg
+        · rw [hck, (mat_wDat_eq hd).2.2.1, (mat_pageW_branch pg j hnleaf).2]
+        · rw [hpj, toNat_W64_of_lt _ (mat_branchPgid_lt pg j), mat_wEntryBnd hr9, hybF,
+            mat_entryBnd_page _ pg j hjc hnleaf]
+          exact hsub j hjc
+    · have hfl : pageFlags pg = leafPageFlag := by rw [hr4] at hlf; simpa using hlf
+      obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hxm
+      obtain ⟨hjc, hd⟩ := mat_at hr9 j x hj
+      obtain ⟨e1, -, -, e4⟩ := mat_wDat_eq hd
+      obtain ⟨f1, -, -, f4⟩ := mat_pageW_leaf pg j hfl
+      intro hbk h0 _
+      rw [e1, f1, mat_isBktFlag_iff _ (mat_leafFlags_lt pg j)] at hbk
+      rw [e4, f4] at h0 ⊢
+      cases htk with
+      | leaf _ pg' _ _ hpg' _ _ hbkt =>
+        rw [hpg] at hpg'; cases hpg'
+        exact hbkt j hjc hbk h0
+      | branch _ pg' _ _ _ hpg' hbr' _ _ _ _ =>
+        rw [hpg] at hpg'; cases hpg'
+        rw [hfl] at hbr'; exact absurd hbr'.symm mat_branch_ne_leaf
+  · -- an old node
+    obtain ⟨ry0, hry0, a1, a2, a3, a4, -, a6, a7, a8⟩ := hold' y ry hy hyl
+    obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hk3 y ry0 hry0
+    have hb : (fun x => if x = l then wEntryBnd (bnd nl) rp.ws i else bnd x) y = bnd y := by
+      simp only [if_neg hyl]
+    refine ⟨by rw [hb, a3]; exact c1, fun hp => by rw [hb]; exact c2 (by rw [← a1]; exact hp),
+      fun hp => ?_, fun hlf => ?_, by rw [a2, a8, a1, a3]; exact c5, ?_⟩
+    · rw [a1] at hp
+      obtain ⟨hk', rp0, i0, w0, hrp0, hw0, hpg0, hkey0', hbnd0⟩ := c3 hp
+      obtain ⟨rp0', h1, -, -, h2, -⟩ := hnsB _ _ hrp0
+      have hpl : ry0.nv.parent' ≠ l := hold _ (hpar y ry0 hry0 hp)
+      refine ⟨by rw [a6]; exact hk', rp0', i0, w0, by rw [a1]; exact h1, by rw [h2]; exact hw0,
+        by rw [a4]; exact hpg0, by rw [a7]; exact hkey0', ?_⟩
+      rw [hb, a1, h2]
+      simp only [if_neg hpl]; exact hbnd0
+    · rw [a2] at hlf
+      obtain ⟨h2, kind', hkd'⟩ := c4 hlf
+      refine ⟨by rw [a3]; exact h2, kind', fun j w' hj => ?_⟩
+      rw [a3] at hj
+      obtain ⟨ha, hbb⟩ := hkd' j w' hj
+      refine ⟨fun l' hl' => ?_, fun hn => ?_⟩
+      · rw [hnm'] at hl'
+        split at hl'
+        · rename_i hkw
+          cases hl'
+          obtain ⟨pg0, hpg0, -, hk0, -⟩ := hbb (by rw [hkw]; exact hnone)
+          rw [hkw, hpg] at hpg0; cases hpg0
+          exact ⟨r, by rw [hns', if_pos rfl], by rw [hr4]; exact hk0⟩
+        · obtain ⟨r'', h1, h2⟩ := ha l' hl'
+          obtain ⟨r3, h3, -, h4, -⟩ := hnsB _ _ h1
+          exact ⟨r3, h3, h4.trans h2⟩
+      · rw [hnm'] at hn
+        split at hn
+        · cases hn
+        · obtain ⟨pg0, a1', a2', a3', a4', a5'⟩ := hbb hn
+          exact ⟨pg0, a1', a2', a3', a4', by rw [hb, a3]; exact a5'⟩
+    · rw [a2, a3]
+      intro hlf x hx hbk h0 hno
+      exact c6 hlf x hx hbk h0 hno
+
+end childkeys
+
 /-! ## `wOK_nodeAdded` -/
 
 section main
@@ -774,9 +920,9 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       by_cases hin : B.ib.root' = W64 0
       · obtain ⟨-, -, hg⟩ := hc.1 hin hrn0
         have hpgB : pg = B.ipg := by
-          unfold wpageAt at hwp; rw [if_pos hin] at hwp; split at hwp
-          · simp only [Option.some.injEq, Prod.mk.injEq] at hwp; exact hwp.2.symm
-          · cases hwp
+          unfold wpageAt at hwp
+          simp only [hin, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at hwp
+          exact hwp.2.symm
         subst hpgB
         obtain ⟨g1, g2, g3, -, g5⟩ := hg
         refine ⟨pageTreeWF.leaf _ _ g2 g3 (fun i hi hb => ?_), ⟨fun _ i hi => ⟨(g5 i hi).1,
@@ -880,6 +1026,164 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       · exact Or.inr h
 
 end main
+
+/-! ## `bktLocalOK` through a materialization (`Cursor.node`'s callers, `seek_w` then `node`) -/
+
+section localok
+variable [GooseExts]
+
+/-- `bktLocalOK` of a bucket grown by a fresh node. -/
+theorem bktLocalOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
+    (hb : bktLocalOK X bl) (hB : X.t.bs !! bl = some B)
+    (hc' : bktClean X.v X.t.mv.pgid'.toNat bl B') (hk' : bktKeys X.v B')
+    (hnew : B'.ns !! l = some r)
+    (hnsN : ∀ y ry', B'.ns !! y = some ry' → y = l ∨ ∃ ry, B.ns !! y = some ry ∧
+      ry'.nv.isLeaf' = ry.nv.isLeaf' ∧ ry'.ws = ry.ws)
+    (hleaf : nodePgLeaf r) : bktLocalOK (matX X bl l pgid B') bl := by
+  obtain ⟨hlive, B0, hB0, -, -, hpl, hnl⟩ := hb
+  rw [hB] at hB0; cases hB0
+  refine ⟨mem_ins_of_mem () hlive, B', by rw [matX_bs, if_pos rfl], hc', hk', ?_, ?_⟩
+  · intro c C hC y ry hy
+    rw [GMap.lookup_singleton_Some] at hC
+    obtain ⟨rfl, rfl⟩ := hC
+    rcases hnsN y ry hy with rfl | ⟨ry0, hry0, a1, a2⟩
+    · rw [hnew] at hy; cases hy; exact hleaf
+    · intro hlf x hx
+      rw [a1] at hlf; rw [a2] at hx
+      exact hpl bl B (GMap.lookup_singleton _ _) y ry0 hry0 hlf x hx
+  · intro y ry hy
+    rcases hnsN y ry hy with rfl | ⟨ry0, hry0, -⟩
+    · exact mem_ins_self _ _ _
+    · exact mem_ins_of_mem () (hnl y ry0 hry0)
+
+/-- **A materialization keeps a searchable bucket searchable** (`bktLocalOK`), over a
+well-formed view (`viewWF`: its pages' uniqueness gives the new node's distinct children and
+disjoint positions; `bktLocalOK` alone does not), with `nodeAdded`'s missing facts as premises
+(`hsrc`, `hcap`: batch 20). -/
+theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
+    (hv : viewWF X.v) (hb : bktLocalOK X bl) (h : nodeAdded X X' bl l pgid parent)
+    (hpos : matPos X bl pgid parent)
+    (hsrc : ∀ B' r', X'.t.bs !! bl = some B' → B'.ns !! l = some r' → ∀ w ∈ r'.ws,
+      isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)
+    (hcap : ∀ B B' rp rp', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' →
+      B.ns !! parent = some rp → B'.ns !! parent = some rp' → rp'.capOwn = rp.capOwn) :
+    bktLocalOK X' bl := by
+  have hstrict := mat_strict X.v hv
+  obtain ⟨B, pa, pg, r, ns', bv', hB, hwp, hnm, hl0, hlo, hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs,
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
+  have hlo' : X.t.objs !! l = none := by simpa using hlo
+  have hb' := hb
+  obtain ⟨-, B0, hB0, hc, ⟨bnd, hkb⟩, -, -⟩ := hb'
+  rw [hB] at hB0; cases hB0
+  have hr : matNew bl parent pg r :=
+    ⟨hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs, hrco, by rw [hrws, mat_pageWsAs_wDat], hrlive,
+      hrkey, hrks⟩
+  have hr9 := hr.2.2.2.2.2.2.2.2.1
+  have hfresh : B.ns !! l = none := (objs_none X.t l hlo').2 bl B hB
+  have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
+    rw [hX']; exact GMap.lookup_insert _ _ _
+  have hns'l : ns' !! l = some r := by
+    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, rfl⟩ <;>
+      exact GMap.lookup_insert _ _ _
+  have hsrc' := hsrc _ r hB' hns'l
+  have hleafr : nodePgLeaf r := by
+    intro hlf x hx
+    have hfl : pageFlags pg = leafPageFlag := by rw [hrleaf] at hlf; simpa using hlf
+    obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hx
+    obtain ⟨-, hd⟩ := mat_at hr9 j x hj
+    rw [(mat_wDat_eq hd).2.1, (mat_pageW_leaf pg j hfl).2.1]
+  obtain ⟨B1, hB1, hp⟩ := hpos
+  rw [hB] at hB1; cases hB1
+  subst hX'
+  rcases hcase with ⟨hpn, hbv, hns⟩ | ⟨hpn, hbv, rp, rp', hrp, hbr, hc1, hc2, hc3, hc4, hc5, hc6, hns⟩
+  · subst hpn hbv hns
+    rcases hp with ⟨-, hrn0, rfl⟩ | ⟨i, rp, w, hrp, -⟩
+    rotate_left
+    · have := ncol_nm (hc.2.2.2.2.2.2.2.1 null rp hrp)
+      exact absurd rfl (hc.2.2.2.2.1 _ _ this).1
+    have hns0 := (hc.2.2.1 hrn0).1
+    have hfacts : pageTreeWF X.v.pages X.t.mv.pgid'.toNat pg pg.length ∧ pageGood pg ∧
+        (pageHdr pg).id' = B.ib.root' ∧
+        (B.ib.root' ≠ W64 0 → X.v.pages !! B.ib.root'.toNat = some pg) ∧
+        (B.ib.root' = W64 0 → pageFlags pg = leafPageFlag ∧
+          ∀ j < pageCount pg, leafFlags pg j % 2 = 0) := by
+      by_cases hin : B.ib.root' = W64 0
+      · obtain ⟨-, -, hg⟩ := hc.1 hin hrn0
+        have hpgB : pg = B.ipg := by
+          unfold wpageAt at hwp
+          simp only [hin, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at hwp
+          exact hwp.2.symm
+        subst hpgB
+        obtain ⟨g1, g2, g3, -, g5⟩ := hg
+        refine ⟨pageTreeWF.leaf _ _ g2 g3 (fun i hi hb => ?_), ⟨fun _ i hi => ⟨(g5 i hi).1,
+          fun hb => ?_⟩, fun hb => ?_⟩, ?_, fun h => absurd hin h,
+          fun _ => ⟨g2, fun j hj => (g5 j hj).2⟩⟩
+        · have := (g5 i hi).2; rw [hb] at this; unfold bucketLeafFlag at this; omega
+        · have := (g5 i hi).2; rw [hb] at this; unfold bucketLeafFlag at this; omega
+        · rw [g2] at hb; exact absurd hb leaf_ne_branch
+        · rw [hin]; apply BitVec.eq_of_toNat_eq; exact g1
+      · have hpgv : X.v.pages !! B.ib.root'.toNat = some pg := by
+          unfold wpageAt at hwp; rw [if_neg hin] at hwp
+          cases h : X.v.pages !! B.ib.root'.toNat with
+          | none => rw [h] at hwp; cases hwp
+          | some pg0 => rw [h] at hwp; simp only [Option.map_some, Option.some.injEq,
+                          Prod.mk.injEq] at hwp
+                        rw [hwp.2]
+        have htw := (hc.2.1 hin).2 hrn0
+        obtain ⟨hid, -, hpt⟩ := mat_ptwf htw hpgv
+        exact ⟨hpt, hstrict.1 _ pg hpgv, BitVec.eq_of_toNat_eq hid, fun _ => hpgv,
+          fun h => absurd h hin⟩
+    obtain ⟨hpt, hgood, hcid, hfile, hinl'⟩ := hfacts
+    have hns' := matR_ns B B.ib.root' l r hns0
+    refine bktLocalOK_matX X bl l B.ib.root' B (matRBkt B B.ib.root' l r) r hb hB
+      (matR_clean X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' hrins hrkn
+        hsrc')
+      (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' (hkb.1 hrn0))
+      (by rw [hns', if_pos rfl]) ?_ hleafr
+    intro y ry' hy
+    rw [hns'] at hy
+    split at hy
+    · rename_i h; exact Or.inl h
+    · cases hy
+  · rcases hp with ⟨h0, -⟩ | ⟨i, rp0, w, hrp0, hbr0, hw, hwpg, hnone⟩
+    · exact absurd h0 hpn
+    subst hwpg hbv hns
+    rw [hrp] at hrp0; cases hrp0
+    have hroot : B.ib.root' ≠ W64 0 := by
+      intro h0; have := hc.2.2.2.2.2.2.1 h0 parent rp hrp; rw [hbr] at this; cases this
+    have hpg : X.v.pages !! w.pgid.toNat = some pg := by
+      unfold wpageAt at hwp; rw [if_neg hroot] at hwp
+      cases h : X.v.pages !! w.pgid.toNat with
+      | none => rw [h] at hwp; cases hwp
+      | some pg0 => rw [h] at hwp; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hwp
+                    rw [hwp.2]
+    have hrp' : (matBkt B w.pgid parent l rp' r).ns !! parent = some rp' := by
+      rw [mat_ns, if_neg (fun h => by rw [h, hfresh] at hrp; cases hrp), if_pos rfl]
+    have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcap B _ rp rp' hB hB' hrp hrp'⟩
+    obtain ⟨-, -, -, hrpk3, -, -⟩ := hkb.2.2 parent rp hrp
+    obtain ⟨-, kind, hkd⟩ := hrpk3 hbr
+    obtain ⟨pg', hpg', hcnt, -⟩ := (hkd i w hw).2 hnone
+    rw [hpg] at hpg'; cases hpg'
+    have hx : matExtra r := by
+      refine ⟨hrins, fun hn => ?_, hsrc'⟩
+      have := hrkn.1 hn
+      rw [this] at hr9
+      have := mat_len hr9; simp at this; omega
+    have hold := mat_old X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
+      r rp' hr hp'
+    refine bktLocalOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hb hB
+      (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
+        hp' hx hcnt)
+      ⟨_, bktKeys_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
+        r rp' hr hp' hx bnd hkb⟩
+      (by rw [mat_ns, if_pos rfl]) ?_ hleafr
+    intro y ry' hy
+    by_cases hyl : y = l
+    · exact Or.inl hyl
+    · obtain ⟨ry0, hry0, -, a2, a3, -⟩ := hold y ry' hy hyl
+      exact Or.inr ⟨ry0, hry0, a2, a3⟩
+
+end localok
 
 end Write
 
