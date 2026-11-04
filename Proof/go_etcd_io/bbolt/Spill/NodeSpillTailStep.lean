@@ -87,7 +87,158 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   have hfr3 := pcStepX_frame hs hrl hd hG1
   obtain ⟨hPid, hPne⟩ := spP_bufs_insert hbuf3 hpg3
   have hfresh := pcStepX_fresh hs hL.slot
-  sorry
+  have hplen := hL.len
+  -- the pieces' nodes other than `x`'s are neither it nor the parent
+  have hoth : ∀ k x', xs[k]? = some x' → k ≠ i → x'.1 ∉ [x.1, rl.nv.parent'] := by
+    intro k x' hx' hki hm
+    rcases List.mem_cons.1 hm with he | hm
+    · have hkl := (List.getElem?_eq_some_iff.1 hx').1
+      apply hki
+      have hkm : k < (xs.map (·.1)).length := by simpa using hkl
+      have him : i < (xs.map (·.1)).length := by simpa using hil
+      refine (List.Nodup.getElem_inj (i := k) (j := i) (hi := hkm) (hj := him) hsr.nd).1 ?_
+      simp only [List.getElem_map]
+      rw [(List.getElem?_eq_some_iff.1 hx').2, (List.getElem?_eq_some_iff.1 hx).2]; exact he
+    · rw [List.mem_singleton, hrpl] at hm
+      by_cases hpn : pl = null
+      · obtain ⟨rk, hrk, -⟩ : ∃ rk, Xi.node bl x'.1 = some rk ∧ True := by
+          rcases Nat.lt_or_ge k i with hk | hk
+          · obtain ⟨p, hp⟩ : ∃ p, ps[k]? = some p :=
+              ⟨_, List.getElem?_eq_getElem (by rw [hplen]; exact hk)⟩
+            obtain ⟨wk, hwk⟩ : ∃ wk, wss[k]? = some wk := ⟨_, List.getElem?_eq_getElem
+              (by rw [hsr.len]; exact (List.getElem?_eq_some_iff.1 hx').1)⟩
+            obtain ⟨rk, hrk, -⟩ := hL.done k x' p wk hx' hp hwk
+            exact ⟨rk, hrk, trivial⟩
+          · obtain ⟨wk, hwk⟩ : ∃ wk, wss[k]? = some wk := ⟨_, List.getElem?_eq_getElem
+              (by rw [hsr.len]; exact (List.getElem?_eq_some_iff.1 hx').1)⟩
+            obtain ⟨rk, hrk, -⟩ := hL.todo k x' wk hk hx' hwk
+            exact ⟨rk, hrk, trivial⟩
+        exact hnn hrk (hm.trans hpn)
+      · obtain ⟨-, -, -, hnot, -⟩ := hL.par hpn
+        exact hnot (hm ▸ List.mem_map_of_mem (f := (·.1)) (List.mem_of_getElem? hx'))
+  exact {
+    len := by rw [List.length_append, hplen]; rfl
+    start := fun h => absurd h (Nat.succ_ne_zero _)
+    vb := fun y pg hy => Nat.lt_of_lt_of_le (hL.vb y pg (hpg3 ▸ hy)) hmk3
+    ile := hil
+    pcl := by
+      intro k p x' hp hx'
+      rcases Nat.lt_or_ge k ps.length with hk | hk
+      · rw [List.getElem?_append_left hk] at hp; exact hL.pcl k p x' hp hx'
+      · rw [List.getElem?_append_right hk] at hp
+        have hk0 : k - ps.length = 0 := by
+          cases e : k - ps.length with
+          | zero => rfl
+          | succ _ => rw [e] at hp; simp at hp
+        rw [hk0] at hp; simp at hp; subst hp
+        have : k = i := by omega
+        subst this; rw [hx] at hx'; cases hx'; rfl
+    Elen := hL.Elen
+    Dlen := hL.Dlen
+    step := spStep_trans hL.step (pcStepX_step hs hrl hG3 hL.slot (by
+      intro hpg
+      have hpg' : rl.nv.pgid' = x.2.1.pgid' := by rw [hnv]
+      rw [hpg', hxpg] at hpg ⊢
+      by_cases hi0 : i = 0
+      · subst hi0
+        simp only [ite_true] at hpg ⊢
+        change r'.nv.pgid' ≠ W64 0 at hpg
+        change r'.nv.pgid'.toNat ∈ _
+        refine List.mem_append_left _ (List.mem_append_left _ ?_)
+        show _ ∈ (if 0 = 0 then ownSl X'.v r'.nv.pgid' else [])
+        rw [if_pos rfl]
+        unfold ownSl; rw [if_neg hpg]
+        exact mem_pgSlots_self (List.mem_singleton_self _)
+      · rw [if_neg hi0] at hpg; exact absurd rfl hpg))
+    frame := spFrame_mono (spFrame_trans hL.frame hfr3) (by
+      intro l' hl'
+      rcases List.mem_append.1 hl' with h' | h'
+      · exact h'
+      · rcases List.mem_cons.1 h' with rfl | h'
+        · exact List.mem_append_left _ (List.mem_map_of_mem (List.mem_of_getElem? hx))
+        · rw [List.mem_singleton] at h'; subst h'; rw [hrpl]
+          exact List.mem_append_right _ (List.mem_singleton_self _))
+    todo := by
+      intro k x' ws' hk hx' hws'
+      obtain ⟨rk, hrk, hlvk, hsk⟩ := hL.todo k x' ws' (by omega) hx' hws'
+      obtain ⟨rk', hrk', hsk', hlk⟩ := spFrame_node hfr3 hrk (hoth k x' hx' (by omega))
+      exact ⟨rk', hrk', hlk.2 hlvk, nodeSim_trans hsk hsk'⟩
+    done := by
+      intro k x' p ws' hx' hp hws'
+      rcases Nat.lt_or_ge k ps.length with hk | hk
+      · rw [List.getElem?_append_left hk] at hp
+        obtain ⟨rk, hrk, hlvk, hb, hspd, hcs', hch', hpar', hpg', hwd, hpk, hkey, hft⟩ :=
+          hL.done k x' p ws' hx' hp hws'
+        obtain ⟨rk', hrk', hsk, hlk⟩ := spFrame_node hfr3 hrk (hoth k x' hx' (by omega))
+        have hag : ∀ y ∈ pgSlots (spP Xi) p.S, spP X3 !! y = spP Xi !! y := by
+          intro y hy
+          apply hPne y
+          intro hye
+          have hyL : y ∈ O ++ ((if i = 0 then ownSl X'.v r'.nv.pgid' else []) ++
+              (Ds.drop i).flatten ++ pcSlots (spP Xi) ps) :=
+            List.mem_append_right _ (List.mem_append_right _
+              (List.mem_flatMap.2 ⟨p, List.mem_of_getElem? hp, hy⟩))
+          rcases hfresh y hyL with h1 | h1 <;> omega
+        refine ⟨rk', hrk', hlk.2 hlvk, by rw [hsk.1]; exact hb, by rw [hsk.1]; exact hspd,
+          by rw [hsk.2.2.2.2.1]; exact hcs', by rw [hsk.1]; exact hch', by rw [hsk.1]; exact hpar',
+          by rw [hsk.1]; exact hpg', hsk.2.2.1.trans hwd, hpk, fun hpl => ?_,
+          (fTree_agree hag hmk3 hft).1⟩
+        obtain ⟨h1, h2⟩ := hkey hpl
+        exact ⟨hsk.2.2.2.2.2.1.trans h1, fun he => h2 (hsk.2.1.1 he)⟩
+      · rw [List.getElem?_append_right hk] at hp
+        have hk0 : k - ps.length = 0 := by
+          cases e : k - ps.length with
+          | zero => rfl
+          | succ _ => rw [e] at hp; simp at hp
+        rw [hk0] at hp; simp at hp; subst hp
+        have : k = i := by omega
+        subst this; rw [hx] at hx'; cases hx'; rw [hws] at hws'; cases hws'
+        have hft_new : fTree (spP X3) X3.t.mv.pgid'.toNat id.toNat (wssKey wss k)
+            (childHi hi (wssKey wss) xs.length k) h (nodePages id.toNat ws.length Sb)
+            (Es.getD k []) := sorry
+        have hcs0 : ra.cs = [] := by
+          rw [hsa.2.2.2.2.1, hsim.2.2.2.2.1]; unfold splitRec; split <;> rfl
+        have hwd : ra.ws.map wDat = ws.map wDat := hsa.2.2.1.trans (hsim.2.2.1.trans (by
+          unfold splitRec; split <;> rfl))
+        have hra := hsa.1
+        rw [hrpl] at hX3l
+        refine ⟨_, hX3l, by rw [hlive3]; exact hlv, ?_⟩
+        unfold pcRec
+        by_cases hpn : pl ≠ null
+        · rw [if_pos (by simpa using hpn)]
+          obtain ⟨rpi, hrpi, -⟩ := hparp (by rw [hrpl]; exact hpn)
+          obtain ⟨-, -, -, hk0'⟩ := hpar3 (by rw [hrpl]; exact hpn) rpi hrpi
+          refine ⟨by simp only []; rw [hra]; exact hbl, rfl, hcs0,
+            by simp only []; rw [hra]; show rl.nv.children' = _; rw [hnv]; exact hxch,
+            by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun _ => ⟨?_, hk0'⟩, hft_new⟩
+          show ra.w0.key = wssKey wss k
+          unfold wssKey; rw [hws]
+          show (ra.ws.headD default).key = wKey ws 0
+          cases ews : ws with
+          | nil => rw [ews] at hwd; simp at hwd; rw [hwd]; rfl
+          | cons e es =>
+            rw [ews] at hwd
+            cases era : ra.ws with
+            | nil => rw [era] at hwd; simp at hwd
+            | cons e' es' =>
+              rw [era] at hwd
+              simp only [List.map_cons, List.cons.injEq] at hwd
+              simp [wKey, wDat_key hwd.1]
+        · rw [if_neg (by simpa using hpn)]
+          refine ⟨by simp only []; rw [hra]; exact hbl, rfl, hcs0,
+            by simp only []; rw [hra]; show rl.nv.children' = _; rw [hnv]; exact hxch,
+            by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun h' => absurd h' hpn,
+            hft_new⟩
+    slot := sorry
+    agree := by
+      intro y hy
+      by_cases h1 : spP Xi !! y = spP X' !! y
+      · by_cases h2 : y = id.toNat
+        · exact ⟨pn, List.mem_append_right _ (List.mem_singleton_self _), h2⟩
+        · exact absurd (by rw [hPne y h2, h1]) hy
+      · obtain ⟨p, hp, he⟩ := hL.agree y h1
+        exact ⟨p, List.mem_append_left _ hp, he⟩
+    par := sorry }
 
 end step
 
