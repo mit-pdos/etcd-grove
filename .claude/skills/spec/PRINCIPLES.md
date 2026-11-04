@@ -79,6 +79,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
   harmlessly. A post that says a call returns claims it returns on every input the premise admits:
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+- **A law over a free mode (or any index) holds at every value of it**: check it at each literal against the variance of every resource it mentions. An atomic update's grant is the committer's to supply (contravariant: `kvAu1G G ⊢ kvAu1G G'` needs `G' ⊢ G`), so a gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with `X` only at `true`. A law that holds at one mode only is stated at that literal, where the mode gate counts it, not over a free `on` with an `(h : on = b)` premise. (The auth component's stage 4, round 3: three "any `on`" laws false at one mode; `examples/auth-component.md`, stage 4.)
 
 ## Preferences: strength
 

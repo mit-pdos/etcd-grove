@@ -31656,6 +31656,56 @@ corollaries stay in `ModeSpecs.lean`. (The pilot also found `applyEntryNormal`'s
 **Left** (the Freeze's deferrals): the request side (`Put`/`DeleteRange`/`Range`/`Txn`'s pairs,
 v3rpc, `Serve`, D4); layer A, one KV model (D1); `applyEntryNormal`'s twins (the pilot); `NewServer`
 (D6); `AppliedIndex` as it is (D7 (b)).
+## The auth component, stage 4: the request side's server and v3rpc layers merged (2026-11-04 · the Freeze of candidate 4, "freeze it, go ahead with 4-1" · branch `auth-comp4`)
+
+Supersedes stage 3's "the off corollaries (`X.spec_off`) are re-derived ... for the
+`Put`/`DeleteRange`/`Range`/`Txn` pairs (D4 keeps them)" and its "Left: the request side" for the
+server (L1) and v3rpc (L2) layers. The spec example `auth-component-stage4.md` keeps the review
+rounds' history; the frozen text is candidate 4 (D1–D8).
+
+**What.**
+- **4-1, `Txn`.** One spec over `E.authOn` (it replaces `spec`, `specOn`, `specOnR`) and one proof
+  (1,369 lines, bound 1,460), splitting on the mode at the proposal and at `CheckTxnAuth`; the on
+  read takes `hLb : apply.CheckTxnAuth.specLb`, linked by the new closed
+  `apply.CheckTxnAuth.wp_lb_linked`. New rows `txnPermitM`, `txnErrOkM` with their laws;
+  `server_txn_on`, `server_txn_ro_on`, `txnErrOkOn` deleted.
+- **4-2, v3rpc.** One answer contract `srvKVAnsM on` over rows with no match on the mode
+  (`kvOpAuM`, `kvDepOwnM`, `kvDepPreM` over `kvReqShape`; the model-reading `rangeDepQM`,
+  `rangeAnsOkM`, `txnReadAnsM`, whose off and on names are now abbreviations), and one proof per
+  operation at `E.authOn` (`kv*Ok_of_serverM`, `raftKV_of_serverM`; 613 lines, bound 966). Merged
+  results `raftKV_serverM` and `{put,deleteRange,range,txn}_end_to_endM`. `raftKV_server` and
+  `raftKV_serverOn` keep their texts, derived from `raftKV_serverM` by the new `raftKV_mono`.
+- **4-3.** `range_linearizable`/`range_serializable` take the merged `Range.spec` at the off view;
+  `ModeSpecs`' `{Put,DeleteRange,Range}.{specOff,specOn,spec_off,spec_on}` and
+  `server_{put,delete_range,range}_on` deleted.
+
+**The variance rule** (the Freeze's §2.3). The grant `G` of `kvAu1G γk f G Q` is the committer's to
+supply: `kvAu1G G ⊢ kvAu1G G'` needs `∀ σ, G' σ ⊢ G σ`, and `kvAu1 ⊢ kvAu1G G` for every `G`. So a
+gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with
+`X` only at `true`; each law that removes or identifies a gate is stated at its literal mode
+(`txnPermitM_false`, `txnPermit_of_false`, `txnPermitM_true`, `kvDepOwnM_false`, `kvDepOwnM_true`),
+and the mode gate counts it as a bridge.
+
+**Departures from the frozen text.**
+- The off and on `*_end_to_end` results are not re-derived from the `*_end_to_endM` ones (no
+  `kvServerAt_ans`): their proofs are unchanged, through `raftKV_server(On)`, which are now
+  instances of `raftKV_serverM`. Both routes leave one proof per operation; this one changes fewer
+  lines, and L3's merge (D8) uses the merged results directly.
+- `Put.spec` and `DeleteRange.spec` take the gate `hdrBoundM true` (the permit ignores it off), so
+  the v3rpc put and delete proofs get it by unification (`iapply putPermitM_of_dep … _ ?hGb`)
+  instead of writing the literal, which the mode gate would count in v3rpc.
+- `client/v3/Results.lean`'s three unfolds also need `kvStM_false`/`kvModelM_false` to reach the
+  old forms.
+- The mode gate's baseline: 327 (4-1) → 315 (4-2: v3rpc 41 → 29) → 300 (4-3: etcdserver 158 →
+  143), as the Freeze's §4 counted. No allow line is dead; `AdminOn`'s count comment was stale (2,
+  is 3).
+
+**Left** (D1, D5, D7, D8): L3 (the client's `GrpcSpec`/`GrpcSpecMd` registrations, `ServedOn`) and
+L4 (`grpcUp`, `Serve`), with the unfolds of v3rpc's rows they inherit, each a missing elimination
+law; the request path's `specOff`/`spec_off` (`processInternalRaftRequestOnce`, `raftRequest`,
+`doSerialize`) until `Compact` and the off tails merge; the admin entries' `specOn`/`wp_proofOn`;
+layer A, `applyEntryNormal`'s twins, `NewServer`.
+
 ## The stop's pieces kept from construction: `srvStopKeep`, and `bootOk`'s backend file (2026-11-04 · R2b-3d stage 1, the user's approval of `bootOk`'s change · branch `r2b3`)
 
 **Before:** `NewServer` dropped what only the stop needs (the raft loop's stop claim, the storage

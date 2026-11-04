@@ -9,9 +9,11 @@ statements of the two modes as they were (`specOff`, with the premise `E.authOn 
 The request path (step 5, 2026-10-29): `parseProposeCtxErr`, `processInternalRaftRequestOnce`,
 `raftRequest`, `doSerialize`. (Their instances at a mode, `<F>.specM on`, went in the auth
 component's stage 3, 2026-11-04: a caller applies `<F>.spec` and reads `E.authOn` off the
-proposer's view, `isServerReqM_authOn`.) For the mode-off proofs of
-`Put`, `DeleteRange`, `Range` and `Txn` not merged yet, `<F>.specOff`, the mode-off statement before
-the merge (over `isServerReq`, `reqPropOk`, the result at `kvModel`; `<F>.spec_off`).
+proposer's view, `isServerReqM_authOn`.) Their `<F>.specOff`, the mode-off statement before the
+merge (over `isServerReq`, `reqPropOk`, the result at `kvModel`; `<F>.spec_off`), stays for the off
+proofs that use it (`Compact`, the off tails of `Put`/`DeleteRange`/`Range`). The off and on texts of
+`Put`, `DeleteRange`, `Range` and `Txn` themselves went in the auth component's stage 4
+(2026-11-04): their clients take the merged spec at `E.authOn`.
 -/
 module
 

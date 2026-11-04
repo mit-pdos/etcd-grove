@@ -1,9 +1,11 @@
 /-
 **The server's contract with auth on** (the auth plan's E3zb, 2026-10-28; `ServerKV.lean`'s, in
 the auth mode `on`): the parameters `A : KVAns GF` of `raftKV s A` for the server `s` started with
-auth on (`srvKVAnsOn s E ρ γr c F d n tok`), and every conjunct of `raftKV` proved from the server's
-linked specs with auth on (`EtcdServer.{Put,DeleteRange,Txn}.specOn`, `Range.specOn`,
-`Txn.specOnR`): `kvPutOk_of_serverOn`, ..., `raftKV_of_serverOn`.
+auth on (`srvKVAnsOn s E ρ γr c F d n tok`). Since the auth component's stage 4 (2026-11-04), the
+rows merged over the mode (`srvKVAnsM on`, with `kvOpAuM`, `kvDepOwnM`, `kvDepPreM`; `srvKVAns` and
+`srvKVAnsOn` its two rows), and every conjunct of `raftKV` proved once, at `E.authOn`, from the
+server's merged linked specs (`EtcdServer.{Put,DeleteRange,Range,Txn}.spec`):
+`kvPutOk_of_serverM`, ..., `raftKV_of_serverM`.
 
 **What changes from `srvKVAns`**:
 - a call also holds a lower bound `n` of the auth store's published index (`auth.authPubLbM`;

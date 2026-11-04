@@ -150,3 +150,64 @@ not by "nothing uses it"; a claim that a result is "covered" is checked per resu
 replacement statement; a gate is changed only by a decision about what it counts, never by
 classifying or renaming; an option is priced in files before it is chosen; a pilot gets a numeric
 bound and a stop rule fixed before it starts.
+
+# Stage 4: the request side's server and v3rpc layers (2026-11-04)
+
+**Kind:** a plan of restatements over two layers: the server's `Txn` (one spec in place of `spec`,
+`specOn`, `specOnR`, one proof), the `Put`/`DeleteRange`/`Range` corollaries deleted, and v3rpc's
+answer contract to the gRPC handlers merged (`srvKVAnsM on`, one proof per operation), the exported
+off and on results kept in text as instances. Frozen by the user, candidate 4 ("freeze it, go ahead
+with 4-1"), after spec-reviewer rounds 1 to 4; the user chose (a) for round 1's B4.
+
+## First version (candidate 1)
+
+Stage 4 is L1 (server) and L2 (v3rpc) of four layers; L3 (the client's registrations) and L4
+(`Serve`) later. One `Txn.spec` over `E.authOn`, with the premise `E.authMode ≠ .any` for both
+cases; the corollaries deleted together with the request path's three `spec_off`s; `srvKVAnsM` and
+its rows sketched, not written; the on-only facts as flag rows at a mode.
+
+## Critiques and what they changed
+
+1. (Round 1) **Consumers not listed**: `Txn.spec`'s exported callers (`txn_readonly`,
+   `txn_applied`), and the request path's `spec_off`s, which `Compact` and the off tails still use.
+   → A consumer table per changed or deleted declaration, with the commit that moves each; the
+   three `spec_off`s kept.
+2. (Round 1) **A gate the plan did not price.** New rows with `match on` are match-mode findings.
+   → Every row written without a match: a mode-dependent part gated (`⌜on = true⌝ → …`) or read at
+   the mode (`kvModelM on`); each commit passes `mode-check.py --check`, counted per commit.
+3. (Round 1) **A hypothesis choice** (B4): the merged proof's on read needs `CheckTxnAuth.specLb`,
+   which the link does not pass. The user chose (a): both specs as hypotheses, `.specLb` linked by a
+   named closed term, the trust-base checks at each commit.
+4. (Round 1) **Rows and laws sketched, not stated** (`srvKVAnsM`, its rows). → Written out, with
+   their laws.
+5. (Round 2) **Counts estimated, not recounted.** → The gate's findings recounted per file and line;
+   one definition per row (the off and on names abbreviations of the `M` row), no per-row bridges,
+   generic permit helpers (`Gb` with its premise, not `hdrBoundM true`).
+6. (Round 2) **A fallback that contradicted the commit order** (the case proofs' names and the
+   twin count). → The fallback stated with its own gate numbers and its own commit grouping.
+7. (Round 3) **Laws false at one mode, from the atomic update's variance.** The grant `G` of
+   `kvAu1G γk f G Q` is the committer's to supply, so weakening the update strengthens `G`: a gated
+   grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, identified with `X`
+   only at `true`. Three "any `on`" laws were false at one mode. → Each stated at the literal mode
+   where it holds (`kvDepOwnM_true` as `⊣⊢`, `kvDepOwnM_false`, `txnPermit_of_false`), counted by
+   the gate as bridges, never with an `(h : on = b)` premise.
+8. (Round 3) **A binding premise in the wrong direction**: the permit helpers' `Gb` premise flipped
+   and gated (`on = true → ∀ hm, Gb hm ⊢ hdrBoundT …`).
+9. (Round 3) **A scope restriction wider than today's**: `≠ .any` (and the read's lower bounds)
+   only in the read-only branch; the writing case's footprint today's.
+10. (Round 4, non-blocking) The proof lines the abbreviations touch listed; dead helpers' list
+    corrected; `#print axioms` lines for the new results.
+
+## The approved spec
+
+Candidate 4, D1–D8, as built (4-1 to 4-4): `Txn` merged (1,369 lines against the bound 1,460);
+v3rpc's proofs one per operation (613 lines against 966); the corollaries gone; the mode gate 327 →
+300. Two departures, recorded in `notes/decisions.md`, "The auth component, stage 4": the off and on
+`*_end_to_end` results stay derived through `raftKV_server(On)` (now instances of the merged
+`raftKV_serverM`) instead of from the merged `*_end_to_endM`; and the put and delete proofs take
+`Put.spec`'s gate `hdrBoundM true` by unification rather than writing the literal.
+
+Principles exercised: before stating a law over a free mode, check it at both literals against the
+variance of every resource it mentions (an atomic update's grant is contravariant); state a law that
+holds at one mode only at that mode, where the gate sees it; write a merged row without a match on
+the mode (gate the mode's part); recount a gate from its findings, not by estimate.

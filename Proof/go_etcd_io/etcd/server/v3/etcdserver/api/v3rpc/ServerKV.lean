@@ -2,9 +2,11 @@
 **The server's contract instantiated** (units 3a and 3b of the request path, 2026-10-12): the
 parameters `A : KVAns GF` of unit 1's `raftKV s A` (`InvKV.lean`) for the server `s`
 (`srvKVAns s E ρ γr c`), and every conjunct of `raftKV` proved from the server's linked specs
-(`EtcdServer.Put`/`DeleteRange`, unit 2; `Range`/`Txn`, the getters, unit 3b):
-`kvPutOk_of_server`, `kvDeleteOk_of_server`, `kvRangeOk_of_server`, `kvTxnOk_of_server`,
-`kvGetOk_of_server`, `raftKV_of_server` (no premise but the server's facts). Lean-first (no
+(`EtcdServer.Put`/`DeleteRange`, unit 2; `Range`/`Txn`, the getters, unit 3b). Since the auth
+component's stage 4 (2026-11-04) the proofs are one per conjunct over the auth mode
+(`ServerKVOn.lean`: `kvPutOk_of_serverM`, ..., `raftKV_of_serverM`, at `srvKVAnsM E.authOn`);
+this file keeps the off rows (`srvKVAns`; `rangeDepQ`, `rangeAnsOk`, `txnReadAns` are the merged
+rows at `false`) and the permit laws. Lean-first (no
 Rocq counterpart); plan: `notes/decisions.md`, "The request path".
 
 **`srvKVAns s E ρ γr c`**: what a call needs (`srvCall`: the request's context, one id credit, a

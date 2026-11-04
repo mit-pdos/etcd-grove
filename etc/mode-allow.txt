@@ -5,7 +5,7 @@
 #   flag      a flag row: reads the mode itself (keeps `Bool`; `hdrBoundM`/`infoBoundM` off are not
 #             `True`, so a literal `true` stays)
 #   corollary `ModeSpecs.lean`'s restatements of the merged specs at a mode
-#   pair      the off/on pairs kept by the Freeze (D4: `Txn`, `Serve`)
+#   pair      the off/on pairs kept by the Freeze (D4: `Serve`; `Txn` merged in stage 4)
 #   bridge    a row at a literal mode is its twin (`X_false`, `X_true`, ... and the `_on`/`_off` laws)
 #   unmoved   not yet over the slot: a later stage moves it (the M rows and corollaries go in stage 3)
 # A finding no line classifies fails `--check`; classify a new one only with its reason.
@@ -91,7 +91,7 @@ twin unmoved ::txn\.Commit\.specM::
 
 # literal modes in proofs and results not yet over the slot (per file: count at the Freeze)
 lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AppliedOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnap\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnapOn\.lean::  # 1

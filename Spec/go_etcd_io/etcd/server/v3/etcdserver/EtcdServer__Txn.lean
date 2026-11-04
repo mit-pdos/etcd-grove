@@ -53,8 +53,8 @@ need no `□` (`KVAns.ok` is not persistent).
 
 **Scope restriction (read-only only).** `⌜E.authMode ≠ .any⌝` is required of a read-only
 transaction: its check is not covered in the mode `.any`, where the server has no fixed auth
-state. It is `specOnR`'s (its `γa`) and `Range.spec`'s restriction (step 5, `notes/decisions.md`,
-"The request path in the environment's mode", the user's B). A writing transaction is covered in every mode, as by today's
+state. It was the former `specOnR`'s (its `γa`), and is `Range.spec`'s, restriction (step 5, `notes/decisions.md`,
+"The request path in the environment's mode", the user's B). A writing transaction is covered in every mode, as by the former
 `spec` and `specOn`.
 
 **Departure.** The writing case takes all of `srvRdCall`. The writing path needs only its logger's

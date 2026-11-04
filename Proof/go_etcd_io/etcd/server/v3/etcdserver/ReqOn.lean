@@ -260,7 +260,7 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
 prefix `L` (`L ++ [e]`), and the mode-`on` model's auth state after it published (`authPubAt`: a
-reader holding it is checked at states no older, `Range.specOn`). What the apply thread hands the
+reader holding it is checked at states no older, `Range.spec` with auth on). What the apply thread hands the
 waiter (`entryWitOn`), as the proposer reports it. -/
 def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
     (L : List EntryModel) : IProp GF :=

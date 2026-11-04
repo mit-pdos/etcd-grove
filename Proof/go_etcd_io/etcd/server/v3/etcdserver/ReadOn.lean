@@ -864,8 +864,8 @@ theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
     iframe HL
     ipureintro; exact ⟨Hci, h⟩
 
-/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.specOn`
-at `n = 0` still checks a linearizable read no older than its read index. -/
+/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.spec` with
+auth on at `n = 0` still checks a linearizable read no older than its read index. -/
 theorem authPubLbM_zero (M : auth.AuthMode) : ⊢ |==> auth.authPubLbM (GF := GF) M 0 := by
   cases M with
   | on γa => unfold auth.authPubLbM auth.authPubLb; exact monoNatLbOwn_0 γa.pub

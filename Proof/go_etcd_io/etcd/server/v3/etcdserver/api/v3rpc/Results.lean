@@ -23,7 +23,8 @@ Unit 1 (2026-10-12): every function of `key.go` but `kvServer.RangeStream` and
   `txn_handler`).
 
 Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRange`
-(`ServerKV.lean`: `srvKVAns`, `raftKV_of_server`, from the linked `EtcdServer.Put`/`DeleteRange`):
+(`ServerKV.lean`: `srvKVAns`; since stage 4 `ServerKVOn.lean`'s `raftKV_of_serverM`, from the linked
+`EtcdServer.Put`/`DeleteRange`):
 * **`put_end_to_end`**, **`deleteRange_end_to_end`**: the gRPC handler's `(resp, nil)` is the
   apply thread's application of the request at the log the entry met (`putAppliedOk`/
   `deleteAppliedOk`: `applyStep … (.dispatched (.applied l false) skip)`, the outcome's answer,
@@ -123,7 +124,7 @@ end handlers
 /-! ## End to end: the gRPC KV service through the server (units 3a and 3b)
 
 Each handler's linked spec with the server's contract `raftKV` discharged
-(`raftKV_of_server`, from the server's linked `EtcdServer.Put`/`DeleteRange`/`Range`/`Txn` and
+(`raftKV_of_serverM`, from the server's linked `EtcdServer.Put`/`DeleteRange`/`Range`/`Txn` and
 the getters), at the server's parameters `srvKVAns s E ρ γr c`. Premises: the server's
 request-path fields and invariants (`isServerReq`: the raft contract, the wait registry, the id
 generator, the auth store's request side, ...), its read side's (`isServerRead`: the read
