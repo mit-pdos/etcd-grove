@@ -1,9 +1,11 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean`: not yet (U2, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean` (U2, `notes/bbolt-proof-plan.md`): `wp_proof'`, of `spec'` (the call a caller reaches; the code's model `FLPg.releasePendingGo`); `wp_proof` stays `sorry` until the frozen spec is restated.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__ReleasePendingPages
+public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.IfaceCall
+public import Proof.go_etcd_io.bbolt.internal.freelist.Impl.shared__ReleasePendingPages
 
 @[expose] public section
 
@@ -24,6 +26,63 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
+
+/-- The spec over the call a caller reaches (`ifaceCall`), and over the code's model
+`FLPg.releasePendingGo` (`Lemmas/ReleaseGo.lean`: the frozen spec's `FLPg.releasePending`
+keeps a touched pending entry's pairs in another order than the code's swap-removal). -/
+abbrev Interface.ReleasePendingPages.spec' : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg) (ro : List w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
+      flRoOwn fli ro }}
+    (App (ifaceCall fli go!"ReleasePendingPages") (Val #()))
+  {{ RET #(); flPgOwn fli (fl.releasePendingGo ro) ∗ flRoOwn fli (sortPgids ro) }}
+
+theorem Interface.ReleasePendingPages.wp_proof'
+    (hMS : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.MergeSpansSpec) :
+    Interface.ReleasePendingPages.spec' (GF := GF) (hG := hG) := by
+  intro fli fl ro
+  wp_start_folded as ⟨Hfl, Hro⟩
+  icases flPgOwn_open _ _ $$ Hfl with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
+  obtain ⟨HI, Hfli⟩ := HIf
+  subst Hfli
+  have hMS' := hMS I a HI
+  have hI' := HI
+  iunfold flRoOwn at Hro
+  icases Hro with ⟨%a', %s', %sl, Himpl, Hf, Hsl, Hcap⟩
+  iunfold flImplAt at Himpl
+  rcases HI with rfl | rfl <;> (
+    icases Himpl with (⟨%Hfli, #Hhdl'⟩ | ⟨%Hfli, #Hhdl'⟩) <;>
+      (first
+        | (exfalso; exact mkOk_array_ne_hash _ _ Hfli)
+        | (exfalso; exact mkOk_array_ne_hash _ _ Hfli.symm)
+        | skip)
+    all_goals
+      simp only [FLImpl.iface, arrayImpl, hashImpl, interface.mkOk, GoInterface.ok.injEq,
+        GoInterfaceOk.mk.injEq, _root_.true_and] at Hfli
+      have Ha : a = a' := go.intoVal_inj Hfli
+      subst Ha
+      isimp only [arrayImpl, hashImpl] at Hhdl
+      icombine Hhdl Hhdl' gives %Hss
+      subst Hss
+      iface_dispatch
+      wp_apply (shared.ReleasePendingPages.wp_proof _ hMS' s fl ro) $$ [Hsh Hown Hf Hsl Hcap]
+        as ⟨Hsh, Hown, HRO⟩
+      · iframe
+        iunfold roOwn; iexists sl; iframe
+      iapply HΦ
+      isplitl [Hsh Hown]
+      · iapply flPgOwn_close _ a s _ _ hI' rfl
+        isplitl []
+        · isimp only [arrayImpl, hashImpl]; iexact Hhdl
+        isplitl [Hown]
+        · isimp only [arrayImpl, hashImpl]; iexact Hown
+        iexact Hsh
+      iunfold roOwn at HRO
+      icases HRO with ⟨%sl', Hf, Hsl, Hcap⟩
+      iunfold flRoOwn
+      iexists a, s, sl'
+      iframe
+      first | iapply flImplAt_array $$ Hhdl | iapply flImplAt_hash $$ Hhdl)
 
 theorem Interface.ReleasePendingPages.wp_proof : Interface.ReleasePendingPages.spec (GF := GF) (hG := hG) := by
   sorry
