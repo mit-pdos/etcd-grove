@@ -39,6 +39,11 @@ def plainTree (P : Pages) (root : Nat) : Prop :=
   ∀ pg ∈ treeLeaves P root, ∀ j < pageCount pg,
     leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax
 
+/-- **Plain leaf elements** (by data): flags of a plain entry, key not empty, the entry within
+`bboltEntryMax` (a nested bucket's entries, `leafShape`, `entriesBounded`). -/
+def plainEls (E : List El) : Prop :=
+  ∀ e ∈ E, e.1 % 2 = 0 ∧ 0 < e.2.1.length ∧ e.2.1.length + e.2.2.length ≤ bboltEntryMax
+
 /-- **The bucket record after `b.rootNode = b.rootNode.root(); b.SetRootPage(pgid)`**. -/
 def bkRooted (B : BRec) (rt : Loc) (pgid : w64) : BRec :=
   { B with bv := { B.bv with rootNode' := rt }, ib := { B.ib with root' := pgid } }
@@ -46,14 +51,16 @@ def bkRooted (B : BRec) (rt : Loc) (pgid : w64) : BRec :=
 /-- **A nested bucket's spill's pre** (pure): the bucket `bl` (record `B`) live, caching no
 child bucket, the spill's global state; its root node nil, or (`node.spill.spec'`'s top case
 at it) the top of an unspilled tree within `(-∞, ∞)` of height `h`, owning `F`, `D`, `N`, its
-slots owned with `O`, its pages freeable. -/
+slots owned with `O`, its pages freeable, its leaf elements `E` plain (`plainEls`) and, as
+key/value pairs, the bucket's entries (`lbktEnts`). -/
 def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D : List Nat)
     (N : List Loc) : Prop :=
   X.t.bs !! bl = some B ∧ bl ∈ X.liveB ∧ B.bm = ∅ ∧ spG X w.wtxid (mapLen w.ms) ∧
   (B.bv.rootNode' = null ∨
    ∃ rn E, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
      uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N E ∧
-     slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F)
+     slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F ∧
+     E.map (fun e => (e.2.1, e.2.2)) = lbktEnts X bl ∧ plainEls E)
 
 /-- **A nested bucket's spill's success** (pure), from `(X, w)` to `(X', w')` by the steps `st`: a
 spill step (`spStep`); if its root node was nil, nothing changed; else, after `node.spill`

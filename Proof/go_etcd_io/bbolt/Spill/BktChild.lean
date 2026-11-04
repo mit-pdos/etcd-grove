@@ -3,9 +3,8 @@
 `Bucket.spill.specC`, over `node.spill.spec'` (top case), `node.root`, `Meta.Pgid` and
 `InBucket.SetRootPage`. The loop over `b.buckets` runs no iteration (`B.bm = ∅`).
 
-Status: proved but for `bkDone`'s two data clauses (the written tree's entries are the bucket's,
-`treeEntries … = lbktEnts X bl`, and `plainTree`): `node.spill.spec'`'s top-case post says nothing
-of the written tree's entries (`uTree` and `spDone` carry no data), so they cannot follow from it.
+The data clauses: the written tree's leaf elements are the unspilled tree's (`node.spill.spec'`'s
+top case), which `bkPre` relates to the bucket's entries and says plain.
 -/
 module
 
@@ -13,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktSpec
 public import Proof.go_etcd_io.bbolt.Spill.DerefHeap
 public import Proof.go_etcd_io.bbolt.Spill.UTreeFrame
 public import Proof.go_etcd_io.bbolt.Rebalance.HeapRbl
+public import Proof.go_etcd_io.bbolt.Read.BktOK
 public import Spec.go_etcd_io.bbolt.node__root
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Pgid
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__SetRootPage
@@ -38,6 +38,31 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- **A written tree of plain elements holds plain entries** (`plainTree`): its leaves are
+well-formed leaf pages (`sTree`), so their elements' key and value sizes are the lengths of
+their bytes. -/
+theorem plainTree_of_els {P : Pages} {hwm root : Nat} {lo hi : Option (List w8)} {h : Nat}
+    {S : List Nat} {E : List El} (hs : sTree P hwm root lo hi h S) (hE : treeEls P root = E)
+    (hpl : plainEls E) : plainTree P root := by
+  intro pg hpg j hj
+  obtain ⟨-, -, -, -, -, hfl, hpt, -⟩ :=
+    leavesF_page P hwm _ root lo hi hs.wf hs.keys pg hpg
+  have hmem : (leafFlags pg j, leafKey pg j, leafValue pg j) ∈ E := by
+    rw [← hE]; unfold treeEls
+    exact List.mem_flatMap.2 ⟨pg, hpg, List.mem_map.2 ⟨j, List.mem_range.2 hj, rfl⟩⟩
+  obtain ⟨h1, h2, h3⟩ := hpl _ hmem
+  cases hpt with
+  | branch _ _ hb _ _ => rw [hfl] at hb; cases hb
+  | leaf _ _ _ hwf _ =>
+    have hb := (hwf.2.2.1 j hj).1
+    have hk : (leafKey pg j).length = leafKsize pg j := by
+      unfold leafKey bytesAt; simp only [List.length_take, List.length_drop]; have := hwf.1; omega
+    have hv : (leafValue pg j).length = leafVsize pg j := by
+      unfold leafValue bytesAt; simp only [List.length_take, List.length_drop]; have := hwf.1; omega
+    simp only at h1 h2 h3
+    exact ⟨h1, by omega, by omega⟩
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
 theorem bk_node_of_bs {X : WX} {bl n : Loc} {rn : NRec} (h : X.node bl n = some rn) :
@@ -183,7 +208,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   iintro %m' %Hm' Hbm
   subst Hm'
   try wp_auto
-  rcases Hcase with Hnull | ⟨rn, E, Hrn0, Hpar, Hu, Hsi, Hsf⟩
+  rcases Hcase with Hnull | ⟨rn, E, Hrn0, Hpar, Hu, Hsi, Hsf, HEd, HEp⟩
   · rw [decide_eq_true Hnull]
     try wp_auto
     ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -222,7 +247,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     try wp_auto
     obtain ⟨Hstep, Hc⟩ := Hdone
     rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, rt, rr, S, h', Hrt, Hrtl,
-      Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD', -⟩
+      Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD', HEls⟩
     · rw [uTree_top_unspilled Hu Hrn0] at Hsp1; cases Hsp1
     obtain ⟨B2, HB2, Hsim, -⟩ := Hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B HB
     rw [HB1] at HB2; cases HB2
@@ -318,11 +343,9 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
       rfl, HsT, HD', Hsi', HD1, HD2, ?_, ?_⟩⟩
     · obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hstep
       exact ⟨s1, s2, s3, spG_bkRooted _ s4 HB1 Hrr Hrpar Hrtl Hroot, s5, s6, s7, s8⟩
-    · -- The written tree's entries: `node.spill.spec'` does not relate the tree it writes to the
-      -- entries of the unspilled tree (`uTree`/`spDone` carry no data); see the U9g report.
-      sorry
-    · -- The nested clause of `rootShape`: the same gap (the entries' flags and sizes).
-      sorry
+    · rw [← treeEls_entries, show spP (X1.setBkt bl (bkRooted B1 rt rr.nv.pgid')) = spP X1 from rfl,
+        HEls, HEd]
+    · exact plainTree_of_els HsT HEls HEp
   · cases err with
     | nil => exact absurd rfl hne
     | ok ii =>
