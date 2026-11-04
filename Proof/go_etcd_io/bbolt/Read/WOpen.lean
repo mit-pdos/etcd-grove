@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Read.Open
 public import Proof.go_etcd_io.bbolt.Read.WCtx
+public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
 
 @[expose] public section
 
@@ -186,6 +187,63 @@ theorem wtxW_bkt_fresh (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (c p 
     exact absurd Hv (dfrac_own_one_op_invalid _)
 
 end acc
+
+section hdr
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- **The header of a nested bucket's value**, typed, from a live source (persistent bytes, or the
+view's through the writer's cells), and back. -/
+theorem wtxW_src_hdr (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (value : GoSlice)
+    (vsr : Src) (cv : List w8) (hvs : vsr ≠ Src.stale) (h16 : 16 ≤ cv.length) :
+    wtxW (GF := GF) K tx r m X ∗ srcOwn X.v value vsr cv ⊢ ∃ dq : DFrac,
+      value.ptr ↦{dq} inBucketOf cv ∗ (value.ptr ↦{dq} inBucketOf cv -∗ wtxW K tx r m X) := by
+  have hdec : (decode (List.take 16 (List.drop 0 cv)) : InBucket) = inBucketOf cv := by
+    unfold inBucketOf bytesAt; simp only [List.drop_zero]
+  cases vsr with
+  | stale => exact absurd rfl hvs
+  | own d =>
+    unfold srcOwn
+    iintro ⟨Hw, #Hs⟩
+    have hne : cv ≠ [] := by intro h; simp [h] at h16
+    ihave %Hp := ownSlice_ptr_pos value cv DFrac.discard hne $$ Hs
+    icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) value cv DFrac.discard Hp
+      $$ Hs with ⟨Hb, -⟩
+    rw [flatMap_encode_w8]
+    icases bytesPointsto_view_read (V := InBucket) value.ptr DFrac.discard cv 0 value.ptr (by simp)
+      (by omega) Hp $$ Hb with ⟨Hib, -⟩
+    rw [hdec]
+    iexists DFrac.discard
+    iframe Hib
+    iintro -
+    iexact Hw
+  | view =>
+    unfold srcOwn
+    iintro ⟨Hw, %Hin⟩
+    obtain ⟨hl, -, -, -⟩ := Hin
+    have hh := inViewLoc_sub X.v value.ptr cv hl 0 16 (by omega)
+    rw [show ((0 : Nat) : Int) = 0 from rfl, show value.ptr +ₗ (0 : Int) = value.ptr by simp] at hh
+    icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hc, Hwb⟩
+    icases viewCells_loc_acc wq X.v value.ptr _ hh $$ Hc with ⟨%dqh, Hb, Hcb⟩
+    have hlen : (bytesAt cv 0 16).length = 16 := by unfold bytesAt; simp; omega
+    icases Read.bytesPointsto_bounds value.ptr dqh (bytesAt cv 0 16)
+      (by intro h; simp [h] at hlen) $$ Hb with ⟨Hb, %Hbd⟩
+    icases bytesPointsto_view_read (V := InBucket) value.ptr dqh (bytesAt cv 0 16) 0 value.ptr
+      (by simp) (by omega) Hbd.1 $$ Hb with ⟨Hib, Hback⟩
+    rw [show (decode (List.take 16 (List.drop 0 (bytesAt cv 0 16))) : InBucket) = inBucketOf cv by
+      unfold inBucketOf bytesAt; simp only [List.drop_zero, List.take_take, Nat.min_self]]
+    iexists dqh
+    iframe Hib
+    iintro Hib
+    ihave Hb := Hback $$ Hib
+    ihave Hc := Hcb $$ Hb
+    iapply Hwb $$ Hc
+
+end hdr
 
 end bbolt
 end EtcdGrove
