@@ -1,13 +1,14 @@
 /-
 The spill's pure tree facts (U9e, `notes/bbolt-proof-plan.md`), part 7: **the unspilled tree**
-(`uTree X bl P hwm n lo hi h F D N`), what `node.spill` takes: the materialized subtree of node `n`
+(`uTree X bl P hwm n lo hi h F D N E`), what `node.spill` takes: the materialized subtree of node `n`
 of bucket `bl`, not yet spilled, over the spill's page map `P` (the writer's buffers over the base
 pages, `spP`) and high-water mark `hwm`. A leaf: its keys sorted within `[lo, hi)`, its nested
 buckets' values `bvalS`; a branch (of at least two entries): each entry an unspilled child with
 its own `uTree` (the child's bounds the entry's), or a finished subtree (`fTree`: an `sTree` from
 its first key, the entry's), its other children spilled nodes (pieces). The indices: `h` the
 height, `F` the base pages its nodes own (freed by the spill), `D` the slots it owns (its nodes'
-pages and its finished subtrees' and nested buckets'), `N` its nodes.
+pages and its finished subtrees' and nested buckets'), `N` its nodes, `E` its leaf entries in
+order by data (`El`: flags, key, value; a finished subtree's its pages' `treeEls`).
 
 The statement is independent of the slices' sources (only entries by data, `wDat`, appear), so it
 is kept by `dereference`'s copies and a remap (`Spill/UTreeStep`).
@@ -16,6 +17,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.STreeWrite
 public import Proof.go_etcd_io.bbolt.Model.WOps
+public import Proof.go_etcd_io.bbolt.Model.TreeData
 
 @[expose] public section
 
@@ -58,11 +60,31 @@ def ownF (pgid : w64) : List Nat := if pgid = W64 0 then [] else [pgid.toNat]
 def ownSl (v : View) (pgid : w64) : List Nat :=
   if pgid = W64 0 then [] else pgSlots v.pages [pgid.toNat]
 
-/-- **A finished subtree** at page `id` whose first key is `k`: an `sTree` from `k`. -/
+/-- A leaf element by data: its flags, key and value. -/
+abbrev El : Type := Nat × List w8 × List w8
+
+/-- An entry's leaf element by data. -/
+def wEl (w : WEntry) : El := (w.flags.toNat, w.key, w.value)
+
+/-- **The leaf elements of the tree from `root`** (flags, key, value), in order: what the leaves
+of a written tree hold (`treeEntries` without the flags). (U9g's, moved from `Spill/BktSpec`.) -/
+def treeEls (P : Pages) (root : Nat) : List El :=
+  (treeLeaves P root).flatMap fun pg =>
+    (List.range (pageCount pg)).map fun i => (leafFlags pg i, leafKey pg i, leafValue pg i)
+
+theorem treeEls_entries (P : Pages) (root : Nat) :
+    (treeEls P root).map (fun e => (e.2.1, e.2.2)) = treeEntries P root := by
+  unfold treeEls treeEntries leafEnts
+  rw [List.map_flatMap]
+  congr 1; funext pg
+  rw [List.map_map]; rfl
+
+/-- **A finished subtree** at page `id` whose first key is `k`: an `sTree` from `k`, its leaf
+elements `E`. -/
 def fTree (P : Pages) (hwm id : Nat) (k : List w8) (hi : Option (List w8)) (h : Nat)
-    (S : List Nat) : Prop :=
+    (S : List Nat) (E : List El) : Prop :=
   sTree P hwm id (some k) hi h S ∧
-    ∃ pg, P !! id = some pg ∧ 0 < pageCount pg ∧ pageKey pg 0 = k
+    (∃ pg, P !! id = some pg ∧ 0 < pageCount pg ∧ pageKey pg 0 = k) ∧ treeEls P id = E
 
 /-- **An unspilled node** `n` (record `r`) of bucket `bl`, its keys within `[lo, hi)`: live, of its
 bucket, not spilled, owning its inodes' capacity (`node.split`), its entries sorted, keys not
@@ -87,17 +109,20 @@ structure UE where
   F : List Nat
   D : List Nat
   N : List Loc
+  E : List El
 
 mutual
 /-- **The unspilled tree** (see the module doc). -/
 inductive uTree (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) :
-    Loc → Option (List w8) → Option (List w8) → Nat → List Nat → List Nat → List Loc → Prop
+    Loc → Option (List w8) → Option (List w8) → Nat → List Nat → List Nat → List Loc → List El →
+      Prop
   | leaf (n : Loc) (r : NRec) (lo hi : Option (List w8)) (Sb : Nat → List Nat) :
       X.node bl n = some r → uNode X bl n r lo hi → r.nv.isLeaf' = true → r.cs = [] →
       (∀ i w, r.ws[i]? = some w → isBktFlag w.flags → bvalS P hwm w.value (Sb i)) →
       (∀ i w, r.ws[i]? = some w → ¬ isBktFlag w.flags → Sb i = []) →
       uTree X bl P hwm n lo hi 0 (ownF r.nv.pgid')
         (ownSl X.v r.nv.pgid' ++ (List.range r.ws.length).flatMap fun i => pgSlots P (Sb i)) [n]
+        (r.ws.map wEl)
   | branch (n : Loc) (r : NRec) (lo hi : Option (List w8)) (h : Nat) (es : List UE) :
       X.node bl n = some r → uNode X bl n r lo hi → r.nv.isLeaf' = false → 2 ≤ r.ws.length →
       es.length = r.ws.length →
@@ -107,7 +132,7 @@ inductive uTree (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) :
       r.cs.Nodup → (n :: es.flatMap UE.N).Nodup →
       (r.nv.pgid' = W64 0 → ∀ e ∈ es, e.ch = none) →
       uTree X bl P hwm n lo hi (h + 1) (ownF r.nv.pgid' ++ es.flatMap UE.F)
-        (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D) (n :: es.flatMap UE.N)
+        (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D) (n :: es.flatMap UE.N) (es.flatMap UE.E)
 
 /-- **Entry `i` (`w`, descriptor `e`) of the unspilled branch `n`** (entries `ws`, children `cs`,
 bounds `[lo, hi)`, children of height `h`): an unspilled child `c` (its page id and key the
@@ -116,15 +141,15 @@ inductive uEnt (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) :
     Loc → Option (List w8) → Option (List w8) → List WEntry → List Loc → Nat → Nat → WEntry →
       UE → Prop
   | child (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)
-      (w : WEntry) (c : Loc) (rc : NRec) (F D : List Nat) (N : List Loc) :
+      (w : WEntry) (c : Loc) (rc : NRec) (F D : List Nat) (N : List Loc) (E : List El) :
       c ∈ cs → X.node bl c = some rc → rc.nv.parent' = n → rc.nv.pgid' = w.pgid →
       rc.key = w.key → rc.nv.key' ≠ slice.nil →
-      uTree X bl P hwm c (childLo lo (wKey ws) i) (childHi hi (wKey ws) ws.length i) h F D N →
-      uEnt X bl P hwm n lo hi ws cs h i w ⟨some c, F, D, N⟩
+      uTree X bl P hwm c (childLo lo (wKey ws) i) (childHi hi (wKey ws) ws.length i) h F D N E →
+      uEnt X bl P hwm n lo hi ws cs h i w ⟨some c, F, D, N, E⟩
   | fin (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)
-      (w : WEntry) (S : List Nat) :
-      fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S →
-      uEnt X bl P hwm n lo hi ws cs h i w ⟨none, [], pgSlots P S, []⟩
+      (w : WEntry) (S : List Nat) (E : List El) :
+      fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S E →
+      uEnt X bl P hwm n lo hi ws cs h i w ⟨none, [], pgSlots P S, [], E⟩
 end
 
 /-! ## The freelist and the slots -/

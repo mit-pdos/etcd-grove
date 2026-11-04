@@ -30,7 +30,7 @@ theorem uEnt_F_D {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
     {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) : ∀ x ∈ e.F, x ∈ e.D := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N _ _ _ _ _ _ hut => exact uTree_F_D hut
+  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ hut => exact uTree_F_D hut
   | fin => intro x hx; simp at hx
 
 theorem node_objs {X : WX} {bl l : Loc} {r : NRec} (h : X.node bl l = some r) :
@@ -67,14 +67,14 @@ facts at `X` over `es`), its entry `j` the unspilled child `c` (record `rc`), sp
 to `(X', w')` with the other slots `O`, `n`'s own and the other entries' owned. -/
 theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
     {lo hi : Option (List w8)} {h : Nat} {es : List UE} {j : Nat} {Fc Dc : List Nat}
-    {Nc : List Loc} {O : List Nat} {st : List FLStep}
+    {Nc : List Loc} {Ec : List El} {O : List Nat} {st : List FLStep}
     (hb : uBr X bl (spP X) X.t.mv.pgid'.toNat n r lo hi h es)
-    (hj : es[j]? = some ⟨some c, Fc, Dc, Nc⟩) (hdp : derefPre X) (hnl : n ∈ X.live)
+    (hj : es[j]? = some ⟨some c, Fc, Dc, Nc, Ec⟩) (hdp : derefPre X) (hnl : n ∈ X.live)
     (hsp : rc.nv.spilled' = false)
     (hfree : spFree X w.fl w.wtxid (ownF r.nv.pgid' ++ es.flatMap UE.F))
     (hdone : spDone X X' w w' bl c rc
       (O ++ ownSl X.v r.nv.pgid' ++ (es.take j ++ es.drop (j + 1)).flatMap UE.D)
-      (childLo lo (wKey r.ws) j) (childHi hi (wKey r.ws) r.ws.length j) h Dc Nc
+      (childLo lo (wKey r.ws) j) (childHi hi (wKey r.ws) r.ws.length j) h Dc Nc Ec
       (.child n r j lo hi) st) :
     ∃ (r' : NRec) (ps : List Piece), X'.node bl n = some r' ∧ r'.cs = r.cs ++ (ps.drop 1).map Piece.l ∧
       r'.nv.pgid' = r.nv.pgid' ∧ n ∈ X'.live ∧
@@ -89,7 +89,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
   obtain ⟨hstep, hcase⟩ := hdone
   rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, -, -, -, rest⟩
   · rw [hsp] at hsp'; cases hsp'
-  obtain ⟨ps, r', hps, hhd, hfr1, hD', hr', hpar, hlive⟩ := rest
+  obtain ⟨ps, r', hps, hhd, hfr1, hD', -, hr', hpar, hlive⟩ := rest
   have hjes : j < es.length := (List.getElem?_eq_some_iff.1 hj).1
   have hpg : r'.nv.pgid' = r.nv.pgid' := by rw [hpar.2.2.1]
   -- the others' slots are in the frame

@@ -45,19 +45,19 @@ theorem bndIn_childHi {k : List w8} {hi hi' : Option (List w8)}
   · rw [if_neg hin] at hy ⊢; exact hb y hy
 
 theorem fTree_bnd {P : Pages} {hwm id : Nat} {k : List w8} {hi hi' : Option (List w8)} {h : Nat}
-    {S : List Nat} (hb : ∀ y, hi' = some y → ∃ x, hi = some x ∧ ¬ go.GoStringLt y x)
-    (hf : fTree P hwm id k hi h S) : fTree P hwm id k hi' h S :=
+    {S : List Nat} {E : List El} (hb : ∀ y, hi' = some y → ∃ x, hi = some x ∧ ¬ go.GoStringLt y x)
+    (hf : fTree P hwm id k hi h S E) : fTree P hwm id k hi' h S E :=
   ⟨sTree_bnd (lo := some k) (hi := hi) (lo' := some k) (hi' := hi')
     ⟨fun y hy => ⟨y, hy, rk_le_refl y⟩, hb⟩ hf.1, hf.2⟩
 
 /-- **An unspilled tree within looser bounds.** -/
 theorem uTree_bnd {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc}
-    (hu : uTree X bl P hwm n lo hi h F D N) :
-    ∀ lo' hi', bndIn (lo, hi) (lo', hi') → uTree X bl P hwm n lo' hi' h F D N :=
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    (hu : uTree X bl P hwm n lo hi h F D N E) :
+    ∀ lo' hi', bndIn (lo, hi) (lo', hi') → uTree X bl P hwm n lo' hi' h F D N E :=
   uTree.rec (X := X) (bl := bl) (P := P) (hwm := hwm)
-    (motive_1 := fun n lo hi h F D N _ => ∀ lo' hi', bndIn (lo, hi) (lo', hi') →
-      uTree X bl P hwm n lo' hi' h F D N)
+    (motive_1 := fun n lo hi h F D N E _ => ∀ lo' hi', bndIn (lo, hi) (lo', hi') →
+      uTree X bl P hwm n lo' hi' h F D N E)
     (motive_2 := fun n lo hi ws cs h i w e _ => ∀ lo' hi', bndIn (lo, hi) (lo', hi') →
       uEnt X bl P hwm n lo' hi' ws cs h i w e)
     (fun n r lo hi Sb hr hun hleaf hcs hbv hb0 lo' hi' hb =>
@@ -65,11 +65,11 @@ theorem uTree_bnd {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     (fun n r lo hi h es hr hun hleaf h2 hlen _ hchnd hcs hcsnd hNnd hpg0 ih lo' hi' hb =>
       uTree.branch n r lo' hi' h es hr (uNode_bnd hb hun) hleaf h2 hlen
         (fun i w e hw he => ih i w e hw he lo' hi' hb) hchnd hcs hcsnd hNnd hpg0)
-    (fun n lo hi ws cs h i w c rc F D N hc hrc hpar hpg hkey hk' _ ih lo' hi' hb =>
-      uEnt.child n lo' hi' ws cs h i w c rc F D N hc hrc hpar hpg hkey hk'
+    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' _ ih lo' hi' hb =>
+      uEnt.child n lo' hi' ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk'
         (ih _ _ (bndIn_child hb (wKey ws) ws.length i)))
-    (fun n lo hi ws cs h i w S hf lo' hi' hb =>
-      uEnt.fin n lo' hi' ws cs h i w S (fTree_bnd (fun y hy => by
+    (fun n lo hi ws cs h i w S E hf lo' hi' hb =>
+      uEnt.fin n lo' hi' ws cs h i w S E (fTree_bnd (fun y hy => by
         have H := (bndIn_child hb (wKey ws) ws.length i).2 y hy
         exact H) hf))
     hu
@@ -80,22 +80,22 @@ theorem uEnt_bnd {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {w : WEntry} {e : UE} (hb : bndIn (lo, hi) (lo', hi'))
     (he : uEnt X bl P hwm n lo hi ws cs h i w e) : uEnt X bl P hwm n lo' hi' ws cs h i w e := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N hc hrc hpar hpg hkey hk' hut =>
-    exact uEnt.child _ _ _ _ _ _ _ _ c rc F D N hc hrc hpar hpg hkey hk'
+  | child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk' hut =>
+    exact uEnt.child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk'
       (uTree_bnd hut _ _ (bndIn_child hb (wKey ws) ws.length i))
-  | fin _ _ _ _ _ _ _ _ S hf =>
-    exact uEnt.fin _ _ _ _ _ _ _ _ S
+  | fin _ _ _ _ _ _ _ _ S E hf =>
+    exact uEnt.fin _ _ _ _ _ _ _ _ S E
       (fTree_bnd (fun y hy => (bndIn_child hb (wKey ws) ws.length i).2 y hy) hf)
 
 /-! ## The nodes and the base pages -/
 
 /-- **The nodes of an unspilled tree are unspilled nodes** of its bucket. -/
 theorem uTree_N_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc}
-    (hu : uTree X bl P hwm n lo hi h F D N) :
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    (hu : uTree X bl P hwm n lo hi h F D N E) :
     ∀ l ∈ N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false :=
   uTree.rec (X := X) (bl := bl) (P := P) (hwm := hwm)
-    (motive_1 := fun _ _ _ _ _ _ N _ => ∀ l ∈ N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false)
+    (motive_1 := fun _ _ _ _ _ _ N _ _ => ∀ l ∈ N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false)
     (motive_2 := fun _ _ _ _ _ _ _ _ e _ =>
       ∀ l ∈ e.N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false)
     (fun n r _ _ _ hr hun _ _ _ _ l hl => by
@@ -110,14 +110,14 @@ theorem uTree_N_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
           rename_i hlen' _ _ _ _ _ _
           exact ⟨r.ws[i]'(by omega), List.getElem?_eq_getElem _⟩
         exact ih i w e hw hi l hle)
-    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
-    (fun _ _ _ _ _ _ _ _ _ _ l hl => by simp at hl)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
+    (fun _ _ _ _ _ _ _ _ _ _ _ l hl => by simp at hl)
     hu
 
 /-- A node not among the nodes of `X` (fresh) is no node of an unspilled tree, nor spilled. -/
 theorem fresh_not_N {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc}
-    (hu : uTree X bl P hwm n lo hi h F D N) {l : Loc} (hl : X.node bl l = none) :
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    (hu : uTree X bl P hwm n lo hi h F D N E) {l : Loc} (hl : X.node bl l = none) :
     l ∉ N ∧ ¬ spilledN X bl l := by
   refine ⟨fun hm => ?_, fun ⟨_, rc, hrc, _⟩ => by rw [hl] at hrc; cases hrc⟩
   obtain ⟨r, hr, -⟩ := uTree_N_unspilled hu l hm
@@ -134,10 +134,10 @@ theorem ownF_ownSl (v : View) (p : w64) : ∀ x ∈ ownF p, x ∈ ownSl v p := b
 
 /-- **An unspilled tree's base pages are among its slots.** -/
 theorem uTree_F_D {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc}
-    (hu : uTree X bl P hwm n lo hi h F D N) : ∀ x ∈ F, x ∈ D :=
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    (hu : uTree X bl P hwm n lo hi h F D N E) : ∀ x ∈ F, x ∈ D :=
   uTree.rec (X := X) (bl := bl) (P := P) (hwm := hwm)
-    (motive_1 := fun _ _ _ _ F D _ _ => ∀ x ∈ F, x ∈ D)
+    (motive_1 := fun _ _ _ _ F D _ _ _ => ∀ x ∈ F, x ∈ D)
     (motive_2 := fun _ _ _ _ _ _ _ _ e _ => ∀ x ∈ e.F, x ∈ e.D)
     (fun n r _ _ _ _ _ _ _ _ _ x hx => List.mem_append_left _ (ownF_ownSl _ _ x hx))
     (fun n r _ _ _ es hr _ _ _ hlen _ _ _ _ _ _ ih x hx => by
@@ -149,8 +149,8 @@ theorem uTree_F_D {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
           have := (List.getElem?_eq_some_iff.1 hi).1; omega
         exact List.mem_append_right _ (List.mem_flatMap.2 ⟨e, he,
           ih i (r.ws[i]'hlt) e (List.getElem?_eq_getElem _) hi x hxe⟩))
-    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
-    (fun _ _ _ _ _ _ _ _ _ _ x hx => by simp at hx)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
+    (fun _ _ _ _ _ _ _ _ _ _ _ x hx => by simp at hx)
     hu
 
 end bnd

@@ -75,6 +75,13 @@ theorem wDat_flags {w w' : WEntry} (h : wDat w' = wDat w) : w'.flags = w.flags :
 theorem wDat_value {w w' : WEntry} (h : wDat w' = wDat w) : w'.value = w.value :=
   congrArg (fun d => d.2.2.2) h
 
+/-- Entries equal by data have the same leaf elements. -/
+theorem wEl_of_dat {ws ws' : List WEntry} (h : ws'.map wDat = ws.map wDat) :
+    ws'.map wEl = ws.map wEl := by
+  have : ws'.map wEl = (ws'.map wDat).map (fun d => (d.1.toNat, d.2.2.1, d.2.2.2)) := by
+    rw [List.map_map]; rfl
+  rw [this, h, List.map_map]; rfl
+
 /-! ## Records modulo sources -/
 
 theorem nodeSim_pgid {r r' : NRec} (h : nodeSim r r') : r'.nv.pgid' = r.nv.pgid' := by
@@ -157,16 +164,26 @@ theorem pgSlots_congr {P P' : Pages} {S : List Nat} (h : ∀ x ∈ S, P' !! x = 
 theorem ownSl_congr {v v' : View} (h : v'.pages = v.pages) (p : w64) : ownSl v' p = ownSl v p := by
   unfold ownSl; rw [h]
 
-theorem uTree_head {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {lo hi h F D N}
-    (hu : uTree X bl P hwm n lo hi h F D N) : n ∈ N := by
+theorem uTree_head {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {lo hi h F D N E}
+    (hu : uTree X bl P hwm n lo hi h F D N E) : n ∈ N := by
   cases hu <;> simp
 
+/-- **A written tree's leaf elements depend only on its pages.** (U9h: stated, not yet proved;
+`treeLeaves`' fuel is the page map's size, so the proof shows the walk's result independent of
+the fuel past the tree's height.) -/
+theorem treeEls_agree {P P' : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h : Nat}
+    {S : List Nat} (hs : sTree P hwm id lo hi h S) (hag : ∀ x ∈ S, P' !! x = P !! x) :
+    treeEls P' id = treeEls P id := by
+  sorry
+
 theorem fTree_agree {P P' : Pages} {hwm hwm' id : Nat} {k : List w8} {hi : Option (List w8)}
-    {h : Nat} {S : List Nat} (hag : ∀ x ∈ pgSlots P S, P' !! x = P !! x) (hh : hwm ≤ hwm')
-    (hf : fTree P hwm id k hi h S) : fTree P' hwm' id k hi h S ∧ pgSlots P' S = pgSlots P S := by
+    {h : Nat} {S : List Nat} {E : List El} (hag : ∀ x ∈ pgSlots P S, P' !! x = P !! x)
+    (hh : hwm ≤ hwm') (hf : fTree P hwm id k hi h S E) :
+    fTree P' hwm' id k hi h S E ∧ pgSlots P' S = pgSlots P S := by
   have hagS : ∀ x ∈ S, P' !! x = P !! x := fun x hx => hag x (mem_pgSlots_self hx)
-  refine ⟨⟨sTree_agree hagS hh hf.1, ?_⟩, pgSlots_congr hagS⟩
-  obtain ⟨pg, hpg, h1, h2⟩ := hf.2
+  refine ⟨⟨sTree_agree hagS hh hf.1, ?_, by rw [treeEls_agree hf.1 hagS]; exact hf.2.2⟩,
+    pgSlots_congr hagS⟩
+  obtain ⟨pg, hpg, h1, h2⟩ := hf.2.1
   have hid : id ∈ S := (hf.1.has id).1 (treeHas.root id pg hpg)
   exact ⟨pg, by rw [hagS id hid]; exact hpg, h1, h2⟩
 
@@ -175,12 +192,12 @@ theorem fTree_agree {P P' : Pages} {hwm hwm' id : Nat} {k : List w8} {hi : Optio
 /-- **An unspilled tree outside the touched nodes is kept** (see the module doc). -/
 theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : List Loc}
     (hfr : spFrame X X' bl T) (hh : hwm ≤ hwm') {n : Loc} {lo hi : Option (List w8)} {h : Nat}
-    {F D : List Nat} {N : List Loc} (hu : uTree X bl P hwm n lo hi h F D N) :
+    {F D : List Nat} {N : List Loc} {E : List El} (hu : uTree X bl P hwm n lo hi h F D N E) :
     (∀ x ∈ D, P' !! x = P !! x) → (∀ l ∈ T, l ∉ N ∧ ¬ spilledN X bl l) →
-      uTree X' bl P' hwm' n lo hi h F D N :=
+      uTree X' bl P' hwm' n lo hi h F D N E :=
   uTree.rec (X := X) (bl := bl) (P := P) (hwm := hwm)
-    (motive_1 := fun n lo hi h F D N _ => (∀ x ∈ D, P' !! x = P !! x) →
-      (∀ l ∈ T, l ∉ N ∧ ¬ spilledN X bl l) → uTree X' bl P' hwm' n lo hi h F D N)
+    (motive_1 := fun n lo hi h F D N E _ => (∀ x ∈ D, P' !! x = P !! x) →
+      (∀ l ∈ T, l ∉ N ∧ ¬ spilledN X bl l) → uTree X' bl P' hwm' n lo hi h F D N E)
     (motive_2 := fun n lo hi ws cs h i w e _ => ∀ (ws' : List WEntry) (w' : WEntry),
       ws'.map wDat = ws.map wDat → wDat w' = wDat w →
       (∀ x ∈ e.D, P' !! x = P !! x) → (∀ l ∈ T, l ∉ e.N ∧ ¬ spilledN X bl l) →
@@ -203,7 +220,8 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
         (fun i w' hw' hf => by
           obtain ⟨w, hw, he⟩ := get_of_dat hs.2.2.1 hw'
           exact hb0 i w hw (by rw [← wDat_flags he]; exact hf))
-      rw [nodeSim_pgid hs, ownSl_congr hfr.2.2.2.2.1, length_of_dat hs.2.2.1] at H
+      rw [nodeSim_pgid hs, ownSl_congr hfr.2.2.2.2.1, length_of_dat hs.2.2.1,
+        wEl_of_dat hs.2.2.1] at H
       have e : ((List.range r.ws.length).flatMap fun i => pgSlots P' (Sb i)) =
           (List.range r.ws.length).flatMap fun i => pgSlots P (Sb i) := by
         apply flatMap_congr'
@@ -236,18 +254,18 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
         (fun h0 => hpg0 (by rw [← nodeSim_pgid hs]; exact h0))
       rw [nodeSim_pgid hs, ownSl_congr hfr.2.2.2.2.1] at H
       exact H)
-    (fun n lo hi ws cs h i w c rc F D N hc hrc hpar hpg hkey hk' hut ih ws' w' hws hw hP hT => by
+    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' hut ih ws' w' hws hw hP hT => by
       have hcT : c ∉ T := fun hm => (hT c hm).1 (uTree_head hut)
       obtain ⟨rc', hrc', hs, -⟩ := spFrame_node hfr hrc hcT
       have H := ih hP hT
       rw [← wKey_of_dat hws, ← length_of_dat hws] at H
-      refine uEnt.child n lo hi ws' cs h i w' c rc' F D N hc hrc'
+      refine uEnt.child n lo hi ws' cs h i w' c rc' F D N E hc hrc'
         (by rw [nodeSim_parent hs]; exact hpar) (by rw [nodeSim_pgid hs, wDat_pgid hw]; exact hpg)
         (by rw [hs.2.2.2.2.2.1, wDat_key hw]; exact hkey)
         (fun h0 => hk' (hs.2.1.1 h0)) H)
-    (fun n lo hi ws cs h i w S hf ws' w' hws hw hP _ => by
+    (fun n lo hi ws cs h i w S E hf ws' w' hws hw hP _ => by
       obtain ⟨hf', he⟩ := fTree_agree hP hh hf
-      have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo hi ws' cs h i w' S
+      have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo hi ws' cs h i w' S E
         (by rw [wDat_pgid hw, wDat_key hw, wKey_of_dat hws, length_of_dat hws]; exact hf')
       rw [he] at H
       exact H)
@@ -256,8 +274,8 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
 /-! ## After the children's loop -/
 
 /-- An unspilled node is not a spilled one. -/
-theorem uTree_not_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {c : Loc} {lo hi h F D N}
-    (hu : uTree X bl P hwm c lo hi h F D N) : ¬ spilledN X bl c := by
+theorem uTree_not_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {c : Loc} {lo hi h F D N E}
+    (hu : uTree X bl P hwm c lo hi h F D N E) : ¬ spilledN X bl c := by
   intro ⟨_, rc, hrc, _, hsp, _⟩
   cases hu with
   | leaf _ r _ _ _ hr hun =>
@@ -270,11 +288,12 @@ each entry's descriptor is a finished subtree's. -/
 theorem uEnt_fin_of_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
     {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) (hcs : ∀ c ∈ cs, spilledN X bl c) :
-    ∃ S, e = ⟨none, [], pgSlots P S, []⟩ ∧
-      fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S := by
+    ∃ S E, e = ⟨none, [], pgSlots P S, [], E⟩ ∧
+      fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S E := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N hc _ _ _ _ _ hut => exact absurd (hcs c hc) (uTree_not_spilled hut)
-  | fin _ _ _ _ _ _ _ _ S hf => exact ⟨S, rfl, hf⟩
+  | child _ _ _ _ _ _ _ _ c rc F D N E hc _ _ _ _ _ hut =>
+    exact absurd (hcs c hc) (uTree_not_spilled hut)
+  | fin _ _ _ _ _ _ _ _ S E hf => exact ⟨S, E, rfl, hf⟩
 
 end frame
 

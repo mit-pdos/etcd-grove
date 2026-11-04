@@ -44,16 +44,16 @@ theorem node_of_bs {X : WX} {bl n : Loc} {rn : NRec} (h : X.node bl n = some rn)
 def spillW : IProp GF :=
   iprop(∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
-    (cs : SpCase),
-    ⌜spPre X w bl n rn O lo hi h F D N cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w) -∗
-      ▷ (∀ err, spPost K tx r m X w bl n rn O lo hi h D N cs err -∗ Φ #err) -∗
+    (E : List El) (cs : SpCase),
+    ⌜spPre X w bl n rn O lo hi h F D N E cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w) -∗
+      ▷ (∀ err, spPost K tx r m X w bl n rn O lo hi h D N E cs err -∗ Φ #err) -∗
       WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #())) {{ Φ }})
 
 /-- **`node.spill`, by Löb.** -/
 theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
   unfold spillW
   iloeb as IH
-  iintro %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %cs %Hpre %Φ ⟨Hw, Hdb⟩ HΦ
+  iintro %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %Hpre %Φ ⟨Hw, Hdb⟩ HΦ
   obtain ⟨Hn, HG, Hcase⟩ := Hpre
   obtain ⟨B, HB, Hrn⟩ := node_of_bs Hn
   rcases Hcase with ⟨Hsp, Hbl, Hlive⟩ | Hu
@@ -136,12 +136,12 @@ theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
 
 /-- **`node.spill.spec'`**, from `wp_aux`. -/
 theorem node.spill.wp_proof' : node.spill.spec' (GF := GF) (hG := hG) := by
-  intro K tx r m X w bl n rn O lo hi h F D N cs hpre
+  intro K tx r m X w bl n rn O lo hi h F D N E cs hpre
   have H := node.spill.wp_aux (GF := GF) (hG := hG)
   unfold spillW at H
   iintro %Φ HP HΦ
   ihave #H := H
-  iapply H $$ %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %cs %hpre HP
+  iapply H $$ %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %hpre HP
   inext
   iintro %err Hpost
   iapply HΦ

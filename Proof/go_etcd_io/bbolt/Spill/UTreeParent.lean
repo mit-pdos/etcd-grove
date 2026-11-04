@@ -46,29 +46,29 @@ structure uBr (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) (n : Loc) (r : NRec)
 theorem uTree_of_uBr {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {r : NRec}
     {lo hi : Option (List w8)} {h : Nat} {es : List UE} (hb : uBr X bl P hwm n r lo hi h es) :
     uTree X bl P hwm n lo hi (h + 1) (ownF r.nv.pgid' ++ es.flatMap UE.F)
-      (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D) (n :: es.flatMap UE.N) :=
+      (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D) (n :: es.flatMap UE.N) (es.flatMap UE.E) :=
   uTree.branch n r lo hi h es hb.node hb.un hb.leaf hb.two hb.len hb.ent hb.chnd hb.cs hb.csnd
     hb.Nnd hb.pg0
 
 theorem uBr_of_uTree {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {r : NRec}
-    {lo hi : Option (List w8)} {h' : Nat} {F D : List Nat} {N : List Loc}
-    (hu : uTree X bl P hwm n lo hi h' F D N) (hr : X.node bl n = some r)
+    {lo hi : Option (List w8)} {h' : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    (hu : uTree X bl P hwm n lo hi h' F D N E) (hr : X.node bl n = some r)
     (hl : r.nv.isLeaf' = false) :
     ∃ h es, h' = h + 1 ∧ F = ownF r.nv.pgid' ++ es.flatMap UE.F ∧
       D = ownSl X.v r.nv.pgid' ++ es.flatMap UE.D ∧ N = n :: es.flatMap UE.N ∧
-      uBr X bl P hwm n r lo hi h es := by
+      E = es.flatMap UE.E ∧ uBr X bl P hwm n r lo hi h es := by
   cases hu with
   | leaf _ r' _ _ _ hr' _ hleaf =>
     rw [hr] at hr'; cases hr'; rw [hleaf] at hl; cases hl
   | branch _ r' _ _ h es hr' hun hleaf h2 hlen hent hchnd hcs hcsnd hNnd hpg0 =>
     rw [hr] at hr'; cases hr'
-    exact ⟨h, es, rfl, rfl, rfl, rfl, ⟨hr, hun, hleaf, h2, hlen, hent, hchnd, hcs, hcsnd, hNnd,
+    exact ⟨h, es, rfl, rfl, rfl, rfl, rfl, ⟨hr, hun, hleaf, h2, hlen, hent, hchnd, hcs, hcsnd, hNnd,
       hpg0⟩⟩
 
 /-- A finished subtree's first key is below its upper bound. -/
 theorem fTree_keyLt {P : Pages} {hwm id : Nat} {k : List w8} {hi : Option (List w8)} {h : Nat}
-    {S : List Nat} (hf : fTree P hwm id k hi h S) : keyLt k hi := by
-  obtain ⟨hs, pg, hpg, hc, hk⟩ := hf
+    {S : List Nat} {E : List El} (hf : fTree P hwm id k hi h S E) : keyLt k hi := by
+  obtain ⟨hs, ⟨pg, hpg, hc, hk⟩, -⟩ := hf
   have hkeys := hs.keys
   cases hkeys with
   | leaf _ pg' _ _ hpg' hfl hks _ =>
@@ -97,17 +97,17 @@ theorem uEnt_move {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : Li
       (childLo lo' (wKey ws') i', childHi hi' (wKey ws') ws'.length i')) :
     uEnt X' bl P' hwm' n lo' hi' ws' cs' h i' w' e := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N hc hrc hpar hpg hkey hk' hut =>
+  | child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk' hut =>
     have hcT : c ∉ T := fun hm => (hT c hm).1 (uTree_head hut)
     obtain ⟨rc', hrc', hs, -⟩ := spFrame_node hfr hrc hcT
     have H := uTree_frame hfr hh hut hP hT
-    exact uEnt.child _ _ _ _ _ _ _ _ c rc' F D N (hcs c hc) hrc'
+    exact uEnt.child _ _ _ _ _ _ _ _ c rc' F D N E (hcs c hc) hrc'
       (by rw [nodeSim_parent hs]; exact hpar) (by rw [nodeSim_pgid hs, wDat_pgid hw]; exact hpg)
       (by rw [hs.2.2.2.2.2.1, wDat_key hw]; exact hkey) (fun h0 => hk' (hs.2.1.1 h0))
       (uTree_bnd H _ _ hb)
-  | fin _ _ _ _ _ _ _ _ S hf =>
+  | fin _ _ _ _ _ _ _ _ S E hf =>
     obtain ⟨hf', he⟩ := fTree_agree hP hh hf
-    have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo' hi' ws' cs' h i' w' S
+    have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo' hi' ws' cs' h i' w' S E
       (by rw [wDat_pgid hw, wDat_key hw]; exact fTree_bnd hb.2 hf')
     rw [he] at H; exact H
 

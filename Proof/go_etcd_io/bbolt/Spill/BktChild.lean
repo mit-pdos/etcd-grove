@@ -49,8 +49,8 @@ theorem bk_node_of_bs {X : WX} {bl n : Loc} {rn : NRec} (h : X.node bl n = some 
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
 /-- The top of an unspilled tree is not spilled. -/
-theorem uTree_top_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {lo hi h F D N}
-    {rn : NRec} (hu : uTree X bl P hwm n lo hi h F D N) (hr : X.node bl n = some rn) :
+theorem uTree_top_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {lo hi h F D N E}
+    {rn : NRec} (hu : uTree X bl P hwm n lo hi h F D N E) (hr : X.node bl n = some rn) :
     rn.nv.spilled' = false := by
   cases hu with
   | leaf _ r _ _ _ hr' hun => rw [hr] at hr'; cases hr'; exact hun.2.2.1
@@ -183,7 +183,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   iintro %m' %Hm' Hbm
   subst Hm'
   try wp_auto
-  rcases Hcase with Hnull | ⟨rn, Hrn0, Hpar, Hu, Hsi, Hsf⟩
+  rcases Hcase with Hnull | ⟨rn, E, Hrn0, Hpar, Hu, Hsi, Hsf⟩
   · rw [decide_eq_true Hnull]
     try wp_auto
     ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -210,9 +210,9 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   · dsimp only; iframe
   ihave Hw := Hclose $$ %X [] Hh Hv Hst
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
-  have Hsp : spPre X w bl B.bv.rootNode' rn O none none h F D N .top :=
+  have Hsp : spPre X w bl B.bv.rootNode' rn O none none h F D N E .top :=
     ⟨Hrn0, HG, Or.inr ⟨Hu, ⟨Hpar, B, HB, nodeRootIn.top _ rn Hrn1 Hpar⟩, Hsi, Hsf⟩⟩
-  wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N .top Hsp $$ [Hw Hdb]
+  wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
     as %err Hpost
   · iframe
   try wp_auto
@@ -222,7 +222,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     try wp_auto
     obtain ⟨Hstep, Hc⟩ := Hdone
     rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, rt, rr, S, h', Hrt, Hrtl,
-      Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD'⟩
+      Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD', -⟩
     · rw [uTree_top_unspilled Hu Hrn0] at Hsp1; cases Hsp1
     obtain ⟨B2, HB2, Hsim, -⟩ := Hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B HB
     rw [HB1] at HB2; cases HB2

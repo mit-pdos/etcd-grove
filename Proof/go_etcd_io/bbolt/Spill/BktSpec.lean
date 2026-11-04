@@ -33,19 +33,6 @@ namespace Spill
 section defs
 variable [GooseExts]
 
-/-- **The leaf elements of the tree from `root`** (flags, key, value), in order: what the leaves
-of a written tree hold (`treeEntries` without the flags). -/
-def treeEls (P : Pages) (root : Nat) : List (Nat × List w8 × List w8) :=
-  (treeLeaves P root).flatMap fun pg =>
-    (List.range (pageCount pg)).map fun i => (leafFlags pg i, leafKey pg i, leafValue pg i)
-
-theorem treeEls_entries (P : Pages) (root : Nat) :
-    (treeEls P root).map (fun e => (e.2.1, e.2.2)) = treeEntries P root := by
-  unfold treeEls treeEntries leafEnts
-  rw [List.map_flatMap]
-  congr 1; funext pg
-  rw [List.map_map]; rfl
-
 /-- **A nested bucket's tree holds plain entries** (`rootShape`'s nested clause): every element
 of its leaves a plain key/value, its key not empty, within `bboltEntryMax`. -/
 def plainTree (P : Pages) (root : Nat) : Prop :=
@@ -64,8 +51,8 @@ def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D
     (N : List Loc) : Prop :=
   X.t.bs !! bl = some B ∧ bl ∈ X.liveB ∧ B.bm = ∅ ∧ spG X w.wtxid (mapLen w.ms) ∧
   (B.bv.rootNode' = null ∨
-   ∃ rn, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
-     uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N ∧
+   ∃ rn E, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
+     uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N E ∧
      slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F)
 
 /-- **A nested bucket's spill's success** (pure), from `(X, w)` to `(X', w')` by the steps `st`: a

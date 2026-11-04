@@ -25,14 +25,14 @@ section replace
 variable [GooseExts]
 
 /-- The descriptor of a piece's entry: a finished subtree. -/
-def pcUE (P : Pages) (x : Piece) : UE := ⟨none, [], pgSlots P x.S, []⟩
+def pcUE (P : Pages) (x : Piece) : UE := ⟨none, [], pgSlots P x.S, [], treeEls P x.id.toNat⟩
 
 theorem uEnt_N_node {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
     {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) :
     ∀ l ∈ e.N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N _ _ _ _ _ _ hut => exact uTree_N_unspilled hut
+  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ hut => exact uTree_N_unspilled hut
   | fin => intro l hl; simp at hl
 
 theorem not_spilledN_of {X : WX} {bl l : Loc} {r : NRec} (hr : X.node bl l = some r)
@@ -75,8 +75,8 @@ page map kept on the other entries' slots, its pieces `ps` (first `c`, the other
 fitting an entry) put in `n` (record `r'`). -/
 theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : List Loc}
     {r r' : NRec} {lo hi : Option (List w8)} {h : Nat} {es : List UE} {j : Nat} {c : Loc}
-    {Fc Dc : List Nat} {Nc : List Loc} {ps : List Piece}
-    (hb : uBr X bl P hwm n r lo hi h es) (hj : es[j]? = some ⟨some c, Fc, Dc, Nc⟩)
+    {Fc Dc : List Nat} {Nc : List Loc} {Ec : List El} {ps : List Piece}
+    (hb : uBr X bl P hwm n r lo hi h es) (hj : es[j]? = some ⟨some c, Fc, Dc, Nc, Ec⟩)
     (hfr : spFrame X X' bl T) (hh : hwm ≤ hwm')
     (hT : ∀ l ∈ T, l ∈ Nc ∨ X.node bl l = none ∨ l = n)
     (hP : ∀ k e, k ≠ j → es[k]? = some e → ∀ x ∈ e.D, P' !! x = P !! x)
@@ -100,7 +100,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
   obtain ⟨hcmem, hcN⟩ : c ∈ r.cs ∧
       ∀ l ∈ Nc, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false := by
     cases hentj with
-    | child _ _ _ _ _ _ _ _ _ rc _ _ _ hc _ _ _ _ _ hut => exact ⟨hc, uTree_N_unspilled hut⟩
+    | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hc _ _ _ _ _ hut => exact ⟨hc, uTree_N_unspilled hut⟩
   -- the touched nodes
   have hTsp : ∀ l ∈ T, ¬ spilledN X bl l := by
     intro l hl
@@ -213,7 +213,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
       obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ (List.getElem?_eq_getElem hk)
       have hpgid : w'.pgid = ps[k].id := congrArg (fun d => d.2.1) hw
       have hkey : w'.key = ps[k].k := congrArg (fun d => d.2.2.1) hw
-      refine uEnt.fin n lo hi r'.ws r'.cs h (j + k) w' ps[k].S ?_
+      refine uEnt.fin n lo hi r'.ws r'.cs h (j + k) w' ps[k].S _ ?_
       rw [hpgid, hkey]
       have e2 : childHi hi (wKey r'.ws) r'.ws.length (j + k) =
           childHi (childHi hi (wKey r.ws) r.ws.length j) (pcKey ps) ps.length k := by
