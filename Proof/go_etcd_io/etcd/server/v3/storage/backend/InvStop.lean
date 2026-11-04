@@ -116,17 +116,21 @@ theorem isStopChansE_intro (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
 `D`**: its client resources `W ∗ Pk`, and its ghost shares at `D` -- the readers' view quarter
 (`viewAt`) and the lock's halves of the non-hook buckets' physical view (`pvHalf`), the hook's own
 keys (`hkOwn`), the tracked buckets (`rbOwn`) and the compaction keys' values (`ckHalf`): what
-`backend.Snapshot.spec`'s observation takes, so that a client's own halves (by agreement) and its
+`backend.Snapshot.spec`'s observation takes (with, as its post, a reader's bound of the compaction
+keys' flag, `fkRd`), so that a client's own halves (by agreement) and its
 observation of `W ∗ Pk` tell what `D` holds. -/
 def bStopView (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) : IProp GF :=
   iprop(W ∗ Pk ∗ viewAt γ (sData P D) ∗ pvHalf γ (sData P D) ∗ hkOwn γ (hkData P D) ∗
-    rbOwn γ (rbData P D) ∗ ckHalf γ (fkVals D))
+    rbOwn γ (rbData P D) ∗ ckHalf γ (fkVals D) ∗
+    -- (2026-11-04, R2b-3d stage 3) a reader's lower bound of the compaction keys' flag at `D`
+    -- (`fkRd`: in a store that does not compact, no compaction key, `txn.kvWriter_noCmp`)
+    ∃ R : RBuf, fkRd γ P (D, R))
 
 /-- The stopped lock's ghost shares at `C` are `bStopView`'s. -/
 theorem bStopG_view (γ : BNames) (P : BParams) (W Pk : IProp GF) (C : Data) :
     bStopG (GF := GF) γ P C ∗ W ∗ Pk ⊢ bStopView γ P W Pk C := by
   unfold bStopG trkHalf bStopView viewAt pvHalf hkOwn ckHalf
-  iintro ⟨⟨Hv, Hhk, Hrb, Hpv, Hck⟩, HW, HPk⟩
+  iintro ⟨⟨Hv, ⟨Hhk, Hrb, Hpv, Hck⟩, Hfk⟩, HW, HPk⟩
   ihave Hrb := rbSide_rbOwn γ P _ $$ Hrb
   iframe
 

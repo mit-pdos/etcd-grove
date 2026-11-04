@@ -644,7 +644,8 @@ def backend.trkHalf (γ : backend.BNames) (P : backend.BParams) (S : backend.Dat
         ghostVar γ.pv (Qp.half 1) (backend.sData P S) ∗ ghostVar γ.ck (Qp.half 1) (backend.fkVals S))
 
 def backend.bStopG (γ : backend.BNames) (P : backend.BParams) (C : backend.Data) : IProp GF :=
-  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗ backend.trkHalf γ P C)
+  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗
+      backend.trkHalf γ P C ∗ ∃ R, backend.fkRd γ P (C, R))
 
 theorem backend.bDBAt_persistent (γ : backend.BNames) (db : Loc) (path : GoString) : Persistent
     (backend.bDBAt γ db path)

@@ -1388,3 +1388,24 @@ channels as `isStopChansE` (some `W`, `Pk`), so nothing is known of `D`. Steps:
    to the snapshot's.
 3. **Image.** `merged_imageC`'s pure part, from `mergedObsM` to `imageAt` (stage 5 assembles the
    rest).
+
+**Stage 3, progress (2026-11-04).** Step 1 landed (`6fbf7eed05`): `srvStopChans`. Step 2a: the
+stop's commit leaves a reader's bound of the compaction keys' flag at its data (`bStopG`'s and
+`bStopView`'s `∃ R, fkRd γ P (C, R)`, from `unsafeCommit`'s stop branch, `fkHalf_rd`), what
+`txn.kvWriter_noCmp` needs for `fkAbsD D` in a store that does not compact.
+
+**Open: the stored consistent index at the stop.** `imageAt` needs `D`'s `consistent_index` key to
+be the applied index `i`. The snapshot window gets it by freezing the protocol at a commit it
+requests (`storeReq_freeze` through `kv.Commit`, `commit_freeze_au`, `freezeY`: the stored index is
+`ciEff γ s.k`). The stop has no such request: `backend.Close`'s stop commit runs the server's hook
+on its own, and outside the window the protocol knows only `mi ≤ s.k` (`consInvAt`). In Go the
+stop commit's hook stores the current index, since the apply thread is idle. So the stop needs a
+way to record that its commit came after the last apply. Candidates:
+- (a) A freeze request for the backend's stop commit: `Close`'s caller deposits the apply thread's
+  state; the stop commit's hook runs `commit_freeze_au`; afterwards the frozen protocol
+  (`consFrozen`) gives `mi = ciEff γ s.k`. This threads a request through `CommitAndStop` to
+  `OnPreCommitUnsafe`.
+- (b) The protocol remembers the last commit's index: a commit's hook leaves a persistent
+  lower bound of what it stored (`mi ≥ ` the index at the commit), and `Close`'s post says a commit
+  ran after `Close` was called; the apply thread, idle at `s`, then knows `mi = s.k`.
+To be designed next.
