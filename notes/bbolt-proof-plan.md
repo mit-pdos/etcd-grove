@@ -1345,8 +1345,58 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
     the rebalance post's `%Hrb` has two more conjuncts at its end; the spill call takes
     `spillStartOK`), `Commit/AssembleGaps` (gaps 1, 4, 5 can go), `Bucket__spill.lean` (U9x2: the
     spec's new binder; its post's three new conjuncts).
-- **Not done**: 44.1 (flagged `wdbOK'`), 37.10's `os.OpenFile`, 37.9, 37.3, U10h's link: see the
-  hand-off below (or the next section).
+- **Coordinator's addition (a)** (Commit's gaps 6/7, `Tx__Commit_err.lean:358,385,411,454`): all
+  covered by the spec changes above: `hmv1` is the rebalance post's last conjunct; `hrl2` the spill
+  posts' `(X'.t.bs !! X'.rl).isSome`; `hmv2` their `X'.t.mv = {X.t.mv with pgid' := …}`; on the error
+  side `hwr2` from `X'.t.t = X.t.t`, `htx2` from the meta copy (`X'.t.mv.txid' = X.t.mv.txid'`).
+  Producers to prove (no `sorry` was added to their files; they do not build against the new
+  spec until they do): `Bucket__spill.lean` (U9x2: both posts' new conjuncts, its spec binder
+  `spillStartOK`), and through it `node.spill`'s `spPost` (U9w2) for the root's record and the meta
+  copy; `Bucket.rebalance`'s new conjuncts are proved (`rblRel`).
+- **44.1 (`4581da6da2`, `ed366aecb1`): the flagged writer side**, new module `Inv/WdbFlag`:
+  `flCurOKr fl C wtx pg` (`flCurOK` but the synced page's slots may be pending, not free, for `wtx`
+  only), `flClause fr w`, `wdbOK' fr w` (= `wdbOK` with `flClause fr` as its 6th conjunct;
+  `wdbOK'_false : wdbOK' false w ↔ wdbOK w` is `Iff.rfl`), `wdbOK_wdbOK'`, **`wdbW' fr K tx v w`**
+  (`wdbLive` ∗ `⌜wdbOK' fr w ∧ ms ∧ view⌝` ∗ `∃ F, fbTok K.B w.C w.fl (wLive v w.C) F`),
+  `wdbW_wdbW'` (any flag, `F = ∅`), `wdbW'_wdbW` (flag false), `wdbW'_ok`. `Commit` forms `wdbW'
+  true` after `store_free_fl` (its `fbTok` and `fbCond`; the slot clause's right disjunct from the
+  free). `DB.grow.spec` is over `wdbW' fr` (`∀ fr` first; proof still U4's `sorry`): **breaks**
+  `Tx__Commit_err`'s grow call (U10i: pass `fr`; before the free `wdbW_wdbW' false`).
+  **Not done: `Tx.allocate.spec` over `wdbW' fr`** (`commitFreelist` allocates after the free). Its
+  proof (`Tx__allocate`, complete) and `Mmap/Alloc`, `Mmap/AllocBase`, `Mmap/RemapEnd`
+  (`wdbOK_alloc`, `wdbOK_remap`, `wdbLost_intro`, `remap_post`) must carry `wdbOK' fr` and the
+  token: the alloc/remap steps never touch `C.flpg`'s clause but through `fl` (allocation removes
+  free ids: `flCurOKr`'s slot clause and `free ⊆ flIds` keep) and `W`/`ms` (the clause reads
+  `extentBytes w.wb f`, unchanged by alloc; a remap keeps `wb`). Plan: state each lemma at `wdbOK'
+  fr` with a `cases fr` whose `false` case is the existing lemma, the `true` case its copy; the
+  `wdbLost` side (a failed remap) needs a flagged `wdbLost'` too (Commit's rollback after it
+  takes the token to `store_rollback`). `wtxEnd`/`store_rollback` users take the token from
+  `wdbW'`.
+- **37.10 (`0506c7fb90`)**: `os.OpenFile.spec`'s post `(… ∨ …) ∗ fmtErrorOkOrNil err` (proved:
+  `pathError_fmtErrorOk` with `errnoErr_fmtErrorOk`); bboltfs `Open` adapted. `Open.lean`'s
+  `os.OpenFile.specE` (U11g) is now `os.OpenFile.spec` verbatim: drop it, take
+  `os.OpenFile.wp_proof`. The crash variants (`specCrash`, `specCrashS`) are unchanged.
+- **37.9, spec part (`4581da6da2`)**: `fmt.Errorf.spec`'s post ends `∗ ⌜IsPointerError err⌝`
+  (import `Perennial.Proof.errors.Base`); the axiom `fmt.Errorf.wp_proof`'s statement changed (TCB
+  baseline: the coordinator's). bbolt's binders adapted (`Mmap/Alloc` ×3, `Munmap`: `%Hptr`;
+  `FileSize` ×2, `Map`). Users outside bbolt bind with `-`/`%_`/partial patterns (not rebuilt here:
+  cache `Cache__validate*`, k8s, etcd server, kv examples). **Not done**: the threading of
+  `errPtrTyped` into the error posts of `DB.fileSize`, `DB.mmapSize`, `DB.munmap`, `mmapF`
+  (maintainer 6's recipe), and `RemapBody`'s four `fmtErrorOk_errPtrTyped` uses.
+
+### Maintainer 9's hand-off (2026-11-04): what is left, in order
+
+1. **44.1's `Tx.allocate`** over `wdbW' fr` (plan above), then `commitFreelist` (U10i) takes it.
+2. **37.9's threading** (`errPtrTyped` in the four Mmap error posts; `Hptr` is now bound in
+   `Mmap/Alloc`, `Munmap`; `FileSize`/`Map` bind `%Hptr0`/`%Hptr`).
+3. **U10h's link** (`7daa62fdcc`, `df7dc998a8`, `52fbbdcb1f`: `Commit/CheckKeyOrder{,Verify,Int}`
+   prove `Tx.recursivelyCheckPageKeyOrder_ok`; link it into `DB.freepages`' check): not started.
+4. **37.3** (`vwAuth`, ~80 `wtxCore` pattern sites): not started.
+5. Interfaces and the TCB baseline: at integration (`fmt.Errorf.wp_proof` changed).
+- **Open `sorry`s added by maintainer 9**: `Write/MatOK` ×2 (the root bucket's page keys ≤
+  `MaxKeySize`, `newNodeBnd`'s `hroot` at its two callers; U7), `Rebalance/RblXSMat` ×1 (the same,
+  U8). Removable once someone proves them: `Commit/AssembleGaps`' gaps 1, 4, 5 (now facts:
+  `wrFacts`, `metaCopyOK`), `Spill/BktLoopPureStart.spill_startFacts` (from `spillStartOK`).
 
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
