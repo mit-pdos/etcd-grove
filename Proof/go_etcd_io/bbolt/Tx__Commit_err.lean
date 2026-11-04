@@ -32,6 +32,10 @@ public import Spec.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__SetRootPage
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Free
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.bbolt.Commit.AssembleGaps
+public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
+public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
+public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -231,6 +235,55 @@ theorem Tx.Commit_err.wp_proof'
             · iempintro
           try wp_auto
           iexact Herr
+  iintro %v ⟨%hv, HtxId, Hlgp, %f, Hdefer, #Hdf⟩
+  subst hv
+  have hwr : X.t.t.writable' = true := Hf.1.1.1
+  wp_auto
+  wp_apply wp_Assert
+  rw [decide_eq_false Ht0.2.1]
+  wp_auto
+  rw [hwr]
+  wp_auto
+  wp_apply time.wp_Now as %t0 -
+  try wp_auto
+  -- `rebalance`: the working state in mode `false`
+  ihave Hw : wtxW K tx r false X $$ [Hvc Hmf Hfills Hbk Hnl Hdb Hd Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch
+      Hwfl Hmv Hpm Hbufs]
+  · unfold wtxW wtxCore statsTok wtxHeap txFields
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [hdb, hmg, hwr]
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨⟨rfl, hrwr, htxn, rfl, hrootn⟩, Hhok⟩
+  have hvwf : viewWF X.v := Hf.1.2.2.2.2.2.2.2
+  have hld : ∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl := fun bl hb =>
+    leafDepthOK_rt X bl (rtOK_init X bl Hf.1 hvwf (Option.isSome_iff_ne_none.2 hb))
+  wp_apply wp_rebalance K tx r false X w Hf.1 hld (wOK_liveReach X Hf.1) Hflv $$ [Hw Hwdb]
+    as ⟨%X1, %fl1, Hw, Hwdb, %Hrb⟩
+  · iframe
+  icases cm_stats_acc K tx r false X1 $$ Hw with ⟨-, -, Hst1, Hwb⟩
+  wp_apply wp_GetRebalance K tx r false 1 $$ [Hst1] as %nrb Hst1
+  · iframe; iframe #
+  try wp_auto
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ statsTok r false 1 ∗
+    startTime_ptr ↦ t0 ∗ tx_ptr ↦ tx))) $$ [Hst1 startTime tx]
+  · wp_if_destruct
+    · try wp_auto
+      wp_apply time.wp_Since as %d -
+      try wp_auto
+      wp_apply wp_IncRebalanceTime K tx r false 1 $$ [Hst1] as %_ Hst1
+      · iframe; iframe #
+      try wp_auto
+      iframe
+      try (ipureintro; rfl)
+    · try wp_auto
+      iframe
+      try (ipureintro; rfl)
+  iintro %v ⟨%hv, Hst1, startTime, tx⟩
+  subst hv
+  ihave Hw := Hwb $$ Hst1
   trace_state
   sorry
 
