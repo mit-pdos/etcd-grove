@@ -161,7 +161,7 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
     (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) (hnn : C.bv.rootNode' ≠ null)
     {X' : WX} {w' : WDb} {st' : List FLStep}
     (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st')
-    (hv' : X'.v = View.ofC X'.v.base w'.C) :
+    (hv' : X'.v = View.ofC X'.v.base w'.C) (hbufs : bufsOK X' w0.C w'.fl) :
     ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧ c ∈ X'.liveB ∧
       RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k D')
         (upd ks k (.val (encode C'.ib) false)) := by
@@ -314,7 +314,8 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
       obtain ⟨we0, hwe0, hk0⟩ := allEnts_kept hleavesR hwe
       rw [hk0]; exact hI.entKeys we0 hwe0
     inj := hI.inj
-    cok := hI.cok }
+    cok := hI.cok
+    bufs := hbufs }
 
 end spilled
 

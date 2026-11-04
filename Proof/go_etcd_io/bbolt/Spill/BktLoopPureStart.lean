@@ -280,7 +280,8 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     rootPg := htc.2.1.2.2.2.2 B0 hB0
     entKeys := hS.rootKeys
     inj := hS.inj
-    cok := hS.cok }
+    cok := hS.cok
+    bufs := fun id pg h => by rw [htc.2.1.2.1, GMap.lookup_empty] at h; cases h }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/
