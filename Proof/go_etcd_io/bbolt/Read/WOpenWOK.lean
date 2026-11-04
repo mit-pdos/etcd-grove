@@ -62,7 +62,67 @@ theorem bktKeys_bm (v : View) (B : BRec) (bm : GMap GoString Loc) (h : bmGrow B 
 theorem entryIn_bm (vw : View) (B : BRec) (bm : GMap GoString Loc) (k v : List w8) :
     entryIn vw { B with bm := bm } k v ↔ entryIn vw B k v := Iff.rfl
 
+/-! ### A bucket's record replaced, its nodes kept (local copies of `Txn/Heap`'s, pure) -/
+
+theorem setBkt_t_bs' (X : WX) (bl : Loc) (B B' : BRec) (k : Loc) :
+    (X.setBkt bl { B' with ns := B.ns }).t.bs !! k =
+      if k = bl then some { B' with ns := B.ns } else X.t.bs !! k := by
+  unfold WX.setBkt
+  by_cases h : k = bl
+  · subst h; simp
+  · simp only [h, ↓reduceIte]; exact GMap.lookup_insert_ne _ _ (Ne.symm h)
+
+theorem setBkt_ns' (X : WX) (bl : Loc) (B B' : BRec) (hb : X.t.bs !! bl = some B) (k : Loc)
+    (C : BRec) (hC : (X.setBkt bl { B' with ns := B.ns }).t.bs !! k = some C) :
+    ∃ C0, X.t.bs !! k = some C0 ∧ C.ns = C0.ns := by
+  rw [setBkt_t_bs'] at hC
+  by_cases h : k = bl
+  · subst h; simp only [↓reduceIte, Option.some.injEq] at hC; subst hC
+    exact ⟨B, hb, rfl⟩
+  · simp only [h, ↓reduceIte] at hC
+    exact ⟨C, hC, rfl⟩
+
+theorem objsDisj_setBkt' (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
+    (hb : X.t.bs !! bl = some B) : objsDisj (X.setBkt bl { B' with ns := B.ns }).t := by
+  intro c C hC n hn c' C' hC' hne
+  obtain ⟨C0, hC0, hns⟩ := setBkt_ns' X bl B B' hb c C hC
+  rw [hns] at hn
+  obtain ⟨C0', hC0', hns'⟩ := setBkt_ns' X bl B B' hb c' C' hC'
+  rw [hns']; exact hd c C0 hC0 n hn c' C0' hC0' hne
+
+theorem objs_setBkt' (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
+    (hb : X.t.bs !! bl = some B) :
+    (X.setBkt bl { B' with ns := B.ns }).t.objs = X.t.objs := by
+  have hd' := objsDisj_setBkt' X bl B B' hd hb
+  apply GMap.map_eq
+  intro k
+  by_cases hkn : ∃ c C rk, X.t.bs !! c = some C ∧ C.ns !! k = some rk
+  · obtain ⟨c, C, rk, hC, hrk⟩ := hkn
+    rw [objs_node X.t c C k rk hd hC hrk]
+    by_cases hcb : c = bl
+    · subst hcb
+      rw [hb] at hC; cases hC
+      exact objs_node _ c { B' with ns := B.ns } k rk hd' (by rw [setBkt_t_bs']; simp) hrk
+    · exact objs_node _ c C k rk hd' (by rw [setBkt_t_bs']; simp [hcb, hC]) hrk
+  · have hno : ∀ c C, X.t.bs !! c = some C → C.ns !! k = none := by
+      intro c C hC
+      cases h : C.ns !! k with
+      | none => rfl
+      | some rk => exact absurd ⟨c, C, rk, hC, h⟩ hkn
+    rw [objs_other X.t k hno, objs_other]
+    · rfl
+    intro c C hC
+    obtain ⟨C0, hC0, hns⟩ := setBkt_ns' X bl B B' hb c C hC
+    rw [hns]; exact hno c C0 hC0
+
 /-! ### The opened state -/
+
+theorem inBucketRoot_zero (v : List w8) : inBucketRoot v = 0 ↔ (ibOf v).root' = W64 0 := by
+  unfold inBucketRoot ibOf
+  constructor
+  · intro h0; apply BitVec.eq_of_toNat_eq; simpa using h0
+  · intro h0; rw [h0]; rfl
+
 
 section opened
 variable (X : WX) (bl c : Loc) (B C : BRec) (nb : List w8) (h : GoString × Nat)
@@ -91,7 +151,8 @@ theorem c_ne_bl : c ≠ bl := by intro e; subst e; rw [hB] at hc; cases hc
 /-- A bucket of the opened state: the new one, or an old one with (maybe) a grown cache. -/
 theorem XO_back (k : Loc) (D : BRec) (hD : (XO X bl c B C nb h).t.bs !! k = some D) :
     (k = c ∧ D = C) ∨ (k ≠ c ∧ ∃ D0, X.t.bs !! k = some D0 ∧ D = { D0 with bm := D.bm } ∧
-      bmGrow D0 D.bm ∧ (k ≠ bl → D = D0)) := by
+      bmGrow D0 D.bm ∧ (k ≠ bl → D = D0) ∧
+      ∀ n c', D.bm !! n = some c' → (k = bl ∧ n = nb ∧ c' = c) ∨ D0.bm !! n = some c') := by
   rw [XO_bs] at hD
   by_cases hkc : k = c
   · simp only [hkc, ↓reduceIte, Option.some.injEq] at hD; exact Or.inl ⟨hkc, hD.symm⟩
@@ -101,14 +162,210 @@ theorem XO_back (k : Loc) (D : BRec) (hD : (XO X bl c B C nb h).t.bs !! k = some
     by_cases hkb : k = bl
     · simp only [hkb, ↓reduceIte, Option.some.injEq] at hD
       subst hkb hD
-      refine ⟨B, hB, rfl, ?_, fun h' => absurd rfl h'⟩
-      intro k' c' e
-      by_cases hk' : nb = k'
-      · subst hk'
-        rw [hbm] at e; cases e
-      · rw [GMap.lookup_insert_ne _ _ hk']; exact e
+      refine ⟨B, hB, rfl, ?_, fun h' => absurd rfl h', ?_⟩
+      · intro k' c' e
+        by_cases hk' : nb = k'
+        · subst hk'
+          rw [hbm] at e; cases e
+        · show (B.bm.insert nb c) !! k' = some c'
+          rw [GMap.lookup_insert_ne _ _ hk']; exact e
+      · intro n c' e
+        by_cases hn : nb = n
+        · subst hn; exact Or.inl ⟨rfl, rfl, by simpa [GMap.lookup_insert] using e.symm⟩
+        · right
+          have e' : (B.bm.insert nb c) !! n = some c' := e
+          rw [GMap.lookup_insert_ne _ _ hn] at e'; exact e'
     · simp only [hkb, ↓reduceIte] at hD
-      exact ⟨D, hD, rfl, fun _ _ e => e, fun _ => rfl⟩
+      exact ⟨D, hD, rfl, fun _ _ e => e, fun _ => rfl, fun _ _ e => Or.inr e⟩
+
+theorem XO_bs_old (k : Loc) (D0 : BRec) (hk : X.t.bs !! k = some D0) :
+    ∃ D, (XO X bl c B C nb h).t.bs !! k = some D ∧ D.ns = D0.ns ∧ D.ib = D0.ib ∧ D.bv = D0.bv := by
+  rw [XO_bs]
+  have hkc : k ≠ c := by intro e; subst e; rw [hc] at hk; cases hk
+  simp only [hkc, ↓reduceIte]
+  by_cases hkb : k = bl
+  · subst hkb; rw [hB] at hk; cases hk; simp
+  · simp only [hkb, ↓reduceIte]; exact ⟨D0, hk, rfl, rfl, rfl⟩
+
+/-- **The opened state is well-formed.** -/
+theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
+    (hrec : openedRec B.bv.tx' w.value w.vs C)
+    (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) (hent : entryIn X.v B nb w.value)
+    (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none)
+    (hcd : X.t.deadB !! c = none) (hhd : h.1 = nb)
+    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
+    wOK (XO X bl c B C nb h) := by
+  obtain ⟨hib, htx, hrn, hnm, hbmC, hns, hil, hni⟩ := hrec
+  obtain ⟨⟨tw, ⟨tpm, tbuf, tls, tps⟩, t2, t3, trl, tall⟩, hkn, hpg, heb, hhs, hlv, hnl, hv⟩ := hok
+  have hroot0 : C.ib.root' = W64 0 ↔ inBucketRoot w.value = 0 := by
+    rw [hib, inBucketRoot_zero]
+  have hrl : X.rl ≠ c := by
+    intro e; obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 trl; rw [e, hc] at hR; cases hR
+  have hnsN : ∀ l r, C.ns !! l = some r → False := by
+    intro l r hr; rw [hns] at hr; cases hr
+  -- the new bucket is clean
+  have hCc : bktClean X.v X.t.mv.pgid'.toNat c C := by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · intro h0 _
+      have hi := hroot0.1 h0
+      obtain ⟨hpp, hipg, hsrc⟩ := hil hi
+      refine ⟨hpp, ?_, ?_⟩
+      · rcases hsrc with ⟨-, a, b⟩ | ⟨a, b⟩
+        · exact Or.inl ⟨a, b⟩
+        · exact Or.inr ⟨a, b⟩
+      · rw [hipg]; exact hbv.2 hi
+    · intro h0
+      have hi : inBucketRoot w.value ≠ 0 := fun e => h0 (hroot0.2 e)
+      have hwf : treeWF X.v.pages X.t.mv.pgid'.toNat (inBucketRoot w.value) := by
+        cases hbv.1 with
+        | file _ _ _ ht => exact ht
+        | inline _ _ h0' _ _ => exact absurd h0' hi
+      have hr : C.ib.root'.toNat = inBucketRoot w.value := by rw [hib]; rfl
+      rw [hr]
+      refine ⟨?_, fun _ => hwf⟩
+      cases hwf with
+      | page _ _ _ hlt _ _ _ _ => exact hlt
+    · intro _; exact ⟨hns, hnm⟩
+    · intro h'; exact absurd hrn h'
+    · intro c' l hl; rw [hnm] at hl; cases hl
+    · intro h0; exact (hni (fun e => h0 (hroot0.2 e))).1
+    · intro _ l r hr; exact (hnsN l r hr).elim
+    · intro l r hr; exact (hnsN l r hr).elim
+    · intro l1 _ _ _ _ _ hp; obtain ⟨r, -, hr, -⟩ := hp; exact (hnsN _ r hr).elim
+    · intro l _ _ hp; obtain ⟨r, -, hr, -⟩ := hp; exact (hnsN _ r hr).elim
+  refine ⟨⟨tw, ⟨tpm, tbuf, ?_, ?_⟩, t2, t3, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hv⟩
+  · -- leafShape
+    unfold leafShape at tls ⊢
+    intro k D hD l r hr hl w' hw'
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨-, D0, hD0, hDe, -, -, -⟩
+    · rw [hDC] at hr; exact (hnsN l r hr).elim
+    · rw [hDe] at hr; exact tls k D0 hD0 l r hr hl w' hw'
+  · -- posShape
+    unfold posShape at tps ⊢
+    intro k D hD c' p pg hpr hown hpg hlf i hi
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨hkc, hDC⟩ | ⟨-, D0, hD0, hDe, -, -, -⟩
+    · rw [hDC] at hpr
+      rcases hpr with ⟨-, hr0, rfl⟩ | ⟨l, j, ⟨r, -, hr, -⟩, -⟩
+      · have hr : C.ib.root'.toNat = inBucketRoot w.value := by rw [hib]; rfl
+        rw [hr] at hown
+        have hi0 : inBucketRoot w.value ≠ 0 := fun e => hr0 (hroot0.2 e)
+        have := hplain pg (Or.inr ⟨hi0, p, hown, hpg, hlf⟩) i hi
+        rw [hkc]
+        constructor
+        · intro e; unfold bucketLeafFlag at e; omega
+        · intro e; exact absurd e.symm hrl
+      · exact (hnsN l r hr).elim
+    · rw [hDe] at hpr; exact tps k D0 hD0 c' p pg hpr hown hpg hlf i hi
+  · -- the root bucket
+    show ((XO X bl c B C nb h).t.bs !! X.rl).isSome
+    obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 trl
+    obtain ⟨D, hD, -⟩ := XO_bs_old X bl c B C nb h hB hc hbm X.rl R hR
+    rw [hD]; rfl
+  · -- every bucket clean, its cache's children buckets
+    intro k D hD
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨hkc, rfl⟩ | ⟨hkc, D0, hD0, hDe, hgr, -, hbmD⟩
+    · rw [hkc]
+      refine ⟨hCc, ?_⟩
+      intro n c' e; rw [hbmC] at e; cases e
+    · obtain ⟨hcl, hch⟩ := tall k D0 hD0
+      refine ⟨by rw [hDe]; exact bktClean_bm _ _ _ D0 D.bm hgr hcl, fun n c' e => ?_⟩
+      rcases hbmD n c' e with ⟨-, -, hcc⟩ | e0
+      · rw [hcc]
+        show ((XO X bl c B C nb h).t.bs !! c).isSome
+        rw [XO_bs]; simp
+      · obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 (hch n c' e0)
+        obtain ⟨D', hD', -⟩ := XO_bs_old X bl c B C nb h hB hc hbm c' R hR
+        rw [hD']; rfl
+  · -- keys and nested buckets
+    intro k D hD
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, hgr, -, hbmD⟩
+    · rw [hDC]
+      refine ⟨⟨fun _ => (none, none), fun _ h0 => ?_, fun r hr => (hnsN _ r hr).elim,
+        fun l r hr => (hnsN l r hr).elim⟩, fun n c' e => ?_⟩
+      · have hi : inBucketRoot w.value ≠ 0 := fun e => h0 (hroot0.2 e)
+        have hr : C.ib.root'.toNat = inBucketRoot w.value := by rw [hib]; rfl
+        rw [hr]; exact htk hi
+      · rw [hbmC] at e; cases e
+    · obtain ⟨hkk, hnest⟩ := hkn k D0 hD0
+      refine ⟨by rw [hDe]; exact bktKeys_bm _ D0 D.bm hgr hkk, fun n c' e => ?_⟩
+      rcases hbmD n c' e with ⟨hkb, hnn, hcc⟩ | e0
+      · rw [hcc, hnn]
+        rw [hkb, hB] at hD0; cases hD0
+        refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2 h0).1, ?_, fun _ => hib⟩
+        · rw [hDe]; exact hent
+        · cases hbv.1 <;> assumption
+        · rw [hib]
+      · obtain ⟨C0, v0, hC0, hin, h16, hinl, hr0, hrn0⟩ := hnest n c' e0
+        obtain ⟨D', hD', hns', hib', hbv'⟩ := XO_bs_old X bl c B C nb h hB hc hbm c' C0 hC0
+        refine ⟨D', v0, hD', by rw [hDe]; exact hin, h16, hinl, by rw [hib']; exact hr0,
+          fun h' => by rw [hib']; exact hrn0 (by rw [← hbv']; exact h')⟩
+  · -- nodes' pages
+    intro k D hD l r hr
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, -, -, -⟩
+    · rw [hDC] at hr; exact (hnsN l r hr).elim
+    · rw [hDe] at hr ⊢; exact hpg k D0 hD0 l r hr
+  · -- entries bounded
+    intro k D hD l r hr
+    rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, -, -, -⟩
+    · rw [hDC] at hr; exact (hnsN l r hr).elim
+    · rw [hDe] at hr; exact heb k D0 hD0 l r hr
+  · -- handles
+    intro b nm hb
+    show ((XO X bl c B C nb h).t.bobjs !! b).isSome
+    unfold WTx.bobjs
+    by_cases hbc : b = c
+    · rw [hbc, GMap.lookup_union_Some_l _ _ _ C (by rw [XO_bs]; simp)]; rfl
+    · have hb' : X.handles !! b = some nm := by
+        have : (X.handles.insert c h) !! b = some nm := hb
+        rwa [GMap.lookup_insert_ne _ _ (Ne.symm hbc)] at this
+      have := hhs b nm hb'
+      unfold WTx.bobjs at this
+      cases eb : X.t.bs !! b with
+      | some R =>
+        obtain ⟨D, hD, -⟩ := XO_bs_old X bl c B C nb h hB hc hbm b R eb
+        rw [GMap.lookup_union_Some_l _ _ _ _ hD]; rfl
+      | none =>
+        have hXO : (XO X bl c B C nb h).t.bs !! b = none := by
+          rw [XO_bs]; simp only [hbc, ↓reduceIte]
+          by_cases hbb : b = bl
+          · subst hbb; rw [hB] at eb; cases eb
+          · simp only [hbb, ↓reduceIte]; exact eb
+        rw [GMap.lookup_union_r _ _ _ hXO]
+        rw [GMap.lookup_union_r _ _ _ eb] at this
+        exact this
+  · -- liveness
+    obtain ⟨l1, l2, l3, l4, l5⟩ := hlv
+    have hobjs : (XO X bl c B C nb h).t.objs = X.t.objs := by
+      unfold XO
+      have hd1 := objsDisj_setBkt' X bl B { B with bm := B.bm.insert nb c } hd hB
+      have hc1 : (X.setBkt bl { B with bm := B.bm.insert nb c }).t.bs !! c = none := by
+        unfold WX.setBkt; rw [GMap.lookup_insert_ne _ _ (Ne.symm (c_ne_bl X bl c B hB hc))]; exact hc
+      rw [objs_addBkt _ c C h hd1 hns hc1]
+      exact objs_setBkt' X bl B { B with bm := B.bm.insert nb c } hd hB
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · show X.rl ∈ X.liveB.insert c ()
+      simp only [GMap.mem_iff] at l1 ⊢
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hrl)]; exact l1
+    · intro l hl; rw [hobjs]; exact l2 l hl
+    · intro k D hD
+      show k ∈ X.liveB.insert c ()
+      simp only [GMap.mem_iff]
+      by_cases hkc : k = c
+      · subst hkc; rw [GMap.lookup_insert]; rfl
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hkc)]
+        rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨e, -⟩ | ⟨-, D0, hD0, -⟩
+        · exact absurd e hkc
+        · have := l3 k D0 hD0; simp only [GMap.mem_iff] at this; exact this
+    · intro k D l r hD hr
+      rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, -, -, -⟩
+      · rw [hDC] at hr; exact (hnsN l r hr).elim
+      · rw [hDe] at hr; exact l4 k D0 l r hD0 hr
+    · exact l5
+  · -- the node registry
+    intro n b p hn hl
+    obtain ⟨D0, r, hD0, hr, hp⟩ := hnl n b p hn hl
+    obtain ⟨D, hD, hns', -⟩ := XO_bs_old X bl c B C nb h hB hc hbm b D0 hD0
+    exact ⟨D, r, hD, by rw [hns']; exact hr, hp⟩
 
 end opened
 
@@ -121,7 +378,8 @@ theorem wOK_bktOpened (X : WX) (bl c : Loc) (B C : BRec) (w : WEntry) (nb : List
     (hf : isBktFlag w.flags) (hbm : B.bm !! nb = none) (hbo : X.t.bobjs !! c = none)
     (hrec : openedRec B.bv.tx' w.value w.vs C)
     (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) (hent : entryIn X.v B nb w.value)
-    (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none) :
+    (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none)
+    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
     wOK ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) ∧
       wtxData ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) = wtxData X := by
   sorry
