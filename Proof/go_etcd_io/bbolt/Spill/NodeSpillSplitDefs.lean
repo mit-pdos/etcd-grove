@@ -3,7 +3,8 @@
 after `n.split(pageSize)`** (`splitRel`), what the pieces' loop starts from. From `X1` (after
 `n.children = nil`, `n`'s record `rN`) to `X2`: the pieces `xs` (`node.split`'s, `n` first, the
 others fresh), their entries `wss` (`n`'s entries cut at the pieces' inode counts), each piece a
-live childless node of `bl` under the common parent `pl`; the parent `n`'s (the pieces after the
+live childless node of `bl` under the common parent `pl` (the first keeps `n`'s key, the others
+have none); the parent `n`'s (the pieces after the
 first appended to its children) or, for a top node split in two or more, a fresh one whose
 children are the pieces; nothing else touched.
 -/
@@ -50,12 +51,13 @@ structure splitRel (X1 X2 : WX) (bl n : Loc) (rN : NRec) (xs : List (Loc × node
   len : wss.length = xs.length
   ws : wss.flatten = rN.ws
   ins : (xs.map (·.2.2)).flatten = rN.ins
-  plen : ∀ (i : Nat) (x : Loc × node × List Inode) (w : List WEntry), xs[i]? = some x → wss[i]? = some w → w.length = x.2.2.length ∧ 0 < w.length
+  plen : ∀ (i : Nat) (x : Loc × node × List Inode) (w : List WEntry), xs[i]? = some x → wss[i]? = some w → w.length = x.2.2.length ∧ (2 ≤ xs.length → 0 < w.length)
   prec : ∀ (i : Nat) (x : Loc × node × List Inode) (w : List WEntry), xs[i]? = some x → wss[i]? = some w →
     X2.node bl x.1 = some (splitRec rN x w (decide (i = 0)) (decide (xs.length = 1))) ∧
     x.1 ∈ X2.live ∧ x.2.1.bucket' = bl ∧ x.2.1.isLeaf' = rN.nv.isLeaf' ∧
     x.2.1.spilled' = false ∧ x.2.1.pgid' = (if i = 0 then rN.nv.pgid' else W64 0) ∧
-    x.2.1.parent' = pl
+    x.2.1.parent' = pl ∧ x.2.1.children' = slice.nil ∧
+    x.2.1.key' = (if i = 0 then rN.nv.key' else slice.nil)
   fresh : ∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none
   par : (rN.nv.parent' = null ∧ xs.length = 1 ∧ pl = null) ∨
     (rN.nv.parent' = null ∧ 2 ≤ xs.length ∧ pl ≠ null ∧ X1.t.objs !! pl = none ∧
