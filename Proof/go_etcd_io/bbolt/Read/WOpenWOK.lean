@@ -209,6 +209,64 @@ theorem leavesF_own (P : Pages)
           · exact e
         exact ⟨p, ownHas.child id pg0 i p hp hb hi ho, hpp, hlf⟩
 
+/-- **Two entries of one key in a well-formed bucket are one.** -/
+theorem allEnts_key_inj (X : WX) (hok : wOK X) (k : Loc) (R : BRec) (hR : X.t.bs !! k = some R)
+    (w1 w2 : WEntry) (h1 : w1 ∈ X.allEnts k) (h2 : w2 ∈ X.allEnts k) (hk : w1.key = w2.key) :
+    w1 = w2 := by
+  have hc := Write.wOK_bktClean X hok k R hR
+  obtain ⟨bnd, hbk⟩ := (hok.2.1 k R hR).1
+  have hv : viewWF X.v := hok.2.2.2.2.2.2.2
+  have hwalk := LR.bInvL_walk X k R bnd _ hR hc hbk hv X.fuel _ _
+    (LR.bInvL_root X k R bnd _ hR hc hbk hv)
+  have hall : X.allEnts k =
+      ((Write.lleavesB (ltree X) k X.fuel (X.rootPid k) (none, none)).map fun x => x.2.2).flatten := by
+    unfold WX.allEnts WX.leaves; rw [Write.lleavesB_snd]
+  rw [hall, List.mem_flatten] at h1 h2
+  obtain ⟨l1, hl1, hw1⟩ := h1
+  obtain ⟨x1, hx1, rfl⟩ := List.mem_map.1 hl1
+  obtain ⟨l2, hl2, hw2⟩ := h2
+  obtain ⟨x2, hx2, rfl⟩ := List.mem_map.1 hl2
+  have hk1 := hwalk.1 x1 hx1 w1 hw1
+  have hk2 := hwalk.1 x2 hx2 w2 hw2
+  have hxy : x1 = x2 := by
+    apply Classical.byContradiction
+    intro hne
+    have := LR.pw_mem_ne _ (fun x y h k hy hx => h k hx hy) _ hwalk.2.1 x1 hx1 x2 hx2 hne
+    exact this w1.key hk1 (hk ▸ hk2)
+  subst hxy
+  have hL := Write.lleavesB_leaf (ltree X) k X.fuel _ _ x1 hx1
+  have hs := LeafT.leaf_pw X hok k R hR x1.1 x1.2.2 hL
+  have e1 := wsAt_of_mem x1.2.2 hs w1 hw1
+  have e2 := wsAt_of_mem x1.2.2 hs w2 hw2
+  rw [hk, e2] at e1
+  exact (Option.some.inj e1).symm
+
+/-- A plain leaf page's entries are its elements'. -/
+theorem plain_pageWs (pg : List w8) (hl : pageFlags pg = leafPageFlag)
+    (hp : ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
+    (pageWs pg).filterMap Write.plainOf = leafEnts pg := by
+  unfold pageWs leafEnts
+  rw [List.filterMap_map]
+  have key : ∀ (l : List Nat), (∀ i ∈ l, i < pageCount pg) →
+      l.filterMap (Write.plainOf ∘ pageW pg) = l.map fun i => (leafKey pg i, leafValue pg i) := by
+    intro l
+    induction l with
+    | nil => intro _; rfl
+    | cons i t ih =>
+      intro hl'
+      have hi := hl' i List.mem_cons_self
+      have e : (Write.plainOf ∘ pageW pg) i = some (leafKey pg i, leafValue pg i) := by
+        simp only [Function.comp_def]
+        rw [pageW_leaf' pg i hl]
+        unfold Write.plainOf
+        have : ¬ isBktFlag (W32 (leafFlags pg i : Int)) := by
+          intro h; have := isBktFlag_mod _ h; have := hp i hi; omega
+        rw [if_neg (by simpa using this)]
+      rw [List.filterMap_cons, e, List.map_cons]
+      simp only
+      rw [ih (fun j hj => hl' j (List.mem_cons_of_mem _ hj))]
+  exact key _ (fun i hi => List.mem_range.1 hi)
+
 /-! ### The opened state -/
 
 theorem inBucketRoot_zero (v : List w8) : inBucketRoot v = 0 ↔ (ibOf v).root' = W64 0 := by
@@ -460,6 +518,51 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
     obtain ⟨D0, r, hD0, hr, hp⟩ := hnl n b p hn hl
     obtain ⟨D, hD, hns', -⟩ := XO_bs_old X bl c B C nb h hB hc hbm b D0 hD0
     exact ⟨D, r, hD, by rw [hns']; exact hr, hp⟩
+
+omit hbm in
+theorem XO_size : (XO X bl c B C nb h).t.bs.size = X.t.bs.size + 1 := by
+  unfold XO WX.addBkt WX.setBkt
+  simp only
+  rw [GMap.map_size_insert_None _ _ _ (by
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm (c_ne_bl X bl c B hB hc))]; exact hc)]
+  congr 1
+  rw [GMap.size_eq_length _ X.t.bs.domList (GMap.nodup_dom_list _)]
+  · exact (GMap.size_eq_dom_list_length _).symm
+  · intro k
+    rw [GMap.mem_dom_list]
+    by_cases hk : bl = k
+    · subst hk; rw [GMap.lookup_insert, hB]; rfl
+    · rw [GMap.lookup_insert_ne _ _ hk]
+
+omit hbm in
+theorem XO_ltree_old (k : Loc) (hk : k ≠ c) : ltree (XO X bl c B C nb h) k = ltree X k := by
+  funext p
+  unfold ltree
+  rw [XO_bs]
+  simp only [hk, ↓reduceIte]
+  by_cases hkb : k = bl
+  · subst hkb; rw [hB]; simp only [↓reduceIte]; rfl
+  · simp only [hkb, ↓reduceIte]; rfl
+
+omit hbm in
+theorem XO_rootPid_old (k : Loc) (hk : k ≠ c) :
+    (XO X bl c B C nb h).rootPid k = X.rootPid k := by
+  unfold WX.rootPid
+  rw [XO_bs]
+  simp only [hk, ↓reduceIte]
+  by_cases hkb : k = bl
+  · subst hkb; rw [hB]; simp only [↓reduceIte]; rfl
+  · simp only [hkb, ↓reduceIte]
+
+theorem XO_leaves_old (hok : wOK X) (k : Loc) (hk : k ≠ c) :
+    (XO X bl c B C nb h).leaves k = X.leaves k := by
+  unfold WX.leaves
+  rw [XO_rootPid_old X bl c B C nb h hB hc k hk,
+    lleaves_congr' _ (ltree X) k (fun q => by rw [XO_ltree_old X bl c B C nb h hB hc k hk])]
+  have hf : (XO X bl c B C nb h).fuel = X.fuel + 1 := by
+    unfold WX.fuel; rw [XO_size X bl c B C nb h hB hc]; rfl
+  rw [hf]
+  exact Write.wOK_leaves_fuel' X k hok 1
 
 end opened
 
