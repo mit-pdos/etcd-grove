@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.STree
 public import Proof.go_etcd_io.bbolt.Read.TreeFacts
+public import Proof.go_etcd_io.bbolt.Rebalance.RblKeys
 
 @[expose] public section
 
@@ -108,6 +109,12 @@ theorem sTree_mono {P P' : Pages} {hwm hwm' id : Nat} {lo hi : Option (List w8)}
     · exact bucketHas_of_le hle hwm h' (treeWF_leaf_bucketWF hwx hp' hl hi hbf)
   · obtain ⟨pht, hpht, hid⟩ := hs.hts
     exact ⟨pht, fun x hx pg hp => hpht x hx pg (hS x hx pg hp), hid⟩
+
+/-- **An `sTree` within looser bounds.** -/
+theorem sTree_bnd {P : Pages} {hwm id : Nat} {lo hi lo' hi' : Option (List w8)} {h : Nat}
+    {S : List Nat} (hb : bndIn (lo, hi) (lo', hi')) (hs : sTree P hwm id lo hi h S) :
+    sTree P hwm id lo' hi' h S :=
+  { hs with keys := treeKeys_mono P id lo hi hs.keys lo' hi' hb }
 
 end mono
 
