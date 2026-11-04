@@ -111,7 +111,9 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
 * (The lease-grant plan's D2, 2026-11-02) **The mode** (`lessorModeIs γl mono`), chosen by the
   caller and pinned with the readers' names: monotone (`mono = true`), the invariant also keeps
   `histMono` (trivial of the single snapshot), and `Revoke` and `Recover`, which take the other
-  mode (`lessorRevocable`), are not called. Ghost state only. -/
+  mode (`lessorRevocable`), are not called. Ghost state only.
+* (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
+  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
@@ -134,6 +136,8 @@ abbrev lease.NewLessor.spec : Prop :=
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
       lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
+      -- (2026-11-04, R2b-3c part 2, the user's approval) the right to stop it
+      lease.lessorStopTok lp ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

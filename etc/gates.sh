@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds check, the packages' imports. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -98,6 +98,15 @@ if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
   grep "down from" "$tmp/bounds.log" | head -5
 else
   echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
+fi
+
+# 7b. the auth-mode divergence outside the auth component only goes down (the auth component's
+# stage 2, D2: a ratchet; reads the sources only)
+if python3 etc/mode-check.py --check > "$tmp/mode.log" 2>&1; then
+  echo "$(tail -1 "$tmp/mode.log")"
+  grep "down from" "$tmp/mode.log" | head -5
+else
+  echo "mode: FAILED"; grep -v "^mode: ok" "$tmp/mode.log" | head -20; fail=1
 fi
 
 # 8. each package's clients import only its importable modules (etc/api/<pkg>.txt; CLAUDE.md,

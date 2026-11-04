@@ -1217,3 +1217,18 @@ out (`bDoneEsc_take`) and closes it: its post gives the file (`bFile γ path ∗
 `applySnapshot` drops the old backend's file. Trust base: +2 (`dbFile`, `dbFile_persistent`).
 Next (part 2): `D` observed (the store's view at the consistent index, as `backend.Snapshot`'s
 observation), `New` giving `bFile γ cfg.Path`, `Cleanup`'s spec, `srvFiles` defined.
+
+### R2b-3c, part 2a: what the backend's file holds, its path, the closers' specs (2026-11-04)
+
+Done (`notes/decisions.md`, "The backend's `Close` gives back what its stopped lock held"):
+`backend.Close` returns, at the file's data `D`, the stopped batch lock's client resources and ghost
+shares (`bStopView`), the material of `backend.Snapshot`'s observation, so `imageAt` of `D` follows
+as on the snapshot path; `New`, `OpenBackend` (trusted, approved), `OpenSnapshotBackend` give the
+file's path (`bFile`); the lessor's stop right and `lessor.Stop` (trusted, approved);
+`authStore.Close` proved. The server keeps `isStopChansE` (the backend's `W`, `Pk` hidden) and drops
+the lessor's stop right and the new backend's `bFile`. Trust base: +2 (`lessorStopTok`,
+`lessor.Stop.wp_proof`; the `Timeless` instance is not reached).
+
+Left for part 2b: `Cleanup`'s spec (the lessor's stop right and the auth store's `tpAdmin` in
+`srvCleanupOwn`; the KV's closer and the backend's `bOpen 1`, `isStopChans` at the server's own `W`,
+`Pk` from the apply thread's final state), `srvFiles` defined; then R2b-3d.

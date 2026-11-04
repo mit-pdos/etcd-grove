@@ -27,8 +27,8 @@ abbrev backend.backend.run.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames)
     (u : Nat) (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      isStopChansAt γ b sc dc γsc γdc ∗ bF go!"batchInterval" b ↦□ d ∗
-      ownBroadcastChan dc γdc (bDoneEsc γ) .Pending ∗ runTok γ ∗
+      isStopChansAt γ P W Pk b sc dc γsc γdc ∗ bF go!"batchInterval" b ↦□ d ∗
+      ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half u }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}

@@ -13,6 +13,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 
 @[expose] public section
 
@@ -169,8 +170,10 @@ theorem startServer.wp_proof
   -- `s.Start()` with auth on
   wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N γa
       hγa Hrb48 HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, -⟩
+    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩
   · iframe; iframe #
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
   (try wp_auto)
   iapply HΦ
   iright

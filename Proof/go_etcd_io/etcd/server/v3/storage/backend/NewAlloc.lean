@@ -366,16 +366,17 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
   exact st0_freeOk P D wtx hP
 
 /-- The stop protocol of a new backend. -/
-theorem stop_init (γ : BNames) (sc dc : GoChan) (γsc γdc : ChanNames) (b : Loc) :
+theorem stop_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc dc : GoChan) (γsc γdc : ChanNames)
+    (b : Loc) :
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
     dghostVar γ.sdn (DFrac.own 1) false ⊢
-    |={⊤}=> isStopChansAt (GF := GF) γ b sc dc γsc γdc ∗
-      ownBroadcastChan dc γdc (bDoneEsc γ) .Pending := by
+    |={⊤}=> isStopChansAt (GF := GF) γ P W Pk b sc dc γsc γdc ∗
+      ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Pending := by
   iintro ⟨#Hsc, #Hdc, #Hscc, Hsco, #Hdcc, Hdco, Hsdn⟩
   imod alloc_broadcast_chan (E := ⊤) (stopQ γ) γsc sc $$ Hscc Hsco with Hsb
   icases bchan_dup_unknown _ _ _ _ $$ Hsb with ⟨Hsb, #Hsbu⟩
-  imod alloc_broadcast_chan (E := ⊤) (bDoneEsc γ) γdc dc $$ Hdcc Hdco with Hdb
+  imod alloc_broadcast_chan (E := ⊤) (bDoneEsc γ P W Pk) γdc dc $$ Hdcc Hdco with Hdb
   icases bchan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
   imod inv_alloc (bN.@"stop") ⊤
     iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
@@ -484,8 +485,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
     srSlot b ⊢
-    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ newPostK γ P W Pk K b D ∗ isStopChansAt γ b sc dc γsc γdc ∗
-      ownBroadcastChan dc γdc (bDoneEsc γ) .Pending ∗ runTok γ ∗
+    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ bFile γ path ∗ newPostK γ P W Pk K b D ∗
+      isStopChansAt γ P (W γ) (Pk γ) b sc dc γsc γdc ∗ ownBroadcastChan dc γdc (bDoneEsc γ P (W γ) (Pk γ)) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
   iintro ⟨#Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
     #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
@@ -672,7 +673,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     iunfold hooksOk at Hhk
     iapply Hhk $$ Hb' Ht'
   -- the stop protocol
-  imod stop_init γ sc dc γsc γdc b $$ [Hsco Hdco Hsdn] with ⟨#Hstop, Hdcp⟩
+  imod stop_init γ P (W γ) (Pk γ) sc dc γsc γdc b $$ [Hsco Hdco Hsdn] with ⟨#Hstop, Hdcp⟩
   · iframe
     iframe #
   -- the readers' tokens
@@ -688,6 +689,9 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
+  -- (R2b-3c part 2) the backend's file is at `path`
+  isplitr
+  · iunfold bFile; iexists db; iexact Hdbat
   isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hsr]
   · unfold newPostK
     isplitr

@@ -471,6 +471,9 @@ def backend.rbPart (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoStr
     IProp GF :=
   iprop(∃ F, backend.rbPartF γ S r F)
 
+def backend.bDBOutG (γ : backend.BNames) (P : backend.BParams) : IProp GF :=
+  iprop(∃ db C, backend.bDB γ db ∗ backend.ownDB db γ.db C ∗ backend.bStopG γ P C)
+
 def backend.baseRd (γ : backend.BNames) (P : backend.BParams) (base : Loc) (dq : DFrac) (rtx : Loc)
     (rv : backend.RView) (q : Qp) : IProp GF :=
   iprop(∃ m Pb cm tm,
@@ -594,8 +597,8 @@ def backend.batchFree (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
   iprop((∃ st db, backend.batchPhys γ b t db st ∗ backend.batchGhostAt γ P st true ∗ ⌜backend.freeOk P st⌝ ∗ W ∗ Pk) ∨
       backend.bStopped γ)
 
-def backend.bDBOut (γ : backend.BNames) : IProp GF :=
-  iprop(∃ db C, backend.bDB γ db ∗ backend.ownDB db γ.db C)
+def backend.bDBOut (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop(backend.bDBOutG γ P ∗ W ∗ Pk)
 
 def backend.bOpen (γ : backend.BNames) (q : Qp) : IProp GF :=
   iprop(dghostVar γ.opn (DFrac.own q.half) false ∗ ghostVar γ.cls q ())
@@ -636,6 +639,9 @@ def backend.trkHalf (γ : backend.BNames) (P : backend.BParams) (S : backend.Dat
   iprop(ghostVar γ.hkd (Qp.half 1) (backend.hkData P S) ∗
       backend.rbSide γ P (backend.rbData P S) ∗
         ghostVar γ.pv (Qp.half 1) (backend.sData P S) ∗ ghostVar γ.ck (Qp.half 1) (backend.fkVals S))
+
+def backend.bStopG (γ : backend.BNames) (P : backend.BParams) (C : backend.Data) : IProp GF :=
+  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗ backend.trkHalf γ P C)
 
 theorem backend.bDBAt_persistent (γ : backend.BNames) (db : Loc) (path : GoString) : Persistent
     (backend.bDBAt γ db path)

@@ -110,7 +110,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
     -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
     backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-    backend.isStopChans γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
+    backend.isStopChansE γB d'.P d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
     backend.hooksOk d.P (fun γB => mvcc.lateWD { d' with γB := γB })
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
@@ -205,7 +205,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    backend.isStopChansE d'.γB d'.P d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
     trLive γn t c L ∗
@@ -234,7 +234,7 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗
     srvKVCloserW s E' ∗
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
+    backend.isStopChansE d'.γB d'.P d'.be ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
     trLive γn t c L ∗

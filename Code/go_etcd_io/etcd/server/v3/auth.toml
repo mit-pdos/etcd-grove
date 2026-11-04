@@ -77,7 +77,10 @@ translate = ["!*", "AuthInfo",
   "authStore.BcryptCost",
   # (C1's A4, 2026-10-29) the store's token prefix, the provider's `genTokenPrefix` (the simple
   # provider's stays names only: `crypto/rand`, `math/big`, the trust boundary)
-  "authStore.GenTokenPrefix"]
+  "authStore.GenTokenPrefix",
+  # (R2b-3c part 2, 2026-11-04) the store's `Close`, which the server's `Cleanup` calls (the
+  # provider's `disable`, as `AuthDisable`)
+  "authStore.Close"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

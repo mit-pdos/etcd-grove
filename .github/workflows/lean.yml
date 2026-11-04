@@ -100,6 +100,10 @@ jobs:
       # thread-bound, receipt-bound or reader-slot premise in a spec. Reads the sources only.
       - name: Check the bounds baseline
         run: ./etc/bounds-check.py --check
+      # The auth-mode divergence outside the auth component only goes down (the auth component's
+      # stage 2, D2): no new match on a mode, off/on twin or literal mode. Reads the sources only.
+      - name: Check the auth-mode baseline
+        run: ./etc/mode-check.py --check
       - name: Build
         # `timed-build.py` is `lake build`, recording each module compile's
         # timing for the report below.

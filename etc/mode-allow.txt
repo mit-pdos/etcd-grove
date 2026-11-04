@@ -1,0 +1,132 @@
+# etc/mode-check.py's classification: KIND CLASS REGEX (searched in FILE::DECLARATION::TEXT)  # why
+# (the auth component's stage 2, D2; notes/decisions.md, "The auth component's stage 2"). Classes:
+#   model     a model row: the KV model, not the auth resource, is what it reads (keeps `Bool`,
+#             used at `C.isOn`)
+#   flag      a flag row: reads the mode itself (keeps `Bool`; `hdrBoundM`/`infoBoundM` off are not
+#             `True`, so a literal `true` stays)
+#   corollary `ModeSpecs.lean`'s restatements of the merged specs at a mode
+#   pair      the off/on pairs kept by the Freeze (D4: `Txn`, `Serve`)
+#   bridge    a row at a literal mode is its twin (`X_false`, `X_true`, ... and the `_on`/`_off` laws)
+#   unmoved   not yet over the slot: a later stage moves it (the M rows and corollaries go in stage 3)
+# A finding no line classifies fails `--check`; classify a new one only with its reason.
+
+* corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
+lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
+* pair ^(Spec|Proof)/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn\.lean::
+* pair ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Serve\.lean::
+
+match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
+lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
+
+match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM)::
+
+# the resource rows and the mode-level vocabulary still over `on`/`M` (stage 3: over the slot,
+# or left over `M` as the auth package's verdict vocabulary)
+match-mode unmoved ::EtcdServer\.applyEntryNormal\.spec::
+match-mode unmoved ::adminRes::
+match-mode unmoved ::applyBuiltNAM::
+match-mode unmoved ::authApplyRes::
+match-mode unmoved ::authApplyResAt::
+match-mode unmoved ::authApplyResB::
+match-mode unmoved ::authApplyResPre::
+match-mode unmoved ::authCapM::
+match-mode unmoved ::authFreshInit::
+match-mode unmoved ::authKitIn::
+match-mode unmoved ::authKitOut::
+match-mode unmoved ::authPubAt::
+match-mode unmoved ::authPublishM::
+match-mode unmoved ::authRdM::
+match-mode unmoved ::authSnapKitM::
+match-mode unmoved ::authStoreLatestM::
+match-mode unmoved ::authStoreLbM::
+match-mode unmoved ::authedRes::
+match-mode unmoved ::classRes::
+match-mode unmoved ::classResFrom::
+match-mode unmoved ::isServerBuiltM::
+match-mode unmoved ::isServerReqM::
+match-mode unmoved ::kitSet::
+match-mode unmoved ::kvAuthM::
+match-mode unmoved ::latestOk::
+match-mode unmoved ::leaseKeysClass::
+match-mode unmoved ::restSet::
+match-mode unmoved ::snapAuthImgM::
+match-mode unmoved ::snapAuthImgR::
+match-mode unmoved ::snapAuthResM::
+match-mode unmoved ::snapAuthRowM::
+match-mode unmoved ::snapKeepS::
+match-mode unmoved ::snapRestImgM::
+match-mode unmoved ::srvApplyKVM::
+match-mode unmoved ::srvAuthBoundM::
+match-mode unmoved ::srvKVInvsM::
+match-mode unmoved ::srvLessorNilM::
+match-mode unmoved ::srvOpenQ::
+match-mode unmoved ::srvSnapAppliedM::
+match-mode unmoved ::srvTokRights::
+match-mode unmoved ::srvUberRowM::
+match-mode unmoved ::uberKitM::
+
+# the twins kept until stage 3 (D3: the M specs, the admin and apply-path `specOn`s)
+twin unmoved ::EtcdServer\.AppliedIndex\.specM::
+twin unmoved ::EtcdServer\.AppliedIndex\.wp_proofM::
+twin unmoved ::EtcdServer\.AuthEnable\.specOn::
+twin unmoved ::EtcdServer\.AuthEnable\.wp_proofOn::
+twin unmoved ::EtcdServer\.RoleAdd\.specOn::
+twin unmoved ::EtcdServer\.RoleAdd\.wp_proofOn::
+twin unmoved ::EtcdServer\.RoleGrantPermission\.specOn::
+twin unmoved ::EtcdServer\.RoleGrantPermission\.wp_proofOn::
+twin unmoved ::EtcdServer\.UserAdd\.specOn::
+twin unmoved ::EtcdServer\.UserAdd\.wp_proofOn::
+twin unmoved ::EtcdServer\.UserGrantRole\.specOn::
+twin unmoved ::EtcdServer\.UserGrantRole\.wp_proofOn::
+twin unmoved ::EtcdServer\.apply\.wp_proofOn::
+twin unmoved ::EtcdServer\.applyEntries\.wp_proofOn::
+twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::
+twin unmoved ::EtcdServer\.doSerialize\.wp_proofM::
+twin unmoved ::EtcdServer\.parseProposeCtxErr\.wp_proofM::
+twin unmoved ::EtcdServer\.processInternalRaftRequestOnce\.wp_proofM::
+twin unmoved ::EtcdServer\.raftRequest\.wp_proofM::
+twin unmoved ::NewServer\.specM::
+twin unmoved ::NewServer\.wp_proofM::
+twin unmoved ::kv\.Delete\.specM::
+twin unmoved ::kv\.Do\.specM::
+twin unmoved ::kv\.Get\.specM::
+twin unmoved ::kv\.Put\.specM::
+twin unmoved ::txn\.Commit\.specM::
+
+# literal modes in proofs and results not yet over the slot (per file: count at the Freeze)
+lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 3
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AppliedOn\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnap\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnapOn\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyNormalOn\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthnOn\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__AuthEnable\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__RoleAdd\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__RoleGrantPermission\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__UserAdd\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__UserGrantRole\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyEntryNormal\.lean::  # 4
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/MergedImageOn\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerAllocOn\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReadOn\.lean::  # 7
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn\.lean::  # 12
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/RunOn\.lean::  # 3
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOn\.lean::  # 7
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyDefs\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyNames\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/StartOn\.lean::  # 5
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/UberKit\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthService\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 8
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 14
+lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServeFromStartOn\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServedOn\.lean::  # 9
+lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Defs\.lean::  # 3
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 5
