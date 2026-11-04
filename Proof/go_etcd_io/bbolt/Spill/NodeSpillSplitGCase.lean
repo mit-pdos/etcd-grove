@@ -421,6 +421,34 @@ theorem spG_child {ps : Nat} {xs : List (Loc × node × List Inode)} {pv' : node
       obtain ⟨rt, h, hdsc⟩ := rN'' bl B _ rp hb hrp hplv
       exact ⟨rt, htr h, descIn_snoc (hdt hdsc) hp2' (hpcsN x hx)⟩
 
+omit [GoGlobalContext] [GoSemanticsFunctions] in
+/-- Records put back as they were. -/
+theorem splitX_same {psOld : List (Loc × NRec)} (hb : X1.t.bs !! bl = some B)
+    (hold : ∀ p ∈ psOld, B.ns !! p.1 = some p.2) : splitX X1 bl B psOld [] = X1 := by
+  have hns : nsIns B.ns (psOld ++ []) = B.ns := by
+    rw [List.append_nil]
+    apply GMap.map_eq; intro k
+    induction psOld generalizing B with
+    | nil => rfl
+    | cons q ps ih =>
+      show nsIns (B.ns.insert q.1 q.2) ps !! k = _
+      have hq := hold q (List.mem_cons_self ..)
+      have e : B.ns.insert q.1 q.2 = B.ns := GMap.map_eq fun j => by
+        by_cases h : q.1 = j
+        · subst h; rw [GMap.lookup_insert, hq]
+        · rw [GMap.lookup_insert_ne _ _ h]
+      rw [e]
+      exact ih hb (fun p hp => hold p (List.mem_cons_of_mem _ hp))
+  have hbs : X1.t.bs.insert bl { B with ns := nsIns B.ns (psOld ++ []) } = X1.t.bs := by
+    rw [hns]
+    exact GMap.map_eq fun k => by
+      by_cases h : bl = k
+      · subst h; rw [GMap.lookup_insert, hb]
+      · rw [GMap.lookup_insert_ne _ _ h]
+  unfold splitX
+  rw [hbs]
+  rfl
+
 end gcase
 
 end Spill

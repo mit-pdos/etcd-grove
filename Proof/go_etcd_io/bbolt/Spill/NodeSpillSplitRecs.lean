@@ -133,7 +133,7 @@ theorem splitRel_one (hb : X1.t.bs !! bl = some B) (hlv : n ∈ X1.live)
     (hold : ∀ p ∈ psOld, B.ns !! p.1 = some p.2)
     (hT : ∀ p ∈ psOld, p.1 = n ∨ p.1 = rN.nv.parent')
     (hpar : rN.nv.parent' ≠ null → ∃ rp, (rN.nv.parent', rp) ∈ psOld) :
-    ∃ rp', splitRel X1 (splitX X1 bl B psOld []) bl n rN [(n, rN.nv, rN.ins)] [rN.ws]
+    ∃ rp', splitRel0 X1 (splitX X1 bl B psOld []) bl n rN [(n, rN.nv, rN.ins)] [rN.ws]
       rN.nv.parent' rp' := by
   have hnd' : ((psOld ++ ([] : List (Loc × NRec))).map (·.1)).Nodup := by simpa using hnd
   have hnode : ∀ p ∈ psOld, (splitX X1 bl B psOld []).node bl p.1 = some p.2 :=
@@ -287,7 +287,7 @@ theorem splitRel_top {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Inode
     (recs.take 1).map (·.1) = [n] ∧
     ((recs.take 1 ++ (recs.drop 1 ++ [par])).map (·.1)).Nodup ∧
     (∀ p ∈ recs.take 1 ++ (recs.drop 1 ++ [par]), p.2.nv.parent' ≠ p.1) ∧
-    ((∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none) → X1.t.objs !! pl = none → splitRel X1 (splitX X1 bl B (recs.take 1) (recs.drop 1 ++ [par])) bl n rN xs
+    ((∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none) → X1.t.objs !! pl = none → splitRel0 X1 (splitX X1 bl B (recs.take 1) (recs.drop 1 ++ [par])) bl n rN xs
       (cutWs (xs.map (·.2.2)) rN.ws) pl (newParRec pv' (xs.map (·.1)))) := by
   intro recs par
   have hlen : (cutWs (xs.map (·.2.2)) rN.ws).length = xs.length := by simp [cutWs_length]
@@ -358,7 +358,7 @@ theorem splitRel_child {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Ino
     (recs.take 1 ++ [par]).map (·.1) = [n, pl] ∧
     (((recs.take 1 ++ [par]) ++ recs.drop 1).map (·.1)).Nodup ∧
     (∀ p ∈ (recs.take 1 ++ [par]) ++ recs.drop 1, p.2.nv.parent' ≠ p.1) ∧
-    ((∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none) → splitRel X1 (splitX X1 bl B (recs.take 1 ++ [par]) (recs.drop 1)) bl n rN xs
+    ((∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none) → splitRel0 X1 (splitX X1 bl B (recs.take 1 ++ [par]) (recs.drop 1)) bl n rN xs
       (cutWs (xs.map (·.2.2)) rN.ws) pl { rp with nv := pv', cs := pcs' }) := by
   intro recs par
   have hlen : (cutWs (xs.map (·.2.2)) rN.ws).length = xs.length := by simp [cutWs_length]

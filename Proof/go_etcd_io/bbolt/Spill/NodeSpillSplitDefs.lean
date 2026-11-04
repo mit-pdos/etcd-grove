@@ -41,9 +41,10 @@ def splitRec (rN : NRec) (x : Loc × node × List Inode) (ws : List WEntry) (fir
 no entries yet, owning its (nil) inodes' capacity. -/
 def newParRec (pv : node) (ls : List Loc) : NRec := ⟨pv, [], [], ls, [], Src.stale, true⟩
 
-/-- **The records after `n.split(pageSize)`** (see the module doc). `pl` the pieces' parent
-(`null` for an unsplit top node), `rp` its record before (child case) and `rp'` after. -/
-structure splitRel (X1 X2 : WX) (bl n : Loc) (rN : NRec) (xs : List (Loc × node × List Inode))
+/-- **The records after `n.split(pageSize)`** (see the module doc), but the spill's global state.
+`pl` the pieces' parent (`null` for an unsplit top node), `rp` its record before (child case) and
+`rp'` after. -/
+structure splitRel0 (X1 X2 : WX) (bl n : Loc) (rN : NRec) (xs : List (Loc × node × List Inode))
     (wss : List (List WEntry)) (pl : Loc) (rp' : NRec) : Prop where
   ne : xs ≠ []
   head : (xs.head?.map (·.1)) = some n
@@ -69,6 +70,16 @@ structure splitRel (X1 X2 : WX) (bl n : Loc) (rN : NRec) (xs : List (Loc × node
       X2.node bl pl = some rp' ∧ (pl ∈ X2.live ↔ pl ∈ X1.live))
   frame : spFrame X1 X2 bl (xs.map (·.1) ++ [pl])
   same : X2.t.mv = X1.t.mv ∧ X2.t.bufs = X1.t.bufs ∧ X2.t.pm = X1.t.pm ∧ X2.v = X1.v
+
+/-- **The records after `n.split(pageSize)`** (`splitRel0`), and the spill's global state kept
+(`G`): for a top node split in two, given that `n` is the root of its bucket's root node (`b.rootNode`
+is `n`: the new root `pl` then roots it). -/
+structure splitRel (X1 X2 : WX) (bl n : Loc) (rN : NRec) (xs : List (Loc × node × List Inode))
+    (wss : List (List WEntry)) (pl : Loc) (rp' : NRec) : Prop
+    extends splitRel0 X1 X2 bl n rN xs wss pl rp' where
+  G : (rN.nv.parent' = null → 2 ≤ xs.length → ∀ B rt, X1.t.bs !! bl = some B →
+      nodeRootIn B B.bv.rootNode' rt → rt = n) →
+    ∀ txid ml fl, spG X1 txid ml fl → spG X2 txid ml fl
 
 end defs
 

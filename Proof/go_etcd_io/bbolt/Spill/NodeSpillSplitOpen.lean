@@ -8,6 +8,7 @@ split, the records related by `splitRel`. A top node (`split_open_top`) or a chi
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillSplitObjs
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillSplitGCase
 
 @[expose] public section
 
@@ -136,7 +137,12 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
       rw [splitFr_splitX, splitX_handles]
       iframe
     ipureintro
-    refine ⟨hrel, ?_⟩
+    refine ⟨⟨hrel, fun _ txid ml fl hG => ?_⟩, ?_⟩
+    · rw [splitX_same hb (by
+        intro p hp
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hp
+        rcases hp with rfl | rfl <;> first | exact hrn | exact hrp)]
+      exact hG
     intro x hx; simp at hx; subst hx
     exact ⟨by rw [← w4096]; exact hfit, fun h => by simp at h⟩
   · -- split, under a new parent
@@ -152,6 +158,7 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
       pl pv' $$ [Hpl Hps] with ⟨%Hplx, Hpl, Hps⟩
     · iframe
     have hrel := splitRel_top hb hlv hbl hsp hil hch h0 hsh h2 hpl hpv Hflat Hnd Hplx
+    have hsh0 := hsh
     obtain ⟨-, x0, rest, rfl, hx0n, hx0s, hrest⟩ := hsh
     dsimp only at hrel
     obtain ⟨hA, hB, hC, hD⟩ := hrel
@@ -178,6 +185,7 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
     have e2 : (pieceRecs rN false (x0 :: rest) (cutWs ((x0 :: rest).map (·.2.2)) rN.ws) true).drop 1
         = pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false := rfl
     have hdrop := pieceRecs_drop_fst rN (x0 :: rest)
+    have hB0 := hB
     rw [e1] at hA
     rw [e1, e2] at hB hC hD
     rw [e2] at hdrop
@@ -195,20 +203,29 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
     · iapply (BigSepL.bigSepL_append).2
       iframe
       iapply BigSepL.bigSepL_nil.2; iempintro
-    have hrel := hD (fun x hx => by
+    have hfr : ∀ x ∈ (x0 :: rest).drop 1, X1.t.objs !! x.1 = none := fun x hx => by
         have hm : x.1 ∈ (pieceRecs rN false rest (cutWs (rest.map (·.2.2))
             (rN.ws.drop x0.2.2.length)) false).map (·.1) := by
           rw [hdrop]; exact List.mem_map.2 ⟨x, hx, rfl⟩
         obtain ⟨p, hp, e⟩ := List.mem_map.1 hm
-        rw [← e]; exact Hfresh p (List.mem_append_left _ hp))
-      (Hfresh _ (List.mem_append_right _ (List.mem_singleton_self _)))
+        rw [← e]; exact Hfresh p (List.mem_append_left _ hp)
+    have hplf := Hfresh _ (List.mem_append_right _ (List.mem_singleton_self _))
+    have hrel := hD hfr hplf
+    have hGt : ∀ txid ml fl, (∀ B' rt, X1.t.bs !! bl = some B' →
+        nodeRootIn B' B'.bv.rootNode' rt → rt = n) → spG X1 txid ml fl →
+        spG (splitX X1 bl B [(n, splitRec rN x0 (rN.ws.take x0.2.2.length) true false)]
+          (pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false ++
+            [(pl, newParRec pv' ((x0 :: rest).map (·.1)))])) txid ml fl := by
+      intro txid ml fl hrt hG
+      have := spG_top hb hrn hlv hbl h0 hsh0 hpl hpv hB0 hfr hplf (fun rt h => hrt B rt hb h) hG
+      rw [e1, e2] at this; exact this
     iexists _, _, pl, newParRec pv' ((x0 :: rest).map (·.1))
     isplitl [Hh Hfills Hdb Hst Hfr]
     · iapply (wtxW_frame K tx r m _).2
       rw [splitFr_splitX, splitX_handles]
       iframe
     ipureintro
-    refine ⟨hrel, fun x hx => ?_⟩
+    refine ⟨⟨hrel, fun hroot txid ml fl hG => hGt txid ml fl (hroot h0 h2) hG⟩, fun x hx => ?_⟩
     have := hfits x hx
     rw [w4096] at this
     exact ⟨this.1, fun _ => this.2⟩
@@ -333,7 +350,12 @@ theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (b
       rw [splitFr_splitX, splitX_handles]
       iframe
     ipureintro
-    refine ⟨hrel, ?_⟩
+    refine ⟨⟨hrel, fun _ txid ml fl hG => ?_⟩, ?_⟩
+    · rw [splitX_same hb (by
+        intro p hp
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hp
+        rcases hp with rfl | rfl <;> first | exact hrn | exact hrp)]
+      exact hG
     intro x hx; simp at hx; subst hx
     exact ⟨by rw [← w4096]; exact hfit, fun h => by simp at h⟩
   · -- split, under n's parent
@@ -352,6 +374,7 @@ theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (b
     · iframe
     have hrel := splitRel_child hb hlv hbl hsp hil hch h0 hsh h2 rfl hrp hplv hrpp hpv hpcs Hflat
       Hnd Hplx
+    have hsh0 := hsh
     obtain ⟨-, x0, rest, rfl, hx0n, hx0s, hrest⟩ := hsh
     dsimp only at hrel
     obtain ⟨hA, hB, hC, hD⟩ := hrel
@@ -382,6 +405,7 @@ theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (b
     have e2 : (pieceRecs rN false (x0 :: rest) (cutWs ((x0 :: rest).map (·.2.2)) rN.ws) true).drop 1
         = pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false := rfl
     have hdrop := pieceRecs_drop_fst rN (x0 :: rest)
+    have hB0 := hB
     rw [e1] at hA
     rw [e1, e2] at hB hC hD
     rw [e2] at hdrop
@@ -399,22 +423,74 @@ theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (b
     · iexact Htf
     · iexact Hrf
     · iexact HT
-    have hrel := hD (fun x hx => by
+    have hfr : ∀ x ∈ (x0 :: rest).drop 1, X1.t.objs !! x.1 = none := fun x hx => by
         have hm : x.1 ∈ (pieceRecs rN false rest (cutWs (rest.map (·.2.2))
             (rN.ws.drop x0.2.2.length)) false).map (·.1) := by
           rw [hdrop]; exact List.mem_map.2 ⟨x, hx, rfl⟩
         obtain ⟨p, hp, e⟩ := List.mem_map.1 hm
-        rw [← e]; exact Hfresh p hp)
+        rw [← e]; exact Hfresh p hp
+    have hrel := hD hfr
+    have hGc : ∀ txid ml fl, spG X1 txid ml fl →
+        spG (splitX X1 bl B ([(n, splitRec rN x0 (rN.ws.take x0.2.2.length) true false)] ++
+          [(rN.nv.parent', { rp with nv := pv', cs := pcs' })])
+          (pieceRecs rN false rest (cutWs (rest.map (·.2.2)) (rN.ws.drop x0.2.2.length)) false))
+          txid ml fl := by
+      intro txid ml fl hG
+      have := spG_child hb hrn hlv hbl hsh0 hrp hplv hpv hpcs hB0 hfr hG
+      rw [e1, e2] at this; exact this
     iexists _, _, rN.nv.parent', { rp with nv := pv', cs := pcs' }
     isplitl [Hh Hfills Hdb Hst Hfr]
     · iapply (wtxW_frame K tx r m _).2
       rw [splitFr_splitX, splitX_handles]
       iframe
     ipureintro
-    refine ⟨hrel, fun x hx => ?_⟩
+    refine ⟨⟨hrel, fun _ txid ml fl hG => hGc txid ml fl hG⟩, fun x hx => ?_⟩
     have := hfits x hx
     rw [w4096] at this
     exact ⟨this.1, fun _ => this.2⟩
+
+/-- **The split's resources out of the writer's state** (see the module doc). -/
+theorem split_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl n : Loc)
+    (rN : NRec) (hn : X1.node bl n = some rN) (hlv : n ∈ X1.live) (hbl : rN.nv.bucket' = bl)
+    (hcap : rN.capOwn = true) (hsp : rN.nv.spilled' = false) (hil : rN.ins.length = rN.ws.length)
+    (hch : rN.nv.children' = slice.nil)
+    (hpar : rN.nv.parent' ≠ null → ∃ rp, X1.node bl rN.nv.parent' = some rp ∧
+      rN.nv.parent' ∈ X1.live) :
+    wtxW (GF := GF) K tx r m X1 ⊢ ∃ (pv : node) (pcs : List Loc) (f : w64) (dqb : DFrac),
+      ⌜¬ float64IsNaN f ∧ r.db = K.db⌝ ∗
+      □ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ reg tx K.B r) ∗
+      statsTok r m 1 ∗ n ↦ rN.nv ∗ rN.nv.inodes' ↦* rN.ins ∗
+      ownSliceCap Inode rN.nv.inodes' (DFrac.own 1) ∗
+      rN.nv.bucket'.[Bucket, go!"FillPercent"] ↦ f ∗ rN.nv.bucket'.[Bucket, go!"tx"] ↦{dqb} tx ∗
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ parentOwn rN.nv.parent' pv pcs ∗
+      (∀ xs : List (Loc × node × List Inode), statsTok r m 1 -∗
+        rN.nv.bucket'.[Bucket, go!"FillPercent"] ↦ f -∗
+        rN.nv.bucket'.[Bucket, go!"tx"] ↦{dqb} tx -∗
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db -∗
+        ⌜(xs.map (·.2.2)).flatten = rN.ins⌝ -∗
+        splitPost n rN pv pcs xs -∗ splitBack K tx r m X1 bl n rN xs) := by
+  by_cases h0 : rN.nv.parent' = null
+  · iintro Hw
+    icases split_open_top K tx r m X1 bl n rN hn hlv hbl hcap hsp hil hch h0 $$ Hw
+      with ⟨%f, %dqb, %Hp, #Hpers, Hst, Hn, Hins, Hcap, Hfp, Htx, Hdb, Hback⟩
+    iexists (zero_val node), [], f, dqb
+    iframe
+    isplitl []
+    · ipureintro; exact Hp
+    isplitl []
+    · iexact Hpers
+    unfold parentOwn
+    rw [if_pos h0]
+    iempintro
+  · obtain ⟨rp, hrpX, hplv⟩ := hpar h0
+    iintro Hw
+    icases split_open_child K tx r m X1 bl n rN hn hlv hbl hcap hsp hil hch h0 rp hrpX hplv $$ Hw
+      with ⟨%f, %dqb, %Hp, #Hpers, Hst, Hn, Hins, Hcap, Hfp, Htx, Hdb, Hpar, Hback⟩
+    iexists rp.nv, rp.cs, f, dqb
+    iframe
+    isplitl []
+    · ipureintro; exact Hp
+    iexact Hpers
 
 end open_
 
