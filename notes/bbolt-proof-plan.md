@@ -1143,6 +1143,10 @@ Not done (in this order, the coordinator's):
   records them, `store_rollback` returns them: e.g. a writer-held witness of `σ.bytes` on those
   slots). (B) is needed in both.
 
+- **U10c's access lemmas** (coordinator, after 42): new `Inv/WAccess` (proved): `WX.setFlPage` (moved
+  from `Tx__commitFreelist.lean`, same definition: U10c deletes its copy), **`wdbW_fl_acc`** and
+  **`wtxW_flpage_acc`** (U10c's local statements verbatim).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
