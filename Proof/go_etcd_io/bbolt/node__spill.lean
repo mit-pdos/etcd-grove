@@ -149,7 +149,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
     icases objOwn_bkt_tx_acc X.v bl _ B $$ Hbo with ⟨%dqb, Htx, Hbo⟩
     rw [hbtx]
-    icases ownSlice_loc_len _ _ _ $$ Hch with ⟨Hch, %Hlen⟩
+    icases ownSlice_loc_len _ _ $$ Hch with ⟨Hch, %Hlen⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
     iStructNamed Hn
     wp_method_call

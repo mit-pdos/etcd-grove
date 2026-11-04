@@ -95,6 +95,12 @@ theorem spPre_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !
 
 end pure
 
+/-- A nodup list of naturals below `n` has at most `n` elements. -/
+theorem nodup_bounded_len (l : List Nat) (n : Nat) (hnd : l.Nodup) (hb : ∀ x ∈ l, x < n) :
+    l.length ≤ n := by
+  have h : l.Subperm (List.range n) := List.subperm_of_subset hnd (fun x hx => List.mem_range.2 (hb x hx))
+  simpa using h.length_le
+
 section iprop
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -133,12 +139,102 @@ theorem objOwn_bkt_tx_acc (v : View) (bl : Loc) (b : Bool) (B : BRec) :
       iframe
 
 omit package_sem in
-/-- **A slice of pointers has at most `2 ^ 62` elements** (`sort.Sort`'s bound): its elements
-are heap cells below `maxAddr`. Not yet (U9m): Perennial has no layout for a slice of pointers
-(`go.PlainLayout` covers scalars), so the bound needs the element cells' addresses. -/
-theorem ownSlice_loc_len (s : GoSlice) (cs : List Loc) (dq : DFrac) :
-    (s ↦*{dq} cs : IProp GF) ⊢ s ↦*{dq} cs ∗ ⌜cs.length ≤ 2 ^ 62⌝ := by
-  sorry
+theorem loc_elem_bounds (p a : Loc) :
+    (p ↦ a : IProp GF) ⊢ ⌜0 < p.addr ∧ p.addr < maxAddr⌝ := by
+  rw [typedPointsto_unseal]; unfold typedPointstoWrap
+  rw [show @TypedPointsto.typedPointstoDef GF Loc _ p a (DFrac.own 1) =
+    heapPointsto p (DFrac.own 1) #a from rfl]
+  iintro ⟨H, -⟩
+  icases heapPointsto_pos p _ _ $$ H with %H1
+  icases heapPointsto_lt_maxAddr p _ _ $$ H with %H2
+  ipureintro; exact ⟨H1, H2⟩
+
+omit package_sem in
+/-- Full points-tos of `Loc`s at the addresses `g i`: the addresses are distinct and bounded. -/
+theorem loc_elems_addrs (vs : List Loc) (g : Nat → Loc) :
+    ([∗list] i ↦ v ∈ vs, (g i ↦ v : IProp GF)) ⊢
+      ⌜((List.range vs.length).map g).Nodup ∧
+        ∀ i < vs.length, 0 < (g i).addr ∧ (g i).addr < maxAddr⌝ := by
+  induction vs generalizing g with
+  | nil => iintro _; ipureintro; simp
+  | cons v vs ih =>
+    have hne : ∀ j (hj : j < vs.length), (g 0 ↦ v : IProp GF) ∗
+        ([∗list] i ↦ v ∈ vs, (g (i + 1) ↦ v : IProp GF)) ⊢ ⌜g 0 ≠ g (j + 1)⌝ := by
+      intro j hj
+      iintro ⟨H0, Ht⟩
+      icases (BigSepL.bigSepL_lookup_acc (Φ := fun i v => (g (i + 1) ↦ v : IProp GF))
+        (List.getElem?_eq_getElem hj)).1 $$ Ht with ⟨Hj, -⟩
+      by_cases he : g 0 = g (j + 1)
+      · rw [he]
+        iexfalso
+        rw [typedPointsto_unseal]; unfold typedPointstoWrap
+        icases Hj with ⟨Hj, -⟩
+        icases H0 with ⟨H0, -⟩
+        rw [show @TypedPointsto.typedPointstoDef GF Loc _ (g (j + 1)) v (DFrac.own 1) =
+          heapPointsto (g (j + 1)) (DFrac.own 1) #v from rfl]
+        rw [show @TypedPointsto.typedPointstoDef GF Loc _ (g (j + 1)) vs[j] (DFrac.own 1) =
+          heapPointsto (g (j + 1)) (DFrac.own 1) #vs[j] from rfl]
+        icombine H0 Hj gives %He
+        exact absurd He.1 (dfrac_own_one_op_invalid _)
+      · ipureintro; exact he
+    have hall : (g 0 ↦ v : IProp GF) ∗ ([∗list] i ↦ v ∈ vs, (g (i + 1) ↦ v : IProp GF)) ⊢
+        ⌜∀ j : Fin vs.length, g 0 ≠ g (j.1 + 1)⌝ :=
+      (forall_intro fun (j : Fin vs.length) => hne j.1 j.2).trans pure_forall.2
+    have hb := (and_intro hall (and_intro (sep_elim_left.trans (loc_elem_bounds _ _))
+      (sep_elim_right.trans (ih (fun i => g (i + 1)))))).trans
+      ((and_mono_right pure_and.1).trans pure_and.1)
+    refine BigSepL.bigSepL_cons.1.trans (hb.trans (pure_mono ?_))
+    rintro ⟨hn, h0, hnd, hbs⟩
+    refine ⟨?_, ?_⟩
+    · rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map]
+      refine List.nodup_cons.2 ⟨?_, ?_⟩
+      · simp only [List.mem_map, List.mem_range, Function.comp]
+        rintro ⟨j, hj, he⟩
+        exact hn ⟨j, hj⟩ he.symm
+      · exact hnd
+    · intro i hi
+      cases i with
+      | zero => exact h0
+      | succ i => exact hbs i (by simpa using hi)
+omit package_sem in
+/-- **A full slice of pointers has at most `2 ^ 62` elements** (`sort.Sort`'s bound): its
+elements are full points-tos (`loc_elems_addrs`), at distinct addresses in `(0, maxAddr)`. (At a
+fraction the bound does not follow: `arrayIndexRef` of a non-plain type is abstract, and every
+element could be at one address.) -/
+theorem ownSlice_loc_len (s : GoSlice) (cs : List Loc) :
+    (s ↦* cs : IProp GF) ⊢ s ↦* cs ∗ ⌜cs.length ≤ 2 ^ 62⌝ := by
+  iintro H
+  ihave %Hl : ⌜cs.length ≤ 2 ^ 62⌝ $$ [H]
+  · rw [ownSlice_unseal]; unfold ownSliceDef
+    icases H with (%Hn | ⟨H, -⟩)
+    · ipureintro; rw [Hn.2]; simp
+    icases typedPointsto_split _ _ _ $$ H with H
+    simp only [TypedPointsto.typedPointstoDef]
+    icases H with ⟨-, He⟩
+    icases loc_elems_addrs cs (fun i => arrayIndexRef Loc (i : Int) s.ptr) $$ He with %Ha
+    ipureintro
+    obtain ⟨hnd, hb⟩ := Ha
+    have h := nodup_bounded_len ((List.range cs.length).map
+      (fun i : Nat => (arrayIndexRef Loc (i : Int) s.ptr).addr.toNat)) (maxAddr.toNat) ?_ ?_
+    · simp only [List.length_map, List.length_range, maxAddr] at h; omega
+    · unfold List.Nodup at hnd ⊢
+      rw [List.pairwise_map] at hnd ⊢
+      refine List.Pairwise.imp_of_mem ?_ hnd
+      intro i j hi hj hne he
+      rw [List.mem_range] at hi hj
+      have h1 := (hb i hi).1; have h2 := (hb j hj).1
+      apply hne
+      cases ex : arrayIndexRef Loc (i : Int) s.ptr
+      cases ey : arrayIndexRef Loc (j : Int) s.ptr
+      rw [ex, ey] at he; rw [ex] at h1; rw [ey] at h2
+      simp only at he h1 h2
+      congr 1; omega
+    · intro x hx
+      simp only [List.mem_map, List.mem_range] at hx
+      obtain ⟨i, hi, rfl⟩ := hx
+      have := hb i hi; simp only [maxAddr] at this ⊢; omega
+  iframe
+  ipureintro; exact Hl
 
 /-- **`n`'s spill's post, from the permuted state back to the start.** -/
 theorem spPost_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn)
