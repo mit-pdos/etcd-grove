@@ -138,19 +138,22 @@ def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
 /-- **The server's `LeaseGrant` with a success fact `G`** (the lease-grant plan's amendment (F2)):
 `lessorGrantOk`'s triple whose post also gives, on success, the response's `ID` with `G` of it.
 `raftLessor`'s conjunct is it at `G := True` (`lessorGrantOkG_true`); the server's at the lessor's
-history is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id` (`lessorGrantOkL`). -/
-def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) :
-    IProp GF :=
+history is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id` (`lessorGrantOkL`). The request
+filter `R` (the lease-expiry plan's E3, 2026-11-04; `True` by default): the requests the contract
+covers, by their `(TTL, ID)`; in the revocable lease mode those with `ID = 0` only
+(`EtcdServer.LeaseGrant.spec`'s premise there). -/
+def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF)
+    (R : w64 × w64 → Prop := fun _ => True) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
-        leaseGrantReqIdOwn r m.2 }}
+        leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ }}
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
           structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G id) }})
 
 instance lessorGrantOkG_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
-    (G : w64 → IProp GF) : Persistent (lessorGrantOkG s E S G) := by
+    (G : w64 → IProp GF) (R : w64 × w64 → Prop) : Persistent (lessorGrantOkG s E S G R) := by
   unfold lessorGrantOkG; infer_instance
 
 /-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). Discharged only mode-gated, in
@@ -255,9 +258,9 @@ theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
   iintro #H
   iunfold lessorGrantOk at H
   iunfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ Hpre HΦ
-  wp_apply H $$ [Hpre] as %resp %err ⟨HS, Hans⟩
-  · iexact Hpre
+  iintro %ci %cd %r %m !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, -⟩ HΦ
+  wp_apply H $$ [HS0 Hctx Hrc Hreq Hid] as %resp %err ⟨HS, Hans⟩
+  · iframe
   iapply HΦ
   iframe HS
   iunfold leaseGrantAns at Hans

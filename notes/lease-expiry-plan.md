@@ -984,3 +984,169 @@ generated handler decodes into its own fresh allocation). Proposed, the same for
 error by `srvErrIs_of_applyErrIs`); linked as `v3rpc.lessorRevokeOk_server` (`v3rpc/Results.lean`).
 The ungated `lessorRevokeOk` (any lease mode) stays an undischarged premise of the client results
 (said in its docstring). Part X-b is complete; Part E not started.
+
+## Plumbing: Part E (2026-11-04)
+
+**Done.**
+- *The example translated* (`017d6025d9`): project `leaseexpiry` in `etc/goose.py` (as `leasegrant`),
+  `Code/`/`GeneratedProof/…/examples/etcd/leaseexpiry.lean`; `etc/gen-init.py`'s `ROOTS` and
+  `PROGRAMS` (its `Init.lean` and `PkgTable.lean`, generated); `Base.lean` (package fact `True`),
+  `Defs.lean` (leasegrant's premises at this example's addresses `127.0.0.1:23976`/`23986`, data
+  directory `leaseexpiry.etcd`), `holdToken` specified and proved. The Go test passes (`Main` 3.2 s,
+  the second lease expires too).
+- *E3's first half, the user's "generated ids only"*: `EtcdServer.LeaseGrant.spec` takes
+  `ρ.rd.kv.lm = .revocable → id0 = W64 0` (a weaker spec; its proof unchanged). Carried to the
+  client: `v3rpc.lessorGrantOkG s E S G R` has a request filter `R : w64 × w64 → Prop` (default
+  `True`, `⌜R m⌝` in its precondition), `v3rpc.LeaseServer.LeaseGrant.spec` takes `R` and `⌜R m⌝`;
+  `lessorGrantOkLive_of_server`/`_server` give the contract at any `R` that has `ID = 0` in the
+  revocable mode, `lessorGrantOkL_of_server`/`_server` take `ρ.rd.kv.lm ≠ .revocable`;
+  `client.etcdLeaseGrantSpecGR G R` (`⌜R m⌝ ∗ etcdLeaseGrantSpecG G m Φ`), `etcdLeaseGrantSpecLive`
+  is it at `ID = 0` (clientv3's `Grant` sends `(ttl, 0)`, `lessor.Grant.spec`);
+  `etcd_leaseGrantHandlerOkGR` (and `…OkG` its corollary at `True`). `etcdLeaseGrantSpecLive_any`
+  and `isGrpcRpc_leaseGrantLive_any` (unused) removed: the old contract covers any `ID`.
+  `etcdstart.kv_lease_served` takes `ρ.rd.kv.lm = m` (was `lg = decide (m ≠ none)`; its callers
+  have it).
+
+**Proposed, awaiting the user (trusted): E2, the restated `EtcdServer.leaseTimeToLive.spec`.**
+New vocabulary in `LeaseRead.lean` (the trusted spec's file):
+
+```lean
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's: single member, first
+incarnation): the cluster has one voter, and its lease mode is not `none`, which only a new
+cluster's first incarnation has (the restart contracts, `memberBuiltR`/`BuildServer.specRestart`,
+fix `.none`; a restart stage that admits leases must revisit `leaseTimeToLive.spec`). -/
+def leaseTTLRow (ρ : ReqNames) : Prop :=
+  (∃ v : w64, ρ.raft.raft.vs = [v]) ∧ ρ.rd.kv.lm ≠ .none
+
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts). -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+```
+
+The spec (changes: the binder `m`, `lease.lessorLb γl m` in the precondition, the two `□ (⌜leaseTTLRow ρ⌝ -∗ …)`
+facts in the postcondition):
+
+```lean
+abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
+      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      lease.lessorLb γl m ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
+      r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+          □ (⌜leaseTTLRow ρ⌝ -∗ ∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ ⌜leaseTTLRow ρ⌝ -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
+```
+
+Docstring addition (why it is true of Go, `v3_server.go:636-696`): *Found* (`GrantedTTL`): on the
+leader path the response's `GrantedTTL` is `le.TTL()`, the `ttl` field of the lease `Lookup`
+returned from this member's lessor at an index no older than `m` (the caller's bound: the lookup is
+after the call), which the history records (`ttlTie`); on the forwarded path a `200` comes only from
+a peer serving etcd's lease handler, which, the cluster's only member being this one, answers from
+this lessor too, later. *Not found* (`errors.Is(err, ErrLeaseNotFound)`: Go's returned errors are
+leaves, so `err` is the lessor's `ErrLeaseNotFound`): on the leader path `Lookup` returned `nil` at an
+index no older than `m`; on the forwarded path (`isLeader()` false at the check; a `404`, which the
+examples' raft-only peer listeners always answer, or a lease handler's not found) the member had not
+yet led: a sole voter's first incarnation applies no lease before raft stores its leadership
+(`r.lead` is stored from the `Ready` before its committed entries are applied, `raft.go:190-202`;
+before the first election only the bootstrap's conf changes are committed) and a sole voter never
+loses it, so the lessor had no lease at all at the check's index (`≥ m`). Without the row both are
+false: a follower forwards to another member's lessor; a restarted member applies its replayed
+grants before any election and forwards, getting `404` for a live lease (review round 3, R7).
+Callers: `EtcdServer.LeaseTimeToLive.wp_proof` passes its `lessorLb γl m` (it has one, from
+`lessorTTLOk`'s precondition); `ttlAns` and `leaseTTLOut` carry the two facts (the handler's
+not-found arm from `errIsTrue`, which it has from its `errors.Is` call: `Hw1` with `Htree`, `HS`);
+the client's TTL spec for the revocable mode (`etcdLeaseTTLSpecL γl`: not-found `TTL = -1 ∧
+GrantedTTL = 0` gives the absence, found gives the TTL at an index) registered by
+`kv_lease_served`'s revocable arm.
+
+**Proposed with it (not trusted): `Main.spec`** = `leasegrant`'s with `leaseexpiry`'s package and
+addresses, `leaseexpiry.etcd`, and **no `lease.leasesNoExpiry`**; the proof at `.revocable`
+(`alloc1 … .revocable (lease.runCfg_revocable …)`), resting on the gated `srvGrantOpen_open` and
+on `srvRevokeOpen` (both reached through `lease.runCfg … .revocable`). **No sorry discharges
+`srvRevokeOpen` yet** (X-a stated it as an open premise; nothing in the tree proves it): the result
+needs a new marked `sorry`, `srvRevokeOpen_open` beside `srvGrantOpen_open` (or
+`EtcdServer.revokeExpiredLeases.wp_proof` as one, the P1 decision's form), reached by leaseexpiry's
+results only: the trust base would go from 6 to 7 sorries. The P1 decision (2026-11-04) approved
+such a sorry; to be confirmed when `Main`'s proof lands. It raises
+`etc/bounds-baseline.txt` as `leasegrant`'s did (`spec-thread` +1, `spec-receipt` +2: the thread and
+receipt bounds of `Main.spec`): for approval when it lands. A collection
+`etc/tcb-collections/leaseexpiry.txt` (roots `examples/etcd/leaseexpiry`) then.
+
+**E3's second half: designed, not built (for review).** `Main`'s two uses need "absent stays
+absent" and "the TTL of `id` is its grant's":
+- (b) *Distinct grant ids in the log.* `LeaseGrant`'s generated id: `Next()`'s `idFresh γi u`
+  (today dropped) is kept and handed to the proposal; the grant form of `reqPropOk` (revocable mode)
+  carries it, and the proposal's commit step deposits it in `kvInv`: a new conjunct `[∗ list] u ∈ U,
+  idFresh γk.ids u` with the log's grant ids `U.map (· &&& 2^63-1)`. Exclusivity of `idFresh` makes `U`
+  duplicate-free; one generator (`ids.pfx` fixed, the single-member row) makes the masked ids
+  distinct (`pfx ||| (x &&& (2^48-1))` differ in the low 48 bits). In a multi-member cluster two
+  members' prefixes can differ only in bit 63 (review round 1's preference), so the law is stated
+  under the row.
+- (c) *The lessor's history tied to the applied log.* Each snapshot's live set is the applied
+  table of a prefix of the log (`appliedTable`: grant adds, revoke removes), the prefixes monotone in
+  the index: one more component of the lessor history (`LSnap`'s index into the applied log), kept by
+  `Grant`/`Revoke` at the apply thread (which holds the applied log, `leasesLive`). With (b): `id`
+  enters the live set once, by its grant entry, and never after its revocation; its lease object is
+  the grant's, so its recorded TTL is the grant's (`≥ 1` for `Grant(1)`, R5's `leaseGrant_ttl`).
+  The reply's fact `grantLiveG` must then also carry the recorded TTL `≥` the request's (the
+  `G`/`R` pair above takes the request; or the reply's `TTL` field, which the backend sets to
+  `l.TTL()`).
+- `Recover` (snapshot restore) breaks (c) unless its ids are the snapshot's applied table: S3/S4's
+  `lease.imageOk`, which the revocable mode reaches only with S4 (today `specSnapM` takes `E.lg =
+  false`).
+- Size: `kvInv` (a definition the server's exported statements use; about 25 openings), the grant's
+  proposal (`reqPropOk`, `kv_prop_au_grant`), `LeaseGrant`'s proof, the lessor history (`LSnap`,
+  `lessorRdBody`, `grant_hist`, `revoke` step, `recover_hist`), `srvRest`'s grant/revoke cases. The
+  user decided the invariant's content; the carrier (`kvInv`'s conjunct and the history's prefix
+  index) is a strengthening of `kvInv` and of the lessor history: for review before plumbing.
+
+**`srvRevokeOpen`: what discharging it needs** (the body is `EtcdServer.revokeExpiredLeases.spec`;
+analysis, nothing changed).
+1. *The spec's precondition* (the X-b open item, rechecked against Go `server.go:860-905`): the
+   request path's `isServerReq s E ρ` with a binder `ρ` and the mode `ρ.rd.kv.lm = .revocable`
+   (`LeaseRevoke.spec`'s `srvRevokesLeases`; the grant guard gives only `lg ∧ auth off`); the read
+   side for `ensureLeadership` (`isServerReqM`/`isServerReadM`, `srvReadReader s γr`, `srvLgReader
+   s`, `threadTok`, the thread bound); `srvAuthAt s E`; per inner goroutine `srvLeadTimeReader s`,
+   `E.RD`, `□ (|==> idCred ρ.ids 1)`; `s.ctx`'s context fact (`srvGoAttachOk` has only the field
+   `srvCtxAddr s ↦□ c`: a `context.isContext c cd` for the server's root context, from `NewServer`'s
+   `context.WithCancel`); and from `run`, the outer `GoAttach`'s `srvGoRes s ∗ srvLgReader s`
+   (returned to `run`).
+2. *Callee specs that do not exist*: `authStore.WithRoot` (not translated; at auth off it returns its
+   argument after `IsAuthEnabled`, which takes the auth store's `enabledMu` read lock: a slot);
+   `leaseExpired.Inc()` (a package `prometheus.Counter`, its initializer axiomatized: a
+   `Counter.Inc` contract like `CounterVec.WithLabelValues`'s `Inc`); `zap.Logger.Warn` with
+   `zap.Uint64`/`zap.String`/`zap.Error` and `fmt.Sprintf("%016x")` (the warn paths).
+3. *Threads (P1)*: `GoAttach.spec` gives `f` only `P` and takes the caller's token into the wait
+   group, so the outer goroutine has no `threadTok` for `ensureLeadership` and no `srvGoRes` for the
+   inner `GoAttach`es, and each inner goroutine has none for `LeaseRevoke` (whose `raftRequest`
+   forks nothing but takes slots) — Perennial's thread tokens by level (`notes/perennial-changes.md`,
+   bounds-plan D2(b)): the forked goroutine keeps levels `≥ 1`, from which it borrows `wgMu`'s,
+   the logger's, the read loop's and the auth lock's reader slots from server-owned pools. Also a
+   bound on how many rounds overlap: a round returns with up to `maxPendingRevokes` goroutines still
+   in `LeaseRevoke` (bounded in time by the request timeout, not in number by anything the logic
+   sees), and `run` starts a round every expiry tick: the pools must be refilled by the inner
+   goroutines' returns (`<-c` and `Done`), so the counted bound is the wait group's, not the round's.
+4. *The channel `c`*: a buffered `chan struct{}` of capacity `maxPendingRevokes` used as a
+   semaphore (`c <- struct{}{}` before each fork, `<-c` at each goroutine's end): its bag carries the
+   slots of point 3 back (the "inner pool's bound" of P1).
+5. *`select` on `s.stopping`*: `srvGoAttachOk`'s `isStopChanInternal` (exists).
+Then `srvRevokeOpen` is proved (`srvRevokeOpen_spec`'s converse from
+`revokeExpiredLeases.wp_proof`) and passed in leaseexpiry's linked file only, as `srvGrantOpen_open`
+is in leasegrant's; until then the marked sorry above stands in.

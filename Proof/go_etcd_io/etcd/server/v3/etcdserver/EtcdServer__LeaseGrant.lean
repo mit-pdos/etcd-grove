@@ -49,7 +49,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r ttl id0 hg
+  intro s E ρ ctx cd r ttl id0 hg _
   have hRR := EtcdServer.raftRequest.spec_M hRR0 false
   obtain ⟨hlg, hoff⟩ := hg
   wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, Hreq⟩

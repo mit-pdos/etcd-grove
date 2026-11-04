@@ -101,7 +101,7 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
     (Hrf : grpcRepliesFit) (hP : leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode)
-    (hm : ρ.rd.kv.lg = decide (m ≠ .none)) :
+    (hm : ρ.rd.kv.lm = m) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗ threadTok ∗
@@ -206,9 +206,9 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     iframe #
   | mono =>
     -- the monotone mode: the lease reads and the grant at the lessor's history
-    have hlg : ρ.rd.kv.lg = true := by rw [hm]; decide
+    have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     ihave #HGL := v3rpc.lessorGrantOkL_server s E ρ iprop(client.etcdRunSlot s E γr ∗ threadTok)
-        ⟨hlg, Hoff⟩ on $$ []
+        ⟨hlg, Hoff⟩ (by rw [hm]; decide) on $$ []
     · iframe #
       isplitr
       · iintro !>
@@ -259,9 +259,10 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     iframe #
   | revocable =>
     -- the revocable mode: the lease reads and the live grant
-    have hlg : ρ.rd.kv.lg = true := by rw [hm]; decide
+    have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     ihave #HGL := v3rpc.lessorGrantOkLive_server s E ρ
-        iprop(client.etcdRunSlot s E γr ∗ threadTok) ⟨hlg, Hoff⟩ $$ []
+        iprop(client.etcdRunSlot s E γr ∗ threadTok) ⟨hlg, Hoff⟩ (fun q => q.2 = W64 0)
+        (fun _ h _ => h) $$ []
     · iframe #
       isplitr
       · iintro !>
@@ -324,7 +325,7 @@ theorem kv_lease_served_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       |={⊤}=> grpcServeTok gs lis ∗ etcdKVAt addr E ρ γr cid mid ∗
         client.etcdLeaseReadAt addr := by
   have h := kv_lease_served s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ .none
-    (by rw [hlg]; decide)
+    (KVNames.lm_of_lg_false hlg)
   simp only [etcdLeaseServedAt] at h
   iintro H
   imod h $$ H with ⟨Ht, Hr, Hk⟩

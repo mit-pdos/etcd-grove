@@ -1749,24 +1749,26 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
 linked `EtcdServer.LeaseGrant`; the lease-grant plan's 2.4), in a cluster that grants leases, in the
 monotone lease mode (the lease-expiry plan's X2, 2026-11-04: `lease.srvInv … .mono`). -/
 theorem lessorGrantOkL_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
-    (h : srvGrantsLeases E ρ) (on : Bool) :
+    (h : srvGrantsLeases E ρ) (hlm : ρ.rd.kv.lm ≠ .revocable) (on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lease.srvInv on s E .mono ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkL s E S :=
-  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h on
+  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h hlm on
 
 /-- **The grant contract at the mode-free fact, discharged** (`lessorGrantOkLive_of_server` at the
 linked `EtcdServer.LeaseGrant`; the lease-expiry plan's X2, 2026-11-04), in a cluster that grants
-leases, in any lease mode. -/
+leases, in any lease mode, for a request filter `R` that, in the revocable mode, has only `ID = 0`
+(E3, 2026-11-04). -/
 theorem lessorGrantOkLive_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
-    (h : srvGrantsLeases E ρ) :
+    (h : srvGrantsLeases E ρ) (R : w64 × w64 → Prop)
+    (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkG s E S (grantLiveG E) :=
-  lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h
+      lessorGrantOkG s E S (grantLiveG E) R :=
+  lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h R hR
 
 /-- **The revoke contract, discharged mode-gated** (`lessorRevokeOk_of_server` at the linked
 `EtcdServer.LeaseRevoke`; the lease-expiry plan's X6, 2026-11-04), in a cluster that revokes leases

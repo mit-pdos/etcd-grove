@@ -47,11 +47,17 @@ of a `LeaseGrant` request answers that type.
 The margin (the review's M4): the request's `ID` is not given back (the post drops it); Go's unary
 interceptors read no field of a `LeaseGrantRequest` after the handler (`v3rpc/interceptor.go`), so no
 caller needs it. Conditional, through `NewServer`, on the deployment premise
-`lease.leasesNoExpiry` (`srvGrantsLeases`). -/
+`lease.leasesNoExpiry` (`srvGrantsLeases`).
+
+(The lease-expiry plan's E3, 2026-11-04, the user's: generated ids only.) In the revocable lease mode
+the request's `ID` is `0` (clientv3's `Grant` always sends `0`), so the lease id is always the
+member's generator's: a revoked lease's id is never granted again (the plan's "absent stays absent").
+A weaker spec (a premise more); the other modes as before. -/
 abbrev EtcdServer.LeaseGrant.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64),
   srvGrantsLeases E ρ →
+  (ρ.rd.kv.lm = .revocable → id0 = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
       context.isContext ctx cd ∗ leaseGrantReqOwn r ttl id0 }}

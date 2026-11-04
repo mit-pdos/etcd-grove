@@ -146,7 +146,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23956"
-      cid mid R Hrb48 (by omega) Hrf HlP rfl .mono (by rw [hlgw]; decide)
+      cid mid R Hrb48 (by omega) Hrf HlP rfl .mono hlgρ
     simp only [etcdstart.etcdLeaseServedAt] at h
     imod h $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] with ⟨Htk, #Hlr, #Hga⟩
     · unfold etcdstart.kvServeStocks
