@@ -59,7 +59,7 @@ its registration, its heap `X` at `1`, its handles' fills, its handle and node r
 auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`). -/
 def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
-    ⌜r.db = K.db ∧ r.rw = true⌝ ∗ reg tx K.B r ∗
+    ⌜r.db = K.db ∧ r.rw = true ∧ 0 < tx.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
     ghostMapAuth r.n.bk 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)
@@ -255,21 +255,9 @@ theorem viewCells_slices_acc (q : Qp) (v : View) (L : List (GoSlice × List w8))
       (([∗list] x ∈ L, x.1 ↦*{dq} x.2) -∗ viewCells q v) := by
   sorry
 
-/-- **A node of the writer's heap, out and back** (U5): its object at `dq`, and the heap with
-any new record of it. -/
-theorem wtxHeap_node_acc (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (r : NRec)
-    (hn : X.node bl l = some r) (ho : X.t.objs !! l = some (WObj.node bl r)) (hl : l ∈ X.live) :
-    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v l dq true (WObj.node bl r) ∗
-      (∀ r', objOwn X.v l dq true (WObj.node bl r') -∗ wtxHeap tx dq (X.setNode bl l r')) := by
-  sorry
-
-/-- **A bucket of the writer's heap, out and back** (U5). -/
-theorem wtxHeap_bkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
-    (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.live) :
-    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
-      (∀ B', objOwn X.v bl dq true (WObj.bkt B') -∗
-        wtxHeap tx dq (X.setBkt bl { B' with ns := B.ns })) := by
-  sorry
+-- `wtxHeap_node_acc` (false: a new record's parent could be itself): U8's `wtxHeap_setNode`
+-- (`Rebalance/Heap.lean`); `wtxHeap_bkt_acc` (with the new record's `tx` field): U5's
+-- `Txn/Heap.lean` (batch 11).
 
 private instance isBoltP_persistent_c (B : BNs) (N : Namespace) (db : Loc) (p : GoString)
     (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
@@ -305,7 +293,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
-    obtain ⟨h1, -, h3, h4, h5⟩ := Hfacts
+    obtain ⟨h1, -, h3, h4, h5, h6⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
@@ -321,7 +309,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       iframe Hpk Hc Hreg Hh Hf Hbk Hnl Hvc Hvo Hex
       iframe Hdb
       isplitr
-      · ipureintro; exact ⟨hdb, hrw'⟩
+      · ipureintro; exact ⟨hdb, hrw', h6⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro; exact ⟨h1, h3, h4, h5⟩
   · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
@@ -331,7 +319,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     icases Hw with ⟨⟨-, -, %Hr, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, #Hvo, Hex⟩, Hvc, %l, Hmf, %Hl⟩
     iexists K.db, K.p, K.sp, K.t0, r, c, X
     isplitr
-    · ipureintro; exact ⟨hT, Hr.1, Hr.2⟩
+    · ipureintro; exact ⟨hT, Hr.1, Hr.2.1⟩
     unfold BC.full
     iframe Hreg Hb Hv Hex
     unfold wtxFrac
@@ -342,7 +330,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     isplitl [Hmf]
     · iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro
-    exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2⟩
+    exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2, Hr.2.2⟩
 
 /-- **A reader is a reader with its view** (U6 proves; the read path's internal reader specs are
 over `rdTxK`). -/

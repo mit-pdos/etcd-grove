@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `|==>` binds tighter than `∗` in iris-lean's notation (2026-11-04, bbolt, U5)
+
+- **Limitation.** In Lean's Iris notation `|==> A ∗ B` parses as `(|==> A) ∗ B`, unlike Rocq Iris
+  (where the update extends to the right); `|={E}=>` is not affected. A statement written the
+  Rocq way silently means something weaker.
+- **Needed by.** Every Iris statement here; U5 found one (`Inv/State`'s `st_update`, fixed by
+  parentheses). A grep of bbolt's `Inv/`, `Model/` and `Spec/` finds no other.
+- **Here.** Parenthesize `|==> (A ∗ B)`.
+- **Proposal.** iris-lean: give `|==>` the precedence of Rocq's (or of `|={E}=>`), or a linter
+  warning on `|==> A ∗ B`; a note in Perennial's `IRIS_PROOF_MODE.md` meanwhile.
+- **Status.** Not started.
+
 ### `sort.Search`'s spec does not name the evaluated indices (2026-11-04, bbolt's read path, U6)
 
 - **Limitation.** Perennial's `sort.Search` spec gives the result's position (the first index

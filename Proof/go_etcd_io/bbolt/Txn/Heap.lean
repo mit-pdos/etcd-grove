@@ -101,7 +101,7 @@ theorem objs_setBkt (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
 
 /-- **A bucket of the writer's heap, out and back** (`wtxHeap_bkt_acc` with its premise: the new
 record's `tx` field is the transaction's). -/
-theorem wtxHeap_bkt_acc' (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
+theorem wtxHeap_bkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
     (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.live) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
       (∀ B', ⌜B'.bv.tx' = tx⌝ -∗ objOwn X.v bl dq true (WObj.bkt B') -∗

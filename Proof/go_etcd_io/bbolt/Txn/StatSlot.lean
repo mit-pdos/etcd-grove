@@ -78,7 +78,7 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × Data)) (p : 
     ihave #Hinv1 : inv (txsN γ.ns) (txsInv (GF := GF) (bnsOf γ.gs) p1 sp t0) $$ []
     · unfold isBoltCoreP
       icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $⟩
-    imod txExcl_take' (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
+    imod txExcl_take (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
     · iframe Hinv1 Hreg Hex
     imodintro
     inext

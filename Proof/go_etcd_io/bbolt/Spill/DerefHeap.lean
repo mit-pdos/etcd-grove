@@ -7,6 +7,8 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.DerefRel
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Rebalance.Heap
+public import Proof.go_etcd_io.bbolt.Txn.Heap
 public import Proof.go_etcd_io.bbolt.Rebalance.Objs
 
 @[expose] public section
@@ -95,16 +97,7 @@ theorem wtxHeap_node_peek (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRe
     (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r) (hl : l ∈ X.live) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v l dq true (WObj.node bl r) ∗
       (objOwn X.v l dq true (WObj.node bl r) -∗ wtxHeap tx dq X) := by
-  iintro Hh
-  ihave %Hok := wtxHeap_heapOK tx dq X $$ Hh
-  have hn : X.node bl l = some r := by simp [WX.node, hB, hr]
-  icases wtxHeap_node_acc tx dq X bl l r hn (objs_node X.t bl B l r Hok.2.1 hB hr) hl $$ Hh
-    with ⟨Ho, Hback⟩
-  iframe Ho
-  iintro Ho
-  ihave Hh := Hback $$ %r Ho
-  rw [setNode_self X bl l B r hB hr]
-  iexact Hh
+  exact wtxHeap_live_node_acc tx dq X bl B l r hB hr hl
 
 /-- A live bucket of the heap, out and back unchanged. -/
 theorem wtxHeap_bkt_peek (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
@@ -112,10 +105,11 @@ theorem wtxHeap_bkt_peek (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
       (objOwn X.v bl dq true (WObj.bkt B) -∗ wtxHeap tx dq X) := by
   iintro Hh
+  ihave %Hok := wtxHeap_heapOK tx dq X $$ Hh
   icases wtxHeap_bkt_acc tx dq X bl B hB hl $$ Hh with ⟨Ho, Hback⟩
   iframe Ho
   iintro Ho
-  ihave Hh := Hback $$ Ho
+  ihave Hh := Hback $$ %B %(Hok.2.2.1 bl B hB) Ho
   rw [show ({ B with ns := B.ns } : BRec) = B from rfl, setBkt_self X bl B hB]
   iexact Hh
 

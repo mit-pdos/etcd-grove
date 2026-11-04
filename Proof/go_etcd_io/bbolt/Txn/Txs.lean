@@ -2,14 +2,8 @@
 `txsInv`'s updates as the lifecycle uses them (U5 of `notes/bbolt-proof-plan.md`): opening the
 invariant at a registered transaction's entry (`txs_open`), and the corrected forms of
 `Inv/Txs.lean`'s U0a statements:
-- `txs_register'`: the caller gives all of `tx.db` (an entry of a closed transaction at the same
-  location keeps a quarter, so a quarter alone does not show `tx` unregistered) and keeps the
-  `ex` token it allocated with the names (U0a's version produced it from nothing);
-- `txExcl_take'`: the exclusive part comes out under a later (`txExcl` is not timeless:
-  `ownRWMutexRLocked`, `ownRWMutex`);
-- `txs_close'`: from the exclusive part's `done` half alone (its `ex` token is in the invariant,
-  given there by `txExcl_take`; U0a's version, taking both, has an inconsistent premise);
-  it also gives back the `done` half, now `true`;
+- (`txs_register`, `txExcl_take`, `txs_close`: U5's corrected forms, moved to `Inv/Txs.lean`,
+  batch 11);
 - `txs_stats_done`: the statistics for the holder of the `done` half (`statsTok … false`).
 -/
 module
@@ -89,25 +83,6 @@ theorem txs_open (tx : Loc) (r : TxReg) :
   imodintro; itrivial
 
 
-/-- The holder of the whole `ex` token takes the exclusive part out (under a later: it is not
-timeless). -/
-theorem txExcl_take' (tx : Loc) (r : TxReg) :
-    inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗ ghostVar r.n.ex 1 () ⊢
-    |={E}=> ▷ txExcl B p sp t0 tx r := by
-  iintro ⟨#Hinv, #Hreg, Hex⟩
-  imod txs_open B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
-  · iframe Hinv Hreg
-  unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, Hst, (Hx | >Hex'), Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
-  · imod Hcl $$ [Hdb Hdone Hst Hex Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hst Hrh; isplitr
-      · ipureintro; exact hd
-      iright; iexact Hex
-    imodintro; iexact Hx
-  · icombine Hex Hex' gives %h
-    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
-  · icombine Hex Hex' gives %h
-    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
 
 /-- The exclusive part goes back, for the whole `ex` token. -/
 theorem txExcl_put' (tx : Loc) (r : TxReg) :
@@ -184,83 +159,7 @@ theorem txs_stats_done (tx : Loc) (r : TxReg) :
   · icombine Hd Hdone gives %h
     exact absurd h.2 (by decide)
 
-/-- **Close**: with the exclusive part's `done` half (the exclusive part's other contents given
-back, its `ex` token in the invariant), the entry turns done; the statistics come out. -/
-theorem txs_close' (tx : Loc) (r : TxReg) :
-    inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗
-      ghostVar r.n.done (1 : Qp).half false ⊢
-    |={E}=> (∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s) ∗ ghostVar r.n.done (1 : Qp).half true := by
-  iintro ⟨#Hinv, #Hreg, Hd⟩
-  imod txs_open B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
-  · iframe Hinv Hreg
-  unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, >Hst, (Hx | >Hex), -⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
-  · icombine Hdone Hd as Hd'
-    iunfold txExcl at Hx
-    icases Hx with ⟨%c', %x', -, >Hd2, -⟩
-    icombine Hd' Hd2 gives %h
-    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
-  · ihave Hu := ghostVar_update_halves true r.n.done _ _ $$ Hdone Hd
-    imod Hu
-    icases Hu with ⟨Hdone, Hd⟩
-    imod Hcl $$ [Hdb Hdone Hex] with -
-    · inext; iexists d; iframe Hdb; iright; iframe Hdone Hex
-      ipureintro; exact Or.inl hd
-    imodintro; iframe Hst Hd
-  · icombine Hd Hdone gives %h
-    exact absurd h.2 (by decide)
 
-/-- **Register a new transaction** `tx` (its names `r.n` allocated by the caller, which keeps
-their `ex` token): with all of `tx.db` (so that `tx` is not yet registered: every entry holds a
-quarter), its statistics and its exclusive part; it gets its registration and `tx.db` at `¾`. -/
-theorem txs_register' (tx : Loc) (r : TxReg) (s : TxStats) :
-    inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗
-      tx.[Tx, go!"db"] ↦ r.db ∗ tx.[Tx, go!"stats"] ↦ s ∗
-      txExcl B p sp t0 tx r ∗ ghostVar r.n.done (1 : Qp).half false ∗ readerHandles r ⊢
-    |={E}=> reg tx B r ∗
-      tx.[Tx, go!"db"] ↦{DFrac.own ((1 : Qp).half + (1 : Qp).half.half)} r.db := by
-  iintro ⟨#Hinv, Hdb, Hst, Hx, Hd, Hrh⟩
-  iinv Hinv with Hi Hclose
-  unfold txsInv
-  icases Hi with ⟨%M, >Hauth, Hm⟩
-  cases hlk : M.lookup tx with
-  | some r' =>
-    ihave Hm := (later_mono (BigSepM.bigSepM_lookup_acc (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) hlk).1) $$ Hm
-    icases Hm with ⟨He, -⟩
-    unfold txEntry
-    icases He with ⟨%d, >Hdb', -⟩
-    ihave %h := locPt_valid2 _ _ _ _ _ $$ [Hdb Hdb']
-    · iframe Hdb Hdb'
-    exfalso
-    revert h
-    rw [DFrac.op_own]
-    show ¬ ((1 : Qp) + (1 : Qp).half.half).val ≤ 1
-    simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
-  | none =>
-    have h1 : (1 : Qp) = ((1 : Qp).half + (1 : Qp).half.half) + (1 : Qp).half.half :=
-      Subtype.ext (by simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind)
-    have hs := typedPointsto_frac_add (GF := GF) (tx.[Tx, go!"db"]) r.db
-      ((1 : Qp).half + (1 : Qp).half.half) (1 : Qp).half.half
-    rw [← h1] at hs
-    ihave ⟨Hdb, Hdb4⟩ := hs.1 $$ Hdb
-    imod (ghost_map_insert_persist tx r hlk) $$ Hauth with ⟨Hauth, #Hreg⟩
-    imod Hclose $$ [Hauth Hm Hdb4 Hst Hx Hd Hrh] with -
-    · inext
-      iexists (M.insert tx r)
-      iframe Hauth
-      iapply (BigSepM.bigSepM_insert (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) hlk).2
-      iframe Hm
-      unfold txEntry
-      iexists r.db
-      iframe Hdb4
-      ileft
-      iframe Hd Hx Hrh
-      isplitr
-      · ipureintro; rfl
-      iexists s; iexact Hst
-    imodintro
-    iframe Hdb
-    unfold reg; iexact Hreg
 
 end lemmas
 end txs

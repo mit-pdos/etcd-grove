@@ -73,7 +73,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
 statistics pointer `sp` and receipts' base `t0`. -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
     IProp GF :=
-  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62⌝ ∗
+  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ 0 < db.addr⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗

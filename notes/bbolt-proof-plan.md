@@ -435,6 +435,31 @@ arise: U5 at `beginRWTx` (no pending entry for the new txid, every base slot cov
 `storeOK`), U7 for `CreateBucket`/`DeleteBucket` (root-bucket entries), U9b/U10 through spill and
 `Commit` (`spillOK`, the new committed state's view).
 
+## Shared-statement fixes, batch 11 (U5's findings, 2026-11-04; decided by the coordinator)
+
+1. **Positive addresses**: `isBoltCoreP`'s pure part is `⌜t0 < 2^62 ∧ 0 < db.addr⌝` (`Open` from
+   `&DB{}`); `rtxFrac`'s and `wtxFrac`'s facts end with `0 < tx.addr`, and `wtxCore`'s with it
+   (`⌜r.db = K.db ∧ r.rw = true ∧ 0 < tx.addr⌝`, so `boltTxDef_wtxW` carries it; `beginTx`/
+   `beginRWTx` from `&Tx{}`); `boltTxDef_nonnull` is proved. `txEntry`'s done branch is unchanged
+   (`d = r.db ∨ d = null`): `Tx.close` sets `tx.db = nil`, so the done entry cannot keep `d =
+   r.db`; `r.db = db` is `txDB`'s (`reg`), and `db`'s non-nullness is now `isBoltCoreP`'s.
+   Adapted: `Tx.page_r` (U6) for `rtxFrac`'s new fact.
+2. **`txs_register`, `txExcl_take`, `txs_close`** (`Inv/Txs`) are U5's corrected forms (moved from
+   `Txn/Txs`, the false ones deleted): `txs_register` takes all of `tx.db` and leaves `ex` with the
+   caller (returns `reg` and `tx.db` at `¾`); `txExcl_take` gives `▷ txExcl`; `txs_close` takes only
+   the `done` half and returns it `true`. `Txn/StatSlot` uses the unprimed name.
+3. **`wtxHeap_node_acc` deleted** (false: the new record's parent could be the node itself); its
+   replacement is U8's `wtxHeap_setNode` (`Rebalance/Heap`, with `⌜r'.nv.parent' ≠ n⌝`), and
+   `wtxHeap_live_node_acc` for out-and-back. **`wtxHeap_bkt_acc`** is U5's (`Txn/Heap`, with
+   `⌜B'.bv.tx' = tx⌝`; `Inv/Ctx`'s deleted). Adapted: U9b's `Spill/DerefHeap` (`node_peek`,
+   `bkt_peek`). U9b's untracked `Spill/NodeDeref.lean` still names `wtxHeap_node_acc`.
+4. **`txBytesDef_acc` for a writer** is not threatened by a remap: `Tx.allocate` is called only by
+   `node.spill` and `Tx.commitFreelist`, `DB.mmap` only by `Open` and `DB.allocate`, so a remap
+   happens only inside `Commit`, whose caller has given up `boltTx` (the whole of it) and gets
+   `txDone` back: no `txBytes` of the writer is used with a `boltTx` after a remap.
+5. `notes/perennial-changes.md`: `|==>` binds tighter than `∗` in iris-lean; no other occurrence in
+   bbolt's `Inv/`, `Model/`, `Spec/`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
