@@ -98,10 +98,10 @@ theorem childSt_kept {X0 X X' : WX} {w w' : WDb} {txid : w64} {c : Loc} {D : Lis
   cases s with
   | nilc => exact hold
   | val v p =>
-    obtain ⟨S, hb, hD, hdat⟩ := hold
+    obtain ⟨S, hb, hD, hdat, hvl⟩ := hold
     have hag : ∀ x ∈ S, spP X' !! x = spP X !! x :=
       fun x hx => hP x (by rw [hD]; exact mem_pgSlots_self hx)
-    exact ⟨S, bvalS_agree hag hh hb, by rw [hD, pgSlots_congr hag], bvalData_agree hb hag hdat⟩
+    exact ⟨S, bvalS_agree hag hh hb, by rw [hD, pgSlots_congr hag], bvalData_agree hb hag hdat, hvl⟩
   | todo =>
     obtain ⟨C, hC, hlive, hbm, hne, hloc, hrt, hents, hnil, htree⟩ := hold
     obtain ⟨C', hC', hs, hns⟩ := hkept C hC
@@ -287,7 +287,8 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
         rw [hc] at hc'; cases hc'
         unfold upd; rw [if_pos rfl, if_pos rfl]
         refine ⟨S, ⟨by rw [encode_ib_length]; omega, Or.inr ⟨by rw [hroot]; omega, h', by rw [hroot]; exact hsT⟩⟩,
-          hD', fun h0 => absurd h0 (by rw [hroot]; omega), fun _ => ?_⟩
+          hD', ⟨fun h0 => absurd h0 (by rw [hroot]; omega), fun _ => ?_⟩,
+          by rw [encode_ib_length]; omega⟩
         rw [hroot, ← hlb]
         exact ⟨hents, hplain⟩
       · have hcc : c' ≠ c := by

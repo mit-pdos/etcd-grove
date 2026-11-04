@@ -149,8 +149,7 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     {l : Loc} {rl : NRec} (hB1 : X1.t.bs !! X0.rl = some B1) (hlast : pids.getLast? = some pid)
     (hres : resolve B1 pid = some l) (hrl : B1.ns !! l = some rl) (s : GoSlice)
     (ins : List Inode) (hins : ins.length = (wsPutAt rl.ws k (rootEnt k v)).length)
-    (hent : ∃ we ∈ X.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags)
-    (hkv : k.length + v.length ≤ bboltEntryMax) :
+    (hent : ∃ we ∈ X.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags) :
     RInv X0 w0 B0 keys Lroot
       (X1.setNode X0.rl l (rl.withEnts s ins (wsPutAt rl.ws k (rootEnt k v)))) w st Dc
       (upd ks k (.val v true)) := by
@@ -224,7 +223,13 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     have := LR.wsFound_of_mem rl.ws hpw we1 hin; rwa [hk1] at this
   have hbkt : ∀ w ∈ rl.ws, w.key = k → isBktFlag w.flags := by
     intro w hw e; rw [wsPw_key_inj hpw hw hin (e.trans hk1.symm)]; exact hf1
-  have hkpos : 0 < k.length := by rw [← hwk]; exact hI.entKeys we hwe
+  have hkpos : 0 < k.length := by rw [← hwk]; exact (hI.entKeys we hwe).1
+  have hkmax : k.length ≤ maxKeySize := by rw [← hwk]; exact (hI.entKeys we hwe).2
+  have hkv : k.length + v.length ≤ bboltEntryMax := by
+    have hk := hI.kids k c hc
+    rw [hks] at hk
+    obtain ⟨-, -, -, -, hvl⟩ := hk
+    unfold maxKeySize at hkmax; unfold bboltEntryMax; omega
   have hwsP : wsPutAt rl.ws k (rootEnt k v) = rl.ws.set (wsIdx rl.ws k) (rootEnt k v) := by
     rw [Write.wsPutAt_eq, if_pos hfound]
   have hmemP : ∀ x ∈ wsPutAt rl.ws k (rootEnt k v), x = rootEnt k v ∨ x ∈ rl.ws := by
@@ -396,8 +401,11 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
       · rw [if_pos (decide_eq_true ⟨rfl, hs⟩)] at hw
         rw [r_ws] at hw
         rcases hmemP we' hw with rfl | h
-        · exact hkpos
-        · exact hnc.2.2.2.2.1 we' h
+        · exact ⟨hkpos, hkmax⟩
+        · have hw1 : we' ∈ X1.allEnts X0.rl := by
+            rw [hall1, List.mem_flatten]; exact ⟨_, List.mem_map.2 ⟨_, hmem, rfl⟩, h⟩
+          obtain ⟨we0, hwe0, hk0⟩ := allEnts_kept hleavesD hw1
+          rw [hk0]; exact hI.entKeys we0 hwe0
       · rw [if_neg (by simp [hs])] at hw
         have hw1 : we' ∈ X1.allEnts X0.rl := by
           rw [hall1, List.mem_flatten]; exact ⟨_, List.mem_map.2 ⟨x, hx, rfl⟩, hw⟩

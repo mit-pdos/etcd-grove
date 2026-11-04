@@ -41,7 +41,7 @@ structure StartFacts (X : WX) (w : WDb) (B0 : BRec) : Prop where
   mark62 : X.t.mv.pgid'.toNat < 2 ^ 62
   notRoot : ∀ k c, B0.bm !! k = some c → c ≠ X.rl
   inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
-  rootKeys : ∀ we ∈ X.allEnts X.rl, 0 < we.key.length
+  rootKeys : ∀ we ∈ X.allEnts X.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize
 
 /-- **The root bucket's entries' keys are not empty** (a `sorry`): `entriesBounded`'s `.1` for an
 entry of a node, `posShape`'s `.2.1.1` (batch 43.4) for an entry of a view page at one of the root
@@ -49,7 +49,7 @@ bucket's positions; what is missing is the link from a block of the root's walk 
 (`ltree`'s `none` case) to `posShape`'s `posRoot B c ∧ ownHas X.v.pages c p` (the converse of
 `BktSlotCov.pos_ownHas`). -/
 theorem rootKeys_start {X : WX} {fl : FLPg} (hpre : spillPre X fl) :
-    ∀ we ∈ X.allEnts X.rl, 0 < we.key.length := by
+    ∀ we ∈ X.allEnts X.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize := by
   sorry
 
 /-- **The start's facts** (batch 43): `spillStartOK` (`Bucket.spill.spec`'s premise) gives the

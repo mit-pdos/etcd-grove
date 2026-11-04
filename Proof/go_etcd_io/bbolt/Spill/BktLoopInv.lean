@@ -89,7 +89,7 @@ def childSt (X0 X : WX) (w : WDb) (txid : w64) (c : Loc) (D : List Nat) : KSt �
   | .todo => childTodo X0 X w txid c D
   | .nilc => D = [] ∧ ∃ C0, X0.t.bs !! c = some C0 ∧ C0.bv.rootNode' = null
   | .val v _ => ∃ S, bvalS (spP X) X.t.mv.pgid'.toNat v S ∧ D = pgSlots (spP X) S ∧
-      bvalData (spP X) v (lbktEnts X0 c)
+      bvalData (spP X) v (lbktEnts X0 c) ∧ v.length ≤ 2 ^ 27
 
 /-- The value of a root entry after the loop's puts. -/
 def KSt.entVal : KSt → List w8 → List w8
@@ -122,7 +122,7 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   /-- The root bucket is not inline (`rootNotInline` at the start; its header kept, `rootIb`). -/
   rootPg : B0.ib.root' ≠ W64 0
   /-- The root bucket's entries' keys are not empty (the searches' keys, `node.put`'s premise). -/
-  entKeys : ∀ we ∈ X.allEnts X0.rl, 0 < we.key.length
+  entKeys : ∀ we ∈ X.allEnts X0.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize
   /-- The root's cached children are distinct (`StartFacts.inj`). -/
   inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
   /-- The committed state's tree is well-formed (`StartFacts.cok`; the view's, `viewWF`). -/

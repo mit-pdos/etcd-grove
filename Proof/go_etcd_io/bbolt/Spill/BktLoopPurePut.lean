@@ -173,7 +173,7 @@ theorem rinv_putPre' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
     rw [e, hrl] at hrp; cases hrp
     rw [hleaf] at hrpl; cases hrpl
   · obtain ⟨we, hwe, rfl⟩ := hk
-    exact hI.entKeys we hwe
+    exact (hI.entKeys we hwe).1
 
 end put
 

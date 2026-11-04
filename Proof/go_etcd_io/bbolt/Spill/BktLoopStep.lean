@@ -292,16 +292,6 @@ theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
       rl.nv.parent' ≠ l ∧ 0 < k.length ∧ X1.t.bs !! X0.rl = some B1 :=
   rinv_putPre' hI hm hp hB1 hlast hres hk
 
-/-- **The bound of a root entry the loop puts** (a `sorry`): the child's name is at most
-`MaxKeySize` (32768) bytes and its staged value at most 1040 (a header and an inline page of at
-most a quarter page, `inlineable`), far below `bboltEntryMax` (2 ^ 28). `RInv` carries neither: the
-names' bound is batch 43.4's (root entries' names in `rootShape` and the writer invariants, not
-landed); the staged values' size would be a clause of `childSt`'s `.val`. -/
-theorem rinv_putBound (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {v : List w8}
-    (hks : ks k = .val v false) (hk : ∃ we ∈ X.allEnts X0.rl, we.key = k) :
-    k.length + v.length ≤ bboltEntryMax := by
-  sorry
-
 /-- **The staged value put into the root bucket's leaf.** -/
 theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {v : List w8} (hks : ks k = .val v false) (hc : B0.bm !! k = some c) {X1 : WX}
@@ -315,7 +305,6 @@ theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
       (X1.setNode X0.rl l (rl.withEnts s ins (wsPutAt rl.ws k (rootEnt k v)))) w st Dc
       (upd ks k (.val v true)) :=
   rinv_put' hI hks hc hm hp hr hB1 hlast hres hrl s ins hins hent
-    (rinv_putBound hI hks (by obtain ⟨we, h1, h2, -⟩ := hent; exact ⟨we, h1, h2⟩))
 
 end step
 
