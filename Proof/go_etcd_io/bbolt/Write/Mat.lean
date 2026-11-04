@@ -9,7 +9,7 @@ node, and an inline bucket's `resolve` ignores the position) are these: `ltree_n
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Model.WOps
+public import Proof.go_etcd_io.bbolt.Write.WOk
 
 @[expose] public section
 
@@ -180,7 +180,7 @@ theorem lbktEnts_eq_of_dat (X X' : WX) (c : Loc) (h : (X'.leaves c).map (List.ma
 induction, with `matFresh` and an inline page a leaf at each step: `wOK` gives both). -/
 theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     (h : nodeAdded X X' bl l pgid parent) (hf : matFresh X bl l)
-    (hleaf : ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 →
+    (hleaf : ∀ B pa pg, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
       wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag) :
     wtxData X' = wtxData X := by
   have hlt := ltree_nodeAdded' X X' bl l pgid parent h hf
@@ -218,7 +218,7 @@ theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       have h0 := hlt c (W64 0) (fun _ _ _ _ => rfl)
       have hX0 : ltree X c (W64 0) = some (true, pageWs pg) := by
         simp only [ltree, hB, resolve, hin, ↓reduceIte, hrn, hpg, Option.map_some]
-        rw [hleaf B pa pg hB hin hpg]; rfl
+        rw [hleaf B pa pg hB hin hrn hpg]; rfl
       rw [hX0] at h0
       cases hX'0 : ltree X' c (W64 0) with
       | none => rw [hX'0] at h0; simp [ldat] at h0
@@ -265,7 +265,7 @@ theorem wtxData_matGrow (X X' : WX) (bl : Loc) (hok : wOK X) (h : matGrow X X' b
     intro hok
     rw [ih (wOK_nodeAdded X Y bl l pgid parent hok hadd hpos)]
     exact wtxData_nodeAdded' X Y bl l pgid parent hadd
-      (wOK_matFresh X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf X bl pgid hok)
+      (wOK_matFresh' X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf' X bl pgid hok)
 
 end mat
 
