@@ -328,13 +328,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
   in a scratch copy of the pinned translator: the three translate and their `Code` and
   `GeneratedProof` elaborate; nothing else changes.
-- **Status.** Done, waiting for the push (2026-11-04, the user's sign-off on the plan, G1 of
-  `notes/k8s-compactor-plan.md`): Perennial branch `goose-unalias` (`/shared/perennial-unalias`,
-  commits `d2aa32108`, `e028adb0d`; `etc/land.sh prepare` passed, the review recorded), the two
-  lines, tests of a value, a pointer to an alias and an alias of a pointer (gold files; the
-  semantics test `testStructFieldThroughAlias`, proved), `fix-semantics` Case 30; the standard
-  library regenerates unchanged. Then the pin bump, and `etcdstart.Collect`'s workaround
-  (`mvccpb.Event` for `clientv3.Event`) can go.
+- **Status.** Landed (2026-11-04, the user's sign-off on the plan, G1 of
+  `notes/k8s-compactor-plan.md`): Perennial `898c0ddc5` (`fix-semantics` Case 31), pinned here
+  since 2026-11-04 (branch `pin-898c0ddc5`). The two lines, with tests of a value, a pointer to an
+  alias and an alias of a pointer, and the semantics test `testStructFieldThroughAlias`, proved.
+  No translation here changed at the pin; its first user is the compactor's watch loop (Q1 (b)).
+  `etcdstart.Collect`'s workaround (`mvccpb.Event` for `clientv3.Event`) can go.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 
@@ -651,7 +650,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
   included, so no proof touches the axiomatized type's `sorry` instances.
 - **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
-- **Status.** Not started.
+- **Status.** Not started. G1's fix (`getStructInfo`, Perennial `898c0ddc5`) covers field
+  selection only: at that pin `feature.FeatureSupportChecker` is still axiomatized.
 
 ### `≤u` has no transitive instance (conversion to a defined type of a named interface)
 

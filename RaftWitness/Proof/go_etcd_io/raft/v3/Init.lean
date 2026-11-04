@@ -103,12 +103,12 @@ translates `os` names-only but for the initializers whose callees are translated
 Perennial `11ac2f242`: `ErrInvalid = fs.ErrInvalid`, ..., the `errors.New` errors, `dirBufPool`,
 `lstat`, the `var _ I = ...` assertions, which `os.wp_initialize'` runs), so each remaining
 `X.init` is an axiom of the translation; Go runs them at program start (`Stdin =
-NewFile(...)`, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, `Interrupt`, `ErrNoDeadline`, the
+NewFile(...)`, `Interrupt`, `ErrNoDeadline`, the
 `internal/poll` functions), and every Go program starts, so each returns without panicking. Satisfiable
 whatever the semantics (the `X.init`s are uninterpreted constants). `Stderr`'s, which the
 fact reads, is `Stderr_init`. -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, checkPidfdOnce.init, Stdout.init, Stdin.init,
+    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, Stdout.init, Stdin.init,
         Kill.init, Interrupt.init, ErrDeadlineExceeded.init, ErrNoDeadline.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -160,6 +160,7 @@ theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errPatternHasSeparator go.error as _
+  wp_apply wp_GlobalAlloc (V := GoFunc) os.checkPidfdOnce _ as _
   wp_apply wp_GlobalAlloc (V := Bool) os.checkWrapErr go.bool as _
   wp_apply wp_GlobalAlloc (V := GoFunc) os.lstat _ as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errPathEscapes go.error as _
@@ -201,7 +202,9 @@ theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   try wp_auto
-  wp_apply (os.opaqueInitsOk os.checkPidfdOnce.init (by mem_tac))
+  -- `checkPidfdOnce = sync.OnceValue(checkPidfd)` (translated since Perennial `a2a531d4d`)
+  wp_apply sync.wp_OnceValue $$ [$Hsync] as %_ -
+  try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
