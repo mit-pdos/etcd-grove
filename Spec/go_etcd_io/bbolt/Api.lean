@@ -108,9 +108,10 @@ reads. A write transaction's operations that change it need all of it. -/
 -- name it needs a registry keyed by `tx`, which D19 rejected, and no caller needs it (the backend
 -- keeps `boltTx tx γ q (ro D)` where it kept `rtxSnap tx D`).
 
-/-- `tx` is a transaction of the database `db` (persistent; what `Tx.DB` returns). -/
-@[no_expose] def txDB [HasExt osFsExt] (tx db : Loc) : IProp GF :=
-  txDBDef tx db
+/-- `tx` is a transaction of the database `db` named `γ` (persistent; what `Tx.DB` returns).
+Takes `γ` (batch 21, approved by the user, 2026-11-04; the D-C precedent of `boltBkt`/`boltCur`). -/
+@[no_expose] def txDB [HasExt osFsExt] (tx : Loc) (γ : BoltName) (db : Loc) : IProp GF :=
+  txDBDef (bnsOf γ.gs) γ.ns tx db
 
 /-- `tx` was committed or rolled back (persistent): its statistics can be read. -/
 @[no_expose] def txDone [HasExt osFsExt] (tx : Loc) : IProp GF :=
@@ -284,7 +285,8 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
     boltTx (GF := GF) tx γ q T ∗ boltState γ q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by
   unfold boltTx boltState; exact boltTxDef_base _ _ _ _ _ _ _
 
-@[instance] theorem txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db) := by
+@[instance] theorem txDB_persistent (tx : Loc) (γ : BoltName) (db : Loc) :
+    Persistent (txDB (GF := GF) tx γ db) := by
   unfold txDB; infer_instance
 @[instance] theorem txDone_persistent (tx : Loc) : Persistent (txDone (GF := GF) tx) := by
   unfold txDone; infer_instance

@@ -154,10 +154,11 @@ def boltTxDef (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) : IProp
       ghostVar r.n.v q.half (c, TxX.wr X) ∗ ghostVar r.n.ex q () ∗ wtxFrac B tx r q T X)
   else iprop(∃ db : Loc, rdTx B N tx .loan q T ∗ isBoltDef B N db)
 
-/-- `tx` is a transaction of the database `db` (persistent; `Tx.DB` compares physical values,
-design §3.10). -/
-def txDBDef (tx db : Loc) : IProp GF :=
-  iprop(∃ (B : BNs) (N : Namespace) (r : TxReg), isBoltDef B N db ∗ reg tx B r ∗ ⌜r.db = db⌝)
+/-- `tx` is a transaction of the database `db` of names `B` and namespace `N` (persistent;
+`Tx.DB` compares physical values, design §3.10; batch 21: the database's names are the
+client's, so the entry of `tx` in `B`'s registry is found by opening `B`'s invariant). -/
+def txDBDef (B : BNs) (N : Namespace) (tx db : Loc) : IProp GF :=
+  iprop(∃ r : TxReg, isBoltDef B N db ∗ reg tx B r ∗ ⌜r.db = db⌝)
 
 /-- `tx` was committed or rolled back: its statistics, frozen. -/
 def txDoneDef (tx : Loc) : IProp GF := iprop(∃ s : TxStats, tx.[Tx, go!"stats"] ↦□ s)
@@ -416,7 +417,8 @@ theorem boltTxDef_base (B : BNs) (N : Namespace) (tx : Loc) (q q' : Qp) (T : TxV
     iintro -
     ipureintro; intro h'; exact absurd h' h
 
-instance txDBDef_persistent (tx db : Loc) : Persistent (txDBDef (GF := GF) tx db) := by
+instance txDBDef_persistent (B : BNs) (N : Namespace) (tx db : Loc) :
+    Persistent (txDBDef (GF := GF) B N tx db) := by
   unfold txDBDef isBoltDef isBoltP reg; infer_instance
 
 instance txDoneDef_persistent (tx : Loc) : Persistent (txDoneDef (GF := GF) tx) := by

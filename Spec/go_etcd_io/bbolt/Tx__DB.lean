@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `tx.DB()`: the transaction's database. -/
 abbrev Tx.DB.spec : Prop :=
   ∀ [HasExt osFsExt] (tx db : Loc) (γ : BoltName) (q : Qp) (T : TxView),
-  {{ boltTx (GF := GF) tx γ q T ∗ txDB tx db }}
+  {{ boltTx (GF := GF) tx γ q T ∗ txDB tx γ db }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"DB")) (Val #()))
   {{ RET #db; boltTx tx γ q T }}
 

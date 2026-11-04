@@ -657,6 +657,21 @@ bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal
   or an array points-to: `ownSlice_empty`; propose the premise `∀ x ∈ L, x.2 ≠ []` or `0 <
   v.base.addr`), `store_cells_agree`'s proof.
 
+## Batch 21 and `viewCells_slices_acc` (2026-11-04)
+
+- **21 (approved by the user, 2026-11-04; D-C precedent, U5b's finding after batch 17)**: `txDB tx γ
+  db` (`Spec/go_etcd_io/bbolt/Api.lean`, `txDB_persistent`), `txDBDef B N tx db` (`Inv/Tx`, `B`/`N`
+  the client's: `∃ r, isBoltDef B N db ∗ reg tx B r ∗ ⌜r.db = db⌝`); `DB.Begin`'s and
+  `DB.Begin_err`'s posts, `Tx.DB`'s and `DB.Info`'s pres. `notes/decisions.md` (D-F) and
+  `notes/bbolt-spec-decisions.md` (D-F, with the backend impact: `γ.db` beside every `txDB`).
+  Stale interface files (regenerate with `etc/gen-interface.py etc/api/bbolt.txt` once every bbolt
+  module builds): `interface/Spec/go_etcd_io/bbolt/Api.txt`,
+  `interface/Proof/go_etcd_io/bbolt/{DB__Begin,DB__Begin_err,DB__Info,Tx__DB}.txt`.
+- **`viewCells_slices_acc`** takes `0 < v.base.addr` (decided by the coordinator: `mapFields` gives
+  it) and is proved (`addNQ`: `|L| + 1` equal shares). `Inv/Ctx` imports
+  `internal/common/Lemmas/Bytes` (`bytesPointsto_ownSlice`). Its one caller, U8's `srcOwn_acc`
+  (`Rebalance/Base`), needs the premise too (not a one-liner: routed).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

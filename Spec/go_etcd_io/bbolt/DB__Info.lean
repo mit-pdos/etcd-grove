@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 and reads it without `mmaplock`; a live transaction excludes `Close` and a remap). -/
 abbrev DB.Info.spec : Prop :=
   ∀ [HasExt osFsExt] (db tx : Loc) (γ : BoltName) (q : Qp) (T : TxView),
-  {{ isBolt (GF := GF) db γ ∗ txDB tx db ∗ boltTx tx γ q T }}
+  {{ isBolt (GF := GF) db γ ∗ txDB tx γ db ∗ boltTx tx γ q T }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Info")) (Val #()))
   {{ (i : Loc), RET #i; boltTx tx γ q T ∗ ∃ v : Info, i ↦ v }}
 

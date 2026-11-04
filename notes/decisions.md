@@ -30395,6 +30395,12 @@ triples; `bbolt-inv/design.md`, D-A..D-E). The frozen candidate text is otherwis
   every law and triple: nothing reached from `tx` alone can agree with `boltTx tx γ`'s ghost names.
   The general alternative, allocation returning a meta token, is proposed in
   `notes/perennial-changes.md`, "Heap: allocation returns a meta token".
+- *D-F* (2026-11-04, approved by the user, D-C precedent; U5b's finding after batch 17 of
+  `notes/bbolt-proof-plan.md`): `txDB` takes the database's `γ` (`txDB tx γ db`), in its law and in
+  `DB.Begin`'s post, `Tx.DB`'s and `DB.Info`'s pres: with `txEntry`'s done branch holding no share
+  of `tx.db`, `Tx.DB` reads `tx.db` through `γ`'s transaction registry. No new premise or ghost
+  state; the backend carries `γ.db` beside `txDB` (its `InvBbolt` axioms are to be restated at the
+  switch).
 - *D-D*: `boltTx_fill` only for `T.rw = true` (a reader's handles are allocated at any fraction,
   outside what `boltTx … 1` can find); the backend uses it in write transactions only.
 - *D-E*: D19's remark that a `db ↦ γ` registry "is provable" from a package fact was wrong (a

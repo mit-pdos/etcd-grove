@@ -13,6 +13,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Tx
 public import Proof.go_etcd_io.bbolt.Model.WOps
+public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Bytes
 
 @[expose] public section
 
@@ -259,13 +260,114 @@ theorem viewCells_loc_acc (q : Qp) (v : View) (l : Loc) (bs : List w8) (h : inVi
   iapply Hpb
   iexact H2
 
+/-- `n` shares `f` and one `r`. -/
+def addNQ (f r : Qp) : Nat → Qp
+  | 0 => r
+  | n + 1 => f + addNQ f r n
+
+theorem addNQ_val (f r : Qp) : ∀ n, (addNQ f r n).val = (n : Rat) * f.val + r.val
+  | 0 => by simp only [addNQ]; push_cast; grind
+  | n + 1 => by
+    simp only [addNQ, Qp.val_add, addNQ_val f r n]
+    push_cast; grind
+
+omit hos [GooseSemantics] go_gctx sem in
+private theorem viewCells_split_c (q1 q2 : Qp) (v : View) :
+    viewCells (GF := GF) (q1 + q2) v ⊣⊢ viewCells q1 v ∗ viewCells q2 v := by
+  unfold viewCells
+  rw [← BigSepM.bigSepM_sep_eq]
+  constructor
+  · apply BigSepM.bigSepM_mono_of_forall
+    intro k x
+    exact ((bytesPointsto_dfractional (GF := GF) _ x).dfractional (DFrac.own q1) (DFrac.own q2)).1
+  · apply BigSepM.bigSepM_mono_of_forall
+    intro k x
+    exact ((bytesPointsto_dfractional (GF := GF) _ x).dfractional (DFrac.own q1) (DFrac.own q2)).2
+
+open Iris.ProofMode in
+/-- A slice of the view at the cells' own fraction (the base positive). -/
+private theorem viewCells_slice_acc_q (q : Qp) (v : View) (hb : 0 < v.base.addr) (s : GoSlice)
+    (bs : List w8) (h : inViewAt v s bs) :
+    viewCells (GF := GF) q v ⊢ s ↦*{DFrac.own q} bs ∗
+      (s ↦*{DFrac.own q} bs -∗ viewCells q v) := by
+  obtain ⟨hl, hlt, hsl, hsc⟩ := h
+  have hpos : 0 < s.ptr.addr := by
+    obtain ⟨id, pg, off, -, -, -, hp⟩ := hl
+    rw [hp]; simp [Loc.add]; omega
+  have hs' : s = slice.mk s.ptr (W64 (bs.length : Int)) (W64 (bs.length : Int)) := by
+    cases s; simp only at hsl hsc ⊢; rw [hsl, hsc]
+  have Ho := internal.common.bytesPointsto_ownSlice (GF := GF) s.ptr (DFrac.own q) bs hpos
+    (by omega)
+  rw [← hs'] at Ho
+  obtain ⟨id, pg, off, hpg, hlen, hbs, hp⟩ := hl
+  have Ha := bytesPointsto_sub_acc (GF := GF) (v.base +ₗ ((id * 4096 : Nat) : Int)) (DFrac.own q)
+    pg bs off hlen hbs
+  rw [loc_add_assoc,
+    show (((id * 4096 : Nat) : Int) + (off : Int)) = ((id * 4096 + off : Nat) : Int) by omega,
+    ← hp] at Ha
+  iintro Hv
+  unfold viewCells
+  icases (BigSepM.bigSepM_lookup_acc hpg).1 $$ Hv with ⟨Hp, Hback⟩
+  icases Ha $$ Hp with ⟨H2, Hpb⟩
+  icases Ho.1 $$ H2 with H2
+  iframe H2
+  iintro H2
+  iapply Hback
+  iapply Hpb
+  iapply Ho.2
+  iexact H2
+
+open Iris.ProofMode in
+/-- The slices of `L` at a share `f` each, from `L.length` shares `f` and one more. -/
+private theorem viewCells_slices_acc_n (v : View) (f r : Qp) (hb : 0 < v.base.addr) :
+    ∀ (L : List (GoSlice × List w8)), (∀ x ∈ L, inViewAt v x.1 x.2) →
+    viewCells (GF := GF) (addNQ f r L.length) v ⊢ ([∗list] x ∈ L, x.1 ↦*{DFrac.own f} x.2) ∗
+      (([∗list] x ∈ L, x.1 ↦*{DFrac.own f} x.2) -∗ viewCells (addNQ f r L.length) v)
+  | [], _ => by
+    iintro Hv
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    · iintro -; iexact Hv
+  | x :: L, h => by
+    have hx := h x List.mem_cons_self
+    have hL : ∀ y ∈ L, inViewAt v y.1 y.2 := fun y hy => h y (List.mem_cons_of_mem _ hy)
+    have IH := viewCells_slices_acc_n v f r hb L hL
+    have hs := viewCells_split_c (GF := GF) f (addNQ f r L.length) v
+    simp only [List.length_cons, addNQ]
+    iintro Hv
+    icases hs.1 $$ Hv with ⟨H1, H2⟩
+    icases viewCells_slice_acc_q f v hb x.1 x.2 hx $$ H1 with ⟨Hb, Hb1⟩
+    icases IH $$ H2 with ⟨HL, HL1⟩
+    isplitl [Hb HL]
+    · iapply BigSepL.bigSepL_cons.2
+      iframe
+    · iintro Hs
+      icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hx, Hs⟩
+      iapply hs.2
+      isplitl [Hx Hb1]
+      · iapply Hb1; iexact Hx
+      · iapply HL1; iexact Hs
+
 /-- **Slices of the view, read together** (U6; `node.write`'s and `bytes.Compare`'s callers):
 every slice of the list at one fraction, and back. -/
 theorem viewCells_slices_acc (q : Qp) (v : View) (L : List (GoSlice × List w8))
-    (h : ∀ x ∈ L, inViewAt v x.1 x.2) :
+    (hb : 0 < v.base.addr) (h : ∀ x ∈ L, inViewAt v x.1 x.2) :
     viewCells (GF := GF) q v ⊢ ∃ dq : DFrac, ([∗list] x ∈ L, x.1 ↦*{dq} x.2) ∗
       (([∗list] x ∈ L, x.1 ↦*{dq} x.2) -∗ viewCells q v) := by
-  sorry
+  let f : Qp := q / (⟨((L.length : Rat) + 1), by
+    have : (0 : Rat) ≤ L.length := by exact_mod_cast Nat.zero_le _
+    grind⟩ : Qp)
+  have hq : addNQ f f L.length = q := by
+    rw [Qp.ext_iff, addNQ_val]
+    simp only [f, Qp.val_div]
+    have hn : ((L.length : Rat) + 1) ≠ 0 := by
+      have : (0 : Rat) ≤ L.length := by exact_mod_cast Nat.zero_le _
+      intro h; grind
+    grind
+  rw [← hq]
+  iintro Hv
+  iexists DFrac.own f
+  iapply (viewCells_slices_acc_n (GF := GF) v f f hb L h) $$ Hv
 
 -- `wtxHeap_node_acc` (false: a new record's parent could be itself): U8's `wtxHeap_setNode`
 -- (`Rebalance/Heap.lean`); `wtxHeap_bkt_acc` (with the new record's `tx` field): U5's

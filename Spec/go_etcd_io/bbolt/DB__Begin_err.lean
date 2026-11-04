@@ -38,7 +38,7 @@ abbrev DB.Begin_err.spec : Prop :=
           <{ boltState γ q D, COMM Q D }>)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #w))
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
-      (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ ∃ D : Data,
+      (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data,
         (if w then boltTx tx γ 1 (TxView.wr D) else iprop(boltTx tx γ 1 (TxView.ro D) ∗ Q D))) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗
         (if w then emp else iprop(threadTok ∗

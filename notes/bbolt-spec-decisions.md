@@ -1778,6 +1778,12 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   `tx`: `txBytes tx γ s b`, `boltBkt tx γ b n g`, `boltCur tx γ c T es pos`, `curAt tx γ es i k v`,
   in every law and triple. The general fix, allocation returning a meta token as Iris HeapLang's
   does, is proposed in `notes/perennial-changes.md`.
+- **D-F** (2026-11-04, approved by the user, D-C precedent; U5b's finding after batch 17).
+  `txDB` takes `γ`: `txDB tx γ db`, in `txDB_persistent`, `DB.Begin`'s post, `Tx.DB`'s and
+  `DB.Info`'s pres (and the internal `DB.Begin_err`). `Tx.DB` reads `tx.db`, whose live quarter is
+  in `γ`'s transaction registry (`txEntry`); a `db`-only `txDB` could not open it. Backend impact:
+  the backend carries `γ.db` beside every `txDB` (`DB.Begin_kv`, `Tx.DB_kv`, `DB.Info_kv`,
+  `Tx.Commit_kv` rows: restated with `γ.db`, still corollaries).
 - **D-D.** `boltTx_fill` holds only for write transactions (`T.rw = true`): a reader's
   `Tx.Bucket` runs at any fraction and allocates a fresh handle each call, which no entailment
   from `boltTx … 1` finds. The backend writes `FillPercent` only in write transactions.
