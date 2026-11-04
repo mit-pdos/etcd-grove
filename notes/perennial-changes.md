@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Thread tokens by level: a goroutine of a counted wait group has no token (2026-11-04, lease-expiry P1)
+
+etcd's `EtcdServer.GoAttach` counts its goroutines in a wait group whose counter bound is the
+thread bound: `Add` deposits the caller's `threadTok` in the group's invariant
+(`Proof/.../etcdserver/InvGoAttach.lean:171-192`), and `fork` makes exactly one token for the new
+thread (`wp_fork_tok`, `GooseLang/Lifting.lean:1806`). So a goroutine started by `GoAttach` holds no
+token, and cannot itself `GoAttach` or call anything that takes `threadTok`, though Go does both:
+`revokeExpiredLeases` (`server.go:860`) calls `ensureLeadership` and `GoAttach`es one goroutine per
+expired lease, round after round. No pool inside this repository fixes it (three tokens for two
+threads; `notes/lease-expiry-plan.md`, review round 2). Proposed general change
+(`notes/bounds-plan.md` D2(b)): split a thread token by level, `threadTok ⊣⊢ [∗ l < L] levelTok l`,
+`fork` giving the new thread all levels; a counted wait group then takes `levelTok 0` (bound `k + p <
+2·threadBound`), and the goroutine keeps levels `≥ 1` to borrow from pools (lock order gives the
+levels). Local workaround: `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` (the user's
+approval, 2026-11-04). Not yet proposed on a Perennial branch.
+
 ### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
 
 - **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗

@@ -384,3 +384,8 @@ Round 2: a fresh reviewer on this revision, hardest on R1-R3's repairs.
   duplicate); explicit-ID grants take it too.
 - **S3.** `lease.imageOk D ids`: every record `leaseEnc id t r` under `u64Be id`; ids only.
 - **X5.** Blocked on P1.
+
+**Decided (the user, 2026-11-04):** P1, the Perennial change (thread tokens by level, bounds-plan
+D2(b)) proposed on its own, `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` meanwhile (a
+new `sorry`, approved), the rest of the stage proceeding and landing with it; E2/E3, the
+single-member row (a trusted restatement of `leaseTimeToLive`, the `axiom` skill before Freeze).
