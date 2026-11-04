@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.Spill.AllocDeref
 public import Proof.go_etcd_io.bbolt.Spill.StepComp
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
 public import Proof.go_etcd_io.bbolt.Spill.TreeDataSpill
+public import Proof.go_etcd_io.bbolt.Spill.STreeBuild
 
 @[expose] public section
 
@@ -29,6 +30,12 @@ namespace Spill
 
 section state
 variable [GooseExts] [GoGlobalContext]
+
+/-- An `sTree`'s root is one of its pages. -/
+theorem sTree_root_mem {P : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h : Nat}
+    {S : List Nat} (hs : sTree P hwm id lo hi h S) : id ∈ S := by
+  obtain ⟨pg, hpg⟩ := treeWF_page_some hs.wf
+  exact (hs.has id).1 (treeHas.root id pg hpg)
 
 /-- **The spill's global state after a piece's step.** -/
 theorem pcStepX_spG {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}

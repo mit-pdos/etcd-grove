@@ -64,7 +64,8 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   obtain ⟨Sb, Eb, hDi, hEi, hSb⟩ := hents i ws hws
   let pn : Piece := ⟨x.1, id, wssKey wss i, nodePages id.toNat ws.length Sb⟩
   refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
-    hsr, hfit, by rw [List.append_assoc], hEs, hents, hD, hcs, ?_⟩
+    hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
+  rotate_left
   obtain ⟨hlv, hbl, -, hG1, hne, -, -, -, -, -, -, hparp⟩ := hpp
   obtain ⟨rk, hrk, -, hsim⟩ := hL.todo i x ws (Nat.le_refl _) hx hws
   rw [hrl] at hrk; cases hrk
@@ -119,6 +120,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     rw [List.drop_eq_getElem_cons hDl, List.flatten_cons]
     simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hDl]
   have hnd := hL.slot.1
+  unfold pcOwn at hnd
   rw [hDs] at hnd
   have hDiPS : ∀ y ∈ Ds.getD i [], y ∉ pcSlots (spP Xi) ps := by
     intro y hy hy'
@@ -147,9 +149,12 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     obtain ⟨xk, hxk⟩ : ∃ xk, xs[k]? = some xk := ⟨_, List.getElem?_eq_getElem hkl⟩
     obtain ⟨wk, hwk⟩ : ∃ wk, wss[k]? = some wk :=
       ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; exact hkl)⟩
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hft⟩ := hL.done k xk p wk hxk hk hwk
-    obtain ⟨pg, hpg, -⟩ := hft.2.1
-    exact mem_pgSlots_self ((hft.1.has _).1 (treeHas.root _ pg hpg))
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hftc, hst⟩ := hL.done k xk p wk hxk hk hwk
+    by_cases hpn : pl = null
+    · exact mem_pgSlots_self (sTree_root_mem (hst hpn).1)
+    · have hft := hftc hpn
+      obtain ⟨pg, hpg, -⟩ := hft.2.1
+      exact mem_pgSlots_self ((hft.1.has _).1 (treeHas.root _ pg hpg))
   have hSbag : ∀ m < ws.length, ∀ y ∈ Sb m, spP X3 !! y = spP X' !! y := by
     intro m hm y hy
     have hyD : y ∈ Ds.getD i [] := by
@@ -209,7 +214,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       intro k x' p ws' hx' hp hws'
       rcases Nat.lt_or_ge k ps.length with hk | hk
       · rw [List.getElem?_append_left hk] at hp
-        obtain ⟨rk, hrk, hlvk, hb, hspd, hcs', hch', hpar', hpg', hwd, hpk, hkey, hft⟩ :=
+        obtain ⟨rk, hrk, hlvk, hb, hspd, hcs', hch', hpar', hpg', hwd, hpk, hkey, hftc, hst⟩ :=
           hL.done k x' p ws' hx' hp hws'
         obtain ⟨rk', hrk', hsk, hlk⟩ := spFrame_node hfr3 hrk (hoth k x' hx' (by omega))
         have hag : ∀ y ∈ pgSlots (spP Xi) p.S, spP X3 !! y = spP Xi !! y := by
@@ -224,7 +229,12 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         refine ⟨rk', hrk', hlk.2 hlvk, by rw [hsk.1]; exact hb, by rw [hsk.1]; exact hspd,
           by rw [hsk.2.2.2.2.1]; exact hcs', by rw [hsk.1]; exact hch', by rw [hsk.1]; exact hpar',
           by rw [hsk.1]; exact hpg', hsk.2.2.1.trans hwd, hpk, fun hpl => ?_,
-          (fTree_agree hag hmk3 hft).1⟩
+          fun hpl => (fTree_agree hag hmk3 (hftc hpl)).1, fun hpl => ?_⟩
+        rotate_left
+        · have hagS : ∀ y ∈ p.S, spP X3 !! y = spP Xi !! y :=
+            fun y hy => hag y (mem_pgSlots_self hy)
+          exact ⟨sTree_agree hagS hmk3 (hst hpl).1, by
+            rw [treeEls_agree (hst hpl).1 hagS]; exact (hst hpl).2⟩
         obtain ⟨h1, h2⟩ := hkey hpl
         exact ⟨hsk.2.2.2.2.2.1.trans h1, fun he => h2 (hsk.2.1.1 he)⟩
       · rw [List.getElem?_append_right hk] at hp
@@ -235,9 +245,12 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         rw [hk0] at hp; simp at hp; subst hp
         have : k = i := by omega
         subst this; rw [hx] at hx'; cases hx'; rw [hws] at hws'; cases hws'
-        have hft_new : fTree (spP X3) X3.t.mv.pgid'.toNat id.toNat (wssKey wss k)
+        have hft_new : pl ≠ null → fTree (spP X3) X3.t.mv.pgid'.toNat id.toNat (wssKey wss k)
             (childHi hi (wssKey wss) xs.length k) h (nodePages id.toNat ws.length Sb)
             (Es.getD k []) := sorry
+        have hst_new : pl = null → sTree (spP X3) X3.t.mv.pgid'.toNat id.toNat lo hi h
+            (nodePages id.toNat ws.length Sb) ∧
+            treeEls (spP X3) id.toNat = Es.getD k [] := sorry
         have hcs0 : ra.cs = [] := by
           rw [hsa.2.2.2.2.1, hsim.2.2.2.2.1]; unfold splitRec; split <;> rfl
         have hwd : ra.ws.map wDat = ws.map wDat := hsa.2.2.1.trans (hsim.2.2.1.trans (by
@@ -252,7 +265,8 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
           obtain ⟨-, -, -, hk0'⟩ := hpar3 (by rw [hrpl]; exact hpn) rpi hrpi
           refine ⟨by simp only []; rw [hra]; exact hbl, rfl, hcs0,
             by simp only []; rw [hra]; show rl.nv.children' = _; rw [hnv]; exact hxch,
-            by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun _ => ⟨?_, hk0'⟩, hft_new⟩
+            by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun _ => ⟨?_, hk0'⟩, hft_new,
+            hst_new⟩
           show ra.w0.key = wssKey wss k
           unfold wssKey; rw [hws]
           show (ra.ws.headD default).key = wKey ws 0
@@ -270,7 +284,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
           refine ⟨by simp only []; rw [hra]; exact hbl, rfl, hcs0,
             by simp only []; rw [hra]; show rl.nv.children' = _; rw [hnv]; exact hxch,
             by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun h' => absurd h' hpn,
-            hft_new⟩
+            hft_new, hst_new⟩
     slot := by
       have hv' : Xi.v.pages = X'.v.pages := by
         rw [hL.step.2.2.1, hsr.same.2.2.2, nilCh_v]
@@ -282,7 +296,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         · simp only [hi0, ite_false]; unfold ownSl; simp
       have hsl0 : slotInv wi.fl Xi.t.mv.pgid'.toNat (O ++ (ownSl Xi.v rl.nv.pgid' ++
           (Ds.getD i [] ++ (Ds.drop (i + 1)).flatten ++ pcSlots (spP Xi) ps))) := by
-        have := hL.slot; rw [hDs, hA] at this; simpa only [List.append_assoc] using this
+        have := hL.slot; unfold pcOwn at this; rw [hDs, hA] at this; simpa only [List.append_assoc] using this
       have h5 := pcStepX_slot hs hG1 hsl0
       have hcnt : pcCount (insSize rl.ins) - 1 < 2 ^ 32 := sorry
       have hPS : pcSlots (spP X3) ps = pcSlots (spP Xi) ps := by
@@ -308,6 +322,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
           pcSlots (spP Xi) ps ++ (List.range' id.toNat (pcCount (insSize rl.ins)) ++
             Ds.getD i []) := by
         rw [← hpn, ← hPS]; unfold pcSlots; simp
+      unfold pcOwn
       rw [hfin]
       refine slotInv_perm ?_ h5
       rw [List.perm_iff_count]; intro a
@@ -323,7 +338,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         exact ⟨p, List.mem_append_left _ hp, he⟩
     par := by
       intro hpn
-      obtain ⟨rpi0, hrpi0, hplv, hnot, hcap, hsort, hpw, -⟩ := hL.par hpn
+      obtain ⟨rpi0, hrpi0, hplv, hnot, hcap, hsort, hpw, -, hcs0, hnv0, hkey0, hkn0⟩ := hL.par hpn
       have hpn' : rl.nv.parent' ≠ null := by rw [hrpl]; exact hpn
       obtain ⟨hX3p, hsimp, hinsl, -⟩ := hpar3 hpn' rpi0 (by rw [hrpl]; exact hrpi0)
       rw [hrpl] at hX3p
@@ -331,9 +346,16 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       have hcore : wsSorted (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)) ∧
           (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)).map wDat =
             parWs bs j (i + 1) (ps ++ [pn]) := sorry
-      refine ⟨_, hX3p, by rw [hlive3]; exact hplv, hnot, ?_, hcore.1, hcore.2, hinsl⟩
-      show rp.capOwn = true
-      rw [hsimp.2.2.2.2.2.2]; exact hcap }
+      refine ⟨_, hX3p, by rw [hlive3]; exact hplv, hnot, ?_, hcore.1, hcore.2, hinsl,
+        by show rp.cs = _; rw [hsimp.2.2.2.2.1]; exact hcs0, ?_,
+        by show rp.key = _; rw [hsimp.2.2.2.2.2.1]; exact hkey0,
+        by show rp.nv.key' = _ ↔ _; rw [hsimp.2.1]; exact hkn0⟩
+      · show rp.capOwn = true
+        rw [hsimp.2.2.2.2.2.2]; exact hcap
+      · -- DEFECT (pcLoop.par): the parent's key slice may change source (nodeSim), so its
+        -- struct is `rp0`'s only modulo `key'` too
+        sorry }
+  sorry
 
 end step
 
