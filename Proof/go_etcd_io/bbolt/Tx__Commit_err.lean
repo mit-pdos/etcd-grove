@@ -617,7 +617,48 @@ theorem Tx.Commit_err.wp_proof'
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
       · subst hv
         try wp_auto
-        sorry
+        -- `grow`, if the high-water mark moved up
+        obtain ⟨hwrt, hrlt, htxt, hmapt, hhwmt, hcht, hmpt, hflt, hwokt, -⟩ := Htl
+        icases cm_meta_acc K tx r false Xt $$ Hw with ⟨Hme, Hmv, Hwb⟩
+        try wp_auto
+        wp_apply wp_Pgid $$ [Hmv] as Hmv
+        · iframe #; iframe
+        ihave Hw := Hwb $$ %Xt.t.mv Hme Hmv
+        have eXt : Xt.withMv Xt.t.mv = Xt := rfl
+        rw [eXt]
+        try wp_auto
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(
+            (⌜v = executeVal⌝ ∗ err_ptr ↦ GoInterface.nil ∗ lg_ptr ↦ GoInterface.ok li ∗
+              tx_ptr ↦ tx ∗ wtxW K tx r false Xt ∗ cmExcl K r Xt (treeData wt.C) ∗
+              ∃ wg : WDb, wdbW K tx Xt.v wg ∗ ⌜wdbGrown wt wg⌝) ∨
+            (⌜v = returnVal #()⌝ ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
+              ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗
+                txDoneDef tx))))
+          $$ [Hw Hwdb Hex err Hlgp tx]
+        · by_cases hg : uint.Z X1.t.mv.pgid' < uint.Z Xt.t.mv.pgid'
+          · rw [decide_eq_true hg]
+            try wp_auto
+            sorry
+          · rw [decide_eq_false hg]
+            try wp_auto
+            ileft
+            isplitr
+            · ipureintro; first | rfl | trivial
+            iframe
+            ipureintro; exact wdbGrown_refl wt
+        iintro %v Hv
+        icases Hv with (⟨%hv, err, Hlgp, tx, Hw, Hex, %wg, Hwdb, %Hgr⟩ |
+          ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
+        · subst hv
+          try wp_auto
+          sorry
+        · subst hv
+          cases e1 with
+          | nil => exact absurd rfl He1
+          | ok ii =>
+          try wp_auto
+          cm_return
       · subst hv
         cases e1 with
         | nil => exact absurd rfl He1

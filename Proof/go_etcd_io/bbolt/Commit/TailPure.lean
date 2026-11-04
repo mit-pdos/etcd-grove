@@ -78,6 +78,10 @@ theorem allocRes_keep (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p 
     · show Xd.t.mv.txid' = _
       rw [hd.2.2.2.2.2.2.1]
 
+/-- No growth (`grow` not called). -/
+theorem wdbGrown_refl (w : WDb) : wdbGrown w w :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ h => ⟨h, fun _ => rfl⟩⟩
+
 end pure
 
 end bbolt
