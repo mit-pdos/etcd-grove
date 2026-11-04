@@ -608,7 +608,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     rw [← Hmaps]
     wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨p, true, true⟩ m' len hfd rfl hlenI
         (by rw [hlen64]; exact Hsz) (fun b l h => by rw [Hmaps] at h; simp at h; omega)
-        $$ [Hf Hfd Hm Hmc] as %err ⟨Hf, Hfd, Hres⟩
+        $$ [Hf Hfd Hm Hmc] as %err ⟨Hf, Hfd, Hres, #_⟩
     · iframe #
       iframe
     simp only [hlen64]
@@ -627,7 +627,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       ihave Hnil := (osBytes_nil (GF := GF) p 0 (DFrac.own 1)).2 $$ []
       · iempintro
       wp_apply wp_Sync f fd p _ _ ⟨p, true, true⟩ (m'.grown len) 0 [] $$ [Hf Hfd Hm Hnil]
-        as %err2 ⟨Hf, Hfd, Hres2⟩
+        as %err2 ⟨Hf, Hfd, Hres2, #_⟩
       · iframe; iframe #
       icases Hres2 with (⟨%Herr2, Hm, -⟩ | ⟨%Herr2, Hm, -⟩)
       · subst Herr2
@@ -759,7 +759,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half)
       ⟨p, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by omega) (by omega)
       (by rw [hoff, htk, hdl]; omega) (fun _ => rfl) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
-    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %Hres, Hm, Hpg, Hpc⟩
+    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %Hres, Hm, Hpg, Hpc, #_⟩
   · rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)]
     iframe Hf Hbuf Hfd Hm Hpg Hpc; iframe #
   rw [hoff, dataPage_length, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)] at *
@@ -940,7 +940,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
       (by rw [hoffm, metaPageOf_length, hwl]; omega) (fun _ => rfl)
       $$ [Hf Hmb Hfd Hm Wi Hpi]
-    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Wi, Hpi⟩
+    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Wi, Hpi, #_⟩
   · rw [hoffm, metaPageOf_length, Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)]
     iframe Hf Hmb Hfd Hm Wi Hpi; iframe #
   rw [hoffm, metaPageOf_length, Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)] at *

@@ -10,6 +10,7 @@ counterpart).
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -38,7 +39,8 @@ abbrev os.File.Stat.spec : Prop :=
       ((∃ fs : Loc, ⌜err = interface.nil ∧
           fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
           os.ownFileStat fs (W64 m.size)) ∨
-       ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) }}
+       ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

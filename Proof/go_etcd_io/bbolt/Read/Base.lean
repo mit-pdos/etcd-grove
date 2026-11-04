@@ -42,7 +42,7 @@ theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
     mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜0 < b.addr⌝ := by
   simp only [mapFields]
   iintro ⟨-, -, -, -, %H⟩
-  ipureintro; exact H.2
+  ipureintro; exact H.2.1
 
 theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) :

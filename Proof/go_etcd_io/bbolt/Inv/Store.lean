@@ -1911,6 +1911,33 @@ theorem meta_put (C : CommitSt) (ms : MapSt) :
     imodintro; iframe
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
 
+/-- **The new mapping's store cells hold the store's bytes** (batch 15, U4's remap, before
+`store_carve`): in one atomic step `e` (e.g. the store of `db.dataref` after `mmap`), with the
+mapping `(b, l)` in the file's `OsMeta` and the client halves of the store slots' cells (any
+values: `mmap`'s cells), the cells hold the bytes the store's witness `W` records (the half
+`store_gather` handed out): `pagesInv`'s page-cache bytes of each store slot, read with OsFs's
+`osCell_agree` byte by byte (as the bboltfs example's `cellsR_agree`), while it is open around
+`e` (so the continuation runs without `pagesN N`). The result is `store_carve`'s premises `hW` and the cells. Owner: the maintainer (U3's
+successor). -/
+theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
+    (ι : Iris.ProgramLogic.Language.Atomic ↑s e) (hE' : ↑osN ⊆ E \ ↑(pagesN N)) (C : CommitSt) (fl : FLPg)
+    (ws : WSt) (b : Loc) (l : Nat) (m : OsMeta) (dqm : DFrac) (W : GMap Nat (List w8))
+    (hb : m.maps !! b = some l) (hl : ∀ s ∈ slotsOf C fl, s < l / 4096) (Φ : val → IProp GF) :
+    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ osInv -∗
+      ghostVar B.cur (1 : Qp).half.half C -∗ ghostVar B.fl (1 : Qp).half fl -∗
+      ghostVar B.map (1 : Qp).half (none : MapSt) -∗ ghostVar B.wv (1 : Qp).half ws -∗
+      ghostVar B.byt (1 : Qp).half W -∗ osMeta p dqm (some m) -∗
+      ([∗list] s ∈ slotsOf C fl, ∃ vf, cellsR b (4096 * s) 4096 vf) -∗
+      (∀ bs : Nat → List w8, ⌜∀ s ∈ slotsOf C fl, W !! s = some (bs s)⌝ -∗
+        ghostVar B.cur (1 : Qp).half.half C -∗ ghostVar B.fl (1 : Qp).half fl -∗
+        ghostVar B.map (1 : Qp).half (none : MapSt) -∗ ghostVar B.wv (1 : Qp).half ws -∗
+        ghostVar B.byt (1 : Qp).half W -∗ osMeta p dqm (some m) -∗
+        ([∗list] s ∈ slotsOf C fl,
+          bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) -∗
+        WP e @ s; (E \ ↑(pagesN N)) {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }} := by
+  sorry
+
 end lemmas
 
 end store

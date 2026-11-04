@@ -59,7 +59,7 @@ its registration, its heap `X` at `1`, its handles' fills, its handle and node r
 auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`). -/
 def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
-    ⌜r.db = K.db ∧ r.rw = true ∧ 0 < tx.addr⌝ ∗ reg tx K.B r ∗
+    ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
     ghostMapAuth r.n.bk 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)

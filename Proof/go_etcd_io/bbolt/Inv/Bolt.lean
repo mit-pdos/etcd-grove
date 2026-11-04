@@ -38,10 +38,20 @@ def dblAt (B : BNs) (db : Loc) : IProp GF := iprop(ghostMapElem B.dbl () DFrac.d
 /-- `B`'s receipts' base (the opened file's txid) is `t0` (persistent, agreeing). -/
 def t0At (B : BNs) (t0 : Nat) : IProp GF := iprop(ghostMapElem B.t0 () DFrac.discard t0)
 
-/-- The database's logger: a `boltLogger`, or bbolt's `discardLogger` (`Open` sets it when the
-option's is nil). -/
+/-- The database's logger: a `boltLogger` (batch 15: the option's, or bbolt's `discardLogger`'s
+value, which `Open` sets when the option's is nil and which is one, `discardLogger_boltLogger`; so
+`db.Logger()`'s nil test resolves and its result can be called). -/
 def dbLogger (lg : GoInterface) : IProp GF :=
-  iprop(boltLogger lg ∨ globalAddr discardLogger ↦□ lg)
+  iprop(boltLogger lg)
+
+/-- **`discardLogger` holds a `boltLogger`** (batch 15; for `Open`, U11): bbolt's package
+initializer stores `&nopLogger{}` (the fork's no-op logger, `discardlogger.diff`) in it, whose
+methods return at once. Needs the package's facts (`bboltRootInit`) to say what the global holds:
+`etc/gen-init.py`'s `SPECIAL` entry for bbolt, and its `Init.lean` to prove it. Owner: U11. -/
+theorem discardLogger_boltLogger :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
+      ∃ lg, globalAddr discardLogger ↦□ lg ∗ boltLogger lg := by
+  sorry
 
 /-- What the page pool holds: zeroed page buffers. -/
 def pageBuf (v : GoAny) : IProp GF :=
@@ -50,7 +60,8 @@ def pageBuf (v : GoAny) : IProp GF :=
 
 /-- **`db`'s fields written only by `Open`** (persistent, design §3.4): the page size, the
 statistics pointer, the logger, `readOnly`, the exported options (`StrictMode` and `Mlock` off),
-`openFile`, the page pool, the never-used batch fields. (Not `freelistLoad`'s `sync.Once`:
+`openFile`, the page pool, the never-used batch fields. `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
+`mmap`'s `unix.Mmap`). (Not `freelistLoad`'s `sync.Once`:
 Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
 `hlc`; U11 decides how `loadFreelist`'s `Once.Do` is covered, `notes/bbolt-proof-plan.md`.) -/
 def dbFixed (db sp : Loc) : IProp GF :=
@@ -62,7 +73,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ x : Bool, db.[DB, go!"NoFreelistSync"] ↦□ x) ∗
     (∃ x : Bool, db.[DB, go!"PreLoadFreelist"] ↦□ x) ∗
     (∃ x : FreelistType, db.[DB, go!"FreelistType"] ↦□ x) ∗
-    (∃ x : w64, db.[DB, go!"MmapFlags"] ↦□ x) ∗ (∃ x : w64, db.[DB, go!"MaxBatchSize"] ↦□ x) ∗
+    (∃ x : w64, db.[DB, go!"MmapFlags"] ↦□ x ∗ ⌜x = W64 0 ∨ x = W64 0x8000⌝) ∗ (∃ x : w64, db.[DB, go!"MaxBatchSize"] ↦□ x) ∗
     (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
     (∃ x : w64, db.[DB, go!"AllocSize"] ↦□ x) ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
@@ -73,7 +84,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
 statistics pointer `sp` and receipts' base `t0`. -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
     IProp GF :=
-  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ 0 < db.addr⌝ ∗
+  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ db ≠ null⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗

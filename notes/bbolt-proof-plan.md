@@ -509,6 +509,43 @@ Adapted in others' working files (uncommitted, not committed by me): `node__reba
    lemmas are U7's `Write.flView_withWs'` and `Write.flView_nodeAdded'` (`Write/FlView`, proved,
    same statements; names kept so U7's files are unchanged).
 
+## Shared-statement fixes, batch 15 (U4's findings, 2026-11-04; decided by the coordinator)
+
+1. **`dbFixed` pins `MmapFlags`**: `∃ x, db.MmapFlags ↦□ x ∗ ⌜x = W64 0 ∨ x = W64 0x8000⌝`
+   (`OptsM.ok`'s restriction, carried in by `Open`, U11), so `mmapF`'s premise is derivable.
+2. **`dbLogger lg` is `boltLogger lg`**: the discard case is the global's value, which is a
+   `boltLogger` (`discardLogger_boltLogger`, `Inv/Bolt`, `sorry`, owner U11: bbolt's package facts
+   must say what `discardLogger` holds, `&nopLogger{}` from the fork's `discardlogger.diff`; that is
+   `etc/gen-init.py`'s `SPECIAL` entry for bbolt and its generated `Init.lean`; then the no-op
+   methods meet `boltLogger`). `db.Logger()`'s nil test resolves (`boltLogger nil` is `False`).
+3. **The mapping's length**: `mapFields`' mapped case carries `len % 4096 = 0 ∨ len =
+   0xFFFFFFFFFFFF` (its pure part is now `len ≤ max ∧ 0 < base.addr ∧ (…)`, so `H.2` is `H.2.1`;
+   `Read/Base`'s `mapFields_base_nonnull` adapted). U4's correction: `mmapSize` caps at
+   `maxMapSize`, not a multiple of 4096. The partial last slot's cells (`[4096·(len/4096), len)`)
+   are the writer side's: **`wCells`' mapped case** adds `∃ vf, cellsR base (4096 * (len / 4096))
+   (len % 4096) vf` (empty for whole pages), so the remap's `munmap` gets every cell of `[0, len)`
+   (store slots and metas from `store_gather`, `W` slots and the partial slot from `wCells`).
+4. **`store_cells_agree`** (`Inv/Store`, `sorry`, owner: the maintainer): in one atomic step `e`
+   (`Iris.ProgramLogic.Language.Atomic ↑s e`, `osN ⊆ E \ pagesN N`), with the new mapping `(b, l)`
+   in the file's `OsMeta` and the store slots' new cells (any values), the cells hold the bytes the
+   witness `W` records (the half `store_gather` gave), with the ghost state handed back; the
+   continuation runs at `E \ pagesN N`. That is `store_carve`'s `hW` and cells. How it is proved:
+   `wp_atomic` opens `pagesInv`, each store slot's `osSlot` is read against its cells with OsFs's
+   `osCell_agree` byte by byte (the bboltfs example's `cellsR_agree`), `bytesWit` gives
+   `σ.bytes s = W !! s`, and the invariant is closed in the postcondition, unchanged.
+
+## Shared-statement fixes, batch 16 (U5b's findings, 2026-11-04; decided by the coordinator)
+
+1. **Non-null, not positive, transaction and database locations**: `rtxFrac`'s, `wtxFrac`'s and
+   `wtxCore`'s `0 < tx.addr` is `tx ≠ null` (`&Tx{}` gives `typedPointsto_not_null`; `Tx` has
+   pointer fields, so `structFieldRef_plain` does not apply), and `isBoltCoreP`'s `0 < db.addr` is
+   `db ≠ null` (no proof needs `db`'s address). `boltTxDef_nonnull` adapted.
+2. **`managed` is false** (`Tx.Rollback`/`Tx.Commit` assert `!tx.managed`): `rtxFrac`'s facts end
+   with `t.managed' = false`; `wtxCore`'s pure part is `r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧
+   X.t.t.managed' = false` and `wtxFrac`'s facts end with `tx ≠ null ∧ X.t.t.managed' = false`
+   (`boltTxDef_wtxW` carries it). Established at `beginTx`/`beginRWTx` (`Tx{}`), kept by every
+   writer operation (none writes `X.t.t`).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

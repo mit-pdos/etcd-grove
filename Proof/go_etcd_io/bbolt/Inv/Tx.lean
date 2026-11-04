@@ -92,7 +92,8 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
       mapFields r.db (DFrac.own (QpMul q sync.rfrac).half) (some (v.base, l) : MapSt) ∗
       ⌜∀ id pg, v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r v ∗
-    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null ∧ 0 < tx.addr⌝)
+    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null ∧ tx ≠ null ∧
+      t.managed' = false⌝)
 
 /-- **A page of a view inside a mapping is within `db.page`'s range**: with `mapFields`' bound
 (`l ≤ maxMapSize`), `Tx.page`'s premise `id·4096 < 0xFFFFFFFFFFFF`. -/
@@ -129,7 +130,8 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r X.v ∗
-    ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ 0 < tx.addr⌝)
+    ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
+      X.t.t.managed' = false⌝)
 
 /-- **A read transaction over the core** (A2, round 4 N5): `boltTx`'s reader part with
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/
@@ -273,16 +275,15 @@ theorem boltTxDef_valid (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
 open Iris.ProofMode in
 theorem boltTxDef_nonnull (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ⌜tx ≠ Loc.null⌝ := by
-  have hpos : 0 < tx.addr → tx ≠ Loc.null := fun h e => by subst e; exact absurd h (by simp [Loc.null])
   unfold boltTxDef
   split
   · unfold wtxFrac
     iintro ⟨%db, %p, %sp, %t0, %r, %c, %X, -, -, -, -, -, ⟨-, -, -, -, -, -, -, -, -, %Hf⟩⟩
-    ipureintro; exact hpos Hf.2.2.2.2.2
+    ipureintro; exact Hf.2.2.2.2.2.1
   · unfold rdTx rtxFrac
     iintro ⟨%db', ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, -, -, -, -, -,
       ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩, -⟩
-    ipureintro; exact hpos Hf.2.2.2.2
+    ipureintro; exact Hf.2.2.2.2.1
 
 open Iris.ProofMode in
 theorem boltTxDef_base (B : BNs) (N : Namespace) (tx : Loc) (q q' : Qp) (T : TxView)

@@ -67,7 +67,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
@@ -85,7 +85,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
@@ -103,7 +103,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.getUnsupported = true := by simp [OpModel.getUnsupported, ← Hif]
@@ -122,7 +122,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hne : o.limit ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
@@ -143,7 +143,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hne : o.minModRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
@@ -164,7 +164,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hne : o.maxModRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
@@ -185,7 +185,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hne : o.minCreateRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
@@ -206,7 +206,7 @@ theorem Cache.validateGet.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hne : o.maxCreateRev ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)

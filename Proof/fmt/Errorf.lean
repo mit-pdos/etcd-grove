@@ -25,7 +25,8 @@ variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- **The trust boundary**: Go's `fmt.Errorf` formats its arguments and returns a non-nil
 error (`*fmt.wrapError`, `*fmt.wrapErrors` or `*errors.errorString`) whose `Error()` returns
-the formatted string, which it computed. For the arguments `fmt.argsOk` allows it calls only
+the formatted string, which it computed; none of the three has a `Format` method (their method
+sets are `Error` and `Unwrap`, or `Error`; 2026-11-04: the post says so). For the arguments `fmt.argsOk` allows it calls only
 their `Error()`/`String()` methods, which return a string without effects by that premise;
 it only reads the arguments' slice. -/
 axiom fmt.Errorf.wp_proof : fmt.Errorf.spec (GF := GF) (hG := hG)

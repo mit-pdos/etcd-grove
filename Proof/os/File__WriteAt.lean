@@ -5,6 +5,7 @@ the file as a write of the first `j` bytes left it (`pwBytes_retry`).
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__WriteAt
 
 @[expose] public section
@@ -166,7 +167,9 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     rcases hke with ⟨rfl, rfl⟩ | he0
     · rw [decide_eq_true (by rw [hsln]; exact BitVec.zero_add _)]
       wp_auto
+      ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
       iapply HΦ
+      iframe Hokn
       iframe
       isplitl []
       · isplitl [] <;> iassumption
@@ -179,8 +182,10 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -190,8 +195,10 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption

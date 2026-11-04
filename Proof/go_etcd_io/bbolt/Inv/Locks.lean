@@ -48,13 +48,16 @@ instance pure_dfractional (P : Prop) :
 `maxMapSize` (`0xFFFFFFFFFFFF`) long: `DB.mmap` maps `db.mmapSize(…)`'s result, which caps it there
 (or fails); `db.page`'s index into `*[maxMapSize]byte` needs it (U6 fix, for `Tx.page_r`). Its base
 is a mapped address, `0 < base.addr` (`DB.mmap` gets it from `unix.Mmap`'s cells; `DB.page`'s
-`arrayIndexRef` needs it, batch 9). -/
+`arrayIndexRef` needs it, batch 9). Its length is whole pages, or `maxMapSize` (batch 15:
+`mmapSize` doubles up to 1 GiB, then rounds up to a GiB, then caps at `maxMapSize`), so that the
+cells of `[0, len)` are the slots' and the partial last slot's (`wCells`). -/
 def mapFields (db : Loc) (dq : DFrac) : MapSt → IProp GF
   | some (base, len) => iprop(
       db.[DB, go!"dataref"] ↦{dq} (⟨base, W64 (len : Int), W64 (len : Int)⟩ : GoSlice) ∗
       db.[DB, go!"data"] ↦{dq} base ∗
       db.[DB, go!"meta0"] ↦{dq} (base +ₗ (16 : Int)) ∗
-      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)) ∗ ⌜len ≤ 0xFFFFFFFFFFFF ∧ 0 < base.addr⌝)
+      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)) ∗
+      ⌜len ≤ 0xFFFFFFFFFFFF ∧ 0 < base.addr ∧ (len % 4096 = 0 ∨ len = 0xFFFFFFFFFFFF)⌝)
   | none => iprop(db.[DB, go!"dataref"] ↦{dq} slice.nil ∗ db.[DB, go!"data"] ↦{dq} null ∗
       db.[DB, go!"meta0"] ↦{dq} null ∗ db.[DB, go!"meta1"] ↦{dq} null)
 
@@ -146,10 +149,13 @@ structure WDb where
 def extentBytes (wb : Nat → List w8) (f : Nat) : List w8 :=
   (List.range' f (1 + pageOverflow (wb f))).flatMap wb
 
-/-- The writer's cells of the `W` slots: the client halves, any values. -/
+/-- The writer's cells of the `W` slots, and of the mapping's partial last slot (batch 15: a
+mapping of `maxMapSize` ends 4095 bytes into a slot, which is no store or `W` slot), the client
+halves, any values. -/
 def wCells (ms : MapSt) (W : List Nat) : IProp GF :=
   match ms with
-  | some (base, _) => iprop([∗list] s ∈ W, ∃ vf, cellsR base (4096 * s) 4096 vf)
+  | some (base, len) => iprop(([∗list] s ∈ W, ∃ vf, cellsR base (4096 * s) 4096 vf) ∗
+      ∃ vf, cellsR base (4096 * (len / 4096)) (len % 4096) vf)
   | none => iprop(emp)
 
 /-- The writer's page-cache bytes of the `W` slots inside the file (`osBytes` whole), the partial

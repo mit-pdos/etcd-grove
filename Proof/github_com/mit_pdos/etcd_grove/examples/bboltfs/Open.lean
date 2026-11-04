@@ -94,7 +94,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   | nil =>
   (try wp_auto)
   wp_apply wp_Stat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) _ m $$ [Hf Hfdo Hm]
-    as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi⟩
+    as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, #_⟩
   · iframe; iframe #
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left

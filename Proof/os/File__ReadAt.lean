@@ -7,6 +7,7 @@ so far (exact at every held byte) and the rest of `b` (anything).
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__ReadAt
 
 @[expose] public section
@@ -54,7 +55,9 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
     wp_auto
     have hv0 : vs.length = 0 := by
       rw [hl0, show sint.Z (W64 0) = 0 from rfl] at hslz; omega
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
+    iframe Hokn
     iframe
     isplitl []
     · isplitl [] <;> iassumption
@@ -112,7 +115,9 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
           apply BitVec.eq_of_toInt_eq
           simp only [sint.Z] at hslz
           rw [hslz, W64, BitVec.toInt_ofInt, Int.bmod]; split <;> omega
+        ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -122,8 +127,10 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
       · have he0' : ¬ e = W64 0 := he0
         simp only [decide_eq_false he0', Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption

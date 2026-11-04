@@ -41,6 +41,44 @@ def fmtErrorOk : GoInterface → IProp GF
   | .ok ii => iprop(⌜methodSet ii.ty !! go!"Format" = none ∧
       methodSet ii.ty !! go!"Error" = some noArgStringSig⌝ ∗ fmt.stringMethodSpec ii go!"Error")
 
+instance fmtErrorOk_persistent (err : GoInterface) : Persistent (fmtErrorOk (GF := GF) err) := by
+  cases err <;> unfold fmtErrorOk <;> infer_instance
+
+/-- **`err` is `nil` or `fmtErrorOk`** (2026-11-04): what the error posts of the OsFs-backed `os`
+specs say of the error they return (`Spec/os/File__{Stat,Truncate,Sync,ReadAt,WriteAt}.lean`). -/
+def fmtErrorOkOrNil : GoInterface → IProp GF
+  | .nil => iprop(True)
+  | .ok ii => fmtErrorOk (.ok ii)
+
+instance fmtErrorOkOrNil_persistent (err : GoInterface) :
+    Persistent (fmtErrorOkOrNil (GF := GF) err) := by
+  cases err <;> unfold fmtErrorOkOrNil <;> infer_instance
+
+theorem fmtErrorOkOrNil_ne (err : GoInterface) (h : err ≠ GoInterface.nil) :
+    fmtErrorOkOrNil (GF := GF) err ⊢ fmtErrorOk err := by
+  cases err with
+  | nil => exact absurd rfl h
+  | ok ii => exact .rfl
+
+theorem fmtErrorOkOrNil_of (err : GoInterface) : fmtErrorOk (GF := GF) err ⊢ fmtErrorOkOrNil err := by
+  cases err with
+  | nil => unfold fmtErrorOkOrNil; iintro -; itrivial
+  | ok ii => exact .rfl
+
+/-- `fmt.Errorf`'s error (`fmt.Errorf.spec`'s post) is `fmtErrorOk`. -/
+theorem fmtErrorOk_of_errorf (err : GoInterfaceOk)
+    (h : methodSet err.ty !! go!"Format" = none ∧
+      methodSet err.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
+    fmt.stringMethodSpec (GF := GF) err go!"Error" ⊢ fmtErrorOk (.ok err) := by
+  iintro #H
+  unfold fmtErrorOk
+  isplitr
+  · ipureintro; exact h
+  · iexact H
+
+theorem fmtErrorOkOrNil_nil : ⊢ fmtErrorOkOrNil (GF := GF) GoInterface.nil := by
+  unfold fmtErrorOkOrNil; iintro; itrivial
+
 end defs
 
 end EtcdGrove

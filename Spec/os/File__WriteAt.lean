@@ -20,6 +20,7 @@ all-or-nothing in-page `pwrite`, bbolt D22; each attempt writes `0` or all of th
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -61,7 +62,8 @@ abbrev os.File.WriteAt.spec : Prop :=
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
         osMeta d.path (DFrac.own q) (some { m with size := pwSize m.size off.toNat j, hi := h }) ∗
         osBytes d.path (min off.toNat m.size) (DFrac.own 1) ys ∗
-        mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) }}
+        mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

@@ -65,13 +65,18 @@ theorem fmt.argWf_of_argsWf {ii : GoInterfaceOk}
   h ii (List.mem_singleton_self _)
 
 /-- **`fmt.Errorf(format, args...)`** returns a non-nil error whose `Error()` returns some
-string, for arguments that are `fmt.argsOk`; the arguments' slice comes back. -/
+string, for arguments that are `fmt.argsOk`; the arguments' slice comes back. (2026-11-04) Its
+dynamic type has `Error() string` and no `Format` method (Go's `*fmt.wrapError`,
+`*fmt.wrapErrors` and `*errors.errorString`: `Error` and `Unwrap`, or `Error` alone), so that
+the error is one `fmt` formats by its `Error()` (`fmtErrorOk`, `fmtErrorOk_of_errorf`). -/
 abbrev fmt.Errorf.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk xs }}
     (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
   {{ (err : GoInterfaceOk), RET #(interface.ok err);
-      args_sl ↦*{dq} xs ∗ fmt.stringMethodSpec err go!"Error" }}
+      args_sl ↦*{dq} xs ∗ fmt.stringMethodSpec err go!"Error" ∗
+      ⌜methodSet err.ty !! go!"Format" = none ∧
+        methodSet err.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])⌝ }}
 
 end spec
 

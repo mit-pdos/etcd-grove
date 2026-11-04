@@ -64,7 +64,7 @@ theorem DB.readPageSize.wp_proof
     wp_apply wp_ReadAt f fd name dqf buf vs (j * W64 4096) dq dqm dqb d m
         ((xs.drop (4096 * sint.nat j)).take 4096) hrd (by word) (by omega)
         (by rw [hoff]; omega) (by simp; omega) $$ [Hinv Hf Hbuf Hfd Hm Hw]
-      as %n %err ⟨Hf, Hfd, Hm, Hw, %vs', Hbuf, %Hres⟩
+      as %n %err ⟨Hf, Hfd, Hm, Hw, %vs', Hbuf, %Hres, #_⟩
     · rw [hoff]; iframe; iframe #
     rw [hoff]
     ihave Hb := (osBytes_window d.path dqb xs (4096 * sint.nat j) 4096 hw).2 $$ [Hb0 Hw Hb2]

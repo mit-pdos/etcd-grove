@@ -10,6 +10,7 @@ one (`m.ok`); on failure, nothing more is clean, and bytes may be lost. Proved i
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -39,7 +40,8 @@ abbrev os.File.Sync.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ osMeta d.path (DFrac.own 1) (some (m.synced lo xs)) ∗
           osBytes d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
        (⌜err ≠ interface.nil⌝ ∗ osMeta d.path (DFrac.own 1) (some { m with ok := false }) ∗
-          osBytes d.path lo (DFrac.own 1) xs)) }}
+          osBytes d.path lo (DFrac.own 1) xs)) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 
