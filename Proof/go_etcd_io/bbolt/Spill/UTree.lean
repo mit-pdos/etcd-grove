@@ -4,7 +4,8 @@ The spill's pure tree facts (U9e, `notes/bbolt-proof-plan.md`), part 7: **the un
 of bucket `bl`, not yet spilled, over the spill's page map `P` (the writer's buffers over the base
 pages, `spP`) and high-water mark `hwm`. A leaf: its keys sorted within `[lo, hi)`, its nested
 buckets' values `bvalS`; a branch (of at least two entries): each entry an unspilled child with
-its own `uTree` (the child's bounds the entry's), or a finished subtree (`fTree`: an `sTree` from
+its own `uTree` (the child's bounds the entry's; not empty, U9j: `node.spill` reads a child's
+`inodes[0]` in the sort and before `parent.put`; `rebalance` removed the empty nodes), or a finished subtree (`fTree`: an `sTree` from
 its first key, the entry's), its other children spilled nodes (pieces). The indices: `h` the
 height, `F` the base pages its nodes own (freed by the spill), `D` the slots it owns (its nodes'
 pages and its finished subtrees' and nested buckets'), `N` its nodes, `E` its leaf entries in
@@ -97,10 +98,11 @@ def uNode (X : WX) (bl n : Loc) (r : NRec) (lo hi : Option (List w8)) : Prop :=
   ownPg X.v r.nv.pgid'
 
 /-- **A spilled node** `c` of bucket `bl` (a piece of an earlier spill, in a branch's
-children): `c.spill()` returns at once. -/
+children): `c.spill()` returns at once. Not empty (U9j: `node.spill` sorts its children by their
+first keys, `inodes[0]`). -/
 def spilledN (X : WX) (bl c : Loc) : Prop :=
   c ∈ X.live ∧ ∃ rc, X.node bl c = some rc ∧ rc.nv.bucket' = bl ∧ rc.nv.spilled' = true ∧
-    rc.cs = []
+    rc.cs = [] ∧ 0 < rc.ws.length
 
 /-- **An entry's descriptor** in an unspilled branch: its unspilled child (none for a finished
 subtree), and the base pages, slots and nodes it owns. -/
@@ -143,7 +145,7 @@ inductive uEnt (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) :
   | child (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)
       (w : WEntry) (c : Loc) (rc : NRec) (F D : List Nat) (N : List Loc) (E : List El) :
       c ∈ cs → X.node bl c = some rc → rc.nv.parent' = n → rc.nv.pgid' = w.pgid →
-      rc.key = w.key → rc.nv.key' ≠ slice.nil →
+      rc.key = w.key → rc.nv.key' ≠ slice.nil → 0 < rc.ws.length →
       uTree X bl P hwm c (childLo lo (wKey ws) i) (childHi hi (wKey ws) ws.length i) h F D N E →
       uEnt X bl P hwm n lo hi ws cs h i w ⟨some c, F, D, N, E⟩
   | fin (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)

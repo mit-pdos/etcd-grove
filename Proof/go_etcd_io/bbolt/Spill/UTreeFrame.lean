@@ -132,10 +132,11 @@ theorem uNode_frame {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl
 
 theorem spilledN_frame {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl T) {c : Loc}
     (hc : spilledN X bl c) (hcT : c ∉ T) : spilledN X' bl c := by
-  obtain ⟨hl, rc, hrc, hb, hsp, hcs⟩ := hc
+  obtain ⟨hl, rc, hrc, hb, hsp, hcs, hne⟩ := hc
   obtain ⟨rc', hrc', hs, hl'⟩ := spFrame_node hfr hrc hcT
   exact ⟨hl'.2 hl, rc', hrc', by rw [nodeSim_bucket hs]; exact hb,
-    by rw [nodeSim_spilled hs]; exact hsp, by rw [hs.2.2.2.2.1]; exact hcs⟩
+    by rw [nodeSim_spilled hs]; exact hsp, by rw [hs.2.2.2.2.1]; exact hcs,
+    by rw [length_of_dat hs.2.2.1]; exact hne⟩
 
 /-! ## Slots -/
 
@@ -254,7 +255,7 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
         (fun h0 => hpg0 (by rw [← nodeSim_pgid hs]; exact h0))
       rw [nodeSim_pgid hs, ownSl_congr hfr.2.2.2.2.1] at H
       exact H)
-    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' hut ih ws' w' hws hw hP hT => by
+    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' hne hut ih ws' w' hws hw hP hT => by
       have hcT : c ∉ T := fun hm => (hT c hm).1 (uTree_head hut)
       obtain ⟨rc', hrc', hs, -⟩ := spFrame_node hfr hrc hcT
       have H := ih hP hT
@@ -262,7 +263,7 @@ theorem uTree_frame {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : 
       refine uEnt.child n lo hi ws' cs h i w' c rc' F D N E hc hrc'
         (by rw [nodeSim_parent hs]; exact hpar) (by rw [nodeSim_pgid hs, wDat_pgid hw]; exact hpg)
         (by rw [hs.2.2.2.2.2.1, wDat_key hw]; exact hkey)
-        (fun h0 => hk' (hs.2.1.1 h0)) H)
+        (fun h0 => hk' (hs.2.1.1 h0)) (by rw [length_of_dat hs.2.2.1]; exact hne) H)
     (fun n lo hi ws cs h i w S E hf ws' w' hws hw hP _ => by
       obtain ⟨hf', he⟩ := fTree_agree hP hh hf
       have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo hi ws' cs h i w' S E
@@ -291,7 +292,7 @@ theorem uEnt_fin_of_spilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc
     ∃ S E, e = ⟨none, [], pgSlots P S, [], E⟩ ∧
       fTree P hwm w.pgid.toNat w.key (childHi hi (wKey ws) ws.length i) h S E := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N E hc _ _ _ _ _ hut =>
+  | child _ _ _ _ _ _ _ _ c rc F D N E hc _ _ _ _ _ _ hut =>
     exact absurd (hcs c hc) (uTree_not_spilled hut)
   | fin _ _ _ _ _ _ _ _ S E hf => exact ⟨S, E, rfl, hf⟩
 

@@ -49,7 +49,7 @@ def pcDat (x : Piece) : w32 × w64 × List w8 × List w8 := (W32 0, x.id, x.k, [
 def pcSlots (P : Pages) (ps : List Piece) : List Nat := ps.flatMap fun x => pgSlots P x.S
 
 /-- **The pieces `ps` of a node spilled in bucket `bl`** under the parent `pl`, within `[lo, hi)`,
-of height `h`: live spilled nodes without children (`n.children = nil`), distinct, each written
+of height `h`: live spilled nodes without children (`n.children = nil`), not empty, distinct, each written
 at its page, its first key not empty and fitting an entry (U9f: the parent's entry), a finished
 subtree from its first key up to the next piece's (`hi` for the last). -/
 def piecesOK (X : WX) (bl pl : Loc) (P : Pages) (hwm : Nat) (lo hi : Option (List w8)) (h : Nat)
@@ -57,7 +57,7 @@ def piecesOK (X : WX) (bl pl : Loc) (P : Pages) (hwm : Nat) (lo hi : Option (Lis
   ps ≠ [] ∧ (ps.map Piece.l).Nodup ∧
   ∀ i x, ps[i]? = some x → ∃ rl, X.node bl x.l = some rl ∧ x.l ∈ X.live ∧
     rl.nv.bucket' = bl ∧ rl.nv.spilled' = true ∧ rl.cs = [] ∧ rl.nv.parent' = pl ∧
-    rl.nv.pgid' = x.id ∧ rl.key = x.k ∧ keyIn lo hi x.k ∧
+    rl.nv.pgid' = x.id ∧ rl.key = x.k ∧ 0 < rl.ws.length ∧ keyIn lo hi x.k ∧
     0 < x.k.length ∧ x.k.length ≤ bboltEntryMax ∧
     fTree P hwm x.id.toNat x.k (childHi hi (pcKey ps) ps.length i) h x.S (treeEls P x.id.toNat)
 

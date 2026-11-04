@@ -32,7 +32,7 @@ theorem uEnt_N_node {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) :
     ∀ l ∈ e.N, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ hut => exact uTree_N_unspilled hut
+  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ _ hut => exact uTree_N_unspilled hut
   | fin => intro l hl; simp at hl
 
 theorem not_spilledN_of {X : WX} {bl l : Loc} {r : NRec} (hr : X.node bl l = some r)
@@ -44,8 +44,8 @@ theorem piece_spilledN {X : WX} {bl pl : Loc} {P : Pages} {hwm : Nat} {lo hi : O
     {h : Nat} {ps : List Piece} (hps : piecesOK X bl pl P hwm lo hi h ps) {x : Piece}
     (hx : x ∈ ps) : spilledN X bl x.l := by
   obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
-  obtain ⟨rl, hn, hl, hb, hsp, hcs, -⟩ := hps.2.2 i x hi
-  exact ⟨hl, rl, hn, hb, hsp, hcs⟩
+  obtain ⟨rl, hn, hl, hb, hsp, hcs, -, -, -, hne, -⟩ := hps.2.2 i x hi
+  exact ⟨hl, rl, hn, hb, hsp, hcs, hne⟩
 
 theorem splice_get {ws ws' : List WEntry} {ps : List Piece} {j : Nat}
     (hd : ws'.map wDat = (ws.take j).map wDat ++ ps.map pcDat ++ (ws.drop (j + 1)).map wDat)
@@ -100,7 +100,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
   obtain ⟨hcmem, hcN⟩ : c ∈ r.cs ∧
       ∀ l ∈ Nc, ∃ r, X.node bl l = some r ∧ r.nv.spilled' = false := by
     cases hentj with
-    | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hc _ _ _ _ _ hut => exact ⟨hc, uTree_N_unspilled hut⟩
+    | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hc _ _ _ _ _ _ hut => exact ⟨hc, uTree_N_unspilled hut⟩
   -- the touched nodes
   have hTsp : ∀ l ∈ T, ¬ spilledN X bl l := by
     intro l hl
@@ -131,7 +131,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
       (childHi hi (wKey r.ws) r.ws.length j) (pcKey ps k) := by
     intro k hk
     have hx : ps[k]? = some ps[k] := List.getElem?_eq_getElem hk
-    obtain ⟨_, _, _, _, _, _, _, _, _, hkey, _⟩ := hps.2.2 k _ hx
+    obtain ⟨_, _, _, _, _, _, _, _, _, _, hkey, _⟩ := hps.2.2 k _ hx
     rw [pcKey_of_get hx]; exact hkey
   have hlo : 0 < j → ¬ go.GoStringLt (pcKey ps 0) (wKey r.ws j) := by
     intro hj0
@@ -210,7 +210,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
       obtain ⟨w1, x, h1, h2, hw⟩ := splice_mid hd hjl hk
       rw [hw'] at h1; cases h1
       rw [List.getElem?_eq_getElem hk] at h2; cases h2
-      obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ (List.getElem?_eq_getElem hk)
+      obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, hf⟩ := hps.2.2 k _ (List.getElem?_eq_getElem hk)
       have hpgid : w'.pgid = ps[k].id := congrArg (fun d => d.2.1) hw
       have hkey : w'.key = ps[k].k := congrArg (fun d => d.2.2.1) hw
       refine uEnt.fin n lo hi r'.ws r'.cs h (j + k) w' ps[k].S _ ?_

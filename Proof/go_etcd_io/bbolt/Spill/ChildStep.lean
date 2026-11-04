@@ -30,7 +30,7 @@ theorem uEnt_F_D {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
     {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) : ∀ x ∈ e.F, x ∈ e.D := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ hut => exact uTree_F_D hut
+  | child _ _ _ _ _ _ _ _ c rc F D N E _ _ _ _ _ _ _ hut => exact uTree_F_D hut
   | fin => intro x hx; simp at hx
 
 theorem node_objs {X : WX} {bl l : Loc} {r : NRec} (h : X.node bl l = some r) :
@@ -120,7 +120,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       rw [hfr1 x hx] at h2; cases h2)
     (fun x hx => by
       obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
-      obtain ⟨_, _, _, _, _, _, _, _, _, _, h1, h2, _⟩ := hps.2.2 i x hi
+      obtain ⟨_, _, _, _, _, _, _, _, _, _, _, h1, h2, _⟩ := hps.2.2 i x hi
       exact ⟨h1, h2⟩)
   refine ⟨r', ps, hr', hpar.2.1, hpg, hlive, hbr, ?_, ?_, hstep⟩
   · rw [hpg, ownSl_congr hfr.2.2.2.2.1, List.flatMap_append, List.flatMap_append, pcUE_D]

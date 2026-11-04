@@ -121,7 +121,7 @@ theorem uBr_ch_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc} {
   have hjl : j < r.ws.length := by rw [← hb.len]; exact (List.getElem?_eq_some_iff.1 hj).1
   have hent := hb.ent j _ e (List.getElem?_eq_getElem hjl) hj
   cases hent with
-  | child _ _ _ _ _ _ _ _ c' rc F D N E _ hrc _ _ _ _ hut =>
+  | child _ _ _ _ _ _ _ _ c' rc F D N E _ hrc _ _ _ _ _ hut =>
     cases hc
     obtain ⟨rc', hrc', hsp⟩ := uTree_N_unspilled hut c (uTree_head hut)
     exact ⟨j, F, D, N, E, hj, rc', hrc', hsp⟩
@@ -186,7 +186,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
   have hent := hb.ent j _ _ (List.getElem?_eq_getElem hjl) hj
   have htx : w'.wtxid = w.wtxid := wtxid_of_C hl.step.1
   cases hent with
-  | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hcm hrc hpar hpg hkey hknil hut =>
+  | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hcm hrc hpar hpg hkey hknil _ hut =>
     obtain ⟨rc', hrc', hsp⟩ := uTree_N_unspilled hut c (uTree_head hut)
     rw [hrc] at hrc'; cases hrc'
     refine ⟨rc, hrc, hsp, hrc, by rw [htx]; exact hl.step.2.2.2.1, Or.inr ⟨hut, ?_, ?_, ?_⟩⟩

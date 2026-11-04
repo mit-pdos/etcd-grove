@@ -65,8 +65,8 @@ theorem uTree_bnd {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     (fun n r lo hi h es hr hun hleaf h2 hlen _ hchnd hcs hcsnd hNnd hpg0 ih lo' hi' hb =>
       uTree.branch n r lo' hi' h es hr (uNode_bnd hb hun) hleaf h2 hlen
         (fun i w e hw he => ih i w e hw he lo' hi' hb) hchnd hcs hcsnd hNnd hpg0)
-    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' _ ih lo' hi' hb =>
-      uEnt.child n lo' hi' ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk'
+    (fun n lo hi ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' hne _ ih lo' hi' hb =>
+      uEnt.child n lo' hi' ws cs h i w c rc F D N E hc hrc hpar hpg hkey hk' hne
         (ih _ _ (bndIn_child hb (wKey ws) ws.length i)))
     (fun n lo hi ws cs h i w S E hf lo' hi' hb =>
       uEnt.fin n lo' hi' ws cs h i w S E (fTree_bnd (fun y hy => by
@@ -80,8 +80,8 @@ theorem uEnt_bnd {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
     {w : WEntry} {e : UE} (hb : bndIn (lo, hi) (lo', hi'))
     (he : uEnt X bl P hwm n lo hi ws cs h i w e) : uEnt X bl P hwm n lo' hi' ws cs h i w e := by
   cases he with
-  | child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk' hut =>
-    exact uEnt.child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk'
+  | child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk' hne hut =>
+    exact uEnt.child _ _ _ _ _ _ _ _ c rc F D N E hc hrc hpar hpg hkey hk' hne
       (uTree_bnd hut _ _ (bndIn_child hb (wKey ws) ws.length i))
   | fin _ _ _ _ _ _ _ _ S E hf =>
     exact uEnt.fin _ _ _ _ _ _ _ _ S E
@@ -110,7 +110,7 @@ theorem uTree_N_unspilled {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
           rename_i hlen' _ _ _ _ _ _
           exact ⟨r.ws[i]'(by omega), List.getElem?_eq_getElem _⟩
         exact ih i w e hw hi l hle)
-    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
     (fun _ _ _ _ _ _ _ _ _ _ _ l hl => by simp at hl)
     hu
 
@@ -149,7 +149,7 @@ theorem uTree_F_D {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
           have := (List.getElem?_eq_some_iff.1 hi).1; omega
         exact List.mem_append_right _ (List.mem_flatMap.2 ⟨e, he,
           ih i (r.ws[i]'hlt) e (List.getElem?_eq_getElem _) hi x hxe⟩))
-    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => ih)
     (fun _ _ _ _ _ _ _ _ _ _ _ x hx => by simp at hx)
     hu
 
