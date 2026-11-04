@@ -107,6 +107,53 @@ theorem filterMap_nodup_of {α β : Type} (f : α → Option β) :
       obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hy
       exact h 0 (j + 1) a _ b (by omega) rfl (by simp [hj]) hfa hfy
 
+/-- A distinct list's positions of one value are one. -/
+theorem nodup_idx {α : Type} : ∀ {l : List α} {i j : Nat} {a : α}, l.Nodup → l[i]? = some a →
+    l[j]? = some a → i = j
+  | [], _, _, _, _, h, _ => by simp at h
+  | b :: l, 0, 0, _, _, _, _ => rfl
+  | b :: l, 0, j + 1, a, hn, hi, hj => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
+    subst hi
+    simp only [List.getElem?_cons_succ] at hj
+    exact absurd (List.mem_of_getElem? hj) (List.nodup_cons.1 hn).1
+  | b :: l, i + 1, 0, a, hn, hi, hj => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
+    subst hj
+    simp only [List.getElem?_cons_succ] at hi
+    exact absurd (List.mem_of_getElem? hi) (List.nodup_cons.1 hn).1
+  | b :: l, i + 1, j + 1, a, hn, hi, hj => by
+    simp only [List.getElem?_cons_succ] at hi hj
+    rw [nodup_idx (List.nodup_cons.1 hn).2 hi hj]
+
+/-- A `flatMap` of distinct lists, disjoint at distinct positions, is distinct. -/
+theorem nodup_flatMap_of {α β : Type} (f : α → List β) :
+    ∀ (l : List α), (∀ a ∈ l, (f a).Nodup) →
+      (∀ (i j : Nat) a b x, i < j → l[i]? = some a → l[j]? = some b → x ∈ f a → x ∉ f b) →
+      (l.flatMap f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: l, h1, h2 => by
+    rw [List.flatMap_cons, List.nodup_append]
+    refine ⟨h1 a List.mem_cons_self, nodup_flatMap_of f l (fun b hb => h1 b
+      (List.mem_cons_of_mem _ hb)) (fun i j x y z hij hx hy => h2 (i + 1) (j + 1) x y z (by omega)
+      (by simpa using hx) (by simpa using hy)), ?_⟩
+    intro x hx y hy hxy
+    subst hxy
+    obtain ⟨b, hb, hxb⟩ := List.mem_flatMap.1 hy
+    obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hb
+    exact h2 0 (j + 1) a _ x (by omega) rfl (by simp [hj]) hx hxb
+
+/-- `flatMap`s of lists with the same images. -/
+theorem flatMap_of_map_eq {α γ β : Type} {l1 : List α} {l2 : List γ} {f : α → List β}
+    {g : γ → List β} (h : l1.map f = l2.map g) : l1.flatMap f = l2.flatMap g := by
+  rw [List.flatMap_def, List.flatMap_def, h]
+
+/-- The parent chain is transitive. -/
+theorem upTo_trans {B : BRec} {x y z : Loc} (h1 : upTo B x y) (h2 : upTo B y z) : upTo B x z := by
+  induction h1 with
+  | refl => exact h2
+  | up x y r hr hp _ ih => exact upTo.up x z r hr hp (ih h2)
+
 end lem
 
 end Spill
