@@ -108,7 +108,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   rotate_left
   · -- `fileSize` failed: logged, returned
     cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl hne.1
     | ok ii =>
     wp_auto
     wp_apply wp_slice_literal
@@ -142,7 +142,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   · -- `mmapSize` failed: logged, returned
     iintro ⟨%hne, #HeS⟩
     cases err2 with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl hne.1
     | ok ii =>
     wp_auto
     wp_apply wp_slice_literal
@@ -191,7 +191,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   rotate_left
   · -- `mmap` failed: logged, returned (no deferred unmap yet)
     cases e with
-    | nil => exact absurd rfl he
+    | nil => exact absurd rfl he.1
     | ok ii =>
     rw [hgoarch]
     try wp_auto
