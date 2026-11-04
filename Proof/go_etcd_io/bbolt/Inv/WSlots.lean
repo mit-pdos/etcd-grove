@@ -23,6 +23,42 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 set_option linter.unusedSectionVars false
 
+section bufsnd
+variable [GooseExts]
+
+private theorem flatMap_nodup_of {α β : Type} (f : α → List β) : ∀ (l : List α),
+    (∀ a ∈ l, (f a).Nodup) → l.Pairwise (fun a b => ∀ x ∈ f a, x ∉ f b) → (l.flatMap f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: t, h1, h2 => by
+    rw [List.flatMap_cons, List.nodup_append]
+    obtain ⟨ha, ht⟩ := List.pairwise_cons.1 h2
+    refine ⟨h1 a (List.mem_cons_self ..), flatMap_nodup_of f t (fun b hb => h1 b
+      (List.mem_cons_of_mem _ hb)) ht, fun x hx y hy hxy => ?_⟩
+    subst hxy
+    obtain ⟨b, hb, hxb⟩ := List.mem_flatMap.1 hy
+    exact ha b hb x hx hxb
+
+/-- **The dirty pages' slots have no repeats** when no slot lies in two buffers' extents
+(`bufsOK`'s and `spillBufs`' last clause, maintainer 12, item 4; the converse of
+`Commit/WriteRun.bufSlots_disj`): `tx.write`'s `(bufSlots bufs).Nodup`. -/
+theorem bufSlots_nodup_of_disj (bufs : GMap w64 (List w8))
+    (h : ∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg, ∀ id' pg',
+      bufs !! id' = some pg' → ∀ j' < 1 + pageOverflow pg', id.toNat + j = id'.toNat + j' →
+        id' = id) :
+    (bufSlots bufs).Nodup := by
+  unfold bufSlots
+  refine flatMap_nodup_of _ _ (fun e _ => List.nodup_range' ..) ?_
+  have hp : bufs.toList.Pairwise (fun a b => a.1 ≠ b.1) :=
+    List.pairwise_map.1 (GMap.toList_keys_nodup bufs)
+  refine hp.imp_of_mem fun {a b} ha hb hne x hxa hxb => hne ?_
+  obtain ⟨i, hi, rfl⟩ := List.mem_range'.1 hxa
+  obtain ⟨i', hi', he⟩ := List.mem_range'.1 hxb
+  have hA := (GMap.mem_toList bufs a.1 a.2).1 ha
+  have hB := (GMap.mem_toList bufs b.1 b.2).1 hb
+  exact (h a.1 a.2 hA i hi b.1 b.2 hB i' hi' (by omega)).symm
+
+end bufsnd
+
 section wslots
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

@@ -30,13 +30,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `tx.write` premises): every page of `tx.pages` has its buffer and back (`pm`'s domain is `bufs`'s);
 each buffer's header names its id, its length is its extent's, and its extent lies in `[2,
 pgid)`; its extent's slots are no tree slots of the committed state `C` and not pending in the
-freelist `fl'` (so, below the mapping, `W` slots: `wdbOK`'s `W` clause). -/
+freelist `fl'` (so, below the mapping, `W` slots: `wdbOK`'s `W` clause), (maintainer 12, item 4)
+not free in `fl'` (so `commitFreelist`'s allocation does not hand them out again), and in no other
+buffer's extent (`tx.write`'s slots `bufSlots` without repeats: `bufSlots_nodup_of_disj`). -/
 def spillBufs (X' : WX) (C : CommitSt) (fl' : FLPg) : Prop :=
   (∀ id, (X'.t.pm !! id).isSome = (X'.t.bufs !! id).isSome) ∧
   ∀ id pg, X'.t.bufs !! id = some pg → pageId pg = id.toNat ∧
     pg.length = 4096 * (1 + pageOverflow pg) ∧ 2 ≤ id.toNat ∧
     id.toNat + (1 + pageOverflow pg) ≤ X'.t.mv.pgid'.toNat ∧
-    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl'
+    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl' ∧
+      (∀ x ∈ fl'.free, x.toNat ≠ id.toNat + j) ∧
+      ∀ id' pg', X'.t.bufs !! id' = some pg' → ∀ j' < 1 + pageOverflow pg',
+        id.toNat + j = id'.toNat + j' → id' = id
 
 /-- **What the spill's start needs of the committed state and the root bucket** (batch 43 of
 `notes/bbolt-proof-plan.md`, U9t's `StartFacts`; `Commit` gives it from `txExcl`'s writer facts,

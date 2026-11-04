@@ -103,13 +103,18 @@ def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List
 
 /-- **The writer's buffers are dirty pages of fresh slots** (`spillBufs`' per-buffer clause,
 `Commit`'s `tx.write` premises): each buffer's header names its id, its length is its extent's,
-its extent lies in `[2, mark)`, and its slots are no tree slots of the committed state `C` and not
-pending in `fl`. (U9x's, moved here by U9w2: a spill step keeps it, `spStep`.) -/
+its extent lies in `[2, mark)`, and its slots are no tree slots of the committed state `C`, not
+pending in `fl`, (maintainer 12, item 4) not free in `fl`, and in no other buffer's extent (the
+extents pairwise disjoint: `tx.write`'s slots without repeats). (U9x's, moved here by U9w2: a
+spill step keeps it, `spStep`.) -/
 def bufsOK (X : WX) (C : CommitSt) (fl : FLPg) : Prop :=
   ∀ id pg, X.t.bufs !! id = some pg → pageId pg = id.toNat ∧
     pg.length = 4096 * (1 + pageOverflow pg) ∧ 2 ≤ id.toNat ∧
     id.toNat + (1 + pageOverflow pg) ≤ X.t.mv.pgid'.toNat ∧
-    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl
+    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl ∧
+      (∀ x ∈ fl.free, x.toNat ≠ id.toNat + j) ∧
+      ∀ id' pg', X.t.bufs !! id' = some pg' → ∀ j' < 1 + pageOverflow pg',
+        id.toNat + j = id'.toNat + j' → id' = id
 
 end pieces
 

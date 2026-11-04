@@ -111,7 +111,9 @@ theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
         have hnt : y.toNat + j ∉ treeSlots wi.C := by
           intro hm; unfold treeSlots at hm; rw [mem_pagesSlots_iff] at hm
           exact hfc _ hin (by rw [ht]; exact hm)
-        refine ⟨hnt, fun hm => ?_⟩
+        refine ⟨hnt, fun hm => ?_,
+          sorry /- OPEN (maintainer 12, item 4: U9w4): the run's slots are no longer free -/,
+          sorry /- OPEN (maintainer 12, item 4: U9w4): the new buffer's extent meets no other -/⟩
         rcases hpend _ hm with hm | hm
         · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
           have hzi : z = y + W64 (j : Int) := BitVec.eq_of_toNat_eq (by rw [hze, ht])
@@ -120,7 +122,9 @@ theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
         · exact hnt hm
       · have hy0 : y.toNat = Xi.t.mv.pgid'.toNat := by rw [hid, hmv]
         have hnt : y.toNat + j ∉ treeSlots wi.C := fun hm => by have := htl _ hm; omega
-        refine ⟨hnt, fun hm => ?_⟩
+        refine ⟨hnt, fun hm => ?_,
+          sorry /- OPEN (maintainer 12, item 4: U9w4): the run's slots are no longer free -/,
+          sorry /- OPEN (maintainer 12, item 4: U9w4): the new buffer's extent meets no other -/⟩
         rcases hpend _ hm with hm | hm
         · obtain ⟨z, hz, hze⟩ := List.mem_map.1 hm
           have := hal z (List.mem_append_right _ hz)
@@ -128,9 +132,11 @@ theorem pcStepX_bufsOK {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {coun
         · exact hnt hm
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hyid)] at hy
     obtain ⟨h1, h2, h3, h4, h5⟩ := hB y pg hy
-    refine ⟨h1, h2, h3, by omega, fun j hj => ⟨(h5 j hj).1, fun hm => ?_⟩⟩
+    refine ⟨h1, h2, h3, by omega, fun j hj => ⟨(h5 j hj).1, fun hm => ?_,
+      sorry /- OPEN (maintainer 12, item 4: U9w4): free ids only taken out -/,
+      sorry /- OPEN (maintainer 12, item 4: U9w4): an old buffer's extent meets not the new one's -/⟩⟩
     rcases hpend _ hm with hm | hm
-    · exact (h5 j hj).2 hm
+    · exact (h5 j hj).2.1 hm
     · exact (h5 j hj).1 hm
 
 /-- **A piece's step is a spill step** for the slots `O` (owned with `L`, which holds the piece's

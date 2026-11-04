@@ -427,9 +427,10 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
     bufs := by
       intro y pgb hy
       obtain ⟨b1, b2, b3, b4, b5⟩ := hI.bufs y pgb hy
-      refine ⟨b1, b2, b3, b4, fun j hj => ⟨(b5 j hj).1, fun hm => ?_⟩⟩
+      refine ⟨b1, b2, b3, b4, fun j hj => ⟨(b5 j hj).1, fun hm => ?_, (b5 j hj).2.2.1,
+        (b5 j hj).2.2.2⟩⟩
       rcases (hpendS _).1 hm with hm | ⟨a1, a2⟩
-      · exact (b5 j hj).2 hm
+      · exact (b5 j hj).2.1 hm
       · apply (b5 j hj).1
         unfold treeSlots
         rw [mem_pagesSlots_iff, ← hI.C, ← hv]
