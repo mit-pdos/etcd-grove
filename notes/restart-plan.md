@@ -1151,3 +1151,69 @@ A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): the invarian
 state. Close's result (`walFiles`) is dropped for now: R2b-3 makes the image from it (`rnWalClosed`,
 `srvFiles`). Open: M2 (the order at the view's handed log vs the stop's `pre ++ A`), enter at the
 `Save` (crash recovery).
+
+### R2b-3: the image, its plan (2026-11-03)
+
+**A correction first (the user's choice: *enter* at the `Save`).** R2b-1 kept *enter* at the receive
+on my claim that the loop stops only at idle points. It also returns on `r.stopped` between the
+receive and the `Save` (`raft.go:218`, the read state's send; `raft.go:241`, the hand-off), where the
+node had entered the batch and the records did not hold it, so the stop's image was false there
+(`notes/decisions.md`, "*Enter* at the WAL `Save`").
+
+The stages:
+- **R2b-3a, *enter* after the `Save`** (done, below): the receive keeps raft's wand
+  (`rnPendEnter`); the loop fires it once the `Save` returned (`rn_enter`, `rn_enterS`). Before it,
+  the loop uses only what the receive gives without *enter*: the committed log, `deliveredLogLb`,
+  the hard state's committed fact (`rnHsC`, for `rnRtOk`), and the messages raw (`rnRawMsgs`), sent
+  by a leader through raft's `readyLeaderMsgs` (the loop's token keeps `islead` true only at role
+  leader: the driver predicates name the role, `rnDrv γ L p S r`).
+- **R2b-3b, the raft loop's stop escrow:** `applyc` synchronous (Perennial's `isSspsc`, M2: with
+  the producer's token, which the escrow returns, and the apply side's consumer, `sspsc_sync` gives
+  sent = received, so the handed log is the apply side's `A`); `done`'s escrow (`rnStopClaim`, an
+  invariant: the stop's image or the claim); `node.Stop`'s `nodeVacant` through the wrapper's
+  `Stop` clause; `onStop` takes the durable state (`raftState`, the busy driver's or the pending
+  *enter*'s) and puts `Close`'s files (`rnWalClosed r id σ := walFiles …`) in the escrow;
+  `raftNode.stop.specStop` proved.
+- **R2b-3c, the backend's part:** `Cleanup`'s spec (`be.Close` gives the bbolt file's data `D`),
+  `srvFiles` defined (the WAL's files and the backend file in `dd`), the image's order at the
+  consistent index.
+- **R2b-3d, `run`'s shutdown** (R2b-2's `run.specStop`): the image assembled and escrowed in `done`.
+
+### R2b-3a: *enter* after the `Save` (2026-11-03, done)
+
+`InvRaftNode`: `rnPendEnter`, `rnBusyP`/`rnBusySP` (the busy driver before *enter*), `rn_enter`,
+`rn_enterS`, `rnRawMsgs` with `rnRawMsgs_sent`/`rnRawMsgs_leader`, `rnHsC` with `rnRtOk_of_hsC`
+(replacing `rn_rtOk_busyN`/`busyS`); `rnReadyData`/`rnReadySnap` carry the messages raw and the soft
+state's role; `rn_ready_recv` no longer fires *enter* and no longer takes the running token. The
+driver predicates name the role; `Advance` keeps it; the loop's token (`rnLoopTokP γ L p b`) ties
+`islead` to it. `raftNode.start`'s two branches fire *enter* after the `Save`; at the stop exits
+before it the loop holds `raftState` at the state the records hold. No spec outside the wrapper
+moved.
+
+### R2b-3b: the raft loop's stop escrow (2026-11-03, done)
+
+- `applyc` is synchronous (Perennial's `isSspsc`, a drop-in for `isSpsc`): the producer's and the
+  consumer's tokens together give sent = received (`sspsc_sync`), which settles review M2.
+- `RNNames.sc`, the claim (`rnStopClaim γ := token γ.sc`), allocated by `newRaftNode` (in
+  `rnBuilt`; `NewServer` drops it until R2b-3d threads it to `run`'s shutdown, `srvStopKeep`).
+- `done` announces the escrow `rnDoneEsc γ w := inv rnStopN (rnStopImage γ w ∨ token γ.sc)` at the
+  WAL `w` (until then `True`). `onStop` (its spec now takes the durable state, the loop's view at it,
+  `applyc`'s producer token and `cum` at its count) allocates it with the image: `nodeVacant` (the
+  wrapper's `Stop` clause now gives it, raft's `node.Stop`), `raftState S`, `Close`'s files
+  (`rnWalClosedW`: `walFiles` at the member `γ.id`, which `rnWalTokL`'s metadata now names), the
+  order of the records' base and commit around the handed log.
+- `raftNode.stop.specStop` proved (`wp_proofStop`, over `rn_esc_take`: the claim takes the image,
+  the apply side's token at `A` makes the handed log `A`). `spec` stays (its callers don't stop).
+
+### R2b-3c, part 1: the backend's file at its `Close` (2026-11-04)
+
+The user approved the trusted change (scratch candidate 1): bbolt's `Open_kv` records the file
+(`dbFile db path`), `DB.Close_kv` takes `ownDB db γ D` and gives `fileHolds path D`. Proved over it:
+the backend's names gain `dbf` (the database and its file, `bDBAt`, discarded: `isBackend`,
+`batchPhys` name it, so the stop and `Close` agree); `unsafeCommit`/`commit`/`CommitAndStop` give the
+stopped batch transaction's database out (`bDBOut`); `run` escrows it on `donec` (`bDoneEsc`, until
+then `True`); `Close` keeps half of the close right as its claim (`stop_take`), takes the database
+out (`bDoneEsc_take`) and closes it: its post gives the file (`bFile γ path ∗ fileHolds path D`).
+`applySnapshot` drops the old backend's file. Trust base: +2 (`dbFile`, `dbFile_persistent`).
+Next (part 2): `D` observed (the store's view at the consistent index, as `backend.Snapshot`'s
+observation), `New` giving `bFile γ cfg.Path`, `Cleanup`'s spec, `srvFiles` defined.

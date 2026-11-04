@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r Hwco
-  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%v, Hwvo, %Hvp⟩, ⟨%stm, %id, %cid, #Hstm, Hmeta, Hpurge⟩⟩
+  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, HrS, Hwvo, Hprod, #Hidx⟩,
+    ⟨%stm, %cid, #Hstm, Hmeta, Hpurge⟩⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -50,13 +51,15 @@ theorem raftNode.onStop.wp_proof :
   iunfold rnWalView at Hwvo
   icases Hwvo with ⟨Hwv, Hwok⟩
   -- (R2b-1 stage 6) the records, taken out of the durability invariant (`rnDur_take`)
-  imod rnDur_take γ.wal (storage.walOf stm) v Hvp $$ Hdur Hwst Hwap Hwv Hwok
+  imod rnDur_take γ.wal (storage.walOf stm) _ rfl $$ Hdur Hwst Hwap Hwv Hwok
     with ⟨%σ, Hrecs, %Hσ⟩
-  obtain ⟨-, Hσb, Hσc⟩ := Hσ
   iunfold rnDoneTok at Hdone
-  icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩
+  icases Hdone with ⟨%dnc', %st2, #Hdnc', #Hst2, Hbc⟩
   icombine Hdnc Hdnc' gives %Heq
   subst Heq
+  icombine Hst Hst2 gives %Hsteq3
+  have Hsteq3' : stm = st2 := by first | exact Hsteq3 | exact Hsteq3.2
+  subst Hsteq3'
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -64,20 +67,36 @@ theorem raftNode.onStop.wp_proof :
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Stop")]
   wp_auto
-  wp_apply HStop $$ [$Hrun] as -
+  wp_apply HStop $$ [$Hrun] as ⟨-, Hvac⟩
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
-  ihave #HClose := walClose_spec stm si Hsieq σ id cid $$ Hsti
+  ihave #HClose := walClose_spec stm si Hsieq σ γ.id cid $$ Hsti
   subst Hsieq
   wp_apply HClose $$ [$Hwo $Hrecs $Hmeta $Hpurge] as %cerr Hcerr
   · ipureintro; omega
-  icases Hcerr with (⟨%hcerr, -⟩ | %Hcerr)
+  icases Hcerr with (⟨%hcerr, Hfiles⟩ | %Hcerr)
   rotate_left
   · exact absurd Hwco Hcerr
   subst hcerr
   (try wp_auto)
-  wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
-  · imodintro; itrivial
+  -- (R2b-3b) the stop's escrow, with the image: the id vacant, the durable state, the files
+  imod inv_alloc rnStopN ⊤ iprop(rnStopImage γ (storage.walOf (GoInterface.ok si)) ∨ token γ.sc)
+    $$ [Hvac HrS Hfiles Hprod] with #Hesc
+  · inext
+    ileft
+    iunfold rnStopImage
+    iframe Hvac
+    iexists S, σ, sent, L
+    iframe HrS Hprod Hidx
+    isplitl [Hfiles]
+    · iunfold rnWalClosedW; iexists cid; iframe Hfiles
+    ipureintro
+    obtain ⟨Hh, Hb, Hc⟩ := Hσ
+    simp only [srvLE_length] at Hb Hc
+    refine ⟨Hh, ?_, ?_⟩ <;> simpa [List.length_append] using ‹_›
+  wp_apply wp_broadcast_chan_close dnc γ.done (rnDoneEsc γ (storage.walOf (GoInterface.ok si)))
+    $$ [$Hbc]
+  · imodintro; iunfold rnDoneEsc; iexact Hesc
   iintro -
   wp_auto
   iapply HΦ

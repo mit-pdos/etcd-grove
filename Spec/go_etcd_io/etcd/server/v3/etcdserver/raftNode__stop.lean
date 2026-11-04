@@ -37,7 +37,7 @@ abbrev raftNode.stop.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
-/-- (DRAFT, R2b-1/R2b-2, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **`r.stop()` at
+/-- (R2b-1/R2b-2, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **`r.stop()` at
 the server's stop**: `spec`'s, with the claim on the loop's stop escrow (`rnStopClaim`) and the
 apply side's token at the committed log `A` handed to it (`rnApplyTok`, `run`'s once the scheduler
 has run every job), giving back what the loop's `onStop` left: the node's id vacant (`node.Stop`'s
@@ -48,12 +48,12 @@ record and its stored commit the log handed to the apply thread (R2b-1: every sn
 of an index the apply thread was handed, and the loop saves a `Ready`'s hard state after handing
 its committed entries, with no stop between).
 
-What R2b-1 must change for it (R2b-2 review F5): the loop's `done` carries the escrow, so
-`isRaftNode`'s persistent `done` conjunct (today at predicate `True`) changes, and with it every
-spec that mentions `isRaftNode`. (2026-11-03: the server still enters a batch at the receive, the
-user's choice; `StorageHolds` holds at the idle loop, where the stop happens.) The image's order is at the backend's
-consistent index, which equals `|pre ++ A|` once every job ran and the backend's last commit
-saved the index: R2b-3's. -/
+(2026-11-03, R2b-3b: proved, `wp_proofStop`.) The loop's `done` announces the escrow
+(`rnDoneEsc`), which `onStop` fills; the server enters a batch after its WAL `Save` (R2b-3a), so
+the records hold the durable state at every stop exit; `applyc` is synchronous, so the log the
+loop handed is the apply side's `A` (review M2). The image's order is at the backend's consistent
+index, which equals `|pre ++ A|` once every job ran and the backend's last commit saved the index:
+R2b-3c's. -/
 abbrev raftNode.stop.specStop : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (A : List EntryModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
@@ -62,7 +62,7 @@ abbrev raftNode.stop.specStop : Prop :=
       rnWalTokA γ r (1 : Qp).half ∗ rnStopClaim γ ∗ rnApplyTok γ A }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); nodeVacant γ.node.cl γ.id ∗
-      ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed r σ ∗
+      ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed γ r σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ }}
 
 end spec
