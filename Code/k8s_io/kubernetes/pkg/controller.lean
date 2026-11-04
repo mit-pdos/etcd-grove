@@ -204,6 +204,21 @@ noncomputable def ReplicaSetsBySizeNewer.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] ReplicaSetsBySizeNewer.ty
 
+@[reducible] noncomputable def «struct#90a2bc34».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"add" go.int64),
+(go.field_decl.FieldDecl go!"del" go.int64),
+(go.field_decl.FieldDecl go!"key" go.string)]
+
+@[irreducible] noncomputable def «struct#90a2bc34».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#90a2bc34».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#90a2bc34» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#90a2bc34».fields «struct#90a2bc34».fieldsUnsealed :=
+  ⟨by unfold «struct#90a2bc34».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#90a2bc34».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#90a2bc34».fields)
+
 @[reducible] noncomputable def ExpectationsTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 300000000000)
 
@@ -2589,16 +2604,12 @@ noncomputable def ControlleeExpectations.MarshalLog.impl [GooseExts] [GoGlobalCo
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.StructType [(go.field_decl.FieldDecl go!"add" go.int64),
-  (go.field_decl.FieldDecl go!"del" go.int64),
-  (go.field_decl.FieldDecl go!"key" go.string)]) (go.GoType.InterfaceType [])))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
+  (Let "$r0" (App (Val (GoInstruction (Convert «struct#90a2bc34».underlying (go.GoType.InterfaceType [])))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0")))
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"del"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e"))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [(go.field_decl.FieldDecl go!"add" go.int64),
-  (go.field_decl.FieldDecl go!"del" go.int64),
-  (go.field_decl.FieldDecl go!"key" go.string)])))) (LiteralValue [(KeyedElement (some (KeyField go!"add")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"del")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral «struct#90a2bc34».underlying))) (LiteralValue [(KeyedElement (some (KeyField go!"add")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"del")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -7290,6 +7301,32 @@ attribute [instance] ReplicaSetsBySizeNewer.TypeAssumptions.underlying
   ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Less_unfold
   ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Swap_unfold
 
+structure «struct#90a2bc34» [GooseExts] where
+  mk ::
+  add' : w64
+  del' : w64
+  key' : GoString
+
+noncomputable instance «struct#90a2bc34».zero_val [GooseExts] : ZeroVal «struct#90a2bc34» :=
+  ⟨«struct#90a2bc34».mk zeroValDef zeroValDef zeroValDef⟩
+
+class «struct#90a2bc34».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#90a2bc34».underlying «struct#90a2bc34»
+  get_add : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"add") #x (Val #(x.add'))
+  set_add : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : «struct#90a2bc34»)))
+  get_del : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"del") #x (Val #(x.del'))
+  set_del : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : «struct#90a2bc34»)))
+  get_key : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"key") #x (Val #(x.key'))
+  set_key : ∀ (x : «struct#90a2bc34») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : «struct#90a2bc34»)))
+
+attribute [instance] «struct#90a2bc34».TypeAssumptions.type_repr
+  «struct#90a2bc34».TypeAssumptions.get_add
+  «struct#90a2bc34».TypeAssumptions.set_add
+  «struct#90a2bc34».TypeAssumptions.get_del
+  «struct#90a2bc34».TypeAssumptions.set_del
+  «struct#90a2bc34».TypeAssumptions.get_key
+  «struct#90a2bc34».TypeAssumptions.set_key
+
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BaseControllerRefManager_instance : BaseControllerRefManager.TypeAssumptions
   PodControllerRefManager_instance : PodControllerRefManager.TypeAssumptions
@@ -7320,6 +7357,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ReplicaSetsByCreationTimestamp_instance : ReplicaSetsByCreationTimestamp.TypeAssumptions
   ReplicaSetsBySizeOlder_instance : ReplicaSetsBySizeOlder.TypeAssumptions
   ReplicaSetsBySizeNewer_instance : ReplicaSetsBySizeNewer.TypeAssumptions
+  «struct#90a2bc34_instance» : «struct#90a2bc34».TypeAssumptions
   NewPodControllerRefManager_unfold : FuncUnfold NewPodControllerRefManager [] NewPodControllerRefManager.impl
   NewReplicaSetControllerRefManager_unfold : FuncUnfold NewReplicaSetControllerRefManager [] NewReplicaSetControllerRefManager.impl
   RecheckDeletionTimestamp_unfold : FuncUnfold RecheckDeletionTimestamp [] RecheckDeletionTimestamp.impl
@@ -7427,6 +7465,7 @@ attribute [instance] Assumptions.BaseControllerRefManager_instance
   Assumptions.ReplicaSetsByCreationTimestamp_instance
   Assumptions.ReplicaSetsBySizeOlder_instance
   Assumptions.ReplicaSetsBySizeNewer_instance
+  Assumptions.«struct#90a2bc34_instance»
   Assumptions.NewPodControllerRefManager_unfold
   Assumptions.NewReplicaSetControllerRefManager_unfold
   Assumptions.RecheckDeletionTimestamp_unfold
