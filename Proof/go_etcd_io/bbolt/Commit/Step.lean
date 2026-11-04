@@ -24,6 +24,13 @@ namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
+/-- The summed meta's txid is the meta's. Proved by unfolding first: `rfl` alone makes the kernel
+compare `metaSummed mv` with `mv` (the projections' arguments), which unfolds the checksum
+(`metaSum`) and fails with "deep recursion detected"; so does any cast between the two
+(`simp only [metaSummed]` on a hypothesis). Rewrite with this lemma instead. -/
+theorem metaSummed_txid [GooseExts] (mv : Meta) : (metaSummed mv).txid' = mv.txid' := by
+  unfold metaSummed; rfl
+
 section step
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -86,16 +93,10 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       slotsOwn (some (b, l)) K.p S bs ∗ commitAU K N' (treeData C) Dn Q ⊢
     commitStep K (mv.txid'.toNat % 2) b (metaBuf mv)
       (cpPost K N' C (C.publish (metaBuf mv) (metaSummed mv) pages) fl b l v wl S bs Dn Q) := by
-  -- U10 WIP: the tactic proof below elaborates without error (2026-11-04), but the kernel reports
-  -- `deep recursion detected` even at `maxRecDepth 200000`; it stays here, commented out, until
-  -- that is found (bisection: the statement alone is fine; the failure is already in the prefix up
-  -- to `meta_take`, the `iintro`/`icases` of `metaR` and `cpRes`).
-  sorry
-/- the proof:
   have hs2 : mv.txid'.toNat % 2 < 2 := Nat.mod_lt _ (by omega)
   have hsl : ∀ i, (C.publish (metaBuf mv) (metaSummed mv) pages).slot i =
       if i % 2 = mv.txid'.toNat % 2 then metaBuf mv else C.slot i := by
-    intro i; rw [publish_slot]; rfl
+    intro i; rw [publish_slot, metaSummed_txid]
   have hother : (mv.txid'.toNat % 2 + 1) % 2 ≠ mv.txid'.toNat % 2 := by omega
   have hself : mv.txid'.toNat % 2 % 2 = mv.txid'.toNat % 2 := Nat.mod_mod _ _
   iintro ⟨#Hcore, Hres, HS, Hau⟩
@@ -173,9 +174,9 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     simp only [show (4096 : Nat) ≠ 0 from by decide, ↓reduceIte] at hys
     have hmeta : (C.publish (metaBuf mv) (metaSummed mv) pages).metaOk :=
       metaOk_parity_write C (metaBuf mv) (metaSummed mv) pages hmok (metaBuf_length mv)
-        (metaOf_metaBuf mv) hval (by simp only [metaSummed]; exact htx) hps (metaBuf_probes mv)
+        (metaOf_metaBuf mv) hval (by rw [metaSummed_txid]; exact htx) hps (metaBuf_probes mv)
     have htx' : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = C.txid + 1 := by
-      simp only [CommitSt.publish, metaSummed]; exact htx
+      simp only [CommitSt.publish, metaSummed_txid]; exact htx
     imod store_publish K.B K.N K.p ⊤ CoPset.subseteq_top C _ fl (some (b, l)) v (C.txid + 1) wl S bs
       htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp)
       $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
@@ -225,7 +226,6 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     iunfold cpRes
     iframe
 
--/
 
 end step
 
