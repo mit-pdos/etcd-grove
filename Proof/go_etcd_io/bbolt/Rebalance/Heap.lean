@@ -2,14 +2,7 @@
 The writer's heap, read (U8, `notes/bbolt-proof-plan.md`): a node's struct out of `wtxHeap` at
 any fraction (live or dead), and the lookup of a bucket's node among the heap's objects.
 
-`wtxHeap_objsDisj` is **not provable from the current definitions**: `wtxHeap` holds no fact
-that the buckets' node locations are disjoint (`objsDisj`), and `WTx.objs` (a map) keeps one of
-two records at a shared location, so `B.ns !! n = some r` (what the frozen specs of `node.root`,
-`childAt`, the siblings and `node.free` give) does not give `X.t.objs !! n = some (.node bl r)`
-(what `wtxHeap_node_acc` and the reads here need). It is the `sorry` those proofs rest on until
-`wtxHeap` carries `⌜objsDisj X.t⌝` (a shared definition: reported, not changed here; every
-operation adding an object adds a fresh location, `nodeAdded`'s `(X.t.objs !! l).isNone`, so it is
-kept).
+`wtxHeap_objsDisj`: `wtxHeap`'s `heapOK` holds `objsDisj` (the shared fix of 2026-11-04).
 -/
 module
 
@@ -33,10 +26,13 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **PENDING a shared fix** (see the module doc): the heap's objects are disjoint. -/
+omit hos in
+/-- The heap's objects are disjoint (`heapOK`). -/
 theorem wtxHeap_objsDisj (tx : Loc) (dq : DFrac) (X : WX) :
     wtxHeap (GF := GF) tx dq X ⊢ ⌜objsDisj X.t⌝ := by
-  sorry
+  unfold wtxHeap
+  iintro ⟨%H, -⟩
+  ipureintro; exact H.2
 
 /-- A node of a bucket of the heap is its object. -/
 theorem wtxHeap_objs_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)

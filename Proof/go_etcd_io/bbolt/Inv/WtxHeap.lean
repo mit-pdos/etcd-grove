@@ -91,9 +91,14 @@ def rootFill (tx : Loc) (dq : DFrac) : IProp GF :=
 def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
   iprop([∗map] b ↦ _x ∈ H, ∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{dq} f)
 
+/-- **The writer's heap's facts**: the root bucket's location, and its objects disjoint
+(`objsDisj`, U8 fix). -/
+def heapOK (tx : Loc) (X : WX) : Prop :=
+  X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t
+
 /-- **The writer's heap** at `dq` (design §3.13). -/
 def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
-  iprop(⌜X.rl = tx.[Tx, go!"root"]⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
+  iprop(⌜heapOK (GF := GF) tx X⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
     [∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o)
 
 /-! ## Remaps: views become stale -/

@@ -219,6 +219,17 @@ No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
    bucket's fields. Still persistent (`boltBktDef_persistent`, a `sorry`). `Inv/Tx` imports
    `Model/WOps` (for `bktEntry`).
 
+## Shared-statement fixes (U8's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement changed.
+
+1. **`wtxHeap` holds `⌜objsDisj X.t⌝`** (a bucket's node is no bucket and no other bucket's node):
+   `wtxHeap`'s pure part is now `heapOK tx X` (`X.rl = txRoot tx ∧ objsDisj X.t ∧ …`, items
+   below). `objsDisj` moved from U8's `Rebalance/Objs.lean` to `Model/Wtx.lean` (U8's
+   `objs_node`/`objs_bkt` unchanged); `Rebalance/Heap`'s `wtxHeap_objsDisj` is proved. Kept by
+   every operation since `nodeAdded`/`bktOpened` add locations fresh in `X.t.objs`; with it
+   `wtxHeap_bkt_acc` (U5) is provable (`objs_bkt`).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

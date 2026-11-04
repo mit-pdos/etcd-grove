@@ -23,11 +23,7 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 section objs
 variable [GooseExts]
 
-/-- **The transaction's objects are disjoint**: a node of a bucket is no bucket and no other
-bucket's node. -/
-def objsDisj (T : WTx) : Prop :=
-  ∀ bl B, T.bs !! bl = some B → ∀ n, (B.ns !! n).isSome → T.bs !! n = none ∧
-    ∀ bl' B', T.bs !! bl' = some B' → bl' ≠ bl → B'.ns !! n = none
+-- `objsDisj` is in `Model/Wtx.lean` (shared: `wtxHeap` holds it).
 
 private def insNodes (bl : Loc) (L : List (Loc × NRec)) (m : GMap Loc WObj) : GMap Loc WObj :=
   L.foldl (fun m' lr => m'.insert lr.1 (.node bl lr.2)) m

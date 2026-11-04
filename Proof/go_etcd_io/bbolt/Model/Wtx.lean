@@ -186,6 +186,13 @@ def WTx.objs (T : WTx) : GMap Loc WObj :=
     (bB.2.ns.toList.foldl (fun m' lr => m'.insert lr.1 (.node bB.1 lr.2)) m).insert bB.1
       (.bkt bB.2)) T.dead
 
+/-- **The transaction's objects are disjoint** (`wtxHeap` keeps it: every object is added at a
+fresh location, `nodeAdded`, `bktOpened`): a node of a bucket is no bucket and no other bucket's
+node. Under it a bucket's node record is its object (`objs_node`, `objs_bkt`). -/
+def objsDisj (T : WTx) : Prop :=
+  ∀ bl B, T.bs !! bl = some B → ∀ n, (B.ns !! n).isSome → T.bs !! n = none ∧
+    ∀ bl' B', T.bs !! bl' = some B' → bl' ≠ bl → B'.ns !! n = none
+
 /-- **The writer's logical state** (design §3.13): the records, the live objects (those the code
 reaches from `tx.root`: `b.buckets` recursively, then each `b.rootNode` through `children`), every
 handle given out (name and generation), the node-location registry (node ↦ its bucket's location
