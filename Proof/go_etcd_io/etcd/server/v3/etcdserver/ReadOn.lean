@@ -205,6 +205,57 @@ instance txnClassFrom_persistent (M : auth.AuthMode) (m : Nat)
     Persistent (txnClassFrom (GF := GF) M m info t) := by
   unfold txnClassFrom; infer_instance
 
+/-- Every comparison list has its checked reads (each range end as the model's). -/
+theorem cmpsChecked_exists (cs : List CmpModel) : ∃ L, apply.cmpsChecked cs L := by
+  induction cs with
+  | nil => exact ⟨[], rfl⟩
+  | cons cm cs ih =>
+    obtain ⟨L, hL⟩ := ih
+    exact ⟨(cm.key, cm.rangeEnd, .read) :: L, cm.rangeEnd, L, Or.inl rfl, hL, rfl⟩
+
+/-- A list of gets has its checked reads. -/
+theorem opsChecked_gets (ops : List txn.TxnOpW) (h : ∀ op ∈ ops, apply.opW_isGet op = true) :
+    ∃ L, apply.opsChecked ops L := by
+  induction ops with
+  | nil => exact ⟨[], by simp [apply.opsChecked]⟩
+  | cons op ops ih =>
+    obtain ⟨L, hL⟩ := ih (fun o ho => h o (List.mem_cons_of_mem _ ho))
+    cases op with
+    | get o =>
+      refine ⟨[(o.key, o.base.rangeEnd, .read)] ++ L, ?_⟩
+      simp only [apply.opsChecked]
+      exact ⟨_, L, by simp only [apply.opChecked]; exact ⟨_, Or.inl rfl, rfl⟩, hL, rfl⟩
+    | _ => simp [apply.opW_isGet] at h
+
+/-- Off, every check passes (`permVerdictFrom .off` of no error). -/
+theorem verdictsFrom_off (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (L : List apply.Perm3) : ⊢ apply.verdictsFrom (GF := GF) .off m info L := by
+  induction L with
+  | nil => exact apply.verdictsFrom_nil _ _ _
+  | cons x L ih =>
+    have h := apply.verdictsFrom_append (GF := GF) .off m info [x] L
+    simp only [List.singleton_append] at h
+    iapply h
+    isplitr
+    · unfold apply.verdictsFrom
+      iapply BigSepL.bigSepL_singleton.2
+      unfold auth.permVerdictFrom; ipureintro; rfl
+    · iapply ih
+
+/-- **Off, a read-only transaction's class holds** (`txnClassFrom` at `.off`: every check
+passes). -/
+theorem txnClassFrom_off (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (tw : txn.TxnModelW) (h : apply.readonlyW tw) :
+    ⊢ txnClassFrom (GF := GF) .off m info tw.toModel := by
+  obtain ⟨L1, h1⟩ := cmpsChecked_exists tw.cmps
+  obtain ⟨L2, h2⟩ := opsChecked_gets tw.thenOps (fun op ho => h op (List.mem_append_left _ ho))
+  obtain ⟨L3, h3⟩ := opsChecked_gets tw.elseOps (fun op ho => h op (List.mem_append_right _ ho))
+  unfold txnClassFrom
+  iexists tw, L1 ++ (L2 ++ L3)
+  isplitr
+  · ipureintro; exact ⟨rfl, L1, L2, L3, h1, h2, h3, rfl⟩
+  iapply verdictsFrom_off
+
 /-- **The auth state at an applied log through an index at least `c` is published** (persistent;
 the auth plan's E3u): what a linearizable read waiting for the read index `c` finds in the applied
 index's invariant (`appliedPubM`). -/

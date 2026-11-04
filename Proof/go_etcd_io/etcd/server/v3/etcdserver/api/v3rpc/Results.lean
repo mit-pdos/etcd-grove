@@ -343,8 +343,8 @@ theorem raftKV_serverOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ⊢
       raftKV s (srvKVAnsOn s E ρ γr c F d na tok) :=
-  raftKV_of_serverOn server_put_on server_delete_range_on server_range_on server_txn_on
-    server_txn_ro_on EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
+  raftKV_of_serverOn server_put_on server_delete_range_on server_range_on EtcdServer.wp_Txn
+    EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
     membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
     s E ρ γr c F d na tok γa hγa
 

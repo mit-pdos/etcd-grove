@@ -12,7 +12,6 @@
 
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
-* pair ^(Spec|Proof)/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn\.lean::
 * pair ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Serve\.lean::
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
@@ -100,6 +99,7 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyNormalOn\.lean
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthnOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range\.lean::  # 1
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyEntryNormal\.lean::  # 4
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/MergedImageOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerAllocOn\.lean::  # 1

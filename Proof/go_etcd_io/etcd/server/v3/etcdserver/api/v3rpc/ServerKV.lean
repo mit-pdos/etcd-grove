@@ -728,7 +728,14 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
   have hg := txnGetsOk_of_check _ _ _ _ _ Hck hm Hin
-  have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) (rangeDepQ γr.kv d) none false F
+  ihave %hon := isServerReq_authOn s E ρ $$ Hsrv
+  have hMoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
+  have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) (rangeDepQ γr.kv d) none false F 0
+  rw [hon] at hT
+  simp only [txnReadOkM_false, isServerReqM_false, isServerReadM_false, kvStM_false] at hT
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
     have hdp' : (∃ Q, d = .op1 (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
@@ -743,6 +750,9 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       exact txnShape_of_check n cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩
         ⟨hsT, hsE⟩ hpl ⟨hnT, hnE⟩
     ihave Hdep := txnPermit_of_dep ρ γr d t ⟨hq, hpl, hz⟩ hsh $$ Hdep
+    imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM E.authOn s E (GoInterface.ok ci)) t _ $$ Hdep
+      with Hdep
+    rw [hon]
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc Hdep] as %resp %err ⟨Hlt, Hrc, Hres⟩
     · iframe #; iframe Hlt Hcred Hrc
@@ -752,7 +762,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       ipureintro; exact ⟨fun h => h.elim, fun _ => Hdp t hm⟩
     iapply HΦ
     iunfold kvAnswer
-    icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    icases Hres with (⟨%Herr, Hok', -⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -798,7 +808,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact hm
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      iexact Hfail
+      iapply txnErrOkM_elim $$ Hfail
   · -- a read-only transaction: read locally
     simp only [hro, ↓reduceIte] at hT
     ihave #Hdep' := kvDep_of_dep ρ γr d $$ Hdep
@@ -806,10 +816,15 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     · iframe #; iframe Hlt Hcred Hrc
       isplitr
       · simp only [traceutil.ownTraceOpt]; itrivial
-      ipureintro; exact ⟨fun _ => hg hro, fun h => by cases h⟩
+      isplitr
+      · ipureintro
+        first
+          | exact fun _ => ⟨hg hro, by rw [hMoff]; simp⟩
+          | exact ⟨fun _ => ⟨hg hro, by rw [hMoff]; simp⟩, fun h => by cases h⟩
+      rw [hMoff]; unfold auth.authPubLbM; itrivial
     iapply HΦ
     iunfold kvAnswer
-    icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hne, #HaE⟩)
+    icases Hres with (⟨%Herr, -, Hok'⟩ | ⟨%Hne, #HaE⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOk at Hok'
       icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hresp, Hown⟩
