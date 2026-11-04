@@ -257,8 +257,8 @@ def mvcc.api.mvccImage_snapshot.law : Prop :=
                     backend.wbTok B.γB ∗
                       R ∗
                         (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) ∗
-                          AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none ∧ σ.crev = -1⌝ }> @ ⊤ \ ↑mvcc.api.mvccN,
-                              ∅ <{ mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
+                          AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                              mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
             (▷
                 ∀ sp D,
                   (backend.snapOpen sp D ∗
