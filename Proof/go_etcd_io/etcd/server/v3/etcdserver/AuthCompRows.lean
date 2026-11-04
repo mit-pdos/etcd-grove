@@ -386,16 +386,16 @@ theorem applyBuilt_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E
   simp only [srvTokRights, hC]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Hfor, Hakv⟩, Hra,
-      Har, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
+      Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Har Hfor Hakv
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Har, Hfor, Hakv⟩, Hra,
-      Hao, Hal, Hkr, Hrest, Hap, Hfs, -⟩
+      Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, -⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Hfor Hakv
@@ -413,18 +413,18 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
   dsimp only [AuthC.isOn, kvAuthM]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Hub, Hfor, Hakv⟩, Hra,
-      Har, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
+      Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Har Hfor Hakv]
     · iexists ua; iframe Hua Hub Har Hfor Hakv
     iapply (kvRunM_nil_on γr ai₀ c₀ x₀).1 $$ Hkr
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, ⟨Hub, Har⟩, Hfor, Hakv⟩,
-      Hra, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
+      Hra, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Hfor Hakv]
@@ -695,7 +695,7 @@ theorem srvApplyKVC_coreA (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName
         (srvApplyKVCore s E γw x ua -∗ acRes C s E ua st -∗ srvApplyKVC C s E γw x st) := by
   iintro H
   iunfold srvApplyKVC at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -729,7 +729,9 @@ theorem srvApplyKVC_coreA (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- **The applier row's index certificate**. -/
 theorem srvApplyKVC_idxCert (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName)

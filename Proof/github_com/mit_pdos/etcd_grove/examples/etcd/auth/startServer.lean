@@ -146,7 +146,7 @@ theorem startServer.wp_proof
   subst Herr
   wp_auto
   -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
-  ihave #HLnil := lease.srvInv_lessorNil srv E .none $$ Hlsrv
+  ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on, the monitors off

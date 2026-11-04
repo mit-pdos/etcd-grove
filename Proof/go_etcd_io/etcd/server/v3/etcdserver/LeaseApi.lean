@@ -161,12 +161,12 @@ theorem lease.srvInv_intro (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.
 
 /-- **What the auth-on start takes from `lease.srvInv`** (`start.specOn`'s apply thread): with auth
 on, the lessor finds no lease. -/
-theorem lease.srvInv_lessorNil (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
-    lease.srvInv true s E m ⊢ srvLessorNil s := by
+theorem lease.srvInv_lessorNil (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode)
+    (hon : on = true) : lease.srvInv on s E m ⊢ srvLessorNil s := by
   unfold lease.srvInv
   iintro ⟨#Hn, -⟩
   iapply Hn
-  ipureintro; rfl
+  ipureintro; exact hon
 
 /-- **What `LeaseRenew`'s forwarding takes from `lease.srvInv`**: the peers' round tripper. -/
 theorem lease.srvInv_peerRt (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
