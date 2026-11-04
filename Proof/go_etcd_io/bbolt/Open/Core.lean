@@ -264,6 +264,34 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
   ipureintro
   exact ⟨⟨htx.2, hdb, hN⟩, trivial, trivial⟩
 
+/-- **The writer phase** (design §3.11 "Open", step 4): `rwlock`'s resource, the writer side
+idle with its freelist (after `loadFreelist`), the spare pair, no receipt yet (`t0` the current
+txid), and the full database. -/
+theorem open_writer (E : CoPset) (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (w : WDb) (hw : wdbOK w) :
+    isBoltCoreP (GF := GF) B N db p sp w.C.txid ∗
+      threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
+      db.[DB, go!"rwlock"] ↦ (zero_val sync.Mutex) ∗
+      wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+      flPgOwn w.fli w.fl ∗ rdPair B db sp ∗ ghostVar B.cls (1 : Qp).half false ⊢
+    |={E}=> isBoltDef B N db := by
+  iintro ⟨#Hc, #Hpool, Hrwl, Hcore, Hst, Hfl, Hsp, Hcls⟩
+  imod receipt_zero (GF := GF) with Hr
+  imod sync.init_Mutex (rwR (GF := GF) B db p sp w.C.txid) E _ $$ Hrwl
+    [Hcore Hst Hfl Hsp Hcls Hr] with #Hrw
+  · inext
+    unfold rwR
+    ileft
+    iexists w
+    unfold wdbOwn
+    rw [Nat.sub_self]
+    iframe
+    ipureintro; exact hw
+  imodintro
+  unfold isBoltDef isBoltP
+  iexists p, sp, w.C.txid
+  iframe #
+
 end core
 
 end bbolt
