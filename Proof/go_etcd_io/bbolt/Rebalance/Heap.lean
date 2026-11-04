@@ -32,7 +32,7 @@ theorem wtxHeap_objsDisj (tx : Loc) (dq : DFrac) (X : WX) :
     wtxHeap (GF := GF) tx dq X ⊢ ⌜objsDisj X.t⌝ := by
   unfold wtxHeap
   iintro ⟨%H, -⟩
-  ipureintro; exact H.2
+  ipureintro; exact H.2.1
 
 /-- A node of a bucket of the heap is its object. -/
 theorem wtxHeap_objs_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)

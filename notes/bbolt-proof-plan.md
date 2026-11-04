@@ -230,6 +230,10 @@ No frozen public statement changed.
    every operation since `nodeAdded`/`bktOpened` add locations fresh in `X.t.objs`; with it
    `wtxHeap_bkt_acc` (U5) is provable (`objs_bkt`).
 
+2. **Every bucket's `tx` field is the transaction**: `heapOK`'s `∀ bl B, X.t.bs !! bl = some B →
+   B.bv.tx' = tx`, read by `wtxHeap_heapOK` (`node.free`, `node.rebalance`, `Bucket.node` read
+   `n.bucket.tx`).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

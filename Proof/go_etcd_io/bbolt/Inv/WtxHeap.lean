@@ -91,15 +91,25 @@ def rootFill (tx : Loc) (dq : DFrac) : IProp GF :=
 def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
   iprop([∗map] b ↦ _x ∈ H, ∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{dq} f)
 
-/-- **The writer's heap's facts**: the root bucket's location, and its objects disjoint
-(`objsDisj`, U8 fix). -/
+/-- **The writer's heap's facts** (`wtxHeap_heapOK` reads them): the root bucket's location, its
+objects disjoint (`objsDisj`), and every bucket's `tx` field the transaction (U8 fixes). -/
 def heapOK (tx : Loc) (X : WX) : Prop :=
-  X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t
+  X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t ∧
+  (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx)
 
 /-- **The writer's heap** at `dq` (design §3.13). -/
 def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=
   iprop(⌜heapOK (GF := GF) tx X⌝ ∗ txFields tx dq X ∗ rootFill tx dq ∗
     [∗map] l ↦ o ∈ X.t.objs, objOwn X.v l dq (decide (l ∈ X.live)) o)
+
+omit hos in
+open Iris.ProofMode in
+/-- The heap's facts, read. -/
+theorem wtxHeap_heapOK (tx : Loc) (dq : DFrac) (X : WX) :
+    wtxHeap (GF := GF) tx dq X ⊢ ⌜heapOK (GF := GF) tx X⌝ := by
+  unfold wtxHeap
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
 
 /-! ## Remaps: views become stale -/
 
