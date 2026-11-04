@@ -66,7 +66,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
     hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
   rotate_left
-  obtain ⟨hlv, hbl, -, hG1, hne, -, -, -, -, -, -, hparp⟩ := hpp
+  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, -, -, hparp⟩ := hpp
   obtain ⟨rk, hrk, -, hsim⟩ := hL.todo i x ws (Nat.le_refl _) hx hws
   rw [hrl] at hrk; cases hrk
   obtain ⟨-, -, hxbl, hxlf, -, hxpg, hxpl, hxch, -⟩ := hsr.prec i x ws hx hws
@@ -298,7 +298,11 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
           (Ds.getD i [] ++ (Ds.drop (i + 1)).flatten ++ pcSlots (spP Xi) ps))) := by
         have := hL.slot; unfold pcOwn at this; rw [hDs, hA] at this; simpa only [List.append_assoc] using this
       have h5 := pcStepX_slot hs hG1 hsl0
-      have hcnt : pcCount (insSize rl.ins) - 1 < 2 ^ 32 := sorry
+      have hcnt : pcCount (insSize rl.ins) - 1 < 2 ^ 32 := by
+        have e : insSize rl.ins = 16 + (pageBody true (wsMs rl.ws)).length := by
+          rw [body_ws, insSize_ws rl.ins rl.ws hlr hil0]
+        have := hpf.2.1
+        unfold pcCount; omega
       have hPS : pcSlots (spP X3) ps = pcSlots (spP Xi) ps := by
         unfold pcSlots
         refine flatMap_congr' fun p hp => pgSlots_congr fun y hy => hPne y (hneid y (Or.inr
