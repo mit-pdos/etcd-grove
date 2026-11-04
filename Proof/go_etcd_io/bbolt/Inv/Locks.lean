@@ -36,13 +36,23 @@ variable [sem : go.Semantics]
 
 /-! ## Fields and cells -/
 
-/-- The mapping fields of `db` in the state `ms` (`invalidate` clears them). -/
+omit go_gctx hos sem in
+/-- A pure fact, at any fraction (`mapFields`' length bound). -/
+instance pure_dfractional (P : Prop) :
+    DFractional (fun (_ : DFrac) => (iprop(⌜P⌝) : IProp GF)) where
+  dfractional _ _ := ⟨persistent_sep_dup.1.trans (sep_mono .rfl .rfl), sep_elim_left⟩
+  dfractional_persistent := inferInstance
+  dfractional_persist _ := bupd_intro
+
+/-- The mapping fields of `db` in the state `ms` (`invalidate` clears them). A mapping is at most
+`maxMapSize` (`0xFFFFFFFFFFFF`) long: `DB.mmap` maps `db.mmapSize(…)`'s result, which caps it there
+(or fails); `db.page`'s index into `*[maxMapSize]byte` needs it (U6 fix, for `Tx.page_r`). -/
 def mapFields (db : Loc) (dq : DFrac) : MapSt → IProp GF
   | some (base, len) => iprop(
       db.[DB, go!"dataref"] ↦{dq} (⟨base, W64 (len : Int), W64 (len : Int)⟩ : GoSlice) ∗
       db.[DB, go!"data"] ↦{dq} base ∗
       db.[DB, go!"meta0"] ↦{dq} (base +ₗ (16 : Int)) ∗
-      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)))
+      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)) ∗ ⌜len ≤ 0xFFFFFFFFFFFF⌝)
   | none => iprop(db.[DB, go!"dataref"] ↦{dq} slice.nil ∗ db.[DB, go!"data"] ↦{dq} null ∗
       db.[DB, go!"meta0"] ↦{dq} null ∗ db.[DB, go!"meta1"] ↦{dq} null)
 

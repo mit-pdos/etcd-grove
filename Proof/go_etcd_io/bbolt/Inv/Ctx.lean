@@ -131,27 +131,6 @@ def srcLoc (v : View) (p : Loc) (src : Src) (bs : List w8) : IProp GF :=
   | .own _ => iprop(bytesPointsto p DFrac.discard bs)
   | .stale => iprop(False)
 
-/-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
-def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
-  iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)
-
-/-- **A reader's bucket** `b` whose value is `bv` (the root bucket's: its header encoded), at
-`dq` (the root bucket: a share of the transaction's `root` field; an opened bucket: persistent):
-its fields (no caches, no root node), its header (a persistent copy, or the view's bytes), its
-inline page (the view's bytes, or persistent heap bytes of a clone). -/
-def rBkt (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) : IProp GF :=
-  iprop(∃ (ibp pp : Loc), b.[Bucket, go!"InBucket"] ↦{dq} ibp ∗ b.[Bucket, go!"tx"] ↦{dq} tx ∗
-    b.[Bucket, go!"buckets"] ↦{dq} null ∗ b.[Bucket, go!"page"] ↦{dq} pp ∗
-    b.[Bucket, go!"rootNode"] ↦{dq} null ∗ b.[Bucket, go!"nodes"] ↦{dq} null ∗
-    ((∃ ib : InBucket, ibp ↦□ ib ∗ ⌜ib.root' = (inBucketOf bv).root'⌝) ∨
-      ⌜inViewLoc v ibp (bytesAt bv 0 16)⌝) ∗
-    (if inBucketRoot bv = 0 then iprop(⌜pp ≠ null⌝ ∗ locOwn v pp (inlinePage bv))
-     else iprop(⌜pp = null⌝)))
-
-/-- The value a reader's root bucket stands for: its header (root page `v.root`, sequence `0`
-as far as the readers' code cares) encoded. -/
-def rootVal (v : View) : List w8 := encode (⟨W64 (v.root : Int), W64 0⟩ : InBucket)
-
 /-- What a reader's pair source gives back at its close: the caller's `threadTok` for a pool
 loan, the spare pair itself. -/
 def pairBack (K : BC) : PairSrc → IProp GF
@@ -332,13 +311,23 @@ root, and back. -/
 theorem rdTxK_root (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     rdTxK (GF := GF) K tx src q T v ⊢ rBkt v tx (txRoot (GF := GF) tx) (DFrac.own q) (rootVal v) ∗
       (rBkt v tx (txRoot (GF := GF) tx) (DFrac.own q) (rootVal v) -∗ rdTxK K tx src q T v) := by
-  sorry
+  unfold rdTxK rtxFrac
+  iintro ⟨%r, %c, %mv, %k, %Hc, Hreg, Hpk, Hcore, Hv, Hex,
+    ⟨%t, Hw, Hm, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, Hvo, %Hf⟩, Hpool⟩
+  isplitl [Hrb]
+  · iexact Hrb
+  iintro Hrb
+  iexists r, c, mv, k
+  isplitr
+  · ipureintro; exact Hc
+  iframe
+  ipureintro; exact Hf
 
 /-- A reader's view: `T` is its snapshot, of a `treeOK` committed state (U6). -/
 theorem rdTxK_view (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     rdTxK (GF := GF) K tx src q T v ⊢ ⌜T = TxView.ro v.data ∧ viewWF v⌝ := by
   unfold rdTxK rtxFrac
-  iintro ⟨%r, %c, %mv, %k, -, -, -, -, -, -, ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, %Hf, -⟩, -⟩
+  iintro ⟨%r, %c, %mv, %k, -, -, -, -, -, -, ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩
   ipureintro; exact ⟨Hf.1, Hf.2.1⟩
 
 end ctx

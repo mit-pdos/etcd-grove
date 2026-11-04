@@ -46,26 +46,52 @@ def handleFrag (r : TxReg) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   if r.rw then iprop(b ↪[r.n.bk]□ (n, g))
   else iprop(⌜g = 0⌝ ∗ ∃ h : InBucket, b ↪[r.n.rbk]□ ((n, h) : RHandle))
 
+/-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
+def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
+  iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)
+
+/-- **A reader's bucket** `b` whose value is `bv` (the root bucket's: its header encoded), at
+`dq` (the root bucket: a share of the transaction's `root` field; an opened bucket: persistent):
+its fields (no caches, no root node), its header (a persistent copy, or the view's bytes), its
+inline page (the view's bytes, or persistent heap bytes of a clone). Its `FillPercent` is not
+here (a reader never reads it). -/
+def rBkt (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) : IProp GF :=
+  iprop(∃ (ibp pp : Loc), b.[Bucket, go!"InBucket"] ↦{dq} ibp ∗ b.[Bucket, go!"tx"] ↦{dq} tx ∗
+    b.[Bucket, go!"buckets"] ↦{dq} null ∗ b.[Bucket, go!"page"] ↦{dq} pp ∗
+    b.[Bucket, go!"rootNode"] ↦{dq} null ∗ b.[Bucket, go!"nodes"] ↦{dq} null ∗
+    ((∃ ib : InBucket, ibp ↦□ ib ∗ ⌜ib.root' = (inBucketOf bv).root'⌝) ∨
+      ⌜inViewLoc v ibp (bytesAt bv 0 16)⌝) ∗
+    (if inBucketRoot bv = 0 then iprop(⌜pp ≠ null⌝ ∗ locOwn v pp (inlinePage bv))
+     else iprop(⌜pp = null⌝)))
+
+/-- The value a reader's root bucket stands for: its header (root page `v.root`, sequence `0`
+as far as the readers' code cares) encoded. -/
+def rootVal (v : View) : List w8 := encode (⟨W64 (v.root : Int), W64 0⟩ : InBucket)
+
 /-- **A reader's part at fraction `q`** (design §3.10): its fields (`db` at `q · ¾`), its meta
-copy, its view's cells at `q · rq`, `mmaplock`'s fields at `q · rfrac` (its `mtok` deposited),
-and its view's facts: `T` is the snapshot of the view. -/
+copy, its view's cells at `q · rq`, `mmaplock`'s fields at `q · rfrac` (its `mtok` deposited:
+`PmNoTok`'s parts, at the view's mapping `(v.base, l)`, every page of the view inside it), and
+its view's facts: `T` is the snapshot of the view. Its root bucket (`Tx.init`'s `tx.root`, what
+every read starts from) is `rBkt` of the view's root (U6 fix: the header may be the view's
+bytes, as for any reader bucket, so that `rdTxK_root`'s wand takes back any `rBkt`), with its
+`FillPercent`; its page cache is nil. -/
 def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (mv : Meta) :
     IProp GF :=
   iprop(∃ t : Tx,
     tx.[Tx, go!"writable"] ↦{DFrac.own q} false ∗ tx.[Tx, go!"managed"] ↦{DFrac.own q} t.managed' ∗
-    tx.[Tx, go!"meta"] ↦{DFrac.own q} t.meta' ∗ tx.[Tx, go!"root"] ↦{DFrac.own q} t.root' ∗
+    tx.[Tx, go!"meta"] ↦{DFrac.own q} t.meta' ∗
+    rBkt v tx (txRoot (GF := GF) tx) (DFrac.own q) (rootVal v) ∗
+    (∃ f : w64, (txRoot (GF := GF) tx).[Bucket, go!"FillPercent"] ↦{DFrac.own q} f) ∗
     tx.[Tx, go!"pages"] ↦{DFrac.own q} t.pages' ∗
     tx.[Tx, go!"commitHandlers"] ↦{DFrac.own q} t.commitHandlers' ∗
     tx.[Tx, go!"WriteFlag"] ↦{DFrac.own q} t.WriteFlag' ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ t.meta' ↦{DFrac.own q} mv ∗
-    viewCells (QpMul q rq) v ∗ PmNoTok B r.db (QpMul q sync.rfrac) ∗ viewOf r v ∗
-    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid⌝ ∗
-    -- U0b: the root bucket (`Tx.init`'s `tx.root`), what every read starts from: its header a
-    -- persistent copy of the view's root, no cache, no page, no root node.
-    (∃ ib : InBucket, t.root'.InBucket' ↦□ ib ∗
-      ⌜ib.root'.toNat = v.root ∧ t.root'.tx' = tx ∧ t.root'.buckets' = null ∧
-        t.root'.page' = null ∧ t.root'.rootNode' = null ∧ t.root'.nodes' = null ∧
-        t.pages' = null⌝))
+    viewCells (QpMul q rq) v ∗
+    (∃ l : Nat, ghostVar B.map (QpMul q sync.rfrac).half.half (some (v.base, l) : MapSt) ∗
+      mapFields r.db (DFrac.own (QpMul q sync.rfrac).half) (some (v.base, l) : MapSt) ∗
+      ⌜∀ id pg, v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
+    viewOf r v ∗
+    ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null⌝)
 
 /-- The writer's handles' generations (the `buckets` caches): every handle's generation is at
 most its name's, and the opened bucket of a name is its current handle. -/

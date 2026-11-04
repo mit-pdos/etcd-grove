@@ -192,6 +192,26 @@ No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
    (`stackPos_next`, public, from U6's `stackPos_succ_up`/`_leaf`, copied privately into
    `Model/Cursor`); `wStackAt_next` no longer takes `wCtx`, `rStackAt_next` no longer `viewWF`.
 
+2. **`rdTxK_root` was unprovable** (its wand takes back any `rBkt`, whose header may be the
+   view's bytes, while `rtxFrac` pinned a persistent heap header). `rtxFrac` now holds the root
+   bucket's fields *as* `rBkt v tx (txRoot tx) (DFrac.own q) (rootVal v)` (plus its
+   `FillPercent` at `q`), in place of `tx.root ↦ t.root'` and the header clause; `t.pages' = null`
+   moved to the facts. `rdTxK_root` is proved (framing). `rBkt`, `locOwn`, `rootVal` moved from
+   `Inv/Ctx` to `Inv/Tx` (same statements; `Inv/Ctx` re-exports them). `Tx.init` (U5) splits
+   the struct points-to of `tx.root` into its fields (its header a persistent copy: `rBkt`'s
+   left disjunct, `ib.root' = W64 v.root`; its `page` nil: `rootVal v`'s root is not `0`).
+3. **`Tx.page_r` was not derivable from `rdTxK`** (the mapping was an existential `ms` in
+   `PmNoTok`, with no bound for `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF`). `rtxFrac` now holds
+   `PmNoTok`'s parts at the view's mapping, `∃ l, ghostVar B.map … (some (v.base, l)) ∗
+   mapFields r.db … (some (v.base, l)) ∗ ⌜∀ id pg, v.pages !! id = some pg → (id+1)·4096 ≤ l⌝`
+   (`Tx.begin`, U5, gets it from `storeOK`: `rOK`'s base, `viewInStore`, slots `< l/4096`). The
+   length bound is where the mapping is made: **`mapFields`' mapped case carries `⌜len ≤
+   0xFFFFFFFFFFFF⌝`** (`Inv/Locks`; `DB.mmap` maps `mmapSize`'s result, which caps it at
+   `maxMapSize`; U4/U11 prove it when writing the fields), with a `DFractional` instance for pure
+   facts so that `mapFields` stays `DFractional` (`Pm_fractional` unchanged). Fractions for
+   `Tx.page` (one `dqt` for `tx.pages` and `tx.db`): `dqt = DFrac.own (QpMul q ½)`, from
+   `tx.pages`' `q` (two halves) and `tx.db`'s `txDbQ q = QpMul q ½ + QpMul q ¼`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
