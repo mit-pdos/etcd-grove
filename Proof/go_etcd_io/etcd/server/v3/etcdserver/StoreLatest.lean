@@ -74,7 +74,7 @@ index (`auth.authPubLbM`), the store's `IsRangePermitted` with its verdict at st
 (`apply.isAuthStoreRangeLb`, of the store's invariant through E3j's `IsRangePermitted.specLb`) and
 (the lease-src plan, 2026-11-02) the lease checks' methods at such states (`isAuthStoreLeaseLb`,
 through the five `specLb`s, `isAuthStoreLeaseLb_of_authInv`); `True` in the other modes. What a
-reader with auth on needs of the store (`Range.specOn`, the lease checks' `srvAuthLeaseLb`). -/
+reader with auth on needs of the store (`Range.spec` at `E.authOn = true`, the lease checks' `srvAuthLeaseLb`). -/
 def authStoreLbM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
@@ -286,7 +286,7 @@ instance authPublishM_persistent (M : auth.AuthMode) (stl : Loc) :
 mode `on γa`, a lower bound `i` of the published index (`auth.authPubLb`) at which the history
 records `st` (`auth.authStateAt`); `True` in the other modes. What the apply thread hands the waiter
 with an entry's result (`st` the model's auth state after the entry): a reader holding it is checked
-at states no older than that one (`Range.specOn`). -/
+at states no older than that one (`Range.spec` with auth on). -/
 def authPubAt (M : auth.AuthMode) (st : auth.AuthState) : IProp GF :=
   match M with
   | .on γa => iprop(∃ i : Nat, auth.authPubLb γa i ∗ auth.authStateAt γa i st)

@@ -622,6 +622,10 @@ theorem apply.CheckTxnAuth.wp_lb
   · ipureintro; exact Hro
   iapply HΦ; iexact Hai
 
+/-- `CheckTxnAuth.specLb`, linked (its only callee's proof is in this file). -/
+theorem apply.CheckTxnAuth.wp_lb_linked : apply.CheckTxnAuth.specLb (GF := GF) (hG := hG) :=
+  apply.CheckTxnAuth.wp_lb apply.checkTxnPermission.wp_lb
+
 end proof
 
 end EtcdGrove

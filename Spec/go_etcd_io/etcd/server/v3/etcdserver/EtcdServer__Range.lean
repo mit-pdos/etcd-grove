@@ -39,8 +39,8 @@ txn package's answer at a certified log of at least two revisions, after the rea
 serializable, the header's id fields owned, a linearizable one at the mode's model of a committed
 raft log `L` at which the deposit gave `□ Q L` (`rangeReadOkM`). Failure: no response and an error
 the gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, mvcc's `ErrFutureRev`, or
-the context's). The two modes' former specs are instances (`ModeSpecs.lean`, `Range.spec_off`,
-`Range.spec_on`). -/
+the context's). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
+modes' former specs). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)

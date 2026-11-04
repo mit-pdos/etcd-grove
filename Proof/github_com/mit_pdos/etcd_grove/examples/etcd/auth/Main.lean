@@ -459,6 +459,8 @@ theorem Main.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    isplitr
     · ipureintro; exact ⟨watch_all_ok.1, watch_all_ok.2, by decide⟩
     iintro !> %h
     exact absurd h.2 (Nat.lt_irrefl 0)
@@ -530,6 +532,8 @@ theorem Main.wp_proof
   · iframe #
     isplitr
     · ipureintro; rfl
+    isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
     isplitr
     · ipureintro; exact ⟨watch_ab_ok.1.1, watch_ab_ok.1.2, by decide⟩
     iintro !> %h

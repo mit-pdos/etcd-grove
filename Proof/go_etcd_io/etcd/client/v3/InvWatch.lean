@@ -83,6 +83,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Proof.sync
 public import Proof.go_etcd_io.etcd.client.v3.InvWatchWg
 public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -1030,7 +1031,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
     isSpsc P.γ.spsc P.outc (outcElem V.kv P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
-    context.isContext P.ctx P.cs ∗
+    EtcdGrove.context.watchCtx P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
     ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev ∗
     -- (D47) the caller's read update, of the cluster's KV state; the watch promises completeness
@@ -1214,7 +1215,7 @@ def reqP (V : WEnv GF) (k : GoString) (v : GoInterface) : IProp GF :=
     ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
-    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
+    EtcdGrove.context.watchCtx P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
     ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev ∗
     -- (D47) the caller's read update, a first firing, the KV state the members', completeness
     wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝ ∗

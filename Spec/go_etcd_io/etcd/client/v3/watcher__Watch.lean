@@ -44,6 +44,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -75,7 +76,7 @@ abbrev watcher.Watch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
-      context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      EtcdGrove.context.watchCtx ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
         1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗

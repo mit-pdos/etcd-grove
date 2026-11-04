@@ -432,7 +432,8 @@ instance kvGetOk_persistent (s : Loc) (A : KVAns GF) : Persistent (kvGetOk s A) 
 the file header): the `RaftKV` methods (`Range`, `Put`, `DeleteRange`, `Txn`) on checked
 requests, and `KV().Rev()`, `Cluster().ID()`, `MemberID()`, `Term()`, `Leader()`; one conjunct
 per method (2026-10-12, unit 3a: `Put` and `DeleteRange` are proved from the server's
-`EtcdServer.Put`/`DeleteRange`; unit 3b: every conjunct, `ServerKV.lean`'s `raftKV_of_server`). -/
+`EtcdServer.Put`/`DeleteRange`; unit 3b: every conjunct; since the auth component's stage 4, 2026-11-04, `ServerKVOn.lean`'s
+`raftKV_of_serverM`, in either auth mode). -/
 def raftKV (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(kvRangeOk s A ∗ kvPutOk s A ∗ kvDeleteOk s A ∗ kvTxnOk s A ∗ kvGetOk s A)
 

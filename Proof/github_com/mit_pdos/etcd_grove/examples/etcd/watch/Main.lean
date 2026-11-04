@@ -380,6 +380,8 @@ theorem Main.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    isplitr
     · ipureintro
       refine ⟨?_, hnp, by decide⟩
       unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]

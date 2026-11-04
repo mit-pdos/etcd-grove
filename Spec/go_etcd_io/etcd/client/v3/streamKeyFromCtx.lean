@@ -5,6 +5,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -37,7 +38,7 @@ raw `MD` has two keys equal up to case (grpc lower-cases them into one, keeping 
 iteration gives last, so two calls may disagree; no spec here builds such a context). -/
 abbrev streamKeyFromCtx.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ context.isContext ctx cd }}
+  {{ EtcdGrove.context.watchCtx ctx cd }}
     (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #(GoInterface.ok ctx)))
   {{ RET #(streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))); True }}
 

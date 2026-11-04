@@ -715,6 +715,8 @@ theorem Work.wp_proof
     isplitr
     · ipureintro; exact hVk
     isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    isplitr
     · ipureintro; exact ⟨watch_c_ok.1.1, watch_c_ok.1.2, by decide⟩
     iintro !> %_
     rw [hE']
