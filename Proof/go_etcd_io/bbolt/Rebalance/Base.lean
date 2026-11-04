@@ -23,6 +23,12 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+omit hos in
+/-- A kept slice's source is persistent (a pure fact, persistent bytes, or nothing). -/
+instance srcOwn_persistent (v : View) (s : GoSlice) (src : Src) (bs : List w8) :
+    Persistent (srcOwn (GF := GF) v s src bs) := by
+  cases src <;> unfold srcOwn <;> infer_instance
+
 omit hos [GooseSemantics] go_gctx sem in
 /-- The view's cells split by fraction. -/
 theorem viewCells_split (q1 q2 : Qp) (v : View) :

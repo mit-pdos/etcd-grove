@@ -90,6 +90,45 @@ theorem wtxHeap_live_node_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : B
   rw [e] at this
   iapply this $$ H
 
+omit hos in
+/-- **Two distinct objects, out and back unchanged.** -/
+theorem wtxHeap_two_acc (tx : Loc) (dq : DFrac) (X : WX) (a b : Loc) (oa ob : WObj)
+    (hoa : X.t.objs !! a = some oa) (hob : X.t.objs !! b = some ob) (hne : a ≠ b) :
+    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v a dq (decide (a ∈ X.live)) oa ∗
+      objOwn X.v b dq (decide (b ∈ X.live)) ob ∗
+      (objOwn X.v a dq (decide (a ∈ X.live)) oa -∗ objOwn X.v b dq (decide (b ∈ X.live)) ob -∗
+        wtxHeap tx dq X) := by
+  unfold wtxHeap
+  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  icases (BigSepM.bigSepM_delete (M := GMap Loc) hoa).1 $$ Hm with ⟨Ha, Hm⟩
+  have hob' : Iris.Std.get? (Iris.Std.delete X.t.objs a) b = some ob := by
+    rw [Iris.Std.LawfulPartialMap.get?_delete_ne hne]; exact hob
+  icases (BigSepM.bigSepM_lookup_acc hob').1 $$ Hm with ⟨Hb, Hback⟩
+  iframe Ha Hb
+  iintro Ha Hb
+  iframe
+  isplitr
+  · ipureintro; exact Hrl
+  iapply (BigSepM.bigSepM_delete (M := GMap Loc) hoa).2
+  iframe Ha
+  iapply Hback
+  iexact Hb
+
+/-- **Two distinct live nodes of a bucket, out and back unchanged.** -/
+theorem wtxHeap_two_nodes_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
+    (a b : Loc) (ra rb : NRec) (hb : X.t.bs !! bl = some B) (hra : B.ns !! a = some ra)
+    (hrb : B.ns !! b = some rb) (hla : a ∈ X.live) (hlb : b ∈ X.live) (hne : a ≠ b) :
+    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v a dq true (.node bl ra) ∗
+      objOwn X.v b dq true (.node bl rb) ∗
+      (objOwn X.v a dq true (.node bl ra) -∗ objOwn X.v b dq true (.node bl rb) -∗
+        wtxHeap tx dq X) := by
+  iintro H
+  ihave %Hoa := wtxHeap_objs_node tx dq X bl B a ra hb hra $$ H
+  ihave %Hob := wtxHeap_objs_node tx dq X bl B b rb hb hrb $$ H
+  have := wtxHeap_two_acc (GF := GF) tx dq X a b _ _ Hoa Hob hne
+  rw [decide_eq_true hla, decide_eq_true hlb] at this
+  iapply this $$ H
+
 end heap
 
 end bbolt
