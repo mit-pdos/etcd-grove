@@ -237,6 +237,28 @@ theorem txShape_wx0 (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucke
     · iapply BigSepM.bigSepM_empty.2; iempintro
   · unfold pgToks; rw [GMap.fmap_empty]; iapply BigSepM.bigSepM_empty.2; iempintro
 
+omit hos sem in
+/-- **A writer's names**: its agreed state, `ex`, empty handle and node registries, `done`, its
+view's page tokens, and the view at its base. -/
+theorem wr_names_alloc (c : TxViewC) (x : TxX) (v : View) :
+    ⊢ |==> ∃ n : TxNames, ghostVar (GF := GF) n.v 1 (c, x) ∗ ghostVar (GF := GF) n.ex 1 () ∗
+      ghostMapAuth (GF := GF) n.bk 1 (∅ : GMap Loc (GoString × Nat)) ∗
+      ghostMapAuth (GF := GF) n.nl 1 (∅ : GMap Loc (Loc × Nat)) ∗
+      ghostVar (GF := GF) n.done 1 false ∗
+      ghostMapAuth (GF := GF) n.pg 1 (v.pages.fmap (fun _ => ())) ∗ pgToks n.pg v.pages ∗
+      (v.base ↪[n.vw]□ v : IProp GF) := by
+  imod ghostVar_alloc (GF := GF) (c, x) with ⟨%γv, Hv⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γe, He⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := GoString × Nat) with ⟨%γb, Hb⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Loc × Nat) with ⟨%γn, Hn⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%γd, Hd⟩
+  imod pgToks_alloc (GF := GF) v.pages with ⟨%γp, Hpa, Hpt⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := View) with ⟨%γw, Hw⟩
+  imod (ghost_map_insert_persist (GF := GF) v.base v (GMap.lookup_empty _)) $$ Hw with ⟨-, Hf⟩
+  imodintro
+  iexists ⟨γv, γe, γb, default, γn, γd, γp, γw⟩
+  iframe
+
 end winit
 
 end bbolt
