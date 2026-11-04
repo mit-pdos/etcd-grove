@@ -205,6 +205,34 @@ theorem spG_pcFin {X2 : WX} {bl l pl : Loc} {ra rp : NRec} {s : GoSlice} {ins : 
   apply hbk
   cases hp <;> simp only [Bool.false_eq_true, ite_false, ite_true, setNode_t_bufs]
 
+/-- A free keeps the pending slots. -/
+theorem pendSlots_freePages_mono (fl : FLPg) (T id : w64) (n : Nat) {y : Nat}
+    (hy : y ∈ pendSlots fl) : y ∈ pendSlots (fl.freePages T id n) := by
+  unfold pendSlots at hy ⊢
+  obtain ⟨z, hz, rfl⟩ := List.mem_map.1 hy
+  exact List.mem_map_of_mem ((pendingIds_freePages_perm fl T id n).mem_iff.2
+    (List.mem_append_left _ hz))
+
+/-- **A piece's free**: the pending slots kept, the allocations but the piece's page's. -/
+theorem pcFreed_fl {X X1 : WX} {w w1 : WDb} {bl l : Loc} {r : NRec} {st : List FLStep}
+    (h : pcFreed X w bl l r X1 w1 st) :
+    (∀ y ∈ pendSlots w.fl, y ∈ pendSlots w1.fl) ∧
+    (∀ k, ¬ (k = r.nv.pgid' ∧ r.nv.pgid' ≠ W64 0) → w1.fl.allocs !! k = w.fl.allocs !! k) := by
+  rcases h with ⟨-, -, rfl, -⟩ | ⟨pg, hp0, -, -, rfl, -⟩
+  · exact ⟨fun y hy => hy, fun _ _ => rfl⟩
+  · refine ⟨fun y hy => pendSlots_freePages_mono _ _ _ _ hy, fun k hk => ?_⟩
+    show (GMap.delete r.nv.pgid' w.fl.allocs) !! k = _
+    exact GMap.lookup_delete_ne _ (fun he => hk ⟨he.symm, hp0⟩)
+
+/-- **An allocation's freelist**: the pending slots kept, the allocations but the new run's. -/
+theorem allocRes_fl {X X' : WX} {fl fl' : FLPg} {txid : w64} {count : Nat} {p : Loc} {id : w64}
+    (h : allocRes X X' fl fl' txid count p id) :
+    pendSlots fl' = pendSlots fl ∧ (∀ k, k ≠ id → fl'.allocs !! k = fl.allocs !! k) := by
+  rcases (allocRes_basic h).2.2.2.2 with ⟨-, hf, -⟩ | ⟨-, hf, -⟩
+  · subst hf
+    exact ⟨rfl, fun k hk => GMap.lookup_insert_ne _ _ (Ne.symm hk)⟩
+  · subst hf; exact ⟨rfl, fun _ _ => rfl⟩
+
 end g
 
 end Spill
