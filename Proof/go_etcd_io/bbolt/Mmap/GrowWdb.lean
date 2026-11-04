@@ -1,0 +1,105 @@
+/-
+`DB.grow` (U4e, `notes/bbolt-proof-plan.md`): the writer side's file, out of `wdbW'` and back with
+a new `OsMeta`, `W` slots and slots' bytes (`wdbW'_grow_acc`), and the fixed fields `grow` reads.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Mmap.GrowPure
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
+
+section pure
+variable [GooseExts]
+
+/-- The synced freelist page's extent ends below the high-water mark (`flClause`, its header in
+`wb f`: `wdbOK'_flHdr`). -/
+theorem extent_lt_hwm (fr : Bool) (w : WDb) (hok : wdbOK' fr w) :
+    ∀ f, w.C.flpg = some f → f + (1 + pageOverflow (w.wb f)) ≤ w.C.hwm := by
+  intro f hf
+  have h16 := wdbOK'_flHdr fr w hok f hf
+  have hov : pageOverflow (extentBytes w.wb f) = pageOverflow (w.wb f) := by
+    unfold pageOverflow pageHdr bytesAt
+    congr 3
+    unfold extentBytes
+    rw [show 1 + pageOverflow (w.wb f) = (pageOverflow (w.wb f)) + 1 by omega, List.range'_succ,
+      List.flatMap_cons, List.drop_zero, List.drop_zero,
+      List.take_append_of_le_length h16]
+  have hc := wdbOK'_flClause fr w hok
+  rw [← hov]
+  cases fr
+  · exact (hc f hf f hf).2.1
+  · exact (hc f hf f hf).2.1
+
+/-- `fbRel` after the slots' bytes changed only from the high-water mark on (and the file's
+`OsMeta`, `W`). -/
+theorem fbRel_grow (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (F : GMap Nat (List w8))
+    (m' : OsMeta) (W' : List Nat) (wb' : Nat → List w8) (h : fbRel w F)
+    (hag : ∀ s, s < w.C.hwm → wb' s = w.wb s) :
+    fbRel { w with m := m', W := W', wb := wb' } F := by
+  intro f hf s h1 h2 hs
+  have hlt := extent_lt_hwm fr w hok f hf
+  have hf' : wb' f = w.wb f := hag f (by omega)
+  simp only [hf'] at h2
+  have hs' : wb' s = w.wb s := hag s (by omega)
+  simp only [hs']
+  exact h f hf s h1 h2 hs
+
+end pure
+
+section res
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- The writer side's file resources: `db.file`, the file, its fd and `OsMeta`, `db.datasz`, the
+`W` slots' cells and page-cache bytes. -/
+def growRes (K : BC) (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) : IProp GF :=
+  iprop(K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
+    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some m) ∗
+    K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗ wBytes K.p W wb m.size)
+
+/-- **The writer side's file, out and back** with a new `OsMeta`, `W` slots and slots' bytes
+(kept below the high-water mark), under the facts `wdbOK'`. -/
+theorem wdbW'_grow_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW' (GF := GF) fr K tx v w ⊢
+      ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ ∗
+      growRes K w w.m w.W w.wb ∗
+      (∀ (m' : OsMeta) (W' : List Nat) (wb' : Nat → List w8),
+        ⌜wdbOK' fr { w with m := m', W := W', wb := wb' } ∧
+          ∀ s, s < w.C.hwm → wb' s = w.wb s⌝ -∗
+        growRes K w m' W' wb' -∗ wdbW' fr K tx v { w with m := m', W := W', wb := wb' }) := by
+  unfold wdbW' wdbLive wdbCoreG
+  iintro ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmfw,
+    Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok, %Hrel⟩
+  isplitr
+  · ipureintro; exact Hwok
+  unfold growRes
+  isplitl [Hfile Hfo Hfd Hosm Hdsz Hwc Hwb]
+  · iframe
+  iintro %m' %W' %wb' %hh ⟨Hfile, Hfo, Hfd, Hosm, Hdsz, Hwc, Hwb⟩
+  obtain ⟨hok', hag⟩ := hh
+  isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc
+    Hmob Hwc Hwb Hjunk Hflo Hrd Hrcpt]
+  · iframe
+  isplitr
+  · ipureintro; exact ⟨hok', Hwok.2⟩
+  iexists F
+  iframe Htok
+  ipureintro
+  exact fbRel_grow fr w Hwok.1 F m' W' wb' Hrel hag
+
+end res
+
+end bbolt
+end EtcdGrove
+end Perennial
