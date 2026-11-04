@@ -18,6 +18,9 @@ public import Spec.go_etcd_io.bbolt.node__free
 public import Spec.go_etcd_io.bbolt.Bucket__node
 public import Spec.go_etcd_io.bbolt.TxStats__IncRebalance
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
+public import Spec.go_etcd_io.bbolt.internal.common.Inode__Pgid
+public import Proof.go_etcd_io.bbolt.Rebalance.Heap
+public import Proof.go_etcd_io.bbolt.Read.Base
 
 @[expose] public section
 
@@ -67,6 +70,48 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- `node.rebalance.spec'`, as an Iris proposition (for the recursion, Löb). -/
+def rebalW : IProp GF :=
+  iprop(∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec)
+    (n : Loc) (rn : NRec) (dfc : Option Loc),
+  ⌜rblX X w.fl bl dfc ∧ X.t.bs !! bl = some B ∧ B.ns !! n = some rn ∧
+    (dfc = none ∨ (dfc = some n ∧ rn.nv.unbalanced' = true))⌝ →
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"rebalance")) (Val #()))
+  {{ RET #(); ∃ (X' : WX) (fl' : FLPg), wtxW K tx r m X' ∗ wdbW K tx X.v (w.withFl fl') ∗
+      ⌜rblX X' fl' bl none ∧ rblRel X w.fl X' fl' X.t.mv.txid' ∧ rblStepX X X' bl n⌝ }})
+
+set_option maxHeartbeats 3000000 in
+theorem rebal_loeb
+    (hSize : node.size.spec (GF := GF) (hG := hG))
+    (hNum : node.numChildren.spec (GF := GF) (hG := hG))
+    (hIdx : node.childIndex.spec (GF := GF) (hG := hG))
+    (hNext : node.nextSibling.spec (GF := GF) (hG := hG))
+    (hPrev : node.prevSibling.spec (GF := GF) (hG := hG))
+    (hDel : node.del.spec (GF := GF) (hG := hG))
+    (hRm : node.removeChild.spec (GF := GF) (hG := hG))
+    (hFree : node.free.spec (GF := GF) (hG := hG))
+    (hNode : Bucket.node.spec (GF := GF) (hG := hG))
+    (hInc : TxStats.IncRebalance.spec (GF := GF) (hG := hG))
+    (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hPg : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG)) :
+    ⊢ rebalW (GF := GF) := by
+  iloeb as IH
+  unfold rebalW
+  iintro %K %tx %r %m %X %w %bl %B %n %rn %dfc %Hpre
+  obtain ⟨hI, hb, hrn, hdfc⟩ := Hpre
+  wp_start as ⟨Hw, Hdb⟩
+  unfold wtxW wtxCore
+  icases Hw with ⟨⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  have Ho := objs_node X.t bl B n rn Hok.2.1 hb hrn
+  icases wtxHeap_node_ptr_acc tx (DFrac.own 1) X bl n rn Ho $$ Hh with ⟨Hn, Hback⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+  iStructNamed Hn
+  wp_auto
+  trace_state
+  sorry
+
 theorem node.rebalance.wp_proof
     (hSize : node.size.spec (GF := GF) (hG := hG))
     (hNum : node.numChildren.spec (GF := GF) (hG := hG))
@@ -78,9 +123,17 @@ theorem node.rebalance.wp_proof
     (hFree : node.free.spec (GF := GF) (hG := hG))
     (hNode : Bucket.node.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncRebalance.spec (GF := GF) (hG := hG))
-    (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG)) :
+    (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hPg : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG)) :
     node.rebalance.spec' (GF := GF) (hG := hG) := by
-  sorry
+  intro K tx r m X w bl B n rn dfc H1 H2 H3 H4
+  have H := rebal_loeb hSize hNum hIdx hNext hPrev hDel hRm hFree hNode hInc hAssert hPg
+  unfold rebalW at H
+  iintro %Φ HP HΦ
+  ihave #H := H
+  iapply H $$ %K %tx %r %m %X %w %bl %B %n %rn %dfc [] [HP] HΦ
+  · ipureintro; exact ⟨H1, H2, H3, H4⟩
+  · iexact HP
 
 end proof
 
