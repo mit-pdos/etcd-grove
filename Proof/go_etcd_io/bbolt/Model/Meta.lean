@@ -134,7 +134,23 @@ proj_simps CommitSt.publish
 /-- The current meta is the one at slot `txid % 2`. Used by U4 (`DB.meta`) and U5 (`Tx.init`). -/
 theorem metaPick_current (C : CommitSt) (h : C.metaOk) :
     C.cur = some (metaOf (C.slot C.txid)) := by
-  sorry
+  obtain ⟨-, -, -, -, -, hv, ⟨ht, -⟩, hother⟩ := h
+  unfold CommitSt.cur metaPick
+  unfold CommitSt.slot at hv ht hother ⊢
+  rcases Nat.mod_two_eq_zero_or_one C.txid with he | ho
+  · have h1 : (C.txid + 1) % 2 ≠ 0 := by omega
+    simp only [he, ↓reduceIte, h1] at hv ht hother ⊢
+    by_cases hlt : (metaOf C.m0).txid'.toNat < (metaOf C.m1).txid'.toNat
+    · have hn : ¬ metaValid (metaOf C.m1) := fun hv1 => by have := hother hv1; omega
+      simp only [hlt, ↓reduceIte, hn, hv]
+    · simp only [hlt, ↓reduceIte, hv]
+  · have h0 : C.txid % 2 ≠ 0 := by omega
+    have h1 : (C.txid + 1) % 2 = 0 := by omega
+    simp only [h0, ↓reduceIte, h1] at hv ht hother ⊢
+    by_cases hlt : (metaOf C.m0).txid'.toNat < (metaOf C.m1).txid'.toNat
+    · simp only [hlt, ↓reduceIte, hv]
+    · have hn : ¬ metaValid (metaOf C.m0) := fun hv0 => by have := hother hv0; omega
+      simp only [hlt, ↓reduceIte, hn, hv]
 
 /-- **A commit's meta write keeps `metaOk`** (design §3.12, "meta parity"): the meta of txid
 `C.txid + 1`, valid, of page size 4096, written into a page whose probed offsets hold no valid
