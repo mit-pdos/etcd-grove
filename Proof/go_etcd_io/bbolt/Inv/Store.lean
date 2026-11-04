@@ -657,7 +657,8 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ws ∗
       ((⌜∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
-        (⌜C.flpg = some id.toNat ∧ ms ≠ none ∧ ∀ j < n, (pg (id.toNat + j)).length = 4096 ∧
+        (⌜C.flpg = some id.toNat ∧ ms ≠ none ∧ id.toNat + n ≤ C.hwm ∧
+          ∀ j < n, (pg (id.toNat + j)).length = 4096 ∧
           ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096⌝ ∗
           slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
@@ -695,7 +696,7 @@ writer's quarter of `cur`), the new tree's slots `S` move `W → store` with the
 writer has published. The side conditions are spill's post (design §4.2). -/
 theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w : Nat)
     (wl : Bool) (S : List Nat) (bs : Nat → List w8)
-    (ht : C'.txid = w) (hmeta : C'.metaOk) (htree : treeOK C')
+    (ht : C'.txid = w) (hmeta : C'.metaOk) (htree : treeOK C') (hhwm : C'.hwm ≤ 2 ^ 62)
     (hdrop : ∀ s ∈ treeSlots C, s ∉ treeSlots C' → s ∈ pendSlots fl)
     (hS : ∀ s, s ∈ S ↔ s ∈ treeSlots C' ∧ s ∉ slotsOf C fl)
     (hbytes : ∀ id pg, C'.pages !! id = some pg → C.pages !! id = some pg ∨
