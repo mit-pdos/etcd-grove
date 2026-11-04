@@ -10,6 +10,7 @@ gather itself (`mapCells_gather`) over a partition of the slots below `len / 409
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Locks
+public import Proof.go_etcd_io.bbolt.Inv.Store
 
 @[expose] public section
 
@@ -20,6 +21,58 @@ namespace EtcdGrove
 namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
+
+/-- **The slots below `k` partitioned**: the metas `0`, `1`, the store slots `S` (in `[2, k)`)
+and the others `ws` (exactly the rest of `[2, k)`), both without repeats. -/
+theorem slots_partition (k : Nat) (S ws : List Nat) (hk : 2 ≤ k) (hSn : S.Nodup)
+    (hwn : ws.Nodup) (hS : ∀ s ∈ S, 2 ≤ s ∧ s < k)
+    (hw : ∀ s, s ∈ ws ↔ 2 ≤ s ∧ s < k ∧ s ∉ S) :
+    (0 :: 1 :: (S ++ ws)).Perm (List.range k) := by
+  have hdisj : ∀ a ∈ S, ∀ b ∈ ws, a ≠ b := by
+    intro a ha b hb hab; subst hab; exact ((hw a).1 hb).2.2 ha
+  have hn : (0 :: 1 :: (S ++ ws)).Nodup := by
+    refine List.nodup_cons.2 ⟨?_, List.nodup_cons.2 ⟨?_, List.nodup_append.2 ⟨hSn, hwn, hdisj⟩⟩⟩
+    · intro h
+      simp only [List.mem_cons, List.mem_append] at h
+      rcases h with h | h | h
+      · omega
+      · have := (hS 0 h).1; omega
+      · have := ((hw 0).1 h).1; omega
+    · intro h
+      simp only [List.mem_append] at h
+      rcases h with h | h
+      · have := (hS 1 h).1; omega
+      · have := ((hw 1).1 h).1; omega
+  refine (List.perm_ext_iff_of_nodup hn List.nodup_range).2 fun a => ?_
+  simp only [List.mem_cons, List.mem_append, List.mem_range]
+  constructor
+  · rintro (h | h | h | h)
+    · omega
+    · omega
+    · exact (hS a h).2
+    · exact ((hw a).1 h).2.1
+  · intro h
+    by_cases h0 : a = 0
+    · exact .inl h0
+    by_cases h1 : a = 1
+    · exact .inr (.inl h1)
+    by_cases hs : a ∈ S
+    · exact .inr (.inr (.inl hs))
+    · exact .inr (.inr (.inr ((hw a).2 ⟨by omega, h, hs⟩)))
+
+section slots
+variable [GooseExts]
+
+/-- The store slots of `C`/`fl` (`slotsOf`) without repeats. -/
+theorem slotsOf_nodup (C : CommitSt) (fl : FLPg) : (slotsOf C fl).Nodup :=
+  nodup_list_dedup _
+
+/-- A slot is a store slot iff it is a tree or pending slot. -/
+theorem mem_slotsOf (C : CommitSt) (fl : FLPg) (s : Nat) :
+    s ∈ slotsOf C fl ↔ s ∈ treeSlots C ∨ s ∈ pendSlots fl := by
+  unfold slotsOf; rw [mem_list_dedup, List.mem_append]
+
+end slots
 
 section cells
 variable [GooseExts] [GooseSemantics] [GooseInterp]
