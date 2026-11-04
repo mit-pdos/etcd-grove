@@ -1187,6 +1187,13 @@ Not done (in this order, the coordinator's):
   maintainer if U10e's file is committed and not mid-edit). Then 37.10's `os.OpenFile`, 37.9,
   37.3, interfaces. **Not started by maintainer 7** (context exhausted): the next maintainer
   starts here.
+- **Coordinator's addition (U9q's need; decided; after 40B/41)**: root-bucket entries' names `≤
+  MaxKeySize` (32768): in `fileHolds`' `rootShape` (definition and frozen docstring only: true of
+  every file bbolt writes, `CreateBucket` checks it, D12) and in the writer invariants
+  (`entriesBounded` for the root bucket's leaf entries, or wherever root entries are bounded);
+  producers `beginRWTx` (from `rootShape`), `CreateBucket` (its premise), spill (the new tree's
+  `treeOK`). `Bucket.spill`'s `rinv_inline`/`rinv_put` need it (an inline value up to 1040 bytes
+  plus the name). Not started by maintainer 7.
 - **40** (not applied, analysis above): needs the coordinator's choice (A)/(B); (B), the store
   keeping a freed freelist page's bytes for `store_rollback`, is needed either way for `Commit`'s
   rollback after `commitFreelist`.
