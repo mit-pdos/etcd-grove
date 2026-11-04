@@ -1031,7 +1031,7 @@ theorem EtcdServer.run.wp_proof
   ihave #Hapc' := Hapc
   iunfold isRNApplyc at Hapc'
   ihave #Hapch : isChan apc γn.ap.chanName toApply $$ []
-  · unfold isSpsc; icases Hapc' with ⟨$, -⟩
+  · unfold isSspsc; icases Hapc' with ⟨$, -⟩
   wp_apply_core chan.wp_select_blocking
   -- `ap := <-s.r.apply()`: a batch `ce` after `A`, scheduled
   iapply BigAndL.bigAndL_cons.2
@@ -1044,7 +1044,7 @@ theorem EtcdServer.run.wp_proof
     · iexact Hapch
     iunfold rnApplyTok at Happly
     icases Happly with ⟨%rcv, Hcons, #Hidx⟩
-    iapply spsc_rcv_au γn.ap apc _ _ rcv _ $$ Hapc' [$Hlc1 $Hlc2] Hcons
+    iapply sspsc_rcv_au γn.ap apc _ _ rcv _ $$ Hapc' [$Hlc1 $Hlc2] Hcons
     inext
     iintro %apv %ok Hrecv
     cases ok
@@ -1808,7 +1808,7 @@ theorem EtcdServer.run.wp_proofOn
   ihave #Hapc' := Hapc
   iunfold isRNApplyc at Hapc'
   ihave #Hapch : isChan apc γn.ap.chanName toApply $$ []
-  · unfold isSpsc; icases Hapc' with ⟨$, -⟩
+  · unfold isSspsc; icases Hapc' with ⟨$, -⟩
   wp_apply_core chan.wp_select_blocking
   -- `ap := <-s.r.apply()`: a batch `ce` after `A`, scheduled
   iapply BigAndL.bigAndL_cons.2
@@ -1821,7 +1821,7 @@ theorem EtcdServer.run.wp_proofOn
     · iexact Hapch
     iunfold rnApplyTok at Happly
     icases Happly with ⟨%rcv, Hcons, #Hidx⟩
-    iapply spsc_rcv_au γn.ap apc _ _ rcv _ $$ Hapc' [$Hlc1 $Hlc2] Hcons
+    iapply sspsc_rcv_au γn.ap apc _ _ rcv _ $$ Hapc' [$Hlc1 $Hlc2] Hcons
     inext
     iintro %apv %ok Hrecv
     cases ok

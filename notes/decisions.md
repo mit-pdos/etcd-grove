@@ -31065,3 +31065,29 @@ The spec-reviewer checked this against the proofs:
   from the plan's K1, which had the client-only case at `cret = 0` with a law of its own.
 - No starter exposes the new case yet; one gets a mode parameter when the compactor example needs
   it (K3).
+
+## *Enter* at the WAL `Save`, not at the receive (2026-11-03 · the user's choice, R2b-3; supersedes R2b-1's "at the receive")
+
+**Before:** the server fired raft's *enter* (`readyEnter`) at the receive of a `Ready`
+(`rn_ready_recv`), the user's choice in R2b-1 over the draft's "at the `Save`", on my claim that the
+raft loop stops only at idle points, where the WAL's records hold the node's durable state. **What
+that got wrong:** the loop also returns on `r.stopped` between the receive and the `Save`, at the
+read state's send (`raft.go:218`) and at the hand-off to the apply thread (`raft.go:241`). There the
+node had entered the batch (`raftState S'`) while the records hold the state before it, so the stop's
+image (`raftState S ∗ StorageHolds S σ`) is false. **Now:** the receive keeps *enter* as raft's wand;
+the loop fires it right after the `Save` returns (a graceful stop needs no more; firing it inside the
+`Save`'s update, for crash recovery, stays open: review M1's later credit). Before the `Save` the loop
+uses only what the receive gives without *enter* (the committed log, `deliveredLogLb`, the hard
+state's committed fact; R2b-1 stage 1), and a leader's early `Send` uses raft's `readyLeaderMsgs`,
+for which the loop keeps `islead` tied to the driver's role (`islead` true only at role leader).
+
+## The raft loop's stop escrow and a synchronous `applyc` (2026-11-03 · R2b-3b)
+
+**The escrow** is announced by `done`'s close (`rnDoneEsc`), allocated by `onStop` with the image,
+in the pattern of the server's `srvDoneInv` (R2b-2): the image or the claim. It is at the WAL's
+location, not the wrapper's, since `done`'s predicate is fixed in `newRaftNode` before the struct
+exists. **Why `applyc` became `isSspsc`** (review M2): the image's order is at the log the loop
+handed, the stop's post at the apply side's `A`; equating them needs every sent payload received,
+which Go's unbuffered channel gives and `isSpsc` (which admits a value in flight) does not.
+Perennial's `SyncSpsc` idiom records each side's pending operation, so the two tokens together
+exclude a value in flight; its statements are otherwise `Spsc`'s, so the switch was a rename.
