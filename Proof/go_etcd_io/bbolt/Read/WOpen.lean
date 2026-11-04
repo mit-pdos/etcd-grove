@@ -243,6 +243,33 @@ theorem wtxW_src_hdr (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (value 
     ihave Hc := Hcb $$ Hb
     iapply Hwb $$ Hc
 
+/-- An inline bucket value's page, from the view. -/
+theorem src_inl_view (v : View) (value : GoSlice) (cv : List w8) (h16 : 16 ≤ cv.length) :
+    srcOwn (GF := GF) v value Src.view cv ⊢ ⌜inViewLoc v (value.ptr +ₗ (16 : Int)) (inlinePage cv)⌝ := by
+  unfold srcOwn
+  iintro %Hin
+  ipureintro
+  obtain ⟨hl, -, -, -⟩ := Hin
+  have hi := inViewLoc_sub v value.ptr cv hl 16 (cv.length - 16) (by omega)
+  rw [bytesAt_drop cv 16 h16] at hi
+  exact hi
+
+/-- An inline bucket value's page, from persistent bytes. -/
+theorem src_inl_own (v : View) (value : GoSlice) (d : DFrac) (cv : List w8) (h16 : 16 ≤ cv.length) :
+    srcOwn (GF := GF) v value (Src.own d) cv ⊢
+      bytesPointsto (value.ptr +ₗ (16 : Int)) DFrac.discard (inlinePage cv) := by
+  have hl : (inlinePage cv).length = cv.length - 16 := by unfold inlinePage bucketHeaderSize; simp
+  have hne : cv ≠ [] := by intro h; simp [h] at h16
+  unfold srcOwn
+  iintro #Hs
+  ihave %Hp := ownSlice_ptr_pos value cv DFrac.discard hne $$ Hs
+  icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) value cv DFrac.discard Hp
+    $$ Hs with ⟨Hb, -⟩
+  rw [flatMap_encode_w8]
+  icases Read.bytesPointsto_sub_acc value.ptr DFrac.discard cv (inlinePage cv) 16 (by rw [hl]; omega)
+    (by rw [hl, bytesAt_drop cv 16 h16]; rfl) $$ Hb with ⟨Hi, -⟩
+  iexact Hi
+
 end hdr
 
 end bbolt
