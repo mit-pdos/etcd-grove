@@ -161,7 +161,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
       · iframe #; iframe
       try wp_auto
       iapply HΦ
-      icases Hpost with (⟨%He, %b, %C, Hrd, HQ⟩ | ⟨#Herr, Htt, Hau⟩)
+      icases Hpost with (⟨%He, %b, %C, Hrd, HQ⟩ | ⟨%Htx, #Herr, Htt, Hau⟩)
       · ileft
         icases rdTxK_boltTx _ tx (TxView.ro (treeData C)) _ rfl $$ [Hrd] with ⟨#Hd, Ht⟩
         · iframe #; iframe
@@ -175,7 +175,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
         unfold beginErr
         icases Herr with ⟨%Hne, -⟩
         isplitr
-        · ipureintro; exact Hne
+        · ipureintro; exact ⟨Hne, Htx⟩
         iframe
         try iexact Hfe
     · simp only [↓reduceIte]
@@ -184,7 +184,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
       · iframe #
       try wp_auto
       iapply HΦ
-      icases Hpost with (⟨%He, #Hd, %D, Ht⟩ | #Herr)
+      icases Hpost with (⟨%He, #Hd, %D, Ht⟩ | ⟨%Htx, #Herr⟩)
       · ileft
         isplitr
         · ipureintro; exact He
@@ -196,7 +196,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
         unfold beginErr
         icases Herr with ⟨%Hne, -⟩
         isplitr
-        · ipureintro; exact Hne
+        · ipureintro; exact ⟨Hne, Htx⟩
         iframe
         try iexact Hfe
   · -- not `discardLogger`: a debug line now, a line of the outcome deferred
@@ -228,7 +228,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
       wp_apply wp_beginTx ⟨bnsOf γ.gs, γ.ns, db, p, sp, t0⟩ Q $$ [Htt Hau] as %tx %err Hpost
       · iframe #; iframe
       try wp_auto
-      icases Hpost with (⟨%He, %b, %C, Hrd, HQ⟩ | ⟨#Herr, Htt, Hau⟩)
+      icases Hpost with (⟨%He, %b, %C, Hrd, HQ⟩ | ⟨%Htx, #Herr, Htt, Hau⟩)
       · -- success: the debug line
         subst He
         wp_auto
@@ -282,7 +282,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
         iapply HΦ
         iright
         isplitr
-        · ipureintro; exact Hne
+        · ipureintro; exact ⟨Hne, Htx⟩
         iframe
         try iexact Hfe
     · simp only [↓reduceIte]
@@ -290,7 +290,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
       wp_apply wp_beginRWTx ⟨bnsOf γ.gs, γ.ns, db, p, sp, t0⟩ $$ [] as %tx %err Hpost
       · iframe #
       try wp_auto
-      icases Hpost with (⟨%He, #Hd, %D, Ht⟩ | #Herr)
+      icases Hpost with (⟨%He, #Hd, %D, Ht⟩ | ⟨%Htx, #Herr⟩)
       · -- success: the debug line
         subst He
         wp_auto
@@ -342,7 +342,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
         iapply HΦ
         iright
         isplitr
-        · ipureintro; exact Hne
+        · ipureintro; exact ⟨Hne, Htx⟩
         iframe
         try iexact Hfe
 

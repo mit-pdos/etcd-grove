@@ -49,7 +49,7 @@ abbrev DB.beginTx.spec : Prop :=
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
       (⌜err = interface.nil⌝ ∗ ∃ (b : Loc) (C : CommitSt),
         rdTxK K tx PairSrc.loan 1 (TxView.ro (treeData C)) (View.ofC b C) ∗ Q (treeData C)) ∨
-      (beginErr err ∗ threadTok ∗
+      (⌜tx = null⌝ ∗ beginErr err ∗ threadTok ∗
         AU <{ ∃∃ (q : Qp) (D : Data), boltStateDef K.B q D }> @ ⊤ \ ↑K.N, ∅
           <{ boltStateDef K.B q D, COMM Q D }>) }}
 
@@ -134,6 +134,8 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       ipureintro; exact ⟨Hok, HF⟩
     iapply HΦ
     iright
+    isplitr
+    · ipureintro; rfl
     iframe
     unfold beginErr
     isplitr
@@ -159,6 +161,8 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       ipureintro; exact ⟨Hok, HF⟩
     iapply HΦ
     iright
+    isplitr
+    · ipureintro; rfl
     iframe
     unfold beginErr
     isplitr

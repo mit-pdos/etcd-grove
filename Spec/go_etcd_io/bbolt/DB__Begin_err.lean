@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **The internal `DB.Begin`** (design §3.13, B1): `DB.Begin.spec`'s statement with
 `fmtErrorOk err` in its error branch (every error it returns is an `errors.New` one:
 `ErrDatabaseNotOpen`, `ErrInvalidMapping`, `ErrDatabaseReadOnly`), what `Open` needs to log a
-failed `Begin` with `%v`. The frozen `DB.Begin.spec` is its weakening. -/
+failed `Begin` with `%v`; and (maintainer 12, item 6) `tx = nil` on an error (`beginTx` and
+`beginRWTx` return `nil, err`; `Open` calls `tx.Commit()` only if `tx != nil`). The frozen `DB.Begin.spec` is its weakening. -/
 abbrev DB.Begin_err.spec : Prop :=
   ∀ (db : Loc) (γ : BoltName) (w : Bool) (Q : Data → IProp GF),
   {{ isBolt (GF := GF) db γ ∗
@@ -40,7 +41,7 @@ abbrev DB.Begin_err.spec : Prop :=
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
       (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data,
         (if w then boltTx tx γ 1 (TxView.wr D) else iprop(boltTx tx γ 1 (TxView.ro D) ∗ Q D))) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗
+      (⌜err ≠ GoInterface.nil ∧ tx = null⌝ ∗ fmtErrorOk err ∗
         (if w then emp else iprop(threadTok ∗
           AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
             <{ boltState γ q D, COMM Q D }>))) }}

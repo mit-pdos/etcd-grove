@@ -34,7 +34,7 @@ theorem DB.Begin.wp_proof
   iapply HΦ
   icases Hpost with (H | ⟨%Hne, -, H⟩)
   · ileft; iexact H
-  · iright; iframe; ipureintro; exact Hne
+  · iright; iframe; ipureintro; exact Hne.1
 
 end proof
 

@@ -44,7 +44,7 @@ abbrev DB.beginRWTx.spec : Prop :=
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"beginRWTx")) (Val #()))
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
       (⌜err = interface.nil⌝ ∗ txDBDef K.B K.N tx K.db ∗ ∃ D : Data,
-        boltTxDef K.B K.N tx 1 (TxView.wr D)) ∨ beginErr err }}
+        boltTxDef K.B K.N tx 1 (TxView.wr D)) ∨ (⌜tx = null⌝ ∗ beginErr err) }}
 
 end spec
 
@@ -188,6 +188,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     · iunfold metaR; iexists C, F, cl, fli, wa; iframe; ipureintro; exact ⟨Hok, HF⟩
     iapply HΦ
     iright
+    isplitr
+    · ipureintro; rfl
     unfold beginErr
     isplitr
     · ipureintro; exact HNOn
@@ -227,6 +229,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
     iapply HΦ
     iright
+    isplitr
+    · ipureintro; rfl
     unfold beginErr
     isplitr
     · ipureintro; exact HIMn
