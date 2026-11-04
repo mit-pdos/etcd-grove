@@ -209,7 +209,87 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rotate_left
     · exact absurd rfl hne
     icases hGrown $$ Htr with ⟨Hosm, Hz, Htail⟩
-    sorry
+    wp_auto
+    ihave Hnil : osBytes (GF := GF) K.p 0 (DFrac.own 1) [] $$ []
+    · iapply growBytes_nil
+    wp_apply hSync w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) ⟨K.p, true, true⟩ (w.m.grown S.toNat) 0 []
+      $$ [Hfo Hfd Hosm Hnil] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
+    · rw [← fileOwn_eq]; iframe; iframe #
+    ihave Hfo : fileOwn w.f w.fd K.p (DFrac.own 1) $$ [Hfo]
+    · rw [fileOwn_eq]; iexact Hfo
+    have hfin : ∀ m' : OsMeta, m'.size = S.toNat → m'.maps = w.m.maps →
+        growCloser (GF := GF) fr K tx v w -∗
+        K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+        osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
+        K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
+        ([∗list] s ∈ wSlots (min w.m.size (mapLen w.ms) / 4096) w.C w.fl,
+          ∃ vf, cellsR (GF := GF) v.base (4096 * s) 4096 vf) -∗
+        (∃ vf, cellsR (GF := GF) v.base (4096 * (min w.m.size (mapLen w.ms) / 4096))
+          (min w.m.size (mapLen w.ms) - 4096 * (min w.m.size (mapLen w.ms) / 4096)) vf) -∗
+        (∃ vf, cellsR (GF := GF) v.base (min w.m.size (mapLen w.ms))
+          (mapLen w.ms - min w.m.size (mapLen w.ms)) vf) -∗
+        wBytes K.p w.W w.wb w.m.size -∗
+        osBytes K.p w.m.size (DFrac.own 1) (List.replicate (S.toNat - w.m.size) ((0 : w8), false)) -∗
+        ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
+      intro m' h1 h2
+      exact grow_finish fr K tx v w hok v.base (mapLen w.ms) hms hfs8 m' (by omega) h2
+        (by omega) (fun h => by have := hS10 h; omega) (by omega) S.toNat h1
+    icases Hsy with (⟨%he2, Hosm, -⟩ | ⟨%he2, Hosm, -⟩)
+    · subst he2
+      wp_auto
+      iapply HΦ
+      ihave Hfin := hfin ((w.m.grown S.toNat).synced 0 []) rfl rfl $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
+      icases Hfin with ⟨%w', Hw', %hg⟩
+      iexists w'
+      iframe Hw'
+      isplitr
+      · ipureintro; exact hg
+      ileft; ipureintro; rfl
+    cases e2 with
+    | nil => exact absurd rfl he2
+    | ok ii =>
+    ihave #HeS : fmtErrorOk (GF := GF) (GoInterface.ok ii) $$ []
+    · iapply fmtErrorOkOrNil_ne (GoInterface.ok ii) (by intro h; cases h) $$ He2
+    wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    try wp_auto
+    rw [hgoarch]
+    simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
+      show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl, List.set_cons_succ, List.set_cons_zero]
+    wp_apply wp_boltLog li _ _ [W8 115, W8 115, W8 100, W8 118] _
+      [interface.mkOk go.string #(go!"linux"), interface.mkOk go.string #(go!"amd64"),
+        interface.mkOk go.int #(W64 (mapLen w.ms : Int)), GoInterface.ok ii] _ iprop(True) _
+      (by decide) (by decide) rfl $$ Hlgok [Hsl] [] [] as Hsl -
+    · iframe
+    · log_args_ok
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl2 ⟨Hsl2, -⟩
+    wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
+    · iframe
+      simp only [fmt.argsOk]
+      isplitl
+      · iapply fmtErrorOk_argOk $$ HeS
+      · itrivial
+    try wp_auto
+    iapply HΦ
+    have hfin' := hfin ⟨S.toNat, w.m.lo, max w.m.hi S.toNat, w.m.named, false, w.m.maps, w.m.dur,
+      w.m.durHi⟩ rfl rfl
+    ihave Hfin := hfin' $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
+    icases Hfin with ⟨%w', Hw', %hg⟩
+    iexists w'
+    iframe Hw'
+    isplitr
+    · ipureintro; exact hg
+    iright
+    isplitr
+    · ipureintro; intro h; cases h
+    iapply fmtErrorOk_of_errorf ei Hty $$ HiS
   | ok ii =>
     ihave #HeS : fmtErrorOk (GF := GF) (GoInterface.ok ii) $$ []
     · iapply fmtErrorOkOrNil_ne (GoInterface.ok ii) (by intro h; cases h) $$ HeOk
