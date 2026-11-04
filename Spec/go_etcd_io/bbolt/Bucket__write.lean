@@ -31,22 +31,22 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `ms.length` elements, `pageBody`), sized by `node.size`. -/
 abbrev Bucket.write.spec : Prop :=
   ∀ (b ibp : Loc) (ib : InBucket) (n : Loc) (nv : node) (ins : List Inode) (ms : List InodeM)
-    (dqb dq dqi dqk : DFrac),
+    (dqb dq dqi : DFrac) (qk qv : Nat → DFrac),
   nv.isLeaf' = true → ms.length < 0xFFFF → pageFits ms →
   insSize ins = 16 + (pageBody true ms).length → insSize ins < 2 ^ 31 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       b.[Bucket, go!"InBucket"] ↦{dqb} ibp ∗ ibp ↦{dqb} ib ∗ b.[Bucket, go!"rootNode"] ↦{dqb} n ∗
       n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
-      ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-        it.key' ↦*{dqk} m.key ∗ it.value' ↦*{dqk} m.value) }}
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"write")) (Val #()))
   {{ (value : GoSlice), RET #value;
       value ↦* (encode ib ++ encode (hdrWritten ⟨W64 0, W16 0, W16 0, W32 0⟩ true ms.length) ++
         pageBody true ms) ∗ ownSliceCap w8 value (DFrac.own 1) ∗
       b.[Bucket, go!"InBucket"] ↦{dqb} ibp ∗ ibp ↦{dqb} ib ∗ b.[Bucket, go!"rootNode"] ↦{dqb} n ∗
       n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
-      ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-        it.key' ↦*{dqk} m.key ∗ it.value' ↦*{dqk} m.value) }}
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) }}
 
 end spec
 

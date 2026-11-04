@@ -206,7 +206,8 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
           · rw [((hcB.2.2.1) hrootnull).2]; simp
           · rw [← Write.resolve_file B hin]; exact hres0
         wp_apply hN K tx r m X bl B p0 null hB hloc.1 hnodes (fun l h => (hcB.2.2.2.2.1 _ l h).1)
-          (fun _ => ⟨hready p0 (List.mem_of_getElem? hp0) hres0, Or.inl rfl⟩) $$ [Hw]
+          (fun _ => ⟨hready p0 (List.mem_of_getElem? hp0) hres0, Or.inl rfl⟩)
+          (fun _ => hcB.2.2.2.2.2.1) $$ [Hw]
           as %l ⟨%X', Hw, %Hpost⟩
         · iexact Hw
         try wp_auto
@@ -307,7 +308,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
       have hidx : ej.index'.toNat < rk.ws.length := (List.getElem?_eq_some_iff.1 hw).1
       have hi0 : 0 ≤ sint.Z ej.index' := by word
       have hin' : sint.nat ej.index' = ej.index'.toNat := by word
-      obtain ⟨-, -, -, -, hbll, BY0, hBY0, hib, hnd, -, -, -, -, hnmB, hnmok, -⟩ := id hst
+      obtain ⟨-, -, -, -, hbll, BY0, hBY0, hib, hnd, hpgY, -, -, -, hnmB, hnmok, -⟩ := id hst
       rw [hBY] at hBY0; cases hBY0
       have hnone : BY.nm !! w.pgid = none → matReady Yj BY w.pgid := by
         intro hn
@@ -324,7 +325,9 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
         iframe
       wp_apply hC K tx r m Yj bl BY nk rk ej.index' w hBY hrk hrkb hleafk.symm hrkl hbll
         (by rw [hnd]; exact hnodes) hi0 (by rw [hin']; exact hw)
-        (fun l h => (hnmok _ l h).1) hnone $$ [Hw] as %l ⟨%Y', Hw, %Hpost⟩
+        (fun l h => (hnmok _ l h).1) hnone
+        (fun h => by rw [hpgY]; exact hcB.2.2.2.2.2.1 (by rw [← hib]; exact h)) $$ [Hw]
+        as %l ⟨%Y', Hw, %Hpost⟩
       · iexact Hw
       try wp_auto
       -- the next state

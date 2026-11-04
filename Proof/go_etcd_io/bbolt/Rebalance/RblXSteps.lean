@@ -47,7 +47,7 @@ theorem rblX_init (X : WX) (fl : FLPg) (dbl : Loc) (hok : wOK X) (hr : liveReach
     rblX X fl dbl none := by
   have hok' := hok
   obtain ⟨⟨htw, hpm, hhwm, htx, hrl, hcl⟩, hkn, -, hEB, hH, hL, hN, hV⟩ := hok'
-  refine ⟨⟨htw, hpm, hhwm, htx, hrl⟩, fun bl B hb => ?_, hEB, hH, hL, hN, hV, hr, hfl, hu, hext, hlen,
+  refine ⟨⟨htw, hpm.1, hhwm, htx, hrl⟩, fun bl B hb => ?_, hEB, hH, hL, hN, hV, hr, hfl, hu, hext, hlen,
     hod, hrh⟩
   refine ⟨by rw [ite_self]; exact rblB_of_wOK X hok bl B hb, (hcl bl B hb).2, (hkn bl B hb).2,
     rtOK_init X bl hok hV (by rw [hb]; rfl), fun l r hr => hl bl B l r hb hr⟩

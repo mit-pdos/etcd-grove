@@ -39,7 +39,7 @@ theorem node.write.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG := 
     (hSetCount : internal.common.Page.SetCount.spec (GF := GF) (hG := hG))
     (hW : internal.common.WriteInodeToPage.spec (GF := GF) (hG := hG)) :
     node.write.spec (GF := GF) (hG := hG) := by
-  intro nl nv ins ms dqn dqi dqb p hdr R Hc0 Hf0 Hlen Hfit Hbody Hpg Hpos Hmax
+  intro nl nv ins ms dqn dqi qk qv p hdr R Hc0 Hf0 Hlen Hfit Hbody Hpg Hpos Hmax
   wp_start as ⟨Hn, Hs, Hd, Hp, Hrest⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave %Hml := BigSepL2.bigSepL2_length $$ Hd
@@ -91,7 +91,7 @@ theorem node.write.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG := 
     iapply HΦ
     simp [pageBody, elemBytes, leafElems, branchElems, dataBytes]
     iframe
-  · wp_apply hW nv.inodes' ins ms dqi dqb p (hdrWritten hdr nv.isLeaf' ms.length)
+  · wp_apply hW nv.inodes' ins ms dqi qk qv p (hdrWritten hdr nv.isLeaf' ms.length)
       (List.replicate R (W8 0)) Hpos Hfit (by simpa using Hbody)
       (by
         intro hne m hm

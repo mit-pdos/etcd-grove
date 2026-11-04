@@ -39,6 +39,7 @@ abbrev node.nextSibling.spec : Prop :=
       wsSorted rp.ws ∧ wsLive rp.ws ∧
       ∀ w, rp.ws[wsIdx rp.ws rn.key + 1]? = some w →
         (∀ l, B.nm !! w.pgid = some l → l ≠ null) ∧ (B.nm !! w.pgid = none → matReady X B w.pgid)) →
+  (B.ib.root' ≠ W64 0 → B.bv.page' = null) →
   {{ wtxW (GF := GF) K tx r m X }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"nextSibling")) (Val #()))
   {{ (s : Loc), RET #s; ∃ X' : WX, wtxW K tx r m X' ∗

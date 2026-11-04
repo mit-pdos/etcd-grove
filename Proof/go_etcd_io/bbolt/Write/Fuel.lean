@@ -111,7 +111,8 @@ theorem treeMeasure_child (v : View) (hv : viewWF v) (pid : w64) (pg : List w8)
     simp only [decide_eq_true_eq] at hd ⊢
     exact treeHas.sub _ pg d hpg (pageHas.child pg i d hb hi hd)
 
-/-- `wOK_leaves_fuel` (`Model/LTree`). -/
+/-- **The walk of a well-formed writer's tree ends within its fuel** (the shared lemma, batch 31; its
+stub in `Model/LTree` is deleted): more fuel walks the same leaves. -/
 theorem wOK_leaves_fuel' (X : WX) (bl : Loc) (hok : wOK X) (k : Nat) :
     lleaves (ltree X) bl (X.fuel + k) (X.rootPid bl) = X.leaves bl := by
   have hv : viewWF X.v := hok.2.2.2.2.2.2.2

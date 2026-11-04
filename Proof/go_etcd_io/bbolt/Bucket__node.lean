@@ -4,8 +4,8 @@ node cache's lookup; else a fresh node (`Write.wtxHeap_fresh`), made the root no
 its parent's children, read (`node.read`) from the inline page (`common.Verify`) or the view's
 page (`Tx.page`), cached, registered and counted; the heap step is `Write.wtxHeap_nodeAdd_acc`.
 
-`Bucket.node.spec'` adds one premise to the frozen `Bucket.node.spec`: a file bucket's `page` field
-is nil (`bktClean`'s clause; every caller has it). Without it the code reads `b.page` for a file
+`Bucket.node.spec` has the premise (batch 31, U7d's finding) that a file bucket's `page` field is
+nil (`bktClean`'s clause; every caller has it). Without it the code reads `b.page` for a file
 bucket whose `page` is set, which `matReady` does not exclude.
 -/
 module
@@ -36,21 +36,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- `Bucket.node.spec` with the premise that a file bucket's `page` field is nil (uncached case). -/
-abbrev Bucket.node.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (pgid : w64)
-    (parent : Loc),
-  X.t.bs !! bl = some B → bl ∈ X.liveB → B.bv.nodes' ≠ null →
-  (∀ l, B.nm !! pgid = some l → l ≠ null) →
-  (B.nm !! pgid = none → matReady X B pgid ∧
-    (parent = null ∨ ∃ rp, B.ns !! parent = some rp ∧ rp.nv.isLeaf' = false ∧ parent ∈ X.live)) →
-  (B.nm !! pgid = none → B.ib.root' ≠ W64 0 → B.bv.page' = null) →
-  {{ wtxW (GF := GF) K tx r m X }}
-    (App (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"node")) (Val #pgid))
-      (Val #parent))
-  {{ (l : Loc), RET #l; ∃ X' : WX, wtxW K tx r m X' ∗
-      ⌜(B.nm !! pgid = some l ∧ X' = X) ∨ nodeAdded X X' bl l pgid parent⌝ }}
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos hG sem package_sem in
 /-- A readable page's first key slice is not nil (its key is not empty). -/
@@ -123,12 +108,12 @@ theorem bkt_tx_acc (bl t : Loc) (c : Prop) [Decidable c] :
     · iexact H
     · iintro -; iexact H
 
-theorem Bucket.node.wp_proof' (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
+theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hV : internal.common.Verify.spec (GF := GF) (hG := hG))
     (hpage : Tx.page.spec (GF := GF) (hG := hG))
     (hread : node.read.spec (GF := GF) (hG := hG))
     (hinc : TxStats.IncNodeCount.spec (GF := GF) (hG := hG)) :
-    Bucket.node.spec' (GF := GF) (hG := hG) := by
+    Bucket.node.spec (GF := GF) (hG := hG) := by
   intro K tx r m X bl B pgid parent hB hlB hnodes hnn hready hpg0
   unfold wtxW wtxCore
   wp_start as ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hvo, Hst⟩,
@@ -488,10 +473,6 @@ theorem Bucket.node.wp_proof' (hA : internal.common.Assert.spec (GF := GF) (hG :
         simp [B', hp]
     · simp only [Y, WX.addNode, WX.setBkt, GMap.insert_insert]
       rfl
-
-/-- The frozen spec: open, it lacks `wp_proof'`'s premise (a file bucket's `page` field nil). -/
-theorem Bucket.node.wp_proof : Bucket.node.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

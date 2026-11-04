@@ -72,6 +72,29 @@ theorem matX_bs (X : WX) (bl l : Loc) (pgid : w64) (B' : BRec) (c : Loc) :
   · subst h; rw [GMap.lookup_insert, if_pos rfl]
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), if_neg h]
 
+/-- **The leaves' root shape of a bucket grown by a fresh node** (batch 30): the other nodes'
+`isLeaf` and entries kept, the new node's leaf entries of the root shape. -/
+theorem leafShape_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
+    (hsh : leafShape X) (hB : X.t.bs !! bl = some B) (hnew : B'.ns !! l = some r)
+    (hnsN : ∀ y ry', B'.ns !! y = some ry' → y = l ∨ ∃ ry, B.ns !! y = some ry ∧
+      ry'.nv.isLeaf' = ry.nv.isLeaf' ∧ ry'.ws = ry.ws ∧ ry'.nv.pgid' = ry.nv.pgid' ∧
+      ry'.key = ry.key)
+    (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)) :
+    leafShape (matX X bl l pgid B') := by
+  intro c C hC y ry' hy hleaf w hw
+  show _ ↔ c = X.rl
+  rw [matX_bs] at hC
+  split at hC
+  · rename_i hc
+    subst hc
+    cases hC
+    rcases hnsN y ry' hy with rfl | ⟨ry, hry, h1, h2, -⟩
+    · rw [hnew] at hy; cases hy
+      exact hshape hleaf w hw
+    · rw [h1] at hleaf; rw [h2] at hw
+      exact hsh c B hB y ry hry hleaf w hw
+  · exact hsh c C hC y ry' hy hleaf w hw
+
 /-- **`wOK` of a bucket grown by a fresh node** (what both cases of `wOK_nodeAdded'` give). -/
 theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hok : wOK X) (hB : X.t.bs !! bl = some B) (hlo : X.t.objs !! l = none)
@@ -88,9 +111,10 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hpg : nodePg X.v B.ib.root' r)
     (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ (r.nv.isLeaf' = true → ¬ isBktFlag w.flags →
       w.key.length + w.value.length ≤ bboltEntryMax))
-    (hpid : r.nv.pgid'.toNat = pgid.toNat) :
+    (hpid : r.nv.pgid'.toNat = pgid.toNat)
+    (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)) :
     wOK (matX X bl l pgid B') := by
-  obtain ⟨⟨hw, hpm, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
+  obtain ⟨⟨hw, ⟨hpm, hbuf, hsh⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
     hv⟩ := hok
   have hbs' := matX_bs X bl l pgid B'
   have hcase : ∀ c C, (matX X bl l pgid B').t.bs !! c = some C →
@@ -127,7 +151,8 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       have : (X.t.objs !! l).isSome = true := by
         rw [objs_isSome]; exact Or.inl (by rw [h]; rfl)
       rw [hlo] at this; cases this
-  refine ⟨⟨hw, hpm, hpg2, htxid, by rw [hdom]; exact hrl, fun c C hC => ?_⟩, fun c C hC => ?_,
+  refine ⟨⟨hw, ⟨hpm, hbuf, leafShape_matX X bl l pgid B B' r hsh hB hnew hnsN hshape⟩, hpg2, htxid,
+    by rw [hdom]; exact hrl, fun c C hC => ?_⟩, fun c C hC => ?_,
     ?_, ?_, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hv⟩
   · -- txClean
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
@@ -845,6 +870,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb) (by rw [hrid'])
+      (sorry) -- batch 30: the new node's leaves of the root shape (from the view page, `rootShape`; owner U7d)
     · intro y ry' hy
       rw [hns'] at hy
       split at hy
@@ -900,6 +926,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)) (by rw [hrid, hcid])
+      (sorry) -- batch 30: the new node's leaves of the root shape (from the view page, `rootShape`; owner U7d)
     · intro y ry' hy
       by_cases hyl : y = l
       · exact Or.inl hyl

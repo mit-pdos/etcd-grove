@@ -31,20 +31,21 @@ inodes `ms` (their bytes read at `dqb`) are laid out after it (`pageBody`; nothi
 node). It panics on a non-empty page, `0xFFFF` or more inodes, an empty key or (a branch) a child
 id equal to the page's: excluded by the premises. -/
 abbrev node.write.spec : Prop :=
-  ∀ (n : Loc) (nv : node) (ins : List Inode) (ms : List InodeM) (dq dqi dqb : DFrac) (p : Loc)
+  ∀ (n : Loc) (nv : node) (ins : List Inode) (ms : List InodeM) (dq dqi : DFrac)
+    (qk qv : Nat → DFrac) (p : Loc)
     (hdr : Page) (R : Nat),
   hdr.count' = W16 0 → hdr.flags' = W16 0 → ms.length < 0xFFFF → pageFits ms →
   (pageBody true ms).length ≤ R → (nv.isLeaf' = false → ∀ m ∈ ms, m.pgid ≠ hdr.id') →
   0 < p.addr → p.addr + 16 + R ≤ maxAddr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗
       nv.inodes' ↦*{dqi} ins ∗
-      ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-        it.key' ↦*{dqb} m.key ∗ it.value' ↦*{dqb} m.value) ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗
       p ↦ hdr ∗ bytesPointsto (p +ₗ 16) (DFrac.own 1) (List.replicate R (W8 0)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"write")) (Val #p))
   {{ RET #(); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
-      ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-        it.key' ↦*{dqb} m.key ∗ it.value' ↦*{dqb} m.value) ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗
       p ↦ hdrWritten hdr nv.isLeaf' ms.length ∗
       bytesPointsto (p +ₗ 16) (DFrac.own 1)
         (pageBody nv.isLeaf' ms ++ List.replicate (R - (pageBody nv.isLeaf' ms).length) (W8 0)) }}

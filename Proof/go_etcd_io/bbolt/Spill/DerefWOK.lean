@@ -34,12 +34,29 @@ theorem derefStep_fwd {X X' : WX} (h : derefStep X X') {bl : Loc} {B : BRec}
     (hB : X.t.bs !! bl = some B) : ∃ B', X'.t.bs !! bl = some B' ∧ bktStep B B' :=
   optRel_some_l (hB ▸ derefStep_bs h bl)
 
+/-- Dereferencing keeps the leaves' root shape (batch 30): the entries' flags and the nodes'
+`isLeaf` are kept. -/
+theorem leafShape_step {X X' : WX} (h : derefStep X X') (hs : leafShape X) : leafShape X' := by
+  intro bl B' hB' l r' hr' hleaf w hw
+  obtain ⟨B, hB, hst⟩ := derefStep_bwd h hB'
+  rw [h.2.2.2.2.1]
+  obtain ⟨r, hr, hns⟩ := optRel_some_r (hr' ▸ hst.2 l)
+  rcases hns with rfl | hd
+  · exact hs bl B hB l r' hr hleaf w hw
+  · have hl : r.nv.isLeaf' = true := by rw [← hleaf, hd.1]
+    have hm : wDat w ∈ r.ws.map wDat := by rw [← hd.2.2.1]; exact List.mem_map_of_mem hw
+    obtain ⟨w0, hw0, he⟩ := List.mem_map.1 hm
+    have hf : w0.flags = w.flags := congrArg Prod.fst he
+    rw [← hf]
+    exact hs bl B hB l r hr hl w0 hw0
+
 theorem txClean_step {X X' : WX} (h : derefStep X X') (hc : txClean X) : txClean X' := by
-  obtain ⟨hv, -, -, -, hrl, htt, hmv, hpm, -, -, -⟩ := id h
-  obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hc
+  obtain ⟨hv, -, -, -, hrl, htt, hmv, hpm, hbuf, -, -, -⟩ := id h
+  obtain ⟨c1, ⟨c2, c2b, c2s⟩, c3, c4, c5, c6⟩ := hc
+  have c2s' := leafShape_step h c2s
   unfold txClean
-  rw [hv, hrl, htt, hmv, hpm, derefStep_bs_isSome h]
-  refine ⟨c1, c2, c3, c4, c5, ?_⟩
+  rw [hv, hrl, htt, hmv, hpm, hbuf, derefStep_bs_isSome h]
+  refine ⟨c1, ⟨c2, c2b, c2s'⟩, c3, c4, c5, ?_⟩
   intro bl B' hB'
   obtain ⟨B, hB, hs⟩ := derefStep_bwd h hB'
   obtain ⟨d1, d2⟩ := c6 bl B hB

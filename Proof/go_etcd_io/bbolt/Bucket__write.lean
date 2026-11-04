@@ -37,7 +37,7 @@ omit hos in
 theorem Bucket.write.wp_proof (hSize : node.size.spec (GF := GF) (hG := hG))
     (hWrite : node.write.spec (GF := GF) (hG := hG)) :
     Bucket.write.spec (GF := GF) (hG := hG) := by
-  intro b ibp ib n nv ins ms dqb dq dqi dqk Hleaf Hlen Hfit Hsz Hsz31
+  intro b ibp ib n nv ins ms dqb dq dqi qk qv Hleaf Hlen Hfit Hsz Hsz31
   wp_start as ⟨Hib, Hibp, Hrn, Hn, Hins, Hd⟩
   wp_auto
   wp_apply hSize n nv ins dq dqi $$ [Hn Hins] as ⟨Hn, Hins⟩
@@ -80,7 +80,7 @@ theorem Bucket.write.wp_proof (hSize : node.size.spec (GF := GF) (hG := hG))
   wp_auto
   rw [decode_zero_page]
   rw [show ((16 : Nat) : Int) = 16 from rfl]
-  wp_apply hWrite n nv ins ms dq dqi dqk (val.ptr +ₗ 16) ⟨W64 0, W16 0, W16 0, W32 0⟩ L rfl rfl
+  wp_apply hWrite n nv ins ms dq dqi qk qv (val.ptr +ₗ 16) ⟨W64 0, W16 0, W16 0, W32 0⟩ L rfl rfl
       Hlen Hfit (by omega) (by rw [Hleaf]; intro h; cases h) (by simpa [Loc.add] using hp16)
       (by simp [Loc.add] at Hbnd ⊢; omega)
       $$ [Hn Hins Hd Hh1 Hbytes] as ⟨Hn, Hins, Hd, Hh1, Hbytes⟩

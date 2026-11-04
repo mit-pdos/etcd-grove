@@ -34,7 +34,7 @@ theorem node.nextSibling.wp_proof (hCI : node.childIndex.spec (GF := GF) (hG := 
     (hNC : node.numChildren.spec (GF := GF) (hG := hG))
     (hCA : node.childAt.spec (GF := GF) (hG := hG)) :
     node.nextSibling.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B n rn hb hn hbl hnl hbll hnodes hpar
+  intro K tx r m X bl B n rn hb hn hbl hnl hbll hnodes hpar hpg0
   wp_start as Hw
   ihave %Hbase := wtxW_base_pos K tx r m X $$ Hw
   unfold wtxW wtxCore
@@ -120,7 +120,7 @@ theorem node.nextSibling.wp_proof (hCI : node.childIndex.spec (GF := GF) (hG := 
       hb hrp hpbl hpleaf hpl hbll hnodes (by word)
       (by rw [show sint.nat (W64 ((wsIdx rp.ws rn.key : Int)) + W64 1) = wsIdx rp.ws rn.key + 1
             by word]; exact hw)
-      (hready w hw).1 (hready w hw).2 $$ [Hh Hfills Hbk Hnl Hdb Hview Hst Hcells Hmap]
+      (hready w hw).1 (hready w hw).2 hpg0 $$ [Hh Hfills Hbk Hnl Hdb Hview Hst Hcells Hmap]
       as %l ⟨%X', Hw, %Hpost⟩
     · unfold wtxW wtxCore; iframe; iframe #; ipureintro; exact Hr
     try wp_auto

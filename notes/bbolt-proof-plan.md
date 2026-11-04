@@ -818,6 +818,51 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   `sorry` closes with `hinl := Write.viewWF_leafInl X.v hv _ pg hpg` once `RblMat` imports
   `Write/Bound` (U8c's).
 
+- **6. Interfaces: not regenerated.** `etc/gen-interface.py` needs every bbolt module built; failing
+  (owners' WIP, not batch 30's): `node__rebalance` (U8d), `DB__Begin` (U5), `Cursor__seek_w` (U6d),
+  `Tx__forEachPage_r`, earlier `DB__beginRWTx`/`Mmap/RemapBody` (U5c/U4d). Stale interface files:
+  `interface/Spec/go_etcd_io/bbolt/Api.txt` and `interface/Proof/go_etcd_io/bbolt/{DB__Begin,
+  DB__Begin_err,DB__Info,Tx__DB}.txt` (batch 21), `{Tx__allocate,Bucket__spill,Bucket__Bucket_r,
+  Bucket__ForEachBucket_r}.txt` (batch 29), `{DB__grow,Bucket__spill,Bucket__write,Bucket__node,
+  node__write,node__put,node__del,node__childIndex,node__childAt,node__nextSibling,
+  node__prevSibling}.txt` (batches 30-31), `internal/common/WriteInodeToPage.txt` (batch 30).
+
+## Shared-statement fixes, batches 30 (U9d's part), 31, 32 (maintainer 4, 2026-11-04; decided by the coordinator)
+
+- **30.1 `txClean`'s second clause is `(X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X)`** (no buffers
+  before spill allocates; `WX.bufPages` reads all of `bufs`). Nested beside `pm` so that the
+  six-clause patterns of `txClean` stand (a user of `pm = ∅` takes `.1`).
+- **30.2 `leafShape X`** (`Model/Wtx`, in `txClean`, so in `wOK` and `wOKR`): every leaf node's
+  entries are bucket entries (`isBktFlag`) iff its bucket is the root bucket (nesting depth 2).
+  Kept: by dereferencing (`Spill/DerefWOK.leafShape_step`, proved; `txClean_step` adapted), by a
+  materialization (`Write/MatOK.leafShape_matX`, proved, over a new premise `hshape` of
+  `wOK_matX`: the new node's entries; **its two callers in `wOK_nodeAdded'` pass `sorry`, owner
+  U7d**: from the view page's `rootShape`), initially (`Txn/WInit`: no node). **Open, owner U8d**:
+  `Rebalance/RblX.rebalOK_of_rbl` passes `sorry` for `bufs = ∅` and `leafShape` (`rblX` has to
+  carry them; `rblRel` has `bufs` equal to the start's); `RblXSteps.rblX_init` takes `pm`'s `.1`.
+  Still to prove by their owners: `Put` (plain entries in a non-root bucket), `CreateBucket` (a
+  bucket entry in the root), `DeleteBucket`, `Delete`.
+- **30.3 `Bucket.spill.spec`** takes `flViewU X w.fl` and its success post gives `flViewU X' w'.fl`.
+- **30.4 Per-index fractions**: `WriteInodeToPage.spec`, `node.write.spec`, `Bucket.write.spec` read
+  inode `k`'s key at `qk k` and value at `qv k` (`qk qv : Nat → DFrac`, an indexed `[∗list] k ↦
+  it;m ∈ ins;ms`), as old `node.write.xspec`: a spilled node mixes view keys and persistent heap
+  keys. Proofs adapted (U1's `WriteInodeToPage`, U9a's `node.write`, U9b's `Bucket.write`); no
+  other callers yet.
+- **31.1 `Bucket.node.spec`** is U7d's `spec'`: premise `B.nm !! pgid = none → B.ib.root' ≠ W64 0 →
+  B.bv.page' = null` (`bktClean`'s); `Proof/Bucket__node`'s `wp_proof` is U7d's `wp_proof'` (callee
+  specs as hypotheses), the `spec'`/stub gone. Cascade: **`node.childAt.spec`,
+  `node.nextSibling.spec`, `node.prevSibling.spec`** take `B.ib.root' ≠ W64 0 → B.bv.page' = null`
+  (their last premise); `node__childAt`, `node__nextSibling`, `node__prevSibling`, `Cursor__node`
+  (both calls: `hcB.2.2.2.2.2.1`, the second through `curSt`'s `page'` equality) adapted. **Open,
+  owner U8d**: `node__rebalance`'s calls of `hNode`, `hNext`, `hPrev` pass the premise (from
+  `bktClean`).
+- **31.2 `wOK_leaves_fuel`**: `Model/LTree`'s stub deleted; the shared lemma is `Write/Fuel`'s
+  `Write.wOK_leaves_fuel'` (proved; `Write/Fuel` imports `Model/LTree`, so it cannot move there).
+- **32 (U9e) `wdbOK` ends `… ∧ (∀ x ∈ w.fl.free, x.toNat < w.C.hwm)`** (`storeOK`'s `flBelow`;
+  `node.spill`'s allocated pages below `tx.meta.Pgid()`). `wdbOK_free` (free unchanged) and
+  `wdbOK_alloc` (a filter of the free ids) adapted; producers: `beginRWTx` (U5), `Rollback`'s
+  (U5/U10), `DB.mmap` (U4, `sorry`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

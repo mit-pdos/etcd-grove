@@ -34,6 +34,7 @@ abbrev node.childAt.spec : Prop :=
   n ∈ X.live → bl ∈ X.liveB → B.bv.nodes' ≠ null → 0 ≤ sint.Z i →
   rn.ws[sint.nat i]? = some w →
   (∀ l, B.nm !! w.pgid = some l → l ≠ null) → (B.nm !! w.pgid = none → matReady X B w.pgid) →
+  (B.ib.root' ≠ W64 0 → B.bv.page' = null) →
   {{ wtxW (GF := GF) K tx r m X }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"childAt")) (Val #i))
   {{ (l : Loc), RET #l; ∃ X' : WX, wtxW K tx r m X' ∗

@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem node.childAt.wp_proof (hPg : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG))
     (hN : Bucket.node.spec (GF := GF) (hG := hG)) :
     node.childAt.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B n rn i w hb hn hbl hleaf hnl hbll hnodes hi hw hnm hready
+  intro K tx r m X bl B n rn i w hb hn hbl hleaf hnl hbll hnodes hi hw hnm hready hpg0
   wp_start as Hw
   unfold wtxW wtxCore
   icases Hw with ⟨⟨#Hpkg', #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
@@ -69,7 +69,7 @@ theorem node.childAt.wp_proof (hPg : internal.common.Inode.Pgid.spec (GF := GF) 
   · iframe
   rw [hbl]
   wp_apply hN K tx r m X bl B w.pgid n hb hbll hnodes hnm
-    (fun h => ⟨hready h, Or.inr ⟨rn, hn, hleaf, hnl⟩⟩) $$ [Hh Hfills Hbk Hnl Hdb Hview Hst Hcells Hmap]
+    (fun h => ⟨hready h, Or.inr ⟨rn, hn, hleaf, hnl⟩⟩) (fun _ => hpg0) $$ [Hh Hfills Hbk Hnl Hdb Hview Hst Hcells Hmap]
     as %l ⟨%X', Hw, %Hpost⟩
   · unfold wtxW wtxCore; iframe; iframe #; ipureintro; exact Hr
   iapply HΦ

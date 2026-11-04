@@ -37,6 +37,7 @@ abbrev Bucket.node.spec : Prop :=
   (∀ l, B.nm !! pgid = some l → l ≠ null) →
   (B.nm !! pgid = none → matReady X B pgid ∧
     (parent = null ∨ ∃ rp, B.ns !! parent = some rp ∧ rp.nv.isLeaf' = false ∧ parent ∈ X.live)) →
+  (B.nm !! pgid = none → B.ib.root' ≠ W64 0 → B.bv.page' = null) →
   {{ wtxW (GF := GF) K tx r m X }}
     (App (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"node")) (Val #pgid))
       (Val #parent))

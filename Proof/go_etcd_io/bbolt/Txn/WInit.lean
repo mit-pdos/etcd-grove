@@ -82,7 +82,11 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
   have hrt' : (brec0 bv ib).ib.root'.toNat = C.root := hrt
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact hi.writable
-  · rfl
+  · -- batch 30: no buffers, no node (so `leafShape`)
+    refine ⟨rfl, rfl, ?_⟩
+    intro bl B hB l r hr
+    obtain ⟨rfl, rfl⟩ := hbs bl B hB
+    exact absurd hr (by simp [brec0])
   · show 2 ≤ mv.pgid'.toNat; rw [hi.pgid]; omega
   · show C.txid + 1 = mv.txid'.toNat; rw [hi.txid]
   · simp [wx0]

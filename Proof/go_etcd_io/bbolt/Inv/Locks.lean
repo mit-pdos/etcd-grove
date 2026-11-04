@@ -197,7 +197,10 @@ def wdbOK (w : WDb) : Prop :=
   (∀ b l, w.ms = some (b, l) → l ≤ 0x1000000 → w.m.size ≤ l) ∧
   -- batch 30 (`DB.grow`): the tree and pending slots lie below the high-water mark, so every slot
   -- past the file's end is a `W` slot (`Truncate`'s cells of `[size, len)` come from `wCells`)
-  (∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s < w.C.hwm)
+  (∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s < w.C.hwm) ∧
+  -- batch 32 (U9e): free ids lie below the high-water mark (`storeOK`'s `flBelow`; `node.spill`'s
+  -- allocated pages are then below `tx.meta.Pgid()`, its panic check)
+  (∀ x ∈ w.fl.free, x.toNat < w.C.hwm)
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,

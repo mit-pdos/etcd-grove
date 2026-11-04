@@ -128,13 +128,8 @@ def leafFor (X : WX) (bl : Loc) (k : List w8) (l : Loc) : Prop :=
 
 /-! ## Lemma statements -/
 
-/-- **The walk of a well-formed writer's tree ends within its fuel** (U7; the termination
-`wtxData_put`/`wtxData_del` need): before `Commit` a branch node's entries are its page's
-(`wOK`'s `txPg`), so bucket `bl`'s logical tree is its base tree's shape, whose depth the view's
-strict tree bounds by its page count, below `X.fuel`; more fuel walks the same leaves. -/
-theorem wOK_leaves_fuel (X : WX) (bl : Loc) (hok : wOK X) (k : Nat) :
-    lleaves (ltree X) bl (X.fuel + k) (X.rootPid bl) = X.leaves bl := by
-  sorry
+-- `wOK_leaves_fuel`: U7's `Write.wOK_leaves_fuel'` (`Write/Fuel`), batch 31 (proved; the stub
+-- that stood here is deleted, as batch 23's).
 
 -- `wtxData_put`, `wtxData_del`: U7k's `Write.wtxData_put'`/`wtxData_del'` (`Write/Data`);
 -- `wtxData_create`, `wtxData_drop`: `Write.wtxData_create'`/`wtxData_drop'` (`Write/DataBkt`), batch 23.

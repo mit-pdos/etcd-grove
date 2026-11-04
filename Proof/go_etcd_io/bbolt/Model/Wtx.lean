@@ -338,9 +338,19 @@ def bktClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=
   (∀ l r, B.ns !! l = some r → nodeClean v hwm bl B l r) ∧
   posDisjoint v B ∧ posNodeFree v B
 
-/-- The clean invariant of the transaction (old `txClean`), its root bucket at `X.rl`. -/
+/-- **The root shape on the writer's leaf nodes** (batch 30, U9d): the root bucket's leaves hold
+only bucket entries, every other bucket's leaves none (nesting depth 2, as `treeOK`'s
+`rootShape` for the view: `Put` writes plain entries, `CreateBucket` buckets only at the root). -/
+def leafShape (X : WX) : Prop :=
+  ∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → r.nv.isLeaf' = true →
+    ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)
+
+/-- The clean invariant of the transaction (old `txClean`), its root bucket at `X.rl`; batch 30
+(U9d), in its second clause beside `pm = ∅` (so that the six-clause patterns stand): no dirty-page
+buffers yet (`spill` allocates them; `WX.bufPages` reads all of `bufs`), and the leaves' root
+shape (`leafShape`). -/
 def txClean (X : WX) : Prop :=
-  X.t.t.writable' = true ∧ X.t.pm = ∅ ∧
+  X.t.t.writable' = true ∧ (X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X) ∧
   2 ≤ X.t.mv.pgid'.toNat ∧ X.v.txid + 1 = X.t.mv.txid'.toNat ∧ (X.t.bs !! X.rl).isSome ∧
   ∀ bl B, X.t.bs !! bl = some B → bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     ∀ name c, B.bm !! name = some c → (X.t.bs !! c).isSome

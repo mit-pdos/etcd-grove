@@ -67,7 +67,7 @@ theorem WriteInodeToPage.wp_proof
     (wp_Inode_Pgid : Inode.Pgid.spec (GF := GF) (hG := hG))
     (wp_Assert : Assert.spec (GF := GF) (hG := hG)) :
     WriteInodeToPage.spec (GF := GF) (hG := hG) := by
-  intro s ins ms dqs dqb p hdr rest Hp0 Hfits Hrest Hcirc
+  intro s ins ms dqs qk qv p hdr rest Hp0 Hfits Hrest Hcirc
   wp_start as ⟨Hs, Hins, Hp, Hb⟩
   obtain ⟨Hn16, Hfit, Hkeys⟩ := Hfits
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hins
@@ -101,11 +101,11 @@ theorem WriteInodeToPage.wp_proof
         (dataBytes (ms.take (sint.nat j)) ++
           (rest.drop (16 * ms.length)).drop (dataBytes (ms.take (sint.nat j))).length) ∗
       "Hs" ∷ s ↦*{dqs} ins ∗
-      "Hins" ∷ ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-        it.key' ↦*{dqb} m.key ∗ it.value' ↦*{dqb} m.value) ∗
+      "Hins" ∷ ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗
       "HΦ" ∷ (s ↦*{dqs} ins ∗
-        ([∗list] it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-          it.key' ↦*{dqb} m.key ∗ it.value' ↦*{dqb} m.value) ∗ p ↦ hdr ∗
+        ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+          it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗ p ↦ hdr ∗
         bytesPointsto (p +ₗ 16) (DFrac.own 1) (pageBody leaf ms ++ rest.drop (pageBody true ms).length) -∗
         Φ #(W32 ((16 + (pageBody leaf ms).length : Nat) : Int))) ∗
       "«$res0»" ∷ «$res0_ptr» ↦ zero_val w32 ∗
@@ -301,7 +301,7 @@ theorem WriteInodeToPage.wp_proof
         with Hc
       rw [hClen]
       wp_apply wp_Inode_Key $$ [$item] as item
-      wp_apply wp_slice_copy _ C x.key' m.key dqb $$ [Hc Hkey] as %n ⟨%Hn, Hc, Hkey⟩
+      wp_apply wp_slice_copy _ C x.key' m.key (qk (sint.nat j)) $$ [Hc Hkey] as %n ⟨%Hn, Hc, Hkey⟩
       · iframe
       have hkl : m.key.length ≤ C.length := by rw [hClen]; simp
       rw [List.take_of_length_le hkl] at *
@@ -330,7 +330,7 @@ theorem WriteInodeToPage.wp_proof
       rw [hkn, List.take_left' rfl, List.drop_left' rfl,
         show (slice.mk (p +ₗ (dataOff ms (sint.nat j) : Int)) (W64 ((m.key ++ m.value).length : Int))
           (W64 ((m.key ++ m.value).length : Int))).len = W64 ((m.key ++ m.value).length : Int) from rfl]
-      wp_apply wp_slice_copy _ _ x.value' m.value dqb $$ [Hc2 Hval] as %n2 ⟨-, Hc2, Hval⟩
+      wp_apply wp_slice_copy _ _ x.value' m.value (qv (sint.nat j)) $$ [Hc2 Hval] as %n2 ⟨-, Hc2, Hval⟩
       · iframe
       have hvl : (C.drop m.key.length).length = m.value.length := by
         simp only [List.length_drop, hClen, List.length_append]; omega
