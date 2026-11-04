@@ -189,6 +189,56 @@ def boltCurDef (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Op
 
 /-! ## The laws over the definitions (U5, U6) -/
 
+private instance ite_persistent' {c : Prop} [Decidable c] (P Q : IProp GF) [Persistent P] [Persistent Q] :
+    Persistent (if c then P else Q) := by
+  split <;> infer_instance
+
+private instance ite_timeless' {c : Prop} [Decidable c] (P Q : IProp GF) [Timeless P] [Timeless Q] :
+    Timeless (if c then P else Q) := by
+  split <;> infer_instance
+
+private instance bytesPointsto_discard_persistent' (l : Loc) (bs : List w8) :
+    Persistent (bytesPointsto (GF := GF) l DFrac.discard bs) :=
+  (bytesPointsto_dfractional (GF := GF) l bs).dfractional_persistent
+
+private instance ownSliceCap_timeless' (V : Type) [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice)
+    (dq : DFrac) : Timeless (ownSliceCap (GF := GF) V s dq) := by
+  rw [ownSliceCap_unseal]; unfold ownSliceCapDef; infer_instance
+
+private instance nodeLoc_timeless' (r : TxReg) (nl : Loc → Option (Loc × Nat)) (e : elemRef) :
+    Timeless (nodeLoc (GF := GF) r nl e) := by
+  unfold nodeLoc; split <;> infer_instance
+
+private instance nodeLocs_timeless' (r : TxReg) (nl : Loc → Option (Loc × Nat)) (els : List elemRef) :
+    Timeless ([∗list] e ∈ els, nodeLoc (GF := GF) r nl e) :=
+  BigSepL.bigSepL_timeless (fun _ => inferInstance)
+
+open Iris.ProofMode in
+/-- The `ex` token's share of a `boltTx`. -/
+private theorem boltTxDef_ex (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) :
+    boltTxDef (GF := GF) B N tx q T ⊢ ∃ r : TxReg, reg tx B r ∗ ghostVar r.n.ex q () ∗
+      (∃ (c : TxViewC) (x : TxX), ghostVar r.n.v q.half (c, x) ∗ ⌜T = TxView.ofC c⌝) ∗
+      ∃ d : Loc, tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} d := by
+  unfold boltTxDef
+  split
+  · iintro ⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, Hreg, -, Hv, Hex, Hw⟩
+    iexists r; iframe Hreg Hex
+    unfold wtxFrac
+    icases Hw with ⟨-, -, -, -, -, -, Hdb, -⟩
+    isplitl [Hv]
+    · iexists c, (TxX.wr X); iframe Hv; ipureintro; exact Hc.1
+    iexists r.db; iexact Hdb
+  · iintro ⟨%db', Hr, -⟩
+    unfold rdTx
+    icases Hr with ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, Hreg, -, Hv, Hex, Hrt, -⟩
+    iexists r; iframe Hreg Hex
+    unfold rtxFrac
+    icases Hrt with ⟨%t, -, -, -, -, -, -, -, -, Hdb, -⟩
+    isplitl [Hv]
+    · iexists c, (TxX.rd v mv k); iframe Hv; ipureintro; exact Hc.1
+    iexists r.db; iexact Hdb
+
+
 theorem boltTxDef_later (B : BNs) (N : Namespace) (db tx : Loc) (q : Qp) (T : TxView) :
     isBoltDef (GF := GF) B N db ⊢ ▷ boltTxDef B N tx q T -∗ ◇ boltTxDef B N tx q T := by
   sorry
@@ -197,40 +247,73 @@ theorem boltTxDef_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) :
     Fractional (fun q => boltTxDef (GF := GF) B N tx q T) := by
   sorry
 
+open Iris.ProofMode in
 theorem boltTxDef_agree (B : BNs) (N : Namespace) (tx : Loc) (q1 q2 : Qp) (T1 T2 : TxView) :
     boltTxDef (GF := GF) B N tx q1 T1 ∗ boltTxDef B N tx q2 T2 ⊢ ⌜T1 = T2⌝ := by
-  sorry
+  iintro ⟨H1, H2⟩
+  icases boltTxDef_ex B N tx q1 T1 $$ H1 with ⟨%r1, Hr1, -, ⟨%c1, %x1, Hv1, %h1⟩, -⟩
+  icases boltTxDef_ex B N tx q2 T2 $$ H2 with ⟨%r2, Hr2, -, ⟨%c2, %x2, Hv2, %h2⟩, -⟩
+  unfold reg
+  icombine Hr1 Hr2 gives %hr
+  obtain ⟨-, rfl⟩ := hr
+  icombine Hv1 Hv2 gives %hv
+  ipureintro
+  have : c1 = c2 := (Prod.mk.inj hv.2).1
+  rw [h1, h2, this]
 
+open Iris.ProofMode in
 theorem boltTxDef_valid (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ⌜q ≤ 1⌝ := by
-  sorry
+  iintro H
+  icases boltTxDef_ex B N tx q T $$ H with ⟨%r, -, Hex, -⟩
+  ihave ⟨H1, H2⟩ := (ghostVar_split_half r.n.ex q ()).1 $$ Hex
+  icombine H1 H2 gives %h
+  ipureintro; rw [Qp.half_add_half] at h; exact h.1
 
 theorem boltTxDef_nonnull (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ⌜tx ≠ Loc.null⌝ := by
   sorry
 
+open Iris.ProofMode in
 theorem boltTxDef_base (B : BNs) (N : Namespace) (tx : Loc) (q q' : Qp) (T : TxView)
     (D : Data) :
     boltTxDef (GF := GF) B N tx q T ∗ boltStateDef B q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by
-  sorry
+  unfold boltTxDef
+  split
+  · iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, -, -, -, -, Hw⟩, Hs⟩
+    unfold wtxFrac boltStateDef
+    icases Hw with ⟨-, -, -, Hst, -⟩
+    icases Hs with ⟨Hs, -⟩
+    icombine Hst Hs gives %h
+    ipureintro; intro _; exact h.2
+  · rename_i h
+    iintro -
+    ipureintro; intro h'; exact absurd h' h
 
 instance txDBDef_persistent (tx db : Loc) : Persistent (txDBDef (GF := GF) tx db) := by
-  sorry
+  unfold txDBDef isBoltDef isBoltP reg; infer_instance
 
 instance txDoneDef_persistent (tx : Loc) : Persistent (txDoneDef (GF := GF) tx) := by
-  sorry
+  unfold txDoneDef; infer_instance
 
 instance boltBktDef_persistent (B : BNs) (tx b : Loc) (n : GoString) (g : Nat) :
     Persistent (boltBktDef (GF := GF) B tx b n g) := by
-  sorry
+  unfold boltBktDef reg handleFrag viewOf rBkt locOwn
+  refine @exists_persistent _ _ _ _ (fun r => ?_)
+  rcases r with ⟨db, n, rw, src⟩
+  cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
 instance txBytesDef_persistent (B : BNs) (tx : Loc) (s : GoSlice) (b : GoString) :
     Persistent (txBytesDef (GF := GF) B tx s b) := by
-  sorry
+  unfold txBytesDef reg viewOf; infer_instance
 
 instance boltCurDef_timeless (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt)
     (pos : Option Nat) : Timeless (boltCurDef (GF := GF) B tx c T es pos) := by
-  sorry
+  unfold boltCurDef
+  refine @exists_timeless _ _ _ _ (fun r => ?_)
+  rcases r with ⟨db, n, rw, src⟩
+  unfold reg handleFrag viewOf
+  cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
 theorem txBytesDef_acc (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView)
     (s : GoSlice) (b : GoString) :
@@ -251,7 +334,7 @@ the public reader triples are corollaries of the internal ones over `rdTx`. -/
 theorem boltTx_rdTx (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView)
     (hro : T.rw = false) :
     boltTxDef (GF := GF) B N tx q T ⊣⊢ ∃ db, rdTx B N tx .loan q T ∗ isBoltDef B N db := by
-  sorry
+  unfold boltTxDef; simp only [hro, Bool.false_eq_true, ↓reduceIte]; exact .rfl
 
 end tx
 
