@@ -68,8 +68,7 @@ treatment (R8): `isDsc` carries `⌜cfg.AmbiguousWrites' = false⌝`, taken by
 - **Invariant stage**: done. Every operation touching the API state or the consistency store has a
   proved `s1Ok` step (README, "The invariant stage"); only the ambiguous create has none.
 - **Stage 3, skeleton**: done; every function on `Main`'s path has a spec and a stub;
-  `dsonepod_safe` stated with pure premises over the generated program and building (as of
-  `b5da2f6ac6`, before the last WIP below).
+  `dsonepod_safe` stated with pure premises over the generated program and building.
 - **Stage 3, reviews**: round 1 done on both halves; dispositions in README. Fixes applied by
   track B (sync path: `56fda3cd29`, `51d995c49e`, `28f2353c99`) and track A2 (informers:
   `b5da2f6ac6`). **Track C's adaptation was cut off mid-way** (see WIP). Round 2 (fresh
@@ -86,13 +85,13 @@ WIP commit so nothing is lost: track C adapting the driver (`dsmain/{Adequacy,De
 `run`/`Main` specs), the constructor and indexer specs, `metrics/Register`, `LifeDefs`, `gen-init.py`
 and `ErrorfLabelsMap.lean` to review round 1 and A2's `b5da2f6ac6` (name-keyed index families,
 `informerGates`, the store-version contract, R8's premise on the constructor and `run`); track B's
-`SyncSteps.lean`. **Build status of that WIP**: see "WIP build check" at the end of this file.
-First job: make it build (adapt to `b5da2f6ac6` as listed in README's "Review round 1 (API and
-driver)" line and in the R8 entry), then `lake build Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain.Results`.
+`SyncSteps.lean`. **It builds** (see "WIP build check" at the end), but track C had not finished:
+check its statements against README's "Review round 1 (API and driver)" line and the R8 entry
+(the items still open are listed under "What to do next", 2).
 
 ## What to do next, in order
 
-1. Finish track C's adaptation (above) until `dsmain.Results` builds.
+1. Finish track C's adaptation (above): review its WIP statements against round 1's dispositions.
 2. Remaining round-1 items not yet done: `Main.wp_proof`'s single named `sorry` at the
    `AmbiguousWrites` obligation (R8); `Adequacy.lean`'s header (old stuck point); `namesUnclaimed`
    premise for `metrics.Register` (M4 of review-1-api); `gatesSet` giving `informerGates`;
@@ -145,3 +144,11 @@ driver)" line and in the R8 entry), then `lake build Proof.github_com.mit_pdos.e
 - `nonissues/k8s-daemonset-constructhistory-nil-labels.md` (`update.go:311` writes into a nil
   labels map; excluded by `sceneOk`).
 - `notes/perennial-changes.md`: `fmt.Errorf` with `%#v` of a struct pointer / `%+v` of a map.
+
+## WIP build check
+
+2026-11-04, on the WIP commit `070ef9ac68`'s tree: `lake build
+Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.dsmain.Results
+Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncSteps` completed successfully (3377 jobs). Not
+run: a full `lake build`, `etc/tcb-report.py --check` (needs the full build), `etc/gen-init.py
+--check`, `etc/bounds-check.py --check` (known to fail on three new `threadBound` mentions).
