@@ -130,6 +130,9 @@ theorem mapFields_len (db : Loc) (dq : DFrac) (ms : MapSt) :
     iintro ⟨-, -, -, -, %H⟩
     ipureintro; exact H.1
 
+omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
+theorem hwm_fit (a n L : Nat) (h : ¬ L ≤ (a + n + 1) * 4096) : (a + n) * 4096 ≤ L := by omega
+
 theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
@@ -379,7 +382,61 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hwok
     subst hv
     wp_auto
-    sorry
+    have hml : sint.Z (W64 ((mapLen w.ms : Nat) : Int)) = (mapLen w.ms : Int) := by word
+    have hcW : W64 ((sint.nat count : Nat) : Int) = count := by
+      have : (sint.Z count).toNat = sint.nat count := rfl
+      word
+    rw [hml, hM]
+    by_cases hrm : ((mapLen w.ms : Nat) : Int) ≤ (((pg.toNat + sint.nat count + 1) * 4096 : Nat) : Int)
+    · rw [decide_eq_true hrm]
+      sorry
+    rw [decide_eq_false hrm]
+    wp_auto
+    wp_apply hPgid $$ [Hmv] as Hmv
+    · iframe
+    try wp_auto
+    rw [hpg]
+    wp_apply hSetPgid $$ [Hmv] as Hmv
+    · iframe
+    try wp_auto
+    have hov : W32 (sint.Z (count - W64 1)) = W32 ((sint.nat count - 1 : Nat) : Int) := by
+      have : sint.Z (count - W64 1) = sint.Z count - 1 := by word
+      rw [this]; congr 1; omega
+    rw [hov]
+    ihave Hp := allocBuf_of_page s.ptr pg (sint.nat count) Hsp $$ [Hh Hz]
+    · iframe
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists X, w, pg, pg + W64 ((sint.nat count : Nat) : Int)
+    isplitl [Hwback Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+    · rw [show X.withHwm (pg + W64 ((sint.nat count : Nat) : Int)) =
+          { X with t := (X.withHwm (pg + W64 ((sint.nat count : Nat) : Int))).t } from rfl]
+      iapply Hwback $$ %(X.withHwm (pg + W64 ((sint.nat count : Nat) : Int))).t []
+        [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+      · ipureintro; exact ⟨rfl, rfl, rfl⟩
+      · simp only [WX.withHwm]
+        rw [hcW]
+        iframe
+    isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
+    · isplitl
+      · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
+        · iexists wa
+          iframe
+        · iframe
+      · ipureintro; exact Hwok
+    iframe Hp
+    ipureintro
+    refine ⟨?_, rfl, ?_, .inr ⟨hpg.symm, by omega, rfl, .inl ⟨rfl, rfl⟩⟩⟩
+    · intro h; rw [h] at Hsp; exact absurd Hsp (by decide)
+    · rw [hcW]
+      have : (pg + count).toNat = pg.toNat + sint.nat count := by
+        have : (sint.Z count).toNat = sint.nat count := rfl
+        word
+      rw [this]
+      have h2 : ¬ (mapLen w.ms ≤ (pg.toNat + sint.nat count + 1) * 4096) := by exact_mod_cast hrm
+      exact hwm_fit _ _ _ h2
   icases Hflo with (⟨%h0, -⟩ | ⟨%hcan, Hflo⟩)
   · exact absurd h0 hr0
   -- the freelist's run: the store's step, the page's bytes
