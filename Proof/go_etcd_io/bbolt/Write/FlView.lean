@@ -316,12 +316,12 @@ theorem flView_nodeAdded' (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (par
   refine lCovers_congr X X' hvv hroot hbkt hbs ?_
   intro c hcs
   obtain ⟨B, pa, pg, r, ns', bv', hB, hpg, hnm, hl0, hlo, hrb, hrp0, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := h
   obtain ⟨hfnm, hfroot⟩ := hf B hB
   -- the records of the other positions' nodes keep their page ids
   have hns_pg : ∀ l0, l0 ≠ l → (ns' !! l0).map (fun r => r.nv.pgid') = (B.ns !! l0).map (fun r => r.nv.pgid') := by
     intro l0 hl0'
-    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', hrpp, -, -, -, -, -, -, hnv, rfl⟩
+    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', hrpp, -, -, -, -, -, -, -, hnv, rfl⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hl0')]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hl0')]
       by_cases hp : parent = l0
@@ -392,7 +392,7 @@ theorem flView_nodeAdded' (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (par
             unfold wpageAt at hpg; simp only [hin, ↓reduceIte, Option.some.injEq,
               Prod.mk.injEq] at hpg
             exact hpg.2.symm
-          obtain ⟨-, -, hg⟩ := (wOK_bktClean X hok c B hB).1 hin hrn
+          obtain ⟨-, -, hg, -⟩ := (wOK_bktClean X hok c B hB).1 hin hrn
           rw [hpgB]
           apply BitVec.eq_of_toNat_eq
           exact hg.1
@@ -416,7 +416,7 @@ theorem flView_nodeAdded' (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (par
         rw [GMap.lookup_insert, hnm]
         simp only
         have : ns' !! l = some r := by
-          rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, rfl⟩ <;> simp
+          rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, -, rfl⟩ <;> simp
         rw [this]
         simp only [Option.map_some, Option.getD_some, hrid]
         exact nodeAdded_pgid X hok c B pid parent pa pg hB hpos hpg hin
