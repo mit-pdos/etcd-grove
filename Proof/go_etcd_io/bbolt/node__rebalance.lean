@@ -23,6 +23,8 @@ public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblBase
 public import Proof.go_etcd_io.bbolt.Inv.WtxBase
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSMat
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXMg
+public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
+public import Proof.go_etcd_io.bbolt.Inv.MatReady
 
 @[expose] public section
 
@@ -342,7 +344,7 @@ theorem rebal_loeb
       have hw00 : rn.ws[0]? = some w0 := by rw [hw0]; rfl
       have hB1 := (hI1.2.1 bl _ hb1).1
       rw [if_pos rfl] at hB1
-      obtain ⟨hc1, -, -, -⟩ := hB1
+      obtain ⟨hc1, ⟨bnd1, hk1⟩, -, -⟩ := hB1
       -- entry 0's page id (`n.inodes[0].Pgid()`)
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
         $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
@@ -367,6 +369,50 @@ theorem rebal_loeb
       · iapply (Write.wOwn_live _ _ _).2; iframe; ipureintro; exact Hfp
       icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn3⟩
       iStructNamed Hn
+      -- `n.inodes[0].Pgid()`
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧
+        sint.Z (W64 0) < sint.Z rn.nv.inodes'.len from ⟨by word, by rw [hl1]; word⟩))]
+      isimp only [rblClear] at Hins
+      icases ownSlice_elem_acc (sint.Z (W64 0)) it rn.nv.inodes' _ rn.ins (by word) (by simpa using hit)
+        $$ Hins with ⟨Hit, Hsback⟩
+      wp_apply hPg $$ [$Hit] as Hit
+      try wp_auto
+      ihave Hins := Hsback $$ Hit
+      rw [list_set_lookup_self _ _ _ (by simpa using hit), Hfp.2]
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn3
+        simp only [TypedPointsto.typedPointstoDef]; (try rw [hlf]); (try rw [hlf'])
+        iframe
+      ihave Hh := Hback $$ [Hn Hins Hcap Hws Hch Hchcap Hkey]
+      · iapply (objOwn_live_node _ _ _ _ _).2
+        isimp only [true_and] at Hkey
+        simp only [eq_self_iff_true, true_and]
+        iframe Hn Hcap Hws Hch Hchcap Hkey; simp only [rblClear]; iexact Hins
+      ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      -- `n.bucket.node(pgid, n)`
+      have hroot0 := rbl_root_ne _ _ _ _ bl _ n (rblClear rn) hI1 hb1 hr1 hlf'
+      obtain ⟨-, -, hnk3, -, -⟩ := hk1.2.2 n (rblClear rn) hr1
+      obtain ⟨-, -, kind0, hkd0⟩ := hnk3 hlf'
+      ihave %Hready : ⌜(rblStart B n rn).nm !! w0.pgid = none →
+          matReady (X.setBkt bl (rblStart B n rn)) (rblStart B n rn) w0.pgid⌝ $$ [Hw]
+      · by_cases hnone0 : (rblStart B n rn).nm !! w0.pgid = none
+        · obtain ⟨pg0, hpg0, -⟩ := (hkd0 0 w0 hw00').2 hnone0
+          ihave %Hmr := wtxW_matReady K tx r m _ (rblStart B n rn) w0.pgid pg0 hroot0
+            hI1.2.2.2.2.2.2.1 hpg0 (by show X.t.pm !! _ = none; rw [hI.1.2.1]; rfl) $$ Hw
+          ipureintro; exact fun _ => Hmr
+        · ipureintro; exact fun h => absurd h hnone0
+      icases wtxW_nm_acc K tx r m _ bl _ hb1 _ _ rfl rfl $$ Hw with ⟨Hnm, Hw⟩
+      ihave %Hnodes := ownMap_not_nil _ _ _ $$ Hnm
+      ihave Hw := Hw $$ Hnm
+      rw [hnc.1]
+      wp_apply hNode K tx r m _ bl _ w0.pgid n hb1 hbll Hnodes (fun l h => (hc1.2.2.2.2.1 _ l h).1)
+        (fun h => ⟨Hready h, Or.inr ⟨rblClear rn, hr1, hlf', hnl⟩⟩) $$ [Hw] as %lc ⟨%X2, Hw, %Hmat⟩
+      · iexact Hw
       sorry
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
