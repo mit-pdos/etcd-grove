@@ -2,6 +2,13 @@
 `(*sharedIndexInformer).AddIndexers(indexers)`: under `startedLock`, an error once stopped,
 else the store's `AddIndexers`: on success each index registered for good (`infIdx`). Lean-first;
 the DaemonSet run's track A.
+
+**To be restricted to before the informer's start** (the coordinator's decision, 2026-11-04; the
+controller adds its indexers before `Start`): after the start the call succeeds too (the store
+re-indexes its items), but the informer invariant's copy of the store state held by the processing
+goroutine (`γi.sw`) records `fnIds`, so a proof after the start would need that copy to ignore it.
+The restriction needs a not-started token, whose design changes the factory's `Start` (it must
+consume the tokens of the informers it starts): pending, the run's report.
 -/
 module
 

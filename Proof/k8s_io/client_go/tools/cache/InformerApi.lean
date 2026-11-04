@@ -46,6 +46,10 @@ reflector's `RefInf`) are what its proofs will rest on.
 * `infRunOk x` (persistent): `x.RunWithContext(ctx)` runs the informer (the factory's `Start`
   holds it, not the clients).
 
+To be restricted (the coordinator's decision, 2026-11-04): `AddEventHandlerWithOptions` and
+`AddIndexers` to before the informer's start (the controller's use); the not-started token this
+needs is pending (the run's report).
+
 Scope (marked): handlers without a resync period (`HandlerOptions.ResyncPeriod` `nil`, and the
 factory's default resync `0`): a resyncing handler's synthetic updates are not covered.
 -/
