@@ -65,6 +65,49 @@ def errMaxSizeOk : Prop :=
     ∃ e : GoInterfaceOk, globalAddr go_etcd_io.bbolt.errors.ErrMaxSizeReached ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ ∗ fmtErrorOk (.ok e)
 
+open Iris.ProofMode in
+/-- `errMaxSizeOk` holds (batch 30): bbolt's `errors` package facts give every error variable as
+an `errors.New` pointer error that is `fmtErrorOk` (`bboltErrVar`). -/
+theorem errMaxSizeOk_holds : errMaxSizeOk (GF := GF) (hG := hG) := by
+  unfold errMaxSizeOk
+  iintro #Hp
+  ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
+  · iPkgInit
+  ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hep
+  unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
+  icases Hei with ⟨%_, #-, %_, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
+  unfold go_etcd_io.bbolt.errors.bboltErrVar
+  iexact Hm
+
+open Iris.ProofMode in
+/-- A value read from one of bbolt's error variables is `fmtErrorOk` (batch 30). -/
+theorem bboltErrVar_fmtErrorOk (a : Loc) (err : GoInterface) :
+    go_etcd_io.bbolt.errors.bboltErrVar (GF := GF) a ⊢ a ↦□ err -∗ fmtErrorOk err := by
+  unfold go_etcd_io.bbolt.errors.bboltErrVar
+  iintro ⟨%e, #He, %-, #Hf⟩ #Ha
+  ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ He Ha
+  subst Heq
+  iexact Hf
+
+open Iris.ProofMode in
+/-- **`Begin`'s errors are `fmtErrorOk`** (batch 30, for U5's `Txn/Begin.beginErr_fmtErrorOk`):
+`ErrDatabaseNotOpen`, `ErrInvalidMapping`, `ErrDatabaseReadOnly`. -/
+theorem beginErrs_fmtErrorOk (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ∗
+      (globalAddr go_etcd_io.bbolt.errors.ErrDatabaseNotOpen ↦□ err ∨
+        globalAddr go_etcd_io.bbolt.errors.ErrInvalidMapping ↦□ err ∨
+        globalAddr go_etcd_io.bbolt.errors.ErrDatabaseReadOnly ↦□ err) ⊢ fmtErrorOk err := by
+  iintro ⟨#Hep, Hor⟩
+  ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hep
+  unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
+  icases Hei with ⟨%_, #-, %_, #H0, -, #H2, -, -, -, -, -, #H8, -⟩
+  icases Hor with (#Ha | #Ha | #Ha)
+  · iapply bboltErrVar_fmtErrorOk $$ H0 Ha
+  · iapply bboltErrVar_fmtErrorOk $$ H2 Ha
+  · iapply bboltErrVar_fmtErrorOk $$ H8 Ha
+
 /-- **The page pool's `New` is not nil** (U4c, see the header). -/
 def pagePoolNew : Prop :=
   ∀ db sp : Loc, dbFixed (GF := GF) db sp ⊢

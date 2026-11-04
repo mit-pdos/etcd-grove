@@ -786,6 +786,21 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   publish in `Commit` (U10: spill's pending frees are of committed pages, `< hwm`), `DB.mmap`
   (U4), `beginRWTx`'s release of pending pages (U5: free/pending ids are below `hwm` by `flBelow`).
 
+- **3. C(1), bbolt's error variables' package facts**: `PkgInit`'s `bboltErrorsVars` is over the
+  new `bboltErrVar a` (`∃ e : GoInterfaceOk, a ↦□ GoInterface.ok e ∗ ⌜IsPointerError e⌝ ∗
+  fmtErrorOk (.ok e)`, a `def` with its own `Persistent` instance: the instance search through
+  nineteen inline clauses exceeds its size), one per variable but `ErrBucketNotFound` (unchanged).
+  `errorString_fmtErrorOk` moved from `Mmap/MmapSize` to the new `Proof/errors/ErrorStringOk`
+  (namespace `EtcdGrove`, over `errors.Assumptions`), which `etc/gen-init.py`'s `errors` entry
+  imports; the generated `errors/Init.lean` and root `Init.lean` regenerated (their patterns and
+  unfolds updated in the script). `Meta__Validate`'s pattern adapted (the `≠ nil` facts by `nofun`).
+  New in `Mmap/Infra`: **`errMaxSizeOk_holds`** (U4c's `errMaxSizeOk` discharged),
+  `bboltErrVar_fmtErrorOk`, and **`beginErrs_fmtErrorOk`** (`isPkgInit errors ∗ (ErrDatabaseNotOpen
+  ↦□ err ∨ ErrInvalidMapping ↦□ err ∨ ErrDatabaseReadOnly ↦□ err) ⊢ fmtErrorOk err`): **for U5**,
+  `Txn/Begin.beginErr_fmtErrorOk`'s `sorry` is `beginErrs_fmtErrorOk` after dropping `beginErr`'s
+  `⌜err ≠ nil⌝` (not edited: U5 is editing `Txn/Begin`). Built: both `Init`s, `Mmap/{Infra,
+  MmapSize,Alloc}`, `Meta__Validate`, `Txn/Begin`.
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
@@ -808,11 +823,8 @@ units', per the U0b table):
 | `bktEnts_treeEntries` | `Model/TreeData` | U6 |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
 
-Not yet done from maintainer 3's queue: C(1) (bbolt's error variables' package facts with
-`IsPointerError` + `fmtErrorOk`, through `etc/gen-init.py`'s `SPECIAL`; needs U4c's
-`errorString_fmtErrorOk` moved out of `Mmap/MmapSize` into a module the generated `Init` can
-import), C(4) (`wdbOK`'s `mapLen ≤ AllocSize → m.size ≤ mapLen`, `wdbGrown`'s `wb` clause, the
-store slots below `C.hwm`), E (`store_cells_agree`'s proof).
+Not yet done from maintainer 3's queue: C(1), C(4) (done in batch 30 above), E
+(`store_cells_agree`'s proof).
 
 ## The modules (as built by U0a)
 

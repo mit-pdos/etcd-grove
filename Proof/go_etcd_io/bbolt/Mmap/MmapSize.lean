@@ -2,7 +2,7 @@
 `DB.mmapSize` (U4, `notes/bbolt-proof-plan.md`): the mapping size for a database of `size`
 bytes. Proved: the `for` loop over `i ∈ [15, 30]` (`mmapSizeOf_pow`), then, above 1 GiB, the
 `int64` rounding to a GiB (`mmapSize_round`; the page rounding is a no-op, `srem4096_zero`) and
-the cap; the `errors.New` error is `fmtErrorOk` (`errorString_fmtErrorOk`).
+the cap; the `errors.New` error is `fmtErrorOk` (`errorString_fmtErrorOk`, `Proof/errors/ErrorStringOk`).
 
 Note: above 1 GiB the size is rounded up to a whole GiB and then capped at `MaxMapSize`
 (`0xFFFFFFFFFFFF`), which is not a multiple of 4096: a mapping need not end on a page
@@ -14,6 +14,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.fmt.ErrorOk
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -105,28 +106,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- An `errors.New` error (`errors.wp_New_errorString`'s post) is `fmtErrorOk`. -/
-theorem errorString_fmtErrorOk (x : Loc) (msg : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
-        (Val #())) {{ Φ }}) ⊢
-    fmtErrorOk (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x) := by
-  iintro #H
-  simp only [fmtErrorOk, fmt.stringMethodSpec]
-  isplitr
-  · ipureintro
-    have h1 := (go.MethodSetIs.method_set_is
-      (t := go.GoType.PointerType errors.errorString.ty) go!"Format")
-    have h2 := (go.MethodSetIs.method_set_is
-      (t := go.GoType.PointerType errors.errorString.ty) go!"Error")
-    simp only [go.methodSetLookup] at h1 h2
-    exact ⟨by simpa using h1, by simpa [noArgStringSig] using h2⟩
-  imodintro
-  iintro %Φ HΦ
-  iapply H
-  inext
-  iapply HΦ
 
 /-- **`db.mmapSize(size)`**: `mmapSizeOf size`, or an `errors.New` error. -/
 abbrev DB.mmapSize.spec : Prop :=

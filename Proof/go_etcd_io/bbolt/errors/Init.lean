@@ -6,7 +6,8 @@ Its fact (`bboltErrorsInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `ErrBucketN
 holds an `errors.New` error, a leaf pointer error without an `Is` method
 (`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
 variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
-Perennial's `errors.wp_New_errorString`).
+Perennial's `errors.wp_New_errorString`); the other variables' errors are pointer errors and
+`fmtErrorOk` (`EtcdGrove.errorString_fmtErrorOk`, `Proof/errors/ErrorStringOk.lean`).
 -/
 module
 
@@ -14,6 +15,7 @@ public import Proof.go_etcd_io.bbolt.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVar
+public import Proof.errors.ErrorStringOk
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -170,44 +172,82 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   isplitr
   · ipureintro
     exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩
-  unfold go_etcd_io.bbolt.errors.bboltErrorsVars
+  unfold go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar
   isplitr
-  · iexists _; iframe HErrDatabaseNotOpen; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrDatabaseNotOpen; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrDatabaseNotOpen
   isplitr
-  · iexists _; iframe HErrInvalid; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrInvalid; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrInvalid
   isplitr
-  · iexists _; iframe HErrInvalidMapping; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrInvalidMapping; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrInvalidMapping
   isplitr
-  · iexists _; iframe HErrVersionMismatch; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrVersionMismatch; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrVersionMismatch
   isplitr
-  · iexists _; iframe HErrChecksum; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrChecksum; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrChecksum
   isplitr
-  · iexists _; iframe HErrTimeout; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrTimeout; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrTimeout
   isplitr
-  · iexists _; iframe HErrTxNotWritable; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrTxNotWritable; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrTxNotWritable
   isplitr
-  · iexists _; iframe HErrTxClosed; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrTxClosed; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrTxClosed
   isplitr
-  · iexists _; iframe HErrDatabaseReadOnly; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrDatabaseReadOnly; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrDatabaseReadOnly
   isplitr
-  · iexists _; iframe HErrFreePagesNotLoaded; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrFreePagesNotLoaded; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrFreePagesNotLoaded
   isplitr
-  · iexists _; iframe HErrBucketExists; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrBucketExists; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrBucketExists
   isplitr
-  · iexists _; iframe HErrBucketNameRequired; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrBucketNameRequired; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrBucketNameRequired
   isplitr
-  · iexists _; iframe HErrKeyRequired; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrKeyRequired; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrKeyRequired
   isplitr
-  · iexists _; iframe HErrKeyTooLarge; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrKeyTooLarge; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrKeyTooLarge
   isplitr
-  · iexists _; iframe HErrValueTooLarge; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrValueTooLarge; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrValueTooLarge
   isplitr
-  · iexists _; iframe HErrMaxSizeReached; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrMaxSizeReached; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrMaxSizeReached
   isplitr
-  · iexists _; iframe HErrIncompatibleValue; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrIncompatibleValue; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrIncompatibleValue
   isplitr
-  · iexists _; iframe HErrSameBuckets; ipureintro; simp [interface.mkOk]
-  iexists _; iframe HErrDifferentDB; ipureintro; simp [interface.mkOk]
+  · iexists _; iframe HErrSameBuckets; isplitr
+    · ipureintro; exact ⟨_, _, rfl, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrSameBuckets
+  iexists _; iframe HErrDifferentDB; isplitr
+  · ipureintro; exact ⟨_, _, rfl, rfl⟩
+  iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrDifferentDB
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -35,6 +35,7 @@ public import Proof.os.PkgInit
 public import Proof.hash.PkgInit
 public import Proof.reflect.PkgInit
 public import Proof.golang_org.x.sys.unix.PkgInit
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -63,29 +64,41 @@ end encoding.hex
 
 namespace go_etcd_io.bbolt.errors
 
-/-- The other variables of bbolt's `errors` hold fixed values, none `nil` (each an `errors.New`
-error; bbolt's root package's initializer loads them into its deprecated aliases, `errors.go`, and
-`Meta.Validate`'s spec needs `ErrInvalid`, `ErrVersionMismatch` and `ErrChecksum` non-`nil`). -/
+/-- The variable at `a` holds an `errors.New` error for good: a pointer error that `fmt` formats
+(`bboltErrorsVars`' clause; a `def` with its own instance, as `bboltErrorsVars`). -/
+def bboltErrVar (a : Loc) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, a ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.IsPointerError e⌝ ∗ EtcdGrove.fmtErrorOk (GoInterface.ok e))
+
+instance bboltErrVar_persistent (a : Loc) : Persistent (bboltErrVar (GF := GF) a) := by
+  unfold bboltErrVar; infer_instance
+
+/-- The other variables of bbolt's `errors` hold fixed values, each an `errors.New` error: a
+pointer error (`IsPointerError`: `err == ErrX` compares it at a pointer type) that `fmt` formats
+(`fmtErrorOk`, `EtcdGrove.errorString_fmtErrorOk`: bbolt logs and returns them). bbolt's root
+package's initializer loads them into its deprecated aliases (`errors.go`); `Meta.Validate`'s spec
+needs `ErrInvalid`, `ErrVersionMismatch` and `ErrChecksum` non-`nil`; `DB.allocate` compares
+`DB.mmap`'s error with `ErrMaxSizeReached`; `Begin`'s errors are logged (batch 30). -/
 def bboltErrorsVars : IProp GF :=
-  iprop((∃ e : GoInterface, globalAddr ErrDatabaseNotOpen ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrInvalid ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrInvalidMapping ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrVersionMismatch ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrChecksum ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrTimeout ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrTxNotWritable ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrTxClosed ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrDatabaseReadOnly ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrFreePagesNotLoaded ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrBucketExists ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrBucketNameRequired ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrKeyRequired ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrKeyTooLarge ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrValueTooLarge ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrMaxSizeReached ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrIncompatibleValue ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrSameBuckets ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
-    (∃ e : GoInterface, globalAddr ErrDifferentDB ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝))
+  iprop(bboltErrVar (globalAddr ErrDatabaseNotOpen) ∗
+    bboltErrVar (globalAddr ErrInvalid) ∗
+    bboltErrVar (globalAddr ErrInvalidMapping) ∗
+    bboltErrVar (globalAddr ErrVersionMismatch) ∗
+    bboltErrVar (globalAddr ErrChecksum) ∗
+    bboltErrVar (globalAddr ErrTimeout) ∗
+    bboltErrVar (globalAddr ErrTxNotWritable) ∗
+    bboltErrVar (globalAddr ErrTxClosed) ∗
+    bboltErrVar (globalAddr ErrDatabaseReadOnly) ∗
+    bboltErrVar (globalAddr ErrFreePagesNotLoaded) ∗
+    bboltErrVar (globalAddr ErrBucketExists) ∗
+    bboltErrVar (globalAddr ErrBucketNameRequired) ∗
+    bboltErrVar (globalAddr ErrKeyRequired) ∗
+    bboltErrVar (globalAddr ErrKeyTooLarge) ∗
+    bboltErrVar (globalAddr ErrValueTooLarge) ∗
+    bboltErrVar (globalAddr ErrMaxSizeReached) ∗
+    bboltErrVar (globalAddr ErrIncompatibleValue) ∗
+    bboltErrVar (globalAddr ErrSameBuckets) ∗
+    bboltErrVar (globalAddr ErrDifferentDB))
 
 /-- (A `def` with its own instance: the instance search through the nineteen conjuncts exceeds its
 size limit inside `bboltErrorsInit`.) -/

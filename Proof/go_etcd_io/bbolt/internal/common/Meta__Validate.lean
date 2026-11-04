@@ -36,7 +36,11 @@ theorem Meta.Validate.wp_proof
   ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hep
   unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
-  icases Hei with ⟨%_, #-, %_, -, ⟨%eI, #HI, %HIn⟩, -, ⟨%eV, #HV, %HVn⟩, ⟨%eC, #HC, %HCn⟩, -⟩
+    go_etcd_io.bbolt.errors.bboltErrVar
+  icases Hei with ⟨%_, #-, %_, -, ⟨%eI, #HI, %_, #-⟩, -, ⟨%eV, #HV, %_, #-⟩, ⟨%eC, #HC, %_, #-⟩, -⟩
+  have HIn : GoInterface.ok eI ≠ GoInterface.nil := nofun
+  have HVn : GoInterface.ok eV ≠ GoInterface.nil := nofun
+  have HCn : GoInterface.ok eC ≠ GoInterface.nil := nofun
   icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
   iStructNamed Hl
   wp_auto
