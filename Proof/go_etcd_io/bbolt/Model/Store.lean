@@ -207,6 +207,65 @@ proj_simps StoreSt.setFl
 
 /-! ## Lemma statements (U3) -/
 
+omit [GooseExts] in
+private theorem pendSlots_empty (fl : FLPg) (h : fl.pending = ∅) : pendSlots fl = [] := by
+  simp [pendSlots, FLPg.pendingIds, h]
+
+omit [GooseExts] in
+private theorem W64_toNat_of_lt (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
+  simp only [W64, BitVec.toNat_ofInt]; omega
+
+private theorem treeSlot_lt_hwm (C : CommitSt) (h2 : treeOK C) (s : Nat) (hs : s ∈ treeSlots C) :
+    s < C.hwm := by
+  simp only [treeSlots, pagesSlots, List.mem_flatMap, List.mem_range'] at hs
+  obtain ⟨⟨id, pg⟩, hip, j, hj, rfl⟩ := hs
+  have := h2.2.2.2.1 id pg ((GMap.mem_toList _ _ _).1 hip)
+  simp only at hj
+  omega
+
+private theorem storeSlot_lt (σ : StoreSt) (h : storeOK σ) (s : Nat) (hs : s ∈ storeSlots σ) :
+    s < 2 ^ 64 := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append] at hs
+  rcases hs with hs | hs
+  · have := treeSlot_lt_hwm σ.C h.2.1 s hs
+    have hm := h.1.2.2.2.2.2.2.1.2.2.1
+    have := (metaOf (σ.C.slot σ.C.txid)).pgid'.isLt
+    omega
+  · simp only [pendSlots, List.mem_map] at hs
+    obtain ⟨x, -, rfl⟩ := hs
+    exact x.isLt
+
+omit [GooseExts] in
+private theorem mem_sortPgids (l : List w64) (x : w64) : x ∈ sortPgids l ↔ x ∈ l :=
+  (List.mergeSort_perm _ _).mem_iff
+
+omit [GooseExts] in
+private theorem nodup_len_le (l : List w64) (B : Nat) (hnd : l.Nodup) (hb : ∀ x ∈ l, x.toNat < B) :
+    l.length ≤ B := by
+  have h1 : (l.map BitVec.toNat).Nodup := by
+    rw [List.Nodup, List.pairwise_map]
+    exact hnd.imp (fun {a b} hne e => hne (BitVec.eq_of_toNat_eq e))
+  have h2 : l.map BitVec.toNat ⊆ List.range B := by
+    intro y hy
+    simp only [List.mem_map] at hy
+    obtain ⟨x, hx, rfl⟩ := hy
+    exact List.mem_range.2 (hb x hx)
+  have := h1.length_le_of_subset h2
+  simpa using this
+
+omit [GooseExts] in
+private theorem sortPgids_incr (l : List w64) (hnd : l.Nodup) : PgidsIncr (sortPgids l) := by
+  have hs : (sortPgids l).Pairwise (fun x y => decide (x.toNat ≤ y.toNat)) :=
+    List.pairwise_mergeSort (fun a b c h1 h2 => by simp at *; omega)
+      (fun a b => by simp; omega) l
+  have hn : (sortPgids l).Nodup := (List.mergeSort_perm _ _).nodup_iff.2 hnd
+  unfold PgidsIncr
+  refine (hs.and hn).imp fun {x y} ⟨h1, h2⟩ => ?_
+  simp only [decide_eq_true_eq] at h1
+  have : x.toNat ≠ y.toNat := fun h => h2 (BitVec.eq_of_toNat_eq h)
+  omega
+
+
 open Classical in
 private theorem lent_fold_le (s : Nat) (l : List (Nat × RdInfo)) (q : Qp)
     (h : l.foldr (fun kv acc => if coversSlot kv.2.v.pages s then optAdd rq acc else acc) none
@@ -312,7 +371,12 @@ theorem storeOK_register (σ : StoreSt) (k : Nat) (r : RdInfo) (b : Loc) (l : Na
 
 theorem storeOK_deregister (σ : StoreSt) (k : Nat) (h : storeOK σ) :
     storeOK (σ.deregister k) := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, fun k' r hr => h7 k' r ?_, h8, h9,
+    fun k' r hr => h10 k' r ?_, h11, h12, h13, fun hms => ⟨?_, (h14 hms).2⟩, h15, h16, h17⟩
+  · exact ((GMap.lookup_delete_Some _ _ _ _).1 hr).2
+  · exact ((GMap.lookup_delete_Some _ _ _ _).1 hr).2
+  · simp only [StoreSt.deregister, (h14 hms).1]; exact GMap.delete_empty k
 
 theorem storeOK_wbegin (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeOK σ)
     (hms : σ.ms = some (b, l)) (hw : σ.wtx = none) (hwv : σ.wv = none)
@@ -320,7 +384,11 @@ theorem storeOK_wbegin (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeO
   sorry
 
 theorem storeOK_wreturn (σ : StoreSt) (h : storeOK σ) : storeOK σ.wreturn := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, fun v hv => ?_, h9, h10, h11, h12, h13,
+    fun hms => ⟨(h14 hms).1, rfl⟩, fun _ => rfl, h16, h17⟩
+  obtain ⟨a, b, c, d, e, f, -⟩ := h8 v hv
+  exact ⟨a, b, c, d, e, f, fun h => by simp [StoreSt.wreturn] at h⟩
 
 /-- Re-borrowing the parked view at a remap, on the new mapping's base. -/
 theorem storeOK_wborrow (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ)
@@ -384,24 +452,101 @@ theorem storeOK_reload (σ : StoreSt) (ids : List w64) (h : storeOK σ)
     (hids : ∀ x ∈ ids, 2 ≤ x.toNat ∧ x.toNat < σ.C.hwm ∧ x.toNat < 2 ^ 62 ∧
       (x.toNat ∉ storeSlots σ ∨ x ∈ σ.fl.pendingIds))
     (hnd : ids.Nodup) : storeOK (σ.reload ids) := by
-  sorry
+  have hlt := storeSlot_lt σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  have hfree : ∀ x, x ∈ (σ.fl.reload ids).free ↔ x ∈ ids ∧ x ∉ σ.fl.pendingIds := by
+    intro x
+    simp only [FLPg.reload, mem_sortPgids, List.mem_filter, decide_eq_true_eq]
+  -- the MVCC rule of a view in the store survives
+  have hmv : ∀ v : View, mvccView σ.fl v → viewInStore σ v → mvccView (σ.fl.reload ids) v := by
+    intro v ⟨m1, m2⟩ hin
+    refine ⟨m1, fun s hs => ?_⟩
+    obtain ⟨a, -, c⟩ := m2 s hs
+    refine ⟨a, fun hx => ?_, c⟩
+    obtain ⟨hx1, hx2⟩ := (hfree _).1 hx
+    have hsin := hin s hs
+    rcases (hids _ hx1).2.2.2 with h' | h'
+    · rw [W64_toNat_of_lt s (hlt s hsin)] at h'; exact h' hsin
+    · exact hx2 h'
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6⟩ := h3
+  refine ⟨h1, h2, ⟨fun x hx => (hids x ((hfree x).1 hx).1).2.1, hb2, hb3, hb4,
+      fun x hx => (hids x ((hfree x).1 hx).1).2.2.1, hb6⟩, ?_, h5, h6,
+    fun k r hr => ?_, fun v hv => ?_, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩
+  · obtain ⟨w1, w2, w3, w4, w5⟩ := h4
+    have hpnd : σ.fl.pendingIds.Nodup := (List.nodup_append.1 w1).2.1
+    have hF : (sortPgids (ids.filter fun x => decide (x ∉ σ.fl.pendingIds))).Nodup :=
+      (List.mergeSort_perm _ _).nodup_iff.2 (hnd.filter _)
+    have hall : ∀ x ∈ (σ.fl.reload ids).allIds, x.toNat < 2 ^ 62 := by
+      intro x hx
+      simp only [FLPg.allIds, List.mem_append] at hx
+      rcases hx with hx | hx
+      · exact (hids x ((hfree x).1 hx).1).2.2.1
+      · exact hb6 x hx
+    have hnd' : (σ.fl.reload ids).allIds.Nodup := by
+      simp only [FLPg.allIds]
+      refine List.nodup_append.2 ⟨hF, hpnd, fun a ha b hb hab => ?_⟩
+      subst hab
+      exact ((hfree a).1 ha).2 hb
+    refine ⟨hnd', fun x hx => ?_, sortPgids_incr _ (hnd.filter _), ?_, w5⟩
+    · simp only [FLPg.allIds, List.mem_append] at hx
+      rcases hx with hx | hx
+      · exact (hids x ((hfree x).1 hx).1).1
+      · exact w2 x (List.mem_append_right _ hx)
+    · have := nodup_len_le _ _ hnd' hall
+      simp only [StoreSt.reload]; omega
+  · obtain ⟨a, b, c, d, e, f⟩ := h7 k r hr
+    exact ⟨a, hmv r.v b c, c, d, e, f⟩
+  · obtain ⟨a, b, c, d, e, f, g⟩ := h8 v hv
+    exact ⟨a, hmv v b c, c, d, e, f, g⟩
 
 /-- `munmap` with no reader and the writer's view in. -/
 theorem storeOK_gather (σ : StoreSt) (h : storeOK σ) (hR : σ.R = ∅) (hwv : σ.wlent = false) :
     storeOK σ.gather := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, fun k r hr => ?_, fun v hv => ?_, h9,
+    fun k r hr => ?_, h11, h12, fun b l hb => ?_, fun _ => ⟨hR, hwv⟩, h15, h16, h17⟩
+  · simp [StoreSt.gather, hR] at hr
+  · obtain ⟨a, b, c, d, e, f, -⟩ := h8 v hv
+    exact ⟨a, b, c, d, e, f, fun h => by simp [StoreSt.gather, hwv] at h⟩
+  · simp [StoreSt.gather, hR] at hr
+  · simp [StoreSt.gather] at hb
 
 /-- `mmap` of a mapping covering every store slot. -/
 theorem storeOK_carve (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ) (hms : σ.ms = none)
     (hl : ∀ s ∈ storeSlots σ, s < l / 4096) : storeOK (σ.carve b l) := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  obtain ⟨hR, hwl⟩ := h14 hms
+  refine ⟨h1, h2, h3, h4, h5, h6, fun k r hr => ?_, fun v hv => ?_, h9,
+    fun k r hr => ?_, h11, h12, fun b' l' hb => ?_, fun hb => ?_, h15, h16, h17⟩
+  · simp [StoreSt.carve, hR] at hr
+  · obtain ⟨a, b, c, d, e, f, -⟩ := h8 v hv
+    exact ⟨a, b, c, d, e, f, fun h => by simp [StoreSt.carve, hwl] at h⟩
+  · simp [StoreSt.carve, hR] at hr
+  · simp only [StoreSt.carve, Option.some.injEq, Prod.mk.injEq] at hb
+    obtain ⟨-, rfl⟩ := hb
+    exact hl
+  · simp [StoreSt.carve] at hb
 
 /-- `Open`'s loaded freelist: no reader, no writer, nothing pending. -/
 theorem storeOK_setFl (σ : StoreSt) (fl : FLPg) (h : storeOK σ) (hR : σ.R = ∅)
     (hw : σ.wtx = none) (hwv : σ.wv = none) (hfl : fl.WF ∧ fl.pending = ∅ ∧
       flBelow fl σ.C none ∧ ∀ x ∈ fl.free, ¬ coversSlot σ.C.pages x.toNat) :
     storeOK (σ.setFl fl) := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  obtain ⟨hwf, hpe, hbl, -⟩ := hfl
+  have hsub : ∀ s, s ∈ storeSlots (σ.setFl fl) → s ∈ storeSlots σ := by
+    intro s hs
+    simp only [storeSlots, StoreSt.setFl, mem_list_dedup, List.mem_append,
+      pendSlots_empty fl hpe, List.not_mem_nil, or_false] at hs ⊢
+    exact Or.inl hs
+  refine ⟨h1, h2, ?_, hwf, fun w hw' => by simp [StoreSt.setFl, hw] at hw', h6,
+    fun k r hr => by simp [StoreSt.setFl, hR] at hr,
+    fun v hv => by simp [StoreSt.setFl, hwv] at hv, h9,
+    fun k r hr => by simp [StoreSt.setFl, hR] at hr,
+    fun v hv => by simp [StoreSt.setFl, hwv] at hv,
+    fun s hs => h12 s (hsub s hs), fun b l hb s hs => h13 b l hb s (hsub s hs), h14, h15, h16,
+    fun s _ => Or.inl (by simp [StoreSt.setFl, pendSlots_empty fl hpe])⟩
+  simpa [StoreSt.setFl, hw] using hbl
 
 end store
 
