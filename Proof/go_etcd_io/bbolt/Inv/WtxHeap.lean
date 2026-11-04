@@ -138,11 +138,57 @@ theorem fills_fractional (H : GMap Loc (GoString × Nat)) :
     Fractional (fun q => fills (GF := GF) H (DFrac.own q)) := by
   sorry
 
+omit hos in
+open Iris.ProofMode in
+/-- An object's facts can be dropped (live to dead). U8. -/
+theorem objOwn_weaken (v : View) (l : Loc) (dq : DFrac) (b b' : Bool) (o : WObj)
+    (h : b' = true → b = true) :
+    objOwn (GF := GF) v l dq b o ⊢ objOwn v l dq b' o := by
+  cases b' with
+  | true => rw [h rfl]
+  | false =>
+    cases b with
+    | false => exact .rfl
+    | true =>
+      cases o with
+      | bkt B =>
+        unfold objOwn
+        iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, -⟩
+        dsimp only
+        iframe
+        simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+      | node bl r =>
+        unfold objOwn
+        iintro ⟨H1, H2, H3, Hws, H5, H6, -⟩
+        dsimp only
+        iframe
+        isplitl [Hws]
+        · iapply (BigSepL2.bigSepL2_mono_of_forall (Φ := fun _ it w => wOwn (GF := GF) v true it w)
+            (Ψ := fun _ it w => wOwn (GF := GF) v false it w) ?_) $$ Hws
+          intro _ it w
+          unfold wOwn
+          iintro ⟨%Hp, -⟩
+          isplitr
+          · ipureintro; exact Hp
+          · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+        · simp only [Bool.false_eq_true, _root_.false_and, ↓reduceIte]; iempintro
+
+open Iris.ProofMode in
 /-- An object goes dead (spill's spilled children, rebalance's removed nodes, `DeleteBucket`'s
-bucket and nodes): its facts are dropped, its points-tos kept. -/
+bucket and nodes): its facts are dropped, its points-tos kept. U8. -/
 theorem wtxHeap_kill (tx : Loc) (dq : DFrac) (X : WX) (l : Loc) :
     wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq { X with live := X.live.delete l } := by
-  sorry
+  unfold wtxHeap txFields
+  iintro ⟨%Hrl, Hf, Hrf, Hm⟩
+  iframe
+  isplitr
+  · ipureintro; exact Hrl
+  iapply (BigSepM.bigSepM_mono_of_forall ?_) $$ Hm
+  intro k o
+  apply objOwn_weaken
+  intro h
+  simp only [decide_eq_true_eq, GMap.mem_iff, GMap.lookup_delete_iff] at h ⊢
+  split at h <;> simp_all
 
 /-- **The remap** (U4): after `dereference` (the coverage contract), the heap is the re-based
 `X`'s; nothing of it reads the old mapping. -/
