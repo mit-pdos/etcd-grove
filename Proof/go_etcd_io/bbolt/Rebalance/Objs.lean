@@ -141,6 +141,114 @@ theorem objs_node (T : WTx) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) (hd : obj
   · intro ⟨bl', B'⟩ hm hne
     exact hd'.2 bl' B' ((GMap.mem_toList _ _ _).1 hm) hne
 
+/-- A location no bucket holds (as itself or a node) is the dead objects'. -/
+theorem objs_other (T : WTx) (k : Loc)
+    (h : ∀ bl B, T.bs !! bl = some B → k ≠ bl ∧ B.ns !! k = none) :
+    T.objs !! k = T.dead !! k := by
+  rw [objs_eq]
+  apply fold_notin
+  intro ⟨bl, B⟩ hm
+  exact h bl B ((GMap.mem_toList _ _ _).1 hm)
+
+/-- The transaction with node `n` of bucket `bl` (record `B`) holding `r'`. -/
+def WTx.setNodeT (T : WTx) (bl n : Loc) (B : BRec) (r' : NRec) : WTx :=
+  { T with bs := T.bs.insert bl { B with ns := B.ns.insert n r' } }
+
+theorem objsDisj_setNodeT (T : WTx) (bl n : Loc) (B : BRec) (r r' : NRec) (hd : objsDisj T)
+    (hb : T.bs !! bl = some B) (hr : B.ns !! n = some r) :
+    objsDisj (T.setNodeT bl n B r') := by
+  have hns : ∀ k, (({ B with ns := B.ns.insert n r' } : BRec).ns !! k).isSome =
+      (B.ns !! k).isSome := by
+    intro k
+    by_cases hk : k = n
+    · subst hk; simp [GMap.lookup_insert, hr]
+    · simp [Ne.symm hk]
+  have hbs : ∀ c, (T.setNodeT bl n B r').bs !! c = none ↔ T.bs !! c = none := by
+    intro c
+    by_cases hc : c = bl
+    · subst hc; simp [WTx.setNodeT, GMap.lookup_insert, hb]
+    · simp [WTx.setNodeT, Ne.symm hc]
+  have hlook : ∀ c C, (T.setNodeT bl n B r').bs !! c = some C → ∃ C0, T.bs !! c = some C0 ∧
+      ∀ k, (C.ns !! k).isSome = (C0.ns !! k).isSome := by
+    intro c C hc
+    by_cases hcb : c = bl
+    · subst hcb
+      simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hc
+      subst hc
+      exact ⟨B, hb, hns⟩
+    · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hc
+      exact ⟨C, hc, fun _ => rfl⟩
+  intro c C hc k hk
+  obtain ⟨C0, hc0, hC⟩ := hlook c C hc
+  rw [hC] at hk
+  obtain ⟨h1, h2⟩ := hd c C0 hc0 k hk
+  refine ⟨(hbs k).2 h1, fun c' C' hc' hne => ?_⟩
+  obtain ⟨C0', hc0', hC'⟩ := hlook c' C' hc'
+  have h3 := h2 c' C0' hc0' hne
+  have e := hC' k
+  rw [h3] at e
+  cases h : C'.ns !! k with
+  | none => rfl
+  | some _ => rw [h] at e; simp at e
+
+/-- **The objects after a node's record changes**: the node's, and its bucket's record. -/
+theorem objs_setNodeT (T : WTx) (bl n : Loc) (B : BRec) (r r' : NRec) (hd : objsDisj T)
+    (hb : T.bs !! bl = some B) (hr : B.ns !! n = some r) :
+    (T.setNodeT bl n B r').objs =
+      (T.objs.insert n (.node bl r')).insert bl (.bkt { B with ns := B.ns.insert n r' }) := by
+  have hd' := objsDisj_setNodeT T bl n B r r' hd hb hr
+  have hnb : n ≠ bl := by
+    intro h; have := (hd bl B hb n (by simp [hr])).1; rw [h, hb] at this; cases this
+  apply GMap.map_eq
+  intro k
+  by_cases hk1 : k = bl
+  · subst hk1
+    rw [GMap.lookup_insert]
+    exact objs_bkt _ _ _ hd' (by simp [WTx.setNodeT])
+  rw [GMap.lookup_insert_ne _ _ (Ne.symm hk1)]
+  by_cases hk2 : k = n
+  · subst hk2
+    rw [GMap.lookup_insert]
+    exact objs_node _ bl { B with ns := B.ns.insert k r' } k r' hd' (by simp [WTx.setNodeT])
+      (by simp)
+  rw [GMap.lookup_insert_ne _ _ (Ne.symm hk2)]
+  by_cases hkb : ∃ C, T.bs !! k = some C
+  · obtain ⟨C, hC⟩ := hkb
+    rw [objs_bkt T k C hd hC]
+    exact objs_bkt _ k C hd' (by simp [WTx.setNodeT, Ne.symm hk1, hC])
+  · have hkb' : T.bs !! k = none := by
+      cases h : T.bs !! k with
+      | none => rfl
+      | some C => exact absurd ⟨C, h⟩ hkb
+    by_cases hkn : ∃ c C rk, T.bs !! c = some C ∧ C.ns !! k = some rk
+    · obtain ⟨c, C, rk, hC, hrk⟩ := hkn
+      rw [objs_node T c C k rk hd hC hrk]
+      by_cases hcb : c = bl
+      · subst hcb
+        rw [hb] at hC; cases hC
+        exact objs_node _ c { B with ns := B.ns.insert n r' } k rk hd' (by simp [WTx.setNodeT])
+          (by simp [Ne.symm hk2, hrk])
+      · exact objs_node _ c C k rk hd'
+          (by simp [WTx.setNodeT, Ne.symm hcb, hC]) hrk
+    · have hno : ∀ c C, T.bs !! c = some C → k ≠ c ∧ C.ns !! k = none := by
+        intro c C hC
+        refine ⟨fun h => (by rw [← h, hkb'] at hC; cases hC), ?_⟩
+        cases h : C.ns !! k with
+        | none => rfl
+        | some rk => exact absurd ⟨c, C, rk, hC, h⟩ hkn
+      rw [objs_other T k hno, objs_other]
+      · rfl
+      intro c C hC
+      by_cases hcb : c = bl
+      · subst hcb
+        simp only [WTx.setNodeT, GMap.lookup_insert, Option.some.injEq] at hC
+        subst hC
+        refine ⟨hk1, ?_⟩
+        simp only [GMap.lookup_insert_ne _ _ (Ne.symm hk2)]
+        exact (hno c B hb).2
+      · simp only [WTx.setNodeT, GMap.lookup_insert_ne _ _ (Ne.symm hcb)] at hC
+        exact hno c C hC
+
 end objs
 
 end bbolt
