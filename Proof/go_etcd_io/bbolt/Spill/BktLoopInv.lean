@@ -122,17 +122,7 @@ def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
   ∀ j k, keys[j]? = some k → (j < i → ks k ≠ .todo ∧ ∀ v, ks k ≠ .val v false) ∧
     (i ≤ j → ks k = .todo)
 
-/-! ## The loop's start and end (statements; proofs to come) -/
-
-/-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
-(U9p's `slotInv_start`), each child's its `bk_init` tree's. -/
-theorem rinv_start {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl) (hreach : liveReach X)
-    (hml : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) (hfv : flViewU X w.fl)
-    (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
-    (hB0 : X.t.bs !! X.rl = some B0) (keys : List GoString)
-    (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome) (hnd : keys.Nodup) :
-    ∃ Lroot Dc, RInv X w B0 keys Lroot X w [] Dc (fun _ => .todo) := by
-  sorry
+/-! ## The loop's end (statements; proofs to come; the start is `Spill/BktLoopPureStart`) -/
 
 /-- **The end, no root node**: nothing was put, the root bucket has no root node, and the records
 are the spill's success as they are. -/

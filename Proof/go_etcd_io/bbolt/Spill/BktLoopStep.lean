@@ -13,6 +13,7 @@
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
