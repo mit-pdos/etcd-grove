@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
 public import Proof.go_etcd_io.bbolt.Commit.TailPure
 public import Proof.go_etcd_io.bbolt.Commit.TailDefs
+public import Proof.go_etcd_io.bbolt.Commit.TailSlots
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
@@ -128,7 +129,7 @@ theorem Tx.Commit_err.wp_proof'
     (wp_close : Tx.close_w.spec (GF := GF) (hG := hG))
     (wp_commitFreelist : Tx.commitFreelist.spec (GF := GF) (hG := hG))
     (wp_grow : DB.grow.spec (GF := GF) (hG := hG))
-    (wp_write : Tx.write.spec (GF := GF) (hG := hG))
+    (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
     (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (wp_page : DB.page.spec (GF := GF) (hG := hG))
     (wp_GetRebalance : TxStats.GetRebalance.spec (GF := GF) (hG := hG))
@@ -366,10 +367,13 @@ theorem Tx.Commit_err.wp_proof'
     cm_root_children T X X1 Hf.2.2.2.1 Hf.2.2.2.2.2.2 hrbOK.2.2.2.2.1 hbm1
   have hstart1 : spillStartOK X1 (w.withFl fl1) :=
     ⟨Hflv.2.2, by rw [hmv1, Hmeta.2.2.2.1]; exact Nat.le_refl _, hroot1⟩
-  -- OPEN (the receipts' budget, reported by U10j): the writer's txid `w.C.txid + 1` below `2 ^ 63`.
-  -- `wdbLive`'s `receipt (w.C.txid - t0)` gives `w.C.txid - t0 < receiptBound` and `t0 < 2 ^ 62`,
-  -- but nothing bounds `receiptBound` in bbolt's specs; `treeOK w.C` gives `w.C.txid < 2 ^ 63` only.
-  have htx63 : X1.t.mv.txid'.toNat < 2 ^ 63 := sorry
+  -- the writer's txid below `2 ^ 63` (the receipts' budget, maintainer 12, item 1)
+  icases wdbW_txid_lt K tx _ (w.withFl fl1) $$ [Hwdb] with ⟨Hwdb, %Htxl⟩
+  · iframe; iframe #
+  have hopg : X1.t.mv.pgid'.toNat = w.C.hwm := by rw [hmv1, Hmeta.2.2.2.1]
+  have htx63 : X1.t.mv.txid'.toNat < 2 ^ 63 := by
+    rw [hmv1, ← Hf.1.1.2.2.2.1, show X.v.txid = w.C.txid by rw [Hwok.2.2]; rfl]
+    exact Htxl
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
     hreach1 hmap1 hflv1 hstart1 htx63 $$ [Hw Hwdb] as %err1 Hsp
   · iframe
@@ -441,7 +445,7 @@ theorem Tx.Commit_err.wp_proof'
       iapply (wp_wand (Φ := fun v => iprop(
           (⌜v = executeVal⌝ ∗ err_ptr ↦ GoInterface.nil ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
             ∃ (Xt : WX) (wt : WDb), wtxW K tx r false Xt ∗ wdbW K tx Xt.v wt ∗
-              cmExcl K r Xt (treeData wt.C) ∗ ⌜cmTailOK T.cur Xt wt X1.t.mv.pgid'⌝) ∨
+              cmExcl K r Xt (treeData wt.C) ∗ ⌜cmTailOK T.cur T.base Xt wt X1.t.mv.pgid'⌝) ∨
           (⌜v = returnVal #()⌝ ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
             ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗ txDoneDef tx))))
         $$ [Hwb Hdbp Hwdb Hex err Hlgp tx]
@@ -528,15 +532,18 @@ theorem Tx.Commit_err.wp_proof'
             rw [show (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))).v = X4.v from rfl]
             iframe
             ipureintro
-            refine ⟨?_, ?_, ?_, Hal.2.2.1, ?_, ?_, ?_, ?_, Hw4ok.1, rfl⟩
+            refine ⟨?_, ?_, ?_, Hal.2.2.1, ?_, ?_, ?_, ?_, Hw4ok.1, ?_, ?_⟩
             · show X4.t.t.writable' = true; rw [htt5]; exact hwr
             · show (X4.t.bs !! X4.rl).isSome = true; rw [hrl4]; exact hrl3
             · show X4.t.mv.txid' = w4.wtxid
               rw [htx4, htx3]; unfold WDb.wtxid; rw [Hal.2.1]
-            · rw [Hal.2.1, hC2]; exact hstart1.2.1
+            · rw [Hal.2.1, hC2]; exact hopg.symm
             · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.2.1
             · show X4.t.t.meta' ≠ null; rw [htt5]; exact Hmvn
             · rw [Hal.2.1]; exact hC2fl
+            · rw [Hal.2.1, hC2]; exact hbase
+            · -- OPEN (U10k): the publish's facts from spill's, rebalance's and commitFreelist's posts
+              sorry
           · -- `commitFreelist` failed (rolled back): log, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
               cases err2 with
@@ -594,7 +601,7 @@ theorem Tx.Commit_err.wp_proof'
           iframe
           ipureintro
           have htt5 : X3.t.t = X.t.t := by rw [htt3, htt2, htt1]
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hC2fl, Hw2ok.1, rfl⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hC2fl, Hw2ok.1, ?_, ?_⟩
           · rw [htt5]; exact hwr
           · rw [← hX3]; exact hrl2
           · have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
@@ -609,16 +616,19 @@ theorem Tx.Commit_err.wp_proof'
             have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
             word
           · rw [← hX3]; exact hmap2
-          · rw [hC2]; exact hstart1.2.1
+          · rw [hC2]; exact hopg.symm
           · rw [htt5]; exact Hf.2.2.2.2.2.1
           · rw [htt5]; exact Hmvn
+          · rw [hC2]; exact hbase
+          · -- OPEN (U10k): the publish's facts from spill's and rebalance's posts
+            sorry
       iintro %v Hv
       icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
       · subst hv
         try wp_auto
         -- `grow`, if the high-water mark moved up
-        obtain ⟨hwrt, hrlt, htxt, hmapt, hhwmt, hcht, hmpt, hflt, hwokt, -⟩ := Htl
+        obtain ⟨hwrt, hrlt, htxt, hmapt, hhwmt, hcht, hmpt, hflt, hwokt, hbt, hpre⟩ := Htl
         icases cm_meta_acc K tx r false Xt $$ Hw with ⟨Hme, Hmv, Hwb⟩
         try wp_auto
         wp_apply wp_Pgid $$ [Hmv] as Hmv
