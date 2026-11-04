@@ -1371,3 +1371,20 @@ D cs` gives `confStateIs cs (Membership.simple cfg)`. Stage 5 discharges its pre
 changes `ccApplyOk` (`srv_committed_ccBoot`; empty V2 entries excluded by
 `committed_emptyV2_joint`), and the bucket from `imageAt`'s `bkRestAtL`. Trust added: three
 reviewed axioms (`notes/axiom-review/members-decode.md`).
+
+### R2b-3d stage 3: the image's backend part (2026-11-04, plan)
+
+`Cleanup` returns `bStopView γ P W Pk D` at the stop channels' `W`/`Pk`, but the server keeps the
+channels as `isStopChansE` (some `W`, `Pk`), so nothing is known of `D`. Steps:
+1. **Sharpen.** The server's channels are at its own resources, the same at construction and at
+   every install: `W = mvcc.lateWD d` and `Pk = batchLockInv γA (metaTM d.γB d.P)`, at the apply
+   thread's current names `γA` (`γ.withPh (futPhys π0 γB)` after an install). `srvSnapRes s E`
+   becomes `srvSnapRes s E γA`, with `isStopChans` there; `srvSnapOwn` and `applyResC` pass `B.γ`;
+   the snapshot path's posts give it at the new names.
+2. **Observe.** Factor out the core of the snapshot window
+   (`SnapSendBranch.lean`, the proof that feeds `backend.Snapshot`'s `Q`): from the apply thread's
+   resources at `A` and the lock's pieces (`W`, `Pk`, `viewAt`, `pvHalf`, `hkOwn`, `rbOwn`,
+   `ckHalf` at `D`) to `⌜mergedObsM … D⌝`. The stop applies it to `bStopView`'s pieces, the window
+   to the snapshot's.
+3. **Image.** `merged_imageC`'s pure part, from `mergedObsM` to `imageAt` (stage 5 assembles the
+   rest).
