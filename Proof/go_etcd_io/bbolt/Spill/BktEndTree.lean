@@ -43,11 +43,11 @@ theorem end_rootTree {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoStrin
       (∀ s ∈ D, s ∈ Lroot ++ keys.flatMap Dc) ∧ endEls X0 (spP X) D E := by
   sorry
 
-/-- **The meta's txid at the end is the start's** (needs `RInv`'s meta field, `mvEq`, U9x4). -/
+/-- **The meta's txid at the end is the start's** (`RInv.mvEq`). -/
 theorem end_txid {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
     {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) : X.t.mv.txid' = X0.t.mv.txid' := by
-  sorry
+  rw [hI.mvEq]
 
 end tree
 

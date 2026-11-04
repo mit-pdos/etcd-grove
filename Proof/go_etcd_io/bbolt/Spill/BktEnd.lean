@@ -42,27 +42,25 @@ theorem onChain_self {B : BRec} {a x : Loc} (h : onChain B a a x) : x = a := by
   | up _ _ _ _ _ hne _ => exact absurd rfl hne
 
 /-- **The end, no root node**: nothing was put, the root bucket has no root node, and the records
-are the spill's success as they are. (`hsame`, `hput`: RInv fields to be, approved, U9x5;
-`hvC`: `wdbW_ofC` at the call.) -/
+are the spill's success as they are (`RInv.same`, `RInv.putRoot`; `hvC`: `wdbW_ofC` at the
+call). -/
 theorem rinv_end_nil {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
     {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
     (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
     (hB0 : X0.t.bs !! X0.rl = some B0) (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome)
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hks : ksAt keys keys.length ks)
     (hB : X.t.bs !! X0.rl = some B) (hrn : B.bv.rootNode' = null)
-    (hvC : X.v = View.ofC X.v.base w.C) (htx : X0.t.mv.txid'.toNat < 2 ^ 63)
-    (hsame : (∀ k ∈ keys, ∀ v p, ks k ≠ .val v p) → X = X0 ∧ w = w0 ∧ st = [])
-    (hput : (∃ k v, ks k = .val v true) → ∀ B, X.t.bs !! X0.rl = some B → B.bv.rootNode' ≠ null) :
+    (hvC : X.v = View.ofC X.v.base w.C) (htx : X0.t.mv.txid'.toNat < 2 ^ 63) :
     spillOK X0 X w0.C w0.fl w.fl w0.wtxid ∧ spillBufs X w0.C w.fl := by
   have hnv : ∀ k ∈ keys, ∀ v p, ks k ≠ .val v p := by
     intro k hkm v p he
     cases p with
-    | true => exact hput ⟨k, v, he⟩ B hB hrn
+    | true => exact hI.putRoot ⟨k, v, he⟩ B hB hrn
     | false =>
       obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hkm
       have hjl : j < keys.length := (List.getElem?_eq_some_iff.1 hj).1
       exact ((hks j k hj).1 hjl).2 v he
-  obtain ⟨rfl, rfl, rfl⟩ := hsame hnv
+  obtain ⟨rfl, rfl, rfl⟩ := hI.same hnv
   rw [hB0] at hB; cases hB
   have hkids : ∀ k c, B0.bm !! k = some c → ∃ C0, X.t.bs !! c = some C0 ∧ C0.bv.rootNode' = null := by
     intro k c hc
