@@ -113,7 +113,8 @@ theorem rootLoc_start {X : WX} {fl : FLPg} (hpre : spillPre X fl) {B0 : BRec}
   refine ⟨bktLocalOK_of_wOKR hok hB0, hpre.2.2.2.1 X.rl (by rw [hB0]; simp), B0, hB0, ?_⟩
   intro l r hr
   exact ⟨hpre.2.1 X.rl B0 hB0 l r hr (wOKR_nsLive X hok X.rl B0 l r hB0 hr),
-    fun w hw => hok.2.2.2.1 X.rl B0 hB0 l r hr w hw⟩
+    fun w hw => ⟨(hok.2.2.2.1 X.rl B0 hB0 l r hr w hw).1,
+      (hok.2.2.2.1 X.rl B0 hB0 l r hr w hw).2.1⟩⟩
 
 /-- A filter dropping only keys whose slots are empty keeps the slots. -/
 theorem flatMap_filter_nil {α β : Type} (p : α → Bool) (f : α → List β) (l : List α)
@@ -166,7 +167,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
         have hs := htc.2.1.2.2.2.1 c C hC c0 p pg hpr hown hpg hfl i hi
         have h1 : leafFlags pg i % 2 ≠ bucketLeafFlag := fun e => hne (hs.1.1 e)
         unfold bucketLeafFlag at h1
-        exact ⟨by omega, hs.2 hne⟩
+        exact ⟨by omega, hs.2.1⟩
       obtain ⟨rn, h, F, D, N, E, h1, h2, h3, h4, h5⟩ :=
         bk_init hpre hreach w.C hS.cok hcp hS.hwm hfv.2.2.1 hC hne hrn hpage
       refine ⟨D, ?_, fun hn => absurd ⟨c, C, hc, hC, hrn⟩ hn⟩
