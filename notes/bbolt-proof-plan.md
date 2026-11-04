@@ -1170,6 +1170,34 @@ Not done (in this order, the coordinator's):
   store's `register`/`deregister` lemmas (keep the clause). Not applied: a root-level change
   (`Inv/Names`, `Inv/Locks`, `Inv/Store`) waiting for the coordinator's go and a quiet moment.
 
+- **37.10 (part)**: `os.File.Close.spec`'s post ends `∗ fmtErrorOkOrNil err` (proved from the model:
+  `os.wp_wrapErrno_ok` in the errno branch, `fmtErrorOkOrNil_nil` on success; no new trust);
+  bboltfs `DB__close`, `DB__closeCrash`, `Open`, `OpenCrash` adapted (`⟨Hf, -⟩`); crashlog's `-`
+  unchanged. U11's `Open/Close.os.File.Close.specE` can go (its user `hClose … as %err2 ⟨Hfo,
+  #HeC⟩` matches the new post up to `fmtErrorOkOrNil`).
+
+### Maintainer 7's hand-off (2026-11-04): what is left
+
+- **40** (not applied, analysis above): needs the coordinator's choice (A)/(B); (B), the store
+  keeping a freed freelist page's bytes for `store_rollback`, is needed either way for `Commit`'s
+  rollback after `commitFreelist`.
+- **41** (designed above, not applied): root-level (`Inv/Names`, `Locks`, `Store`); `DB.freepages`'
+  pre/post gain `ghostVar K.B.spr ½ false`.
+- **37.10 (rest)**: `os.OpenFile.spec`'s post `… ∗ fmtErrorOkOrNil err` after the disjunction (as
+  Close/Sync). Proof (`Proof/os/OpenFile.lean`, error branch after `unfold os.model.pathError`):
+  `iapply wp_fupd; wp_apply wp_errno; iStructNamed pe; ipersist` the fields, then
+  `os.pathError_fmtErrorOk pe_ptr _ path (errnoErr e)` with `errnoErr_fmtErrorOk e he0` (as
+  `os.wp_wrapErrno_ok`); success: `fmtErrorOkOrNil_nil`. Users: `Proof/os/Crash.lean`,
+  `Proof/os/CrashStSpec.lean`, crashlog `Boot`, bboltfs `Open`/`OpenCrash`, bbolt `Open` (U11).
+- **37.9**: `Spec/fmt/Errorf.lean`'s post `… ∗ ⌜IsPointerError err⌝` (import
+  `Perennial.Proof.errors.Base`). Users outside bbolt (kv/kvdurable/kvreconf examples, raft
+  `Link`, cache `Cache__Watch`, `Proof/fmt/Link`) bind the post with `-`/`%_` or not at all: check
+  each builds (a `%_` over two pures may not). Then the bbolt threading of the hand-off of
+  maintainer 6 (`errPtrTyped` in the error posts of `DB.fileSize`, `mmapSize`, `munmap`, `mmapF`).
+- **37.3**: as maintainer 6's hand-off (`vwAuth`, ~80 `wtxCore` pattern sites).
+- **Interfaces** not regenerated (Options, Bucket.spill, os.File.Close, newBoltLoggerZap changed);
+  TCB baseline update at the checkpoint (38.1's axioms, above).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

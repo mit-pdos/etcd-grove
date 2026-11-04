@@ -390,7 +390,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   cases err1 with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e Hf
+    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e ⟨Hf, -⟩
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ
