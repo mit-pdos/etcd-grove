@@ -46,7 +46,14 @@ open Iris
 - `mln`: `ghostVar Unit`, the meta cells' loan token (`metaLend`: home, or with the writer, while
   `pagesInv` holds it; the reader borrowing the meta cells holds it, U3 finding 10);
 - `byt`: `ghostVar (GMap Nat (List w8))`, the store slots' bytes (½ `pagesInv`, the other ½ in
-  `pagesInv` while mapped, handed out by `store_gather` and back by `store_carve`, U3 finding 11). -/
+  `pagesInv` while mapped, handed out by `store_gather` and back by `store_carve`, U3 finding 11);
+- `fpb`: `ghostVar (GMap Nat (List w8))`, the bytes of the synced freelist page the live writer
+  freed (½ `pagesInv`; the other ½ there too, or with the writer from `Commit`'s free of the page,
+  `store_free_fl`, to its publish or rollback; batch 40B, `fbInv`);
+- `opn`: `dghostVar Bool`, the opening (batch 41): `false` at 1 with `Open` until after
+  `loadFreelist`, then `true`, discarded (persistent, in `isBoltCoreP`);
+- `spr`: `ghostVar Bool`, the spare reader pair in use (batch 41: ½ beside the spare pair or with
+  its reader, ½ in `metaR`). -/
 structure BNs where
   st : GName
   bq : GName
@@ -66,6 +73,9 @@ structure BNs where
   pool : GName
   mln : GName
   byt : GName
+  fpb : GName
+  opn : GName
+  spr : GName
   deriving Inhabited
 
 /-- The names of a `BoltName`'s list `gs` (`γ.gs`), by position. -/
@@ -74,12 +84,13 @@ def bnsOf (gs : List GName) : BNs :=
    gs.getD 4 default, gs.getD 5 default, gs.getD 6 default, gs.getD 7 default,
    gs.getD 8 default, gs.getD 9 default, gs.getD 10 default, gs.getD 11 default,
    gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default,
-   gs.getD 16 default, gs.getD 17 default⟩
+   gs.getD 16 default, gs.getD 17 default, gs.getD 18 default, gs.getD 19 default,
+   gs.getD 20 default⟩
 
 /-- The list of names `Open` returns (`⟨mkGs B, N⟩` is the database's `BoltName`). -/
 def mkGs (B : BNs) : List GName :=
   [B.st, B.bq, B.cur, B.fl, B.rds, B.fltx, B.mtok, B.map, B.out, B.mlk, B.wv, B.txs, B.dbl,
-    B.cls, B.t0, B.pool, B.mln, B.byt]
+    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr]
 
 theorem bnsOf_mkGs (B : BNs) : bnsOf (mkGs B) = B := rfl
 

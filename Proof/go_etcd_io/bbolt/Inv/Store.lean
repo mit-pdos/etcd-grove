@@ -68,15 +68,79 @@ def metaLend (B : BNs) (σ : StoreSt) : IProp GF :=
     (ghostVar B.out (1 : Qp).half false ∗ ghostVar B.mlk 1 () ∗
       ghostVar B.mtok sync.rfrac.half ()))
 
+/-- **The live writer has freed the synced freelist page and not published** (batch 40B):
+`C`'s freelist page `f` (no tree slot) is in the pending entry of the writer `w` (`wtx`), before
+its publish (`pb`). Only `Commit`'s `commitFreelist` frees it (`store_free_fl`); a rollback
+(`store_rollback`), the publish (`store_publish`) end it. -/
+def fbCond (C : CommitSt) (fl : FLPg) (wtx : Option Nat) (pb : Bool) : Prop :=
+  pb = false ∧ ∃ w f pd, wtx = some w ∧ C.flpg = some f ∧ ¬ coversSlot C.pages f ∧
+    fl.pending !! W64 (w : Int) = some pd ∧ ∃ x ∈ pd.ids, x.toNat = f
+
+/-- **The freed freelist page's bytes** (batch 40B, ghost name `fpb`): half here; the other half
+here too, or (only while `fbCond`) with the writer, which took it at the page's free; while
+`fbCond`, the store slots recorded in `F` hold the recorded bytes (the bytes the writer deposited
+with the page's slots), so that `store_rollback` returns them. -/
+def fbInv (B : BNs) (σ : StoreSt) : IProp GF :=
+  iprop(∃ F : GMap Nat (List w8), ghostVar B.fpb (1 : Qp).half F ∗
+    (ghostVar B.fpb (1 : Qp).half F ∨ ⌜fbCond σ.C σ.fl σ.wtx σ.pub⌝) ∗
+    ⌜fbCond σ.C σ.fl σ.wtx σ.pub → ∀ s v, F !! s = some v → s ∈ storeSlots σ → σ.bytes s = v⌝)
+
+/-- The bytes `pg` of the run of `n` slots from `id`, recorded (`store_free_fl`'s `fpb` value). -/
+def fbRec (id : w64) (n : Nat) (pg : Nat → List w8) : GMap Nat (List w8) :=
+  (List.range' id.toNat n).foldr (fun s m => m.insert s (pg s)) ∅
+
+theorem fbRec_lookup (id : w64) (n : Nat) (pg : Nat → List w8) (s : Nat) :
+    fbRec id n pg !! s = if s ∈ List.range' id.toNat n then some (pg s) else none := by
+  unfold fbRec
+  induction List.range' id.toNat n with
+  | nil => simp
+  | cons a S ih =>
+    simp only [List.foldr_cons, GMap.lookup_insert_eq_iff] at ih ⊢
+    by_cases h : a = s
+    · subst h; simp
+    · rw [if_neg h, ih]; simp [Ne.symm h]
+
+/-- **The writer's side of `fbInv`** (batch 40B) for the store's state `C`, `fl`, `ws`: the
+recorded bytes `F`' half when the writer has freed the synced freelist page (`fbCond`), nothing
+otherwise. -/
+def fbTok (B : BNs) (C : CommitSt) (fl : FLPg) (ws : WSt) (F : GMap Nat (List w8)) : IProp GF :=
+  iprop((⌜fbCond C fl ws.2.1 ws.2.2.1⌝ ∗ ghostVar B.fpb (1 : Qp).half F) ∨
+    ⌜¬ fbCond C fl ws.2.1 ws.2.2.1⌝)
+
+omit go_gctx sem in
+instance fbInv_timeless (B : BNs) (σ : StoreSt) : Timeless (fbInv (GF := GF) B σ) := by
+  unfold fbInv; infer_instance
+
+omit go_gctx sem in
+/-- **No freed freelist page under `wdbOK`** (batch 40B): `flCurOK` keeps the synced freelist
+page's slots out of the freelist, so `fbCond` fails: a writer side with `wdbOK` holds `fbTok` with
+nothing (`fbTok_of_wdbOK`). -/
+theorem wdbOK_not_fbCond (w : WDb) (hok : wdbOK w) (wtx : Option Nat) (pb : Bool) :
+    ¬ fbCond w.C w.fl wtx pb := by
+  rintro ⟨-, t, f, pd, -, hf, -, hp, x, hx, hxf⟩
+  obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hok.2.2.2.2.2.1 f hf f hf
+  apply (hsl f (Nat.le_refl _) (by omega)).2
+  have hx' : W64 (f : Int) = x := by
+    rw [← hxf]; simp only [W64, BitVec.ofInt_natCast, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+  rw [hx']
+  simp only [FLPg.allIds, FLPg.pendingIds, List.mem_append, List.mem_flatMap]
+  exact Or.inr ⟨(W64 (t : Int), pd), (GMap.mem_toList _ _ _).2 hp, hx⟩
+
+omit go_gctx sem in
+theorem fbTok_of_wdbOK (B : BNs) (w : WDb) (hok : wdbOK w) (ws : WSt) (F : GMap Nat (List w8)) :
+    ⊢ fbTok (GF := GF) B w.C w.fl ws F := by
+  unfold fbTok; iright; ipureintro; exact wdbOK_not_fbCond w hok _ _
+
 /-- **The store slots' bytes, as a ghost witness** `W` (U3 finding 11): half here, the other half
 here too while mapped (`store_gather` hands it out with the cells, `store_carve` takes both
-back, so that the new mapping's cells are known to hold the store's bytes). -/
+back, so that the new mapping's cells are known to hold the store's bytes); and the freed freelist
+page's recorded bytes (`fbInv`, batch 40B). -/
 def bytesWit (B : BNs) (σ : StoreSt) (W : GMap Nat (List w8)) : IProp GF :=
   iprop(ghostVar B.byt (1 : Qp).half W ∗
     (match σ.ms with
      | some _ => ghostVar B.byt (1 : Qp).half W
      | none => iprop(emp)) ∗
-    ⌜∀ s ∈ storeSlots σ, W !! s = some (σ.bytes s)⌝)
+    ⌜∀ s ∈ storeSlots σ, W !! s = some (σ.bytes s)⌝ ∗ fbInv B σ)
 
 /-- **The page store's invariant** (design §3.6). -/
 def pagesInv (B : BNs) (p : GoString) : IProp GF :=
@@ -369,6 +433,88 @@ private theorem lent_lt_half2 (σ : StoreSt) (hsz : (σ.R.size : Rat) * sync.rfr
 private theorem sep_keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ :=
   (and_intro h .rfl).trans (pure_elim_left fun hφ => by iintro H; iframe; ipureintro; exact hφ)
 
+omit go_gctx sem in
+/-- Three halves of `fpb` are absurd. -/
+private theorem fpb_three (B : BNs) (a b c : GMap Nat (List w8)) :
+    ghostVar (GF := GF) B.fpb (1 : Qp).half a ∗ ghostVar B.fpb (1 : Qp).half b ∗
+      ghostVar B.fpb (1 : Qp).half c ⊢ ⌜False⌝ := by
+  iintro ⟨H1, H2, H3⟩
+  icombine H1 H2 gives % ⟨_, h⟩
+  subst h
+  ihave H12 := ((ghostVar_fractional (GF := GF) B.fpb a).fractional (1 : Qp).half
+    (1 : Qp).half).2 $$ [H1 H2]
+  · iframe
+  ihave %hv := ghostVar_valid_2 B.fpb a ((1 : Qp).half + (1 : Qp).half) c (1 : Qp).half $$ H12 H3
+  ipureintro
+  have h := hv.1
+  rw [Qp.le_iff] at h
+  simp only [Qp.val_add, Qp.val_half, Qp.val_one] at h
+  grind
+
+omit go_gctx sem in
+/-- `bytesWit` across a step that keeps the mapping, the store slots and their bytes, with no
+freed freelist page before or after (`fbCond`): the `fpb` token is home throughout. -/
+private theorem bytesWit_nocond (B : BNs) (σ σ' : StoreSt) (W : GMap Nat (List w8))
+    (hms : σ'.ms = σ.ms) (hss : storeSlots σ' = storeSlots σ) (hb : σ'.bytes = σ.bytes)
+    (h1 : ¬ fbCond σ.C σ.fl σ.wtx σ.pub) (h2 : ¬ fbCond σ'.C σ'.fl σ'.wtx σ'.pub) :
+    bytesWit (GF := GF) B σ W ⊢ bytesWit B σ' W := by
+  unfold bytesWit fbInv
+  rw [hms, hss, hb]
+  iintro ⟨Hb1, Hb2, %hW, %F, Hf1, Hf2, -⟩
+  icases Hf2 with (Hf2 | %hc)
+  · isplitl [Hb1]
+    · iexact Hb1
+    isplitl [Hb2]
+    · iexact Hb2
+    isplitr
+    · ipureintro; exact hW
+    iexists F
+    isplitl [Hf1]
+    · iexact Hf1
+    isplitl [Hf2]
+    · ileft; iexact Hf2
+    ipureintro; intro hc; exact absurd hc h2
+  · exact absurd hc h1
+
+omit go_gctx sem in
+/-- **The writer's `fpb` half back** (batch 40B) at a step ending `fbCond` (a rollback, the
+publish): with the writer's `fbTok`, the token is home after; while `fbCond` held, the recorded
+bytes were the store's. -/
+private theorem fbInv_return (B : BNs) (σ σ' : StoreSt) (ws : WSt) (F : GMap Nat (List w8))
+    (hw : ws.2.1 = σ.wtx) (hp : ws.2.2.1 = σ.pub)
+    (h2 : ¬ fbCond σ'.C σ'.fl σ'.wtx σ'.pub) :
+    fbInv (GF := GF) B σ ∗ fbTok B σ.C σ.fl ws F ⊢
+      fbInv B σ' ∗ ⌜fbCond σ.C σ.fl σ.wtx σ.pub →
+        ∀ s v, F !! s = some v → s ∈ storeSlots σ → σ.bytes s = v⌝ := by
+  unfold fbInv fbTok
+  rw [hw, hp]
+  iintro ⟨⟨%F0, Hf1, Hf2, %hok⟩, Ht⟩
+  icases Ht with (⟨%hc, Ht⟩ | %hnc)
+  · icases Hf2 with (Hf2 | %-)
+    · icases fpb_three B F F0 F0 $$ [Ht Hf1 Hf2] with %hf
+      · iframe
+      exact hf.elim
+    icombine Ht Hf1 gives % ⟨_, hF⟩
+    subst hF
+    isplitl [Ht Hf1]
+    · iexists F
+      isplitl [Hf1]
+      · iexact Hf1
+      isplitl [Ht]
+      · ileft; iexact Ht
+      ipureintro; intro hc'; exact absurd hc' h2
+    ipureintro; intro _; exact hok hc
+  · icases Hf2 with (Hf2 | %hc)
+    · isplitl [Hf1 Hf2]
+      · iexists F0
+        isplitl [Hf1]
+        · iexact Hf1
+        isplitl [Hf2]
+        · ileft; iexact Hf2
+        ipureintro; intro hc'; exact absurd hc' h2
+      ipureintro; intro hc; exact absurd hc hnc
+    · exact absurd hc hnc
+
 private theorem ghostVar_le_one' (γ : GName) (q : Qp) :
     ghostVar (GF := GF) γ q () ⊢ ⌜q.val ≤ 1⌝ := by
   iintro H
@@ -539,6 +685,22 @@ private theorem R_empty_of_tok (B : BNs) (R : GMap Nat RdInfo) :
 private theorem W64_toNat_of_lt' (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
   simp only [W64, BitVec.toNat_ofInt]; omega
 
+/-- No freed freelist page right after the writer's begin: no pending entry of the next txid
+(`flBelow`, no writer before). -/
+private theorem fbCond_wbegin (σ : StoreSt) (h : storeOK σ) (hw : σ.wtx = none) :
+    ¬ fbCond σ.C σ.fl (some (σ.C.txid + 1)) false := by
+  rintro ⟨-, w, f, pd, hw', -, -, hp, -⟩
+  cases hw'
+  have hfb := h.2.2.1
+  have hlt : σ.C.txid + 1 < 2 ^ 64 := hfb.2.2.2.1
+  rcases hfb.2.2.1 _ pd hp with h1 | ⟨h1, -⟩
+  · rw [W64_toNat_of_lt' _ hlt] at h1; omega
+  · rw [hw] at h1; cases h1
+
+/-- No freed freelist page without a live writer. -/
+private theorem fbCond_none (C : CommitSt) (fl : FLPg) (pb : Bool) : ¬ fbCond C fl none pb := by
+  rintro ⟨-, w, f, pd, hw', -⟩; cases hw'
+
 private theorem W64_toNat_eq (x : w64) : W64 (x.toNat : Int) = x := by
   simp only [W64, BitVec.ofInt_natCast, BitVec.ofNat_toNat, BitVec.setWidth_eq]
 
@@ -642,6 +804,135 @@ private theorem pendSlots_free (fl : FLPg) (T id : w64) (n : Nat) (hn : id.toNat
       simp only [List.mem_append]
       right
       rw [mem_runIds_toNat id n hn, W64_toNat_of_lt' s (by omega)]; omega
+
+private theorem freePages_self (fl : FLPg) (T id : w64) (n : Nat) :
+    ∃ pd, (fl.freePages T id n).pending !! T = some pd ∧ ∀ x ∈ runIds id n, x ∈ pd.ids :=
+  ⟨_, by simp only [FLPg.freePages]; exact GMap.lookup_insert _ _ _,
+    fun _ hx => List.mem_append_right _ hx⟩
+
+/-- `bytesWit` across a step that keeps the mapping, given the witness fact after and `fbInv`
+after. -/
+private theorem bytesWit_step (B : BNs) (σ σ' : StoreSt) (W : GMap Nat (List w8))
+    (hms : σ'.ms = σ.ms)
+    (hW : (∀ s ∈ storeSlots σ, W !! s = some (σ.bytes s)) →
+      ∀ s ∈ storeSlots σ', W !! s = some (σ'.bytes s))
+    (hfb : fbInv (GF := GF) B σ ⊢ fbInv B σ') :
+    bytesWit (GF := GF) B σ W ⊢ bytesWit B σ' W := by
+  unfold bytesWit
+  rw [hms]
+  iintro ⟨Hb1, Hb2, %hw, Hf⟩
+  isplitl [Hb1]
+  · iexact Hb1
+  isplitl [Hb2]
+  · iexact Hb2
+  isplitr
+  · ipureintro; exact hW hw
+  iapply hfb; iexact Hf
+
+/-! ### `fbInv` across the store's steps (batch 40B) -/
+
+/-- `Free` of a run that does not hold the synced freelist page keeps `fbCond`. -/
+private theorem fbCond_free_iff (C : CommitSt) (fl : FLPg) (wtx : Option Nat) (pb : Bool)
+    (w : Nat) (id : w64) (n : Nat) (hwtx : wtx = some w)
+    (hrun : ∀ x ∈ runIds id n, ∀ f, C.flpg = some f → ¬ coversSlot C.pages f → x.toNat ≠ f) :
+    fbCond C (fl.freePages (W64 (w : Int)) id n) wtx pb ↔ fbCond C fl wtx pb := by
+  subst hwtx
+  constructor
+  · rintro ⟨hpb, w', f, pd, hw', hf, hcov, hp, x, hx, hxf⟩
+    cases hw'
+    rcases freePages_lookup fl _ id n _ pd hp with ⟨hne, -⟩ | ⟨-, P, hP, rfl⟩
+    · exact absurd rfl hne
+    · simp only [List.mem_append] at hx
+      rcases hx with hx | hx
+      · rcases hq : fl.pending !! W64 (w : Int) with _ | q
+        · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; simp at hx
+        · rw [hq] at hP; simp only [Option.getD_some] at hP; subst hP
+          exact ⟨hpb, w, f, q, rfl, hf, hcov, hq, x, hx, hxf⟩
+      · exact absurd hxf (hrun x hx f hf hcov)
+  · rintro ⟨hpb, w', f, pd, hw', hf, hcov, hp, x, hx, hxf⟩
+    cases hw'
+    obtain ⟨pd', hp', hsub⟩ := freePages_pending_old fl (W64 (w : Int)) id n _ pd hp
+    exact ⟨hpb, w, f, pd', rfl, hf, hcov, hp', x, hsub x hx, hxf⟩
+
+/-- The rolled-back writer has no pending entry: no `fbCond`. -/
+private theorem fbCond_rollback (C : CommitSt) (fl : FLPg) (pb : Bool) (w : Nat) :
+    ¬ fbCond C (fl.rollback (W64 (w : Int))) (some w) pb := by
+  rintro ⟨-, w', f, pd, hw', -, -, hp, -⟩
+  cases hw'
+  unfold FLPg.rollback at hp
+  split at hp
+  · rename_i h; rw [h] at hp; cases hp
+  · simp only [FLPg.rollbackEntry, GMap.lookup_delete] at hp; cases hp
+
+omit go_gctx sem in
+/-- `fbInv` across a step that keeps `fbCond` and, on its store slots, the bytes. -/
+private theorem fbInv_mono (B : BNs) (σ σ' : StoreSt)
+    (hc : fbCond σ.C σ.fl σ.wtx σ.pub → fbCond σ'.C σ'.fl σ'.wtx σ'.pub)
+    (hc' : fbCond σ'.C σ'.fl σ'.wtx σ'.pub → fbCond σ.C σ.fl σ.wtx σ.pub)
+    (hs : ∀ s ∈ storeSlots σ', s ∈ storeSlots σ ∧ σ'.bytes s = σ.bytes s) :
+    fbInv (GF := GF) B σ ⊢ fbInv B σ' := by
+  unfold fbInv
+  iintro ⟨%F, H1, H2, %hok⟩
+  iexists F
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · icases H2 with (H2 | %h)
+    · ileft; iexact H2
+    · iright; ipureintro; exact hc h
+  ipureintro
+  intro c s v hF hs'
+  obtain ⟨hs1, hb⟩ := hs s hs'
+  rw [hb]; exact hok (hc' c) s v hF hs1
+
+/-- `fbInv` across a step without `fbCond` before and after (the token is home). -/
+private theorem fbInv_nocond (B : BNs) (σ σ' : StoreSt) (h1 : ¬ fbCond σ.C σ.fl σ.wtx σ.pub)
+    (h2 : ¬ fbCond σ'.C σ'.fl σ'.wtx σ'.pub) : fbInv (GF := GF) B σ ⊢ fbInv B σ' := by
+  unfold fbInv
+  iintro ⟨%F, H1, H2, -⟩
+  iexists F
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · icases H2 with (H2 | %h)
+    · ileft; iexact H2
+    · exact absurd h h1
+  ipureintro; intro c; exact absurd c h2
+
+/-- `fbInv` with the token home before: the record set to `F'` (home after, or out with the
+writer when `out`). -/
+private theorem fbInv_set (B : BNs) (E : CoPset) (σ σ' : StoreSt) (F' : GMap Nat (List w8))
+    (out : Bool)
+    (hn : ¬ fbCond σ.C σ.fl σ.wtx σ.pub) (hout : out = true → fbCond σ'.C σ'.fl σ'.wtx σ'.pub)
+    (hok : fbCond σ'.C σ'.fl σ'.wtx σ'.pub →
+      ∀ s v, F' !! s = some v → s ∈ storeSlots σ' → σ'.bytes s = v) :
+    fbInv (GF := GF) B σ ⊢ |={E}=> fbInv B σ' ∗
+      (if out then ghostVar B.fpb (1 : Qp).half F' else iprop(emp)) := by
+  unfold fbInv
+  iintro ⟨%F, H1, H2, -⟩
+  icases H2 with (H2 | %h)
+  · imod ghostVar_update_halves F' B.fpb _ _ $$ H1 H2 with ⟨H1, H2⟩
+    cases out
+    · imodintro
+      isplitl [H1 H2]
+      · iexists F'
+        isplitl [H1]
+        · iexact H1
+        isplitl [H2]
+        · ileft; iexact H2
+        ipureintro; exact hok
+      · simp only [Bool.false_eq_true, ite_false]; iempintro
+    · imodintro
+      simp only [ite_true]
+      isplitl [H1]
+      · iexists F'
+        isplitl [H1]
+        · iexact H1
+        isplitr
+        · iright; ipureintro; exact hout rfl
+        ipureintro; exact hok
+      · iexact H2
+  · exact absurd h hn
 
 private theorem mem_storeSlots (σ : StoreSt) (s : Nat) :
     s ∈ storeSlots σ ↔ s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl := by
@@ -1057,8 +1348,9 @@ theorem store_wbegin (C : CommitSt) (b : Loc) (l : Nat) :
     iexists σ.wbegin v, W
     rw [storeCells_some (σ.wbegin v) b l hms']
     have e2 : metaLend (GF := GF) B (σ.wbegin v) = metaLend B σ := rfl
-    have e3 : bytesWit (GF := GF) B (σ.wbegin v) W = bytesWit B σ W := rfl
-    rw [e2, e3]
+    rw [e2]
+    ihave Hbw := bytesWit_nocond B σ (σ.wbegin v) W rfl rfl rfl
+      (by rw [← hwtx]; exact fbCond_none _ _ _) (fbCond_wbegin σ Hok hwtx.symm) $$ Hbw
     iframe
     ipureintro
     exact hok'
@@ -1222,8 +1514,15 @@ theorem store_wclose (v : View) (w : Nat) (pb wl : Bool) (fl : FLPg)
   · inext
     iexists σ.wclose, W
     have e2 : metaLend (GF := GF) B σ.wclose = metaLend B σ := rfl
-    have e3 : bytesWit (GF := GF) B σ.wclose W = bytesWit B σ W := rfl
-    rw [e2, e3]
+    rw [e2]
+    ihave Hbw := bytesWit_nocond B σ σ.wclose W rfl rfl rfl
+      (by
+        rintro ⟨hpf, w', f, pd, hw', -, -, hpd, -⟩
+        rw [← hwtx] at hw'; cases hw'
+        rcases hp with hp | hp
+        · rw [hpb] at hp; rw [hp] at hpf; cases hpf
+        · rw [hp] at hpd; cases hpd)
+      (fbCond_none _ _ _) $$ Hbw
     have ew : σ.wclose.wst = wIdle := rfl
     rw [ew]
     iframe
@@ -1231,22 +1530,24 @@ theorem store_wclose (v : View) (w : Nat) (pb wl : Bool) (fl : FLPg)
     exact hok'
   imodintro; iframe
 
-/-- `Free(w, p)` of `n` slots from `id` by the live writer before its publish: a page of the
-current tree, or the old synced freelist page, whose slots then move `W → store` (F4.5). -/
-theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) (id : w64)
-    (n : Nat) (pg : Nat → List w8) (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false)
-    (hcan : fl.canFree (W64 (w : Int)) id n) :
+/-- `store_free`'s proof, with the `fpb` token taken out (`out`, the freelist page's case only)
+or left home (batch 40B). -/
+private theorem store_free_core (out : Bool) (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt)
+    (w : Nat) (id : w64) (n : Nat) (pg : Nat → List w8) (hw : ws.2.1 = some w)
+    (hpub : ws.2.2.1 = false) (hcan : fl.canFree (W64 (w : Int)) id n) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ws ∗
-      ((⌜∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
-        (⌜C.flpg = some id.toNat ∧ ms ≠ none ∧ id.toNat + n ≤ C.hwm ∧
+      ((⌜out = false ∧ ∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
+        (⌜0 < n ∧ C.flpg = some id.toNat ∧ ms ≠ none ∧ id.toNat + n ≤ C.hwm ∧
           ∀ j < n, ¬ coversSlot C.pages (id.toNat + j) ∧ (pg (id.toNat + j)).length = 4096 ∧
           ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096⌝ ∗
           slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half (fl.freePages (W64 (w : Int)) id n) ∗
-      ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws := by
+      ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗
+      (⌜out = false⌝ ∨ (ghostVar B.fpb (1 : Qp).half (fbRec id n pg) ∗
+        ⌜fbCond C (fl.freePages (W64 (w : Int)) id n) ws.2.1 ws.2.2.1⌝)) := by
   iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Hcase⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
@@ -1278,7 +1579,8 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
     with ⟨Hfl, Hfl'⟩
   icases Hcase with (%hA | ⟨%hB, HS⟩)
   · -- a page of the current tree: its slots are store slots already
-    obtain ⟨q, hq, hqn⟩ := hA
+    obtain ⟨hof, q, hq, hqn⟩ := hA
+    subst hof
     let σ' := σ.free (W64 (w : Int)) id n σ.bytes
     have hok' := storeOK_free σ w id n σ.bytes Hok hwσ hpσ hcan (Or.inl ⟨⟨q, hq, hqn⟩,
       fun _ _ => rfl⟩)
@@ -1304,21 +1606,27 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
       iexists σ', W
       have e2 : metaLend (GF := GF) B σ' = metaLend B σ := rfl
       rw [e2]
-      unfold bytesWit
-      icases Hbw with ⟨Hb1, Hb2, %hW⟩
-      simp only [σ', StoreSt.free]
-      iframe
-      isplitr
-      · ipureintro
+      have hrunNC : ∀ x ∈ runIds id n, ∀ f, σ.C.flpg = some f → ¬ coversSlot σ.C.pages f →
+          x.toNat ≠ f := by
+        intro x hx f _ hcov hxf
+        obtain ⟨h1, h2⟩ := (mem_runIds_toNat id n hcn x).1 hx
+        exact hcov ⟨id.toNat, q, hq, by omega, by omega⟩
+      have hss : ∀ s ∈ storeSlots σ', s ∈ storeSlots σ ∧ σ'.bytes s = σ.bytes s := by
         intro s hs
-        have := (hstore σ.bytes s).1 hs
-        rcases this with h | h
-        · rw [hW s h]; split <;> rfl
-        · rw [hW s (hrun s h.1 h.2)]; split <;> rfl
-      · ipureintro; exact hok'
+        refine ⟨?_, by rw [hb]⟩
+        rcases (hstore σ.bytes s).1 hs with h | h
+        · exact h
+        · exact hrun s h.1 h.2
+      ihave Hbw := bytesWit_step B σ σ' W rfl
+        (fun hW s hs => by rw [hb]; exact hW s (hss s hs).1)
+        (fbInv_mono B σ σ' (fbCond_free_iff σ.C σ.fl σ.wtx σ.pub w id n hwσ hrunNC).2
+          (fbCond_free_iff σ.C σ.fl σ.wtx σ.pub w id n hwσ hrunNC).1 hss) $$ Hbw
+      iframe
+      ipureintro; exact hok'
     imodintro; iframe
+    try (ileft; ipureintro; rfl)
   · -- the old synced freelist page: its slots enter the store
-    obtain ⟨hflpg, hmsn, hhwm, hj⟩ := hB
+    obtain ⟨hn, hflpg, hmsn, hhwm, hj⟩ := hB
     obtain ⟨b, l, hms'⟩ : ∃ b l, σ.ms = some (b, l) := by
       rcases hm : σ.ms with _ | ⟨b, l⟩
       · exact absurd hm hmsn
@@ -1372,12 +1680,38 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
     · iframe
     icases Hcs with ⟨Hcells, Hos⟩
     -- the bytes witness, updated with both halves
+    -- batch 40B: the freed page's bytes recorded, the `fpb` token home or out
+    have hcond0 : ¬ fbCond σ.C σ.fl σ.wtx σ.pub := by
+      rintro ⟨-, w', f, pd, -, hf, -, hp, x, hx, hxf⟩
+      rw [hflpg] at hf; cases hf
+      have hxid : x = id := BitVec.eq_of_toNat_eq hxf
+      rw [hxid] at hx
+      apply hcan.2.2.1 id ((mem_runIds_toNat id n hcn id).2 ⟨Nat.le_refl _, by omega⟩)
+      simp only [FLPg.allIds, FLPg.pendingIds, List.mem_append, List.mem_flatMap]
+      exact Or.inr ⟨(W64 (w' : Int), pd), (GMap.mem_toList _ _ _).2 hp, hx⟩
+    have hcond1 : fbCond σ'.C σ'.fl σ'.wtx σ'.pub := by
+      obtain ⟨pd, hpd, hmem⟩ := freePages_self σ.fl (W64 (w : Int)) id n
+      exact ⟨hpσ, w, id.toNat, pd, hwσ, hflpg, (hj 0 hn).1, hpd, id,
+        hmem id ((mem_runIds_toNat id n hcn id).2 ⟨Nat.le_refl _, by omega⟩), rfl⟩
+    have hbook : fbCond σ'.C σ'.fl σ'.wtx σ'.pub →
+        ∀ s v, fbRec id n pg !! s = some v → s ∈ storeSlots σ' → σ'.bytes s = v := by
+      intro _ s v hv _
+      rw [fbRec_lookup] at hv
+      split at hv
+      · rename_i hr
+        cases hv
+        simp only [List.mem_range'] at hr
+        obtain ⟨j, hj', rfl⟩ := hr
+        exact hbn _ (by omega) (by omega)
+      · cases hv
     unfold bytesWit
     rw [hms']
-    icases Hbw with ⟨Hb1, Hb2, %hW⟩
+    icases Hbw with ⟨Hb1, Hb2, %hW, Hfb⟩
+    imod fbInv_set B _ σ σ' (fbRec id n pg) out hcond0 (fun _ => hcond1) hbook $$ Hfb
+      with ⟨Hfb, Htok⟩
     imod ghostVar_update_halves (wUpd W (List.range' id.toNat n) pg) B.byt _ _ $$ Hb1 Hb2
       with ⟨Hb1, Hb2⟩
-    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hml] with _
+    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hfb Hml] with _
     · inext
       iexists σ', wUpd W (List.range' id.toNat n) pg
       have e2 : metaLend (GF := GF) B σ' = metaLend B σ := rfl
@@ -1399,7 +1733,92 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
           · rw [hbo s hs', hW s hs']
           · exact absurd (List.mem_range'.2 ⟨s - id.toNat, by omega, by omega⟩) hr
       · ipureintro; exact hok'
-    imodintro; iframe
+    imodintro
+    iframe
+    cases out
+    · ileft; ipureintro; rfl
+    · simp only [ite_true]
+      iright
+      isplitl [Htok]
+      · iexact Htok
+      · ipureintro; exact hcond1
+
+/-- `Free(w, p)` of `n` slots from `id` by the live writer before its publish: a page of the
+current tree, or the old synced freelist page (at least one slot), whose slots then move
+`W → store` (F4.5); the freed page's bytes are recorded (`fbInv`), the `fpb` token stays home
+(`Commit`'s free of the page is `store_free_fl`). -/
+theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) (id : w64)
+    (n : Nat) (pg : Nat → List w8) (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false)
+    (hcan : fl.canFree (W64 (w : Int)) id n) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
+      ghostVar B.wv (1 : Qp).half ws ∗
+      ((⌜∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
+        (⌜0 < n ∧ C.flpg = some id.toNat ∧ ms ≠ none ∧ id.toNat + n ≤ C.hwm ∧
+          ∀ j < n, ¬ coversSlot C.pages (id.toNat + j) ∧ (pg (id.toNat + j)).length = 4096 ∧
+          ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096⌝ ∗
+          slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
+    |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half (fl.freePages (W64 (w : Int)) id n) ∗
+      ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Hcase⟩
+  imod store_free_core B N p E hE false C fl ms ws w id n pg hw hpub hcan $$
+    [Hinv Hcur Hfl Hmap Hwv Hcase] with ⟨Hcur, Hfl, Hmap, Hwv, -⟩
+  · isplitr
+    · iexact Hinv
+    isplitl [Hcur]
+    · iexact Hcur
+    isplitl [Hfl]
+    · iexact Hfl
+    isplitl [Hmap]
+    · iexact Hmap
+    isplitl [Hwv]
+    · iexact Hwv
+    icases Hcase with (%hA | Hfp)
+    · ileft; ipureintro; exact ⟨rfl, hA⟩
+    · iright; iexact Hfp
+  imodintro; iframe
+
+/-- **`Commit`'s free of the old synced freelist page** (batch 40B, `commitFreelist`): as
+`store_free`'s freelist-page case, and the writer takes the `fpb` token, which records the
+page's bytes `pg` (`fbRec`): `store_rollback` returns them, `store_publish` takes it back. -/
+theorem store_free_fl (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) (id : w64)
+    (n : Nat) (pg : Nat → List w8) (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false)
+    (hcan : fl.canFree (W64 (w : Int)) id n) (hn : 0 < n) (hflpg : C.flpg = some id.toNat)
+    (hmsn : ms ≠ none) (hhwm : id.toNat + n ≤ C.hwm)
+    (hj : ∀ j < n, ¬ coversSlot C.pages (id.toNat + j) ∧ (pg (id.toNat + j)).length = 4096 ∧
+      ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
+      ghostVar B.wv (1 : Qp).half ws ∗ slotsOwn ms p (List.range' id.toNat n) pg ⊢
+    |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half (fl.freePages (W64 (w : Int)) id n) ∗
+      ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗
+      fbTok B C (fl.freePages (W64 (w : Int)) id n) ws (fbRec id n pg) ∗
+      ⌜fbCond C (fl.freePages (W64 (w : Int)) id n) ws.2.1 ws.2.2.1⌝ := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, HS⟩
+  imod store_free_core B N p E hE true C fl ms ws w id n pg hw hpub hcan $$
+    [Hinv Hcur Hfl Hmap Hwv HS] with ⟨Hcur, Hfl, Hmap, Hwv, (%hf | ⟨Htok, %hc⟩)⟩
+  · isplitr
+    · iexact Hinv
+    isplitl [Hcur]
+    · iexact Hcur
+    isplitl [Hfl]
+    · iexact Hfl
+    isplitl [Hmap]
+    · iexact Hmap
+    isplitl [Hwv]
+    · iexact Hwv
+    iright
+    isplitr
+    · ipureintro; exact ⟨hn, hflpg, hmsn, hhwm, hj⟩
+    · iexact HS
+  · cases hf
+  imodintro
+  iframe
+  isplitl
+  · unfold fbTok; ileft; iframe; ipureintro; exact hc
+  · ipureintro; exact hc
 
 /-- `Allocate` by the live writer: the ids leave the free list (their slots are `W` slots
 already). -/
@@ -1484,13 +1903,11 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
     iexists σ.release ro, W
     have e2 : metaLend (GF := GF) B (σ.release ro) = metaLend B σ := rfl
     rw [e2]
-    unfold bytesWit
-    simp only [StoreSt.release]
-    icases Hbw with ⟨Hb1, Hb2, %hW⟩
+    ihave Hbw := bytesWit_step B σ (σ.release ro) W rfl (fun hW s hs => hW s (hsub s hs))
+      (fbInv_nocond B σ (σ.release ro) (by rw [← hwtx]; exact fbCond_none _ _ _)
+        (by show ¬ fbCond _ _ σ.wtx _; rw [← hwtx]; exact fbCond_none _ _ _)) $$ Hbw
     iframe
-    isplitr
-    · ipureintro; intro s hs; exact hW s (hsub s hs)
-    · ipureintro; exact hok'
+    ipureintro; exact hok'
   imodintro
   iexists _, σ.bytes
   iframe
@@ -1510,7 +1927,7 @@ writer's quarter of `cur`), the new tree's slots `S` move `W → store` with the
 writer has published. The meta cells are out with the writer (`meta_take`, `out := true`: the
 meta lend does not hold the old metas). The side conditions are spill's post (design §4.2). -/
 theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w : Nat)
-    (wl : Bool) (S : List Nat) (bs : Nat → List w8)
+    (wl : Bool) (S : List Nat) (bs : Nat → List w8) (F : GMap Nat (List w8))
     (ht : C'.txid = w) (hmeta : C'.metaOk) (htree : treeOK C') (hhwm : C'.hwm ≤ 2 ^ 62)
     (hdrop : ∀ s ∈ treeSlots C, s ∉ treeSlots C' → s ∈ pendSlots fl)
     (hS : ∀ s, s ∈ S ↔ s ∈ treeSlots C' ∧ s ∉ slotsOf C fl)
@@ -1524,12 +1941,12 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ((some v, some w, false, wl) : WSt) ∗ slotsOwn ms p S bs ∗
-      ghostVar B.out (1 : Qp).half true ⊢
+      ghostVar B.out (1 : Qp).half true ∗ fbTok B C fl ((some v, some w, false, wl) : WSt) F ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half C' ∗ ghostVar B.cur (1 : Qp).half.half C' ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ((some v, some w, true, wl) : WSt) ∗
       ghostVar B.out (1 : Qp).half true := by
-  iintro ⟨#Hinv, Hcur, Hcurq, Hfl, Hmap, Hwv, HS, Hout⟩
+  iintro ⟨#Hinv, Hcur, Hcurq, Hfl, Hmap, Hwv, HS, Hout, Htok⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
@@ -1621,7 +2038,10 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
   -- the bytes witness
   unfold bytesWit
   rw [hmsb]
-  icases Hbw with ⟨Hb1, Hb2, %hW⟩
+  icases Hbw with ⟨Hb1, Hb2, %hW, Hfb⟩
+  icases fbInv_return B σ σ' ((some v, some w, false, wl) : WSt) F hwtx hpb (by
+      rintro ⟨h, -⟩; simp [σ', StoreSt.publish] at h) $$ [Hfb Htok] with ⟨Hfb, -⟩
+  · iframe
   imod ghostVar_update_halves (wUpd W (listDedup S) bs) B.byt _ _ $$ Hb1 Hb2 with ⟨Hb1, Hb2⟩
   -- the meta cells: out with the writer
   unfold metaLend
@@ -1629,7 +2049,7 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
   rotate_left
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hfb Hml] with _
   · inext
     iexists σ', wUpd W (listDedup S) bs
     rw [show σ'.ms = some (b, l) from hmsb]
@@ -1652,19 +2072,22 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
   imodintro; iframe
 
 /-- `freelist.Rollback(w)` by the live writer before its publish: `w`'s pending pages are not
-pending; slots leaving the store (B3: a freed old synced freelist page) move `store → W`. -/
+pending; slots leaving the store (B3: a freed old synced freelist page) move `store → W`. The
+writer's `fbTok` goes back (batch 40B): when it had freed the synced freelist page
+(`store_free_fl`), the bytes returned for the page's slots are the ones it recorded. -/
 theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat)
-    (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false) :
+    (F : GMap Nat (List w8)) (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half ws ⊢
+      ghostVar B.wv (1 : Qp).half ws ∗ fbTok B C fl ws F ⊢
     |={E}=> ∃ (S : List Nat) (bs : Nat → List w8),
       ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half (fl.rollback (W64 (w : Int))) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.rollback (W64 (w : Int)))⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
-  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv⟩
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ ∗
+      ⌜fbCond C fl ws.2.1 ws.2.2.1 → ∀ s ∈ S, ∀ v, F !! s = some v → bs s = v⌝ := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Htok⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
@@ -1688,14 +2111,18 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
   icases slots_leave p σ (σ.rollback (W64 (w : Int))) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
     ⟨Hcells, Hos, HS⟩
   · iframe
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  unfold bytesWit
+  icases Hbw with ⟨Hb1, Hb2, %hW, Hfb⟩
+  icases fbInv_return B σ (σ.rollback (W64 (w : Int))) σ.wst F rfl rfl
+    (fun h => fbCond_rollback σ.C σ.fl σ.pub w (by rw [← hwσ]; exact h)) $$ [Hfb Htok]
+    with ⟨Hfb, %hfb⟩
+  · iframe
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hb1 Hb2 Hfb Hml] with _
   · inext
     iexists σ.rollback (W64 (w : Int)), W
     have e2 : metaLend (GF := GF) B (σ.rollback (W64 (w : Int))) = metaLend B σ := rfl
     rw [e2]
-    unfold bytesWit
     simp only [StoreSt.rollback]
-    icases Hbw with ⟨Hb1, Hb2, %hW⟩
     iframe
     isplitr
     · ipureintro; intro s hs; exact hW s (hsub s hs)
@@ -1708,10 +2135,15 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
     intro s
     simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
     rfl
+  isplitr
+  · ipureintro
+    intro s hs
+    simp only [List.mem_filter, decide_eq_true_eq] at hs
+    exact (Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs.1).2
   ipureintro
-  intro s hs
+  intro hc s hs v hv
   simp only [List.mem_filter, decide_eq_true_eq] at hs
-  exact (Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs.1).2
+  exact hfb hc s v hv hs.1
 
 /-- `Reload`/`NoSyncReload`: the free ids rebuilt from `W` slots below the high-water mark. -/
 theorem store_reload (C : CommitSt) (fl : FLPg) (ids : List w64)
@@ -1789,7 +2221,8 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
   -- the bytes witness: the mapping's half out
   unfold bytesWit
   rw [hms']
-  icases Hbw with ⟨Hb1, Hb2, %hW⟩
+  icases Hbw with ⟨Hb1, Hb2, %hW, Hfb⟩
+  ihave Hfb := fbInv_mono B σ σ.gather id id (fun s hs => ⟨hs, rfl⟩) $$ Hfb
   -- the mapping's state: none
   icases ((ghostVar_fractional (GF := GF) B.map (some (b, l) : MapSt)).fractional _ _).2
     $$ [Hmap Hmapq] with Hm34
@@ -1799,7 +2232,7 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
     with ⟨Hm34, Hmap'⟩
   icases ((ghostVar_fractional (GF := GF) B.map (none : MapSt)).fractional _ _).1 $$ Hm34
     with ⟨Hmap, Hmapq⟩
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hos Hb1 Hout' Hln] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hos Hb1 Hfb Hout' Hln] with _
   · inext
     iexists σ.gather, W
     have e1 : storeCells (GF := GF) σ.gather = iprop(emp) := by
@@ -1808,9 +2241,7 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
     simp only [StoreSt.gather]
     iframe
     isplitr
-    · isplitr
-      · iempintro
-      · ipureintro; exact hW
+    · ipureintro; exact hW
     isplitl [Hout' Hln]
     · ileft; iframe; unfold metaCellsQ; iempintro
     · ipureintro; exact hok'
@@ -1854,7 +2285,8 @@ theorem store_carve (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
   have hok' := storeOK_carve σ b l Hok hms' hl
   unfold bytesWit
   rw [hms']
-  icases Hbw with ⟨Hb1, -, %hW'⟩
+  icases Hbw with ⟨Hb1, -, %hW', Hfb⟩
+  ihave Hfb := fbInv_mono B σ (σ.carve b l) id id (fun s hs => ⟨hs, rfl⟩) $$ Hfb
   icombine Hbyt Hb1 gives % ⟨_, hWW⟩
   subst hWW
   have hbs : ∀ s ∈ storeSlots σ, bs s = σ.bytes s := by
@@ -1891,7 +2323,7 @@ theorem store_carve (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
   -- the meta cells: back home
   unfold metaLend
   icases Hml with (⟨-, Hout', Hln⟩ | Hml2 | ⟨-, -, Htok'⟩)
-  · imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hout' Hln Hmc] with _
+  · imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hfb Hout' Hln Hmc] with _
     · inext
       iexists σ.carve b l, W
       simp only [StoreSt.carve]
@@ -1903,7 +2335,7 @@ theorem store_carve (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
       · ipureintro; exact hok'
     imodintro; iframe
   · iclear Hmc
-    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hml2] with _
+    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hfb Hml2] with _
     · inext
       iexists σ.carve b l, W
       simp only [StoreSt.carve]
@@ -2071,7 +2503,7 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   icombine Hfl Hfl' gives % ⟨_, hF⟩
   unfold bytesWit
-  icases Hbw with ⟨Hbyt', Hbm, %Hwit⟩
+  icases Hbw with ⟨Hbyt', Hbm, %Hwit, Hfb⟩
   icombine Hbyt Hbyt' gives % ⟨_, hW⟩
   subst hC hF hW
   have hS : storeSlots σ = slotsOf σ.C σ.fl := rfl
@@ -2084,7 +2516,7 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
   ihave Hwp := Hk $$ %σ.bytes %(fun t ht => Hwit t (hS ▸ ht)) Hcur Hfl Hmap Hwv Hbyt Hm Hcells
   iapply wp_wand $$ Hwp
   iintro %v HΦ
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos' Hbyt' Hbm Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos' Hbyt' Hbm Hfb Hml] with _
   · inext; iexists σ, W; iframe
     rw [hS]; iframe
     ipureintro; exact ⟨Hwit, Hok⟩
