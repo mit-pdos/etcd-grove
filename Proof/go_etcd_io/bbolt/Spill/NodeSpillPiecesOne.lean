@@ -274,11 +274,12 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     have hsn : sint.nat (W64 (pcCount (insSize rl.ins) : Int)) = pcCount (insSize rl.ins) := by
       unfold pcCount at hc0 ⊢; word
     rw [← hwtx, ← hsn]; exact Hal
-  obtain ⟨sta, hsta⟩ : ∃ sta, w2.fl = w1.fl.applySteps w.wtxid sta := by
+  obtain ⟨sta, hsta, hsta'⟩ : ∃ sta, w2.fl = w1.fl.applySteps w.wtxid sta ∧
+      (sta = [FLStep.alloc id (pcCount (insSize rl.ins))] ∨ sta = [] ∧ id = X1.t.mv.pgid') := by
     obtain ⟨-, -, Xr, -, hX'⟩ := Hal'
-    rcases hX' with ⟨-, hf, -⟩ | ⟨-, hf, -, -⟩
-    · exact ⟨[FLStep.alloc id (pcCount (insSize rl.ins))], by rw [hf]; rfl⟩
-    · exact ⟨[], by rw [hf]; rfl⟩
+    rcases hX' with ⟨-, hf, -⟩ | ⟨hid, hf, -, -⟩
+    · exact ⟨[FLStep.alloc id (pcCount (insSize rl.ins))], by rw [hf]; rfl, Or.inl rfl⟩
+    · exact ⟨[], by rw [hf]; rfl, Or.inr ⟨rfl, hid⟩⟩
   obtain ⟨hpm2, hbs2⟩ := allocRes_buf Hal'
   obtain ⟨⟨ra, hna, hsa⟩, hliv⟩ := allocRes_node Hal' hn1
   have hlv2 : l ∈ X2.live := hliv.2 hlv1
@@ -382,7 +383,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) %w2 %(st1 ++ sta) %id
       [] [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
-      refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], st1, sta, Hfr1, rfl, Hal', hsta, HC2, Hml2,
+      refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], st1, sta, Hfr1, rfl, Hal', hsta, hsta', HC2, Hml2,
         Hw2, hna,
         fun h => absurd hpl h, ?_⟩
       simp only [pcFin, hpl, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true,
@@ -538,13 +539,16 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       as ⟨%s, %ins2, Hpo, Hv, Hbtx, Hf3, Hf7⟩
     · iframe; iframe #
     try wp_auto
+    have hpe : pcEnt ra id = (⟨W32 0, id, w0.key, [], w0.ks, Src.own DFrac.discard⟩ : WEntry) := by
+      simp only [pcEnt, hw0]
     -- the parent's inodes' count its entries'
     icases (objOwn_live_node _ _ _ _ _).1 $$ Hpo with ⟨Hpn, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
     icases Hpws with #Hpws
     ihave %Hinsl := BigSepL2.bigSepL2_length $$ Hpws
     ihave Hpo : objOwn X2.v ra.nv.parent' (DFrac.own 1) true (.node bl (pcPar rpa ra id s ins2))
       $$ [Hpn Hpins Hpcap Hpch Hpchcap Hpkey]
-    · iapply (objOwn_live_node _ _ _ _ _).2; iframe; iexact Hpws
+    · iapply (objOwn_live_node _ _ _ _ _).2; iframe
+      simp only [pcPar, hpe]; iexact Hpws
     -- `node.key = node.inodes[0].Key()`
     rw [ite_eq_left_of_eq_true _ _ (eq_true hlen0)]
     icases ownSlice_elem_acc (sint.Z (W64 0)) i0 _ _ (i0 :: is) (by decide) rfl $$ Hins
@@ -564,6 +568,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       have h1 := Hkl.1
       rw [he] at h1
       simp [slice.nil] at h1
+      have h0 : sint.nat (0#64 : w64) = 0 := by decide
       omega
     wp_apply hAssert
     try wp_auto
@@ -584,8 +589,6 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       · by_cases hk : True ∧ i0.key' ≠ slice.nil
         · rw [if_pos hk]; iexact Hk0
         · rw [if_neg hk]; iempintro
-    have hpe : pcEnt ra id = (⟨W32 0, id, w0.key, [], w0.ks, Src.own DFrac.discard⟩ : WEntry) := by
-      simp only [pcEnt, hw0]
     ihave Hbo := Hbo $$ Hbtx
     ihave Hh := Hback $$ %({ B2 with ns := (B2.ns.insert l (pcRec ra id true)).insert rl.nv.parent' (pcPar rpa ra id s ins2) } : BRec)
       %(fun x => if x = l then pcRec ra id true else pcPar rpa ra id s ins2) [] [Hlo Hpo] [Hbo]
@@ -636,9 +639,9 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         (pcPar rpa ra id s ins2)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))))
       %w2 %(st1 ++ sta) %id [] [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
-      refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, st1, sta, Hfr1, rfl, Hal', hsta, HC2, Hml2, Hw2,
-        hna, fun _ => ⟨hrpa, by simpa only [pcPar, NRec.withEnts] using Hinsl, hk0ne⟩, ?_⟩
-      simp only [pcFin, ne_eq, hpn, not_false_eq_true, decide_true, ↓reduceIte]
+      refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, st1, sta, Hfr1, rfl, Hal', hsta, hsta', HC2, Hml2, Hw2,
+        hna, fun _ => ⟨hrpa, by simpa only [pcPar, NRec.withEnts, hpe] using Hinsl, hk0ne⟩, ?_⟩
+      simp only [pcFin, ne_eq, hpn, not_false_eq_true, _root_.decide_true, ↓reduceIte]
     · iexact Hw
     · rw [hv3]; iexact Hdb
 
