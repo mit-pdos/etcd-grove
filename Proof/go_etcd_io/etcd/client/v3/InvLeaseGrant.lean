@@ -59,6 +59,41 @@ def etcdLeaseGrantSpec (γl : GName) :
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗
       (∃ i : Nat, lease.leaseGrantedAt γl i m.id) -∗ Φ m)
 
+/-- **etcd's spec of `LeaseGrant` at a success fact `G`** (the lease-expiry plan's X2, 2026-11-04):
+`etcdLeaseGrantSpec` with the fact the reply carries of its lease a parameter
+(`etcdLeaseGrantSpec_eq`: the grant at the history; `etcdLeaseGrantSpecLive`: the lease live in it). -/
+def etcdLeaseGrantSpecG (G : w64 → IProp GF) :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
+    iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ G m.id -∗ Φ m)
+
+/-- `etcdLeaseGrantSpec` is `etcdLeaseGrantSpecG` at the grant at the history. -/
+theorem etcdLeaseGrantSpec_eq (γl : GName) :
+    etcdLeaseGrantSpec (GF := GF) γl =
+      etcdLeaseGrantSpecG (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt γl i id)) := rfl
+
+/-- **etcd's spec of `LeaseGrant` at the lessor `γl`, in any lease mode** (the lease-expiry plan's
+X2, 2026-11-04): any request gets a reply whose lease ID is not `NoLease`, whose header revision etcd
+has reached, and whose lease is live in the lessor's history from some index (`leaseLiveFrom`: a
+revocable lessor may revoke it later, so no listing need list it). -/
+def etcdLeaseGrantSpecLive (γl : GName) :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  etcdLeaseGrantSpecG (fun id => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i id l))
+
+/-- The old `LeaseGrant` contract is weaker than the live one. -/
+theorem etcdLeaseGrantSpecLive_any (γl : GName) (m : w64 × w64)
+    (Φ : LeaseGrantRespM → IProp GF) :
+    etcdLeaseGrantSpecAny (GF := GF) m Φ ⊢ etcdLeaseGrantSpecLive γl m Φ := by
+  unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpecLive etcdLeaseGrantSpecG
+  iintro H %r Hid Hr -
+  iapply H $$ Hid Hr
+
+/-- **A registration of `LeaseGrant` at the live contract is one at the old contract.** -/
+theorem isGrpcRpc_leaseGrantLive_any (addr : GoString) (γl : GName) :
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecLive (GF := GF) γl) ⊢
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpecAny :=
+  isGrpcRpc_mono _ _ _ _ (etcdLeaseGrantSpecLive_any γl)
+
 end specs
 
 section specsL

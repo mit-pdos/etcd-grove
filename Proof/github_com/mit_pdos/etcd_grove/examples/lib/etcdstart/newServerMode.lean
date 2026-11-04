@@ -45,7 +45,7 @@ theorem newServerMode.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
-    bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
+    bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   iunfold bootPremise at Hboot
@@ -55,7 +55,6 @@ theorem newServerMode.wp_proof
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
-  obtain ⟨m, hslg⟩ := hslg
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -80,7 +79,7 @@ theorem newServerMode.wp_proof
   have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
   simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd m hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 Htb Hrb48 HrbN
@@ -138,8 +137,8 @@ theorem newServerMode.wp_proof
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
-  ihave #Hlr : srvLeaseRd srv E $$ []
-  · iunfold srvLeaseRd; iapply lease.srvInv_lessorRd $$ Hlsrv
+  ihave #Hlr : srvLeaseRd srv E lm $$ []
+  · iunfold srvLeaseRd; iexists _; iexact Hlsrv
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl

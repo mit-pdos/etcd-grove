@@ -106,17 +106,8 @@ theorem srvRevokeOpen_spec :
     srvRevokeOpen (GF := GF) → EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := id
 end defs
 
-/-- **The lease mode of a cluster** (the caller's choice): `none`, the cluster grants no lease;
-`mono`, it grants leases that never expire during the run (the deployment premise
-`lease.leasesNoExpiry`); `revocable`, it grants leases the server expires and revokes (admitted by
-the expiry stage's Part X-a, 2026-11-04, under the open premise `srvRevokeOpen`; until then
-`lease.bootCfg` and `lease.runCfg` were `False` there). (Moved from `LeaseApi.lean`, 2026-11-04, for
-`lease.runCfg`.) -/
-inductive lease.Mode
-  | none
-  | mono
-  | revocable
-  deriving DecidableEq
+-- `lease.Mode`: `Proof/go_etcd_io/etcd/server/v3/lease/LessorBackend.lean` (2026-11-04, X2: `srvSnapRO`
+-- and the rest model name it, below this module).
 
 section runCfg
 variable [GooseExts] [GooseSemantics] [GooseInterp]

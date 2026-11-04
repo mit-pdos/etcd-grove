@@ -61,7 +61,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
-      ps bootLog ctxs dir id γ ρ E₀ Φs γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
+      ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr, Hkeep⟩)

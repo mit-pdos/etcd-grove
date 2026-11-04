@@ -39,7 +39,7 @@ abbrev newServerMode.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool) (lm : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -64,7 +64,7 @@ abbrev newServerMode.spec : Prop :=
       -- for the compaction's write-back stock)
       bootPremise N ps bootLog ctxs dir token name Uok id ∗
       commonPremises ∗ context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id cmp ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       netHttpOk γn id ∗
       -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
       walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
@@ -74,7 +74,7 @@ abbrev newServerMode.spec : Prop :=
       (Val #retention)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
 
 end spec
 

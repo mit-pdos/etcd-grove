@@ -135,27 +135,28 @@ theorem lease.bootCfg_of_run {lg : Bool} {m : lease.Mode} {on : Bool}
   obtain ⟨hlg, hmono, hopen, hrev⟩ := h
   exact ⟨hlg, hon, hmono, hopen, hrev, hck⟩
 
--- `m` is not read yet (Part X)
-set_option linter.unusedVariables false in
 /-- **The lease subsystem's part of the built server** (sealed, persistent), of the server `s` at
 the apply environment `E` (whose `E.γ.leases` is the lessor's name), the auth mode `on` and the lease
-mode `m` (not read yet: the expiry stage's Part X adds the lessor's mode here): with auth on, its
-lessor finds no lease (`srvLessorNil`, what `start.specOn`'s apply thread takes); the peers' round
-tripper (`srvPeerRt`, `LeaseRenew`'s forwarding); the lessor's reader side (`srvLessorRd`) and its
-reader pool (`lease.lessorRdPool`, the lease checks' `Lookup`s). -/
+mode `m`: with auth on, its lessor finds no lease (`srvLessorNil`, what `start.specOn`'s apply thread
+takes); the peers' round tripper (`srvPeerRt`, `LeaseRenew`'s forwarding); the lessor's reader side
+(`srvLessorRd`) and its reader pool (`lease.lessorRdPool`, the lease checks' `Lookup`s); (the
+lease-expiry plan's X2, 2026-11-04) the lessor's mode, monotone exactly in the mode `mono`
+(`NewLessor`'s `decide (m = mono)`), which turns a grant's mode-free fact into `leaseGrantedAt`
+(`lease.srvInv_grantedAt`). -/
 @[no_expose] def lease.srvInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     IProp GF :=
   iprop(□ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s E.γ.leases ∗
-    lease.lessorRdPool E.γ.leases)
+    lease.lessorRdPool E.γ.leases ∗ lease.lessorModeIs E.γ.leases (decide (m = .mono)))
 
 instance lease.srvInv_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     Persistent (lease.srvInv on s E m) := by
   unfold lease.srvInv; infer_instance
 
-/-- **`lease.srvInv` from `NewServer`'s construction**: its four facts. -/
+/-- **`lease.srvInv` from `NewServer`'s construction**: its five facts. -/
 theorem lease.srvInv_intro (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     □ (⌜on = true⌝ → srvLessorNil s) ∗ srvPeerRt s ∗ srvLessorRd s E.γ.leases ∗
-      lease.lessorRdPool E.γ.leases ⊢ lease.srvInv on s E m := by
+      lease.lessorRdPool E.γ.leases ∗ lease.lessorModeIs E.γ.leases (decide (m = .mono)) ⊢
+      lease.srvInv on s E m := by
   unfold lease.srvInv; exact .rfl
 
 /-- **What the auth-on start takes from `lease.srvInv`** (`start.specOn`'s apply thread): with auth
@@ -179,8 +180,24 @@ theorem lease.srvInv_peerRt (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease
 theorem lease.srvInv_lessorRd (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     lease.srvInv on s E m ⊢ srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases := by
   unfold lease.srvInv
-  iintro ⟨-, -, #H1, #H2⟩
+  iintro ⟨-, -, #H1, #H2, -⟩
   iframe H1 H2
+
+/-- (the lease-expiry plan's X2, 2026-11-04) **A grant's mode-free fact in the monotone mode**: a
+lease live in the lessor's history from `i` (what the grant's reply carries, `leaseLiveFrom`) was
+granted at an index `j ≥ i` of the monotone history (`leaseGrantedAt`, which every later listing
+lists). What v3rpc's `lessorGrantOkL_of_server` takes. -/
+theorem lease.srvInv_grantedAt (on : Bool) (s : Loc) (E : apply.AEnv GF) (i : Nat) (id : w64)
+    (l : Loc) :
+    lease.srvInv on s E .mono ∗ lease.leaseLiveFrom E.γ.leases i id l ⊢
+      ∃ j : Nat, ⌜i ≤ j⌝ ∗ lease.leaseGrantedAt E.γ.leases j id := by
+  unfold lease.srvInv
+  rw [show decide (lease.Mode.mono = lease.Mode.mono) = true from rfl]
+  iintro ⟨⟨-, -, -, -, #Hm⟩, #Hl⟩
+  iapply lease.leaseGrantedAt_of_live E.γ.leases i id l
+  isplitl
+  · iexact Hm
+  · iexact Hl
 
 end slots
 

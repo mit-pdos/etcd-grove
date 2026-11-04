@@ -116,31 +116,31 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at the lessor's history**
-(`grpcHandlerOwnOk`; as `etcd_leaseGrantHandlerOk`, over the grant contract at the history,
-`v3rpc.lessorGrantOkL`): the reply's lease was granted at an index of `E.γ.leases`'s history. -/
-theorem etcd_leaseGrantHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
-    (E : apply.AEnv GF) (S : IProp GF) :
+/-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at a success fact `G`**
+(`grpcHandlerOwnOk`; as `etcd_leaseGrantHandlerOk`, over the grant contract at `G`,
+`v3rpc.lessorGrantOkG`; the lease-expiry plan's X2, 2026-11-04: until then at the history only,
+`etcd_leaseGrantHandlerOkL`): the reply's lease has `G`. -/
+theorem etcd_leaseGrantHandlerOkG (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) [∀ id, Persistent (G id)] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorGrantOkL s E S ⊢
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorGrantOkG s E S G ⊢
       grpcHandlerOwnOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant") S
-        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) := by
+        (etcdLeaseGrantSpecG (EM := v3rpc.etcdModelOfServer E) G) := by
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOwnOk
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, Hspec⟩ HΨ
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S
-    (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt E.γ.leases i id)) ci cd r m)
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S G ci cd r m)
     $$ [HS Hid]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hout, Hg⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
-  · icases Hg with (%Hne | ⟨%id', #Hid', %i, #Hgr⟩)
+  · icases Hg with (%Hne | ⟨%id', #Hid', #Hgr⟩)
     · exact absurd Hok.1 Hne
     iunfold v3rpc.leaseHdrOut at Hh
     icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
@@ -167,16 +167,28 @@ theorem etcd_leaseGrantHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       iexists h
       iframe #
       ipureintro; exact Hhn
-    · iunfold etcdLeaseGrantSpec at Hspec
+    · iunfold etcdLeaseGrantSpecG at Hspec
       iapply Hspec
       · ipureintro; exact Hid0
       · iexact Hreach
-      · iexists i; iexact Hgr
+      · iexact Hgr
   · imodintro
     iapply HΨ
     iframe HS
     iintro %Hnil
     exact absurd Hnil Herr.2
+
+/-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at the lessor's history**
+(`etcd_leaseGrantHandlerOkG` at the grant at the history, `v3rpc.lessorGrantOkL`): the reply's
+lease was granted at an index of `E.γ.leases`'s history. -/
+theorem etcd_leaseGrantHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorGrantOkL s E S ⊢
+      grpcHandlerOwnOk (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant") S
+        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) := by
+  exact etcd_leaseGrantHandlerOkG lp s A cid mid E S _
 
 /-- **etcd's `LeaseLeases` handler meets etcd's `LeaseLeases` spec at the lessor `γl`'s history**
 (as `etcd_leaseLeasesHandlerOk`), with auth off and the lessor's reader invariant: the call is made
@@ -370,6 +382,92 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   ihave #Hml'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hml'
   ihave #Hmg'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h5 h6 $$ Hmg'
   simp only [etcdLeaseGrantMethods]
+  iframe #
+  iapply BigSepL.bigSepL_nil.2
+  itrivial
+
+/-- **etcd's lease reads and grant in any lease mode** as registered (the lease-expiry plan's X2,
+2026-11-04): `LeaseTimeToLive` and `LeaseLeases` at the lease reads' specs (`etcdLeaseReadMethods`:
+the listing at the spec that takes no grant, `etcdLeaseLeasesSpecAny`, since a revocable lessor need
+not list a lease it granted) and `LeaseGrant` at the live spec (`etcdLeaseGrantSpecLive`), the
+generated handlers of `Lease_ServiceDesc` with the `*quotaLeaseServer` `q`. -/
+def etcdLeaseGrantLiveMethods (q : Loc) (E : apply.AEnv GF) : List (GrpcMethod GF) :=
+  [⟨go!"/etcdserverpb.Lease/LeaseTimeToLive", pbLeaseTimeToLiveRequest, pbLeaseTimeToLiveResponse,
+     GrpcSpec.md etcdLeaseTTLSpec, (@! etcdserverpb._Lease_LeaseTimeToLive_Handler),
+     interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
+   ⟨go!"/etcdserverpb.Lease/LeaseLeases", pbLeaseLeasesRequest, pbLeaseLeasesResponse,
+     GrpcSpec.md etcdLeaseLeasesSpecAny, (@! etcdserverpb._Lease_LeaseLeases_Handler),
+     interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
+   ⟨go!"/etcdserverpb.Lease/LeaseGrant", pbLeaseGrantRequest, pbLeaseGrantResponse,
+     GrpcSpec.md (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases),
+     (@! etcdserverpb._Lease_LeaseGrant_Handler),
+     interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩]
+
+/-- **The lease reads and the live grant as grpc runs them, at the KV's run slot with a thread
+token** (as `etcd_leaseGrantMethodsOk`, the reads by `etcd_leaseReadMethodsOk`): the grant over the
+grant contract at the mode-free fact (`v3rpc.grantLiveG`). -/
+theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (γr : ReadNames) (il im iu : GoFunc)
+    (hA : A.revR = mvcc.storeReader E.s E.γ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗
+        v3rpc.raftLeaseRead s E E.γ.leases iprop(E.RD ∗ threadTok) (mvcc.storeReader E.s E.γ) ∗
+        v3rpc.lessorGrantOkG s E iprop(etcdRunSlot s E γr ∗ threadTok) (v3rpc.grantLiveG E) ∗
+        auth.authPubLbM E.authMode 0 ∗ lease.lessorLb E.γ.leases 0 ∗
+        v3rpc.quotaLeaseServerAt q
+          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+        srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ⊢
+      [∗list] m ∈ etcdLeaseGrantLiveMethods q E,
+        grpcMethodOkMd m.handler m.srv [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ threadTok) m.spec := by
+  iintro ⟨#Pv, #Ps, #Hat, #HL0, #HG, #Hn, #Hm, #Hq, #Hil, #Him, #Hiu⟩
+  ihave #Hrm := etcd_leaseReadMethodsOk lp q s A cid mid E γr E.γ.leases il im iu hA $$ []
+  · iframe #
+  simp only [etcdLeaseReadMethods]
+  icases BigSepL.bigSepL_cons.1 $$ Hrm with ⟨#Hmt, #Hrm⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hrm with ⟨#Hml, -⟩
+  have h5 : iprop(etcdGrpcSlot s E γr ∗ threadTok) ⊢
+      iprop((((etcdRunSlot s E γr ∗ threadTok) ∗ v3rpc.quotaRd s) ∗
+        [∗list] R ∈ etcdIcRs s, R) ∗ True) := by
+    unfold etcdGrpcSlot
+    iintro ⟨⟨⟨Hrs, Hqr⟩, HRs⟩, Ht⟩
+    iframe
+  have h6 : iprop((((etcdRunSlot s E γr ∗ threadTok) ∗ v3rpc.quotaRd s) ∗
+        [∗list] R ∈ etcdIcRs s, R) ∗ True) ⊢ iprop(etcdGrpcSlot s E γr ∗ threadTok) := by
+    unfold etcdGrpcSlot
+    iintro ⟨⟨⟨⟨Hrs, Ht⟩, Hqr⟩, HRs⟩, -⟩
+    iframe
+  have hg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗
+        v3rpc.lessorGrantOkG s E iprop(etcdRunSlot s E γr ∗ threadTok) (v3rpc.grantLiveG E) ⊢
+      grpcHandlerOwnOk (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant")
+        iprop(etcdRunSlot s E γr ∗ threadTok)
+        (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases) :=
+    etcd_leaseGrantHandlerOkG lp s A cid mid E iprop(etcdRunSlot s E γr ∗ threadTok)
+      (v3rpc.grantLiveG E)
+  ihave #Hg := hg $$ []
+  · iframe #
+  ihave #Hqg := v3rpc.quotaLease_grantHandlerOk_of v3rpc.quotaLeaseServer.wp_LeaseGrant
+    (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases) q s
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
+    iprop(etcdRunSlot s E γr ∗ threadTok) $$ []
+  · iframe #
+  ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
+  · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
+    iframe #
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  ihave #Hmg := etcd_leaseGrantMethodOk q _ _ _ _ $$ [Hqg Ppb Hics]
+  · iframe #
+  ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
+  ihave #Hmg'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h5 h6 $$ Hmg'
+  simp only [etcdLeaseGrantLiveMethods]
   iframe #
   iapply BigSepL.bigSepL_nil.2
   itrivial

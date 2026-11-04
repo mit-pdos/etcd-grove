@@ -136,7 +136,9 @@ theorem applySnapshot_walk
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
-    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    -- (the lease-expiry plan's X2, 2026-11-04, until S4) a cluster that grants no lease
+    (hlgE : E.lg = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -371,9 +373,9 @@ theorem applySnapshot_walk
   ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
   ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
   -- the old backend's objects, from the rest resource
-  -- (the lease-grant stage, 2.9) the revocable lessor refutes the leased arm: a cluster that
-  -- grants none
-  ihave ⟨%Hlg0, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
+  -- (the lease-grant stage, 2.9; the lease-expiry plan's X2) a cluster that grants none
+  ihave HRS : E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) $$ [HRS]
+  · rw [← srvRest_false E γr A hlgE]; iexact HRS
   rw [hRO]
   iunfold srvRestOwnH at HRS
   icases HRS with ⟨HoRO, HoObj⟩

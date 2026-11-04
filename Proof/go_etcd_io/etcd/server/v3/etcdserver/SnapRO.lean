@@ -442,9 +442,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
     -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the watchable store
     lease.lessorInv lp E.γ.leases ∗
-    -- (the lease-grant plan's D2, 2026-11-02) its mode: monotone when the cluster grants leases
-    -- (`KVNames.lg`), revocable (what `Recover` takes) otherwise
-    lease.lessorModeIs E.γ.leases γr.kv.lg ∗
+    -- (the lease-grant plan's D2, 2026-11-02) its mode: (the lease-expiry plan's X2, 2026-11-04)
+    -- monotone exactly in the lease mode `mono` of a mode `m` whose grant flag is the KV names'
+    -- (`KVNames.lg`); so revocable (what `Recover` takes) in a cluster that grants none. (Until
+    -- then `lessorModeIs E.γ.leases γr.kv.lg`: false of the revocable mode.)
+    (∃ m : lease.Mode, ⌜γr.kv.lg = decide (m ≠ .none) ∧ E.lg = γr.kv.lg⌝ ∗
+      lease.lessorModeIs E.γ.leases (decide (m = .mono))) ∗
     (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
      mvcc.isWatchableStore wsl E.s γw0) ∗
@@ -511,7 +514,8 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   have e6 : (E.onBe p P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe p P f c RO RW).γ.leases = E.γ.leases := rfl
   have e8 : (E.onBe p P f c RO RW).s = E.s := rfl
-  rw [e5, e6, e7, e8, hP]
+  have e9 : (E.onBe p P f c RO RW).lg = E.lg := rfl
+  rw [e5, e6, e7, e8, e9, hP]
   iframe #
 
 /-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m

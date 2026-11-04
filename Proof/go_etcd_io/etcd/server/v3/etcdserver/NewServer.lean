@@ -600,7 +600,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
-      (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) ρ.rd.kv.lg trivial HlP)
+      (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
+      trivial HlP)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, #Hllk'⟩
   · iframe HB Hclok
@@ -1587,7 +1588,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · rw [Hγw.2.1]; iexact Hlinv
       isplitr
-      · rw [Hγw.2.1]; iexact Hlmode
+      · -- (the lease-expiry plan's X2) the lessor's mode at the lease mode `m`
+        iexists m
+        rw [Hγw.2.1]
+        iframe Hlmode
+        ipureintro; exact ⟨lease.bootCfg_lg Hlbc, by first | rfl | trivial⟩
       isplitr
       · iexists ws, γw; iframe kv Hws
       -- (J8a-3) the configuration's rebuild
@@ -1753,6 +1758,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #HLsrv : lease.srvInv on s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lg, γlt⟩ : apply.AEnv GF) m $$ [HLnil HpeerRt HlessRd HlPool']
   · iapply lease.srvInv_intro
     iframe HLnil HpeerRt HlessRd HlPool'
+    rw [Hγw.2.1]; iexact Hlmode
   imodintro
   wp_auto
   iapply HΦ
@@ -2062,16 +2068,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             · rw [Hlgon rfl] at hlg; cases hlg
           simp only [↓reduceIte]
           rw [Hγw.2.1]
+          iintro !> %lid
+          iunfold lease.leaseGranted
+          iexists _
+          iframe Hlgd
           iintro !>
-          isplitl []
-          · iintro %lid
-            iunfold lease.leaseGranted
-            iexists _
-            iframe Hlgd
-            iintro !>
-            iunfold srvGrantGuard
-            ipureintro; exact ⟨rfl, hon⟩
-          · iexact Hlmode
+          iunfold srvGrantGuard
+          ipureintro; exact ⟨rfl, hon⟩
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
       iunfold srvApRes

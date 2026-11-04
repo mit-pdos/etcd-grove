@@ -31,7 +31,7 @@ theorem apply.applierV3Corrupt.LeaseGrant.wp_proof :
   intro E c inner p r rq g log T rs Pre Q Post info
   wp_start as ⟨-, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, -, -, -, HltT, HRO, -, Hpre, -⟩
+  icases Hgp with ⟨%Hrq, -, -, HltT, HRO, -, Hpre, -⟩
   obtain ⟨-, Hg, Hk⟩ := Hrq
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

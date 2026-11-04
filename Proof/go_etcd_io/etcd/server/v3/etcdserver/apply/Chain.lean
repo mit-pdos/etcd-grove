@@ -1124,12 +1124,15 @@ def grantRespIs (E : AEnv GF) (r : Loc) (g : LeaseGrantModel) : IProp GF :=
 
 /-- **A grant's answer** (2.6, the `authnAnsM` pattern beside `dispatchAnswer`, Q2): for a grant
 `g`, the response a `*pb.LeaseGrantResponse`; without error, its fields (`grantRespIs`) and the
-lease granted at some index of the lessor's history; `True` for a request with no grant. -/
+lease live in the lessor's history from some index (`leaseLiveFrom`; the lease-expiry plan's X2,
+2026-11-04: mode-free, until then `leaseGrantedAt`, which needs the monotone mode; `lease.srvInv`'s
+law gives it back at `mono`); `True` for a request with no grant. -/
 def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp GF :=
   match rq.leaseGrant with
   | some g => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r⌝ ∗
-      ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗ ∃ i : Nat, lease.leaseGrantedAt E.γ.leases i g.id) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗
+          ∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i g.id l) ∨
         ⌜err ≠ GoInterface.nil⌝))
   | none => iprop(True)
 
@@ -1572,11 +1575,12 @@ theorem cmpPermRq_nonCmp (E : AEnv GF) (rq : IRRModel) (h : dispatchKind rq ≠ 
   exact absurd hk h
 
 /-- **A grant's permits** (the lease-grant plan's 2.10, S2; the `cmpPermRq` pattern): for a request
-dispatched as a grant, its id is one the lessor may grant (`leaseGranted`) and the lessor grants
-(`lessorModeIs … true`). Free of a request of another kind. -/
+dispatched as a grant, its id is one the lessor may grant (`leaseGranted`). Free of a request of
+another kind. (The lease-expiry plan's X2, 2026-11-04: until then also the lessor monotone,
+`lessorModeIs … true`.) -/
 def grantPermRq (E : AEnv GF) (rq : IRRModel) : IProp GF :=
-  iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → (∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
-    lease.leaseGranted E.γ.leases g.id) ∗ lease.lessorModeIs E.γ.leases true))
+  iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → ∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
+    lease.leaseGranted E.γ.leases g.id))
 
 instance grantPermRq_persistent (E : AEnv GF) (rq : IRRModel) :
     Persistent (grantPermRq (GF := GF) E rq) := by
@@ -1600,14 +1604,14 @@ instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
 
 /-- **The grant triple's precondition** (2.11): in a cluster that grants leases (`E.lg`, which
 `dispatch` has from `rqOk E.lg`'s grant arm: without it the two halves are `True` and do not tie the
-lessor's live set to `T`), a request dispatched as the grant `g` (its request `r`), the lease marked granted and the lessor in the monotone mode (`grantPermRq`'s), the
+lessor's live set to `T`), a request dispatched as the grant `g` (its request `r`), the lease marked granted (`grantPermRq`'s; the lease-expiry plan's X2: no longer the lessor's mode), the
 apply thread's half of the live set `T`, the rest resource at `rs`, the store's write token, the
 common precondition and the consistent index's split. -/
 def grantPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64) (rs : RestM)
     (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜E.lg = true ∧ rq.leaseGrant = some g ∧ dispatchKind rq = .leaseGrant⌝ ∗ leaseGrantIs r g ∗
-    lease.leaseGranted E.γ.leases g.id ∗ lease.lessorModeIs E.γ.leases true ∗ ltHalf E T ∗
+    lease.leaseGranted E.γ.leases g.id ∗ ltHalf E T ∗
     E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ ciSplit E Pre)
 
 /-- **The grant triple's postcondition** (2.11) at the outcome `o`: the chain's step

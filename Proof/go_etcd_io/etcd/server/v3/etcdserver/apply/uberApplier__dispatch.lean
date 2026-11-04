@@ -584,13 +584,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     -- (the lease-grant stage, 2.10) admitted where the cluster grants; the chain's grant triple
     have hok := (apply.rqOk_leaseGrant _ _ _ hk).1 Hok.1
     iunfold apply.grantPermRq at Hgp
-    ihave ⟨#Hgr, #Hmode⟩ := Hgp $$ %hk
+    ihave #Hgr := Hgp $$ %hk
     wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info
       [HLt HRO Hwt Hkv Hres Hc] as %resp %err ⟨%o, Hpost⟩
     · iunfold apply.grantPre
       isplitr
       · ipureintro; exact ⟨hok.1, hs, hk⟩
-      iframe HR Hmode HSp
+      iframe HR HSp
       isplitr
       · iapply Hgr $$ %x %hs
       iunfold apply.mPre

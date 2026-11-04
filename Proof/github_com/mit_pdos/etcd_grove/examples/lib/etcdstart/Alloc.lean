@@ -47,15 +47,15 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (cmp : Bool) (cret : Nat) (lg : Bool)
-    (hlg : ∃ m : lease.Mode, lease.runCfg (GF := GF) lg m) :
+    (cmp : Bool) (cret : Nat) (lg : Bool) (m : lease.Mode)
+    (hlg : lease.runCfg (GF := GF) lg m) :
     ⊢ bootMarshal (GF := GF) [id] ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
       ⌜γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cmp = cmp ∧
         ρ.rd.kv.cret = cret ∧ ρ.rd.kv.lg = lg⌝ ∗
-      memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp m ∗ netHttpOk γn id ∗
       (if lg then iprop(True) else
         etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   iintro #Hmarsh
@@ -126,7 +126,7 @@ theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
   have h := alloc1 (GF := GF) id ctxs boot Hlow HB Hcc dir Hone Hrb Hrb2 cmp cret false
-    ⟨.none, lease.runCfg_none⟩
+    .none lease.runCfg_none
   simp only [Bool.false_eq_true, ↓reduceIte] at h
   iintro #Hmarsh
   imod h $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, Hnet, Hetcd⟩

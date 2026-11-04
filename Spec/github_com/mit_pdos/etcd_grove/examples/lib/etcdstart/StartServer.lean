@@ -38,7 +38,7 @@ abbrev StartServer.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -55,7 +55,7 @@ abbrev StartServer.spec : Prop :=
       threadTok ∗
       bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗
@@ -65,7 +65,7 @@ abbrev StartServer.spec : Prop :=
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨ (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨ (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id lm) }}
 
 end spec
 

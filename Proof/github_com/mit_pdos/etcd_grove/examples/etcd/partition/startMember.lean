@@ -63,7 +63,7 @@ theorem startMember.wp_proof
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
-    Φs γn
+    Φs γn lm
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown, Hwdf⟩
@@ -104,7 +104,7 @@ theorem startMember.wp_proof
   -- lg)`: frequent snapshots
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" (W64 1) (W64 1) peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
-      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
+      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn lm
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
@@ -133,7 +133,7 @@ theorem startMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iunfold memberUp at Hup

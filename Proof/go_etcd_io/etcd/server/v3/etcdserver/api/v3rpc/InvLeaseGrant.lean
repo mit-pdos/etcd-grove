@@ -41,6 +41,16 @@ triples", 2026-11-03: until then the same triple written out). -/
 abbrev lessorGrantOkL (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
   lessorGrantOkG s E S (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt E.γ.leases i id))
 
+/-- **The lease live in the lessor's history from some index**: the grant contract's success fact
+with no lease mode (the lease-expiry plan's X2, 2026-11-04: what the reply carries in every mode,
+`leaseGrantedResp`'s `leaseLiveFrom`). -/
+def grantLiveG (E : apply.AEnv GF) : w64 → IProp GF :=
+  fun id => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i id l)
+
+instance grantLiveG_persistent (E : apply.AEnv GF) (id : w64) :
+    Persistent (grantLiveG (GF := GF) E id) := by
+  unfold grantLiveG; infer_instance
+
 end defs
 
 end v3rpc

@@ -257,7 +257,7 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
@@ -284,7 +284,7 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
@@ -310,7 +310,7 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) ps
       (LogEntry.toEntries boot 0) ctxs
-      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN HwbN
+      (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn .none Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)

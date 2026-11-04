@@ -49,7 +49,7 @@ abbrev newServer.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -69,7 +69,7 @@ abbrev newServer.spec : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗
@@ -81,7 +81,7 @@ abbrev newServer.spec : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
 
 /-- See the file header (`specCompact`). -/
 abbrev newServer.specCompact : Prop :=
@@ -90,7 +90,7 @@ abbrev newServer.specCompact : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -115,7 +115,7 @@ abbrev newServer.specCompact : Prop :=
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
-      memberBoot γ ctxs ρ E₀ Φs id true ∗
+      memberBoot γ ctxs ρ E₀ Φs id true lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗
@@ -127,7 +127,7 @@ abbrev newServer.specCompact : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
 
 end spec
 

@@ -125,6 +125,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
     (γnc : NotifyNames),
+    -- (the lease-expiry plan's X2, 2026-11-04, until S4) a cluster that grants no lease: the
+    -- revocable lessor no longer refutes the image's leased arm (`srvRest_revocable`)
+    E.lg = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗

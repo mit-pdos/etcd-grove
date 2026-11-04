@@ -1745,14 +1745,27 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     s E ρ γr γl cs ms hT hR hP
 
 /-- **The grant contract at the lessor's history, discharged** (`lessorGrantOkL_of_server` at the
-linked `EtcdServer.LeaseGrant`; the lease-grant plan's 2.4), in a cluster that grants leases. -/
+linked `EtcdServer.LeaseGrant`; the lease-grant plan's 2.4), in a cluster that grants leases, in the
+monotone lease mode (the lease-expiry plan's X2, 2026-11-04: `lease.srvInv … .mono`). -/
 theorem lessorGrantOkL_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (h : srvGrantsLeases E ρ) (on : Bool) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      lease.srvInv on s E .mono ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorGrantOkL s E S :=
+  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h on
+
+/-- **The grant contract at the mode-free fact, discharged** (`lessorGrantOkLive_of_server` at the
+linked `EtcdServer.LeaseGrant`; the lease-expiry plan's X2, 2026-11-04), in a cluster that grants
+leases, in any lease mode. -/
+theorem lessorGrantOkLive_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
     (h : srvGrantsLeases E ρ) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkL s E S :=
-  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h
+      lessorGrantOkG s E S (grantLiveG E) :=
+  lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h
 
 /-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
 `srvHeaderFacts` premise needs no source of its own). -/

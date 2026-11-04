@@ -92,7 +92,7 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leasekvDir id) (dirOne_member id _)
-      (by omega) (by omega) false 0 false ⟨.none, lease.runCfg_none⟩) $$ Hmarsh
+      (by omega) (by omega) false 0 false .none lease.runCfg_none) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlg0⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -101,7 +101,7 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (leasekvDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
-      (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
+      (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [leasekvDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr

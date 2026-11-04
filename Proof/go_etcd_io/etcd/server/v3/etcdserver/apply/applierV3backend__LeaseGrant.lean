@@ -33,7 +33,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   intro E p r rq g log T rs Pre Q Post info
   wp_start as ⟨#Hb, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, #Hr, #Hgr, #Hmode, HltT, HRO, Hwt, Hpre, -⟩
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, -⟩
   obtain ⟨Hlg, Hg, Hk⟩ := Hrq
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -137,9 +137,6 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ipersist Error
     ipersist Header
     ipersist Hrev
-    ihave #Hgat := EtcdGrove.lease.leaseGrantedAt_of_live E.γ.leases 0 g.id l $$ [Hmode Hlf]
-    · iframe Hmode Hlf
-    icases Hgat with ⟨%i, -, #Hgat⟩
     imodintro
     iapply HΦ
     iexists (Outcome.applied log false)
@@ -194,7 +191,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word
-    iexists i; iexact Hgat
+    iexists 0, l; iexact Hlf
 
 end proof
 

@@ -218,10 +218,12 @@ theorem env₀_cmp (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool) :
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
 premises'; and (M2, the storage side, review round 2's N1, the approval's item 12) the member's
-compaction mode `cmp` (default `false`), recorded as the stand-in's (`E₀.cmp = cmp`). -/
+compaction mode `cmp` (default `false`), recorded as the stand-in's (`E₀.cmp = cmp`); (the
+lease-expiry plan's X2, 2026-11-04, the user's (a)) the member's lease mode `m` (default `none`), the
+mode of its lease subsystem's sealed premise (`lease.runCfg`), which each example picks. -/
 def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64)
-    (cmp : Bool := false) : IProp GF :=
+    (cmp : Bool := false) (m : lease.Mode := .none) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
@@ -229,8 +231,8 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
       ρ.rd.kv.cmp = cmp ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
       -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
-      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise at some mode
-      (∃ m : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lg m)⌝ ∗
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise, (X2) at the mode `m`
+      lease.runCfg (GF := GF) ρ.rd.kv.lg m⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
@@ -254,8 +256,8 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
 `Main` keeps before `newServer` takes the bundle; `newServer` gives it to `NewServer.spec`'s
 premise). -/
 theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
-    memberBoot γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBoot γ ctxs ρ E₀ Φs id cmp := by
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) (m : lease.Mode := .none) :
+    memberBoot γ ctxs ρ E₀ Φs id cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBoot γ ctxs ρ E₀ Φs id cmp m := by
   iintro H
   iunfold memberBoot at H
   icases H with ⟨%Hρ, Hr⟩
@@ -266,15 +268,25 @@ theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E
   · ipureintro; exact Hρ
   iexact Hr
 
-/-- **The lessor's reader side** (persistent; the closed lease example, 2026-11-02,
-`notes/lease-ex-plan.md`): `NewServer`'s `srvLessorRd` and `lessorRdPool`, which the served lease
-reads take (`raftLeaseRead_server`). -/
-def srvLeaseRd (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases)
+/-- **The lease subsystem's part of the built server, at the lease mode `m`** (persistent; the
+closed lease example, 2026-11-02, `notes/lease-ex-plan.md`): (the lease-expiry plan's X2,
+2026-11-04, the user's (a)) `NewServer`'s `lease.srvInv` at `m`, at some auth mode; until then its
+reader side only (`srvLessorRd`, `lessorRdPool`), which the served lease reads take
+(`raftLeaseRead_server`, `srvLeaseRd_lessorRd`), and which the monotone mode's grant takes whole
+(`v3rpc.lessorGrantOkL_server`). -/
+def srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp GF :=
+  iprop(∃ on : Bool, lease.srvInv on s E m)
 
-instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) :
-    Persistent (srvLeaseRd (GF := GF) s E) := by
+instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
+    Persistent (srvLeaseRd (GF := GF) s E m) := by
   unfold srvLeaseRd; infer_instance
+
+/-- **The lessor's reader side, from `srvLeaseRd`** (what it was until X2). -/
+theorem srvLeaseRd_lessorRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
+    srvLeaseRd (GF := GF) s E m ⊢ srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases := by
+  unfold srvLeaseRd
+  iintro ⟨%on, #H⟩
+  iapply lease.srvInv_lessorRd on s E m $$ H
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
@@ -286,10 +298,12 @@ monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServe
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
 `served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
-first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). -/
+first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). (The
+lease-expiry plan's X2, 2026-11-04) The lease subsystem at the member's lease mode `m` (default
+`none`; `memberBoot`'s). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
-    (x₀ : apply.ApplyKV := bootKV) : IProp GF :=
+    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       (γk : GName) (τ : SrvTr GF),
@@ -301,7 +315,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E m)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -315,9 +329,10 @@ request names `ρ` (the wait registry's `γw`) at an apply environment `E` agree
 progress-notify interval; what `Start` returns (the request and read views, the `GoAttach`
 resources with the thread token, a `lgMu` reader slot, the read loop's readers) and what
 `NewServer` left for serving (`srvServeBuilt`'s resources, two of its `lgMu` slots spent on
-`Start`; the watchable store's readers), and its place in the network `γn`. -/
+`Start`; the watchable store's readers), and its place in the network `γn`; (the lease-expiry
+plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`). -/
 def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) : IProp GF :=
+    (id : w64) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
@@ -331,7 +346,7 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m)
 
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the

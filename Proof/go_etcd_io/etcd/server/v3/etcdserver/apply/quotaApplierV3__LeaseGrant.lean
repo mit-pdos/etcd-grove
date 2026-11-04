@@ -32,7 +32,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   intro E c inner p r rq g log T rs Pre Q Post info
   wp_start as ⟨#Hq, #Hin, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, #Hr, #Hgr, #Hmode, HltT, HRO, Hwt, Hpre, #Hsp⟩
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, #Hsp⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -53,7 +53,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   wp_apply HGrant $$ %r %rq %g %log %T %rs %Pre %Q %Post %info [HltT HRO Hwt Hkv Hres Hcs]
     as %resp %err ⟨%o, Hpost⟩
   · iunfold apply.grantPre
-    iframe HltT HRO Hwt Hr Hgr Hmode Hsp
+    iframe HltT HRO Hwt Hr Hgr Hsp
     isplitr
     · ipureintro; exact Hrq
     iunfold apply.mPre

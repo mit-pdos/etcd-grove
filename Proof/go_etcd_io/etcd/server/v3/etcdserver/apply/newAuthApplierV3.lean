@@ -143,7 +143,7 @@ theorem apply.newAuthApplierV3.wp_proof
     wp_call
     wp_auto
     iunfold apply.grantPre at Hpre
-    icases Hpre with ⟨%Hrq, #Hr, #Hgr, #Hmode, HltT, HRO, Hwt, Hm, #Hsp⟩
+    icases Hpre with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hm, #Hsp⟩
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
@@ -151,7 +151,7 @@ theorem apply.newAuthApplierV3.wp_proof
     icases Hres with ⟨%info', Hres⟩
     iapply HGrant $$ %r %rq %g %log %T %rs %Pre %Q %Post %info' [HltT HRO Hwt Hkv Hres Hcs]
     · iunfold apply.grantPre
-      iframe HltT HRO Hwt Hr Hgr Hmode Hsp
+      iframe HltT HRO Hwt Hr Hgr Hsp
       isplitr
       · ipureintro; exact Hrq
       iunfold apply.mPre

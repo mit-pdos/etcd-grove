@@ -55,7 +55,9 @@ receiver (the Lease service's handler, `v3rpc.leaseHdrAns`) needs it: its lease 
 `TTL` and `Error` read-only; its header's four id fields owned (`txn.respHdrOwn`: the gRPC layer's
 `header.fill` writes them) and its revision read-only, not `0`, a revision the store has reached
 (`srvRevLb`: a certified log longer than it, from which the clients' `etcdReached` follows,
-`v3rpc.etcdReached_of_certOk`); and the lease granted at an index `i` of the lessor's history.
+`v3rpc.etcdReached_of_certOk`); and the lease live in the lessor's history from an index `i`
+(`leaseLiveFrom`; the lease-expiry plan's X2, 2026-11-04: mode-free, until then `leaseGrantedAt`,
+which `lease.srvInv_grantedAt` gives back in the monotone mode).
 (The review's M3, 2026-11-02: until then the applied log itself, its certificate and witness, the
 supplier's mechanism.) -/
 def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
@@ -67,7 +69,7 @@ def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
     structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ ⌜id ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" resp ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" resp ↦□ e ∗
-    lease.leaseGrantedAt E.γ.leases i id)
+    ∃ l : Loc, lease.leaseLiveFrom E.γ.leases i id l)
 
 end defs
 

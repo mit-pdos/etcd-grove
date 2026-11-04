@@ -615,11 +615,12 @@ instance roLens_persistent (RO X : apply.RestM → IProp GF) : Persistent (roLen
   unfold roLens; infer_instance
 
 /-- **The server may grant every lease** (the lease-grant stage, 2.9, S2; persistent): every id is
-one its lessor may grant (`leaseGranted`), and the lessor grants monotonically (`lessorModeIs …
-true`). What `srvRest`'s leased arm carries to `applyEntryNormal` (`grantPermRq`). True of a server
-whose cluster grants leases: `NewServer` creates its lessor monotone with `leasesNoExpiry`. -/
+one its lessor may grant (`leaseGranted`). What `srvRest`'s leased arm carries to `applyEntryNormal`
+(`grantPermRq`). True of a server whose cluster grants leases (its guard holds of every id). (The
+lease-expiry plan's X2, 2026-11-04: until then also the lessor monotone, `lessorModeIs … true`,
+false in the revocable mode; the mode is now `lease.srvInv`'s.) -/
 def srvGrantable (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ((∀ id : w64, lease.leaseGranted E.γ.leases id) ∗ lease.lessorModeIs E.γ.leases true))
+  iprop(□ (∀ id : w64, lease.leaseGranted E.γ.leases id))
 
 instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
   unfold srvGrantable; infer_instance
@@ -642,21 +643,29 @@ theorem srvRest_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
   unfold srvRest; rw [h]; rfl
 
 open Iris.ProofMode in
-/-- **The receive side's refutation of the leased arm** (2.9, S-A): a revocable lessor
-(`applySnapshot`'s pre) is not the monotone one `srvGrantable` names, so the cluster grants none,
-and the image is what it was. -/
-theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
-    lease.lessorRevocable E.γ.leases ∗ srvRest E γr A ⊢
+/-- **The receive side's refutation of the leased arm** (2.9, S-A; the lease-expiry plan's X2,
+2026-11-04, mode-generic): a revocable lessor (`applySnapshot`'s pre) whose mode is `decide (m =
+mono)` (`lease.srvInv`'s, `srvSnapRO`'s) at a mode `m` other than `revocable` whose grant flag is
+the environment's: so `m = none`, the cluster grants none, and the image is what it was. (Until then
+`srvGrantable` carried the monotone mode, which refuted a revocable lessor in any granting cluster;
+the revocable mode's granting cluster is restored from a snapshot only from S4 on.) -/
+theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : apply.AEnv GF)
+    (γr : ReadNames) (A : List EntryModel) (m : lease.Mode) (hm : m ≠ .revocable)
+    (hlg : E.lg = decide (m ≠ .none)) :
+    lease.lessorModeIs E.γ.leases (decide (m = .mono)) ∗ lease.lessorRevocable E.γ.leases ∗
+      srvRest E γr A ⊢
       ⌜E.lg = false⌝ ∗ E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
-  cases h : E.lg
-  · rw [srvRest_false E γr A h]
-    iintro ⟨-, H⟩; iframe H; ipureintro; rfl
-  · unfold srvRest; rw [h]; simp only [↓reduceIte]
-    iintro ⟨#Hrv, -, -, #HG⟩
-    iunfold srvGrantable at HG
-    icases HG with ⟨-, #Hm⟩
-    ihave %Hab := lease.lessorModeIs_agree E.γ.leases false true $$ [$Hrv $Hm]
-    cases Hab
+  cases m with
+  | none =>
+    have h : E.lg = false := by simpa using hlg
+    rw [srvRest_false E γr A h]
+    iintro ⟨-, -, H⟩; iframe H; ipureintro; exact h
+  | mono =>
+    iintro ⟨#Hm, #Hrv, -⟩
+    ihave %Hab := lease.lessorModeIs_agree E.γ.leases false (decide (lease.Mode.mono = .mono))
+      $$ [$Hrv $Hm]
+    simp at Hab
+  | revocable => exact absurd rfl hm
 
 /-- **`srvRest` at the table ids `T` and the image `r`** (internal: the laws' common form). -/
 def srvRestAt (E : apply.AEnv GF) (T : List w64) (r : apply.RestM) : IProp GF :=
@@ -721,12 +730,9 @@ theorem srvGrantIf_perm [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
   · unfold srvGrantIf; rw [h hk]; simp only [↓reduceIte]
     iintro #HG
     iunfold srvGrantable at HG
-    icases HG with ⟨#Hall, #Hm⟩
     iunfold apply.grantPermRq
-    iintro !> %_
-    iframe Hm
-    iintro %g %_
-    iapply Hall
+    iintro !> %_ %g %_
+    iapply HG
   · iintro -; iapply (apply.grantPermRq_of_not_grant E rq hk)
 
 /-- **`srvRest` opened, at any `E.lg`** (`srvRestAt_open`): what `applyEntryNormal` hands

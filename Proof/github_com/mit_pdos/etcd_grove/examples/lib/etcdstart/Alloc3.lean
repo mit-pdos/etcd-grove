@@ -148,7 +148,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
       hpfx, ?_, trivial, by rw [hkc', Hkc],
-      ⟨.none, by simpa [hklg', Hklg] using lease.runCfg_none (GF := GF)⟩⟩
+      (by simpa [hklg', Hklg] using lease.runCfg_none (GF := GF))⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
   rw [hiss', Hiss]

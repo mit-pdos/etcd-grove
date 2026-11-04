@@ -100,7 +100,7 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (linkvtxnDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (LogEntry.toEntries boot 0) ctxs
-      (linkvtxnDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
+      (linkvtxnDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [linkvtxnDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr

@@ -266,7 +266,7 @@ theorem Main.wp_proof
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartPeriodicServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873"
       (W64 10000000) lg (LogEntry.toEntries boot 0) ctxs
-      (ckDir id) id γ ρ E₀ Φs γn Htb
+      (ckDir id) id γ ρ E₀ Φs γn .none Htb
       Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [ckDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hwdf] as %srv %err Hr
