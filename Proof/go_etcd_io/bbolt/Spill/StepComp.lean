@@ -134,14 +134,20 @@ theorem applySteps_append (fl : FLPg) (txid : w64) (s1 s2 : List FLStep) :
 
 theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hm : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) : spStep X X w w O [] :=
-  ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h⟩
+  ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h, id⟩
+
+/-- **A spill step keeps the buffers dirty pages of fresh slots** (`bufsOK`; `Bucket.spill`'s
+`RInv.bufs`, U9x's `bkDone_bufsOK`). -/
+theorem spStep_bufsOK {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
+    (h : spStep X X' w w' O st) (hb : bufsOK X w.C w.fl) : bufsOK X' w.C w'.fl :=
+  h.2.2.2.2.2.2.2.2 hb
 
 /-- A step for a larger frame of owned slots is one for a smaller. -/
 theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by
-  obtain ⟨a, b, c, d, e, f, g, i⟩ := h
+  obtain ⟨a, b, c, d, e, f, g, i, j⟩ := h
   exact ⟨a, b, c, d, e, f, fun x hx => ⟨fun hm => (g x hx).1 (hO x hm), (g x hx).2⟩,
-    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr⟩
+    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr, j⟩
 
 theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
   unfold WDb.wtxid; rw [h]
@@ -150,12 +156,13 @@ theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
 theorem spStep_trans {X1 X2 X3 : WX} {w1 w2 w3 : WDb} {O : List Nat} {s1 s2 : List FLStep}
     (h1 : spStep X1 X2 w1 w2 O s1) (h2 : spStep X2 X3 w2 w3 O s2) :
     spStep X1 X3 w1 w3 O (s1 ++ s2) := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2⟩ := h2
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2⟩ := h2
   have ht : w2.wtxid = w1.wtxid := wtxid_of_C a1
   rw [ht] at b2 d2 i2
   refine ⟨a2.trans a1, by rw [b2, b1, applySteps_append], c2.trans c1, d2, e2,
-    fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr)⟩
+    fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr),
+    fun hb => by have := j2 (by rw [a1]; exact j1 hb); rwa [a1] at this⟩
   by_cases hx1 : spP X2 !! x = spP X1 !! x
   · obtain ⟨hO, hp⟩ := g2 x (by rw [hx1]; exact hx)
     exact ⟨hO, fun hm => hp (f1 x hm)⟩

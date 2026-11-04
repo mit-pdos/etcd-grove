@@ -100,6 +100,16 @@ def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List
   | .top => rn.nv.parent' = null ∧ ∃ B, X.t.bs !! bl = some B ∧ nodeRootIn B B.bv.rootNode' n ∧
       ∀ x, onChain B B.bv.rootNode' n x → x ≠ n → spilledN X bl x
 
+/-- **The writer's buffers are dirty pages of fresh slots** (`spillBufs`' per-buffer clause,
+`Commit`'s `tx.write` premises): each buffer's header names its id, its length is its extent's,
+its extent lies in `[2, mark)`, and its slots are no tree slots of the committed state `C` and not
+pending in `fl`. (U9x's, moved here by U9w2: a spill step keeps it, `spStep`.) -/
+def bufsOK (X : WX) (C : CommitSt) (fl : FLPg) : Prop :=
+  ∀ id pg, X.t.bufs !! id = some pg → pageId pg = id.toNat ∧
+    pg.length = 4096 * (1 + pageOverflow pg) ∧ 2 ≤ id.toNat ∧
+    id.toNat + (1 + pageOverflow pg) ≤ X.t.mv.pgid'.toNat ∧
+    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl
+
 end pieces
 
 section spec
@@ -114,14 +124,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 the committed state kept, the freelist after free and allocation steps `st` of the writer (pending
 pages kept), the base pages kept, the spill's global state kept, the other owned slots still
 owned, the page map changed only outside them and outside the pending slots (U9h: a slot one
-child's spill freed keeps its page through its siblings' spills), and what the other trees' frees
-need kept. -/
+child's spill freed keeps its page through its siblings' spills), what the other trees' frees
+need kept, and (coordinator's decision, for `Bucket.spill`'s `RInv.bufs`) the buffers dirty pages
+of fresh slots (`bufsOK`: every new buffer an allocation written with its header and length below
+the new mark, on no tree slot of `w.C`; no buffer slot made pending: the spill frees only base
+pages). -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
   spG X' w.wtxid (mapLen w'.ms) w'.fl ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
-  (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F)
+  (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F) ∧
+  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl)
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with

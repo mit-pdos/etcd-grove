@@ -275,9 +275,10 @@ theorem spStep_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp 
   have hG' := spG_perm hB hr hp hG
   have hP := spP_perm (n := n) hB { rn with cs := l }
   refine ⟨rfl, rfl, by rw [setNode_perm_eq hB], hG', ?_, fun _ h => h,
-    fun x hx => absurd (by rw [hP]) hx, fun F _ hf => ?_⟩
+    fun x hx => absurd (by rw [hP]) hx, fun F _ hf => ?_, fun hb => ?_⟩
   · rw [setNode_perm_eq hB]; exact hG.2.1
   · rw [setNode_perm_eq hB]; exact hf
+  · rw [setNode_perm_eq hB]; exact hb
 
 /-! ## `n`'s facts -/
 

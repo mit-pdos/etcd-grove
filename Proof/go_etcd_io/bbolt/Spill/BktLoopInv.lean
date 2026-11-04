@@ -91,16 +91,6 @@ def childSt (X0 X : WX) (w : WDb) (txid : w64) (c : Loc) (D : List Nat) : KSt �
   | .val v _ => ∃ S, bvalS (spP X) X.t.mv.pgid'.toNat v S ∧ D = pgSlots (spP X) S ∧
       bvalData (spP X) v (lbktEnts X0 c)
 
-/-- **The writer's buffers are dirty pages of fresh slots** (`spillBufs`' per-buffer clause,
-`Commit`'s `tx.write` premises): each buffer's header names its id, its length is its extent's,
-its extent lies in `[2, mark)`, and its slots are no tree slots of the committed state `C` and not
-pending in `fl`. -/
-def bufsOK (X : WX) (C : CommitSt) (fl : FLPg) : Prop :=
-  ∀ id pg, X.t.bufs !! id = some pg → pageId pg = id.toNat ∧
-    pg.length = 4096 * (1 + pageOverflow pg) ∧ 2 ≤ id.toNat ∧
-    id.toNat + (1 + pageOverflow pg) ≤ X.t.mv.pgid'.toNat ∧
-    ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl
-
 /-- The value of a root entry after the loop's puts. -/
 def KSt.entVal : KSt → List w8 → List w8
   | .val v true, _ => v

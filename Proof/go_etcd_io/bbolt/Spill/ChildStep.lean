@@ -147,7 +147,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
     exact List.perm_append_comm.append_left _
   · rw [hpg, List.flatMap_append, List.flatMap_append, pcUE_F, List.append_nil,
       ← List.flatMap_append]
-    refine hstep.2.2.2.2.2.2.2 _ (fun x hx => ?_) (fun x hx => hfree x ?_)
+    refine hstep.2.2.2.2.2.2.2.1 _ (fun x hx => ?_) (fun x hx => hfree x ?_)
     · rcases List.mem_append.1 hx with hx | hx
       · exact List.mem_append_left _ (List.mem_append_right _ (ownF_ownSl _ _ x hx))
       · obtain ⟨e, he, hxe⟩ := List.mem_flatMap.1 hx

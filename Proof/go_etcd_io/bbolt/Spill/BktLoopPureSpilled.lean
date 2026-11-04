@@ -298,7 +298,7 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
           hreach hp' hf' hfuel (fun x hx => hO x (mem_othersO hk' e hx)) ?_
         intro F hF hfr
         rw [← hwx] at hfr ⊢
-        exact s8 F (fun id hid => mem_othersO hk' e (hF id hid)) hfr
+        exact s8.1 F (fun id hid => mem_othersO hk' e (hF id hid)) hfr
     ents := by
       rw [show rootEnts (X1.setBkt c (bkRooted B1 rt rr.nv.pgid')) = rootEnts X from
         Write.rootEnts_eq_of_dat X _ (by rw [hrl, hI.rl]; exact hleavesR), hI.ents]

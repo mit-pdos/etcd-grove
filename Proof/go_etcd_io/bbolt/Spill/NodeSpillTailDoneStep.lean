@@ -30,11 +30,13 @@ variable [GooseExts] [GoGlobalContext]
 /-- A step from a state with the same page map, page cache and view. -/
 theorem spStep_congr {X1 X1' X3 : WX} {w1 w3 : WDb} {O : List Nat} {st : List FLStep}
     (hP : spP X1' = spP X1) (hpm : X1'.t.pm = X1.t.pm) (hv : X1'.v.pages = X1.v.pages)
+    (hb : X1'.t.bufs = X1.t.bufs) (hmv : X1'.t.mv = X1.t.mv)
     (h : spStep X1 X3 w1 w3 O st) : spStep X1' X3 w1 w3 O st := by
-  obtain ⟨a, b, c, d, e, f, g, i⟩ := h
+  obtain ⟨a, b, c, d, e, f, g, i, j⟩ := h
   refine ⟨a, b, c.trans hv.symm, d, e, f, fun x hx => g x (by rw [← hP]; exact hx),
-    fun F hF hfr => i F hF (fun id hid => ?_)⟩
-  have := hfr id hid; rw [hpm] at this; exact this
+    fun F hF hfr => i F hF (fun id hid => ?_), fun hok => j ?_⟩
+  · have := hfr id hid; rw [hpm] at this; exact this
+  · unfold bufsOK at hok ⊢; rw [hb, hmv] at hok; exact hok
 
 /-- The children's loop's step. -/
 theorem spEnd_step {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
@@ -61,10 +63,12 @@ theorem tail_step {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0)
     (hst : spStep X2 Xf w' wf O stl) : spStep X Xf w wf O (st0 ++ stl) := by
-  refine spStep_trans (spEnd_step hpre hend) (spStep_congr ?_ ?_ ?_ hst)
+  refine spStep_trans (spEnd_step hpre hend) (spStep_congr ?_ ?_ ?_ ?_ ?_ hst)
   · rw [split_spP hsr, nilCh_spP]
   · rw [hsr.same.2.2.1, nilCh_pm]
   · rw [hsr.same.2.2.2, nilCh_v]
+  · rw [hsr.same.2.1, nilCh_bufs]
+  · rw [hsr.same.1, nilCh_mv]
 
 /-- A frame whose touched nodes include `null`, which no bucket's node is, is one without it. -/
 theorem spFrame_drop_null {X X' : WX} {bl : Loc} {T : List Loc}
