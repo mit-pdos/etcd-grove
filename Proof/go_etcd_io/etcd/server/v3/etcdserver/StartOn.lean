@@ -59,6 +59,8 @@ def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKVOn`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
@@ -221,9 +223,9 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNAM applyBuiltNAOn applyBuiltOn
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hfs
   isplitr
   · ipureintro; exact Hok
   isplitl [Hua Hakv]

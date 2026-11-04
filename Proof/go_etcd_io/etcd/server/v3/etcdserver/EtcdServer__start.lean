@@ -387,13 +387,13 @@ theorem EtcdServer.start.wp_proof
     iexact Hcancel
   -- the apply thread's resources
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hao,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
     #Hlog, Hkr, Hfs⟩
   -- (the auth-mode merge) auth off: the reader view's gated row holds trivially
   imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hAuthOff, Hkv, Hkr⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
   icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr Hso]
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hrdat Hao Hfs Hwg1 HRD Hkr Hso]
   · iunfold applyStart
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hso Hfs Hwg1 Hlog Hkr
@@ -413,12 +413,14 @@ theorem EtcdServer.start.wp_proof
     · iexact HRA
     isplitl [HAR]
     · iexact HAR
-    iexists w, RD
-    isplitr
-    · iexact Hw
-    isplitr
-    · iapply isWait_waitOk $$ Hwait
-    iexact HRD
+    isplitr [Hrdat]
+    · iexists w, RD
+      isplitr
+      · iexact Hw
+      isplitr
+      · iapply isWait_waitOk $$ Hwait
+      iexact HRD
+    iexact Hrdat
   -- the views (before the compactor's run, whose precondition `NewServer` makes from them)
   icases Hreqb with ⟨%vq, #Hvq⟩
   iunfold srvReqBuilt at Hvq
@@ -912,10 +914,10 @@ theorem EtcdServer.start.wp_proofOn
   -- the apply thread's resources (the row at the start's auth state, `srvAuthSt0`)
   iunfold applyBuiltOn at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo,
-    ⟨%ua, Hua, #HuB, #Hfor, Hkv⟩, HRA, HAR, Hao, #Hlog, Hkr, Hrest, Hap, Hfs⟩
+    ⟨%ua, Hua, #HuB, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs⟩
   -- (E3s) the store's range check at a reader's lower bound, from the built part's store fact
   ihave #HauLb := srvAuthLb_of_uberBase s ua E $$ HuB
-  ihave Hrow : srvApplyKVOn s E γw x₀ srvAuthSt0 $$ [Hua Hkv Hbo HRA HAR HRD]
+  ihave Hrow : srvApplyKVOn s E γw x₀ srvAuthSt0 $$ [Hua Hkv Hbo HRA HAR Hrdat HRD]
   · iunfold srvApplyKVOn
     iexists ua
     isplitl [Hua]
@@ -932,12 +934,14 @@ theorem EtcdServer.start.wp_proofOn
     · iexact HRA
     isplitl [HAR]
     · iexact HAR
-    iexists w, RD
-    isplitr
-    · iexact Hw
-    isplitr
-    · iapply isWait_waitOk $$ Hwait
-    iexact HRD
+    isplitr [Hrdat]
+    · iexists w, RD
+      isplitr
+      · iexact Hw
+      isplitr
+      · iapply isWait_waitOk $$ Hwait
+      iexact HRD
+    iexact Hrdat
   ihave Hkr := kvRunOn_nil_at γr ai₀ c₀ x₀ $$ Hkr
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
   icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩

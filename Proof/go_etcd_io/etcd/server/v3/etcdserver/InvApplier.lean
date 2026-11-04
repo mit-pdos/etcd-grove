@@ -721,12 +721,15 @@ in the environment `E` (`apply.applierFor`) and its state (`apply.applyKV`: its 
 thread mints a revision's token when the log grows to it; the vertical slice's unit V1), and the
 apply thread's auth resource (`srvAuthApplyRes`, the auth plan's E2m, 2026-10-26: with auth on,
 the admin side's authority with its fuel, its write resource and the provider's admin share,
-which an admin request's application takes; `True` with auth off). -/
+which an admin request's application takes; `True` with auth off), and (2026-11-04, the lease-expiry
+plan's step 2) the lessor's range deleter as its owner holds it (`lease.rdAt`: `NewServer` has it
+from `mvcc.New`; the snapshot's `Recover` replaces it; Part X's revocations borrow it). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
     apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyRes s E ∗
-    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
-      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
+    (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
+    lease.rdAt E.γ.leases E.s)
 
 /-- **The id `id`, claimed for the data `d`, is not this incarnation's** (persistent; R2c,
 2026-11-02): every claim of it for `d` records another key (another member's, or an earlier

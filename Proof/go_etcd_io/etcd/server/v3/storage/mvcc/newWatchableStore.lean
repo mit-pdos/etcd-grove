@@ -174,8 +174,13 @@ theorem mvcc.newWatchableStore.wp_proof
   isplitr
   · iexact Hws
   isplitl [Hro]
-  · iexists _; rw [← hγl]; iframe Hro
-    -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
+  · iapply lease.rdAt_intro _ _ _
+    rw [← hγl]; iframe Hro
+    -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`, at any watchable store
+    -- over `st` (it is `s`, `mvcc.isWatchableStore_agree`) and any names (`Write`'s spec takes them)
+    iintro !> %ws' %γ' #Hws'
+    ihave %Hwseq := mvcc.isWatchableStore_agree ws' «$r0_ptr» st γ' γ $$ [$Hws' $Hws]
+    rw [Hwseq]
     iunfold mvcc.rdIs
     isplitr
     · ipureintro; intro h; injection h with _ _ h3; cases h3
@@ -186,7 +191,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · iPkgInit
     wp_auto
     wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
-    wp_apply (hWrite «$r0_ptr» st γ tr L Pw Pre Q fw true)
+    wp_apply (hWrite «$r0_ptr» st γ' tr L Pw Pre Q fw true)
       $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
     · iframe #
       ipureintro; exact ⟨Hlen, Htrnn⟩

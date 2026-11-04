@@ -319,6 +319,8 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
@@ -553,9 +555,9 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hkr Hrs Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iapply srvAuthApplyRes_of_At

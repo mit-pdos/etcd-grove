@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.lease.RangeDeleter
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -46,7 +47,10 @@ counted stock (`backend.rdStockN`, past the backend's pool), the readers it give
 until then all `actualMaxReaders` of them.
 (F2's Freeze, stage 2, 2026-11-03) The compaction tracking's ties of the instance, whole at the
 fresh log (`kbTieInit kb`, `NewStore`'s; `kbTie_alloc` makes them); the revision tie's half comes
-back in `crevRightM` (compaction mode). -/
+back in `crevRightM` (compaction mode).
+(The lease-expiry plan's step 2, 2026-11-04, option (a)) The lessor's range deleter as its owner holds
+it (`lease.rdAt γl st`): the deleter's contract at every watchable store over the inner store `st`, at
+any names (until then `∃ rd, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ`, at the store's own names). -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
@@ -64,7 +68,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-      mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+      mvcc.isWatchableStore s st γ ∗ lease.rdAt γl st ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
       mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
         mvcc.watchReader s st γ) ∗

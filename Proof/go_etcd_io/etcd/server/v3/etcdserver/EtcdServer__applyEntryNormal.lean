@@ -377,7 +377,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩, Hrdat⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
@@ -445,7 +445,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         isplitl [Hbo]; · iexact Hbo
         isplitl [HRA]; · iexact HRA
         isplitl [HAR]; · iexact HAR
-        iexists fv.w, RD; iframe Hw Hwok' HRD
+        isplitr [Hrdat]
+        · iexists fv.w, RD; iframe Hw Hwok' HRD
+        iexact Hrdat
       isplitr
       · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
       iunfold entryDelivered
@@ -515,7 +517,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩, Hrdat⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
@@ -668,7 +670,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E ρ.wait x'' ∗
           ⌜entryStep m true x x'' out'⌝ ∗ entryDelivered ρ.wait m ot out' ∗
           srvAppliedPre γr v m.index x''.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x'' ∗
-          srvRest E γr (A ++ [m])) $$ [HKV Hua Hbo HRD HRA HAR Hpre Hka HRS]
+          srvRest E γr (A ++ [m])) $$ [HKV Hua Hbo HRD HRA HAR Hrdat Hpre Hka HRS]
       · iexists x', out
         iframe Hpre Hka HRS
         isplitl
@@ -678,7 +680,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           isplitl [Hbo]; · iexact Hbo
           isplitl [HRA]; · iexact HRA
           isplitl [HAR]; · iexact HAR
-          iexists fv.w, RD; iframe Hw Hwok' HRD
+          isplitr [Hrdat]
+          · iexists fv.w, RD; iframe Hw Hwok' HRD
+          iexact Hrdat
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
         iunfold entryDelivered
@@ -785,8 +789,10 @@ local macro "repack" : tactic => `(tactic| (
   · iexact HRA
   isplitl [HAR]
   · iexact HAR
-  iexists fv.w, RD
-  iframe Hw Hwok' HRD))
+  isplitr [Hrdat]
+  · iexists fv.w, RD
+    iframe Hw Hwok' HRD
+  iexact Hrdat))
 
 set_option hygiene false in
 /-- The hook's triple and the closing of `Q` (the premise `apply.Apply`'s triples take with `v3`). -/
@@ -928,7 +934,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
       srvApplyKVOn s E ρ.wait x'' sa'' ∗ ⌜entryStep m true x x'' out'⌝ ∗
       entryDelivered ρ.wait m ot out' ∗ srvAppliedPre γr v m.index x''.log ∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x'' sa'' ∗ srvRest E γr (A ++ [m]))
-      $$ [HKV Hua Hbo HRD HRA HAR Hpre Hka HRS]
+      $$ [HKV Hua Hbo HRD HRA HAR Hrdat Hpre Hka HRS]
   · iexists x', out, $sa'
     iframe Hpre Hka HRS
     isplitl
@@ -1148,7 +1154,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKVOn at HKV
-      icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩, Hrdat⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr A $$ HRS
@@ -1292,7 +1298,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKVOn at HKV
-      icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩, Hrdat⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       obtain ⟨HEP, HEf⟩ := HE

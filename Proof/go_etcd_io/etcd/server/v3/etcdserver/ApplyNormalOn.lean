@@ -895,7 +895,7 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
         (srvApplyKVCore s E γw x ua -∗ srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -929,7 +929,9 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- **The mode-`on` row lends its shared part and its auth row** (`srvApplyKVOn_core`'s, with the
 auth row `srvAuthApplyResB`, which lends the auth buckets to the merged snapshot's window: #7-on). -/
@@ -940,7 +942,7 @@ theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
         (srvApplyKVCore s E γw x ua -∗ srvAuthApplyResB s E st -∗ srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -976,7 +978,9 @@ theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
 theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)

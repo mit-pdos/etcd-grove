@@ -580,3 +580,14 @@ For the user. Steps 2-3 (S1) wait on this.
 `mvcc.New.spec`'s posts (and their restatements, `server_kv_watchable`, `BuildLemmas`) give
 `lease.rdAt γl st` (the deleter's contract at any names), proved over a store-agreement law moved into
 mvcc; stronger proved posts, no trust change.
+
+## Step 2: `rdAt` and `lessorCfg` threaded (2026-11-04)
+
+Done by (a). `mvcc.isWatchableStore_agree` (`InvWatchStore.lean`, moved from `SnapApplyOpen`)
+gives `ws' = ws`; `newWatchableStore`'s closure proof then takes `Write`'s spec at the caller's
+`γw'`, so `newWatchableStore.spec`, `mvcc.New.spec`, `server_kv_watchable(_of, _ofM)` and
+`M2StorageDraft` end in `lease.rdAt γl st`. The apply thread carries it on the server-level applier
+row, not in apply's `leasesLive`: `srvApplyKV`/`srvApplyKVOn` end `∗ lease.rdAt E.γ.leases E.s`
+(so `applyBuilt*`, `applyBuiltNA*` and NewServer's post hold it), and `snapWalkPost` returns it after
+`leaseRevokers`; `applySnapshot_walk`'s pre gains `lease.lessorCfg lp` (from the caller's `#Hlcfg`).
+Part X lends `rdAt` as `revokeRes` from the row. No statement weaker; no trust change.

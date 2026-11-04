@@ -135,6 +135,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
     lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
+    lease.rdAt E.γ.leases E.s ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
     -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
     backend.rbOwnIn d'.γB membership.clusterBkts

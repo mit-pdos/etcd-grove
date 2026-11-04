@@ -150,6 +150,9 @@ theorem applySnapshot_walk
        srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
        lease.lessorRevocable E.γ.leases ∗
+       -- (2026-11-04, the lease-expiry plan's step 2) the lessor's configuration (`minLeaseTTL`, for
+       -- `Recover`'s TTLs)
+       lease.lessorCfg lp ∗
        srvKVCloserW s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
@@ -194,7 +197,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -377,7 +380,7 @@ theorem applySnapshot_walk
   icases HoObj with ⟨HoAl, HoAu, HoLe, HoCl⟩
   -- the apply thread's KV resources
   ihave HKV := (srvApplyKVM_open _ _ _ _ _ _).1 $$ HKV
-  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
+  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, ⟨%w0, %RD0, #Hwf, #Hwok, HRD0⟩, Hrdat⟩
   iunfold apply.applyKV at HaKV
   -- (M2's item 15) the old store's compaction right, by the mode, for `Restore`
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, HcO⟩
@@ -405,7 +408,7 @@ theorem applySnapshot_walk
   icases HlLive with ⟨%Ll, #HlK, HlUser, -⟩
   iunfold lease.lessorUser at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
-  ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
+  ihave %Hwseq := mvcc.isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
   subst Hwseq
   (try wp_auto)
   -- `s.lessor.Recover(newbe, …)`: the lessor on the new backend, no lease live

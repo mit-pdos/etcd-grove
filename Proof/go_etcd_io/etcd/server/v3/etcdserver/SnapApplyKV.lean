@@ -53,7 +53,8 @@ Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
 - `revAuth E' ([[], []] ++ R)` from `revAuth E x.log` (`revAuth_snapE`): the bound
   `uint.nat k < x.log.length ≤ ([[], []] ++ R).length` (`hpre.length_le`).
 - `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
-- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses.
+- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses; (2026-11-04) the range
+  deleter (`lease.rdAt`, of the logical names and the inner store, which `snapE` keeps) the hypothesis.
 - (M2's item 15, stage B) the compaction resources at the restored revision `c'`, the caller's
   (until then at `-1`, free with the new backend not compacting, `apply.cmpOwn_of_off`).
 - (2026-11-02, the backend-auth-split stage) `srvBeOwn`'s `srvBeRO d'` and the new backend's
@@ -81,7 +82,8 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ∗
+      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
+      lease.rdAt E.γ.leases E.s ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
       srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗
@@ -98,7 +100,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
+  iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, Hrdat, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
     #Hwok, HRD0, Hcmp⟩
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
     hγw hwq hRok hrb hlg $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
@@ -143,8 +145,10 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     omega
   isplitl [Hauar]
   · iexact Hauar
-  iexists w0, RD0
-  iframe Hw Hwok HRD0
+  isplitr [Hrdat]
+  · iexists w0, RD0
+    iframe Hw Hwok HRD0
+  iExactEq Hrdat; simp
 
 /-- **The auth part of the applier row at the snapshot's environment** (P6.2, 2026-11-03, F9):
 from the walk's auth row (`snapAuthRowM`): off, the auth resource (it does not name the backend);

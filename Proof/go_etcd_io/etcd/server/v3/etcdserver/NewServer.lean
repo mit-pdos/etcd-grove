@@ -681,7 +681,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (kvCmpPermit ρ.rd.kv))
     $$ [Hdl Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok HsrS]
     as %ws ⟨%kst, %γw, %tt, %Hγw0, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, Hcr, #HcpIs, Hret0, -, #Htag⟩
+      Hwrds, Hwcl, Hcr, #HcpIs, Hret0, Hrdat, #Htag⟩
   · ihave #Hsz0 : mvcc.keySized (GF := GF) d.γB d.P d.be $$ []
     · iapply Hsz
     iframe Hisl HB Hsz0 Hdl
@@ -1979,7 +1979,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA HbkP Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HTR]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA HbkP Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HTR]
   · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
     iapply applyBuiltNAM_of_On
     unfold applyBuiltNAOn srvBemuReaderAt
@@ -2008,6 +2008,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       ipureintro; intro k hk; simp at hk
     isplitl [HAR]
     · iexact HAR
+    -- (2026-11-04, the lease-expiry plan's step 2) the range deleter, `mvcc.New`'s
+    isplitl [Hrdat]
+    · iExactEq Hrdat; simp [Hγw.2.1]
     isplitr
     · simp only [bootKVOf]; rw [← Hlog0]; iexact Hal0
     isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS]

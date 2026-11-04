@@ -45,7 +45,7 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
       ∃ ua, srvApplyKVCore s E γw x ua ∗ (srvApplyKVCore s E γw x ua -∗ srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -77,7 +77,9 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 
 /-- (2026-10-31, the snapshot track: #11's S6) **`s.KV().Commit()`'s resources, lent by the
