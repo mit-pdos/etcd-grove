@@ -1336,3 +1336,30 @@ request path. Steps:
 - (4c) The stop's caller returns the request path's loans, and the stores' readers come back from
   their closes. The exported restart result gains the premise that the members' request paths
   stopped first.
+
+### R2b-3d gap 3: the configuration a restart reads (2026-11-04, design)
+
+`bootstrap` builds raft's `ConfState` from the `members` bucket (`buildConfStateFromV3store`):
+voters are the members whose JSON says `IsLearner` false, learners the rest, in Go's map order
+(random). The image claims `confStateIs (v3ConfState D) m` with `confAt γ.cl i m`, and the server's
+cluster is static: `srv_confAt_simple` gives `m = Membership.simple γ.raft.cfg`.
+
+**Definition, no new trust.** `v3ConfState` (opaque) becomes the relation `v3ConfStateIs D cs`: some
+members `ms` whose entries are exactly the `members` bucket's (`memberKey mm.id ↦ memberEnc mm`,
+the shape `membersDecode` already states), `cs.Voters'` a permutation of the non-learners' ids,
+`cs.Learners'` of the learners', no joint or auto-leave state. `bootOkR` gives `∃ cs, ⌜v3ConfStateIs
+D cs⌝ ∗ memStorRestarted … cs`; the image gives `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝`.
+The relation, unlike the function, admits Go's random order.
+
+**The proof.** By induction on the log, as `membersDecode_restModel`, the `members` bucket of
+`restModel 0 boot L` is `{memberKey id ↦ memberEnc (ccMemberAt cc)}` over the boot log's applied
+`AddNode`s: later ones re-add a member, which `ccValidOn` refuses, and a static cluster has no
+other changes (`ccBootOk`). With `bootLen ≤ i`, that is all of `cfg` (`srvBootLogOk`).
+
+**The hole: learners.** Nothing says a boot member is a voter: `ccMemberOf ctx` is opaque, and
+`ccContextOf`'s Bool is `IsPromote`, not `IsLearner`. A boot context whose JSON says `IsLearner:
+true` would restart raft with a learner where `confAt` says voter, so the image needs the fact.
+etcd's `--initial-cluster` members are voters (`NewClusterFromURLsMap`). The fact goes in as a
+premise on the boot log's contexts: `∀ cc of the boot log, (ccMemberAt cc).isLearner = false`, in
+`srvBootLogOk` (or the examples' `BootLog`), which the examples' configurations meet. This changes a
+premise of exported results, so it is the user's to approve.
