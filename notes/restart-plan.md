@@ -1440,3 +1440,29 @@ shared) and `StopImage.stop_mergedObs`. The latter turns the frozen protocol, th
 halves of the tracked buckets, the KV's writer and compaction right, and `Close`'s `bStopView` at
 the server's resources into `⌜mergedObsM … D⌝`. Stage 5 turns that into the image (as
 `merged_imageC` does for the snapshot: `kvAppliedM`, `isServerM`, the KV log's receipt).
+
+### R2b-3d gap 4, corrected (2026-11-04)
+
+The first analysis was wrong about where the open token's shares are. A reader slot of the
+backend's thread pool (`rdTok`: `readTx.mu`'s slot, `txMu`'s, a budget token) carries **no** open
+share. The pool's shares (`bOpen rdOpen`, `rdPoolN + authRdN` of them) sit beside the pool in
+`bkRPool`, which the apply thread holds, so nothing locks them in an invariant. The snapshot path
+already closes an old backend with the whole token (`SnapApplyWalk`, the old backend's
+`Close`). It collects:
+- the constructors' half;
+- `bkRPool`'s shares;
+- the old store's reader stock (`nReaders - 1` `storeRT`s, which `store.Restore` returns:
+  `snap_oldReaders`), and a monitor's reader.
+
+So the cancelable thread pool (Perennial `c0a2fdd46`, landed) is not what the stop needs, and step
+4b as planned is dropped. (The change is general and stays.) What the stop needs is the **store's
+reader stock**. `store.Restore` returns it because it takes the store's write lock, so no
+transaction holds a reader. Go's `store.Close` (through `watchableStore.Close` in `Cleanup`) takes
+no lock, and its spec returns only the watch loops' readers. A request-path transaction still
+running holds a reader, and with it a share of the backend's open token. So the user's choice
+stands, reinterpreted: the request path stops before the server, and the stop collects the store's
+readers.
+- **4b′.** A store-level law: with every reader ticket back (none in flight), the store's
+  invariant gives up the whole stock, as `Restore`'s write lock does.
+- **4c′.** Where the request path's readers are at the stop, and the premise that returns them.
+  To be designed after looking at how the request path borrows its readers.
