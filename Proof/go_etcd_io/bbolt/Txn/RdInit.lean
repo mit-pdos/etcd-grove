@@ -80,6 +80,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
     obtain ⟨-, -, -, -, -, -, ⟨-, hr, -⟩, -⟩ := hok
     apply BitVec.eq_of_toNat_eq; rw [hr]; simp; omega
   ipersist Hib
+  icases typedPointsto_not_null_dup _ _ _ $$ Hrt with ⟨Hrt, %Hrtn⟩
   unfold initRoot newBucketV
   iStructNamed Hrt
   imodintro
@@ -118,8 +119,9 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   isplitl []
   · unfold viewOf; iexact Hvw
   ipureintro
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-    first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |
+      exact Hrtn
 
 end rd
 
