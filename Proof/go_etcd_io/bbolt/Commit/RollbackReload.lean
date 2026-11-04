@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Freelist
 public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
+public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Bytes
 
 @[expose] public section
 
@@ -175,6 +176,38 @@ theorem wdbOK_reload_synced (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg =
       exact ⟨h1, h2⟩
     · exact (a9 s h1 h2).2 (List.mem_append_right _ hm)
   · intro x hx; exact (hfr x hx).2.1
+
+/-- **The synced freelist page's extent is `W` slots inside the file and the mapping**, each a
+page's bytes. -/
+theorem ext_in_W (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
+    ∀ s ∈ List.range' f (1 + pageOverflow (w.wb f)), s ∈ w.W ∧ 4096 * (s + 1) ≤ w.m.size ∧
+      (∀ b l, w.ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧ (w.wb s).length = 4096 := by
+  intro s hs
+  rw [List.mem_range'_1] at hs
+  have hov := extent_overflow w f hok hf
+  have c15 := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  obtain ⟨-, -, c3, c4, -, c6, -, c8, c9, -, -, -⟩ := hok
+  obtain ⟨a1, a2, -, -, -, -, -, -, a9, -⟩ := c6 f hf f hf
+  rw [hov] at a2 a9
+  obtain ⟨hcov, hall⟩ := a9 s hs.1 hs.2
+  have hsz : 4096 * (s + 1) ≤ w.m.size := by
+    have : (s + 1) * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega)
+    omega
+  have hW : s ∈ w.W := by
+    refine (c4 s).2 ⟨by omega, ?_, fun h => hcov ((mem_pagesSlots_iff _ _).1 h), fun h => ?_⟩
+    · have hM : w.m.size ≤ max (mapLen w.ms) w.m.size := Nat.le_max_right _ _
+      generalize max (mapLen w.ms) w.m.size = M at hM ⊢
+      omega
+    · apply hall
+      have hs64 : s < 2 ^ 64 := by omega
+      obtain ⟨y, hy, e⟩ := List.mem_map.1 h
+      have : y = W64 (s : Int) := BitVec.eq_of_toNat_eq (by rw [e, toNat_W64_of_lt _ hs64])
+      rw [← this]
+      exact List.mem_append_right _ hy
+  refine ⟨hW, hsz, fun b l hbl => ?_, c15 s hW hsz⟩
+  have := c9 b l hbl
+  have : (s + 1) * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega)
+  omega
 
 end pure
 
