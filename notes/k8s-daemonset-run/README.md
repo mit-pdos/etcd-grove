@@ -99,3 +99,21 @@ for a stored DaemonSet seen by the DaemonSet informer, so `syncDaemonSet` raises
 plus a new one is two pods on a node, intended behaviour outside `Main`'s scenario, not a bug);
 every claim made before the sync's first create. Premises for `Main`: the created DaemonSet's
 `dsWf` and a unique revision name; the status write keeps the collision count.
+
+## Stage 3, state (2026-11-04)
+
+All three tracks have their specs and stubs, building: `dsonepod_safe` (`dsmain/Adequacy.lean`)
+is stated with pure premises only over the generated program (`initialize'` then `Main nchk`) and
+builds up to `dsmain.Results`, resting on the stubs' `sorry`s, `Pending.lean` (callees whose
+packages are not linked yet), one generated axiom (`GroupVersion_WithKind_any`, names-only
+`schema.GroupVersion.WithKind`) and the generator's existing initializer facts. Open before the
+freeze: R7 below; track B's glue proofs; review rounds (round 1 on the sync path running).
+
+- R7 (2026-11-04, track C's blocker): the handler contract is **deferred**: registration keeps the
+  not-started fraction inside a pending obligation, released only by activating the handler with its
+  contract (so every handler is active before `Start`); the listener goroutine's thread token passes
+  through each handler call. Needed because the controller's closures read fields assigned after
+  registration and need `s1Inv`, allocated after the constructor. Track A2.
+- Finding (track C): `nonissues/k8s-daemonset-updatedaemonset-swapped-args.md`.
+- `etc/bounds-check.py --check` fails on three new mentions (`Main`, `run`: adequacy-facing, as
+  k8setcd3's; `NewDaemonSetsController`: track B's pools, being moved onto the informers'): Stage 6.
