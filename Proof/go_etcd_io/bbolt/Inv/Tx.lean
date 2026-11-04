@@ -153,7 +153,7 @@ def rdTx (B : BNs) (N : Namespace) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxVi
     isBoltCoreP B N db p sp t0 ∗ ghostVar r.n.v q.half (c, TxX.rd v mv k) ∗
     ghostVar r.n.ex q () ∗ rtxFrac B tx r q T v mv ∗
     (if src = .loan then threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp)
-     else ghostVar B.spr (1 : Qp).half (some k)))
+     else ghostVar B.spr q.half (some k)))
 
 /-- **`tx` is a transaction of `B`/`N` with the view `T` at fraction `q`** (design §3.10; what
 `boltTx tx γ q T` is sealed to): a writer's registration, database and part; or a reader's

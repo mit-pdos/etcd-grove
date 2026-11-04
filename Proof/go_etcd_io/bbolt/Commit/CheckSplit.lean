@@ -37,22 +37,22 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     rw [Qp.half_add_half] at hf
     icases hf.1 $$ Hw with ⟨Hw1, Hw2⟩
     ihave Hp2 : (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool
-        (rdPair (GF := GF) K.B K.db K.sp) else emp) ∗
+        (rdPair (GF := GF) K.B K.db K.sp) else ghostVar K.B.spr q.half.half (some k)) ∗
         (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool
-        (rdPair (GF := GF) K.B K.db K.sp) else emp) $$ [Hpool]
+        (rdPair (GF := GF) K.B K.db K.sp) else ghostVar K.B.spr q.half.half (some k)) $$ [Hpool]
     · by_cases hs : src = .loan
       · simp only [hs, ↓reduceIte]
         icases Hpool with #Hpool
         iframe #
       · simp only [hs, ↓reduceIte]
-        iframe
+        iapply (ghostVar_split_half K.B.spr q.half (some k)).1; iexact Hpool
     icases Hp2 with ⟨Hp1, Hp2⟩
     isplitl [Hv1 He1 Hw1 Hp1]
     · iexists r, c, mv, k; iframe; iframe #; ipureintro; exact Hc
     · iexists r, c, mv, k; iframe; iframe #; ipureintro; exact Hc
   · unfold rdTxK
     iintro ⟨⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex, Hw, Hpool⟩,
-      ⟨%r2, %c2, %mv2, %k2, %Hc2, #Hreg2, -, -, Hv2, Hex2, Hw2, -⟩⟩
+      ⟨%r2, %c2, %mv2, %k2, %Hc2, #Hreg2, -, -, Hv2, Hex2, Hw2, Hpool2⟩⟩
     iunfold reg at Hreg Hreg2
     icombine Hreg Hreg2 gives %hr
     obtain ⟨-, rfl⟩ := hr
@@ -63,16 +63,23 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     iexists r, c, mv, k
     isplitr
     · ipureintro; exact Hc
-    iframe Hpk Hcore Hpool
+    iframe Hpk Hcore
     isplitr
     · iunfold reg; iexact Hreg
+
     have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv).fractional q.half q.half
     rw [Qp.half_add_half] at hf
     isplitl [Hv Hv2]
     · iapply (ghostVar_split_half r.n.v q.half (c, TxX.rd v mv k)).2; iframe
     isplitl [Hex Hex2]
     · iapply (ghostVar_split_half r.n.ex q ()).2; iframe
-    iapply hf.2; iframe
+    isplitl [Hw Hw2]
+    · iapply hf.2; iframe
+    by_cases hs : src = .loan
+    · simp only [hs, ↓reduceIte]
+      iexact Hpool
+    · simp only [hs, ↓reduceIte]
+      iapply (ghostVar_split_half K.B.spr q.half (some k)).2; iframe
 
 /-- **A reader and its root bucket side by side** (half of each), and back. -/
 theorem rdTxK_root_split (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :

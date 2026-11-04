@@ -131,7 +131,7 @@ def rdTxK (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     ghostVar r.n.v q.half (c, TxX.rd v mv k) ∗ ghostVar r.n.ex q () ∗
     rtxFrac K.B tx r q T v mv ∗
     (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
-     else ghostVar K.B.spr (1 : Qp).half (some k)))
+     else ghostVar K.B.spr q.half (some k)))
 
 /-- Bytes at `p` (a page, an inline page) from the source `src`: in a page of the view `v`, or
 persistent heap bytes (never stale). -/
