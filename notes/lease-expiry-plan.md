@@ -1217,3 +1217,120 @@ In the postcondition, `⌜leaseTTLRow ρ⌝ -∗` becomes `leaseTTLRow s ρ -∗
   proof waits for E2 (the not-found arm) and E3 (c) (absent stays absent): no proof file yet.
 - `srvRevokeOpen_open` (`EtcdServer__run.lean`, beside `srvGrantOpen_open`): the approved P1
   `sorry`. Trust base 6 → 7 sorries; until `Main`'s proof is linked no result reaches it.
+
+**E2, revision 3 (2026-11-04, after a fresh `spec-reviewer`'s review of revisions 1-2).** The
+review: the leader path, the meaning of `vs = [mid]` (only member, no learner, no membership change:
+`SrvRaft.cfg = listToSet vs`, `Membership.simple`, `srv_confAt_simple`), the forwarded not-found
+argument (`updateLead` before the `applyc` send, `raft.go:190-202`; a sole voter keeps itself
+active) and `errIsTrue` (with `exactRels`, `isWalk_det`; the forwarding loop returns only
+`ErrLeaseNotFound`, a leaf) hold. Its findings and what revision 3 does:
+- *R1 (soundness): an outsider's raft message.* rafthttp's handler checks only the cluster id and
+  `Process` steps any unknown `From`: a higher-term `MsgApp` from a non-member makes the sole voter a
+  follower, it forwards to its own URL and reads `404` as "not found" for a live lease. **Excluded by
+  the trusted transport contract** (decisions.md D21b (A): `Start`/`AddPeer` call `Process` only with
+  messages of the cluster's ghost network, which only members' `rnMsgOk` sends fill): no new premise;
+  the docstring names that contract as the margin (below).
+- *R2 (soundness): the forwarded found arm.* `leasePeersOk` promises only that a `200` carries a set
+  response, not that it is this member's lessor's answer; a foreign program at the member's peer URL
+  meets it with any `GrantedTTL`. The found arm is needed (`Main` tells "expired, not yet revoked",
+  `TTL = -1` from a negative `Remaining()`, from "not found" by `GrantedTTL ≠ 0`). **Proposed: a
+  stronger `leasePeersOk`** (an approved premise: the user's call; its text below). The examples meet
+  it trivially: their peer listeners never answer the path `200`.
+- *C1 (completeness): the callers carry no `ρ`.* `ttlAns`, `leaseTTLOut`, `lessorTTLOk`,
+  `raftLeaseRead` are over `s E γl`. Revision 3 keys the row on `s` (below), which they have; the
+  facts go into `ttlAns`/`leaseTTLOut` as is. The proved wrapper's own errors (`requireAuthInfo`, the
+  keys check, `ErrAuthOldRevision`, `v3_server.go:697-720`) must discharge the not-found implication
+  vacuously: `errors.Is` of them against `ErrLeaseNotFound` is false (distinct error cells,
+  `lease/Base.lean`'s `errVarCell`): a proof obligation of `EtcdServer.LeaseTimeToLive.wp_proof`.
+- *A1 (abstraction): `ρ.ids.inc = 0`* is true only through non-local facts (`idIncarnation_alloc`
+  posts no `inc ≠ 0`; `restartNames` fixes neither `cnt` nor `inc`; `NewServer.specG` takes
+  `idShare ρ.ids` at any key) and uses the id generator's bookkeeping as the identifier of a start.
+  **Replaced by `srvFirstStart s`**: a new persistent, sealed predicate of the server package, minted
+  only by `NewServer`'s first-start branch (the one that takes `wal.bootRes cfg`, i.e. `walDirFresh`,
+  and `NewLessor`'s empty lease bucket) and returned in its postcondition (to `memberBuilt`), with
+  no other intro: "this server was built by `bootstrap` from a fresh WAL directory and an empty
+  backend". It states the start, which is what the truth argument uses (raft's log at start is the
+  bootstrap conf changes; the lessor starts empty), not the generator's counter.
+  *Alternative* if `NewServer`'s postcondition must not change: keep `ρ.ids.inc = 0` with the
+  reviewer's minimum, `inc ≠ 0` in `idIncarnation_alloc`'s postcondition and `ρ'.ids.cnt = ρ.ids.cnt
+  ∧ ρ'.ids.inc ≠ 0` in `restartNames`, which makes it a local fact (still bookkeeping as identity).
+- *M1:* the member id through `srvMemberIDAddr s` (as `srvHeaderFacts`); `errIsTrue` moves to
+  `apply/Base.lean` beside `exactRels` (generic error vocabulary).
+- Noted (not this spec's): `Main` also needs E3 (c) (the grant's recorded TTL `≥ 1`) and the
+  client's `m` at or past the grant's index.
+
+**Proposed, awaiting the user (trusted): E2, revision 3, exact text.**
+
+`apply/Base.lean` (generic, beside `exactRels`):
+```lean
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts; with `exactRels`, `isWalk_det` makes the answer Go's). -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+```
+
+The server package (an API module, sealed; minted in `NewServer`'s proof on the first-start branch):
+```lean
+/-- **The server `s` was started for the first time** (`NewServer`'s first-start branch:
+`bootstrap` from a fresh WAL directory, `wal.bootRes`, and an empty backend, `NewLessor`'s empty
+lease bucket): raft's log at start is the bootstrap configuration changes and the lessor starts
+with no lease. Persistent; `NewServer`'s postcondition is its only introduction. -/
+@[no_expose] def srvFirstStart (s : Loc) : IProp GF := ...
+```
+
+`LeaseRead.lean` (the trusted spec's file):
+```lean
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's: this member is the cluster's
+only member, and in its first incarnation): the cluster's voters are exactly this member (`vs`, the
+boot voters, are the configuration at every committed index, `srv_confAt_simple`, with no learner:
+no membership change is admitted), and the server was started for the first time. -/
+def leaseTTLRow (s : Loc) (ρ : ReqNames) : IProp GF :=
+  iprop(∃ mid : w64, srvMemberIDAddr s ↦□ mid ∗ ⌜ρ.raft.raft.vs = [mid]⌝ ∗ srvFirstStart s)
+```
+
+The spec (revision 1's, with `leaseTTLRow s ρ -∗` for `⌜leaseTTLRow ρ⌝ -∗` in both facts):
+```lean
+abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
+      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      lease.lessorLb γl m ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
+      r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+          □ (leaseTTLRow s ρ -∗ ∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s ρ -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
+```
+
+Docstring addition (why it is true of Go, `v3_server.go:636-696`), revision 1's with: *Found*, the
+forwarded path: a `200` at the member's own peer URL is its lessor's answer (the strengthened
+`leasePeersOk`), later than the call, so at an index `≥ m`. *Not found*, the forwarded path: the
+member forwards only while `isLeader()` is false; a sole voter in its first start (`srvFirstStart`:
+raft's log is the bootstrap's conf changes, the lessor empty) applies no lease before raft stores its
+leadership (`raft.go:190-202`), and keeps it: no other member exists (`vs = [mid]`), and **the
+trusted transport contract (decisions.md D21b (A)) delivers only the cluster's members' messages**,
+so no outsider's higher term deposes it; hence the lessor had no lease at the check's index (`≥ m`).
+Without the row both arms are false (a follower forwards to another member's lessor; a restarted
+member applies replayed grants before its election and forwards).
+
+`leasePeersOk`, strengthened (its docstring is its meaning; one sentence added after "...`http.go:116-156`)"):
+> and a `200` from the peer URL of a member comes from that member's `leasehttp.NewHandler` over that
+> member's own lessor (so its `LeaseTimeToLiveResponse` is that lessor's answer at the request's
+> time),
+
+and **False of** gains: "or a program serving a member's peer URL other than that member's
+handler".
