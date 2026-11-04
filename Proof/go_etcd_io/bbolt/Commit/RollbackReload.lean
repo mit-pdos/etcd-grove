@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Commit.RollbackFacts
 public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
+public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Freelist
 
 @[expose] public section
@@ -175,6 +176,155 @@ theorem wdbOK_reload_synced (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg =
   · intro x hx; exact (hfr x hx).2.1
 
 end pure
+
+section iris
+set_option linter.unusedSectionVars false
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The members of a list without repeats out of a big separating conjunction over a list holding
+them**, and back. -/
+theorem bigSepL_extract {A : Type} [DecidableEq A] (Φ : A → IProp GF) (ws W : List A)
+    (hn : ws.Nodup) (hsub : ∀ s ∈ ws, s ∈ W) :
+    ([∗list] s ∈ W, Φ s) ⊢ ([∗list] s ∈ ws, Φ s) ∗ (([∗list] s ∈ ws, Φ s) -∗ [∗list] s ∈ W, Φ s) := by
+  obtain ⟨r, hr⟩ := perm_append_of_nodup_sub ws W hn hsub
+  refine (BigSepL.bigSepL_perm hr).1.trans ?_
+  refine BigSepL.bigSepL_append.1.trans ?_
+  iintro ⟨Hw, Hr⟩
+  iframe Hw
+  iintro Hw
+  iapply (BigSepL.bigSepL_perm hr).2
+  iapply BigSepL.bigSepL_append.2
+  iframe
+
+/-- The extent's slots' cells out of `wCells`, and back. -/
+theorem wCells_ext (b : Loc) (l : Nat) (W ws : List Nat) (hn : ws.Nodup) (hsub : ∀ s ∈ ws, s ∈ W)
+    (hl : ∀ s ∈ ws, 4096 * (s + 1) ≤ l) :
+    wCells (GF := GF) (some (b, l)) W ⊢
+      ([∗list] s ∈ ws, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) ∗
+      (([∗list] s ∈ ws, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
+        wCells (GF := GF) (some (b, l)) W) := by
+  simp only [wCells]
+  iintro ⟨Hw, Hp⟩
+  icases bigSepL_extract _ ws W hn hsub $$ Hw with ⟨Hws, Hback⟩
+  have hc : ∀ s ∈ ws, (if 4096 * (s + 1) ≤ l then
+      iprop(∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) else iprop(emp)) ⊣⊢
+      iprop(∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) := by
+    intro s hs; simp only [hl s hs, ↓reduceIte]; exact .rfl
+  ihave Hws := bigSepL_mono_mem' (fun s hs => (hc s hs).1) $$ Hws
+  iframe Hws
+  iintro Hws
+  ihave Hws := bigSepL_mono_mem' (fun s hs => (hc s hs).2) $$ Hws
+  iframe Hp
+  iapply Hback $$ Hws
+
+/-- The extent's slots' page-cache bytes out of `wBytes`, and back. -/
+theorem wBytes_ext (p : GoString) (W ws : List Nat) (wb : Nat → List w8) (size : Nat)
+    (hn : ws.Nodup) (hsub : ∀ s ∈ ws, s ∈ W) (hl : ∀ s ∈ ws, 4096 * (s + 1) ≤ size) :
+    wBytes (GF := GF) p W wb size ⊢
+      ([∗list] s ∈ ws, ∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+        ⌜xs.map Prod.fst = wb s⌝) ∗
+      (([∗list] s ∈ ws, ∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+        ⌜xs.map Prod.fst = wb s⌝) -∗ wBytes (GF := GF) p W wb size) := by
+  unfold wBytes
+  iintro Hw
+  icases bigSepL_extract _ ws W hn hsub $$ Hw with ⟨Hws, Hback⟩
+  have hc : ∀ s ∈ ws, (if 4096 * (s + 1) ≤ size then
+    iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      ⌜xs.map Prod.fst = wb s⌝)
+    else if 4096 * s < size then
+      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+        ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
+    else iprop(emp)) ⊣⊢
+      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+        ⌜xs.map Prod.fst = wb s⌝) := by
+    intro s hs; simp only [hl s hs, ↓reduceIte]; exact .rfl
+  ihave Hws := bigSepL_mono_mem' (fun s hs => (hc s hs).1) $$ Hws
+  iframe Hws
+  iintro Hws
+  ihave Hws := bigSepL_mono_mem' (fun s hs => (hc s hs).2) $$ Hws
+  iapply Hback $$ Hws
+
+theorem ext_loc (b : Loc) (f : Nat) :
+    b +ₗ ((4096 * f : Nat) : Int) +ₗ ((4096 : Nat) : Int) = b +ₗ ((4096 * (f + 1) : Nat) : Int) := by
+  rw [loc_add_assoc]; congr 1
+
+/-- **The extent's cells are its slots' bytes at a half** (the inverse of `ext_agree`'s reading). -/
+theorem ext_cells_back (b : Loc) (wb : Nat → List w8) :
+    ∀ (k f : Nat), (∀ s, f ≤ s → s < f + k → (wb s).length = 4096) →
+      bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
+        ((List.range' f k).flatMap wb) ⊢
+      [∗list] s ∈ List.range' f k, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf
+  | 0, f, _ => by
+    iintro -
+    simp only [List.range'_zero]
+    iapply BigSepL.bigSepL_nil.2; iempintro
+  | k + 1, f, h => by
+    rw [List.range'_succ, List.flatMap_cons]
+    refine (bytesPointsto_app _ _ _ _).1.trans ?_
+    have hl := h f (Nat.le_refl _) (by omega)
+    rw [hl, ext_loc]
+    iintro ⟨H0, Hr⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H0]
+    · ihave H0 := bytes_cellsR b (wb f) (4096 * f) $$ H0
+      rw [hl]
+      iexists _; iexact H0
+    · iapply ext_cells_back b wb k (f + 1) (fun s h1 h2 => h s (by omega) (by omega)) $$ Hr
+
+/-- **The extent's mapped cells hold its page-cache bytes** (`cellsR_agree_bytes` slot by slot,
+around any step `e`): the cells give the extent's bytes at a half. -/
+theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none) (p : GoString)
+    (dqm : DFrac) (m : OsMeta) (b : Loc) (len : Nat) (hb : m.maps !! b = some len)
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (wb : Nat → List w8) :
+    ∀ (k f : Nat), (∀ s, f ≤ s → s < f + k → 4096 * (s + 1) ≤ len ∧ (wb s).length = 4096) →
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗
+      ([∗list] s ∈ List.range' f k, ∃ xs : List (w8 × Bool),
+        osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+      ([∗list] s ∈ List.range' f k, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
+      (osMeta (GF := GF) p dqm (some m) -∗
+        ([∗list] s ∈ List.range' f k, ∃ xs : List (w8 × Bool),
+          osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+        bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
+          ((List.range' f k).flatMap wb) -∗
+        WP e @ st; E {{ Φ }}) -∗
+      WP e @ st; E {{ Φ }}
+  | 0, f, _ => by
+    iintro #Hinv Hm Hob Hc HΦ
+    iapply HΦ $$ Hm Hob
+    simp only [List.range'_zero, List.flatMap_nil, bytesPointsto]
+    ipureintro; trivial
+  | k + 1, f, h => by
+    rw [List.range'_succ, List.flatMap_cons]
+    obtain ⟨hlen, hl⟩ := h f (Nat.le_refl _) (by omega)
+    iintro #Hinv Hm Hob Hc HΦ
+    icases BigSepL.bigSepL_cons.1 $$ Hob with ⟨⟨%xs, Hxs, %Hx⟩, Hob⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hc with ⟨⟨%vf, Hc0⟩, Hc⟩
+    have hxl : xs.length = 4096 := by
+      have := congrArg List.length Hx; simp only [List.length_map] at this; omega
+    ihave Hc0 : cellsR (GF := GF) b (4096 * f) xs.length vf $$ [Hc0]
+    · rw [hxl]; iexact Hc0
+    iapply cellsR_agree_bytes e htv p dqm m b len hb (DFrac.own 1) hE Φ xs (4096 * f) vf
+      (by omega) $$ Hinv Hm Hxs Hc0
+    iintro Hm Hxs Hc0
+    ihave H0 : bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
+        (wb f) $$ [Hc0]
+    · rw [← Hx]; iapply cellsR_bytes; simp only [List.length_map]; iexact Hc0
+    iapply ext_agree e htv p dqm m b len hb hE Φ wb k (f + 1)
+      (fun s h1 h2 => h s (by omega) (by omega)) $$ Hinv Hm Hob Hc
+    iintro Hm Hob Hr
+    iapply HΦ $$ Hm [Hxs Hob] [H0 Hr]
+    · iapply BigSepL.bigSepL_cons.2
+      iframe Hob
+      iexists xs; iframe; ipureintro; exact Hx
+    · iapply (bytesPointsto_app _ _ _ _).2
+      rw [hl, ext_loc]
+      iframe
+
+end iris
 
 end bbolt
 end EtcdGrove
