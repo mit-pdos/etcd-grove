@@ -887,6 +887,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
 - **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
   `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
+  (2026-11-04, bbolt U4c) bbolt's `DB.allocate` compares `DB.mmap`'s error (an `fmt.Errorf`
+  error on its error paths) with `ErrMaxSizeReached` (`err == ErrMaxSizeReached`, stuck unless a
+  side's dynamic type is known comparable): `Mmap/Remap`'s `DB.mmap.spec` states its error
+  `errPtrTyped` instead, which `fmt.Errorf.spec`'s post would give with `IsPointerError`.
 - **Workaround here.** None yet: `checkPostResponse` is a spec only. (Stage 5e-3) The stream
   reader's `dial` uses a local trust-boundary spec, `Spec/fmt/ErrorfPlain.lean`: with no `%w` the
   error is an `*errors.errorString` (Go's `Errorf` returns `errors.New(s)`), whose `Error()`

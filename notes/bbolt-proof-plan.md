@@ -591,7 +591,7 @@ txRoot tx ≠ null`). `Tx.init`'s post gives it (`typedPointsto_not_null`) at `b
 2. **`nsLive X`** (U8b's, moved to `Model/Wtx`) is `liveOK`'s fourth clause (batch 12), so in
    `wOK`/`wOKR`: `wOK_nsLive`, `wOKR_nsLive`. (Not in `heapOK`: spill's spilled children stay in
    `B.ns` without being live.)
-5. *(open, with batch 14)* every bucket the root or a handle's, in `heapOK`.
+5. *(done with batch 14)* every bucket the root or a handle's, in `heapOK` (its last clause).
 6. **`node.size.spec`** has no `insSize ins < 2^63` premise (the sum wraps the same on both
    sides); U9a's proof, `Bucket.write`'s and `node.rebalance`'s calls adapted.
 7. **`nodeAdded`** adds `∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own
@@ -600,7 +600,7 @@ txRoot tx ≠ null`). `Tx.init`'s post gives it (`typedPointsto_not_null`) at `b
    batch 13's `↔`. `Bucket.node` (U7) establishes them from `node.read`'s `pageWsAs pg (posSrc B)`.
 8. **`flView_canFree`/`flView_nodeFree`** (stubs, U8b) take `viewWF X.v` (and the latter `covU X`)
    in place of `wOK X`.
-9. *(open)* the shared `matReady` lemma for a view page from `wtxW`'s mapping fields.
+9. *(done)* the shared `matReady` lemma for a view page: `Inv/MatReady`'s `wtxW_matReady`.
 
 U8b's `Bucket__rebalance.lean` (uncommitted) takes `flViewU` apart for its `rblX_init` (the
 `covU`/extent/alignment `sorry`s gone, `nsLive` from `wOK`); its post must now give `flViewU X'`.
@@ -623,25 +623,6 @@ U8b's `Bucket__rebalance.lean` (uncommitted) takes `flViewU` apart for its `rblX
 - **25** (U7b): `bktLocalOK` ends with `viewWF X.v` (materialization's `Nodup` children and
   `posDisjoint` come from the view's uniqueness); callers building it from `wOK` take `wOK`'s.
 
-## Batch 14 (kind-keyed heap objects, U7's finding): design, not yet applied
-
-The writer heap's single object map keyed by location cannot show a fresh node location is no
-bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal in
-`notes/perennial-changes.md`). Planned shape:
-- `WTx.objs` folds only the nodes (the buckets' `ns` over `dead`, which holds dead nodes only); a
-  new `WTx.bobjs` is the buckets (`bs` over a new `deadB : GMap Loc BRec`, default `∅`).
-- `WX` gains `liveB : GMap Loc Unit` (bucket liveness): every bucket-sense `l ∈ X.live` (`liveOK`'s
-  root and `bs` clauses, `liveReach`'s bucket clause, `derefPre`'s bucket clauses, `bktOpened`,
-  `bktLocalOK`, `derefStep`/`derefRel`) moves to `liveB`; `X.live` is node liveness. (One shared live
-  set is unsound here: killing a node at `l` would un-live a bucket at `l`, opening a bucket at `c`
-  would revive a dead node at `c`.)
-- `wtxHeap`: `[∗map] l ↦ o ∈ X.t.objs, objOwn … (l ∈ X.live) o ∗ [∗map] bl ↦ B ∈ X.t.bobjs,
-  objOwn … (bl ∈ X.liveB) (.bkt B)`; `objsDisj` keeps only "a node is in at most one bucket";
-  `objs_bkt` becomes a lookup of `bobjs`; `heapOK`'s registry clause is about node objects, and
-  (batch 20 item 5) every bucket is the root or a handle's.
-- Users to adapt: `Inv/WtxHeap`, `Model/Wtx`/`WOps`, `Rebalance/{Objs,Heap,HeapRbl,RblXS*}`,
-  `Write/Heap`, `Txn/Heap`, `Mmap/Rebase`, `Spill/{Deref*}`, `Bucket__pageNode_w`, `node__*`.
-
 ## Shared-statement fixes, batches 26-28 (2026-11-04; decided by the coordinator)
 
 - **26** (U4b): `store_gather`'s post adds `⌜C.metaOk ∧ ∀ s ∈ slotsOf C fl, 2 ≤ s ∧ s < l / 4096 ∧
@@ -659,7 +640,8 @@ bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal
 
 ## Batch 21 and `viewCells_slices_acc` (2026-11-04)
 
-- **21 (approved by the user, 2026-11-04; D-C precedent, U5b's finding after batch 17)**: `txDB tx γ
+- **21 = D-F (approved by the user, 2026-11-04; D-C precedent, U5b's finding after batch 17;
+  applied in `feed4d07da`)**: `txDB tx γ
   db` (`Spec/go_etcd_io/bbolt/Api.lean`, `txDB_persistent`), `txDBDef B N tx db` (`Inv/Tx`, `B`/`N`
   the client's: `∃ r, isBoltDef B N db ∗ reg tx B r ∗ ⌜r.db = db⌝`); `DB.Begin`'s and
   `DB.Begin_err`'s posts, `Tx.DB`'s and `DB.Info`'s pres. `notes/decisions.md` (D-F) and
@@ -671,6 +653,75 @@ bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal
   it) and is proved (`addNQ`: `|L| + 1` equal shares). `Inv/Ctx` imports
   `internal/common/Lemmas/Bytes` (`bytesPointsto_ownSlice`). Its one caller, U8's `srcOwn_acc`
   (`Rebalance/Base`), needs the premise too (not a one-liner: routed).
+
+## Batch 14 (kind-keyed heap objects, U7's finding): applied 2026-11-04 (maintainer 3)
+
+The writer heap's single object map keyed by location could not show a fresh node location is no
+bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal in
+`notes/perennial-changes.md`). Applied as designed:
+- **`Model/Wtx`**: `WTx.dead : GMap Loc (Loc × NRec)` (dead nodes only, with their bucket's
+  location) and a new `WTx.deadB : GMap Loc BRec := ∅` (dead buckets, `DeleteBucket`'s);
+  `WTx.objs` folds only the buckets' nodes over `dead` (as `.node` objects); the new
+  `WTx.bobjs := bs ∪ deadB` is the buckets. `WX` gains `liveB` (after `live`): bucket liveness.
+  **`objsDisj`** is only "a node is in at most one bucket" (`∀ bl B, bs !! bl = some B → ∀ n,
+  (B.ns !! n).isSome → ∀ bl' B', bs !! bl' = some B' → bl' ≠ bl → B'.ns !! n = none`; the
+  conjunction with "no bucket at a node's location" is gone, so users take `hd … n hn bl' B' hb'
+  hne` directly). `handlesOK` is over `bobjs`. `liveOK`'s root and `bs` clauses are over
+  `liveB` (same shape: `X.rl ∈ X.liveB ∧ (live nodes are node objects) ∧ (bs ⊆ liveB) ∧ nsLive ∧
+  (dead nodes not live)`).
+- **`Model/WOps`**: `bktLocalOK`'s first clause, `bktOpened` (`(X.t.bobjs !! c).isNone`,
+  `liveB := X.liveB.insert c ()`), `liveReach`'s bucket clause, `derefPre`'s bucket clauses are
+  over `liveB`; `nodeAdded`'s freshness `(X.t.objs !! l).isNone` now means "no node object at
+  `l`" (text unchanged). **`derefStep`** gains `X'.t.deadB = X.t.deadB ∧ X'.liveB = X.liveB`
+  before its last (`bs`) clause (so the `bs` clause is `.2` ×12, `liveB` `.2` ×11 `.1`).
+- **`Inv/WtxHeap`**: `wtxHeap` = `⌜heapOK⌝ ∗ txFields ∗ rootFill ∗ ([∗map] l ↦ o ∈ X.t.objs,
+  objOwn … (l ∈ X.live) o) ∗ [∗map] bl ↦ B ∈ X.t.bobjs, objOwn … (bl ∈ X.liveB) (.bkt B)`;
+  **`heapOK`** ends with batch 20 item 5: `∀ bl B, X.t.bs !! bl = some B → bl = X.rl ∨
+  (X.handles !! bl).isSome` (every bucket the root or a handle's: its `FillPercent` is
+  `rootFill`'s or `fills`'; the registry clause is now `.2.2.2.2.1`). `WX.rebase` re-bases
+  `dead` (`NRec.unview`) and `deadB` (`BRec.unview`); `WEntry.unview`/`NRec.unview` moved here
+  from U4's `Mmap/Rebase` (and U9c's duplicate in `Spill/AllocDeref` deleted).
+- **Internal specs** (`bl ∈ X.live` of a bucket → `X.liveB`): `Bucket__free`, `Bucket__node`,
+  `Bucket__pageNode_w`, `node__childAt`, `node__nextSibling`, `node__prevSibling`.
+- **Heap lemmas** (unit files adapted mechanically, owners stopped): `Rebalance/Objs`
+  (`objs_bkt` → `bobjs_bkt T bl B hb : T.bobjs !! bl = some B`, no `objsDisj`; `objs_node`;
+  `objs_other` takes only `B.ns !! k = none` and gives `T.deadObjs !! k`; `objs_setNodeT` is now
+  `T.objs.insert n (.node bl r')`, with `bobjs_setNodeT`), `Rebalance/Heap` (new
+  `wtxHeap_bkt_obj_acc`, `heapOK_setNode`; `wtxHeap_setNode_bkt`/`wtxHeap_free_acc` give the
+  bucket at `decide (bl ∈ X.liveB)`), `Rebalance/HeapRbl` (`wtxHeap_reshape` takes a node list
+  and a bucket list; `heapOK_of` takes `X'.handles = X.handles`; `objs_agree` nodes only,
+  `bobjs_agree` new; `wtxHeap_setBkt_acc`/`_live_acc`/`wtxHeap_setNode_acc` give the bucket at
+  `liveB`), `Rebalance/HeapRblKill`, `RblXSObjs` (`objs_isSome` nodes only;
+  `objs_isSome_mono` without the bucket hypothesis; `bobjs_isSome_mono` new), `RblXSKill`,
+  `RblXSSim`, `RblXSMat` (WIP, not imported), `RblXSDefs` (`WX.kill`'s dead `(bl, rn)`), `BktRbl`,
+  `Write/Heap` (`objs_isSome_bkt` gone; `objs_none` gives only the nodes' clause),
+  `Write/{CurNode,CurNodeH,MatOK}`, `Txn/Heap` (`objs_setBkt` is now `= X.t.objs`;
+  `bobjs_setBkt`; `wtxHeap_bkt_acc` takes `bl ∈ X.liveB`), `Mmap/{Rebase,AllocBase,TxAlloc}`
+  (`wtxW_txFields_acc`'s premise ends `(T.dead, T.deadB) = (X.t.dead, X.t.deadB)`, so `⟨rfl, rfl,
+  rfl⟩` still proves it), `Spill/{DerefModel,DerefRel,DerefWOK,DerefHeap,AllocDeref,
+  BucketDeref,NodeDeref}` (`DerefHeap.wtxW_open`'s premise ends `(X'.nloc, X'.t.t) = (X.nloc,
+  X.t.t)`, a pre-existing gap since batch 16's `managed` fact), `Bucket__dereference`,
+  `Bucket__pageNode_w`, `Bucket__rebalance`, `node__rebalance`.
+- **Batch 27's `AllocDeref` lemmas** rechecked against the new `objsDisj`: they hold
+  unchanged (`liveFresh_rebase` uses `objs_node`, which needs only the new clause).
+- **`Rebalance/Base.srcOwn_acc`** takes `(hb : 0 < v.base.addr)` (batch 21: it was the
+  module that did not build since `feed4d07da`, blocking every importer). The breakage moves to
+  its callers, the proofs `node__put` (line 59), `node__del` (48; also its batch-28 line 187),
+  `node__childIndex` (74), whose internal specs give no positive base: they need
+  `0 < v.base.addr` as a premise of `node.put`/`node.del`/`node.childIndex.spec` (their callers
+  have it from `mapFields`), **open, for the coordinator**.
+
+Still failing, not batch 14: `node__rebalance` (U8b's WIP: `wp_auto` at 369, batch 28's
+`node.del` post at 467), `Rebalance/RblXSMat` (U8b's WIP, batch 20's `nodeAdded` clauses at 101).
+
+## Batch 20 item 9: the shared `matReady` lemma (2026-11-04)
+
+`Inv/MatReady.lean` (new): `viewWF_page_ready` (a view page's header id, non-empty, leaf or
+branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), `matReady_view`
+(pure: a bucket with a root page, a view page not in `pm`, its bytes in `(0, maxAddr]`),
+`wtxW_page_bounds` and **`wtxW_matReady`** (`wtxW … X ⊢ ⌜matReady X B pgid⌝` for `B.ib.root' ≠ 0`,
+`viewWF X.v`, `X.v.pages !! pgid.toNat = some pg`, `X.t.pm !! pgid = none`). U8b's
+`Rebalance/NodeRblSteps.rblX_matReady` (a `sorry`) can use it.
 
 ## The modules (as built by U0a)
 
@@ -743,9 +794,10 @@ Each keeps the design's meaning; each is the smallest change that elaborated.
    (Perennial's `ghostVar` has no discarded fraction).
 10. **`Pages`, `CommitSt` are in `Model/Meta`**, since `CommitSt.metaOk` is (the brief had them in
     `Model/Tree`, after `Model/Meta`).
-11. **The checksum is the uninterpreted `fnv64a : List w8 → w64`** (an `opaque`, not an axiom), not
-    a parameter of `metaValid`: the parameter would thread through every predicate. §5 item 2's
-    `hash/fnv` specs say `Sum64` computes it.
+11. **The checksum is `fnv64a : List w8 → w64`**, not a parameter of `metaValid`: the parameter
+    would thread through every predicate. *(Superseded, infra 5a/5b, `cd62a713dd`: `fnv64a` is
+    `hash.fnv.fnv64a`, the real FNV-1a 64 of the translated `hash/fnv`, and `Meta.Sum64` is
+    proved; U0a's was an uninterpreted `opaque`.)*
 12. **`View` has the root page** (`View.data`, a reader's snapshot, needs it), and `viewWF` (a view
     is a `treeOK` committed state's) is in `Model/Mvcc`.
 13. **`FLPg.free` is `FLPg.freePages`** (`free` is the field).
@@ -915,7 +967,7 @@ The review of the design reviews U0's output, not this file.
 **U1. `internal/common`.** Parallel after U0.
 - Accessors and page/inode/meta functions: port the 117 old results, rebased on `UM/`
   (`Page__*`, `leafPageElement__*`, `readInodeFromPage`, `writeInodeToPage`, `Meta__*`).
-- Needs §5's `hash/fnv` spec for `Meta.Sum64`/`Validate`.
+- `Meta.Sum64` is proved over `hash/fnv`'s FNV-1a 64 specs (infra 5b, `cd62a713dd`).
 
 **U2. `internal/freelist`.** Parallel.
 - Port the 44 results (array, hashMap, shared).
@@ -1017,7 +1069,8 @@ through a frozen statement:
 - U9 uses U4's `Tx.allocate` and U7's `node.put`;
 - U10 and U11 use U5's `Tx.close` and U6's `rdTx` specs.
 
-No unit waits on another's proof. U10 also waits for §5's item 0 (`WriteAt` at any length).
+No unit waits on another's proof. (§5's item 0, `WriteAt` at any length, landed: infra 3,
+`3d30fe6b6f`, premise `off.toNat + data.length < 2^63`, no 1 GiB limit.)
 
 Round 4 (N1): the new rows also cross only through frozen statements:
 - U7 uses U9b's `Bucket.write` and U6's writer read specs;
@@ -1036,8 +1089,8 @@ Nothing in the schedule needs another change.
     show it is never read after a remap (only `rootNode == nil` children are skipped).
 - **R2. Rebalance (U8).** Merges, removals and root collapse under the logical tree. The
   reviewer of the spec could not confirm map-order independence.
-- **R3. Commit's error paths (U10).** Round 3: A1's `WriteAt` generalization (§5, item 0) lands
-  first, since `tx.write`'s chunks reach `0x7FFFFFFE` bytes (a leaf of four maximal entries, or
+- **R3. Commit's error paths (U10).** Round 3: A1's `WriteAt` generalization (§5, item 0; landed,
+  infra 3: premise `off.toNat + data.length < 2^63`, no 1 GiB limit) was needed first, since `tx.write`'s chunks reach `0x7FFFFFFE` bytes (a leaf of four maximal entries, or
   a large synced freelist page). Round 2: the goroutine and channel parts are covered:
   `wp_fork_tok` gives the child its token, and `SyncSpsc.wp_sspsc_close` returns the child's read
   transaction at `close(ech)` (review 1, F6). What remains:
