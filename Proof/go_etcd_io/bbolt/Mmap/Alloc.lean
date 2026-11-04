@@ -133,6 +133,10 @@ theorem mapFields_len (db : Loc) (dq : DFrac) (ms : MapSt) :
 omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
 theorem hwm_fit (a n L : Nat) (h : ¬ L ≤ (a + n + 1) * 4096) : (a + n) * 4096 ≤ L := by omega
 
+omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
+theorem hwm_fit' (a n L : Nat) (h : (a + n + 1) * 4096 ≤ L) : (a + n) * 4096 ≤ L :=
+  Nat.le_trans (Nat.mul_le_mul_right _ (Nat.le_succ _)) h
+
 theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
@@ -389,7 +393,87 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [hml, hM]
     by_cases hrm : ((mapLen w.ms : Nat) : Int) ≤ (((pg.toNat + sint.nat count + 1) * 4096 : Nat) : Int)
     · rw [decide_eq_true hrm]
-      sorry
+      wp_auto
+      -- the remap: the writer's state put back together for `mmap`
+      ihave Hw : wtxW K tx r m X $$ [Hwback Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+      · iapply Hwback $$ %X.t [] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+        · ipureintro; exact ⟨rfl, rfl, rfl⟩
+        · iframe
+      ihave Hdb : wdbW K tx X.v w $$ [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz
+          Hmf Hrest Hflo Hrd Hrcpt]
+      · unfold wdbW wdbLive wdbCoreG
+        isplitl
+        · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
+          · iexists wa
+            iframe
+          · iframe
+        · ipureintro; exact Hwok
+      wp_apply hMmap K tx r m X w _ (by rw [hM]; omega) hdp hlf hlr $$ [Hw Hdb] as %err Hres
+      · iframe
+      try wp_auto
+      icases Hres with (⟨%he, %Xd, %b, %w', Hw, Hdb, %hrel⟩ | ⟨%hne, #HeOk, Hcase⟩)
+      · subst he
+        wp_auto
+        obtain ⟨hdr, hrmp, hlen⟩ := hrel
+        have hmv : (Xd.rebase b).t.mv = X.t.mv := hdr.2.2.2.2.2.2.1
+        icases wtxW_txFields_acc K tx r m (Xd.rebase b) $$ Hw with ⟨Hf, Hwback⟩
+        unfold txFields
+        icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
+        unfold wdbW wdbLive wdbCoreG
+        icases Hdb with ⟨⟨⟨%wa', Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath,
+          Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok'⟩
+        wp_auto
+        wp_apply hPgid Xd.t.t.meta' X.t.mv (DFrac.own 1) $$ [Hmv] as Hmv
+        · rw [← hmv, show Xd.t.t.meta' = (Xd.rebase b).t.t.meta' from rfl]; iexact Hmv
+        try wp_auto
+        rw [hpg]
+        wp_apply hSetPgid $$ [Hmv] as Hmv
+        · iframe
+        try wp_auto
+        have hov : W32 (sint.Z (count - W64 1)) = W32 ((sint.nat count - 1 : Nat) : Int) := by
+          have : sint.Z (count - W64 1) = sint.Z count - 1 := by word
+          rw [this]; congr 1; omega
+        rw [hov]
+        ihave Hp := allocBuf_of_page s.ptr pg (sint.nat count) Hsp $$ [Hh Hz]
+        · iframe
+        iapply HΦ
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists Xd.rebase b, w', pg, pg + W64 ((sint.nat count : Nat) : Int)
+        isplitl [Hwback Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+        · rw [show (Xd.rebase b).withHwm (pg + W64 ((sint.nat count : Nat) : Int)) =
+              { Xd.rebase b with t := ((Xd.rebase b).withHwm (pg + W64 ((sint.nat count : Nat) : Int))).t }
+              from rfl]
+          iapply Hwback $$ %((Xd.rebase b).withHwm (pg + W64 ((sint.nat count : Nat) : Int))).t []
+            [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
+          · ipureintro; exact ⟨rfl, rfl, rfl⟩
+          · simp only [WX.withHwm]
+            rw [hcW, hmv]
+            iframe
+        isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
+        · isplitl
+          · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
+            · iexists wa'
+              iframe
+            · iframe
+          · ipureintro; exact Hwok'
+        iframe Hp
+        ipureintro
+        refine ⟨?_, hrmp.1, ?_, .inr ⟨hpg.symm, by omega, rfl, .inr ⟨Xd, b, hdr, rfl, hrmp⟩⟩⟩
+        · intro h; rw [h] at Hsp; exact absurd Hsp (by decide)
+        · rw [hcW]
+          have : (pg + count).toNat = pg.toNat + sint.nat count := by
+            have : (sint.Z count).toNat = sint.nat count := rfl
+            word
+          rw [this]
+          have h3 : sint.nat ((pg + count + W64 1) * W64 4096) =
+              (pg.toNat + sint.nat count + 1) * 4096 := by
+            rw [show sint.nat ((pg + count + W64 1) * W64 4096) =
+              (sint.Z ((pg + count + W64 1) * W64 4096)).toNat from rfl, hM, Int.toNat_natCast]
+          rw [h3] at hlen
+          exact hwm_fit' _ _ _ hlen
+      · sorry
     rw [decide_eq_false hrm]
     wp_auto
     wp_apply hPgid $$ [Hmv] as Hmv

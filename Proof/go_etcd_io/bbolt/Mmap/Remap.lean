@@ -53,7 +53,7 @@ the mapping at least `minsz` long; on an error (`fmtErrorOk`), nothing changed (
 `dereference`: `fileSize`, `mmapSize`, `ErrMaxSizeReached`), or the mapping lost. -/
 abbrev DB.mmap.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
-  0 < sint.Z minsz → sint.Z minsz < 2 ^ 62 → derefPre X → liveFresh X → liveReach X →
+  0 < sint.Z minsz → derefPre X → liveFresh X → liveReach X →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"mmap")) (Val #minsz))
   {{ (err : GoInterface), RET #err;
