@@ -5,6 +5,13 @@ or its page size read (`getPageSize`), the page pool, the mapping (`mmapUnlocked
 freelist loaded (`DB.loadFreelist.spec_open`: the core phase, `Open/Core`), the writer phase
 (`Open/Core.open_writer`), and, for a file with no synced freelist, a write transaction committed
 unchanged (`Begin`, `Commit`, over the client's `boltState` it then returns).
+
+Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once the transaction
+began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
+Open: one named `sorry`, the page pool's `New` (it reads the named result `db`, which the
+returns write; reported) and `Open/FileFacts`' size bound (`fileHolds` gains it, maintainer 12).
+Local assumptions until the shared specs say them: `DB.Begin_err.spec_w` (an error's `tx` is
+nil) and `fs.FileMode.String.spec` (the method is not translated yet).
 -/
 module
 
@@ -219,6 +226,36 @@ macro "open_ok" : tactic => `(tactic| (
   iframe Hstate
   iexact Hbolt))
 
+set_option hygiene false in
+/-- The transaction's error exit (`Begin` or `Commit` failed with `ok ei`, `Hek`): log, `db.Close()`,
+`return nil, txErr`, the deferred log. -/
+macro "open_tx_exit" : tactic => `(tactic| (
+  try wp_auto
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  try wp_auto
+  wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ei] _ iprop(True) _ errorf_mem'
+    fmtVerbs_txErr rfl $$ Hlgok [Hsl] [] [] as Hsl -
+  · iexact Hsl
+  · open_args
+  try wp_auto
+  wp_apply hClose dbl ⟨mkGs B, N⟩ $$ []
+  · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
+  iintro %cerr -
+  try wp_auto
+  wp_bind (App (Val #dv) (Val #()))
+  iapply Hdef $$ [err]
+  · iexact err
+  · simp only [fmtErrorOkOrNil]; iexact Hek
+  iintro err
+  try wp_auto
+  iapply HΦ
+  iframe Hopts
+  iright; ipureintro; intro h; cases h))
+
+set_option maxHeartbeats 4000000 in
 theorem Open.wp_proof [sync.Assumptions]
     (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.spec (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
@@ -359,8 +396,7 @@ theorem Open.wp_proof [sync.Assumptions]
           interface.mkOk (go.GoType.PointerType Options.ty) #opts] _ (optsAt opts dq o) _
         infof_mem fmtVerbs_opening rfl $$ Hlgok [Hsl] [] [Hopts] as Hsl Hopts
       · iexact Hsl
-      · simp only [List.zip_cons_cons, List.zip_nil_left, BigSepL.bigSepL_cons,
-          BigSepL.bigSepL_nil]
+      · simp only [List.zip_cons_cons, List.zip_nil_left]
         isplitr
         · iapply logArgOk_of_argWf
           apply fmt.argWf_of_argsWf
@@ -553,7 +589,6 @@ theorem Open.wp_proof [sync.Assumptions]
         · exact h.2
         · have := openOK_size C D m [] hC; omega
       subst hD
-      simp only [h0]
       try wp_auto
       ipersist pageSize
       wp_apply hInit dbl f fd path (.ok li) m (DFrac.own 1) (DFrac.own 1) Hdbnn h0 hmaps $$
@@ -754,7 +789,62 @@ theorem Open.wp_proof [sync.Assumptions]
     open_ok
   rw [decide_eq_true hfl]
   try wp_auto
-  sorry
+  -- no synced freelist: a write transaction, committed unchanged
+  ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
+  · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
+  wp_apply hBegin dbl ⟨mkGs B, N⟩ $$ [] as %tx %txErr Hb
+  · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
+  icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek⟩)
+  rotate_left
+  · obtain ⟨Hne, rfl⟩ := Hte
+    cases txErr with
+    | nil => exact absurd rfl Hne
+    | ok ei =>
+    open_tx_exit
+  subst Hte
+  icases persistent_entails_left (boltTx_base tx ⟨mkGs B, N⟩ 1 1 (TxView.wr D') D) $$
+    [Htx Hst'] with ⟨⟨Htx, Hst'⟩, %Hbase⟩
+  · iframe
+  have hD' : D' = D := Hbase rfl
+  subst hD'
+  icases persistent_entails_left (boltTx_nonnull tx ⟨mkGs B, N⟩ 1 (TxView.wr D')) $$ Htx
+    with ⟨Htx, %Htxnn⟩
+  try wp_auto
+  rw [decide_eq_false Htxnn]
+  try wp_auto
+  wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D') $$ [Htx Hst']
+    as %cerr ⟨-, Hc⟩
+  · iframe
+    isplitr
+    · ipureintro; rfl
+    simp only [TxView.wr]
+    iapply boltState_commit_au $$ Hst'
+  icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, -⟩)
+  rotate_left
+  · cases cerr with
+    | nil => exact absurd rfl Hce
+    | ok ei =>
+    open_tx_exit
+  subst Hce
+  try wp_auto
+  wp_bind (App (Val #dv) (Val #()))
+  iapply Hdef $$ [err]
+  · iexact err
+  · iexact Herrok
+  iintro err
+  try wp_auto
+  iapply HΦ
+  iframe Hopts
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists ⟨mkGs B, N⟩
+  isplitr
+  · ipureintro; rfl
+  iframe Hst'
+  unfold isBolt
+  rw [bnsOf_mkGs]
+  iexact Hbolt
 
 end proof
 
