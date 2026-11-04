@@ -197,7 +197,7 @@ theorem ownHas_of_treeHas {P : Pages} {q : Nat}
       ownHas P q b)
     (motive_3 := fun _ _ _ => True)
     (fun a pg hpg hA => hA a (ownHas.root a pg hpg))
-    (fun a pg _ hpg _ ih hA => ih a hpg hA)
+    (fun a _ _ hpg _ ih hA => ih a hpg hA)
     (fun pg i _ hfl hi _ ih a hpa hA =>
       ih (fun p hp => hA p (ownHas.child a pg i p hpa hfl hi hp)))
     (fun pg i _ hfl hi hbf _ _ a hpa hA =>
@@ -294,6 +294,164 @@ theorem Pc_cov {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X
         Option.map_some]
     refine ⟨W64 (p : Int), hbn, by rw [hposeq]; exact hpp_pos, _, hext, ?_, ?_⟩ <;>
       simp only [w64_cast_toNat hp64] <;> omega
+
+/-! ## The pieces of an unspilled tree -/
+
+theorem node_ns {X : WX} {c n : Loc} {B : BRec} {r : NRec} (hc : X.t.bs !! c = some B)
+    (h : X.node c n = some r) : B.ns !! n = some r := by
+  unfold WX.node at h; rw [hc] at h; exact h
+
+/-- A node's own page slots are a piece of the node. -/
+theorem ownSl_pc {v : View} {B : BRec} {n : Loc} {r : NRec} (hr : B.ns !! n = some r)
+    (hown : ownPg v r.nv.pgid') :
+    (ownSl v r.nv.pgid').Nodup ∧ ∀ s ∈ ownSl v r.nv.pgid', Pc v B (· = n) (fun _ _ => False) s := by
+  unfold ownSl
+  by_cases h0 : r.nv.pgid' = W64 0
+  · simp [h0]
+  · simp only [h0, ↓reduceIte]
+    obtain ⟨pg, hpg, -⟩ := hown h0
+    simp only [pgSlots, List.flatMap_cons, List.flatMap_nil, List.append_nil, hpg]
+    refine ⟨List.nodup_range', fun s hs => ?_⟩
+    simp only [List.mem_range'] at hs
+    obtain ⟨k, hk, rfl⟩ := hs
+    exact ⟨_, pg, hpg, by omega, by omega, Or.inl ⟨n, r, rfl, hr, h0, rfl⟩⟩
+
+theorem uEnt_child_of {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
+    {lo hi : Option (List w8)} {ws : List WEntry} {cs : List Loc} {h i : Nat} {w : WEntry}
+    {e : UE} (he : uEnt X bl P hwm n lo hi ws cs h i w e) {c : Loc} (hc : e.ch = some c) :
+    ∃ rc, X.node bl c = some rc ∧ rc.nv.pgid' = w.pgid := by
+  cases he with
+  | child _ _ _ _ _ _ _ _ c2 rc _ _ _ _ _ hnode _ hpgid _ _ _ _ =>
+    simp only [Option.some.injEq] at hc
+    subst hc
+    exact ⟨rc, hnode, hpgid⟩
+  | fin => simp at hc
+
+/-- **A finished entry's page is not materialized** (at the start: no spilled node). -/
+theorem fin_unmat {X : WX} {c : Loc} {B : BRec} {hwm' : Nat} (hcl : bktClean X.v hwm' c B)
+    (hc : X.t.bs !! c = some B) {P : Pages} {hwm : Nat} {n : Loc} {r : NRec}
+    {lo hi : Option (List w8)} {h : Nat} {es : List UE}
+    (hr : B.ns !! n = some r) (hlf : r.nv.isLeaf' = false) (hlen : es.length = r.ws.length)
+    (hent : ∀ i w e, r.ws[i]? = some w → es[i]? = some e → uEnt X c P hwm n lo hi r.ws r.cs h i w e)
+    (hcsE : ∀ c' ∈ r.cs, (∃ e ∈ es, e.ch = some c') ∨ spilledN X c c')
+    {i : Nat} {w : WEntry} {e : UE} (hw : r.ws[i]? = some w) (he : es[i]? = some e)
+    (hch : e.ch = none) : B.nm !! w.pgid = none := by
+  have hnc := hcl.2.2.2.2.2.2.2.1 n r hr
+  obtain ⟨-, hpnd, hall⟩ := hnc.2.2.2.2.2.2.2.2.2.2.2.2.1 hlf
+  cases hm : B.nm !! w.pgid with
+  | none => rfl
+  | some l' =>
+    exfalso
+    obtain ⟨r', hr', hpar⟩ := (hall w (List.mem_of_getElem? hw)).2.1 l' hm
+    have hnn : n ≠ null := (hcl.2.2.2.2.1 _ n hnc.2.2.2.2.2.2.2.1).1
+    have hnc' := hcl.2.2.2.2.2.2.2.1 l' r' hr'
+    obtain ⟨rp, hrp, -, hin, -⟩ := hnc'.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 (by rw [hpar]; exact hnn)
+    rw [hpar, hr] at hrp; cases hrp
+    obtain ⟨-, r'', hr'', hpg''⟩ := hcl.2.2.2.2.1 _ _ hm
+    rw [hr'] at hr''; cases hr''
+    rcases hcsE l' hin with ⟨e', he'm, he'c⟩ | ⟨-, rc, hrc, -, hsp, -⟩
+    · obtain ⟨j, hj, hjeq⟩ := List.getElem_of_mem he'm
+      have hj' : r.ws.length > j := by omega
+      have hwj : r.ws[j]? = some r.ws[j] := List.getElem?_eq_getElem hj'
+      have hej : es[j]? = some e' := by rw [List.getElem?_eq_getElem hj, hjeq]
+      obtain ⟨rc, hnode, hpgid⟩ := uEnt_child_of (hent j _ _ hwj hej) he'c
+      rw [node_ns hc hnode] at hr'; cases hr'
+      have e1 : (r.ws.map WEntry.pgid)[i]? = some w.pgid := by simp [hw]
+      have e2 : (r.ws.map WEntry.pgid)[j]? = some w.pgid := by
+        simp only [List.getElem?_map, hwj, Option.map_some]; rw [← hpgid, hpg'']
+      have hij := nodup_idx' hpnd e1 e2
+      subst hij
+      rw [hej] at he; cases he
+      rw [hch] at he'c; cases he'c
+    · rw [node_ns hc hrc] at hr'; cases hr'
+      rw [hnc'.2.2.2.2.2.2.1] at hsp; cases hsp
+
+/-- **An unspilled tree's slots are distinct pieces of its own** (a bucket whose leaves hold no
+nested bucket, at the start: no spilled node, every page of the tree a view page). -/
+theorem uTree_pieces {X : WX} {c : Loc} {B : BRec} {hwm' : Nat} (hcl : bktClean X.v hwm' c B)
+    (hc : X.t.bs !! c = some B) (hpd : pagesDisjoint X.v.pages)
+    (hnb : ∀ l r, B.ns !! l = some r → r.nv.isLeaf' = true → ∀ w ∈ r.ws, ¬ isBktFlag w.flags)
+    {hwm : Nat} {n : Loc} {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc}
+    {E : List El} (hu : uTree X c X.v.pages hwm n lo hi h F D N E) :
+    D.Nodup ∧ ∀ s ∈ D, Pc X.v B (· ∈ N) (fun l _ => l ∈ N) s :=
+  uTree.rec (X := X) (bl := c) (P := X.v.pages) (hwm := hwm)
+    (motive_1 := fun _ _ _ _ _ D N _ _ =>
+      D.Nodup ∧ ∀ s ∈ D, Pc X.v B (· ∈ N) (fun l _ => l ∈ N) s)
+    (motive_2 := fun n _ _ _ _ _ i w e _ => (e.ch = none → pagePosAt B n i w.pgid) →
+      e.D.Nodup ∧ ∀ s ∈ e.D, Pc X.v B (· ∈ e.N) (fun l k => l ∈ e.N ∨ (l = n ∧ k = i)) s)
+    (fun n r _ _ Sb hnode huN hleaf _ _ hsb0 => by
+      have hr := node_ns hc hnode
+      have hz : (List.range r.ws.length).flatMap (fun i => pgSlots X.v.pages (Sb i)) = [] := by
+        rw [List.flatMap_eq_nil_iff]
+        intro i hi
+        rw [List.mem_range] at hi
+        rw [hsb0 i r.ws[i] (List.getElem?_eq_getElem hi) (hnb n r hr hleaf _ (List.getElem_mem hi))]
+        rfl
+      rw [hz, List.append_nil]
+      obtain ⟨hnd, hp⟩ := ownSl_pc hr huN.2.2.2.2.2.2.2
+      exact ⟨hnd, fun s hs => Pc_mono (fun l hl => by rw [hl]; exact List.mem_singleton_self _)
+        (fun _ _ h => h.elim) (hp s hs)⟩)
+    (fun n r _ _ _ es hnode huN hleaf _ hlen hent _ hcsE _ hNnd _ ih => by
+      have hr := node_ns hc hnode
+      have hE : ∀ (i : Nat) (e : UE), es[i]? = some e → e.D.Nodup ∧
+          ∀ s ∈ e.D, Pc X.v B (· ∈ e.N) (fun l k => l ∈ e.N ∨ (l = n ∧ k = i)) s := by
+        intro i e he
+        have hi : i < r.ws.length := by have := (List.getElem?_eq_some_iff.1 he).1; omega
+        have hw : r.ws[i]? = some r.ws[i] := List.getElem?_eq_getElem hi
+        exact ih i _ e hw he (fun hch =>
+          ⟨r, r.ws[i], hr, hleaf, hw, rfl, fin_unmat hcl hc hr hleaf hlen hent hcsE hw he hch⟩)
+      have hNf : (es.flatMap UE.N).Nodup := (List.nodup_cons.1 hNnd).2
+      have hnN : n ∉ es.flatMap UE.N := (List.nodup_cons.1 hNnd).1
+      have hnotn : ∀ (i : Nat) (e : UE), es[i]? = some e → n ∉ e.N := fun i e he hn =>
+        hnN (List.mem_flatMap.2 ⟨e, List.mem_of_getElem? he, hn⟩)
+      have hfl : (es.flatMap UE.D).Nodup :=
+        Pc_nodup_flatMap hcl hpd UE.D (fun _ e => (· ∈ e.N))
+          (fun i e l k => l ∈ e.N ∨ (l = n ∧ k = i)) es
+          (fun a ha => by
+            obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem ha
+            exact (hE i _ (List.getElem?_eq_getElem hi)).1)
+          (fun i a ha s hs => (hE i a ha).2 s hs)
+          (fun i j a b hij ha hb x hxa hxb =>
+            flatMap_nodup_disj UE.N es i j a b x hNf hij ha hb hxa hxb)
+          (fun i j a b hij ha hb x k hxa hxb => by
+            rcases hxa with hxa | ⟨rfl, rfl⟩ <;> rcases hxb with hxb | ⟨hxn, hk⟩
+            · exact flatMap_nodup_disj UE.N es i j a b x hNf hij ha hb hxa hxb
+            · subst hxn; exact hnotn i a ha hxa
+            · exact hnotn j b hb hxb
+            · omega)
+      obtain ⟨hond, hop⟩ := ownSl_pc hr huN.2.2.2.2.2.2.2
+      refine ⟨List.nodup_append.2 ⟨hond, hfl, ?_⟩, ?_⟩
+      · intro x hx y hy hxy
+        subst hxy
+        obtain ⟨e, hem, hxe⟩ := List.mem_flatMap.1 hy
+        obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hem
+        have hej : es[j]? = some es[j] := List.getElem?_eq_getElem hj
+        exact Pc_disj hcl hpd (fun l h1 h2 => by subst h1; exact hnotn j _ hej h2)
+          (fun _ _ h _ => h) (hop x hx) ((hE j _ hej).2 x hxe)
+      · intro s hs
+        rcases List.mem_append.1 hs with hs | hs
+        · exact Pc_mono (fun l hl => by subst hl; exact List.mem_cons_self) (fun _ _ h => h.elim)
+            (hop s hs)
+        · obtain ⟨e, hem, hse⟩ := List.mem_flatMap.1 hs
+          obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hem
+          have hej : es[j]? = some es[j] := List.getElem?_eq_getElem hj
+          have hmem : ∀ l, l ∈ es[j].N → l ∈ n :: es.flatMap UE.N := fun l hl =>
+            List.mem_cons_of_mem _ (List.mem_flatMap.2 ⟨_, hem, hl⟩)
+          refine Pc_mono hmem (fun l k hl => ?_) ((hE j _ hej).2 s hse)
+          rcases hl with hl | ⟨rfl, -⟩
+          · exact hmem l hl
+          · exact List.mem_cons_self)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ih => fun _ =>
+      ⟨ih.1, fun s hs => Pc_mono (fun l hl => hl) (fun l k hl => Or.inl hl) (ih.2 s hs)⟩)
+    (fun n _ _ _ _ _ i w S _ hfT hpp => by
+      have hpp := hpp rfl
+      have hs := hfT.1
+      have hP : ∀ x ∈ S, (X.v.pages !! x).isSome := fun x hx => by
+        obtain ⟨pg, hpg⟩ := treeHas_page ((hs.has x).2 hx); rw [hpg]; rfl
+      refine ⟨pgSlots_nodup hpd hs.nodup hP, fun s' hs' => ?_⟩
+      obtain ⟨x, hx, pg, hpg, h1, h2⟩ := mem_pgSlots hP hs'
+      exact ⟨x, pg, hpg, h1, h2, Or.inr ⟨n, i, w.pgid, Or.inr ⟨rfl, rfl⟩, hpp, (hs.has x).2 hx⟩⟩)
+    hu
 
 end cov
 

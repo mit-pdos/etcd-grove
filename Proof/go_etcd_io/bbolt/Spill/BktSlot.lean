@@ -12,7 +12,7 @@ cache, its page positions' subtrees by `posDisjoint`/`posNodeFree`), across the 
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Spill.UTree
+public import Proof.go_etcd_io.bbolt.Spill.BktSlotCov
 
 @[expose] public section
 
@@ -76,14 +76,36 @@ theorem mem_rootOwn {X : WX} {Dc : List Nat} {s : Nat} :
   rw [List.mem_filter, mem_pagesSlots_cov]
   simp only [decide_eq_true_eq]
 
+/-- No buffer yet: the spill's page map is the view's. -/
+theorem spP_clean {X : WX} (h : X.t.bufs = ∅) : spP X = X.v.pages := by
+  apply GMap.ext
+  intro x
+  show (X.bufPages ∪ X.v.pages) !! x = X.v.pages !! x
+  have hb : X.bufPages = ∅ := by
+    unfold WX.bufPages; rw [h, GMap.toList_empty]; rfl
+  rw [hb]
+  exact GMap.lookup_union_r _ _ _ (GMap.lookup_empty x)
+
 /-- **A cached child's unspilled tree at the start is covered by its positions** (`c` not the
 root: its leaves plain). -/
 theorem uTree_start_cov {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X)
-    {c : Loc} {Cc : BRec} (hc : X.t.bs !! c = some Cc) (hne : c ≠ X.rl)
+    (hv : flViewU X fl) {c : Loc} {Cc : BRec} (hc : X.t.bs !! c = some Cc) (hne : c ≠ X.rl)
     {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     (hu : uTree X c (spP X) X.t.mv.pgid'.toNat Cc.bv.rootNode' none none h F D N E) :
     D.Nodup ∧ ∀ s ∈ D, coversSlot X.v.pages s ∧ ∃ pid, coverW X s (.pos c pid) := by
-  sorry
+  have hok := hpre.1
+  rw [spP_clean hok.1.2.1.2.1] at hu
+  have hcl : bktClean X.v X.t.mv.pgid'.toNat c Cc := (hok.1.2.2.2.2.2 c Cc hc).1
+  have hpd : pagesDisjoint X.v.pages := by
+    obtain ⟨C', hC', hvC⟩ := hok.2.2.2.2.2.2.2
+    rw [← hvC]; exact hC'.2.2.1
+  have hnb : ∀ l r, Cc.ns !! l = some r → r.nv.isLeaf' = true → ∀ w ∈ r.ws,
+      ¬ isBktFlag w.flags :=
+    fun l r hr hl w hw hb => hne ((hok.1.2.1.2.2.1 c Cc hc l r hr hl w hw).1 hb)
+  obtain ⟨hnd, hp⟩ := uTree_pieces hcl hc hpd hnb hu
+  refine ⟨hnd, fun s hs => ⟨?_, Pc_cov hpre hreach hv hc hne (hp s hs)⟩⟩
+  obtain ⟨p, pg, hpg, h1, h2, -⟩ := hp s hs
+  exact ⟨p, pg, hpg, h1, h2⟩
 
 /-- **A base slot covered other than by a child's position is the root's.** -/
 theorem mem_rootOwn_of {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X)
@@ -96,42 +118,8 @@ theorem mem_rootOwn_of {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liv
   refine mem_rootOwn.2 ⟨hs, lCovers_of_coverW hcw, fun hm => ?_⟩
   obtain ⟨⟨c, D⟩, hcD, hsD⟩ := List.mem_flatMap.1 hm
   obtain ⟨hne, Cc, h, F, N, E, hc, hu⟩ := hcs c D hcD
-  obtain ⟨pid, hpid⟩ := ((uTree_start_cov hpre hreach hc hne hu).2 s hsD).2
+  obtain ⟨pid, hpid⟩ := ((uTree_start_cov hpre hreach hv hc hne hu).2 s hsD).2
   exact hno c D hcD pid (hv.2.1 s _ _ hcw hpid)
-
-theorem nodup_idx' {α : Type} : ∀ {l : List α} {i j : Nat} {a : α}, l.Nodup → l[i]? = some a →
-    l[j]? = some a → i = j
-  | [], _, _, _, _, h, _ => by simp at h
-  | b :: l, 0, 0, _, _, _, _ => rfl
-  | b :: l, 0, j + 1, a, hn, hi, hj => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-    subst hi
-    simp only [List.getElem?_cons_succ] at hj
-    exact absurd (List.mem_of_getElem? hj) (List.nodup_cons.1 hn).1
-  | b :: l, i + 1, 0, a, hn, hi, hj => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
-    subst hj
-    simp only [List.getElem?_cons_succ] at hi
-    exact absurd (List.mem_of_getElem? hi) (List.nodup_cons.1 hn).1
-  | b :: l, i + 1, j + 1, a, hn, hi, hj => by
-    simp only [List.getElem?_cons_succ] at hi hj
-    rw [nodup_idx' (List.nodup_cons.1 hn).2 hi hj]
-
-theorem nodup_flatMap_of' {α β : Type} (f : α → List β) :
-    ∀ (l : List α), (∀ a ∈ l, (f a).Nodup) →
-      (∀ (i j : Nat) a b x, i < j → l[i]? = some a → l[j]? = some b → x ∈ f a → x ∉ f b) →
-      (l.flatMap f).Nodup
-  | [], _, _ => List.nodup_nil
-  | a :: l, h1, h2 => by
-    rw [List.flatMap_cons, List.nodup_append]
-    refine ⟨h1 a List.mem_cons_self, nodup_flatMap_of' f l (fun b hb => h1 b
-      (List.mem_cons_of_mem _ hb)) (fun i j x y z hij hx hy => h2 (i + 1) (j + 1) x y z (by omega)
-      (by simpa using hx) (by simpa using hy)), ?_⟩
-    intro x hx y hy hxy
-    subst hxy
-    obtain ⟨b, hb, hxb⟩ := List.mem_flatMap.1 hy
-    obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hb
-    exact h2 0 (j + 1) a _ x (by omega) rfl (by simp [hj]) hx hxb
 
 /-- **The starting slot invariant of the root spill** (see the module doc): the children `cs`
 (distinct, none the root), each with its unspilled tree's slots `D` (`bk_init`), and the root's
@@ -148,7 +136,7 @@ theorem slotInv_start {X : WX} {fl : FLPg} {C : CommitSt} (hpre : spillPre X fl)
       ∀ s ∈ D, coversSlot X.v.pages s ∧ ∃ pid, coverW X s (.pos c pid) := by
     intro c D hcD
     obtain ⟨hne, Cc, h, F, N, E, hc, hu⟩ := hcs c D hcD
-    exact uTree_start_cov hpre hreach hc hne hu
+    exact uTree_start_cov hpre hreach hv hc hne hu
   have hpd : pagesDisjoint X.v.pages := by rw [hcp]; exact hcok.2.2.1
   -- the children's slots are distinct
   have hDc : (cs.flatMap Prod.snd).Nodup := by
