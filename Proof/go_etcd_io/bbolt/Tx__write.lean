@@ -9,7 +9,7 @@ The spec is over local resources, as `Tx.writeMeta`'s (the writer side's file an
 slots, which `Commit` carves out of `wdbLive`'s `W` slots: `wCells`' halves and `wBytes`' bytes):
 the slots of every page's extent, whole inside the file and the mapping (`Commit` writes after
 `grow`; spill's pages are below the high-water mark, inside the mapping). Afterwards, on success
-every slot holds its page's chunk; on an error the slots hold some 4096 bytes each (a write may
+every slot holds its page's chunk (page-cache bytes and cells, `slotsOwn`); on an error the slots hold some 4096 bytes each (a write may
 stop part-way).
 -/
 module
@@ -67,7 +67,8 @@ def wrSlots (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) : IPr
 `b` (`l` bytes), all inside both; the target slots `bufSlots bufs`. Afterwards `tx.pages` is a
 fresh empty map, the buffers are gone (the one-page ones to the pool), the file's size and
 mappings unchanged, and on success each slot `id + j` of the page `pg` at `id` holds
-`pageChunk pg j`. -/
+`pageChunk pg j`, its cells' client halves too (`slotsOwn`, as `store_publish` takes the new slots:
+the proof reads them back with `cellsR_agree_bytes` after each `WriteAt`, as `writeMeta` does). -/
 abbrev Tx.write.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc)
     (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (wb : Nat → List w8)
@@ -92,11 +93,11 @@ abbrev Tx.write.spec : Prop :=
       fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
       (∃ om' : OsMeta, osMeta K.p (DFrac.own 1) (some om') ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
-      ∃ wb' : Nat → List w8, wrSlots b K.p (bufSlots bufs) wb' ∗
-        ⌜∀ s ∈ bufSlots bufs, (wb' s).length = 4096⌝ ∗
+      ∃ wb' : Nat → List w8, ⌜∀ s ∈ bufSlots bufs, (wb' s).length = 4096⌝ ∗
         ((⌜err = interface.nil⌝ ∗ ⌜∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
-            wb' (id.toNat + j) = pageChunk pg j⌝) ∨
-         (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
+            wb' (id.toNat + j) = pageChunk pg j⌝ ∗
+            slotsOwn (some (b, l) : MapSt) K.p (bufSlots bufs) wb') ∨
+         (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ wrSlots b K.p (bufSlots bufs) wb')) }}
 
 end spec
 
