@@ -39,7 +39,7 @@ abbrev bootstrappedServer.Close.spec : Prop :=
       b ↦□ bs ∗ bs.storage' ↦□ sto ∗ sto.backend' ↦□ bk ∗
       ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be⌝ ∗
-      backend.isBackend γ P W Pk be ∗ backend.isStopChans γ be ∗ backend.bOpen γ 1 }}
+      backend.isBackend γ P W Pk be ∗ backend.isStopChans γ P W Pk be ∗ backend.bOpen γ 1 }}
     (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
   {{ RET #(); True }}
 
