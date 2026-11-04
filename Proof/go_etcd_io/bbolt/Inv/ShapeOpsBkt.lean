@@ -177,6 +177,16 @@ theorem bktTokL_unopen (vw : View) (B : BRec) (n : List w8) (hno : ∀ v, ¬ ent
         · exact w.pgid.isLt
       · exact List.Subperm.refl _
 
+/-- A bucket record's tokens depend on its root node, header, caches and nodes only (not, e.g.,
+its `page` field: `CreateBucket`'s `b.page = nil`). -/
+theorem bktTokL_congr (v : View) (B B' : BRec) (hrn : B'.bv.rootNode' = B.bv.rootNode')
+    (hib : B'.ib = B.ib) (hnm : B'.nm = B.nm) (hbm : B'.bm = B.bm) (hns : B'.ns = B.ns) :
+    bktTokL v B' = bktTokL v B := by
+  have hop : opened B' = opened B := by unfold opened; rw [hbm]
+  unfold bktTokL
+  rw [hrn, hib, hns, hop]
+  simp only [nodeTokL_congr v B B' _ hnm hbm]
+
 end pure
 
 section res
