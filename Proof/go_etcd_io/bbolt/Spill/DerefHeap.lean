@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.DerefRel
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Rebalance.Objs
 
 @[expose] public section
 
@@ -75,6 +76,48 @@ theorem heapOK_step (tx : Loc) (X X' : WX) (h : derefStep X X') (hok : heapOK (G
   · intro n y hn
     rw [h.2.2.2.1] at hn
     rw [objs_isSome_step h h2]; exact h5 n y hn
+
+theorem setNode_self (X : WX) (bl l : Loc) (B : BRec) (r : NRec) (hB : X.t.bs !! bl = some B)
+    (hr : B.ns !! l = some r) : X.setNode bl l r = X := by
+  unfold WX.setNode WX.setBkt
+  rw [hB]
+  simp only
+  rw [GMap.insert_id _ _ _ hr]
+  rw [show ({ B with ns := B.ns } : BRec) = B from rfl, GMap.insert_id _ _ _ hB]
+
+theorem setBkt_self (X : WX) (bl : Loc) (B : BRec) (hB : X.t.bs !! bl = some B) :
+    X.setBkt bl B = X := by
+  unfold WX.setBkt
+  rw [GMap.insert_id _ _ _ hB]
+
+/-- A live node of the heap, out and back unchanged. -/
+theorem wtxHeap_node_peek (tx : Loc) (dq : DFrac) (X : WX) (bl l : Loc) (B : BRec) (r : NRec)
+    (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r) (hl : l ∈ X.live) :
+    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v l dq true (WObj.node bl r) ∗
+      (objOwn X.v l dq true (WObj.node bl r) -∗ wtxHeap tx dq X) := by
+  iintro Hh
+  ihave %Hok := wtxHeap_heapOK tx dq X $$ Hh
+  have hn : X.node bl l = some r := by simp [WX.node, hB, hr]
+  icases wtxHeap_node_acc tx dq X bl l r hn (objs_node X.t bl B l r Hok.2.1 hB hr) hl $$ Hh
+    with ⟨Ho, Hback⟩
+  iframe Ho
+  iintro Ho
+  ihave Hh := Hback $$ %r Ho
+  rw [setNode_self X bl l B r hB hr]
+  iexact Hh
+
+/-- A live bucket of the heap, out and back unchanged. -/
+theorem wtxHeap_bkt_peek (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
+    (hB : X.t.bs !! bl = some B) (hl : bl ∈ X.live) :
+    wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
+      (objOwn X.v bl dq true (WObj.bkt B) -∗ wtxHeap tx dq X) := by
+  iintro Hh
+  icases wtxHeap_bkt_acc tx dq X bl B hB hl $$ Hh with ⟨Ho, Hback⟩
+  iframe Ho
+  iintro Ho
+  ihave Hh := Hback $$ Ho
+  rw [show ({ B with ns := B.ns } : BRec) = B from rfl, setBkt_self X bl B hB]
+  iexact Hh
 
 end heap
 
