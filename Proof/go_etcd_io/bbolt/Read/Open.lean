@@ -30,6 +30,24 @@ theorem bytesAt_drop (bs : List w8) (off : Nat) (h : off ≤ bs.length) :
     bytesAt bs off (bs.length - off) = bs.drop off := by
   unfold bytesAt; rw [List.take_of_length_le (by simp)]
 
+/-- A live slice's length. -/
+theorem srcOwn_len_r (v : View) (s : GoSlice) (src : Src) (bs : List w8) (hs : src ≠ .stale) :
+    srcOwn (GF := GF) v s src bs ⊢ ⌜bs.length = sint.nat s.len ∧ 0 ≤ sint.Z s.len⌝ := by
+  cases src with
+  | view =>
+    unfold srcOwn
+    iintro %H
+    ipureintro
+    obtain ⟨-, hl, hlen, -⟩ := H
+    rw [hlen]
+    have : sint.Z (W64 (bs.length : Int)) = bs.length := sint_Z_W64_nat _ (by omega)
+    simp only [sint.nat, this]; omega
+  | own dq =>
+    unfold srcOwn
+    iintro H
+    iapply ownSlice_len $$ H
+  | stale => exact absurd rfl hs
+
 /-- The header and inline-page parts of a reader bucket opened on the value `cv` at `p`. -/
 def openParts (v : View) (p : Loc) (cv : List w8) : IProp GF :=
   iprop(((∃ ib : InBucket, p ↦□ ib ∗ ⌜ib.root' = (inBucketOf cv).root'⌝) ∨
