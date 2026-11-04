@@ -31514,3 +31514,42 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 - **A named hypothesis:** `clock.RealClock.After`, `?` in the link, as in client-go's.
 - **Translated instead of assumed:** the feature constant `ListFromCacheSnapshot` (`features.toml`).
   So `NewCompactor` needs no "not a panic" axiom, unlike `AllowUnsafeMalformedObjectDeletion`'s.
+
+## Kubernetes' compactor example proved: `k8s_compactor_safe` (2026-11-04 · K4 of `notes/k8s-compactor-plan.md`, its second part · branch `k8s-compactor-main`)
+
+**The result** (`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Results.lean`, collection
+`k8scompactor.txt`). The closed theorem: every real execution of the example has no stuck thread
+and no thread ended in a panic. So no API server's check panics, and no compactor round does,
+including the missing-key panic (nothing deletes the key). No `sorry`.
+
+**The invariant** (`Inv.lean`). One invariant owns the clients' half of the KV state (`etcdKV`,
+`alloc1_false`'s), a counter of its revision, and `compact_rev_key`'s protocol:
+- **The protocol:** the key is absent with a flag unset, or it was written (`Seen`, the flag
+  discarded) and holds `FormatInt c` for a `c` that is `0` or reached.
+- **The compactors' contract** (`casOk_of_cinv`) is K2's at `Seen := seenOk` and `recorded := True`.
+  `Main`'s checks never read `recorded`. A losing round finds the key present: a missing key's
+  version is `0`, so a round at `ev = 0` wins (`CasModel.lean`), and one at `Seen` contradicts the
+  unset flag.
+- **The counter** turns a reached revision into a lower bound for a later read
+  (`cinv_revLb`, the read-side law `kv_revLbZ_le`, applied outside the atomic updates).
+
+**The example's Go changed** (K3's, `examples/k8s/compactor/compactor.go`).
+- **Before:** `apiserver` checked the key's value `v` against the header revision of the same `Get`
+  that returned it.
+- **Why that was unprovable:** relating "`v` reached" to the state that `Get` read needs the server's
+  KV invariant at the read's linearization point. The client operations' atomic updates mask it out.
+  The compactor's CAS can't record the fact either: K2's `casOk` hands the update only `revOk`.
+- **Now:** the value is checked against a second `Get`, issued after the first returned. It is the
+  same claim ("a revision the cluster reached"), in the form `compactwatch`'s `checkCompactRev`
+  proves. The Go tests pass.
+
+**New trust.**
+- `strconv.Itoa`'s trust-boundary spec (`FormatInt(int64(i), 10)`, the user's approval).
+- The closed theorem takes `clock.RealClock.After`'s contract as a named hypothesis, as client-go's
+  results do.
+
+**Shared start** (`etcdstart/OneMember.lean`). The one-member examples each define the same
+`BootFacts`, `premises` (at their configuration) and `kvModel_boot`. Here they are once, at the
+shared start's configuration (`cfgOk`, `urls1`, `dir1`), with this example their first user. Moving
+`putget`, `compacted`, `compactwatch`, `lease`, `leasegrant` and `k8s/etcd3` onto it changes the
+definitions their `Main.spec`s are written in (only up to unfolding): proposed separately.

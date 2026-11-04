@@ -7,7 +7,7 @@ and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 
 K2's Draft 2 approved with U1-U4 (2026-11-04), its specs written
 (`Spec/k8s_io/apiserver/pkg/storage/etcd3/`, `CompactorDefs.lean`; `notes/decisions.md`,
 "Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). G1 done on a Perennial branch,
-waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). K4's first part done (below); next its `Main` and `k8s_compactor_safe`. It follows the phases of
+waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). K4 done (below). Next: K5. It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).
@@ -219,6 +219,16 @@ collection, `etc/tcb-collections/k8s-compactor.txt`.
   `NewCompactor.spec` drops `threadTok`; `klog.Errorf` is a new logging axiom; `RealClock.After`
   is a named hypothesis.
 - **Left:** `Main` and `k8s_compactor_safe`.
+
+*Second part done (2026-11-04).* `k8s_compactor_safe` (`Results.lean`), closed, no `sorry`
+(`notes/decisions.md`, "Kubernetes' compactor example proved"):
+- The example's invariant (`Inv.lean`) owns the clients' KV state and `compact_rev_key`'s protocol;
+  from it the compactors' contract (`casOk_of_cinv`: `Seen` a flag, `recorded := True`), the writer's
+  put and `apiserver`'s reads (`Aus.lean`, over `CasModel.lean`'s model facts).
+- The example's Go changed: `apiserver` checks the key's value against a second, later `Get`.
+- New trust: `strconv.Itoa`'s axiom (the user's approval); the closed theorem takes
+  `clock.RealClock.After`'s contract as a named hypothesis.
+- Shared: `etcdstart/OneMember.lean` (one-member `BootFacts`, `premises`, `kvModel_boot`), first user.
 
 **K5 (later).**
 - Q1 (b) after G1 (the watch loop: a watch of one key from a revision; compaction cancels its watch,

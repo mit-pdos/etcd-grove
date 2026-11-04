@@ -548,6 +548,7 @@ axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
+axiom k8s_compactor.DisableSnapshotList.wp_proof
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
@@ -703,6 +704,7 @@ axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatInt.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof

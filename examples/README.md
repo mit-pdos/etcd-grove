@@ -44,7 +44,7 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend | `k8s_etcd3_safe` |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
-| `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: three compactors and a writer on one member compacting only at its clients' requests (spec-tested: K3 of `notes/k8s-compactor-plan.md`) | (in progress) |
+| `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: three compactors and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`) | `k8s_compactor_safe` |
 
 ## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
 
