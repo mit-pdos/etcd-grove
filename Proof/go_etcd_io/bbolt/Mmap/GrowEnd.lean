@@ -168,6 +168,45 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     · unfold growRes; rw [hsz]; iframe
   · ipureintro; exact wdbGrown_grown fr w hok m' _ (by omega) hmaps hag
 
+omit [GooseSemantics] go_gctx hos sem in
+/-- The cells `[lo, L)` of the one mapping `(b, L)`, as `Truncate`'s `mcellsAny`. -/
+theorem mcellsAny_single_eq (b : Loc) (L lo : Nat) :
+    mcellsAny (GF := GF) (GMap.singleton b L) lo L ⊣⊢
+      ∃ vf, cellsR (GF := GF) b (min lo L) (L - min lo L) vf := by
+  unfold mcellsAny
+  refine BigSepM.bigSepM_singleton.trans ?_
+  rw [Nat.min_self]
+  exact .rfl
+
+omit hos sem in
+/-- `Truncate`'s cells after the file grew from `lo` to `S`, back as the cells `[lo, L)`. -/
+theorem grown_cells_back (b : Loc) (L lo S : Nat) (vf0 : Nat → val) (hle : lo ≤ S) :
+    mcells (GF := GF) (GMap.singleton b L) lo S vf0 ∗ mcellsAny (GF := GF) (GMap.singleton b L) S L ⊢
+      ∃ vf, cellsR (GF := GF) b (min lo L) (L - min lo L) vf := by
+  unfold mcells
+  refine (sep_mono BigSepM.bigSepM_singleton.1 (mcellsAny_single_eq b L S).1).trans ?_
+  iintro ⟨H1, H2⟩
+  ihave H := cellsR_join b (min lo L) (min S L - min lo L) (L - min S L) $$ [H1 H2]
+  · isplitl [H1]
+    · iexists vf0; iexact H1
+    · rw [show min lo L + (min S L - min lo L) = min S L by omega]; iexact H2
+  rw [show min S L - min lo L + (L - min S L) = L - min lo L by omega]
+  iexact H
+
+/-- The fields of the database `DB.grow` reads (`isBoltCoreP`, `dbFixed`). -/
+theorem BC.core_growFields (K : BC) :
+    K.core (GF := GF) ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+      ⌜K.db ≠ null⌝ ∗ K.db.[DB, go!"pageSize"] ↦□ W64 4096 ∗
+      K.db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗
+      (∃ lg, K.db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg) ∗
+      K.db.[DB, go!"readOnly"] ↦□ false ∗ K.db.[DB, go!"Mlock"] ↦□ false ∗
+      (∃ x : Bool, K.db.[DB, go!"NoGrowSync"] ↦□ x) := by
+  unfold BC.core isBoltCoreP dbFixed dbLogger
+  iintro ⟨-, -, %Ht, #Hpkg, #Hos, ⟨#Hps, -, #Hlg, #Hro, -, #Hml, -, #Hngs, -, -, -, -, -, -, #Has,
+    -⟩, -⟩
+  iframe #
+  ipureintro; exact Ht.2.1
+
 end res
 
 end bbolt
