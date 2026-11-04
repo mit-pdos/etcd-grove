@@ -97,6 +97,98 @@ theorem end_bufs_nil {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
   refine ⟨fun id => Bool.eq_iff_iff.2 (hI.G.2.2.2.2.2.1 id), ?_⟩
   exact hI.bufs
 
+
+/-- **What the root's leaf elements `E` give** of a tree written with them over a page map `P'`
+agreeing with `P` on the owned slots `D`: the root shape and the writer's data at the start
+(`spillOK_of_root'`'s `hshape`, `hnames`, `hbkts`). -/
+def endEls (X0 : WX) (P : Pages) (D : List Nat) (E : List El) : Prop :=
+  ∀ (P' : Pages) (root hwm h : Nat) (S : List Nat), sTree P' hwm root none none h S →
+    treeEls P' root = E → (∀ x ∈ D, P' !! x = P !! x) →
+    rootShape (treePages P' root) root ∧
+    (treeEntries (treePages P' root) root).map Prod.fst = (rootEnts X0).map Prod.fst ∧
+    ∀ n v, (n, v) ∈ treeEntries (treePages P' root) root →
+      some (bktOfPage (treePages P' root) v) = bktData X0 n
+
+theorem setBkt_rootPage_of {X : WX} {bl : Loc} {B' : BRec} (h : X.rl = bl) :
+    (X.setBkt bl B').rootPage = B'.ib.root'.toNat := by
+  subst h
+  unfold WX.rootPage WX.setBkt
+  simp only [GMap.lookup_insert, Option.map_some, Option.getD_some]
+
+/-- **The spill's success after the root node's spill** (see the module doc). -/
+theorem end_post {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hvC : X.v = View.ofC X.v.base w.C)
+    (htx : X0.t.mv.txid'.toNat < 2 ^ 63) (hmv : X.t.mv.txid' = X0.t.mv.txid')
+    (hB : X.t.bs !! X0.rl = some B)
+    {rn : NRec} {h : Nat} {D : List Nat} {N : List Loc} {E : List El}
+    (hDo : ∀ s ∈ Lroot ++ keys.flatMap Dc, s ∈ D) (hDi : ∀ s ∈ D, s ∈ Lroot ++ keys.flatMap Dc)
+    (hEls : endEls X0 (spP X) D E) (hunsp : rn.nv.spilled' = false)
+    {X1 : WX} {w1 : WDb} {st1 : List FLStep} {B1 : BRec} {rt : Loc} {rr : NRec}
+    (hdone : spDone X X1 w w1 X0.rl B.bv.rootNode' rn [] none none h D N E .top st1)
+    (hB1 : X1.t.bs !! X0.rl = some B1) (hrr : B1.ns !! rt = some rr)
+    (hroot : nodeRootIn B1 B1.bv.rootNode' rt) :
+    spillOK X0 (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w0.fl w1.fl w0.wtxid ∧
+      spillBufs (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w1.fl := by
+  obtain ⟨hstep, hc⟩ := hdone
+  rcases hc with ⟨hsp, -⟩ | ⟨-, T, D', hfr, -, -, hD1, hD2, hag, -, hm⟩
+  · rw [hunsp] at hsp; cases hsp
+  obtain ⟨rt', rr', S, h', hnode', -, -, -, hB'r, hsT, hD', hE⟩ := hm
+  obtain ⟨B', hB', hroot'⟩ := hB'r
+  rw [hB1] at hB'; cases hB'
+  obtain ⟨B2, hB2, hsim, -⟩ := hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B hB
+  rw [hB1] at hB2; cases hB2
+  have hbv : B1.bv = B.bv := hsim.1
+  rw [hbv] at hroot
+  have hrt : rt' = rt := nodeRootIn_unique hroot' hroot
+  subst hrt
+  have hrr' : rr' = rr := by
+    unfold WX.node at hnode'; rw [hB1] at hnode'; simp only [Option.bind_some] at hnode'
+    rw [hrr] at hnode'; cases hnode'; rfl
+  subst hrr'
+  have hrl1 : X1.rl = X0.rl := hfr.1.trans hI.rl
+  have hrp : (X1.setBkt X0.rl (bkRooted B1 rt' rr'.nv.pgid')).rootPage = rr'.nv.pgid'.toNat :=
+    setBkt_rootPage_of hrl1
+  have hmark1 : X.t.mv.pgid'.toNat ≤ X1.t.mv.pgid'.toNat := hfr.2.2.2.2.2.2.2.2.1
+  have hmv1 : X1.t.mv = { X.t.mv with pgid' := X1.t.mv.pgid' } := hfr.2.2.2.2.2.2.2.1
+  have hwC : w.C = w0.C := hI.C
+  have hcp : w0.C.pages = X0.v.pages := by
+    rw [← hwC, ← hI.pages]
+    have := congrArg View.pages hvC; simpa [View.ofC] using this.symm
+  have hDag : ∀ x ∈ D, spP X1 !! x = spP X !! x := by
+    intro x hx
+    exact Classical.byContradiction fun hne => hag x hne hx
+  have hEls' := hEls (spP X1) rr'.nv.pgid'.toNat _ h' S hsT hE hDag
+  refine ⟨?_, end_bufs hstep hwC (hwC ▸ hI.bufs) X0.rl _⟩
+  apply spillOK_of_root' X0 _ w0.C w0.fl w1.fl w0.wtxid (st ++ st1) h' S D hcp
+  · show X1.v.pages = X0.v.pages
+    rw [hstep.2.2.1, hI.pages]
+  · show X0.t.mv.pgid' ≤ X1.t.mv.pgid'
+    have := hI.mark
+    rw [BitVec.le_def]; omega
+  · rw [setBkt_spP, hrp]; exact hsT
+  · rw [setBkt_spP, hrp]; exact hEls'.1
+  · show X1.t.mv.txid'.toNat < 2 ^ 63
+    rw [hmv1]; simp only; rw [hmv]; exact htx
+  · rw [setBkt_spP, hrp]; exact hEls'.2.1
+  · rw [setBkt_spP, hrp]; exact hEls'.2.2
+  · rw [hstep.2.1, hI.fl, applySteps_append, wtxid_of_C hwC]
+  · intro s hs
+    rcases hI.base s hs with ho | hp
+    · exact Or.inl (hDo s ho)
+    · exact Or.inr (hstep.2.2.2.2.2.1 s hp)
+  · intro s hs
+    rcases hD1 s hs with h1 | h1
+    · rw [setBkt_spP, ← hD']; exact Or.inl h1
+    · exact Or.inr h1
+  · intro s hs
+    rw [setBkt_spP, ← hD'] at hs
+    rcases hD2 s hs with h1 | h1
+    · rcases hI.new s (hDi s h1) with h2 | h2
+      · exact Or.inl h2
+      · exact Or.inr (newSlot_mono h2 (fun x hx => List.mem_append_left _ hx) (Nat.le_refl _))
+    · exact Or.inr (newSlot_mono h1 (fun x hx => List.mem_append_right _ hx) hI.mark)
+
 end post
 
 end Spill
