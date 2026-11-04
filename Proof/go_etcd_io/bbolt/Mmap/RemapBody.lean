@@ -85,6 +85,32 @@ theorem wdbW_file_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
     · ipureintro; exact Hwok
   · ipureintro; exact Hwok
 
+/-- `mmapSizeOf`'s result: at least the size, at least 32 KiB, a mapping's length. -/
+theorem mmapSizeOf_props (size s : Nat) (h : mmapSizeOf size = some s) :
+    size ≤ s ∧ 32768 ≤ s ∧ s ≤ 0xFFFFFFFFFFFF ∧ (s % 4096 = 0 ∨ s = 0xFFFFFFFFFFFF) := by
+  unfold mmapSizeOf at h
+  rcases hf : (List.range 16).find? (fun i => decide (size ≤ 2 ^ (15 + i))) with _ | i
+  · rw [hf] at h
+    simp only at h
+    have hbig : 2 ^ 30 < size := by
+      have := List.find?_eq_none.1 hf 15 (by simp)
+      simpa using this
+    split at h
+    · cases h
+    · rename_i hle
+      obtain rfl := Option.some.inj h.symm
+      split <;> omega
+  · rw [hf] at h
+    obtain rfl := Option.some.inj h.symm
+    obtain ⟨h1, h2⟩ := List.find?_some hf, List.mem_of_find?_eq_some hf
+    simp only [decide_eq_true_eq] at h1
+    simp only [List.mem_range] at h2
+    have hp : 2 ^ 15 ≤ 2 ^ (15 + i) := Nat.pow_le_pow_right (by decide) (by omega)
+    have hq : 2 ^ (15 + i) ≤ 2 ^ 30 := Nat.pow_le_pow_right (by decide) (by omega)
+    have hm : 2 ^ (15 + i) % 4096 = 0 := by
+      rw [show 15 + i = 12 + (3 + i) by omega, Nat.pow_add]; simp
+    omega
+
 /-- The writer's location and database (`wtxCore`'s facts). -/
 theorem wtxW_tx_ne (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢ ⌜tx ≠ null ∧ r.db = K.db⌝ := by
@@ -296,7 +322,6 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   have hv' : (Xd.rebase Xd.v.base).v = X.v := by
     show { Xd.v with base := Xd.v.base } = X.v
     rw [View.with_base_self Xd.v, hXd]
-  icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩
   icases Hun with (⟨%he, Hosm⟩ | ⟨%he, #HeS, Hun⟩)
   rotate_left
   · -- `munmap` failed: the mapping lost (or leaked)
@@ -304,6 +329,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     | nil => exact absurd rfl he
     | ok ii =>
     try wp_auto
+    icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩
     ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
     ihave Hwl := remap_lostX K tx r m Xd hrel.1 $$ [Hwc0 Hm1]
     · iframe
@@ -345,6 +371,88 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
   subst he
+  try wp_auto
+  have hL'p := mmapSizeOf_props _ _ hmo
+  have hnszZ : sint.Z nsz = (L' : Int) := by
+    have : sint.nat nsz = (sint.Z nsz).toNat := rfl
+    have h0 : 0 ≤ sint.Z nsz := by omega
+    omega
+  simp only [mapFields]
+  icases Hmf0 with ⟨Hdr, Hdd, Hm0f, Hm1f⟩
+  wp_apply hMmapF K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) mf
+    { w.m with maps := GMap.delete b0 w.m.maps } nsz slice.nil null (W64 0) Hmf
+    (by simp only [sint.Z] at hnszZ; omega) $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
+    as %e ⟨Hfile, Hfo, Hfd, Hres⟩
+  · iframe; iframe #
+  have hmaps1 : (GMap.delete b0 w.m.maps) = ∅ := by
+    rw [hk1 b0 l hmsL]; exact GMap.delete_singleton _ _
+  icases Hres with (⟨%base, %hbase, Hdr, Hdd, Hdsz, Hosm, Hmc⟩ | ⟨Hdr, Hdd, Hdsz, %he, #HeS, Hres⟩)
+  rotate_left
+  · -- `mmap` failed: the mapping lost (or leaked by `Madvise`)
+    cases e with
+    | nil => exact absurd rfl he
+    | ok ii =>
+    rw [hgoarch]
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    try wp_auto
+    simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
+      show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl, List.set_cons_succ, List.set_cons_zero]
+    wp_apply wp_boltLog li _ _ [W8 115, W8 115, W8 100, W8 118] _
+      [interface.mkOk go.string #(go!"linux"), interface.mkOk go.string #(go!"amd64"),
+        interface.mkOk go.int #nsz, GoInterface.ok ii] _ iprop(True) _
+      (by decide) (by decide) rfl $$ Hlgok [Hsl] [] [] as Hsl -
+    · iframe
+    · log_args_ok
+    try wp_auto
+    ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ HeS
+    ihave Hmf0 : mapFields K.db (DFrac.own 1) (none : MapSt) $$ [Hdr Hdd Hm0f Hm1f]
+    · simp only [mapFields]; iframe
+    icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩
+    ihave Hwl := remap_lostX K tx r m Xd hrel.1 $$ [Hwc0 Hm1]
+    · iframe
+    ihave Hgwv : ghostVar K.B.wv (1 : Qp).half
+        ((some (Xd.rebase Xd.v.base).v, some (w.C.txid + 1), false, false) : WSt) $$ [Hgwv]
+    · rw [hv']; iexact Hgwv
+    icases Hres with (Hosm | ⟨%base, %hbase, Hosm, Hmc⟩)
+    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok
+        { w.m with maps := GMap.delete b0 w.m.maps } none rfl (Or.inl hmaps1) wa
+        $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
+          [] Hflo Hrd Hrcpt
+      · simp only [junkRes]; iempintro
+      iapply HΦ
+      isplitl [Hpmap Hm3 Hptok]
+      · iapply (Pm_unf K.B K.db 1).2; iexists none; iframe
+      iright
+      isplitr
+      · ipureintro; exact ⟨(fun h => nomatch h), Hpt⟩
+      iframe HeS
+      iright
+      iexists Xd, Xd.v.base, _
+      iframe Hwl Hwd
+      ipureintro; exact ⟨hrel, rfl, rfl⟩
+    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok
+        { { w.m with maps := GMap.delete b0 w.m.maps } with
+          maps := <[base := nsz.toNat]> (GMap.delete b0 w.m.maps) } (some (base, nsz.toNat)) rfl
+        (Or.inr ⟨base, nsz.toNat, rfl, by rw [hmaps1]; exact GMap.insert_empty _ _⟩) wa
+        $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
+          [Hmc] Hflo Hrd Hrcpt
+      · simp only [junkRes]; unfold mapCells; icases Hmc with ⟨%bs', -, Hc⟩; iexists _; iexact Hc
+      iapply HΦ
+      isplitl [Hpmap Hm3 Hptok]
+      · iapply (Pm_unf K.B K.db 1).2; iexists none; iframe
+      iright
+      isplitr
+      · ipureintro; exact ⟨(fun h => nomatch h), Hpt⟩
+      iframe HeS
+      iright
+      iexists Xd, Xd.v.base, _
+      iframe Hwl Hwd
+      ipureintro; exact ⟨hrel, rfl, rfl⟩
+
   sorry
 
 end body
