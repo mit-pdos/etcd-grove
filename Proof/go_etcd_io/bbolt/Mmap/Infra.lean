@@ -20,9 +20,8 @@ supply it).
   `errors.New`'s. To discharge: `bboltErrorsVars`' clause for it as `bboltErrorsInit`'s for
   `ErrBucketNotFound` (`IsPointerError`, with `errorString_fmtErrorOk`'s method spec).
 - `pagePoolNew` (U4c): the page pool's `New` is not nil (`Open` sets it), so `Get().([]byte)`
-  cannot assert on a nil interface. `dbFixed` holds `∃ f, isPool db.pagePool f pageBuf` with any
-  `f`, and `sync.Pool.Get.spec` returns nil for a nil `New`. To discharge: `dbFixed` with
-  `⌜f ≠ func.nil⌝`.
+  cannot assert on a nil interface. (2026-11-04, batch 29) `dbFixed` holds the pool with
+  `⌜f ≠ func.nil⌝`: `pagePoolNew_holds`.
 
 (2026-11-04) The error posts of `os`'s `File.Stat`/`Truncate`/`Sync`/`ReadAt`/`WriteAt` now end
 with `fmtErrorOkOrNil err` (`Spec/fmt/ErrorOk.lean`; `fmtErrorOkOrNil_ne` gives `fmtErrorOk` of a
@@ -70,6 +69,14 @@ def errMaxSizeOk : Prop :=
 def pagePoolNew : Prop :=
   ∀ db sp : Loc, dbFixed (GF := GF) db sp ⊢
     ∃ f : GoFunc, sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝
+
+open Iris.ProofMode in
+/-- `pagePoolNew` holds (batch 29): `dbFixed` holds the pool with its `New` not nil. -/
+theorem pagePoolNew_holds : pagePoolNew (GF := GF) (hG := hG) := by
+  intro db sp
+  unfold dbFixed
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hp, -⟩
+  iexact Hp
 
 end infra
 

@@ -621,12 +621,8 @@ theorem branchWF_elemsIn (pg : List w8) (len hwm : Nat) (h : branchWF pg len hwm
   simp only [elemEnd, hne, ite_false]
   omega
 
-/-- **Materializing a page position keeps `wOK`** (the root page of a bucket with no root node,
-or a child its branch node has not materialized). U7. -/
-theorem wOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
-    (hok : wOK X) (h : nodeAdded X X' bl l pgid parent) (hpos : matPos X bl pgid parent) :
-    wOK X' := by
-  sorry
+-- `wOK_nodeAdded` (materializing a page position keeps `wOK`): `Write/MatGrow`'s
+-- `Write.wOK_nodeAdded` (proved; batch 22's move), with `wtxData_matGrow`.
 
 /-- **The search finds a key iff the bucket has it** (U6's search lemma, which U7 and U9 use):
 on a searchable bucket, a stack routing `k` ends at the leaf entry of key `k` if the bucket has

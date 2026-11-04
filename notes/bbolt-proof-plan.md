@@ -723,6 +723,61 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
 `viewWF X.v`, `X.v.pages !! pgid.toNat = some pg`, `X.t.pm !! pgid = none`). U8b's
 `Rebalance/NodeRblSteps.rblX_matReady` (a `sorry`) can use it.
 
+## Shared-statement fixes, batch 29 (maintainer 3's queue, 2026-11-04; decided by the coordinator)
+
+- **Batch 22's move**: the shared `wOK_nodeAdded` is `Write/MatGrow`'s `Write.wOK_nodeAdded`
+  (proved: U7b's `wOK_nodeAdded'` with its three premises from `nodeAdded`'s `hrvs` and child-case
+  `capOwn` clauses, batch 20, and `bktClean`'s `inlineBnd`, batch 22); `Model/WOps`' `sorry` is
+  deleted. `wtxData_matGrow` moved from `Write/Mat` to `Write/MatGrow` after it; `Write/CurNode`
+  imports `Write/MatGrow`.
+- **`dbFixed`'s page pool** has `⌜f ≠ func.nil⌝` (`Open` sets `New`; U11 proves it):
+  `Mmap/Infra`'s `pagePoolNew_holds` discharges U4c's `pagePoolNew`.
+- **`Tx.allocate.spec` is U4c's `Tx.allocate.spec'`**: premises `X.t.mv.txid' = w.wtxid` and
+  `X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms` (the high-water mark's pages inside the mapping, as a
+  premise); the success post keeps the bound (`X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms`) and
+  says `w' = w.withFl w'.fl ∨ wdbRemap w w'` (the false `X'.v = X.v → w' = w.withFl w'.fl` is
+  gone). `Proof/Tx__allocate`'s `wp_proof` is U4c's `wp_proof'` (callee specs as hypotheses).
+  **`Bucket.spill.spec`** takes the bound as a premise and gives it in its success post (for
+  `commitFreelist`'s `allocate`); `X.t.mv.txid' = w.wtxid` is derivable inside spill (`txClean`'s
+  `X.v.txid + 1 = X.t.mv.txid'.toNat`, `wdbW`'s `v = View.ofC _ w.C`, `wdbOK`'s
+  `C.txid + 1 < 2^64`). **Open for U10**: `Commit` must give spill the bound at its start
+  (`C.hwm * 4096 ≤ mapLen`); nothing holds it yet. Proposal: a `wdbOK` clause `∀ b l, w.ms =
+  some (b, l) → w.C.hwm * 4096 ≤ l` (bbolt maps at least the file at `Open`, and `DB.allocate`
+  remaps whenever the mark passes the mapping), maintained by `Open`, the publish (from spill's
+  post), remaps; not applied (it touches U3/U4/U5's `wdbOK` constructions).
+- **D (U6c)**: `Bucket.ForEachBucket_r.spec` and `Bucket.Bucket_r.spec` are over `rBktP v tx b dq
+  bv ibp pp` (`Read/RCtx`; `ibp pp` universally quantified, the same in pre and post; the opened
+  child of `Bucket_r` stays `rBkt`). `Proof/Bucket__ForEachBucket_r`'s `wp_proof` is U6c's
+  `ForEachBucket_rP.wp_proof`; `Bucket__Bucket_r`'s proof adapted (no `rBkt_eq` unpacking).
+
+## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
+
+In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
+units', per the U0b table):
+
+| statement | module | owner |
+|---|---|---|
+| `discardLogger_boltLogger` | `Inv/Bolt` | U11 (bbolt's package facts for `discardLogger`) |
+| `fileHoldsDef_timeless`, `fileHoldsDef_new`, `fileHolds_decode` | `Inv/FileHolds` | U11 |
+| `boltTxDef_fractional`, `boltTxDef_fill`, `txBytesDef_acc` | `Inv/Tx` | U5 (U12 for the laws' users) |
+| `boltCurDef_timeless` (a case) | `Inv/Tx` | U12 |
+| `wtxHeap_fractional` | `Inv/WtxHeap` | U5 |
+| `store_cells_agree` | `Inv/Store` | maintainer (queue item E, not done) |
+| `rStackAt_prev` | `Model/Cursor` | U6 |
+| `lRoutes_found`, `lRoutes_leafFor` | `Model/WOps` | U6 |
+| `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
+| `wOK_leaves_fuel` | `Model/LTree` | U7 |
+| `treeData_spill` | `Model/LTree` | U9c |
+| `ltree_leaf_of_T` | `Model/LTree` | U6 |
+| `bktEnts_treeEntries` | `Model/TreeData` | U6 |
+| `metaOk_parity_write` | `Model/Meta` | U10 |
+
+Not yet done from maintainer 3's queue: C(1) (bbolt's error variables' package facts with
+`IsPointerError` + `fmtErrorOk`, through `etc/gen-init.py`'s `SPECIAL`; needs U4c's
+`errorString_fmtErrorOk` moved out of `Mmap/MmapSize` into a module the generated `Init` can
+import), C(4) (`wdbOK`'s `mapLen ≤ AllocSize → m.size ≤ mapLen`, `wdbGrown`'s `wb` clause, the
+store slots below `C.hwm`), E (`store_cells_agree`'s proof).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

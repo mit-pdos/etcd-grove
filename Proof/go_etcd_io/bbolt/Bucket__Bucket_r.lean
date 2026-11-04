@@ -37,12 +37,10 @@ theorem Bucket.Bucket_r.wp_proof
     (hopen : Bucket.openBucket_r.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Bucket_r.spec (GF := GF) (hG := hG) := by
-  intro K tx src q T v b dq bv name nb ks hbv hks
+  intro K tx src q T v b dq bv ibp pp name nb ks hbv hks
   wp_start as ⟨Hk, Hb, #Hn⟩
   icases (persistent_entails_left (rdTxK_view K tx src q T v)) $$ Hk with ⟨Hk, %Hvw⟩
   have hok := rBktOK_of v Hvw.2 bv hbv
-  rw [rBkt_eq]
-  icases Hb with ⟨%ibp, %pp, Hb⟩
   ihave #Hpkg := (rdTxK_pkgInit K tx src q T v) $$ Hk
   unfold rBktP
   icases Hb with ⟨HIB, Htx, Hbks, Hpage, Hroot, Hnodes, Hhdr, Hil⟩
@@ -89,8 +87,7 @@ theorem Bucket.Bucket_r.wp_proof
         unfold rBkt
         iframe
         isplitl
-        · iexists ibp, pp
-          unfold rBktP
+        · unfold rBktP
           iframe
         ileft
         ipureintro
@@ -124,8 +121,7 @@ theorem Bucket.Bucket_r.wp_proof
       unfold rBkt
       iframe
       isplitl
-      · iexists ibp, pp
-        unfold rBktP
+      · unfold rBktP
         iframe
       ileft
       ipureintro
@@ -149,8 +145,7 @@ theorem Bucket.Bucket_r.wp_proof
       unfold rBkt
       iframe
       isplitl
-      · iexists ibp, pp
-        unfold rBktP
+      · unfold rBktP
         iframe
       ileft
       ipureintro
@@ -163,8 +158,7 @@ theorem Bucket.Bucket_r.wp_proof
       unfold rBkt
       iframe
       isplitl
-      · iexists ibp, pp
-        unfold rBktP
+      · unfold rBktP
         iframe
       ileft
       ipureintro

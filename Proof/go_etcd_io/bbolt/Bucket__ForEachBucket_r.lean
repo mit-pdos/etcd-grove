@@ -1,9 +1,11 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_r.lean`: not yet (U6, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_r.lean`: U6c's `ForEachBucket_rP`'s
+(the same statement; `notes/bbolt-proof-plan.md`, the maintainer's queue item D).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_r
+public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_rP
 
 @[expose] public section
 
@@ -23,8 +25,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Bucket.ForEachBucket_r.wp_proof : Bucket.ForEachBucket_r.spec (GF := GF) (hG := hG) := by
-  sorry
+theorem Bucket.ForEachBucket_r.wp_proof
+    (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hfst : Cursor.first_r.spec (GF := GF) (hG := hG))
+    (hnx : Cursor.next_r.spec (GF := GF) (hG := hG)) :
+    Bucket.ForEachBucket_r.spec (GF := GF) (hG := hG) :=
+  Bucket.ForEachBucket_rP.wp_proof hcur hfst hnx
 
 end proof
 

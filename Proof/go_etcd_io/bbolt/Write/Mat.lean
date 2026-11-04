@@ -273,18 +273,7 @@ theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
   | none => rfl
   | some c => simp only; rw [lbktEnts_eq_of_dat X X' c (hleaves c)]
 
-/-- **Materializations keep the writer's data** (`Model/WOps`' former `wtxData_matGrow`, with
-`wOK` at the start: each step keeps it, `wOK_nodeAdded`, and gives the step's freshness). -/
-theorem wtxData_matGrow (X X' : WX) (bl : Loc) (hok : wOK X) (h : matGrow X X' bl) :
-    wtxData X' = wtxData X := by
-  revert hok
-  induction h with
-  | refl => intro _; rfl
-  | step X Y Z bl l pgid parent hadd hpos _ ih =>
-    intro hok
-    rw [ih (wOK_nodeAdded X Y bl l pgid parent hok hadd hpos)]
-    exact wtxData_nodeAdded' X Y bl l pgid parent hadd
-      (wOK_matFresh X Y bl l pgid parent hok hadd hpos) (wOK_inlineLeaf X bl pgid hok)
+-- `wtxData_matGrow`: `Write/MatGrow` (after `wOK_nodeAdded`, batch 22's move).
 
 end mat
 

@@ -6,7 +6,7 @@ kept by data), its start, its step (`nodeAdded`), and what it gives the next ste
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Write.Mat
+public import Proof.go_etcd_io.bbolt.Write.MatGrow
 
 @[expose] public section
 

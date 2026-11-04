@@ -60,7 +60,8 @@ def pageBuf (v : GoAny) : IProp GF :=
 
 /-- **`db`'s fields written only by `Open`** (persistent, design §3.4): the page size, the
 statistics pointer, the logger, `readOnly`, the exported options (`StrictMode` and `Mlock` off),
-`openFile`, the page pool, the never-used batch fields. `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
+`openFile`, the page pool (its `New` not nil, batch 29: `Open` sets it, and `Get().([]byte)`
+asserts on its result), the never-used batch fields. `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
 `mmap`'s `unix.Mmap`). `AllocSize` is `DefaultAllocSize` (16 MiB, batch 24: `Open` sets it;
 `isBolt` forbids writing `DB`'s exported fields after `Open`), for `DB.grow`'s size. (Not `freelistLoad`'s `sync.Once`:
 Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
@@ -78,7 +79,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
     db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
-    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf) ∗
+    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝) ∗
     sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null)
 
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
