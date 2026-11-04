@@ -155,10 +155,19 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
   obtain ⟨st1, Hfr1⟩ := Hfr'
   -- the piece's record after the free
   obtain ⟨rl1, hn1, hrl1⟩ : ∃ rl1, X1.node bl l = some rl1 ∧
-      rl1 = { rl with nv := { rl.nv with pgid' := if rl.nv.pgid' = W64 0 then rl.nv.pgid' else W64 0 } } := by
-    sorry
-  have hlv1 : l ∈ X1.live := by sorry
-  have hv1 : X1.v = X.v := by sorry
+      rl1 = { rl with nv := { rl.nv with pgid' := W64 0 } } := by
+    rcases Hfr1 with ⟨h0, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+    · refine ⟨rl, hn, ?_⟩
+      rw [← h0]
+    · exact ⟨_, WX.setNode_node_same hn _, rfl⟩
+  have hlv1 : l ∈ X1.live := by
+    rcases Hfr1 with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+    · exact hlv
+    · rw [WX.setNode_live]; exact hlv
+  have hv1 : X1.v = X.v := by
+    rcases Hfr1 with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+    · rfl
+    · exact WX.setNode_v _ _ _ _
   rw [← hv1]
   wp_pures
   -- `node.size()` and `tx.db.pageSize`

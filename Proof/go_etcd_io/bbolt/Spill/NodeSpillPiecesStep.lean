@@ -35,6 +35,31 @@ def NRec.w0 (r : NRec) : WEntry := r.ws.headD default
 /-- A record's first inode's key slice. -/
 def NRec.k0 (r : NRec) : GoSlice := ((r.ins.head?).map Inode.key').getD slice.nil
 
+theorem WX.setNode_node_same {X : WX} {bl l : Loc} {r : NRec} (hn : X.node bl l = some r)
+    (r' : NRec) : (X.setNode bl l r').node bl l = some r' := by
+  unfold WX.node at hn ⊢
+  unfold WX.setNode
+  cases e : X.t.bs !! bl with
+  | none => rw [e] at hn; cases hn
+  | some B => simp [WX.setBkt]
+
+theorem WX.setNode_node_ne {X : WX} {bl l l' : Loc} (bl' : Loc) (r' : NRec) (h : l' ≠ l) :
+    (X.setNode bl l r').node bl' l' = X.node bl' l' := by
+  unfold WX.node WX.setNode
+  cases e : X.t.bs !! bl with
+  | none => rfl
+  | some B =>
+    simp only [WX.setBkt]
+    by_cases hb : bl = bl'
+    · subst hb; simp [e]; intro h'; exact absurd h'.symm h
+    · simp [hb]
+
+theorem WX.setNode_live (X : WX) (bl l : Loc) (r' : NRec) : (X.setNode bl l r').live = X.live := by
+  unfold WX.setNode; split <;> rfl
+
+theorem WX.setNode_v (X : WX) (bl l : Loc) (r' : NRec) : (X.setNode bl l r').v = X.v := by
+  unfold WX.setNode; split <;> rfl
+
 end model
 
 namespace Spill
