@@ -245,6 +245,27 @@ theorem wdbW'_ok (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   · ipureintro; exact h
   · ipureintro; exact h
 
+/-- **The writer's next txid does not wrap** (maintainer 12, item 1): the receipts of `wdbLive`
+and the core's bounds (`isBoltCoreP_txid_lt`). For `Commit`'s `htx63`. -/
+theorem wdbW'_txid_lt (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    K.core (GF := GF) ∗ wdbW' fr K tx v w ⊢ wdbW' fr K tx v w ∗ ⌜w.C.txid + 1 < 2 ^ 63⌝ := by
+  unfold wdbW' wdbLive BC.core
+  iintro ⟨Hc, ⟨Hg, Hfl, Hsp, Hr⟩, Hok, Ht⟩
+  icases isBoltCoreP_txid_lt K.B K.N K.db K.p K.sp K.t0 w.C.txid $$ [Hc Hr] with ⟨Hr, %h⟩
+  · iframe
+  iframe
+  ipureintro; exact h
+
+/-- `wdbW'_txid_lt` for `wdbW`. -/
+theorem wdbW_txid_lt (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    K.core (GF := GF) ∗ wdbW K tx v w ⊢ wdbW K tx v w ∗ ⌜w.C.txid + 1 < 2 ^ 63⌝ := by
+  unfold wdbW wdbLive BC.core
+  iintro ⟨Hc, ⟨Hg, Hfl, Hsp, Hr⟩, Hok⟩
+  icases isBoltCoreP_txid_lt K.B K.N K.db K.p K.sp K.t0 w.C.txid $$ [Hc Hr] with ⟨Hr, %h⟩
+  · iframe
+  iframe
+  ipureintro; exact h
+
 /-- **The writer's database side after a failed remap, flagged** (`wdbLost` with `wdbOK' fr` and
 the writer's `fbTok`). -/
 def wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=

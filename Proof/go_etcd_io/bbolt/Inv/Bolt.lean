@@ -87,10 +87,13 @@ def dbFixed (db sp : Loc) : IProp GF :=
 
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
 statistics pointer `sp` and receipts' base `t0`; its namespace disjoint from OsFs's (batch 37:
-`Open`'s premise; `store_cells_agree` opens `pagesInv` around an OsFs step). -/
+`Open`'s premise; `store_cells_agree` opens `pagesInv` around an OsFs step); the receipts' bound
+at most `2 ^ 62` (maintainer 12, item 1: `Open`'s `ReceiptBoundLe GF (2 ^ 62)`, recorded so that
+`Commit` bounds the next txid, `receipt_txid_lt`). -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
     IProp GF :=
-  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
+  iprop(dblAt B db ∗ t0At B t0 ∗
+    ⌜(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62) ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗
@@ -114,6 +117,30 @@ def isBoltDef (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
   iprop(∃ (p : GoString) (sp : Loc) (t0 : Nat), isBoltP B N db p sp t0)
 
 /-! ## Lemma statements (U5) -/
+
+omit [GooseSemantics] go_gctx hos sem in
+/-- **The writer's next txid does not wrap** (maintainer 12, item 1): the writer side's receipts
+`⧗ (c - t0)` (`wdbOwn`, `wdbLive`) number fewer than `receiptBound GF ≤ 2 ^ 62`, and `t0 < 2 ^ 62`
+(both in `isBoltCoreP`), so `c + 1 < 2 ^ 63`. -/
+theorem receipt_txid_lt (t0 c : Nat) (ht0 : t0 < 2 ^ 62) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    receipt (GF := GF) (c - t0) ⊢ receipt (c - t0) ∗ ⌜c + 1 < 2 ^ 63⌝ :=
+  persistent_entails_left ((receipt_lt (GF := GF) (c - t0)).trans (pure_mono fun h => by omega))
+
+/-- The core's receipt facts: `t0 < 2 ^ 62` and `receiptBound GF ≤ 2 ^ 62`. -/
+theorem isBoltCoreP_receipts (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 : Nat) : isBoltCoreP (GF := GF) B N db p sp t0 ⊢ ⌜t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62⌝ := by
+  unfold isBoltCoreP
+  iintro ⟨-, -, %H, -⟩
+  ipureintro; exact H.1
+
+/-- **`receipt_txid_lt` from the core**: the receipts `⧗ (c - t0)` of the core's `t0`. -/
+theorem isBoltCoreP_txid_lt (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 c : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ∗ receipt (c - t0) ⊢ receipt (c - t0) ∗ ⌜c + 1 < 2 ^ 63⌝ := by
+  iintro ⟨Hc, Hr⟩
+  ihave %H := isBoltCoreP_receipts B N db p sp t0 $$ Hc
+  iapply receipt_txid_lt t0 c H.1 H.2
+  iexact Hr
 
 instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
