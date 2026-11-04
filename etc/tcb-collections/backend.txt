@@ -13,6 +13,8 @@ axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom backend.boltLogger
 axiom backend.boltLogger_persistent
+axiom backend.dbFile
+axiom backend.dbFile_persistent
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent

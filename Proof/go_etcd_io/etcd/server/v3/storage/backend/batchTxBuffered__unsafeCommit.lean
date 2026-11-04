@@ -139,7 +139,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   · rw [hR, setHw_R]
     iexact HRB
   unfold batchPhys
-  icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
+  icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu, #Hbdb⟩
   icases Hrb with (Hrb | ⟨%Hnull, #Hbs⟩)
   rotate_left
   · unfold bStopped
@@ -269,6 +269,9 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe Hown Hbs Hpend
+    iunfold bDBOut
+    iexists db, _
+    iframe Hbdb Hdb
 
 end proof
 
