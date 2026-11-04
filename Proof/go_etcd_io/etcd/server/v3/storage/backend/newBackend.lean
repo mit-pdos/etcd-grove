@@ -126,7 +126,7 @@ theorem backend.newBackend.wp_proof
   icases optsAt_bool bo o go!"Mlock" (by simp) $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  wp_apply (hLog _) as %l #Hl
+  wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · ipureintro; exact Hlg
   icases optsAt_logger bo o $$ Hbo with ⟨Hf, Hback⟩
   wp_auto
@@ -138,7 +138,9 @@ theorem backend.newBackend.wp_proof
   wp_apply (hOpen cfg.Path' (W32 384) bo (DFrac.own 1) _ D) $$ [$Hfile $Hbo]
     as %db %err ⟨Hbo, Hres⟩
   · iframe #
-    ipureintro; exact Hok
+    ipureintro
+    obtain ⟨lc, rfl⟩ := Hlty
+    exact OptsM.ok_withLogger o _ Hok ⟨_, lc, rfl, rfl⟩
   icases Hres with (%Herr | ⟨%Herr, %γd, Hown, Hwr, #Hdb⟩)
   · -- `Open` failed: `lg.Panic`
     rcases err with ei | _

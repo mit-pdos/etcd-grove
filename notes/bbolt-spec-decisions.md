@@ -1797,3 +1797,19 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   gains "every leaf at the same depth" (`rebalance` merges siblings without checking `isLeaf`;
   bbolt's own writes keep it); the statement does not change.
 
+- **D-G** (2026-11-04, approved by the user; batch 38.1 of `notes/bbolt-proof-plan.md`, U11's
+  finding). `loggerPtrOk (.ok li) := ∃ t (l : Loc), li.ty = PointerType t ∧ li.v = #l`
+  (`Spec/go_etcd_io/bbolt/Options.lean`; was `∃ t, li.ty = PointerType t`). The model's interface
+  values pair a type with any value, so a pointer type alone does not make the value a location;
+  `Open` stores the logger and bbolt compares it with `discardLogger` (`lg != discardLogger`, a
+  pointer comparison), whose proof needs a location (`dbFixed`'s `logPtrTyped`,
+  `Inv/LoggerOk.OptsM.ok_logPtrTyped`). Frozen statements whose meaning changes: `OptsM.ok`, so
+  `DB.Open`'s and `Options.String`'s pres (stronger premises). Backend impact: the backend's own
+  `OptsM.ok` (`backend/BboltOptsDefs`) gains `loggerPtrOk o.logger` (a copy of bbolt's, so as not to import its `OptsM`), so `bbolt.Open_kv`'s
+  premise carries it; `backend.newBoltLoggerZap.spec`'s post gains `⌜∃ lc : Loc, l = interface.mkOk
+  (PointerType zapBoltLogger.ty) #lc⌝` (Go: `&zapBoltLogger{...}`), from which `newBackend` proves
+  the logger-updated options `ok` (`OptsM.ok_withLogger`). Trust-base axioms whose statements change:
+  `backend.newBoltLoggerZap.wp_proof` (stronger post: true of Go), `bbolt.Open_kv.wp_proof` and
+  `Options.String.wp_proof` (stronger premise: weaker axiom), the backend's package-initialization
+  axiom over `boltOpenOptionsOk` (`backend/Init.lean`: the options' `ok` now says their logger is
+  nil or a location; `boltOpenOptions`' logger is nil).

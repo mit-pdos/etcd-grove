@@ -30409,3 +30409,13 @@ triples; `bbolt-inv/design.md`, D-A..D-E). The frozen candidate text is otherwis
   docstring gains "every leaf at the same depth" (`rebalance` merges siblings without checking
   `isLeaf`; bbolt's own writes keep it), documentation only.
 
+
+## bbolt D-G: the option's logger is a location (2026-11-04 · the user's approval · batch 38.1)
+
+`bbolt.loggerPtrOk`'s pointer case says the logger's value is a location, not only that its type is
+a pointer type (the model's interface values pair any type with any value; bbolt's `lg !=
+discardLogger` is a pointer comparison). The backend's `OptsM.ok` takes the same condition and
+`newBoltLoggerZap`'s trusted post says its `*zapBoltLogger` is a location. Changed axioms:
+`backend.newBoltLoggerZap.wp_proof`, `bbolt.Open_kv.wp_proof`, `Options.String.wp_proof`, the
+backend's package-initialization axiom (through `boltOpenOptionsOk`). Details:
+`notes/bbolt-spec-decisions.md`, D-G.

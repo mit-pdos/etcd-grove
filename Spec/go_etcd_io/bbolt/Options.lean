@@ -57,10 +57,15 @@ def optsZero : OptsM :=
 /-- The logger is nil or of a pointer type (round 8, review 7 M2): `(*Options).String` formats it
 with `%p`, which for a non-pointer-shaped dynamic type falls back to a reflective print that
 iterates its maps and reads its slices (racy). A scope restriction of the model; Go accepts any
-type. The backend's `*zapBoltLogger` and the nil logger meet it. -/
+type. The backend's `*zapBoltLogger` and the nil logger meet it.
+
+Batch 38.1 (user-approved 2026-11-04, `notes/bbolt-spec-decisions.md`): the pointer-typed value is
+a location. The model's interface values pair a type with any value, so "of a pointer type" alone
+does not say so; `Open` stores the logger and bbolt compares it with `discardLogger` (`lg !=
+discardLogger`), a pointer comparison, which needs it (`dbFixed`'s `logPtrTyped`). -/
 def loggerPtrOk : GoInterface → Prop
   | .nil => True
-  | .ok li => ∃ t, li.ty = go.GoType.PointerType t
+  | .ok li => ∃ (t : go.GoType) (l : Loc), li.ty = go.GoType.PointerType t ∧ li.v = #l
 
 /-- Options `Open` accepts here:
 - read-write (a read-only database has no write transaction);
@@ -84,7 +89,7 @@ def OptsM.ok (o : OptsM) : Prop :=
   o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ o.mlock = false ∧
     (o.mmapFlags.toNat = 0 ∨ o.mmapFlags.toNat = mapPopulate) ∧ loggerPtrOk o.logger
 
-omit [GooseSemantics] [GooseInterp] go_gctx in
+omit [GooseSemantics] [GooseInterp] in
 theorem optsZero_ok : optsZero.ok := by
   simp [OptsM.ok, optsZero, loggerPtrOk]
 

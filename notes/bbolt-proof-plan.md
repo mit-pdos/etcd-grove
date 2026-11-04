@@ -1090,6 +1090,21 @@ Not done (in this order, the coordinator's):
   a fraction of the readers' ghost authority until `loadFreelist`, which `beginTx_s` must then not
   need whole — not yet designed.
 
+## Shared-statement fixes, batches 38.1-42 (maintainer 7, 2026-11-04; decided by the coordinator)
+
+- **38.1 (user-approved 2026-11-04, D-G of `notes/bbolt-spec-decisions.md`)**: `loggerPtrOk (.ok
+  li) := ∃ t (l : Loc), li.ty = PointerType t ∧ li.v = #l` (`Spec/go_etcd_io/bbolt/Options`; it
+  and `OptsM.ok` now take `GoGlobalContext`). The backend's `OptsM.ok` (`backend/BboltOptsDefs`)
+  gains a copy `backend.loggerPtrOk o.logger` (importing bbolt's `Options` there made `OptsM`
+  ambiguous in `Open_kv.spec`, i.e. changed the axiom's elaboration: not done), with
+  `OptsM.ok_withLogger`; `backend.newBoltLoggerZap.spec`'s post `boltLogger l ∗ ⌜∃ lc : Loc, l =
+  interface.mkOk (PointerType zapBoltLogger.ty) #lc⌝`; `newBackend` adapted. New
+  `Inv/LoggerOk`: `loggerPtrOk_logPtrTyped`, **`OptsM.ok_logPtrTyped`** (`o.ok → logPtrTyped
+  o.logger`: Open's `dbFixed` clause, U11f). Axioms whose statements change (TCB update at the
+  checkpoint): `backend.newBoltLoggerZap.wp_proof`, `bbolt.Open_kv.wp_proof`,
+  `Options.String.wp_proof`, the backend's package-initialization axiom (`Init.lean`, through
+  `boltOpenOptionsOk`'s `o.ok`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
