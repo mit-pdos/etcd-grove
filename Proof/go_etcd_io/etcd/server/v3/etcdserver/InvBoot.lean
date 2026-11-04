@@ -26,7 +26,8 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
-  - `b.Close()` returns (the error paths' deferred close).
+  - (until R-D1, 2026-11-04, also `b.Close()` returning, the error paths' deferred close: now
+    `bootstrappedServer.Close.spec`, which takes the backend's whole open token).
 * **The transport** (rafthttp stage 6d, 2026-10-24): rafthttp's own predicates (`trLive`,
   `trFrozen`, `trTok`, `TransportState.lean`); the raft loop's key to its `Send` (`srvTrKey`,
   exchanged for a reader's token of the transport, `netTransport_of_key`); `isRNTransport` for
@@ -452,11 +453,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
     -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
     -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
-    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir') ∗
-    -- the error paths' close
-    "#Hclose" ∷ □ ({{ True }}
-      (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
-      {{ RET #(); True }}))
+    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))
+    -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
+    -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
+    -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque
+    -- `"#Hclose" ∷ □ {{ True }} b.Close() {{ True }}`, false (a second call panics)
 
 /-- **The configuration's URLs, as `bootstrap` reads them** (D19r (F), 2026-10-18): the peer and
 client URL slices and the initial cluster's map (member name to its peer URLs' slice), with their

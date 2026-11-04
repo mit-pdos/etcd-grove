@@ -299,7 +299,7 @@ theorem server_kv_watchable_ofM (c : Bool)
         ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN -
-            mvcc.nJobRd (some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)) - 2) (),
+            mvcc.nJobRd (some ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal)) - mvcc.wsLoopN) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
         mvcc.crevPermIs γw.st Perm ∗

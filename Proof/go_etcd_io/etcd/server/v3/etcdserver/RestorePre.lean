@@ -60,7 +60,7 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
         (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E (mvcc.stateAfter log) ∗ E.RD) ∗
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-          structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
+          structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) := by
   iintro ⟨Hown, Hcl⟩
   iunfold apply.kvOwn at Hown
   icases Hown with ⟨Hrd, Hkw, Hll, HRD, Hwo⟩
@@ -87,7 +87,7 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   ihave Hcp : iprop(∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-      mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hstcl Hwsw]
+      mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) $$ [Hstcl Hwsw]
   · iexists wsl, stc
     iframe Hkvf Hstc Hstcl Hwsw
   iframe Hws Hcl Hfrag Hwo Hfrz Hrd Hll HRD Hcp

@@ -537,7 +537,7 @@ def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ)
   else srvKVCloser s E
 
 /-- Off, the closer. -/

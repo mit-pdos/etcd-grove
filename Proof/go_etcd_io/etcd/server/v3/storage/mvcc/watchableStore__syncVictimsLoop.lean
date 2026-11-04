@@ -133,7 +133,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
     iintro -
     wp_auto
     wp_for_post
-    wp_apply mvcc.wp_wsDone s $$ [$Hsync $Hdone]
+    wp_apply mvcc.wp_wsDone s st γ.st $$ [$Hsync $Hdone $Hsr0]
     iapply HΦ
     itrivial
   iapply BigAndL.bigAndL_nil.2

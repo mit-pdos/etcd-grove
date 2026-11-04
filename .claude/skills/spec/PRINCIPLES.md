@@ -253,6 +253,18 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
   `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
+- **A closer gives back what the goroutines it waits for held**: a `Close` that stops goroutines and
+  waits for them (`wg.Wait()`, a stop channel's last payload) returns their resources, which they
+  deposit where they finish (the wait group's invariant, at `Done`), so that the caller can
+  reassemble what the closer above it takes (a backend's whole open token). (R-D1, 2026-11-04,
+  `examples/oneshot-close.md`: `watchableStore.Close`'s post `True` hid the loops' readers that
+  `NewServer`'s error path needed.)
+- **A clause is stated over what its user holds**: before adding a clause a client applies, check at
+  the client's use site that every resource it takes is there in the stated count (the producer may
+  have dropped a copy), that the client sees every name it mentions (an opaque `RD`, a trusted
+  lifecycle without the parameter), and that the producer can give the conclusion (a share kept for
+  good is not given back). (R-D, rounds 1 and 2: the abandon clause took `authRdN - 1` copies of a
+  resource minted `authRdN` times, then concluded resources the realization keeps.)
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **A pure fact over the state before new ghost state**: what a proof needs across states is
