@@ -613,6 +613,36 @@ noncomputable def NewRaftLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewRaftLoggerFromZapCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerFromZapCore"
 
+/-- go: bootstrap.go:159:30 -/
+noncomputable def bootstrappedServer.Close.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bootstrappedServer.ty)))) (Var "s"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedStorage.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedServer.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedServer.ty)))) (Var "s"))))) (Val #())))))
+  (Val #()))))
+
+/-- go: bootstrap.go:168:31 -/
+noncomputable def bootstrappedStorage.Close.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bootstrappedStorage.ty)))) (Var "s"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedBackend.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedStorage.ty go!"backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (Var "s"))))) (Val #())))))
+  (Val #()))))
+
+/-- go: bootstrap.go:180:31 -/
+noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "s"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "s"))))) (Val #())))))
+  (Val #()))))
+
 /-- go: bootstrap.go:594:28 -/
 noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
@@ -10166,6 +10196,7 @@ class bootstrappedServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_ss : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"ss") (PairV #x #y) (Val #(({ x with ss' := y } : bootstrappedServer)))
   method_set : go.MethodSetIs bootstrappedServer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedServer.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedServer.ty) go!"Close" bootstrappedServer.Close.impl
 
 attribute [instance] bootstrappedServer.TypeAssumptions.type_repr
   bootstrappedServer.TypeAssumptions.underlying
@@ -10181,6 +10212,7 @@ attribute [instance] bootstrappedServer.TypeAssumptions.type_repr
   bootstrappedServer.TypeAssumptions.set_ss
   bootstrappedServer.TypeAssumptions.method_set
   bootstrappedServer.TypeAssumptions.ptr_method_set
+  bootstrappedServer.TypeAssumptions.ptr_Close_unfold
 
 structure bootstrappedStorage [GooseExts] where
   mk ::
@@ -10213,6 +10245,7 @@ class bootstrappedStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_wal : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"wal") (PairV #x #y) (Val #(({ x with wal' := y } : bootstrappedStorage)))
   method_set : go.MethodSetIs bootstrappedStorage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedStorage.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedStorage.ty) go!"Close" bootstrappedStorage.Close.impl
 
 attribute [instance] bootstrappedStorage.TypeAssumptions.type_repr
   bootstrappedStorage.TypeAssumptions.underlying
@@ -10222,6 +10255,7 @@ attribute [instance] bootstrappedStorage.TypeAssumptions.type_repr
   bootstrappedStorage.TypeAssumptions.set_wal
   bootstrappedStorage.TypeAssumptions.method_set
   bootstrappedStorage.TypeAssumptions.ptr_method_set
+  bootstrappedStorage.TypeAssumptions.ptr_Close_unfold
 
 structure bootstrappedBackend [GooseExts] where
   mk ::
@@ -10266,6 +10300,7 @@ class bootstrappedBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_snapshot : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : bootstrappedBackend)))
   method_set : go.MethodSetIs bootstrappedBackend.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedBackend.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedBackend.ty) go!"Close" bootstrappedBackend.Close.impl
 
 attribute [instance] bootstrappedBackend.TypeAssumptions.type_repr
   bootstrappedBackend.TypeAssumptions.underlying
@@ -10281,6 +10316,7 @@ attribute [instance] bootstrappedBackend.TypeAssumptions.type_repr
   bootstrappedBackend.TypeAssumptions.set_snapshot
   bootstrappedBackend.TypeAssumptions.method_set
   bootstrappedBackend.TypeAssumptions.ptr_method_set
+  bootstrappedBackend.TypeAssumptions.ptr_Close_unfold
 
 structure bootstrappedCluster [GooseExts] where
   mk ::
