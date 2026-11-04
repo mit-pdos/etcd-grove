@@ -337,6 +337,29 @@ theorem liveReach_step {X X' : WX} (h : derefStep X X') (hl : liveReach X) : liv
     refine ⟨rt, ?_, descIn_step hs hd⟩
     rw [(bktStep_fields hs).1]; exact nodeRootIn_step hs hrt
 
+theorem nodeRootIn_unique {B : BRec} {n rt1 rt2 : Loc} (h1 : nodeRootIn B n rt1)
+    (h2 : nodeRootIn B n rt2) : rt1 = rt2 := by
+  induction h1 with
+  | top n r hr hp =>
+    cases h2 with
+    | top => rfl
+    | up _ _ r' hr' hp' _ => rw [hr] at hr'; cases hr'; exact absurd hp hp'
+  | up n rt r hr hp _ ih =>
+    cases h2 with
+    | top _ r' hr' hp' => rw [hr] at hr'; cases hr'; exact absurd hp' hp
+    | up _ _ r' hr' hp' h2' => rw [hr] at hr'; cases hr'; exact ih h2'
+
+theorem nodeRootIn_root {B : BRec} {n rt : Loc} (h : nodeRootIn B n rt) :
+    ∃ r, B.ns !! rt = some r := by
+  induction h with
+  | top n r hr _ => exact ⟨r, hr⟩
+  | up _ _ _ _ _ _ ih => exact ih
+
+theorem nodeRootIn_ns {B : BRec} {n rt : Loc} (h : nodeRootIn B n rt) : (B.ns !! n).isSome := by
+  cases h with
+  | top _ r hr _ => simp [hr]
+  | up _ _ r hr _ _ => simp [hr]
+
 /-- **The coverage contract from the buckets' coverage**: if every reachable bucket's nodes
 below its root node's root hold no view slice, no live node does. -/
 theorem derefOK_of_cov (X : WX) (hd : objsDisj X.t) (hpre : derefPre X) (hreach : liveReach X)
