@@ -1461,7 +1461,71 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 - Open `sorry`s: none added by maintainer 10; `fmtErrorOk_errPtrTyped` has one user left
   (`Open/PageSize`).
 
-## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
+## Shared-statement fixes, the coordinator's queue for maintainer 11 (2026-11-04)
+
+- **Item 1, the flagged rollback (`475849f646`).** `wtxEnd` held `⌜wdbOK w⌝` and no token, so no
+  rollback after `Commit`'s free of the synced freelist page could be stated. A finding on the way:
+  with only `∃ F, fbTok … F` the rollback is unprovable (the bytes `store_rollback` returns for the
+  freed page's slots are `F`'s, unrelated to `w.wb`, which `flCurOK` reads after the rollback). New
+  in `Inv/WdbFlag`: **`fbRel w F`** (a pending slot of the synced page's extent `[f, f + 1 +
+  pageOverflow (w.wb f))` has the page's id in the writer's pending entry, and `F !! s = some (w.wb
+  s)`), carried next to the token: `wdbW' fr`, `wdbLost' fr` end `∃ F, fbTok … F ∗ ⌜fbRel w F⌝`
+  (`fbRel_of_wdbOK`: vacuous under `wdbOK`; `fbRel_congr` (C, pending, wb kept), `fbRel_alloc`).
+  **`wtxEnd' fr`** (`wdbOK' fr`, the token with `fbRel`), `wtxEnd_wtxEnd'` (any flag),
+  `wtxEnd'_wtxEnd` (false); `wtxEnd` and `rbOK` unchanged (`rbOK` reads no `wdbOK`). New spec
+  **`Tx.rollback_f.spec`** (`Commit/RollbackFSpec`: `∀ fr`, `rbOK`, `fr = true → ws.2.2.1 = false`,
+  pre `wtxEnd' fr`), proved without `sorry` in `Tx__rollback_f.lean` (Tx__rollback's proof with
+  the token to `store_rollback` and `Commit/RollbackFlag.wdb_rollback_f`/`flCurOKr_rollback`; its
+  helpers renamed `rb…`), and **`Tx.rollback.spec_of_f`**. Mmap/{Alloc,RemapEnd,RemapLost,RemapBody}
+  thread `fbRel` (`wdbW'_remap_intro`, `remap_post'`, `wdbLost'_intro` take `hF : fbRel w F`).
+  **For U10j**: (a) `Tx__rollback.lean` may become `theorem Tx.rollback.wp_proof … :=
+  Tx.rollback.spec_of_f (Tx.rollback_f.wp_proof wp_meta wp_Txid wp_Freelist wp_FlRollback
+  wp_hasSynced wp_freepages wp_NSR wp_Reload wp_page wp_close)` with `public import
+  Proof.go_etcd_io.bbolt.Tx__rollback_f` (its own helpers can then go; `Tx__rollback_f` does not
+  import it). (b) `commitFreelist`/`Commit` after the free take `wp_rollback_f` and form `wtxEnd'
+  true`; at the free (`store_free_fl` with `pg = w.wb`, `n = 1 + pageOverflow (w.wb f)`) they prove
+  `fbRel w2 (fbRec (W64 f) n w.wb)` (`fbRec_lookup`; the page id is in the writer's pending entry
+  after `freePages`). U4e already threads it through `DB.grow` (`fbRel_grow`).
+- **Item 2 (`5c2e7b35ac`)**: `rdTx`'s and `rdTxK`'s spare branch is `ghostVar K.B.spr q.half (some
+  k)` (identical at `q = 1`). `boltTxDef_fractional` was already proved (batch 37.15; its reader
+  branch is the loan's, the spare branch does not occur in it).
+- **Item 3 (`5c2e7b35ac`, `013bd3207d`)**: `Commit/CheckSplit` repaired (`rdTxK_halves` splits the
+  spare share); **`Commit/FreepagesLink`** landed (maintainer 10's link: `Tx.recursivelyCheck
+  PageKeyOrder_ok.wp_linked`, `Tx.recursivelyCheckBucket_root.wp_linked`,
+  `DB.freepages.wp_linked`). Also `Txn/StatSlot` repaired (broken since batch 41: `isBoltP`'s
+  `opnShot`), so `DB__Stats` builds again.
+- **Item 4 (`9ad486c3db`, a helper)**: `Write/MatOK`'s two `hroot` sorries proved (new
+  `Write/RootKeys`: `pageKeys_le_of_treeKeys`, `posShape_rootLeaf`, `ownHas_snoc`).
+  **Open**: `Rebalance/RblXSMat.lean:275` (the same premise): `rblX` (`Rebalance/RblX.lean:38`)
+  carries no `posShape` (nor its root-name clause), which it needs; that is also the open
+  `RblX.lean:159` (`rebalOK_of_rbl`'s `leafShape`/`posShape` sorries). Fix: `rblX` carries
+  `posShape X` (its producers and every step lemma keeping it), then the sorry closes as MatOK's
+  child case. Not started (a change to U8's statements).
+- **37.3 (`3055e05b6b`)**: the writer's view registry's authority, `Inv/Txs.vwOwn γ` (auth, every
+  entry's persistent fragment, `∀ k u, V !! k = some u → u = {v0 with base := k}`), lives in the
+  transaction's `txsInv` entry (`readerHandles`' writer case; it was `emp`), **not** in
+  `wtxCore`/`wtxFrac`: no pattern site changed. `Txn/WInitH.wr_names_alloc` returns it (a last
+  conjunct), `DB__beginRWTx` registers it. **Gap 3 proved** (`Mmap/RemapGaps.wtxCore_viewOf_rebase`,
+  now with `(hE : ↑(txsN K.N) ⊆ E)`): open the entry (`Txn/Txs.txs_open`), the done entry
+  excluded by `statsTok`, find or insert the new base.
+- **Item 6 (`34ff6c7115`, a helper)**: `os.File.Stat.spec`'s post ends `⌜∀ ii, err =
+  GoInterface.ok ii → IsPointerError ii⌝` (proved from the model: no trust change); users bind it
+  with `-` (`Mmap/FileSize`, bboltfs `Open`, `OpenCrash`, crashlog `Boot`). **Breaks U11g**:
+  `Open/PageSize.lean:290` (`⟨Hfo, Hfd, Hm, Hr, #Hek⟩` → `⟨Hfo, Hfd, Hm, Hr, #Hek, %Hptr⟩`), `:419`
+  (`ihave %Hpt := fmtErrorOk_errPtrTyped _ $$ Hek` → `have Hpt := errPtrTyped_of_ptr ii (Hptr ii
+  rfl)`), `Open.lean:458` (`#Hse⟩` → `#Hse, -⟩`). Then `RemapGaps.fmtErrorOk_errPtrTyped` has no
+  user: delete it (one `sorry` fewer: the TCB baseline, at integration).
+
+### Maintainer 11's hand-off (2026-11-04): what is left, in order
+
+1. `rblX` carries `posShape` (item 4's last `sorry`, `RblXSMat:275`, and `RblX:159`).
+2. U10j: switch to `Tx.rollback_f` (above); U11g: the three Stat edits, then delete
+   `fmtErrorOk_errPtrTyped`.
+3. Interfaces and the TCB baseline at integration.
+- Open `sorry`s: none added by maintainer 11; removed: `RemapGaps.wtxCore_viewOf_rebase` (gap 3),
+  `Write/MatOK` ×2 (item 4).
+
+## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 11)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
 units', per the U0b table):
@@ -1470,7 +1534,9 @@ units', per the U0b table):
 |---|---|---|
 | `discardLogger_boltLogger` | `Inv/Bolt` | U11 (bbolt's package facts for `discardLogger`) |
 | `fileHoldsDef_timeless`, `fileHoldsDef_new`, `fileHolds_decode` | `Inv/FileHolds` | U11 |
-| `boltTxDef_fractional`, `boltTxDef_fill`, `txBytesDef_acc` | `Inv/Tx` | U5 (U12 for the laws' users) |
+| `boltTxDef_fill`, `txBytesDef_acc` (`boltTxDef_fractional` proved, batch 37.15) | `Inv/Tx` | U5 (U12 for the laws' users) |
+| `flView_cover` | `Model/WOps` | U8b |
+| `wtxCore_viewOf_rebase` (gap 3): proved (37.3); `fmtErrorOk_errPtrTyped` (U11g's last user) | `Mmap/RemapGaps` | U11g |
 | `boltCurDef_timeless` (a case) | `Inv/Tx` | U12 |
 | `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
 | `treeData_spill` | `Model/LTree` | U9c |
