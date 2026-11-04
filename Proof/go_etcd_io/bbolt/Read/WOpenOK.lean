@@ -60,6 +60,13 @@ theorem isBktFlag_mod (f : Nat) (h : isBktFlag (W32 (f : Int))) : f % 2 = 1 := b
   simp [BitVec.toNat_and]
   omega
 
+theorem pageW_leaf' (pg : List w8) (i : Nat) (h : pageFlags pg = leafPageFlag) :
+    pageW pg i = ⟨W32 (leafFlags pg i : Int), W64 0, leafKey pg i, leafValue pg i, Src.view, Src.view⟩ := by
+  unfold pageW; rw [if_pos h]
+
+theorem leafFlags_lt (pg : List w8) (i : Nat) : leafFlags pg i < 2 ^ 32 := by
+  unfold leafFlags; exact BitVec.isLt _
+
 variable (X : WX) (bl : Loc) (B : BRec) (hB : X.t.bs !! bl = some B) (hb : bktLocalOK X bl)
 include hB hb
 
@@ -178,6 +185,78 @@ theorem posI_step (p : w64) (hI : posI X B p) (ws : List WEntry)
         | branch _ pg' _ _ _ hpg' _ _ _ _ hall =>
           rw [hpg] at hpg'; cases hpg'
           exact ⟨_, _, hall i hic⟩
+
+/-- **A nested bucket's entry at a leaf of a searchable bucket**: its value well-formed, its
+source the view's or persistent, `entryIn`, its tree's keys (a stored bucket), and the bucket not
+an inline one without a root node (whose page holds no nested bucket). -/
+theorem leafBkt (p : w64) (hI : posI X B p) (ws : List WEntry)
+    (hL : ltree X bl p = some (true, ws)) (w : WEntry) (hw : w ∈ ws) (hf : isBktFlag w.flags)
+    (hbm : B.bm !! w.key = none) :
+    bvalOK X.v.pages X.t.mv.pgid'.toNat w.value ∧ (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard) ∧
+      entryIn X.v B w.key w.value ∧
+      (inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none) ∧
+      ¬ (B.ib.root' = W64 0 ∧ B.bv.rootNode' = null) := by
+  have hc := bktC X bl B hB hb
+  obtain ⟨bnd, hbk⟩ := bktK X bl B hB hb
+  have hv := viewW X bl B hB hb
+  rcases hI with ⟨l, rn, hres, hrn⟩ | ⟨h0, hrn, rfl⟩ | ⟨hi, ht, hnm, ⟨c, hpr, hown⟩, lo, hi', htk⟩
+  · rw [ltree_node X bl B p l rn hB hres hrn] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨hlf, rfl⟩ := hL
+    have hnc := hc.2.2.2.2.2.2.2.1 l rn hrn
+    obtain ⟨hbv, hvs⟩ := hnc.2.2.2.2.2.2.2.2.2.2.2.1 hlf w hw hf
+    refine ⟨hbv (by simp [hbm]), hvs, Or.inl ⟨l, rn, w, hrn, hlf, hw, rfl, hf, rfl⟩, ?_, ?_⟩
+    · intro hroot
+      exact (hbk.2.2 l rn hrn).2.2.2.2.2 hlf w hw hf hroot (by simp [opened, hbm])
+    · rintro ⟨-, hrn0⟩
+      rw [(hc.2.2.1 hrn0).1] at hrn; simp at hrn
+  · exfalso
+    have hres : resolve B (W64 0) = none := by simp [resolve, h0, hrn]
+    have hwp : wpageAt X.v B (W64 0) = some (B.bv.page', B.ipg) := by simp [wpageAt, h0]
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨-, rfl⟩ := hL
+    have hg := (hc.1 h0 hrn).2.2.1
+    unfold pageWs at hw
+    obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw
+    rw [List.mem_range] at hi
+    rw [pageW_leaf' _ _ hg.2.1] at hf
+    have := isBktFlag_mod _ hf
+    have := (hg.2.2.2.2 i hi).2
+    omega
+  · have hres : resolve B p = none := by
+      rw [resolve_tree B p hi]
+      have := hnm p.toNat (by obtain ⟨pg, hpg, -⟩ := treeWF_page ht; exact treeHas.root _ pg hpg)
+      rwa [LR.w64_toNat_eq] at this
+    obtain ⟨-, pg, hpg, hwp, hpt, -⟩ := posOK_tree_page X B p hi ht hnm
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq, decide_eq_true_eq] at hL
+    obtain ⟨hlf, rfl⟩ := hL
+    unfold pageWs at hw
+    obtain ⟨i, hic, rfl⟩ := List.mem_map.1 hw
+    rw [List.mem_range] at hic
+    rw [pageW_leaf' _ _ hlf] at hf hbm ⊢
+    have hmod := isBktFlag_mod _ hf
+    have hmod' : leafFlags pg i % 2 = bucketLeafFlag := by unfold bucketLeafFlag; exact hmod
+    simp only
+    have hbw : bucketWF X.v.pages X.t.mv.pgid'.toNat (leafValue pg i) := by
+      cases hpt with
+      | leaf _ _ _ _ hbk' => exact hbk' i hic hmod'
+      | branch _ _ hf' _ _ => rw [hlf] at hf'; exact absurd hf' (by unfold leafPageFlag branchPageFlag; decide)
+    obtain ⟨C, hok, hvC⟩ := hv
+    have hpv : X.v.pages = C.pages := by rw [← hvC]; rfl
+    have hgood : pageGood pg := hok.1.2.1.1 _ pg (by rw [← hpv]; exact hpg)
+    refine ⟨⟨hbw, fun h0 => ⟨(hgood.1 hlf i hic).2 hmod' h0,
+      Write.viewWF_leafInl X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' h0⟩⟩,
+      Or.inl trivial, Or.inr ⟨c, p.toNat, pg, i, hpr, hown, hpg, hlf, hic, rfl, hmod', rfl⟩, ?_,
+      fun h => hi h.1⟩
+    intro hroot
+    cases htk with
+    | leaf _ pg' _ _ hpg' _ _ hnest =>
+      rw [hpg] at hpg'; cases hpg'; exact hnest i hic hmod' hroot
+    | branch _ pg' _ _ _ hpg' hf' =>
+      rw [hpg] at hpg'; cases hpg'; rw [hlf] at hf'
+      exact absurd hf' (by unfold leafPageFlag branchPageFlag; decide)
 
 end posi
 
