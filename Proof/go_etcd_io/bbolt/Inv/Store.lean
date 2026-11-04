@@ -796,6 +796,113 @@ private theorem bigSepL_dedup {Φ : Nat → IProp GF} (S Sr : List Nat) (h : S.P
 
 end helpers
 
+/-! ## Mapped cells against the page cache (`store_cells_agree`'s steps, batch 30) -/
+
+section agreeH
+set_option linter.unusedSectionVars false
+
+private theorem osBytes_cons' (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool)
+    (xs : List (w8 × Bool)) :
+    osBytes (GF := GF) p off dq (x :: xs) ⊣⊢ osByte p off dq x ∗ osBytes p (off + 1) dq xs := by
+  unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
+
+private theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
+    cellsR (GF := GF) base lo (n + 1) vf ⊣⊢
+      heapPointsto (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) (vf lo) ∗
+        cellsR base (lo + 1) n vf := by
+  unfold cellsR
+  rw [List.range'_succ]
+  exact BigSepL.bigSepL_cons
+
+/-- The client halves of mapped cells `[lo, lo + xs.length)` hold the file's bytes `xs`, of which
+a fraction is held, given the file's `OsMeta` (`osCell_agree` byte by byte); as `bytesPointsto`. -/
+private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv : toVal e = none)
+    (p : GoString) (dqm : DFrac) (m : OsMeta)
+    (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ⊢ osInv -∗ osMeta p dqm (some m) -∗ osBytes p lo dqb xs -∗
+      cellsR base lo xs.length vf -∗
+      (osMeta p dqm (some m) -∗ osBytes p lo dqb xs -∗
+        bytesPointsto (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) (xs.map Prod.fst) -∗
+        WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }}
+  | [], lo, vf, _ => by
+    iintro #Hinv Hm Hb _ HΦ
+    iapply HΦ $$ Hm Hb
+    simp only [List.map_nil, bytesPointsto]
+    itrivial
+  | x :: xs, lo, vf, hl => by
+    simp only [List.length_cons] at hl
+    iintro #Hinv Hm Hb Hc HΦ
+    icases (osBytes_cons' _ _ _ _ _).1 $$ Hb with ⟨Hx, Hb⟩
+    simp only [List.length_cons]
+    icases (cellsR_cons' _ _ _ _).1 $$ Hc with ⟨Hcx, Hc⟩
+    iapply osCell_agree e htv p dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
+      $$ Hinv Hm Hx Hcx
+    iintro %Hv Hm Hx Hcx
+    iapply cellsR_agree_bytes s E e htv p dqm m base len hb dqb hE Φ xs (lo + 1) vf (by omega)
+      $$ Hinv Hm Hb Hc
+    iintro Hm Hb Hc
+    iapply HΦ $$ Hm [Hx Hb] [Hcx Hc]
+    · iapply (osBytes_cons' _ _ _ _ _).2; iframe
+    · simp only [List.map_cons, bytesPointsto]
+      rw [Hv]
+      have e1 : base +ₗ ((lo : Nat) : Int) +ₗ 1 = base +ₗ (((lo + 1 : Nat) : Nat) : Int) := by
+        rw [loc_add_assoc]; congr 1
+      rw [e1]
+      iframe
+
+/-- `cellsR_agree_bytes` over whole store slots `S` (their page-cache bytes `osSlot`, of `4096`
+bytes each, inside the mapping). -/
+private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv : toVal e = none)
+    (p : GoString) (dqm : DFrac) (m : OsMeta)
+    (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (hE : ↑osN ⊆ E)
+    (bs : Nat → List w8) (Φ : val → IProp GF) :
+    ∀ (S : List Nat), (∀ t ∈ S, 4096 * (t + 1) ≤ len ∧ (bs t).length = 4096) →
+    ⊢ osInv -∗ osMeta p dqm (some m) -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
+      ([∗list] t ∈ S, ∃ vf, cellsR base (4096 * t) 4096 vf) -∗
+      (osMeta p dqm (some m) -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
+        ([∗list] t ∈ S,
+          bytesPointsto (base +ₗ ((4096 * t : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs t)) -∗
+        WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }}
+  | [], _ => by
+    iintro #Hinv Hm Ho _ HΦ
+    iapply HΦ $$ Hm Ho
+    iapply BigSepL.bigSepL_nil.2; iempintro
+  | t :: S, hS => by
+    iintro #Hinv Hm Ho Hc HΦ
+    icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Hx, Ho⟩
+    icases (show osSlot (GF := GF) p t (bs t) ⊢ ∃ xs : List (w8 × Bool),
+        osBytes p (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs t⌝ by
+        unfold osSlot; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hc with ⟨⟨%vf, Hcx⟩, Hc⟩
+    obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
+    have hxl : xs.length = 4096 := by rw [← ht2, ← Hxs, List.length_map]
+    have hc : cellsR (GF := GF) base (4096 * t) 4096 vf ⊢ cellsR base (4096 * t) xs.length vf := by
+      rw [hxl]
+    ihave Hcx := hc $$ Hcx
+    iapply cellsR_agree_bytes s E e htv p dqm m base len hb (DFrac.own 1) hE Φ xs (4096 * t) vf
+      (by omega) $$ Hinv Hm Hx Hcx
+    iintro Hm Hx Hcx
+    iapply slots_agree_bytes s E e htv p dqm m base len hb hE bs Φ S
+      (fun u hu => hS u (List.mem_cons_of_mem _ hu)) $$ Hinv Hm Ho Hc
+    iintro Hm Ho Hc
+    iapply HΦ $$ Hm [Hx Ho] [Hcx Hc]
+    · iapply BigSepL.bigSepL_cons.2
+      iframe
+      iapply (show (∃ xs : List (w8 × Bool), osBytes p (4096 * t) (DFrac.own 1) xs ∗
+          ⌜xs.map Prod.fst = bs t⌝) ⊢ osSlot (GF := GF) p t (bs t) by unfold osSlot; exact .rfl)
+      iexists xs; iframe; ipureintro; exact Hxs
+    · iapply BigSepL.bigSepL_cons.2
+      iframe
+      rw [Hxs]
+      iexact Hcx
+
+
+end agreeH
+
 section lemmas
 variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
@@ -1942,7 +2049,34 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
           bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) -∗
         WP e @ s; (E \ ↑(pagesN N)) {{ Φ }}) -∗
       WP e @ s; E {{ Φ }} := by
-  sorry
+  iintro #Hinv #Hos Hcur Hfl Hmap Hwv Hbyt Hm Hcells Hk
+  have := pagesInv_timeless (GF := GF) B p
+  iapply wp_atomic (E2 := E \ ↑(pagesN N))
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W', Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells', Hos', Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hF⟩
+  unfold bytesWit
+  icases Hbw with ⟨Hbyt', Hbm, %Hwit⟩
+  icombine Hbyt Hbyt' gives % ⟨_, hW⟩
+  subst hC hF hW
+  have hS : storeSlots σ = slotsOf σ.C σ.fl := rfl
+  have hlen := Hok.2.2.2.2.2.2.2.2.2.2.2.1
+  imodintro
+  iapply slots_agree_bytes s (E \ ↑(pagesN N)) e htv p dqm m b l hb hE' σ.bytes _ (slotsOf σ.C σ.fl)
+    (fun t ht => ⟨by have := hl t ht; omega, (hlen t (hS ▸ ht)).2⟩) $$ Hos Hm [Hos'] Hcells
+  · rw [hS]; iexact Hos'
+  iintro Hm Hos' Hcells
+  ihave Hwp := Hk $$ %σ.bytes %(fun t ht => Hwit t (hS ▸ ht)) Hcur Hfl Hmap Hwv Hbyt Hm Hcells
+  iapply wp_wand $$ Hwp
+  iintro %v HΦ
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos' Hbyt' Hbm Hml] with _
+  · inext; iexists σ, W; iframe
+    rw [hS]; iframe
+    ipureintro; exact ⟨Hwit, Hok⟩
+  imodintro; iexact HΦ
+
 
 end lemmas
 

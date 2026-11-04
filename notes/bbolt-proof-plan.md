@@ -801,6 +801,15 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   `⌜err ≠ nil⌝` (not edited: U5 is editing `Txn/Begin`). Built: both `Init`s, `Mmap/{Infra,
   MmapSize,Alloc}`, `Meta__Validate`, `Txn/Begin`.
 
+- **5. E: `store_cells_agree` proved** (`Inv/Store`): `wp_atomic` opens `pagesN N` around `e`;
+  the halves of `cur`, `fl`, `byt` agree (`σ.C = C`, `σ.fl = fl`, `W` the store's witness, whose
+  facts give `bs := σ.bytes`); each store slot's cells are read against its `osSlot` bytes
+  (private `cellsR_agree_bytes`: `osCell_agree` byte by byte, as the bboltfs example's
+  `cellsR_agree`, giving `bytesPointsto` at a half; `slots_agree_bytes` over the slots, of `4096`
+  bytes by `storeOK`, inside the mapping by `hl`); the user's WP runs at `E \ pagesN N` and the
+  invariant closes, unchanged, in its postcondition (`wp_wand`). The helpers are `private` (no new
+  public declarations: `Inv/Store`'s importers do not rebuild).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
@@ -813,7 +822,6 @@ units', per the U0b table):
 | `boltTxDef_fractional`, `boltTxDef_fill`, `txBytesDef_acc` | `Inv/Tx` | U5 (U12 for the laws' users) |
 | `boltCurDef_timeless` (a case) | `Inv/Tx` | U12 |
 | `wtxHeap_fractional` | `Inv/WtxHeap` | U5 |
-| `store_cells_agree` | `Inv/Store` | maintainer (queue item E, not done) |
 | `rStackAt_prev` | `Model/Cursor` | U6 |
 | `lRoutes_found`, `lRoutes_leafFor` | `Model/WOps` | U6 |
 | `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
@@ -823,8 +831,7 @@ units', per the U0b table):
 | `bktEnts_treeEntries` | `Model/TreeData` | U6 |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
 
-Not yet done from maintainer 3's queue: C(1), C(4) (done in batch 30 above), E
-(`store_cells_agree`'s proof).
+Maintainer 3's queue (C(1), C(4), E) is done in batch 30 above.
 
 ## The modules (as built by U0a)
 
