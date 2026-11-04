@@ -37,7 +37,7 @@ its slots are added to `reachable`. -/
 abbrev verifyPageReachable_ok.spec : Prop :=
   ∀ (p : Loc) (hd : Page) (dq : DFrac) (hwm : w64) (stk : GoSlice) (rm fm ch : Loc)
     (M : GMap w64 Loc),
-  hd.id'.toNat ≤ hwm.toNat → hd.id'.toNat + hd.overflow'.toNat < 2 ^ 63 →
+  hd.id'.toNat ≤ hwm.toNat → hd.id'.toNat + hd.overflow'.toNat < 2 ^ 64 →
   (∀ x : w64, (M !! x).isSome = true → ¬ hdSlot hd x.toNat) →
   (hd.flags' = W16 1 ∨ hd.flags' = W16 2) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ p ↦{dq} hd ∗ rm ↦$ M ∗

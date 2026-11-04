@@ -73,7 +73,7 @@ theorem Tx.checkInvariantProperties_ok.wp_proof
   ipersist freed
   ipersist ch
   have hroot' := hroot
-  obtain ⟨C, hok, hCP, hhwm, hwf, hkeys⟩ := hroot'
+  obtain ⟨C, hok, hCP, hwf, hkeys⟩ := hroot'
   rw [recv_eq_func_mk]
   wp_apply (wp_fep K tx src q T v r _
     (fun i => iprop(fm ↦$ (∅ : GMap w64 Bool) ∗ ∃ M' : GMap w64 Loc, rm ↦$ M' ∗
@@ -97,11 +97,12 @@ theorem Tx.checkInvariantProperties_ok.wp_proof
     wp_apply wp_Pgid mp mv (DFrac.own q) $$ [Hmv] as Hmv
     · iframe
     ihave Hk := Hmb $$ Hmf Hmv
-    obtain ⟨pg, hpg, hown, hid, h16, hfl, hlt⟩ := walk_entry v.pages r.toNat hroot i id ids Hi
+    obtain ⟨pg, hpg, hown, hid, h16, hfl⟩ := walk_entry v.pages r.toNat hroot i id ids Hi
     icases rdTxK_hdr_acc K tx src q T v id pg hpg h16 $$ Hk with ⟨%dqh, Hh, Hhb⟩
     have hidz : (pageHdr pg).id'.toNat = id := hid
     have hovz : (pageHdr pg).overflow'.toNat = pageOverflow pg := rfl
     have hpm := Hmeta.2 id pg hpg
+    have hpl := mv.pgid'.isLt
     have hdisj : ∀ x : w64, (M1 !! x).isSome = true → ¬ hdSlot (pageHdr pg) x.toNat := by
       intro x hx hs
       unfold hdSlot at hs
