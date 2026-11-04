@@ -18,7 +18,7 @@ is any error the worker can format (`fmt.argOk`: it logs it with `fmt.Errorf`).
 -/
 module
 
-public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Inv
+public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
 public import Spec.fmt.Errorf
 
 @[expose] public section
@@ -54,9 +54,7 @@ abbrev DaemonSetsController.syncDaemonSet.spec : Prop :=
   ∀ (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (key : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗
-      isDsc dsc c cfg γa F ∗ apiInv γa γ ∗ s1Inv γ c ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗
-      keySyncTok γ c key }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ keySyncTok γ c key }}
     (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"syncDaemonSet"))
       (Val #ctx)) (Val #key))
   {{ (err : GoInterface), RET #err; threadTok ∗ keySyncTok γ c key ∗ fmt.argOk err }}

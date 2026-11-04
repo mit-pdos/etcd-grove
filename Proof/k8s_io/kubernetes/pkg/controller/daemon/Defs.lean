@@ -5,7 +5,7 @@ autoverify run (`notes/k8s-daemonset-run/design.md`, "The controller object"): t
 method takes and `NewDaemonSetsController` gives (track C proves the constructor).
 
 * `InfLoc`: an informer's fixed locations and ghost names (its store, `cache` over a
-  `threadSafeMap`, its FIFO's and its invariant's names); `infAt γa r I Fam`: the informer of the
+  `threadSafeMap`, its FIFO's and its invariant's names); `infAt γa r I FamN`: the informer of the
   model API server's resource `r`, its store's indices `Fam`, the informer invariant
   (`informer.infInv`: the store is the log's table at its version, versions monotone);
 * `DscComp`: the controller's fixed components (the values its constructor stores), with the ghost
@@ -107,10 +107,10 @@ structure DscComp where
 /-- **The informers' index families**: the pod store's (the node name and the controller UID,
 `AddPodNodeNameIndexer`, `AddPodControllerIndexer`) and the other three stores'. -/
 structure DscFams (GF : BundledGFunctors) where
-  pod : Nat → Fn GF
-  ds : Nat → Fn GF
-  cr : Nat → Fn GF
-  node : Nat → Fn GF
+  pod : GoString → Fn GF
+  ds : GoString → Fn GF
+  cr : GoString → Fn GF
+  node : GoString → Fn GF
 
 /-! ### The work queue's keys -/
 
@@ -213,8 +213,8 @@ records: `NewDaemonSetsController` takes it); the expectations' and the consiste
 the controller's own. -/
 def dscPools (c : DscComp) (F : DscFams GF) : IProp GF :=
   iprop(⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
-    infReaders c.dsI.h .daemonSets F.ds ∗ infReaders c.crI.h .revisions F.cr ∗
-    infReaders c.podI.h .pods F.pod ∗ infReaders c.nodeI.h .nodes F.node ∗
+    infReaders c.dsI.h .daemonSets (famOf F.ds) ∗ infReaders c.crI.h .revisions (famOf F.cr) ∗
+    infReaders c.podI.h .pods (famOf F.pod) ∗ infReaders c.nodeI.h .nodes (famOf F.node) ∗
     threadPool.isThreadPool (dscPoolN.@"exp") c.pools.exp (expReader c.γe) ∗
     threadPool.isThreadPool (dscPoolN.@"cons") c.pools.cons (consReader c.cons c.γc))
 

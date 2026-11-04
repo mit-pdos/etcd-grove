@@ -35,8 +35,9 @@ theorem DaemonSetsController.runWorker.wp_proof
     DaemonSetsController.runWorker.spec (GF := GF) (hG := hG) := by
   intro dsc c cfg γa F γ ctx
   wp_start as ⟨#Henv, Htt, %Hctx⟩
-  iunfold dscEnv at Henv
-  icases Henv with ⟨#Hpkg, #Hdsc, #Hapi, #Hs1⟩
+  ihave Henv2 := Henv
+  iunfold dscEnv at Henv2
+  icases Henv2 with ⟨#Hpkg, -, -, -⟩
   wp_auto
   ihave HI : (threadTok ∗ dsc_ptr ↦ dsc ∗ ctx_ptr ↦ ctx : IProp GF) $$ [Htt dsc ctx]
   · iframe

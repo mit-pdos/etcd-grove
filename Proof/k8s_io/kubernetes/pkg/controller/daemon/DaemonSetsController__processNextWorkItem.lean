@@ -53,7 +53,10 @@ theorem DaemonSetsController.processNextWorkItem.wp_proof
     (wp_HandleError : utilruntime.HandleError.spec (GF := GF) (hG := hG)) :
     DaemonSetsController.processNextWorkItem.spec (GF := GF) (hG := hG) := by
   intro dsc c cfg γa F γ ctx
-  wp_start as ⟨#Hdsc, #Hapi, #Hs1, Htt, %Hctx⟩
+  wp_start as ⟨#Henv, Htt, %Hctx⟩
+  ihave Henv2 := Henv
+  iunfold dscEnv at Henv2
+  icases Henv2 with ⟨#Hpkg, #Hdsc, #Hapi, #Hs1⟩
   ihave Hdsc2 := Hdsc
   iNamed Hdsc2
   icases Hq with ⟨%P, #Hqq⟩

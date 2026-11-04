@@ -3,9 +3,9 @@
 track B, 2026-11-04: moved out of `daemon/` so that the library's specs do not import the DaemonSet
 controller, review 1's M3).
 
-* `InfLoc`, `infAt γa r I Fam`: an informer's fixed locations and ghost names, and the informer of
-  the model API server's resource `r` (its store, with indices `Fam`, and the informer invariant);
-* `ctlOf`, `podCtlKey`, `podCtlIndex`, `podCtlIndexed I Fam`: a pod's controller reference
+* `InfLoc`, `infAt γa r I FamN`: an informer's fixed locations and ghost names, and the informer of
+  the model API server's resource `r` (track A's `infView`, its index relations by name `FamN`);
+* `ctlOf`, `podCtlKey`, `podCtlIndex`, `podCtlIndexed I FamN`: a pod's controller reference
   (`metav1.GetControllerOf`), `PodControllerIndexKey`, and the pod store's controller index
   (`AddPodControllerIndexer`);
 * `computeHashD`: `ComputeHash`'s model (uninterpreted);
@@ -82,27 +82,27 @@ variable [sem : go.Semantics]
 /-- An informer's handles as track A's informer API names them (`InfH`). -/
 def InfLoc.h (I : InfLoc) : InfH := ⟨I.ca, I.ts, I.kf, I.γf, I.γt, I.γi⟩
 
-/-- **The informer of resource `r`** (persistent): its store over the informer's registered
-objects (`infObj`), with indices `Fam`, and the informer invariant. -/
-def infAt (γa : ApiNames) (r : Res) (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(isCache I.ca I.ts I.γt (infObj I.γi r) Fam I.kf ∗ infInv γa r I.γf I.γt I.γi)
+/-- **The informer of resource `r`** (persistent): track A's view of it (`infView`: its store
+over the informer's registered objects, `infObj`, and the informer invariant), its indices' relations
+by name `FamN` (the store's family `famOf FamN`). -/
+def infAt (γa : ApiNames) (r : Res) (I : InfLoc) (FamN : GoString → Fn GF) : IProp GF :=
+  infView γa r I.h (famOf FamN)
 
-instance infAt_persistent (γa : ApiNames) (r : Res) (I : InfLoc) (Fam : Nat → Fn GF) :
-    Persistent (infAt γa r I Fam) := by
+instance infAt_persistent (γa : ApiNames) (r : Res) (I : InfLoc) (FamN : GoString → Fn GF) :
+    Persistent (infAt γa r I FamN) := by
   unfold infAt; infer_instance
 
-/-- **The pod store's controller index** (persistent): the informer's index registry
-(`γi.ix`, kept by the informer invariant: `infInv_readIdxAU` gives a reader the store's `fnIds`
-agreeing with it) has the indexer `podCtlIndex` (`AddPodControllerIndexer`, in the constructor)
-at family index `j`, whose relation gives a pod its `PodControllerIndexKey`. -/
-def podCtlIndexed (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(∃ j : Nat, podCtlIndex ↪[I.γi.ix]□ j ∗
+/-- **The pod store's controller index** (persistent): the index named `podCtlIndex` is registered
+(`infIdx`: `AddPodControllerIndexer`, in the constructor), and its relation gives a pod its
+`PodControllerIndexKey`. -/
+def podCtlIndexed (I : InfLoc) (FamN : GoString → Fn GF) : IProp GF :=
+  iprop(infIdx I.h podCtlIndex ∗
     □ (∀ (x : GoInterface) (vs : List GoString) (p : kd.core.Pod),
-      apimodel.objAt x DFrac.discard (.pod p) -∗ Fam j x vs -∗
+      apimodel.objAt x DFrac.discard (.pod p) -∗ FamN podCtlIndex x vs -∗
       ⌜vs = [podCtlKey p.ObjectMeta'.Namespace' (ctlOf p)]⌝))
 
-instance podCtlIndexed_persistent (I : InfLoc) (Fam : Nat → Fn GF) :
-    Persistent (podCtlIndexed I Fam) := by
+instance podCtlIndexed_persistent (I : InfLoc) (FamN : GoString → Fn GF) :
+    Persistent (podCtlIndexed I FamN) := by
   unfold podCtlIndexed; infer_instance
 
 /-- **An `*int64`**: `nil` for `none`, else a pointer to the value (at `dq`). -/

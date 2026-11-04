@@ -37,17 +37,17 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
 
 /-- **`FilterPodsByOwner(idx, &ds.ObjectMeta, kind, b)`**: see the file header. -/
 abbrev FilterPodsByOwner.spec : Prop :=
-  ∀ (γa : ApiNames) (I : InfLoc) (Fam : Nat → Fn GF) (ds : Loc) (d : kd.apps.DaemonSet)
+  ∀ (γa : ApiNames) (I : InfLoc) (FamN : GoString → Fn GF) (ds : Loc) (d : kd.apps.DaemonSet)
     (kind : GoString) (b : Bool) (L : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ∗ infAt γa .pods I Fam ∗ podCtlIndexed I Fam ∗
-      tsReader I.ts I.γt (informer.infObj I.γi .pods) Fam ∗ informer.infRvLb I.γi L ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ∗ infAt γa .pods I FamN ∗ podCtlIndexed I FamN ∗
+      tsReader I.ts I.γt (informer.infObj I.γi .pods) (informer.famOf FamN) ∗ informer.infRvLb I.γi L ∗
       □ dsAt ds DFrac.discard d }}
     (App (App (App (App (Val (@! k8s_io.kubernetes.pkg.controller.FilterPodsByOwner))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #I.ca :
         k8s_io.client_go.tools.cache.Indexer)))
       (Val #(ds.[k8s_io.api.apps.v1.DaemonSet, go!"ObjectMeta"]))) (Val #kind)) (Val #b))
   {{ (pl : GoSlice) (err : GoInterface), RET (PairV #pl #err);
-      tsReader I.ts I.γt (informer.infObj I.γi .pods) Fam ∗ fmt.argOk err ∗
+      tsReader I.ts I.γt (informer.infObj I.γi .pods) (informer.famOf FamN) ∗ fmt.argOk err ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ ∃ ps, podsAt pl (DFrac.own 1) ps ∗
         ∃ (σp : apimodel.St) (v : Nat), pastSt γa σp ∗ ⌜L ≤ v ∧
           (∀ k p, informer.tableAt σp.pods.log v !! k = some (.pod p) →
