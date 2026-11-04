@@ -239,7 +239,132 @@ theorem Cursor.keyValue_w.wp_proof
     · iexact Hks
     · iexact Hvs
   | some l =>
-    sorry
+    simp only [hr] at hm
+    obtain ⟨rn, hrn⟩ : ∃ rn, B.ns !! l = some rn := by
+      rcases hpos with ⟨l', rn, hres, hrn⟩ | ⟨hres, -⟩ | ⟨h0, ht, hnm⟩
+      · rw [hr] at hres; cases hres; exact ⟨rn, hrn⟩
+      · rw [hr] at hres; cases hres
+      · have := (posOK_tree_page X B pid h0 ht hnm).1; rw [hr] at this; cases this
+    rw [ltree_node X bl B pid l rn hB hr hrn] at hlt
+    simp only [Option.some.injEq, Prod.mk.injEq] at hlt
+    obtain ⟨hleaf, hws⟩ := hlt
+    subst hws
+    have hnmnn := bktLocalOK_nm_nonnull X bl B hloc hB
+    have hnn0 : l ≠ null := by
+      by_cases h0 : B.ib.root' = W64 0
+      · unfold resolve at hr; rw [if_pos h0] at hr
+        by_cases h1 : B.bv.rootNode' = null
+        · rw [if_pos h1] at hr; cases hr
+        · rw [if_neg h1] at hr; cases hr; exact h1
+      · rw [resolve_tree B pid h0] at hr; exact hnmnn _ _ hr
+    have hls : ∀ s, leafSrc X bl s = s := by
+      intro s
+      unfold leafSrc; rw [hB]; simp only
+      rw [if_neg]
+      rintro ⟨h0, h1⟩
+      unfold resolve at hr; rw [if_pos h0, if_pos h1] at hr; cases hr
+    have hlv := hnsl l rn hrn
+    have hnc := hclean.2.2.2.2.2.2.2.1 l rn hrn
+    icases wtxW_node_cells_acc K tx r m X bl B l rn hB hrn hlv $$ Hw with ⟨%Hbase, Ho, Hcells, Hwb⟩
+    isimp only [objOwn] at Ho
+    icases Ho with ⟨Hn, Hins, Hcapn, Hws, Hch, Hchcap, Hnk⟩
+    ihave %Hinl := ownSlice_len _ _ _ $$ Hins
+    ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
+    icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+    iStructNamed Hn
+    rw [hm, decide_eq_false hnn0]
+    wp_auto
+    rw [hm]
+    wp_auto
+    have Hlen : sint.Z rn.nv.inodes'.len = (rn.ws.length : Int) := by word
+    -- the closing of the node, the cells and the stack
+    ihave Hclose : (∀ (k vl : GoSlice) (fl : w32),
+        sliceIndexRef elemRef (els.length : Int) stk ↦ e -∗
+        l.[node, go!"inodes"] ↦ rn.nv.inodes' -∗ rn.nv.inodes' ↦* rn.ins -∗
+        ([∗list] it;w ∈ rn.ins;rn.ws, wOwn X.v true it w) -∗
+        wKV X bl rn.ws (sint.Z e.index').toNat k vl fl -∗
+        Φ (PairV (PairV #k #vl) #fl)) $$ [HΦ Hc Hsback Hcells Hwb Hcapn Hch Hchcap Hnk
+        bucket isLeaf unbalanced spilled key pgid parent children]
+    · iintro %k %vl %fl He inodes Hins Hws Hkv
+      ihave Hn : (l ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave Ho : objOwn X.v l (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
+      · simp only [objOwn]; iframe
+      ihave Hw := Hwb $$ Ho Hcells
+      ihave Hs := Hsback $$ He
+      rw [show (els ++ [e]).set (↑els.length : Int).toNat e = els ++ [e] by simp]
+      iapply HΦ
+      iframe
+    by_cases hc0 : rn.ws.length = 0
+    · rw [decide_eq_true (show rn.nv.inodes'.len = W64 0 by
+        apply BitVec.eq_of_toNat_eq; have := Hinl.1; rw [Hwl, hc0] at this; simp [sint.nat] at this ⊢; word)]
+      wp_auto
+      iapply Hclose $$ He inodes Hins Hws
+      unfold wKV
+      rw [List.getElem?_eq_none (by omega)]
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
+    rw [decide_eq_false (show ¬ rn.nv.inodes'.len = W64 0 by
+      intro h; rw [h] at Hlen; simp at Hlen; omega)]
+    wp_auto
+    wp_method_call; wp_call
+    wp_auto
+    rw [hm, decide_eq_false hnn0]
+    wp_auto
+    rw [hm]
+    wp_auto
+    rw [Hlen]
+    by_cases hge : (rn.ws.length : Int) ≤ sint.Z e.index'
+    · rw [decide_eq_true hge]
+      wp_auto
+      iapply Hclose $$ He inodes Hins Hws
+      unfold wKV
+      rw [List.getElem?_eq_none (by omega)]
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
+    rw [decide_eq_false hge]
+    wp_auto
+    rw [hm, decide_eq_false hnn0]
+    wp_auto
+    rw [hm]
+    wp_auto
+    rw [if_pos (show 0 ≤ sint.Z e.index' ∧ sint.Z e.index' < sint.Z rn.nv.inodes'.len by
+      rw [Hlen]; omega)]
+    list_elem rn.ins (sint.Z e.index').toNat as it
+    list_elem rn.ws (sint.Z e.index').toNat as w
+    icases ownSlice_elem_acc (sint.Z e.index') it _ _ rn.ins hi0 Hit_lookup $$ Hins with ⟨Hit, Hsb⟩
+    wp_auto
+    wp_apply hIK $$ [$Hit] as Hit
+    try wp_auto
+    wp_apply hIV $$ [$Hit] as Hit
+    try wp_auto
+    wp_apply hIF $$ [$Hit] as Hit
+    try wp_auto
+    icases BigSepL2.bigSepL2_lookup_acc Hit_lookup Hw_lookup $$ Hws with ⟨Hw1, Hwsback⟩
+    isimp only [wOwn, ↓reduceIte] at Hw1
+    icases Hw1 with ⟨%Hfp, #Hik, #Hiv⟩
+    ihave Hws := Hwsback $$ [Hik Hiv]
+    · isimp only [wOwn, ↓reduceIte]; iframe; iframe #; ipureintro; exact Hfp
+    ihave Hins := Hsb $$ Hit
+    rw [list_set_lookup_self _ _ _ Hit_lookup]
+    have hwm : w ∈ rn.ws := List.mem_of_getElem? Hw_lookup
+    have hwks : w.ks ≠ Src.stale := (hnc.2.2.2.2.2.1 w hwm).1
+    have hk0 : 0 < w.key.length := hnc.2.2.2.2.1 w hwm
+    ihave %Hkl := srcOwn_len_r X.v it.key' w.ks w.key hwks $$ Hik
+    iapply Hclose $$ He inodes Hins Hws
+    unfold wKV
+    rw [Hw_lookup]
+    simp only
+    rw [hls, hls]
+    isplitr
+    · ipureintro
+      refine ⟨?_, Hfp.1⟩
+      intro h
+      rw [h] at Hkl
+      have : sint.nat slice.nil.len = 0 := rfl
+      rw [this] at Hkl
+      omega
+    iframe; iframe #
 
 end proof
 
