@@ -93,7 +93,8 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
       ⌜∀ id pg, v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r v ∗
     ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null ∧ tx ≠ null ∧
-      t.managed' = false ∧ txRoot (GF := GF) tx ≠ null⌝)
+      t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧
+      (∀ id pg, v.pages !! id = some pg → id + (1 + pageOverflow pg) ≤ mv.pgid'.toNat)⌝)
 
 /-- **A page of a view inside a mapping is within `db.page`'s range**: with `mapFields`' bound
 (`l ≤ maxMapSize`), `Tx.page`'s premise `id·4096 < 0xFFFFFFFFFFFF`. -/

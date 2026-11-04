@@ -87,7 +87,7 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   icases Hrb with ⟨%ibp, %pp, Hib, Htx, Hbk, Hpp, Hrn, Hnd, -, -⟩
   ihave Hroot : (txRoot tx) ↦ (⟨ibp, tx, null, pp, null, null, f⟩ : go_etcd_io.bbolt.Bucket) $$
     [Hib Htx Hbk Hpp Hrn Hnd Hfp]
-  · iapply typedPointsto_combine _ _ _ Hf.2.2.2.2.2.2
+  · iapply typedPointsto_combine _ _ _ Hf.2.2.2.2.2.2.1
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   unfold txRoot

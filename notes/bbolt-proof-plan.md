@@ -1123,6 +1123,26 @@ Not done (in this order, the coordinator's):
   members, all `wdbOK` reads), `wrSlots_agree` (the list `cellsR_agree_bytes`: `wrSlots` of whole
   pages inside the mapping → `slotsOwn`, around a step).
 
+- **42. `rtxFrac`'s pure facts end `… ∧ txRoot tx ≠ null ∧ (∀ id pg, v.pages !! id = some pg → id +
+  (1 + pageOverflow pg) ≤ mv.pgid'.toNat)`** (`Inv/Tx`), established in `Txn/RdInit.rdTxK_intro`
+  (`treeOK`'s extent bound, `isMeta`'s `pgid = hwm`). Shared accessor (new `Inv/RdMeta`, proved):
+  **`rdTxK_meta_pgid_acc`** (`rdTxK K tx src q T v ⊢ ∃ m mv, tx.meta ↦{q} m ∗ m ↦{q} mv ∗
+  ⌜mv.txid' = v.txid ∧ extent bound⌝ ∗ (… -∗ rdTxK …)`), for U10e's local one. `Tx__close_r:90`
+  adapted (`Hf.2.2.2.2.2.2.1`).
+- **40: not applied** (the analysis, for the coordinator): the weakened `flCurOK` slot clause (the
+  synced page's slots pending only for the writer's own txid) is true from `Commit`'s free of the
+  old freelist page on, but it breaks proved users wherever the freed page comes back: the
+  rollback (`Txn/WRoll.wdbOK_rolledBack`, used by the proved `Tx.Rollback`; Commit's
+  `RollbackFacts`) joins the page's slots back into `W` with the store's bytes `bs`
+  (`store_rollback`), and `flCurOK` of the reloaded page needs `bs = w.wb` on them, which nothing
+  states (`store_free`'s freelist-page branch takes the slots' `slotsOwn … pg` but `store_rollback`
+  returns arbitrary `bs`); `Txn/WJoin.wb_header` (the page is a `W` slot) fails in the pending case
+  too. Any design needs that byte link for `Commit`'s error path (Reload reads those bytes). Options:
+  (A) `wdbOK` unchanged, `Commit` holds a local weaker `wdbOKc` from the free to the publish/rollback;
+  (B) the store keeps the deposited bytes of a freed freelist page (`store_free`'s flpg branch
+  records them, `store_rollback` returns them: e.g. a writer-held witness of `σ.bytes` on those
+  slots). (B) is needed in both.
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

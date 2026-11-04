@@ -119,9 +119,14 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   isplitl []
   · unfold viewOf; iexact Hvw
   ipureintro
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |
-      exact Hrtn
+      exact Hrtn | skip
+  -- batch 42: the view's pages' extents lie below the meta's high-water mark (`treeOK`, `isMeta`)
+  intro id pg h
+  have h1 := htree.2.2.2.1 id pg h
+  have h2 := hok.2.2.2.2.2.2.1.2.2.1
+  omega
 
 omit package_sem in
 /-- **What `Rollback` reads of a reader** (`managed`, `db`, `writable`), and back. -/
