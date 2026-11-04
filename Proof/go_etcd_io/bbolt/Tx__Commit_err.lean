@@ -565,7 +565,53 @@ theorem Tx.Commit_err.wp_proof'
         · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
           ihave Hw := Hwb $$ Hdbp
           try wp_auto
-          sorry
+          simp only [WX.withMv_withMv]
+          imod cm_excl_update K r X1 (X2.withMv ({ X2.t.mv with
+            root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
+            freelist' := W64 18446744073709551615 } : Meta)) _ $$ Hex with Hex
+          icases cm_meta_acc K tx r false _ $$ Hw with ⟨Hme, Hmv, Hwb⟩
+          isimp only [WX.withMv_tt, WX.withMv_mv] at Hme Hmv Hwb
+          try wp_auto
+          wp_apply wp_SetFreelist $$ [Hmv] as Hmv
+          · iframe #; iframe
+          ihave Hw := Hwb $$ %_ Hme Hmv
+          simp only [WX.withMv_withMv]
+          generalize hX3 : X2.withMv ({ X2.t.mv with
+            root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
+            freelist' := W64 18446744073709551615 } : Meta) = X3
+          have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
+          have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
+          ihave Hex : cmExcl K r X3 (treeData w2.C) $$ [Hex]
+          · rw [hC2]; iexact Hex
+          icases (cm_keep_pure (cm_wdbW_ok K tx _ w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+          try wp_auto
+          ileft
+          isplitr
+          · ipureintro; first | rfl | trivial
+          iframe err Hlgp tx
+          iexists X3, w2
+          rw [hv3]
+          iframe
+          ipureintro
+          have htt5 : X3.t.t = X.t.t := by rw [htt3, htt2, htt1]
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hC2fl, Hw2ok.1, rfl⟩
+          · rw [htt5]; exact hwr
+          · rw [← hX3]; exact hrl2
+          · have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
+              rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
+            have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+            have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+            rw [h1]
+            unfold WDb.wtxid
+            rw [hC2]
+            apply BitVec.eq_of_toNat_eq
+            rw [← h2, h3]
+            have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+            word
+          · rw [← hX3]; exact hmap2
+          · rw [hC2]; exact hstart1.2.1
+          · rw [htt5]; exact Hf.2.2.2.2.2.1
+          · rw [htt5]; exact Hmvn
       iintro %v Hv
       icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
