@@ -25,6 +25,12 @@ namespace Spill
 section defs
 variable [GooseExts]
 
+/-- **The inodes' slices have their entries' lengths** (what `wOwn` gives of a live node's
+entries: `node.size` reads the slices' lengths, the bounds are on the entries'). -/
+def insLens (ins : List Inode) (ws : List WEntry) : Prop :=
+  ∀ (k : Nat) (it : Inode) (w : WEntry), ins[k]? = some it → ws[k]? = some w →
+    it.key'.len.toNat = w.key.length ∧ it.value'.len.toNat = w.value.length
+
 /-- **The pure premises of `pieceOne_wp`** for the piece `l` (record `rl`) at `(X, w)` (see the
 module doc), in its order: `hlv`, `hbl`, `hfree`, `hG`, `hne`, `hil`, `hsz`, `hfit`, `hn16`,
 `hbody`, `hid`, `hpar`. -/

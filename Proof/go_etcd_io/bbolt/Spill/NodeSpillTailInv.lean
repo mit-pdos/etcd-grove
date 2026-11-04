@@ -89,7 +89,7 @@ def pcInv (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
   ∃ (X' : WX) (w' : WDb) (r' : NRec) (st0 : List FLStep) (T : List Loc) (X2 : WX)
     (wss : List (List WEntry)) (rp0 : NRec) (bs : List WEntry) (j h0 : Nat) (Es : List (List El))
     (Ds : List (List Nat)) (ps : List Piece) (stl : List FLStep),
-    spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧
+    spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧ insLens r'.ins r'.ws ∧
     splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0 ∧
     (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) ∧
     st = st0 ++ stl ∧ Es.flatten = E ∧
@@ -124,7 +124,7 @@ theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {wi : WDb} {st : List FLStep}
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) :
     wi.C = w.C ∧ wi.fl = w.fl.applySteps w.wtxid st ∧ Xi.v.pages = X.v.pages := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, hsr, -, rfl, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
     -, hL⟩ := hI
   obtain ⟨hC, hfl, hpg⟩ := spEnd_db hend
   obtain ⟨hC2, hfl2, hpg2, -⟩ := hL.step
@@ -195,6 +195,20 @@ theorem spEnd_rec {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   · exact ⟨hl.br.node, hl.live, hl.br.un, hl.nv, hl.cap,
       fun c hc => (hch c hc).imp_right (hl.fresh c), hl.frame, hl.fresh⟩
 
+/-- `n`'s entries after the children's loop hold no stale bytes (`liveFresh`). -/
+theorem tail_wsLive {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) : wsLive r'.ws := by
+  obtain ⟨hn', hlv', -⟩ := spEnd_rec hpre hsp hend
+  have hlf : liveFresh X' := by
+    rcases hend with ⟨-, hX, -, -, -, -⟩ | ⟨-, h', es, i, -, hl, -⟩
+    · rw [hX]; exact hpre.2.1.2.2.2.1
+    · exact hl.step.2.2.2.1.2.2.2.1
+  obtain ⟨B, HB, Hr⟩ := node_bs_of hn'
+  exact (hlf bl B n r' HB Hr hlv').1
+
 /-- **What the steps before the loop need** (`spillTail_gen`'s `hn'`, `hlv'`, `hS`); the size
 bound is `tail_insSize`. -/
 theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
@@ -253,7 +267,7 @@ theorem pcInv_init {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
     (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) (hlens : insLens r'.ins r'.ws)
     (X2 : WX) (xs : List (Loc × node × List Inode)) (wss : List (List WEntry)) (pl : Loc)
     (rp' : NRec) (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp')
     (hfit : ∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) :
@@ -303,7 +317,7 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ∃ rf, Xf.node bl n = some rf ∧ n ∈ Xf.live ∧ rf.nv.parent' = pl ∧
       rf.nv.children' = slice.nil ∧ rf.cs = [] ∧
       (pl ≠ null → ∃ rp, Xf.node bl pl = some rp ∧ pl ∈ Xf.live) := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, hsr, -, -, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, -, hsr, -, -, -, -,
     -, hL⟩ := hI
   obtain ⟨x0, hx0⟩ : ∃ x0, xs[0]? = some x0 := by
     cases e : xs with

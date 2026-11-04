@@ -82,7 +82,8 @@ theorem spillTail_wp
   obtain ⟨hn', hlv', hS⟩ := tail_pre hpre hsp hend
   exact spillTail_gen hAlloc hPage hSplit hWrite hPut hSize hInc hTxid hPgid hId hKey hAssert hFree
     K tx r m X w bl n rn O lo hi h D N E cs X' w' r' st np txp resp e0
-    (pcInv X w bl n rn O lo hi h D N E cs) hn' hlv' hS (pcInv_init hpre hsp hend)
+    (pcInv X w bl n rn O lo hi h D N E cs) hn' hlv' (tail_wsLive hpre hsp hend) hS
+    (fun hl => pcInv_init hpre hsp hend hl)
     (pcInv_pre hpre hsp) (pcInv_step hpre hsp) pcInv_err pcInv_end (pcInv_done hpre hsp)
     (pcInv_top hpre hsp)
 

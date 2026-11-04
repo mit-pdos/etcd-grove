@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailDefs
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillSplit
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesOne
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesKill
+public import Proof.go_etcd_io.bbolt.Spill.DerefCopy
 
 @[expose] public section
 
@@ -46,6 +47,71 @@ theorem wp_frame_wand' (e : Expr) (Φ : val → IProp GF) (R : IProp GF) :
   iintro %v Hv
   iapply Hv $$ HR
 
+omit package_sem in
+/-- **The inodes' slices have their entries' lengths** (the sources not stale). -/
+theorem wOwns_lensEq (v : View) :
+    ∀ (ins : List Inode) (ws : List WEntry), wsLive ws →
+    ([∗list] it;w ∈ ins;ws, wOwn (GF := GF) v true it w) ⊢ ⌜insLens ins ws⌝
+  | [], [], _ => by
+    iintro -; ipureintro; intro k it w h; simp at h
+  | [], _ :: _, _ => by
+    iintro H
+    icases BigSepL2.bigSepL2_nil_inv_left $$ H with %H
+    cases H
+  | _ :: _, [], _ => by
+    iintro H
+    icases BigSepL2.bigSepL2_nil_inv_right $$ H with %H
+    cases H
+  | it :: ins, w :: ws, hl => by
+    have hw := hl w List.mem_cons_self
+    have IH := wOwns_lensEq v ins ws (fun x hx => hl x (List.mem_cons_of_mem _ hx))
+    iintro H
+    icases BigSepL2.bigSepL2_cons.1 $$ H with ⟨Hw, H⟩
+    icases (wOwn_true' v it w).1 $$ Hw with ⟨-, #Hks, #Hvs⟩
+    ihave %Hk := srcOwn_len v it.key' w.ks w.key hw.1 $$ Hks
+    ihave %Hv := srcOwn_len v it.value' w.vs w.value hw.2 $$ Hvs
+    ihave %Hr := IH $$ H
+    ipureintro
+    intro k x y hx hy
+    cases k with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx hy
+      subst hx hy
+      constructor
+      · rw [Hk.1, show sint.nat it.key'.len = (sint.Z it.key'.len).toNat from rfl]
+        have := Hk.2; unfold sint.Z at this ⊢; rw [BitVec.toInt_eq_toNat_cond] at this ⊢
+        split <;> omega
+      · rw [Hv.1, show sint.nat it.value'.len = (sint.Z it.value'.len).toNat from rfl]
+        have := Hv.2; unfold sint.Z at this ⊢; rw [BitVec.toInt_eq_toNat_cond] at this ⊢
+        split <;> omega
+    | succ k =>
+      simp only [List.getElem?_cons_succ] at hx hy
+      exact Hr k x y hx hy
+
+omit package_sem in
+/-- **A live node's inodes' lengths**, out of `wtxW` (its entries not stale). -/
+theorem wtxW_lens (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl n : Loc) (rn : NRec)
+    (hn : X.node bl n = some rn) (hl : n ∈ X.live) (hwl : wsLive rn.ws) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗ ⌜insLens rn.ins rn.ws⌝ := by
+  obtain ⟨B, HB, Hrn⟩ := node_bs_of hn
+  iintro Hw
+  icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  icases wtxHeap_setNode tx (DFrac.own 1) X bl B n rn HB Hrn $$ Hh with ⟨Hno, Hback⟩
+  rw [decide_eq_true hl]
+  icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+  icases Hws with #Hws
+  ihave %Hlens := wOwns_lensEq X.v rn.ins rn.ws hwl $$ Hws
+  ihave Hno : objOwn X.v n (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcap Hch Hchcap Hkey]
+  · iapply (objOwn_live_node _ _ _ _ _).2; iframe; iexact Hws
+  ihave Hh := Hback $$ %rn %(Hok.2.2.2.1 bl B n rn HB Hrn) [Hno]
+  · iexact Hno
+  rw [setNode_self X bl n B rn HB Hrn]
+  isplitl
+  · iapply Hclose $$ %X [] Hh Hv Hst
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  · ipureintro; exact Hlens
+
 /-- **`spillTail` over an invariant of the pieces' loop** (see the module doc). -/
 theorem spillTail_gen
     (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
@@ -66,13 +132,13 @@ theorem spillTail_gen
     (E : List El) (cs : SpCase) (X' : WX) (w' : WDb) (r' : NRec) (st0 : List FLStep)
     (np txp resp : Loc) (e0 : GoInterface)
     (I : List (Loc × node × List Inode) → Loc → Nat → WX → WDb → List FLStep → Prop)
-    (hn' : X'.node bl n = some r') (hlv' : n ∈ X'.live)
+    (hn' : X'.node bl n = some r') (hlv' : n ∈ X'.live) (hwl : wsLive r'.ws)
     (hS : (X'.nilCh bl n r').node bl n = some r'.nilCh ∧ n ∈ (X'.nilCh bl n r').live ∧
       r'.nilCh.nv.bucket' = bl ∧ r'.nilCh.capOwn = true ∧ r'.nilCh.nv.spilled' = false ∧
       r'.nilCh.ins.length = r'.nilCh.ws.length ∧ insSize r'.nilCh.ins < 2 ^ 63 ∧
       (r'.nilCh.nv.parent' ≠ null → ∃ rp, (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live))
-    (H1 : ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
+    (H1 : insLens r'.ins r'.ws → ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
       (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) →
       I xs pl 0 X2 w' st0)
     (H2 : ∀ xs pl i Xi wi sti x, I xs pl i Xi wi sti → xs[i]? = some x →
@@ -100,6 +166,7 @@ theorem spillTail_gen
         resp ↦ err ∗ np ↦ n ∗ txp ↦ tx ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }} := by
   unfold spillIH
   iintro #IH Hw Hdb Hnp Htxp Hres
+  icases wtxW_lens K tx r m X' bl n r' hn' hlv' hwl $$ Hw with ⟨Hw, %Hlens⟩
   icases wtxW_nilCh K tx r m X' bl n r' hn' hlv' $$ Hw with ⟨Hch, Hwb⟩
   wp_pures
   wp_load
@@ -112,7 +179,7 @@ theorem spillTail_gen
   iapply (splitStep_wp hSplit K tx r m _ bl n r'.nilCh np txp hS1 hS2 hS3 hS4 hS8 hS5 hS6 hS7)
   iframe
   iintro %s %xs %wss %pl %rp' %X2 %Hsr Hw Hs Hnp Htxp
-  have HI0 := H1 X2 xs wss pl rp' Hsr.1 Hsr.2
+  have HI0 := H1 Hlens X2 xs wss pl rp' Hsr.1 Hsr.2
   have hv2 : X2.v = X'.v := by
     have := Hsr.1.same.2.2.2
     rw [this]; unfold WX.nilCh WX.killL; rw [WX.setNode_v]
