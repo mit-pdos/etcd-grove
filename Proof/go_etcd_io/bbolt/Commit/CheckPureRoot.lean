@@ -9,6 +9,7 @@ module
 public import Proof.go_etcd_io.bbolt.Commit.CheckPure
 public import Proof.go_etcd_io.bbolt.Inv.Tx
 public import Proof.go_etcd_io.bbolt.Read.BktOK
+public import Proof.go_etcd_io.bbolt.Read.TreeEnts
 
 @[expose] public section
 
@@ -45,8 +46,8 @@ theorem root_ownRootOK (v : View) (h : viewWF v) : ownRootOK v.pages v.root := b
   exact ⟨C, hok, rfl, ⟨C.hwm, hok.1.1⟩, hok.1.2.2.1⟩
 
 /-- A top-level bucket is an entry of the root's tree. -/
-theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
-    (he : bktEntry v.pages (rootVal v) kb cv) : ∃ n, (n, cv) ∈ treeEntries v.pages v.root := by
+theorem top_entry_mem (v : View) (h : viewWF v) (kb cv : List w8)
+    (he : bktEntry v.pages (rootVal v) kb cv) : (kb, cv) ∈ treeEntries v.pages v.root := by
   obtain ⟨pg, i, hpg, hi, hk, -, hv⟩ := he
   have hr : inBucketRoot (rootVal v) = v.root := by
     obtain ⟨C, hok, hvC⟩ := h
@@ -63,17 +64,39 @@ theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
     cases hok.1.1 with | page _ _ h2 _ _ _ _ _ => omega
   unfold bktLeaves at hpg
   rw [if_neg hr0, hr] at hpg
-  refine ⟨kb, ?_⟩
   unfold treeEntries
   refine List.mem_flatMap.mpr ⟨pg, hpg, ?_⟩
   unfold leafEnts
   exact List.mem_map.mpr ⟨i, List.mem_range.mpr hi, by rw [hk, hv]⟩
 
+theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
+    (he : bktEntry v.pages (rootVal v) kb cv) : ∃ n, (n, cv) ∈ treeEntries v.pages v.root :=
+  ⟨kb, top_entry_mem v h kb cv he⟩
+
 /-- A name of the root bucket names one top-level bucket. -/
 theorem top_entry_unique (v : View) (h : viewWF v) (kb cv cv' : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) (he' : bktEntry v.pages (rootVal v) kb cv') :
     cv = cv' := by
-  sorry
+  have hm := top_entry_mem v h kb cv he
+  have hm' := top_entry_mem v h kb cv' he'
+  obtain ⟨C, hok, hvC⟩ := h
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  have hrv : v.root = C.root := by rw [← hvC]; rfl
+  rw [hpv, hrv] at hm hm'
+  have hs : Ents.esSorted (treeEntries C.pages C.root) :=
+    TreeEnts.leavesF_sorted C hok _ _ none none hok.1.2.2.1
+  unfold Ents.esSorted at hs
+  clear hvC hpv hrv
+  generalize treeEntries C.pages C.root = l at hm hm' hs
+  induction l with
+  | nil => simp at hm
+  | cons e t ih =>
+    rw [List.pairwise_cons] at hs
+    rcases List.mem_cons.mp hm with rfl | hm1 <;> rcases List.mem_cons.mp hm' with he2 | hm2
+    · simp only [Prod.mk.injEq] at he2; exact he2.2.symm
+    · exact absurd (hs.1 _ hm2) (go.goStringLt_irrefl _)
+    · subst he2; exact absurd (hs.1 _ hm1) (go.goStringLt_irrefl _)
+    · exact ih hm1 hm2 hs.2
 
 /-- A top-level bucket's value holds its header. -/
 theorem top_len (v : View) (h : viewWF v) (kb cv : List w8)
