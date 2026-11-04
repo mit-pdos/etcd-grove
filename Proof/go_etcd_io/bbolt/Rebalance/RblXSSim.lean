@@ -33,10 +33,10 @@ theorem bktSim_look {B B' : BRec} (hs : bktSim B B') (y : Loc) :
     cases h' : B'.ns !! y with
     | none => rfl
     | some ry' =>
-      obtain ⟨ry, hry, -⟩ := hs.2.2.2.2.2.2.2 y ry' h'
+      obtain ⟨ry, hry, -⟩ := hs.2.2.2.2.2.2.2.2 y ry' h'
       rw [h] at hry; cases hry
   | some ry =>
-    obtain ⟨ry', hry', e⟩ := hs.2.2.2.2.2.2.1 y ry h
+    obtain ⟨ry', hry', e⟩ := hs.2.2.2.2.2.2.2.1 y ry h
     exact Or.inr ⟨ry, ry', rfl, hry', e⟩
 
 theorem setBkt_look (X : WX) (bl : Loc) (B' : BRec) (c : Loc) :
@@ -199,10 +199,10 @@ theorem nodeRootIn_sim {B B' : BRec} (hs : bktSim B B') (a rt : Loc) (h : nodeRo
     nodeRootIn B' a rt := by
   induction h with
   | top n r hr hp =>
-    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.1 n r hr
+    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.2.1 n r hr
     exact nodeRootIn.top n r' hr' (by rw [e.2.2.2.2.2.2.2.2.2.2.1]; exact hp)
   | up n rt r hr hp _ ih =>
-    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.1 n r hr
+    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.2.1 n r hr
     have hpe := e.2.2.2.2.2.2.2.2.2.2.1
     exact nodeRootIn.up n rt r' hr' (by rw [hpe]; exact hp) (by rw [hpe]; exact ih)
 
@@ -211,7 +211,7 @@ theorem descIn_sim {B B' : BRec} (hs : bktSim B B') (a d : Loc) (h : descIn B a 
   induction h with
   | self n => exact descIn.self n
   | child n c d r hr hc _ ih =>
-    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.1 n r hr
+    obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.2.1 n r hr
     exact descIn.child n c d r' hr' (by rw [e.2.1]; exact hc) ih
 
 /-- **`rblX` through a bucket's records changed by `bktSim`**: given the bucket's `rblB` (its
@@ -291,7 +291,7 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     obtain ⟨C0, r0, hC0, hr0, hp⟩ := hN n c p h hl
     by_cases hc : c = bl
     · subst hc; rw [hb] at hC0; cases hC0
-      obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.1 n r0 hr0
+      obtain ⟨r', hr', e⟩ := hs.2.2.2.2.2.2.2.1 n r0 hr0
       exact ⟨B', r', by rw [setBkt_look, if_pos rfl], hr', by rw [e.2.2.2.2.2.2.2.2.2.1]; exact hp⟩
     · exact ⟨C0, r0, by rw [setBkt_look, if_neg hc]; exact hC0, hr0, hp⟩
   · obtain ⟨r1, r2⟩ := hLR

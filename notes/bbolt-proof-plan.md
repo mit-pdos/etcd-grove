@@ -863,6 +863,37 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   `wdbOK_alloc` (a filter of the free ids) adapted; producers: `beginRWTx` (U5), `Rollback`'s
   (U5/U10), `DB.mmap` (U4, `sorry`).
 
+## Shared-statement fixes, batch 33 (U6d's findings, maintainer 4, 2026-11-04; decided by the coordinator)
+
+- **1. `Cursor.seek_w.spec`** is U6d's `spec'` but for `inlSrcOK` (item 2): premise `pmFresh X`, the
+  returned slices' sources `leafSrc X bl w.ks`/`w.vs`. `pmFresh`, `inlSrcOK`, `leafSrc` moved from
+  `Read/WPos` to `Model/WOps` (the spec's vocabulary). `Proof/Cursor__seek_w`'s `wp_proof` is
+  U6d's `wp_proof'`, with `inlSrcOK` from `inlSrcOK_of_bktLocalOK`. **Callers that must supply
+  `pmFresh X`** (none calls `seek_w` yet): U7e's writes (`Put`, `Delete`, `CreateBucket`,
+  `DeleteBucket`), U9g's `Bucket.spill` (if it searches), `Bucket.Bucket_w`/`ForEachBucket_w`'s
+  proofs (item 3); from `wOK`/`wOKR`'s `txClean` `pm = ∅` (`X.t.pm = ∅ → pmFresh X`: the lookup
+  is `none`).
+- **2. `bktClean`'s inline clause** is `(isrc = .view ∧ pst = .view) ∨ (isrc = .own discard ∧ pst =
+  .none)` (as `bktOpened`), so `inlSrcOK X bl` follows from `bktLocalOK X bl`
+  (`Model/WOps.inlSrcOK_of_bktLocalOK`, proved: `bktLocalOK`'s `bktClean`'s first clause) and is
+  not a premise. Adapted: `Rebalance/RblFrame`'s `bktSim` gains `B'.pst = B.pst` (after `isrc`;
+  `bktSim_set`, `bktSim_trans`, `pagePosAt_sim`, `bktClean_sim`, `rblAcyc_sim`, `rblHt_sim`, and
+  `RblXSSim`'s projections shifted), `Spill/DerefWOK1.bktClean_step` (`bktStep_fields`' `pst`).
+  Producers of `bktClean` for an inline bucket (`CreateBucket`, `Bucket.Bucket_w`'s open) give the
+  pair.
+- **3. `Bucket.Bucket_w.spec`, `Bucket.ForEachBucket_w.spec`** take `pmFresh X` (after
+  `bktLocalOK`); their proofs are `sorry` stubs.
+- **4. Shared stubs deleted, the lemmas are U6d's**: `ltree_leaf_of_T` (`Model/LTree`) is
+  `Read/LeafOfT.ltree_leaf_of_T'` (premise: the leaf is one of the bucket's walk); `rStackAt_prev`
+  (`Model/Cursor`) is `Read/Prev.rStackAt_prev'` (over `sPrev`/`sStartBelow`); `lRoutes_found`,
+  `lRoutes_leafFor` (`Model/WOps`) are `Read/LRoutes.lRoutes_found'`, `Read/LeafFor.lRoutes_leafFor'`;
+  `bktEnts_treeEntries` (`Model/TreeData`) is `Read/TreeEnts.bktEnts_treeEntries'`. All proved; the
+  `Read/` modules import the `Model/` ones, so they stay there; no caller used the stubs.
+- **5. Interfaces not regenerated**: not every bbolt module builds. Blockers (owners' WIP):
+  `node__rebalance` (U8d), `DB__Begin_err` (U5), `Write/Walk` (untracked, U7e). Stale files as
+  listed under batch 30 item 6, plus `Cursor__seek_w.txt`, `Bucket__Bucket_w.txt`,
+  `Bucket__ForEachBucket_w.txt`.
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
@@ -875,13 +906,8 @@ units', per the U0b table):
 | `boltTxDef_fractional`, `boltTxDef_fill`, `txBytesDef_acc` | `Inv/Tx` | U5 (U12 for the laws' users) |
 | `boltCurDef_timeless` (a case) | `Inv/Tx` | U12 |
 | `wtxHeap_fractional` | `Inv/WtxHeap` | U5 |
-| `rStackAt_prev` | `Model/Cursor` | U6 |
-| `lRoutes_found`, `lRoutes_leafFor` | `Model/WOps` | U6 |
 | `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
-| `wOK_leaves_fuel` | `Model/LTree` | U7 |
 | `treeData_spill` | `Model/LTree` | U9c |
-| `ltree_leaf_of_T` | `Model/LTree` | U6 |
-| `bktEnts_treeEntries` | `Model/TreeData` | U6 |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
 
 Maintainer 3's queue (C(1), C(4), E) is done in batch 30 above.

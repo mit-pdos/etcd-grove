@@ -222,6 +222,32 @@ def bktLocalOK (X : WX) (bl : Loc) : Prop :=
     bktKeys X.v B ∧ txPgLeaf (GMap.singleton bl B) ∧
     (∀ l r, B.ns !! l = some r → l ∈ X.live) ∧ viewWF X.v
 
+/-- **No page of the view is in the transaction's page cache** (`tx.pages`): what makes
+`tx.page` of a view position return the view's page. `txClean`'s `pm = ∅` gives it; after a
+spill's allocations, the allocated pages are not view pages (free or past the high-water mark). -/
+def pmFresh (X : WX) : Prop := ∀ id, (X.t.pm !! id).isSome → X.v.pages !! id.toNat = none
+
+/-- **An inline bucket's page is where its source says** (`bktOpened`'s two cases): view bytes
+(`page` field view-backed) or persistent heap bytes (`page` field's status none). -/
+def inlSrcOK (X : WX) (bl : Loc) : Prop :=
+  ∀ B, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
+    (B.isrc = Src.view ∧ B.pst = PageSt.view) ∨ (B.isrc = Src.own DFrac.discard ∧ B.pst = PageSt.none)
+
+/-- The source of a leaf entry's bytes as `seek` returns them: an inline bucket's page's entries
+are its page's bytes (`B.isrc`; `ltree` says `.view` for every page entry), any other entry's
+source is its own. -/
+def leafSrc (X : WX) (bl : Loc) (s : Src) : Src :=
+  match X.t.bs !! bl with
+  | some B => if B.ib.root' = W64 0 ∧ B.bv.rootNode' = null then B.isrc else s
+  | none => s
+
+/-- `bktClean`'s inline clause gives `inlSrcOK` (batch 33). -/
+theorem inlSrcOK_of_bktLocalOK (X : WX) (bl : Loc) (h : bktLocalOK X bl) : inlSrcOK X bl := by
+  intro B hB h0 hrn
+  obtain ⟨-, B', hB', hc, -⟩ := h
+  rw [hB] at hB'; cases hB'
+  exact (hc.1 h0 hrn).2.1
+
 /-- A searchable bucket's cached nodes are not nil (`bktClean`'s `B.nm` clause;
 `Bucket.pageNode_w`'s premise). -/
 theorem bktLocalOK_nm_nonnull (X : WX) (bl : Loc) (B : BRec) (h : bktLocalOK X bl)
@@ -624,22 +650,9 @@ theorem branchWF_elemsIn (pg : List w8) (len hwm : Nat) (h : branchWF pg len hwm
 -- `wOK_nodeAdded` (materializing a page position keeps `wOK`): `Write/MatGrow`'s
 -- `Write.wOK_nodeAdded` (proved; batch 22's move), with `wtxData_matGrow`.
 
-/-- **The search finds a key iff the bucket has it** (U6's search lemma, which U7 and U9 use):
-on a searchable bucket, a stack routing `k` ends at the leaf entry of key `k` if the bucket has
-one, and at no entry of key `k` otherwise. -/
-theorem lRoutes_found (X : WX) (bl : Loc) (els : List elemRef) (pids : List w64) (k : List w8)
-    (hb : bktLocalOK X bl) (hp : lPath X bl els pids) (hr : lRoutes X bl els pids k) :
-    (∃ w ∈ X.allEnts bl, w.key = k) ↔ wsFound (lLeaf X bl pids) k := by
-  sorry
+-- `lRoutes_found`: U6d's `lRoutes_found'` (`Read/LRoutes`), batch 33.
 
-/-- **The routed leaf is where `k` lands** (`leafFor`, what `wtxData_put`/`_del` take): after
-`Cursor.node` materialized the stack's path. U6. -/
-theorem lRoutes_leafFor (X X' : WX) (bl l : Loc) (els : List elemRef) (pids : List w64)
-    (k : List w8) (hok : wOK X) (hp : lPath X bl els pids) (hr : lRoutes X bl els pids k)
-    (hg : matGrow X X' bl) (hl : ∃ B, X'.t.bs !! bl = some B ∧
-      ∃ pid, pids.getLast? = some pid ∧ resolve B pid = some l) :
-    leafFor X' bl k l := by
-  sorry
+-- `lRoutes_leafFor`: U6d's `lRoutes_leafFor'` (`Read/LeafFor`), batch 33.
 
 /-! ## `dereference`'s premises from `wOKR` (batch 12) -/
 

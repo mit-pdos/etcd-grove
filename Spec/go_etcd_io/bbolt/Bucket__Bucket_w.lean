@@ -32,7 +32,7 @@ well-formed `X` stays so, with the same data. -/
 abbrev Bucket.Bucket_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (name : GoSlice)
     (nb : List w8) (ks : Src) (g : Nat),
-  X.t.bs !! bl = some B → bktLocalOK X bl → ks ≠ Src.stale →
+  X.t.bs !! bl = some B → bktLocalOK X bl → ks ≠ Src.stale → pmFresh X →
   {{ wtxW (GF := GF) K tx r m X ∗ srcOwn X.v name ks nb }}
     (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"Bucket")) (Val #name))
   {{ (c : Loc), RET #c; ∃ X' : WX, wtxW K tx r m X' ∗

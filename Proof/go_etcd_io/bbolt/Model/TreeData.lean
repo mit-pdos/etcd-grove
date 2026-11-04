@@ -60,15 +60,7 @@ def treeData (C : CommitSt) : Data :=
 
 /-! ## Lemma statements (U6) -/
 
-/-- **A bucket's sorted entries are its tree's in-order leaves**: in a `treeOK` state, the
-bucket `n` of `treeData C` is the bucket of the root's entry `n`, and its `bktEnts` are that
-bucket's leaves' entries in order (no duplicates, keys strictly sorted by `treeKeys`). Used by U6
-(the cursor specs' positions: `curAt` over `bktEnts`) and U10 (`freepages`' walk). -/
-theorem bktEnts_treeEntries (C : CommitSt) (hok : treeOK C) (n : GoString) (m : BktData)
-    (hn : treeData C !! n = some m) :
-    ∃ v, (n, v) ∈ treeEntries C.pages C.root ∧ m = bktOfPage C.pages v ∧
-      bktEnts m = bktEntries C.pages v := by
-  sorry
+-- `bktEnts_treeEntries`: U6d's `bktEnts_treeEntries'` (`Read/TreeEnts`), batch 33.
 
 end data
 

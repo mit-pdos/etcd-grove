@@ -12,7 +12,9 @@ The shared statement `Cursor.seek_w.spec` is not provable as stated (U6d's repor
 - an inline page's entries are its bytes', of source `B.isrc` (`leafSrc`), while `ltree` gives
   every page entry `.view` sources, false for an owned inline page (a bucket created in this
   transaction).
-`Cursor.seek_w.spec'` is the corrected statement, proved here as `Cursor.seek_w.wp_proof'`.
+Batch 33: `Cursor.seek_w.spec` is the corrected statement (`pmFresh X`; `inlSrcOK X bl` from
+`bktLocalOK`, by `bktClean`'s inline clause, `inlSrcOK_of_bktLocalOK`; the returned sources
+`leafSrc`).
 -/
 module
 
@@ -33,31 +35,13 @@ namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
-section spec'
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **The writer's search, corrected** (`Cursor.seek_w.spec` with `pmFresh X` and `inlSrcOK X bl`,
-and the returned slices' sources `leafSrc`: an inline page's entries are its bytes'). -/
-abbrev Cursor.seek_w.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl c : Loc) (stk : GoSlice)
-    (els0 : List elemRef) (key : GoSlice) (kb : List w8) (ks : Src),
-  bktLocalOK X bl → ks ≠ Src.stale → pmFresh X → inlSrcOK X bl →
-  {{ wtxW (GF := GF) K tx r m X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els0 ∗
-      ownSliceCap elemRef stk (DFrac.own 1) ∗ srcOwn X.v key ks kb }}
-    (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
-  {{ (k v : GoSlice) (fl : w32), RET (PairV (PairV #k #v) #fl);
-      ∃ (stk' : GoSlice) (els : List elemRef) (pids : List w64),
-      wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* els ∗
-      ownSliceCap elemRef stk' (DFrac.own 1) ∗ ⌜lPath X bl els pids ∧ lRoutes X bl els pids kb⌝ ∗
-      (match (lLeaf X bl pids)[wsIdx (lLeaf X bl pids) kb]? with
-       | some w => iprop(⌜k ≠ slice.nil ∧ fl = w.flags⌝ ∗
-           srcOwn X.v k (leafSrc X bl w.ks) w.key ∗ srcOwn X.v v (leafSrc X bl w.vs) w.value)
-       | none => iprop(⌜k = slice.nil ∧ v = slice.nil ∧ fl = W32 0⌝)) }}
 
 /-- The entries at a searchable position are fewer than `2^63`. -/
 theorem wtxW_ltree_len (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
@@ -85,12 +69,13 @@ theorem wtxW_ltree_len (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl :
       obtain ⟨-, rfl⟩ := hl
       exact Write.wtxW_node_len K tx r m X bl B l rn hB hn (hnsl l rn hn)
 
-theorem Cursor.seek_w.wp_proof'
+theorem Cursor.seek_w.wp_proof
     (hsw : Cursor.search_w.spec (GF := GF) (hG := hG))
     (hkv : Cursor.keyValue_w.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
-    Cursor.seek_w.spec' (GF := GF) (hG := hG) := by
-  intro K tx r m X bl c stk els0 key kb ks hloc hks hpm hinl
+    Cursor.seek_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl c stk els0 key kb ks hloc hks hpm
+  have hinl := inlSrcOK_of_bktLocalOK X bl hloc
   wp_start as ⟨Hw, Hc, Hs, Hcap, #Hkey⟩
   obtain ⟨hlive, B, hB, -⟩ := id hloc
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
@@ -158,12 +143,7 @@ theorem Cursor.seek_w.wp_proof'
   unfold wKV
   iexact Hkv
 
-/-- The shared statement: not provable as stated (see the module doc); `wp_proof'` proves the
-corrected `spec'`. -/
-theorem Cursor.seek_w.wp_proof : Cursor.seek_w.spec (GF := GF) (hG := hG) := by
-  sorry
-
-end spec'
+end proof
 
 end bbolt
 end EtcdGrove

@@ -33,7 +33,7 @@ with their sources), or nil, nil, 0 past the leaf's end. Nothing of `X` changes.
 abbrev Cursor.seek_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl c : Loc) (stk : GoSlice)
     (els0 : List elemRef) (key : GoSlice) (kb : List w8) (ks : Src),
-  bktLocalOK X bl → ks ≠ Src.stale →
+  bktLocalOK X bl → ks ≠ Src.stale → pmFresh X →
   {{ wtxW (GF := GF) K tx r m X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els0 ∗
       ownSliceCap elemRef stk (DFrac.own 1) ∗ srcOwn X.v key ks kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
@@ -42,8 +42,8 @@ abbrev Cursor.seek_w.spec : Prop :=
       wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* els ∗
       ownSliceCap elemRef stk' (DFrac.own 1) ∗ ⌜lPath X bl els pids ∧ lRoutes X bl els pids kb⌝ ∗
       (match (lLeaf X bl pids)[wsIdx (lLeaf X bl pids) kb]? with
-       | some w => iprop(⌜k ≠ slice.nil ∧ fl = w.flags⌝ ∗ srcOwn X.v k w.ks w.key ∗
-           srcOwn X.v v w.vs w.value)
+       | some w => iprop(⌜k ≠ slice.nil ∧ fl = w.flags⌝ ∗
+           srcOwn X.v k (leafSrc X bl w.ks) w.key ∗ srcOwn X.v v (leafSrc X bl w.vs) w.value)
        | none => iprop(⌜k = slice.nil ∧ v = slice.nil ∧ fl = W32 0⌝)) }}
 
 end spec

@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 the root under `treeOK`, `rootShape`): the callback never runs; nil, nothing changed. -/
 abbrev Bucket.ForEachBucket_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (fn : GoFunc),
-  bktLocalOK X bl → (∀ w ∈ X.allEnts bl, ¬ isBktFlag w.flags) →
+  bktLocalOK X bl → pmFresh X → (∀ w ∈ X.allEnts bl, ¬ isBktFlag w.flags) →
   {{ wtxW (GF := GF) K tx r m X }}
     (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"ForEachBucket")) (Val #fn))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ wtxW K tx r m X }}

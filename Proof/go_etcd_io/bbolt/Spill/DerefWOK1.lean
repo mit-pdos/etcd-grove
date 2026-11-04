@@ -224,10 +224,10 @@ theorem nodeClean_step {v : View} {hwm : Nat} {bl : Loc} {B B' : BRec} {l : Loc}
 
 theorem bktClean_step {v : View} {hwm : Nat} {bl : Loc} {B B' : BRec} (h : bktStep B B')
     (hc : bktClean v hwm bl B) : bktClean v hwm bl B' := by
-  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, -⟩ := bktStep_fields h
+  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hpst⟩ := bktStep_fields h
   obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
   unfold bktClean
-  rw [posDisjoint_step h, posNodeFree_step h, hbv, hib, hnm, hipg, hisrc]
+  rw [posDisjoint_step h, posNodeFree_step h, hbv, hib, hnm, hipg, hisrc, hpst]
   refine ⟨c1, c2, ?_, c4, ?_, c6, ?_, ?_, c9, c10⟩
   · intro hn
     obtain ⟨d1, d2⟩ := c3 hn

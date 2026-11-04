@@ -170,17 +170,8 @@ theorem treeData_spill (X : WX) (C' : CommitSt) (hok : wOKR X) (htree : treeOK C
     treeData C' = wtxData X := by
   sorry
 
-open Classical in
-/-- **R6: a writer's leaf contents are a function of the base shape and `T.cur`** (before
-`Commit`, branch keys never change and routing fixes which leaf holds a key): the plain entries
-of a logical leaf of bucket `n` are the entries of `bktEnts (T.cur n)` within the leaf's bounds.
-Used by U6 (stale cursor stacks stay valid at an unchanged `T`). -/
-theorem ltree_leaf_of_T (X : WX) (n : GoString) (bl : Loc) (pid : w64) (ws : List WEntry)
-    (hok : wOK X) (hb : bktLoc X n = some bl) (hl : ltree X bl pid = some (true, ws)) :
-    ∃ lo hi, ws.filterMap (fun w => if decide (isBktFlag w.flags) then none
-        else some (w.key, w.value)) =
-      (bktEnts (((wtxData X) !! n).getD ∅)).filter fun e => decide (keyIn lo hi e.1) := by
-  sorry
+-- `ltree_leaf_of_T`: U6d's `ltree_leaf_of_T'` (`Read/LeafOfT`; premise: the leaf is one of the
+-- bucket's walk), batch 33.
 
 end ltree
 

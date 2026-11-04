@@ -647,12 +647,7 @@ theorem rStackAt_next (v : View) (n : GoString) (els els' : List elemRef) (pids 
       stackPos v es pids els + (entsIn es (pathBnd v pids els)).length) :=
   ⟨⟨⟨pids', hp', rfl⟩, hnode⟩, stackPos_next _ v _ null n els els' pids pids' d hp hp' hs hlen hend⟩
 
-theorem rStackAt_prev (v : View) (n : GoString) (els els' : List elemRef) (pids' : List Nat)
-    (i : Nat) (hv : viewWF v) (h : rStackAt v n els (some i)) (hi : 0 < i)
-    (hp : sPath (fun _ => none) v null n els' pids') (hnode : ∀ e ∈ els', e.node' = null)
-    (hs : sPred v (bktEnts ((v.data !! n).getD ∅)) pids' els els') :
-    rStackAt v n els' (some (i - 1)) := by
-  sorry
+-- `rStackAt_prev`: U6d's `rStackAt_prev'` (`Read/Prev`, over `sPrev`/`sStartBelow`), batch 33.
 
 /-- The writer's facts the writer lemmas take: `X` well-formed, `T.cur` its data, its base view
 `v`, its registry at least `nl`, `b` the handle of bucket `n`. -/

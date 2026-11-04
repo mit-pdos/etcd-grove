@@ -35,6 +35,7 @@ theorem nrecEq_refl (r : NRec) : nrecEq r r :=
 /-- `B'` is `B` with node records related by `nrecEq`. -/
 def bktSim (B B' : BRec) : Prop :=
   B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.nm = B.nm ∧ B'.bm = B.bm ∧ B'.ipg = B.ipg ∧ B'.isrc = B.isrc ∧
+  B'.pst = B.pst ∧
   (∀ y ry, B.ns !! y = some ry → ∃ ry', B'.ns !! y = some ry' ∧ nrecEq ry ry') ∧
   (∀ y ry', B'.ns !! y = some ry' → ∃ ry, B.ns !! y = some ry ∧ nrecEq ry ry')
 
@@ -46,7 +47,7 @@ theorem rf_lookup (ns : GMap Loc NRec) (l : Loc) (r' : NRec) (y : Loc) :
 
 theorem bktSim_set (B : BRec) (l : Loc) (r r' : NRec) (hr : B.ns !! l = some r)
     (he : nrecEq r r') : bktSim B { B with ns := <[l := r']> B.ns } := by
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun y ry hy => ?_, fun y ry' hy => ?_⟩
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun y ry hy => ?_, fun y ry' hy => ?_⟩
   · show ∃ ry', (<[l := r']> B.ns) !! y = some ry' ∧ _
     rw [rf_lookup]
     by_cases h : y = l
@@ -59,9 +60,9 @@ theorem bktSim_set (B : BRec) (l : Loc) (r r' : NRec) (hr : B.ns !! l = some r)
     · rw [if_neg h] at hy; exact ⟨ry', hy, nrecEq_refl ry'⟩
 
 theorem bktSim_trans {B1 B2 B3 : BRec} (h1 : bktSim B1 B2) (h2 : bktSim B2 B3) : bktSim B1 B3 := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, h1'⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, h2'⟩ := h2
-  refine ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1,
+  obtain ⟨a1, b1, c1, d1, e1, f1, s1, g1, h1'⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, s2, g2, h2'⟩ := h2
+  refine ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1, s2.trans s1,
     fun y ry hy => ?_, fun y ry' hy => ?_⟩
   · obtain ⟨r2, hr2, e⟩ := g1 y ry hy
     obtain ⟨r3, hr3, e'⟩ := g2 y r2 hr2
@@ -78,7 +79,7 @@ theorem bktSim_trans {B1 B2 B3 : BRec} (h1 : bktSim B1 B2) (h2 : bktSim B2 B3) :
 
 theorem pagePosAt_sim {B B' : BRec} (h : bktSim B B') (l : Loc) (i : Nat) (c : w64) :
     pagePosAt B' l i c ↔ pagePosAt B l i c := by
-  obtain ⟨-, -, hnm, -, -, -, hf, hb⟩ := h
+  obtain ⟨-, -, hnm, -, -, -, -, hf, hb⟩ := h
   constructor
   · rintro ⟨r', w, hr', hbr, hw, hc, hn⟩
     obtain ⟨r, hr, e⟩ := hb l r' hr'
@@ -94,10 +95,10 @@ variable (v : View) (hwm : Nat) (bl : Loc)
 theorem bktClean_sim {B B' : BRec} (h : bktSim B B') (hc : bktClean v hwm bl B) :
     bktClean v hwm bl B' := by
   have hpos := pagePosAt_sim h
-  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hf, hb⟩ := h
+  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hpst, hf, hb⟩ := h
   obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [hib, hbv, hisrc, hipg]; exact c1
+  · rw [hib, hbv, hisrc, hipg, hpst]; exact c1
   · rw [hib, hbv]; exact c2
   · intro h0
     rw [hbv] at h0
@@ -163,7 +164,7 @@ theorem rblKeysB_sim {B B' : BRec} (h : bktSim B B') (bnd : Loc → Option (List
     (hd4 : ∀ y ry', B'.ns !! y = some ry' → dfc' ≠ some y → ry'.nv.isLeaf' = true →
       ry'.nv.unbalanced' = false → ry'.nv.parent' ≠ null → 0 < ry'.ws.length) :
     rblKeysB v B' bnd dfc' := by
-  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hf, hb⟩ := h
+  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hpst, hf, hb⟩ := h
   obtain ⟨k1, k2, k3⟩ := hk
   refine ⟨by rw [hbv, hib]; exact k1, fun r' hr' => ?_, fun l r' hr' => ?_⟩
   · rw [hbv] at hr'
@@ -198,14 +199,14 @@ theorem rblKeysB_sim {B B' : BRec} (h : bktSim B B') (bnd : Loc → Option (List
 theorem rblAcyc_sim {B B' : BRec} (h : bktSim B B') (ha : rblAcyc B) : rblAcyc B' := by
   obtain ⟨ht, hh⟩ := ha
   refine ⟨ht, fun l r' hr' hp => ?_⟩
-  obtain ⟨r, hr, e⟩ := h.2.2.2.2.2.2.2 l r' hr'
+  obtain ⟨r, hr, e⟩ := h.2.2.2.2.2.2.2.2 l r' hr'
   rw [e.2.2.2.2.2.2.2.2.2.2.1] at hp ⊢
   exact hh l r hr hp
 
 theorem rblHt_sim {B B' : BRec} (h : bktSim B B') (ha : rblHt v B) : rblHt v B' := by
   obtain ⟨ht, pht, hp, hh⟩ := ha
   refine ⟨ht, pht, hp, fun l r' hr' => ?_⟩
-  obtain ⟨r, hr, e⟩ := h.2.2.2.2.2.2.2 l r' hr'
+  obtain ⟨r, hr, e⟩ := h.2.2.2.2.2.2.2.2 l r' hr'
   obtain ⟨h1, h2⟩ := hh l r hr
   rw [e.2.2.2.2.2.2.1, e.1, h.2.2.1]
   exact ⟨h1, h2⟩
@@ -213,7 +214,7 @@ theorem rblHt_sim {B B' : BRec} (h : bktSim B B') (ha : rblHt v B) : rblHt v B' 
 theorem entryIn_sim {B B' : BRec} (h : bktSim B B') (k bv : List w8) (he : entryIn v B k bv) :
     entryIn v B' k bv := by
   have hpos := pagePosAt_sim h
-  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hf, hb⟩ := h
+  obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hpst, hf, hb⟩ := h
   rcases he with ⟨l, r, w, hr, hl, hw, hk, hbk, hv⟩ | ⟨c, p, pg, i, hc, ho, hpg, hlf, hi, hk, hfl, hv⟩
   · obtain ⟨r', hr', e⟩ := hf l r hr
     exact Or.inl ⟨l, r', w, hr', by rw [e.2.2.2.2.2.2.1]; exact hl, by rw [e.1]; exact hw, hk, hbk, hv⟩

@@ -326,7 +326,8 @@ def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) 
 /-- The bucket `bl` (record `B`) is well-formed. -/
 def bktClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=
   (B.ib.root' = W64 0 → B.bv.rootNode' = null →
-    B.bv.page' ≠ null ∧ (B.isrc = Src.view ∨ B.isrc = Src.own DFrac.discard) ∧
+    B.bv.page' ≠ null ∧
+      ((B.isrc = Src.view ∧ B.pst = PageSt.view) ∨ (B.isrc = Src.own DFrac.discard ∧ B.pst = PageSt.none)) ∧
       inlineGood B.ipg ∧ inlineBnd B.ipg) ∧
   (B.ib.root' ≠ W64 0 → B.ib.root'.toNat < hwm ∧
     (B.bv.rootNode' = null → treeWF v.pages hwm B.ib.root'.toNat)) ∧

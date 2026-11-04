@@ -25,24 +25,7 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 section wpos
 variable [GooseExts]
 
-/-- **No page of the view is in the transaction's page cache** (`tx.pages`): what makes
-`tx.page` of a view position return the view's page. `txClean`'s `pm = ∅` gives it; after a
-spill's allocations, the allocated pages are not view pages (free or past the high-water mark). -/
-def pmFresh (X : WX) : Prop := ∀ id, (X.t.pm !! id).isSome → X.v.pages !! id.toNat = none
-
-/-- **An inline bucket's page is where its source says** (`bktOpened`'s two cases): view bytes
-(`page` field view-backed) or persistent heap bytes (`page` field's status none). -/
-def inlSrcOK (X : WX) (bl : Loc) : Prop :=
-  ∀ B, X.t.bs !! bl = some B → B.ib.root' = W64 0 → B.bv.rootNode' = null →
-    (B.isrc = Src.view ∧ B.pst = PageSt.view) ∨ (B.isrc = Src.own DFrac.discard ∧ B.pst = PageSt.none)
-
-/-- The source of a leaf entry's bytes as `seek` returns them: an inline bucket's page's entries
-are its page's bytes (`B.isrc`; `ltree` says `.view` for every page entry), any other entry's
-source is its own. -/
-def leafSrc (X : WX) (bl : Loc) (s : Src) : Src :=
-  match X.t.bs !! bl with
-  | some B => if B.ib.root' = W64 0 ∧ B.bv.rootNode' = null then B.isrc else s
-  | none => s
+-- `pmFresh`, `inlSrcOK`, `leafSrc`: moved to `Model/WOps` (batch 33, the shared `seek_w` spec's).
 
 /-- **A logical stack from position `pid`** (`lPath` from any position). -/
 def lPathFrom (X : WX) (bl : Loc) (pid : w64) (els : List elemRef) (pids : List w64) : Prop :=
