@@ -139,7 +139,7 @@ variable [sem : go.Semantics]
 theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (v : View) (w : WDb) (b : Loc) (l : Nat)
     (N' : Namespace) (S : List Nat) (bs : Nat → List w8) (pages : Pages) (Dn : Data) (Q : IProp GF)
-    (hms : w.ms = some (b, l)) (hok : wdbOK w)
+    (Fb : GMap Nat (List w8)) (hms : w.ms = some (b, l)) (hmaps : w.m.maps = GMap.singleton b l)
     (hroot : uint.Z X.t.mv.root'.root' < uint.Z X.t.mv.pgid')
     (hflp : uint.Z X.t.mv.freelist' < uint.Z X.t.mv.pgid' ∨
       X.t.mv.freelist'.toNat = pgidNoFreelist)
@@ -147,7 +147,8 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (hcp : cpOK w.C w.fl b l X.t.mv pages Dn S bs) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
         ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
-        slotsOwn (some (b, l) : MapSt) K.p S bs ∗ commitAU K N' (treeData w.C) Dn Q }}
+        slotsOwn (some (b, l) : MapSt) K.p S bs ∗ commitAU K N' (treeData w.C) Dn Q ∗
+        fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
     {{ (err : GoInterface), RET #err; ∃ m' : OsMeta, ⌜m'.size = w.m.size ∧ m'.maps = w.m.maps⌝ ∗
         wtxW K tx r false (X.withMv (metaSummed X.t.mv)) ∗
@@ -158,8 +159,9 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
          (⌜err ≠ interface.nil⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) (w.reslot m' w.W w.wb) ∗
           ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
-          slotsOwn (some (b, l) : MapSt) K.p S bs ∗ commitAU K N' (treeData w.C) Dn Q)) }} := by
-  wp_start_folded as ⟨Hw, Hd, Hstq, HS, Hau⟩
+          slotsOwn (some (b, l) : MapSt) K.p S bs ∗ commitAU K N' (treeData w.C) Dn Q ∗
+          fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb)) }} := by
+  wp_start_folded as ⟨Hw, Hd, Hstq, HS, Hau, Hfb⟩
   obtain ⟨htx, hval, hps, hDn, htree, hhwm, hdrop, hS, hbytes, hfl, hnp, hSb⟩ := hcp
   icases cm_wmeta_acc K tx r false X $$ Hw with ⟨#Hcore, #Hreg, Hst, Hdb, Hme, Hmv, %Hmvn, Hwb⟩
   unfold wdbLive wdbCoreG
@@ -168,12 +170,9 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   ihave Hres : cpRes K w.C w.fl b l v (w.C.txid + 1) false true (treeData w.C)
       $$ [Hout Hcur Hfl Hmap Hwv Hopn Hmc Hmb Hstq]
   · unfold cpRes; rw [← hms]; iframe
-  ihave Hfb := fbTok_of_wdbOK (GF := GF) K.B w hok
-    ((some v, some (w.C.txid + 1), false, true) : WSt) ∅
-  ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs ∅ X.t.mv pages Dn Q htx hval hps
+  ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs Fb X.t.mv pages Dn Q htx hval hps
     hDn htree hhwm hdrop hS hbytes hfl hnp hSb $$ [Hres HS Hfb Hau]
   · iframe; iframe #
-  have hmaps : w.m.maps = GMap.singleton b l := hok.1 b l hms
   wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.m b l
     (DFrac.own 1) (DFrac.own (1 : Qp).half) _ hroot hflp haddr hsz hmaps hl
     $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hcp]
@@ -186,7 +185,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   · ipureintro; exact Hom'
   iframe Hw Herr
   unfold cpPost
-  icases Hpost with (⟨%hj, Hres, Hrc1, HQ⟩ | ⟨%hj, Hres, HS, -, Hau⟩)
+  icases Hpost with (⟨%hj, Hres, Hrc1, HQ⟩ | ⟨%hj, Hres, HS, Hfb, Hau⟩)
   · ileft
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
@@ -206,7 +205,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       omega
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
-    iframe Hstq HS Hau
+    iframe Hstq HS Hau Hfb
     simp only [WDb.reslot]
     rw [hms, Hom'.1]
     iframe
