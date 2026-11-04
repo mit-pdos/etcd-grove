@@ -1,0 +1,153 @@
+/-
+`node.spill` (U9h, `notes/bbolt-proof-plan.md`; pure): composing the spill's steps. A spill step
+(`spStep`) and frame (`spFrame`) are reflexive and transitive, and a step for a larger frame of
+owned slots is one for a smaller; `newSlot` grows with the steps and a lower mark. The children's
+loop of `node.spill` (`Spill/NodeSpillLoop`) composes its children's spills with these.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpec
+public import Proof.go_etcd_io.bbolt.Spill.DerefModel
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+namespace Spill
+
+section comp
+variable [GooseExts]
+
+/-! ## Records modulo sources -/
+
+theorem nodeSim_refl (r : NRec) : nodeSim r r :=
+  ⟨rfl, Iff.rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem nodeSim_trans {r1 r2 r3 : NRec} (h1 : nodeSim r1 r2) (h2 : nodeSim r2 r3) :
+    nodeSim r1 r3 := by
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2⟩ := h2
+  refine ⟨?_, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1, g2.trans g1⟩
+  rw [a2, a1]
+
+theorem bktSim_refl (B : BRec) : bktSim B B := ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+theorem bktSim_trans' {B1 B2 B3 : BRec} (h1 : bktSim B1 B2) (h2 : bktSim B2 B3) :
+    bktSim B1 B3 :=
+  ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
+    h2.2.2.2.2.trans h1.2.2.2.2⟩
+
+theorem optRel_nodeSim_refl (o : Option NRec) : optRel nodeSim o o :=
+  optRel_refl (R := nodeSim) nodeSim_refl o
+
+theorem optRel_nodeSim_trans {o1 o2 o3 : Option NRec} (h1 : optRel nodeSim o1 o2)
+    (h2 : optRel nodeSim o2 o3) : optRel nodeSim o1 o3 :=
+  optRel_trans (R := nodeSim) (fun _ _ _ h1 h2 => nodeSim_trans h1 h2) o1 o2 o3 h1 h2
+
+theorem optRel_nodeSim_isSome {o1 o2 : Option NRec} (h : optRel nodeSim o1 o2) :
+    o1.isSome = o2.isSome := by
+  cases o1 <;> cases o2 <;> simp_all [optRel]
+
+/-! ## The frame -/
+
+theorem spFrame_refl (X : WX) (bl : Loc) (T : List Loc) : spFrame X X bl T :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
+    fun _ _ B hB => ⟨B, hB, bktSim_refl B, fun _ => optRel_nodeSim_refl _⟩,
+    fun _ _ h => h,
+    fun B hB => ⟨B, hB, bktSim_refl B, fun _ _ => optRel_nodeSim_refl _⟩,
+    fun _ _ _ => Iff.rfl⟩
+
+/-- A frame for fewer touched nodes is one for more. -/
+theorem spFrame_mono {X X' : WX} {bl : Loc} {T T' : List Loc} (h : spFrame X X' bl T)
+    (hT : ∀ l ∈ T, l ∈ T') : spFrame X X' bl T' := by
+  obtain ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, o, p⟩ := h
+  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y hy => p y (fun hm => hy (hT y hm))⟩
+  obtain ⟨B', hB', hs, hn⟩ := o B hB
+  exact ⟨B', hB', hs, fun y hy => hn y (fun hm => hy (hT y hm))⟩
+
+/-- **Frames compose**, their touched nodes joined. -/
+theorem spFrame_trans {X1 X2 X3 : WX} {bl : Loc} {T1 T2 : List Loc} (h1 : spFrame X1 X2 bl T1)
+    (h2 : spFrame X2 X3 bl T2) : spFrame X1 X3 bl (T1 ++ T2) := by
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1, m1, n1, o1, p1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2, m2, n2, o2, p2⟩ := h2
+  refine ⟨a2.trans a1, b2.trans b1, c2.trans c1, d2.trans d1, e2.trans e1, f2.trans f1,
+    g2.trans g1, i2.trans i1, Nat.le_trans j1 j2, fun id bs h => k2 id bs (k1 id bs h),
+    fun id p h => l2 id p (l1 id p h), ?_, fun bl' hne h => n2 bl' hne (n1 bl' hne h), ?_, ?_⟩
+  · intro bl' hne B hB
+    obtain ⟨B2, hB2, hs2, hn2⟩ := m1 bl' hne B hB
+    obtain ⟨B3, hB3, hs3, hn3⟩ := m2 bl' hne B2 hB2
+    exact ⟨B3, hB3, bktSim_trans' hs2 hs3, fun l => optRel_nodeSim_trans (hn2 l) (hn3 l)⟩
+  · intro B hB
+    obtain ⟨B2, hB2, hs2, hn2⟩ := o1 B hB
+    obtain ⟨B3, hB3, hs3, hn3⟩ := o2 B2 hB2
+    refine ⟨B3, hB3, bktSim_trans' hs2 hs3, fun l hl => ?_⟩
+    have hl1 : l ∉ T1 := fun hm => hl (List.mem_append_left _ hm)
+    have hl2 : l ∉ T2 := fun hm => hl (List.mem_append_right _ hm)
+    exact optRel_nodeSim_trans (hn2 l hl1) (hn3 l hl2)
+  · intro l hl ⟨bl', B, hB, hsome⟩
+    have hl1 : l ∉ T1 := fun hm => hl (List.mem_append_left _ hm)
+    have hl2 : l ∉ T2 := fun hm => hl (List.mem_append_right _ hm)
+    refine (p2 l hl2 ?_).trans (p1 l hl1 ⟨bl', B, hB, hsome⟩)
+    by_cases hb : bl' = bl
+    · subst hb
+      obtain ⟨B2, hB2, -, hn2⟩ := o1 B hB
+      exact ⟨bl', B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l hl1)]; exact hsome⟩
+    · obtain ⟨B2, hB2, -, hn2⟩ := m1 bl' hb B hB
+      exact ⟨bl', B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l)]; exact hsome⟩
+
+/-! ## The step -/
+
+theorem applySteps_append (fl : FLPg) (txid : w64) (s1 s2 : List FLStep) :
+    fl.applySteps txid (s1 ++ s2) = (fl.applySteps txid s1).applySteps txid s2 := by
+  unfold FLPg.applySteps; rw [List.foldl_append]
+
+theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms))
+    (hm : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) : spStep X X w w O [] :=
+  ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h⟩
+
+/-- A step for a larger frame of owned slots is one for a smaller. -/
+theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
+    (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by
+  obtain ⟨a, b, c, d, e, f, g, i⟩ := h
+  exact ⟨a, b, c, d, e, f, fun x hx hm => g x hx (hO x hm),
+    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr⟩
+
+theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
+  unfold WDb.wtxid; rw [h]
+
+/-- **Steps compose.** -/
+theorem spStep_trans {X1 X2 X3 : WX} {w1 w2 w3 : WDb} {O : List Nat} {s1 s2 : List FLStep}
+    (h1 : spStep X1 X2 w1 w2 O s1) (h2 : spStep X2 X3 w2 w3 O s2) :
+    spStep X1 X3 w1 w3 O (s1 ++ s2) := by
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2⟩ := h2
+  have ht : w2.wtxid = w1.wtxid := wtxid_of_C a1
+  rw [ht] at b2 d2 i2
+  refine ⟨a2.trans a1, by rw [b2, b1, applySteps_append], c2.trans c1, d2, e2,
+    fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr)⟩
+  by_cases hx1 : spP X2 !! x = spP X1 !! x
+  · exact g2 x (by rw [hx1]; exact hx)
+  · exact g1 x hx1
+
+/-- `newSlot` grows with the steps (a prefix) and a lower mark. -/
+theorem newSlot_mono {st st' : List FLStep} {hwm hwm' s : Nat} (h : newSlot st hwm s)
+    (hst : ∀ x ∈ st, x ∈ st') (hle : hwm' ≤ hwm) : newSlot st' hwm' s := by
+  rcases h with ⟨id, n, hm, h1, h2⟩ | h
+  · exact Or.inl ⟨id, n, hst _ hm, h1, h2⟩
+  · exact Or.inr (Nat.le_trans hle h)
+
+end comp
+
+end Spill
+
+end bbolt
+end EtcdGrove
+end Perennial
