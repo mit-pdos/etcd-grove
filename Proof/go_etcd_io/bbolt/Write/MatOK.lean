@@ -18,6 +18,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Write.FlView
 public import Proof.go_etcd_io.bbolt.Write.Bound
+public import Proof.go_etcd_io.bbolt.Write.RootKeys
 public import Proof.go_etcd_io.bbolt.Rebalance.RblMat
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSObjs
@@ -952,8 +953,13 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb
         -- item 3/batch 43.4: the root bucket's root page's keys at most `MaxKeySize` (a leaf's:
-        -- `posShape`'s name clause; a branch's: exact branch keys and `rootShape`): OPEN, owner U7
-        (fun _ _ _ => sorry)) (by rw [hrid'])
+        -- `posShape`'s name clause; a branch's: exact branch keys, `Write/RootKeys`)
+        (fun hP => by
+          have hBr : X.t.bs !! X.rl = some B := by rw [← hP]; exact hB
+          have hin : B.ib.root' ≠ W64 0 := fun h => hok.1.2.1.2.2.2.2 B hBr h
+          exact pageKeys_le_of_treeKeys X.v.pages _
+            (posShape_rootLeaf X hok.1.2.1.2.2.2.1 B hBr _ (Or.inl ⟨hrn0, hin, rfl⟩))
+            _ none none (htk hin) (ownHas.root _ pg (hfile hin)) pg (hfile hin))) (by rw [hrid'])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj => by
         by_cases hin : B.ib.root' = W64 0
         · -- an inline bucket's page: no bucket entries; `bl` is not the root bucket (batch 37:
@@ -1000,7 +1006,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     obtain ⟨⟨bnd, hkb, hbf⟩, hl0', ha, -⟩ := rblReady_of_wOK X hok bl B hB
     obtain ⟨-, -, -, hrpk3, -, -⟩ := hkb.2.2 parent rp hrp
     obtain ⟨-, kind, hkd⟩ := hrpk3 hbr
-    obtain ⟨pg', hpg', hcnt, -⟩ := (hkd i w hw).2 hnone
+    obtain ⟨pg', hpg', hcnt, -, -, htkw⟩ := (hkd i w hw).2 hnone
     rw [hpg] at hpg'; cases hpg'
     have hx : matExtra r := by
       refine ⟨hrins, fun hn => ?_, hsrc'⟩
@@ -1029,9 +1035,12 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)
-        -- item 3/batch 43.4: the root bucket's page keys at most `MaxKeySize` (as above): OPEN,
-        -- owner U7
-        (fun _ _ _ => sorry)) (by rw [hrid, hcid])
+        -- item 3/batch 43.4: the root bucket's page keys at most `MaxKeySize` (as above)
+        (fun hP => by
+          have hBr : X.t.bs !! X.rl = some B := by rw [← hP]; exact hB
+          exact pageKeys_le_of_treeKeys X.v.pages _
+            (posShape_rootLeaf X hok.1.2.1.2.2.2.1 B hBr _ hposw)
+            _ _ _ htkw (ownHas.root _ pg hpg) pg hpg)) (by rw [hrid, hcid])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj =>
         (hok.1.2.1.2.2.2.1 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hlf j hj).1))
       (fun k h => nm_ins_none B.nm _ k l h)
@@ -1191,7 +1200,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
     have hp' : matParent rp rp' l := ⟨hc1, hc2, hc3, hc4, hc5, hc6, hcap B _ rp rp' hB hB' hrp hrp'⟩
     obtain ⟨-, -, -, hrpk3, -, -⟩ := hkb.2.2 parent rp hrp
     obtain ⟨-, kind, hkd⟩ := hrpk3 hbr
-    obtain ⟨pg', hpg', hcnt, -⟩ := (hkd i w hw).2 hnone
+    obtain ⟨pg', hpg', hcnt, -, -, htkw⟩ := (hkd i w hw).2 hnone
     rw [hpg] at hpg'; cases hpg'
     have hx : matExtra r := by
       refine ⟨hrins, fun hn => ?_, hsrc'⟩
