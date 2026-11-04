@@ -47,7 +47,7 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × Data)) (p : 
   rcases o with _ | ⟨tx, D⟩
   · unfold statSlot
     unfold isBoltP
-    icases Hb with ⟨-, -, #Hpool⟩
+    icases Hb with ⟨-, -, #Hpool, -⟩
     imod threadPool.borrow (poolN γ.ns) _ _ ⊤ CoPset.subseteq_top $$ [Hpool Hslot] with ⟨Hpair, Hloan⟩
     · iframe Hpool Hslot
     imodintro
