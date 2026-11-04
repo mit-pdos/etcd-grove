@@ -162,6 +162,171 @@ frozen public statement changed):
 them at `Open`. The maintainer's freelist fix (9ec32691bc: `releaseRangeOne` in Go's order,
 `rollback` a no-op without an entry) was ported into the U3 proofs.
 
+## Shared-statement fixes (U6's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
+
+1. **`rStackAt_next`/`wStackAt_next` were false** (`sSucc` said nothing of the old stack below
+   the moving depth: a stack at index 0 of a 5-entry leaf moving at its parent lands at
+   position 5, not `i + 1`; a stack past its leaf's end after `Seek`, or in an empty leaf,
+   lands at its own position). `sSucc d els els'` now takes the depth and is `next`'s move
+   literally (`els' = els.take d ++ e' :: R'`, `e'` one further than `els[d]`, `R'` first);
+   the new `sEndBelow v es pids els d` is what `next`'s upward loop found (branch indices
+   below `d` the last, leaf index `≤` its leaf's entries, the leaf's bounds ordered; the lower
+   bound `count - 1` is not needed). Both lemmas take the old path `pids` and the new `pids'`
+   explicitly, `hlen : d + 1 < els.length ↔ d + 1 < els'.length` (`goToFirstElementOnTheStack`
+   descends iff `d` is a branch), and `sEndBelow` only when `d` is above the leaf; they give
+   the new stack's `rStackAt`/`wStackAt` at `min (stackPos ...) es.length` and its position:
+   `+ 1` at the leaf, `new + leafIdx els = old + |old leaf's entries|` above it. Proved
+   (`stackPos_next`, public, from U6's `stackPos_succ_up`/`_leaf`, copied privately into
+   `Model/Cursor`); `wStackAt_next` no longer takes `wCtx`, `rStackAt_next` no longer `viewWF`.
+
+2. **`rdTxK_root` was unprovable** (its wand takes back any `rBkt`, whose header may be the
+   view's bytes, while `rtxFrac` pinned a persistent heap header). `rtxFrac` now holds the root
+   bucket's fields *as* `rBkt v tx (txRoot tx) (DFrac.own q) (rootVal v)` (plus its
+   `FillPercent` at `q`), in place of `tx.root ↦ t.root'` and the header clause; `t.pages' = null`
+   moved to the facts. `rdTxK_root` is proved (framing). `rBkt`, `locOwn`, `rootVal` moved from
+   `Inv/Ctx` to `Inv/Tx` (same statements; `Inv/Ctx` re-exports them). `Tx.init` (U5) splits
+   the struct points-to of `tx.root` into its fields (its header a persistent copy: `rBkt`'s
+   left disjunct, `ib.root' = W64 v.root`; its `page` nil when `v.root ≠ 0`).
+3. **`Tx.page_r` was not derivable from `rdTxK`** (the mapping was an existential `ms` in
+   `PmNoTok`, with no bound for `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF`). `rtxFrac` now holds
+   `PmNoTok`'s parts at the view's mapping, `∃ l, ghostVar B.map … (some (v.base, l)) ∗
+   mapFields r.db … (some (v.base, l)) ∗ ⌜∀ id pg, v.pages !! id = some pg → (id+1)·4096 ≤ l⌝`
+   (`Tx.begin`, U5, gets it from `storeOK`: `rOK`'s base, `viewInStore`, slots `< l/4096`). The
+   length bound is where the mapping is made: **`mapFields`' mapped case carries `⌜len ≤
+   0xFFFFFFFFFFFF⌝`** (`Inv/Locks`; `DB.mmap` maps `mmapSize`'s result, which caps it at
+   `maxMapSize`; U4/U11 prove it when writing the fields), with a `DFractional` instance for pure
+   facts so that `mapFields` stays `DFractional` (`Pm_fractional` unchanged). Fractions for
+   `Tx.page` (one `dqt` for `tx.pages` and `tx.db`): `dqt = DFrac.own (QpMul q ½)`, from
+   `tx.pages`' `q` (two halves) and `tx.db`'s `txDbQ q = QpMul q ½ + QpMul q ¼`.
+
+4. **`boltBktDef`'s reader branch carries the bucket** (U0b item 2): with `r.rw = false`,
+   `∃ v bv, viewOf r v ∗ rBkt v tx b DFrac.discard bv ∗ ⌜bktEntry v.pages (rootVal v) n bv⌝`
+   (what `Bucket.Bucket_r` gives for a top-level bucket `n` of the reader's view; `viewOf`
+   agrees with `rdTxK`'s view), so that the public reader `Get`/`Cursor` triples reach the
+   bucket's fields. Still persistent (`boltBktDef_persistent`, a `sorry`). `Inv/Tx` imports
+   `Model/WOps` (for `bktEntry`).
+
+## Shared-statement fixes (U8's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement changed.
+
+1. **`wtxHeap` holds `⌜objsDisj X.t⌝`** (a bucket's node is no bucket and no other bucket's node):
+   `wtxHeap`'s pure part is now `heapOK tx X` (`X.rl = txRoot tx ∧ objsDisj X.t ∧ …`, items
+   below). `objsDisj` moved from U8's `Rebalance/Objs.lean` to `Model/Wtx.lean` (U8's
+   `objs_node`/`objs_bkt` unchanged); `Rebalance/Heap`'s `wtxHeap_objsDisj` is proved. Kept by
+   every operation since `nodeAdded`/`bktOpened` add locations fresh in `X.t.objs`; with it
+   `wtxHeap_bkt_acc` (U5) is provable (`objs_bkt`).
+
+2. **Every bucket's `tx` field is the transaction**: `heapOK`'s `∀ bl B, X.t.bs !! bl = some B →
+   B.bv.tx' = tx`, read by `wtxHeap_heapOK` (`node.free`, `node.rebalance`, `Bucket.node` read
+   `n.bucket.tx`).
+
+3. **The siblings' parent**: `node.nextSibling`/`prevSibling` take `rp.nv.bucket' = bl` of the
+   parent's record (`n.parent.childAt` calls `n.parent.bucket.node`). `n.parent = n` is excluded
+   in the heap: `heapOK`'s `∀ bl B n r, … B.ns !! n = some r → r.nv.parent' ≠ n` (kept: a node's
+   parent is set to an existing node, `nodeAdded`, or by `rebalance`'s moves to another node).
+4. **`node.free`'s pre** (with `pgid ≠ 0`): `X.t.mv.txid' = w.wtxid` (`Free` takes
+   `tx.meta.Txid()`), and the page's `16 ≤ pg.length`, `pageId pg = pgid.toNat`, leaf or branch
+   flags (`tx.page`'s `FastCheck`); the bucket's `tx` field from `heapOK` (item 2). Still open
+   for its prover: `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF` (from `wtxW`'s `mapFields` bound and a
+   view page inside the mapping, which `wtxW` does not hold yet: as `rtxFrac`, it could).
+
+5. **`spill`'s pre after `rebalance`**: `rebalOK`'s post and `spillPre` hold the new `wOKR X`
+   (`Model/Wtx`): `wOK` with `txPg` replaced by `txPgLeaf` (leaf entries of page id `0`: what
+   `spill`'s `node.write` needs; a merged branch node's entries are no longer its page's);
+   `wOK_wOKR`. `bktKeys` stays (the post). `bktLocalOK` (the searches `Bucket.spill` makes after
+   its children's spill, `Cursor.seek_w`, `Cursor.node`, `Bucket.Bucket_w`, `ForEachBucket_w`,
+   `Bucket.free`) holds `txPgLeaf` of its bucket instead of `txPg`: U6/U7 must not use a branch
+   node's page equality there. `treeData_spill` takes `wOKR`. **`nlocOK`** (in `wOK`, so also
+   for `DeleteBucket`'s post): every registered node is an object (a fresh location is
+   unregistered), and only a *live* registered node is a node of its bucket at its page id (the
+   nodes `rebalance` and `DeleteBucket` remove are dead, their entries kept).
+6. **`wtxData_rebalance`** (`Model/LTree`) is U8's `wtxData_rebalance'` (adds
+   `X'.v.pages = X.v.pages`; `rebalOK` gives `X'.v = X.v`), proved; U8's `Rebalance/Data.lean`
+   can go.
+7. **The root collapse** (U8's finding): the collapsed child's `inodes`/`children` become the
+   root's, so the child cannot keep them. A **dead node now owns only its struct** (`objOwn`'s
+   `false, .node` case; `objOwn_weaken` drops the rest, `objOwn_node_ptr_acc` reads the struct
+   either way): the child goes to `dead` with its struct (rather than leaving `objs`, which would
+   break `nlocOK`'s "registered ⇒ object", i.e. the freshness `nodeAdded`'s registry insert needs
+   after the collapse, in `spill`'s materializations).
+
+8. **`fills_fractional`** (`Inv/WtxHeap`) is proved (each handle's `FillPercent` points-to
+   splits, and two halves agree on the value).
+
+9. **The writer's view inside its mapping** (follow-up to item 4): `wtxW`'s and `wtxFrac`'s
+   mapping part is `∃ l, mapFields r.db … (some (X.v.base, l)) ∗ ⌜∀ id pg, X.v.pages !! id =
+   some pg → (id+1)·4096 ≤ l⌝`, as the reader's `rtxFrac`; with `mapFields`' `l ≤ maxMapSize`,
+   `pageIdx_lt_maxMap` (`Inv/Tx`) gives `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF` for a view page
+   (`node.free`, `Bucket.node`'s reads, `pageNode_w`). Established at `beginRWTx` (U5) from
+   `storeOK` (the writer's view is in the store, `StoreSt.wOK`'s `viewInStore`, store slots
+   `< l/4096`); kept by a remap (U4: `DB.mmap`'s new mapping covers every store slot,
+   `store_carve`'s `hl`, and the view's pages are kept, re-based); allocation does not touch it:
+   an allocated page (past the old mapping or not) is in `tx.pages`, and `Tx.page` of a page of
+   `tx.pages` (`pm !! id = some p`) needs no bound; only a view page (`pm !! id = none`) does.
+
+## Shared-statement fixes (U2's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement changed.
+
+1. **The 14 `Interface__*` specs** (`Spec/go_etcd_io/bbolt/internal/freelist/`) are U2's corrected
+   ones: stated over `ifaceCall fli m` (moved from U2's `Lemmas/IfaceCall.lean` to
+   `Inv/Freelist.lean`), what Go's `fl.M(args)` steps to (`methods Interface.ty m` has no
+   semantics). Each proof file's `wp_proof'` is its `wp_proof` (callee specs as hypotheses); the
+   `sorry`'d duplicates are gone. All 14 are proved.
+2. **`NoSyncReload`**: `PgidsIncr ids`, ids `≥ 2`, `ids.length + fl.pendingIds.length < 2^63`,
+   `(fl.noSyncReload ids).free ≠ [] ∨ fl.free = []`.
+3. **`Reload`**: `(flIds pg).Nodup`, ids `≥ 2`, `(flIds pg).length + fl.pendingIds.length < 2^63`,
+   `flIds pg ≠ [] ∨ fl.free = []`. The callers can supply 2 and 3 from what is maintained:
+   `Reload(p)` (rollback, a synced freelist page): `wdbOK`'s `flCurOK` (`Nodup`, `≥ 2`, ids
+   `< 2^62` or committed-pending, `fl.free ⊆ flIds pg`, so a non-empty `fl.free` gives a non-empty
+   page); `NoSyncReload(freepages())` (rollback without a synced page): `freeIdsOf C` is sorted,
+   `≥ 2`, below `hwm`, and contains every free id (`flBelow`, `wdbOK`'s B2); the length bound in
+   both from `storeOK`'s `hwm ≤ 2^62` and `flBelow`'s pending ids `< 2^62` (distinct ids in
+   `[2, 2^62)` number fewer than `2^62`). U10 needs the counting lemma (distinct ids in a range)
+   and, for `NoSyncReload`, `fl.free ⊆ freeIdsOf C` (from `flBelow` and the free ids not being
+   tree slots); `Open`'s `loadFreelist` uses `Init`, unaffected.
+4. **`releaseRangeOne`** (`Model/FL`) keeps a touched entry's other pairs in the code's
+   swap-removal order (`srLoop`, `srLoop_perm`, `mem_srLoop`, moved from U2's
+   `Lemmas/ReleaseGo.lean`); `FLPg.releaseRange`/`releasePending` keep their names, and U2's
+   `releaseRangeGo`/`releasePendingGo` equal them (`rfl`). U3's proofs adapted (only where they
+   read the kept pairs): `Model/Mvcc`'s `mvccView_releaseRange` (a pair kept is one allocated
+   outside the range, `mem_srLoop`), `Model/Store`'s private `rrOne_perm` (the ids, up to order)
+   and `relOK_releaseRange` (the same membership). `storeOK_release` unchanged.
+5. **`FLPg.rollback`** is the code's: nothing without a pending entry for `txid`, else the new
+   `FLPg.rollbackEntry` (the old body). U2's `rollbackGo` equals it (`rfl`). `Model/Store`: the
+   old proof is the private `storeOK_rollbackE` over the new `StoreSt.rollbackE`, and
+   `storeOK_rollback` (same statement) splits on the pending entry; the private
+   `rollback_allocs`/`rollback_pending`/`mvccView_rollback`/`pendSlots_rollback`/
+   `pendingIds_rollback_perm` are over `rollbackEntry`. `Inv/Store`'s `store_rollback` unchanged.
+6. **`flPgOwn`'s pending entries are non-nil**: its map of entries holds `⌜p ≠ null⌝ ∗ ownPending
+   p pd` (every entry the code stores is a fresh allocation); U2's `ownPending_nonnull` (false as
+   stated, the one `sorry` of U2's proofs) is deleted, `pds_to_pend`/`pend_to_pds` reworked.
+
+U3's untracked work copies (`Proof/go_etcd_io/bbolt/Store/Wip*.lean`) repeat the old proofs of
+items 4 and 5 and need the same edits.
+
+## Shared-statement fixes (U6's and U9a's findings, batch 4/5, 2026-11-04)
+
+1. **`mapFields`' mapped case** carries `⌜len ≤ 0xFFFFFFFFFFFF ∧ base ≠ null⌝` (one pure
+   conjunct, so the destructuring patterns of its users are unchanged; `DB.mmap`'s writer of the
+   fields states the base, U4). `Read/Base`'s `mapFields_base_nonnull` is proved: the read path's
+   `Tx.page` calls rest on no `sorry` for it.
+2. **`Bucket.pageNode_w`** takes `∀ c l, B.nm !! c = some l → l ≠ null` (a cached node is not
+   nil; `bktClean`'s `B.nm` clause, `bktLocalOK_nm_nonnull` for its callers); its branch `sorry`
+   is gone.
+3. **Split pieces need not own their inodes' capacity** (U9a): `NRec` gains `capOwn : Bool`
+   (default `true`); `objOwn`'s live node owns `ownSliceCap Inode r.nv.inodes'` only if
+   `r.capOwn` (`node.split`'s pieces but the last set it `false`: their capacity is the next
+   pieces' inodes; `Spill/Split`'s post gives the pieces without capacity). Kept true where
+   capacity is used: `nodeClean` (so `wOK`/`wOKR`, before the spill) and `nodeAdded` hold
+   `r.capOwn = true`, and `node.put`/`node.del` take it as a premise (they append). Chosen over
+   dropping split nodes from the heap because `tx.allocate`'s remap (`dereference`) walks the
+   pieces, as the parent's children, before they are spilled.
+4. `Inv/Ctx`'s `reg_persistent'` instance is public.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
