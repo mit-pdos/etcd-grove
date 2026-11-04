@@ -75,6 +75,10 @@ instance revOk_persistent (γk : KVNames) (r : w64) : Persistent (revOk (GF := G
 def recRevOk (γk : KVNames) (recorded : w64 → IProp GF) (r : w64) : IProp GF :=
   iprop(⌜r = W64 0⌝ ∨ ⌜0 < sint.Z r⌝ ∗ recorded r ∗ kvRevLbZ γk (sint.Z r))
 
+instance recRevOk_persistent (γk : KVNames) (recorded : w64 → IProp GF)
+    [∀ c, Persistent (recorded c)] (r : w64) : Persistent (recRevOk (GF := GF) γk recorded r) := by
+  unfold recRevOk; infer_instance
+
 /-- **What a round's transaction tells the compactor** at the state `σ` it ran at: the key was
 written (`Seen`); on success, `rev` recorded; on failure, the key present holding `FormatInt c` for
 a recorded, reached-or-zero `c`. -/
@@ -131,10 +135,12 @@ def compactorStopOk [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames)
 
 /-- **A compactor** (persistent; see the file header): its client `cl`, its interval (nonzero), a
 `RealClock`, no `onClose`, the mutex over its revision, and its stop machinery (the `stop`
-channel `sc`). -/
+channel `sc`); and the caller's `recorded` is persistent (`NewCompactor.spec`'s instance), so that
+the revision under the mutex can be both kept and returned. -/
 @[no_expose] def isCompactor [sync.Assumptions] (c cl : Loc) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) : IProp GF :=
-  iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"client" c ↦□ cl ∗
+  iprop(⌜∀ r, Persistent (recorded r)⌝ ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"client" c ↦□ cl ∗
     (∃ iv : w64, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"interval" c ↦□ iv ∗
       ⌜iv ≠ W64 0⌝) ∗
     (∃ ck : k8s_io.utils.clock.RealClock,
