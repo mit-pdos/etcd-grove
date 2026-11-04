@@ -360,9 +360,100 @@ theorem Tx.rollback.wp_proof
           ipureintro; exact ⟨hok'', hwr, hrl⟩
         iapply HΦ; iexact Hdone
       · -- a synced freelist page: `Reload(db.page(db.meta().Freelist()))`
-        rw [show (! (! decide (some f = (none : Option Nat)))) = true from rfl]
+        rw [show (! (! decide (some f = (none : Option Nat)))) = false by simp]
         wp_auto
-        done
+        have hfp' : w'.C.flpg = some f := by rw [hC']; exact hfp
+        obtain ⟨hpf, hsz, hcnt, hnd, h2, hlen, hne, hext⟩ :=
+          reload_premises w' f hok' hfp' (by rw [hC']; exact hhwm) (by rw [hfl']; exact hwf2)
+        have hextW := ext_in_W w' f hok' hfp'
+        have hl9 : w.C.hwm * 4096 ≤ l := hwok.2.2.2.2.2.2.2.2.1 b l hbl'
+        have hfw : (W64 (f : Int)).toNat = f := by
+          rw [hC'] at hext
+          rw [toNat_W64_of_lt _ (by omega)]
+        wp_apply wp_meta K.db b l w.C _ _ hmok $$ [Hmf2 Hmc2] as ⟨Hmf2, Hmc2⟩
+        · iframe
+        wp_apply wp_meta_Freelist wp_Freelist b l w.C _ hmok f hfp $$ [Hmc2] as Hmc2
+        · iframe
+        simp only [mapFields]
+        icases Hmf2 with ⟨Hdr, Hdata, Hm0, Hm1, %hmfp⟩
+        unfold dbFixed
+        icases Hfix with ⟨#HpgSz, -⟩
+        wp_apply wp_page K.db b (W64 (f : Int)) _ hb0 (by rw [hfw]; rw [hC'] at hext; omega)
+          $$ [Hdata] as Hdata
+        · iframe; iexact HpgSz
+        rw [hfw, show f * 4096 = 4096 * f by omega]
+        -- the extent's cells and bytes, read against each other
+        have hnd' : (List.range' f (1 + pageOverflow (w'.wb f))).Nodup := List.nodup_range'
+        ihave Hwc : wCells (GF := GF) (some (b, l)) w'.W $$ [Hwc]
+        · rw [← hbl', ← hms']; iexact Hwc
+        icases wCells_ext b l w'.W _ hnd' (fun s hs => (hextW s hs).1)
+          (fun s hs => (hextW s hs).2.2.1 b l (by rw [hms']; exact hbl')) $$ Hwc with ⟨Hec, Hwc⟩
+        icases wBytes_ext K.p w'.W _ w'.wb w'.m.size hnd' (fun s hs => (hextW s hs).1)
+          (fun s hs => (hextW s hs).2.1) $$ Hwb with ⟨Heb, Hwb⟩
+        have hmaps : w.m.maps !! b = some l := by rw [hwok.1 b l hbl']; simp
+        ihave Hosm : osMeta K.p (DFrac.own 1) (some w'.m) $$ [Hosm]
+        · rw [hm']; iexact Hosm
+        rw [← hm'] at hmaps
+        iapply ext_agree _ rfl K.p (DFrac.own 1) w'.m b l hmaps (by simp) _ w'.wb
+          (1 + pageOverflow (w'.wb f)) f (fun s h1 h2 => by
+            have := hextW s (List.mem_range'_1.2 ⟨h1, h2⟩)
+            exact ⟨this.2.2.1 b l (by rw [hms']; exact hbl'), this.2.2.2⟩) $$ Hos Hosm Heb Hec
+        iintro Hosm Heb Hpg
+        ihave Hpg : bytesPointsto (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
+            (extentBytes w'.wb f) $$ [Hpg]
+        · unfold extentBytes; iexact Hpg
+        have hpgne : extentBytes w'.wb f ≠ [] := by
+          intro h
+          have := congrArg List.length h
+          have hf4 := (hextW f (List.mem_range'_1.2 ⟨Nat.le_refl _, by omega⟩)).2.2.2
+          simp only [extentBytes, List.length_nil] at this
+          rw [show 1 + pageOverflow (w'.wb f) = pageOverflow (w'.wb f) + 1 by omega,
+            List.range'_succ, List.flatMap_cons, List.length_append, hf4] at this
+          omega
+        ihave %Hbd := internal.common.bytesPointsto_in_bounds _ _ _ hpgne $$ Hpg
+        ihave Hflo : flPgOwn w.fli w'.fl $$ [Hflo]
+        · rw [hfl']; iexact Hflo
+        wp_apply wp_Reload w.fli w'.fl _ (extentBytes w'.wb f) _ hpf hsz hcnt Hbd.1 Hbd.2 hnd h2
+          hlen hne $$ [Hflo Hpg] as ⟨Hflo, Hpg⟩
+        · iframe
+        -- the cells back
+        ihave Hpg : bytesPointsto (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
+            ((List.range' f (1 + pageOverflow (w'.wb f))).flatMap w'.wb) $$ [Hpg]
+        · unfold extentBytes; iexact Hpg
+        ihave Hec := ext_cells_back b w'.wb _ f
+          (fun s h1 h2 => (hextW s (List.mem_range'_1.2 ⟨h1, h2⟩)).2.2.2) $$ Hpg
+        ihave Hwc := Hwc $$ Hec
+        ihave Hwb := Hwb $$ Heb
+        have hids := reload_store_ids w' f hok' hfp' (by rw [hC']; exact hhwm)
+        rw [hC', hfl'] at hids
+        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _ hids hnd $$ [Hpi Hcur Hgfl]
+          with ⟨Hcur, Hgfl⟩
+        · iframe; iframe #
+        ihave Hw := Hback $$ Hdb Hwr Hme Hmv
+        ihave Hmfw : mapFields K.db (DFrac.own (1 : Qp).half.half) w.ms $$ [Hdr Hdata Hm0 Hm1]
+        · rw [hbl']; simp only [mapFields]; iframe; ipureintro; exact hmfp
+        ihave Hmc : metaCellsQ (1 : Qp).half.half w.ms w.C $$ [Hmc2]
+        · rw [hbl']; iexact Hmc2
+        ihave Hwc : wCells (GF := GF) w'.ms w'.W $$ [Hwc]
+        · rw [hms', hbl']; iexact Hwc
+        have hok'' := wdbOK_reload_synced w' f hok' hfp'
+        rw [← hfl']
+        rw [← hC', ← hms', ← hfli', ← hjunk', ← hf', ← hfd']
+        wp_auto
+        wp_apply wp_close K tx r X _ { w' with fl := w'.fl.reload (flIds (extentBytes w'.wb f)) }
+          ⟨v, w'.C.txid + 1, false, wl, rfl,
+            Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
+            by simp only; rw [hms']; exact hwl, hwlv⟩
+          $$ [Hw Hfull Hrwl Hcls Hshape Hv Hst Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile
+            Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt] as Hdone
+        · iunfold wtxEnd
+          iframe Hfull Hw Hrwl Hcls Hshape Hv Hst
+          isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd
+            Hmc Hmob Hwc Hwb Hjunk Hflo Hpair Hrcpt]
+          · unfold wdbLive wdbCoreG
+            iframe
+          ipureintro; exact ⟨hok'', hwr, hrl⟩
+        iapply HΦ; iexact Hdone
     · -- published (the commit point passed): only close
       simp only [↓reduceIte, Nat.add_zero] at hwt'
       subst hwt'
