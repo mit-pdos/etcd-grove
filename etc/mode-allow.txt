@@ -81,10 +81,6 @@ twin unmoved ::EtcdServer\.UserGrantRole\.wp_proofOn::
 twin unmoved ::EtcdServer\.apply\.wp_proofOn::
 twin unmoved ::EtcdServer\.applyEntries\.wp_proofOn::
 twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::
-twin unmoved ::EtcdServer\.doSerialize\.wp_proofM::
-twin unmoved ::EtcdServer\.parseProposeCtxErr\.wp_proofM::
-twin unmoved ::EtcdServer\.processInternalRaftRequestOnce\.wp_proofM::
-twin unmoved ::EtcdServer\.raftRequest\.wp_proofM::
 twin unmoved ::NewServer\.specM::
 twin unmoved ::NewServer\.wp_proofM::
 twin unmoved ::kv\.Delete\.specM::
@@ -95,19 +91,14 @@ twin unmoved ::txn\.Commit\.specM::
 
 # literal modes in proofs and results not yet over the slot (per file: count at the Freeze)
 lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 3
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AppliedOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnap\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnapOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyNormalOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthnOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__AuthEnable\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__RoleAdd\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__RoleGrantPermission\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__UserAdd\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__UserGrantRole\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyEntryNormal\.lean::  # 4
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/MergedImageOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerAllocOn\.lean::  # 1

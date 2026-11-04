@@ -87,7 +87,7 @@ def userAddHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfa
     adminHistAu s E ρ ctx (irrUserAdd m) Q)
 
 /-- **`s.UserAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.specM true`'s (`authRaftOk_on`), the request admitted (`adminPropOk`,
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`,
 for a name of at most `maxKeySize` bytes, its password choice sure by `spec`); the outcome: the
 hashing's error before any proposal (`applyErrIs`, `adminPreOn` back), or `authEntryOut` of `userAddOutOn`: on
 success, the request applied at the committed prefix `L` before its entry (`appliedOkM true`), the

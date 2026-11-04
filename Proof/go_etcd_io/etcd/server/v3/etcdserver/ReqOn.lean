@@ -14,7 +14,7 @@ the match reduces), so nothing mode-off changes:
   request was rejected by the auth layer exactly when `st` does not grant it), which the apply thread
   in the mode `on` hands over (E2t/E2y's `outcomeOn`). `reqWaitRM`, `waitInvM`, `srvReqFieldsAtM`,
   `isServerReqM`: the wait's registration and the proposer's view over it and `kvInvM` (E2w).
-- `resPostM`: the applied result as `processInternalRaftRequestOnce.specM` reports it.
+- `resPostM`: the applied result as `processInternalRaftRequestOnce.spec` reports it with auth on.
 - `reqPropOkM`: the proposal's permission **at the wire request**. In the mode `on` the check reads
   the request's principal, the header `processInternalRaftRequestOnce` fills in from the context
   (`AuthInfoFromCtx`) before it proposes, so the result `Qh hm` is a function of that header: for
@@ -243,7 +243,7 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
     apply.needAdminPermission rq = true → adminStepOk rq st (adminNext rq st)
 
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
-`processInternalRaftRequestOnce.specM`): `resultIsW`'s, at the committed prefix `L` before the
+`processInternalRaftRequestOnce.spec` with auth on): `resultIsW`'s, at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
 `Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`. -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -587,6 +587,12 @@ theorem isServerReqM_authOn (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
   cases on <;> unfold isServerReqM
   · iintro ⟨-, %h⟩; ipureintro; exact h
   · iintro ⟨-, -, %h⟩; ipureintro; exact h
+
+/-- The mode-off proposer's view has auth off (`isServerReqM_authOn` at `false`; the auth
+component's stage 3: the mode-off corollaries read it). -/
+theorem isServerReq_authOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ⌜E.authOn = false⌝ :=
+  isServerReqM_authOn false s E ρ
 
 /-- **What a proposal of `rq` needs, in the auth mode `on`, with its result at the stamped header**
 (see the file header): off, `reqPropOk` with a result `Qr` the header does not change (`Qh` constant);

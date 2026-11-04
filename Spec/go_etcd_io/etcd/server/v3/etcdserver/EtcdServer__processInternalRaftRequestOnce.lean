@@ -47,8 +47,8 @@ resource `E.RD` (`AuthInfoFromCtx`):
   server's stop (`ErrStopped`) after it).
 
 **In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
-the mode `E.authOn`; the instances at a mode, `specM`, and the mode-off form, `specOff`, are
-corollaries in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): `spec`'s,
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): `spec`'s,
 with the proposer's view of the server, the wait's results and the KV model of the mode
 (`isServerReqM`; the applied result `resPostM`: in the mode `on` with the auth state the entry met
 and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
