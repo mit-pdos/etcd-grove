@@ -168,6 +168,16 @@ theorem spG_bkRooted {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} {bl rt : Loc} 
       exact ⟨rt, hrootN, hdesc _ _ hd⟩
     · rw [hne e]; rw [hne e] at hr'; exact r2 bl' B0 l r hB0 hr' hl'
 
+/-- **The writer database's slot facts** `spPre` takes (coordinator: U9x3 proves them from
+`wdbW`; a `sorry` here until then): the free ids cover no tree slot of `w.C`, the tree's slots
+are below the mark. -/
+theorem bk_slotFacts {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h : Nat}
+    {F D : List Nat} {N : List Loc} (hpre : bkPre X w bl B O h F D N)
+    (hv : X.v = View.ofC X.v.base w.C) :
+    (∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat) ∧
+      (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) := by
+  sorry
+
 theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     (hRoot : node.root.spec (GF := GF) (hG := hG))
     (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
@@ -175,6 +185,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     Bucket.spill.specC (GF := GF) (hG := hG) := by
   intro K tx r m X w bl B O h F D N Hpre
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
+  have Hpre0 := Hpre
   obtain ⟨HB, Hlive, Hbm0, HG, Hcase⟩ := Hpre
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
   icases wtxHeap_bkt_peek tx _ X bl B HB Hlive $$ Hh with ⟨Ho, Hhb⟩
@@ -240,7 +251,8 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     ⟨Hrn0, HG, Or.inr ⟨Hu, ⟨Hpar, B, HB, nodeRootIn.top _ rn Hrn1 Hpar, fun x hx hne => by
       cases hx with
       | self => exact absurd rfl hne
-      | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf, Hvc⟩⟩
+      | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf, Hvc,
+      (bk_slotFacts Hpre0 Hvc).1, (bk_slotFacts Hpre0 Hvc).2⟩⟩
   wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
     as %err Hpost
   · iframe

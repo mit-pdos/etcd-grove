@@ -108,7 +108,9 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
     (bl n : Loc) (r0 : NRec) (O : List Nat) (lo hi : Option (List w8)) (h : Nat)
     (D0 : List Nat) (N0 : List Loc) (E0 : List El) (es0 : List UE) (n_ptr i_ptr res_ptr : Loc)
     (e0 : GoInterface) (Φ : val → IProp GF)
-    (hl0 : spLoop X0 w0 bl n r0 O lo hi h D0 N0 E0 X0 w0 r0 es0 0 [] []) :
+    (hl0 : spLoop X0 w0 bl n r0 O lo hi h D0 N0 E0 X0 w0 r0 es0 0 [] [])
+    (hfc0 : ∀ y ∈ w0.fl.free, ¬ coversSlot w0.C.pages y.toNat)
+    (hts0 : ∀ s ∈ treeSlots w0.C, s < X0.t.mv.pgid'.toNat) :
     (□ ▷ spillIH (GF := GF)) ∗ wtxW K tx r m X0 ∗ wdbW K tx X0.v w0 ∗ n_ptr ↦ n ∗
       i_ptr ↦ W64 0 ∗ res_ptr ↦ e0 ∗
       (∀ v, spLoopPost K tx r m X0 w0 bl n r0 O lo hi h D0 N0 E0 n_ptr i_ptr res_ptr e0 v -∗ Φ v) ⊢
@@ -146,7 +148,7 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
       rw [Hcl.1]; exact h1
     obtain ⟨c, hc⟩ : ∃ c, r'.cs[sint.nat j]? = some c := ⟨_, List.getElem?_eq_getElem hjn⟩
     icases wdbW_ofC K tx X'.v w' $$ Hdb with ⟨Hdb, %Hvc⟩
-    obtain ⟨rc, O', lo', hi', h', F', D', N', E', cs', hrc, hpre, hnext⟩ := spLoop_next Hl hc Hnn Hvc
+    obtain ⟨rc, O', lo', hi', h', F', D', N', E', cs', hrc, hpre, hnext⟩ := spLoop_next Hl hc Hnn Hvc hfc0 hts0
     icases wtxW_children_acc K tx r m X' bl n r' hrn hlv $$ Hw with ⟨Hnv, Hch, Hwb⟩
     iStructNamed Hnv
     wp_auto

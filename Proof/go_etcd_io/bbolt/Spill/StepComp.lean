@@ -142,6 +142,18 @@ theorem spStep_bufsOK {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hb : bufsOK X w.C w.fl) : bufsOK X' w.C w'.fl :=
   h.2.2.2.2.2.2.2.2 hb
 
+/-- The freelist's steps only take ids out of the free list. -/
+theorem applySteps_free_sub (st : List FLStep) : ∀ (fl : FLPg) (txid : w64) (y : w64),
+    y ∈ (fl.applySteps txid st).free → y ∈ fl.free := by
+  induction st with
+  | nil => intro fl txid y h; exact h
+  | cons s st ih =>
+    intro fl txid y h
+    have h' := ih _ txid y (by unfold FLPg.applySteps at h ⊢; rw [List.foldl_cons] at h; exact h)
+    cases s with
+    | free id n => exact h'
+    | alloc id n => exact (List.mem_filter.1 h').1
+
 /-- A step for a larger frame of owned slots is one for a smaller. -/
 theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by

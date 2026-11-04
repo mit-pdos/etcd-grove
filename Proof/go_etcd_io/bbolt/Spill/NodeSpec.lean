@@ -139,14 +139,16 @@ def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with
-`O`, its pages freeable, the view the committed tree's (coordinator: for `spStep`'s `bufsOK`). -/
+`O`, its pages freeable, the view the committed tree's, the free ids no tree slot and the tree's
+slots below the mark (coordinator: for `spStep`'s `bufsOK`). -/
 def spPre (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Option (List w8))
     (h : Nat) (F D : List Nat) (N : List Loc) (E : List El) (cs : SpCase) : Prop :=
   X.node bl n = some rn ∧ spG X w.wtxid (mapLen w.ms) w.fl ∧
   ((rn.nv.spilled' = true ∧ rn.nv.bucket' = bl ∧ n ∈ X.live) ∨
    (uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E ∧ spCtx X bl n rn lo hi N cs ∧
     slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F ∧
-    X.v = View.ofC X.v.base w.C))
+    X.v = View.ofC X.v.base w.C ∧
+    (∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat) ∧ (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat)))
 
 /-- **`n.spill()`'s success** (pure), from `(X, w)` to `(X', w')` by the steps `st` (see
 `node.spill.spec'`). -/

@@ -239,7 +239,9 @@ theorem spLoop_next {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
     {X' : WX} {w' : WDb} {r' : NRec} {es : List UE} {i : Nat} {st : List FLStep}
     {T : List Loc} {c : Loc}
     (hl : spLoop X w bl n r O lo hi h D0 N0 E0 X' w' r' es i st T)
-    (hc : r'.cs[i]? = some c) (hnn : n ≠ null) (hv : X'.v = View.ofC X'.v.base w'.C) :
+    (hc : r'.cs[i]? = some c) (hnn : n ≠ null) (hv : X'.v = View.ofC X'.v.base w'.C)
+    (hfc0 : ∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat)
+    (hts0 : ∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) :
     ∃ (rc : NRec) (O' : List Nat) (lo' hi' : Option (List w8)) (h' : Nat) (F' D' : List Nat)
       (N' : List Loc) (E' : List El) (cs' : SpCase),
       X'.node bl c = some rc ∧ spPre X' w' bl c rc O' lo' hi' h' F' D' N' E' cs' ∧
@@ -251,7 +253,7 @@ theorem spLoop_next {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
     rw [wtxid_of_C hl.step.1]; exact hl.step.2.2.2.1
   rcases hl.br.cs c hcm with ⟨e, he, hec⟩ | hs
   · obtain ⟨j, Fc, Dc, Nc, Ec, hj, rc, hrc, hsp⟩ := uBr_ch_unspilled hl.br he hec
-    obtain ⟨rc', hrc', -, hpre⟩ := spLoop_childPre hl hj hnn hv
+    obtain ⟨rc', hrc', -, hpre⟩ := spLoop_childPre hl hj hnn hv hfc0 hts0
     rw [hrc] at hrc'; cases hrc'
     refine ⟨rc, _, _, _, h, Fc, Dc, Nc, Ec, _, hrc, hpre, fun X'' w'' st' hd => ?_⟩
     exact spLoop_child hl hc hj hsp hd

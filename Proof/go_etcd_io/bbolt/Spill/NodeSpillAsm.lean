@@ -72,14 +72,16 @@ theorem spPre_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !
     (hu : uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E)
     (hctx : spCtx X bl n rn lo hi N cs) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ D)) (hfr : spFree X w.fl w.wtxid F)
-    (hvc : X.v = View.ofC X.v.base w.C) :
+    (hvc : X.v = View.ofC X.v.base w.C) (hfc : ∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat)
+    (hts : ∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) :
     spPre (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O lo hi h F D N E cs := by
   have hrn : X.node bl n = some rn := by unfold WX.node; rw [hB]; exact hr
   have hmv : (X.setNode bl n { rn with cs := l }).t.mv = X.t.mv := by rw [setNode_perm_eq hB]
   have hv : (X.setNode bl n { rn with cs := l }).v = X.v := by rw [setNode_perm_eq hB]
   have hnN : n ∈ N := uTree_head hu
   refine ⟨node_perm_self hB, spG_perm hB hr hp hG, Or.inr ⟨?_, spCtx_perm hB hr hp hnN hctx,
-    by rw [hmv]; exact hsl, by rw [setNode_perm_eq hB]; exact hfr, by rw [hv]; exact hvc⟩⟩
+    by rw [hmv]; exact hsl, by rw [setNode_perm_eq hB]; exact hfr, by rw [hv]; exact hvc, hfc,
+    by rw [hmv]; exact hts⟩⟩
   rw [hmv, spP_perm hB]
   by_cases hleaf : rn.nv.isLeaf' = false
   · obtain ⟨h', es, rfl, rfl, rfl, rfl, rfl, hb⟩ := uBr_of_uTree hu hrn hleaf
