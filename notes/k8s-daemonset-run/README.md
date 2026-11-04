@@ -84,3 +84,18 @@ Then: review rounds (fresh `spec-reviewer`), the freeze, the invariant walk-thro
   factory (locality). A thaw of `Start`, `StartWithContext`, `Informer()`; track C threads the
   tokens from the constructor to `factory.Start`. (`AddIndexers` succeeds after the start in Go:
   only a stopped informer refuses; the restriction is the spec's, which the controller meets.)
+
+## The invariant stage (2026-11-04, track B)
+
+Every operation that touches the API state or the consistency store has a proved step of `s1Ok`
+(`daemon/S1Steps.lean`, `daemon/S1Writes.lean`, no `sorry`): the bookkeeping (`register`,
+`raiseLd`, `ensureReady`, `claim`, `unclaim`, `wrote`, `wroteAt`, `release`), both `Clear`s
+(`clear_noop`: `deleteDaemonset` on a gone DaemonSet; `clear_notfound_noop`), every read
+(`noop_step`), the admin's node and DaemonSet creates, the controller's revision writes, pod create
+(the claimant's), pod delete, DaemonSet status write. **The only operation with no step is the
+ambiguous pod create** (`ambiguous_create_breaks_S1`). What the steps forced: `recDs` (a record only
+for a stored DaemonSet seen by the DaemonSet informer, so `syncDaemonSet` raises `Ld` before any
+`WroteAt`); pods without finalizers (`dsWf`: with finalizers and surge, a deleted terminating pod
+plus a new one is two pods on a node, intended behaviour outside `Main`'s scenario, not a bug);
+every claim made before the sync's first create. Premises for `Main`: the created DaemonSet's
+`dsWf` and a unique revision name; the status write keeps the collision count.
