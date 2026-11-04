@@ -341,11 +341,11 @@ theorem mvcc.bt_rangeC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ ∃ m' Rd U, U ((sint.Z limit).toNat + 1) ∗
     mvcc.snapThin m m' (mvcc.bkDel γ) ∗ (□ ∀ n, mvcc.rdCap Rd (U n)) ∗ (□ ∀ n, mvcc.rdCap2 Rd (U n))
     ∗ mvcc.pairVals Rd ks vs (List.take (sint.Z limit).toNat (mvcc.bucketRange m' klo khi)) ∗ (□ ∀
-    key k n, □ ∀ Φ, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk
-    DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □ Rd key k -∗ ▷ (U n -∗ Φ (intoVal ())) -∗ WP
-    (((intoVal (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-    go!"UnsafeDelete" (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n, mvcc.metaPutCap
-    { ty :=
+    key k n, □ ∀ Φ, (typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk
+    DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □ Rd key k ∗ ∃ f, backend.fkOwn γ f) -∗ ▷ ((U n ∗ ∃
+    f, backend.fkOwn γ f) -∗ Φ (intoVal ())) -∗ WP (((intoVal (methods
+    go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType go!"UnsafeDelete"
+    (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n, mvcc.metaPutCap { ty :=
                                                         go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType,
                                                       v := intoVal t }
                                                     iprop(U (n + 1) ∗ ∃ f, backend.fkOwn γ f)
