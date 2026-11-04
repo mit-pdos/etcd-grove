@@ -31682,3 +31682,28 @@ flight), the user chose the first. It has two consequences: a general Perennial 
 `ThreadPool`), and a new premise on the exported restart result, that the members' request paths
 stopped before the server, which matches `embed.Close`'s order. Plan: `notes/restart-plan.md`,
 "R2b-3d ... gap 4".
+
+## The one-member examples' start, shared (2026-11-04 · the user's request, after K4 of `notes/k8s-compactor-plan.md` · branch `onemember`)
+
+**Before.** Nine one-member examples each kept their own copies of the same definitions, at their
+own name and addresses: `BootFacts`, `premises`, `cfgOk`, `urlsOk`, `peerURL`, `clientURL`, the
+peer directory, and `compactwatch` also `kvModel_boot`. The nine are `putget`, `compacted`,
+`compactwatch`, `lease`, `leasegrant`, `watch`, `cache`, `txnlin` (`MainDefs`) and `k8s/etcd3`
+(`MainDefs`).
+
+**Now.** The definitions are in `etcdstart/OneMember.lean` once, at the shared start's
+configuration (`cfgOk name name`, `urls1`, `dir1`). Each example's names are abbreviations of
+them at its name and addresses.
+- **Statements.** Every `Main.spec` and adequacy theorem is unchanged in text, and its meaning is the
+  same: each old definition equals its replacement by unfolding. The checks: the `Main` proofs'
+  conversions to the shared start's form became the identity, and the old literal `name.etcd` is
+  `name ++ ".etcd"` by computation.
+- **The proofs.** Each `Main` also unfolds `etcdstart.premises`, and the directory membership
+  unfolds `dir1`. `compactwatch`'s `kvModel_boot` is gone; its uses take the shared one.
+- **Not migrated.**
+  - `auth`: its configuration also sets `AuthToken`.
+  - The three-member examples (`putget3`, `restart`, `partition`).
+  - `txnlin`'s `kvRaftOf_boot`, a related fact in another form.
+
+Scripted (`onemember.py`, `onemember_main.py`, in the session's scratchpad). The trust base and
+every collection are unchanged.

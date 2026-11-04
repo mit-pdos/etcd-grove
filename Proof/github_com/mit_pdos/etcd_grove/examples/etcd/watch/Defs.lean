@@ -19,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
 @[expose] public section
 
@@ -42,22 +43,18 @@ abbrev wev := etcdstart.wev
 abbrev wrec := etcdstart.wrec
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23882`. -/
-def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23882" }
+abbrev peerURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23882"
 
 /-- `Main`'s client URL, `http://127.0.0.1:23872`. -/
-def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23872" }
+abbrev clientURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23872"
 
 /-- **The URLs of `Main`'s configuration**: the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{watchkv ↦ [peerURL]}`. -/
-def urlsOk (U : BootURLs) : Prop :=
-  U.peer = [peerURL] ∧ U.client = [clientURL] ∧
-    (∃ sl : GoSlice, U.initMap = GMap.insert go!"watchkv" sl ∅) ∧ U.initURLs go!"watchkv" = [peerURL]
+abbrev urlsOk (U : BootURLs) : Prop := etcdstart.urls1 go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" U
 
 /-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL, of the
 member `id` only (`dirOne`; 2026-10-24, rafthttp stage 6d; until then every id's). -/
-def wkDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0.1:23882"
+abbrev wkDir (id : w64) : w64 → List GoString := etcdstart.dir1 go!"127.0.0.1:23882" id
 
 /-- The prefix the writers' keys are under and the watch covers. -/
 abbrev wkPfx : GoString := go!"wk/"
@@ -82,23 +79,14 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The configuration `Main` passes to `NewServer`**, by its scalar fields: member `watchkv` of
 a new cluster with token `watchkv`, data directory `etcd_watch.etcd`, raft's clock `100` ms and `10`
 ticks. -/
-def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = go!"watchkv" ∧ cfg.DataDir' = go!"watchkv.etcd" ∧
-    cfg.InitialClusterToken' = go!"watchkv" ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+abbrev cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  etcdstart.cfgOk go!"watchkv" go!"watchkv" cfg
 
 /-- **`Main`'s named premises** (persistent): putget's (`etcd_putget.premises`) at `watchkv`'s
 configuration, URLs and peer directory. -/
-def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+abbrev premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
-  iprop(
-    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
-        γ.boot = LogEntry.toEntries boot 0⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (wkDir id)) ∗
-    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+  etcdstart.premises go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" N id ctxs boot
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
