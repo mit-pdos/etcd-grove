@@ -173,6 +173,24 @@ stated, or unprovable from what the statement gives; each needs a statement or i
 11. **`store_carve`**: `bs` is unconstrained, but the store's cells must hold `σ.bytes` (the
     page cache, owned whole by the invariant, so the caller cannot read it). Fix: `store_gather`
     hands out a witness of the bytes (a ghost variable) that `store_carve` takes back.
+## Shared-statement fixes (U6's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
+
+1. **`rStackAt_next`/`wStackAt_next` were false** (`sSucc` said nothing of the old stack below
+   the moving depth: a stack at index 0 of a 5-entry leaf moving at its parent lands at
+   position 5, not `i + 1`; a stack past its leaf's end after `Seek`, or in an empty leaf,
+   lands at its own position). `sSucc d els els'` now takes the depth and is `next`'s move
+   literally (`els' = els.take d ++ e' :: R'`, `e'` one further than `els[d]`, `R'` first);
+   the new `sEndBelow v es pids els d` is what `next`'s upward loop found (branch indices
+   below `d` the last, leaf index `≤` its leaf's entries, the leaf's bounds ordered; the lower
+   bound `count - 1` is not needed). Both lemmas take the old path `pids` and the new `pids'`
+   explicitly, `hlen : d + 1 < els.length ↔ d + 1 < els'.length` (`goToFirstElementOnTheStack`
+   descends iff `d` is a branch), and `sEndBelow` only when `d` is above the leaf; they give
+   the new stack's `rStackAt`/`wStackAt` at `min (stackPos ...) es.length` and its position:
+   `+ 1` at the leaf, `new + leafIdx els = old + |old leaf's entries|` above it. Proved
+   (`stackPos_next`, public, from U6's `stackPos_succ_up`/`_leaf`, copied privately into
+   `Model/Cursor`); `wStackAt_next` no longer takes `wCtx`, `rStackAt_next` no longer `viewWF`.
 
 ## The modules (as built by U0a)
 

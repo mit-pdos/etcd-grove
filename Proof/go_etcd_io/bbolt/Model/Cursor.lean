@@ -130,13 +130,23 @@ def sLast (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) 
     e.index'.toNat + 1 = (pidKeys v pid).length) ∧
   leafIdx els + 1 = (entsIn es (pathBnd v pids els)).length
 
-/-- `els'` (path `pids'`) is the in-order successor of `els`: equal above some depth `d`, one
-further at `d`, first below. -/
-def sSucc (els els' : List elemRef) : Prop :=
-  ∃ d, d < els.length ∧ d < els'.length ∧
-    (els'.take d).map (·.index') = (els.take d).map (·.index') ∧
-    (∃ e e', els[d]? = some e ∧ els'[d]? = some e' ∧ e'.index'.toNat = e.index'.toNat + 1) ∧
-    ∀ j e', d < j → els'[j]? = some e' → e'.index'.toNat = 0
+/-- **`next`'s move at depth `d`** (`Cursor.next`: `c.stack = c.stack[:d+1]`, `elem.index++` at
+`d`, then `goToFirstElementOnTheStack`): `els'` keeps `els` above `d`, is one further at `d`, and
+first below. -/
+def sSucc (d : Nat) (els els' : List elemRef) : Prop :=
+  ∃ e e' R', els[d]? = some e ∧ els' = els.take d ++ e' :: R' ∧
+    e'.index'.toNat = e.index'.toNat + 1 ∧ ∀ x ∈ R', x.index'.toNat = 0
+
+/-- **The old stack is at the end below `d`** (what `next`'s upward loop found: no level below
+`d` could move): its branch indices below `d` are the last, its leaf index at most its leaf's
+entries (`next` moves up from a leaf index `≥ count - 1`: at the last entry, past it after a
+`Seek`, or an empty leaf), and its leaf's bounds are ordered. -/
+def sEndBelow (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) (d : Nat) :
+    Prop :=
+  (∀ j pid e, pids[j]? = some pid → els[j]? = some e → d < j → j + 1 < els.length →
+    e.index'.toNat + 1 = (pidKeys v pid).length) ∧
+  leafIdx els ≤ (entsIn es (pathBnd v pids els)).length ∧
+  ∀ L H, pathBnd v pids els = (some L, some H) → ¬ go.GoStringLt H L
 
 /-- `els'` is the in-order predecessor of `els`: equal above some depth `d`, one before at `d`,
 last below (over the base pages and, at the leaf, `es`). -/
@@ -369,6 +379,233 @@ private theorem stackPos_last (v : View) (es : List BoltEnt) (pids : List Nat)
   unfold entsIn at hb
   omega
 
+private theorem pathBndFrom_cons (v : View) (b : Option (List w8) × Option (List w8)) (p : Nat)
+    (xs : List Nat) (e : elemRef) (es : List elemRef) (hx : xs ≠ []) :
+    pathBndFrom v b (p :: xs) (e :: es) =
+      pathBndFrom v (entryBnd b (pidKeys v p) e.index'.toNat) xs es := by
+  cases xs with
+  | nil => exact absurd rfl hx
+  | cons x xs => simp [pathBndFrom]
+
+/-- The bounds of a path, split after a prefix: the prefix's bounds, then the rest's. -/
+private theorem pathBndFrom_append (v : View) :
+    ∀ (E : List elemRef) (P : List Nat) (b : Option (List w8) × Option (List w8))
+      (x0 : Nat) (X : List Nat) (Y : List elemRef), P.length = E.length →
+    pathBndFrom v b (P ++ x0 :: X) (E ++ Y) =
+      pathBndFrom v (pathBndFrom v b (P ++ [x0]) E) (x0 :: X) Y
+  | [], [], b, x0, X, Y, _ => by simp [pathBndFrom]
+  | e :: E, p :: P, b, x0, X, Y, hl => by
+    simp only [List.cons_append]
+    rw [pathBndFrom_cons v b p _ e _ (by simp), pathBndFrom_cons v b p _ e _ (by simp)]
+    exact pathBndFrom_append v E P _ x0 X Y (by simpa using hl)
+  | [], _ :: _, _, _, _, _, hl => by simp at hl
+  | _ :: _, [], _, _, _, _, hl => by simp at hl
+
+private theorem leafIdx_append (E R : List elemRef) (hR : R ≠ []) : leafIdx (E ++ R) = leafIdx R := by
+  unfold leafIdx; rw [List.getLast?_append]
+  cases h : R.getLast? with
+  | none => simp at h; exact absurd h hR
+  | some x => simp
+
+open Classical in
+/-- **`next`'s position, one level up** (`d` above the leaf): the old stack is at the end of
+every level below `d` (branch indices the last, its leaf index at or past the leaf's last
+entry), the new one one further at `d` and first below. The new position is the old one plus
+what was left of the old leaf (one, or none past its end). -/
+private theorem stackPos_succ_up (v : View) (es : List BoltEnt) (P : List Nat) (E : List elemRef)
+    (p : Nat) (Q Q' : List Nat) (e e' : elemRef) (R R' : List elemRef)
+    (hPE : P.length = E.length) (hQR : Q.length = R.length) (hQR' : Q'.length = R'.length)
+    (hR : R ≠ []) (hR' : R' ≠ [])
+    (hidx : e'.index'.toNat = e.index'.toNat + 1)
+    (hlt : e'.index'.toNat < (pidKeys v p).length)
+    (hlast : ∀ j pid x, Q[j]? = some pid → R[j]? = some x → j + 1 < R.length →
+      x.index'.toNat + 1 = (pidKeys v pid).length)
+    (hfirst : ∀ x ∈ R', x.index'.toNat = 0)
+    (hbnd : ∀ L H, pathBnd v (P ++ p :: Q) (E ++ e :: R) = (some L, some H) →
+      ¬ go.GoStringLt H L)
+    (hle : leafIdx R ≤ (entsIn es (pathBnd v (P ++ p :: Q) (E ++ e :: R))).length) :
+    stackPos v es (P ++ p :: Q') (E ++ e' :: R') + leafIdx R =
+      stackPos v es (P ++ p :: Q) (E ++ e :: R) +
+        (entsIn es (pathBnd v (P ++ p :: Q) (E ++ e :: R))).length := by
+  obtain ⟨q0, Q0, rfl⟩ : ∃ q0 Q0, Q = q0 :: Q0 := by
+    cases Q with
+    | nil => cases R with | nil => exact absurd rfl hR | cons _ _ => simp at hQR
+    | cons q0 Q0 => exact ⟨q0, Q0, rfl⟩
+  obtain ⟨q0', Q0', rfl⟩ : ∃ q0 Q0, Q' = q0 :: Q0 := by
+    cases Q' with
+    | nil => cases R' with | nil => exact absurd rfl hR' | cons _ _ => simp at hQR'
+    | cons q0 Q0 => exact ⟨q0, Q0, rfl⟩
+  have hold : pathBnd v (P ++ p :: q0 :: Q0) (E ++ e :: R) =
+      pathBndFrom v (entryBnd (pathBndFrom v (none, none) (P ++ [p]) E) (pidKeys v p) e.index'.toNat) (q0 :: Q0) R := by
+    unfold pathBnd
+    rw [pathBndFrom_append v E P _ p _ _ hPE, pathBndFrom_cons v _ p _ e _ (by simp)]
+  have hnew : pathBnd v (P ++ p :: q0' :: Q0') (E ++ e' :: R') =
+      pathBndFrom v (entryBnd (pathBndFrom v (none, none) (P ++ [p]) E) (pidKeys v p) e'.index'.toNat) (q0' :: Q0') R' := by
+    unfold pathBnd
+    rw [pathBndFrom_append v E P _ p _ _ hPE, pathBndFrom_cons v _ p _ e' _ (by simp)]
+  have hhi : (pathBnd v (P ++ p :: q0 :: Q0) (E ++ e :: R)).2 = some ((pidKeys v p).getD (e.index'.toNat + 1) []) := by
+    rw [hold, pathBndFrom_last v R (q0 :: Q0) _ hQR hlast]
+    simp only [entryBnd, childHi]
+    rw [if_pos (show _ by omega)]
+  have hlo : (pathBnd v (P ++ p :: q0' :: Q0') (E ++ e' :: R')).1 = some ((pidKeys v p).getD (e.index'.toNat + 1) []) := by
+    rw [hnew, pathBndFrom_first v R' (q0' :: Q0') _ hfirst]
+    simp only [entryBnd, childLo, hidx]
+    simp
+  have hli' : leafIdx (E ++ e' :: R') = 0 := by
+    rw [show E ++ e' :: R' = (E ++ [e']) ++ R' by simp, leafIdx_append _ _ hR']
+    unfold leafIdx
+    cases h : R'.getLast? with
+    | none => rfl
+    | some x => simp [hfirst x (List.mem_of_getLast? h)]
+  have hli : leafIdx (E ++ e :: R) = leafIdx R := by
+    rw [show E ++ e :: R = (E ++ [e]) ++ R by simp, leafIdx_append _ _ hR]
+  unfold stackPos
+  rw [hli', hli, hlo]
+  generalize hK : ((pidKeys v p).getD (e.index'.toNat + 1) []) = K at hhi hlo
+  generalize hlo' : (pathBnd v (P ++ p :: q0 :: Q0) (E ++ e :: R)).1 = lo
+  have hb : pathBnd v (P ++ p :: q0 :: Q0) (E ++ e :: R) = (lo, some K) := by
+    rw [← hhi, ← hlo']
+  have hlK : keyGe lo K := by
+    intro L hL; exact hbnd L K (by rw [hb, hL])
+  have hcount := len_filter_sum es (fun x => decide (¬ keyGe lo x.1))
+    (fun x => decide (keyIn lo (some K) x.1)) (fun x => decide (¬ keyGe (some K) x.1))
+    (by
+      intro x _
+      by_cases hg : keyGe lo x.1
+      · by_cases hk : go.GoStringLt x.1 K
+        · have : ¬ keyGe (some K) x.1 := fun h => h K rfl hk
+          simp [hg, keyIn, keyLt, hk, this]
+        · have : keyGe (some K) x.1 := by intro l hl; cases hl; exact hk
+          simp [hg, keyIn, keyLt, hk, this]
+      · have hk := keyGe_lt hlK hg
+        have : ¬ keyGe (some K) x.1 := fun h => h K rfl hk
+        simp [hg, keyIn, this])
+  unfold entsIn at hle ⊢
+  rw [hb] at hle ⊢
+  simp only at hle ⊢
+  omega
+
+/-- **`next`'s position at the leaf**: the leaf index one further. -/
+private theorem stackPos_succ_leaf (v : View) (es : List BoltEnt) (P : List Nat) (E : List elemRef)
+    (p : Nat) (e e' : elemRef) (hPE : P.length = E.length)
+    (hidx : e'.index'.toNat = e.index'.toNat + 1) :
+    stackPos v es (P ++ [p]) (E ++ [e']) = stackPos v es (P ++ [p]) (E ++ [e]) + 1 := by
+  have h : ∀ x, pathBnd v (P ++ [p]) (E ++ [x]) = pathBndFrom v (none, none) (P ++ [p]) E := by
+    intro x; unfold pathBnd
+    rw [pathBndFrom_append v E P _ p [] [x] hPE]; simp [pathBndFrom]
+  unfold stackPos
+  rw [h, h, leafIdx_append _ _ (by simp), leafIdx_append _ _ (by simp)]
+  simp [leafIdx, hidx]; omega
+
+private theorem split_at {α : Type} (l : List α) (d : Nat) (h : d < l.length) :
+    ∃ P x Q, l = P ++ x :: Q ∧ P.length = d ∧ l[d]? = some x := by
+  refine ⟨l.take d, l[d], l.drop (d + 1), ?_, by simp; omega, by simp [h]⟩
+  rw [← List.drop_eq_getElem_cons h, List.take_append_drop]
+
+private theorem pidKeys_length (v : View) (pid : Nat) (pg : List w8)
+    (h : v.pages !! pid = some pg) : (pidKeys v pid).length = pageCount pg := by
+  simp [pidKeys, h]
+
+/-- **`next`'s positions** (U6 fix): at the leaf (`d` its depth) one further; one level up or
+more, the old position plus what was left of the old leaf (one at its last entry, none past its
+end or in an empty leaf). -/
+theorem stackPos_next (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc)
+    (n : GoString) (els els' : List elemRef) (pids pids' : List Nat) (d : Nat)
+    (hp : sPath nl v b n els pids) (hp' : sPath nl v b n els' pids') (hs : sSucc d els els')
+    (hlen : d + 1 < els.length ↔ d + 1 < els'.length)
+    (hend : d + 1 < els.length → sEndBelow v es pids els d) :
+    (d + 1 = els.length → stackPos v es pids' els' = stackPos v es pids els + 1) ∧
+    (d + 1 < els.length → stackPos v es pids' els' + leafIdx els =
+      stackPos v es pids els + (entsIn es (pathBnd v pids els)).length) := by
+  obtain ⟨e, e', R', he, rfl, hidx, hfirst⟩ := hs
+  have hd : d < els.length := by
+    rcases Nat.lt_or_ge d els.length with h | h
+    · exact h
+    · simp [List.getElem?_eq_none h] at he
+  obtain ⟨E, e0, R, rfl, hE, he0⟩ := split_at els d hd
+  rw [he] at he0; cases he0
+  have htk : (E ++ e :: R).take d = E := by
+    rw [← hE]; simp
+  rw [htk] at hp' hlen ⊢
+  have hpl := hp.2.1
+  have hpl' := hp'.2.1
+  simp only [List.length_append, List.length_cons] at hpl hpl' hlen
+  obtain ⟨P, p, Q, rfl, hP, -⟩ := split_at pids d (by omega)
+  obtain ⟨P', p', Q', rfl, hP', -⟩ := split_at pids' d (by omega)
+  simp only [List.length_append, List.length_cons] at hpl hpl'
+  -- the paths agree up to `d`
+  have hpre : ∀ j, j ≤ d → (P' ++ p' :: Q')[j]? = (P ++ p :: Q)[j]? := by
+    intro j
+    induction j with
+    | zero =>
+      intro _
+      have h1 := hp.2.2.1
+      have h2 := hp'.2.2.1
+      rw [List.head?_eq_getElem?] at h1 h2
+      rw [h1, h2]
+    | succ j ih =>
+      intro hj
+      have hjE : j < E.length := by omega
+      obtain ⟨pid, hpid⟩ : ∃ pid, (P ++ p :: Q)[j]? = some pid :=
+        Option.isSome_iff_exists.mp (by simp; omega)
+      have hx : (E ++ e :: R)[j]? = some E[j] := by
+        rw [List.getElem?_append_left hjE]; simp
+      have hx' : (E ++ e' :: R')[j]? = some E[j] := by
+        rw [List.getElem?_append_left hjE]; simp
+      obtain ⟨pg, hpg, -, -, hnx⟩ :=
+        (hp.2.2.2 j _ pid hx hpid).2.2.1 (by simp; omega)
+      obtain ⟨pg', hpg', -, -, hnx'⟩ :=
+        (hp'.2.2.2 j _ pid hx' (by rw [ih (by omega)]; exact hpid)).2.2.1 (by simp; omega)
+      rw [hpg] at hpg'; cases hpg'
+      rw [hnx, hnx']
+  have hPP : P = P' := by
+    apply List.ext_getElem?
+    intro j
+    rcases Nat.lt_or_ge j d with h | h
+    · have := hpre j (by omega)
+      rw [List.getElem?_append_left (by omega), List.getElem?_append_left (by omega)] at this
+      exact this.symm
+    · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+  subst hPP
+  have hpp : p = p' := by
+    have := hpre d (Nat.le_refl _)
+    rw [List.getElem?_append_right (by omega), List.getElem?_append_right (by omega)] at this
+    simpa [hP, hP'] using this.symm
+  subst hpp
+  have hPE : P.length = E.length := by omega
+  refine ⟨fun hl => ?_, fun hl => ?_⟩
+  · -- at the leaf: `R`, `R'`, `Q`, `Q'` are empty
+    have hR : R = [] := List.eq_nil_of_length_eq_zero (by simp at hl; omega)
+    have hR' : R' = [] := List.eq_nil_of_length_eq_zero (by
+      have : ¬ d + 1 < E.length + (R'.length + 1) := fun h => by
+        have := hlen.2 h; simp at hl; omega
+      omega)
+    subst hR hR'
+    have hQ : Q = [] := List.eq_nil_of_length_eq_zero (by simp at hpl; omega)
+    have hQ' : Q' = [] := List.eq_nil_of_length_eq_zero (by simp at hpl'; omega)
+    subst hQ hQ'
+    exact stackPos_succ_leaf v es P E p e e' hPE hidx
+  · obtain ⟨hlast, hle, hbnd⟩ := hend hl
+    have hl' := hlen.1 (by simpa using hl)
+    have hRne : R ≠ [] := fun h => by subst h; simp at hl; omega
+    have hRne' : R' ≠ [] := fun h => by subst h; simp at hl'; omega
+    obtain ⟨pg, hpg, -, hlt, -⟩ :=
+      (hp'.2.2.2 d e' p (by rw [List.getElem?_append_right (by omega)]; simp [hE])
+        (by rw [List.getElem?_append_right (by omega)]; simp [hP])).2.2.1 (by simp; omega)
+    have hli : leafIdx (E ++ e :: R) = leafIdx R := by
+      rw [show E ++ e :: R = (E ++ [e]) ++ R by simp, leafIdx_append _ _ hRne]
+    rw [hli]
+    refine stackPos_succ_up v es P E p Q Q' e e' R R' hPE (by omega)
+      (by omega) hRne hRne' hidx
+      (by rw [pidKeys_length v p pg hpg]; exact hlt) ?_ hfirst hbnd
+      (by rw [hli] at hle; exact hle)
+    intro j pid x hq hr hj
+    refine hlast (d + 1 + j) pid x ?_ ?_ (by omega) (by simp; omega)
+    · rw [List.getElem?_append_right (by omega)]
+      simpa [hP, show d + 1 + j - d = j + 1 by omega] using hq
+    · rw [List.getElem?_append_right (by omega)]
+      simpa [hE, show d + 1 + j - d = j + 1 by omega] using hr
+
 /-! ## Lemma statements (U6) -/
 
 /-- `Seek`'s descent reaches `seekIdx` (readers). -/
@@ -397,12 +634,18 @@ theorem rStackAt_last (v : View) (n : GoString) (els : List elemRef) (pids : Lis
   rw [stackPos_last _ _ _ _ hp.2.1 hl]
   exact (Nat.min_eq_left (Nat.sub_le _ _)).symm
 
-theorem rStackAt_next (v : View) (n : GoString) (els els' : List elemRef) (pids' : List Nat)
-    (i : Nat) (hv : viewWF v) (h : rStackAt v n els (some i))
-    (hp : sPath (fun _ => none) v null n els' pids') (hnode : ∀ e ∈ els', e.node' = null)
-    (hs : sSucc els els') :
-    rStackAt v n els' (some (min (i + 1) (bktEnts ((v.data !! n).getD ∅)).length)) := by
-  sorry
+/-- `next` (readers; `stackPos_next`): the new stack's position, from the old one's. -/
+theorem rStackAt_next (v : View) (n : GoString) (els els' : List elemRef) (pids pids' : List Nat)
+    (d : Nat) (hp : sPath (fun _ => none) v null n els pids)
+    (hp' : sPath (fun _ => none) v null n els' pids') (hnode : ∀ e ∈ els', e.node' = null)
+    (hs : sSucc d els els') (hlen : d + 1 < els.length ↔ d + 1 < els'.length)
+    (hend : d + 1 < els.length → sEndBelow v (bktEnts ((v.data !! n).getD ∅)) pids els d) :
+    let es := bktEnts ((v.data !! n).getD ∅)
+    rStackAt v n els' (some (min (stackPos v es pids' els') es.length)) ∧
+    (d + 1 = els.length → stackPos v es pids' els' = stackPos v es pids els + 1) ∧
+    (d + 1 < els.length → stackPos v es pids' els' + leafIdx els =
+      stackPos v es pids els + (entsIn es (pathBnd v pids els)).length) :=
+  ⟨⟨⟨pids', hp', rfl⟩, hnode⟩, stackPos_next _ v _ null n els els' pids pids' d hp hp' hs hlen hend⟩
 
 theorem rStackAt_prev (v : View) (n : GoString) (els els' : List elemRef) (pids' : List Nat)
     (i : Nat) (hv : viewWF v) (h : rStackAt v n els (some i)) (hi : 0 < i)
@@ -443,13 +686,19 @@ theorem wStackAt_last (X : WX) (nl : Loc → Option (Loc × Nat)) (v : View) (T 
   rw [stackPos_last _ _ _ _ hp.2.1 hl]
   exact (Nat.min_eq_left (Nat.sub_le _ _)).symm
 
-/-- `next` (with its skipping of empty leaves, which keeps the position). -/
-theorem wStackAt_next (X : WX) (nl : Loc → Option (Loc × Nat)) (v : View) (T : TxView)
-    (b : Loc) (n : GoString) (els els' : List elemRef) (pids' : List Nat) (i : Nat)
-    (hc : wCtx X nl v T b n) (h : wStackAt nl v T b n els (some i))
-    (hp : sPath nl v b n els' pids') (hs : sSucc els els') :
-    wStackAt nl v T b n els' (some (min (i + 1) (bktEnts ((T.cur !! n).getD ∅)).length)) := by
-  sorry
+/-- `next` (writers; `stackPos_next`): the new stack's position, from the old one's. Its
+skipping of empty leaves keeps the position (an empty leaf's index `0` is its end). -/
+theorem wStackAt_next (nl : Loc → Option (Loc × Nat)) (v : View) (T : TxView)
+    (b : Loc) (n : GoString) (els els' : List elemRef) (pids pids' : List Nat) (d : Nat)
+    (hp : sPath nl v b n els pids) (hp' : sPath nl v b n els' pids') (hs : sSucc d els els')
+    (hlen : d + 1 < els.length ↔ d + 1 < els'.length)
+    (hend : d + 1 < els.length → sEndBelow v (bktEnts ((T.cur !! n).getD ∅)) pids els d) :
+    let es := bktEnts ((T.cur !! n).getD ∅)
+    wStackAt nl v T b n els' (some (min (stackPos v es pids' els') es.length)) ∧
+    (d + 1 = els.length → stackPos v es pids' els' = stackPos v es pids els + 1) ∧
+    (d + 1 < els.length → stackPos v es pids' els' + leafIdx els =
+      stackPos v es pids els + (entsIn es (pathBnd v pids els)).length) :=
+  ⟨⟨pids', hp', rfl⟩, stackPos_next nl v _ b n els els' pids pids' d hp hp' hs hlen hend⟩
 
 /-- **A stack stays valid at the same `T` as the registry grows** (R6). -/
 theorem wStackAt_stable (nl nl' : Loc → Option (Loc × Nat)) (v : View) (T : TxView) (b : Loc)
