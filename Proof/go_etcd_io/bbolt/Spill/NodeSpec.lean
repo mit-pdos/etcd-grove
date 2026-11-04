@@ -80,14 +80,15 @@ inductive SpCase where
 
 /-- **Where the node `n` (record `rn`) of bucket `bl` sits** for its spill, its bounds `[lo, hi)`:
 a child of `pl` (record `rp`, with a page, a live unspilled branch within `[plo, phi)`), entry `j`
-of it; or a top node (no parent), the root of its bucket's root node's chain. -/
+of it, its children nodes of its tree (U9j: no earlier spill's pieces, so that their kill is
+framed); or a top node (no parent), the root of its bucket's root node's chain. -/
 def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List Loc) :
     SpCase → Prop
   | .child pl rp j plo phi => rn.nv.parent' = pl ∧ pl ≠ null ∧ pl ∉ N ∧ X.node bl pl = some rp ∧
       uNode X bl pl rp plo phi ∧ rp.nv.isLeaf' = false ∧ rp.nv.pgid' ≠ W64 0 ∧ n ∈ rp.cs ∧
       (∃ w, rp.ws[j]? = some w ∧ w.pgid = rn.nv.pgid' ∧ w.key = rn.key) ∧
       lo = childLo plo (wKey rp.ws) j ∧ hi = childHi phi (wKey rp.ws) rp.ws.length j ∧
-      rn.nv.key' ≠ slice.nil
+      rn.nv.key' ≠ slice.nil ∧ ∀ c ∈ rn.cs, c ∈ N
   | .top => rn.nv.parent' = null ∧ ∃ B, X.t.bs !! bl = some B ∧ nodeRootIn B B.bv.rootNode' n
 
 end pieces
@@ -131,7 +132,8 @@ def spDone (X X' : WX) (w w' : WDb) (bl n : Loc) (rn : NRec) (O : List Nat)
   spStep X X' w w' O st ∧
   ((rn.nv.spilled' = true ∧ X' = X ∧ w' = w) ∨
    (rn.nv.spilled' = false ∧ ∃ T D', spFrame X X' bl (N ++ T) ∧
-    (∀ l ∈ T, X.t.objs !! l = none ∨ ∃ pl rp j plo phi, cs = .child pl rp j plo phi ∧ l = pl) ∧
+    (∀ l ∈ T, X.t.objs !! l = none ∨ (∃ pl rp j plo phi, cs = .child pl rp j plo phi ∧ l = pl) ∨
+      (cs = .top ∧ l ∈ rn.cs)) ∧
     slotInv w'.fl X'.t.mv.pgid'.toNat (O ++ D') ∧
     (∀ s ∈ D, s ∈ D' ∨ s ∈ pendSlots w'.fl) ∧
     (∀ s ∈ D', s ∈ D ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
@@ -167,7 +169,9 @@ case, the pieces (`piecesOK`) put in the parent (`parentSpilled`), their trees' 
 `E` in order; in the top case, the final root `rt` (`n`'s root after) written, an `sTree` within
 `[lo, hi)` whose leaf elements are `E`; the tree's slots kept by the
 pieces (or the root's tree) or pending, theirs the tree's or new, owned with `O`; the untouched
-nodes as before (`spFrame`, the touched ones `N`, the parent and fresh nodes). On an error (an
+nodes as before (`spFrame`, the touched ones `N`, the parent and fresh nodes, and in the top
+case `n`'s children at the start, killed: U9j, the recursion on a new root whose children are
+the pieces). On an error (an
 `allocate`'s), the freelist after free and allocation steps, and the mapping intact or lost. -/
 abbrev node.spill.spec' : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)

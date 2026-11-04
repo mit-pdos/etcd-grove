@@ -115,9 +115,10 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
     (fun l hl => by
       rcases List.mem_append.1 hl with hl | hl
       · exact Or.inl hl
-      · rcases hT l hl with h0 | ⟨pl, rp, j', plo, phi, hcs, rfl⟩
+      · rcases hT l hl with h0 | ⟨pl, rp, j', plo, phi, hcs, rfl⟩ | ⟨hcs, -⟩
         · exact Or.inr (Or.inl (node_none_of_objs h0))
-        · cases hcs; exact Or.inr (Or.inr rfl))
+        · cases hcs; exact Or.inr (Or.inr rfl)
+        · cases hcs)
     (fun k e hk he x hx => Classical.byContradiction fun hne =>
       (hstep.2.2.2.2.2.2.1 x hne).1 (hOth k e hk he x hx))
     hps hhd hr' hpar hlive
@@ -132,9 +133,10 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       exact ⟨h1, h2⟩)
   have hT' : ∀ l ∈ T, X.t.objs !! l = none ∨ l = n := by
     intro l hl
-    rcases hT l hl with h0 | ⟨pl, rp, j', plo, phi, hcs, rfl⟩
+    rcases hT l hl with h0 | ⟨pl, rp, j', plo, phi, hcs, rfl⟩ | ⟨hcs, -⟩
     · exact Or.inl h0
     · cases hcs; exact Or.inr rfl
+    · cases hcs
   subst hD'
   refine ⟨r', ps, hr', hpar.2.1, hpg, hlive, hbr, ?_, ?_, hstep, hpar, hhd, hps, hE, ⟨T, hfr, hT'⟩,
     hDk, hDn, hPd⟩

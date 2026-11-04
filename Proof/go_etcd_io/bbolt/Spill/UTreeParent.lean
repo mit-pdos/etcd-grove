@@ -104,7 +104,8 @@ theorem uEnt_move {X X' : WX} {bl : Loc} {P P' : Pages} {hwm hwm' : Nat} {T : Li
     exact uEnt.child _ _ _ _ _ _ _ _ c rc' F D N E (hcs c hc) hrc'
       (by rw [nodeSim_parent hs]; exact hpar) (by rw [nodeSim_pgid hs, wDat_pgid hw]; exact hpg)
       (by rw [hs.2.2.2.2.2.1, wDat_key hw]; exact hkey) (fun h0 => hk' (hs.2.1.1 h0))
-      (by rw [length_of_dat hs.2.2.1]; exact hne) (uTree_bnd H _ _ hb)
+      ⟨by rw [length_of_dat hs.2.2.1]; exact hne.1, by rw [hs.2.2.2.2.1]; exact hne.2⟩
+      (uTree_bnd H _ _ hb)
   | fin _ _ _ _ _ _ _ _ S E hf =>
     obtain ⟨hf', he⟩ := fTree_agree hP hh hf
     have H := uEnt.fin (X := X') (bl := bl) (P := P') (hwm := hwm') n lo' hi' ws' cs' h i' w' S E

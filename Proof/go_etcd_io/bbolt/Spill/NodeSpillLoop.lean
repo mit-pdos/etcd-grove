@@ -182,7 +182,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
   have hent := hb.ent j _ _ (List.getElem?_eq_getElem hjl) hj
   have htx : w'.wtxid = w.wtxid := wtxid_of_C hl.step.1
   cases hent with
-  | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hcm hrc hpar hpg hkey hknil _ hut =>
+  | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hcm hrc hpar hpg hkey hknil hne hut =>
     obtain ⟨rc', hrc', hsp⟩ := uTree_N_unspilled hut c (uTree_head hut)
     rw [hrc] at hrc'; cases hrc'
     refine ⟨rc, hrc, hsp, hrc, by rw [htx]; exact hl.step.2.2.2.1, Or.inr ⟨hut, ?_, ?_, ?_⟩⟩
@@ -195,7 +195,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
       have hpg0 : r'.nv.pgid' ≠ W64 0 := fun h0 =>
         absurd (hb.pg0 h0 _ (mem_of_get hj)) (by simp)
       exact ⟨hpar, hnn, hnN, hb.node, hb.un, hb.leaf, hpg0, hcm,
-        ⟨_, List.getElem?_eq_getElem hjl, hpg.symm, hkey.symm⟩, rfl, rfl, hknil⟩
+        ⟨_, List.getElem?_eq_getElem hjl, hpg.symm, hkey.symm⟩, rfl, rfl, hknil, hne.2⟩
     · exact slotInv_child hj hl.slot
     · intro id hid
       rw [htx]

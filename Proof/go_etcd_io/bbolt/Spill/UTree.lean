@@ -5,7 +5,9 @@ of bucket `bl`, not yet spilled, over the spill's page map `P` (the writer's buf
 pages, `spP`) and high-water mark `hwm`. A leaf: its keys sorted within `[lo, hi)`, its nested
 buckets' values `bvalS`; a branch (of at least two entries): each entry an unspilled child with
 its own `uTree` (the child's bounds the entry's; not empty, U9j: `node.spill` reads a child's
-`inodes[0]` in the sort and before `parent.put`; `rebalance` removed the empty nodes), or a finished subtree (`fTree`: an `sTree` from
+`inodes[0]` in the sort and before `parent.put`; `rebalance` removed the empty nodes; its
+children nodes of its own tree, no earlier spill's pieces: U9j, their kill in its spill is framed
+by its nodes), or a finished subtree (`fTree`: an `sTree` from
 its first key, the entry's), its other children spilled nodes (pieces). The indices: `h` the
 height, `F` the base pages its nodes own (freed by the spill), `D` the slots it owns (its nodes'
 pages and its finished subtrees' and nested buckets'), `N` its nodes, `E` its leaf entries in
@@ -145,7 +147,7 @@ inductive uEnt (X : WX) (bl : Loc) (P : Pages) (hwm : Nat) :
   | child (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)
       (w : WEntry) (c : Loc) (rc : NRec) (F D : List Nat) (N : List Loc) (E : List El) :
       c ∈ cs → X.node bl c = some rc → rc.nv.parent' = n → rc.nv.pgid' = w.pgid →
-      rc.key = w.key → rc.nv.key' ≠ slice.nil → 0 < rc.ws.length →
+      rc.key = w.key → rc.nv.key' ≠ slice.nil → 0 < rc.ws.length ∧ (∀ c' ∈ rc.cs, c' ∈ N) →
       uTree X bl P hwm c (childLo lo (wKey ws) i) (childHi hi (wKey ws) ws.length i) h F D N E →
       uEnt X bl P hwm n lo hi ws cs h i w ⟨some c, F, D, N, E⟩
   | fin (n : Loc) (lo hi : Option (List w8)) (ws : List WEntry) (cs : List Loc) (h i : Nat)
