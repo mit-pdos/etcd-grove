@@ -6,7 +6,8 @@ compactor off (`notes/decisions.md`, "The compactor's slot"). Its client-only ca
 and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 below first said.
 K2's Draft 2 approved with U1-U4 (2026-11-04), its specs written
 (`Spec/k8s_io/apiserver/pkg/storage/etcd3/`, `CompactorDefs.lean`; `notes/decisions.md`,
-"Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). Next: G1 (goose, Perennial; awaiting the user's sign-off), K3 (the example `k8s/compactor` and its client-only starter). It follows the phases of
+"Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). G1 done on a Perennial branch,
+waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). Next: K4. It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).
@@ -181,6 +182,29 @@ server's statements, so it goes through the slot convention.
 - The example of Q2 (i), and Go checks of each post's claims.
 - Its failing-key variant: delete the key mid-run and see the panic. If it reproduces at the pinned
   apiserver, the finding moves to `issues/` with that test.
+
+*Done (2026-11-04).* `examples/k8s/compactor`, a Go module of its own (project `k8s-compactor` of
+`etc/goose.py`, translated; `k8s/etcd3`'s pins, checked by `GO_MOD_PINS` and `CLIENT_GO_PINS`):
+- `Main`: one member started by `StartCompactingServer` at retention 0 (its spec's premise now
+  `0 ≤ retention`: the client-only mode, `bootCfg_off`, a mode of the existing starter), a readiness
+  Get, `DisableSnapshotList` (U3's trusted spec, `Proof/.../examples/k8s/compactor/DisableSnapshotList.lean`:
+  `gateOff`), a writer, three API servers each with a client and a compactor (interval 20ms, a
+  `RealClock`, no `onClose`) sampling `CompactRevision` ten times, `Stop`, then checking: the samples
+  never decrease; the last is at most a later latest Get's revision; `compact_rev_key` parses to a
+  revision at most that one. Each check follows from K2's specs (`compactRevLb`, `recRevOk`, the
+  caller's `recorded`, the `ParseInt` read-back); K4 proves them.
+- The Go test: `TestCompactor` runs `Main`; `TestHistory` runs its workload with a watch of the key
+  and checks what the specs do not state: the key's values increase, each the revision of the
+  previous put (so below its own), successive puts at least an interval apart (Q3), the store
+  compacted at one of the values. A run: `0@80 80@173 173@274 274@363 363@406 ...`, compacted at
+  the last value.
+- The failing-key variant (`TestMissingKey`, a child process): the key deleted after the first put,
+  the compactor's next round panics (index out of range in `Compact`). It reproduces at the pinned
+  apiserver as an upstream test (`TestCompactMissingKey`), so the finding moved to `issues/`
+  (`issues/k8s-apiserver-compactor-missing-key-panic.md`; still `blocks-proof: no`).
+- Found while testing: a member's first second is its election (a compactor's rounds before it
+  fail, with nothing compacted), and a watch from an old revision is cancelled by a compaction that
+  passes it before it syncs (the history watch starts at the store's revision).
 
 **K4. Freeze, then prove:** `Compact`, then the compactor's methods, `runCompactLoop` and
 `NewCompactor`. Link them (`etc/gen-link.py`: a new `--k8s` table entry). Then the example's

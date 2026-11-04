@@ -6,8 +6,9 @@ Lean-first (no Rocq counterpart).
 
 **The triple:** `StartServer`'s.
 
-**The pure premises:** `StartServer`'s, and the retention positive (phase 0's scope: revision
-mode, a positive retention).
+**The pure premises:** `StartServer`'s, and the retention positive or `0` (revision mode; at `0`
+etcd's own compactor is off and the cluster compacts only at its clients' requests, Kubernetes'
+deployment, `examples/k8s/compactor`: K3 of `notes/k8s-compactor-plan.md`).
 -/
 module
 
@@ -47,7 +48,9 @@ abbrev StartCompactingServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
   -- condition on the initial cluster's names
   utf8Valid name →
-  lg ≠ null → 0 < sint.Z retention →
+  -- (K3 of the k8s compactor plan, 2026-11-04) the retention positive, or `0`: etcd's compactor
+  -- off, every compaction a client's (Kubernetes' deployment; `v3compactor.bootCfg`'s off case)
+  lg ≠ null → 0 ≤ sint.Z retention →
   -- (C3's server stage, 2026-11-02) the cluster's retention at most the compactor's
   (ρ.rd.kv.cret : Int) ≤ sint.Z retention →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →

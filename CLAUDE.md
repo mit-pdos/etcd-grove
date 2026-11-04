@@ -309,6 +309,15 @@ generated: never edit the `.lean` files by hand.
   `RaftWitness/Code/**.toml`) and `examples/raft/kvwitness` (project `kvwitness`, a Go module whose
   `go.mod` replaces raft by that commit), modules `RaftWitness.Code.go_etcd_io.raft.v3`, ....
 
+A proof that needs a prophecy the Go code does not have gets it from a **prophecy patch**,
+`etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
+translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
+`ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
+read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
+patched file with those statements erased must be the original). A read-only expression may fail,
+which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
+code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
+
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
 `Perennial.*` names (which Lake resolves to the Perennial library);

@@ -1,11 +1,9 @@
 # Translated with bodies: the store the survey is about (notes/k8s-etcd3-goose.md), except
-# what the pinned Goose rejects (names only, bodies axiomatized):
-# - `store.GetList` ranges over a function (`for chunk, chunkErr := range chunks`, an
-#   `iter.Seq2[listChunk, error]`, store.go:825): Goose supports ranges over integers, maps,
-#   slices, channels and arrays only (gap G2);
+# what the pinned Goose rejects (names only, bodies axiomatized; `store.GetList`, gap G2, translates
+# since Perennial `caa9d07ee`, range over a function):
 # - `compactor.fromWatchResponse`, `parseEvent`, `watchChan.startWatching` select fields of a
 #   `*clientv3.Event`, an alias (`type Event = mvccpb.Event`): Goose's `getStructInfo` does not
 #   see through aliases (gap G1; with `types.Unalias` there all three translate).
-translate = ["*", "!store.GetList", "!compactor.fromWatchResponse", "!parseEvent",
+translate = ["*", "!compactor.fromWatchResponse", "!parseEvent",
   "!watchChan.startWatching"]
 imports = ["*"]

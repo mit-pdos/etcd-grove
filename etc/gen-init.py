@@ -77,6 +77,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
+         'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
          # KEP-6404 (2026-10-26): the watch cache and its store

@@ -77,7 +77,10 @@ theorem StartCompactingServer.wp_proof
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
-      (v3compactor.bootCfg_revision _ _ (by omega) Hcret) Hck Haf Hbuq
+      (if h : retention = W64 0 then v3compactor.bootCfg_off _ _ _ _ h
+       else v3compactor.bootCfg_revision _ _ (by
+         have : sint.Z retention ≠ 0 := fun h0 => h (by word)
+         omega) Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
