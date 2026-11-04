@@ -299,6 +299,10 @@ theorem acInv_off (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 theorem acLessor_off (s : Loc) : ⊢ acLessor (GF := GF) .off s := by
   dsimp only [acLessor, AuthC.mode, AuthC.isOn]; simp only [srvLessorNilM]; itrivial
 
+/-- Off, the token rights are nothing (whatever the environment). -/
+theorem acTok_off (k : w64) : acTok (GF := GF) .off k = iprop(True) := by
+  dsimp only [acTok]
+
 theorem acCost_off : ⊢ acCost (GF := GF) .off := by
   dsimp only [acCost, AuthC.mode, AuthC.isOn]; itrivial
 

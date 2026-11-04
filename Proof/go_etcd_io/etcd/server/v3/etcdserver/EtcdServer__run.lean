@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
@@ -52,7 +53,7 @@ KV's premises from `x₀`), the apply thread's resources at `A ++ ce`. The sched
 (in its run token) is the apply thread's while it runs (`srvGoRes`: `GoAttach` of the alarm). The
 batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) is exactly what
 `applyAll` spends: every entry of `ce` is above the applied index (`unapplied ai ce = ce`). -/
-theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
+theorem run_job_body (hAA : EtcdServer.applyAll.specBatchOff (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
@@ -98,7 +99,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
-  simp only [EtcdServer.applyAll.specBatch, srvRunH_applyAll_spec] at hAA
+  simp only [EtcdServer.applyAll.specBatchOff, srvRunH_applyAll_specOff] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
@@ -505,7 +506,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyResOn C (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
-  simp only [EtcdServer.applyAll.specOn, srvRunH_applyAll_spec] at hAA
+  simp only [EtcdServer.applyAll.specOn, srvRunH_applyAll_specOff] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
@@ -682,8 +683,9 @@ local macro "ul_tail" : tactic => `(tactic| (
     ul_stats))
 
 set_option maxHeartbeats 0 in
-theorem EtcdServer.run.wp_proof
-    (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
+/-- **`run.specOff`** (the auth component's stage 2, 2026-11-04: until then `wp_proof`). -/
+theorem EtcdServer.run.wp_proofOff
+    (hAA : EtcdServer.applyAll.specOff (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
@@ -699,7 +701,7 @@ theorem EtcdServer.run.wp_proof
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
-    EtcdServer.run.spec (GF := GF) (hG := hG) := by
+    EtcdServer.run.specOff (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
   wp_start as Hpre
   iunfold isServerRun at Hpre
@@ -2058,7 +2060,49 @@ theorem EtcdServer.run.wp_proofOn
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
+/-- **`run.spec`**, in both auth modes (the auth component's stage 2, 2026-11-04): off,
+`wp_proofOff` over `applyAll.spec`'s off corollary; on, `wp_proofOn` over its on corollary and
+the snapshot half; each through its bridge to `isServerRunC` (`isServerRun_C`, `isServerRunOn_C`). -/
+theorem EtcdServer.run.wp_proof
+    (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
+    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
+    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
+    (hSL : EtcdServer.setLead.spec (GF := GF) (hG := hG))
+    (hIL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
+    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
+    (hBL : v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG))
+    (hGCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
+    (hSCI : EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG))
+    (hRS : raftNode.start.spec (GF := GF) (hG := hG))
+    (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
+    (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
+    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
+    EtcdServer.run.spec (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+  iintro %Φ ⟨#Hpkg, %hC, Hrun⟩ HΦ
+  obtain ⟨hm, hRB⟩ := hC
+  cases C with
+  | off =>
+    have hR := isServerRun_C (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+      iprop(False) iprop(True) hm
+    ihave Hrun' := hR.2 $$ Hrun
+    iapply (EtcdServer.run.wp_proofOff (EtcdServer.applyAll.spec_off hAA) hLg hGI hGT hFifo hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
+      s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀) $$ [Hpkg Hrun'] [HΦ]
+    · iframe Hpkg Hrun'
+    · iexact HΦ
+  | on γa =>
+    have hR := isServerRunOn_C (GF := GF) γa s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ hm
+    ihave Hrun' := hR.2 $$ Hrun
+    iapply (EtcdServer.run.wp_proofOn (EtcdServer.applyAll.spec_on hAA) hAA.2 hLg hGI hGT hFifo hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
+      s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ γa hm hRB) $$ [Hpkg Hrun'] [HΦ]
+    · iframe Hpkg Hrun'
+    · iexact HΦ
+
 end proof
+
 
 end EtcdGrove
 end Perennial

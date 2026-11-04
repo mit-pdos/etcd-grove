@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
@@ -65,7 +66,8 @@ local macro "start_info" : tactic => `(tactic| (
   (try wp_auto)))
 
 set_option maxHeartbeats 0 in
-theorem EtcdServer.start.wp_proof
+/-- **`start.specOff`** (the auth component's stage 2, 2026-11-04: until then `wp_proof`). -/
+theorem EtcdServer.start.wp_proofOff
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
     (hZS : zap.String.spec (GF := GF) (hG := hG))
@@ -83,7 +85,7 @@ theorem EtcdServer.start.wp_proof
     (hVS : semver.Version.String.spec (GF := GF) (hG := hG))
     (hVC : version.Cluster.spec (GF := GF) (hG := hG))
     (hGW : prometheus.GaugeVec.With.spec (GF := GF) (hG := hG))
-    (hRun : EtcdServer.run.spec (GF := GF) (hG := hG))
+    (hRun : EtcdServer.run.specOff (GF := GF) (hG := hG))
     (hAW : EtcdServer.ApplyWait.spec (GF := GF) (hG := hG))
     (hDone : EtcdServer.Done.spec (GF := GF) (hG := hG))
     (hStop : EtcdServer.Stopping.spec (GF := GF) (hG := hG))
@@ -94,7 +96,7 @@ theorem EtcdServer.start.wp_proof
     (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
-    EtcdServer.start.spec (GF := GF) (hG := hG) := by
+    EtcdServer.start.specOff (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
   wp_start as Hb
   iNamed Hb
@@ -1138,6 +1140,72 @@ theorem EtcdServer.start.wp_proofOn
   iintro ⟨#Hl, Hslot⟩
   iexists lcn
   iframe Hl Hslot
+
+/-- **`start.spec`**, in both auth modes (the auth component's stage 2, 2026-11-04): off,
+`wp_proofOff` over `run.spec`'s off corollary; on, `wp_proofOn` over its on corollary and
+`AppliedIndex.specM true`; each through its bridge to `isServerBuiltC` (`isServerBuiltM_C`) and the
+lessor's (`acLessor_off`, `acLessor_on`). -/
+theorem EtcdServer.start.wp_proof
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (hZS : zap.String.spec (GF := GF) (hG := hG))
+    (hZU : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hWN : wait.New.spec (GF := GF) (hG := hG))
+    (hTL : wait.NewTimeList.spec (GF := GF) (hG := hG))
+    (hTLW : wait.timeList.Wait.spec (GF := GF) (hG := hG))
+    (hTLT : wait.timeList.Trigger.spec (GF := GF) (hG := hG))
+    (hNR : read.NewRead.spec (GF := GF) (hG := hG))
+    (hNN : notify.NewNotifier.spec (GF := GF) (hG := hG))
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hCl : EtcdServer.Cluster.spec (GF := GF) (hG := hG))
+    (hRCID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
+    (hIDS : types.ID.String.spec (GF := GF) (hG := hG))
+    (hVS : semver.Version.String.spec (GF := GF) (hG := hG))
+    (hVC : version.Cluster.spec (GF := GF) (hG := hG))
+    (hGW : prometheus.GaugeVec.With.spec (GF := GF) (hG := hG))
+    (hRun : EtcdServer.run.spec (GF := GF) (hG := hG))
+    (hAW : EtcdServer.ApplyWait.spec (GF := GF) (hG := hG))
+    (hDone : EtcdServer.Done.spec (GF := GF) (hG := hG))
+    (hStop : EtcdServer.Stopping.spec (GF := GF) (hG := hG))
+    (hLC : EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG))
+    (hFC : EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG))
+    (hNRID : EtcdServer.NextRequestID.spec (GF := GF) (hG := hG))
+    (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
+    (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
+    (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
+    EtcdServer.start.spec (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+  iintro %Φ ⟨#Hpkg, %hC, Hb, #Hln⟩ HΦ
+  obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
+  have hB := isServerBuiltM_C (GF := GF) C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
+  cases C with
+  | off =>
+    dsimp only [AuthC.isOn] at hB
+    rw [isServerBuiltM_false] at hB
+    ihave Hb' := hB.2 $$ Hb
+    iapply (EtcdServer.start.wp_proofOff hLg hInfo hZS hZU hWN hTL hTLW hTLT hNR hNN hMID hCl hRCID hIDS hVS hVC hGW (EtcdServer.run.spec_off hRun) hAW hDone hStop hLC hFC hNRID hRT hAI hRSt hRI
+      s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0) $$ [Hpkg Hb'] [HΦ]
+    · iframe Hpkg Hb'
+    iintro !> ⟨%γw, Hreq, Hrd, Hst, Hp⟩
+    ihave #Hlb := srvAuthLb_off s E { ρ with wait := γw } $$ Hreq
+    iapply HΦ
+    simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false]
+    iexists γw
+    iframe Hreq Hrd Hlb Hst Hp
+  | on γa =>
+    dsimp only [AuthC.isOn] at hB
+    rw [isServerBuiltM_true] at hB
+    ihave Hb' := hB.2 $$ Hb
+    have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
+    ihave #Hln' := hL.1 $$ Hln
+    iapply (EtcdServer.start.wp_proofOn hLg hInfo hZS hZU hWN hTL hTLW hTLT hNR hNN hMID hCl hRCID hIDS hVS hVC hGW (EtcdServer.run.spec_on hRun) hAW hDone hStop hLC hFC hNRID hRT (hAI true) hRSt hRI
+      s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N γa hm hRB Hrb Hai0) $$ [Hpkg Hb' Hln'] [HΦ]
+    · iframe Hpkg Hb' Hln'
+    iintro !> Hp
+    iapply HΦ
+    simp only [AuthC.isOn]
+    iexact Hp
 
 end proof
 

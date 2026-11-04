@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__adjustTicks
@@ -43,8 +44,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxHeartbeats 0 in
-theorem EtcdServer.Start.wp_proof
-    (hStart : EtcdServer.start.spec (GF := GF) (hG := hG))
+/-- **`Start.specOff`** (the auth component's stage 2, 2026-11-04: until then `wp_proof`). -/
+theorem EtcdServer.Start.wp_proofOff
+    (hStart : EtcdServer.start.specOff (GF := GF) (hG := hG))
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hAdj : EtcdServer.adjustTicks.spec (GF := GF) (hG := hG))
@@ -58,7 +60,7 @@ theorem EtcdServer.Start.wp_proof
     (hKVH : EtcdServer.monitorKVHash.spec (GF := GF) (hG := hG))
     (hCH : EtcdServer.monitorCompactHash.spec (GF := GF) (hG := hG))
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
-    EtcdServer.Start.spec (GF := GF) (hG := hG) := by
+    EtcdServer.Start.specOff (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
   wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
   -- (2026-11-02, the cluster-rows stage) the member id field, a voter: the monitors' permission
@@ -186,6 +188,7 @@ theorem EtcdServer.Start.wp_proof
     try itrivial
   iapply HΦ
   iexists γw
+  iunfold srvStartReaders
   iframe Hreq Hrd Hgr Hlg Hrds Hwgs Hlcs
 
 
@@ -334,8 +337,61 @@ theorem EtcdServer.Start.wp_proofOn
     try itrivial
   iapply HΦ
   iexists γw
+  iunfold srvStartReaders
   iframe Hreq Hrd Hlb Hgr Hlg Hrds Hwgs Hlcs
 
+
+set_option maxHeartbeats 0 in
+/-- **`Start.spec`**, in both auth modes (the auth component's stage 2, 2026-11-04): off,
+`wp_proofOff` over `start.spec`'s off corollary; on, `wp_proofOn` over its on corollary; each
+through its bridge to `isServerBuiltC` (`isServerBuiltM_C`) and the lessor's (`acLessor_on`). -/
+theorem EtcdServer.Start.wp_proof
+    (hStart : EtcdServer.start.spec (GF := GF) (hG := hG))
+    (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hAdj : EtcdServer.adjustTicks.spec (GF := GF) (hG := hG))
+    (hPub : EtcdServer.publishV3.spec (GF := GF) (hG := hG))
+    (hReqT : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
+    (hPurge : EtcdServer.purgeFile.spec (GF := GF) (hG := hG))
+    (hMFD : monitorFileDescriptor.spec (GF := GF) (hG := hG))
+    (hMCV : EtcdServer.monitorClusterVersions.spec (GF := GF) (hG := hG))
+    (hMSV : EtcdServer.monitorStorageVersion.spec (GF := GF) (hG := hG))
+    (hRL : read.Read.LinearizableReadLoop.spec (GF := GF) (hG := hG))
+    (hKVH : EtcdServer.monitorKVHash.spec (GF := GF) (hG := hG))
+    (hCH : EtcdServer.monitorCompactHash.spec (GF := GF) (hG := hG))
+    (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
+    EtcdServer.Start.spec (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+  iintro %Φ ⟨#Hpkg, %hC, Hb, #Hln, Htok, Hlg, Hlgm, Hsv, Hoff, Hlgd, Hrc⟩ HΦ
+  obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
+  have hB := isServerBuiltM_C (GF := GF) C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
+  cases C with
+  | off =>
+    dsimp only [AuthC.isOn] at hB
+    rw [isServerBuiltM_false] at hB
+    ihave Hb' := hB.2 $$ Hb
+    iapply (EtcdServer.Start.wp_proofOff (EtcdServer.start.spec_off hStart) hGA hLg hAdj hPub hReqT hPurge hMFD hMCV hMSV hRL hKVH hCH hDG
+      s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0) $$ [Hpkg Hb' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc] [HΦ]
+    · iframe Hpkg Hb' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc
+    iintro !> ⟨%γw, #Hreq, Hrd, Hgr, Hlg', Hsr, Hlcs⟩
+    ihave #Hlb := srvAuthLb_off s E { ρ with wait := γw } $$ Hreq
+    iapply HΦ
+    simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false]
+    iexists γw
+    iframe Hreq Hrd Hlb Hgr Hlg' Hsr Hlcs
+  | on γa =>
+    dsimp only [AuthC.isOn] at hB
+    rw [isServerBuiltM_true] at hB
+    ihave Hb' := hB.2 $$ Hb
+    have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
+    ihave #Hln' := hL.1 $$ Hln
+    iapply (EtcdServer.Start.wp_proofOn (EtcdServer.start.spec_on hStart) hGA hLg hAdj hPub hReqT hPurge hMFD hMCV hMSV hRL hKVH hCH hDG
+      s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N γa hm hRB Hrb Hai0) $$ [Hpkg Hb' Hln' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc] [HΦ]
+    · iframe Hpkg Hb' Hln' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc
+    iintro !> Hp
+    iapply HΦ
+    simp only [AuthC.isOn]
+    iexact Hp
 
 end proof
 

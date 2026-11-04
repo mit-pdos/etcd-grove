@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MergedImageOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
 
 @[expose] public section
 
@@ -68,10 +69,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
+    EtcdServer.applyAll.specBatchOff (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk q γn rt n Hms Hai1
     Hok hEok hdv hAL hAT Hdisk hciA hcia hγn hpre hnA
-  simp only [srvRunH_applyAll_spec]
+  simp only [srvRunH_applyAll_specOff]
   have hAE := EtcdServer.applyEntries.spec_off hAE
   unfold EtcdServer.applyEntries.specOff at hAE
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
@@ -471,7 +472,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk γa sa q γn rt n hM hRB
     Hms Hai1 Hok hEok hdv hAL hAT Hdisk hciA hcia hγn hpre hnA
-  simp only [srvRunH_applyAll_spec]
+  simp only [srvRunH_applyAll_specOff]
   unfold EtcdServer.applyEntries.specOn at hAE
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso⟩
@@ -846,8 +847,9 @@ theorem EtcdServer.applyAll.wp_proofOn
     iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
 
 set_option maxRecDepth 100000 in
-/-- **`applyAll.spec`** (J8b, 2026-11-01): `wp_proofBatch` and `wp_proofSnap` (`ApplyAllSnap.lean`). -/
-theorem EtcdServer.applyAll.wp_proof
+/-- **`applyAll.specOff`** (J8b, 2026-11-01; until the auth component's stage 2, 2026-11-04, the
+linked `wp_proof`): `wp_proofBatch` and `wp_proofSnap` (`ApplyAllSnap.lean`). -/
+theorem EtcdServer.applyAll.wp_proofOff
     (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
     (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
@@ -871,9 +873,144 @@ theorem EtcdServer.applyAll.wp_proof
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+    EtcdServer.applyAll.specOff (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe,
     EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe⟩
+
+set_option maxRecDepth 100000 in
+/-- **The merged `applyAll.specBatch`** (the auth component's stage 2, 2026-11-04): by the
+component, `wp_proofBatch` off and `wp_proofOn` on, through the rows' bridges (`AuthCompRows`);
+stage 2c makes it one proof over the slot. -/
+theorem EtcdServer.applyAll.wp_proofBatchC
+    (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
+    (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
+    (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
+    (hGS : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
+    (hGM : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
+    (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
+    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
+    q γn rt n
+  cases C with
+  | off =>
+    simp only [AuthC.isOn, kvAppliedM, logShapeM, acTok_off, ← srvLessorNilM_eq, srvLessorNilM]
+    iintro %Φ ⟨#Hpkg, %Hp, #Hsrv, -, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, H41, H42, H43, -⟩ HΦ
+    obtain ⟨hm, -, Hms, Hai1, Hok, hEok, hdv, hA, hlt, hdisk, hci, hci2, hnode, hpre, hlen⟩ := Hp
+    have hS := isServerM_C (GF := GF) .off s γ ci TM E ρ γr
+    have hK := srvApplyKVM_C (GF := GF) .off s E ρ.wait x sa
+    dsimp only [AuthC.isOn, srvApplyKVM] at hS hK
+    rw [isServerM_false] at hS
+    ihave #Hsrv' := hS.2 $$ Hsrv
+    ihave H24' := hK.2 $$ H24
+    have h := EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe s γ ci TM E ρ γr b ep ap
+      es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk q γn rt n Hms Hai1 Hok hEok hdv
+      hA hlt hdisk hci hci2 hnode hpre hlen
+    iapply h $$ [H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H25 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H24'] [HΦ]
+    · iframe Hpkg Hsrv' H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H25 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H24'
+    iintro !> ⟨%γ', %TM', %E', %b', %st', %ai', %at', %a', %t', %cs', %hbe, Hrun, #Hs2, HAR, Hai,
+      Hat, Hcs, Hcv, Hss, Hth, Hbe, Hca, Hlr, Hgr, Hbm, Hao, #Hal, HWT,
+      ⟨%x', HKV, %Hstep, Hlog, Hka, HRS⟩, Hkvf, Hwal, Hso, %Hp⟩
+    have hS' := isServerM_C (GF := GF) .off s γ' ci TM' E' ρ γr
+    have hK' := srvApplyKVM_C (GF := GF) .off s E' ρ.wait x' sa
+    dsimp only [AuthC.isOn, srvApplyKVM] at hS' hK'
+    rw [isServerM_false] at hS'
+    ihave #Hs2' := hS'.1 $$ Hs2
+    ihave HKV' := hK'.1 $$ HKV
+    iapply HΦ
+    iexists γ', TM', E', b', st', ai', at', a', t', cs'
+    iframe Hrun Hs2' HAR Hai Hat Hcs Hcv Hss Hth Hbe Hca Hlr Hgr Hbm Hao Hal HWT Hkvf Hwal Hso
+    isplitr
+    · ipureintro; exact hbe
+    isplitl [HKV' Hlog Hka HRS]
+    · iexists x', sa; iframe HKV' Hlog Hka HRS; ipureintro; exact Hstep
+    ipureintro; exact Hp
+  | on γa =>
+    simp only [AuthC.isOn, kvAppliedM, logShapeM]
+    iintro %Φ ⟨#Hpkg, %Hp, #Hsrv, #Hln, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, H41, H42, H43, Htok⟩ HΦ
+    obtain ⟨hm, hRB, Hms, Hai1, Hok, hEok, hdv, hA, hlt, hdisk, hci, hci2, hnode, hpre, hlen⟩ := Hp
+    have hS := isServerM_C (GF := GF) (.on γa) s γ ci TM E ρ γr
+    have hK := srvApplyKVM_C (GF := GF) (.on γa) s E ρ.wait x sa
+    have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
+    dsimp only [AuthC.isOn, srvApplyKVM] at hS hK
+    ihave #Hsrv' := hS.2 $$ Hsrv
+    ihave #Hln' := hL.1 $$ Hln
+    ihave H24' := hK.2 $$ H24
+    have h := EtcdServer.applyAll.wp_proofOn hASnap.1 (EtcdServer.applyEntries.spec_on hAE.1)
+      hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w
+      nk γa sa q γn rt n hm hRB Hms Hai1 Hok hEok hdv hA hlt hdisk hci hci2 hnode hpre hlen
+    have hT : ∀ k, srvTokRights (GF := GF) E k = acTok (.on γa) k :=
+      fun k => srvTokRights_eq (.on γa) E k hm
+    simp only [hT] at h
+    iapply h $$ [H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H25 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H24' Htok] [HΦ]
+    · iframe Hpkg Hsrv' Hln' H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H25 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H24' Htok
+    iintro !> ⟨%γ', %TM', %E', %b', %st', %ai', %at', %a', %t', %cs', %hbe, Hrun, #Hs2, HAR, Hai,
+      Hat, Hcs, Hcv, Hss, Hth, Htok', Hbe, Hca, Hlr, Hgr, Hbm, Hao, #Hal, HWT,
+      ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, Hkvf, Hwal, Hso, %Hp⟩
+    have hm' : E'.authMode = (AuthC.on γa).mode := (beSucc_authMode hbe).trans hm
+    have hS' := isServerM_C (GF := GF) (.on γa) s γ' ci TM' E' ρ γr
+    have hK' := srvApplyKVM_C (GF := GF) (.on γa) s E' ρ.wait x' sa'
+    dsimp only [AuthC.isOn, srvApplyKVM] at hS' hK'
+    ihave #Hs2' := hS'.1 $$ Hs2
+    ihave HKV' := hK'.1 $$ HKV
+    iapply HΦ
+    iexists γ', TM', E', b', st', ai', at', a', t', cs'
+    rw [← srvTokRights_eq (.on γa) E' (ciEff γ' st'.k) hm']
+    iframe Hrun Hs2' Hln HAR Hai Hat Hcs Hcv Hss Hth Htok' Hbe Hca Hlr Hgr Hbm Hao Hal HWT Hkvf Hwal Hso
+    isplitr
+    · ipureintro; exact hbe
+    isplitl [HKV' Hlog Hka HRS]
+    · iexists x', sa'; iframe HKV' Hlog Hka HRS; ipureintro; exact Hstep
+    ipureintro; exact Hp
+
+set_option maxRecDepth 100000 in
+/-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch
+(`wp_proofBatchC`) and the snapshot payload in the server's mode (`wp_proofSnapM`, from the off
+case `wp_proofSnap`). -/
+theorem EtcdServer.applyAll.wp_proof
+    (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
+    (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
+    (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
+    (hGS : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
+    (hGM : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
+    (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
+    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+  ⟨EtcdServer.applyAll.wp_proofBatchC hASnap hAE hBk hLg hV hSINC hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave
+      hPut hUR hID hName hSafe,
+    EtcdServer.applyAll.wp_proofSnapM
+      (EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC
+        hSnap hOn hSave hPut hUR hID hName hSafe)
+      hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName
+      hSafe⟩
 
 end proof
 

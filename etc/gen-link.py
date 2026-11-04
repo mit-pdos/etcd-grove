@@ -540,6 +540,10 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (the auth component's stage 2, 2026-11-04) `Start`'s off corollary, linked
+                 # (`=EtcdServer.wp_Start_off` callee)
+                 "--common": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.LinkedOff"],
+                 "--linkv3p": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.LinkedOff"],
                  # `Serve`'s auth-on spec, linked by hand (`=etcdstart.wp_ServeOn` callee)
                  "--authkv": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.LinkOn"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)

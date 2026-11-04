@@ -1,7 +1,7 @@
 /-
 **`s.Start()` of a built member** (2026-10-22, D33). Lean-first (no Rocq counterpart).
 
-`wp_Start_built`: `EtcdServer.Start.spec` at what `newServer` returns (`memberBuilt`) and the
+`wp_Start_built`: `EtcdServer.Start.specOff` (`Start` with auth off) at what `newServer` returns (`memberBuilt`) and the
 thread token: the member started (`memberUp`). Two of `srvServeBuilt`'s `lgMu` reader slots and
 the downgrade monitor's go to `Start`. The step every example's member start took after
 `NewServer` (putget's `Main`, putget3's and linkv3p's `startMember`), once; `StartServer` and
@@ -10,6 +10,7 @@ the downgrade monitor's go to `Start`. The step every example's member start too
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- See the file header. -/
-theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
+theorem wp_Start_built (wp_Start : EtcdServer.Start.specOff (GF := GF) (hG := hG))
     (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
     (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -49,8 +50,10 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   wp_apply (wp_Start s γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) bootKV N HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
+    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hsr, -⟩
   · iframe; iframe #
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
   iapply HΦ
   iunfold memberUp
   iexists E, cfg, γw
