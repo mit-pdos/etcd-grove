@@ -5,7 +5,8 @@ the axiom is strengthened again: the observation is also handed the batch lock's
 compaction keys' committed values (`fkdOwn γ v`, a new ghost name `γ.fkd`; the client's half is
 inside `fkOwn`), and `Q` is applied to `fkVals D`. The `fkRd` clause reviewed here is unchanged, and
 the argument below still holds of it; the new clause is the hook keys' argument over a second
-ghost variable (the axiom's docstring). To be re-attacked with the `axiom` skill.
+ghost variable (the axiom's docstring). Re-attacked with the `axiom` skill the same day: it
+survives ([backend-snapshot-fkd](backend-snapshot-fkd.md)).
 
 **Outcome.** The proposed restatement below (the post's `fkRd γ P (D, ⟨∅, W64 0⟩)`, `Q`
 unchanged) is the one taken, with the user's approval (2026-11-02), in place of the reviewed draft.
