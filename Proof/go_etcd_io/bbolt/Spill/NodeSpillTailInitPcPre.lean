@@ -105,7 +105,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) (hx : xs[i]? = some x) :
     ∃ rl, Xi.node bl x.1 = some rl ∧ x.1 ∈ Xi.live ∧ wsLive rl.ws ∧
       (insLens rl.ins rl.ws → pcPre Xi wi bl x.1 rl) := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hsr, hfit, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, -, hsr, hfit, -, -,
     hents, -, -, hL⟩ := hI
   have hil : i < xs.length := (List.getElem?_eq_some_iff.1 hx).1
   obtain ⟨ws, hws⟩ : ∃ ws, wss[i]? = some ws :=

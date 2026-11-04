@@ -58,7 +58,8 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
     (hDn : ∀ s ∈ pcSlots (spP Xf) ps, s ∈ D ∨ newSlot (st0 ++ stl) X.t.mv.pgid'.toNat s)
     (hPd : ∀ x, spP Xf !! x ≠ spP X !! x → x ∉ D)
     (hpar : ∀ rpf, Xf.node bl pl = some rpf → rpf.cs = rp0.cs ∧
-      rpf.nv = { rp0.nv with inodes' := rpf.nv.inodes' } ∧ rpf.key = rp0.key ∧
+      rpf.nv = { rp0.nv with inodes' := rpf.nv.inodes', key' := rpf.nv.key' } ∧
+      rpf.key = rp0.key ∧
       (rpf.nv.key' = slice.nil ↔ rp0.nv.key' = slice.nil)) (hpo : parOK Xf bl) :
     spDone X Xf w wf bl n rn O lo hi h D N E (.child pl rp j plo phi) (st0 ++ stl) := by
   obtain ⟨hn', -, hun', hnv, -, -, hfr0, hT0⟩ := spEnd_rec hpre hsp hend

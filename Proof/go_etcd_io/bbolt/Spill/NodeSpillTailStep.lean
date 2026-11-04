@@ -70,7 +70,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     rcases hc with ⟨hs', -⟩ | ⟨-, -, -, -, hvC, hfc, htl, -⟩
     · rw [hs'] at hsp; cases hsp
     · exact ⟨by rw [hvC]; rfl, hfc, htl⟩
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hsr, hfit, rfl,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hd0, hsr, hfit, rfl,
     hEs, hents, hD, hcs, hL⟩ := hI
   have hil : i < xs.length := (List.getElem?_eq_some_iff.1 hx).1
   obtain ⟨ws, hws⟩ : ∃ ws, wss[i]? = some ws :=
@@ -241,7 +241,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     rw [hdb.1]; rw [hdb.2.1] at hy; exact hwf.2.1 y (applySteps_free_sub _ _ _ _ hy)
   have htli : ∀ s ∈ treeSlots wi.C, s < Xi.t.mv.pgid'.toNat := fun s hs' => by
     rw [hdb.1] at hs'; have := hwf.2.2 s hs'; omega
-  refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
+  refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens, hd0,
     hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
   rotate_left
   exact {

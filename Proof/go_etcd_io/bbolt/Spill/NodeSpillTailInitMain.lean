@@ -116,7 +116,7 @@ theorem pcInv_init' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   have hG2 := spG_tailSplit hpre hsp hend hd hsr
   have hmv : X2.t.mv = X'.t.mv := hsr.same.1.trans (nilCh_mv _ _ _ _)
   have hP : spP X2 = spP X' := (split_spP hsr).trans (nilCh_spP _ _ _ _)
-  refine ⟨X', w', r', st, T, X2, wss, rp', bs, j, Es, Ds, [], [], hend, hlens, hsr, hfit,
+  refine ⟨X', w', r', st, T, X2, wss, rp', bs, j, Es, Ds, [], [], hend, hlens, hd, hsr, hfit,
     (List.append_nil st).symm, hEf, hents, ⟨?_, ?_, ?_⟩, ?_, ?_⟩
   · rw [pcOwn_zero]; exact hDk
   · rw [pcOwn_zero]; exact hDn

@@ -128,7 +128,7 @@ def pcInv (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
   ∃ (X' : WX) (w' : WDb) (r' : NRec) (st0 : List FLStep) (T : List Loc) (X2 : WX)
     (wss : List (List WEntry)) (rp0 : NRec) (bs : List WEntry) (j : Nat) (Es : List (List El))
     (Ds : List (List Nat)) (ps : List Piece) (stl : List FLStep),
-    spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧ insLens r'.ins r'.ws ∧
+    spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧ insLens r'.ins r'.ws ∧ objsDisj X'.t ∧
     splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0 ∧
     (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) ∧
     st = st0 ++ stl ∧ Es.flatten = E ∧
@@ -168,7 +168,7 @@ theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {wi : WDb} {st : List FLStep}
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) :
     wi.C = w.C ∧ wi.fl = w.fl.applySteps w.wtxid st ∧ Xi.v.pages = X.v.pages := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, -, hsr, -, rfl, -, -,
     -, -, hL⟩ := hI
   obtain ⟨hC, hfl, hpg⟩ := spEnd_db hend
   obtain ⟨hC2, hfl2, hpg2, -⟩ := hL.step
@@ -327,7 +327,7 @@ theorem pcInv_err {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (wi : WDb) (st : List FLStep) (X'' : WX) (w'' : WDb) (st' : List FLStep)
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st)
     (he : spErr Xi X'' wi w'' st') : spErr X X'' w w'' (st ++ st') := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, -, hsr, -, rfl, -, -,
     -, -, hL⟩ := hI
   have h1 : spErr X X' w w' st0 := by
     rcases hend with ⟨-, rfl, rfl, -, rfl, -⟩ | ⟨-, h', es, i, -, hl, -⟩
@@ -351,7 +351,7 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ∃ rf, Xf.node bl n = some rf ∧ n ∈ Xf.live ∧ rf.nv.parent' = pl ∧
       rf.nv.children' = slice.nil ∧ rf.cs = [] ∧
       (pl ≠ null → ∃ rp, Xf.node bl pl = some rp ∧ pl ∈ Xf.live) := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, -, -, -,
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, -, hsr, -, -, -, -,
     -, -, hL⟩ := hI
   obtain ⟨x0, hx0⟩ : ∃ x0, xs[0]? = some x0 := by
     cases e : xs with
