@@ -106,7 +106,7 @@ def isBoltCore (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
 def isBoltP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
     IProp GF :=
   iprop(isBoltCoreP B N db p sp t0 ∗ sync.isMutex db.[DB, go!"rwlock"] (rwR B db p sp t0) ∗
-    threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp))
+    threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗ opnShot B)
 
 /-- **`db` is the database `B`/`N`** (design §3.8): what `isBolt db γ` is sealed to, with
 `B = bnsOf γ.gs`, `N = γ.ns`. -/

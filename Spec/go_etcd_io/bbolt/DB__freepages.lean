@@ -37,14 +37,14 @@ side's quarter of the meta cells (`metaCellsQ`) is for the scan's `db.meta()` on
 abbrev DB.freepages.spec : Prop :=
   ∀ (K : BC) (C : CommitSt) (b : Loc) (l : Nat),
   C.metaOk → treeOK C → C.hwm ≤ 2 ^ 62 →
-  {{ K.core (GF := GF) ∗ rdPair K.B K.db K.sp ∗ ghostVar K.B.cur (1 : Qp).half.half C ∗
+  {{ K.core (GF := GF) ∗ sparePair K.B K.db K.sp ∗ ghostVar K.B.cur (1 : Qp).half.half C ∗
       ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l) : MapSt) C ∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"freepages")) (Val #()))
   {{ (s : GoSlice), RET #s; s ↦* freeIdsOf C ∗ ownSliceCap w64 s (DFrac.own 1) ∗
       ⌜PgidsIncr (freeIdsOf C) ∧ (∀ x ∈ freeIdsOf C, 2 ≤ x.toNat) ∧
-        (freeIdsOf C).length < 2 ^ 63⌝ ∗ rdPair K.B K.db K.sp ∗
+        (freeIdsOf C).length < 2 ^ 63⌝ ∗ sparePair K.B K.db K.sp ∗
       ghostVar K.B.cur (1 : Qp).half.half C ∗ ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l) : MapSt) C ∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true }}

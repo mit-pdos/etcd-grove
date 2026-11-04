@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Model.Store
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.GooseLang.Receipts
 public import Proof.os.Base
+public import Perennial.Ghost.DGhostVar
 
 @[expose] public section
 
@@ -90,6 +91,44 @@ def flRoOpt (fli : GoInterface) (F : GMap Nat w64) : IProp GF :=
   if fli = interface.nil then iprop(emp)
   else iprop(∃ ro, flRoOwn fli ro ∗ ⌜ro.Perm (F.toList.map Prod.snd)⌝)
 
+/-- **The opening is over** (batch 41): `B.opn` discarded at `true`. `Open` holds it at 1 (`false`)
+until after `loadFreelist` (so that, during the opening, only the spare pair registers readers),
+then sets and discards it; `isBoltP` carries it (a pool reader has it). -/
+def opnShot (B : BNs) : IProp GF := iprop(dghostVar B.opn DFrac.discard true)
+
+omit go_gctx hos sem in
+instance opnShot_persistent (B : BNs) : Persistent (opnShot (GF := GF) B) := by
+  unfold opnShot; infer_instance
+
+omit go_gctx hos sem in
+instance opnShot_timeless (B : BNs) : Timeless (opnShot (GF := GF) B) := by
+  unfold opnShot; infer_instance
+
+omit go_gctx hos sem in
+/-- The opening, not yet over (`Open` holds `B.opn` at 1), excludes `opnShot`. -/
+theorem opnShot_pending (B : BNs) :
+    opnShot (GF := GF) B ∗ dghostVar B.opn (DFrac.own 1) false ⊢ ⌜False⌝ := by
+  unfold opnShot
+  iintro ⟨H1, H2⟩
+  ihave %h := dghostVar_valid_2 B.opn true DFrac.discard false (DFrac.own 1) $$ H1 H2
+  ipureintro
+  exact absurd h.2 (by decide)
+
+/-- **The spare reader's clause** (batch 41) on a map of registered readers `M` (`metaR`'s txids
+`F`, `pagesInv`'s `σ.R`): every registration is the spare reader's, `o = some k` its key (`none`:
+the spare pair idle, so no registration). Holds during the opening (`opnShot` otherwise). -/
+def sprCl {V : Type} (o : Option Nat) (M : GMap Nat V) : Prop :=
+  ∀ k v, M !! k = some v → o = some k
+
+/-- `metaR`'s readers' txids `F` (auth) with its quarter of the spare state `B.spr` and, unless
+the opening is over, the spare clause (batch 41). -/
+def fltxAuth (B : BNs) (F : GMap Nat w64) : IProp GF :=
+  iprop(ghostMapAuth B.fltx 1 F ∗ ∃ o : Option Nat, ghostVar B.spr (1 : Qp).half.half o ∗
+    (opnShot B ∨ ⌜sprCl o F⌝))
+
+/-- **The spare pair idle** (batch 41): the spare side's half of `B.spr` at `none`. -/
+def spareTok (B : BNs) : IProp GF := iprop(ghostVar B.spr (1 : Qp).half (none : Option Nat))
+
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
 closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
 bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
@@ -103,7 +142,7 @@ def metaR (B : BNs) (db : Loc) (p : GoString) : IProp GF :=
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
-    ghostVar B.mlk 1 () ∗ ghostMapAuth B.fltx 1 F ∗ flRoOpt fli F ∗
+    ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗
     ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
 /-! ## `mmaplock` and `statlock` -/
@@ -127,6 +166,10 @@ def Ps (sp : Loc) (q : Qp) : IProp GF :=
 def rdPair (B : BNs) (db sp : Loc) : IProp GF :=
   iprop(sync.ownRWMutex db.[DB, go!"mmaplock"] (Pm B db) ∗
     sync.ownRWMutex db.[DB, go!"statlock"] (Ps sp))
+
+/-- **The spare reader-token pair, idle** (batch 41: with `spareTok`), what the writer side holds
+and `freepages`' read transaction borrows and gives back (`pairBack`). -/
+def sparePair (B : BNs) (db sp : Loc) : IProp GF := iprop(rdPair B db sp ∗ spareTok B)
 
 /-! ## `rwlock` -/
 
@@ -246,13 +289,13 @@ freelist object but its reader part, the spare reader-token pair, and the receip
 `⧗ (C.txid - t0)`. -/
 def wdbOwn (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
   iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
-    flPgOwn w.fli w.fl ∗ rdPair B db sp ∗ receipt (w.C.txid - t0))
+    flPgOwn w.fli w.fl ∗ sparePair B db sp ∗ receipt (w.C.txid - t0))
 
 /-- **A live writer's database side** (in its exclusive part, `txExcl`): `db.rwtx` is the
 transaction `tx`, the store's writer state `ws`; its quarter of the data is in `wtxFrac`. -/
 def wdbLive (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
     (w : WDb) : IProp GF :=
-  iprop(wdbCoreG B db p tx ws (1 : Qp).half.half w ∗ flPgOwn w.fli w.fl ∗ rdPair B db sp ∗
+  iprop(wdbCoreG B db p tx ws (1 : Qp).half.half w ∗ flPgOwn w.fli w.fl ∗ sparePair B db sp ∗
     receipt (w.C.txid - t0))
 
 /-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the

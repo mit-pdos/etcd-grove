@@ -142,12 +142,22 @@ def bytesWit (B : BNs) (σ : StoreSt) (W : GMap Nat (List w8)) : IProp GF :=
      | none => iprop(emp)) ∗
     ⌜∀ s ∈ storeSlots σ, W !! s = some (σ.bytes s)⌝ ∗ fbInv B σ)
 
+/-- The registered readers `R` (auth) with `pagesInv`'s quarter of the spare state `B.spr` and,
+unless the opening is over, the spare clause (batch 41). -/
+def rdsAuth (B : BNs) (R : GMap Nat RdInfo) : IProp GF :=
+  iprop(ghostMapAuth B.rds 1 R ∗ ∃ o : Option Nat, ghostVar B.spr (1 : Qp).half.half o ∗
+    (opnShot B ∨ ⌜sprCl o R⌝))
+
+omit go_gctx sem in
+instance rdsAuth_timeless (B : BNs) (R : GMap Nat RdInfo) : Timeless (rdsAuth (GF := GF) B R) := by
+  unfold rdsAuth opnShot; infer_instance
+
 /-- **The page store's invariant** (design §3.6). -/
 def pagesInv (B : BNs) (p : GoString) : IProp GF :=
   iprop(∃ (σ : StoreSt) (W : GMap Nat (List w8)),
     ghostVar B.cur (1 : Qp).half.half σ.C ∗ ghostVar B.fl (1 : Qp).half σ.fl ∗
     ghostVar B.map (1 : Qp).half.half σ.ms ∗ ghostVar B.wv (1 : Qp).half σ.wst ∗
-    ghostMapAuth B.rds 1 σ.R ∗
+    rdsAuth B σ.R ∗
     ([∗map] k ↦ r ∈ σ.R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ∗
     storeCells σ ∗ ([∗list] s ∈ storeSlots σ, osSlot p s (σ.bytes s)) ∗ bytesWit B σ W ∗
     metaLend B σ ∗ ⌜storeOK σ⌝)
@@ -514,6 +524,33 @@ private theorem fbInv_return (B : BNs) (σ σ' : StoreSt) (ws : WSt) (F : GMap N
         ipureintro; intro hc'; exact absurd hc' h2
       ipureintro; intro hc; exact absurd hc hnc
     · exact absurd hc hnc
+
+/-- The spare state `B.spr`'s three shares (spare side ½, `metaR`'s and `pagesInv`'s quarters)
+agree and are set together (batch 41). -/
+private theorem spr_update (B : BNs) (E : CoPset) (o' : Option Nat) {o1 o2 o3 : Option Nat} :
+    ghostVar (GF := GF) B.spr (1 : Qp).half o1 ∗ ghostVar B.spr (1 : Qp).half.half o2 ∗
+      ghostVar B.spr (1 : Qp).half.half o3 ⊢
+    |={E}=> ghostVar B.spr (1 : Qp).half o' ∗ ghostVar B.spr (1 : Qp).half.half o' ∗
+      ghostVar B.spr (1 : Qp).half.half o' ∗ ⌜o2 = o1 ∧ o3 = o1⌝ := by
+  iintro ⟨H1, H2, H3⟩
+  icombine H1 H2 gives % ⟨_, h12⟩
+  icombine H1 H3 gives % ⟨_, h13⟩
+  subst h12 h13
+  ihave H23 := ((ghostVar_fractional (GF := GF) B.spr o1).fractional (1 : Qp).half.half
+    (1 : Qp).half.half).2 $$ [H2 H3]
+  · iframe
+  imod ghostVar_update_2 o' B.spr o1 (1 : Qp).half o1 ((1 : Qp).half.half + (1 : Qp).half.half)
+    (by rw [Qp.half_add_half, Qp.half_add_half]) $$ H1 H23 with ⟨H1, H23⟩
+  ihave ⟨H2, H3⟩ := ((ghostVar_fractional (GF := GF) B.spr o').fractional (1 : Qp).half.half
+    (1 : Qp).half.half).1 $$ H23
+  imodintro
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · iexact H2
+  isplitl [H3]
+  · iexact H3
+  ipureintro; exact ⟨rfl, rfl⟩
 
 private theorem ghostVar_le_one' (γ : GName) (q : Qp) :
     ghostVar (GF := GF) γ q () ⊢ ⌜q.val ≤ 1⌝ := by
@@ -1201,14 +1238,18 @@ include hE
 /-- `beginTx`, under `metalock` (`metaR`'s `cur`) and `Pm rfrac` (its `map` share and `mtok`):
 register the reader `k` (its `fltx` fragment, inserted by the caller in `metaR`'s auth) with the
 view of `C` at the mapping, borrowing `rq` of each of its slots and depositing `mtok rfrac`. -/
-theorem store_register (C : CommitSt) (b : Loc) (l k : Nat) :
+private theorem store_register_core (C : CommitSt) (b : Loc) (l k : Nat) (P Q : IProp GF)
+    (hkeep : ∀ (R : GMap Nat RdInfo) (r : RdInfo) (o : Option Nat), R !! k = none →
+      P ∗ ghostVar B.spr (1 : Qp).half.half o ∗ (opnShot B ∨ ⌜sprCl o R⌝) ⊢
+      |={E \ ↑(pagesN N)}=> (∃ o' : Option Nat, ghostVar B.spr (1 : Qp).half.half o' ∗
+        (opnShot B ∨ ⌜sprCl o' (<[k := r]> R)⌝)) ∗ Q) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗ ghostVar B.mtok sync.rfrac () ∗
-      k ↪[B.fltx] (W64 (C.txid : Int)) ⊢
+      k ↪[B.fltx] (W64 (C.txid : Int)) ∗ P ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
-      k ↪[B.rds] (⟨View.ofC b C⟩ : RdInfo) ∗ viewCells rq (View.ofC b C) := by
-  iintro ⟨#Hinv, Hcur, Hmap, Htok, Hfx⟩
+      k ↪[B.rds] (⟨View.ofC b C⟩ : RdInfo) ∗ viewCells rq (View.ofC b C) ∗ Q := by
+  iintro ⟨#Hinv, Hcur, Hmap, Htok, Hfx, Hsp⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
@@ -1230,6 +1271,11 @@ theorem store_register (C : CommitSt) (b : Loc) (l k : Nat) :
     simp only [Qp.val_one] at this; exact absurd this (by decide)
   let r : RdInfo := ⟨View.ofC b σ.C⟩
   have hok' := storeOK_register σ k r b l Hok hms' hk rfl
+  -- batch 41: the spare clause, kept (the opening is over, or the spare registers)
+  unfold rdsAuth
+  icases Hrds with ⟨Hrds, %o, Ho, Hcl⟩
+  imod hkeep σ.R r o hk $$ [Hsp Ho Hcl] with ⟨Hspr, Hret⟩
+  · iframe
   imod ghost_map_insert k r hk $$ Hrds with ⟨Hrds, Hk⟩
   ihave Hdep := (BigSepM.bigSepM_insert
     (Φ := fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int)) ∗
@@ -1248,18 +1294,98 @@ theorem store_register (C : CommitSt) (b : Loc) (l k : Nat) :
   have hvc := (viewCells_slots (GF := GF) rq r.v σ.bytes hrok.2.2.2.2.1 hTl).2
   rw [show r.v.base = b from rfl] at hvc
   ihave Hv := hvc $$ Hv
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hspr Hdep Hcells Hos Hbw Hml] with _
   · inext
     iexists σ.register k r, W
     rw [storeCells_some (σ.register k r) b l hms']
     have e2 : metaLend (GF := GF) B (σ.register k r) = metaLend B σ := rfl
     have e3 : bytesWit (GF := GF) B (σ.register k r) W = bytesWit B σ W := rfl
     rw [e2, e3]
+    have eR : (σ.register k r).R = <[k := r]> σ.R := rfl
+    rw [eR]
     iframe
+    try (isplitl [Hspr]; iexact Hspr)
     ipureintro
     exact hok'
   imodintro
   iframe
+
+/-- A reader registers under the fresh key `k` (with its `fltx` fragment, deposited, and its
+`mtok` share): the store's view of `C` at the mapping is lent to it. A pool reader: the opening is
+over (`opnShot`, batch 41). -/
+theorem store_register (C : CommitSt) (b : Loc) (l k : Nat) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
+      ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗ ghostVar B.mtok sync.rfrac () ∗
+      k ↪[B.fltx] (W64 (C.txid : Int)) ∗ opnShot B ⊢
+    |={E}=> ghostVar B.cur (1 : Qp).half C ∗
+      ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
+      k ↪[B.rds] (⟨View.ofC b C⟩ : RdInfo) ∗ viewCells rq (View.ofC b C) := by
+  iintro ⟨#Hinv, Hcur, Hmap, Htok, Hfx, #Hshot⟩
+  imod store_register_core B N p E hE C b l k (opnShot B) emp (fun R r o _ => by
+      iintro ⟨#Hs, Ho, -⟩
+      imodintro
+      isplitl
+      · iexists o; iframe; ileft; iexact Hs
+      · iempintro) $$ [Hinv Hcur Hmap Htok Hfx Hshot]
+    with ⟨Hcur, Hmap, Hk, Hv, -⟩
+  · iframe; iframe #
+  imodintro; iframe
+
+/-- **The spare reader registers** (batch 41, `beginTx_s` under `metalock`): as `store_register`,
+and the spare state `B.spr` (the spare side's half `spareTok`, `metaR`'s quarter `o`, which was
+`none`) set to its key. -/
+theorem store_register_spare (C : CommitSt) (b : Loc) (l k : Nat) (o : Option Nat) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
+      ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗ ghostVar B.mtok sync.rfrac () ∗
+      k ↪[B.fltx] (W64 (C.txid : Int)) ∗ spareTok B ∗ ghostVar B.spr (1 : Qp).half.half o ⊢
+    |={E}=> ghostVar B.cur (1 : Qp).half C ∗
+      ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
+      k ↪[B.rds] (⟨View.ofC b C⟩ : RdInfo) ∗ viewCells rq (View.ofC b C) ∗
+      ghostVar B.spr (1 : Qp).half (some k) ∗ ghostVar B.spr (1 : Qp).half.half (some k) ∗
+      ⌜o = none⌝ := by
+  iintro ⟨#Hinv, Hcur, Hmap, Htok, Hfx, Hs2, Hs3⟩
+  unfold spareTok
+  icombine Hs2 Hs3 gives % ⟨_, ho⟩
+  imod store_register_core B N p E hE C b l k
+    (iprop(ghostVar B.spr (1 : Qp).half (none : Option Nat) ∗ ghostVar B.spr (1 : Qp).half.half o))
+    (iprop(ghostVar B.spr (1 : Qp).half (some k) ∗ ghostVar B.spr (1 : Qp).half.half (some k)))
+    (fun R r o0 _ => by
+      iintro ⟨⟨H2, H3⟩, Ho, Hcl⟩
+      imod spr_update B _ (some k) (o1 := none) (o2 := o0) (o3 := o) $$ [H2 Ho H3]
+        with ⟨H2, Ho, H3, %ho0⟩
+      · isplitl [H2]
+        · iexact H2
+        isplitl [Ho]
+        · iexact Ho
+        · iexact H3
+      imodintro
+      isplitr [H2 H3]
+      · iexists (some k)
+        isplitl [Ho]
+        · iexact Ho
+        icases Hcl with (Hs | %hcl)
+        · ileft; iexact Hs
+        · iright; ipureintro
+          intro k' v hv
+          rw [GMap.lookup_insert_eq_iff] at hv
+          split at hv
+          · rename_i he; rw [he]
+          · have := hcl k' v hv; rw [ho0.1] at this; cases this
+      · isplitl [H2]
+        · iexact H2
+        · iexact H3) $$ [Hinv Hcur Hmap Htok Hfx Hs2 Hs3]
+    with ⟨Hcur, Hmap, Hk, Hv, Hs2, Hs3⟩
+  · iframe Hcur Hmap Htok Hfx; iframe #
+    isplitl [Hs2]
+    · iexact Hs2
+    · iexact Hs3
+  imodintro
+  iframe Hcur Hmap Hk Hv
+  isplitl [Hs2]
+  · iexact Hs2
+  isplitl [Hs3]
+  · iexact Hs3
+  ipureintro; exact ho.symm
 
 /-- `removeTx`, before `RUnlock`: deregister the reader `k`, its cells back; the deposits
 returned. -/
@@ -1271,6 +1397,8 @@ theorem store_deregister (k : Nat) (r : RdInfo) :
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
   icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  unfold rdsAuth
+  icases Hrds with ⟨Hrds, %o, Ho, Hcl⟩
   ihave %hk := ghost_map_lookup $$ Hrds Hk
   have hk' : σ.R !! k = some r := hk
   have hrok := Hok.2.2.2.2.2.2.1 k r hk'
@@ -1293,7 +1421,20 @@ theorem store_deregister (k : Nat) (r : RdInfo) :
     (fun s _ => lent_deregister σ k r hk' s)
     $$ [Hcells Hv]
   · iframe
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  ihave Hspr : (∃ o' : Option Nat, ghostVar B.spr (1 : Qp).half.half o' ∗
+      (opnShot B ∨ ⌜sprCl o' (σ.deregister k).R⌝)) $$ [Ho Hcl]
+  · iexists o
+    iframe Ho
+    icases Hcl with (Hshot | %hcl)
+    · ileft; iexact Hshot
+    · iright; ipureintro
+      intro k' v hv
+      simp only [StoreSt.deregister] at hv
+      rw [GMap.lookup_delete_iff] at hv
+      split at hv
+      · cases hv
+      · exact hcl k' v hv
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hspr Hdep Hcells Hos Hbw Hml] with _
   · inext
     iexists σ.deregister k, W
     rw [storeCells_some (σ.deregister k) b l hms]
@@ -1301,9 +1442,135 @@ theorem store_deregister (k : Nat) (r : RdInfo) :
     have e3 : bytesWit (GF := GF) B (σ.deregister k) W = bytesWit B σ W := rfl
     rw [e2, e3]
     iframe
+    try (isplitl [Hspr]; iexact Hspr)
     ipureintro
     exact storeOK_deregister σ k Hok
   imodintro; iframe
+
+/-- **The spare reader's state reset** (batch 41, `removeTx` of the spare reader under `metalock`,
+after `store_deregister`): its `fltx` fragment shows it is no longer registered, so no reader is
+(`sprCl`); the spare state back to `none` (the spare side's half `spareTok`, `metaR`'s quarter). -/
+theorem store_spr_reset (k : Nat) (t : w64) (o : Option Nat) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.spr (1 : Qp).half (some k) ∗
+      ghostVar B.spr (1 : Qp).half.half o ∗ k ↪[B.fltx] t ⊢
+    |={E}=> spareTok B ∗ ghostVar B.spr (1 : Qp).half.half (none : Option Nat) ∗ k ↪[B.fltx] t ∗
+      ⌜o = some k⌝ := by
+  iintro ⟨#Hinv, H2, H3, Hfx⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  unfold rdsAuth
+  icases Hrds with ⟨Hrds, %o', Ho, Hcl⟩
+  imod spr_update B _ none (o1 := some k) (o2 := o') (o3 := o) $$ [H2 Ho H3]
+    with ⟨H2, Ho, H3, %ho⟩
+  · isplitl [H2]
+    · iexact H2
+    isplitl [Ho]
+    · iexact Ho
+    · iexact H3
+  -- the spare reader is not registered: its `fltx` fragment is not deposited
+  ihave %hk : ⌜σ.R !! k = none⌝ $$ [Hdep Hfx]
+  · rcases hk : σ.R !! k with _ | r0
+    · ipureintro; rfl
+    · iexfalso
+      icases (BigSepM.bigSepM_delete
+        (Φ := fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int)) ∗
+          ghostVar B.mtok sync.rfrac ())) hk).1 $$ Hdep with ⟨⟨Hf, -⟩, -⟩
+      ihave %h := ghostMapElem_valid_2 k B.fltx _ _ _ _ $$ Hfx Hf
+      exfalso
+      have := DFrac.valid_own_op h.1
+      simp only [Qp.val_one] at this; exact absurd this (by decide)
+  ihave Hspr : (∃ o2 : Option Nat, ghostVar B.spr (1 : Qp).half.half o2 ∗
+      (opnShot B ∨ ⌜sprCl o2 σ.R⌝)) $$ [Ho Hcl]
+  · iexists none
+    iframe Ho
+    icases Hcl with (Hshot | %hcl)
+    · ileft; iexact Hshot
+    · iright; ipureintro
+      intro k' v hv
+      have h1 := hcl k' v hv
+      rw [ho.1] at h1
+      cases h1
+      rw [hk] at hv; cases hv
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hspr Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ, W
+    iframe
+    try (isplitl [Hspr]; iexact Hspr)
+    ipureintro; exact Hok
+  imodintro
+  unfold spareTok
+  isplitl [H2]
+  · iexact H2
+  isplitl [H3]
+  · iexact H3
+  isplitl [Hfx]
+  · iexact Hfx
+  ipureintro; exact ho.2
+
+/-- **`Open`'s loaded freelist into the store** (batch 41: was `DB__loadFreelist.open_setFl_gap`):
+during the opening (`B.opn` at 1, `false`) with the spare pair idle (`spareTok`), no reader is
+registered, so the store's empty freelist becomes the loaded one (`storeOK_setFl`). -/
+theorem store_setFl (C : CommitSt) (fl : FLPg)
+    (hfl : fl.WF ∧ fl.pending = ∅ ∧ flBelow fl C none ∧
+      (∀ x ∈ fl.free, ¬ coversSlot C.pages x.toNat) ∧ fl.allocs = ∅) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half FLPg.empty ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+      spareTok B ∗ dghostVar B.opn (DFrac.own 1) false ⊢
+    |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
+      ghostVar B.wv (1 : Qp).half wIdle ∗ spareTok B ∗ dghostVar B.opn (DFrac.own 1) false := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hwv, Hsp, Hopn⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl0⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC
+  simp only [StoreSt.wst, wIdle, Prod.mk.injEq] at hws
+  obtain ⟨hwv, hwtx, -, -⟩ := hws
+  unfold rdsAuth spareTok
+  icases Hrds with ⟨Hrds, %o, Ho, Hcl⟩
+  icombine Hsp Ho gives % ⟨_, ho⟩
+  icases Hcl with (#Hshot | %hcl)
+  · iexfalso
+    icases opnShot_pending B $$ [Hshot Hopn] with %hf
+    · iframe; iframe #
+    exact hf.elim
+  have hR : σ.R = ∅ := by
+    apply (GMap.lookup_empty_iff σ.R).1
+    intro k
+    rcases h : σ.R !! k with _ | v
+    · rfl
+    · have := hcl k v h; rw [← ho] at this; cases this
+  ihave Hspr : (∃ o2 : Option Nat, ghostVar B.spr (1 : Qp).half.half o2 ∗
+      (opnShot B ∨ ⌜sprCl o2 (σ.setFl fl).R⌝)) $$ [Ho]
+  · iexists o; iframe Ho; iright; ipureintro; exact hcl
+  have hok' := storeOK_setFl σ fl Hok hR hwtx.symm hwv.symm hfl
+  imod ghostVar_update_halves fl B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
+  have hps : pendSlots fl = pendSlots σ.fl := by
+    rw [← hfl0]; unfold pendSlots FLPg.pendingIds; rw [hfl.2.1]; rfl
+  have hss : storeSlots (σ.setFl fl) = storeSlots σ := by
+    show listDedup (treeSlots σ.C ++ pendSlots fl) = listDedup (treeSlots σ.C ++ pendSlots σ.fl)
+    rw [hps]
+  have e1 : storeCells (GF := GF) (σ.setFl fl) = storeCells σ := by
+    unfold storeCells; rw [hss]; rfl
+  ihave Hbw := bytesWit_nocond B σ (σ.setFl fl) W rfl hss rfl
+    (by rw [← hwtx]; exact fbCond_none _ _ _)
+    (by show ¬ fbCond _ _ σ.wtx _; rw [← hwtx]; exact fbCond_none _ _ _) $$ Hbw
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hspr Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.setFl fl, W
+    rw [e1, hss]
+    have e2 : metaLend (GF := GF) B (σ.setFl fl) = metaLend B σ := rfl
+    rw [e2]
+    iframe
+    try (isplitl [Hspr]; iexact Hspr)
+    ipureintro; exact hok'
+  imodintro
+  iframe
 
 /-- The writer's begin (after `store_release`): its txid the next, its base view (`C`'s at the
 mapping) borrowed at `wq`. -/

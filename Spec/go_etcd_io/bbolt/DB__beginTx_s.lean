@@ -33,7 +33,7 @@ the read transaction is opened (no error) on `C`'s view at the mapping, its pair
 abbrev DB.beginTx_s.spec : Prop :=
   ∀ (K : BC) (C : CommitSt) (b : Loc) (l : Nat),
   C.metaOk → treeOK C →
-  {{ K.core (GF := GF) ∗ rdPair K.B K.db K.sp ∗ ghostVar K.B.cur (1 : Qp).half.half C ∗
+  {{ K.core (GF := GF) ∗ sparePair K.B K.db K.sp ∗ ghostVar K.B.cur (1 : Qp).half.half C ∗
       ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"beginTx")) (Val #()))
