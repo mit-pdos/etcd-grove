@@ -65,6 +65,20 @@ theorem discardLogger_logPtrTyped :
   cases hii
   exact ⟨l, rfl⟩
 
+omit hos in
+/-- **`getDiscardLogger()`**: `discardLogger`'s value, a `logPtrTyped` `boltLogger`. -/
+theorem getDiscardLogger.wp_spec :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt }}
+      (App (Val #(functions getDiscardLogger [])) (Val #()))
+    {{ (lg : GoInterface), RET #lg; globalAddr discardLogger ↦□ lg ∗ boltLogger lg ∗
+        ⌜logPtrTyped lg⌝ }} := by
+  wp_start as -
+  icases discardLogger_logPtrTyped $$ Hpkg with ⟨%lg, #Hd, #Hb, %Ht⟩
+  wp_auto
+  iapply HΦ
+  iframe #
+  ipureintro; exact Ht
+
 end s
 
 end bbolt
