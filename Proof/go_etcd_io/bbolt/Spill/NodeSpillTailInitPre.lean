@@ -50,7 +50,7 @@ theorem spG_pcFreed {X : WX} {w : WDb} {bl l : Loc} {r : NRec} (hn : X.node bl l
     exact spG_setNode (r' := { r with nv := { r.nv with pgid' := W64 0 } }) hn ⟨rfl, rfl⟩ rfl hd.2.1 hd.2.2.1 hf.1 hf.2 hG
 
 /-- A page is among its slots. -/
-theorem mem_pgSlots_self {P : Pages} {S : List Nat} {x : Nat} (hx : x ∈ S) :
+theorem mem_pgSlots_self_ {P : Pages} {S : List Nat} {x : Nat} (hx : x ∈ S) :
     x ∈ pgSlots P S := by
   unfold pgSlots
   refine List.mem_flatMap.2 ⟨x, hx, ?_⟩
@@ -63,7 +63,7 @@ theorem fTree_root_slot {P : Pages} {hwm id : Nat} {k : List w8} {hi : Option (L
     {h : Nat} {S : List Nat} {E : List El} (hf : fTree P hwm id k hi h S E) :
     id ∈ pgSlots P S := by
   obtain ⟨hs, ⟨pg, hpg, -⟩, -⟩ := hf
-  exact mem_pgSlots_self ((hs.has id).1 (treeHas.root _ pg hpg))
+  exact mem_pgSlots_self_ ((hs.has id).1 (treeHas.root _ pg hpg))
 
 /-- **An allocation never returns an owned slot** (`slotInv`: owned slots are below the mark and
 no free id). -/

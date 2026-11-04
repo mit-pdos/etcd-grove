@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Free
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailWp
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInv
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPcPre
 
 @[expose] public section
 
@@ -84,7 +85,7 @@ theorem spillTail_wp
     K tx r m X w bl n rn O lo hi h D N E cs X' w' r' st np txp resp e0
     (pcInv X w bl n rn O lo hi h D N E cs) hn' hlv' (tail_wsLive hpre hsp hend) hS
     (fun hl => pcInv_init hpre hsp hend hl)
-    (pcInv_pre hpre hsp) (pcInv_step hpre hsp) pcInv_err pcInv_end (pcInv_done hpre hsp)
+    (pcInv_pre' hpre hsp) (pcInv_step hpre hsp) pcInv_err pcInv_end (pcInv_done hpre hsp)
     (pcInv_top hpre hsp)
 
 end proof

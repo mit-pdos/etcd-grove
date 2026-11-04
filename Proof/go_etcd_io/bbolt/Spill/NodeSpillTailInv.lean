@@ -302,7 +302,8 @@ theorem pcInv_init {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     pcInv X w bl n rn O lo hi h D N E cs xs pl 0 X2 w' st := by
   sorry
 
-/-- **A piece's premises** (`pieceOne_wp`'s) at iteration `i`. -/
+/-- **A piece's premises** (`pieceOne_wp`'s) at iteration `i`: proved as
+`Spill/NodeSpillTailInitPcPre.pcInv_pre'` (U9w; this stub goes once its users switch). -/
 theorem pcInv_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)

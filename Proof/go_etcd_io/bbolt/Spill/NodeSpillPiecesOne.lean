@@ -166,7 +166,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) ∧
         w.fl.canFree w.wtxid rl.nv.pgid' (1 + pageOverflow pg))
     (hG : ∀ X1 w1 st, pcFreed X w bl l rl X1 w1 st → spG X1 w.wtxid (mapLen w1.ms) w1.fl)
-    (hne : 0 < rl.ws.length) (hil : rl.ins.length = rl.ws.length)
+    (hne : rl.nv.parent' ≠ null → 0 < rl.ws.length) (hil : rl.ins.length = rl.ws.length)
     (hsz : insSize rl.ins + 4096 < 2 ^ 62) (hfit : pageFits (wsMs rl.ws))
     (hn16 : rl.ws.length < 0xFFFF)
     (hbody : 16 + (pageBody true (wsMs rl.ws)).length ≤ pcCount (insSize rl.ins) * 4096)
@@ -387,6 +387,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     rw [decide_eq_false hp]
     -- the parent's records
     have hpn : rl.nv.parent' ≠ null := hparl ▸ hp
+    have hne := hne hpn
     obtain ⟨rp, hrp, hplv, hpll, hcapp, hsrt⟩ := hpar hpn
     have hrp1 : X1.node bl rl.nv.parent' = some rp := by
       rcases Hfr1 with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
