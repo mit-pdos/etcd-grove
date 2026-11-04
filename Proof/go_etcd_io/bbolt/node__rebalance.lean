@@ -20,6 +20,8 @@ public import Spec.go_etcd_io.bbolt.TxStats__IncRebalance
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Pgid
 public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblBase
+public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblSteps
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXMg
 
 @[expose] public section
 
@@ -260,7 +262,7 @@ theorem rebal_loeb
   ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
     [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
   · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-    simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+    simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
     iframe; iframe #; ipureintro; exact Hr
   have hlen : rn.ws.length = sint.nat rn.nv.inodes'.len := by rw [← hnc.2.2.1, Hsl.1]
   have hb1 : (X.setBkt bl (rblStart B n rn)).t.bs !! bl = some (rblStart B n rn) :=
@@ -318,7 +320,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       iapply HΦ
       iexists X.setBkt bl (rblStart B n rn), w.fl
@@ -331,6 +333,40 @@ theorem rebal_loeb
     wp_auto
     wp_if_destruct
     · -- the root collapses into its only child
+      have hl1 : rn.nv.inodes'.len = W64 1 := Hif
+      have hws1 : rn.ws.length = 1 := by rw [hlen, hl1]; rfl
+      obtain ⟨w0, hw0⟩ : ∃ w0, rn.ws = [w0] := by
+        match h : rn.ws, hws1 with
+        | [w0], _ => exact ⟨w0, rfl⟩
+      have hw00 : rn.ws[0]? = some w0 := by rw [hw0]; rfl
+      have hB1 := (hI1.2.1 bl _ hb1).1
+      rw [if_pos rfl] at hB1
+      obtain ⟨hc1, -, -, -⟩ := hB1
+      -- entry 0's page id (`n.inodes[0].Pgid()`)
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn'
+        simp only [TypedPointsto.typedPointstoDef]; (try rw [hlf]); (try rw [hlf'])
+        iframe
+      ihave Hh := Hback $$ Hn
+      icases wtxHeap_live_node_acc tx (DFrac.own 1) _ bl _ n (rblClear rn) hb1 hr1 hnl $$ Hh
+        with ⟨Ho, Hback⟩
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Ho with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+      ihave %Hsl1 := ownSlice_len _ _ _ $$ Hins
+      ihave %Hwl1 := BigSepL2.bigSepL2_length $$ Hws
+      have hil : 0 < rn.ins.length := by
+        have : rn.ins.length = rn.ws.length := Hwl1
+        rw [this, hws1]; omega
+      obtain ⟨it, hit⟩ : ∃ it, rn.ins[0]? = some it := ⟨_, List.getElem?_eq_getElem hil⟩
+      have hit' : (rblClear rn).ins[0]? = some it := hit
+      have hw00' : (rblClear rn).ws[0]? = some w0 := hw00
+      icases BigSepL2.bigSepL2_lookup_acc hit' hw00' $$ Hws with ⟨Hw0, Hwsb⟩
+      icases (Write.wOwn_live _ _ _).1 $$ Hw0 with ⟨%Hfp, Hw0r⟩
+      ihave Hws := Hwsb $$ [Hw0r]
+      · iapply (Write.wOwn_live _ _ _).2; iframe; ipureintro; exact Hfp
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn3⟩
+      iStructNamed Hn
+      wp_auto
       trace_state
       sorry
     · -- a branch root with two entries or more: done
@@ -343,7 +379,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       iapply HΦ
       iexists X.setBkt bl (rblStart B n rn), w.fl
@@ -369,7 +405,7 @@ theorem rebal_loeb
     ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
       [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
     · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-      simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+      simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
       iframe; iframe #; ipureintro; exact Hr
     wp_if_destruct
     · -- an empty node: removed
@@ -441,6 +477,7 @@ theorem rebal_loeb
       rw [hnc.1]
       try wp_auto
       -- `delete(n.bucket.nodes, n.pgid)`
+      rw [show (rblStart B n rn).bv = B.bv from rfl]
       wp_apply (wp_mapDelete (K := w64) (V := Loc) B.bv.nodes' (rblStart B n rn).nm
         rn.nv.pgid' internal.common.Pgid.ty (go.GoType.PointerType node.ty)) $$ [Hnm]
         as Hnm
@@ -477,7 +514,8 @@ theorem rebal_loeb
           rcases hl with rfl | rfl
           · simp only [ite_true]; exact Hok1.2.2.2.1 bl _ l _ hb1 hr1
           · simp only [if_neg hpln]; exact hpp
-      · simp only [ite_true, if_neg hpln]
+      · simp only [if_pos (rfl : n = n), if_neg hpln]
+        rw [decide_eq_true hnl1, decide_eq_true hpl1]
         isplitl [Hn Hins Hcap Hws Hch Hchcap]
         · iapply (objOwn_live_node _ _ _ _ _).2
           rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
@@ -501,6 +539,9 @@ theorem rebal_loeb
         iempintro
       · iapply (objOwn_bkt_unf _ _ _ _ _).2
         iframe
+        simp only [ite_true, eq_self_iff_true, if_true]
+        rw [pageOwn_congr' _ (rblStart B n rn) B2 rfl rfl rfl rfl]
+        iexact Hpgo
       · iframe
       · iframe
       have hb2 : ((X.setBkt bl (rblStart B n rn)).setBkt bl B2).t.bs !! bl = some B2 :=
@@ -508,7 +549,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).setBkt bl B2) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       -- `n.free()`
       icases wdbW_view_rbl K tx X.v w $$ Hdb with ⟨%Hwv, Hdb⟩
@@ -601,7 +642,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1') $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       -- `n.parent.rebalance()`
       wp_apply IH $$ %K %tx %r %m %((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1')
@@ -611,6 +652,7 @@ theorem rebal_loeb
         exact ⟨hI4, hb4, hrp4, Or.inr ⟨rfl, rfl⟩, hfp⟩
       · isplitl [Hw]
         · iexact Hw
+        simp only [WX.kill_v]
         iexact Hdb
       try wp_auto
       obtain ⟨h5I, h5R, h5S⟩ := Hp5
@@ -618,7 +660,7 @@ theorem rebal_loeb
       iexists X5, fl5
       iframe Hw
       isplitl [Hdb]
-      · iexact Hdb
+      · rw [← WDb.withFl_withFl w _ fl5]; simp only [WX.kill_v]; iexact Hdb
       ipureintro
       refine ⟨h5I, rblRel_trans _ _ _ _ _ _ _ hR1 (rblRel_trans _ _ _ _ _ _ _ hR4 h5R), ?_, ?_⟩
       · intro bl' hne
@@ -630,6 +672,20 @@ theorem rebal_loeb
         exact rblStep_comp B B4 B5 n rn.nv.parent' (rblPre_rm B n rn rn.nv.parent' rp')
           (h5S.2 B4 B5 hb4 h5)
     · -- merged with a sibling
+      have hne0 : rn.nv.inodes'.len ≠ W64 0 := Hif
+      have hB1 := (hI1.2.1 bl _ hb1).1
+      rw [if_pos rfl] at hB1
+      obtain ⟨hc1, ⟨bnd1, hk1⟩, -, -⟩ := hB1
+      obtain ⟨hkey, rp, i, wi, hrp1, hwi, hwp, hwk, -⟩ := (hk1.2.2 n (rblClear rn) hr1).2.1 hpn
+      have hn1 := hc1.2.2.2.2.2.2.2.1 n (rblClear rn) hr1
+      have hncp := hc1.2.2.2.2.2.2.2.1 _ rp hrp1
+      obtain ⟨rq, hrq, hrpbr, -⟩ := hn1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hpn
+      rw [hrp1] at hrq; cases hrq
+      have hpln : rn.nv.parent' ≠ n := Hok1.2.2.2.1 bl _ n (rblClear rn) hb1 hr1
+      -- the parent has two entries (it is not the deficient node)
+      have hp2 : 2 ≤ rp.ws.length := by
+        have := ((hk1.2.2 _ rp hrp1).2.2.1 hrpbr).1
+        exact this (fun h => hpln (Option.some.inj h).symm)
       trace_state
       sorry
 

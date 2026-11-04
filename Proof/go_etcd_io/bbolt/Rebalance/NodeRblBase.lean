@@ -32,6 +32,15 @@ theorem WX.kill_handles (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
 theorem WX.kill_nloc (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
     (X.kill bl B n r).nloc = X.nloc := rfl
 
+theorem WX.setNode_v (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).v = X.v := by
+  unfold WX.setNode; split <;> rfl
+theorem WX.setNode_handles (X : WX) (bl l : Loc) (r : NRec) :
+    (X.setNode bl l r).handles = X.handles := by
+  unfold WX.setNode; split <;> rfl
+theorem WX.setNode_nloc (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).nloc = X.nloc := by
+  unfold WX.setNode; split <;> rfl
+theorem WDb.withFl_withFl (w : WDb) (a b : FLPg) : (w.withFl a).withFl b = w.withFl b := rfl
+
 /-- In sorted entries, an entry's key searches to its index. -/
 theorem wsIdx_at (ws : List WEntry) (i : Nat) (w : WEntry) (hs : wsSorted ws)
     (hw : ws[i]? = some w) : wsIdx ws w.key = i := by
@@ -117,6 +126,11 @@ theorem objOwn_live_node (v : View) (l : Loc) (dq : DFrac) (bl : Loc) (r : NRec)
       (if true ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp)) := by
   unfold objOwn; exact .rfl
 
+/-- A bucket's page fact depends on its `page` field and inline page only. -/
+theorem pageOwn_congr' (v : View) (B B' : BRec) (h1 : B'.bv = B.bv) (h5 : B'.ipg = B.ipg)
+    (h6 : B'.isrc = B.isrc) (h7 : B'.pst = B.pst) : pageOwn (GF := GF) v B' = pageOwn v B := by
+  simp only [pageOwn, h1, h5, h6, h7]
+
 /-- A bucket's object, unfolded. -/
 theorem objOwn_bkt_unf (v : View) (l : Loc) (dq : DFrac) (b : Bool) (B : BRec) :
     objOwn (GF := GF) v l dq b (.bkt B) ⊣⊢ iprop(
@@ -138,6 +152,21 @@ theorem wdbW_view_rbl (K : BC) (tx : Loc) (v : View) (w : WDb) :
   isplitr
   · ipureintro; exact Hw.2.2
   iframe; ipureintro; exact Hw
+
+open Iris.BI Iris.ProofMode in
+/-- A bucket's node cache is not nil (its map points-to). -/
+theorem nodes_nonnull (l : Loc) (dq : DFrac) (m : GMap w64 Loc) :
+    (l ↦${dq} m : IProp GF) ⊢ ⌜l ≠ null⌝ ∗ l ↦${dq} m := by
+  rw [ownMap_unseal]
+  iintro Hm
+  iNamed Hm
+  ihave %Hnn := heapPointsto_non_null _ _ _ $$ Hown
+  isplitr
+  · ipureintro; exact Hnn
+  unfold ownMapDef
+  iexists _, _
+  iframe
+  ipureintro; exact Hrepr
 
 /-- The database's core is persistent. -/
 instance BC_core_persistent_rbl (K : BC) : Iris.BI.Persistent (K.core (GF := GF)) := by

@@ -40,6 +40,13 @@ theorem rblX_rm_ins (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (r : NR
     r.nv.pgid' ≠ W64 0 ∧ 2 ≤ rp.ws.length := by
   sorry
 
+/-- **A page position can be materialized** (`Bucket.node`'s `matReady`; the shared lemma is
+being landed, batch 20). A `sorry`. -/
+theorem rblX_matReady (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (bl : Loc) (B : BRec)
+    (l : Loc) (i : Nat) (c : w64) (hI : rblX X fl dbl dfc) (hb : X.t.bs !! bl = some B)
+    (hp : pagePosAt B l i c) : matReady X B c := by
+  sorry
+
 end steps
 
 end bbolt

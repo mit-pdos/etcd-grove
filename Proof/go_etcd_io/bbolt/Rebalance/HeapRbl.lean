@@ -362,6 +362,130 @@ theorem wtxHeap_setBkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec
   · iexact Hrf
 
 omit hos in
+/-- **A bucket's record changed and some of its nodes no longer live** (the root collapse: the
+child gives its slices to the root before `free`): `wtxHeap_setBkt_acc` with the live set `lv'`
+agreeing with `X`'s outside `Ls`. -/
+theorem wtxHeap_setBkt_live_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
+    (Ls : List Loc) (f : Loc → NRec) (hb : X.t.bs !! bl = some B) (hnd : Ls.Nodup)
+    (hf : ∀ l ∈ Ls, B.ns !! l = some (f l)) :
+    wtxHeap (GF := GF) tx dq X ⊢
+      ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ X.live)) (.node bl (f l))) ∗
+      objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B) ∗ txFields tx dq X ∗ rootFill tx dq ∗
+      (∀ (B' : BRec) (f' : Loc → NRec) (lv' : GMap Loc Unit), ⌜(∀ l ∈ Ls, B'.ns !! l = some (f' l)) ∧
+          (∀ l, l ∉ Ls → B'.ns !! l = B.ns !! l) ∧ B'.bv.tx' = B.bv.tx' ∧
+          (∀ l ∈ Ls, (f' l).nv.parent' ≠ l) ∧ (∀ k, k ∉ Ls → (k ∈ lv' ↔ k ∈ X.live))⌝ -∗
+        ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ lv')) (.node bl (f' l))) -∗
+        objOwn X.v bl dq (decide (bl ∈ X.live)) (.bkt B') -∗ txFields tx dq X -∗ rootFill tx dq -∗
+        wtxHeap tx dq { X.setBkt bl B' with live := lv' }) := by
+  iintro H
+  ihave %Hok := wtxHeap_heapOK tx dq X $$ H
+  have Hd := Hok.2.1
+  have hnb : ∀ l ∈ Ls, l ≠ bl := by
+    intro l hl h
+    have := (Hd bl B hb l (by rw [hf l hl]; rfl)).1; rw [h, hb] at this; cases this
+  have hblL : bl ∉ Ls := fun h => hnb bl h rfl
+  have Hob := objs_bkt X.t bl B Hd hb
+  let os : Loc → WObj := fun l => if l = bl then .bkt B else .node bl (f l)
+  have ho : ∀ l ∈ bl :: Ls, X.t.objs !! l = some (os l) := by
+    intro l hl
+    rcases List.mem_cons.1 hl with rfl | hl
+    · simp [os, Hob]
+    · simp only [os, if_neg (hnb l hl)]; exact objs_node X.t bl B l (f l) Hd hb (hf l hl)
+  icases wtxHeap_reshape tx dq X (bl :: Ls) os (List.nodup_cons.2 ⟨hblL, hnd⟩) ho $$ H
+    with ⟨⟨Hb, HL⟩, Hf, Hrf, Hback⟩
+  iframe Hf Hrf
+  isplitl [HL]
+  · iapply (BigSepL.bigSepL_mono ?_) $$ HL
+    intro i l hl
+    have hlL : l ∈ Ls := List.mem_of_getElem? hl
+    simp only [os, if_neg (hnb l hlL)]
+    exact .rfl
+  isplitl [Hb]
+  · simp only [os, ite_true]; iexact Hb
+  iintro %B' %f' %lv' %Hc HL Hb Hf Hrf
+  obtain ⟨hf', hout, htx, hpar, hlv⟩ := Hc
+  let os' : Loc → WObj := fun l => if l = bl then .bkt B' else .node bl (f' l)
+  let T' : WTx := { X.t with bs := X.t.bs.insert bl B' }
+  have hbs' : ∀ c, T'.bs !! c = if c = bl then some B' else X.t.bs !! c := by
+    intro c
+    show (X.t.bs.insert bl B') !! c = _
+    split
+    · rename_i h; subst h; exact GMap.lookup_insert _ _ _
+    · exact GMap.lookup_insert_ne _ _ (Ne.symm ‹_›)
+  have hdom : ∀ c, (T'.bs !! c).isSome = (X.t.bs !! c).isSome := by
+    intro c; rw [hbs']; split
+    · rename_i h; subst h; rw [hb]; rfl
+    · rfl
+  have hnsd : ∀ k, (B'.ns !! k).isSome = (B.ns !! k).isSome := by
+    intro k
+    by_cases hk : k ∈ Ls
+    · rw [hf k hk, hf' k hk]; rfl
+    · rw [hout k hk]
+  have hsub : ∀ c C C' k, X.t.bs !! c = some C → T'.bs !! c = some C' → (C'.ns !! k).isSome →
+      (C.ns !! k).isSome := by
+    intro c C C' k hc hc' hk
+    rw [hbs'] at hc'
+    split at hc'
+    · rename_i h; subst h; cases hc'; rw [hb] at hc; cases hc; rw [← hnsd]; exact hk
+    · rw [hc] at hc'; cases hc'; exact hk
+  have Hd' : objsDisj T' := objsDisj_sub X.t T' Hd hdom hsub
+  have hagree := objs_agree X.t T' (bl :: Ls) Hd Hd' hdom
+    (fun c hc => by
+      rw [hbs', if_neg]; intro h; exact hc (by rw [h]; exact List.mem_cons_self))
+    (fun c C C' k hc hc' hk => by
+      rw [hbs'] at hc'
+      split at hc'
+      · rename_i h; subst h; cases hc'; rw [hb] at hc; cases hc
+        exact hout k (fun h => hk (List.mem_cons_of_mem _ h))
+      · rw [hc] at hc'; cases hc'; rfl)
+    (fun k _ => rfl)
+  have ho' : ∀ l ∈ bl :: Ls, T'.objs !! l = some (os' l) := by
+    intro l hl
+    rcases List.mem_cons.1 hl with rfl | hl
+    · simp only [os', ite_true]; exact objs_bkt T' l B' Hd' (by rw [hbs', if_pos rfl])
+    · simp only [os', if_neg (hnb l hl)]
+      exact objs_node T' bl B' l (f' l) Hd' (by rw [hbs', if_pos rfl]) (hf' l hl)
+  have hblv : decide (bl ∈ lv') = decide (bl ∈ X.live) := decide_eq_decide.2 (hlv bl hblL)
+  rw [show ({ X.setBkt bl B' with live := lv' } : WX) = ({ X with t := T', live := lv' } : WX)
+    from rfl]
+  iapply Hback $$ %({ X with t := T', live := lv' } : WX) %os' [] [Hb HL] [Hf] [Hrf]
+  · ipureintro
+    refine ⟨ho', rfl, fun k hk => ⟨hagree k hk, ?_⟩, ?_⟩
+    · exact hlv k (fun h => hk (List.mem_cons_of_mem _ h))
+    refine heapOK_of tx X _ Hok rfl Hd' ?_ ?_ rfl ?_
+    · intro c C' hc'
+      change T'.bs !! c = some C' at hc'
+      rw [hbs'] at hc'
+      split at hc'
+      · rename_i h; subst h; cases hc'; exact ⟨B, hb, htx⟩
+      · exact ⟨C', hc', rfl⟩
+    · intro c C' k rk hc' hk
+      change T'.bs !! c = some C' at hc'
+      rw [hbs'] at hc'
+      split at hc'
+      · rename_i h; subst h; cases hc'
+        by_cases hkL : k ∈ Ls
+        · rw [hf' k hkL] at hk; cases hk; exact hpar k hkL
+        · rw [hout k hkL] at hk; exact Hok.2.2.2.1 c B k rk hb hk
+      · exact Hok.2.2.2.1 c C' k rk hc' hk
+    · intro k hk
+      by_cases hkL : k ∈ bl :: Ls
+      · show (T'.objs !! k).isSome; rw [ho' k hkL]; rfl
+      · show (T'.objs !! k).isSome; rw [hagree k hkL]; exact hk
+  · isplitl [Hb]
+    · simp only [os', ite_true]
+      have hblv' : decide (bl ∈ ({ X with t := T', live := lv' } : WX).live) =
+          decide (bl ∈ X.live) := hblv
+      rw [hblv']; iexact Hb
+    iapply (BigSepL.bigSepL_mono ?_) $$ HL
+    intro i l hl
+    have hlL : l ∈ Ls := List.mem_of_getElem? hl
+    simp only [os', if_neg (hnb l hlL)]
+    exact .rfl
+  · rw [txFields_congr tx dq ({ X with t := T', live := lv' } : WX) X rfl rfl rfl rfl]; iexact Hf
+  · iexact Hrf
+
+omit hos in
 /-- **A node's record changed** (`X.setNode`), its bucket's object, the transaction's fields and
 the root's `FillPercent` out too. -/
 theorem wtxHeap_setNode_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
