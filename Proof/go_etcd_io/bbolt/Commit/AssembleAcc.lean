@@ -97,6 +97,30 @@ theorem cm_meta_root (mp : Loc) (mv : Meta) (hmp : mp ≠ null) :
   simp only [TypedPointsto.typedPointstoDef]
   iframe
 
+omit [GooseSemantics] hos in
+/-- The mapping's length is at most `maxMapSize`. -/
+theorem cm_mapFields_len (db : Loc) (dq : DFrac) (ms : MapSt) :
+    mapFields (GF := GF) db dq ms ⊢ ⌜mapLen ms ≤ 0xFFFFFFFFFFFF⌝ := by
+  rcases ms with _ | ⟨b, l⟩
+  · iintro -; ipureintro; simp [mapLen]
+  · simp only [mapFields, mapLen]
+    iintro ⟨-, -, -, -, %H⟩
+    ipureintro; exact H.1
+
+/-- **The writer side's bounds**: its freelist well-formed (`flPgOwn`), its high-water mark's pages
+inside a mapping of at most `maxMapSize` (`wdbOK`, `mapFields`). -/
+theorem cm_wdbW_bounds (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ ⌜w.fl.WF ∧ w.C.hwm < 2 ^ 48⌝ := by
+  unfold wdbW wdbLive wdbCoreG flPgOwn
+  iintro ⟨⟨⟨-, -, -, -, -, -, -, -, -, -, -, -, Hmf, -⟩, ⟨%a, %s, %al, %ca, %pe, %c, %pp, -, -, -, -, -,
+    -, -, -, -, -, %Hwf⟩, -⟩, %Hok⟩
+  ihave %Hl := cm_mapFields_len K.db _ _ $$ Hmf
+  ipureintro
+  refine ⟨Hwf.2, ?_⟩
+  have h9 := Hok.1.2.2.2.2.2.2.2.2.1 v.base (mapLen w.ms) Hok.2.1
+  have : mapLen w.ms ≤ 0xFFFFFFFFFFFF := Hl
+  omega
+
 end acc
 
 end bbolt
