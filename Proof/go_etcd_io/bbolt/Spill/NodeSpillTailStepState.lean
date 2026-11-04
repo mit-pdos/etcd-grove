@@ -304,7 +304,7 @@ theorem pcStepX_state {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count
     obtain ⟨hrp', hinsl, hk0⟩ := hrp hp
     refine ⟨ra, rp, s, ins, q, ?_, hsa, fun _ rpi hrpi => ⟨?_, ?_, hinsl, hk0⟩, hcom.1, hcom.2.1,
       hcom.2.2.1, hcom.2.2.2.1, hcom.2.2.2.2, hc0, hbuf, hrun.2.2⟩
-    · rw [hfin, hpf, WX.setNode_node_ne _ _ (Ne.symm hpl'), if_pos (by simpa using hp)]
+    · rw [hfin, hpf, WX.setNode_node_ne _ _ (Ne.symm hpl'), decide_eq_true hp]
       exact WX.setNode_node_same hra _
     · rw [hfin, hpf]
       exact WX.setNode_node_same (by rw [WX.setNode_node_ne _ _ hpl']; exact hrp') _
@@ -319,7 +319,7 @@ theorem pcStepX_state {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count
       rw [← hX3]; unfold pcFin; rw [if_neg (by simpa using hp)]
     refine ⟨ra, rp, s, ins, q, ?_, hsa, fun h' => absurd h' hp, hcom.1, hcom.2.1,
       hcom.2.2.1, hcom.2.2.2.1, hcom.2.2.2.2, hc0, hbuf, hrun.2.2⟩
-    rw [hfin, hpf, if_neg (by simpa using hp)]
+    rw [hfin, hpf, decide_eq_false hp]
     exact WX.setNode_node_same hra _
 
 end state
