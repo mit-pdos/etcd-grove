@@ -14,6 +14,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureFree
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
@@ -198,8 +199,8 @@ theorem rinv_freePre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString}
     (hC : X.t.bs !! c = some C) (hrn : X.node c C.bv.rootNode' = some rn)
     (hleaf : rn.nv.isLeaf' = true) :
     C.ib.root' ≠ W64 0 → bktLocalOK X c ∧ (∀ pid ∈ X.positions c, X.t.pm !! pid = none) ∧
-      w.fl.canFreeAll w.wtxid (X.extents c) ∧ rtOK X c ∧ X.t.mv.txid' = w.wtxid := by
-  sorry
+      w.fl.canFreeAll w.wtxid (X.extents c) ∧ rtOK X c ∧ X.t.mv.txid' = w.wtxid :=
+  rinv_freePre' hI hks hc hC hrn hleaf
 
 /-- **After `child.free()`, for `child.write()`**: the child's record and root leaf after the free,
 `write`'s premises, and the inline value staged. -/

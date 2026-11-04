@@ -116,6 +116,8 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   agree : ∀ x ∈ Lroot, spP X !! x = spP X0 !! x
   kids : ∀ k c, B0.bm !! k = some c → childSt X0 X w w0.wtxid c (Dc k) (ks k)
   ents : rootEnts X = (rootEnts X0).map fun e => (e.1, (ks e.1).entVal e.2)
+  /-- Every cached child is iterated (its slots are among the owned ones). -/
+  keysAll : ∀ k, (B0.bm !! k).isSome → k ∈ keys
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=

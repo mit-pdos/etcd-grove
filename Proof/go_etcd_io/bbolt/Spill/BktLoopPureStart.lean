@@ -259,7 +259,8 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
         exact spFree_start htc hfv.1.2.1 (uTree_F_view h3)
     ents := by
       show rootEnts X = (rootEnts X).map fun e => (e.1, e.2)
-      rw [List.map_id'] }
+      rw [List.map_id']
+    keysAll := fun k h => (hk k).2 h }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/
