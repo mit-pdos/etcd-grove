@@ -43,6 +43,20 @@ def gateIs (f : val) (b : Bool) : IProp GF :=
 instance gateIs_persistent (f : val) (b : Bool) : Persistent (gateIs (GF := GF) f b) := by
   unfold gateIs; infer_instance
 
+/-- **The gates the informers' run path reads, at the values their proofs need** (persistent):
+`InOrderInformers` on (the FIFO is a `RealFIFO`, `newQueueFIFO`), `AtomicFIFO` on (atomic events,
+`LastStoreSyncResourceVersion`), `WatchListClient` off (the reflector lists, then watches). The
+batch gates (`InOrderInformersBatchProcess`, `UnlockWhileProcessingFIFO`) may be either: the
+specs that read them cover both values. Taken where an informer is made (the factory,
+`NewSharedIndexInformerWithOptions`) and carried in what it gives. -/
+def informerGates : IProp GF :=
+  iprop(gateIs k8s_io.client_go.features.InOrderInformers true ∗
+    gateIs k8s_io.client_go.features.AtomicFIFO true ∗
+    gateIs k8s_io.client_go.features.WatchListClient false)
+
+instance informerGates_persistent : Persistent (informerGates (GF := GF)) := by
+  unfold informerGates; infer_instance
+
 end defs
 
 end features

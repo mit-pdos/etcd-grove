@@ -1,6 +1,9 @@
 /-
 `(*sharedIndexInformer).AddIndexers(indexers)`: under `startedLock`, an error once stopped,
-else the store's `AddIndexers`: on success each index registered for good (`infIdx`). Lean-first;
+else the store's `AddIndexers`: on success each index registered for good (`infIdx`); the store
+refuses the whole map, adding nothing, if one of its names is already registered
+(`storeIndex.addIndexers`' conflict; it does not skip it): then that name is registered, and
+relations are keyed by index name (`FamN`, decision M1 of review 1), so with its relation. Lean-first;
 the DaemonSet run's track A.
 
 **Specified before the informer's start only** (decision R6; the controller adds its indexers
@@ -37,13 +40,14 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`s.AddIndexers(m)`**: see the file header. -/
 abbrev sharedIndexInformer.AddIndexers.spec : Prop :=
-  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc) (nids : GMap GoString Nat),
+  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (FamN : GoString → Fn GF) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc),
   ∀ (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ ∗ nm ↦${dn} nfv ∗
-      fnsOk (infObj I.γi r) nfv (GMap.fmap Fam nids) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I FamN ∗ infNotStarted I.γi q ∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ ∗ nm ↦${dn} nfv ∗
+      idxFnsOk (infObj I.γi r) FamN nfv }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"AddIndexers")) (Val #nm))
   {{ (err : GoInterface), RET #err; infNotStarted I.γi q ∗ nm ↦${dn} nfv ∗
-      (⌜err ≠ interface.nil⌝ ∨ (⌜err = interface.nil⌝ ∗ [∗map] n ↦ j ∈ nids, infIdx I n j)) }}
+      ((⌜err ≠ interface.nil⌝ ∗ ∃ n, ⌜n ∈ nfv⌝ ∗ infIdx I n) ∨
+        (⌜err = interface.nil⌝ ∗ [∗map] n ↦ _f ∈ nfv, infIdx I n)) }}
 
 end spec
 

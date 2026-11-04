@@ -49,7 +49,7 @@ def evOk (l : List Change) (R : Reg) : cache.Ev → Prop
       oo.key = on.key ∧ u ≤ v ∧ tableAt l u !! oo.key = some oo ∧ tableAt l v !! on.key = some on
   | .delete x => ∃ (y : GoInterface) (o : Obj) (v : Nat) (n : w64),
       (x = y ∨ ∃ k, x = tombstone k y) ∧ R !! y = some o ∧ tableAt l v !! o.key = none ∧
-      o.meta.ResourceVersion' = rvStr n ∧ n.toNat ≤ v
+      o.meta.ResourceVersion' = rvStr n ∧ n.toNat ≤ v ∧ ∃ ch ∈ l, ch.obj = o
 
 theorem lookup_objAt_of_mem (it : cache.Items) (k : GoString) (h : k ∈ it) :
     it !! k = some (cache.objAt it k) := by
@@ -68,29 +68,6 @@ theorem lookup_objAt_of_ne_nil (it : cache.Items) (k : GoString) (h : cache.objA
 
 theorem fdTypeOf_deleted (τ : EvTy) : fdTypeOf τ = go!"Deleted" ↔ τ = .deleted := by
   cases τ <;> simp [fdTypeOf]
-
-/-- The objects of the log's tables meet what the log's changes meet. -/
-theorem replay_prop (P : Obj → Prop) : ∀ (l : List Change) (M : GMap Key Obj),
-    (∀ key o, M !! key = some o → P o) → (∀ c ∈ l, P c.obj) →
-    ∀ key o, (l.foldl applyChange M) !! key = some o → P o
-  | [], M, h, _ => h
-  | c :: l, M, h, hl => by
-    simp only [List.foldl_cons]
-    apply replay_prop P l
-    · intro key o hk
-      unfold applyChange at hk
-      cases ht : c.typ with
-      | deleted =>
-        rw [ht, GMap.lookup_delete_iff] at hk
-        split at hk
-        · cases hk
-        · exact h key o hk
-      | added | modified =>
-        rw [ht, GMap.lookup_insert_eq_iff] at hk
-        split at hk
-        · simp only [Option.some.injEq] at hk; subst hk; exact hl c List.mem_cons_self
-        · exact h key o hk
-    · exact fun c' hc' => hl c' (List.mem_cons_of_mem _ hc')
 
 /-- **An object of the table at version `v` has a version at most `v`.** -/
 theorem tableAt_obj_rv (l : List Change)
@@ -129,7 +106,7 @@ theorem change_evOk (l : List Change) (hs : l.Pairwise (fun a b => a.rv.toNat < 
   have hstu : st.items = tableAt l u := by unfold View.ok at hst; rw [hu] at hst; exact hst
   obtain ⟨-, hg, -, hit⟩ := hR
   refine ⟨fun hd => ?_, fun hd => ?_, fun hd y hy => ?_⟩
-  · refine ⟨x, c.obj, c.rv.toNat, c.rv, Or.inl rfl, hx, ?_, hobj c hc, Nat.le_refl _⟩
+  · refine ⟨x, c.obj, c.rv.toNat, c.rv, Or.inl rfl, hx, ?_, hobj c hc, Nat.le_refl _, c, hc, rfl⟩
     rw [htab]; exact applyChange_del _ c hd
   · exact ⟨c.obj, c.rv.toNat, hx, by rw [htab]; exact applyChange_put _ c hd⟩
   · rcases hit (keyStr c.obj.key) with ⟨y', oy, hy', hoy, hk, hM⟩ | ⟨hnone, -⟩
@@ -176,7 +153,8 @@ theorem replaced_evOk (l : List Change) (hobj : ∀ c ∈ l, c.obj.meta.Resource
     · obtain rfl : cache.objAt σs.items k = y := Option.some.inj (hy.symm.trans hy')
       obtain ⟨u, huv, hstu⟩ := hver _ _ hMy
       obtain ⟨n, hn, hnu⟩ := tableAt_obj_rv l hobj u oy.key oy (by rw [← hstu]; exact hMy)
-      refine ⟨_, oy, v, n, Or.inr ⟨k, rfl⟩, hoy, ?_, hn, by omega⟩
+      refine ⟨_, oy, v, n, Or.inr ⟨k, rfl⟩, hoy, ?_, hn, by omega,
+        tableAt_seen l u oy.key oy (by rw [← hstu]; exact hMy)⟩
       rw [← hM]
       cases hMo : M !! oy.key with
       | none => rfl
@@ -373,14 +351,16 @@ theorem evFacts_of_evOk (γa : ApiNames) (r : Res) (γi : InfNames) (σp : apimo
     · iapply (infObjIs_of_reg γi r R hres new on hon) $$ HR
     · iexists σp, u, v; iframe #; ipureintro; exact ⟨hk, huv, hu, hv⟩
   | delete x =>
-    obtain ⟨y, o, v, n, hxy, hyo, hv, hn, hnv⟩ := h
+    obtain ⟨y, o, v, n, hxy, hyo, hv, hn, hnv, hseen⟩ := h
     unfold evFacts
     iexists y, o
     isplitr
     · ipureintro; exact hxy
     isplitr
     · iapply (infObjIs_of_reg γi r R hres y o hyo) $$ HR
+    isplitr
     · unfold goneAfter; iexists σp, v, n; iframe #; ipureintro; exact ⟨hv, hn, hnv⟩
+    · unfold seen; iexists σp; iframe #; ipureintro; exact hseen
 
 /-- **The facts of a list of events**, each with its pure facts. -/
 theorem evFacts_list (γa : ApiNames) (r : Res) (γi : InfNames) (σp : apimodel.St) (R : Reg)

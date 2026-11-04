@@ -34,9 +34,9 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`s.RunWithContext(ctx)`**: see the file header. -/
 abbrev sharedIndexInformer.RunWithContext.spec : Prop :=
-  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
+  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (FamN : GoString → Fn GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
     (γch : ChanNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi 1 ∗ context.isContext ctx cs ∗ stableCtx ctx ch γch }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I FamN ∗ infNotStarted I.γi 1 ∗ context.isContext ctx cs ∗ stableCtx ctx ch γch }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"RunWithContext")) (Val #(GoInterface.ok ctx)))
   {{ RET #(); True }}
 

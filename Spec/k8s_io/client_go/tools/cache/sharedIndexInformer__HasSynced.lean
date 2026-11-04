@@ -29,8 +29,8 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`s.HasSynced()`**: see the file header. -/
 abbrev sharedIndexInformer.HasSynced.spec : Prop :=
-  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam }}
+  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (FamN : GoString → Fn GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I FamN }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"HasSynced")) (Val #()))
   {{ (b : Bool), RET #b; syncedFacts I.γi b }}
 

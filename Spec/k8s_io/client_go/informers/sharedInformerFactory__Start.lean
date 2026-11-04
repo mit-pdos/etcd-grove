@@ -3,6 +3,8 @@
 every informer made and not started runs on a goroutine of its own until `stopCh` is closed. It
 takes the callers' halves of every resource's not-started token (`facNotStarted`, as the factory's
 constructor gave them; decision R6): the informers it starts need them whole (`infRunOk`).
+Margin (marked): it uses up every resource's token, so a second `Start`, and handlers or indexers
+added to an informer made after it, are outside the spec (Go allows both).
 Lean-first; the DaemonSet run's track A.
 -/
 module
@@ -32,7 +34,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`f.Start(stopCh)`**: see the file header. -/
 abbrev sharedInformerFactory.Start.spec : Prop :=
-  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF) (ch : GoChan),
+  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF) (ch : GoChan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗ isFactory f γF γa cfg Fams ∗ doneChOk ch ∗
       [∗list] r ∈ resAll, facNotStarted γF r 1 }}
     (App (Val (f @!! go.GoType.PointerType k8s_io.client_go.informers.sharedInformerFactory.ty @!! go!"Start")) (Val #ch))

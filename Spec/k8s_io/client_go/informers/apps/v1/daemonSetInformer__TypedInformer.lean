@@ -29,7 +29,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`i.TypedInformer()`**: the factory's informer of `.daemonSets`, wrapped. -/
 abbrev daemonSetInformer.TypedInformer.spec : Prop :=
-  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF),
+  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers.apps.v1 ∗ typedInfAt .daemonSets l f ∗ isFactory f γF γa cfg Fams }}
     (App (Val (l @!! go.GoType.PointerType k8s_io.client_go.informers.apps.v1.daemonSetInformer.ty @!! go!"TypedInformer")) (Val #()))
   {{ (x : GoInterface), RET #x; facInfOut γF γa .daemonSets Fams x }}

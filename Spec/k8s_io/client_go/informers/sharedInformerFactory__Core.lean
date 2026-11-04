@@ -29,7 +29,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`f.Core()`**: a `*core.group` of the factory. -/
 abbrev sharedInformerFactory.Core.spec : Prop :=
-  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF),
+  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗ isFactory f γF γa cfg Fams }}
     (App (Val (f @!! go.GoType.PointerType k8s_io.client_go.informers.sharedInformerFactory.ty @!! go!"Core")) (Val #()))
   {{ (g : Loc), RET #(interface.mkOk

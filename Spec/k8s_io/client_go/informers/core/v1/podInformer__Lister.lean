@@ -31,7 +31,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`i.Lister()`**: the lister of the factory's informer of `.pods`. -/
 abbrev podInformer.Lister.spec : Prop :=
-  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF),
+  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers.core.v1 ∗ typedInfAt .pods l f ∗ isFactory f γF γa cfg Fams }}
     (App (Val (l @!! go.GoType.PointerType k8s_io.client_go.informers.core.v1.podInformer.ty @!! go!"Lister")) (Val #()))
   {{ (ll : Loc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource),

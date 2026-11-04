@@ -15,15 +15,17 @@ the lock's resource.
 * `siiLocked s I`: `startedLock`'s resource: `started`, `stopped` (only once started),
   `controller`, the not-started token's start-lock half at `started` (`nsLock`), and `siiPre I`
   until the start.
-* `siiAt s γa cfg r I Fam` (persistent): the informer's fixed fields (its store `storeVal I`, its
+* `siiAt s γa cfg r I FamN` (persistent): the informer's fixed fields (its store `storeVal I`, its
   list-watch, of the model server's resource `r` (`lwOk`), its key function, its `synced`
   channel), its processor and mutation detector (`isSII`), the store and invariant (`infView`), the
-  reader pool (`infReaders`), the lock.
+  reader pool (`infReaders`), the index relations by name (`FamN`, the store's family
+  `famOf FamN`), the run path's feature gates (`features.informerGates`), the lock.
 -/
 module
 
 public import Proof.k8s_io.client_go.tools.cache.InformerAlloc
 public import Proof.k8s_io.client_go.tools.cache.SIIDefs
+public import Proof.k8s_io.client_go.features.GateDefs
 
 @[expose] public section
 
@@ -67,7 +69,7 @@ def siiLocked (s : Loc) (I : InfH) : IProp GF :=
 /-- **The informer `s`** (persistent): see the file header. -/
 def siiAt (s : Loc) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res)
-    (I : InfH) (Fam : Nat → Fn GF) : IProp GF :=
+    (I : InfH) (FamN : GoString → Fn GF) : IProp GF :=
   iprop(∃ (p : Loc) (sch : GoChan) (lw : GoInterfaceOk) (q : Loc),
     s.[sharedIndexInformer, go!"indexer"] ↦□ (storeVal I : Indexer) ∗
     s.[sharedIndexInformer, go!"keyFunc"] ↦□ I.kf ∗
@@ -77,7 +79,8 @@ def siiAt (s : Loc) (γa : ApiNames)
     s.[sharedIndexInformer, go!"objectType"] ↦□
       (interface.mkOk (go.GoType.PointerType (resObjTy r)) #q :
         k8s_io.apimachinery.pkg.runtime.Object) ∗
-    isSII s p ∗ infView γa r I Fam ∗ infReaders I r Fam ∗
+    isSII s p ∗ infView γa r I (famOf FamN) ∗ infReaders I r (famOf FamN) ∗
+    features.informerGates ∗
     sync.isMutex (s.[sharedIndexInformer, go!"startedLock"]) (siiLocked s I))
 
 /-- **The informer's listeners' contract on their `i`-th event** (the processor's `QP`, one for

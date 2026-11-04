@@ -1,6 +1,7 @@
 /-
 `cache.newQueueFIFO(logger, objectType, clientState, transform, identifier, metricsProvider)`
-(`controller.go`), with the gates `InOrderInformers` and `AtomicFIFO` on (`Main`'s): a
+(`controller.go`), with the gates `InOrderInformers` and `AtomicFIFO` on (premises: the informer
+carries them, `features.informerGates`; with `InOrderInformers` off Go makes a `DeltaFIFO`): a
 `RealFIFO` with atomic events and bookmarks, keyed by `MetaNamespaceKeyFunc`, no transformer or
 metrics provider, over the preallocated state names (`NewRealFIFOWithOptions`). Lean-first; the
 DaemonSet run's track A.
@@ -8,6 +9,7 @@ DaemonSet run's track A.
 module
 
 public import Spec.k8s_io.client_go.tools.cache.NewRealFIFOWithOptions
+public import Proof.k8s_io.client_go.features.GateDefs
 
 @[expose] public section
 
@@ -33,7 +35,9 @@ abbrev newQueueFIFO.spec : Prop :=
   ∀ (OK : GoInterface → IProp GF) (lg : github_com.go_logr.logr.Logger) (ot cs : GoInterface)
     (idn : InformerNameAndResource) (st sy : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ fifoPre st sy ∗ keyNoErr OK (functions MetaNamespaceKeyFunc []) ∗
-      keyAny (functions MetaNamespaceKeyFunc []) }}
+      keyAny (functions MetaNamespaceKeyFunc []) ∗
+      features.gateIs k8s_io.client_go.features.InOrderInformers true ∗
+      features.gateIs k8s_io.client_go.features.AtomicFIFO true }}
     (App (App (App (App (App (App (Val (@! newQueueFIFO)) (Val #lg)) (Val #ot)) (Val #cs))
       (Val #(func.nil : TransformFunc))) (Val #idn)) (Val #(interface.nil : InformerMetricsProvider)))
   {{ (lg' : github_com.go_logr.logr.Logger) (f : Loc),

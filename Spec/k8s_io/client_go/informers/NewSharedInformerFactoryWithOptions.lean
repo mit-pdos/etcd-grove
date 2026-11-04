@@ -31,10 +31,11 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`NewSharedInformerFactoryWithOptions(client, 0)`**, no option. -/
 abbrev NewSharedInformerFactoryWithOptions.spec : Prop :=
-  ∀ (c : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF) (opts : GoSlice)
+  ∀ (c : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF) (opts : GoSlice)
     (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗
-      clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗ ⌜∀ r, Fams r 0 = nsIdxFn⌝ ∗
+      clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗ features.informerGates ∗
+      ⌜∀ r, Fams r go!"namespace" = nsIdxFn⌝ ∗
       opts ↦*{dq} ([] : List k8s_io.client_go.informers.SharedInformerOption) }}
     (App (App (App (Val (@! k8s_io.client_go.informers.NewSharedInformerFactoryWithOptions))
       (Val #(clientVal c))) (Val #(W64 0 : time.Duration))) (Val #opts))

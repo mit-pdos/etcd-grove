@@ -16,9 +16,13 @@ reflector's `RefInf`) are what its proofs will rest on.
   indices `Fam`) and the informer invariant `infInv` (the store is the server's log's table at its
   version, versions monotone). It is the body of the controller's `dsctl.infAt` (track B):
   `infAt γa r ⟨…⟩ Fam` is `infView γa r I Fam` for the `InfLoc` with `I`'s fields.
-* `infIdx I n j` (persistent): the store's index named `n` is relation `Fam j`, for good (an
-  index is never removed; `AddIndexers` adds): a store read through the invariant sees
-  `σs.fnIds !! n = some j` (`InformerAlloc.lean`, `infInv_readIdxAU`).
+* **Index relations by name** (review 1's M1): a client gives the relation of each index name,
+  `FamN : GoString → Fn GF`; the store's (numbered) family is `famOf FamN`, the name `n` at id
+  `idxId n` (`famOf_idxId`). `infIdx I n` (persistent): the store's index named `n` is registered,
+  for good (an index is never removed; `AddIndexers` adds): a store read through the invariant sees
+  `σs.fnIds !! n = some (idxId n)` (`InformerAlloc.lean`, `infInv_readIdxAU`), so the index
+  computes `FamN n`, whoever registered it. `idxFnsOk OK FamN nfv`: the indexers `nfv` compute
+  their names' relations.
 * `infObjIs γi r x o`: the Go object `x` is registered with the model object `o` of resource `r`
   (owned read-only, `objAt x DFrac.discard o`); `infObj γi r x` is `∃ o, infObjIs γi r x o`.
 * **The handler contract** `handlerSpec γa r γi h H`: the handler `h` (a `ResourceEventHandler`)
@@ -33,7 +37,9 @@ reflector's `RefInf`) are what its proofs will rest on.
     `u`, `on` at a version `v ≥ u` (so a UID changes only across a deletion);
   - `OnDelete(x)`: `x` is a registered object `y`, or the tombstone `DeletedFinalStateUnknown{k, y}`
     of one, and `y`'s key is absent from the table at some version `v` of a past state, `y`'s own
-    version at most `v` (`goneAfter`: the deletion is in the log, from `v` on the object is gone).
+    version at most `v` (`goneAfter`: the deletion is in the log, from `v` on the object is gone),
+    and `y` is the object of a change of the log (`seen`: a version the server stored, so its UID
+    was at its key; review 1's H4). The add and update facts give `seen` too (`inLog_seen`).
 * `syncedFn f γi` (persistent): the function `f` (an `InformerSynced`, the informer's `HasSynced`
   method value) returns a boolean, `true` with `syncedFacts γi true` (the first list's version `v`,
   `infFirst`, and the store's version at least `v` from then on, `infRvLb`).
@@ -50,7 +56,9 @@ reflector's `RefInf`) are what its proofs will rest on.
   `SharedIndexInformer`, whatever wrapper `x` is: `Informer()` returns a `*typedSharedIndexInformer`
   around the factory's): `infView`, `infReaders`, and the contracts of the methods the controller calls on it
   (`GetStore`, `GetIndexer`, `HasSynced` called and as a method value, `AddEventHandlerWithOptions`,
-  `AddIndexers`). The last two are specified **before the informer's start only** (decision R6, the
+  `AddIndexers`), and the store's `LastStoreSyncResourceVersion` (a consistency store's getter:
+  a version the store has reached for good, `infRvLb`, well formed or empty; the `AtomicFIFO` gate
+  it reads is the informer's, review 1's H3). `AddEventHandlerWithOptions` and `AddIndexers` are specified **before the informer's start only** (decision R6, the
   controller's use): each borrows a fraction of the not-started token. **The handler contract is
   deferred** (decision R7): `AddEventHandlerWithOptions` takes no contract; it turns the fraction
   into `handlerPending γa r γi q h H`, which gives the fraction back only once activated with the
@@ -62,7 +70,9 @@ reflector's `RefInf`) are what its proofs will rest on.
 * `infRunOk x γi` (persistent): `x.RunWithContext(ctx)` runs the informer, given the whole callers'
   half of the not-started token (the factory's `Start` calls it).
 
-Scope (marked): handlers without a resync period (`HandlerOptions.ResyncPeriod` `nil`, and the
+Scope (marked): the informers of the run's model API server (`apimodel`: `ApiNames`, its four
+resources `Res`, its history's logs, its clientset), not of a real API server (review 1's M5).
+Handlers without a resync period (`HandlerOptions.ResyncPeriod` `nil`, and the
 factory's default resync `0`): a resyncing handler's synthetic updates are not covered.
 -/
 module
@@ -72,6 +82,7 @@ public import Proof.k8s_io.client_go.tools.cache.ListenerDefs
 public import Proof.k8s_io.client_go.tools.cache.RefCtx
 public import Perennial.Proof.ThreadPool
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Reader
+public import Proof.k8s_io.apimachinery.pkg.util.resourceversion.Defs
 
 @[expose] public section
 
@@ -204,6 +215,71 @@ theorem nsLock_start (γ : GName) (b : Bool) :
 
 end token
 
+/-! ### Index relations by name -/
+
+section names
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **An index name's relation id in the store's family** (an injective code: client-go's index
+names are a global convention, the store's family is keyed by them). -/
+def idxId (n : GoString) : Nat := (Pos.Countable.encode n).toNat
+
+theorem idxId_inj {a b : GoString} (h : idxId a = idxId b) : a = b :=
+  Pos.encode_eq_iff.1 (Pos.Pos_toNat_inj h)
+
+open Classical in
+/-- **The store's family of a family of relations by index name** (`FamN n` at `idxId n`). -/
+def famOf (FamN : GoString → Fn GF) : Nat → Fn GF :=
+  fun j => if h : ∃ n, idxId n = j then FamN (Classical.choose h) else fun _ _ => iprop(False)
+
+theorem famOf_idxId (FamN : GoString → Fn GF) (n : GoString) : famOf FamN (idxId n) = FamN n := by
+  unfold famOf
+  have h : ∃ n', idxId n' = idxId n := ⟨n, rfl⟩
+  rw [dite_cond_eq_true (eq_true h), idxId_inj (Classical.choose_spec h)]
+
+end names
+
+/-! ### The log's objects -/
+
+section log
+variable [GooseExts]
+
+/-- The objects of the log's tables meet what the log's changes meet. -/
+theorem replay_prop (P : Obj → Prop) : ∀ (l : List Change) (M : GMap Key Obj),
+    (∀ key o, M !! key = some o → P o) → (∀ c ∈ l, P c.obj) →
+    ∀ key o, (l.foldl applyChange M) !! key = some o → P o
+  | [], M, h, _ => h
+  | c :: l, M, h, hl => by
+    simp only [List.foldl_cons]
+    apply replay_prop P l
+    · intro key o hk
+      unfold applyChange at hk
+      cases ht : c.typ with
+      | deleted =>
+        rw [ht, GMap.lookup_delete_iff] at hk
+        split at hk
+        · cases hk
+        · exact h key o hk
+      | added | modified =>
+        rw [ht, GMap.lookup_insert_eq_iff] at hk
+        split at hk
+        · simp only [Option.some.injEq] at hk; subst hk; exact hl c List.mem_cons_self
+        · exact h key o hk
+    · exact fun c' hc' => hl c' (List.mem_cons_of_mem _ hc')
+
+/-- **An object of a table of the log is the object of a change of the log.** -/
+theorem tableAt_seen (l : List Change) (v : Nat) (key : Key) (o : Obj)
+    (h : tableAt l v !! key = some o) : ∃ ch ∈ l, ch.obj = o := by
+  refine replay_prop (fun o => ∃ ch ∈ l, ch.obj = o) (l.filter (fun c => decide (c.rv.toNat ≤ v)))
+    ∅ (by intro key o h; simp at h) ?_ key o h
+  intro c hc
+  exact ⟨c, (List.mem_filter.1 hc).1, rfl⟩
+
+end log
+
 /-! ### The events' facts -/
 
 section defs
@@ -221,20 +297,22 @@ instance infView_persistent (γa : ApiNames) (r : Res) (I : InfH) (Fam : Nat →
     Persistent (infView γa r I Fam) := by
   unfold infView; infer_instance
 
-/-- **The store's index `n` is relation `Fam j`**, for good (persistent). -/
-def infIdx (I : InfH) (n : GoString) (j : Nat) : IProp GF := n ↪[I.γi.ix]□ j
+/-- **The store's index named `n` is registered**, for good (persistent): with the store's
+relation id of its name (`idxId n`), so its relation is the client's `FamN n` (`famOf_idxId`). -/
+def infIdx (I : InfH) (n : GoString) : IProp GF := n ↪[I.γi.ix]□ idxId n
 
-instance infIdx_persistent (I : InfH) (n : GoString) (j : Nat) :
-    Persistent (infIdx (GF := GF) I n j) := by
+instance infIdx_persistent (I : InfH) (n : GoString) : Persistent (infIdx (GF := GF) I n) := by
   unfold infIdx; infer_instance
 
-open Iris.ProofMode in
-/-- An index name has one relation. -/
-theorem infIdx_agree (I : InfH) (n : GoString) (j j' : Nat) :
-    infIdx (GF := GF) I n j ∗ infIdx I n j' ⊢ ⌜j = j'⌝ := by
-  iintro ⟨H1, H2⟩
-  unfold infIdx
-  iapply (ghostMapElem_agree n I.γi.ix DFrac.discard DFrac.discard j j') $$ H1 H2
+/-- **The indexers `nfv` compute their names' relations** (persistent): each function `f` of name
+`n` meets `FamN n` on the informer's objects `OK`. -/
+def idxFnsOk (OK : GoInterface → IProp GF) (FamN : GoString → Fn GF)
+    (nfv : GMap GoString GoFunc) : IProp GF :=
+  iprop([∗map] n ↦ f ∈ nfv, fnOk OK f (FamN n))
+
+instance idxFnsOk_persistent (OK : GoInterface → IProp GF) (FamN : GoString → Fn GF)
+    (nfv : GMap GoString GoFunc) : Persistent (idxFnsOk OK FamN nfv) := by
+  unfold idxFnsOk; infer_instance
 
 /-- **`x` is registered with the model object `o` of resource `r`** (persistent). -/
 def infObjIs (γi : InfNames) (r : Res) (x : GoInterface) (o : Obj) : IProp GF :=
@@ -277,6 +355,25 @@ instance goneAfter_persistent (γa : ApiNames) (r : Res) (o : Obj) :
     Persistent (goneAfter (GF := GF) γa r o) := by
   unfold goneAfter; infer_instance
 
+/-- **`o` is the object of a change of the server's log** (of a past state; persistent): a version
+the server stored (so its UID was at its key from that change's version). -/
+def seen (γa : ApiNames) (r : Res) (o : Obj) : IProp GF :=
+  iprop(∃ σp : apimodel.St, pastSt γa σp ∗ ⌜∃ ch ∈ (σp.tbl r).log, ch.obj = o⌝)
+
+instance seen_persistent (γa : ApiNames) (r : Res) (o : Obj) :
+    Persistent (seen (GF := GF) γa r o) := by
+  unfold seen; infer_instance
+
+open Iris.ProofMode in
+/-- **An object in a table of the log is the object of a change of the log.** -/
+theorem inLog_seen (γa : ApiNames) (r : Res) (o : Obj) : inLog (GF := GF) γa r o ⊢ seen γa r o := by
+  unfold inLog seen
+  iintro ⟨%σp, %v, #Hp, %h⟩
+  iexists σp
+  iframe #
+  ipureintro
+  exact tableAt_seen _ v o.key o h
+
 /-- **What a handler is told with each event** (persistent): see the file header. -/
 def evFacts (γa : ApiNames) (r : Res) (γi : InfNames) : Ev → IProp GF
   | .add x _ => iprop(∃ o, infObjIs γi r x o ∗ inLog γa r o)
@@ -285,7 +382,7 @@ def evFacts (γa : ApiNames) (r : Res) (γi : InfNames) : Ev → IProp GF
         ⌜oo.key = on.key ∧ u ≤ v ∧ tableAt (σp.tbl r).log u !! oo.key = some oo ∧
           tableAt (σp.tbl r).log v !! on.key = some on⌝)
   | .delete x => iprop(∃ (y : GoInterface) (o : Obj),
-      ⌜x = y ∨ ∃ k, x = tombstone k y⌝ ∗ infObjIs γi r y o ∗ goneAfter γa r o)
+      ⌜x = y ∨ ∃ k, x = tombstone k y⌝ ∗ infObjIs γi r y o ∗ goneAfter γa r o ∗ seen γa r o)
 
 instance evFacts_persistent (γa : ApiNames) (r : Res) (γi : InfNames) (e : Ev) :
     Persistent (evFacts (GF := GF) γa r γi e) := by
@@ -402,9 +499,10 @@ def storeVal (I : InfH) : GoInterface :=
   interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #I.ca
 
 /-- **The informer as an interface value** (persistent): see the file header. -/
-def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Nat → Fn GF) :
+def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (FamN : GoString → Fn GF) :
     IProp GF :=
-  iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗ infView γa r I Fam ∗ infReaders I r Fam ∗
+  iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗ infView γa r I (famOf FamN) ∗
+    infReaders I r (famOf FamN) ∗
     -- `GetStore()`, `GetIndexer()`: the store
     □ (∀ Φ : val → IProp GF, ▷ Φ #(storeVal I) -∗
         WP (App (Val #(methods i.ty go!"GetStore" i.v)) (Val #())) {{ Φ }}) ∗
@@ -422,25 +520,33 @@ def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Na
             Φ (PairV #reg #(interface.nil : GoInterface))) -∗
         WP (App (App (Val #(methods i.ty go!"AddEventHandlerWithOptions" i.v)) (Val #h))
           (Val #opts)) {{ Φ }}) ∗
-    -- `AddIndexers(m)`, before the start: the indexers `nfv` (relations `Fam (nids n)`): on
-    -- success each registered for good; an error (a name already registered) changes nothing
-    □ (∀ (q : Qp) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc)
-        (nids : GMap GoString Nat) (Φ : val → IProp GF),
+    -- `AddIndexers(m)`, before the start: the indexers `nfv`, each computing its name's relation
+    -- (`FamN n`): on success each registered for good; Go refuses the whole map if one of its
+    -- names is already registered (`storeIndex.addIndexers`, nothing added): then that name is
+    -- (with its relation, by name)
+    □ (∀ (q : Qp) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc) (Φ : val → IProp GF),
         infNotStarted I.γi q -∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ -∗ nm ↦${dn} nfv -∗
-        fnsOk (infObj I.γi r) nfv (GMap.fmap Fam nids) -∗
+        idxFnsOk (infObj I.γi r) FamN nfv -∗
         ▷ (∀ (err : GoInterface), infNotStarted I.γi q -∗ nm ↦${dn} nfv -∗
-            (⌜err ≠ interface.nil⌝ ∨
-              (⌜err = interface.nil⌝ ∗ [∗map] n ↦ j ∈ nids, infIdx I n j)) -∗ Φ #err) -∗
-        WP (App (Val #(methods i.ty go!"AddIndexers" i.v)) (Val #nm)) {{ Φ }}))
+            ((⌜err ≠ interface.nil⌝ ∗ ∃ n, ⌜n ∈ nfv⌝ ∗ infIdx I n) ∨
+              (⌜err = interface.nil⌝ ∗ [∗map] n ↦ _f ∈ nfv, infIdx I n)) -∗ Φ #err) -∗
+        WP (App (Val #(methods i.ty go!"AddIndexers" i.v)) (Val #nm)) {{ Φ }}) ∗
+    -- the store's `LastStoreSyncResourceVersion()` (a consistency store's getter, the
+    -- `AtomicFIFO` gate on): a version the store has reached for good, well formed or empty
+    □ (∀ Φ : val → IProp GF,
+        ▷ (∀ rv : GoString, ⌜rv = [] ∨ resourceversion.wellFormed rv = true⌝ -∗
+            infRvLb I.γi (resourceversion.decVal rv) -∗ Φ #rv) -∗
+        WP (App (Val #(methods (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty)
+          go!"LastStoreSyncResourceVersion" #I.ca)) (Val #())) {{ Φ }}))
 
 instance isInformer_persistent (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
-    (Fam : Nat → Fn GF) : Persistent (isInformer x γa r I Fam) := by
+    (FamN : GoString → Fn GF) : Persistent (isInformer x γa r I FamN) := by
   unfold isInformer; infer_instance
 
 open Iris.ProofMode in
 /-- **The store and invariant of an informer** (the controller's `infAt`). -/
 theorem isInformer_view (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
-    (Fam : Nat → Fn GF) : isInformer x γa r I Fam ⊢ infView γa r I Fam := by
+    (FamN : GoString → Fn GF) : isInformer x γa r I FamN ⊢ infView γa r I (famOf FamN) := by
   unfold isInformer
   iintro ⟨%i, -, #Hv, -⟩
   iexact Hv
@@ -448,7 +554,7 @@ theorem isInformer_view (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
 open Iris.ProofMode in
 /-- **The store's reader pool of an informer.** -/
 theorem isInformer_readers (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH)
-    (Fam : Nat → Fn GF) : isInformer x γa r I Fam ⊢ infReaders I r Fam := by
+    (FamN : GoString → Fn GF) : isInformer x γa r I FamN ⊢ infReaders I r (famOf FamN) := by
   unfold isInformer
   iintro ⟨%i, -, -, #Hr, -⟩
   iexact Hr

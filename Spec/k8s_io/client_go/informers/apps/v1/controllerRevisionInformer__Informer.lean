@@ -33,7 +33,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`i.Informer()`**: the factory's informer of `.revisions`. -/
 abbrev controllerRevisionInformer.Informer.spec : Prop :=
-  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF),
+  ∀ (l f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers.apps.v1 ∗ typedInfAt .revisions l f ∗ isFactory f γF γa cfg Fams }}
     (App (Val (l @!! go.GoType.PointerType k8s_io.client_go.informers.apps.v1.controllerRevisionInformer.ty @!! go!"Informer")) (Val #()))
   {{ (x : GoInterface), RET #x; facInfOut γF γa .revisions Fams x }}

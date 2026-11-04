@@ -1,8 +1,8 @@
 /-
 Proof of `Spec/k8s_io/client_go/tools/cache/newQueueFIFO.lean`: a `sorry` stub (Stage 3 of the DaemonSet autoverify run,
 track A), its hypotheses the specs of the callees its Go body calls.
-Missing callee specs (next round): the client-go feature gates `InOrderInformers`,
-`AtomicFIFO` (read `true`) and `UnlockWhileProcessingFIFO` (any), as `gateOk`;
+The gates `InOrderInformers` and `AtomicFIFO` are premises of the spec (`gateIs`, read `true`);
+`UnlockWhileProcessingFIFO` is read too (any value). Missing callee specs (next round):
 `MetaNamespaceKeyFunc` (its `keyNoErr`/`keyAny` contracts).
 -/
 module

@@ -4,13 +4,21 @@ group and version packages `informers/{apps,core}{,/v1}`): the predicates its sp
 Lean-first; the DaemonSet run's track A (`notes/k8s-daemonset-run/design.md`).
 
 * `facVal f`: the factory `*sharedInformerFactory` as a `SharedInformerFactory`.
+* **Scope**: the informers of the run's model API server (`apimodel`: its four resources, its
+  history, its clientset); a client of another API server cannot use these predicates.
 * `nsIdxFn` (an index relation, `Fn`): `MetaNamespaceIndexFunc`'s, an object's namespace. The
-  factory's informers index their store by namespace (`cache.NamespaceIndex`, id `0` of their
-  family: `Fams r 0 = nsIdxFn`).
+  factory's informers index their store by namespace (`cache.NamespaceIndex`:
+  `Fams r go!"namespace" = nsIdxFn`).
+* **Index relations by name** (review 1's M1): `Fams r n` is the relation of the index named `n`
+  of resource `r`'s store, fixed when the factory is made, whoever registers the index (the
+  factory, or a client's `AddIndexers`). A departure (a persistent family fixed at creation, as
+  `c3-store-law.md`'s): index names are a global convention in client-go, and Go trusts the name
+  (`AddPodControllerIndexer` skips a name already registered).
 * `isFactory f γF γa cfg Fams` (persistent): the factory over the model API server's (non-admin)
   clientset (`clientsetAt`), with read access to its state (`apiReader`) and its writers' good keys
-  (`keysOk`), the default resync `0`, all namespaces, no tweak, transform, shard selector or name;
-  its informer of resource `r` (once created) has the store's family `Fams r`. Its lock's resource
+  (`keysOk`), the default resync `0`, all namespaces, no tweak, transform, shard selector or name,
+  the informers' feature gates (`features.informerGates`, taken at its construction, for the
+  informers it makes); its informer of resource `r` (once created) has the relations `Fams r`. Its lock's resource
   (`facLocked`) is internal: the informers made (the ghost map `γF.infs`, `facInf`), each with its
   `isInformer`. (Refined by the proofs of `InformerFor`/`Start`: the maps' contents and the
   `reflect.Type` keys, which need a stronger `reflect.TypeOf` boundary spec, see the run's report.)
@@ -37,6 +45,7 @@ module
 public import Proof.k8s_io.client_go.informers.Base
 public import Proof.k8s_io.client_go.tools.cache.InformerApi
 public import Proof.k8s_io.client_go.tools.cache.RefCtx
+public import Proof.k8s_io.client_go.features.GateDefs
 
 @[expose] public section
 
@@ -138,28 +147,28 @@ def facFixed (f c : Loc) : IProp GF :=
 /-- **The factory's lock's resource** (internal, see the file header): the informers made, each an
 informer of its resource over the factory's family, over the factory's not-started token of its
 resource; for each resource not made, its token's start-lock half. -/
-def facLocked (f : Loc) (γF : FacNames) (γa : ApiNames) (Fams : Res → Nat → Fn GF) : IProp GF :=
+def facLocked (f : Loc) (γF : FacNames) (γa : ApiNames) (Fams : Res → GoString → Fn GF) : IProp GF :=
   iprop(∃ (mi ms : GoMap) (sd : Bool) (G : GMap Res InfH),
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"informers"] ↦ mi ∗
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"startedInformers"] ↦ ms ∗
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"shuttingDown"] ↦ sd ∗
     ghostMapAuth γF.infs 1 G ∗
     ([∗map] r ↦ I ∈ G, ∃ x : GoInterface, ⌜I.γi.ns = γF.ns r⌝ ∗ isInformer x γa r I (Fams r) ∗
-      infRunOk x I.γi ∗ infIdx I go!"namespace" 0) ∗
+      infRunOk x I.γi ∗ infIdx I go!"namespace") ∗
     [∗list] r ∈ resAll, ⌜(G !! r).isSome⌝ ∨ nsLock (γF.ns r) false)
 
 /-- **The factory** (persistent): see the file header. -/
 def isFactory (f : Loc) (γF : FacNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
-    (Fams : Res → Nat → Fn GF) : IProp GF :=
+    (Fams : Res → GoString → Fn GF) : IProp GF :=
   iprop(∃ c : Loc, facFixed f c ∗ clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗
-    ⌜∀ r, Fams r 0 = nsIdxFn⌝ ∗
+    features.informerGates ∗ ⌜∀ r, Fams r go!"namespace" = nsIdxFn⌝ ∗
     sync.isMutex (f.[k8s_io.client_go.informers.sharedInformerFactory, go!"lock"])
       (facLocked f γF γa Fams))
 
 instance isFactory_persistent (f : Loc) (γF : FacNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
-    (Fams : Res → Nat → Fn GF) : Persistent (isFactory f γF γa cfg Fams) := by
+    (Fams : Res → GoString → Fn GF) : Persistent (isFactory f γF γa cfg Fams) := by
   unfold isFactory facFixed clientsetAt; infer_instance
 
 /-- **A struct `*T` at `l` holding the factory `f`** (persistent; the groups, the versions, the
@@ -211,40 +220,40 @@ instance typedInfAt_persistent (r : Res) (l f : Loc) : Persistent (typedInfAt (G
 
 /-- **What the factory's informer of `r` gives**: its names, for good, the informer as the value
 `x`, its store indexed by namespace. -/
-def facInfOut (γF : FacNames) (γa : ApiNames) (r : Res) (Fams : Res → Nat → Fn GF)
+def facInfOut (γF : FacNames) (γa : ApiNames) (r : Res) (Fams : Res → GoString → Fn GF)
     (x : GoInterface) : IProp GF :=
-  iprop(∃ I : InfH, facInf γF r I ∗ isInformer x γa r I (Fams r) ∗ infIdx I go!"namespace" 0)
+  iprop(∃ I : InfH, facInf γF r I ∗ isInformer x γa r I (Fams r) ∗ infIdx I go!"namespace")
 
 instance facInfOut_persistent (γF : FacNames) (γa : ApiNames) (r : Res)
-    (Fams : Res → Nat → Fn GF) (x : GoInterface) :
+    (Fams : Res → GoString → Fn GF) (x : GoInterface) :
     Persistent (facInfOut γF γa r Fams x) := by
   unfold facInfOut; infer_instance
 
 /-- **A new informer of `r`** (an `InformerFor`'s `newFunc` result, before the factory registers
 it): the informer as `x`, its not-started token `γns`, runnable, its store indexed by namespace. -/
-def newInfOut (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (γns : GName) (x : GoInterface) :
+def newInfOut (γa : ApiNames) (r : Res) (FamN : GoString → Fn GF) (γns : GName) (x : GoInterface) :
     IProp GF :=
-  iprop(∃ I : InfH, ⌜I.γi.ns = γns⌝ ∗ isInformer x γa r I Fam ∗ infRunOk x I.γi ∗
-    infIdx I go!"namespace" 0)
+  iprop(∃ I : InfH, ⌜I.γi.ns = γns⌝ ∗ isInformer x γa r I FamN ∗ infRunOk x I.γi ∗
+    infIdx I go!"namespace")
 
-instance newInfOut_persistent (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (γns : GName)
-    (x : GoInterface) : Persistent (newInfOut γa r Fam γns x) := by
+instance newInfOut_persistent (γa : ApiNames) (r : Res) (FamN : GoString → Fn GF) (γns : GName)
+    (x : GoInterface) : Persistent (newInfOut γa r FamN γns x) := by
   unfold newInfOut; infer_instance
 
 /-- **`InformerFor`'s `newFunc` contract**: called with a clientset of the server and resync `0`,
-and the start-lock half of a not-started token `γns`, it returns a new informer of `r` over that
-token (persistent). -/
+the start-lock half of a not-started token `γns` and the informers' feature gates, it returns a new
+informer of `r` over that token (persistent). -/
 def newInfFnOk (nf : GoFunc) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res)
-    (Fam : Nat → Fn GF) : IProp GF :=
+    (FamN : GoString → Fn GF) : IProp GF :=
   iprop(□ ∀ (c : Loc) (γns : GName) (Φ : val → IProp GF), clientsetAt c γa cfg false -∗
-    nsLock γns false -∗
-    ▷ (∀ x : GoInterface, newInfOut γa r Fam γns x -∗ Φ #x) -∗
+    features.informerGates -∗ nsLock γns false -∗
+    ▷ (∀ x : GoInterface, newInfOut γa r FamN γns x -∗ Φ #x) -∗
     WP (App (App (Val #nf) (Val #(clientVal c))) (Val #(W64 0 : time.Duration))) {{ Φ }})
 
 instance newInfFnOk_persistent (nf : GoFunc) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res)
-    (Fam : Nat → Fn GF) : Persistent (newInfFnOk nf γa cfg r Fam) := by
+    (FamN : GoString → Fn GF) : Persistent (newInfFnOk nf γa cfg r FamN) := by
   unfold newInfFnOk; infer_instance
 
 /-- **A stop channel** (persistent): a broadcast channel, or the closed `closedchan`. -/

@@ -39,9 +39,9 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`s.AddEventHandlerWithOptions(h, opts)`**: see the file header. -/
 abbrev sharedIndexInformer.AddEventHandlerWithOptions.spec : Prop :=
-  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF),
+  ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (FamN : GoString → Fn GF) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF),
   ∀ (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ handlerOptsOk opts ∗ H [] }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I FamN ∗ infNotStarted I.γi q ∗ handlerOptsOk opts ∗ H [] }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"AddEventHandlerWithOptions")) (Val #h)) (Val #opts))
   {{ (reg : GoInterface), RET (PairV #reg #(interface.nil : GoInterface));
       handlerPending γa r I.γi q h H }}

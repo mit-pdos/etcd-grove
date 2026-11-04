@@ -7,7 +7,7 @@ client's `AppsV1().ControllerRevisions(namespace)` `List`/`Watch` (wrapped by
 all namespaces, resync `0`, no name and no tweak (the factory's), the list-watch closures meet
 `lwOk` (`RefInf.lean`) from the clientset and the read access `apiReader` (each `List`/`Watch`
 is logically atomic over `apiState`, fired through `apiReader_read`); the indexers `nfv` are
-the store's, with relations `Fam (nids n)`. Lean-first; the DaemonSet run's track A. The informer's not-started token is the caller's (`γns`, whose start-lock half it
+the store's, each the relation of its name (`FamN n`); the informers' feature gates. Lean-first; the DaemonSet run's track A. The informer's not-started token is the caller's (`γns`, whose start-lock half it
 takes; decision R6).
 -/
 module
@@ -37,18 +37,18 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`NewTypedControllerRevisionInformerWithOptions(client, "", options)`**: see the file header. -/
 abbrev NewTypedControllerRevisionInformerWithOptions.spec : Prop :=
-  ∀ (c : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fam : Nat → Fn GF)
+  ∀ (c : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (FamN : GoString → Fn GF)
     (o : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dn : DFrac)
-    (nfv : GMap GoString GoFunc) (nids : GMap GoString Nat) (γns : GName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers.apps.v1 ∗ clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗
+    (nfv : GMap GoString GoFunc) (γns : GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers.apps.v1 ∗ clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗ features.informerGates ∗
       ⌜o.ResyncPeriod' = W64 0 ∧ o.InformerName' = null ∧ o.TweakListOptions' = func.nil ∧
         GMap.size nfv ≤ 2 ^ 62⌝ ∗
-      o.Indexers' ↦${dn} nfv ∗ □ (∀ γi : InfNames, fnsOk (infObj γi .revisions) nfv (GMap.fmap Fam nids)) ∗
+      o.Indexers' ↦${dn} nfv ∗ □ (∀ γi : InfNames, idxFnsOk (infObj γi .revisions) FamN nfv) ∗
       nsLock γns false }}
     (App (App (App (Val (@! k8s_io.client_go.informers.apps.v1.NewTypedControllerRevisionInformerWithOptions)) (Val #(clientVal c)))
       (Val #(go!"" : GoString))) (Val #o))
-  {{ (x : GoInterface), RET #x; ∃ I : InfH, ⌜I.γi.ns = γns⌝ ∗ isInformer x γa .revisions I Fam ∗ infRunOk x I.γi ∗
-      [∗map] n ↦ j ∈ nids, infIdx I n j }}
+  {{ (x : GoInterface), RET #x; ∃ I : InfH, ⌜I.γi.ns = γns⌝ ∗ isInformer x γa .revisions I FamN ∗ infRunOk x I.γi ∗
+      [∗map] n ↦ _f ∈ nfv, infIdx I n }}
 
 end spec
 

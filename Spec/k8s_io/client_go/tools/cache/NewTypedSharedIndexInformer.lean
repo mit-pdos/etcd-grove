@@ -29,11 +29,11 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`NewTypedSharedIndexInformer[T](x)`**: a wrapper of the informer `x`. -/
 abbrev NewTypedSharedIndexInformer.spec : Prop :=
-  ∀ (T : go.GoType) (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Nat → Fn GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isInformer x γa r I Fam }}
+  ∀ (T : go.GoType) (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (FamN : GoString → Fn GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isInformer x γa r I FamN }}
     (App (Val #(functions NewTypedSharedIndexInformer [T])) (Val #x))
   {{ (w : Loc), RET #(interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w);
-      isInformer (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w) γa r I Fam ∗
+      isInformer (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w) γa r I FamN ∗
       □ (infRunOk x I.γi -∗
         infRunOk (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w) I.γi) }}
 

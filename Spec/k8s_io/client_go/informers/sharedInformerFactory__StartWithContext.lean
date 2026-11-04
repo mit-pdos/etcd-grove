@@ -33,7 +33,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`f.StartWithContext(ctx)`**: see the file header. -/
 abbrev sharedInformerFactory.StartWithContext.spec : Prop :=
-  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
+  ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → GoString → Fn GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
     (γch : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗ isFactory f γF γa cfg Fams ∗ context.isContext ctx cs ∗ stableCtx ctx ch γch ∗
       [∗list] r ∈ resAll, facNotStarted γF r 1 }}
