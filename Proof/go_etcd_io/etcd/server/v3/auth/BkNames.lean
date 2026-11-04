@@ -4,7 +4,8 @@ its Draft, `SnapAuthOnDraft.lean`, at the Prove step, 2026-11-03). Each backend 
 names `γc : AuthBkNames`: its write token `authWTok` (the apply thread's right to the backend's auth
 batch), its currency `authCur` (fractional: readers hold a part; the release needs all of it) and
 its retired token `authRetired`. The store's names `γa` gain the current backend's names
-(`authBkCur`, at `γa.bk`: half in `beMu`'s guard, half with the write token, `authWHeld`) and the
+(`authBkCur`, at `γa.bk`: a quarter in `beMu`'s guard, a quarter in the store's currency invariant,
+`curInv`, half with the write token, `authWHeld`) and the
 succession right (`authSucc`, at `γa.succ`: one live backend at a time). `authBkLife` is a backend's
 lifecycle (retire, release, publish), which the trusted premise gives with each backend; the
 published index's authority is shared (`authPubQ`; the apply thread's quarter `authPubTok`).
@@ -35,8 +36,9 @@ abbrev AuthBkNames : Type := GName × GName × GName
 auth batch, held outside a batch transaction (`Lock()` takes it, `Unlock()` gives it back). -/
 def authWTok (γc : AuthBkNames) : IProp GF := token γc.1
 
-/-- **The backend `γc`'s currency** `Cu q` (fractional): `beP` holds it with the backend, readers
-under `beMu`'s read lock a part; `Recover` hands the old backend's whole `Cu 1` back. -/
+/-- **The backend `γc`'s currency** `Cu q` (fractional): the store's currency invariant holds it
+(`curInv`, `InvAuth.lean`; R-D2, 2026-11-04: until then `beP`, with the backend), readers under
+`beMu`'s read lock a part; `Recover` hands the old backend's whole `Cu 1` back. -/
 def authCur (γc : AuthBkNames) (q : Qp) : IProp GF := ghostVar γc.2.1 q ()
 
 /-- **The backend `γc` retired** (exclusive; what retiring `T` leaves). -/
@@ -49,8 +51,9 @@ previous backend's retirement), so at most one backend of the store is live (its
 latest clause and its publication) at a time. -/
 def authSucc (γa : AuthNames) : IProp GF := token γa.succ
 
-/-- **The share `q` of the current backend's name**: `beP` holds half (at its fraction), the apply
-thread the other half with the write token (`authWHeld`); the tie of `beP`'s `T` to the apply
+/-- **The share `q` of the current backend's name**: `beP` holds a quarter (at its fraction), the
+store's currency invariant a quarter (`curInv`; R-D2, 2026-11-04: until then `beP` held half), the
+apply thread the other half with the write token (`authWHeld`); the tie of `beP`'s `T` to the apply
 thread's (review round 3's B). -/
 def authBkCur (γa : AuthNames) (q : Qp) (γc : AuthBkNames) : IProp GF :=
   ghostVar γa.bk q γc
@@ -122,10 +125,11 @@ latest state's ghost variable and the history's quarter with the cap's lower bou
 store's revision invariant takes (`revCur`), and the store's half of the published index's
 authority at `0` (the invariant's freshness, `revFresh`; the auth-on snapshot plan's Freeze,
 2026-11-03: the other half is the realization's, `authSchemaSrv`'s; until then the whole, and the
-definition was in `Model.lean`). -/
+definition was in `Model.lean`), and (R-D2, 2026-11-04) the readers' tickets' authority, none out,
+from which the store's construction mints its readers' tickets (`beRd`, `authRdTotal`). -/
 def authStoreInit (γa : AuthNames) (hs : List AuthState) (st : AuthState) : IProp GF :=
   iprop(authCurHalf γa st ∗ authHistRev γa hs ∗ capLb γa hs ∗ authPubQ γa (1 : Qp).half 0 ∗
-    (∃ b : Bool, ghostVar γa.fen 1 b) ∗ ∃ v : Loc × Nat, ghostVar γa.fca 1 v)
+    ownTokAuth γa.rdt 0 ∗ (∃ b : Bool, ghostVar γa.fen 1 b) ∗ ∃ v : Loc × Nat, ghostVar γa.fca 1 v)
 
 theorem authPubAuth_halves (γa : AuthNames) (p : Nat) :
     authPubAuth (GF := GF) γa p ⊢ authPubQ γa (1 : Qp).half p ∗ authPubQ γa (1 : Qp).half p := by

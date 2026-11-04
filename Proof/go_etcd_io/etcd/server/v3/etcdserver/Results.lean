@@ -1991,8 +1991,8 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
   iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
     auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa γc R P f T A Pre Q Post hs stl hlast
-    hfit hempty) $$ Hpre
-  iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, Hr⟩
+    hfit hempty (Int.toNat sync.rwmutex.actualMaxReaders) (Nat.le_refl _)) $$ Hpre
+  iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, -, Hr⟩
   iapply HΦ
   iexists stp, hs'
   iframe
