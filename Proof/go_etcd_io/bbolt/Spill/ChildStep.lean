@@ -93,7 +93,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
       (∃ Tc, spFrame X X' bl (Nc ++ Tc) ∧ ∀ l ∈ Tc, X.t.objs !! l = none ∨ l = n) ∧
       (∀ s ∈ Dc, s ∈ pcSlots (spP X') ps ∨ s ∈ pendSlots w'.fl) ∧
       (∀ s ∈ pcSlots (spP X') ps, s ∈ Dc ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
-      (∀ x, spP X' !! x ≠ spP X !! x → x ∉ Dc) := by
+      (∀ x, spP X' !! x ≠ spP X !! x → x ∉ Dc) ∧ (∀ x ∈ ps.drop 1, X.t.objs !! x.l = none) := by
   obtain ⟨hstep, hcase⟩ := hdone
   rcases hcase with ⟨hsp', -, -⟩ | ⟨-, T, D', hfr, hT, hsl, hDk, hDn, hPd, rest⟩
   · rw [hsp] at hsp'; cases hsp'
@@ -139,7 +139,7 @@ theorem uBr_childStep {X X' : WX} {w w' : WDb} {bl n c : Loc} {r rc : NRec}
     · cases hcs
   subst hD'
   refine ⟨r', ps, hr', hpar.2.1, hpg, hlive, hbr, ?_, ?_, hstep, hpar, hhd, hps, hE, ⟨T, hfr, hT'⟩,
-    hDk, hDn, hPd⟩
+    hDk, hDn, hPd, hfr1⟩
   · rw [hpg, ownSl_congr hfr.2.2.2.2.1, List.flatMap_append, List.flatMap_append, pcUE_D]
     refine slotInv_perm ?_ hsl
     simp only [List.flatMap_append, List.append_assoc]

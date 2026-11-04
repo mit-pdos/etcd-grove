@@ -58,6 +58,9 @@ structure spLoop (X : WX) (w : WDb) (bl n : Loc) (r : NRec) (O : List Nat)
   key : r'.key = r.key
   cap : r'.capOwn = r.capOwn
   live : n ∈ X'.live
+  /-- (U9m) `n`'s children are its children at the start or nodes the loop made (its children's
+  pieces): what `spEnd`'s last clause needs. -/
+  chs : ∀ c ∈ r'.cs, c ∈ r.cs ∨ c ∈ T
 
 /-! ## Lists -/
 
@@ -103,6 +106,7 @@ theorem spLoop_init {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
   key := rfl
   cap := rfl
   live := hb.un.1
+  chs := fun _ hc => Or.inl hc
 
 /-! ## A spilled child -/
 

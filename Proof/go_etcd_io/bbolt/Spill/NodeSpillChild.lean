@@ -24,6 +24,19 @@ namespace Spill
 section child
 variable [GooseExts]
 
+/-- **A node of `bl` after a frame that was none before** is one of the touched nodes. -/
+theorem spFrame_new {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl T) {l : Loc}
+    {B : BRec} (hB : X.t.bs !! bl = some B) (hn : X.node bl l = none) {r' : NRec}
+    (hn' : X'.node bl l = some r') : l ∈ T := by
+  refine Classical.byContradiction fun hl => ?_
+  obtain ⟨B', hb', -, hns⟩ := hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B hB
+  have hsim := hns l hl
+  unfold WX.node at hn hn'
+  rw [hB] at hn; rw [hb'] at hn'
+  simp only [Option.bind_some] at hn hn'
+  rw [hn, hn'] at hsim
+  exact hsim
+
 /-- **An unspilled child's spill** (entry `j`'s child `c`, the loop's child `i`), its `spDone`
 from `(X', w')` to `(X'', w'')`: the invariant at the next index (the child's pieces in `n`'s
 entries; the child's touched fresh nodes, but `n` itself, added to the loop's). -/
@@ -42,7 +55,7 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
   have hfree' : spFree X' w'.fl w'.wtxid (ownF r'.nv.pgid' ++ es.flatMap UE.F) := by
     rw [htx]; exact hl.free
   obtain ⟨r'', ps, hr'', hcs'', hpg'', hlive'', hbr, hsl, hfr, hstep, hpar, hhd, hps, hE,
-    ⟨Tc, hfrc, hTc⟩, hDk, hDn, hPd⟩ :=
+    ⟨Tc, hfrc, hTc⟩, hDk, hDn, hPd, hpfr⟩ :=
     uBr_childStep (O := O) hl.br hj hl.step.2.2.2.1.2.2.1 hl.live hsp hfree' hdone
   have hil : i < r'.cs.length := (List.getElem?_eq_some_iff.1 hc).1
   have hjes : j < es.length := (List.getElem?_eq_some_iff.1 hj).1
@@ -168,6 +181,33 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
             (by rw [List.flatMap_append]; exact List.mem_append_right _ h2))
       · exact hpd h2
     · exact hl.Pd x h1 hxD
+  -- the children: the old ones, or the child's new pieces (fresh, touched by its spill)
+  have hchs : ∀ c' ∈ r''.cs, c' ∈ r.cs ∨ c' ∈ T ++ Tc.filter (· ≠ n) := by
+    intro c' hc'
+    rw [hcs''] at hc'
+    rcases List.mem_append.1 hc' with h1 | h1
+    · exact (hl.chs c' h1).imp_right (fun h2 => List.mem_append_left _ h2)
+    · obtain ⟨x, hx, rfl⟩ := List.mem_map.1 h1
+      right
+      have hx0 := hpfr x hx
+      have hxn : X'.node bl x.l = none := node_none_of_objs hx0
+      obtain ⟨i0, hi0⟩ := List.mem_iff_getElem?.1 (List.mem_of_mem_drop hx)
+      obtain ⟨rl, hrl, -⟩ := hps.2.2 i0 x hi0
+      have hB' : ∃ B', X'.t.bs !! bl = some B' := by
+        have h0 := hl.br.node
+        unfold WX.node at h0
+        cases hb : X'.t.bs !! bl with
+        | none => rw [hb] at h0; cases h0
+        | some B => exact ⟨B, rfl⟩
+      obtain ⟨B', hB'⟩ := hB'
+      have hin := spFrame_new hfrc hB' hxn hrl
+      rcases List.mem_append.1 hin with h2 | h2
+      · obtain ⟨r0, h0, -⟩ := uEnt_N_node hent x.l h2
+        rw [hxn] at h0; cases h0
+      · refine List.mem_append_right _ (List.mem_filter.2 ⟨h2, ?_⟩)
+        have hne : x.l ≠ n := by
+          intro e; rw [e, hl.br.node] at hxn; cases hxn
+        simpa using hne
   refine ⟨r'', es.take j ++ ps.map (pcUE (spP X'')) ++ es.drop (j + 1), T ++ Tc.filter (· ≠ n),
     { br := hbr
       ile := by rw [hcs'', List.length_append]; omega
@@ -188,7 +228,8 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
       knil := hpar.2.2.2.1.trans hl.knil
       key := hpar.2.2.2.2.1.trans hl.key
       cap := hpar.2.2.2.2.2.1.trans hl.cap
-      live := hlive'' }⟩
+      live := hlive''
+      chs := hchs }⟩
 
 /-- **The loop's next child** `c` (the `i`-th of `n`'s children): its spill's pre, and from its
 success the invariant at `i + 1` (a spilled child, `spLoop_spilled`; an unspilled one, an
