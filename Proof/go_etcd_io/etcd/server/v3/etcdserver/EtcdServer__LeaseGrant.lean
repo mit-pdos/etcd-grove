@@ -164,9 +164,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
     subst hg'; exact hid
   have HnzW : irrNoZeroEnd rq := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [rq, apply.irrEmpty] at h
-  have Hshape : rqShape ρ.kv.lg rq := by
+  have Hshape : rqShape ρ.kv.lm rq := by
     refine ⟨fun on => ⟨by rw [Hk]; decide, by rw [Hk]; intro h; cases h⟩, fun log _ => ?_⟩
-    unfold apply.rqOk; rw [Hk]; rw [hlg]; exact Hgk
+    exact (apply.rqOk_leaseGrant _ _ _ Hk).2 ⟨KVNames.lm_of_lg_true hlg, Hgk⟩
   ihave #HirrNo : irrNoHdrIs «$a1_ptr» rq $$ []
   · iunfold irrNoHdrIs
     simp only [rq, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField, apply.leaseGrantIs]
@@ -195,7 +195,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
       isplitl
       · iunfold reqPropOk
         iright; iright
-        ipureintro; exact ⟨⟨hlg, Hgk⟩, Hshape, HnzW, rfl⟩
+        ipureintro; exact ⟨⟨KVNames.lm_of_lg_true hlg, Hgk⟩, Hshape, HnzW, rfl⟩
       ipureintro; rfl
     iexists _; iexact Header
   (try wp_auto)

@@ -283,7 +283,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   -- (M2's apply side, 2026-10-31) the entry: a covered request (D22: its rest buckets' effect is
   -- `dispatch`'s), or, in the cluster's compaction mode, a compaction in M2's scope
-  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmpG E.lg rq :=
+  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmpG E.lm rq :=
     fun rq hd hdec => plainOrCmpG_of_entryM _ _ m Hpe Htyp hd rq hdec
   -- a compaction's facts (`cmpAdmit`): its claim from the KV invariant's (`kv_entry_claim`, S3-3),
   -- the store compacting in the server's mode (`srvEnvOk`), the KV names' mode the server's
@@ -381,7 +381,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false E.lg
+      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false E.lm
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
@@ -521,7 +521,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lg
+      ihave #Hcp := kv_certPre_G E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lm
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
@@ -709,7 +709,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       · iPkgInit
       ihave #Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Plea
-      ihave ⟨HGr, HRes, #Hnn⟩ := applyResultIs_notNoSpace_G E E.lg rq x x' ar out
+      ihave ⟨HGr, HRes, #Hnn⟩ := applyResultIs_notNoSpace_G E E.lm rq x x' ar out
         (Hpl rq hdata hdec) (Hxch.trans Hch0) Hstep $$ Hev Hli HGr HRes
       ihave HGA := grantArM_of_res E ar rq out Har0 $$ HGr
       icases Hnn with (%Hn0 | ⟨%err', #Herr', #Hnn⟩)
@@ -1160,7 +1160,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr A $$ HRS
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
       · -- a plain request: `apply.Apply`
-        have hrq' : apply.rqOk false x.log rq :=
+        have hrq' : apply.rqOk .none x.log rq :=
           hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         ihave #Hgpq := srvGrantIf_permP E rq (Or.inl hp) $$ HGI
         ihave #Hcp : apply.certPreV false E x.chain rq x.log $$ []
@@ -1356,7 +1356,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, hz, hsa⟩ | ⟨hadm, hns⟩
       · have hna := plainCover_needAdmin rq hp hpk
         icases HtokA with ⟨Htok, -⟩
-        have hrq' : apply.rqOk false x.log rq :=
+        have hrq' : apply.rqOk .none x.log rq :=
           hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         ihave #Hgpq := srvGrantIf_permP E rq (Or.inl hp) $$ HGI
         -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`

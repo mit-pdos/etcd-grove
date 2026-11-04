@@ -60,7 +60,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : acReceiptOk (GF := GF) K)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
-    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lg (A ++ ce))
+    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lm (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, no conf entry;
     -- with one, a fresh start (`c₀ ≤ ai₀`) at the server's rule (2026-10-30, the repair: one mode)
@@ -125,8 +125,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   have hun : unapplied ai ce = ce := unapplied_all ai ce habove
   have hcong : ∀ m ∈ ce, (uint.Z (ciEff B.γ st.k) < uint.Z m.index ↔ uint.Z C.c₀ < uint.Z m.index) :=
     fun m hm => ciJ_iff _ _ _ HJ m (habove m hm)
-  ihave %Hlgt := isServerC_lg K C.s B.γ C.ci B.TM B.E C.ρ C.γr $$ Hsrv
-  have hok' : logShapeM K.isOn B.E.lg (unapplied ai ce) := by
+  ihave %Hlgt := isServerC_lm K C.s B.γ C.ci B.TM B.E C.ρ C.γr $$ Hsrv
+  have hok' : logShapeM K.isOn B.E.lm (unapplied ai ce) := by
     rw [hun]
     cases hK : K.isOn
     · rw [hK, logShapeM_false] at hok

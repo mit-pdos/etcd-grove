@@ -164,25 +164,25 @@ theorem plainReq_nonCmp (rq : apply.IRRModel) (h : plainReq rq) :
   simp [putgetKind] at this
 
 /-- **A lease grant admitted in a cluster that grants leases** (the lease-grant stage, B1/B2 commit 3,
-2026-11-02): `lg` (`KVNames.lg`) set and the request a grant the apply thread admits
+2026-11-02): the mode `lm` (`KVNames.lm`, X7 option (iii)) not `none` and the request a grant the apply thread admits
 (`apply.grantKindOk`). In a cluster that grants none, `False`. -/
-def grantPropOk (lg : Bool) (rq : apply.IRRModel) : Prop := lg = true ∧ apply.grantKindOk rq
+def grantPropOk (lm : lease.Mode) (rq : apply.IRRModel) : Prop := lm ≠ .none ∧ apply.grantKindOk rq
 
-theorem grantPropOk_false (rq : apply.IRRModel) : ¬ grantPropOk false rq := fun h => nomatch h.1
+theorem grantPropOk_false (rq : apply.IRRModel) : ¬ grantPropOk .none rq := fun h => h.1 rfl
 
 /-- **A plain entry in the cluster's compaction mode `cmp`** (M2's apply side, item 5): a plain
 request, or, in compaction mode, a compaction in M2's scope; (the lease-grant stage, B1/B2 commit 3,
 2026-11-02) or, in a cluster that grants leases (`lg`), a grant (`grantPropOk`). At `lg = false` it
 means what it meant (`plainEntryM_lg_false`). -/
-def plainEntryM (cmp lg : Bool) (m : EntryModel) : Prop :=
+def plainEntryM (cmp : Bool) (lm : lease.Mode) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lg rq
+    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lm rq
 
 /-- **A plain log in the modes `cmp`, `lg`**: every entry plain in the modes. -/
-def plainLogM (cmp lg : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp lg m
+def plainLogM (cmp : Bool) (lm : lease.Mode) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp lm m
 
 /-- **In a cluster that grants none, the old reading** (no grant disjunct). -/
-theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp false m) :
+theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp .none m) :
     m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
       plainReq rq ∨ (cmp = true ∧ compactPropOk rq) := by
   intro ht hd rq hrq
@@ -191,23 +191,23 @@ theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp 
   · exact Or.inr h
   · exact absurd h (grantPropOk_false rq)
 
-theorem plainEntryM_false (m : EntryModel) : plainEntryM false false m ↔ plainEntry m := by
+theorem plainEntryM_false (m : EntryModel) : plainEntryM false .none m ↔ plainEntry m := by
   unfold plainEntryM plainEntry grantPropOk
   simp
 
 /-- **Off, a plain log** (the law callers with the mode off need, `kv_log_plain_off`). -/
-theorem plainLogM_false (A : List EntryModel) : plainLogM false false A ↔ plainLog A := by
+theorem plainLogM_false (A : List EntryModel) : plainLogM false .none A ↔ plainLog A := by
   unfold plainLogM plainLog
   simp only [plainEntryM_false]
 
-theorem plainEntryM_of (cmp lg : Bool) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp lg m :=
+theorem plainEntryM_of (cmp : Bool) (lm : lease.Mode) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp lm m :=
   fun ht hd rq hrq => Or.inl (h ht hd rq hrq)
 
-theorem plainLogM_of (cmp lg : Bool) (A : List EntryModel) (h : plainLog A) : plainLogM cmp lg A :=
-  fun m hm => plainEntryM_of cmp lg m (h m hm)
+theorem plainLogM_of (cmp : Bool) (lm : lease.Mode) (A : List EntryModel) (h : plainLog A) : plainLogM cmp lm A :=
+  fun m hm => plainEntryM_of cmp lm m (h m hm)
 
-theorem plainLogM_append (cmp lg : Bool) (A B : List EntryModel) :
-    plainLogM cmp lg (A ++ B) ↔ plainLogM cmp lg A ∧ plainLogM cmp lg B := by
+theorem plainLogM_append (cmp : Bool) (lm : lease.Mode) (A B : List EntryModel) :
+    plainLogM cmp lm (A ++ B) ↔ plainLogM cmp lm A ∧ plainLogM cmp lm B := by
   unfold plainLogM
   simp only [List.mem_append]
   exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
@@ -769,7 +769,7 @@ theorem compactPropOk_nonwrite (rq : apply.IRRModel) (h : compactPropOk rq) :
 
 /-- **An entry plain in the mode changes no table** (a compaction is no write). -/
 theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : Bool)
-    (m : EntryModel) (hp : plainEntryM cmp false m) : kvTable c₀ ch lt m = lt := by
+    (m : EntryModel) (hp : plainEntryM cmp .none m) : kvTable c₀ ch lt m = lt := by
   unfold kvTable
   split
   · rename_i ht
@@ -789,7 +789,7 @@ theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : 
 
 /-- A log plain in the mode changes no table. -/
 theorem kvTableOf_plainM (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (A : List EntryModel)
-    (hp : plainLogM cmp false A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
+    (hp : plainLogM cmp .none A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
   induction A with
   | nil => intro lt; rfl
   | cons m A ih =>
@@ -1217,8 +1217,8 @@ theorem kvCrevEntry_plain (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : Entr
 
 /-- With the compaction mode off, an entry plain in the modes (a grant included, the lease-grant
 stage) leaves the compaction revision as it is (`kvCrevEntry_plain`'s, at `plainEntryM false lg`). -/
-theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lg : Bool) (crev : Int)
-    (m : EntryModel) (h : plainEntryM false lg m) : kvCrevEntry c₀ ch crev m = crev := by
+theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lm : lease.Mode) (crev : Int)
+    (m : EntryModel) (h : plainEntryM false lm m) : kvCrevEntry c₀ ch crev m = crev := by
   unfold kvCrevEntry
   split
   · split
@@ -1237,7 +1237,7 @@ theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lg : Bool) (crev
 /-- An admitted entry leaves the compaction revision at `-1` or at least `1` (a compaction in M2's
 scope is at a revision `≥ 1`). -/
 theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int) (m : EntryModel)
-    (hm : plainEntryM cmp false m) (hc : crev = -1 ∨ 1 ≤ crev) :
+    (hm : plainEntryM cmp .none m) (hc : crev = -1 ∨ 1 ≤ crev) :
     kvCrevEntry c₀ ch crev m = -1 ∨ 1 ≤ kvCrevEntry c₀ ch crev m := by
   unfold kvCrevEntry
   split

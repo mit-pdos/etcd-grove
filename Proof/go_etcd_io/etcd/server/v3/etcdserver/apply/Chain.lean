@@ -269,16 +269,18 @@ workload admits one (the server's `plainCover`). Until then their premise was `T
 and role's name within the key bound for `UserAdd`/`RoleAdd`). (The lease-grant stage, B1,
 2026-11-02, the user's decision: in place, gated) In a cluster that grants leases (`lg`,
 `KVNames.lg`), a grant the apply thread admits (`grantKindOk`); in one that grants none, no grant,
-as before (`rqOk_false_leaseGrant`), so `rqOk false` means what `rqOk` meant until then. -/
-def rqOk (lg : Bool) (log : mvcc.Log) (rq : IRRModel) : Prop :=
+as before (`rqOk_false_leaseGrant`), so `rqOk .none` means what `rqOk` meant until then. (X7 option
+(iii), 2026-11-04) Indexed by the cluster's lease mode `lm` (`KVNames.lm`), the grant arm at
+`lm ≠ .none`. -/
+def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
   | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
-  | .leaseGrant => match lg with
-    | true => grantKindOk rq
-    | false => False
+  | .leaseGrant => match lm with
+    | .none => False
+    | _ => grantKindOk rq
   | .leaseRevoke => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v ∧ semverAtMostServer v
@@ -348,30 +350,30 @@ only, an admitted admin request (`adminKindOk`). A second clause rather than a m
 `rqOk`: `rqOk` and every statement written with it (the entries' claims, the examples' workloads)
 keep their text, and in the mode `off` the two agree (`rqOkM_off`). -/
 def rqOkM (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  rqOk false log rq ∨ (M.isOn = true ∧ adminKindOk rq)
+  rqOk .none log rq ∨ (M.isOn = true ∧ adminKindOk rq)
 
-theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk false log rq := by
+theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk .none log rq := by
   simp [rqOkM, auth.AuthMode.isOn]
 
 theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel)
-    (h : rqOk false log rq) : rqOkM M log rq := Or.inl h
+    (h : rqOk .none log rq) : rqOkM M log rq := Or.inl h
 
 /-- **A cluster that grants none admits no grant** (the lease-grant plan's B1/B2 commit 2): `rqOk
 false`'s grant arm is `False`, every other arm `rqOk lg`'s whatever `lg`. -/
 theorem rqOk_false_leaseGrant (log : mvcc.Log) (rq : IRRModel)
-    (hk : dispatchKind rq = .leaseGrant) : ¬ rqOk false log rq := by
+    (hk : dispatchKind rq = .leaseGrant) : ¬ rqOk .none log rq := by
   simp [rqOk, hk]
 
 /-- **What a cluster that grants none admits, one that grants does** (`rqOk` is monotone in `lg`). -/
-theorem rqOk_of_false (lg : Bool) (log : mvcc.Log) (rq : IRRModel) (h : rqOk false log rq) :
-    rqOk lg log rq := by
+theorem rqOk_of_false (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk .none log rq) :
+    rqOk lm log rq := by
   unfold rqOk at h ⊢
   split <;> simp_all
 
 /-- **A grant is admitted only where the cluster grants** (`rqOk`'s grant arm). -/
-theorem rqOk_leaseGrant (lg : Bool) (log : mvcc.Log) (rq : IRRModel)
-    (hk : dispatchKind rq = .leaseGrant) : rqOk lg log rq ↔ lg = true ∧ grantKindOk rq := by
-  cases lg <;> simp [rqOk, hk]
+theorem rqOk_leaseGrant (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
+    (hk : dispatchKind rq = .leaseGrant) : rqOk lm log rq ↔ lm ≠ .none ∧ grantKindOk rq := by
+  cases lm <;> simp [rqOk, hk]
 
 /-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
 
@@ -594,6 +596,19 @@ then the field `lg`): its lease mode is not `none`. -/
 
 omit package_sem in
 theorem AEnv.lg_eq (E : AEnv GF) : E.lg = decide (E.lm ≠ .none) := rfl
+
+omit package_sem in
+theorem AEnv.lm_of_lg_false {E : AEnv GF} (h : E.lg = false) : E.lm = .none := by
+  simpa [AEnv.lg_eq] using h
+omit package_sem in
+theorem AEnv.lm_of_lg_true {E : AEnv GF} (h : E.lg = true) : E.lm ≠ .none := by
+  simpa [AEnv.lg_eq] using h
+omit package_sem in
+theorem AEnv.lg_false_of_lm {E : AEnv GF} (h : E.lm = .none) : E.lg = false := by
+  simp [AEnv.lg_eq, h]
+omit package_sem in
+theorem AEnv.lg_true_of_lm {E : AEnv GF} (h : E.lm ≠ .none) : E.lg = true := by
+  simpa [AEnv.lg_eq] using h
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/

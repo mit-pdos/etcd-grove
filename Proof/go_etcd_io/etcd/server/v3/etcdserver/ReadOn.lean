@@ -388,7 +388,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
     imodintro
     iexists kvModel γr.kv Lf
-    rw [← kvModelSt_plain γr.kv Lf (Hlg ▸ Hok'.1), Hag]
+    rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
     iframe HQ0
     ipureintro; exact HpL
   · rw [srvKVCoreM_true]

@@ -788,7 +788,7 @@ theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hrev : apply.dispatchKind rq ≠ .leaseRevoke)
-    (hg : apply.dispatchKind rq = .leaseGrant → grantPropOk E.lg rq)
+    (hg : apply.dispatchKind rq = .leaseGrant → grantPropOk E.lm rq)
     (hr : ∀ r, apply.restOut rq v3 out r = apply.restAfter rq v3 r)
     (hs : apply.applyStep rq v3 x x' out) :
     srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
@@ -806,7 +806,7 @@ theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
   iintro ⟨#Hgi, %Hgo, HL, %t, HR⟩
   cases hlg : E.lg
   · have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
-      have := (hg hk).1; rw [hlg] at this; cases this
+      exact (hg hk).1 (apply.AEnv.lm_of_lg_false hlg)
     rw [srvRest_false E γr _ hlg, hre]
     simp only [srvIds, hlg, Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil,
       apply.grantRestA_nonGrant _ _ _ _ _ hk]

@@ -33,7 +33,7 @@ variable [GooseExts]
 decodes to. -/
 def plainOrCmp (rq : apply.IRRModel) : Prop := plainCover rq ∨ compactPropOk rq
 
-theorem plainOrCmp_of_entryM (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp false m)
+theorem plainOrCmp_of_entryM (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp .none m)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (rq : apply.IRRModel)
     (hdec : apply.irrDecode m.data = some rq) : plainOrCmp rq := by
   rcases plainEntryM_lg_false cmp m h ht hd rq hdec with h | ⟨-, h⟩
@@ -84,7 +84,7 @@ theorem kvEntry_cmp (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvc
 /-- **A raft entry's step on an entry plain in the mode**, at a `kvExact` chain: the chain
 unchanged and the log as `kvEntry` says (a compaction: unchanged). -/
 theorem batchStep_plainM (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (m : EntryModel)
-    (x x' : apply.ApplyKV) (hp : plainEntryM cmp false m) (hoff : x.chain.kvExact = true)
+    (x x' : apply.ApplyKV) (hp : plainEntryM cmp .none m) (hoff : x.chain.kvExact = true)
     (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain lt x.log m := by
   by_cases hcm : ∃ rq, m.typ = W32 0 ∧ m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧
@@ -170,11 +170,11 @@ theorem cmpEntryOk_transfer (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool)
 /-- **A covered request, a compaction in M2's scope, or a grant the cluster admits** (the
 lease-grant stage, §2.9's `srvRest_applyG` premise): what a committed entry plain in the modes
 `cmp`, `lg` decodes to. At `lg = false`, `plainOrCmp`. -/
-def plainOrCmpG (lg : Bool) (rq : apply.IRRModel) : Prop := plainOrCmp rq ∨ grantPropOk lg rq
+def plainOrCmpG (lm : lease.Mode) (rq : apply.IRRModel) : Prop := plainOrCmp rq ∨ grantPropOk lm rq
 
-theorem plainOrCmpG_of_entryM (cmp lg : Bool) (m : EntryModel) (h : plainEntryM cmp lg m)
+theorem plainOrCmpG_of_entryM (cmp : Bool) (lm : lease.Mode) (m : EntryModel) (h : plainEntryM cmp lm m)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (rq : apply.IRRModel)
-    (hdec : apply.irrDecode m.data = some rq) : plainOrCmpG lg rq := by
+    (hdec : apply.irrDecode m.data = some rq) : plainOrCmpG lm rq := by
   rcases h ht hd rq hdec with h | ⟨-, h⟩ | h
   · exact Or.inl (Or.inl h.1)
   · exact Or.inl (Or.inr h)
@@ -191,8 +191,8 @@ theorem restOut_grant (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
   | rejected => exact absurd h.1 (by rw [hg.2.1]; decide)
   | dispatched o skip => rfl
 
-theorem restOut_plainOrCmpG (lg : Bool) (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
-    (out : apply.ApplyOut) (r : apply.RestM) (hp : plainOrCmpG lg rq)
+theorem restOut_plainOrCmpG (lm : lease.Mode) (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (r : apply.RestM) (hp : plainOrCmpG lm rq)
     (h : apply.applyStep rq v3 x x' out) :
     apply.restOut rq v3 out r = apply.restAfter rq v3 r := by
   rcases hp with hp | hg
@@ -237,12 +237,12 @@ theorem kvEntry_grant (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : m
 /-- **`batchStep_plainM` at `lg`**: a raft entry's step on an entry plain in the modes, at a
 `kvExact` chain: the chain unchanged and the log as `kvEntry` says (a compaction or a grant:
 unchanged). -/
-theorem batchStep_plainMG (c₀ : w64) (lt : LeaseTable) (cmp lg : Bool) (m : EntryModel)
-    (x x' : apply.ApplyKV) (hp : plainEntryM cmp lg m) (hoff : x.chain.kvExact = true)
+theorem batchStep_plainMG (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (lm : lease.Mode) (m : EntryModel)
+    (x x' : apply.ApplyKV) (hp : plainEntryM cmp lm m) (hoff : x.chain.kvExact = true)
     (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain lt x.log m := by
   by_cases hgm : ∃ rq, m.typ = W32 0 ∧ m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧
-      grantPropOk lg rq
+      grantPropOk lm rq
   · obtain ⟨rq, ht, hd, hdec, hg⟩ := hgm
     rw [kvEntry_grant c₀ x.chain lt x.log m rq hdec hg.2]
     unfold batchStep at h
@@ -254,7 +254,7 @@ theorem batchStep_plainMG (c₀ : w64) (lt : LeaseTable) (cmp lg : Bool) (m : En
     rw [hdec] at hdec'
     cases hdec'
     exact applyStep_grant rq hg.2 _ x x' out h
-  · have hpl : plainEntryM cmp false m := by
+  · have hpl : plainEntryM cmp .none m := by
       intro ht hd rq hdec
       rcases hp ht hd rq hdec with h | h | h
       · exact Or.inl h
@@ -348,24 +348,24 @@ theorem srvGrantIf_permP [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
     srvGrantIf E ⊢ apply.grantPermRq E rq :=
   srvGrantIf_perm E rq (fun h => absurd h (plainOrCmp_nonLease rq hp).1)
 
-theorem plainOrCmpG_rev (lg : Bool) (rq : apply.IRRModel) (hp : plainOrCmpG lg rq) :
+theorem plainOrCmpG_rev (lm : lease.Mode) (rq : apply.IRRModel) (hp : plainOrCmpG lm rq) :
     apply.dispatchKind rq ≠ .leaseRevoke := by
   rcases hp with hp | hg
   · exact (plainOrCmp_nonLease rq hp).2
   · rw [hg.2.1]; decide
 
-theorem plainOrCmpG_grant (lg : Bool) (rq : apply.IRRModel) (hp : plainOrCmpG lg rq) :
-    apply.dispatchKind rq = .leaseGrant → grantPropOk lg rq := by
+theorem plainOrCmpG_grant (lm : lease.Mode) (rq : apply.IRRModel) (hp : plainOrCmpG lm rq) :
+    apply.dispatchKind rq = .leaseGrant → grantPropOk lm rq := by
   intro hk
   rcases hp with hp | hg
   · exact absurd hk (plainOrCmp_nonLease rq hp).1
   · exact hg
 
-/-- **`kv_certPre_M` at `lg`**: a grant's outcomes keep the log (`chainStep_grant_logAfter`),
+/-- **`kv_certPre_M` at `lm`**: a grant's outcomes keep the log (`chainStep_grant_logAfter`),
 certified as the entry's model log (`kvEntry_grant`). -/
 theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
-    (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 lg : Bool)
-    (hp : plainOrCmpG lg rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool) (lm : lease.Mode)
+    (hp : plainOrCmpG lm rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
     kvCert (GF := GF) γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   rcases hp with hp | hg
@@ -382,12 +382,12 @@ theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.c
     iapply kvCert_certOk γk E.γ hγ $$ Hc
 
 open Iris.ProofMode in
-/-- **`srvRest_applyP` at `lg`**: a covered request, a compaction, or a grant the cluster admits. -/
+/-- **`srvRest_applyP` at `lm`**: a covered request, a compaction, or a grant the cluster admits. -/
 theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
-    (hp : plainOrCmpG E.lg rq) (hs : apply.applyStep rq v3 x x' out) :
+    (hp : plainOrCmpG E.lm rq) (hs : apply.applyStep rq v3 x x' out) :
     srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
@@ -395,14 +395,14 @@ theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
       srvRest E γr (A ++ [m]) :=
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch (plainOrCmpG_rev _ rq hp)
-    (plainOrCmpG_grant _ rq hp) (fun r => restOut_plainOrCmpG E.lg rq v3 x x' out r hp hs) hs
+    (plainOrCmpG_grant _ rq hp) (fun r => restOut_plainOrCmpG E.lm rq v3 x x' out r hp hs) hs
 
 /-- **Its permits give a covered request's, a compaction's, or an admitted grant's**
 (`grantPermRq`). -/
 theorem srvGrantIf_permPG [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-    (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lg rq) :
+    (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lm rq) :
     srvGrantIf E ⊢ apply.grantPermRq E rq :=
-  srvGrantIf_perm E rq (fun hk => (plainOrCmpG_grant _ rq hp hk).1)
+  srvGrantIf_perm E rq (fun hk => apply.AEnv.lg_true_of_lm (plainOrCmpG_grant _ rq hp hk).1)
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
 the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
@@ -724,8 +724,8 @@ theorem applyResultIs_notNoSpace_grant (E : apply.AEnv GF) (rq : apply.IRRModel)
 /-- **`apply.Apply`'s result at the start's chain, at `lg`** (given back with the grant's answer):
 a covered request or a compaction (`applyResultIs_notNoSpace_M`), or an admitted grant
 (`applyResultIs_notNoSpace_grant`): `nil`, or its `Err` is not `ErrNoSpace`'s. -/
-theorem applyResultIs_notNoSpace_G (E : apply.AEnv GF) (lg : Bool) (rq : apply.IRRModel)
-    (x x' : apply.ApplyKV) (ar : Loc) (out : apply.ApplyOut) (hp : plainOrCmpG lg rq)
+theorem applyResultIs_notNoSpace_G (E : apply.AEnv GF) (lm : lease.Mode) (rq : apply.IRRModel)
+    (x x' : apply.ApplyKV) (ar : Loc) (out : apply.ApplyOut) (hp : plainOrCmpG lm rq)
     (hch : x.chain = apply.alarmChain false false false)
     (hs : apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢

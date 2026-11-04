@@ -113,24 +113,24 @@ a request with an id or a header (`irrId`: else `apply.Apply` panics; pre-3.0 en
 compaction nor empty (`dispatchOk`), and satisfying the txn package's premises at `x.log`
 (`rqOk`: `apply.Apply.spec`'s), in a cluster that grants leases or not (`lg`; the lease-grant
 stage's §2.8, 2026-11-03: `rqOk lg`, at `lg = false` what it was). -/
-def entryOk (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+def entryOk (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    apply.rqOk lg x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+    apply.rqOk lm x.log rq ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in a cluster that grants none is one in any.** -/
-theorem entryOk_of_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) (h : entryOk false x m) :
-    entryOk lg x m := by
+theorem entryOk_of_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) (h : entryOk .none x m) :
+    entryOk lm x m := by
   rcases h with h | ⟨rq, hdec, hid, hrq, hd⟩
   · exact Or.inl h
-  · exact Or.inr ⟨rq, hdec, hid, apply.rqOk_of_false lg _ rq hrq, hd⟩
+  · exact Or.inr ⟨rq, hdec, hid, apply.rqOk_of_false lm _ rq hrq, hd⟩
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
 small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
-theorem entryOk_of_shape [GooseExts] (lg : Bool) (x : apply.ApplyKV) (m : EntryModel)
-    (hs : entryShape lg m)
+theorem entryOk_of_shape [GooseExts] (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel)
+    (hs : entryShape lm m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lg x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lm x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
   · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩

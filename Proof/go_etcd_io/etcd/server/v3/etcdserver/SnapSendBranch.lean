@@ -1035,9 +1035,9 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     · -- (the lease-grant stage) a cluster that grants none: its log grants nothing, the plain image
       rw [hlg] at hrest
       simp only [Bool.false_eq_true, ↓reduceIte] at hrest
-      have hpl : plainLogM γr.kv.cmp false A := by
+      have hpl : plainLogM γr.kv.cmp .none A := by
         have := Hpl0.1
-        rw [show γr.kv.lg = E.lg by rw [KVNames.lg_eq, apply.AEnv.lg_eq, Hlgk.2], hlg] at this
+        rw [Hlgk.2, apply.AEnv.lm_of_lg_false hlg] at this
         exact this
       have hn : (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
         rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl

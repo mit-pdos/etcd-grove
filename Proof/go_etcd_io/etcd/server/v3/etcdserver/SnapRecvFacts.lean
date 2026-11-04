@@ -459,8 +459,8 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
-  have hkE : γr.kv.lg = E.lg := by rw [KVNames.lg_eq, apply.AEnv.lg_eq, Hlgk.2]
-  have Hpl : plainLogM γr.kv.cmp false A' := by rw [← hlg, ← hkE]; exact Hpl0.1
+  have Hpl : plainLogM γr.kv.cmp .none A' := by
+    rw [← apply.AEnv.lm_of_lg_false hlg, ← Hlgk.2]; exact Hpl0.1
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
   iunfold srvRestOwnH at Hrest

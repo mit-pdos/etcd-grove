@@ -230,7 +230,7 @@ it meets (`entryOk_of_shape`, `srvApplyKV_small`), so `c₀` and `x₀` are unus
 callers' statements). -/
 def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) :
     IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOk (GF := GF) ρ E) := by

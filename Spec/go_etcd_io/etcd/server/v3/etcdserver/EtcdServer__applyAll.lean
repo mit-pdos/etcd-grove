@@ -49,7 +49,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- the mode, `logShapeM`)
       ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
-        loopOk γ st ai ∧ logShapeM C.isOn E.lg (unapplied ai ms) ∧
+        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) ∧
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z ai ≤ uint.Z (ciEff γ st.k) ∧

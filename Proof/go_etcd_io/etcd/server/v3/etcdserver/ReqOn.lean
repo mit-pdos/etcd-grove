@@ -622,7 +622,7 @@ log (`writeGrantG`), the result at the stamped header's grant (`grantedRes`). -/
 theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (op : KVOp)
     (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel) (hp : plainReq rq)
-    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape false rq) (ha : kvShapeAll rq) :
+    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq) (ha : kvShapeAll rq) :
     srvReqLogLb (GF := GF) γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk srvAuthSt0 Gb rq L₀) Q ⊢
       reqPropOkM true γ γk Gb rq
         (fun hm => grantedRes γk srvAuthSt0 (apply.withHeader rq hm) γc Q) := by
@@ -645,7 +645,7 @@ theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
 case). -/
 theorem reqPropOkM_true_nowrite (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (hp : plainReq rq)
-    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape false rq)
+    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq)
     (ha : kvShapeAll rq) (hat : attrIdOk γ.raft.cfg rq) :
     ⊢ reqPropOkM (GF := GF) true γ γk Gb rq (fun _ _ => iprop(True)) := by
   iunfold reqPropOkM
@@ -849,7 +849,7 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   have hop : reqKVOp (irrPut op) = some (.put op) := by unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrPut op) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
-  have hs : rqShape false (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have hs : rqShape .none (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
   have ha : kvShapeAll (irrPut op) := by
     intro x hx
     have hr : reqPerms (irrPut op) = apply.putPerms op := by unfold reqPerms; rw [hk]; rfl
@@ -1005,7 +1005,7 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
     · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-  have hs : rqShape false (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have hs : rqShape .none (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
   have ha : kvShapeAll (irrDeleteRange op) := by
     intro x hx
     have hr : reqPerms (irrDeleteRange op) = (op.key, op.base.rangeEnd, .write) ::
@@ -1073,7 +1073,7 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  have hs : rqShape false (irrTxn tw) := rqShape_of_txn _ hpl hk (fun t' h => by
+  have hs : rqShape .none (irrTxn tw) := rqShape_of_txn _ hpl hk (fun t' h => by
     simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2)
   have hq : txnQhOn (GF := GF) γk tw γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl

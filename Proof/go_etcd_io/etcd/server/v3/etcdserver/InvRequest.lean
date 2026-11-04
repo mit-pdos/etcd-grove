@@ -224,6 +224,14 @@ structure KVNames where
 theorem KVNames.lg_eq (γk : KVNames) : γk.lg = decide (γk.lm ≠ .none) := rfl
 
 theorem KVNames.lg_fold (γk : KVNames) : decide (γk.lm ≠ .none) = γk.lg := rfl
+theorem KVNames.lm_of_lg_false {γk : KVNames} (h : γk.lg = false) : γk.lm = .none := by
+  simpa [KVNames.lg_eq] using h
+theorem KVNames.lm_of_lg_true {γk : KVNames} (h : γk.lg = true) : γk.lm ≠ .none := by
+  simpa [KVNames.lg_eq] using h
+theorem KVNames.lg_false_of_lm {γk : KVNames} (h : γk.lm = .none) : γk.lg = false := by
+  simp [KVNames.lg_eq, h]
+theorem KVNames.lg_true_of_lm {γk : KVNames} (h : γk.lm ≠ .none) : γk.lg = true := by
+  simpa [KVNames.lg_eq] using h
 
 /-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
 watches, `client.srvWEnv … default`). -/
@@ -328,7 +336,7 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 audit phase B3), and every id claimed; (2026-11-02, the cluster-rows stage) every attribute
 request names a voter of `cfg` (`attrLogOk`). -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape γk.lg L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
+  iprop(⌜logShape γk.lm L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
       attrLogOk cfg.cfg L⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
@@ -442,7 +450,7 @@ carry): the member runs in its cluster's mode (`kvInv_authOn`). -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
-    ⌜plainLogM γk.cmp γk.lg L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+    ⌜plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log ∧ γ.raft.authOn = false⌝ ∗
       kvWork γ.raft γk L)
@@ -673,11 +681,11 @@ theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : cr
 
 /-- With the compaction mode off, a log plain in the modes has no compaction (`crevOf_plain`'s,
 at `plainLogM false lg`: a grant leaves the revision, the lease-grant stage). -/
-theorem crevOf_plainM_off (γk : KVNames) (lg : Bool) (A : List EntryModel)
-    (h : plainLogM false lg A) : crevOf γk A = -1 := by
+theorem crevOf_plainM_off (γk : KVNames) (lm : lease.Mode) (A : List EntryModel)
+    (h : plainLogM false lm A) : crevOf γk A = -1 := by
   unfold crevOf kvCrevOf
   generalize hc : (-1 : Int) = c₀
-  have key : ∀ (B : List EntryModel), plainLogM false lg B → ∀ c,
+  have key : ∀ (B : List EntryModel), plainLogM false lm B → ∀ c,
       B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
     intro B
     induction B with
@@ -685,16 +693,16 @@ theorem crevOf_plainM_off (γk : KVNames) (lg : Bool) (A : List EntryModel)
     | cons m B ih =>
       intro hB c
       simp only [List.foldl_cons]
-      rw [kvCrevEntry_plainM_off _ _ lg _ _ (hB m (List.mem_cons_self))]
+      rw [kvCrevEntry_plainM_off _ _ lm _ _ (hB m (List.mem_cons_self))]
       exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
   exact key A h c₀
 
 /-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
 the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
-theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp false A) :
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp .none A) :
     crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
   unfold crevOf kvCrevOf
-  have key : ∀ (B : List EntryModel), plainLogM cmp false B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+  have key : ∀ (B : List EntryModel), plainLogM cmp .none B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
       B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
     intro B
     induction B with
@@ -770,15 +778,15 @@ range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply 
 write forms, `reqPropOk`'s first disjunct.) -/
 def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
-        irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+        irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q) ∨
     -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
     -- token `γc` (`kvRes`)
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
-        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape γk.lg rq ∧
+        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
@@ -946,10 +954,10 @@ invariant owns the KV state whole there. At `γk.lg = false` the grant form is r
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
-    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)) ∨
-    ⌜grantPropOk γk.lg rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧ Qr = fun _ => iprop(True)⌝)
+    ⌜grantPropOk γk.lm rq ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧ Qr = fun _ => iprop(True)⌝)
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
@@ -965,7 +973,7 @@ theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMode
   iintro (H | ⟨%hc, -⟩ | %hg)
   · iexact H
   · rw [h] at hc; exact absurd hc.1 (by decide)
-  · rw [hl] at hg; exact absurd hg.1 (grantPropOk_false rq)
+  · exact absurd (by simpa [KVNames.lg_eq] using hl) hg.1.1
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 

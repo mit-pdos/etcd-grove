@@ -867,6 +867,20 @@ theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     icases H with ⟨%h, -⟩
     ipureintro; exact ⟨h, fun h' => by cases h'⟩
 
+theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ (K.isOn = false → γr.kv.lm = E.lm)⌝ := by
+  refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
+  cases K with
+  | off =>
+    refine (isServer_lm s γ ci TM E ρ γr).trans ?_
+    iintro %h; ipureintro; exact ⟨h.1, fun _ => h.2⟩
+  | on γa =>
+    iintro H
+    iunfold isServerM at H
+    icases H with ⟨%h, -⟩
+    ipureintro; exact ⟨h, fun h' => by cases h'⟩
+
 end bridges
 
 end EtcdGrove

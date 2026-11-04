@@ -589,7 +589,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       [HLt HRO Hwt Hkv Hres Hc] as %resp %err ⟨%o, Hpost⟩
     · iunfold apply.grantPre
       isplitr
-      · ipureintro; exact ⟨hok.1, hs, hk⟩
+      · ipureintro; exact ⟨by simpa [apply.AEnv.lg_eq] using hok.1, hs, hk⟩
       iframe HR HSp
       isplitr
       · iapply Hgr $$ %x %hs

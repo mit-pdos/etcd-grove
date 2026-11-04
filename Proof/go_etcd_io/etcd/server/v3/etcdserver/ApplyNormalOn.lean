@@ -46,22 +46,22 @@ request with an id that `rqOk` admits at the apply thread's log or an admitted a
 (`adminKindOk`), dispatchable on the apply thread's chain. -/
 def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    (apply.rqOk false x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
+    (apply.rqOk .none x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
 off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
 §2.8; auth on is a cluster that grants none). -/
-def entryOkM (on lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+def entryOkM (on : Bool) (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
-  | false => entryOk lg x m
+  | false => entryOk lm x m
   | true => entryOkOn x m
 
-theorem entryOkM_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
-    entryOkM false lg x m = entryOk lg x m :=
+theorem entryOkM_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM false lm x m = entryOk lm x m :=
   rfl
 
-theorem entryOkM_true (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
-    entryOkM true lg x m = entryOkOn x m :=
+theorem entryOkM_true (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM true lm x m = entryOkOn x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -199,7 +199,7 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (lg := false) (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch [] x m (lm := .none) (Or.inl hd) hl
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
