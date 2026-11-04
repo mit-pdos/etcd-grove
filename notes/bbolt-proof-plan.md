@@ -810,6 +810,14 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   invariant closes, unchanged, in its postcondition (`wp_wand`). The helpers are `private` (no new
   public declarations: `Inv/Store`'s importers do not rebuild).
 
+- **7. (U8c) `leafInl` below `Rebalance/RblMat`**: `Write/MatOK`'s pure `bound` section
+  (`leafBnd`, `bvBnd`, `nestBnd`, `topPg`, `nestPg`, `topPg_of`, `nestPg_of`, `leaf_ne_branch`,
+  `treeHas_leafBnd`, `viewWF_leafBnd`, `leafInl`, `treeHas_leafInl`, `viewWF_leafInl`) moved
+  unchanged (namespace `Write`) to the new `Write/Bound` (imports `Model/Wtx`, `Model/Mvcc` only);
+  `Write/MatOK` imports it publicly (a pure move: every name as before). `RblMat.lean:416`'s
+  `sorry` closes with `hinl := Write.viewWF_leafInl X.v hv _ pg hpg` once `RblMat` imports
+  `Write/Bound` (U8c's).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
