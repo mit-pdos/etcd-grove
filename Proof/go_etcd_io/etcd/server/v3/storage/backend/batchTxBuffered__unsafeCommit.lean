@@ -260,7 +260,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
       $$ Hfkh with ⟨-, #Hfkr⟩
     imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L') $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, -, -⟩
+      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, Hvq, -⟩
     · simp only [↓reduceIte]
       iframe Hbs Hfkr
     imodintro
@@ -269,9 +269,15 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe Hown Hbs Hpend
-    iunfold bDBOut
-    iexists db, _
+    -- (R2b-3c part 2) the database, and the lock's ghost shares at the committed data
+    iunfold bDBOutG
+    iexists db, st'.S
     iframe Hbdb Hdb
+    unfold bStopG
+    iframe Hhkd
+    iexists _
+    rw [← vData_reset P st'.S st'.R]
+    iexact Hvq
 
 end proof
 

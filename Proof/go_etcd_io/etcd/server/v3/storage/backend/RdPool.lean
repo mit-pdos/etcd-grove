@@ -224,7 +224,7 @@ shares) and the counted stock (`rdStock`), and the whole open token `bOpen γ 1`
 shares: the constructors' half and the stock's shares. -/
 def newPostP (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     IProp GF :=
-  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ bOpen γ (1 : Qp).half ∗
+  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ bOpen γ (1 : Qp).half ∗
     ([∗list] _x ∈ List.replicate rdStockN (), bOpen γ rdOpen) ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
     rbOwn γ (rbData P D) ∗ bkRPool γ P b ∗ rdAuth γ P b ∗ rdStock γ P b ∗
@@ -236,7 +236,7 @@ here: `newPostK` holds no open token (its `K γ` took `bFresh γ`); whoever gets
 splits them off (`bOpen_one_pool`) and builds `bkRPool` (`bkRPool_intro`). -/
 def newPostKP (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc) (D : Data) :
     IProp GF :=
-  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
+  iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ rdPool γ P b ∗ rdAuth γ P b ∗ rdStock γ P b ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b)
@@ -246,7 +246,7 @@ def newPostKP (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Lo
 theorem newPostKP_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) :
     newPostKP γ P W Pk K b D ⊢
-      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ b ∗ "HnK" ∷ K γ ∗
+      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ P (W γ) (Pk γ) b ∗ "HnK" ∷ K γ ∗
         "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ "HnH" ∷ plHook γ func.nil ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗ "#HnPool" ∷ rdPool γ P b ∗ "HnRA" ∷ rdAuth γ P b ∗
         "HnRT" ∷ ([∗list] _x ∈ List.replicate rdStockN (), rdTok γ P b) ∗

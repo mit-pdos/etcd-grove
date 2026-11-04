@@ -171,7 +171,7 @@ theorem applySnapshot_walk
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (2026-11-02, the backend-auth-split stage) the apply thread's token, for the pooled
        -- readers of the new backend (the alarm store's, the auth store's and the cluster's
        -- `Recover`), given back
@@ -305,7 +305,7 @@ theorem applySnapshot_walk
     isplitr
     · ipureintro; exact ⟨hdbo, hmmap, hcfgl, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, #HnFile⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
@@ -668,10 +668,14 @@ theorem applySnapshot_walk
     wp_apply hInfo $$ []
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply hClose d.γB d.P (mvcc.lateWD d) Pko d.be $$ [HoO1] as %cerr Hcerr
+    -- (R2b-3c part 2) the old backend with its stop channels, at their client resources
+    iunfold backend.isStopChansE at HoSC
+    icases HoSC with ⟨%Wc, %Pkc, #HbC, #HsC⟩
+    wp_apply hClose d.γB d.P Wc Pkc d.be $$ [HoO1] as %cerr Hcerr
     · iframe #; iframe HoO1
-    -- (R2b-3c) the old backend's file, given back by `Close`, dropped (the snapshot's replaces it)
-    icases Hcerr with (⟨%h, -⟩ | %h)
+    -- (R2b-3c) the old backend's file and what its stopped lock held, given back by `Close`,
+    -- dropped (the snapshot's replaces it)
+    icases Hcerr with ⟨%Dc, -, (⟨%h, -⟩ | %h)⟩
     rotate_left
     · exact absurd hsop.2.2.2 h
     have hcerr : cerr = GoInterface.nil := h
@@ -887,6 +891,9 @@ theorem applySnapshot_walk
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d'.P d'.be $$ [HnPl]
   · rw [hγ', hP']; iexact HnPl
   rw [← hWf]
+  -- (R2b-3c part 2) the new backend with its stop channels
+  ihave #HnSCE : backend.isStopChansE (GF := GF) γB d'.P d'.be $$ []
+  · rw [hP']; iapply backend.isStopChansE_intro; iframe HnB HnSC
   iunfold snapWalkPost
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck, ua
   isplitr

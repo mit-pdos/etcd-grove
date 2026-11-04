@@ -224,7 +224,7 @@ theorem backend.newBackend.wp_proof
     γrw D sc dc γsc γdc HP.1 Hlg $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hwtx Hst Hrtoks rtx Hlive Hstats rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
-    with ⟨%γ, %Hγd, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
+    with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
   · rw [HP.2]
     iframe
     iframe #
@@ -246,6 +246,7 @@ theorem backend.newBackend.wp_proof
   · unfold newPostK
     iframe Hb
     iexact Hpost
+  iframe Hbfile
   unfold hooksAt
   iexact hooks
 

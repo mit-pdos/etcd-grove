@@ -154,11 +154,11 @@ theorem backend.backend.run.wp_proof
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
     · ileft; iexists tch, γt; iexact Htm
     -- (2026-11-04, R2b-3c) the stop's escrow, with bbolt's database, announced by `donec`
-    imod inv_alloc (bN.@"dbesc") ⊤ iprop(bDBOut γ ∨ ghostVar γ.cls (1 : Qp).half ()) $$ [Hout]
+    imod inv_alloc (bN.@"dbesc") ⊤ iprop(bDBOut γ P W Pk ∨ ghostVar γ.cls (1 : Qp).half ()) $$ [Hout]
       with #Hesc
     · inext; ileft; iexact Hout
     wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))
-      dc γdc (bDoneEsc γ)) $$ [$Hdcp] as -
+      dc γdc (bDoneEsc γ P W Pk)) $$ [$Hdcp] as -
     · imodintro
       iunfold bDoneEsc
       iexact Hesc

@@ -53,7 +53,10 @@ abbrev storage.OpenBackend.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenBackend)) (Val #cfg)) (Val #h))
   {{ (b : Loc) (γ : BNames),
       RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b);
-      newPostK γ P W Pk K b D ∗ hooksAt b h }}
+      newPostK γ P W Pk K b D ∗ hooksAt b h ∗
+      -- (2026-11-04, R2b-3c part 2, the user's approval) the backend's file is the configuration's
+      -- backend path
+      bFile γ (config.backendPathOf cfg.DataDir') }}
 
 end spec
 

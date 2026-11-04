@@ -328,11 +328,6 @@ theorem bDBAt_agree (γ : BNames) (db db' : Loc) (p p' : GoString) :
   simp only [Prod.mk.injEq] at H
   exact H
 
-/-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
-committed data `C` (`CommitAndStop`'s; the stop's escrow, `bDoneEsc`, keeps it for `Close`). -/
-def bDBOut (γ : BNames) : IProp GF :=
-  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C)
-
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
 
@@ -971,6 +966,27 @@ instance cacheEnt_persistent (γ : BNames) (P : BParams) (bp : Loc) (ver : w64) 
 def cacheRes (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ (bp : Loc) (ver : w64), cbufOf b ↦ bp ∗ cverOf b ↦ ver ∗
     (⌜bp = Loc.null⌝ ∨ cacheEnt γ P bp ver))
+
+/-! ## The stopped batch transaction -/
+
+/-- (2026-11-04, R2b-3c part 2) **What the stop's commit leaves of the batch lock's ghost shares**, at
+its committed data `C`: the readers' view quarter at `C`'s physical view (over some logical view, as
+`batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
+holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
+def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
+  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C)
+
+/-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
+committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
+commit's; `CommitAndStop` adds the lock's client resources, `bDBOut`). -/
+def bDBOutG (γ : BNames) (P : BParams) : IProp GF :=
+  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗ bStopG γ P C)
+
+/-- (R2b-3c) **What `CommitAndStop` gives up**: the stopped batch transaction's (`bDBOutG`) and the
+batch lock's client resources `W ∗ Pk`, which the stopped lock no longer holds (the stop's escrow,
+`bDoneEsc`, keeps them for `Close`). -/
+def bDBOut (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop(bDBOutG γ P ∗ W ∗ Pk)
 
 /-! ## The batch transaction -/
 
