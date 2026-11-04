@@ -968,6 +968,12 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   adapted; **`Mmap/Infra.errInvalid_errorString`** is U11's `Open/PageSize.errInvalidStr` (same
   statement), proved: `DB.getPageSize.wp_proof_own`'s `hEI` can be discharged by it.
 
+- **34.7 Interfaces: not regenerated.** Every tracked bbolt module builds (full build after
+  batches 34-36) but `node__rebalance` (U8d's uncommitted WIP: errors only in its new lines
+  1300-1492) and so `Bucket__rebalance`; `etc/gen-interface.py etc/api/bbolt.txt` needs them. Stale
+  interface files: those of batches 21, 29-33 (above), plus `Tx__close_w.txt`, `Bucket__free.txt`,
+  `DB__Begin_err.txt`, and `PkgInit`'s/`Inv/Bolt`'s consumers' (`dbFixed`, `bboltRootInit`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
