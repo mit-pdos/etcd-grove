@@ -251,7 +251,7 @@ theorem Cursor.search_w.wp_aux
             · simp [hlt, hcrm.2 hlt]
             · simp [hlt, show ¬ bytes.compareResult w.key kb = W64 (-1) from fun h => hlt (hcrm.1 h)]
         isplitl []
-        · ipureintro; simp [snExact]
+        · ipureintro; simp
         ipureintro; rw [Hlen]; exact Write.gePred_mono rn.ws kb hsorted
       iintro %idx ⟨%L, ⟨Hnp, Hkp, Hn, Hins, Hws, Hv2, Hk, Hex, %HL⟩, %H0, %Hfound, %Hoob, %Hgt, %Hev⟩
       rw [Hlen] at Hfound Hoob Hev
@@ -426,9 +426,293 @@ theorem Cursor.search_w.wp_aux
       rw [← pageSeekIdx_wsIdx pg kb hlf]
       simp; omega
     · -- a branch page: `searchPage`, inlined
-      sorry
+      have hf1 : hd.flags' = W16 1 := by
+        apply BitVec.eq_of_toNat_eq; rw [← hfz, hbr]; rfl
+      rw [hf1]
+      wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl] as %s1 ⟨Hs, Hcap, -⟩
+      try wp_auto
+      wp_method_call; wp_call
+      wp_auto
+      wp_apply hIL pa hd dq $$ [Hh] as Hh
+      · iexact Hh
+      rw [show decide (hd.flags' = W16 2) = false by rw [hf1]; decide]
+      wp_auto
+      wp_method_call; wp_call
+      wp_auto
+      obtain ⟨hc0, -, hcnt, helems, hsorted⟩ := hbwf
+      have hcz : uint.Z hd.count' = (pageCount pg : Int) := by unfold pageCount; rw [hH]
+      have hcnt16 : pageCount pg < 2 ^ 16 := by unfold pageCount; exact BitVec.isLt _
+      wp_apply hBE pa hd dq Hlb.1 (by unfold elemOff at hcnt; rw [hcz]; omega) $$ [Hh] as Hh
+      · iexact Hh
+      have hcnz : hd.count' ≠ W16 0 := by
+        intro h
+        have : (pageCount pg : Int) = 0 := by rw [← hcz, h]; rfl
+        omega
+      rw [if_neg hcnz]
+      wp_apply hCnt pa hd dq $$ [Hh] as Hh
+      · iexact Hh
+      ihave Hp := Hhb $$ Hh
+      have hn' : sint.Z (W64 (uint.Z hd.count')) = (pageCount pg : Int) := by rw [hcz]; word
+      wp_apply hS (W64 (uint.Z hd.count')) _ (spPred pg kb)
+        (fun L => iprop(key_ptr ↦ key ∗
+          inodes_ptr ↦ slice.mk (pa +ₗ 16) (W64 (uint.Z hd.count')) (W64 (uint.Z hd.count')) ∗
+          exact_ptr ↦ spExact pg kb L ∗ bytesPointsto pa dq pg ∗ key ↦*{dk} kb ∗
+          ⌜∀ j ∈ L, 0 ≤ j ∧ j < (pageCount pg : Int)⌝))
+        $$ [key inodes exact Hp Hk]
+      · iframe
+        isplitl []
+        · ipureintro; word
+        isplitl []
+        · unfold Read.predImplementsL
+          iintro %L %i
+          wp_start as ⟨⟨Hkp, Hin, Hex, Hp, Hk, %HL⟩, %Hbi⟩
+          rw [hn'] at Hbi
+          wp_auto
+          rw [if_pos ⟨Hbi.1, by rw [hn']; exact Hbi.2⟩]
+          obtain ⟨k, hk⟩ : ∃ k : Nat, sint.Z i = (k : Int) := ⟨(sint.Z i).toNat, by omega⟩
+          have hkc : k < pageCount pg := by omega
+          have hloc : sliceIndexRef branchPageElement (sint.Z i)
+              (slice.mk (pa +ₗ 16) (W64 (uint.Z hd.count')) (W64 (uint.Z hd.count'))) =
+              pa +ₗ ((elemOff k : Nat) : Int) := by
+            rw [sliceIndexRef_plain branchPageElement.ty branchPageElement.layout _ i
+              (by simp [Loc.add]; omega) Hbi.1]
+            simp only [sint.nat, hk, Int.toNat_natCast, loc_add_assoc, elemOff]
+            congr 1; push_cast; omega
+          rw [hloc]
+          obtain ⟨he1, he2, -⟩ := helems k hkc
+          icases bytesPointsto_view_read (V := branchPageElement) pa dq pg (elemOff k)
+            (pa +ₗ ((elemOff k : Nat) : Int)) rfl (by unfold elemOff at hcnt ⊢; omega) Hlb.1
+            $$ Hp with ⟨Hel, Helb⟩
+          rw [show (decode (List.take 16 (List.drop (elemOff k) pg)) : branchPageElement) =
+            branchElem pg k from rfl]
+          obtain ⟨be, hbe⟩ : ∃ be, branchElem pg k = be := ⟨_, rfl⟩
+          have hpos : uint.Z be.pos' = (branchPos pg k : Int) := by unfold branchPos; rw [hbe]
+          have hks' : uint.Z be.ksize' = (branchKsize pg k : Int) := by unfold branchKsize; rw [hbe]
+          rw [hbe]
+          wp_apply hBK (pa +ₗ ((elemOff k : Nat) : Int)) be dq (by simp [Loc.add]; omega)
+            (by simp only [Loc.add]; rw [hpos, hks']; omega) $$ [Hel] as Hel
+          · iexact Hel
+          ihave Hp := Helb $$ Hel
+          have hkl : (branchKey pg k).length = branchKsize pg k := by
+            unfold branchKey bytesAt; simp only [List.length_take, List.length_drop]; omega
+          icases Read.bytesPointsto_sub_acc pa dq pg (branchKey pg k) (elemOff k + branchPos pg k)
+            (by rw [hkl]; omega) (by rw [hkl]; rfl) $$ Hp with ⟨Hkb, Hpb2⟩
+          have hkloc : (pa +ₗ ((elemOff k : Nat) : Int)) +ₗ uint.Z be.pos' =
+              pa +ₗ ((elemOff k + branchPos pg k : Nat) : Int) := by
+            rw [loc_add_assoc, hpos]; push_cast; rfl
+          have hksz : W64 (uint.Z be.ksize') = W64 ((branchKey pg k).length : Int) := by
+            rw [hks', hkl]
+          rw [hkloc, hksz]
+          icases (Read.bytesPointsto_ownSlice (pa +ₗ ((elemOff k + branchPos pg k : Nat) : Int)) dq
+            (branchKey pg k) (by simp [Loc.add]; omega)
+            (by rw [hkl]; unfold maxAllocSize at he2; omega)).1 $$ Hkb with Hkb
+          wp_apply hC $$ [Hkb Hk] as ⟨Hkb, Hk⟩
+          · iframe
+          icases (Read.bytesPointsto_ownSlice (pa +ₗ ((elemOff k + branchPos pg k : Nat) : Int)) dq
+            (branchKey pg k) (by simp [Loc.add]; omega)
+            (by rw [hkl]; unfold maxAllocSize at he2; omega)).2 $$ Hkb with Hkb
+          ihave Hp := Hpb2 $$ Hkb
+          have hcr0 : bytes.compareResult (branchKey pg k) kb = W64 0 ↔ branchKey pg k = kb := by
+            unfold bytes.compareResult
+            constructor
+            · intro h; split at h
+              · cases h
+              · split at h
+                · assumption
+                · cases h
+            · intro h; subst h; simp [go.goStringLt_irrefl]
+          have hcrm : bytes.compareResult (branchKey pg k) kb = W64 (-1) ↔
+              go.GoStringLt (branchKey pg k) kb := by
+            unfold bytes.compareResult
+            constructor
+            · intro h; split at h
+              · assumption
+              · split at h <;> cases h
+            · intro h; simp [h]
+          wp_if_destruct
+          · try wp_auto
+            iapply HΦ
+            iframe
+            isplitl
+            · have : spExact pg kb (sint.Z i :: L) = true := by
+                unfold spExact; simp only [decide_eq_true_eq]
+                exact ⟨sint.Z i, List.mem_cons_self .., by rw [hk]; simpa using hcr0.1 Hif⟩
+              rw [this]; iframe
+              ipureintro; intro j hj
+              rcases List.mem_cons.mp hj with rfl | hj
+              · omega
+              · exact HL j hj
+            ipureintro
+            unfold spPred
+            rw [hk]; simp only [Int.toNat_natCast]
+            by_cases hlt : go.GoStringLt (branchKey pg k) kb
+            · exact absurd (hcr0.1 Hif ▸ hlt) (go.goStringLt_irrefl _)
+            · simp [hlt, show ¬ bytes.compareResult (branchKey pg k) kb = W64 (-1) from fun h => hlt (hcrm.1 h)]
+          · try wp_auto
+            iapply HΦ
+            iframe
+            isplitl
+            · have : spExact pg kb (sint.Z i :: L) = spExact pg kb L := by
+                unfold spExact
+                congr 1
+                apply propext
+                constructor
+                · rintro ⟨j, hj, hjk⟩
+                  rcases List.mem_cons.mp hj with rfl | hj
+                  · exfalso; apply Hif; apply hcr0.2; rw [hk] at hjk; simpa using hjk
+                  · exact ⟨j, hj, hjk⟩
+                · rintro ⟨j, hj, hjk⟩; exact ⟨j, List.mem_cons_of_mem _ hj, hjk⟩
+              rw [this]; iframe
+              ipureintro; intro j hj
+              rcases List.mem_cons.mp hj with rfl | hj
+              · omega
+              · exact HL j hj
+            ipureintro
+            unfold spPred
+            rw [hk]; simp only [Int.toNat_natCast]
+            by_cases hlt : go.GoStringLt (branchKey pg k) kb
+            · simp [hlt, hcrm.2 hlt]
+            · simp [hlt, show ¬ bytes.compareResult (branchKey pg k) kb = W64 (-1) from fun h => hlt (hcrm.1 h)]
+        isplitl []
+        · ipureintro; simp
+        ipureintro; rw [hn']
+        intro x y hxy hx
+        obtain ⟨h0, hxy, hyn⟩ := hxy
+        simp only [spPred, decide_eq_true_eq] at hx ⊢
+        intro hy
+        apply hx
+        exact go.goStringLt_trans (hsorted x.toNat y.toNat (by omega) (by omega)) hy
+      iintro %idx ⟨%L, ⟨Hkp, Hin, Hex, Hp, Hk, %HL⟩, %H0, %Hfound, %Hoob, %Hgt, %Hev⟩
+      rw [hn'] at Hfound Hoob Hev
+      have hR := sp_route pg kb L (sint.Z idx) hc0 hsorted H0 Hfound Hoob Hgt Hev HL
+      wp_auto
+      wp_join iprop(∃ ri : w64, index_ptr ↦ ri ∗
+          ⌜sint.Z ri = (if spExact pg kb L = true then sint.Z idx
+            else if 0 < sint.Z idx then sint.Z idx - 1 else sint.Z idx)⌝)
+        at next with [index] as ⟨%ri, index, %Hri⟩
+      · cases hex : spExact pg kb L
+        · wp_auto
+          wp_if_destruct
+          · wp_join_done
+            iexists _; iframe; ipureintro
+            rw [if_pos (by word)]; word
+          · wp_join_done
+            iexists _; iframe; ipureintro
+            rw [if_neg (by word)]
+        · wp_auto
+          wp_join_done
+          iexists _; iframe; ipureintro; simp
+      rw [← Hri] at hR
+      obtain ⟨hR1, hR2, hR3⟩ := hR
+      ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+      have hsidx : sint.Z (s1.len - W64 1) = (els.length : Int) := by
+        simp only [List.length_append, List.length_singleton] at Hsl; word
+      rw [if_pos (show 0 ≤ sint.Z (s1.len - W64 1) ∧ sint.Z (s1.len - W64 1) < sint.Z s1.len by
+        rw [hsidx]; word)]
+      icases ownSlice_elem_acc (sint.Z (s1.len - W64 1)) (⟨pa, null, W64 0⟩ : elemRef) _ _
+        (els ++ [⟨pa, null, W64 0⟩]) (by omega) (by rw [hsidx]; simp) $$ Hs with ⟨He, Hsback⟩
+      rw [hsidx]
+      wp_auto
+      ihave Hs := Hsback $$ He
+      simp only [show ∀ (a x : elemRef), (els ++ [a]).set (↑els.length : Int).toNat x = els ++ [x]
+        from fun a x => by simp]
+      obtain ⟨k, hk⟩ : ∃ k : Nat, sint.Z ri = (k : Int) := ⟨(sint.Z ri).toNat, by omega⟩
+      have hkc : k < pageCount pg := by omega
+      rw [if_pos ⟨hR2, by rw [hn']; exact hR3⟩]
+      have hloc2 : sliceIndexRef branchPageElement (sint.Z ri)
+          (slice.mk (pa +ₗ 16) (W64 (uint.Z hd.count')) (W64 (uint.Z hd.count'))) =
+          pa +ₗ ((elemOff k : Nat) : Int) := by
+        rw [sliceIndexRef_plain branchPageElement.ty branchPageElement.layout _ ri
+          (by simp [Loc.add]; omega) hR2]
+        simp only [sint.nat, hk, Int.toNat_natCast, loc_add_assoc, elemOff]
+        congr 1; push_cast; omega
+      rw [hloc2]
+      icases bytesPointsto_view_read (V := branchPageElement) pa dq pg (elemOff k)
+        (pa +ₗ ((elemOff k : Nat) : Int)) rfl (by unfold elemOff at hcnt ⊢; omega) Hlb.1
+        $$ Hp with ⟨Hel, Helb⟩
+      rw [show (decode (List.take 16 (List.drop (elemOff k) pg)) : branchPageElement) =
+        branchElem pg k from rfl]
+      obtain ⟨be2, hbe2⟩ : ∃ be, branchElem pg k = be := ⟨_, rfl⟩
+      rw [hbe2]
+      wp_apply hBP (pa +ₗ ((elemOff k : Nat) : Int)) be2 dq $$ [Hel] as Hel
+      · iexact Hel
+      ihave Hp := Helb $$ Hel
+      ihave Hcells := Hpb $$ Hp Hk
+      ihave Hw := Hwb $$ Hcells
+      have hchild : be2.pgid'.toNat = branchPgid pg k := by unfold branchPgid; rw [hbe2]
+      have hpw : be2.pgid' = (pageW pg k).pgid := by
+        rw [(pageW_branch pg k hbr).2, ← hchild, Write.w64_ofNat_toNat]
+      rw [hpw]
+      have Hch' : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
+          ks ≠ Src.stale ∧ posOK X bl B (pageW pg k).pgid ∧
+          (B.ib.root' = W64 0 → (pageW pg k).pgid = W64 0) :=
+        ⟨hB, hloc, hpm, hinl, hks, by
+          rw [(pageW_branch pg k hbr).2]
+          exact posOK_page_child X bl B pid pg k hroot htw hnmf hpgv hbr hkc,
+          fun h => absurd h hroot⟩
+      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨pa, null, ri⟩]) %(pageW pg k).pgid
+        %key %ks %kb %Hch' [Hw Hc Hs Hcap] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, %Hrt⟩
+      · iframe; iframe #
+      iapply HΦ $$ %stk'' %((⟨pa, null, ri⟩ : elemRef) :: path') %(pid :: pids')
+      rw [List.append_assoc]
+      iframe
+      ipureintro
+      have hri : ri.toNat = k := by word
+      have hlt : ltree X bl pid = some (false, pageWs pg) := by
+        rw [ltree_page X bl B pid pa pg hB hres hw, hbr]; rfl
+      refine ⟨lPathFrom_cons X bl pid ⟨pa, null, ri⟩ (pageWs pg) (pageW pg k) path' pids'
+          (refAt_page X bl B pid pg _ hB hres rfl hw) hlt
+          (by show (pageWs pg)[ri.toNat]? = _; rw [hri]; exact pageWs_get pg k hkc) Hrt.1,
+        lRoutes_cons X bl pid ⟨pa, null, ri⟩ (pageWs pg) path' pids' kb hlt ?_ Hrt.2⟩
+      show ri.toNat < _ ∧ _
+      have hsk : (sint.Z ri).toNat = k := by omega
+      rw [hri]; rw [hsk] at hR1
+      exact branchRoute_lroute pg kb k hbr hR1
 
 end proof
+
+section proof'
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+theorem Cursor.search_w.wp_proof
+    (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG))
+    (hnp : Cursor.nsearch_p.spec (GF := GF) (hG := hG))
+    (hnn : Cursor.nsearch_n.spec (GF := GF) (hG := hG))
+    (hIL : internal.common.Page.IsLeafPage.spec (GF := GF) (hG := hG))
+    (hIB : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG))
+    (hBE : internal.common.Page.BranchPageElements.spec (GF := GF) (hG := hG))
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
+    (hBK : internal.common.branchPageElement.Key.spec (GF := GF) (hG := hG))
+    (hBP : internal.common.branchPageElement.Pgid.spec (GF := GF) (hG := hG))
+    (hIK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hIP : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG))
+    (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
+    (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
+    Cursor.search_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl B c stk els pid key ks kb hB hloc hpm hinl hks hpos hpid0
+  iintro %Φ Hpre HΦ
+  have hP : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
+      ks ≠ Src.stale ∧ posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0) :=
+    ⟨hB, hloc, hpm, hinl, hks, hpos, hpid0⟩
+  iapply (Cursor.search_w.wp_aux hpn hnp hnn hIL hIB hBE hCnt hBK hBP hIK hIP hS hC) $$ %K %tx %r %m
+    %X %bl %B %c %stk %els %pid %key %ks %kb %hP Hpre
+  inext
+  iintro %stk' %path %pids H
+  iapply HΦ
+  iexists stk', path, pids
+  iexact H
+
+end proof'
 
 end bbolt
 end EtcdGrove
