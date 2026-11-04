@@ -848,3 +848,10 @@ for `s.ctx` (`context.isContext c cd`) and a spec of `authStore.WithRoot`; per g
   (`revokeChanges (stateAfter log) id = []` since no key is leased in `plainLogM`'s logs,
   `mvcc.commitLog log [] = log`, `0 ∉` the table's ids by `grantKindOk`).
 - X6 then follows `EtcdServer.LeaseGrant`'s proof, with `revokePropOk` in the proposal.
+
+**Decided (the user, 2026-11-04): the revoke triple's post names the outcome.** The apply
+package's revoke specs (backend, auth, corrupt, the quota and capped clauses, `applierTriples`) take
+a post naming the outcome as `grantPost` does, with `revokeIds`/`revokeRest` functions of it;
+`revokeRes` gains the live set's other half (`ltHalf E T`) and `⌜E.lm = .revocable⌝`; after an
+applied revocation the live set is `T.filter (· != id)`. (The mode-baseline raise 187 → 191 of the
+`lit-mode` bridges is approved.)
