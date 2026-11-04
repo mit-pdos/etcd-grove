@@ -38,6 +38,9 @@ public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.io.fs
+public import Perennial.Proof.syscall.Link
+public import Perennial.Proof.internal.poll.Link
+public import Perennial.Proof.os.Models
 public import Perennial.Proof.errors.NewVar
 public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
@@ -90,50 +93,7 @@ end wps
 
 end log
 
-section opaqueInits
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
 
-namespace os
-
-/-- **The trust boundary: `os`'s untranslated variable initializers run.** Perennial
-translates `os` names-only but for the initializers whose callees are translated (since
-Perennial `11ac2f242`: `ErrInvalid = fs.ErrInvalid`, ..., the `errors.New` errors, `dirBufPool`,
-`lstat`, the `var _ I = ...` assertions, which `os.wp_initialize'` runs), so each remaining
-`X.init` is an axiom of the translation; Go runs them at program start (`Stdin =
-NewFile(...)`, `Interrupt`, `ErrNoDeadline`, the
-`internal/poll` functions), and every Go program starts, so each returns without panicking. Satisfiable
-whatever the semantics (the `X.init`s are uninterpreted constants). `Stderr`'s, which the
-fact reads, is `Stderr_init`. -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, Stdout.init, Stdin.init,
-        Kill.init, Interrupt.init, ErrDeadlineExceeded.init, ErrNoDeadline.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
-holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
-cell is given here: `os` is names-only, so no `GlobalAlloc` of it is translated. -/
-axiom Stderr_init :
-    {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
-    {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }}
-
-/-- **The trust boundary: `os`'s untranslated `init` functions return.** Goose names a package's
-`func init()`s `init.<k>`, as gc does, and translates `os` names-only, so the model does not unfold
-them (`@! init.<k>`: the semantics' `functions`, which the package's `Assumptions` do not constrain
-for them). Go runs them at program start (`os`'s `func init()`, `proc.go`'s `Args =
-runtime_args()`), and every Go program starts, so each returns without panicking. A fact about the
-Go code, as the axioms of other names-only functions
-(`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end os
-
-
-end opaqueInits
 
 /-- `x ∈ [a, ..., x, ...]`, linear in the list. -/
 local macro "mem_tac" : tactic =>
@@ -145,6 +105,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+omit package_sem in
+/-- `internal/poll`'s fact (`isInit`), as `io.fs.isInit_access`. -/
+theorem internal_poll_isInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢ internal.poll.isInit (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
 
 omit package_sem in
 theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp GF)
@@ -159,22 +125,31 @@ theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoFunc) os.pollSplice _ as _
+  wp_apply wp_GlobalAlloc (V := GoFunc) os.pollCopyFileRange _ as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errPatternHasSeparator go.error as _
+  wp_apply wp_GlobalAlloc (V := GoSlice) os.Args _ as _
   wp_apply wp_GlobalAlloc (V := GoFunc) os.checkPidfdOnce _ as _
   wp_apply wp_GlobalAlloc (V := Bool) os.checkWrapErr go.bool as _
   wp_apply wp_GlobalAlloc (V := GoFunc) os.lstat _ as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errPathEscapes go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errWriteAtInAppendMode go.error as _
+  wp_apply wp_GlobalAlloc (V := os.Signal) os.Kill _ as _
+  wp_apply wp_GlobalAlloc (V := os.Signal) os.Interrupt _ as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNoHandle go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.errProcessReleased go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrProcessDone go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrDeadlineExceeded go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNoDeadline go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrClosed go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNotExist go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrExist go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrPermission go.error as _
   wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrInvalid go.error as _
   wp_apply wp_GlobalAlloc (V := sync.Pool) os.dirBufPool sync.Pool.ty as _
-  wp_apply errors.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Herrors⟩
+  wp_apply errors.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Herrors⟩
+  wp_apply internal.poll.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hpoll⟩
+  wp_apply syscall.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hsys⟩
   wp_apply sync.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hsync⟩
   wp_apply io.fs.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hfs⟩
   -- `ErrInvalid = fs.ErrInvalid`, ...: io/fs's error variables, which its fact gives
@@ -186,19 +161,28 @@ theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp
   icases VEx with ⟨%_, #_, -⟩
   icases VNE with ⟨%_, #_, -⟩
   icases VCl with ⟨%_, #_, -⟩
+  -- `ErrNoDeadline = errNoDeadline()`, ...: internal/poll's, which its fact gives
+  ihave #Hpi := internal_poll_isInit_access $$ Hpoll
+  icases Hpi with ⟨#HpN, ⟨%_, #_⟩⟩
+  iunfold errors.newVar at HpN
+  icases HpN with ⟨%_, #_, -⟩
   -- `dirBufPool`'s `New`, a function literal
   rw [recv_eq_func_mk BAnon BAnon]
   wp_auto
-  wp_apply (os.opaqueInitsOk os.ErrNoDeadline.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.ErrDeadlineExceeded.init (by mem_tac))
+  -- `errNoDeadline()`, `errDeadlineExceeded()`: internal/poll's variables
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  wp_apply (os.opaqueInitsOk os.Interrupt.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Kill.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Stdin.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.Stdout.init (by mem_tac))
-  wp_apply os.Stderr_init as ⟨%stderr, Hstderr⟩
+  try wp_auto
+  wp_apply os.wp_Stdin_init
+  wp_apply os.wp_Stdout_init
+  wp_apply os.wp_Stderr_init as ⟨%stderr, Hstderr⟩
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
   try wp_auto
@@ -206,9 +190,14 @@ theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp
   wp_apply sync.wp_OnceValue $$ [$Hsync] as %_ -
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
-  wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
-  wp_apply (os.initFuncsOk os.init.«0» (by mem_tac))
+  try wp_auto
+  -- `func init() { Args = runtime_args() ... }` (`proc.go`), `runtime_args` a trusted model
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_func_call
+  wp_apply os.wp_runtime_args_impl as %_ -
+  try wp_auto
   ipersist Hstderr
   iframe Hown
   imodintro

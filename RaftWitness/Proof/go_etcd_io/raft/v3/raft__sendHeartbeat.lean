@@ -68,7 +68,6 @@ theorem raft.sendHeartbeat.wp_proof
   ihave Hphys := Hlogback $$ Hlog
   wp_apply wp_min2_uint64
   let cm := w64Min p.matched lv.committed'
-  rw [show raftpb.MsgHeartbeat = #((W32 8 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 8)
   iintro %pty Hpty

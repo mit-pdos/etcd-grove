@@ -51,7 +51,6 @@ theorem RawNode.Propose.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto_lc 1
-  rw [show raftpb.MsgProp = #((W32 2 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

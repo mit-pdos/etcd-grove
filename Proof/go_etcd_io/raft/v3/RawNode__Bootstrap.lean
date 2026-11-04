@@ -152,7 +152,6 @@ theorem RawNode.Bootstrap.wp_proof
       ⟨_, List.getElem?_eq_getElem (by rw [← Hctxlen]; exact Hlt)⟩
     ihave #Hpctx := BigSepL2.bigSepL2_lookup (Φ := fun _ (p : Peer) ctx => (p.Context' ↦*□ ctx : IProp GF))
       Hpn Hcn $$ Hctx
-    rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
     imod cellRO_alloc $$ Hpty with #cTy
@@ -178,7 +177,6 @@ theorem RawNode.Bootstrap.wp_proof
     try wp_auto
     -- the boot entry: `&pb.Entry{Type: EntryConfChange.Enum(), Term: new(1), Index: new(i + 1),
     -- Data: data}`, read-only (`entRO`)
-    rw [show raftpb.EntryConfChange = #((W32 1 : raftpb.EntryType)) from rfl]
     wp_apply wp_EntryType_Enum (W32 1) as %pety Hpety
     imod cellRO_alloc $$ Hpety with #cY
     imod cellRO_alloc $$ «$v1» with #cT
@@ -353,7 +351,6 @@ theorem RawNode.Bootstrap.wp_proof
     · iframe; ipureintro; exact Hpk
     try wp_auto
     -- `(&pb.ConfChange{NodeId: new(peer.ID), Type: AddNode.Enum()}).AsV2()`
-    rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
     imod cellRO_alloc $$ Hpty with #cTy

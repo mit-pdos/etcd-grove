@@ -232,7 +232,6 @@ theorem Main.wp_proof
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
   · subst Hok
-    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok

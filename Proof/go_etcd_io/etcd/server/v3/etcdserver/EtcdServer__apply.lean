@@ -391,7 +391,7 @@ theorem EtcdServer.apply.wp_proofOff
     wp_apply hDebug $$ []
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
+    try simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
     (try wp_auto)
     wp_apply hGI $$ [He] as -
     · iframe He
@@ -1266,7 +1266,7 @@ theorem EtcdServer.apply.wp_proofOn
     wp_apply hDebug $$ []
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
+    try simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
     (try wp_auto)
     wp_apply hGI $$ [He] as -
     · iframe He

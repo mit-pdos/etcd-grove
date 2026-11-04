@@ -79,7 +79,6 @@ theorem witness.handleAppend.wp_proof
     ihave Hmr := Hm1back $$ Hm1
     ihave m := Hmback $$ Hmr
     -- the answer
-    rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_MessageType_Enum (W32 4) as %pty Hpty
     imod cellRO_alloc $$ Hpty with #cTy

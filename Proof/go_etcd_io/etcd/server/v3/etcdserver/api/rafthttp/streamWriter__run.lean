@@ -528,7 +528,7 @@ theorem rafthttp.streamWriter.run.wp_proof
   · iexists tch, γt; iexact Htk0
   ihave #Htk' := Htk0
   iunfold time.isTicker at Htk'
-  icases Htk' with ⟨#HtC, -, #Htbag⟩
+  icases Htk' with ⟨#HtC, #HtI, #HtR, #Htbag⟩
   -- the loop's invariant: not working, both channels nil; or working on a live connection
   ihave HI : (∃ (hbc mcl : GoChan) (tv : GoString) (encv flv : GoInterface) (bat unf : w64)
       (mcw : GoChan) (wk : Bool) (cl : GoInterface),

@@ -1785,7 +1785,7 @@ noncomputable def NewWatchCacheStorage.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$v1" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.Indexers.ty)))) (Var "indexers"))
   (App (App (Val (GoInstruction (FuncResolve ElementIndexers []))) (Val #())) (Var "$a0")))
   (App (App (Val (GoInstruction (FuncResolve newIndexer []))) (Val #())) (Var "$a0")))
-  (Let "$v2" (Let "$a0" (Let "$a0" (Val _root_.Perennial.k8s_io.apiserver.pkg.features.ListFromCacheSnapshot)
+  (Let "$v2" (Let "$a0" (Let "$a0" (Val #(go!"ListFromCacheSnapshot"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0")))
   (App (App (Val (GoInstruction (FuncResolve newSnapshotter []))) (Val #())) (Var "$a0")))
   (App (Val (GoInstruction (CompositeLiteral WatchCacheStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression btreeStore.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"indexer")) (ElementExpression indexer.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"snapshots")) (ElementExpression snapshotter.ty (Var "$v2")))]))))))
@@ -1890,7 +1890,7 @@ noncomputable def WatchCacheStorage.MarkConsistent.impl [GooseExts] [GoGlobalCon
   (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchCacheStorage.ty)))) (Var "w"))
   (Let "consistent" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "consistent"))
-  (If (Let "$a0" (Val _root_.Perennial.k8s_io.apiserver.pkg.features.ListFromCacheSnapshot)
+  (If (Let "$a0" (Val #(go!"ListFromCacheSnapshot"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2316,7 +2316,7 @@ noncomputable def WatchCacheStorage.UpdateStore.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (Val #()))))))
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Var "eventType"))
-  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Modified))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Added))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val #(go!"MODIFIED")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val #(go!"ADDED")))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Element.ty)))) (Var "elem"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "resourceVersion"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType btreeStore.ty) go!"addOrUpdateElem"))) (App (Val (GoInstruction (StructFieldRef WatchCacheStorage.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchCacheStorage.ty)))) (Var "w")))) (Var "$a0")) (Var "$a1"))))
@@ -2330,7 +2330,7 @@ noncomputable def WatchCacheStorage.UpdateStore.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Element.ty)))) (Pair (Var "prev") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Deleted)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (Var "$sw") (Val #(go!"DELETED"))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Element.ty)))) (Var "elem"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "resourceVersion"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType btreeStore.ty) go!"deleteElem"))) (App (Val (GoInstruction (StructFieldRef WatchCacheStorage.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchCacheStorage.ty)))) (Var "w")))) (Var "$a0")) (Var "$a1"))))

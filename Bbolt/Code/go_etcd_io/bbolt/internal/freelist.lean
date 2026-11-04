@@ -1834,7 +1834,7 @@ noncomputable def shared.ReleasePendingPages.impl [GooseExts] [GoGlobalContext] 
   (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType shared.ty)))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Val _root_.Perennial.math.MaxUint64))
+  (Let "$r0" (Val #(W64 18446744073709551615))
   (Let "minid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1842,7 +1842,7 @@ noncomputable def shared.ReleasePendingPages.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Var "minid"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Val _root_.Perennial.math.MaxUint64))
+  (Let "$a1" (Val #(W64 18446744073709551615))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty)))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"readonlyTXIDs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (Var "t"))))
   (Let "tid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Val #())))
@@ -2303,7 +2303,7 @@ noncomputable def shared.EstimatedWritePageSize.impl [GooseExts] [GoGlobalContex
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uintptr go.int))) (Val _root_.Perennial.go_etcd_io.bbolt.internal.common.PageHeaderSize)) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (Convert go.uintptr go.int))) (Val #(W64 8))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uintptr go.int))) (Val #(W64 16))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (Convert go.uintptr go.int))) (Val #(W64 8))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2384,7 +2384,7 @@ noncomputable def shared.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0")))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint16))) (Val _root_.Perennial.go_etcd_io.bbolt.internal.common.FreelistPageFlag))
+  (Let "$a0" (Val #(W16 16))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"SetFlags"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Var "$a0"))))))))
   (Val #()))))
 

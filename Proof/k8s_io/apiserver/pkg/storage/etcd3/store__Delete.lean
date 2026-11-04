@@ -72,7 +72,7 @@ theorem store.Delete.wp_proof
   (try wp_auto)
   have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
     features.AllowUnsafeMalformedObjectDeletion_notPanic
-  wp_pure
+  try wp_pure
   (try wp_auto)
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
   wp_apply Hen as %b

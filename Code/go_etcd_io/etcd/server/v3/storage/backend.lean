@@ -1470,7 +1470,7 @@ noncomputable def unsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))))) (Pair (Var "isMatch") (Var "$r0")))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "limit")) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val _root_.Perennial.math.MaxInt64))
+  (Let "$r0" (Val #(W64 9223372036854775807))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "limit") (Var "$r0")))))
   (App (Val doExecute)
@@ -2321,7 +2321,7 @@ noncomputable def baseReadTx.UnsafeRange.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "limit")) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val _root_.Perennial.math.MaxInt64))
+  (Let "$r0" (Val #(W64 9223372036854775807))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "limit") (Var "$r0")))))
   (App (Val doExecute)
@@ -3354,13 +3354,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 10000))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 10000))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 10737418240))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val _root_.Perennial.time.Second)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

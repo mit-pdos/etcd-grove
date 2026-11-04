@@ -239,9 +239,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.os.Stderr_init
-axiom Perennial.os.initFuncsOk
-axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom RangeRequest.String.wp_proof

@@ -322,7 +322,6 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       try simp only [Hb2, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
       · iframe; ipureintro; exact Hset
-      simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE]
       (try wp_auto)
       try simp only [Hb2, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
@@ -398,7 +397,6 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · simp only [Hb2, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
       · iframe; ipureintro; exact Hset
-      simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_PUT]
       (try wp_auto)
       ihave Hpk : (p ↦
           ({ state' := kst, Key' := ks, CreateRevision' := kv.createRev,

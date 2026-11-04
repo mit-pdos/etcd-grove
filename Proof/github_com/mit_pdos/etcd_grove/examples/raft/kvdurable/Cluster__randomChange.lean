@@ -191,7 +191,7 @@ theorem Cluster.randomChange.wp_proof (wp_random : Cluster.random.spec (GF := GF
           sint.Z (i + W64 1) ≤ sint.Z cnt := by
         exact loop_step i cnt _ Hi.1 Hi.2.1 Hlt Hc.2
       wp_apply wp_below (W64 16) as %sw -
-      simp only [show raftpb.ConfChangeAddNode = #(W32 0) from rfl,
+      try simp only [show raftpb.ConfChangeAddNode = #(W32 0) from rfl,
         show raftpb.ConfChangeRemoveNode = #(W32 1) from rfl,
         show raftpb.ConfChangeUpdateNode = #(W32 2) from rfl,
         show raftpb.ConfChangeAddLearnerNode = #(W32 3) from rfl]
@@ -241,7 +241,7 @@ theorem Cluster.randomChange.wp_proof (wp_random : Cluster.random.spec (GF := GF
       have Hge : ¬ sint.Z i < sint.Z cnt := by
         first | exact Hif | (intro h; apply Hif; simp [h])
       try rw [ite_eq_left (by simp [Hge])]
-      simp only [show raftpb.ConfChangeTransitionAuto = #(W32 0) from rfl,
+      try simp only [show raftpb.ConfChangeTransitionAuto = #(W32 0) from rfl,
         show raftpb.ConfChangeTransitionJointImplicit = #(W32 1) from rfl,
         show raftpb.ConfChangeTransitionJointExplicit = #(W32 2) from rfl]
       try wp_auto

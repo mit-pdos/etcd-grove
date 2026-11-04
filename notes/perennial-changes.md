@@ -1610,4 +1610,4 @@ field-load automation finding the instance at any fraction.
   `isThreadPoolC N γ γc R` with
   `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
   addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
-  review recorded OK. **Awaiting the user's push** (`etc/land.sh push`); then bump the pin.
+  review recorded OK. **Landed** (the user's push, 2026-11-04: Perennial `lean` `e3ceb1520`); the pin moved to it the same day (branch `r2b3`).

@@ -155,10 +155,10 @@ theorem read.Read.requestCurrentIndex.wp_proof
   wp_apply HFC $$ [$HLR] as %fc0 ⟨#Hfc0, HLR⟩
   ihave #Het' := Het
   iunfold time.isTimer at Het'
-  icases Het' with ⟨#HetC, #HetB, -⟩
+  icases Het' with ⟨#HetC, #HetI, #HetR, #HetB⟩
   ihave #Hrt' := Hrt
   iunfold time.isTimer at Hrt'
-  icases Hrt' with ⟨#HrtC, #HrtB, -⟩
+  icases Hrt' with ⟨#HrtC, #HrtI, #HrtR, #HrtB⟩
   ihave HI : iprop(∃ (m : GMap w64 Unit) (rid : w64) (fc : Loc),
       "requestID" ∷ requestID_ptr ↦ rid ∗
       "Hm" ∷ mref ↦$ m ∗

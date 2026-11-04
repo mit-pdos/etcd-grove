@@ -309,7 +309,7 @@ noncomputable def Lease.refresh.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$defer"
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "l"))
   (Let "extend" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "extend"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "extend")) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"getRemainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Val #())) (Val _root_.Perennial.time.Second)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "extend")) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"getRemainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Val #())) (Val #(W64 1000000000))))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Add"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0")))
   (Let "newExpiry" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -419,7 +419,7 @@ noncomputable def Lease.Remaining.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"IsZero"))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l")))) (Val #()))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.time.Duration.ty))) (Val _root_.Perennial.math.MaxInt64))
+  (Let "$r0" (Val #(W64 9223372036854775807))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

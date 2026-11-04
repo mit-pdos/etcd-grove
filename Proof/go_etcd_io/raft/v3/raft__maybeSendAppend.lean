@@ -152,7 +152,7 @@ set_option hygiene false in
 `return true`. -/
 local macro "msa_send" : tactic => `(tactic| (
   -- the literal reads `r.raftLog.committed` through the log's record
-  rw [show raftpb.MsgApp = #((W32 3 : raftpb.MessageType)) from rfl]
+  try rw [show raftpb.MsgApp = #((W32 3 : raftpb.MessageType)) from rfl]
   wp_apply wp_MessageType_Enum (W32 3)
   iintro %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

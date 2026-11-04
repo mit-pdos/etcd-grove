@@ -107,7 +107,7 @@ theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (
   iintro #Ht
   ihave #Ht' := Ht
   iunfold time.isTicker at Ht'
-  icases Ht' with ⟨#HC, -, #Hbag⟩
+  icases Ht' with ⟨#HC, #HI, #HR, #Hbag⟩
   iunfold isRNTicker
   iexists ch
   isplitr

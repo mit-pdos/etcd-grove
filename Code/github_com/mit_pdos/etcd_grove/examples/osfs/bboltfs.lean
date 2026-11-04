@@ -145,7 +145,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType DB.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val _root_.Perennial.os.O_RDWR) (Val _root_.Perennial.os.O_CREATE)))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val #(W64 2)) (Val #(W64 64))))
   (Let "$a2" (Val #(W32 438))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -690,8 +690,8 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #())))
   (Let "$a1" (Val #(W64 0))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.PROT_READ))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.MAP_SHARED))
+  (Let "$a3" (Val #(W64 1))
+  (Let "$a4" (Val #(W64 1))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.golang_org.x.sys.unix.Mmap []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -703,7 +703,7 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.MADV_RANDOM))
+  (Let "$a1" (Val #(W64 1))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.golang_org.x.sys.unix.Madvise []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -733,7 +733,7 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef DB.ty go!"datasz"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef DB.ty go!"dataref"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val _root_.Perennial.syscall.ENOSYS))))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 38)))))) (Val #false)))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.golang_org.x.sys.unix.Munmap []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1585,7 +1585,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #())))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.LOCK_UN))
+  (Let "$a1" (Val #(W64 8))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Flock []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1764,7 +1764,7 @@ noncomputable def flock.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Val #()))
   (Let "fd" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.LOCK_NB))
+  (Let "$r0" (Val #(W64 4))
   (Let "flag" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1786,7 +1786,7 @@ noncomputable def flock.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val _root_.Perennial.syscall.EWOULDBLOCK))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 11)))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1801,9 +1801,9 @@ noncomputable def flock.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exclusive"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "flag")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.LOCK_EX)))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "flag")) (Val #(W64 2)))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "flag")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.LOCK_SH)))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "flag")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (Var "$r0")))))))))
   (App (Val doExecute)

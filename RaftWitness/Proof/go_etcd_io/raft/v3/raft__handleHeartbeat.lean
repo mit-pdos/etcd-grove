@@ -54,7 +54,6 @@ theorem raft.handleHeartbeat.wp_proof
   icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
   wp_auto
   ihave Hm := HmB $$ HFr
-  rw [show raftpb.MsgHeartbeatResp = #((W32 9 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 9)
   iintro %pty Hpty

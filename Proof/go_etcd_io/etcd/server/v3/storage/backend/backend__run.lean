@@ -50,7 +50,7 @@ theorem backend.backend.run.wp_proof
   wp_apply (lc := 2) time.wp_NewTimer as %tm %tch %γt #Htm
   ihave #Htm' := Htm
   iunfold time.isTimer at Htm'
-  icases Htm' with ⟨#HtC, #Hbag, -⟩
+  icases Htm' with ⟨#HtC, #HtI, #HtR, #Hbag⟩
   ihave #Htch := is_bag_is_chan _ _ _ $$ Hbag
   ihave Hus : (∃ u : Nat, ghostVar γ.used (1 : Qp).half u) $$ [Hus]
   · iexists u; iexact Hus

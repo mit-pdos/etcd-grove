@@ -35,6 +35,8 @@ public import Perennial.Proof.bytes
 public import Perennial.Proof.log
 public import Perennial.Proof.io
 public import Perennial.Proof.io.fs.Base
+public import Perennial.Proof.syscall.Base
+public import Perennial.Proof.internal.poll.Base
 public import Perennial.Proof.errors
 
 @[expose] public section

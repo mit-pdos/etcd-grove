@@ -69,7 +69,6 @@ theorem raft.tickElection.wp_proof
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   try wp_auto
-  rw [show raftpb.MsgHup = #((W32 0 : raftpb.MessageType)) from rfl]
   -- (as `confchange/toConfChangeSingle.lean`) Perennial gives `NotInterface` per type
   -- constructor, and `go.int32` (`MessageType`'s underlying type) is a non-reducible definition
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩

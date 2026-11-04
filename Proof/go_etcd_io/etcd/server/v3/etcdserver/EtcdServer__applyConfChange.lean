@@ -599,7 +599,6 @@ theorem EtcdServer.applyConfChange.wp_proof
       wp_apply hError $$ []
       · ipureintro; exact Hlgnn
       icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
-      simp only [go_etcd_io.raft.v3.None']
       wp_auto
       ipersist «$r0»
       ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []

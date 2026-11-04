@@ -64,7 +64,7 @@ local macro "reply_head" : tactic => `(tactic| (
   icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
   wp_auto
   ihave Hm := HmB $$ HFr
-  rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
+  try rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 4)
   iintro %pty Hpty

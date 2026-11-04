@@ -327,7 +327,7 @@ theorem Server.remove.wp_proof
               wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                 [$Hy $period] as Hy
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+              rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
               · iunfold tableLocked
@@ -411,7 +411,7 @@ theorem Server.remove.wp_proof
                 wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                   [$Hy $period] as Hy
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -484,7 +484,7 @@ theorem Server.remove.wp_proof
               · -- deleted at once
                 have hdel : ¬ (0 < sint.Z (graceOf r st dop.GracePeriodSeconds') ∨ st.meta.Finalizers' ≠ []) := fun h => h.elim (fun h => hg (by simpa using h)) (fun h => h (fin_eq hfs.1 hfs.2 Hif))
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Deleted = #(EvTy.deleted.str) from rfl]
+                rw [show (go!"DELETED" : GoString) = EvTy.str .deleted from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .deleted (σ0.rev + 1) y (st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -756,7 +756,7 @@ theorem Server.remove.wp_proof
                 wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                   [$Hy $period] as Hy
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -840,7 +840,7 @@ theorem Server.remove.wp_proof
                   wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                     [$Hy $period] as Hy
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                  rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                   · iunfold tableLocked
@@ -913,7 +913,7 @@ theorem Server.remove.wp_proof
                 · -- deleted at once
                   have hdel : ¬ (0 < sint.Z (graceOf r st dop.GracePeriodSeconds') ∨ st.meta.Finalizers' ≠ []) := fun h => h.elim (fun h => hg (by simpa using h)) (fun h => h (fin_eq hfs.1 hfs.2 Hif))
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Deleted = #(EvTy.deleted.str) from rfl]
+                  rw [show (go!"DELETED" : GoString) = EvTy.str .deleted from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .deleted (σ0.rev + 1) y (st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                   · iunfold tableLocked
@@ -1100,7 +1100,7 @@ theorem Server.remove.wp_proof
               wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                 [$Hy $period] as Hy
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+              rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
               · iunfold tableLocked
@@ -1184,7 +1184,7 @@ theorem Server.remove.wp_proof
                 wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                   [$Hy $period] as Hy
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -1257,7 +1257,7 @@ theorem Server.remove.wp_proof
               · -- deleted at once
                 have hdel : ¬ (0 < sint.Z (graceOf r st dop.GracePeriodSeconds') ∨ st.meta.Finalizers' ≠ []) := fun h => h.elim (fun h => hg (by simpa using h)) (fun h => h (fin_eq hfs.1 hfs.2 Hif))
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Deleted = #(EvTy.deleted.str) from rfl]
+                rw [show (go!"DELETED" : GoString) = EvTy.str .deleted from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .deleted (σ0.rev + 1) y (st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -1529,7 +1529,7 @@ theorem Server.remove.wp_proof
                 wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                   [$Hy $period] as Hy
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -1613,7 +1613,7 @@ theorem Server.remove.wp_proof
                   wp_apply (objAt_SetDeletionGracePeriodSeconds wp_SetDeletionGracePeriodSeconds y _ period_ptr _) $$
                     [$Hy $period] as Hy
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                  rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) y ((((st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))).modMeta (fun m => { m with DeletionTimestamp' := some tm })).modMeta (fun m => { m with DeletionGracePeriodSeconds' := some (graceOf r st dop.GracePeriodSeconds') }))) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                   · iunfold tableLocked
@@ -1686,7 +1686,7 @@ theorem Server.remove.wp_proof
                 · -- deleted at once
                   have hdel : ¬ (0 < sint.Z (graceOf r st dop.GracePeriodSeconds') ∨ st.meta.Finalizers' ≠ []) := fun h => h.elim (fun h => hg (by simpa using h)) (fun h => h (fin_eq hfs.1 hfs.2 Hif))
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Deleted = #(EvTy.deleted.str) from rfl]
+                  rw [show (go!"DELETED" : GoString) = EvTy.str .deleted from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .deleted (σ0.rev + 1) y (st.modMeta (fun m => { m with ResourceVersion' := rvStr (σ0.rev + 1) }))) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                   · iunfold tableLocked

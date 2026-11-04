@@ -91,7 +91,6 @@ private theorem node.ReadIndex.wp_raw
     node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
   intro γ id n rctx c Lc ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, Hcred⟩
-  rw [show raftpb.MsgReadIndex = #((W32 15 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   -- (raft-final) the read credit, from a time receipt of a Go step of its own (`MsgReadIndex.Enum()`'s
   -- resolution)

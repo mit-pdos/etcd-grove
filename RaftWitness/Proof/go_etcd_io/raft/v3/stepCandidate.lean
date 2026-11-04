@@ -318,16 +318,16 @@ theorem stepCandidate.wp_proof
   wp_join iprop(myVoteRespType_ptr ↦
       (if s.role = .preCandidate then W32 18 else W32 6))
     with [myVoteRespType] as myVoteRespType
-  · rw [show raftpb.MsgPreVoteResp = #(W32 18) from rfl]
-    wp_auto
+  · try rw [show raftpb.MsgPreVoteResp = #(W32 18) from rfl]
+    try wp_auto
     rw [ite_eq_left (Hpre_iff.1 Hif)]
     iframe myVoteRespType
-    ipureintro; exact rfl
-  · rw [show raftpb.MsgVoteResp = #(W32 6) from rfl]
-    wp_auto
+    try (ipureintro; exact rfl)
+  · try rw [show raftpb.MsgVoteResp = #(W32 6) from rfl]
+    try wp_auto
     rw [ite_eq_right (fun h => Hif (Hpre_iff.2 h))]
     iframe myVoteRespType
-    ipureintro; exact rfl
+    try (ipureintro; exact rfl)
   -- kept opaque below, so that the arms' `decide` rewrites find the program's
   -- comparisons and not this one
   generalize Hmvr : (if s.role = .preCandidate then W32 18 else W32 6) = mvr
@@ -423,6 +423,7 @@ theorem stepCandidate.wp_proof
       -- support) No witness to ask: `getWitnessVoteRequestReadiness` is `nil`
       simp only [VotePending]
       wp_auto
+      rw [show (W32 5 : w32) = MsgVote from rfl]
       wvp_loop MsgVote s.term
       all_goals
         unfold CandidateStepResultC
@@ -612,7 +613,7 @@ theorem stepCandidate.wp_proof
         wp_auto
         have Hnl1 : s.role ≠ .leader := by rw [Hrole]; decide
         have Hnw1 := Hpvnw Hrole Hty
-        rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
+        try rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
         wp_apply wp_raft_campaign _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
             _ Hnl1 Hcfg Hnw1
             (fun h => by
@@ -648,6 +649,7 @@ theorem stepCandidate.wp_proof
       · -- `quorum.VotePending`: keep waiting; no witness to ask
         simp only [VotePending]
         wp_auto
+        rw [show (W32 17 : w32) = MsgPreVote from rfl]
         wvp_loop MsgPreVote (s.term + W64 1)
         all_goals
           refine Hres_pv _ false false [] s.prvals wq (fun h => absurd h (by decide))

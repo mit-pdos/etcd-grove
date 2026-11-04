@@ -577,7 +577,7 @@ noncomputable def watchCache.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Added)
+  (Let "$r0" (Let "$v0" (Val #(go!"ADDED"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "object"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Object")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$v1")))]))))
   (Let "event" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (Val #())))
@@ -634,7 +634,7 @@ noncomputable def watchCache.Update.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Modified)
+  (Let "$r0" (Let "$v0" (Val #(go!"MODIFIED"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "object"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Object")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$v1")))]))))
   (Let "event" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (Val #())))
@@ -691,7 +691,7 @@ noncomputable def watchCache.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Deleted)
+  (Let "$r0" (Let "$v0" (Val #(go!"DELETED"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "object"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Object")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$v1")))]))))
   (Let "event" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (Val #())))
@@ -1000,11 +1000,11 @@ noncomputable def watchCache.processEvent.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.PointCacheReceived)
+  (Let "$a0" (Val #(W64 1))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "cacheReceived"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline.ty) go!"MarkAt"))) (App (Val (GoInstruction (StructFieldRef watchCacheEvent.ty go!"timeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchCacheEvent.ty)))) (Var "wcEvent")))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.PointStorageDecoded)
+  (Let "$a0" (Val #(W64 0))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "recordTime"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline.ty) go!"MarkAt"))) (App (Val (GoInstruction (StructFieldRef watchCacheEvent.ty go!"timeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchCacheEvent.ty)))) (Var "wcEvent")))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
@@ -1102,7 +1102,7 @@ noncomputable def watchCache.UpdateResourceVersion.impl [GooseExts] [GoGlobalCon
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.RecordResourceVersion []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef ImmutableWatchCacheConfig.ty go!"eventHandler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ImmutableWatchCacheConfig.ty)))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchCache.ty)))) (Var "w")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc watchCacheEvent.ty))) (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Bookmark)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc watchCacheEvent.ty))) (Let "$v0" (Val #(go!"BOOKMARK"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
   (App (Val (GoInstruction (CompositeLiteral watchCacheEvent.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.uint64 (Var "$v1")))])))))
   (Let "wcEvent" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchCacheEvent.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchCacheEvent.ty)))) (Val #())))

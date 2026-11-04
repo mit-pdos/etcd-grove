@@ -64,7 +64,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iright
     iapply apply.csContract_pre
     iexact Hcs
-  simp only [etcdserverpb.AlarmRequest_DEACTIVATE,
+  try simp only [etcdserverpb.AlarmRequest_DEACTIVATE,
     etcdserverpb.AlarmType_NONE]
   wp_if_destruct
   · -- ACTIVATE

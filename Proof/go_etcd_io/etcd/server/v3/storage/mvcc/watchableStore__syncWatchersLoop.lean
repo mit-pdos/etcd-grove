@@ -58,7 +58,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   · iexists tch, γt; iexact Ht0
   ihave #Ht' := Ht0
   iunfold time.isTicker at Ht'
-  icases Ht' with ⟨#HC, -, #Hbag⟩
+  icases Ht' with ⟨#HC, #HI, #HR, #Hbag⟩
   ihave #Hstop := HstopW
   iunfold mvcc.isStopChan at Hstop
   icases Hstop with ⟨%γs, #Hstop⟩

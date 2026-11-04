@@ -95,7 +95,6 @@ theorem witness.processMessageWithOlderTerm.wp_proof
       rw [hw]
       wp_apply wp_whsOpt_GetState wp_GetState p σ $$ [$Hp] as %ps #Hhs
       wp_apply wp_hsOptW_GetTerm wp_GetTerm ps _ σ $$ [$Hhs] as -
-      rw [show raftpb.MsgPreVoteResp = #((W32 18 : raftpb.MessageType)) from rfl]
       haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
       wp_apply wp_MessageType_Enum (W32 18) as %pty Hpty
       imod cellRO_alloc $$ Hpty with #cTy
@@ -134,7 +133,6 @@ theorem witness.processMessageWithOlderTerm.wp_proof
     wp_auto
     wp_apply wp_whsOpt_GetState wp_GetState p σ $$ [$Hp] as %ps #Hhs
     wp_apply wp_hsOptW_GetTerm wp_GetTerm ps _ σ $$ [$Hhs] as -
-    rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_MessageType_Enum (W32 4) as %pty Hpty
     imod cellRO_alloc $$ Hpty with #cTy

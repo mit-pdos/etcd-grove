@@ -93,7 +93,6 @@ theorem raftNode.start.wp_proof
   icases Henv0 with ⟨-, %HEn, -⟩
   have HEai : uint.Z E.γr.raft.ai0 = γ.pre.length := HEn.2.2
   wp_auto
-  simp only [time.Second]
   iunfold isRNTicker at Htki
   icases Htki with ⟨%tc, #Htc, #Htcb, #HtkStop⟩
   iunfold isRaftNodeIfc at Hni
@@ -127,7 +126,7 @@ theorem raftNode.start.wp_proof
   iunfold gaugeSetSpec at Hghls Hgils Hgpcs
   iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hclcs
   icases Hclcs with ⟨#HlcInc, -⟩
-  wp_auto
+  try wp_auto
   ipersist internalTimeout
   wp_apply wp_fork $$ [Htok Hdone r rh HR HS Hwt Hwl]
   · -- the goroutine
@@ -261,7 +260,7 @@ theorem raftNode.start.wp_proof
             subst hss
             iunfold softStateIs at Hss
             icases Hss with ⟨-, #Hlead, #Hrs⟩
-            simp only [None']
+            try simp only [None']
             wp_auto
             -- `newLeader`
             wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))
@@ -995,7 +994,7 @@ theorem raftNode.start.wp_proof
           subst hss
           iunfold softStateIs at Hss
           icases Hss with ⟨-, #Hlead, #Hrs⟩
-          simp only [None']
+          try simp only [None']
           wp_auto
           -- `newLeader`
           wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))

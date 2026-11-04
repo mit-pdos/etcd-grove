@@ -31,15 +31,14 @@ theorem voteRespMsgType.wp_proof : voteRespMsgType.spec (GF := GF) (hG := hG) :=
   rcases Ht with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
   · simp only [show MsgVote = W32 5 from rfl, decide_true]
     wp_auto
-    rw [show raftpb.MsgVoteResp = #MsgVoteResp from rfl]
-    wp_auto
+    try wp_auto
+    rw [show (W32 6 : w32) = MsgVoteResp from rfl]
     iapply HΦ
     itrivial
   · simp only [show (MsgPreVote = W32 5) ↔ False by decide, decide_false]
-    rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_auto
-    rw [show raftpb.MsgPreVoteResp = #MsgPreVoteResp from rfl]
-    wp_auto
+    try wp_auto
+    rw [show (W32 18 : w32) = MsgPreVoteResp from rfl]
     iapply HΦ
     itrivial
 
