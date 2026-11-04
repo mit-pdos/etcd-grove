@@ -318,8 +318,8 @@ theorem Tx.rollback.wp_proof
         wp_auto
         ihave Hgmap2 : ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) $$ [Hgmap]
         · rw [← hbl']; iexact Hgmap
-        wp_apply wp_freepages K w.C b l hmok htok hhwm $$ [Hpair Hcur Hgmap2 Hop]
-          as %s ⟨Hs, -, %Hfacts, Hpair, Hcur, Hgmap2, Hop⟩
+        wp_apply wp_freepages K w.C b l hmok htok hhwm $$ [Hpair Hcur Hgmap2 Hmc2 Hop]
+          as %s ⟨Hs, -, %Hfacts, Hpair, Hcur, Hgmap2, Hmc2, Hop⟩
         · iframe; iframe #
         have hnsr := nsr_premises w.C _ hhwm hwf2 hbl2.2.2.2.2.2 hfree
         wp_apply wp_NSR w.fli _ s (freeIdsOf w.C) _ Hfacts.1 Hfacts.2.1 hnsr.1 hnsr.2
