@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.bbolt.Txn.Txs
 public import Proof.go_etcd_io.bbolt.Txn.WInitH
 public import Proof.go_etcd_io.bbolt.Txn.WRelease
 public import Proof.go_etcd_io.bbolt.Txn.Begin
+public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Model
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
 
@@ -104,6 +105,24 @@ theorem storeOK_pages_bound (σ : StoreSt) (h : storeOK σ) (b : Loc) (l : Nat)
 omit [GooseExts] in
 theorem ofC_wr (D : Data) : TxView.ofC ((true, D, D, ∅) : TxViewC) = TxView.wr D := by
   unfold TxView.ofC TxView.wr; simp
+
+omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos in
+private theorem QpMul_one_rw (q : Qp) : QpMul 1 q = q := Subtype.ext (by simp [QpMul])
+
+omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx hos in
+private theorem txDbQ_one_rw : txDbQ 1 = (1 : Qp).half + (1 : Qp).half.half := by
+  unfold txDbQ; rw [QpMul_one_rw, QpMul_one_rw]
+
+omit package_sem in
+/-- Two halves of a share of the mapping fields. -/
+private theorem mapFields_halve (db : Loc) (q : Qp) (ms : MapSt) :
+    mapFields (GF := GF) db (DFrac.own q) ms ⊢
+      mapFields db (DFrac.own q.half) ms ∗ mapFields db (DFrac.own q.half) ms := by
+  have hd : DFractional (fun dq => mapFields (GF := GF) db dq ms) := by
+    rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
+  have h := (fractional_of_dfractional (h := hd) _).fractional q.half q.half
+  rw [Qp.half_add_half] at h
+  exact h.1
 
 private instance BC_full_persistent_rw (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance
@@ -270,7 +289,110 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   imod store_wbegin K.B K.N K.p ⊤ CoPset.subseteq_top w.C b l $$ [Hpi Hcur Hgmap Hgwv]
     with ⟨Hcur, Hgmap, Hgwv, Hvc⟩
   · iframe; iframe #
-  sorry
+  -- the writer's records
+  have h64 : w.C.txid + 1 < 2 ^ 64 := by have := htree.2.2.2.2.2; omega
+  obtain ⟨hmtx, hmpg, hmrt⟩ := initMeta_facts w.C hok h64
+  have hi : Init0 w.C (tx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0))
+      (initMeta true (metaOf (w.C.slot w.C.txid))) (initRoot «$r0_ptr» bm nm ibp)
+      (metaOf (w.C.slot w.C.txid)).root' := ⟨rfl, hmtx, hmpg, hmrt, rfl, rfl⟩
+  have hr0 : (metaOf (w.C.slot w.C.txid)).root'.root' ≠ W64 0 := by
+    rw [hmrt]; intro e
+    have h2 := (treeOK_root w.C htree)
+    have hl : w.C.root < 2 ^ 64 := by have := htree.1.1; omega
+    have := congrArg BitVec.toNat e
+    rw [toNat_W64_of_lt _ hl] at this; simp at this; omega
+  icases typedPointsto_not_null_dup _ _ _ $$ Hrt with ⟨Hrt, %Hrtn⟩
+  unfold initRoot newBucketV
+  iStructNamed Hrt
+  rw [show «$r0_ptr».[Tx, go!"root"] = txRoot (GF := GF) «$r0_ptr» from rfl] at Hrtn ⊢
+  ihave Hheap := wtxHeap_wx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0)
+    (initMeta true (metaOf (w.C.slot w.C.txid))) (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C)
+    $$ [Hw managed Hme Hpg commitHandlers WriteFlag Hmv Hpm InBucket tx buckets page rootNode nodes
+      FillPercent Hib Hnm Hbm]
+  · iframe
+  -- the names, the exclusive part, the registration
+  imod wr_names_alloc (GF := GF) ((true, treeData w.C, treeData w.C, ∅) : TxViewC)
+    (TxX.wr (wx0 (txRoot (GF := GF) «$r0_ptr») (tx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0))
+      (initMeta true (metaOf (w.C.slot w.C.txid))) (initRoot «$r0_ptr» bm nm ibp)
+      (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))) (View.ofC b w.C)
+    with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw⟩
+  ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half n.v 1 _).1 $$ Hv
+  ihave ⟨Hd1, Hd2⟩ := (ghostVar_split_half n.done 1 false).1 $$ Hdone
+  ihave ⟨Hmfa, Hmfb⟩ := mapFields_halve K.db (1 : Qp).half (some (b, l)) $$ Hmf
+  ihave Hx : txExcl K.B K.p K.sp K.t0 «$r0_ptr» ⟨K.db, n, true, .loan⟩ $$ [Hv1 Hd1 Hrwl Hcur Hgfl
+      Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfa Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk
+      Hflo Hpair Hrcpt Hpga Hpgt]
+  · iunfold txExcl
+    iexists _, _
+    iframe Hv1 Hd1
+    simp only
+    iframe Hrwl
+    iexists ((some (View.ofC b w.C), some (w.C.txid + 1), false, true) : WSt),
+      w.released (w.fl.releasePending ro) S bs, ∅
+    isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfa Hosm Hfo Hfd Hmc Hmob
+      Hwc Hwb Hjunk Hflo Hpair Hrcpt]
+    · unfold wdbLive wdbCoreG
+      simp only [WDb.released]
+      rw [hms]
+      iframe
+    isplitl [Hpga Hpgt]
+    · iapply txShape_wx0 _ _ _ _ _ _ _ rfl hr0
+      iframe
+    ipureintro
+    refine ⟨rfl, ?_⟩
+    exact flViewU_wx0 w.C b _ _ _ _ _ _ htree hi hnp hmv hwf hbl hhwm
+  ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
+  · iunfold readerHandles; simp only [↓reduceIte]; iempintro
+  imod txs_register K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top «$r0_ptr»
+    ⟨K.db, n, true, .loan⟩ _ $$ [Hti Hdb stats Hx Hd2 Hrh] with ⟨#Hreg, Hdb⟩
+  · iframe Hti Hdb stats Hd2 Hx Hrh
+  -- `metalock` unlocked (deferred), the transaction returned
+  ihave Hro : flRoOpt w.fli F $$ [Hrol]
+  · iunfold flRoOpt; simp only [Hfln, ↓reduceIte]
+    iexists _; iframe Hrol; ipureintro; exact (sortPgids_perm ro).trans Hperm
+  try wp_auto
+  wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
+    Hfl' Hwa' Hob Hmlk Hfa Hro]
+  · iunfold metaR; iexists w.C, F, false, w.fli, wa; iframe; ipureintro
+    exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  isplitl []
+  · unfold txDBDef
+    iexists ⟨K.db, n, true, .loan⟩
+    iframe Hreg
+    isplitl []
+    · unfold isBoltDef; iexists K.p, K.sp, K.t0; unfold BC.full; iexact Hfull
+    · ipureintro; rfl
+  iexists treeData w.C
+  unfold boltTxDef
+  simp only [TxView.wr, ↓reduceIte]
+  iexists K.db, K.p, K.sp, K.t0, ⟨K.db, n, true, .loan⟩, ((true, treeData w.C, treeData w.C, ∅) : TxViewC),
+    (wx0 (txRoot (GF := GF) «$r0_ptr») (tx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0))
+      (initMeta true (metaOf (w.C.slot w.C.txid))) (initRoot «$r0_ptr» bm nm ibp)
+      (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))
+  isplitr
+  · ipureintro; exact ⟨(ofC_wr _).symm, rfl, rfl⟩
+  iframe Hreg Hv2 Hex
+  isplitl []
+  · unfold BC.full; iexact Hfull
+  unfold wtxFrac
+  simp only [QpMul_one_rw, txDbQ_one_rw]
+  iframe Hheap
+  try simp only [wx0]
+  iframe Hvc Hst Hbka Hnla Hdb
+  isplitl []
+  · unfold fills; simp; try iempintro
+  isplitl [Hmfb]
+  · iexists l; simp only [View.ofC]; iframe Hmfb; ipureintro; exact hpgb
+  isplitl []
+  · unfold viewOf; iexact Hvw
+  ipureintro
+  refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
+    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn⟩
+  trivial
 
 end proof
 
