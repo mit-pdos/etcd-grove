@@ -30464,7 +30464,8 @@ capacity, the consumer and the received log; `cancel()` moved after the progress
 
 ## The whole-`bootOk` review: `bootstrap`'s contracts restated (2026-11-03 · the user's approval of candidate 3 and its seven recommendations · branch `bootok-review`)
 
-*Superseded in part (2026-11-03, "The boot premises"): `bootCfgOk` no longer has `TickMs ≠ 0`
+*Superseded in part (2026-11-04, "R-D1: the one-shot Close"): D is done, `#Hclose` gone from both
+contracts.* *Superseded in part (2026-11-03, "The boot premises"): `bootCfgOk` no longer has `TickMs ≠ 0`
 (`Hraft` states the heartbeat Go computes, `NewServer` takes its sign); `Hdirps` left `bootOk` for
 `NewServer`'s `srvBootEnvOk`; the final round's S1, S2, M1, M2 are repaired there.*
 
@@ -31350,6 +31351,67 @@ values are `bool`s or `uint64`s, so the choice rather than the returned string);
 is the plain logically atomic one, and `goose_prophkv_safe` follows from `goose_adequacy` with the
 standard axioms only (`Proof/.../goose/prophkv/Results.lean`).
 
+## R-D1: the one-shot Close (2026-11-04 · the user's split of R-D and their approval of `authAbandonM` · branch `oneshot-close`)
+
+**What `#Hclose` was.** `bootOk` and `bootOkR` (`InvBoot.lean`, `InvRestart.lean`) carried
+`"#Hclose" ∷ □ {{ True }} b.Close() {{ RET #(); True }}`: a persistent triple for
+`bootstrappedServer.Close`, which `NewServer`'s deferred cleanup runs on its error paths after
+`bootstrap` (`server.go:306-310`). It is false of Go: `Close` reaches `backend.Close`, whose
+`close(b.stopc)` panics on a second call (`TestSpecBootstrapFalseCases`). It was D of the whole-`bootOk`
+review, deferred because the honest triple takes the backend's whole open token, and on the
+second error path (`Transport.Start` failing, after `mvcc.New`) that token is spread over the store's
+~8·10⁸ readers.
+
+**The change (R2, readers by variant (b)).** The three `Close` methods are translated (Goose config,
+`Code/go_etcd_io/etcd/server/v3/etcdserver.toml`) and proved: `bootstrappedServer.Close.spec` takes
+the record's read-only path to the backend, `isBackend`, `isStopChans` and `bOpen γ 1`, returns
+`True` (`bootstrappedStorage.Close`, `bootstrappedBackend.Close` likewise, down to
+`backend.backend.Close.spec`). `#Hclose` is gone from both contracts: a trusted, false conjunct
+less. `NewServer`'s three proofs take `hBSC : bootstrappedServer.Close.spec` (the link passes the
+proof), and reassemble the token on both paths:
+- **path 1** (`auth.NewTokenProvider` fails, before `mvcc.New`): the constructors' half, the pool's
+  shares (`bkRPool` unfolded, as `SnapApplyWalk` does) and the stock's (the readers' tokens, still
+  whole), by `bOpen_one_pool`.
+- **path 2** (`Start` fails): `watchableStore.Close` now returns the two loops' readers
+  (`mvcc.wsLoopN`, the user's Q6: the loops leave their reader at `Done`, the wait group's invariant
+  keeps them, with a token as the closer's claim; `wsWgInv` is no longer timeless) and
+  `store.Close` returns the compaction job's resource (`compactJobResM`, from `Stop`'s last
+  payload, `compactQueue_stopped`). Every reader of the store is retired at once
+  (`mvcc.storeReaders_retire`, `ReaderRetire.lean`, one later credit), and with the job's resource
+  gives the stock's shares (`mvcc.storeRTs_shares`). The auth store is abandoned:
+  `authAbandonM M stl d RD` (new conjunct of `authStoreKit`'s post, `AuthSrv.lean`) turns every
+  ticket (`authRdSupply RD`) and the apply thread's resources (`authApplyResPre`) into the
+  realization's share (`authOpenM M d`: `authOpenQ` with auth on, `True` otherwise), and
+  `authOpenM_join` puts it back with `srvOpenQ M` into the constructors' half.
+
+**The split (the user's, 2026-11-04).** R-D1 is the above, with `authAbandonM` proved for auth off
+(trivially, `authStoreKit_off`) and a `sorry` for auth on: `authStoreKit_on` takes the clause as a
+premise (`hAbandon`) and `authSrvTP_on` passes it `sorry` (the only new `sorry`; it is not derivable
+from today's `beRd`, whose currency `beMu`'s resource holds for good). R-D2 is option (d) of the
+candidate, later: the auth store's currency moved out of `beMu`'s resource into a proved invariant
+keyed by tickets inside `beRd` (approved by the user with `authAbandonM`), which proves the premise
+and removes the `sorry`.
+
+**Deviations from the frozen candidate, all local.** No `backend.bkRPool_shares` or
+`txn.kvWriter_frag` law: `NewServer` already unfolds both (`SnapApplyWalk`, `NewServer`'s own reader
+retirement), so no backend interface moved. `InvStore`'s `storeReader_retire` is kept, not re-derived
+from the bulk form (no `InvStore` rebuild). `snap_oldReaders` (`SnapRestoreM`) is not reused: it
+would make `NewServer` import the snapshot path, so `storeRTs_shares` (mvcc) does the same at the
+stock's full count. `Hb`/`Hsto`/`Hbk` are persisted only inside the two error branches (the
+remotes loop's frame keeps `b ↦ bs`).
+
+**Checks.** The trust base gains exactly `sorry authSrvTP_on` (`etc/tcb-baseline.txt`, the `server`
+and `authkv` collections; reached by `srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`,
+`authkv_Main`); nothing trusted removed is an axiom (`#Hclose` was a conjunct of the premise
+`bootstrapContract`). The new reader counts are the owner's (mvcc's `ReaderRetire`, `InvWatchSync`,
+`watchableStore.Close`): `etc/bounds-allow.txt`. No package interface moved. After lean's auth
+component (stage 2), `authOpenM` (a kit row over the kit's mode, as `authKitIn`/`authKitOut`) is
+classified `unmoved` in `etc/mode-allow.txt` and raises the server's match-mode baseline by one
+(68 to 69): it moves over the slot with the kit rows in stage 3. After R2b-3c part 2a the three
+`Close` specs take `isStopChans γ P W Pk be` (its new parameters), nothing else changed.
+
+**What it found.** The leak on both paths (the WAL and three goroutines), with the retry hazards:
+`nonissues/etcd-newserver-error-path-leaks.md`, measured by `TestSpecBootstrapNewServerErrorLeak`.
 ## A context outside Perennial's model: `ctxOk`'s third case, `ctxErrs` (2026-11-04 · K4 of `notes/k8s-compactor-plan.md`, the user's choice of the third disjunct · branch `ctxok-errok`)
 
 **Was:** every client spec, and the trust boundary's contracts that take a caller's context
@@ -31422,3 +31484,33 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 `NewServer` drops the token until R2b-3d threads it to `Cleanup` (`srvCleanupOwn`).
 
 **`authStore.Close`** is translated (`auth.toml`) and proved over `tpAdmin`, as `AuthDisable` is.
+
+## Kubernetes' compactor proved: its functions linked, three spec changes found while proving (2026-11-04 · K4 of `notes/k8s-compactor-plan.md`, its first part · branch `k8s-compactor-k4`)
+
+**Proved and linked** (in `Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean`, `etc/gen-link.py
+--k8s-etcd3`; collection `etc/tcb-collections/k8s-compactor.txt`): `Compact`, `CompactRevision`,
+`UpdateCompactRevision`, `Stop`, `runCompactLoop`, `NewCompactor`.
+- **`Compact`'s round.** It goes through `txn.Commit.specM` and keeps U1's `txnRevLb`, so the next
+  round's revision is reached. The else branch's `Kvs[0]` exists by the caller's `casPost`, and
+  `ParseInt` reads `FormatInt` back (U2).
+- **`runCompactLoop`.** It runs under `wait.ContextForChannel(stop)`, through `chanCtx_ok` and
+  `ctxOk`'s third case (the entry "A context outside Perennial's model").
+
+**Spec changes, found while proving** (none of these specs has a client outside the package):
+- **The client's KV handle.** `Compact.spec`, `runCompactLoop.spec` and `NewCompactor.spec` take
+  `clientKvOk cl γk`: the client's `KV` field holds a `*kv` with `isKv` (`CompactorDefs.lean`).
+  The client's `kv.Compact.spec` needs `isKv`, whose introduction takes the store's receipt bound.
+  A first version took `receiptBound GF ≤ 2 ^ 62` as a premise and failed `etc/bounds-check.py`
+  (`spec-receipt`). `notes/bounds-plan.md` has the owner fix the bound: here the `isKv`, built
+  once by `Main` (`isKv_of_newClient`) at the adequacy theorem's constant.
+- **No thread token.** `NewCompactor.spec` drops `threadTok`. The stop machinery's wait group is
+  `sync.join`'s, whose one `Add` needs no token. `sync.tokJoin` would have needed
+  `threadBound GF ≤ 2^31`, a premise `NewCompactor.spec` lacked.
+- **`isCompactor`'s internals.** `isCompactor` (sealed) carries `∀ r, Persistent (recorded r)`.
+  The revision under the mutex is kept and returned, so it must be persistent.
+
+**The trust base.**
+- **A new axiom:** `klog.Errorf` (logging, the shape of `klog.Verbose.Infof`'s), for a failed round.
+- **A named hypothesis:** `clock.RealClock.After`, `?` in the link, as in client-go's.
+- **Translated instead of assumed:** the feature constant `ListFromCacheSnapshot` (`features.toml`).
+  So `NewCompactor` needs no "not a panic" axiom, unlike `AllowUnsafeMalformedObjectDeletion`'s.

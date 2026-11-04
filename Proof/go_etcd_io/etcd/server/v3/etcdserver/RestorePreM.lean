@@ -45,7 +45,7 @@ theorem etcdserver.restorePre_of_applyW (s : Loc) (E : apply.AEnv GF) (log : mvc
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
+          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) := by
   by_cases h : mvcc.kbCmpM E.γ.kb
   · -- on: the right is the apply thread's, the closer the watchable store's own parts
     iintro ⟨Hown, Hcr, Hcl⟩
@@ -72,7 +72,7 @@ theorem etcdserver.restorePre_of_applyW (s : Loc) (E : apply.AEnv GF) (log : mvc
     ihave Hcp : iprop(∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hstcl Hwsw]
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) $$ [Hstcl Hwsw]
     · iexists wsl, stc
       iframe Hkvf Hstc Hstcl Hwsw
     iframe Hws Hr Hfrag Hwo Hrd Hll HRD Hcp

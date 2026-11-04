@@ -11,3 +11,10 @@ stock storage/backend/RdPool\.lean  # the backend's reader pool (the backend-aut
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).
 stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
+
+# The store's readers, by their owner, mvcc (R-D1, 2026-11-04): the wait group's invariant holds the
+# readers its two loops leave at `Done` (`wsLoopN`), `watchableStore.Close` returns them, and the
+# readers retire together for the backend's open shares (`storeReaders_retire`, `storeRTs_shares`),
+# for `NewServer`'s error path, whose `b.Close()` takes the whole open token.
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(ReaderRetire|InvWatchSync)\.lean$
+stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close\.lean$

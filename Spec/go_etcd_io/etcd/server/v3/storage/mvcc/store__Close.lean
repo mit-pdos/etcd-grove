@@ -1,5 +1,6 @@
 /-
-`store.Close` (`kvstore.go`): the trust boundary (untranslated). Lean-first (no Rocq counterpart); see `InvStore.lean`.
+`store.Close` (`kvstore.go`, translated since 2026-10-22; the trust boundary until then). Lean-first
+(no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
@@ -25,20 +26,23 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 close, the scheduler's stop token and the compaction jobs' queue; `Close` closes `s.stopc` and
 stops the store's scheduler, `fifoSched.Stop()`, with the token and the queue, as
 `Scheduler.Stop`'s spec takes them: no `Schedule` follows, which would panic; a second call would
-close `stopc` again, a panic): returns `nil`. D19m (C), 2026-10-18: until then without the stop
+close `stopc` again, a panic): returns `nil`, and (R-D1, 2026-11-04) the compaction job's budget
+(`compactJobResM`: a compacting real store's reader token, safe-range slot and job cursor; `True`
+otherwise), from the scheduler's last payload once `Stop()` has returned (no job runs after it): for
+the backend's `Close`. Until then `True`. D19m (C), 2026-10-18: until then without the stop
 token, which `NewStore` gave up for good (`isStore` held `schedLive`), so a holder of `isStore`
 could compact after `Close`, where Go's `Schedule` panics. (M2, the storage side, the approval's
 item 23) The right to close by the mode at the store's compaction revision `c` (`storeCloserM`:
 off, `storeCloser`; on, the restorable compaction right `compactRightR`, whose queue is at `c`, not
 `-1`: `storeCloser`'s queue is at `-1`, which a store that compacted cannot give,
-`compactQueue_mono` only going up). Unreachable today (the server's `run` never returns, so
-`Cleanup` never closes the KV): what a modelled shutdown takes. -/
+`compactQueue_mono` only going up). Reached on `NewServer`'s transport-start failure (its deferred
+`kv.Close()`, `server.go:376-382`; until R-D1 "unreachable today"), and by a modelled shutdown. -/
 abbrev mvcc.store.Close.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
-  {{ RET #(GoInterface.nil); True }}
+  {{ RET #(GoInterface.nil); mvcc.compactJobResM γ.kb }}
 
 end spec
 

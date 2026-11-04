@@ -549,6 +549,7 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
+axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
@@ -700,6 +701,7 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatInt.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
@@ -786,6 +788,7 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
+sorry authSrvTP_on
 sorry k8s_etcd3.client_ctx_field
 sorry k8s_etcd3.revRoom
 sorry kubernetes.kvIs_ne_null

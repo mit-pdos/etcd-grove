@@ -64,6 +64,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The client's KV handle** (persistent; K4, 2026-11-04): the client's `KV` field holds a `*kv`
+that is a client of etcd's KV at `γk` (`isKv`, which carries the store's receipt bound: its owner
+fixes it, `notes/bounds-plan.md`). The round's `Compact(rev)` goes through it. -/
+def clientKvOk [go_etcd_io.etcd.client.v3.Assumptions] (cl : Loc) (γk : KVNames) : IProp GF :=
+  iprop(∃ (api : Loc) (dup : Bool),
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+      GoInterface.ok (client.kvIfaceOf api) ∗ client.isKv api γk dup)
+
+instance clientKvOk_persistent [go_etcd_io.etcd.client.v3.Assumptions] (cl : Loc) (γk : KVNames) :
+    Persistent (clientKvOk (GF := GF) cl γk) := by
+  unfold clientKvOk; infer_instance
+
 /-- **A revision a round may hold**: `0` (none yet), or positive and reached by the cluster `γk`. -/
 def revOk (γk : KVNames) (r : w64) : IProp GF :=
   iprop(⌜r = W64 0⌝ ∨ ⌜0 < sint.Z r⌝ ∗ kvRevLbZ γk (sint.Z r))
@@ -74,6 +86,10 @@ instance revOk_persistent (γk : KVNames) (r : w64) : Persistent (revOk (GF := G
 /-- **A revision a compaction may be at**: `0`, or positive, recorded by a compactor and reached. -/
 def recRevOk (γk : KVNames) (recorded : w64 → IProp GF) (r : w64) : IProp GF :=
   iprop(⌜r = W64 0⌝ ∨ ⌜0 < sint.Z r⌝ ∗ recorded r ∗ kvRevLbZ γk (sint.Z r))
+
+instance recRevOk_persistent (γk : KVNames) (recorded : w64 → IProp GF)
+    [∀ c, Persistent (recorded c)] (r : w64) : Persistent (recRevOk (GF := GF) γk recorded r) := by
+  unfold recRevOk; infer_instance
 
 /-- **What a round's transaction tells the compactor** at the state `σ` it ran at: the key was
 written (`Seen`); on success, `rev` recorded; on failure, the key present holding `FormatInt c` for
@@ -113,28 +129,33 @@ def compactorLockInv (c : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γ
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"compactRevision" c ↦ r ∗
     monoNatAuthOwn γc.lb 1 (sint.Z r).toNat ∗ recRevOk γk recorded r)
 
-/-- The compactor's namespace (its loop's wait group). -/
-def compactorN : Namespace := nroot .@ "k8sCompactor"
-
 /-- **The compactor's stop machinery**: the `stop` channel, a broadcast channel only closed; the
 right to close it and to wait for the loop goroutine (the wait group's adder, its one goroutine
 added), held by `stopOnce` until `Stop` runs (`sync.Once`'s `P`; its `Q` is `True`: `Stop` returns
-nothing, the loop's thread token stays with the wait group). -/
+nothing). The wait group is `sync.join`'s (its counter bounded by its `Add`s, one in the compactor's
+life), not `sync.tokJoin`'s: that one's invariant needs `threadBound GF ≤ 2 ^ 31`, which
+`NewCompactor.spec` does not take (K4, 2026-11-04). -/
 def compactorStopOk [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) : IProp GF :=
   iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stop" c ↦□ sc ∗
     ownBroadcastChan sc γs iprop(True) .Unknown ∗
     sync.isOnce (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c)
       iprop(ownBroadcastChan sc γs iprop(True) .Pending ∗
-        sync.tokJoin.ownAdder compactorN iprop(False)
-          (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) 1 iprop(True))
+        sync.join.ownAdder (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c)
+          (W32 1) iprop(True))
       iprop(True))
+
+instance compactorStopOk_persistent [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) :
+    Persistent (compactorStopOk (GF := GF) c sc γs) := by
+  unfold compactorStopOk; infer_instance
 
 /-- **A compactor** (persistent; see the file header): its client `cl`, its interval (nonzero), a
 `RealClock`, no `onClose`, the mutex over its revision, and its stop machinery (the `stop`
-channel `sc`). -/
+channel `sc`); and the caller's `recorded` is persistent (`NewCompactor.spec`'s instance), so that
+the revision under the mutex can be both kept and returned. -/
 @[no_expose] def isCompactor [sync.Assumptions] (c cl : Loc) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) : IProp GF :=
-  iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"client" c ↦□ cl ∗
+  iprop(⌜∀ r, Persistent (recorded r)⌝ ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"client" c ↦□ cl ∗
     (∃ iv : w64, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"interval" c ↦□ iv ∗
       ⌜iv ≠ W64 0⌝) ∗
     (∃ ck : k8s_io.utils.clock.RealClock,

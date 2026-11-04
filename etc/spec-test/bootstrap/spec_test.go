@@ -31,11 +31,13 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -48,6 +50,8 @@ import (
 
 	"go.etcd.io/etcd/api/v3/authpb"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/fileutil"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/pkg/v3/pbutil"
 	"go.etcd.io/etcd/server/v3/config"
@@ -723,4 +727,109 @@ func firstLine(s, prefix string) string {
 		}
 	}
 	return ""
+}
+
+// ---- R-D, the one-shot Close: `NewServer`'s error paths after `bootstrap` (2026-11-04) ----
+
+// TestSpecBootstrapNewServerErrorPaths shows that both of `NewServer`'s error returns after `bootstrap`
+// (`server.go:300-433`) are reachable and call the record's `Close` once (finding D: `bootOk`'s
+// `#Hclose` must serve them; it is one-shot, `TestSpecBootstrapFalseCases`):
+//   - path 1, `auth.NewTokenProvider` fails (an unknown token type): before `mvcc.New`;
+//   - path 2, `tr.Start()` fails: after `mvcc.New` (the deferred `kv.Close()` runs, then `b.Close()`).
+//     `bootstrap`'s round tripper and `Start`'s read the peer TLS configuration separately
+//     (`rafthttp.NewRoundTripper`, `bootstrap.go:72`; `newStreamRoundTripper`, `transport.go:136`):
+//     a CA file that changes between the two (as a certificate rotation would; here rewritten when
+//     `NewServer` logs "bootstrap successfully", `server.go:304`) makes `Start` fail after
+//     `bootstrap` succeeded. No premise of `NewServer.spec` excludes it.
+func TestSpecBootstrapNewServerErrorPaths(t *testing.T) {
+	// path 1
+	cfg := specConfig(t, t.TempDir(), "m1")
+	cfg.AuthToken = "no-such-token-type"
+	if _, err := NewServer(cfg); err == nil {
+		t.Error("path 1: NewServer did not fail")
+	} else {
+		t.Logf("path 1: NewServer failed: %v", err)
+	}
+	// path 2: the CA file empty (no CA, no error) until `bootstrap` returns, then a PEM block that is
+	// no certificate (`x509.ParseCertificate` fails)
+	ca := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(ca, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	swapped := false
+	lg := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(io.Discard), zap.InfoLevel), zap.Hooks(func(e zapcore.Entry) error {
+		if e.Message == "bootstrap successfully" {
+			swapped = true
+			return os.WriteFile(ca, []byte("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n"), 0o600)
+		}
+		return nil
+	}))
+	cfg = specConfig(t, t.TempDir(), "m1")
+	cfg.Logger = lg
+	cfg.PeerTLSInfo = transport.TLSInfo{TrustedCAFile: ca}
+	_, err := NewServer(cfg)
+	if !swapped {
+		t.Fatalf("path 2: bootstrap failed: %v", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "x509") {
+		t.Fatalf("path 2: NewServer did not fail at Start: %v", err)
+	}
+	t.Logf("path 2: bootstrap succeeded; NewServer failed at Start: %v", err)
+}
+
+// TestSpecBootstrapNewServerErrorLeak measures what path 1's `b.Close()` leaves behind
+// (`nonissues/etcd-newserver-error-path-leaks.md`): the goroutines `NewServer` started (raft's
+// `node.run`, the lessor's `runLoop`, the WAL's file pipeline) keep running, and the WAL's lock is
+// held until the GC finalizes the leaked WAL's file (with `GOGC=off`, never: a second `NewServer`
+// on the directory then exits at `bootstrap.go:677`, "failed to open WAL"); after it, a second
+// `NewServer` gets past `bootstrap`. Not driven here: the leaked pipeline also holds the lock on the
+// next segment's `0.tmp` (`file_pipeline.go`), so a retried server that succeeds would block at its
+// first segment cut (`wal.go:840`), inferred from the code.
+func TestSpecBootstrapNewServerErrorLeak(t *testing.T) {
+	dir := t.TempDir()
+	cfg := specConfig(t, dir, "m1")
+	cfg.AuthToken = "no-such-token-type"
+	runtime.GC()
+	before := runtime.NumGoroutine()
+	if _, err := NewServer(cfg); err == nil {
+		t.Fatal("NewServer did not fail")
+	}
+	walLocked := func() bool {
+		ws, _ := filepath.Glob(filepath.Join(cfg.DataDir, "member", "wal", "*.wal"))
+		locked := false
+		for _, w := range ws {
+			l, err := fileutil.TryLockFile(w, os.O_RDWR, fileutil.PrivateFileMode)
+			if err != nil {
+				locked = true
+			} else {
+				l.Close()
+			}
+		}
+		return locked
+	}
+	if !walLocked() {
+		t.Errorf("the WAL is not locked after NewServer's error")
+	}
+	time.Sleep(200 * time.Millisecond)
+	after := runtime.NumGoroutine()
+	t.Logf("goroutines: %d before NewServer, %d after its error (+%d)", before, after, after-before)
+	if after-before < 3 {
+		t.Errorf("expected at least 3 leaked goroutines, got %d", after-before)
+	}
+	unlocked := false
+	for i := 0; i < 20 && !unlocked; i++ {
+		runtime.GC()
+		time.Sleep(50 * time.Millisecond)
+		unlocked = !walLocked()
+	}
+	t.Logf("WAL lock released by the GC: %v", unlocked)
+	if !unlocked {
+		t.Fatal("the WAL stays locked after GC")
+	}
+	_, err := NewServer(cfg)
+	t.Logf("second NewServer after GC: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "auth") {
+		t.Errorf("second NewServer: expected the token provider's error again, got %v", err)
+	}
 }
