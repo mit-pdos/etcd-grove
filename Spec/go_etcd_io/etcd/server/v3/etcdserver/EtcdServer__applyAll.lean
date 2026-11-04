@@ -93,7 +93,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr ai ∗
+      srvSnapOwn s ci E γr γ ai ∗
       -- the rights to issue tokens at the consistent index
       acTok C (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
@@ -116,7 +116,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
-        srvSnapOwn s ci E' γr ai' ∗
+        srvSnapOwn s ci E' γr γ' ai' ∗
         ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
@@ -189,7 +189,7 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
       rnWalTokA γn (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
       -- `isServerApplyAll`'s two fields)
-      srvSnapOwn s ci E γr ai ∗
+      srvSnapOwn s ci E γr γ ai ∗
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
@@ -219,7 +219,7 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
           kvApplied γr.raft γr.kv A' x' ∗ srvRest E' γr A') ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
+        srvSnapOwn s ci E' γr γ' sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
           lastTermIs A' sv.Metadata'.Term'⌝ }}
@@ -286,7 +286,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- `isServerApplyAll`'s two fields)
       -- (auth on: the store's invariant and snapshot clause are `srvSnapRO`'s row
       -- `authSnapKitM`)
-      srvSnapOwn s ci E γr ai ∗
+      srvSnapOwn s ci E γr γ ai ∗
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
@@ -316,7 +316,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
+        srvSnapOwn s ci E' γr γ' sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
           lastTermIs A' sv.Metadata'.Term'⌝ }}

@@ -160,6 +160,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
     (HB : BootLog ps ctxs boot)
     (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
@@ -219,7 +220,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
   imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 HB
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
-      (fun h => Hnz _ (hperm.subset h) rfl) Hcc ((hperm.map _).nodup_iff.2 Hlow)
+      (fun h => Hnz _ (hperm.subset h) rfl) Hcc Hurl ((hperm.map _).nodup_iff.2 Hlow)
       (fun id h => Hlow0 id (hperm.subset h)) false) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩

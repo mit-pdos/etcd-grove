@@ -184,7 +184,7 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "HWB" ∷ srvWTBudget E ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 /-- **The apply thread's resources when `run` starts** (`applyStart` off, `applyStartOn` on). -/
 def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -195,7 +195,7 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
-    srvSnapOwn s ci E γr ai₀)
+    srvSnapOwn s ci E γr γ ai₀)
 
 /-- **What `run` needs** (`isServerRun` off, `isServerRunOn` on; the stop requests' `SP` and the
 done channel's `DQ` as `isServerRun`'s). -/
@@ -260,7 +260,7 @@ def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at'⌝)

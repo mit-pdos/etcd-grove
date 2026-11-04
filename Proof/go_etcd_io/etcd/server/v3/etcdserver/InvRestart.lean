@@ -79,10 +79,22 @@ def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
   iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
-/-- **`buildConfStateFromV3store`** (opaque, DRAFT R2c, R2d's to define): the conf state etcd
-builds from the backend's `members` bucket of `D` (voters the non-learners, learners the learners,
-by id; R2c review F4: from the bucket, not the in-memory members). -/
-opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.ConfState'
+/-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
+(R2c's draft opaque `v3ConfState`, defined 2026-11-04, the restart plan's R2b-3d gap 3; R2c review
+F4: from the bucket, not the in-memory members): the bucket's entries are those of some members
+`ms` with distinct ids, each under its id's key with its JSON (`memberKey mm.id ↦ memberEnc mm`, the
+shape `membersDecode` states and the apply thread writes; `MustReadMembersFromBackend` unmarshals
+each value back to its member). `cs`'s voters are the non-learners' ids and its learners the
+learners', in any order (Go ranges over a map), with no joint state. A relation, not a
+function, because of that order. -/
+def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
+  ∃ ms : List apply.MemberM,
+    (∀ k v, ((D.lookup go!"members").getD ∅).lookup k = some v ↔
+      ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm) ∧
+    (ms.map (·.id)).Nodup ∧
+    cs.Voters' ≡ₚ (ms.filter (fun mm => !mm.isLearner)).map (·.id) ∧
+    cs.Learners' ≡ₚ (ms.filter (·.isLearner)).map (·.id) ∧
+    cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false
 
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
@@ -97,8 +109,8 @@ opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.Con
   after the `Save` of its commit), so that `bootstrap` keeps the file (`recoverSnapshot` opens a
   `.snap.db` only when the file's index is below the snapshot's);
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
-  by the backend's (`buildConfStateFromV3store`), so the membership at `i`, the backend's members
-  at `A`; `RestartNode` takes any point from the storage's base to its commit;
+  by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
+  membership at `i`; `RestartNode` takes any point from the storage's base to its commit;
 - the bootstrap log applied (`γ.cl.bootLen ≤ i`; R2c review F4, a scope restriction: a member
   stopped before its first `Ready` was applied would restart with an empty members bucket, which
   etcd copes with and these statements do not; `restart3`'s stop must provide it);
@@ -122,7 +134,7 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
     ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
-    confAt γ.cl (uint.nat i) m ∗ ⌜confStateIs (v3ConfState D) m⌝ ∗
+    confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
@@ -319,7 +331,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (`ApplySnapshot` of the WAL snapshot with the backend's `ConfState`, `SetHardState`,
     -- `Append`), in place of the fresh storage's tokens; R2d derives `RestartNode`'s
     -- `restartStorage` from it, as kvdurable's `kd_restartStorage`
-    "Hrest" ∷ memStorRestarted bv.storage' γs σ (v3ConfState D) ∗
+    "Hrest" ∷ (∃ cs : ConfStateM, ⌜v3ConfStateIs D cs⌝ ∗ memStorRestarted bv.storage' γs σ cs) ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗

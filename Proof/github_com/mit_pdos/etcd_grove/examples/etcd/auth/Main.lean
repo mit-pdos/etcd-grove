@@ -129,7 +129,7 @@ theorem Main.wp_proof
   -- the member's ghost state with auth on, the client's half of the KV state, its view of the
   -- auth history (`ak_alloc`), and the history invariant over the former (`akHist_alloc`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (ak_alloc id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (by omega) (by omega)) $$ Hmarsh
+  imod (ak_alloc id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %σ₀, %Hal, Hmb, #Hnet, Hetcd, Hview⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hσ₀, hc0, hlog⟩ := Hal
   ihave ⟨%Hcmp0, Hmb⟩ := etcdstart.memberBootOn_cmp γ ctxs ρ E₀ Φs id false $$ Hmb

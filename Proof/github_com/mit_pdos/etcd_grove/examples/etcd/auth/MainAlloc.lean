@@ -41,6 +41,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
     (Hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data')
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
     ⊢ bootMarshal (GF := GF) [id] ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
@@ -57,7 +58,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (etcdstart.env₀ idx cok rev)
   imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
-      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow)) $$ Hmarsh
+      (by simp) (by simpa using Hid0.symm) Hcc Hurl (by simp) (by simpa using Hlow)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklg⟩ := Hγ

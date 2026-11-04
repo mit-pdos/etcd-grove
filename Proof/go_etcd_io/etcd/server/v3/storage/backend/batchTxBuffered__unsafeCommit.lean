@@ -275,9 +275,12 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     iframe Hbdb Hdb
     unfold bStopG
     iframe Hhkd
+    isplitl [Hvq]
+    · iexists _
+      rw [← vData_reset P st'.S st'.R]
+      iexact Hvq
     iexists _
-    rw [← vData_reset P st'.S st'.R]
-    iexact Hvq
+    iexact Hfkr
 
 end proof
 

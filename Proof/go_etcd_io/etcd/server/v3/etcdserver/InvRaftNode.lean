@@ -613,7 +613,7 @@ theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' 
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨-, #Hcl, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl, -⟩
   rw [Hn.1] at Hbl
   iunfold rnReadySnap at H
   icases H with ⟨%ceL, %esL, %msL, %hs, ⟨%S0, %r, HrS⟩, Hrest⟩

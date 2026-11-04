@@ -66,6 +66,9 @@ structure BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List
   boot : BootLog ps ctxs bl
   cc : ∀ e ∈ LogEntry.toEntries bl 0,
     ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
+  /-- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs valid UTF-8 and
+  pairwise disjoint (`bootURLsOk`). -/
+  urls : bootURLsOk (LogEntry.toEntries bl 0)
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=

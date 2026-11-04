@@ -171,7 +171,7 @@ theorem applySnapshot_walk
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       srvStopChans γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (2026-11-02, the backend-auth-split stage) the apply thread's token, for the pooled
        -- readers of the new backend (the alarm store's, the auth store's and the cluster's
        -- `Recover`), given back
@@ -669,9 +669,10 @@ theorem applySnapshot_walk
     · ipureintro; exact Hlgnn
     (try wp_auto)
     -- (R2b-3c part 2) the old backend with its stop channels, at their client resources
-    iunfold backend.isStopChansE at HoSC
-    icases HoSC with ⟨%Wc, %Pkc, #HbC, #HsC⟩
-    wp_apply hClose d.γB d.P Wc Pkc d.be $$ [HoO1] as %cerr Hcerr
+    iunfold srvStopChans at HoSC
+    icases HoSC with ⟨#HbC, #HsC⟩
+    wp_apply hClose d.γB d.P (mvcc.lateWD d) (batchLockInv γ (metaTM d.γB d.P)) d.be $$ [HoO1]
+      as %cerr Hcerr
     · iframe #; iframe HoO1
     -- (R2b-3c) the old backend's file and what its stopped lock held, given back by `Close`,
     -- dropped (the snapshot's replaces it)
@@ -895,8 +896,9 @@ theorem applySnapshot_walk
   ihave #HnFile' : backend.bFile (GF := GF) d'.γB (config.backendPathOf cfg.DataDir') $$ []
   · rw [hγ']; iexact HnFile
   -- (R2b-3c part 2) the new backend with its stop channels
-  ihave #HnSCE : backend.isStopChansE (GF := GF) γB d'.P d'.be $$ []
-  · rw [hP']; iapply backend.isStopChansE_intro; iframe HnB HnSC
+  ihave #HnSCE : backend.isStopChans (GF := GF) γB d'.P (mvcc.lateWD d')
+      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be $$ []
+  · rw [hP']; iexact HnSC
   iunfold snapWalkPost
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck, ua
   isplitr

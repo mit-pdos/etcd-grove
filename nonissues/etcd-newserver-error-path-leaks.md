@@ -1,7 +1,9 @@
 ---
 upstream: none
 checked: 2026-11-04
-links: []
+links:
+  - etcd-io/etcd#21766 pr merged: related, not this bug (2026-09, `wal.Open`/`wal.Create` close their files and pipeline on their own error paths; nothing about `NewServer`'s error paths after a successful `bootstrap`, the raft node or the lessor)
+  - etcd-io/etcd#22478 pr open: related, not this bug (`bootstrappedBackend.Close` logs `backend.Close`'s error; the WAL is still not closed)
 blocks-proof: no
 ---
 
@@ -59,5 +61,5 @@ inferred from `wal.go:822-840`, not driven (no 64 MB written).
 hook rewrites to a malformed PEM block on "bootstrap successfully": `bootstrap`'s round tripper
 accepts it, `Start`'s rejects it, `x509: malformed certificate`). A fix would close the WAL and stop the raft node and the lessor in `NewServer`'s
 deferred cleanup (or have `bootstrappedServer.Close` close the WAL too: `WAL.Close` closes the
-pipeline, whose `run` removes and unlocks the tmp file, `file_pipeline.go:98-101`). Upstream not
-searched (no GitHub access in the session that wrote this).
+pipeline, whose `run` removes and unlocks the tmp file, `file_pipeline.go:98-101`). Upstream searched
+2026-11-04 (web search; no `gh`): no issue or PR covers it; the related ones are in `links`.

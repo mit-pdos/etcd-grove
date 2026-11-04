@@ -297,7 +297,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   · iframe Hro Half Hauf Hlpf Hclf
   ihave Hbo : backend.bOpen (GF := GF) d'.γB (srvOpenQ E'.authMode) $$ [Hbo]
   · rw [hoff', srvOpenQ_off]; iexact Hbo
-  ihave Hso' : srvSnapOwn s ci E' γr sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
+  ihave Hso' : srvSnapOwn s ci E' γr γ' sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
   · iunfold srvSnapOwn
     iexists γt, uint.nat sv.Metadata'.Index'
     iframe Hro1 Hγt

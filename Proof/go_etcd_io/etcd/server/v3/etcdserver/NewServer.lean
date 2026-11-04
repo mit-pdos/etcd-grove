@@ -1638,7 +1638,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lg, γlt⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt Hopen Hcl Hpath]
+      ρ.rd γA $$ [Hγt Hopen Hcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
@@ -1682,9 +1682,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- alarm store's field; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
     iexists ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal), alst, cfg.DataDir'
-    ihave #HSCE := backend.isStopChansE_intro d.γB d.P _ _ d.be $$ [HB HSC]
+    ihave #HSCE := srvStopChans_boot γA d cmp tt $$ [HB HSC]
     · iframe HB HSC
-    ihave #HSCE := isStopChansE_withCm d cmp tt $$ HSCE
     iframe Hopen alarmStore DataDirS Hpath
     isplitr
     · ipureintro; exact Hγw.2.2.1

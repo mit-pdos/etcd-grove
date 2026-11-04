@@ -59,12 +59,15 @@ theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (Pk : I
         ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).be := by
   rw [mvcc.lateWD_boot _ rfl]; exact .rfl
 
-/-- (R2b-3c part 2) The backend with its stop channels, at the instance in either mode. -/
-theorem isStopChansE_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) :
-    backend.isStopChansE (GF := GF) d.γB d.P d.be ⊢
-      backend.isStopChansE ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).γB
-        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).P
-        ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal).be := by
+/-- **`NewServer`'s backend's stop channels are the server's** (`bootstrap`'s lock resource
+`lateWB`, `lateWD_boot`), at the instance in either compaction mode. -/
+theorem srvStopChans_boot (γA : ApplyNames) (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) :
+    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateWB d.gx d.γB)
+        (batchLockInv γA (metaTM d.γB d.P)) d.be ∗
+      backend.isStopChans d.γB d.P (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) d.be ⊢
+      srvStopChans γA ({ d with cm := c, ties := t, snap := false } : mvcc.KBReal) := by
+  unfold srvStopChans
+  rw [mvcc.lateWD_boot _ rfl]
   exact .rfl
 
 theorem plHookRO_withCm (d : mvcc.KBReal) (c : Bool) (t : mvcc.CmpTies) (f : GoFunc) :

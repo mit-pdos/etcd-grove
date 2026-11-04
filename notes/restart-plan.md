@@ -1336,3 +1336,93 @@ request path. Steps:
 - (4c) The stop's caller returns the request path's loans, and the stores' readers come back from
   their closes. The exported restart result gains the premise that the members' request paths
   stopped first.
+
+### R2b-3d gap 3: the configuration a restart reads (2026-11-04, design)
+
+`bootstrap` builds raft's `ConfState` from the `members` bucket (`buildConfStateFromV3store`):
+voters are the members whose JSON says `IsLearner` false, learners the rest, in Go's map order
+(random). The image claims `confStateIs (v3ConfState D) m` with `confAt γ.cl i m`, and the server's
+cluster is static: `srv_confAt_simple` gives `m = Membership.simple γ.raft.cfg`.
+
+**Definition, no new trust.** `v3ConfState` (opaque) becomes the relation `v3ConfStateIs D cs`: some
+members `ms` whose entries are exactly the `members` bucket's (`memberKey mm.id ↦ memberEnc mm`,
+the shape `membersDecode` already states), `cs.Voters'` a permutation of the non-learners' ids,
+`cs.Learners'` of the learners', no joint or auto-leave state. `bootOkR` gives `∃ cs, ⌜v3ConfStateIs
+D cs⌝ ∗ memStorRestarted … cs`; the image gives `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝`.
+The relation, unlike the function, admits Go's random order.
+
+**The proof.** By induction on the log, as `membersDecode_restModel`, the `members` bucket of
+`restModel 0 boot L` is `{memberKey id ↦ memberEnc (ccMemberAt cc)}` over the boot log's applied
+`AddNode`s: later ones re-add a member, which `ccValidOn` refuses, and a static cluster has no
+other changes (`ccBootOk`). With `bootLen ≤ i`, that is all of `cfg` (`srvBootLogOk`).
+
+**The hole: learners.** Nothing says a boot member is a voter: `ccMemberOf ctx` is opaque, and
+`ccContextOf`'s Bool is `IsPromote`, not `IsLearner`. A boot context whose JSON says `IsLearner:
+true` would restart raft with a learner where `confAt` says voter, so the image needs the fact.
+etcd's `--initial-cluster` members are voters (`NewClusterFromURLsMap`). The fact goes in as a
+premise on the boot log's contexts: `∀ cc of the boot log, (ccMemberAt cc).isLearner = false`, in
+`srvBootLogOk` (or the examples' `BootLog`), which the examples' configurations meet. This changes a
+premise of exported results, so it is the user's to approve.
+
+**Gap 3, done (2026-11-04).** The pure part is `RestConf.lean`'s `restModel_confState`: given the
+image's `members` bucket equal to the rest model's at `boot ++ R`, every `cs` with `v3ConfStateIs
+D cs` gives `confStateIs cs (Membership.simple cfg)`. Stage 5 discharges its premises:
+`srvBootLogOk`, distinct peers, `bootURLsOk` (`srvClusterOk`), the boot entries' and the log's conf
+changes `ccApplyOk` (`srv_committed_ccBoot`; empty V2 entries excluded by
+`committed_emptyV2_joint`), and the bucket from `imageAt`'s `bkRestAtL`. Trust added: three
+reviewed axioms (`notes/axiom-review/members-decode.md`).
+
+### R2b-3d stage 3: the image's backend part (2026-11-04, plan)
+
+`Cleanup` returns `bStopView γ P W Pk D` at the stop channels' `W`/`Pk`, but the server keeps the
+channels as `isStopChansE` (some `W`, `Pk`), so nothing is known of `D`. Steps:
+1. **Sharpen.** The server's channels are at its own resources, the same at construction and at
+   every install: `W = mvcc.lateWD d` and `Pk = batchLockInv γA (metaTM d.γB d.P)`, at the apply
+   thread's current names `γA` (`γ.withPh (futPhys π0 γB)` after an install). `srvSnapRes s E`
+   becomes `srvSnapRes s E γA`, with `isStopChans` there; `srvSnapOwn` and `applyResC` pass `B.γ`;
+   the snapshot path's posts give it at the new names.
+2. **Observe.** Factor out the core of the snapshot window
+   (`SnapSendBranch.lean`, the proof that feeds `backend.Snapshot`'s `Q`): from the apply thread's
+   resources at `A` and the lock's pieces (`W`, `Pk`, `viewAt`, `pvHalf`, `hkOwn`, `rbOwn`,
+   `ckHalf` at `D`) to `⌜mergedObsM … D⌝`. The stop applies it to `bStopView`'s pieces, the window
+   to the snapshot's.
+3. **Image.** `merged_imageC`'s pure part, from `mergedObsM` to `imageAt` (stage 5 assembles the
+   rest).
+
+**Stage 3, progress (2026-11-04).** Step 1 landed (`6fbf7eed05`): `srvStopChans`. Step 2a: the
+stop's commit leaves a reader's bound of the compaction keys' flag at its data (`bStopG`'s and
+`bStopView`'s `∃ R, fkRd γ P (C, R)`, from `unsafeCommit`'s stop branch, `fkHalf_rd`), what
+`txn.kvWriter_noCmp` needs for `fkAbsD D` in a store that does not compact.
+
+**Open: the stored consistent index at the stop.** `imageAt` needs `D`'s `consistent_index` key to
+be the applied index `i`. The snapshot window gets it by freezing the protocol at a commit it
+requests (`storeReq_freeze` through `kv.Commit`, `commit_freeze_au`, `freezeY`: the stored index is
+`ciEff γ s.k`). The stop has no such request: `backend.Close`'s stop commit runs the server's hook
+on its own, and outside the window the protocol knows only `mi ≤ s.k` (`consInvAt`). In Go the
+stop commit's hook stores the current index, since the apply thread is idle. So the stop needs a
+way to record that its commit came after the last apply. Candidates:
+- (a) A freeze request for the backend's stop commit: `Close`'s caller deposits the apply thread's
+  state; the stop commit's hook runs `commit_freeze_au`; afterwards the frozen protocol
+  (`consFrozen`) gives `mi = ciEff γ s.k`. This threads a request through `CommitAndStop` to
+  `OnPreCommitUnsafe`.
+- (b) The protocol remembers the last commit's index: a commit's hook leaves a persistent
+  lower bound of what it stored (`mi ≥ ` the index at the commit), and `Close`'s post says a commit
+  ran after `Close` was called; the apply thread, idle at `s`, then knows `mi = s.k`.
+To be designed next.
+- **Chosen: (a), over the backend's own commit requests.** `commitReq γ P Pk b X Y` (`InvBackend`)
+  already lets a commit take `X` and give `Y` through the hooks (the snapshot window's
+  `commitReq_freeze`). `backend.Close` gains a request: its caller gives `commitReq … X Y ∗ X` (the
+  stop's: `X = applyThread γ s`, `Y = freezeY γ s`, `commitReq_freeze`). The stop invariant passes
+  it to `run`, whose `CommitAndStop` commits with it, and the done escrow (`bDoneEsc`) returns `Y`
+  with `bStopView`. `Close`'s callers without a request pass `commitReq_true`. Step 2b.
+- **Refinement (same day).** Step 2a landed (`a2887278cb`). The request can't simply be fixed in
+  the stop channels: `New` allocates `stopInv`/`bDoneEsc`, but `X = applyThread γ s` is known only at
+  `Close`. Two ways for step 2b:
+  - **(a1) per call.** `stopInv`'s second state holds `∃ X Y, commitReq … X Y ∗ X ∗ savedProp γY Y`;
+    `run` commits with the request and escrows `Y` in `bDoneEsc` under the same saved name; `Close`
+    reads it back. This needs a saved-proposition ghost.
+  - **(a2) armed in the apply protocol.** The idle apply thread arms a freeze in `consInv`
+    (depositing its state), and every hook commit (`commit_save_au`) that finds it armed freezes,
+    while `Pk`'s `metaTM` records that it did. After `Close` the apply thread finds the protocol
+    frozen at `ciEff γ s.k`. This changes the hook's commit AU and touches every commit.
+  Leaning to (a1), local to the backend's stop protocol.

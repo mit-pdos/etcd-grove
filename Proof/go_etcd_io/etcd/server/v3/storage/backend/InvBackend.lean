@@ -984,7 +984,10 @@ its committed data `C`: the readers' view quarter at `C`'s physical view (over s
 `batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
 holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
 def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
-  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C)
+  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C ∗
+    -- (2026-11-04, the restart plan's R2b-3d stage 3) a reader's lower bound of the compaction
+    -- keys' flag at `C` (what the stop's commit gives its readers, `fkHalf_rd`)
+    ∃ R : RBuf, fkRd γ P (C, R))
 
 /-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
 committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
