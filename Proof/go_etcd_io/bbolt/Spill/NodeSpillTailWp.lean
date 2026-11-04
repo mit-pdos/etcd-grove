@@ -135,7 +135,7 @@ theorem spillTail_gen
     (hn' : X'.node bl n = some r') (hlv' : n ∈ X'.live) (hwl : wsLive r'.ws)
     (hS : (X'.nilCh bl n r').node bl n = some r'.nilCh ∧ n ∈ (X'.nilCh bl n r').live ∧
       r'.nilCh.nv.bucket' = bl ∧ r'.nilCh.capOwn = true ∧ r'.nilCh.nv.spilled' = false ∧
-      r'.nilCh.ins.length = r'.nilCh.ws.length ∧ insSize r'.nilCh.ins < 2 ^ 63 ∧
+      r'.nilCh.ins.length = r'.nilCh.ws.length ∧ (insLens r'.ins r'.ws → insBnd r'.nilCh.ins) ∧
       (r'.nilCh.nv.parent' ≠ null → ∃ rp, (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live))
     (H1 : insLens r'.ins r'.ws → ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
@@ -176,7 +176,7 @@ theorem spillTail_gen
   ihave Hw := Hwb $$ Hch
   obtain ⟨hS1, hS2, hS3, hS4, hS8, hS5, hS6, hS7⟩ := hS
   wp_bind (Let "$a0" _ _)
-  iapply (splitStep_wp hSplit K tx r m _ bl n r'.nilCh np txp hS1 hS2 hS3 hS4 hS8 hS5 hS6 hS7)
+  iapply (splitStep_wp hSplit K tx r m _ bl n r'.nilCh np txp hS1 hS2 hS3 hS4 hS8 hS5 (hS6 Hlens) hS7)
   iframe
   iintro %s %xs %wss %pl %rp' %X2 %Hsr Hw Hs Hnp Htxp
   have HI0 := H1 Hlens X2 xs wss pl rp' Hsr.1 Hsr.2

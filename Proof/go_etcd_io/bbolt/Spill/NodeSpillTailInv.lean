@@ -132,16 +132,18 @@ theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   · rw [hfl2, wtxid_of_C hC, hfl, applySteps_append]
   · rw [hpg2, hsr.same.2.2.2, nilCh_v, hpg]
 
-/-- **The size bound of `n`'s inodes** (`splitStep_wp`'s `hsz`). Open (U9s): nothing bounds the
-number of a node's inodes, so `insSize` (each inode at most `16 + bboltEntryMax`) has no bound
-below `2 ^ 63` from the spill's pre; a shared-statement question (see U9s's report). -/
-theorem tail_insSize {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
-    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
-    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
-    insSize r'.ins < 2 ^ 63 := by
-  sorry
+/-- **The per-inode bound of `n`'s inodes** (`splitStep_wp`'s `hbnd`): each entry within
+`bboltEntryMax` (`uNode`), the inodes' lengths the entries' (`insLens`). -/
+theorem tail_insBnd {X : WX} {bl n : Loc} {r : NRec} {lo hi : Option (List w8)}
+    (hun : uNode X bl n r lo hi) (hl : insLens r.ins r.ws) : insBnd r.ins := by
+  intro it hit
+  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 hit
+  have hkl : k < r.ws.length := by
+    rw [← hun.2.2.2.2.1]; exact (List.getElem?_eq_some_iff.1 hk).1
+  have hw : r.ws[k]? = some r.ws[k] := List.getElem?_eq_getElem hkl
+  obtain ⟨h1, h2⟩ := hl k it _ hk hw
+  have hb := (hun.2.2.2.2.2.2.1 _ (List.getElem_mem hkl)).2.2
+  unfold inSz; unfold bboltEntryMax at hb; omega
 
 theorem killL_node (X : WX) (L : List Loc) (bl l : Loc) : (X.killL L).node bl l = X.node bl l :=
   rfl
@@ -210,7 +212,7 @@ theorem tail_wsLive {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   exact (hlf bl B n r' HB Hr hlv').1
 
 /-- **What the steps before the loop need** (`spillTail_gen`'s `hn'`, `hlv'`, `hS`); the size
-bound is `tail_insSize`. -/
+bound is `tail_insBnd`. -/
 theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
@@ -219,11 +221,10 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     X'.node bl n = some r' ∧ n ∈ X'.live ∧
     ((X'.nilCh bl n r').node bl n = some r'.nilCh ∧ n ∈ (X'.nilCh bl n r').live ∧
       r'.nilCh.nv.bucket' = bl ∧ r'.nilCh.capOwn = true ∧ r'.nilCh.nv.spilled' = false ∧
-      r'.nilCh.ins.length = r'.nilCh.ws.length ∧ insSize r'.nilCh.ins < 2 ^ 63 ∧
+      r'.nilCh.ins.length = r'.nilCh.ws.length ∧ (insLens r'.ins r'.ws → insBnd r'.nilCh.ins) ∧
       (r'.nilCh.nv.parent' ≠ null → ∃ rp,
         (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live)) := by
-  have hsz := tail_insSize hpre hsp hend
   obtain ⟨hn', hlv', hun', hnv, hcap, hcs', hfr, hT⟩ := spEnd_rec hpre hsp hend
   obtain ⟨hn, -, hc⟩ := hpre
   rcases hc with ⟨hs, -⟩ | ⟨hut, hctx, -, -⟩
@@ -235,7 +236,7 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     · exact uTree_not_own_child hut hn hsp hm
     · rw [node_none_of_objs hm] at hn; cases hn
   have hspl : r'.nv.spilled' = false := by rw [hnv]; exact hsp
-  refine ⟨hn', hlv', ?_, ?_, hun'.2.1, hun'.2.2.2.1, hspl, hun'.2.2.2.2.1, hsz, ?_⟩
+  refine ⟨hn', hlv', ?_, ?_, hun'.2.1, hun'.2.2.2.1, hspl, hun'.2.2.2.2.1, tail_insBnd hun', ?_⟩
   · unfold WX.nilCh; rw [killL_node]; exact WX.setNode_node_same hn' _
   · unfold WX.nilCh; rw [killL_live, WX.setNode_live]; exact ⟨hlv', hnot⟩
   · intro hpn
