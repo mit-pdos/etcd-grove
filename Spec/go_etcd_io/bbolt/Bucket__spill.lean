@@ -53,24 +53,25 @@ success the spilled tree (`spillOK`: `treeOK`, the writer's data, dropped base p
 new pages allocated and written in `tx.pages`), possibly after remaps (the view re-based),
 and `allocate`'s premises for `commitFreelist`'s (`derefPre`, `liveFresh`, `liveReach`; batch 12;
 the high-water mark's pages inside the mapping, batch 29); the records agree with the freelist
-(`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before and after;
+(`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before (not after, U9x5:
+false there, the logical tree no longer reaches the base pages the new tree keeps);
 the dirty pages `tx.write` takes (`spillBufs`, batch 39); (batch 44.7) the transaction's fields,
 its root bucket (present) and its meta copy but the high-water mark kept, on success and on an
 error (U10g's gap 7: the rollback after a failed spill needs `writable`, the root bucket, the txid). Its start takes `spillStartOK`
-(batch 43). On an
+(batch 43) and the writer's txid below `2 ^ 63` (U9x5: the new tree's `treeOK`; from the receipts). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
 abbrev Bucket.spill.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
   spillPre X w.fl → liveReach X → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → flViewU X w.fl →
-  spillStartOK X w →
+  spillStartOK X w → X.t.mv.txid'.toNat < 2 ^ 63 →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"spill")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗
         ⌜spillOK X X' w.C w.fl w'.fl w.wtxid ∧ w'.C = w.C ∧
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
-          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl ∧
+          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
           spillBufs X' w.C w'.fl ∧
           X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
           X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨

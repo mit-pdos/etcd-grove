@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
+public import Proof.go_etcd_io.bbolt.Spill.BktEnd
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailWp
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
 public import Proof.go_etcd_io.bbolt.Spill.BktPm

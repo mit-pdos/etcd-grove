@@ -147,6 +147,11 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   freeNC : ∀ y ∈ w0.fl.free, ¬ coversSlot w0.C.pages y.toNat
   /-- (U9x3) The transaction's struct unchanged (`Bucket.spill.spec`'s post). -/
   tt : X.t.t = X0.t.t
+  /-- (U9x5) Before any value is staged, nothing has changed (`rinv_end_nil`). -/
+  same : (∀ k ∈ keys, ∀ v p, ks k ≠ .val v p) → X = X0 ∧ w = w0 ∧ st = []
+  /-- (U9x5) Once a value is put, the root bucket has a root node (`Cursor.node` materialized
+  its root). -/
+  putRoot : (∃ k v, ks k = .val v true) → ∀ B, X.t.bs !! X0.rl = some B → B.bv.rootNode' ≠ null
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
@@ -164,6 +169,28 @@ def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Na
 
 theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
   unfold upd; rw [if_pos rfl]
+
+/-- `RInv.same`'s premise fails once a key's value is staged. -/
+theorem same_upd_val {keys : List GoString} {ks : GoString → KSt} {k : GoString} (hk : k ∈ keys)
+    (v : List w8) (p : Bool) : ¬ ∀ k' ∈ keys, ∀ v' p', upd ks k (.val v p) k' ≠ .val v' p' :=
+  fun h => h k hk v p (upd_same ks k _)
+
+/-- `RInv.same`'s premise through a visit of a todo key that stages nothing. -/
+theorem same_upd_nv {keys : List GoString} {ks : GoString → KSt} {k : GoString} {s : KSt}
+    (hks : ks k = .todo) (h : ∀ k' ∈ keys, ∀ v p, upd ks k s k' ≠ .val v p) :
+    ∀ k' ∈ keys, ∀ v p, ks k' ≠ .val v p := by
+  intro k' hk' v p e
+  by_cases h' : k' = k
+  · subst h'; rw [hks] at e; cases e
+  · apply h k' hk' v p; unfold upd; rw [if_neg h']; exact e
+
+/-- `RInv.putRoot`'s premise through a state change that puts nothing. -/
+theorem putRoot_upd {ks : GoString → KSt} {k : GoString} {s : KSt} (hs : ∀ v, s ≠ .val v true)
+    (h : ∃ k' v, upd ks k s k' = .val v true) : ∃ k' v, ks k' = .val v true := by
+  obtain ⟨k', v, e⟩ := h
+  by_cases h' : k' = k
+  · subst h'; rw [upd_same] at e; exact absurd e (hs v)
+  · unfold upd at e; rw [if_neg h'] at e; exact ⟨k', v, e⟩
 
 theorem flatMap_perm_split {β : Type} {keys : List GoString} {Dc : GoString → List β}
     {k : GoString} (hnd : keys.Nodup) (hk : k ∈ keys) :
@@ -199,40 +226,6 @@ theorem rinv_treeLt {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) :
     ∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat := by
   rw [hI.C]; exact treeSlots_lt hI.cok (Nat.le_trans hI.hwm0 hI.mark)
-
-/-! ## The loop's end (statements; proofs to come; the start is `Spill/BktLoopPureStart`) -/
-
-/-- **The end, no root node**: nothing was put, the root bucket has no root node, and the records
-are the spill's success as they are. -/
-theorem rinv_end_nil {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
-    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
-    (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
-    (hB0 : X0.t.bs !! X0.rl = some B0) (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome)
-    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hks : ksAt keys keys.length ks)
-    (hB : X.t.bs !! X0.rl = some B) (hrn : B.bv.rootNode' = null) :
-    spillOK X0 X w0.C w0.fl w.fl w0.wtxid ∧ flViewU X w.fl ∧ spillBufs X w0.C w.fl := by
-  sorry
-
-/-- **The end, with a root node**: the root bucket's root node is the top of an unspilled tree
-over the current page map and mark (`InitB`: its nested values `bvalS`, the visited children's new
-ones, `BktVal`'s for the others), owning every owned slot (`O = []`); and after its spill and
-`b.rootNode = root; SetRootPage` the spill's success. -/
-theorem rinv_end {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
-    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
-    (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
-    (hB0 : X0.t.bs !! X0.rl = some B0) (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome)
-    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hks : ksAt keys keys.length ks)
-    (hB : X.t.bs !! X0.rl = some B) (hrn : B.bv.rootNode' ≠ null) :
-    ∃ rn h F D N E, rn.nv.spilled' = false ∧
-      spPre X w X0.rl B.bv.rootNode' rn [] none none h F D N E .top ∧
-      ∀ (X1 : WX) (w1 : WDb) (st1 : List FLStep) (B1 : BRec) (rt : Loc) (rr : NRec),
-        spDone X X1 w w1 X0.rl B.bv.rootNode' rn [] none none h D N E .top st1 →
-        X1.t.bs !! X0.rl = some B1 → B1.ns !! rt = some rr → rt ∈ X1.live →
-        rr.nv.spilled' = true → rr.nv.parent' = null → nodeRootIn B1 B1.bv.rootNode' rt →
-        spillOK X0 (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w0.fl w1.fl w0.wtxid ∧
-          flViewU (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w1.fl ∧
-          spillBufs (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w1.fl := by
-  sorry
 
 end inv
 
