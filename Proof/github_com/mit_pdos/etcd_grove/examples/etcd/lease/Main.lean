@@ -92,7 +92,7 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leasekvDir id) (dirOne_member id _)
-      (by omega) (by omega) false 0 false .none lease.runCfg_none) $$ Hmarsh
+      (by omega) (by omega) false 0 .none .none lease.runCfg_none) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlg0⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -135,7 +135,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     imod (etcdstart.kv_lease_served_false srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
-      mid R Hrb48 (by omega) Hrf HlP rfl hlg0) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
+      mid R Hrb48 (by omega) Hrf HlP rfl (by rw [KVNames.lg_eq, hlg0]; rfl)) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
       with ⟨Htk, -, #Hlr⟩
     · unfold etcdstart.kvServeStocks
       iframe; iframe #

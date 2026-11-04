@@ -61,6 +61,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklg⟩ := Hγ
+  have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using hklg
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
@@ -94,7 +95,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     · ipureintro
       exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
         hpfx, rfl, trivial, by rw [hkc', hkc],
-        ⟨.none, by simpa [hklg', hklg] using lease.runCfg_none (GF := GF)⟩, by simp [hklg', hklg]⟩
+        ⟨.none, by rw [hklg', hlm]; exact lease.runCfg_none (GF := GF)⟩, by rw [KVNames.lg_eq, hklg', hlm]; rfl⟩
     iunfold idNoZero
     rw [hiss', hiss]
     iexact H0

@@ -343,12 +343,12 @@ certificates', raft's committed log's; the store's certificates at the KV's name
 side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
 `kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
 track's `srvEnvOkD` makes the backend's mode the server's). (The lease-grant stage, B1,
-2026-11-02) The KV names' lease-granting mode the environment's (`γr.kv.lg = E.lg`, beside the
+2026-11-02) The KV names' lease mode the environment's (`γr.kv.lm = E.lm`, X7 option (iii); beside the
 retention's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝ ∗
-    ⌜γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+    ⌜γr.kv.cret = E.cret ∧ γr.kv.lm = E.lm⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -687,6 +687,19 @@ raft contract's shapes, `srvC`, are at the KV names' `lg`, the apply thread's at
 theorem isServer_lg (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     isServer s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lg = E.lg⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨%hr, -, -, Hat, -, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hk⟩
+  iunfold srvKVInvs at Hk
+  icases Hk with ⟨-, -, -, -, -, %hl, -⟩
+  ipureintro; exact ⟨hr, by rw [KVNames.lg_eq, apply.AEnv.lg_eq, hl.2]⟩
+
+/-- **The request path's lease mode is the environment's** (X7 option (iii), 2026-11-04). -/
+theorem isServer_lm (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lm = E.lm⌝ := by
   iintro H
   iunfold isServer at H
   icases H with ⟨%hr, -, -, Hat, -, -, -⟩

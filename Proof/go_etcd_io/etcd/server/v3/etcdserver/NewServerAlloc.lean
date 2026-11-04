@@ -70,11 +70,11 @@ height or its slots and prefix. -/
 theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     (h : γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
       γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.cmp = γk'.cmp ∧
-      γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lg = γk'.lg) :
+      γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11⟩ := h
   unfold kvInv kvWork entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
-    cmpEntryOk kvModel kvStQ
+    cmpEntryOk kvModel kvStQ KVNames.lg
   rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11]
 
 /-- The client's `etcdKV` reads only the state's variable. -/
@@ -158,16 +158,16 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) (cmp : Bool) (cret : Nat := 0) (lg : Bool := false) :
+    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) (cmp : Bool) (cret : Nat := 0) (lm : lease.Mode := .none) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lg = lg⌝ ∗
+          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInv ⟨γ, [], W64 0⟩ γk ∗
-        (if lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
+        (if γk.lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
         idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
@@ -274,7 +274,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     ipureintro; exact ⟨ps, Hne, by rw [hbt]; exact hboot⟩
   -- the KV invariant at the bootstrap log
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, 0, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lg⟩
+    ⟨issued, cnt, 0, 0, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lm⟩
   imod ghostVar_alloc (GF := GF) (kvModelSt γk0 (bootEntries γ.boot)) with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
   have hm : kvModelSt γk (bootEntries γ.boot) = kvModelSt γk0 (bootEntries γ.boot) := rfl
@@ -346,7 +346,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.cmp = γk.cmp ∧ ρ.rd.kv.rlog = γk.rlog ∧
-          ρ.rd.kv.cret = γk.cret ∧ ρ.rd.kv.lg = γk.lg ∧ ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
+          ρ.rd.kv.cret = γk.cret ∧ ρ.rd.kv.lm = γk.lm ∧ ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInv ⟨γ, [], W64 0⟩ ρ.rd.kv ∗ idShare ρ.ids ∗ srvReadNamesFreshNK ρ.rd ∗
         idWaitTok ρ.ids := by
   iintro #Hkv Hp Hwt
@@ -362,7 +362,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
-      γk.cret, γk.lg⟩⟩⟩
+      γk.cret, γk.lm⟩⟩⟩
   isplitr
   · ipureintro
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
@@ -370,7 +370,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   · dsimp only
     rw [kvInv_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
-      γk.cret, γk.lg⟩ γk
+      γk.cret, γk.lm⟩ γk
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
     iexact Hkv
   isplitl [Hp Hsl Hpend]

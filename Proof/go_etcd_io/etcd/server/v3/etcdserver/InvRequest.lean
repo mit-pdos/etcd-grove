@@ -211,8 +211,19 @@ structure KVNames where
   member's grant guard is `False` (`srvGrantGuard`) and its lessor revocable (`lease.NewLessor`'s
   `mono := false`), so a snapshot can be restored (`lease.lessor.Recover`). `true`: grants are
   proposed (with auth off and under `lease.leasesNoExpiry`), each member's lessor is monotone (its
-  live leases stay live: no revocation, no restore), which `LeaseLeases` reads rely on. -/
-  lg : Bool := false
+  live leases stay live: no revocation, no restore), which `LeaseLeases` reads rely on. (The
+  lease-expiry plan's X7 option (iii), 2026-11-04, the user's: the field is the cluster's lease mode
+  `lm`, `KVNames.lg` its grant flag; `.revocable` admits the server's revocations.) -/
+  lm : lease.Mode := .none
+
+
+/-- **Whether the cluster's requests may grant leases** (the lease-expiry plan's X7 option (iii),
+2026-11-04: until then the field `lg`): its lease mode is not `none`. -/
+@[reducible] def KVNames.lg (γk : KVNames) : Bool := decide (γk.lm ≠ .none)
+
+theorem KVNames.lg_eq (γk : KVNames) : γk.lg = decide (γk.lm ≠ .none) := rfl
+
+theorem KVNames.lg_fold (γk : KVNames) : decide (γk.lm ≠ .none) = γk.lg := rfl
 
 /-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
 watches, `client.srvWEnv … default`). -/

@@ -9,7 +9,7 @@ leasesNoExpiry ∧ srvGrantOpen`), the lessor's checkpointer (`ckptEffectsOk`), 
 its postcondition (the lessor finding no lease with auth on, the peers' round tripper, the lessor's
 reader side and its reader pool). They are now two sealed slots (`etc/import-all.txt`):
 
-- `lease.bootCfg lg m on`, the subsystem's pure boot premise, at the lease mode `m` the caller
+- `lease.bootCfg lm m on`, the subsystem's pure boot premise, at the lease mode `m` the caller
   chooses (`lease.Mode`: no grants, monotone grants, or revocable grants);
 - `lease.srvInv on s E m`, the subsystem's part of the built server.
 
@@ -20,7 +20,8 @@ the caller chooses (the lessor's ghost name is `NewLessor`'s, in the post's `E.�
 
 Couplings: `bootCfg`'s `on` is the auth mode; the coupling (auth on grants no lease) is owned by
 lease, with auth's mode as its parameter; `lg` is the KV names' grant flag, tied to the mode by
-`lg = decide (m ≠ none)` (`lease.bootCfg_lg`).
+`lg = decide (m ≠ none)`; since X7 option (iii) (2026-11-04) the KV names' mode `lm`, tied by
+`lm = m` (`lease.bootCfg_lm`).
 -/
 module
 
@@ -50,75 +51,77 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The lease subsystem's boot premise** (sealed), at the KV names' grant flag `lg`, the lease mode
-`m` and the auth mode `on`: `lg` is whether `m` grants; with auth on, no lease granted (the
+/-- **The lease subsystem's boot premise** (sealed), at the KV names' lease mode `lm`, the lease mode
+`m` and the auth mode `on`: `lm` is `m` (the lease-expiry plan's X7 option (iii), 2026-11-04: until
+then the KV names' grant flag `lg` with `lg = decide (m ≠ none)`, which `lm = m` gives,
+`KVNames.lg`); with auth on, no lease granted (the
 auth/lease coupling, the lease-grant stage's 2.13, owned by lease with auth's mode as its
 parameter); in the monotone mode, no lease expires during the run; in a granting mode the open
 cases of a granting cluster (`srvGrantOpen`, until the plan's S4); in the revocable mode the open
 case of `run`'s expiry arm (`srvRevokeOpen`; the expiry stage's Part X-a, 2026-11-04: until then
 `m = revocable → False`, and `srvGrantOpen` only at `mono`); and the lessor's checkpointer's
-effects (`ckptEffectsOk`, `NewLessor`'s premise). At `m = none` (`lg = false`) and `m = mono`
-(`lg = true`) exactly the premises `NewServer.specG` stated inline until 2026-11-04. -/
-@[no_expose] def lease.bootCfg (lg : Bool) (m : lease.Mode) (on : Bool) : Prop :=
-  lg = decide (m ≠ .none) ∧ (on = true → m = .none) ∧ (m = .mono → lease.leasesNoExpiry) ∧
+effects (`ckptEffectsOk`, `NewLessor`'s premise). At `m = none` and `m = mono` exactly the premises
+`NewServer.specG` stated inline until 2026-11-04. -/
+@[no_expose] def lease.bootCfg (lm : lease.Mode) (m : lease.Mode) (on : Bool) : Prop :=
+  lm = m ∧ (on = true → m = .none) ∧ (m = .mono → lease.leasesNoExpiry) ∧
     (m ≠ .none → srvGrantOpen (GF := GF)) ∧
     (m = .revocable → srvRevokeOpen (GF := GF) (hG := hG)) ∧ ckptEffectsOk
 
 /-- `lease.bootCfg` for a cluster that grants no lease (every non-granting example), in either auth
 mode. -/
-theorem lease.bootCfg_none (lg on : Bool) (hlg : lg = false) (hck : ckptEffectsOk) :
-    lease.bootCfg (GF := GF) lg .none on := by
+theorem lease.bootCfg_none (lm : lease.Mode) (on : Bool) (hlm : lm = .none) (hck : ckptEffectsOk) :
+    lease.bootCfg (GF := GF) lm .none on := by
   unfold lease.bootCfg
-  subst hlg
-  refine ⟨by decide, fun _ => rfl, ?_, ?_, ?_, hck⟩ <;> intro h <;>
+  subst hlm
+  refine ⟨rfl, fun _ => rfl, ?_, ?_, ?_, hck⟩ <;> intro h <;>
     first | cases h | exact absurd rfl h
 
 /-- `lease.bootCfg` for a cluster that grants monotone leases (`examples/etcd/leasegrant`): auth
 off, no lease expiring during the run, the open cases. -/
-theorem lease.bootCfg_mono (lg on : Bool) (hlg : lg = true) (hon : on = false)
+theorem lease.bootCfg_mono (lm : lease.Mode) (on : Bool) (hlm : lm = .mono) (hon : on = false)
     (hne : lease.leasesNoExpiry) (hopen : srvGrantOpen (GF := GF)) (hck : ckptEffectsOk) :
-    lease.bootCfg (GF := GF) lg .mono on := by
+    lease.bootCfg (GF := GF) lm .mono on := by
   unfold lease.bootCfg
-  subst hlg hon
-  refine ⟨by decide, ?_, fun _ => hne, fun _ => hopen, ?_, hck⟩ <;> intro h <;> cases h
+  subst hlm hon
+  refine ⟨rfl, ?_, fun _ => hne, fun _ => hopen, ?_, hck⟩ <;> intro h <;> cases h
 
 /-- `lease.bootCfg` for a cluster that grants revocable leases (the expiry stage's Part X-a): auth
 off, the open cases of a granting cluster and of `run`'s expiry arm. -/
-theorem lease.bootCfg_revocable (lg on : Bool) (hlg : lg = true) (hon : on = false)
+theorem lease.bootCfg_revocable (lm : lease.Mode) (on : Bool) (hlm : lm = .revocable)
+    (hon : on = false)
     (hopen : srvGrantOpen (GF := GF)) (hrev : srvRevokeOpen (GF := GF) (hG := hG))
-    (hck : ckptEffectsOk) : lease.bootCfg (GF := GF) lg .revocable on := by
+    (hck : ckptEffectsOk) : lease.bootCfg (GF := GF) lm .revocable on := by
   unfold lease.bootCfg
-  subst hlg hon
-  refine ⟨by decide, ?_, ?_, fun _ => hopen, fun _ => hrev, hck⟩ <;> intro h <;> cases h
+  subst hlm hon
+  refine ⟨rfl, ?_, ?_, fun _ => hopen, fun _ => hrev, hck⟩ <;> intro h <;> cases h
 
-/-- **The grant flag is the mode's**: `lg` is whether the mode grants leases. -/
-theorem lease.bootCfg_lg {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) lg m on) : lg = decide (m ≠ .none) := h.1
+/-- **The KV names' mode is the mode** (X7 option (iii); until then `lease.bootCfg_lg`, the grant
+flag `lg = decide (m ≠ none)`, which follows). -/
+theorem lease.bootCfg_lm {lm : lease.Mode} {m : lease.Mode} {on : Bool}
+    (h : lease.bootCfg (GF := GF) lm m on) : lm = m := h.1
 
 /-- **What the auth mode takes from `lease.bootCfg`** (`NewServer`'s auth-on construction): with
 auth on, the cluster grants no lease. -/
-theorem lease.bootCfg_auth {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) lg m on) : on = true → lg = false := by
+theorem lease.bootCfg_auth {lm : lease.Mode} {m : lease.Mode} {on : Bool}
+    (h : lease.bootCfg (GF := GF) lm m on) : on = true → lm = .none := by
   intro hon
   rw [h.1, h.2.1 hon]
-  decide
 
 /-- **What `NewLessor` takes from `lease.bootCfg`**: the checkpointer's effects. -/
-theorem lease.bootCfg_ckpt {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) lg m on) : ckptEffectsOk := h.2.2.2.2.2
+theorem lease.bootCfg_ckpt {lm : lease.Mode} {m : lease.Mode} {on : Bool}
+    (h : lease.bootCfg (GF := GF) lm m on) : ckptEffectsOk := h.2.2.2.2.2
 
 /-- **What `run`'s snapshot job takes from `lease.bootCfg`** in a granting cluster: the open cases
 (`srvGrantOpen`, `isServerRun`'s `%Hslg`). -/
-theorem lease.bootCfg_open {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) true m on) : srvGrantOpen (GF := GF) := by
+theorem lease.bootCfg_open {lm : lease.Mode} {m : lease.Mode} {on : Bool} (hlm : lm ≠ .none)
+    (h : lease.bootCfg (GF := GF) lm m on) : srvGrantOpen (GF := GF) := by
   obtain ⟨hlg, -, -, hopen, -, -⟩ := h
-  refine hopen ?_
-  intro hm; rw [hm] at hlg; exact absurd hlg (by decide)
+  exact hopen (hlg ▸ hlm)
 
 /-- **The running server's lease premise from the boot slot** (`NewServer`'s construction premise
-for `start` and `run`, `srvBuilt`'s `%Hslg`): `lease.runCfg` at the same flag and mode. -/
-theorem lease.bootCfg_run {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) lg m on) : lease.runCfg (GF := GF) lg m := by
+for `start` and `run`, `srvBuilt`'s `%Hslg`): `lease.runCfg` at the same KV mode and mode. -/
+theorem lease.bootCfg_run {lm : lease.Mode} {m : lease.Mode} {on : Bool}
+    (h : lease.bootCfg (GF := GF) lm m on) : lease.runCfg (GF := GF) lm m := by
   unfold lease.bootCfg at h
   unfold lease.runCfg
   obtain ⟨hlg, -, hmono, hopen, hrev, -⟩ := h
@@ -127,9 +130,9 @@ theorem lease.bootCfg_run {lg : Bool} {m : lease.Mode} {on : Bool}
 /-- **The boot slot from the running server's lease premise** (`etcdstart`'s `newServerMode`, from
 `memberBoot`'s `lease.runCfg`): with the auth/lease coupling at the auth mode `on` and the lessor's
 checkpointer. -/
-theorem lease.bootCfg_of_run {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.runCfg (GF := GF) lg m) (hon : on = true → m = .none) (hck : ckptEffectsOk) :
-    lease.bootCfg (GF := GF) lg m on := by
+theorem lease.bootCfg_of_run {lm : lease.Mode} {m : lease.Mode} {on : Bool}
+    (h : lease.runCfg (GF := GF) lm m) (hon : on = true → m = .none) (hck : ckptEffectsOk) :
+    lease.bootCfg (GF := GF) lm m on := by
   unfold lease.runCfg at h
   unfold lease.bootCfg
   obtain ⟨hlg, hmono, hopen, hrev⟩ := h

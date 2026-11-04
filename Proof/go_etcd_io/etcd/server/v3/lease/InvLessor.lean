@@ -49,6 +49,19 @@ end go_etcd_io.etcd.server.v3.lease
 namespace EtcdGrove
 namespace lease
 
+/-- **The lease mode of a cluster** (the caller's choice): `none`, the cluster grants no lease;
+`mono`, it grants leases that never expire during the run (the deployment premise
+`lease.leasesNoExpiry`); `revocable`, it grants leases the server expires and revokes (admitted by
+the expiry stage's Part X-a, 2026-11-04, under the open premise `srvRevokeOpen`; until then
+`lease.bootCfg` and `lease.runCfg` were `False` there). (Moved from `LeaseApi.lean`, 2026-11-04, for
+`lease.runCfg`; to here, 2026-11-04, X7 option (iii): `KVNames.lm` and `AEnv.lm` name it.) -/
+inductive Mode
+  | none
+  | mono
+  | revocable
+  deriving DecidableEq
+
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease
 
 section fields

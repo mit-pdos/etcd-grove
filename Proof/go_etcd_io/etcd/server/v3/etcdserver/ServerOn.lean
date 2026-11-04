@@ -474,7 +474,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
     -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
-    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lg m⌝ ∗
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗

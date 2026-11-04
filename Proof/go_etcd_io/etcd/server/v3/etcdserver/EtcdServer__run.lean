@@ -270,7 +270,7 @@ theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
 /-- (open, the lease-grant plan's D2, 2026-11-02; since its B1/B2 commit 1 the bundle) **The open
 cases of a cluster that grants leases** (`srvGrantOpen`, `InvRun.lean`: `run`'s snapshot job, and the
 grant's cases as the plan adds them): not proved. `run` does not use it: it takes the case as
-`isServerRun`'s premise `∃ m, lease.runCfg γr.kv.lg m` (from `NewServer`'s precondition; until
+`isServerRun`'s premise `∃ m, lease.runCfg γr.kv.lm m` (from `NewServer`'s precondition; until
 2026-11-04 `γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`), which a cluster that grants
 none discharges by its `lg = false`; only a lease-granting result
 (`etcd_leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
@@ -299,7 +299,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lg m) (hrn : C.rn = γn) :
+    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lm m) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -322,7 +322,8 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
   cases hlgc : C.γr.kv.lg
   case true =>
     obtain ⟨m, hm⟩ := hslg
-    exact srvGrantOpen_snap (lease.runCfg_open (hlgc ▸ hm)) C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
+    exact srvGrantOpen_snap (lease.runCfg_open (by
+      intro h; rw [KVNames.lg_eq, h] at hlgc; exact absurd hlgc (by decide)) hm) C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
       hlen h61 hboot hlgc
   iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr⟩ HΦ
@@ -688,7 +689,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lg m) (hrn : C.rn = γn) :
+    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lm m) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -1314,7 +1315,7 @@ theorem EtcdServer.run.wp_proof
     obtain ⟨mo, Hmo⟩ := Hslg
     cases mo with
     | none =>
-      have h1 : γr.kv.lg = false := by simpa using lease.runCfg_lg Hmo
+      have h1 : γr.kv.lg = false := by rw [KVNames.lg_eq, lease.runCfg_lm Hmo]; rfl
       have h2 := Hlgt.2 hCoff
       iexfalso; ipureintro
       rw [h1, Hg.1] at h2

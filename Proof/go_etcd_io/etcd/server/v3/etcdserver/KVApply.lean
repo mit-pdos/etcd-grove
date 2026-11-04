@@ -273,7 +273,8 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   imodintro
   iframe Ha
   ipureintro
-  refine ⟨Hlg.2 ▸ Hpl m (by simp), Hch, ?_, Hcr⟩
+  have hlgE : γr.kv.lg = E.lg := by rw [KVNames.lg_eq, apply.AEnv.lg_eq, Hlg.2]
+  refine ⟨hlgE ▸ Hpl m (by simp), Hch, ?_, Hcr⟩
   rw [Hch, Hch0]; rfl
 
 /-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's

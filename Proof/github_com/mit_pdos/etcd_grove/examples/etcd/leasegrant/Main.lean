@@ -99,7 +99,7 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`), at KV names that grant leases
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leasegrantDir id)
-      (dirOne_member id _) (by omega) (by omega) false 0 true .mono (lease.runCfg_mono HnE hslg)) $$ Hmarsh
+      (dirOne_member id _) (by omega) (by omega) false 0 .mono .mono (lease.runCfg_mono HnE hslg)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -136,7 +136,8 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`, with the lease reads, the grant and the listing at the lessor's history
   -- registered at the address; the forked goroutine's token goes into the one gRPC slot
   haveI := Hms
-  have hlgw : ({ ρ with wait := γw } : ReqNames).rd.kv.lg = true := hlgρ
+  have hlgw : ({ ρ with wait := γw } : ReqNames).rd.kv.lg = true := by
+    show ρ.rd.kv.lg = true; rw [KVNames.lg_eq, hlgρ]; rfl
   wp_apply (wp_Serve srv go!"127.0.0.1:23956" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23956" ∗
         etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E))

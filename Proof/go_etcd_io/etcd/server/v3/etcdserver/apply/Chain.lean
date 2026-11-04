@@ -579,12 +579,21 @@ structure AEnv (GF : BundledGFunctors) where
   /-- (the lease-grant stage, B1, 2026-11-02) whether the cluster grants leases (`KVNames.lg`, which
   `srvKVInvs` ties it to): the per-request premise admits a grant only then (`rqOk`); the apply
   package does not read it until its chain passes it to `rqOk` (commit 4 of the lease-grant plan's
-  last section) -/
-  lg : Bool := false
+  last section; the lease-expiry plan's X7 option (iii), 2026-11-04: the field is the cluster's lease
+  mode `lm`, `AEnv.lg` its grant flag) -/
+  lm : lease.Mode := .none
   /-- (the lease-grant stage, 2.0, 2026-11-03) the ghost variable of the lessor's live set, whose
   halves the apply thread's image (`srvRest`) and its KV resources (`kvOwn`'s `leasesLive`) hold in
   a cluster that grants leases (`ltHalf`); unused otherwise -/
   γlt : GName := default
+
+omit package_sem in
+/-- **Whether the cluster grants leases** (the lease-expiry plan's X7 option (iii), 2026-11-04: until
+then the field `lg`): its lease mode is not `none`. -/
+@[reducible] def AEnv.lg (E : AEnv GF) : Bool := decide (E.lm ≠ .none)
+
+omit package_sem in
+theorem AEnv.lg_eq (E : AEnv GF) : E.lg = decide (E.lm ≠ .none) := rfl
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/

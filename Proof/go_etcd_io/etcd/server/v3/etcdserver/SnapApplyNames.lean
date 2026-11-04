@@ -94,6 +94,7 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_RW : (snapE E γ' TM' ci p' g γB al ast lp cl be).RW =
     srvRestRWH γB (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_lg : (snapE E γ' TM' ci p' g γB al ast lp cl be).lg = E.lg := rfl
+@[simp] theorem snapE_lm : (snapE E γ' TM' ci p' g γB al ast lp cl be).lm = E.lm := rfl
 @[simp] theorem snapE_γbe : (snapE E γ' TM' ci p' g γB al ast lp cl be).γbe = E.γbe := rfl
 
 /-- The store's names on the new backend are its real backend's (`p'.kb`, `snapWalkPost`'s). -/

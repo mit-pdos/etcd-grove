@@ -44,7 +44,7 @@ have no producer (`kvTieM`, ReqOn, is a different row: the request side's). -/
 def kvNameTiesM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : Prop :=
   match on with
   | false => (γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)) ∧
-             (γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg)
+             (γr.kv.cret = E.cret ∧ γr.kv.lm = E.lm)
   | true => True
 
 /-- **The apply thread's KV ghost state at `A`** (a model row): `kvRun` off (the auth state `st`
@@ -147,7 +147,7 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
     -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
-    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lg m⌝ ∗
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
@@ -230,7 +230,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
     -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
-    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lg m⌝ ∗
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗

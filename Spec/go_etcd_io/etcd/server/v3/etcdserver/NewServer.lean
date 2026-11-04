@@ -226,7 +226,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring and
   -- the open cases (`srvGrantOpen`; lease-grant D2), and the lessor's checkpointer's effects
   -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
-  lease.bootCfg (GF := GF) ρ.rd.kv.lg m on →
+  lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no

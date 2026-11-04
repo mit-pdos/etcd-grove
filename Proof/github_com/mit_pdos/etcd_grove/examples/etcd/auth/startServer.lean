@@ -104,7 +104,7 @@ theorem startServer.wp_proof
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
-      (lease.bootCfg_none _ _ hlgf Hck)
+      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (etcdstart.bootCfgOk_of _ Hlg rfl rfl rfl rfl)

@@ -117,62 +117,59 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **What the running server takes of the lease subsystem** (sealed), at the KV names' grant flag
-`lg` and the lease mode `m`: `lg` is whether `m` grants; in the monotone mode, no lease expires
+/-- **What the running server takes of the lease subsystem** (sealed), at the KV names' lease mode
+`lm` and the lease mode `m`: `lm` is `m` (the lease-expiry plan's X7 option (iii), 2026-11-04: until
+then the grant flag `lg` with `lg = decide (m ≠ none)`); in the monotone mode, no lease expires
 during the run; in a granting mode, the open cases of a granting cluster (`srvGrantOpen`, until the
 plan's S4); in the revocable mode, the open case of the expiry arm (`srvRevokeOpen`; the expiry
 stage's Part X-a, 2026-11-04: until then `m = revocable → False`, and `srvGrantOpen` only at
-`mono`). The server's inner predicates carry `∃ m, lease.runCfg lg m`, which is implied by
-`lg = true → lease.leasesNoExpiry ∧ srvGrantOpen` (at `m := if lg then mono else none`), the premise
-they stated inline until 2026-11-04 (`lease.runCfg_none`, `lease.runCfg_mono` and
-`lease.runCfg_revocable` give it; `lease.runCfg_open`, `_noExpiry`, `_revoke`, `_lg` and
-`LeaseApi.lean`'s `lease.bootCfg_of_run` use it). -/
-@[no_expose] def lease.runCfg (lg : Bool) (m : lease.Mode) : Prop :=
-  lg = decide (m ≠ .none) ∧ (m = .mono → lease.leasesNoExpiry) ∧
+`mono`). The server's inner predicates carry `∃ m, lease.runCfg lm m` (`lease.runCfg_none`,
+`lease.runCfg_mono` and `lease.runCfg_revocable` give it; `lease.runCfg_open`, `_noExpiry`,
+`_revoke`, `_lm` and `LeaseApi.lean`'s `lease.bootCfg_of_run` use it). -/
+@[no_expose] def lease.runCfg (lm : lease.Mode) (m : lease.Mode) : Prop :=
+  lm = m ∧ (m = .mono → lease.leasesNoExpiry) ∧
     (m ≠ .none → srvGrantOpen (GF := GF)) ∧ (m = .revocable → srvRevokeOpen (GF := GF) (hG := hG))
 
 /-- `lease.runCfg` for a cluster that grants no lease. -/
-theorem lease.runCfg_none : lease.runCfg (GF := GF) false .none := by
+theorem lease.runCfg_none : lease.runCfg (GF := GF) .none .none := by
   unfold lease.runCfg
-  refine ⟨by decide, ?_, ?_, ?_⟩ <;> intro h <;> first | cases h | exact absurd rfl h
+  refine ⟨rfl, ?_, ?_, ?_⟩ <;> intro h <;> first | cases h | exact absurd rfl h
 
 /-- `lease.runCfg` for a cluster that grants monotone leases: no lease expiring during the run, the
 open cases. -/
 theorem lease.runCfg_mono (hne : lease.leasesNoExpiry) (hopen : srvGrantOpen (GF := GF)) :
-    lease.runCfg (GF := GF) true .mono := by
+    lease.runCfg (GF := GF) .mono .mono := by
   unfold lease.runCfg
-  refine ⟨by decide, fun _ => hne, fun _ => hopen, ?_⟩
+  refine ⟨rfl, fun _ => hne, fun _ => hopen, ?_⟩
   intro h; cases h
 
 /-- `lease.runCfg` for a cluster that grants revocable leases: the open cases of a granting cluster
 and of the expiry arm. -/
 theorem lease.runCfg_revocable (hopen : srvGrantOpen (GF := GF))
-    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) : lease.runCfg (GF := GF) true .revocable := by
+    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) : lease.runCfg (GF := GF) .revocable .revocable := by
   unfold lease.runCfg
-  refine ⟨by decide, ?_, fun _ => hopen, fun _ => hrev⟩
+  refine ⟨rfl, ?_, fun _ => hopen, fun _ => hrev⟩
   intro h; cases h
 
-/-- **The grant flag is the mode's**: `lg` is whether the mode grants leases (the auth-on members,
-whose `lg = false` gives the mode `none` that `lease.bootCfg` takes with auth on). -/
-theorem lease.runCfg_lg {lg : Bool} {m : lease.Mode} (h : lease.runCfg (GF := GF) lg m) :
-    lg = decide (m ≠ .none) := h.1
+/-- **The KV names' mode is the mode** (X7 option (iii); until then `lease.runCfg_lg`). -/
+theorem lease.runCfg_lm {lm : lease.Mode} {m : lease.Mode} (h : lease.runCfg (GF := GF) lm m) :
+    lm = m := h.1
 
 /-- **What `run`'s snapshot job takes from `lease.runCfg`** in a granting cluster: the open cases
 (`srvGrantOpen`). -/
-theorem lease.runCfg_open {m : lease.Mode} (h : lease.runCfg (GF := GF) true m) :
+theorem lease.runCfg_open {lm m : lease.Mode} (hlm : lm ≠ .none) (h : lease.runCfg (GF := GF) lm m) :
     srvGrantOpen (GF := GF) := by
   obtain ⟨hlg, -, hopen, -⟩ := h
-  refine hopen ?_
-  intro hm; rw [hm] at hlg; exact absurd hlg (by decide)
+  exact hopen (hlg ▸ hlm)
 
 /-- **What `run`'s expiry arm takes from `lease.runCfg` in the monotone mode**: no lease expires
 during the run (against the expired slice's `¬ leasesNoExpiry`: the arm is dead). -/
-theorem lease.runCfg_noExpiry {lg : Bool} (h : lease.runCfg (GF := GF) lg .mono) :
+theorem lease.runCfg_noExpiry {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .mono) :
     lease.leasesNoExpiry := h.2.1 rfl
 
 /-- **What `run`'s expiry arm takes from `lease.runCfg` in the revocable mode**: the open case
 (`srvRevokeOpen`, opened by `srvRevokeOpen_spec`). -/
-theorem lease.runCfg_revoke {lg : Bool} (h : lease.runCfg (GF := GF) lg .revocable) :
+theorem lease.runCfg_revoke {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .revocable) :
     srvRevokeOpen (GF := GF) (hG := hG) := h.2.2.2 rfl
 
 end runCfg

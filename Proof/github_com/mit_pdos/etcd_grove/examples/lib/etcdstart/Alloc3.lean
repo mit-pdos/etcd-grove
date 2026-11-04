@@ -100,7 +100,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false)
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lm = .none)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev)) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -148,7 +148,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
       hpfx, ?_, trivial, by rw [hkc', Hkc],
-      (by simpa [hklg', Hklg] using lease.runCfg_none (GF := GF))⟩
+      (by rw [hklg', Hklg]; exact lease.runCfg_none (GF := GF))⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
   rw [hiss', Hiss]
@@ -225,7 +225,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, -, hklg⟩ := Hγ
-  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
+  isimp only [KVNames.lg, hklg, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩
