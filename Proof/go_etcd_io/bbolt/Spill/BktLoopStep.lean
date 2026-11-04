@@ -127,16 +127,11 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
     · rw [if_pos h, h, hks]; rfl
     · rw [if_neg h]
 
-/-- **A child's spill keeps the buffers dirty pages of fresh slots** (a `sorry`: `bkDone`'s
-`spStep` does not say what the spill does to the buffers. The missing conjunct of
-`spStep X X' w w' O st` (maintainer 8's `spPost`): `bufsOK X w.C w.fl → bufsOK X' w.C w'.fl`:
-every new buffer is an allocation written with its header and length below the new mark, on
-slots no tree slot of `w.C` (an allocation is a free id or at the mark), and no buffer slot
-becomes pending (the spill frees only base pages, `spFree`). -/
+/-- **A child's spill keeps the buffers dirty pages of fresh slots** (`spStep`'s clause). -/
 theorem bkDone_bufsOK {X X' : WX} {w w' : WDb} {c : Loc} {C : BRec} {O D : List Nat}
     {st' : List FLStep} {C0 : CommitSt} (hd : bkDone X X' w w' c C O D st')
     (hb : bufsOK X C0 w.fl) (hC0 : w.C = C0) : bufsOK X' C0 w'.fl := by
-  sorry
+  subst hC0; exact hd.1.2.2.2.2.2.2.2.2 hb
 
 /-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
 theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
