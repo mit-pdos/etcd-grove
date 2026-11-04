@@ -279,6 +279,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
   have hlenws : ra.ws.length = rl.ws.length := by
     have := congrArg List.length hms; simp only [wsMs_length] at this; exact this
   icases wtxW_open K tx r m X2 $$ Hw with ⟨#-, #-, #-, Hh, Hv, Hst, Hclose⟩
+  ihave %Hok2 := wtxHeap_heapOK tx (DFrac.own 1) X2 $$ Hh
   icases wtxHeap_node_buf_acc tx X2 bl l ra id p _ hna hlv2 hpm2 hbs2 $$ Hh
     with ⟨Hno, Hp, Hmeta, Hmv, Hback⟩
   icases Read.bytesPointsto_bounds _ _ _ (by
@@ -298,8 +299,9 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
   wp_auto
-  icases wOwns_write_acc X2.v Hbase ra.ins ra.ws wq hwl $$ [Hws Hv] with ⟨%qk, %qv, Hbytes, Hbb⟩
-  · iframe
+  icases Hws with #Hws
+  icases wOwns_write_acc X2.v Hbase ra.ins ra.ws wq hwl $$ [Hv] with ⟨%qk, %qv, Hbytes, Hbb⟩
+  · iframe; iframe #
   ihave Hn : (l ↦ ({ ra.nv with pgid' := id } : node) : IProp GF)
     $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
   · iapply typedPointsto_combine _ _ _ Hnn
@@ -321,6 +323,32 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
   · iframe
     iunfold insBytes at Hbytes
     iexact Hbytes
+  -- the written page and node, back
+  ihave Hv := Hbb $$ [Hbytes]
+  · iunfold insBytes; iexact Hbytes
+  ihave Hp : bytesPointsto p (DFrac.own 1)
+      (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))) $$ [Hhdr Hrest]
+  · unfold pcPage
+    rw [← allocBuf_written]
+    iapply (pageBuf_split p (DFrac.own 1) _ _ Hpb.1).2
+    iframe
+  ihave Hno : objOwn X2.v l (DFrac.own 1) true (.node bl (pcRec ra id false))
+    $$ [Hn Hins Hcap Hch Hchcap Hkey]
+  · iapply (objOwn_live_node _ _ _ _ _).2
+    simp only [pcRec, Bool.false_eq_true, ↓reduceIte]
+    iframe; iframe #
+  have hpar2 : (pcRec ra id false).nv.parent' ≠ l := by
+    simp only [pcRec, Bool.false_eq_true, ↓reduceIte]
+    exact Hok2.2.2.2.1 bl B2 l ra hB2 hra
+  ihave Hh := Hback $$ %(pcRec ra id false) %(pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))
+    %hpar2 Hno Hp Hmeta Hmv
+  ihave Hw := Hclose $$ %((X2.setNode bl l (pcRec ra id false)).setBuf id
+    (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) [] Hh Hv Hst
+  · ipureintro
+    rw [setNode_eq X2 bl l B2 _ hB2]
+    exact ⟨rfl, rfl, rfl⟩
+  have hparl : ra.nv.parent' = rl.nv.parent' := by
+    have := nodeSim_parent hsa; rw [hrl1] at this; exact this
   trace_state
   sorry
 

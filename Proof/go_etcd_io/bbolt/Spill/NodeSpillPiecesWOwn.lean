@@ -41,6 +41,12 @@ theorem wOwn_true' (v : View) (it : Inode) (w : WEntry) :
       srcOwn v it.key' w.ks w.key ∗ srcOwn v it.value' w.vs w.value := by
   unfold wOwn; simp only [↓reduceIte]; exact .rfl
 
+omit package_sem hos in
+/-- A live node's entry's facts are persistent. -/
+instance wOwn_true_persistent (v : View) (it : Inode) (w : WEntry) :
+    Persistent (wOwn (GF := GF) v true it w) := by
+  unfold wOwn; simp only [↓reduceIte]; infer_instance
+
 /-- **A live node's inodes' bytes for `node.write`** (see the module doc). -/
 theorem wOwns_write_acc (v : View) (hb : 0 < v.base.addr) :
     ∀ (ins : List Inode) (ws : List WEntry) (q : Qp), wsLive ws →
