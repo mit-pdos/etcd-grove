@@ -36,12 +36,23 @@ instance reg_persistent (tx : Loc) (B : BNs) (r : TxReg) :
 instance viewOf_persistent (r : TxReg) (v : View) : Persistent (viewOf (GF := GF) r v) := by
   unfold viewOf; infer_instance
 
+/-- PENDING a shared fix: the mapping's base is not null (`DB.page` indexes `db.data`;
+`mmap` returns a mapped address). `mapFields`' mapped case does not say it yet: the read path's
+callers of `Tx.page` (`Tx.page_r`, `Bucket.pageNode_w`) rest on this one `sorry`. -/
+theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
+    mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜b ≠ null⌝ := by
+  sorry
+
 theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ⊢ db.[DB, go!"pageSize"] ↦□ W64 4096 := by
   unfold isBoltCoreP dbFixed
   iintro ⟨-, -, -, -, -, ⟨H, -⟩, -⟩
   iexact H
+
+theorem BC.core_pageSize (K : BC) :
+    K.core (GF := GF) ⊢ K.db.[DB, go!"pageSize"] ↦□ W64 4096 :=
+  isBoltCoreP_pageSize K.B K.N K.db K.p K.sp K.t0
 
 theorem isBoltCoreP_pkgInit' (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) :

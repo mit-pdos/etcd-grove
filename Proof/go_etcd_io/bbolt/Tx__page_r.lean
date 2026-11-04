@@ -28,12 +28,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- PENDING a shared fix: the mapping's base is not null (`DB.page` indexes `db.data`).
-`mapFields`' mapped case does not say it yet (`notes/bbolt-proof-plan.md`). -/
-private theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
-    mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜b ≠ null⌝ := by
-  sorry
-
 theorem Tx.page_r.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG)) :
     Tx.page_r.spec (GF := GF) (hG := hG) := by
   intro K tx src q T v id pg hpg
