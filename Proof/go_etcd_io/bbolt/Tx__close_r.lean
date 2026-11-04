@@ -65,17 +65,24 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   icases Hx with ⟨Hrl, Hloan, Hstok, Hrds⟩
   simp only [QpMul_one_c]
   rw [hdb]
+  -- batch 41: the spare reader's half of `B.spr`, for `removeTx`
+  ihave ⟨Hpool, Hsp⟩ : (if src = .loan then
+      threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) else emp) ∗
+      (if r.src = .loan then emp else ghostVar K.B.spr (1 : Qp).half (some k)) $$ [Hpool]
+  · cases src
+    · simp only [hsrc, ↓reduceIte]; iframe
+    · simp only [hsrc, reduceCtorEq, ↓reduceIte]; iframe
   wp_apply wp_removeTx wp_Txid wp_RemoveRO K tx r v mv k t.meta' l hdb Hf.2.2.1
-    $$ [Hrl Hmap Hmf Hrds Hvc Hstok Hd Hme Hmv] as ⟨Hmtok, Hstok, Hme, Hmv, Hdb4, Hd, #Hdone⟩
+    $$ [Hrl Hmap Hmf Hrds Hvc Hstok Hd Hme Hmv Hsp] as ⟨Hmtok, Hstok, Hme, Hmv, Hdb4, Hd, #Hdone, Htok⟩
   · iframe; iframe #
   -- the pair's source back
-  ihave Hback : |={⊤}=> pairBack K src $$ [Hloan Hpool Hmtok Hstok]
+  ihave Hback : |={⊤}=> pairBack K src $$ [Hloan Hpool Hmtok Hstok Htok]
   · cases src
     · simp only [hsrc, ↓reduceIte, pairBack]
       iapply threadPool.giveBack (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) ⊤ CoPset.subseteq_top
       iframe Hpool Hloan
       iunfold rdPair; iframe
-    · simp only [hsrc, reduceCtorEq, ↓reduceIte, pairBack, rdPair]
+    · simp only [hsrc, reduceCtorEq, ↓reduceIte, pairBack, sparePair, rdPair]
       imodintro; iframe
   imod Hback with Hback
   -- the fields cleared: all of `tx.db`, the root bucket whole
