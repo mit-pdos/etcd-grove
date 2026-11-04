@@ -249,7 +249,7 @@ theorem uTree_piecesE {X : WX} {bl : Loc} {B : BRec} {hwm' : Nat} (hB : X.t.bs !
         exact ih i _ e hw he (fun hch =>
           ⟨r, r.ws[i], hr, hleaf, hw, rfl, fin_unmat hcl hB hr hleaf hlen hent hcsE hw he hch⟩)
           (fun x hx => hE0 x (List.mem_flatMap.2 ⟨e, hem, hx⟩)) (hknE e hem)
-          (pos_child ht hpt hL hi)
+          (pos_childT ht hpt hL hi)
       have hNf : (es.flatMap UE.N).Nodup := (List.nodup_cons.1 hNnd).2
       have hnN : n ∉ es.flatMap UE.N := (List.nodup_cons.1 hNnd).1
       have hnotn : ∀ (i : Nat) (e : UE), es[i]? = some e → n ∉ e.N := fun i e he hn =>

@@ -31,14 +31,14 @@ namespace Spill
 section nilpos
 variable [GooseExts]
 
-theorem ltIsL_get {L : LTree} {bl : Loc} : ∀ {ws : List WEntry} {cs : List RTree},
+theorem ltIsL_getI {L : LTree} {bl : Loc} : ∀ {ws : List WEntry} {cs : List RTree},
     ltIsL L bl ws cs → ∀ i (hi : i < ws.length), ∃ t ∈ cs, t.pid = ws[i].pgid ∧ ltIs L bl t
   | [], [], _, i, hi => by simp at hi
   | _ :: _, t :: _, h, 0, _ => by
     simp only [ltIsL] at h; exact ⟨t, List.mem_cons_self, h.1, h.2.1⟩
   | _ :: _, _ :: _, h, i + 1, hi => by
     simp only [ltIsL] at h
-    obtain ⟨t', ht', h1, h2⟩ := ltIsL_get h.2.2 i (by simpa using hi)
+    obtain ⟨t', ht', h1, h2⟩ := ltIsL_getI h.2.2 i (by simpa using hi)
     exact ⟨t', List.mem_cons_of_mem _ ht', by simpa using h1, h2⟩
   | [], _ :: _, h, _, _ => by simp only [ltIsL] at h
   | _ :: _, [], h, _, _ => by simp only [ltIsL] at h
@@ -86,7 +86,7 @@ theorem subsL_pid_mem_posL {L : LTree} {bl : Loc} : ∀ (ws : List WEntry) (cs :
 end
 
 /-- **The walk's positions are closed under a branch's children.** -/
-theorem pos_child {L : LTree} {bl : Loc} {t : RTree} (ht : ltIs L bl t) {p : w64}
+theorem pos_childT {L : LTree} {bl : Loc} {t : RTree} (ht : ltIs L bl t) {p : w64}
     (hp : p ∈ t.pos) {ws : List WEntry} (hL : L bl p = some (false, ws)) {i : Nat}
     (hi : i < ws.length) : ws[i].pgid ∈ t.pos := by
   obtain ⟨s, hs, rfl⟩ := RTree.pos_subs t p hp
@@ -102,7 +102,7 @@ theorem pos_child {L : LTree} {bl : Loc} {t : RTree} (ht : ltIs L bl t) {p : w64
       simp only [RTree.pid] at hL; rw [hL] at h1
       simp only [Option.some.injEq, Prod.mk.injEq, true_and] at h1
       subst h1
-      obtain ⟨c, hc, hcp, -⟩ := ltIsL_get h2 i hi
+      obtain ⟨c, hc, hcp, -⟩ := ltIsL_getI h2 i hi
       rw [← hcp]
       exact subs_pid_mem_pos t c ht (RTree.subs_trans t _ hs c
         (RTree.child_mem_subs q false ws cs c hc c (RTree.self_mem_subs c)))
@@ -127,7 +127,7 @@ theorem pos_own {L : LTree} {bl : Loc} {P : Pages} {t : RTree} (ht : ltIs L bl t
       have := Write.pageWs_getD pg i hi
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi', Option.getD_some] at this
       rw [this]; exact (Write.pageW_branch pg i hnl).2
-    have hc := pos_child ht hmem hLp hi'
+    have hc := pos_childT ht hmem hLp hi'
     rw [hpgid] at hc
     exact ih _ (Write.branchPgid_toNat pg i) hc
       (fun x pg' ho hx => hL x pg' (ownHas.child r pg i _ hpg hfl hi ho) hx)
