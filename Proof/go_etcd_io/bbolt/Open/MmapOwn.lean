@@ -47,7 +47,7 @@ in the fields (OsFs may keep a leaked mapping). -/
 abbrev DB.mmapUnlocked.spec_own : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
     (m : OsMeta) (xs : List (w8 × Bool)) (minsz : w64),
-  db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 → 0 ≤ sint.Z minsz →
+  db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
   (mf = W64 0 ∨ mf = W64 0x8000) →
   (8192 ≤ m.size → metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∨
     metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096))) →
@@ -80,7 +80,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
     (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG)) :
     DB.mmapUnlocked.spec_own (GF := GF) (hG := hG) := by
-  intro db f fd p lg mf mx dq m xs minsz hdb hmaps hxl hsz hmin hmf hval
+  intro db f fd p lg mf mx dq m xs minsz hdb hmaps hxl hsz hmf hval
   unfold mmapOwnFix
   wp_start as ⟨#Hos, ⟨#Hlg, #Hlgok, #Hps, Hmx, #Hml, #Hmff, Hrw⟩, Hfile, Hfo, Hfd, Hosm, Hxs,
     Hmf0, Hdsz⟩
