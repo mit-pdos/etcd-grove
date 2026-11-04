@@ -837,7 +837,27 @@ theorem Tx.Commit_err.wp_proof'
               hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp
               $$ [Hw Hwl Hstq HS Hau' Hfb] as %err5 ⟨%m'', %Hm'', Hw, Herr, Hpost⟩
             · iframe
-            sorry
+            icases Herr with (%He5 | ⟨%He5, #Hfe5⟩)
+            · subst He5
+              icases Hpost with (⟨Hwl, Hstq, HQ⟩ | ⟨%Hne, -⟩)
+              · try wp_auto
+                wp_apply time.wp_Since as %d5 -
+                try wp_auto
+                icases cm_stats_acc K tx r false _ $$ Hw with ⟨-, -, Hst5, Hwb⟩
+                wp_apply wp_IncWriteTime K tx r false 1 $$ [Hst5] as %_ Hst5
+                · iframe; iframe #
+                ihave Hw := Hwb $$ Hst5
+                try wp_auto
+                have hokF := (cm_pub_ok T.cur Xt wg Xt.v.base (mapLen wg.ms) Pg m' m'' wb'
+                  (cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre) hpg
+                  (by rw [htxt]; unfold WDb.wtxid; rw [Hgr.1]) Hwgok.1 hms hmapl
+                  (by rw [Hgr.1]; exact hflt) Hm' Hm'' Hch.1 Hch.2).2
+                icases Hagr with ⟨%c5, Hagr⟩
+                imod ghostVar_update (c5, TxX.wr ((Xt.clearPages pml).withMv (metaSummed Xt.t.mv)))
+                  r.n.v _ $$ Hagr with Hagr
+                sorry
+              · exact absurd rfl Hne
+            · sorry
           · -- `write` failed: log, roll back, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err4 = GoInterface.ok ii := by
               cases err4 with
