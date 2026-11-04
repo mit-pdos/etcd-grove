@@ -80,11 +80,6 @@ theorem top_len (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : 16 ≤ cv.length :=
   (rBktOK_of v h cv (.inr (top_entries v h kb cv he))).1
 
-/-- A top-level bucket has no nested bucket. -/
-theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
-    (he : bktEntry v.pages (rootVal v) kb cv) : bktNames v.pages cv = [] := by
-  sorry
-
 /-- A top-level bucket stored in pages is a tree root. -/
 theorem top_ownRootOK (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) (hf : inBucketRoot cv ≠ 0) :
@@ -96,6 +91,50 @@ theorem top_ownRootOK (v : View) (h : viewWF v) (kb cv : List w8)
   rcases ht with ⟨h0, _⟩ | ⟨_, hwm, hw⟩
   · exact absurd h0 hf
   · exact ⟨hwm, hw⟩
+
+/-- A top-level bucket has no nested bucket. -/
+theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
+    (he : bktEntry v.pages (rootVal v) kb cv) : bktNames v.pages cv = [] := by
+  obtain ⟨n, hn⟩ := top_entries v h kb cv he
+  have h' := h
+  obtain ⟨C, hok, hvC⟩ := h'
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  have hrv : v.root = C.root := by rw [← hvC]; rfl
+  obtain ⟨⟨hw, -, hk, -⟩, -, -, -, hshape, -⟩ := hok
+  rw [hpv, hrv] at hn
+  unfold treeEntries treeLeaves at hn
+  obtain ⟨pg, hpg, hent⟩ := List.mem_flatMap.mp hn
+  obtain ⟨id', lo', hi', ho, hpid, hfl, -, -⟩ :=
+    leavesF_page C.pages C.hwm _ _ _ _ hw hk pg hpg
+  unfold leafEnts at hent
+  obtain ⟨i, hi, he'⟩ := List.mem_map.mp hent
+  rw [List.mem_range] at hi
+  simp only [Prod.mk.injEq] at he'
+  obtain ⟨-, rfl⟩ := he'
+  have hsh := (hshape id' pg ho hpid hfl i hi).2.2.2
+  unfold bktNames
+  rw [hpv]
+  apply List.flatMap_eq_nil_iff.mpr
+  intro bpg hb
+  have hleaf : bktLeafPg C.pages (leafValue pg i) bpg := by
+    unfold bktLeaves at hb
+    split at hb
+    · rename_i h0
+      simp only [List.mem_singleton] at hb
+      exact .inl ⟨h0, hb⟩
+    · rename_i h0
+      obtain ⟨C', hok', hCP', ⟨hwm', hw'⟩, hk'⟩ := top_ownRootOK v h kb _ he h0
+      rw [← hCP'] at hpv
+      have hw'' : treeWF C.pages hwm' (inBucketRoot (leafValue pg i)) := by
+        rw [← hpv, hCP']; exact hw'
+      have hk'' : treeKeys C.pages (inBucketRoot (leafValue pg i)) none none := by
+        rw [← hpv, hCP']; exact hk'
+      obtain ⟨p, -, -, hop, hpp, hfp, -⟩ := leavesF_page C.pages hwm' _ _ _ _ hw'' hk'' bpg hb
+      exact .inr ⟨h0, p, hop, hpp, hfp⟩
+  have := hsh bpg hleaf
+  simp only [List.map_eq_nil_iff, List.filter_eq_nil_iff, List.mem_range, decide_eq_true_eq]
+  intro j hj
+  rw [(this j hj).1]; simp [bucketLeafFlag]
 
 /-- The root's own pages are not in a top-level bucket's tree. -/
 theorem top_disj_root (v : View) (h : viewWF v) (kb cv : List w8)
