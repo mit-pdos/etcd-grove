@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
     Bucket.pageNode_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B id hB hlive hinl hnodes hres
+  intro K tx r m X bl B id hB hlive hinl hnodes hnn hres
   unfold wtxW wtxCore wtxHeap
   wp_start as ⟨⟨#Hpk, #Hcore, %Hr, #Hreg, ⟨%Hok, Htf, Hrf, Hobjs⟩, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩,
     Hcells, ⟨%l, Hmf⟩⟩
@@ -77,10 +77,9 @@ theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
         cases hl : B.nm !! id with
         | none => rfl
         | some l =>
-          -- PENDING (spec premise): a cached node is never nil (`bktClean`'s `B.nm` facts); the
-          -- spec's premises do not say so, and with a nil cached node the code returns the page
-          -- while the post (`resolve B id = some null`) asks for the node.
-          sorry
+          -- a cached node is never nil (the spec's premise, `bktClean`'s `B.nm` facts)
+          exfalso
+          exact hnn id l hl (by simp_all)
       have hrn : resolve B id = none := by simp only [resolve, hnm]; rw [if_neg Hroot0]
       obtain ⟨pa, pg, hwp, -, hpgf⟩ := hres hrn
       obtain ⟨hpmn, h16, hpid, hfl, hb⟩ := hpgf Hroot0

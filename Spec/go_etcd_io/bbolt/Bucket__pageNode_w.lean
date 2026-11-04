@@ -32,6 +32,7 @@ abbrev Bucket.pageNode_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (id : w64),
   X.t.bs !! bl = some B → bl ∈ X.live → (B.ib.root' = W64 0 → id = W64 0) →
   (B.bv.nodes' = null → B.nm = ∅) →
+  (∀ c l, B.nm !! c = some l → l ≠ null) →
   (resolve B id = none → ∃ pa pg, wpageAt X.v B id = some (pa, pg) ∧
     (B.ib.root' = W64 0 → B.pst = PageSt.view ∨ ∃ dq, B.isrc = Src.own dq) ∧
     (B.ib.root' ≠ W64 0 → X.t.pm !! id = none ∧ 16 ≤ pg.length ∧ pageId pg = id.toNat ∧

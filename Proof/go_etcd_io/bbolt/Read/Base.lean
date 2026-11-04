@@ -36,12 +36,12 @@ instance reg_persistent (tx : Loc) (B : BNs) (r : TxReg) :
 instance viewOf_persistent (r : TxReg) (v : View) : Persistent (viewOf (GF := GF) r v) := by
   unfold viewOf; infer_instance
 
-/-- PENDING a shared fix: the mapping's base is not null (`DB.page` indexes `db.data`;
-`mmap` returns a mapped address). `mapFields`' mapped case does not say it yet: the read path's
-callers of `Tx.page` (`Tx.page_r`, `Bucket.pageNode_w`) rest on this one `sorry`. -/
+/-- The mapping's base is not null (`mapFields`' mapped case; `DB.page` indexes `db.data`). -/
 theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
     mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜b ≠ null⌝ := by
-  sorry
+  simp only [mapFields]
+  iintro ⟨-, -, -, -, %H⟩
+  ipureintro; exact H.2
 
 theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
     (t0 : Nat) :

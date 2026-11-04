@@ -319,6 +319,16 @@ No frozen public statement changed.
 U3's untracked work copies (`Proof/go_etcd_io/bbolt/Store/Wip*.lean`) repeat the old proofs of
 items 4 and 5 and need the same edits.
 
+## Shared-statement fixes (U6's and U9a's findings, batch 4/5, 2026-11-04)
+
+1. **`mapFields`' mapped case** carries `⌜len ≤ 0xFFFFFFFFFFFF ∧ base ≠ null⌝` (one pure
+   conjunct, so the destructuring patterns of its users are unchanged; `DB.mmap`'s writer of the
+   fields states the base, U4). `Read/Base`'s `mapFields_base_nonnull` is proved: the read path's
+   `Tx.page` calls rest on no `sorry` for it.
+2. **`Bucket.pageNode_w`** takes `∀ c l, B.nm !! c = some l → l ≠ null` (a cached node is not
+   nil; `bktClean`'s `B.nm` clause, `bktLocalOK_nm_nonnull` for its callers); its branch `sorry`
+   is gone.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

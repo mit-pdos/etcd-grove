@@ -46,13 +46,14 @@ instance pure_dfractional (P : Prop) :
 
 /-- The mapping fields of `db` in the state `ms` (`invalidate` clears them). A mapping is at most
 `maxMapSize` (`0xFFFFFFFFFFFF`) long: `DB.mmap` maps `db.mmapSize(…)`'s result, which caps it there
-(or fails); `db.page`'s index into `*[maxMapSize]byte` needs it (U6 fix, for `Tx.page_r`). -/
+(or fails); `db.page`'s index into `*[maxMapSize]byte` needs it (U6 fix, for `Tx.page_r`). Its base
+is not nil (`mmap` returns a mapped address; `Tx.page` needs `db.data ≠ nil`). -/
 def mapFields (db : Loc) (dq : DFrac) : MapSt → IProp GF
   | some (base, len) => iprop(
       db.[DB, go!"dataref"] ↦{dq} (⟨base, W64 (len : Int), W64 (len : Int)⟩ : GoSlice) ∗
       db.[DB, go!"data"] ↦{dq} base ∗
       db.[DB, go!"meta0"] ↦{dq} (base +ₗ (16 : Int)) ∗
-      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)) ∗ ⌜len ≤ 0xFFFFFFFFFFFF⌝)
+      db.[DB, go!"meta1"] ↦{dq} (base +ₗ (4112 : Int)) ∗ ⌜len ≤ 0xFFFFFFFFFFFF ∧ base ≠ null⌝)
   | none => iprop(db.[DB, go!"dataref"] ↦{dq} slice.nil ∗ db.[DB, go!"data"] ↦{dq} null ∗
       db.[DB, go!"meta0"] ↦{dq} null ∗ db.[DB, go!"meta1"] ↦{dq} null)
 
