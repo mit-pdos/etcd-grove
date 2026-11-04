@@ -49,13 +49,15 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
         mapFields K.db (DFrac.own sync.rfrac.half) (some (v.base, l) : MapSt) ∗
         k ↪[K.B.rds] (⟨v⟩ : RdInfo) ∗ viewCells rq v ∗
         sync.ownRWMutex K.db.[DB, go!"statlock"] (Ps K.sp) ∗
-        ghostVar r.n.done (1 : Qp).half false ∗ tx.[Tx, go!"meta"] ↦ m ∗ m ↦ mv }}
+        ghostVar r.n.done (1 : Qp).half false ∗ tx.[Tx, go!"meta"] ↦ m ∗ m ↦ mv ∗
+        (if r.src = .loan then emp else ghostVar K.B.spr (1 : Qp).half (some k)) }}
       (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"removeTx")) (Val #tx))
     {{ RET #(); sync.ownRWMutex K.db.[DB, go!"mmaplock"] (Pm K.B K.db) ∗
         sync.ownRWMutex K.db.[DB, go!"statlock"] (Ps K.sp) ∗ tx.[Tx, go!"meta"] ↦ m ∗ m ↦ mv ∗
         tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} r.db ∗
-        ghostVar r.n.done (1 : Qp).half true ∗ txDoneDef tx }} := by
-  wp_start as ⟨#Hcore, #Hreg, Hrl, Hmap, Hmf, Hrds, Hvc, Hstok, Hd, Hme, Hmv⟩
+        ghostVar r.n.done (1 : Qp).half true ∗ txDoneDef tx ∗
+        (if r.src = .loan then emp else spareTok K.B) }} := by
+  wp_start as ⟨#Hcore, #Hreg, Hrl, Hmap, Hmf, Hrds, Hvc, Hstok, Hd, Hme, Hmv, Hsp⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -81,7 +83,49 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
   iunfold metaR at HR
   icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur, Hst', Hcls, Hop, Hfl, Hwa, Hob, Hmlk, Hfa, Hro,
     %Hok, %HF⟩
+  iunfold fltxAuth at Hfa
+  icases Hfa with ⟨Hfa, %o, Ho, Hcl⟩
   ihave %hk := ghost_map_lookup $$ Hfa Hfk
+  -- batch 41: the spare state (the spare reader's: reset, `store_spr_reset`), its clause kept
+  ihave Hspr : |={⊤}=> (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
+      (opnShot K.B ∨ ⌜sprCl o' (GMap.delete k F)⌝)) ∗
+      (if r.src = .loan then emp else spareTok K.B) ∗ k ↪[K.B.fltx] (W64 (v.txid : Int))
+      $$ [Ho Hcl Hsp Hfk]
+  · cases hs : r.src
+    · simp only [↓reduceIte]
+      imodintro
+      iframe Hfk
+      iexists o
+      iframe Ho
+      icases Hcl with (#Hshot | %hcl)
+      · ileft; iexact Hshot
+      · iright; ipureintro
+        intro k' x hx
+        rw [GMap.lookup_delete_iff] at hx
+        split at hx
+        · cases hx
+        · exact hcl k' x hx
+    · simp only [reduceCtorEq, ↓reduceIte]
+      imod store_spr_reset K.B K.N K.p ⊤ CoPset.subseteq_top k _ o $$ [Hpi Hsp Ho Hfk]
+        with ⟨Htok, Ho, Hfk, %ho⟩
+      · iframe; iframe #
+      imodintro
+      iframe Htok Hfk
+      iexists none
+      iframe Ho
+      icases Hcl with (#Hshot | %hcl)
+      · ileft; iexact Hshot
+      · iright; ipureintro
+        intro k' x hx
+        rw [GMap.lookup_delete_iff] at hx
+        split at hx
+        · cases hx
+        · rename_i hne
+          have := hcl k' x hx
+          rw [ho] at this
+          cases this
+          exact absurd rfl hne
+  imod Hspr with ⟨Hspr, Htok, Hfk⟩
   imod ghost_map_delete $$ Hfa Hfk with Hfa
   have hmv : mv.txid' = W64 (v.txid : Int) := by
     apply BitVec.eq_of_toNat_eq; rw [htxid]; simp; have := htxid ▸ BitVec.isLt mv.txid'; omega
@@ -108,9 +152,10 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
   ihave Hro : flRoOpt GoInterface.nil (GMap.delete k F) $$ []
   · iunfold flRoOpt; simp only [↓reduceIte]; itrivial
   all_goals
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur Hst' Hcls Hop Hfl Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur Hst' Hcls Hop Hfl Hwa Hob Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, cl, _, wa
+      iunfold fltxAuth
       iframe
       ipureintro
       refine ⟨Hok, ?_⟩
