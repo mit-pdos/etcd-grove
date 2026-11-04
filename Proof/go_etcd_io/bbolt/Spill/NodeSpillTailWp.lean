@@ -185,7 +185,7 @@ theorem spillTail_gen
       (pl = null ∨ ∃ rp, Xf.node bl pl = some rp ∧ rp.nv.pgid' ≠ W64 0) →
       spDone X Xf w wf bl n rn O lo hi h D N E cs sti)
     (H7 : ∀ xs pl Xf wf sti rp, I xs pl xs.length Xf wf sti → pl ≠ null →
-      Xf.node bl pl = some rp → rp.nv.pgid' = W64 0 →
+      Xf.node bl pl = some rp → rp.nv.pgid' = W64 0 → Xf.v = View.ofC Xf.v.base wf.C →
       ∃ h2 F2 D2 N2, spPre Xf wf bl pl rp O lo hi h2 F2 D2 N2 E .top ∧
         ∀ Xg wg st2, spDone Xf Xg wf wg bl pl rp O lo hi h2 D2 N2 E .top st2 →
           spDone X Xg w wg bl n rn O lo hi h D N E cs (sti ++ st2)) :
@@ -376,7 +376,8 @@ theorem spillTail_gen
           iframe
         ihave Hw := Hwb $$ Hn Hins Hdbf
         rw [hpar]
-        obtain ⟨h2, F2, D2, N2, hpre2, hdone2⟩ := H7 xs pl Xi wi _ rp HIj hnull hrp hpg
+        icases wdbW_ofC K tx Xi.v wi $$ Hdb with ⟨Hdb, %Hvc⟩
+        obtain ⟨h2, F2, D2, N2, hpre2, hdone2⟩ := H7 xs pl Xi wi _ rp HIj hnull hrp hpg Hvc
         wp_apply IH $$ %K %tx %r %m %Xi %wi %bl %pl %rp %O %lo %hi %h2 %F2 %D2 %N2 %E %SpCase.top
           %hpre2 [Hw Hdb] as %err Hpost
         · iframe

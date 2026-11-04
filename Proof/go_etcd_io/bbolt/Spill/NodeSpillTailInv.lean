@@ -365,7 +365,8 @@ theorem pcInv_top {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
     (xs : List (Loc × node × List Inode)) (pl : Loc) (Xf : WX) (wf : WDb) (st : List FLStep)
     (rp : NRec) (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl xs.length Xf wf st)
-    (hpl : pl ≠ null) (hrp : Xf.node bl pl = some rp) (hpg : rp.nv.pgid' = W64 0) :
+    (hpl : pl ≠ null) (hrp : Xf.node bl pl = some rp) (hpg : rp.nv.pgid' = W64 0)
+    (hvc : Xf.v = View.ofC Xf.v.base wf.C) :
     ∃ h2 F2 D2 N2, spPre Xf wf bl pl rp O lo hi h2 F2 D2 N2 E .top ∧
       ∀ Xg wg st2, spDone Xf Xg wf wg bl pl rp O lo hi h2 D2 N2 E .top st2 →
         spDone X Xg w wg bl n rn O lo hi h D N E cs (st ++ st2) := by
