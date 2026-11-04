@@ -163,20 +163,36 @@ theorem wtxData_drop (X X' : WX) (n : GoString) (hok : wOK X) (hok' : wOK X')
     wtxData X' = (wtxData X).delete n := by
   sorry
 
-/-- **`rebalance` keeps the data** (U8): the root's bucket entries and every bucket's logical
-entries in order are unchanged (merges, removals and the root collapse move entries between
-nodes, never reorder or drop them). -/
-theorem wtxData_rebalance (X X' : WX) (hok : wOK X)
+private theorem bktDataOf_eq' (X : WX) (n : GoString) (v : List w8) :
+    bktDataOf X n v = match bktLoc X n with
+      | some c => GMap.ofList (lbktEnts X c)
+      | none => bktOfPage X.v.pages v := rfl
+
+/-- **`rebalance` keeps the data** (U8; its `wtxData_rebalance'`): the root's bucket entries, the
+opened top-level buckets, each one's logical entries in order (merges, removals and the root
+collapse move entries between nodes, never reorder or drop them) and the view's pages (an
+unopened bucket's data is read from them) unchanged. -/
+theorem wtxData_rebalance (X X' : WX)
     (hroot : rootEnts X' = rootEnts X)
     (hbkts : ∀ n, bktLoc X' n = bktLoc X n)
-    (hents : ∀ n bl, bktLoc X n = some bl → lbktEnts X' bl = lbktEnts X bl) :
+    (hents : ∀ n bl, bktLoc X n = some bl → lbktEnts X' bl = lbktEnts X bl)
+    (hv : X'.v.pages = X.v.pages) :
     wtxData X' = wtxData X := by
-  sorry
+  unfold wtxData
+  rw [hroot]
+  congr 1
+  apply List.map_congr_left
+  intro e _
+  congr 1
+  rw [bktDataOf_eq', bktDataOf_eq', hbkts, hv]
+  cases h : bktLoc X e.1 with
+  | none => rfl
+  | some c => simp only [hents e.1 c h]
 
 /-- **The spilled tree holds the writer's data** (U9, the spill post's data clause): a
 `treeOK` committed state whose root bucket names the writer's top-level buckets, each written
 with its logical entries. -/
-theorem treeData_spill (X : WX) (C' : CommitSt) (hok : wOK X) (htree : treeOK C')
+theorem treeData_spill (X : WX) (C' : CommitSt) (hok : wOKR X) (htree : treeOK C')
     (hnames : (treeEntries C'.pages C'.root).map Prod.fst = (rootEnts X).map Prod.fst)
     (hbkts : ∀ n v, (n, v) ∈ treeEntries C'.pages C'.root →
       some (bktOfPage C'.pages v) = bktData X n) :

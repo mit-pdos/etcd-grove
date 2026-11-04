@@ -198,12 +198,12 @@ def lLeaf (X : WX) (bl : Loc) (pids : List w64) : List WEntry :=
   | none => []
 
 /-- **Bucket `bl` can be searched** (and its nodes materialized): its record's clean, key and
-page facts (`wOK`'s, for this bucket alone, at the transaction's current high-water mark), and
-its location live. Holds for every bucket under `wOK`, and for a bucket `Bucket.spill` searches
+leaf page facts (`wOK`'s, for this bucket alone, at the transaction's current high-water mark;
+`txPgLeaf` only, which also holds after `rebalance`), and its location live. Holds for every bucket under `wOK`, and for a bucket `Bucket.spill` searches
 after its children's spill. -/
 def bktLocalOK (X : WX) (bl : Loc) : Prop :=
   bl ∈ X.live ∧ ∃ B, X.t.bs !! bl = some B ∧ bktClean X.v X.t.mv.pgid'.toNat bl B ∧
-    bktKeys X.v B ∧ txPg X.v (GMap.singleton bl B) ∧
+    bktKeys X.v B ∧ txPgLeaf (GMap.singleton bl B) ∧
     ∀ l r, B.ns !! l = some r → l ∈ X.live
 
 /-- All the entries of bucket `bl` in order (its logical leaves'). -/
@@ -328,14 +328,14 @@ def lCovers (X : WX) (s : Nat) : Prop :=
 
 /-- **`rebalance`'s post, which is `spill`'s pre** (design §4.2), from `X` (writer side `fl`)
 to `X'` (`fl'`), for the writer's txid `txid`:
-- `X'` is well-formed (`wOK`, with its keys' bounds) and holds the same data, on the same view,
+- `X'` is well-formed (`wOKR`: `wOK` but the branch nodes' pages; with its keys' bounds) and holds the same data, on the same view,
   with the same handles (the registry grown);
 - no empty non-root node, every branch node of at least two entries, and every bucket's leaves at
   one depth (kept from `X`'s);
 - the frees are `Free(txid, …)` steps of extents of the base view, and every base slot is still
   covered by the logical tree or pending. -/
 def rebalOK (X X' : WX) (fl fl' : FLPg) (txid : w64) : Prop :=
-  wOK X' ∧ wtxData X' = wtxData X ∧ X'.v = X.v ∧ X'.handles = X.handles ∧ X'.rl = X.rl ∧
+  wOKR X' ∧ wtxData X' = wtxData X ∧ X'.v = X.v ∧ X'.handles = X.handles ∧ X'.rl = X.rl ∧
   (∀ x y, X.nloc !! x = some y → X'.nloc !! x = some y) ∧
   (∀ bl B, X'.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → l ∈ X'.live →
     (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
@@ -349,7 +349,7 @@ writer side's freelist `fl`): `X` well-formed; no empty non-root node, branch no
 two entries; every bucket's leaves at one depth; every base slot covered by the logical tree or
 pending. -/
 def spillPre (X : WX) (fl : FLPg) : Prop :=
-  wOK X ∧
+  wOKR X ∧
   (∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → l ∈ X.live →
     (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
   (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) ∧

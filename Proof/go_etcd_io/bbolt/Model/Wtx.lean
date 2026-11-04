@@ -410,11 +410,13 @@ def liveOK (X : WX) : Prop :=
   X.rl ∈ X.live ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
   ∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live
 
-/-- The node-location registry: each registered node is a node of its bucket, read from the
-page id it records (round 4, N3). -/
+/-- The node-location registry (round 4, N3): every registered node is an object (so a fresh
+location is unregistered), and each live one is a node of its bucket, read from the page id it
+records (U8 fix: a node `rebalance` or `DeleteBucket` removed is dead, its entry kept). -/
 def nlocOK (X : WX) : Prop :=
-  ∀ n b p, X.nloc !! n = some (b, p) → ∃ B r, X.t.bs !! b = some B ∧ B.ns !! n = some r ∧
-    r.nv.pgid'.toNat = p
+  (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome) ∧
+  ∀ n b p, X.nloc !! n = some (b, p) → n ∈ X.live → ∃ B r, X.t.bs !! b = some B ∧
+    B.ns !! n = some r ∧ r.nv.pgid'.toNat = p
 
 /-- **The writer's well-formedness before `Commit`** (design §3.2, §3.13): the old clean
 invariant, keys, nested buckets and nodes' pages, entries bounded, and the handles, live set and
@@ -422,6 +424,26 @@ node registry consistent. -/
 def wOK (X : WX) : Prop :=
   txClean X ∧ (∀ bl B, X.t.bs !! bl = some B → bktKeys X.v B ∧ bktNested X.v X.t B) ∧
   txPg X.v X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X
+
+/-- A leaf node's entries have no child page (`nodePg`'s leaf part: what `spill` needs). -/
+def nodePgLeaf (r : NRec) : Prop := r.nv.isLeaf' = true → ∀ w ∈ r.ws, w.pgid = W64 0
+
+/-- Every bucket's leaf nodes have no child pages. -/
+def txPgLeaf (bs : GMap Loc BRec) : Prop :=
+  ∀ bl B, bs !! bl = some B → ∀ l r, B.ns !! l = some r → nodePgLeaf r
+
+/-- **The writer's well-formedness after `rebalance`** (`spill`'s pre, U8 fix): `wOK` but for
+`txPg`'s branch part (a merged branch node's entries are no longer its page's) and its leaves'
+pages: only `txPgLeaf`. -/
+def wOKR (X : WX) : Prop :=
+  txClean X ∧ (∀ bl B, X.t.bs !! bl = some B → bktKeys X.v B ∧ bktNested X.v X.t B) ∧
+  txPgLeaf X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X
+
+theorem txPg_txPgLeaf (v : View) (bs : GMap Loc BRec) (h : txPg v bs) : txPgLeaf bs :=
+  fun bl B hb l r hr hl => ((h bl B hb l r hr).1 hl).1
+
+theorem wOK_wOKR (X : WX) (h : wOK X) : wOKR X :=
+  ⟨h.1, h.2.1, txPg_txPgLeaf _ _ h.2.2.1, h.2.2.2⟩
 
 end wtx
 
