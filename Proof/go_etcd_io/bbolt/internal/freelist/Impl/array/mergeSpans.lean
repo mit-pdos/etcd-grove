@@ -35,7 +35,7 @@ theorem arrayImpl_mergeSpans
     (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
     (hMerge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG))
     (a : Loc) : (arrayImpl (GF := GF) a).MergeSpansSpec := by
-  intro free idsl ys Hinc Hnd Hge2 Hlen
+  intro free idsl ys Hinc Hnd _ Hge2 Hlen
   dsimp only [arrayImpl]
   wp_start as ⟨⟨%ids, Hidsf, Hids, Hidscap⟩, Hys, Hcap⟩
   ihave #Hc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
