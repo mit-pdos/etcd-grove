@@ -333,7 +333,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   since 2026-11-04 (branch `pin-898c0ddc5`). The two lines, with tests of a value, a pointer to an
   alias and an alias of a pointer, and the semantics test `testStructFieldThroughAlias`, proved.
   No translation here changed at the pin; its first user is the compactor's watch loop (Q1 (b)).
-  `etcdstart.Collect`'s workaround (`mvccpb.Event` for `clientv3.Event`) can go.
+  `etcdstart.Collect`'s workaround (`mvccpb.Event` for `clientv3.Event`) is gone (2026-11-04): it
+  ranges over `wresp.Events` directly, its proof unchanged.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 
