@@ -106,6 +106,13 @@ def spilledN (X : WX) (bl c : Loc) : Prop :=
   c ∈ X.live ∧ ∃ rc, X.node bl c = some rc ∧ rc.nv.bucket' = bl ∧ rc.nv.spilled' = true ∧
     rc.cs = [] ∧ 0 < rc.ws.length
 
+/-- **The children's parent pointers** in bucket `bl` (U9w3: `node.spill`'s kill of `n`'s
+children, `spG_nilCh`, needs no other live node to have them as children): every live node's
+children are nodes of `bl` whose `parent` is it (`n.children` holds nodes whose `parent` is `n`). -/
+def parOK (X : WX) (bl : Loc) : Prop :=
+  ∀ m rm, X.node bl m = some rm → m ∈ X.live →
+    ∀ c ∈ rm.cs, ∃ rc, X.node bl c = some rc ∧ rc.nv.parent' = m
+
 /-- **An entry's descriptor** in an unspilled branch: its unspilled child (none for a finished
 subtree), and the base pages, slots and nodes it owns. -/
 structure UE where
