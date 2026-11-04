@@ -448,6 +448,16 @@ private theorem pendingIds_rollback_perm (fl : FLPg) (T : w64) :
     simp only [FLPg.rollback]
     exact (h0.flatMap_right _).trans (by simp only [List.flatMap_cons]; exact List.Perm.refl _)
 
+private theorem cover_lt_hwm (C : CommitSt) (h2 : treeOK C) (s : Nat) (hs : coversSlot C.pages s) :
+    s < C.hwm := by
+  obtain ⟨id, pg, hp, h1, h2'⟩ := hs
+  have := h2.2.2.2.1 id pg hp
+  omega
+
+private theorem mem_storeSlots (σ : StoreSt) (s : Nat) :
+    s ∈ storeSlots σ ↔ s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append]
+
 /-! ## Lemma statements (U3) -/
 
 omit [GooseExts] in
@@ -1064,7 +1074,100 @@ theorem storeOK_publish (σ : StoreSt) (w : Nat) (C' : CommitSt) (bs : Nat → L
         pg = (List.range' id (1 + pageOverflow pg)).flatMap bs))
     (hfl : flBelow σ.fl C' (some w)) :
     storeOK (σ.publish C' bs) := by
-  sorry
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20, h21⟩ := h
+  have hww : w = σ.C.txid + 1 := by have := h5 w hw; simp [hpub] at this; omega
+  have hsub : ∀ s, s ∈ storeSlots σ → s ∈ storeSlots (σ.publish C' bs) := by
+    intro s hs
+    rw [mem_storeSlots] at hs ⊢
+    simp only [StoreSt.publish]
+    rcases hs with hs | hs
+    · by_cases h' : s ∈ treeSlots C'
+      · exact Or.inl h'
+      · exact Or.inr (hdrop s hs h')
+    · exact Or.inr hs
+  have hb_old : ∀ s, s ∈ storeSlots σ → (σ.publish C' bs).bytes s = σ.bytes s := by
+    intro s hs
+    rw [mem_storeSlots] at hs
+    simp only [StoreSt.publish, if_pos hs]
+  have hnew' : ∀ s, s ∈ storeSlots (σ.publish C' bs) → s ∉ storeSlots σ →
+      s ∈ treeSlots C' ∧ s ∉ treeSlots σ.C ∧ s ∉ pendSlots σ.fl := by
+    intro s hs hn
+    rw [mem_storeSlots] at hs hn
+    simp only [StoreSt.publish] at hs
+    rcases hs with hs | hs
+    · exact ⟨hs, fun h' => hn (Or.inl h'), fun h' => hn (Or.inr h')⟩
+    · exact absurd (Or.inr hs) hn
+  have hb_new : ∀ s, s ∉ storeSlots σ → (σ.publish C' bs).bytes s = bs s := by
+    intro s hs
+    rw [mem_storeSlots] at hs
+    simp only [StoreSt.publish, if_neg hs]
+  have hpagesFrom : ∀ P : Pages, (∀ s, coversSlot P s → s ∈ storeSlots σ) →
+      pagesFromBytes σ.bytes P → pagesFromBytes (σ.publish C' bs).bytes P := by
+    intro P hin hP id' pg' hp'
+    refine (hP id' pg' hp').trans ?_
+    refine flatMap_congr' _ _ _ fun s hs => (hb_old s (hin s ?_)).symm
+    simp only [List.mem_range'] at hs
+    obtain ⟨j, hj, rfl⟩ := hs
+    exact ⟨id', pg', hp', by omega, by omega⟩
+  -- a new page's slots are no view's
+  have hagree : ∀ Q : Pages, (∀ s, coversSlot Q s → s ∈ storeSlots σ) →
+      pagesAgree σ.C.pages Q → pagesAgree C'.pages Q := by
+    intro Q hQ hag i pi j pj s hi hj e1 e2 e3 e4
+    rcases hbytes i pi hi with hold | ⟨hn, -⟩
+    · exact hag i pi j pj s hold hj e1 e2 e3 e4
+    · exfalso
+      have := hn (s - i) (by omega)
+      rw [show i + (s - i) = s by omega] at this
+      exact this (hQ s ⟨j, pj, hj, e3, e4⟩)
+  refine ⟨hmeta, htree, (by simp only [StoreSt.publish]; rw [hw]; exact hfl), h4,
+    fun w' hw' => ?_, fun h' => (by simp only [StoreSt.publish] at h'; rw [hw] at h'; cases h'),
+    fun k r hr => ?_, fun v hv => ?_, fun id pg hp => ?_,
+    fun k r hr => ⟨hagree _ (h7 k r hr).2.2.1 (h10 k r hr).1, (h10 k r hr).2⟩,
+    fun v hv => hagree _ (h8 v hv).2.2.1 (h11 v hv), fun s hs => ?_, fun b l hb s hs => ?_,
+    h14, h15, h16, fun s hs => Or.inl (hnp s hs), fun b => ?_, fun x a hx => ?_,
+    fun hp => (by simp [StoreSt.publish] at hp), hhwm⟩
+  · simp only [StoreSt.publish, ite_true, Nat.add_zero] at hw' ⊢
+    rw [hw] at hw'; cases hw'; exact ht.symm
+  · obtain ⟨a, b, c, d, e, f⟩ := h7 k r hr
+    exact ⟨by simp only [StoreSt.publish]; omega, b, fun s hs => hsub s (c s hs), d,
+      hpagesFrom _ c e, f⟩
+  · obtain ⟨a, b, c, d, e, -, g⟩ := h8 v hv
+    exact ⟨a, b, fun s hs => hsub s (c s hs), d, hpagesFrom _ c e,
+      fun hp => by simp [StoreSt.publish] at hp, g⟩
+  · rcases hbytes id pg hp with hold | ⟨hn, hpg⟩
+    · refine (h9 id pg hold).trans (flatMap_congr' _ _ _ fun s hs => (hb_old s ?_).symm)
+      simp only [List.mem_range'] at hs
+      obtain ⟨j, hj, rfl⟩ := hs
+      exact tree_in_store' σ _ ⟨id, pg, hold, by omega, by omega⟩
+    · refine hpg.trans (flatMap_congr' _ _ _ fun s hs => (hb_new s ?_).symm)
+      simp only [List.mem_range'] at hs
+      obtain ⟨j, hj, rfl⟩ := hs
+      simpa using hn j hj
+  · by_cases ho : s ∈ storeSlots σ
+    · rw [hb_old s ho]; exact h12 s ho
+    · obtain ⟨hs1, hs2, -⟩ := hnew' s hs ho
+      obtain ⟨-, -, hl, -, -, h2s⟩ := hnew s hs1 hs2
+      exact ⟨h2s, by rw [hb_new s ho]; exact hl⟩
+  · by_cases ho : s ∈ storeSlots σ
+    · exact h13 b l hb s ho
+    · obtain ⟨hs1, hs2, -⟩ := hnew' s hs ho
+      exact (hnew s hs1 hs2).2.2.2.2.1 b l hb
+  · refine ⟨fun id pg _ a ha => ?_, fun s hs => ?_⟩
+    · have := h19 _ a ha; simp only [View.ofC, StoreSt.publish]; omega
+    · have hs' : s ∈ treeSlots C' := (mem_pagesSlots' _ _).2 hs
+      have hs64 : s < 2 ^ 64 := by have := cover_lt_hwm C' htree s hs; omega
+      refine ⟨?_, ?_, fun t pd i hp hi => ?_⟩
+      · by_cases ho : s ∈ treeSlots σ.C
+        · exact ((h18 b).2 s ((mem_pagesSlots' _ _).1 ho)).1
+        · exact (hnew s hs' ho).2.2.2.2.2
+      · by_cases ho : s ∈ treeSlots σ.C
+        · exact ((h18 b).2 s ((mem_pagesSlots' _ _).1 ho)).2.1
+        · exact (hnew s hs' ho).2.2.2.1
+      · exfalso
+        exact hnp s hs' ((mem_pendSlots _ _).2 ⟨t, pd, _, hp, List.mem_of_getElem? hi,
+          W64_toNat_of_lt' s hs64⟩)
+  · have := h19 x a hx; simp only [StoreSt.publish]; omega
 
 /-- `freelist.Rollback(w)` by the live writer before its publish. -/
 theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx = some w)
