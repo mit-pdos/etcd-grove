@@ -757,7 +757,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rw [← Hmaps]
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
       (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half)
-      ⟨p, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by omega) (by omega)
+      ⟨p, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by omega) (by rw [hoff]; omega)
       (by rw [hoff, htk, hdl]; omega) (fun _ => rfl) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
     as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %Hres, Hm, Hpg, Hpc, #_⟩
   · rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)]
@@ -937,7 +937,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
       ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half)
       ⟨p, true, true⟩ 1 m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
-      (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
+      (by rw [metaPageOf_length]; omega) (by rw [hoffm, metaPageOf_length]; omega)
       (by rw [hoffm, metaPageOf_length, hwl]; omega) (fun _ => rfl)
       $$ [Hf Hmb Hfd Hm Wi Hpi]
     as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Wi, Hpi, #_⟩

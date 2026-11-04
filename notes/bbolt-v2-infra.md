@@ -249,3 +249,26 @@ are replaced by osFsExt and its proved specs, and `isPool` is replaced by Perenn
   with a `GO_MOD_PINS` entry, as for raft, would align the examples with the verified code.
 - **A Perennial change to propose,** independent of this one: translate `io/fs`'s types and `os`'s
   aliases of them, so that Perennial's own `os` can name `FileMode`/`FileInfo`.
+
+## 5. The proof's infrastructure items (2026-11-04)
+
+Done on this branch, one commit each (the coordinator's list; `notes/bbolt-proof-plan.md` §5):
+
+- **`runtime.GOOS`/`GOARCH`** (items 1, 1b): trust-boundary axioms `runtime.GOOS_linux` and
+  `runtime.GOARCH_amd64` in the generated `Proof/runtime/Init.lean` (`etc/gen-init.py`
+  `SPECIAL['runtime']`). `runtime`'s `IsPkgInit` instance is Perennial's (fact `True`), so the facts
+  surface through bbolt's root package fact `bboltRootInit` (`PkgInit.lean`;
+  `bboltRootInit_goos`/`_goarch`; `Mmap/Infra`'s `goosLinux_of_pkgInit`/`goarchAmd64_of_pkgInit`).
+- **Errors `fmt` formats** (item 2): `syscall.Errno.Error` trusted (some string),
+  `io/fs.PathError.Error` translated; `errnoErr_fmtErrorOk`, `pathError_fmtErrorOk`,
+  `wp_wrapErrno_ok`; the `os.File.{Stat,Truncate,Sync,ReadAt,WriteAt}` posts end with
+  `fmtErrorOkOrNil err`; `fmt.Errorf.spec`'s post (an axiom) has the method-set fact
+  (`fmtErrorOk_of_errorf`). `Mmap/Infra`'s `errnoErrOk` is proved (`errnoErrOk_holds`).
+- **`os.Getenv`** (item 4): its axiom for any `hlc`. `common.Verify` still a stub:
+  `strings.ToLower` has no spec (`notes/perennial-changes.md`).
+- **FNV-1a 64** (items 5a, 5b): `hash/fnv`'s `New64a`/`Write`/`Sum64` with bodies and proved specs;
+  `Model/Meta`'s `fnv64a` is the real hash; `Meta.Sum64` proved.
+- **`os.File.WriteAt` at any length** (item 3): the premise is `off + len < 2^63` (was 1 GiB), proved over the model's chunk loop (`Proof/os/WriteChunks.lean`, `pwBytes_chunk`); `Spec/os/Crash*` keep the old bound.
+- **The fork's `Open` commit** (item 6): `743299d8` on `goose-lean-v2`, the pin moved.
+- **`delete` on `pidSet`** (item 7): Perennial branch `delete-map-named`, not landed (a trusted
+  semantics change needs the user's sign-off); `PidSetDeleteUnfold` stays.
