@@ -54,6 +54,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   the literal map type's rule at `pidSet`, taken as a hypothesis by the proofs that need it (an
   assumption on the semantics, to be discharged by the Perennial change).
 - **Proposal.** Generalize `delete_map` as `len_map` was: any type whose underlying type is a map.
+- **Status.** (2026-11-04) Branch `delete-map-named` of Perennial (`6e6b05af3`, off `lean`
+  `4c8617a9e`, pushed): `delete_map {t ..} [t ↓u go.MapType ..]`, `wp_mapDelete_underlying` (the
+  literal-type `wp_mapDelete` unchanged, derived), test `MapWrapper_delete` in unittest's
+  `NamedMapAssignment.lean`; the touched modules build. Not landed: it changes the trusted
+  semantics (`Perennial/Golang/Defn`), which Perennial's workflow (`AGENTS.md` item 4,
+  `fix-semantics` skill) lands only with the user's sign-off and the trusted-base review. Once it
+  lands: bump the pin and drop `PidSetDeleteUnfold`.
+
+### `strings.ToLower` has no spec (2026-11-04, bbolt's `internal/common`)
+
+- **Limitation.** `strings.ToLower` is names-only in Perennial, with no spec.
+- **Needed by.** bbolt's `common.Verify` (`getEnvVerify` is `strings.ToLower(os.Getenv(...))`),
+  whose proof is a stub (`Proof/go_etcd_io/bbolt/internal/common/Verify.lean`).
+- **Here.** Nothing yet (no local axiom added).
+- **Proposal.** Translate `strings.ToLower` in Perennial (pure Go; its ASCII fast path and
+  `unicode.ToLower` path), or a spec "returns some string".
 - **Status.** Not started.
 
 ### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
