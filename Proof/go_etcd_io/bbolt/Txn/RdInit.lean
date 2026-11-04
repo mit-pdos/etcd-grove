@@ -65,7 +65,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
       mapFields K.db (DFrac.own sync.rfrac.half) (some (b, l) : MapSt) ∗
       ((View.ofC b C).base ↪[n.vw]□ View.ofC b C) ∗
       (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
-       else emp) ⊢
+       else ghostVar K.B.spr (1 : Qp).half (some k)) ⊢
     |==> rdTxK K tx src 1 (TxView.ro (View.ofC b C).data) (View.ofC b C) := by
   iintro ⟨#Hreg, #Hpkg, #Hcore, Hv, Hex, Hw, Hmg, Hme, Hrt, Hpg, ⟨%ch, Hch⟩, ⟨%wf, Hwf⟩, Hdb,
     Hmv, Hib, Hvc, Hmap, Hmf, #Hvw, Hpool⟩
