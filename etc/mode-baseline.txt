@@ -5,9 +5,9 @@ match-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 match-mode go_etcd_io/etcd/server/v3/etcdserver/apply 4
 twin github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 2
 twin go_etcd_io/etcd/client/v3 5
-twin go_etcd_io/etcd/server/v3/etcdserver 24
-lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 9
+twin go_etcd_io/etcd/server/v3/etcdserver 20
+lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 5
 lit-mode go_etcd_io/etcd/client/v3 18
-lit-mode go_etcd_io/etcd/server/v3/etcdserver 187
+lit-mode go_etcd_io/etcd/server/v3/etcdserver 164
 lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 41

@@ -1598,3 +1598,15 @@ field-load automation finding the instance at any fraction.
   (they are checked only through `prog`'s own code); generated instances that take the package's
   `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
   `AssumptionsP` (`Main.lean`'s shim).
+
+## A cancelable thread pool (2026-11-04, the restart plan's R2b-3d gap 4)
+
+- **Need.** The server's shutdown closes the backend, which takes every reader's open share back.
+  The server lends the shares through `threadPool.isThreadPool`, a plain invariant, which never
+  gives them back.
+- **Change.** Perennial branch `threadpool-cancel` (`c0a2fdd46`, off `origin/lean` `350766064`,
+  worktree `/shared/perennial-tpool-cancel`), in `Perennial/Proof/ThreadPool.lean`:
+  `isThreadPoolC N γ γc R` with
+  `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
+  addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
+  review recorded OK. **Awaiting the user's push** (`etc/land.sh push`); then bump the pin.

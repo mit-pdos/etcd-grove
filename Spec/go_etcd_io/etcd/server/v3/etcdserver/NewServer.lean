@@ -111,6 +111,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 
 @[expose] public section
@@ -306,7 +307,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
-          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
+          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           srvWatchBuilt srv E ∗
           -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
@@ -336,7 +337,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
-          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes; (the
+          -- `False`, D45; `lookupNil_of_guard`): what `start.spec`'s apply thread at `.on γa` takes; (the
           -- lease-grant plan's D1, 2026-11-02) with auth on only (the guard `False` there)
           □ (⌜on = true⌝ → srvLessorNil srv) ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
@@ -350,7 +351,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
           -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
           -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
-          lease.lessorRdPool E.γ.leases }}
+          lease.lessorRdPool E.γ.leases ∗
+          -- (2026-11-04, the restart plan's R2b-3d) what the stop needs of the construction: the
+          -- raft loop's stop claim, the storage registry's authority, the lessor's stop right, the
+          -- WAL's directory (`srvStopKeep`)
+          srvStopKeep srv γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/

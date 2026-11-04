@@ -35,8 +35,8 @@ permission class of the request's keys, `apply.rangeClass`, `apply.txnClass`); s
 of some auth info (the context's, or the empty one).
 
 **In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
-the mode `E.authOn`; the instances at a mode, `specM`, and the mode-off form, `specOff`, are
-corollaries in `ModeSpecs.lean`). The mode views (the auth plan's E3s, 2026-10-27): over the request and read
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3s, 2026-10-27): over the request and read
 views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
 `doSerialize` reads only fields both modes share. With auth on (E3zb, 2026-10-28) the auth info
 `chk` passed on is the caller's (`infoBoundM`: the empty one, or bound to the context's token),

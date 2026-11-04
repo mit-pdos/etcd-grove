@@ -31353,6 +31353,10 @@ standard axioms only (`Proof/.../goose/prophkv/Results.lean`).
 
 ## R-D1: the one-shot Close (2026-11-04 · the user's split of R-D and their approval of `authAbandonM` · branch `oneshot-close`)
 
+*Superseded in part (2026-11-04, "R-D2: the auth store's currency in an invariant"): the split's
+interim, `authStoreKit_on`'s premise `hAbandon` and the `sorry` `authSrvTP_on` passed it, is gone;
+`authAbandonM` is proved for auth on.*
+
 **What `#Hclose` was.** `bootOk` and `bootOkR` (`InvBoot.lean`, `InvRestart.lean`) carried
 `"#Hclose" ∷ □ {{ True }} b.Close() {{ RET #(); True }}`: a persistent triple for
 `bootstrappedServer.Close`, which `NewServer`'s deferred cleanup runs on its error paths after
@@ -31553,3 +31557,128 @@ including the missing-key panic (nothing deletes the key). No `sorry`.
 shared start's configuration (`cfgOk`, `urls1`, `dir1`), with this example their first user. Moving
 `putget`, `compacted`, `compactwatch`, `lease`, `leasegrant` and `k8s/etcd3` onto it changes the
 definitions their `Main.spec`s are written in (only up to unfolding): proposed separately.
+
+## R-D2: the auth store's currency in an invariant (2026-11-04 · option (d) of R-D, approved by the user with `authAbandonM` · branch `rd2-auth-currency`)
+
+Supersedes R-D1's interim (the `hAbandon` premise of `authStoreKit_on` and its `sorry` in
+`authSrvTP_on`).
+
+**Why the premise was not provable.** With auth on, `beMu`'s resource (`beP`) held the current
+backend's currency (`authCur γc 1`) for good: every reader of the store (`authRd`, inside `beRd`)
+shares the `RWMutex`, and a holder of all the readers' guards still cannot open `beMu`'s resource
+without locking. So abandoning the store (R-D1's path 2) could not recover the currency the
+realization's share (`authOpenQ`) needs.
+
+**The change.** The currency moves out of `beP` into a proved invariant of the store,
+`auth.curInv` (`InvAuth.lean`, namespace `authCur`), keyed by tickets:
+- `AuthNames` gains one name, `rdt`, a token counter (Perennial's `TokSet`); its authority is
+  minted at 0 by `authHist_alloc` and comes into `newAuthStore_on` through `authStoreInit`, so the
+  text of `auth_store_new_on`/`auth_store_boot_on` is unchanged.
+- `newAuthStore_on` takes the reader count `N ≤ actualMaxReaders`, adds `2N` tokens and discards the
+  authority (`authRdTotal γa N`, persistent, with the invariant), and returns exactly `N` readers;
+  `beRd` is `beMu`'s guard and the reader's ticket (`rdTicketM`: two tokens with auth on, `True`
+  otherwise).
+- The invariant holds the authority's count `K`, the `n` deposited tokens with a piece of the
+  backend's name each (`rdDep`), a quarter of the name, and either (live) the currency less
+  `curEps K` per reader in, or (abandoned) the apply thread's half of the name, every token, and
+  `n = 0`.
+- A reader in `lockedReadTx` (`beCurM_lend`) deposits one token and half its `beP` piece of the
+  name, takes `curEps K` of the currency, lends it to the transaction's `RLock`, and takes its
+  deposit back with the currency. The token it keeps is its receipt: the invariant cannot be
+  abandoned while it is out. The name piece is the section witness (no separate `sec` name): it
+  agrees on `γc`, and `Recover`, under the write lock with all of `beP`'s piece, finds no deposit
+  and the currency whole (`recover_swap`, now a fancy update through the invariant).
+- `auth.authRd_abandon`: `authRdTotal γa N`, the `N` readers, the apply thread's half of the name
+  and the publication token give the whole currency and close the invariant as abandoned; it proves
+  `authAbandonM` with auth on in `authStoreKit_on`, which loses `hAbandon`.
+
+**What did not move.** The statements of `authAbandonM`, `authStoreKit`, `recoverIn`/`recoverOut`,
+`lockedReadTx.spec` and every exported result; the kit rows (`authKitIn`/`authKitOut`/`authOpenM`,
+which stage 3 of the auth component moves). `authReadTxOk_rd`'s clauses are now over the lent
+currency (`authCurM`) instead of `beCurM`; `beCurM` with auth on is a quarter of `beP`'s piece of the
+name with the invariant.
+
+**Deviations from the candidate's §4.1.** No `sec` witness (the half of the reader's name piece does
+its job); a ticket is two tokens, not one (one deposited, one kept as the receipt); the authority is
+discarded at `2N` and the invariant quantifies its count; the invariant is in `beCurM` (persistent),
+not in `authInv`, whose text is unchanged; `authRd_abandon` takes `authRdTotal`, not `authInv`.
+
+**Checks.** No trusted change, no new axiom; the trust base loses `sorry authSrvTP_on` (787 axioms,
+6 `sorry`s; `etc/tcb-baseline.txt`, the `server` and `authkv` collections).
+## The auth component, stage 3: the server's remaining linked twins folded, `Start`'s clients on the merged spec (2026-11-04 · the Freeze of candidate 5, "freeze it, go ahead with stage 3" · branch `auth-comp3`)
+
+Supersedes stage 2's "off-only callers link `EtcdServer.wp_Start_off`" and its "the old texts are
+`ModeSpecs.lean`'s corollaries ... kept until stage 3" for everything below. The spec example
+`auth-component.md` keeps the four review rounds' history; the frozen text is candidate 5 (D1–D8).
+
+**What.**
+- **3-0.** `ModeSpecs.lean`'s 16 declarations no caller used (`AppliedIndex`'s, `applyAll`'s off
+  forms, `run`'s off form, ...) deleted.
+- **3a-i, the request path's `specM` family** (`parseProposeCtxErr`, `raftRequest`, `doSerialize`,
+  `processInternalRaftRequestOnce`): each `wp_proofM on` folded into its `wp_proof` (the proof is
+  over `E.authOn`, which is what `specM on` at `E.authOn = on` said); the `specM` abbrevs and
+  `spec_M` theorems deleted. A caller that knows its mode (from `isServerReqM on`'s
+  `isServerReqM_authOn`, from `hγa`, from `srvGrantsLeases`) instantiates `X.spec` and rewrites
+  `E.authOn` to it (`have h := h s E ρ; rw [hon] at h`). The off corollaries (`X.spec_off`) are
+  re-derived from `X.spec` for the `Put`/`DeleteRange`/`Range`/`Txn` pairs (D4 keeps them).
+  `server_raft_request : raftRequest.spec` replaces `server_raft_request_on`;
+  `server_process_irr_on` deleted. The `_on` results of the admin entries, `Txn`'s and
+  `Authenticate`'s keep their text with the new proofs.
+- **3a-ii, `start`/`run`/`applyAll`/`Start`.** Their off/on corollaries deleted, with
+  `server_apply_all_on`, `server_run_on`, `server_start_on`, `server_Start_on` (D2 (i)). An off
+  client of the merged `start.spec`/`Start.spec` instantiates it at `C := .off` through the new law
+  `isServerBuilt_offC` (`isServerBuilt ={⊤}=∗ ⌜E.authMode = AuthC.off.mode⌝ ∗ isServerBuiltC .off ∗
+  acLessor .off`): `start_gives_views`, `etcdstart.wp_Start_built` (and so `StartServer`,
+  `StartCompactingServer`, `StartPeriodicServer`, `StartMember`, partition's `startMember`, whose
+  hypothesis is now `Start.spec`). `LinkedOff.lean` deleted; the examples' Links are back to their
+  pre-stage-2 text (`EtcdServer__Start: @`). The auth example's `startServer` takes `Start.spec` at
+  `.on γa`; `authkv_startServer` uses `server_Start`, which does not take `server_Start_on`'s
+  `[ErrorStringLeaf]` (a weaker premise set, approved in the Freeze's §4).
+
+**The 3b pilot failed, so `applyEntryNormal` keeps its twins (D5).** The pilot (folding
+`applyEntryNormal`'s off/on proofs into one over the slot, bounded at 1,133 lines, the twins'
+size) was projected at about 1,200 lines before any edit, so it stopped with nothing changed, as
+D5 says. `applyEntryNormal`'s, `apply`'s and `applyEntries`' `specOff`/`specOn` and their
+corollaries stay in `ModeSpecs.lean`. (The pilot also found `applyEntryNormal`'s local macro
+`trig'` unused; deleted.)
+
+**Departures from the frozen text.**
+- `processInternalRaftRequestOnce`'s proof cases on the mode inside a macro (`cases on`,
+  `subst hon`), so the fold does `generalize E.authOn = on at hPE ⊢` after the intros instead of
+  rewriting every use.
+- `isServerReq_authOn` (`ReqOn.lean`) added: `isServerReqM_authOn false` does not apply to an
+  `isServerReq` hypothesis by `$$` (the two are equal by `rfl`, not syntactically).
+- The auth example's `startServer` names the read loop's environment and the boot state once
+  (`Er`, `x₀`, `subst`ed after `Start`), so the mode gate's literal count there went down (9 → 7)
+  instead of up.
+- The mode gate's baseline: 364 (stage 2) → 362 (3-0) → 344 (3a-i) → 335 (3a-ii).
+
+**Left** (the Freeze's deferrals): the request side (`Put`/`DeleteRange`/`Range`/`Txn`'s pairs,
+v3rpc, `Serve`, D4); layer A, one KV model (D1); `applyEntryNormal`'s twins (the pilot); `NewServer`
+(D6); `AppliedIndex` as it is (D7 (b)).
+## The stop's pieces kept from construction: `srvStopKeep`, and `bootOk`'s backend file (2026-11-04 · R2b-3d stage 1, the user's approval of `bootOk`'s change · branch `r2b3`)
+
+**Before:** `NewServer` dropped what only the stop needs (the raft loop's stop claim, the storage
+registry's authority, the lessor's stop right), `wal.bootOk_start` dropped the WAL's directory
+(`walDirOf w = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'`, `walOpened`'s), and nothing
+said the boot backend's file is at `<DataDir>/member/snap/db`. **Now:** `srvStopKeep s γrn wdir`
+(defined, `InvRestart.lean`, R2b-2's opaque draft until now) holds the first four, and
+`NewServer.spec`'s post gives it as its last conjunct (a stronger post, no new premise; the last
+place so that clients' patterns are unchanged); `NodeStartSpec`'s post keeps the stop claim. The
+examples' drafts state `memberBuiltS` (`memberBuilt`'s rows with `srvStopKeep` at the same raft names
+and configuration: repeated, not added to `memberBuilt`, whose clients unpack it positionally).
+`bootOk` gains `bFile d.γB (backendPathOf cfg.DataDir')` (**trusted**: `bootstrapContract` is a premise
+of the examples' results; the user's approval; true because `bootstrapBackend` calls `OpenBackend`,
+whose post gives it), and `srvSnapRes` carries the current backend's `bFile` (the snapshot path's
+from `OpenSnapshotBackend`), for the image's `fileHolds (backendPathOf dd) D` (`bFile_agree`).
+
+## The readers' open shares at the server's stop (2026-11-04, R2b-3d gap 4; the user's choice)
+
+`backend.Close` needs every reader's open share (`bOpen γ 1`): a share is the reader's proof that the
+backend is not stopped. The server lends the shares through a thread pool that is a plain invariant,
+so the shutdown could never collect them. Of three options (a cancelable pool with a quiescent
+request path, readers that tolerate a stopped backend, or a restart scope with no request in
+flight), the user chose the first. It has two consequences: a general Perennial change (a cancelable
+`ThreadPool`), and a new premise on the exported restart result, that the members' request paths
+stopped before the server, which matches `embed.Close`'s order. Plan: `notes/restart-plan.md`,
+"R2b-3d ... gap 4".

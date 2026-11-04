@@ -338,11 +338,11 @@ theorem EtcdServer.UserAdd.wp_proof
           ipureintro; exact ⟨rfl, He⟩
         · exact absurd rfl He
 
-/-- `spec`'s instance at `raftRequest.specM true` (`authRaftOk_on`, for every model of the
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`, for every model of the
 request). -/
 theorem EtcdServer.UserAdd.wp_proofOn
     (h_gen : bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG))
-    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd Qa ast r name pw hpw o b F
   wp_start_folded as ⟨#Hast, #Hcost, %Hrnn, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩

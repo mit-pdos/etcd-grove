@@ -44,6 +44,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.Token
+public import Perennial.Proof.TokSet
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
 
@@ -356,11 +357,16 @@ structure AuthNames where
   (`capAuth`) is the store's client's, which raises it before a step may append -/
   cap : GName
   /-- **the current backend's ghost names** (the auth-on snapshot plan's decision 3b, 2026-11-03):
-  a ghost variable at the names of the backend the store reads (`authBkCur`, `BkNames.lean`), half
-  in `beMu`'s guard, half with the apply thread's write token -/
+  a ghost variable at the names of the backend the store reads (`authBkCur`, `BkNames.lean`), a
+  quarter in `beMu`'s guard, a quarter in the store's currency invariant (R-D2), half with the apply
+  thread's write token -/
   bk : GName
   /-- **the succession right** (`authSucc`, `BkNames.lean`): at most one backend live at a time -/
   succ : GName
+  /-- **the readers' tickets** (R-D2, 2026-11-04): a token counter, `beRd`'s tickets out of the
+  authority the store's construction mints and discards (`authRdTotal`, `InvAuth.lean`), so that a
+  holder of every ticket knows no reader is in `lockedReadTx`'s section (`curInv`) -/
+  rdt : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -583,14 +589,17 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
       authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C ∗
       -- (2026-11-03, the auth-on snapshot plan's P3) the current backend's name, unset, and the
       -- succession right
-      (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ := by
+      (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
+      -- (R-D2, 2026-11-04) the readers' tickets' authority, none out
+      ownTokAuth γa.rdt 0 := by
   unfold authCurHalf authPubAuth
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imod (mono_list_own_alloc (GF := GF) C) with ⟨%γcap, Hcap, #Hcl⟩
   imod (ghostVar_alloc (GF := GF) ((γ, γ, γ) : GName × GName × GName)) with ⟨%γb, Hb⟩
   imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
-  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
+  imod (ownTokAuth_alloc (GF := GF)) with ⟨%γr, Hrt⟩
+  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
@@ -598,9 +607,9 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
   ihave Hb' : iprop(∃ γ0 : GName × GName × GName, ghostVar (GF := GF) γb 1 γ0) $$ [Hb]
   · iexists _; iexact Hb
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs⟩
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs, γr⟩
   unfold authHist authHistRev capAuth capLb
-  iframe H Hp He Hk Hr Hcap Hcl Hs Hb'
+  iframe H Hp He Hk Hr Hcap Hcl Hs Hb' Hrt
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr

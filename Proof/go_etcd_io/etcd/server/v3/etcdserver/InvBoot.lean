@@ -450,7 +450,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir'))
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
+    -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
+    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))
     -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
     -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
     -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque

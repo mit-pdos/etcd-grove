@@ -134,47 +134,6 @@ local macro "tail_done" : tactic => `(tactic| (
   iexact Hst))
 
 set_option hygiene false in
-/-- `Trigger(id, ar)`'s premise's second case (`waitTrig`), as `trig`. -/
-local macro "trig'" : tactic => `(tactic| (
-  iunfold waitTrig
-  iintro %Ψ HR
-  iunfold reqWaitR at HR
-  icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ, -⟩ := Hp'
-  subst hΨ
-  -- (R2c) a waiter's claim is the incarnation's: the entry's claim is of its key
-  ihave %Hdd := idClaim_agree_entry ρ.ids id d' m.data γf' γf k0 $$ Hcl' Hcl0
-  obtain ⟨Hdd, Hγ, hpx⟩ := Hdd
-  replace hpx := hpx.symm
-  subst Hdd Hγ
-  -- (D21e (A)) a registered id is of the member's prefix: the floor its claim recorded
-  ihave #HfF := HfFo $$ %hpx
-  ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
-  subst HFF
-  rw [hdec] at hd'
-  cases hd'
-  iunfold resultΨ
-  iexists ar, x.log
-  isplitr
-  · ipureintro; rfl
-  isplitl [HTr]
-  · iexact HTr
-  isplitl
-  rotate_left
-  · iexact HeW
-  iunfold resultIsW
-  isplitr
-  · ipureintro; exact Har0
-  iexists x, x', out
-  iframe HRes Hcert HMint Hcx' HGA
-  isplitr
-  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx⟩
-  iunfold appliedWit
-  iexists m.index
-  rw [Hrd]
-  iframe Hcm HLpre Hmono))
-
-set_option hygiene false in
 /-- `Trigger(id, ar)`'s premise: every expectation registered under the entry's id is the
 proposer's `resultΨ` of the entry's request (the claims agree), which the result meets. -/
 local macro "trig" : tactic => `(tactic| (

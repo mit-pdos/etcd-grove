@@ -1259,3 +1259,80 @@ the apply thread's in mode `on`, `NewAuthStore`'s otherwise) are R2b-3d's to thr
    (the stop request's `srvBootApplied`), `confAt`, `v3ConfState D`, the registry's authority,
    `srvFiles` (`walFiles` from the raft image; `fileHolds` at `backendPathOf dd` by `bFile_agree`
    with the backend's `bFile`, which `NewServer` must keep), `pathOwn`.
+
+### R2b-3d: the plan (2026-11-04)
+
+`run.specStop`'s proof: the loop's stop case returns; the deferred shutdown runs; `done` closes with
+`srvDiskImage` escrowed. At the loop's exit the invariant holds `rnApplyTok γn A`, the scheduler's
+queue and the last job's saved `Post` `Q` with `□ (Q ∗ R -∗ applyResC … A ∗ nodeRunning ½)`:
+`sched.Stop` gives `▷ Q`, so the apply thread's resources at `A` come back whole.
+
+The image's clauses against their sources (gaps marked):
+- `nodeVacant`, `raftState S`, `StorageHolds S σ`, `σ.b ≤ |pre ++ A| ≤ σ.commit`:
+  `raftNode.stop.specStop`'s post (with `rnStopClaim`, `rnApplyTok γn A`, the WAL's apply half).
+- `bootLen ≤ i`: the stop request's `srvBootApplied` (the bag's predicate).
+- `srvRLogLb ρ.rd.raft A`, `uint.Z i = ai0 + |A|`: `applyResC … A`.
+- **Gap 1, the WAL's directory.** `rnWalClosed` gives `walFiles (walDirOf w)`; `srvFiles` wants
+  `config.walDirOf dd ""`. `bootstrap`'s `walOpened` knows `walDirOf w = config.walDirOf cfg.DataDir'
+  cfg.DedicatedWALDir'` (`WalApi.lean`); to thread, persistent, to `isRaftNode` (the WAL's
+  directory) and the scope's `DedicatedWALDir = ""` to the stop right.
+- **Gap 2, `imageAt` of `D`.** From `Cleanup`'s `bStopView` (the stopped lock's `W ∗ Pk` and
+  halves at `D`) and the apply thread's final state, as the snapshot path's observation does
+  (`snapObs_window`, `mergedObs`): the server's own `W`, `Pk` in place of `isStopChansE`.
+- **Gap 3, the configuration.** `confStateIs (v3ConfState D) m` with `v3ConfState` opaque
+  (R2c's draft, "R2d's to define") is unprovable: define it (`buildConfStateFromV3store`, the
+  members bucket's voters and learners) and prove the members bucket of an image at `i` gives the
+  membership at `i` (the cluster's apply writes the bucket from the conf changes the log commits).
+- Registry authority, `pathOwn (backendPathOf dd)`, `fileHolds (backendPathOf dd) D` (by
+  `bFile_agree`): `srvShutdownPre`, `srvSnapRes`, the backend's `bFile` (`NewServer` and the
+  snapshot path must keep it).
+
+Stages: (1) gap 1; (2) `Cleanup`'s preconditions from `applyResC` and `NewServer`'s kept pieces
+(`srvCleanupOwn` defined, `srvStopKeep`); (3) gap 2, the image's backend part; (4) gap 3; (5) the
+shutdown's WP and `run.specStop` (then `spec` replaced, R2b-2 review F4).
+
+### R2b-3d: stage 1 done; gap 4, the readers' open shares (2026-11-04)
+
+Stage 1 landed (`e072cd1e4c`): `srvStopKeep` (the raft loop's stop claim, the registry's
+authority, the lessor's stop right, the WAL's directory) from `NewServer`; `bootOk` and
+`srvSnapRes` keep the backend's `bFile`.
+
+**Gap 4 (blocks stage 2).** `backend.Close` takes the clients' whole open token `bOpen γ 1`, and
+must: a reader's share (`rdOpen`) is its proof the backend is not stopped, so the close collects all
+of them. At the server's stop they are not collectable:
+- the constructors' half: the apply thread's `srvOpenQ` (`srvSnapRes`), the auth realization's
+  quarter on;
+- the pool's `rdPoolN + authRdN` shares: in the readers' thread pool (`bkRPool`,
+  `threadPool.isThreadPool rdPoolNs`, a plain `inv` of Perennial's `ThreadPool`), copies lent to
+  the request path's goroutines against their thread tokens; an `inv` never gives them back;
+- the stock's `rdStockN`: the store's readers (`mvcc.storeReader`, `bkRTx`), of which
+  `watchableStore.Close` returns only its loops' `wsLoopN`.
+
+The Go code agrees that this is a real condition: `Cleanup` closes the backend whatever the request
+path is doing (etcd's `embed.Close` stops the gRPC servers before `Server.Stop`, `stopServers` under a
+`ReqTimeout` deadline, `server/embed/etcd.go`; `EtcdServer.Stop` alone does not), and a read on a closed bbolt transaction fails. Options:
+1. **A cancelable reader pool and a quiescent request path** (recommended): a general Perennial
+   change, `ThreadPool` with a cancelable invariant whose cancel, with every loan back
+   (`ownTokAuth γ 0`), returns the copies; the stop's caller gives back the request path's loans
+   (its goroutines joined, as `embed` does), and the stores' readers come back from their closes.
+   The exported restart result gains the premise that the members' request paths stopped first.
+2. **Readers that tolerate a stopped backend**: drop the reader's open share; a read gets either
+   its view or a failure after `stopQ`. This needs a trust-boundary spec of bbolt's reads on a
+   closed database, and the request path's specs gain a failure case.
+3. **Restrict the restart scope**: no request in flight is modeled at the stop, so the pool is
+   built cancelable from the start and never lent past the stop. This is option 1 without the
+   join, and it is valid only for the examples whose clients finish first.
+
+Stages 3 (gap 2) and 4 (gap 3) do not depend on it and go first.
+
+**Gap 4, decided (the user, 2026-11-04): option 1**, a cancelable reader pool and a quiescent
+request path. Steps:
+- (4a) Perennial, a general change on a branch off its `lean`: `ThreadPool`'s cancelable form
+  (`isThreadPoolC N γ c R`, a `cinv`), with `cancel` giving back the `m` copies left and the count
+  of loans out (`ownTokAuth γ b`), and a law that the auth at `b` with `b` loans `ownThreadLoan γ`
+  gives `b` more copies. Record it in `notes/perennial-changes.md`; land it by Perennial's workflow
+  and bump the pin.
+- (4b) `bkRPool` over it, its cancel token kept with the constructors' half (`srvSnapRes`).
+- (4c) The stop's caller returns the request path's loans, and the stores' readers come back from
+  their closes. The exported restart result gains the premise that the members' request paths
+  stopped first.

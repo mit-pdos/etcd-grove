@@ -66,7 +66,7 @@ theorem authBoot_alloc (γt γf : GName) :
   iintro
   imod (authHist_alloc (GF := GF) γt γf [bootState] bootState [bootState, bump bootState]
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl, Hbk, Hsucc⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl, Hbk, Hsucc, Hrt⟩
   imodintro
   iexists γa
   isplitr
@@ -78,8 +78,8 @@ theorem authBoot_alloc (γt γf : GName) :
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
   icases authPubAuth_halves γa 0 $$ Hp with ⟨Hp, Hp'⟩
   iframe Hown HI Hcap Hbk Hsucc Hp'
-  isplitl [Hc2 Hp He Hk Hq]
-  · iunfold authStoreInit; iframe Hc2 Hp Hq; isplitr
+  isplitl [Hc2 Hp He Hk Hq Hrt]
+  · iunfold authStoreInit; iframe Hc2 Hp Hq Hrt; isplitr
     · iapply (capLb_le γa [bootState] (by simp)) $$ Hcl
     isplitl [He]
     · iexists false; iframe He
@@ -191,9 +191,10 @@ theorem newAuthStore_boot
   · ipureintro; exact Hγ
   wp_apply (newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg ab tp cost bi
       γa γc R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
-      ⟨bootState, List.mem_singleton_self _, rfl⟩)
+      ⟨bootState, List.mem_singleton_self _, rfl⟩ (Int.toNat sync.rwmutex.actualMaxReaders)
+      (Nat.le_refl _))
       $$ [$Hpkg $Hrd Hbk $Hcu $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
-    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, Hslots⟩
+    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, -, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
     isplitr
