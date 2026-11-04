@@ -1,0 +1,28 @@
+# Kubernetes' etcd compactor (k8s.io/apiserver/pkg/storage/etcd3, compact.go;
+# notes/k8s-compactor-plan.md, K4): its linked results in
+# Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean (Compact, the compactor's methods,
+# runCompactLoop, NewCompactor).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s-compactor.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots (k8s\.wp_Compact$|k8s\.compactor\.wp_|k8s\.wp_NewCompactor$)
+axiom Client.Endpoints.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServes
+axiom grpcServesStream
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom klog.Errorf.wp_proof
+axiom klog.V.wp_proof
+axiom klog.Verbose.Infof.wp_proof
+axiom proto.Clone.wp_proof
+axiom rpctypes.errDesc_etcdError
+axiom status.FromError.wp_proof
+axiom strconv.FormatInt.wp_proof
+axiom strconv.ParseInt.wp_proof

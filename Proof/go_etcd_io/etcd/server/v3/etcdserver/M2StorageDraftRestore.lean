@@ -162,7 +162,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
+          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) := by
   iintro ⟨Hown, Hcl⟩
   iunfold apply.kvOwn at Hown
   icases Hown with ⟨Hrd, Hkw, Hll, HRD, Hwo⟩
@@ -179,7 +179,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
       ∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hcl]
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) $$ [Hcl]
   · rw [hγw]
     by_cases h : mvcc.kbCmpM E.γ.kb
     · icases (srvKVCloserM_on s E c h).1 $$ Hcl with ⟨%wsl, #Hkvf, Hcl⟩
@@ -227,7 +227,7 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) ⊢
+          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) ⊢
       srvKVCloserM s E' c' ∗ ⌜mvcc.kbCmpM E'.γ.kb ↔ mvcc.kbCmpM E.γ.kb⌝ := by
   have hmode : mvcc.kbCmpM E'.γ.kb ↔ mvcc.kbCmpM E.γ.kb := by
     rw [hγ, mvcc.StoreNames.withPhys_kb, hkb', hkb, mvcc.kbCmpM_some_iff, mvcc.kbCmpM_some_iff, hcm']
@@ -243,7 +243,8 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
       iapply mvcc.wsCloserR_join wsl E.s (E.γ.withPhys p') c' h' $$ [Hr Hstcl Hwsw]
       iframe Hr
       iexists stc
-      iframe Hstc Hstcl Hwsw
+      iframe Hstc Hstcl
+      rw [mvcc.wsWaiter_withPhys]; iexact Hwsw
     · have h' : ¬ mvcc.kbCmpM (E.γ.withPhys p').kb := by rw [← hγ]; exact h
       ihave Hr := (mvcc.storeCloserM_off E.s (E.γ.withPhys p') c' h').1 $$ Hr
       -- off: `Restore`'s image premise made `c' = -1` (`restoreImageM_off`): the closer at `-1`
@@ -259,7 +260,8 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
         rw [hs, hγ]
         iunfold mvcc.wsCloser
         iexists stc
-        iframe Hstc Hstcl Hwsw Hr
+        iframe Hstc Hstcl Hr
+        rw [mvcc.wsWaiter_withPhys]; iexact Hwsw
       ipureintro; exact hc' hoff
   ipureintro; exact hmode
 

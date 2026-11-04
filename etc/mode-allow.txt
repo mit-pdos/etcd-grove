@@ -33,6 +33,7 @@ match-mode unmoved ::authCapM::
 match-mode unmoved ::authFreshInit::
 match-mode unmoved ::authKitIn::
 match-mode unmoved ::authKitOut::
+match-mode unmoved ::authOpenM::  # (R-D1, 2026-11-04) the kit's open share given back on NewServer's error path (authAbandonM's conclusion), a sibling of authKitIn/authKitOut over the kit's `M`: moves with the kit rows in stage 3
 match-mode unmoved ::authPubAt::
 match-mode unmoved ::authPublishM::
 match-mode unmoved ::authRdM::

@@ -44,6 +44,7 @@ abbrev Compact.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      clientKvOk cl γk ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
       casOk ms γk Seen recorded ∗ (⌜ev = W64 0⌝ ∨ Seen) ∗ revOk γk rev }}
     (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.Compact))
