@@ -180,21 +180,8 @@ def allocRes (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc) (i
      (id = X.t.mv.pgid' ∧ fl' = fl ∧ id.toNat + count < 2 ^ 62 ∧
         X' = Xr.addPage id p count (id + W64 (count : Int))))
 
-/-- **`allocate` keeps its own premises** (batch 12; for `spill`'s next `allocate` and
-`commitFreelist`'s): a successful allocation, with or without a remap (`derefStep`, then
-`WX.rebase`: no live view slice is left to become stale, `derefOK`), then `WX.addPage`.
-Owner: U9c (from U9b's step lemmas, `Spill/DerefModel`, `Spill/DerefRel`). -/
-theorem allocRes_derefPre (X X' : WX) (fl fl' : FLPg) (txid : w64) (count : Nat) (p : Loc)
-    (id : w64) (h : allocRes X X' fl fl' txid count p id) (hp : derefPre X) (hf : liveFresh X)
-    (hr : liveReach X) : derefPre X' ∧ liveFresh X' ∧ liveReach X' := by
-  sorry
-
-/-- **A failed `allocate`'s lost records keep its premises** (batch 12; the error path of `spill`
-needs nothing, but `Tx.allocate`'s `wtxLost` branch is `derefRel` then `WX.rebase`). Owner: U9c. -/
-theorem derefRel_rebase_derefPre (X Xd : WX) (b : Loc) (h : derefRel X Xd) (hp : derefPre X)
-    (hf : liveFresh X) (hr : liveReach X) :
-    derefPre (Xd.rebase b) ∧ liveFresh (Xd.rebase b) ∧ liveReach (Xd.rebase b) := by
-  sorry
+-- `allocate` keeps its own premises: U9c's `allocRes_derefPre'` and `derefRel_rebase_derefPre'`
+-- (`Spill/AllocDeref`, proved, with `objsDisj X.t`: batch 27; the stubs here were false without it).
 
 /-- **`DB.grow`'s effect on the writer side**: the file's size grows (or stays), its pages'
 bytes kept; nothing else changes (the new slots inside the mapping become `W` slots). -/

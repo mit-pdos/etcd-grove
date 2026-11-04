@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `n.del(key)` on a live node of the writer's heap whose entries are sorted and not stale: the
 entry of key `key` at its search index is removed and the node marked unbalanced, if there is
-one (`wsDelAt`); else nothing changes. -/
+one (`wsDelAt`; its inode removed at the same index, batch 28); else nothing changes. -/
 abbrev node.del.spec : Prop :=
   ∀ (v : View) (n bl : Loc) (r : NRec) (qv : Qp) (key : GoSlice) (kb : List w8) (ks : Src),
   r.capOwn = true → wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale →
@@ -35,9 +35,10 @@ abbrev node.del.spec : Prop :=
       objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗ srcOwn v key ks kb }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"del")) (Val #key))
   {{ RET #(); (⌜¬ wsFound r.ws kb⌝ ∗ objOwn v n (DFrac.own 1) true (WObj.node bl r) ∨
-        ⌜wsFound r.ws kb⌝ ∗ ∃ (s : GoSlice) (ins : List Inode),
+        ⌜wsFound r.ws kb⌝ ∗ ∃ (s : GoSlice),
           objOwn v n (DFrac.own 1) true
-            (WObj.node bl (r.withEntsU s ins (wsDelAt r.ws kb) true))) ∗
+            (WObj.node bl (r.withEntsU s (r.ins.eraseIdx (wsIdx r.ws kb)) (wsDelAt r.ws kb)
+              true))) ∗
       viewCells qv v }}
 
 end spec

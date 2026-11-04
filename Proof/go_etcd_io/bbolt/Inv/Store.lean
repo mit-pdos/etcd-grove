@@ -1634,6 +1634,7 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗ ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗
       ghostVar B.mtok 1 () ∗ ghostVar B.wv (1 : Qp).half ws ∗ ghostVar B.out (1 : Qp).half false ∗
       ghostVar B.byt (1 : Qp).half W ∗ ⌜∀ s ∈ slotsOf C fl, W !! s = some (bs s)⌝ ∗
+      ⌜C.metaOk ∧ ∀ s ∈ slotsOf C fl, 2 ≤ s ∧ s < l / 4096 ∧ (bs s).length = 4096⌝ ∗
       ([∗list] s ∈ slotsOf C fl,
         bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l)) C := by
@@ -1696,7 +1697,12 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
   imodintro
   iexists σ.bytes, W
   iframe
-  ipureintro; exact hW
+  isplitr
+  · ipureintro; exact hW
+  ipureintro
+  refine ⟨Hok.1, fun s hs => ?_⟩
+  have h1 := Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs
+  exact ⟨h1.1, Hok.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms' s hs, h1.2⟩
 
 /-- `mmap` (a remap): the new mapping's store cells in, holding the page cache's bytes (the
 caller read them with OsFs's `osCell_agree`), and the meta lend quarter. -/

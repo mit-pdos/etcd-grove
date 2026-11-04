@@ -642,6 +642,21 @@ bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal
 - Users to adapt: `Inv/WtxHeap`, `Model/Wtx`/`WOps`, `Rebalance/{Objs,Heap,HeapRbl,RblXS*}`,
   `Write/Heap`, `Txn/Heap`, `Mmap/Rebase`, `Spill/{Deref*}`, `Bucket__pageNode_w`, `node__*`.
 
+## Shared-statement fixes, batches 26-28 (2026-11-04; decided by the coordinator)
+
+- **26** (U4b): `store_gather`'s post adds `⌜C.metaOk ∧ ∀ s ∈ slotsOf C fl, 2 ≤ s ∧ s < l / 4096 ∧
+  (bs s).length = 4096⌝` (after the witness fact; from `storeOK`'s `metaOk`, slot and mapping
+  clauses). Proved.
+- **27** (U9c): `Inv/Ctx`'s `allocRes_derefPre`/`derefRel_rebase_derefPre` stubs were false without
+  `objsDisj X.t` (two buckets holding one node location); deleted, the shared lemmas are U9c's
+  `allocRes_derefPre'`/`derefRel_rebase_derefPre'` (`Spill/AllocDeref`, proved, with `objsDisj`).
+- **28** (U8b): `node.del.spec`'s found case gives the inodes exactly, `r.ins.eraseIdx (wsIdx r.ws
+  kb)` (no existential). `node__del.lean`'s proof (U7c) breaks at line 187 (its `iexists` of the
+  inodes): routed to U7c.
+- Still open for me: `viewCells_slices_acc` (an empty slice of the view needs a positive address
+  or an array points-to: `ownSlice_empty`; propose the premise `∀ x ∈ L, x.2 ≠ []` or `0 <
+  v.base.addr`), `store_cells_agree`'s proof.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
