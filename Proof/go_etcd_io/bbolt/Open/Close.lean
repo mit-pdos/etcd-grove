@@ -32,17 +32,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`os.File.Close` with its error formattable** (U11's assumption: `Spec/os/File__Close.lean`
-gives no fact of the error, which `close` wraps with `fmt.Errorf("…%w", err)`; the proof's error is
-`os.wp_wrapErrno`'s `*PathError`, as `File.Stat`'s, which states `fmtErrorOkOrNil err`). -/
-abbrev os.File.Close.specE [os.Assumptions] : Prop :=
-  ∀ (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
-  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) d }}
-    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) ∗
-      fmtErrorOkOrNil err }}
-
 /-- **`db.munmap()` with nothing mapped**: `munmap(db)` returns `nil` (no `dataref`), and
 `invalidate` clears `datasz`. -/
 abbrev DB.munmap.spec_none : Prop :=
@@ -156,7 +145,7 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
     (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))
     (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hFlock : syscall.Flock.spec (GF := GF) (hG := hG))
-    (hClose : os.File.Close.specE (GF := GF) (hG := hG))
+    (hClose : os.File.Close.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     DB.close.spec_owned (GF := GF) (hG := hG) := by
