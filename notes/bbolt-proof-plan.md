@@ -1525,7 +1525,105 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 - Open `sorry`s: none added by maintainer 11; removed: `RemapGaps.wtxCore_viewOf_rebase` (gap 3),
   `Write/MatOK` ×2 (item 4).
 
-## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 11)
+## Shared-statement fixes, the coordinator's queue for maintainer 12 (2026-11-04)
+
+- **Item 1, the receipts' bound (`3369bd5d50`; decision D-H).** `Open.spec` already takes
+  `[ReceiptBoundLe GF (2 ^ 62)]`, so the frozen triple is unchanged; `isBoltCoreP`'s pure facts now
+  begin `(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62) ∧ db ≠ null ∧ ↑N ## ↑osN` (the `.1` was unused;
+  `.2.1`, `.2.2` users unchanged). Lemmas: `Inv/Bolt.receipt_txid_lt t0 c ht0 hrb : ⧗ (c - t0) ⊢
+  ⧗ (c - t0) ∗ ⌜c + 1 < 2 ^ 63⌝`, `isBoltCoreP_receipts`, `isBoltCoreP_txid_lt`;
+  `Inv/WdbFlag.wdbW'_txid_lt fr K tx v w : K.core ∗ wdbW' fr K tx v w ⊢ wdbW' fr K tx v w ∗
+  ⌜w.C.txid + 1 < 2 ^ 63⌝` (and `wdbW_txid_lt`). **For U10k**: `Tx__Commit_err.lean:372`'s
+  `htx63` (and `commitStep_commit`'s `htree`): `icases wdbW'_txid_lt fr K tx _ _ $$ [Hkc Hwdb] with
+  ⟨Hwdb, %htx⟩` (`Hkc` the core), then `X1.t.mv.txid' = w.C.txid + 1` from the meta copy.
+  **Broken, U11g**: `Open/Core.lean:289` (`open_core_fl`'s `exact ⟨htx.2, hdb, hN⟩`). Fix: add
+  `[ReceiptBoundLe GF (2 ^ 62)]` after `[ThreadBoundLe GF (2 ^ 29)]` to `open_core_fl` and
+  `open_core` (Open/Core) and to `DB.loadFreelist.spec_open`'s binder (`DB__loadFreelist.lean:101`,
+  `∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] …`); the line becomes `exact
+  ⟨⟨htx.2, ReceiptBoundLe.le (GF := GF) _⟩, hdb, hN⟩`. `Open.lean`'s `hLoad` then resolves the
+  instance from `Open.spec`'s.
+- **Item 2 (`d3c91bd0d1`)**: `Tx.close_w.spec`'s post is `txDoneDef tx ∗ tx.[Tx, go!"commitHandlers"]
+  ↦ X.t.t.commitHandlers'`; proof and its callers (`Tx__Rollback`, `Tx__rollback_f`: `as ⟨Hdone,
+  -⟩`) adapted. `Tx__Commit_err` takes `wp_close` but does not call it yet: bind `as ⟨Hdone, Hch⟩`.
+- **Item 3 (`ad788d5fa6`): dirty pages past the end of the file.** OsFs's `WriteAt` extends the
+  file (`os.File.WriteAt.spec`: the zero gap, then the data; it needs the cells of the gap, `[min
+  off size, off + n)`), so the write is possible; `Tx.write.spec` is kept (proved, pages inside the
+  file) and **`Tx.write_ext.spec`** is new (`Spec/go_etcd_io/bbolt/Tx__write_ext.lean`): `bufsOK
+  bufs (l / 4096)`, `l < 2 ^ 63`, a tail `T` with `(bufSlots bufs ++ T).Nodup`, `T` inside the
+  mapping and every slot of the mapping not wholly inside the file in `bufSlots bufs ++ T`; the
+  slots as `wrSlotsSz b p S wb size` (`Inv/WSlots`: `wBytes p S wb size` and the cells, i.e. the
+  writer's own form: a slot past the end owns no `osBytes`). Post: `om.size ≤ om'.size ≤ max om.size
+  l`, a tail slot inside the old file keeps its bytes, lengths of the slots inside the new file;
+  success: every page slot inside the new file, `slotsOwn` of the pages, `wrSlotsSz T wb'
+  om'.size`; error: `wrSlotsSz (bufSlots ++ T) wb' om'.size`. Proof
+  (`Proof/go_etcd_io/bbolt/Tx__write_ext.lean`): **the in-file case from `Tx.write.wp_proof`**; the
+  case of a page past the end is a `sorry` (**OPEN**, a unit's work: `Tx__write.lean`'s loop over
+  the current size; each `WriteAt` takes the gap's cells from `T`). New in `Inv/WSlots`:
+  `wrSlotsSz`, `wrSlotsSz_app`/`_congr`/`_grow`/`_in` (`= wrSlots` inside the file),
+  **`wSlots_carveSz`** (`wSlots_carve` without the size premise: `S` inside the mapping only),
+  **`wSlots_returnSz`** (back at the new size; the rest of `W` inside the old file). **For U10k**
+  (`Commit/TailWrite.cm_write_step`): take `Tx.write_ext.spec`; `T` = the `W` slots below
+  `l / 4096` not wholly inside the file and not in `bufSlots` (all of them `W` slots: past the file
+  is past the mark, `wdbOK`'s tree/pending clause); carve `bufSlots ++ T` with `wSlots_carveSz`;
+  return with `wSlots_returnSz` (`size' = om'.size`, the rest inside the old file since every slot
+  not wholly inside is in `S`). `DB.grow.spec` unchanged (U4e): under `NoGrowSync` it leaves the
+  size, the write then extends the file.
+- **Item 4 (`0ca67db5a4`): the buffers' slots not free, the extents disjoint.** `Spill/NodeSpec.bufsOK`'s
+  and `Bucket__spill.spillBufs`' per-slot clause is now `id.toNat + j ∉ treeSlots C ∧ id.toNat + j
+  ∉ pendSlots fl ∧ (∀ x ∈ fl.free, x.toNat ≠ id.toNat + j) ∧ ∀ id' pg', X.t.bufs !! id' = some pg' →
+  ∀ j' < 1 + pageOverflow pg', id.toNat + j = id'.toNat + j' → id' = id` (the two definitions stay
+  textually equal: `BktEndPost.end_bufs` is `exact`). `Inv/WSlots.bufSlots_nodup_of_disj` turns the
+  last conjunct into `(bufSlots bufs).Nodup` (`tx.write`'s premise). Adapted:
+  `Spill/BktLoopPureInline` (proved: `freePages` keeps `free`, the buffers unchanged).
+  **Named `sorry`s for U9w4** (`Spill/PcStepBufs.pcStepX_bufsOK`, 4): the new buffer's run is no
+  longer free (`allocRes` takes the run out of `free`; `allIds` has no duplicates) and meets no old
+  buffer's extent (an old buffer's slots are not free, by its own clause, and lie below the old
+  mark, where a mark allocation does not reach); an old buffer's slots stay non-free (`free` only
+  shrinks: `applySteps_free_sub`) and miss the new buffer's run (the same two facts). **For U10k**:
+  `Tx.commitFreelist.spec`'s success post (`Tx__commitFreelist.lean`, U10k's file) should add that
+  the freelist page's extent `[id, id + flCount …)` meets no slot of `X1`'s buffers (the run is
+  allocated from `free` or the mark, which `spillBufs`' new clauses exclude), so that
+  `(X1.setFlPage …)`'s buffers keep `bufsOK`'s disjointness for `tx.write`.
+- **Item 5 (`49353188ba`; decision D-I)**: `fileHoldsDef`'s pure facts `m.maps = ∅ ∧ xs.length =
+  m.size ∧ m.size < 2 ^ 62 ∧ fileOK …`; `fileHolds_decode` gives `⌜m.maps = ∅ ∧ xs.length = m.size ∧
+  m.size < 2 ^ 62⌝`; `Api.lean`'s docstring. **Broken, U11g**: `Open/FileFacts.lean:47-54`: `have
+  hsz : m.size < 2 ^ 62 := hml.2.2` (the `sorry` goes), and `hml.2` → `hml.2.1` at `:51`, `:54`.
+  `DB.Close`'s proof must give the bound back (the writer side's `m.size < 2 ^ 63` is not enough;
+  open, for its unit).
+- **Item 6 (`f26a2ebb39`)**: `DB.Begin_err.spec`'s error branch `⌜err ≠ nil ∧ tx = null⌝ ∗
+  fmtErrorOk err ∗ …`; `DB.beginTx.spec`'s error branch begins `⌜tx = null⌝ ∗ beginErr err ∗ …`,
+  `DB.beginRWTx.spec`'s is `⌜tx = null⌝ ∗ beginErr err`; proofs and `DB.Begin` adapted. **For
+  U11g**: `Open.lean`'s `DB.Begin_err.spec_w` can go: `hBegin` becomes `DB.Begin_err.spec` at `w =
+  true` (`wp_apply hBegin db γ true (fun _ => emp)`; its pre's `if` is `emp`, the post's `∃ D,
+  boltTx …`; the error branch `⌜err ≠ nil ∧ tx = null⌝ ∗ fmtErrorOk err ∗ emp`).
+- **Item 7, `fs.FileMode.String`: not landed (checked, then reverted).** `io/fs` is this
+  repository's (project `bboltfs`, not Perennial's). Adding `"FileMode.String"` to
+  `Code/io/fs.toml`'s `translate` list and `etc/goose.py --project bboltfs` translate it (only
+  `Code/io/fs.lean` changes: `FileMode.String.impl`, and `FileMode.TypeAssumptions` gains
+  `String_unfold`/`ptr_String_unfold`); `etc/goose.py --check --project bboltfs` passes. Reverted
+  because `Code.io.fs` is imported by every project (`os`), so the change rebuilds the whole tree
+  for every agent in the shared worktree: land it when a full rebuild is acceptable, with the
+  proof. The proof of `Open/FileModeString.fs.FileMode.String.spec` (`{{True}} … {{s, RET #s;
+  True}}`): two `wp_string_for_range` loops (Perennial `Golang/Theory/String.lean`) over the
+  constants `"dalTLDpSugct?"` (13 runes) and `"rwxrwxrwx"` (9), invariant `w ↦ W64 n` with `n ≤ i`
+  (first loop), `n ≤ 14 + i` (second; the `w == 0` step adds one), and `buf ↦ ` any `[32]byte`, so
+  every `buf[w]` is in bounds (`w ≤ 22 < 32`); then `string(buf[:w])`. Then U11g's `hModeStr`
+  (`Open.lean:270`) is discharged.
+
+### Maintainer 12's hand-off (2026-11-04): what is left
+
+1. Item 7 (above): land the translation with the proof, at a moment a full rebuild is acceptable.
+2. Item 3's `sorry` (`Tx__write_ext.lean`, the past-the-end case): a unit (Commit/Write*, idle).
+3. Item 4's four `sorry`s in `Spill/PcStepBufs.pcStepX_bufsOK` (U9w4), and `commitFreelist`'s post
+   clause (U10k, above).
+4. U11g: the item 1, 5, 6 changes above (`Open/Core`, `DB__loadFreelist`, `Open/FileFacts`,
+   `Open.lean`'s `spec_w`).
+5. `DB.Close`'s `fileHolds` must give `m.size < 2 ^ 62` (D-I).
+6. Interfaces and the TCB baseline at integration.
+- Open `sorry`s added by maintainer 12: `Tx__write_ext.lean` ×1 (U10-style unit),
+  `Spill/PcStepBufs.lean` ×4 (U9w4). Removable once U11g applies item 5: `Open/FileFacts`' `hsz`.
+
+## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 12)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
 units', per the U0b table):
@@ -1541,6 +1639,8 @@ units', per the U0b table):
 | `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
 | `treeData_spill` | `Model/LTree` | U9c |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
+| `Tx.write_ext.wp_proof`'s past-the-end case (maintainer 12, item 3) | `Tx__write_ext` | a Commit/Write unit |
+| `pcStepX_bufsOK`'s four item-4 clauses (maintainer 12) | `Spill/PcStepBufs` | U9w4 |
 
 Maintainer 3's queue (C(1), C(4), E) is done in batch 30 above.
 
