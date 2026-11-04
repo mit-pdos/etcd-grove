@@ -317,7 +317,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       · -- a context error: the caller's context's, or retried
         ihave #HC := Hctx'
         iunfold ctxOk at HC
-        icases HC with (#HC | #HQ)
+        icases HC with (#HC | #HQ | #HE)
         rotate_left
         · -- a quiet context (`context.TODO()`, the vertical slice's unit V2): `Err()` is `nil`
           (try wp_auto)
@@ -348,6 +348,44 @@ theorem Client.unaryClientInterceptor.wp_proof
           iright
           iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
+        · -- (2026-11-04) a context whose `Err()` follows Go's contract (`ctxErrs`: k8s's
+          -- `wait.ContextForChannel`), as an `isContext`'s
+          (try wp_auto)
+          iunfold ctxErrs at HE
+          wp_apply HE $$ %Broadcast.Pending as %ce Hce' - - -
+          cases ce with
+          | ok cei =>
+            (try wp_auto)
+            wp_for_post
+            iapply HΨ
+            iframe
+            iright
+            iframe Hcl Hse
+            ipureintro; exact ⟨Hne, Hce⟩
+          | nil =>
+            (try wp_auto)
+            wp_if_destruct
+            · -- a non-repeatable call: its attempt's error (8a24be2a3)
+              wp_for_post
+              iapply HΨ
+              iframe
+              iright
+              iframe Hcl Hse
+              ipureintro; exact ⟨Hne, Hce⟩
+            (try wp_auto)
+            wp_for_post
+            iframe
+            iexists a + W64 1, GoInterface.ok ei
+            simp only [named]
+            isplitr
+            · -- (D29) a write's policy is `nonRepeatable`, which returned above
+              ipureintro; intro hw; exfalso
+              have := Hcovpol hw
+              simp_all
+            iframe
+            iright
+            iframe Hcl Hse
+            ipureintro; exact ⟨Hne, Hce⟩
         iunfold _root_.Perennial.context.isContext at HC
         iunfold _root_.Perennial.context.isContextDef at HC
         iNamed HC
