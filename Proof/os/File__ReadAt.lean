@@ -159,7 +159,7 @@ private theorem wp_call3_gen (F : val) (b0 : GoSlice) (o0 n0 : w64) (Φ : val �
   iapply H
   ipureintro; exact ⟨rfl, rfl, rfl⟩
 
-theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by
+theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG) := by
   intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Heof⟩
@@ -246,9 +246,10 @@ theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := 
     iframe
     isplitl []
     · isplitl [] <;> iassumption
-    ipureintro
     obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
-    exact ⟨hl, by omega, hx, .inl ⟨rfl, by omega⟩⟩
+    isplitr
+    · ipureintro; exact ⟨hl, by omega, hx⟩
+    ileft; ipureintro; exact .inl ⟨rfl, by omega⟩
   · rw [decide_eq_false hl0]
     wp_auto
     have hcpos : 0 < cur.length := by
@@ -293,22 +294,24 @@ theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := 
           iframe
           isplitl []
           · isplitl [] <;> iassumption
-          ipureintro
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
-          exact ⟨hl, by omega, hx, .inr (.inl ⟨rfl, heof hr0 rfl⟩)⟩
+          isplitr
+          · ipureintro; exact ⟨hl, by omega, hx⟩
+          ileft; ipureintro; exact .inr ⟨rfl, by omega, heof hr0 rfl⟩
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
           iapply HΦ
           iframe
           isplitl []
           · isplitl [] <;> iassumption
-          ipureintro
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
-          exact ⟨hl, by omega, hx, .inr (.inr ⟨pe, rfl⟩)⟩
+          isplitr
+          · ipureintro; exact ⟨hl, by omega, hx⟩
+          iright; iexists pe; iframe Hok; ipureintro; rfl
     · wp_apply wp_slice_copy b cur tmp r (DFrac.own 1) $$ [Hcur Htmp] as %mm ⟨%hmm, Hcur, -⟩
       · iframe
       have hrl : 0 < r.length := List.length_pos_iff.2 hr0
@@ -391,17 +394,36 @@ theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := 
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe
           iapply HΦ
           iframe
           isplitl []
           · isplitl [] <;> iassumption
-          ipureintro
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin _ hc2l
-          exact ⟨hl, by omega, hx, .inr (.inr ⟨pe, rfl⟩)⟩
+          isplitr
+          · ipureintro; exact ⟨hl, by omega, hx⟩
+          iright; iexists pe; iframe Hok; ipureintro; rfl
 
+
+/-- **The racing read** (`specRacy`): `specRacyLt`'s post, weakened. -/
+theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
+  iintro %Φ Hpre HΦ
+  iapply os.File.ReadAt.wp_proofRacyLt f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hfd, Hbs, %vs', Hsl, %h, Hr⟩
+  obtain ⟨h1, h2, h3⟩ := h
+  iapply HΦ
+  iframe
+  icases Hr with (%h4 | ⟨%pe, %hpe, -⟩)
+  · ipureintro
+    refine ⟨h1, h2, h3, ?_⟩
+    rcases h4 with h | ⟨he, -, hall⟩
+    · exact .inl h
+    · exact .inr (.inl ⟨he, hall⟩)
+  · ipureintro; exact ⟨h1, h2, h3, .inr (.inr ⟨pe, hpe⟩)⟩
 
 end proof
 

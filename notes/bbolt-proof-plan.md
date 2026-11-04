@@ -894,7 +894,7 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   listed under batch 30 item 6, plus `Cursor__seek_w.txt`, `Bucket__Bucket_w.txt`,
   `Bucket__ForEachBucket_w.txt`.
 
-## Shared-statement fixes, batches 34-35 (maintainer 5, 2026-11-04; decided by the coordinator)
+## Shared-statement fixes, batches 34-36 (maintainer 5, 2026-11-04; decided by the coordinator)
 
 - **34.1 `wtxEnd`** (`Inv/Ctx`) holds the writer side's half of the closed flag
   (`ghostVar K.B.cls ½ false`, after `rwlock`'s token: `rwR`'s idle branch takes it back) and its
@@ -939,6 +939,34 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   batch 30's two), `Write/MatOK.wOK_matX` (materialization: U7f; its two `hshape` `sorry`s in
   `wOK_nodeAdded'` then follow from `hps`). Still to prove by their owners: `Bucket.Bucket_w`'s
   open (U6e), spill (U9), `CreateBucket`/`DeleteBucket` (U7).
+
+- **34.5 `lg != discardLogger`**: bbolt's root package facts (`PkgInit.bboltRootInit`, through
+  `etc/gen-init.py`'s `SPECIAL['go_etcd_io.bbolt']` finish; `Init.lean` regenerated) add `∃ l,
+  globalAddr discardLogger ↦□ interface.mkOk (*nopLogger) #l` (`bboltRootInit_discard`;
+  `_goos`/`_goarch` adapted). `dbFixed` (`Inv/Bolt`) gains a **last** clause `∃ lg, db.logger ↦□ lg ∗
+  ⌜logPtrTyped lg⌝` (a pointer-typed dynamic value is a location; last, so that the patterns ending
+  in `-` stand; `dbFixed_logPtrTyped` reads it against the caller's logger field) in place of
+  changing `dbLogger` (whose users pass it as a `boltLogger`). `DB__Begin_err.wp_logger_ne_discard`
+  is proved (takes `logPtrTyped lg`). **Open for U11**: `Open` must establish `logPtrTyped` of the
+  logger it stores; for the option's logger the frozen `Open` spec gives only `boltLogger
+  o.logger`, which does not say a `*T`-typed value is a location (the model's interface values are
+  untyped pairs): it needs a premise in `Open`'s public spec (user approval) or a Perennial typing
+  fact for interface values. `discardLogger`'s own case follows from `bboltRootInit_discard`.
+  `Open`'s own comparison, if any, uses the same lemma.
+- **36.1 `os.File.ReadAt.specRacyLt`** (`Spec/os/File__ReadAt.lean`, proved in
+  `Proof/os/File__ReadAt.lean` from the model, no trust change): `specRacy` with `io.EOF` only for
+  `n < len(b)`, and the `*PathError` case `fmtErrorOk` (post: the exactness facts pure, then
+  `⌜nil ∨ eof-case⌝ ∨ ∃ pe, ⌜err = *PathError pe⌝ ∗ fmtErrorOk err`). Not U11's
+  `fmtErrorOkOrNil err` uniformly: `io.EOF`'s `fmtErrorOk` needs `io`'s package facts, which the spec
+  does not take, and a disjunct `err = eof ∨ fmtErrorOkOrNil err` would not let a caller refute the
+  `eof` case in the `*PathError` branch. `specRacy` is kept (bboltfs uses it) as a corollary
+  (`wp_proofRacy` from `wp_proofRacyLt`); kept beside rather than strengthened in place so that
+  bboltfs' proofs are unchanged. U11's `Open/ReadHeld` uses it: its own `specRacyLt` deleted,
+  `wp_held` adapted (same statement).
+- **36.2 `bboltErrVar`**'s pure part is `IsPointerError e ∧ e.ty = *errorString` (`errors/Init`
+  regenerated, `gen-init.py`'s finish `⟨⟨_, _, rfl, rfl⟩, rfl⟩`); `Mmap/Infra.errMaxSizeOk_holds`
+  adapted; **`Mmap/Infra.errInvalid_errorString`** is U11's `Open/PageSize.errInvalidStr` (same
+  statement), proved: `DB.getPageSize.wp_proof_own`'s `hEI` can be discharged by it.
 
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 

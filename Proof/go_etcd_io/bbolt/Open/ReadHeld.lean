@@ -1,7 +1,7 @@
 /-
 `Open`'s reads of the file's meta pages (U11, `notes/bbolt-proof-plan.md`): `os.File.ReadAt` of
 bytes the reader holds whole (`osBytes p 0 dq xs`), without the file's `OsMeta`, from the racing
-read's spec, strengthened (`os.File.ReadAt.specRacyLt`, see below).
+read's spec, strengthened (`os.File.ReadAt.specRacyLt`, `Spec/os/File__ReadAt.lean`, batch 36).
 
 **Why not `os.File.ReadAt.spec`/`specRacy` as they are** (reported to the maintainer): both allow an
 in-bounds read to fail with `io.EOF` (`spec`: `(0, err)` with any `err ≠ nil`; `specRacy`: `eof`
@@ -32,33 +32,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [osA : os.Assumptions]
 
-/-- **`os.File.ReadAt.specRacy`, strengthened** (U11; the fix to land in
-`Spec/os/File__ReadAt.lean`): `io.EOF` only with fewer bytes than asked (`n < len(b)`), and the
-error `fmt` formats (`fmtErrorOkOrNil err`). True of the model (see the header). -/
-abbrev os.File.ReadAt.specRacyLt : Prop :=
-  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List (w8 × Bool)))
-    (eof : GoInterface),
-  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
-  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-      osFd (GF := GF) fd dq d ∗
-      ([∗list] r ∈ rs, osBytes (GF := GF) d.path r.1 r.2.1 r.2.2) ∗
-      globalAddr io.EOF ↦□ eof }}
-    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
-      (Val #off))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ([∗list] r ∈ rs, osBytes d.path r.1 r.2.1 r.2.2) ∗
-      ∃ vs' : List w8, sl ↦* vs' ∗
-        ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
-          (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →
-            vs'[i - off.toNat]? = some b) ∧
-          ((err = interface.nil ∧ n.toNat = vs.length) ∨
-           (err = eof ∧ n.toNat < vs.length ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
-              i < off.toNat + vs.length → i < off.toNat + n.toNat) ∨
-           (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))⌝ ∗
-      fmtErrorOkOrNil err }}
-
 omit osA in
 /-- **A read of held bytes**: `f.ReadAt(b, off)` inside bytes `xs` of the file held from offset
 `0` (no `OsMeta`): all of them, exactly (`n = len(b)`), or a `*PathError` (`fmt` formats it). -/
@@ -85,38 +58,49 @@ theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG
   · iframe; iframe #
     iapply BigSepL.bigSepL_nil.2; iempintro
   inext
-  iintro %n %err ⟨Hfo, Hfd, Hb, %vs', Hsl, %h, #Hek⟩
+  iintro %n %err ⟨Hfo, Hfd, Hb, %vs', Hsl, %h, Hr⟩
   icases BigSepL.bigSepL_singleton.1 $$ Hb with Hb
-  iapply HΦ
-  iframe Hfo Hfd Hb Hek
-  iexists vs'
-  iframe Hsl
-  ipureintro
-  obtain ⟨hl, hnl, hex, hc⟩ := h
+  obtain ⟨hl, hnl, hex⟩ := h
   have held : ∀ i, i < xs.length → ∀ b, (xs[i]?).map Prod.fst = some b →
       os.heldByte [(0, dqb, xs)] i b := fun i _ b hb =>
     ⟨_, List.Mem.head _, Nat.zero_le _, by simpa using hb⟩
-  rcases hc with ⟨rfl, hfull⟩ | ⟨rfl, hlt, hall⟩ | hpe
-  · left
-    refine ⟨rfl, by apply BitVec.eq_of_toNat_eq; simp; omega, ?_⟩
-    apply List.ext_getElem?
-    intro j
-    by_cases hj : j < vs.length
-    · have hi : off.toNat + j < xs.length := by omega
-      obtain ⟨b, hb⟩ : ∃ b, (xs[off.toNat + j]?).map Prod.fst = some b :=
-        ⟨(xs[off.toNat + j]).1, by simp [List.getElem?_eq_getElem hi]⟩
-      have := hex (off.toNat + j) b (held _ hi b hb) (by omega) (by omega)
-      rw [show off.toNat + j - off.toNat = j by omega] at this
-      rw [this]
-      simp only [List.getElem?_take, hj, ite_true, List.getElem?_drop, List.getElem?_map]
-      simpa using hb.symm
-    · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
-  · exfalso
-    have hi : off.toNat + n.toNat < xs.length := by omega
-    have := hall (off.toNat + n.toNat) (xs[off.toNat + n.toNat]).1
-      (held _ hi _ (by simp [List.getElem?_eq_getElem hi])) (by omega) (by omega)
-    omega
-  · right; exact hpe
+  icases Hr with (%hc | ⟨%pe, %hpe, #Hek⟩)
+  · rcases hc with ⟨rfl, hfull⟩ | ⟨rfl, hlt, hall⟩
+    · iapply HΦ
+      iframe Hfo Hfd Hb
+      iexists vs'
+      iframe Hsl
+      isplitr
+      · ipureintro
+        left
+        refine ⟨rfl, by apply BitVec.eq_of_toNat_eq; simp; omega, ?_⟩
+        apply List.ext_getElem?
+        intro j
+        by_cases hj : j < vs.length
+        · have hi : off.toNat + j < xs.length := by omega
+          obtain ⟨b, hb⟩ : ∃ b, (xs[off.toNat + j]?).map Prod.fst = some b :=
+            ⟨(xs[off.toNat + j]).1, by simp [List.getElem?_eq_getElem hi]⟩
+          have := hex (off.toNat + j) b (held _ hi b hb) (by omega) (by omega)
+          rw [show off.toNat + j - off.toNat = j by omega] at this
+          rw [this]
+          simp only [List.getElem?_take, hj, ite_true, List.getElem?_drop, List.getElem?_map]
+          simpa using hb.symm
+        · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
+      simp only [fmtErrorOkOrNil]; itrivial
+    · exfalso
+      have hi : off.toNat + n.toNat < xs.length := by omega
+      have := hall (off.toNat + n.toNat) (xs[off.toNat + n.toNat]).1
+        (held _ hi _ (by simp [List.getElem?_eq_getElem hi])) (by omega) (by omega)
+      omega
+  · subst hpe
+    iapply HΦ
+    iframe Hfo Hfd Hb
+    iexists vs'
+    iframe Hsl
+    isplitr
+    · ipureintro; right; exact ⟨pe, rfl⟩
+    simp only [fmtErrorOkOrNil, interface.mkOk]
+    iexact Hek
 
 end spec
 
