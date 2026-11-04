@@ -35,12 +35,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`tx.recursivelyCheckPageKeyOrder(r, keyToString, ch)`** of a reader on a root of its
 view's tree: the keys are a B+tree's (`treeKeys`), nothing is reported. -/
 abbrev Tx.recursivelyCheckPageKeyOrder_ok.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (r : w64) (f : val)
+  ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (r : w64) (f : GoFunc)
     (ch : Loc) (hwm : Nat),
   treeWF v.pages hwm r.toNat → treeKeys v.pages r.toNat none none →
   {{ rdTxK (GF := GF) K tx src q T v }}
     (App (App (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"recursivelyCheckPageKeyOrder"))
-      (Val #r)) (Val f)) (Val #ch))
+      (Val #r)) (Val #f)) (Val #ch))
   {{ RET #(); rdTxK K tx src q T v }}
 
 /-- **`tx.checkInvariantProperties(r, reachable, freed, HexKVStringer(), ch)`** of a reader on a
