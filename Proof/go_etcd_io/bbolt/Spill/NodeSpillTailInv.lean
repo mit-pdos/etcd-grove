@@ -49,6 +49,27 @@ def parWs (bs : List WEntry) (j i : Nat) (ps : List Piece) : List (w32 × w64 ×
   if i = 0 then bs.map wDat
   else (bs.take j).map wDat ++ ps.map pcDat ++ (bs.drop (j + 1)).map wDat
 
+/-- The upper bound of piece `k` (the next piece's first key; `hi` for the last). -/
+def pcHi (hi : Option (List w8)) (wss : List (List WEntry)) (k : Nat) : Option (List w8) :=
+  childHi hi (wssKey wss) wss.length k
+
+/-- **The pieces' entries' subtrees** (fixed after the children's loop, over its page map `P` and
+mark `hwm`; U9w): for each piece `k` (entries `ws`), the pages `Sb m` of its entry `m`, its slots
+`Ds[k]` theirs, its leaf elements `Es[k]`: a leaf's entries' (a nested bucket's value `bvalS`,
+another entry no pages), a branch's entries' finished subtrees (of height `hc`, from the entry's
+key, below the next entry's or the piece's bound). -/
+def pcEnts (P : Pages) (hwm : Nat) (leaf : Bool) (hi : Option (List w8)) (hc : Nat)
+    (wss : List (List WEntry)) (Es : List (List El)) (Ds : List (List Nat)) : Prop :=
+  ∀ (k : Nat) (ws : List WEntry), wss[k]? = some ws →
+    ∃ (Sb : Nat → List Nat) (Eb : Nat → List El),
+      Ds.getD k [] = (List.range ws.length).flatMap (fun m => pgSlots P (Sb m)) ∧
+      Es.getD k [] = (if leaf then ws.map wEl else (List.range ws.length).flatMap Eb) ∧
+      ∀ (m : Nat) (e : WEntry), ws[m]? = some e →
+        (leaf = true → (isBktFlag e.flags → bvalS P hwm e.value (Sb m)) ∧
+          (¬ isBktFlag e.flags → Sb m = [])) ∧
+        (leaf = false → fTree P hwm e.pgid.toNat e.key
+          (childHi (pcHi hi wss k) (wKey ws) ws.length m) hc (Sb m) (Eb m))
+
 /-- **The pieces' loop's state** (see the module doc) after the split, from `(X2, w2)`. -/
 structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List Nat)
     (hi : Option (List w8)) (h0 : Nat) (xs : List (Loc × node × List Inode))
@@ -56,6 +77,11 @@ structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List
     (Es : List (List El)) (Ds : List (List Nat)) (i : Nat) (ps : List Piece) (Xi : WX)
     (wi : WDb) (stl : List FLStep) : Prop where
   len : ps.length = i
+  /-- (U9w) Before the first piece's step the state is the split's (piece `0`'s page free). -/
+  start : i = 0 → Xi = X2 ∧ wi = w2 ∧ stl = []
+  /-- (U9w) The view's pages are below the mark (an allocation at the mark is no view page:
+  `spG`'s buffer clause). -/
+  vb : ∀ (id : Nat) (pg : List w8), Xi.v.pages !! id = some pg → id < Xi.t.mv.pgid'.toNat
   ile : i ≤ xs.length
   pcl : ∀ (k : Nat) (p : Piece) (x : Loc × node × List Inode), ps[k]? = some p → xs[k]? = some x → p.l = x.1
   Elen : Es.length = xs.length
@@ -87,17 +113,18 @@ def pcInv (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
     (xs : List (Loc × node × List Inode)) (pl : Loc) (i : Nat) (Xi : WX) (wi : WDb)
     (st : List FLStep) : Prop :=
   ∃ (X' : WX) (w' : WDb) (r' : NRec) (st0 : List FLStep) (T : List Loc) (X2 : WX)
-    (wss : List (List WEntry)) (rp0 : NRec) (bs : List WEntry) (j h0 : Nat) (Es : List (List El))
+    (wss : List (List WEntry)) (rp0 : NRec) (bs : List WEntry) (j : Nat) (Es : List (List El))
     (Ds : List (List Nat)) (ps : List Piece) (stl : List FLStep),
     spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧ insLens r'.ins r'.ws ∧
     splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0 ∧
     (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) ∧
     st = st0 ++ stl ∧ Es.flatten = E ∧
+    pcEnts (spP X') X'.t.mv.pgid'.toNat r'.nv.isLeaf' hi (h - 1) wss Es Ds ∧
     (∀ s ∈ D, s ∈ ownSl X'.v r'.nv.pgid' ++ Ds.flatten ∨ s ∈ pendSlots w'.fl) ∧
     (match cs with
      | .child pl' rp j' _ _ => pl = pl' ∧ j = j' ∧ bs.map wDat = rp.ws.map wDat
      | .top => bs = [] ∧ j = 0) ∧
-    pcLoop X' r' X2 w' bl O hi h0 xs wss pl bs j Es Ds i ps Xi wi stl
+    pcLoop X' r' X2 w' bl O hi h xs wss pl bs j Es Ds i ps Xi wi stl
 
 end inv
 
@@ -124,8 +151,8 @@ theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {wi : WDb} {st : List FLStep}
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) :
     wi.C = w.C ∧ wi.fl = w.fl.applySteps w.wtxid st ∧ Xi.v.pages = X.v.pages := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
-    -, hL⟩ := hI
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, rfl, -, -,
+    -, -, hL⟩ := hI
   obtain ⟨hC, hfl, hpg⟩ := spEnd_db hend
   obtain ⟨hC2, hfl2, hpg2, -⟩ := hL.step
   refine ⟨hC2.trans hC, ?_, ?_⟩
@@ -318,8 +345,8 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ∃ rf, Xf.node bl n = some rf ∧ n ∈ Xf.live ∧ rf.nv.parent' = pl ∧
       rf.nv.children' = slice.nil ∧ rf.cs = [] ∧
       (pl ≠ null → ∃ rp, Xf.node bl pl = some rp ∧ pl ∈ Xf.live) := by
-  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, -, hsr, -, -, -, -,
-    -, hL⟩ := hI
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, -, hsr, -, -, -, -,
+    -, -, hL⟩ := hI
   obtain ⟨x0, hx0⟩ : ∃ x0, xs[0]? = some x0 := by
     cases e : xs with
     | nil => exact absurd e hsr.ne
