@@ -6,7 +6,9 @@
   with its leaves at one depth (`rtOK`), its nodes live; entries bounded, handles, live set,
   registry, the view well-formed, the live objects reached, and the records agreeing with the
   writer's freelist (`flView`);
-  The covered slots are covered once (`covU`).
+  The covered slots are covered once (`covU`); the view's page extents end below `2^62` and
+  the pending entries' ids and allocating transactions align (what `Free` and `flView` need of
+  a free).
 - `rblRel X0 fl0 X fl txid`: what the steps so far kept (the view, handles, root, the
   transaction's fields, the buckets' locations, headers and bucket caches, every bucket's leaves'
   entries in order), grew (the registry) and freed (`Free` steps of base-page extents);
@@ -55,7 +57,10 @@ def rblX (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) : Prop :=
     (∀ name c, B.bm !! name = some c → (X.t.bs !! c).isSome) ∧
     bktNested X.v X.t B ∧ rtOK X bl ∧ (∀ l r, B.ns !! l = some r → l ∈ X.live)) ∧
   entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X ∧ viewWF X.v ∧ liveReach X ∧
-  flView X fl ∧ covU X
+  flView X fl ∧ covU X ∧
+  (∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) ≤ 2 ^ 62) ∧
+  (∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) ∧ objsDisj X.t ∧
+  ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome
 
 /-- **What the steps so far kept, grew and freed** (see the module doc). -/
 def rblRel (X0 : WX) (fl0 : FLPg) (X : WX) (fl : FLPg) (txid : w64) : Prop :=
@@ -65,7 +70,7 @@ def rblRel (X0 : WX) (fl0 : FLPg) (X : WX) (fl : FLPg) (txid : w64) : Prop :=
   (∀ bl, (X.t.bs !! bl).isSome = (X0.t.bs !! bl).isSome) ∧
   (∀ bl B0 B, X0.t.bs !! bl = some B0 → X.t.bs !! bl = some B →
     B.bv = B0.bv ∧ B.ib = B0.ib ∧ B.bm = B0.bm) ∧
-  (∀ bl, (X.leaves bl).flatten = (X0.leaves bl).flatten) ∧
+  (∀ bl, (X.leaves bl).flatten.map wDat = (X0.leaves bl).flatten.map wDat) ∧
   ∃ es : List (w64 × Nat), fl0.canFreeAll txid es ∧ fl = fl0.freeAll txid es ∧
     ∀ e ∈ es, ∃ pg, X0.v.pages !! e.1.toNat = some pg ∧ 1 + pageOverflow pg = e.2
 
@@ -112,12 +117,24 @@ theorem flatMap_filterMap_flatten {β : Type} (f : WEntry → Option β) (L : Li
   | nil => rfl
   | cons a L ih => simp only [List.flatMap_cons, List.flatten_cons, List.filterMap_append, ih]
 
+/-- A filter reading only an entry's data, through `wDat`. -/
+theorem filterMap_wDat {β : Type} (f : WEntry → Option β) (g : w32 × w64 × List w8 × List w8 → Option β)
+    (hf : ∀ w, f w = g (wDat w)) (L : List WEntry) : L.filterMap f = (L.map wDat).filterMap g := by
+  rw [List.filterMap_map]
+  congr 1
+  funext w
+  exact hf w
+
 /-- **The data is kept** by the steps (`rblRel`). -/
 theorem wtxData_rblRel (X0 X : WX) (fl0 fl : FLPg) (txid : w64) (h : rblRel X0 fl0 X fl txid) :
     wtxData X = wtxData X0 := by
   obtain ⟨hv, -, hrl, -, -, -, -, -, hsome, hbk, hlv, -⟩ := h
   apply wtxData_rebalance
-  · unfold rootEnts; rw [flatMap_filterMap_flatten, flatMap_filterMap_flatten, hrl, hlv]
+  · unfold rootEnts
+    rw [flatMap_filterMap_flatten, flatMap_filterMap_flatten, hrl]
+    have hf := filterMap_wDat (fun w => if decide (isBktFlag w.flags) then some (w.key, w.value) else none)
+      (fun d => if decide (isBktFlag d.1) then some (d.2.2.1, d.2.2.2) else none) (fun _ => rfl)
+    rw [hf, hf, hlv]
   · intro n
     unfold bktLoc
     rw [hrl]
@@ -132,7 +149,11 @@ theorem wtxData_rblRel (X0 X : WX) (fl0 fl : FLPg) (txid : w64) (h : rblRel X0 f
       obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 this
       rw [hB]; simp only [Option.bind_some]; rw [(hbk _ B0 B h0 hB).2.2]
   · intro n bl _
-    unfold lbktEnts; rw [flatMap_filterMap_flatten, flatMap_filterMap_flatten, hlv]
+    unfold lbktEnts
+    rw [flatMap_filterMap_flatten, flatMap_filterMap_flatten]
+    have hf := filterMap_wDat (fun w => if decide (isBktFlag w.flags) then none else some (w.key, w.value))
+      (fun d => if decide (isBktFlag d.1) then none else some (d.2.2.1, d.2.2.2)) (fun _ => rfl)
+    rw [hf, hf, hlv]
   · rw [hv]
 
 /-- **At the end, `rebalOK`** (no deficient node and no node unbalanced). -/
@@ -140,7 +161,7 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     (hI : rblX X fl dbl none) (hR : rblRel X0 fl0 X fl txw)
     (hbal : ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.unbalanced' = false) :
     rebalOK X0 X fl0 fl txw ∧ liveReach X ∧ flView X fl := by
-  obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -⟩ := hI
+  obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -, -, -, -, -⟩ := hI
   have hR' := hR
   obtain ⟨hv, hh, hrl', hnl, -, -, -, -, -, -, -, es, hcan, hfl, hes⟩ := hR'
   have hBn : ∀ bl B, X.t.bs !! bl = some B → rblB X.v X.t.mv.pgid'.toNat bl B none := by
