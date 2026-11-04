@@ -37,11 +37,12 @@ theorem snap_kvCloser (s : Loc) (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : Me
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
-      mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk ∗ mvcc.storeCloser E.s (γw.st.withPhys p') ⊢
+      mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk E.s E.γ ∗ mvcc.storeCloser E.s (γw.st.withPhys p') ⊢
     srvKVCloser s (snapE E γ' TM' ci p' g γB al ast lp cl be) := by
   unfold srvKVCloser mvcc.wsCloser
   simp only [snapE_s, snapE_γ]
   rw [← hγw]
+  simp only [mvcc.wsWaiter_withPhys]
   iintro ⟨#Hk, #Hst, Hsc, Hw, Hc⟩
   iexists wsk
   iframe
@@ -62,13 +63,14 @@ theorem snap_kvCloserW (s : Loc) (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : M
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
-      mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk ∗ mvcc.storeCloserM E.s (γw.st.withPhys p') c' ⊢
+      mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk E.s E.γ ∗ mvcc.storeCloserM E.s (γw.st.withPhys p') c' ⊢
     srvKVCloserW s (snapE E γ' TM' ci p' g γB al ast lp cl be) ∗
       apply.cmpRight (snapE E γ' TM' ci p' g γB al ast lp cl be) c' := by
   by_cases h : mvcc.kbCmpM (E.γ.withPhys p').kb
   · unfold srvKVCloserW apply.cmpRight
     simp only [snapE_s, snapE_γ, h, ↓reduceIte]
     rw [← hγw] at h ⊢
+    simp only [mvcc.wsWaiter_withPhys]
     iintro ⟨#Hk, #Hst, Hsc, Hw, Hc⟩
     isplitl [Hsc Hw]
     · iexists wsk

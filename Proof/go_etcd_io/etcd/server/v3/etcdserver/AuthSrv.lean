@@ -136,6 +136,44 @@ def authCapM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
 
 -- `authSnapKitM`: `AuthSnapKit.lean`'s.
 
+/-- **The realization's share of the backend's open token, in the mode `M`** (R-D1, 2026-11-04):
+`authOpenQ` in `on γa` (what `authKitIn` gave the store's construction), nothing otherwise. -/
+def authOpenM (M : auth.AuthMode) (d : mvcc.KBReal) : IProp GF :=
+  match M with
+  | .on _ => backend.bOpen d.γB authOpenQ
+  | _ => iprop(True)
+
+/-- **`NewServer`'s abandoned auth store** (R-D1, 2026-11-04; `notes/decisions.md`, "R-D1: the
+one-shot Close"): `NewServer`'s error after `NewAuthStore` (the transport's start) drops the store;
+with every reader's resource (`authRdSupply RD`) and the apply thread's resources
+(`authApplyResPre`, at any state), the realization's share of the backend's open token back
+(`authOpenM`), for the backend's `Close`. -/
+def authAbandonM (M : auth.AuthMode) (stl : Loc) (d : mvcc.KBReal) (RD : IProp GF) : IProp GF :=
+  iprop(□ ∀ st : auth.AuthState, authRdSupply RD -∗ authApplyResPre M stl st d RD ={⊤}=∗
+    authOpenM M d)
+
+instance authAbandonM_persistent (M : auth.AuthMode) (stl : Loc) (d : mvcc.KBReal) (RD : IProp GF) :
+    Persistent (authAbandonM (GF := GF) M stl d RD) := by
+  unfold authAbandonM; infer_instance
+
+/-- **The apply thread's share and the realization's make the constructors' half** (R-D1): with
+`authKitIn_take`'s `srvOpenQ M`, `authOpenM M d` is the half `authKitIn_take` split. -/
+theorem authOpenM_join (M : auth.AuthMode) (d : mvcc.KBReal) :
+    backend.bOpen (GF := GF) d.γB (srvOpenQ M) ∗ authOpenM M d ⊢ backend.bOpen d.γB (1 : Qp).half := by
+  cases M with
+  | on γa =>
+    simp only [authOpenM, srvOpenQ, authOpenQ]
+    iintro ⟨Ho1, Ho2⟩
+    ihave Ho := (backend.bOpen_add (GF := GF) d.γB (1 : Qp).half.half (1 : Qp).half.half).2
+      $$ [Ho1 Ho2]
+    · iframe Ho1 Ho2
+    rw [Qp.half_add_half]
+    iexact Ho
+  | _ =>
+    simp only [authOpenM, srvOpenQ]
+    iintro ⟨Ho, -⟩
+    iexact Ho
+
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`
 the kit holds (`True` in the mode `off`; the admin side's authority, the batch lock's half and the
@@ -168,6 +206,8 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         -- (E3zb) with auth on, the request side bound to the request context's token
         □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
         authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
+        -- (R-D1, 2026-11-04) the store abandoned on `NewServer`'s error path
+        authAbandonM M stl d RD ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
@@ -285,6 +325,11 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · unfold authCapM; itrivial
   isplitr
+  · iunfold authAbandonM
+    iintro !> %_st _ _
+    unfold authOpenM
+    imodintro; itrivial
+  isplitr
   · iintro !> -
     iexact HauR
   isplitr
@@ -347,7 +392,10 @@ theorem authStoreKit_on
     (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
     (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF))
-    (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
+    (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF)
+    -- (R-D1, 2026-11-04) the abandoned store's clause; `authSrvTP_on` passes it `sorry` until R-D2
+    (hAbandon : ∀ (stp : Loc) (R : IProp GF) (d : mvcc.KBReal),
+      ⊢ authAbandonM (GF := GF) (.on γa) stp d (auth.authRd stp R (.on γa))) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
       auth.authStoreInit γa [auth.bootState] auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ∗
       ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit) ∗
@@ -506,6 +554,8 @@ theorem authStoreKit_on
     isplitl [Hcap]
     · iexact Hcap
     iexists R; iexact Hinv
+  isplitr
+  · iapply (hAbandon stp R d)
   -- (D22 J1a) the mode is `on`: no `Recover` clause
   isplitr
   · iintro !> %Hm
@@ -585,7 +635,10 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p))
+    hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p)
+    -- (R-D1, 2026-11-04) the abandoned store's clause: R-D2's (d) proves it (the store's currency
+    -- in a proved invariant keyed by tickets inside `beRd`); not derivable from today's `beRd`
+    (fun _ _ _ => sorry))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn Hsucc $Hbk $HpubQ]
   unfold auth.authSucc; iexact Hsucc
 

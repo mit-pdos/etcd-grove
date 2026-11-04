@@ -35,14 +35,14 @@ keeps in compaction mode, D22's `srvKVCloser` by the mode): the watchable store'
 close and waiter (as `wsCloser`), and the inner store's restorable compaction right at `c` in place
 of its closer. -/
 @[no_expose] def wsCloserR (s st : Loc) (γs : StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
+  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s st γs ∗
     compactRightR st γs c)
 
 /-- **The watchable store's closer and the inner store's right, apart** (for the store's own proofs
 and the restore's drafts). -/
 theorem wsCloserR_iff (s st : Loc) (γs : StoreNames) (c : Int) :
     wsCloserR (GF := GF) s st γs c ⊣⊢
-      ∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
+      ∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s st γs ∗
         compactRightR st γs c := by
   unfold wsCloserR; exact .rfl
 
@@ -81,7 +81,7 @@ theorem wsCloserM_on (s st : Loc) (γs : StoreNames) (c : Int) (h : kbCmpM γs.k
 the inner store's right to close by the mode (`storeCloserM`, what `store.Close` takes). -/
 theorem wsCloserM_close (s st : Loc) (γs : StoreNames) (c : Int) :
     wsCloserM (GF := GF) s st γs c ⊢
-      ∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
+      ∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s st γs ∗
         storeCloserM st γs c := by
   iintro H
   by_cases hm : kbCmpM γs.kb

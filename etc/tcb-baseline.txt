@@ -788,6 +788,7 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
+sorry authSrvTP_on
 sorry k8s_etcd3.client_ctx_field
 sorry k8s_etcd3.revRoom
 sorry kubernetes.kvIs_ne_null
