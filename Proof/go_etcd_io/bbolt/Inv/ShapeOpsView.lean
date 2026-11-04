@@ -52,22 +52,22 @@ theorem treeHas_some {P : Pages} {r y : Nat} (h : treeHas P r y) : (P !! y).isSo
     (fun _ pg hpg => by rw [hpg]; rfl) (fun _ _ _ _ _ ih => ih) (fun _ _ _ _ _ _ ih => ih)
     (fun _ _ _ _ _ _ _ ih => ih) (fun _ _ _ _ ih => ih) (fun _ _ _ _ ih => ih) h
 
-theorem mem_filter_pgIds {P : Pages} {q : Nat → Prop} {id : Nat} :
-    id ∈ pgIds (GMap.filter (fun id _ => decide (q id)) P) ↔ (P !! id).isSome ∧ q id := by
+theorem mem_filter_pgIds {P : Pages} {q : Nat → Bool} {id : Nat} :
+    id ∈ pgIds (GMap.filter (fun id _ => q id) P) ↔ (P !! id).isSome ∧ q id = true := by
   rw [mem_pgIds, GMap.lookup_filter]
   cases e : P !! id with
   | none => simp [Option.filter]
-  | some pg => by_cases hq : q id <;> simp [Option.filter, hq]
+  | some pg => cases hq : q id <;> simp [Option.filter, hq]
 
 theorem mem_xPages {P : Pages} {op : List w8 → Prop} {c id : Nat} :
     id ∈ pgIds (xPages P op c) ↔ xHas P op c id := by
   unfold xPages; rw [mem_filter_pgIds]
-  exact ⟨fun h => h.2, fun h => ⟨treeHas_some (xHas_treeHas h), h⟩⟩
+  exact ⟨fun h => of_decide_eq_true h.2, fun h => ⟨treeHas_some (xHas_treeHas h), decide_eq_true h⟩⟩
 
 theorem mem_treePages {P : Pages} {c id : Nat} :
     id ∈ pgIds (treePages P c) ↔ treeHas P c id := by
   unfold treePages; rw [mem_filter_pgIds]
-  exact ⟨fun h => h.2, fun h => ⟨treeHas_some h, h⟩⟩
+  exact ⟨fun h => of_decide_eq_true h.2, fun h => ⟨treeHas_some h, decide_eq_true h⟩⟩
 
 theorem pairwise_range_of_ne {R : Nat → Nat → Prop} {n : Nat}
     (h : ∀ i j, i < n → j < n → i ≠ j → R i j) : (List.range n).Pairwise R :=
