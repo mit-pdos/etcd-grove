@@ -32,21 +32,7 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 section rblx
 variable [GooseExts]
 
-/-- What covers a base slot: a position of an opened bucket's logical tree (its extent), or an
-unopened top-level bucket of the root (its base tree). -/
-inductive CovW where
-  | pos (bl : Loc) (pid : w64)
-  | bkt (n : GoString)
-
-/-- `c` covers slot `s` in `X` (`lCovers`' two cases, with their witness). -/
-def coverW (X : WX) (s : Nat) : CovW → Prop
-  | .pos bl pid => X.t.bs !! bl ≠ none ∧ pid ∈ X.positions bl ∧
-      ∃ e, X.posExtent bl pid = some e ∧ e.1.toNat ≤ s ∧ s < e.1.toNat + e.2
-  | .bkt n => ∃ v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketHas X.v.pages v s
-
-/-- **A covered slot is covered once** (no page is shared by two positions, or by a position and
-an unopened bucket: what keeps `flView` when a removed node's page becomes pending). -/
-def covU (X : WX) : Prop := ∀ s c1 c2, coverW X s c1 → coverW X s c2 → c1 = c2
+-- `CovW`, `coverW`, `covU`: `Model/WOps` (batch 20).
 
 /-- **`rebalance`'s invariant** (see the module doc). -/
 def rblX (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) : Prop :=

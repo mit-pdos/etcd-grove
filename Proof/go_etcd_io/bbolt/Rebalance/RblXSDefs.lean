@@ -1,6 +1,6 @@
 /-
 The records' updates `rebalance`'s steps name (U8b, `Rebalance/RblXSteps.lean`): `WX.kill` (a
-node removed from its bucket, now dead) and `nsLive`.
+node removed from its bucket, now dead; `nsLive` is `Model/Wtx`'s).
 -/
 module
 
@@ -24,9 +24,7 @@ def WX.kill (X : WX) (bl : Loc) (B' : BRec) (n : Loc) (rn : NRec) : WX :=
   { X with t := { X.t with bs := X.t.bs.insert bl B', dead := X.t.dead.insert n (.node bl rn) },
            live := X.live.delete n }
 
-/-- Every node of every bucket is live (before `Commit`, no node of a bucket is dead). -/
-def nsLive (X : WX) : Prop :=
-  ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live
+-- `nsLive`: `Model/Wtx` (batch 20).
 
 end defs
 

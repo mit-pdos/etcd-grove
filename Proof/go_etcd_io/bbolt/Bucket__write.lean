@@ -40,7 +40,7 @@ theorem Bucket.write.wp_proof (hSize : node.size.spec (GF := GF) (hG := hG))
   intro b ibp ib n nv ins ms dqb dq dqi dqk Hleaf Hlen Hfit Hsz Hsz31
   wp_start as ⟨Hib, Hibp, Hrn, Hn, Hins, Hd⟩
   wp_auto
-  wp_apply hSize n nv ins dq dqi (by omega) $$ [Hn Hins] as ⟨Hn, Hins⟩
+  wp_apply hSize n nv ins dq dqi $$ [Hn Hins] as ⟨Hn, Hins⟩
   · iframe
   try wp_auto
   generalize hL : (pageBody true ms).length = L at *

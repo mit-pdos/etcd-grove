@@ -32,12 +32,12 @@ pending), the frees `Free` steps for the writer's txid (store-side `store_free`)
 otherwise unchanged. Map iteration order is the Go runtime's: the post holds for any. -/
 abbrev Bucket.rebalance.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
-  wOK X → (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) → liveReach X → flView X w.fl →
+  wOK X → (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) → liveReach X → flViewU X w.fl →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"rebalance"))
       (Val #()))
   {{ RET #(); ∃ (X' : WX) (fl' : FLPg), wtxW K tx r m X' ∗ wdbW K tx X.v (w.withFl fl') ∗
-      ⌜rebalOK X X' w.fl fl' w.wtxid ∧ liveReach X' ∧ flView X' fl'⌝ }}
+      ⌜rebalOK X X' w.fl fl' w.wtxid ∧ liveReach X' ∧ flViewU X' fl'⌝ }}
 
 end spec
 

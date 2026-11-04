@@ -79,7 +79,7 @@ def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
     | .wr X => iprop(sync.ownMutex r.db.[DB, go!"rwlock"] ∗
         ∃ (ws : WSt) (w : WDb) (extra : GMap Nat Unit),
           wdbLive B r.db p sp t0 tx ws w ∗ txShape r.n.pg X extra ∗
-          ⌜ws.1 = some X.v ∧ flView X w.fl⌝)
+          ⌜ws.1 = some X.v ∧ flViewU X w.fl⌝)
     | .rd v _ k => iprop(sync.ownRWMutexRLocked r.db.[DB, go!"mmaplock"] (Pm B r.db) ∗
         (if r.src = .loan then threadPool.ownThreadLoan B.pool else emp) ∗
         sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))

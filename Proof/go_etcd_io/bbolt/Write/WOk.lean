@@ -53,7 +53,7 @@ theorem wOK_inlineLeaf (X : WX) (bl : Loc) (pgid : w64) (hok : wOK X) :
       wpageAt X.v B pgid = some (pa, pg) → pageFlags pg = leafPageFlag := by
   intro B pa pg hB hin hrn hpg
   have hc := wOK_bktClean X hok bl B hB
-  obtain ⟨-, -, hg⟩ := hc.1 hin hrn
+  obtain ⟨-, -, hg, -⟩ := hc.1 hin hrn
   unfold wpageAt at hpg
   rw [if_pos hin] at hpg
   split at hpg

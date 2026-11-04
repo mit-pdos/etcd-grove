@@ -133,10 +133,11 @@ def nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc) : Prop :=
     r.ws.map wDat = (pageWsAs pg (posSrc B)).map wDat ∧ wsLive r.ws ∧
     r.key = wKey r.ws 0 ∧ r.ksrc ≠ Src.stale ∧
     r.ins.length = r.ws.length ∧ (r.nv.key' = slice.nil ↔ r.ws = []) ∧
+    (∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own DFrac.discard) ∧
     ((parent = null ∧ bv' = { B.bv with rootNode' := l } ∧ ns' = B.ns.insert l r) ∨
      (parent ≠ null ∧ bv' = B.bv ∧ ∃ rp rp', B.ns !! parent = some rp ∧
         rp.nv.isLeaf' = false ∧ rp'.cs = rp.cs ++ [l] ∧ rp'.ws = rp.ws ∧ rp'.ins = rp.ins ∧
-        rp'.key = rp.key ∧ rp'.ksrc = rp.ksrc ∧
+        rp'.key = rp.key ∧ rp'.ksrc = rp.ksrc ∧ rp'.capOwn = rp.capOwn ∧
         rp'.nv = { rp.nv with children' := rp'.nv.children' } ∧
         ns' = (B.ns.insert parent rp').insert l r)) ∧
     X' = { X with t := { X.t with bs := X.t.bs.insert bl { B with nm := B.nm.insert pgid l,
@@ -219,7 +220,7 @@ after its children's spill. -/
 def bktLocalOK (X : WX) (bl : Loc) : Prop :=
   bl ∈ X.live ∧ ∃ B, X.t.bs !! bl = some B ∧ bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     bktKeys X.v B ∧ txPgLeaf (GMap.singleton bl B) ∧
-    ∀ l r, B.ns !! l = some r → l ∈ X.live
+    (∀ l r, B.ns !! l = some r → l ∈ X.live) ∧ viewWF X.v
 
 /-- A searchable bucket's cached nodes are not nil (`bktClean`'s `B.nm` clause;
 `Bucket.pageNode_w`'s premise). -/
@@ -389,6 +390,37 @@ def flView (X : WX) (fl : FLPg) : Prop :=
   (∀ s, coversSlot X.v.pages s → (lCovers X s ↔ s ∉ pendSlots fl)) ∧ mvccView fl X.v ∧
   fl.allIds.Nodup ∧ ∀ id ∈ fl.allIds, id.toNat < 2 ^ 62
 
+/-- What covers a base slot: a position of an opened bucket's logical tree (its extent), or an
+unopened top-level bucket of the root (its base tree). -/
+inductive CovW where
+  | pos (bl : Loc) (pid : w64)
+  | bkt (n : GoString)
+
+/-- `c` covers slot `s` in `X` (`lCovers`' two cases, with their witness). -/
+def coverW (X : WX) (s : Nat) : CovW → Prop
+  | .pos bl pid => X.t.bs !! bl ≠ none ∧ pid ∈ X.positions bl ∧
+      ∃ e, X.posExtent bl pid = some e ∧ e.1.toNat ≤ s ∧ s < e.1.toNat + e.2
+  | .bkt n => ∃ v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketHas X.v.pages v s
+
+/-- **A covered slot is covered once** (no page is shared by two positions, or by a position and
+an unopened bucket: what keeps `flView` when a removed node's page becomes pending). -/
+def covU (X : WX) : Prop := ∀ s c1 c2, coverW X s c1 → coverW X s c2 → c1 = c2
+
+/-- The view's page extents end below `2^62` (batch 20, U8b: `Free` of a base page's extent). -/
+def pagesExt (P : Pages) : Prop := ∀ id pg, P !! id = some pg → id + (1 + pageOverflow pg) ≤ 2 ^ 62
+
+/-- The pending entries' ids and allocating transactions align (`FLPg.WF`'s last clause). -/
+def pendAligned (fl : FLPg) : Prop :=
+  ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length
+
+/-- **`flView` and what a free needs beside it** (batch 20, U8b): every covered slot covered once
+(`covU`), the view's page extents below `2^62`, the pending entries aligned. The writer's
+exclusive part holds it (`txExcl`); `Bucket.rebalance` takes and gives it. Kept by: a leaf's new
+entries and a materialization (`covU_withWs`, `covU_nodeAdded`, U7), a free (U8b's
+`Rebalance/RblXSFl`; `DeleteBucket`'s, U7), `spill` (U9c, for `Commit`'s). -/
+def flViewU (X : WX) (fl : FLPg) : Prop :=
+  flView X fl ∧ covU X ∧ pagesExt X.v.pages ∧ pendAligned fl
+
 /-- `spillPre`'s coverage clause, from `flView` (its forward half). -/
 theorem flView_cover (X : WX) (fl : FLPg) (h : flView X fl) :
     ∀ s, coversSlot X.v.pages s → lCovers X s ∨ s ∈ pendSlots fl := by
@@ -400,7 +432,7 @@ theorem flView_cover (X : WX) (fl : FLPg) (h : flView X fl) :
 /-- **`node.free`'s `canFree`, from `flView`** (U8b): a live node read from a base page (covered by
 the logical tree, so not pending; a view slot, so not free; allocated before the view, so not by
 the writer; the ids distinct below `2^62`, so fewer than `2^62`). -/
-theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hok : wOK X)
+theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hvw : viewWF X.v)
     (bl n : Loc) (B : BRec) (r : NRec) (pg : List w8) (hB : X.t.bs !! bl = some B)
     (hr : B.ns !! n = some r) (hl : n ∈ X.live) (hp0 : r.nv.pgid' ≠ W64 0)
     (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg) (htx : X.v.txid < txid.toNat) :
@@ -410,7 +442,7 @@ theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hok
 /-- **`flView` through `node.free`** (U8b: the node's page leaves the logical tree's cover and
 becomes pending for the writer). -/
 theorem flView_nodeFree (X : WX) (fl : FLPg) (txid : w64) (bl n : Loc) (B : BRec) (r : NRec)
-    (pg : List w8) (hv : flView X fl) (hok : wOK X) (hB : X.t.bs !! bl = some B)
+    (pg : List w8) (hv : flView X fl) (hvw : viewWF X.v) (hu : covU X) (hB : X.t.bs !! bl = some B)
     (hr : B.ns !! n = some r) (hp0 : r.nv.pgid' ≠ W64 0)
     (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg)
     (hcan : fl.canFree txid r.nv.pgid' (1 + pageOverflow pg)) (htx : X.v.txid < txid.toNat) :

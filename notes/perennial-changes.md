@@ -17,6 +17,28 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Struct field locations of different struct types at one base address (2026-11-04, bbolt, batch 14)
+
+- **Limitation.** `structFieldRef` is an abstract function of `go.Semantics`
+  (`GoSemanticsFunctions`); only `structFieldRef_plain` ties a field of a *plain* struct to
+  `base + offset`. For a non-plain struct (any with pointer, slice, map or interface fields) nothing
+  relates `l.[T, f]` to `l` or to `l.[T', g]` of another struct type `T'`. So holding `l ↦ v` for a
+  fresh `&node{…}` does not show that `l` is not the location of an object of another struct type
+  whose fields one owns separately (`l.[Bucket, "InBucket"] ↦ …`).
+- **Needed by.** bbolt's writer heap (`Inv/WtxHeap`): one map of objects keyed by location, nodes
+  (owned as whole struct points-tos) and buckets (owned field by field, the root bucket being
+  `tx.root`, a field of `Tx`); a fresh node's location could not be shown to be no bucket's.
+- **Here.** Planned (batch 14 of `notes/bbolt-proof-plan.md`, not yet applied): the heap's objects per kind, nodes
+  and buckets in separate maps, liveness per kind, so a fresh node needs only "no node object at
+  `l`", which the points-to conflict gives.
+- **Proposal.** A law of `go.Semantics` that field locations are tied to their base for every
+  struct type (each field of `T` at `l` is `l + off_T(f)` for some layout offset, offsets of
+  distinct fields distinct, and the first field at `l` itself), or at least that
+  `structFieldRef T f l ≠ structFieldRef T' g l'` unless `l = l'` and the offsets agree; then a
+  whole points-to at `l` excludes every field points-to at `l` of another type with a field at
+  offset 0. Needs a semantics review (trusted base): it constrains every model of `go.Semantics`.
+- **Status.** Not started (proposal only).
+
 ### `|==>` binds tighter than `∗` in iris-lean's notation (2026-11-04, bbolt, U5)
 
 - **Limitation.** In Lean's Iris notation `|==> A ∗ B` parses as `(|==> A) ∗ B`, unlike Rocq Iris

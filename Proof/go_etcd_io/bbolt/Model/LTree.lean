@@ -136,42 +136,8 @@ theorem wOK_leaves_fuel (X : WX) (bl : Loc) (hok : wOK X) (k : Nat) :
     lleaves (ltree X) bl (X.fuel + k) (X.rootPid bl) = X.leaves bl := by
   sorry
 
-/-- **`Put`'s data** (U7): putting a plain entry `(k, v)` into the leaf where `k` lands, in the
-opened bucket `n`, sets `k` to `v` in bucket `n`. -/
-theorem wtxData_put (X : WX) (n : GoString) (bl l : Loc) (ws : List WEntry) (e : WEntry)
-    (hok : wOK X) (hb : bktLoc X n = some bl) (hinj : ∀ n', bktLoc X n' = some bl → n' = n)
-    (hl : leafFor X bl e.key l)
-    (hws : nodeWs X bl l = some ws) (hflag : ¬ isBktFlag e.flags) (hk : e.key ≠ [])
-    (hnb : ∀ w ∈ ws, w.key = e.key → ¬ isBktFlag w.flags) :
-    wtxData (X.withWs bl l (wsPut ws e)) =
-      (wtxData X).insert n (((wtxData X) !! n).getD ∅ |>.insert e.key e.value) := by
-  sorry
-
-/-- **`Delete`'s data** (U7): deleting the plain entry `k` from the leaf where `k` lands. -/
-theorem wtxData_del (X : WX) (n : GoString) (bl l : Loc) (ws : List WEntry) (k : List w8)
-    (hok : wOK X) (hb : bktLoc X n = some bl) (hinj : ∀ n', bktLoc X n' = some bl → n' = n)
-    (hl : leafFor X bl k l)
-    (hws : nodeWs X bl l = some ws) (hnb : ∀ w ∈ ws, w.key = k → ¬ isBktFlag w.flags) :
-    wtxData (X.withWs bl l (wsDel ws k)) =
-      (wtxData X).insert n (((wtxData X) !! n).getD ∅ |>.delete k) := by
-  sorry
-
-/-- **`CreateBucket`'s data** (U7): the root's entries gain `n`, whose bucket is empty, and
-the other buckets are unchanged. -/
-theorem wtxData_create (X X' : WX) (n : GoString) (hok : wOK X) (hok' : wOK X')
-    (hnew : (wtxData X) !! n = none)
-    (hn : bktData X' n = some ∅)
-    (hnames : ∀ n', n' ≠ n → bktData X' n' = bktData X n') :
-    wtxData X' = (wtxData X).insert n ∅ := by
-  sorry
-
-/-- **`DeleteBucket`'s data** (U7): the root's entry `n` is gone, the other buckets
-unchanged. -/
-theorem wtxData_drop (X X' : WX) (n : GoString) (hok : wOK X) (hok' : wOK X')
-    (hn : bktData X' n = none)
-    (hnames : ∀ n', n' ≠ n → bktData X' n' = bktData X n') :
-    wtxData X' = (wtxData X).delete n := by
-  sorry
+-- `wtxData_put`, `wtxData_del`: U7k's `Write.wtxData_put'`/`wtxData_del'` (`Write/Data`);
+-- `wtxData_create`, `wtxData_drop`: `Write.wtxData_create'`/`wtxData_drop'` (`Write/DataBkt`), batch 23.
 
 private theorem bktDataOf_eq' (X : WX) (n : GoString) (v : List w8) :
     bktDataOf X n v = match bktLoc X n with

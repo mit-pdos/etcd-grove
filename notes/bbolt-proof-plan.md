@@ -577,6 +577,71 @@ at the end of `rtxFrac`'s facts, `wtxFrac`'s facts and `wtxCore`'s pure part (af
 `managed` fact: `wtxCore`'s is `r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
 txRoot tx ≠ null`). `Tx.init`'s post gives it (`typedPointsto_not_null`) at `beginTx`/`beginRWTx`.
 
+## Shared-statement fixes, batch 20 (U8b's findings, 2026-11-04; decided by the coordinator)
+
+1. **`flViewU X fl`** (`Model/WOps`) = `flView X fl ∧ covU X ∧ pagesExt X.v.pages ∧ pendAligned
+   fl`: U8b's `CovW`/`coverW`/`covU` moved from `Rebalance/RblX` to `Model/WOps`; `pagesExt`
+   (every view page's extent ends by `2^62`, item 3: a fact of the view, which does not change
+   before `Commit`; `beginRWTx`, U5, from `storeOK`'s `hwm ≤ 2^62`) and `pendAligned` (item 4,
+   `FLPg.WF`'s last clause) new. `flView` itself is unchanged, so U7's and U8b's lemmas over it
+   stand; **`txExcl`'s writer branch** and **`Bucket.rebalance.spec`** (pre and post) hold
+   `flViewU`. Kept by (owners): a leaf's new entries and a materialization (U7: `covU` through
+   `withWs`/`nodeAdded`; `pagesExt`, `pendAligned` unchanged there), a free (U8b's
+   `Rebalance/RblXSFl`; `DeleteBucket`'s, U7), `spill` (U9c).
+2. **`nsLive X`** (U8b's, moved to `Model/Wtx`) is `liveOK`'s fourth clause (batch 12), so in
+   `wOK`/`wOKR`: `wOK_nsLive`, `wOKR_nsLive`. (Not in `heapOK`: spill's spilled children stay in
+   `B.ns` without being live.)
+5. *(open, with batch 14)* every bucket the root or a handle's, in `heapOK`.
+6. **`node.size.spec`** has no `insSize ins < 2^63` premise (the sum wraps the same on both
+   sides); U9a's proof, `Bucket.write`'s and `node.rebalance`'s calls adapted.
+7. **`nodeAdded`** adds `∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own
+   DFrac.discard` (after batch 13's two clauses; patterns get `hrvs`) and, in the child case,
+   `rp'.capOwn = rp.capOwn` (after `rp'.ksrc = rp.ksrc`). `r.nv.key' ≠ nil` when `r.ws ≠ []` is
+   batch 13's `↔`. `Bucket.node` (U7) establishes them from `node.read`'s `pageWsAs pg (posSrc B)`.
+8. **`flView_canFree`/`flView_nodeFree`** (stubs, U8b) take `viewWF X.v` (and the latter `covU X`)
+   in place of `wOK X`.
+9. *(open)* the shared `matReady` lemma for a view page from `wtxW`'s mapping fields.
+
+U8b's `Bucket__rebalance.lean` (uncommitted) takes `flViewU` apart for its `rblX_init` (the
+`covU`/extent/alignment `sorry`s gone, `nsLive` from `wOK`); its post must now give `flViewU X'`.
+
+## Shared-statement fixes, batches 22-25 (2026-11-04; decided by the coordinator)
+
+- **22** (U7b): `inlineBnd ipg` (`Model/Wtx`: every entry of an inline page within
+  `bboltEntryMax`) in `bktClean`'s inline clause (`inlineGood B.ipg ∧ inlineBnd B.ipg`) and
+  `bvalOK`'s (`inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v)`). `Bucket.Bucket_w` (U6/U7)
+  proves it on open (from `rootShape` for a view value, from `Put`'s premise for a written one).
+  U7b's `Write.wOK_nodeAdded'` then discharges its three premises from `nodeAdded` (batch 20) and
+  `bktClean`; moving it in as the shared `wOK_nodeAdded` (and `wtxData_matGrow` after it) waits for
+  `Write/MatOK` to build.
+- **23** (U7k): `Model/LTree`'s `wtxData_put`/`del`/`create`/`drop` stubs deleted; the shared
+  lemmas are `Write.wtxData_put'`/`del'` (`Write/Data`) and `Write.wtxData_create'`/`drop'`
+  (`Write/DataBkt`), proved (no callers of the stubs).
+- **24** (U4b): `wdbOK`'s `w.m.size ≤ l` dropped (`DB.grow` can extend the file past the mapping);
+  `wCells` holds only the `W` slots inside the mapping (`4096 · (s + 1) ≤ len`) and the partial
+  slot; `dbFixed` pins `db.AllocSize ↦□ W64 0x1000000` (`DefaultAllocSize`, set by `Open`, U11).
+- **25** (U7b): `bktLocalOK` ends with `viewWF X.v` (materialization's `Nodup` children and
+  `posDisjoint` come from the view's uniqueness); callers building it from `wOK` take `wOK`'s.
+
+## Batch 14 (kind-keyed heap objects, U7's finding): design, not yet applied
+
+The writer heap's single object map keyed by location cannot show a fresh node location is no
+bucket's (`structFieldRef` is abstract for non-plain structs; Perennial proposal in
+`notes/perennial-changes.md`). Planned shape:
+- `WTx.objs` folds only the nodes (the buckets' `ns` over `dead`, which holds dead nodes only); a
+  new `WTx.bobjs` is the buckets (`bs` over a new `deadB : GMap Loc BRec`, default `∅`).
+- `WX` gains `liveB : GMap Loc Unit` (bucket liveness): every bucket-sense `l ∈ X.live` (`liveOK`'s
+  root and `bs` clauses, `liveReach`'s bucket clause, `derefPre`'s bucket clauses, `bktOpened`,
+  `bktLocalOK`, `derefStep`/`derefRel`) moves to `liveB`; `X.live` is node liveness. (One shared live
+  set is unsound here: killing a node at `l` would un-live a bucket at `l`, opening a bucket at `c`
+  would revive a dead node at `c`.)
+- `wtxHeap`: `[∗map] l ↦ o ∈ X.t.objs, objOwn … (l ∈ X.live) o ∗ [∗map] bl ↦ B ∈ X.t.bobjs,
+  objOwn … (bl ∈ X.liveB) (.bkt B)`; `objsDisj` keeps only "a node is in at most one bucket";
+  `objs_bkt` becomes a lookup of `bobjs`; `heapOK`'s registry clause is about node objects, and
+  (batch 20 item 5) every bucket is the root or a handle's.
+- Users to adapt: `Inv/WtxHeap`, `Model/Wtx`/`WOps`, `Rebalance/{Objs,Heap,HeapRbl,RblXS*}`,
+  `Write/Heap`, `Txn/Heap`, `Mmap/Rebase`, `Spill/{Deref*}`, `Bucket__pageNode_w`, `node__*`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

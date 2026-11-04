@@ -279,9 +279,16 @@ def posRoot (B : BRec) (c : Nat) : Prop :=
 
 /-! ## The clean invariant (old `txClean`) -/
 
+/-- An inline page's entries within `bboltEntryMax` (batch 22, U7b: `entriesBounded` of the
+nodes it materializes; `Bucket.Bucket_w` proves it on open from `rootShape` for a view value,
+`Put`'s premise for a written one). -/
+def inlineBnd (ipg : List w8) : Prop :=
+  ∀ j < pageCount ipg, leafKsize ipg j + leafVsize ipg j ≤ bboltEntryMax
+
 /-- A nested bucket's value, well-formed and good. -/
 def bvalOK (pages : Pages) (hwm : Nat) (v : List w8) : Prop :=
-  bucketWF pages hwm v ∧ (inBucketRoot v = 0 → inlineGood (inlinePage v))
+  bucketWF pages hwm v ∧
+    (inBucketRoot v = 0 → inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v))
 
 /-- The node `l` (record `r`) of the bucket `bl` (record `B`) is well-formed. -/
 def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) : Prop :=
@@ -307,7 +314,7 @@ def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) 
 def bktClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=
   (B.ib.root' = W64 0 → B.bv.rootNode' = null →
     B.bv.page' ≠ null ∧ (B.isrc = Src.view ∨ B.isrc = Src.own DFrac.discard) ∧
-      inlineGood B.ipg) ∧
+      inlineGood B.ipg ∧ inlineBnd B.ipg) ∧
   (B.ib.root' ≠ W64 0 → B.ib.root'.toNat < hwm ∧
     (B.bv.rootNode' = null → treeWF v.pages hwm B.ib.root'.toNat)) ∧
   (B.bv.rootNode' = null → B.ns = ∅ ∧ B.nm = ∅) ∧
@@ -409,14 +416,17 @@ caches, stale ones are dead objects). -/
 def handlesOK (X : WX) : Prop :=
   ∀ b nm, X.handles !! b = some nm → (X.t.objs !! b).isSome
 
+/-- Every node of every bucket is live (U8b's, moved here, batch 20: `liveOK`'s fourth clause). -/
+def nsLive (X : WX) : Prop :=
+  ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live
+
 /-- The live objects are objects, the root bucket among them; every bucket of `bs` is live, and
 every node of one (batch 12); no dead object is live (batch 12: what `dereference` needs,
 `wOKR_derefPre`). -/
 def liveOK (X : WX) : Prop :=
   X.rl ∈ X.live ∧ (∀ l, l ∈ X.live → (X.t.objs !! l).isSome) ∧
   (∀ bl B, X.t.bs !! bl = some B → bl ∈ X.live) ∧
-  (∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live) ∧
-  ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
+  nsLive X ∧ ∀ l, (X.t.dead !! l).isSome → l ∉ X.live
 
 /-- The node-location registry (round 4, N3): each live registered node is a node of its
 bucket, read from the page id it records (U8 fix: a node `rebalance` or `DeleteBucket` removed is
@@ -445,6 +455,10 @@ pages: only `txPgLeaf`. -/
 def wOKR (X : WX) : Prop :=
   txClean X ∧ (∀ bl B, X.t.bs !! bl = some B → bktKeys X.v B ∧ bktNested X.v X.t B) ∧
   txPgLeaf X.t.bs ∧ entriesBounded X ∧ handlesOK X ∧ liveOK X ∧ nlocOK X ∧ viewWF X.v
+
+theorem wOK_nsLive (X : WX) (h : wOK X) : nsLive X := h.2.2.2.2.2.1.2.2.2.1
+
+theorem wOKR_nsLive (X : WX) (h : wOKR X) : nsLive X := h.2.2.2.2.2.1.2.2.2.1
 
 theorem txPg_txPgLeaf (v : View) (bs : GMap Loc BRec) (h : txPg v bs) : txPgLeaf bs :=
   fun bl B hb l r hr hl => ((h bl B hb l r hr).1 hl).1

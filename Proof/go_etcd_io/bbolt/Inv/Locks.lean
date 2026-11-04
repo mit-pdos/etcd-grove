@@ -149,12 +149,15 @@ structure WDb where
 def extentBytes (wb : Nat → List w8) (f : Nat) : List w8 :=
   (List.range' f (1 + pageOverflow (wb f))).flatMap wb
 
-/-- The writer's cells of the `W` slots, and of the mapping's partial last slot (batch 15: a
-mapping of `maxMapSize` ends 4095 bytes into a slot, which is no store or `W` slot), the client
-halves, any values. -/
+/-- The writer's cells of the `W` slots inside the mapping (batch 24: after `DB.grow` the file
+may extend past the mapping; a slot past it has only its page-cache bytes, `wBytes`, until a
+remap maps the file), and of the mapping's partial last slot (batch 15: a mapping of
+`maxMapSize` ends 4095 bytes into a slot, which is no store slot and whose `W` slot, if any, has
+no whole cells), the client halves, any values. -/
 def wCells (ms : MapSt) (W : List Nat) : IProp GF :=
   match ms with
-  | some (base, len) => iprop(([∗list] s ∈ W, ∃ vf, cellsR base (4096 * s) 4096 vf) ∗
+  | some (base, len) => iprop(([∗list] s ∈ W, if 4096 * (s + 1) ≤ len then
+        iprop(∃ vf, cellsR base (4096 * s) 4096 vf) else iprop(emp)) ∗
       ∃ vf, cellsR base (4096 * (len / 4096)) (len % 4096) vf)
   | none => iprop(emp)
 
@@ -171,7 +174,7 @@ def wBytes (p : GoString) (W : List Nat) (wb : Nat → List w8) (size : Nat) : I
 
 /-- **The writer side's facts** (design §3.5). -/
 def wdbOK (w : WDb) : Prop :=
-  (∀ b l, w.ms = some (b, l) → w.m.maps = GMap.singleton b l ∧ w.m.size ≤ l) ∧
+  (∀ b l, w.ms = some (b, l) → w.m.maps = GMap.singleton b l) ∧
   (w.ms = none → w.m.maps = ∅ ∨ ∃ jb jl, w.junk = some (jb, jl) ∧
     w.m.maps = GMap.singleton jb jl) ∧
   w.C.hwm * 4096 ≤ w.m.size ∧

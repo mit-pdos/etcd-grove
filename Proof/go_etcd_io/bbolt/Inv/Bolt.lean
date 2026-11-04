@@ -61,7 +61,8 @@ def pageBuf (v : GoAny) : IProp GF :=
 /-- **`db`'s fields written only by `Open`** (persistent, design §3.4): the page size, the
 statistics pointer, the logger, `readOnly`, the exported options (`StrictMode` and `Mlock` off),
 `openFile`, the page pool, the never-used batch fields. `MmapFlags` is `0` or `MAP_POPULATE` (batch 15: `OptsM.ok`'s, for
-`mmap`'s `unix.Mmap`). (Not `freelistLoad`'s `sync.Once`:
+`mmap`'s `unix.Mmap`). `AllocSize` is `DefaultAllocSize` (16 MiB, batch 24: `Open` sets it;
+`isBolt` forbids writing `DB`'s exported fields after `Open`), for `DB.grow`'s size. (Not `freelistLoad`'s `sync.Once`:
 Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
 `hlc`; U11 decides how `loadFreelist`'s `Once.Do` is covered, `notes/bbolt-proof-plan.md`.) -/
 def dbFixed (db sp : Loc) : IProp GF :=
@@ -75,7 +76,7 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ x : FreelistType, db.[DB, go!"FreelistType"] ↦□ x) ∗
     (∃ x : w64, db.[DB, go!"MmapFlags"] ↦□ x ∗ ⌜x = W64 0 ∨ x = W64 0x8000⌝) ∗ (∃ x : w64, db.[DB, go!"MaxBatchSize"] ↦□ x) ∗
     (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
-    (∃ x : w64, db.[DB, go!"AllocSize"] ↦□ x) ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
+    db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
     (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf) ∗
     sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null)

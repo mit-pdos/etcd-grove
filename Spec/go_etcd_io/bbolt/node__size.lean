@@ -29,7 +29,6 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 its key's and value's lengths); only the slices' headers are read. -/
 abbrev node.size.spec : Prop :=
   ∀ (n : Loc) (nv : node) (ins : List Inode) (dq dqi : DFrac),
-  insSize ins < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"size")) (Val #()))
   {{ RET #(W64 (insSize ins : Int)); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}

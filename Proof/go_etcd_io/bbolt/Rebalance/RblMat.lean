@@ -511,7 +511,9 @@ theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) :
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          exact ⟨hbw j hjc hbk', fun h0 => (hgood.1 hfl j hjc).2 hbk' h0⟩
+          -- batch 22: an inline nested bucket's page within `bboltEntryMax` (from the view's
+          -- `rootShape`, owner U8b)
+          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, sorry⟩⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -1048,7 +1050,7 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
   obtain ⟨hc, ⟨bnd, hk⟩, ha, hht⟩ := HB
   obtain ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩ := hpos
   obtain ⟨B0, pa, pg, r, ns', bv', hB0, hwp, -, hl0, -, hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := hadd
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := hadd
   rw [hB] at hB0; cases hB0
   have hroot : B.ib.root' ≠ W64 0 := by
     intro h0; have := hc.2.2.2.2.2.2.1 h0 parent rp hrp; rw [hbr] at this; cases this
@@ -1059,7 +1061,7 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
     | none => rw [h] at hwp; cases hwp
     | some pg0 => rw [h] at hwp; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hwp
                   rw [hwp.2]
-  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, hc6, hns⟩
+  rcases hcase with ⟨hpn, -, -⟩ | ⟨-, hbv, rp0, rp', hrp0, -, hc1, hc2, hc3, hc4, hc5, -, hc6, hns⟩
   · exact absurd hpn hpnl
   rw [hrp] at hrp0; cases hrp0
   subst hbv; subst hns

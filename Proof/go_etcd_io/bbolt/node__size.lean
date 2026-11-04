@@ -58,7 +58,7 @@ omit hos in
 theorem node.size.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hV : internal.common.Inode.Value.spec (GF := GF) (hG := hG)) :
     node.size.spec (GF := GF) (hG := hG) := by
-  intro nl nv ins dq dqs Hbnd
+  intro nl nv ins dq dqs
   wp_start as ⟨Hn, Hs⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
