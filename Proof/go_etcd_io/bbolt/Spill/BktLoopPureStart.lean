@@ -89,6 +89,14 @@ theorem view_lt_mark {X : WX} {w : WDb} {B0 : BRec} (hS : StartFacts X w B0)
   have := hS.hwm
   omega
 
+/-- **The mark is at least 2 at the start**: the committed root page is in `[2, hwm)`. -/
+theorem mark_two {X : WX} {w : WDb} {B0 : BRec} (hS : StartFacts X w B0) :
+    2 ≤ X.t.mv.pgid'.toNat := by
+  have h := hS.cok.1.1
+  have := hS.hwm
+  cases h with
+  | page _ _ h2 h3 _ _ _ _ => omega
+
 /-- A cached child of the root bucket has no bucket entry, so caches no bucket. -/
 theorem child_bm_empty {X : WX} (hok : wOKR X) {c : Loc} {C : BRec}
     (hC : X.t.bs !! c = some C) (hne : c ≠ X.rl) : C.bm = ∅ := by
@@ -155,7 +163,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
     (hB0 : X.t.bs !! X.rl = some B0) (keys : List GoString)
     (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome) (hnd : keys.Nodup)
-    (hS : StartFacts X w B0) :
+    (hS : StartFacts X w B0) (hfl2 : ∀ y ∈ w.fl.free, 2 ≤ y.toNat) :
     ∃ Lroot Dc, RInv X w B0 keys Lroot X w [] Dc (fun _ => .todo) := by
   classical
   have hok := hpre.1
@@ -243,7 +251,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     mark := Nat.le_refl _
     G := ⟨htxid, hml, wOKR_derefPre X hok, wOKR_liveFresh X hok, hreach,
       fun id => by rw [htc.2.1.1, htc.2.1.2.1]; rfl, hS.mark62,
-      (fun id h => by rw [htc.2.1.2.1] at h; cases h), view_lt_mark hS hw⟩
+      (fun id h => by rw [htc.2.1.2.1] at h; cases h), view_lt_mark hS hw, mark_two hS, hfl2⟩
     root := ⟨B0, hB0, rfl, rfl⟩
     rootOK := rootLoc_start hpre hB0
     rootIb := fun B hB => by rw [hB0] at hB; cases hB; rfl
@@ -300,9 +308,10 @@ theorem rinv_start {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl) (hrea
     (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
     (hB0 : X.t.bs !! X.rl = some B0) (keys : List GoString)
     (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome) (hnd : keys.Nodup)
-    (hl : mapLen w.ms ≤ 0xFFFFFFFFFFFF) (hS : spillStartOK X w) :
+    (hl : mapLen w.ms ≤ 0xFFFFFFFFFFFF) (hS : spillStartOK X w) (hwf : w.fl.WF) :
     ∃ Lroot Dc, RInv X w B0 keys Lroot X w [] Dc (fun _ => .todo) :=
   rinv_start' hpre hreach hml hfv hw hB0 keys hk hnd (spill_startFacts hpre hml hl hS hB0)
+    (fun y hy => hwf.2.1 y (List.mem_append_left _ hy))
 
 end start
 

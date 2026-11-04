@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktChild
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
+public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Read.WOpenOK
 public import Spec.go_etcd_io.bbolt.Bucket__spill
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
@@ -108,8 +109,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
       (by unfold wdbW; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hdb with ⟨Hdb, %Hwf⟩
     icases keep_pure (Q := wdbW K tx X.v w) (P := mapLen w.ms ≤ 0xFFFFFFFFFFFF)
       (wdbW_mapLen_le K tx X.v w) $$ Hdb with ⟨Hdb, %Hl⟩
+    icases keep_pure (Q := wdbW K tx X.v w) (P := w.fl.WF ∧ w.C.hwm < 2 ^ 48)
+      (cm_wdbW_bounds K tx X.v w) $$ Hdb with ⟨Hdb, %Hfwf⟩
     obtain ⟨Lroot, Dc, HI⟩ := rinv_start Hpre Hreach Hml Hfv Hwf HB0 keys
-      (fun k => Hkset k) Hknd Hl HsOK
+      (fun k => Hkset k) Hknd Hl HsOK Hfwf.1
     unfold loopP
     isplitr
     · ipureintro; rfl
