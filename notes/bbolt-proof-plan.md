@@ -1261,6 +1261,45 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
   `sprCl` (spare: after `store_spr_reset`, `F ⊆ {k}` minus `k`).
   `DB.freepages`' spec: `sparePair` in pre and post is the decided `ghostVar K.B.spr ½ false`
   (as `none`).
+  Idle units adapted (build): `Txn/RdInit` (`rdTxK_intro`'s last premise), `Txn/RemoveTx`
+  (`wp_removeTx` takes `if r.src = .loan then emp else ghostVar K.B.spr ½ (some k)` and gives
+  back `if … then emp else spareTok K.B`; it resets the spare state), `Tx__close_r`,
+  `DB__beginTx` (`opnShot` from `isBoltP`), `DB__beginTx_s` (`store_register_spare`),
+  `DB__beginRWTx`, `Inv/Tx`. **Broken, active units**: `Open/Core` (allocate `fpb` (∅, both
+  halves to `pagesInv`'s `fbInv`, left disjunct), `opn` (`dghostVar … (own 1) false`, kept by
+  `Open`), `spr` (`none`: ¼ `metaR`'s `fltxAuth`, ¼ `pagesInv`'s `rdsAuth`, ½ `spareTok` beside
+  the spare pair, which is now `sparePair` in `wdbOwn`); the two `⟨…⟩` `BNs` constructors take 21
+  names; `isBoltP` ends `∗ opnShot B`: after `loadFreelist`, `dghostVar_update` to `true` and
+  `dghostVar_persist`), `DB__loadFreelist` (`open_setFl_gap` → `Inv/Store.store_setFl`, with
+  `spareTok`/`opn`; `freepages` takes `sparePair`).
+- **Batch 44.3 (`a882210a50`)**: `wtxEnd` has no `txShape` clause (8 conjuncts: `K.full`,
+  records, `wdbLive`, `rwlock`, `cls` half, `ghostVar r.n.v 1`, data quarter, pure). Adapted:
+  `Tx__close_w`, `Tx__Rollback`. **Active users to adapt**: `Tx__rollback` (its `iunfold wtxEnd`
+  patterns, lines 168/240/353/449/470), `Tx__commitFreelist`, `Commit/AssembleEnd`,
+  `Tx__Commit_err`.
+- **Batch 44.8 (`ba…`)**: `internal/freelist/Lemmas/Model.toList_lookup_perm` renamed
+  `toList_lookup_perm_w64`.
+
+### Maintainer 8's hand-off (2026-11-04): what is left, in the coordinator's order
+
+1. **Item 3 + batch 43.4** (root-bucket entry names `0 < len ≤ MaxKeySize = 32768`): not started.
+   `rootShape` (`Model/Tree:236`) per-entry tuple `⟨flags, 0 < ksize, ksize + vsize ≤ max,
+   nested⟩`; any new conjunct shifts positional users: `Write/Bound` (`topPg_of`), `Read/WOpenOK`,
+   `Spill/STree`, `Spill/BktFinal` (spill: producer), `Commit/CheckPureRoot:304` (Commit). Frozen
+   docstring in `Spec/go_etcd_io/bbolt/Api.lean:159`. Writer side: `posShape`'s root clause
+   (`bl = X.rl` entries) or `entriesBounded`; producers `beginRWTx` (from `rootShape`),
+   `CreateBucket` (premise), spill.
+2. **Batch 43** (U9t's `StartFacts`, `Spill/BktLoopPureStart.spill_startFacts`): 1 (`treeOK w.C ∧
+   w.C.hwm ≤ X.t.mv.pgid'.toNat` as a writer fact), 2 (accessors from `wtxW`: `pgid < 2^62`, root
+   `bm` injective), 3 (no cached child is the root, `heapOK`/`bktClean`): not started.
+3. **37.10 `os.OpenFile`** (recipe in maintainer 7's hand-off; `Proof/os/OpenFile.lean:95`'s error
+   branch as `os.wp_wrapErrno_ok`, `ErrorOk.lean:77`), **37.9**, **37.3**: not started.
+4. **Batch 44** 1, 2, 4, 5, 6, 7: not started (44.3, 44.8 done). For 44.1 note that 40B's
+   `store_free_fl` already hands the writer `fbTok` with `fbCond` (the freed page's ids pending
+   for its own txid): `wdbOK' true` is the matching relaxation of `flCurOK`.
+5. **U10h's link** (`Commit/CheckKeyOrder*` into `DB.freepages`' check; `keyToString` is now
+   `(f : GoFunc)`): not started.
+6. Interfaces: regenerate once every bbolt module builds.
 
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
