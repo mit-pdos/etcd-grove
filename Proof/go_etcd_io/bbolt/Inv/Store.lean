@@ -471,6 +471,28 @@ private theorem lent_wclose (σ : StoreSt) (hwl : σ.wlent = false) : lent σ.wc
   simp only [StoreSt.wclose]
   split <;> simp_all
 
+private theorem register_deregister (σ : StoreSt) (k : Nat) (r : RdInfo) (hk : σ.R !! k = none) :
+    (σ.register k r).deregister k = σ := by
+  simp only [StoreSt.deregister, StoreSt.register, GMap.delete_insert _ _ _ hk]
+
+private theorem lent_register (σ : StoreSt) (k : Nat) (r : RdInfo) (hk : σ.R !! k = none) (s : Nat) :
+    lent (σ.register k r) s = if s ∈ pagesSlots r.v.pages then optAdd rq (lent σ s)
+      else lent σ s := by
+  have := lent_deregister (σ.register k r) k r (by simp [StoreSt.register]) s
+  rwa [register_deregister σ k r hk] at this
+
+open Classical in
+private theorem lent_wbegin (σ : StoreSt) (v : View) (hwv : σ.wv = none) (s : Nat) :
+    lent (σ.wbegin v) s = if s ∈ pagesSlots v.pages then optAdd wq (lent σ s) else lent σ s := by
+  unfold lent
+  simp only [StoreSt.wbegin, hwv]
+  by_cases hc : coversSlot v.pages s
+  · simp [hc, (mem_pagesSlots _ _).2 hc]
+  · simp [hc, show s ∉ pagesSlots v.pages from fun h => hc ((mem_pagesSlots _ _).1 h)]
+
+variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+include hE
+
 end helpers
 
 section lemmas
@@ -487,7 +509,58 @@ theorem store_register (C : CommitSt) (b : Loc) (l k : Nat) :
     |={E}=> ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
       k ↪[B.rds] (⟨View.ofC b C⟩ : RdInfo) ∗ viewCells rq (View.ofC b C) := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hmap, Htok, Hfx⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC
+  have hms' : σ.ms = some (b, l) := hms.symm
+  -- the key is fresh: a registered reader's deposit holds its `fltx` fragment
+  rcases hk : σ.R !! k with _ | r0
+  rotate_left
+  · iexfalso
+    icases (BigSepM.bigSepM_delete
+      (Φ := fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int)) ∗
+        ghostVar B.mtok sync.rfrac ())) hk).1 $$ Hdep with ⟨⟨Hf, -⟩, -⟩
+    ihave %h := ghostMapElem_valid_2 k B.fltx _ _ _ _ $$ Hfx Hf
+    exfalso
+    have := DFrac.valid_own_op h.1
+    simp only [Qp.val_one] at this; exact absurd this (by decide)
+  let r : RdInfo := ⟨View.ofC b σ.C⟩
+  have hok' := storeOK_register σ k r b l Hok hms' hk rfl
+  imod ghost_map_insert k r hk $$ Hrds with ⟨Hrds, Hk⟩
+  ihave Hdep := (BigSepM.bigSepM_insert
+    (Φ := fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int)) ∗
+      ghostVar B.mtok sync.rfrac ())) (m := σ.R) (i := k) (x := r) hk).2 $$ [Hfx Htok Hdep]
+  · iframe
+  icases sep_keep_pure (deposits_le (fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int))))
+    B.mtok sync.rfrac _) $$ Hdep with ⟨Hdep, %Hsz⟩
+  have hrok := hok'.2.2.2.2.2.2.1 k r (by simp [StoreSt.register])
+  obtain ⟨hTn, hTs, hTl⟩ := view_slots (σ.register k r) hok' r.v hrok.2.2.1 hrok.2.2.2.1
+  rw [storeCells_some σ b l hms']
+  icases cells_borrow (storeSlots σ) (pagesSlots r.v.pages) (nodup_list_dedup _) hTn hTs
+    (slotPt b σ.bytes) (slotPt_add b σ.bytes) (lent σ) (lent (σ.register k r)) rq (1 : Qp).half
+    (fun s _ => lent_register σ k r hk s)
+    (fun s _ x hx => lent_lt_half2 (σ.register k r) Hsz s x hx)
+    $$ Hcells with ⟨Hcells, Hv⟩
+  have hvc := (viewCells_slots (GF := GF) rq r.v σ.bytes hrok.2.2.2.2.1 hTl).2
+  rw [show r.v.base = b from rfl] at hvc
+  ihave Hv := hvc $$ Hv
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.register k r, W
+    rw [storeCells_some (σ.register k r) b l hms']
+    have e2 : metaLend (GF := GF) B (σ.register k r) = metaLend B σ := rfl
+    have e3 : bytesWit (GF := GF) B (σ.register k r) W = bytesWit B σ W := rfl
+    rw [e2, e3]
+    iframe
+    ipureintro
+    exact hok'
+  imodintro
+  iframe
 
 /-- `removeTx`, before `RUnlock`: deregister the reader `k`, its cells back; the deposits
 returned. -/
@@ -542,7 +615,47 @@ theorem store_wbegin (C : CommitSt) (b : Loc) (l : Nat) :
       ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       ghostVar B.wv (1 : Qp).half ((some (View.ofC b C), some (C.txid + 1), false, true) : WSt) ∗
       viewCells wq (View.ofC b C) := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hmap, Hwv⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC
+  have hms' : σ.ms = some (b, l) := hms.symm
+  simp only [StoreSt.wst, wIdle, Prod.mk.injEq] at hws
+  obtain ⟨hwv, hwtx, -, -⟩ := hws
+  let v := View.ofC b σ.C
+  have hok' := storeOK_wbegin σ v b l Hok hms' hwtx.symm hwv.symm rfl
+  icases sep_keep_pure (deposits_le (fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int))))
+    B.mtok sync.rfrac σ.R) $$ Hdep with ⟨Hdep, %Hsz⟩
+  have hwok := hok'.2.2.2.2.2.2.2.1 v (by simp [StoreSt.wbegin, v])
+  obtain ⟨hTn, hTs, hTl⟩ := view_slots (σ.wbegin v) hok' v hwok.2.2.1 hwok.2.2.2.1
+  imod ghostVar_update_halves ((some v, some (σ.C.txid + 1), false, true) : WSt) B.wv _ _
+    $$ Hwv Hwv' with ⟨Hwv, Hwv'⟩
+  rw [storeCells_some σ b l hms']
+  icases cells_borrow (storeSlots σ) (pagesSlots v.pages) (nodup_list_dedup _) hTn hTs
+    (slotPt b σ.bytes) (slotPt_add b σ.bytes) (lent σ) (lent (σ.wbegin v)) wq (1 : Qp).half
+    (fun s _ => lent_wbegin σ v hwv.symm s)
+    (fun s _ x hx => lent_lt_half2 (σ.wbegin v) Hsz s x hx)
+    $$ Hcells with ⟨Hcells, Hv⟩
+  have hvc := (viewCells_slots (GF := GF) wq v σ.bytes hwok.2.2.2.2.1 hTl).2
+  rw [show v.base = b from rfl] at hvc
+  ihave Hv := hvc $$ Hv
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.wbegin v, W
+    rw [storeCells_some (σ.wbegin v) b l hms']
+    have e2 : metaLend (GF := GF) B (σ.wbegin v) = metaLend B σ := rfl
+    have e3 : bytesWit (GF := GF) B (σ.wbegin v) W = bytesWit B σ W := rfl
+    rw [e2, e3]
+    iframe
+    ipureintro
+    exact hok'
+  imodintro
+  iframe
 
 /-- The remap: the writer's view returned (parked) before `munmap`. -/
 theorem store_wreturn (v : View) (w : Option Nat) (pb : Bool) :
