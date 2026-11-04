@@ -36,16 +36,13 @@ variable [sem : go.Semantics]
 variable [sync_sem : sync.Assumptions]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
-/-- `NewCompactor`'s proof, given that the constant `features.ListFromCacheSnapshot` (axiomatized:
-`features` is translated names-only) is a value, not a panic, as `store.Delete`'s proof is given
-`AllowUnsafeMalformedObjectDeletion`'s (`Proof/k8s_io/apiserver/pkg/features/Values.lean`): the
-`if` binds it before calling `Enabled`. -/
+/-- `NewCompactor`'s proof. The `if` binds the constant `features.ListFromCacheSnapshot` before
+calling `Enabled`: translated (`features.toml`), a value, not a panic. -/
 theorem NewCompactor.wp_proof
-    (hlfcs : k8s_io.apiserver.pkg.features.ListFromCacheSnapshot.isPanic = false)
     (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv
-  wp_start as ⟨Htok, #Hgate, #Hcl, Hone, Hregs, #Hcas⟩
+  intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv hrb
+  wp_start as ⟨#Hgate, #Hcl, Hone, Hregs, #Hcas⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -112,7 +109,7 @@ theorem NewCompactor.wp_proof
   · (try wp_auto)
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
-    wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret)
+    wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret hrb)
       $$ [Hone Hregs]
     · iframe #
       iframe
@@ -124,7 +121,8 @@ theorem NewCompactor.wp_proof
   (try wp_auto)
   iunfold gateOff at Hgate
   icases Hgate with ⟨%g, #Hg, #Hen⟩
-  have hnp := hlfcs
+  have hnp : k8s_io.apiserver.pkg.features.ListFromCacheSnapshot.isPanic = false := by
+    simp [k8s_io.apiserver.pkg.features.ListFromCacheSnapshot]
   (try wp_auto)
   wp_apply Hen
   (try wp_auto)

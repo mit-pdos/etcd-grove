@@ -1,8 +1,9 @@
 /-
 `(*compactor).Stop()` (`compact.go`): stop the compactor, once (`stopOnce`): close `stop`, then
 wait for the loop goroutine (K2 of `notes/k8s-compactor-plan.md`). Lean-first (no Rocq
-counterpart). Returns, with nothing: `sync.Once` passes out only a persistent result, so the loop's
-thread token stays with the wait group (a revision of Draft 2, which had `Stop` give it back).
+counterpart). Returns, with nothing: `sync.Once` passes out only a persistent result (a revision
+of Draft 2, which had `Stop` give back the loop's thread token; the wait group is `sync.join`'s, its
+one `Add` needing no token).
 `onClose` is `nil` (`StartCompactorPerEndpoint`'s closure is Q1 (c)).
 -/
 module

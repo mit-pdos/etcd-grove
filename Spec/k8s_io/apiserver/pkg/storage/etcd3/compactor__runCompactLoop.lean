@@ -40,6 +40,8 @@ abbrev compactor.runCompactLoop.spec : Prop :=
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (γc : CompactorNames) (sc : GoChan) (γs : ChanNames),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
+  -- the store's receipts bounded, as the client's `kv.Compact.spec`'s `isKv` needs
+  receiptBound GF ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isCompactor c cl γk recorded γc ∗ compactorStopOk c sc γs ∗

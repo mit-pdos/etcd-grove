@@ -1,6 +1,6 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+translate = ["!*", "ListFromCacheSnapshot"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

@@ -10,8 +10,8 @@ linkvtxn's `txn_Commit_st` with the reply's revision reached kept: `txnRevLb`); 
   `ParseInt` reads `c` back;
 - it held: at `rev ≠ 0` the client's `Compact(rev)` (`rev` reached, the caller's `revOk`).
 
-`Compact.wp_proof` takes `receiptBound GF ≤ 2 ^ 62`: the client's `Compact` goes through
-`kv.Compact.spec`, whose `isKv` carries it, and `Compact.spec` does not give it.
+The client's `Compact` goes through `kv.Compact.spec`, whose `isKv` needs the store's receipts
+bounded (`Compact.spec`'s `receiptBound GF ≤ 2 ^ 62`).
 -/
 module
 
@@ -236,9 +236,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
-/-- See the file header: `Compact`'s proof, given the store's receipts bounded (`hrb`, which
-`kv.Compact.spec`'s `isKv` carries). -/
-theorem Compact.wp_proof (hrb : receiptBound GF ≤ 2 ^ 62)
+/-- See the file header. -/
+theorem Compact.wp_proof
     (wp_Version : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     (wp_Compare : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (wp_OpPut : EtcdGrove.OpPut.spec (GF := GF) (hG := hG)) (wp_OpGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
@@ -249,7 +248,7 @@ theorem Compact.wp_proof (hrb : receiptBound GF ≤ 2 ^ 62)
     (wp_V : EtcdGrove.klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret hrb
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
