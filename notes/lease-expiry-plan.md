@@ -793,3 +793,17 @@ none); `srvAuthAt s E` (`requireAuthInfo`, `WithRoot`'s `IsAuthEnabled`); a cont
 `authStore.WithRoot` (none exists; at auth off it returns its argument); per goroutine
 `srvLeadTimeReader s`, `E.RD` and `□ (|==> idCred ρ.ids 1)` (P1's pools); and the mode
 (`m = .revocable`: the guard gives only `E.lg = true ∧ auth off`). Not changed (the brief).
+
+**Decided (the user, 2026-11-04): X7 option (iii).** `KVNames.lg` and `AEnv.lg` (Bool fields) are
+replaced by fields `lm : lease.Mode := .none`; `lg` becomes a function of the same name
+(`KVNames.lg γk := decide (γk.lm ≠ .none)`, likewise `AEnv.lg`), so the uses of `γk.lg`/`E.lg`/
+`ρ.rd.kv.lg` read unchanged and only the sites that set or destructure the field change. Where the
+code has both a mode `m` and the record, they are tied. The revocation arm of `rqOk`, the proposal
+side and `kvInv`'s log shape read `lm = .revocable`. Then X7 (with the `revokeRes` rework and the
+identity-step lemmas), then X6.
+
+**Open item for Part E/P1: `revokeExpiredLeases.spec`'s pre** (not changed now). For its proof to
+call `LeaseRevoke` it lacks: `isServerReq s E ρ` and a binder `ρ`; `srvAuthAt s E`; a context fact
+for `s.ctx` (`context.isContext c cd`) and a spec of `authStore.WithRoot`; per goroutine
+`srvLeadTimeReader s`, `E.RD`, `□ (|==> idCred ρ.ids 1)` (P1's pools); the revocable mode (`E.lm =
+.revocable`, or `ρ.rd.kv.lm`).
