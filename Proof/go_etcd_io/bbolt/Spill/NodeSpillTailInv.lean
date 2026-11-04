@@ -25,6 +25,8 @@ public import Proof.go_etcd_io.bbolt.Spill.SplitModel
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial
@@ -65,7 +67,7 @@ structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List
     nodeSim (splitRec r'.nilCh x ws (decide (k = 0)) (decide (xs.length = 1))) rk
   done : ∀ (k : Nat) (x : Loc × node × List Inode) (p : Piece) (ws : List WEntry), xs[k]? = some x → ps[k]? = some p → wss[k]? = some ws → ∃ rk,
     Xi.node bl x.1 = some rk ∧ x.1 ∈ Xi.live ∧ rk.nv.bucket' = bl ∧ rk.nv.spilled' = true ∧
-    rk.cs = [] ∧ rk.nv.parent' = pl ∧ rk.nv.pgid' = p.id ∧ rk.ws.map wDat = ws.map wDat ∧
+    rk.cs = [] ∧ rk.nv.children' = slice.nil ∧ rk.nv.parent' = pl ∧ rk.nv.pgid' = p.id ∧ rk.ws.map wDat = ws.map wDat ∧
     p.k = wssKey wss k ∧ (pl ≠ null → rk.key = p.k ∧ rk.nv.key' ≠ slice.nil) ∧
     fTree (spP Xi) Xi.t.mv.pgid'.toNat p.id.toNat p.k (childHi hi (wssKey wss) xs.length k) h0
       p.S (Es.getD k [])
@@ -101,6 +103,34 @@ end inv
 
 section lemmas
 variable [GooseExts] [GoGlobalContext]
+
+/-- The children's loop's database facts (the committed state, the freelist, the base pages). -/
+theorem spEnd_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc} {E : List El}
+    {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
+    w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages := by
+  rcases hend with ⟨-, rfl, rfl, -, rfl, -⟩ | ⟨-, h', es, i, -, hl, -⟩
+  · exact ⟨rfl, rfl, rfl⟩
+  · exact ⟨hl.step.1, hl.step.2.1, hl.step.2.2.1⟩
+
+theorem nilCh_v (X : WX) (bl n : Loc) (r : NRec) : (X.nilCh bl n r).v = X.v := by
+  unfold WX.nilCh WX.killL; exact WX.setNode_v _ _ _ _
+
+/-- The database facts of the steps before iteration `i`. -/
+theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} {xs : List (Loc × node × List Inode)} {pl : Loc} {i : Nat} {Xi : WX}
+    {wi : WDb} {st : List FLStep}
+    (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) :
+    wi.C = w.C ∧ wi.fl = w.fl.applySteps w.wtxid st ∧ Xi.v.pages = X.v.pages := by
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, hsr, -, rfl, -, -,
+    -, hL⟩ := hI
+  obtain ⟨hC, hfl, hpg⟩ := spEnd_db hend
+  obtain ⟨hC2, hfl2, hpg2, -⟩ := hL.step
+  refine ⟨hC2.trans hC, ?_, ?_⟩
+  · rw [hfl2, wtxid_of_C hC, hfl, applySteps_append]
+  · rw [hpg2, hsr.same.2.2.2, nilCh_v, hpg]
 
 /-- **What the steps before the loop need** (`spillTail_gen`'s `hn'`, `hlv'`, `hS`). Open:
 `insSize r'.ins < 2 ^ 63` has no source (the inodes' count is unbounded; see U9s's report). -/
@@ -161,7 +191,9 @@ theorem pcInv_err {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st)
     (he : w''.C = wi.C ∧ w''.fl = wi.fl.applySteps wi.wtxid st' ∧ X''.v.pages = Xi.v.pages) :
     w''.C = w.C ∧ w''.fl = w.fl.applySteps w.wtxid (st ++ st') ∧ X''.v.pages = X.v.pages := by
-  sorry
+  obtain ⟨hC, hfl, hpg⟩ := pcInv_db hI
+  refine ⟨he.1.trans hC, ?_, he.2.2.trans hpg⟩
+  rw [he.2.1, wtxid_of_C hC, hfl, applySteps_append]
 
 /-- **The loop's end**: `n`'s record, its parent the pieces'. -/
 theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
@@ -171,7 +203,24 @@ theorem pcInv_end {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ∃ rf, Xf.node bl n = some rf ∧ n ∈ Xf.live ∧ rf.nv.parent' = pl ∧
       rf.nv.children' = slice.nil ∧ rf.cs = [] ∧
       (pl ≠ null → ∃ rp, Xf.node bl pl = some rp ∧ pl ∈ Xf.live) := by
-  sorry
+  obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, h0, Es, Ds, ps, stl, hend, hsr, -, -, -, -,
+    -, hL⟩ := hI
+  obtain ⟨x0, hx0⟩ : ∃ x0, xs[0]? = some x0 := by
+    cases e : xs with
+    | nil => exact absurd e hsr.ne
+    | cons a _ => exact ⟨a, rfl⟩
+  have hx0n : x0.1 = n := by
+    have := hsr.head; rw [List.head?_eq_getElem?, hx0] at this; simpa using this
+  have hlen0 : 0 < xs.length := (List.getElem?_eq_some_iff.1 hx0).1
+  obtain ⟨p0, hp0⟩ : ∃ p0, ps[0]? = some p0 :=
+    ⟨_, List.getElem?_eq_getElem (by rw [hL.len]; exact hlen0)⟩
+  obtain ⟨w0, hw0⟩ : ∃ w0, wss[0]? = some w0 :=
+    ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; exact hlen0)⟩
+  obtain ⟨rk, hrk, hlv, -, -, hcs, hch, hpar, -⟩ := hL.done 0 x0 p0 w0 hx0 hp0 hw0
+  rw [hx0n] at hrk hlv
+  refine ⟨rk, hrk, hlv, hpar, hch, hcs, fun hpl => ?_⟩
+  obtain ⟨rpi, hrpi, hplv, -⟩ := hL.par hpl
+  exact ⟨rpi, hrpi, hplv⟩
 
 /-- **The post without a new root** (the child case, or an unsplit top node). -/
 theorem pcInv_done {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
