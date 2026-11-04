@@ -274,6 +274,11 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     have hsn : sint.nat (W64 (pcCount (insSize rl.ins) : Int)) = pcCount (insSize rl.ins) := by
       unfold pcCount at hc0 ⊢; word
     rw [← hwtx, ← hsn]; exact Hal
+  obtain ⟨sta, hsta⟩ : ∃ sta, w2.fl = w1.fl.applySteps w.wtxid sta := by
+    obtain ⟨-, -, Xr, -, hX'⟩ := Hal'
+    rcases hX' with ⟨-, hf, -⟩ | ⟨-, hf, -, -⟩
+    · exact ⟨[FLStep.alloc id (pcCount (insSize rl.ins))], by rw [hf]; rfl⟩
+    · exact ⟨[], by rw [hf]; rfl⟩
   obtain ⟨hpm2, hbs2⟩ := allocRes_buf Hal'
   obtain ⟨⟨ra, hna, hsa⟩, hliv⟩ := allocRes_node Hal' hn1
   have hlv2 : l ∈ X2.live := hliv.2 hlv1
@@ -374,10 +379,11 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).v = X2.v :=
       WX.setNode_v _ _ _ _
     iapply HΦ $$ %((X2.setNode bl l (pcRec ra id false)).setBuf id
-        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) %w2 %st1 %id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) %w2 %(st1 ++ sta) %id
       [] [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
-      refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], Hfr1, Hal', HC2, Hml2, Hw2, hna,
+      refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], st1, sta, Hfr1, rfl, Hal', hsta, HC2, Hml2,
+        Hw2, hna,
         fun h => absurd hpl h, ?_⟩
       simp only [pcFin, hpl, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true,
         ↓reduceIte]
@@ -532,6 +538,13 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       as ⟨%s, %ins2, Hpo, Hv, Hbtx, Hf3, Hf7⟩
     · iframe; iframe #
     try wp_auto
+    -- the parent's inodes' count its entries'
+    icases (objOwn_live_node _ _ _ _ _).1 $$ Hpo with ⟨Hpn, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
+    icases Hpws with #Hpws
+    ihave %Hinsl := BigSepL2.bigSepL2_length $$ Hpws
+    ihave Hpo : objOwn X2.v ra.nv.parent' (DFrac.own 1) true (.node bl (pcPar rpa ra id s ins2))
+      $$ [Hpn Hpins Hpcap Hpch Hpchcap Hpkey]
+    · iapply (objOwn_live_node _ _ _ _ _).2; iframe; iexact Hpws
     -- `node.key = node.inodes[0].Key()`
     rw [ite_eq_left_of_eq_true _ _ (eq_true hlen0)]
     icases ownSlice_elem_acc (sint.Z (W64 0)) i0 _ _ (i0 :: is) (by decide) rfl $$ Hins
@@ -546,6 +559,12 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       have h3 : (sint.Z i0.key'.len).toNat = w0.key.length := Hkl.1.symm
       have h4 : sint.Z (W64 0) = 0 := rfl
       omega)]
+    have hk0ne : ra.k0 ≠ slice.nil := by
+      rw [hk0]; intro he
+      have h1 := Hkl.1
+      rw [he] at h1
+      simp [slice.nil] at h1
+      omega
     wp_apply hAssert
     try wp_auto
     -- the heap back: `l` written with its new key, the parent with the entry
@@ -615,9 +634,10 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       rw [WX.setNode_v, WX.setNode_v]
     iapply HΦ $$ %(((X2.setNode bl l (pcRec ra id true)).setNode bl rl.nv.parent'
         (pcPar rpa ra id s ins2)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))))
-      %w2 %st1 %id [] [Hw] [Hdb] Htxp Hnodep Hres
+      %w2 %(st1 ++ sta) %id [] [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
-      refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, Hfr1, Hal', HC2, Hml2, Hw2, hna, fun _ => hrpa, ?_⟩
+      refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, st1, sta, Hfr1, rfl, Hal', hsta, HC2, Hml2, Hw2,
+        hna, fun _ => ⟨hrpa, by simpa only [pcPar, NRec.withEnts] using Hinsl, hk0ne⟩, ?_⟩
       simp only [pcFin, ne_eq, hpn, not_false_eq_true, decide_true, ↓reduceIte]
     · iexact Hw
     · rw [hv3]; iexact Hdb

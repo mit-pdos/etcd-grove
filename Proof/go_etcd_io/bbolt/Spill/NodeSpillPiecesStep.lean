@@ -119,10 +119,13 @@ allocation of `count` pages at `id` (from `X1` to `X2`, `ra` the piece's record 
 parent's), the records after the write (`pcFin`). -/
 def pcStep (X : WX) (w : WDb) (bl l : Loc) (r : NRec) (count : Nat) (X3 : WX) (w2 : WDb)
     (st : List FLStep) (id : w64) : Prop :=
-  ∃ X1 w1 X2 p ra rp s ins, pcFreed X w bl l r X1 w1 st ∧
-    allocRes X1 X2 w1.fl w2.fl w.wtxid count p id ∧ w2.C = w1.C ∧
+  ∃ X1 w1 X2 p ra rp s ins stf sta, pcFreed X w bl l r X1 w1 stf ∧ st = stf ++ sta ∧
+    allocRes X1 X2 w1.fl w2.fl w.wtxid count p id ∧ w2.fl = w1.fl.applySteps w.wtxid sta ∧
+    w2.C = w1.C ∧
     X2.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms ∧ (w2 = w1.withFl w2.fl ∨ wdbRemap w1 w2) ∧
-    X2.node bl l = some ra ∧ (r.nv.parent' ≠ null → X2.node bl r.nv.parent' = some rp) ∧
+    X2.node bl l = some ra ∧
+    (r.nv.parent' ≠ null → X2.node bl r.nv.parent' = some rp ∧
+      ins.length = (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)).length ∧ ra.k0 ≠ slice.nil) ∧
     X3 = pcFin X2 bl l ra r.nv.parent' rp s ins id count (decide (r.nv.parent' ≠ null))
 
 end step

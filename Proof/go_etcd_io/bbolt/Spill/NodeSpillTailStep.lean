@@ -1,13 +1,9 @@
 /-
 `node.spill` after its children's loop (U9y, `notes/bbolt-proof-plan.md`; pure): **a piece's step
-keeps the pieces' loop's invariant** (`pcInv_stepX`, `Spill/NodeSpillTailInv.pcInv_step` over the
-corrected step `pcStepX`).
-
-`pcStep` (`Spill/NodeSpillPiecesStep`) misses three facts the invariant needs, which `pcStepX`
-adds (U9y's report): the allocation's freelist step (`st` lists only the free's: after an
-allocation from the free ids `w2.fl = w1.fl.alloc …`, not `w.fl.applySteps st`), the parent's
-inodes' count after its put (`pcPar`'s `ins` is unconstrained), and the piece's new key slice not
-nil (`pcRec`'s `r.k0`: `n.key = n.inodes[0].Key()`, a non-empty key).
+keeps the pieces' loop's invariant** (`pcInv_stepX`, what `Spill/NodeSpillTailInv.pcInv_step`
+states, with the objects disjoint, the free ids no view pages and the piece's `insLens`).
+`pcStep` (U9y) carries the allocation's freelist steps, the parent's inodes' count after its put and
+the piece's key slice not nil, which the invariant needs.
 -/
 module
 
@@ -43,7 +39,7 @@ theorem node_ne_null {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} (hG : spG X tx
     simp only [Option.bind_some] at hr
     rw [this] at hr; cases hr
 
-/-- **A piece's step keeps the invariant** (over `pcStepX`; the free ids no view pages, the
+/-- **A piece's step keeps the invariant** (the free ids no view pages, the
 objects disjoint: `spillTail_gen`'s `H3`). -/
 theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
@@ -53,7 +49,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (st' : List FLStep) (id : w64)
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) (hx : xs[i]? = some x)
     (hrl : Xi.node bl x.1 = some rl)
-    (hs : pcStepX Xi wi bl x.1 rl (pcCount (insSize rl.ins)) X3 w2 st' id)
+    (hs : pcStep Xi wi bl x.1 rl (pcCount (insSize rl.ins)) X3 w2 st' id)
     (hd : objsDisj Xi.t) (hfv : ∀ y ∈ wi.fl.free, Xi.v.pages !! y.toNat = none)
     (hlr : insLens rl.ins rl.ws) :
     pcInv X w bl n rn O lo hi h D N E cs xs pl (i + 1) X3 w2 (st ++ st') := by
