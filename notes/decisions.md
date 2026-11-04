@@ -31023,3 +31023,18 @@ approved ones changed):
   advance channel's content), and `run_snap_jobOn` takes `C.rn = γn`, as lean's `run_job_snap`.
 - `snapRecv_imageOn` takes `E.lg = false` (`srvRest_false`), as lean's `snapRecv_image`; the caller
   gets it from `srvRest_revocable`.
+
+## The Perennial pin `4c8617a9e`: `os.opaqueInitsOk` lists only the untranslated initializers (2026-11-04 · the user's approval of the trusted change · branch `pin-4c8617a9e`)
+
+The pin moves from `c3c7ea790` to `4c8617a9e`, which brings:
+- Perennial's ticker fix (`432c32f28`). `NewTicker`, `Ticker.Stop` and `Ticker.Reset` lose their trusted models and become axioms, and `isTicker` holds `newTimerMade`; the old model let a copied ticker's `Reset` return, where Go has a fatal error (`notes/perennial-changes.md`).
+- `context`'s `Err` contract (`isCtxErr`).
+- Monotone package initialization.
+- The translated `os` initializers.
+
+**The trusted change.** Perennial now translates 15 of `os`'s package-variable initializers: `dirBufPool`, the `io/fs`-derived errors, `ErrProcessDone`, `lstat`, the `_` assertions, and others. The axiom `os.opaqueInitsOk` (`Proof/go_etcd_io/raft/v3/Init.lean` and its `RaftWitness` copy) now lists only the 9 that are still untranslated, down from 24. `os.wp_initialize'` runs the translated ones over Perennial's proved specs and takes `[os.Assumptions]`. The old statement named constants that no longer exist, so the change was forced. It assumes strictly less: the trust base keeps the same axioms (781), each now claiming fewer initializers.
+
+The other changes are proof-only:
+- `isCtxErr` is cleared at `Err()`'s uses; `WithCancel` gets it from `isCtxErr_of_Canceled`.
+- `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
+- raft's `Base` imports `io/fs`'s package-init instance.
