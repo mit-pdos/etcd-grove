@@ -164,6 +164,158 @@ theorem wSlots_return (b : Loc) (len : Nat) (p : GoString) (W' S : List Nat)
       simp only [wbG, he]
       exact .rfl
 
+/-! ### Slots relative to the file's size (maintainer 12, item 3: `Tx.write_ext`) -/
+
+/-- **Slots relative to the file's size**: the slots `S` of the mapping at `b`, their page-cache
+bytes below `size` as the writer side holds them (`wBytes`: a slot inside the file whole, the slot
+across the end its part, a slot past the end nothing) and their mapped cells' client halves (any
+values). `wrSlots` when every slot of `S` is inside the file (`wrSlotsSz_in`); what
+`wSlots_carveSz` takes out of the writer's `W` slots without a size premise
+(`Tx.write_ext.spec`). -/
+def wrSlotsSz (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (size : Nat) :
+    IProp GF :=
+  iprop(wBytes p S wb size ∗ [∗list] s ∈ S, ∃ vf, cellsR b (4096 * s) 4096 vf)
+
+theorem wrSlotsSz_app (b : Loc) (p : GoString) (S T : List Nat) (wb : Nat → List w8)
+    (size : Nat) :
+    wrSlotsSz (GF := GF) b p (S ++ T) wb size ⊣⊢ wrSlotsSz b p S wb size ∗ wrSlotsSz b p T wb size := by
+  unfold wrSlotsSz wBytes
+  constructor
+  · iintro ⟨Hb, Hc⟩
+    icases BigSepL.bigSepL_append.1 $$ Hb with ⟨Hb1, Hb2⟩
+    icases BigSepL.bigSepL_append.1 $$ Hc with ⟨Hc1, Hc2⟩
+    iframe
+  · iintro ⟨⟨Hb1, Hc1⟩, ⟨Hb2, Hc2⟩⟩
+    isplitl [Hb1 Hb2]
+    · iapply BigSepL.bigSepL_append.2; iframe
+    · iapply BigSepL.bigSepL_append.2; iframe
+
+/-- `wrSlotsSz` only reads `wb` on its slots. -/
+theorem wrSlotsSz_congr (b : Loc) (p : GoString) (S : List Nat) (wb wb' : Nat → List w8)
+    (size : Nat) (h : ∀ s ∈ S, wb s = wb' s) :
+    wrSlotsSz (GF := GF) b p S wb size ⊢ wrSlotsSz b p S wb' size := by
+  unfold wrSlotsSz
+  iintro ⟨Hb, Hc⟩
+  iframe Hc
+  ihave Hb := (wBytes_eq (GF := GF) p S wb size).1 $$ Hb
+  iapply (wBytes_eq (GF := GF) p S wb' size).2
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wbG (GF := GF) p wb size s)
+      (Ψ := fun _ s => wbG (GF := GF) p wb' size s) ?_) $$ Hb
+  intro k x hx
+  have he := h x (List.mem_of_getElem? hx)
+  simp only [wbG, he]
+  exact .rfl
+
+/-- A slot inside the file at `size` is inside it at a larger `size'`, with the same bytes. -/
+theorem wrSlotsSz_grow (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8)
+    (size size' : Nat) (hle : size ≤ size') (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ size) :
+    wrSlotsSz (GF := GF) b p S wb size ⊢ wrSlotsSz b p S wb size' := by
+  unfold wrSlotsSz
+  iintro ⟨Hb, Hc⟩
+  iframe Hc
+  ihave Hb := (wBytes_eq (GF := GF) p S wb size).1 $$ Hb
+  iapply (wBytes_eq (GF := GF) p S wb size').2
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wbG (GF := GF) p wb size s)
+      (Ψ := fun _ s => wbG (GF := GF) p wb size' s) ?_) $$ Hb
+  intro k x hx
+  have h1 := hin x (List.mem_of_getElem? hx)
+  have h2 : 4096 * (x + 1) ≤ size' := by omega
+  simp only [wbG, h1, h2, ite_true]
+  exact .rfl
+
+/-- **`wrSlotsSz` of slots inside the file is `wrSlots`.** -/
+theorem wrSlotsSz_in (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (size : Nat)
+    (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ size) :
+    wrSlotsSz (GF := GF) b p S wb size ⊣⊢ wrSlots b p S wb := by
+  have hb : wBytes (GF := GF) p S wb size ⊣⊢ [∗list] s ∈ S, osSlot p s (wb s) := by
+    refine (wBytes_eq (GF := GF) p S wb size).trans ⟨BigSepL.bigSepL_mono fun hx => ?_,
+      BigSepL.bigSepL_mono fun hx => ?_⟩
+    · have h := hin _ (List.mem_of_getElem? hx)
+      simp only [wbG, h, ite_true, osSlot]
+      exact .rfl
+    · have h := hin _ (List.mem_of_getElem? hx)
+      simp only [wbG, h, ite_true, osSlot]
+      exact .rfl
+  unfold wrSlotsSz wrSlots
+  exact (sep_congr hb .rfl).trans BigSepL.bigSepL_sep_eqv.symm
+
+/-- **Carving the target slots out of the `W` slots, at the file's size**: `S` (no duplicates,
+`W` slots, each whole inside the mapping, anywhere relative to the file) as `wrSlotsSz`, the rest
+`W \ S`. -/
+theorem wSlots_carveSz (b : Loc) (len : Nat) (p : GoString) (W S : List Nat) (wb : Nat → List w8)
+    (size : Nat) (hnd : S.Nodup) (hsub : ∀ s ∈ S, s ∈ W) (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ len) :
+    wCells (GF := GF) (some (b, len)) W ∗ wBytes p W wb size ⊢
+      wrSlotsSz b p S wb size ∗ wCells (some (b, len)) (wMinus W S) ∗ wBytes p (wMinus W S) wb size := by
+  obtain ⟨T, hT⟩ := sub_split W S hnd hsub
+  have hW := perm_split W S
+  iintro ⟨Hc, Hb⟩
+  icases (wCells_eq (GF := GF) b len W).1 $$ Hc with ⟨Hc, Hpart⟩
+  ihave Hb := (wBytes_eq (GF := GF) p W wb size).1 $$ Hb
+  icases bsplit (Φ := wcF b len) hW $$ Hc with ⟨HcA, HcR⟩
+  icases bsplit (Φ := wbG p wb size) hW $$ Hb with ⟨HbA, HbR⟩
+  icases bsplit (Φ := wcF b len) hT.symm $$ HcA with ⟨HcS, -⟩
+  icases bsplit (Φ := wbG p wb size) hT.symm $$ HbA with ⟨HbS, -⟩
+  isplitl [HcS HbS]
+  · unfold wrSlotsSz
+    isplitl [HbS]
+    · iapply (wBytes_eq (GF := GF) p S wb size).2; iexact HbS
+    · iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wcF (GF := GF) b len s)
+        (Ψ := fun _ s => iprop(∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf)) ?_) $$ HcS
+      intro k x hx
+      have h := hin x (List.mem_of_getElem? hx)
+      simp only [wcF, h, ite_true]
+      exact .rfl
+  isplitl [HcR Hpart]
+  · iapply (wCells_eq (GF := GF) b len (wMinus W S)).2
+    iframe
+  · iapply (wBytes_eq (GF := GF) p (wMinus W S) wb size).2
+    iexact HbR
+
+/-- **Putting slots back at the file's (new) size** (after `Tx.write_ext`: the failed write's
+slots, or the tail on success): `S ++ W'`, the slots of `S` holding their new bytes `wb'`; the
+other slots `W'` lie inside the old file (`size ≤ size'`). -/
+theorem wSlots_returnSz (b : Loc) (len : Nat) (p : GoString) (W' S : List Nat)
+    (wb wb' : Nat → List w8) (size size' : Nat) (hdisj : ∀ s ∈ W', s ∉ S)
+    (hinS : ∀ s ∈ S, 4096 * (s + 1) ≤ len) (hinW : ∀ s ∈ W', 4096 * (s + 1) ≤ size)
+    (hle : size ≤ size') :
+    wrSlotsSz (GF := GF) b p S wb' size' ∗ wCells (some (b, len)) W' ∗ wBytes p W' wb size ⊢
+      wCells (some (b, len)) (S ++ W') ∗ wBytes p (S ++ W') (wbUpd S wb' wb) size' := by
+  unfold wrSlotsSz
+  iintro ⟨⟨Ho, Hcs⟩, Hc, Hb⟩
+  icases (wCells_eq (GF := GF) b len W').1 $$ Hc with ⟨Hc, Hpart⟩
+  ihave Hb := (wBytes_eq (GF := GF) p W' wb size).1 $$ Hb
+  ihave Ho := (wBytes_eq (GF := GF) p S wb' size').1 $$ Ho
+  isplitl [Hcs Hc Hpart]
+  · iapply (wCells_eq (GF := GF) b len (S ++ W')).2
+    iframe Hpart
+    iapply BigSepL.bigSepL_append.2
+    iframe Hc
+    iapply (BigSepL.bigSepL_mono (Φ := fun _ s => iprop(∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf))
+        (Ψ := fun _ s => wcF (GF := GF) b len s) ?_) $$ Hcs
+    intro k x hx
+    have h := hinS x (List.mem_of_getElem? hx)
+    simp only [wcF, h, ite_true]
+    exact .rfl
+  · iapply (wBytes_eq (GF := GF) p (S ++ W') (wbUpd S wb' wb) size').2
+    iapply BigSepL.bigSepL_append.2
+    isplitl [Ho]
+    · iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wbG (GF := GF) p wb' size' s)
+        (Ψ := fun _ s => wbG (GF := GF) p (wbUpd S wb' wb) size' s) ?_) $$ Ho
+      intro k x hx
+      have hm := List.mem_of_getElem? hx
+      have he : wbUpd S wb' wb x = wb' x := by simp only [wbUpd, hm, ite_true]
+      simp only [wbG, he]
+      exact .rfl
+    · iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wbG (GF := GF) p wb size s)
+        (Ψ := fun _ s => wbG (GF := GF) p (wbUpd S wb' wb) size' s) ?_) $$ Hb
+      intro k x hx
+      have hm := List.mem_of_getElem? hx
+      have he : wbUpd S wb' wb x = wb x := by simp only [wbUpd, hdisj x hm, ite_false]
+      have h1 := hinW x hm
+      have h2 : 4096 * (x + 1) ≤ size' := by omega
+      simp only [wbG, he, h1, h2, ite_true]
+      exact .rfl
+
 section agree
 variable [sem : go.Semantics] {s : Stuckness} {E : CoPset}
 
