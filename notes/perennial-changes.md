@@ -1635,3 +1635,12 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `iStructNamed` and put it back with `typedPointsto_combine` (`op_split`/`op_join` in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
+
+## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
+
+Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`
+instance for `ownMap mref dq m`, so a predicate mixing map points-tos with other `DFractional`
+parts (bbolt's writer heap, `wtxHeap`) cannot get `Fractional` by instance search. Local: the
+private `ownMap_dfractional'` in `Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (U5c's proof: through
+`ownMap_unseal` and `heapPointsto_dfractional`, persistence by `ownMap_discarded_persist` /
+`ownMap_persist`), which is general. The general change: that instance next to `ownMap_fractional`.
