@@ -25,7 +25,7 @@ variable [GooseExts]
 keeps its bytes, the partial one its first `size - 4096·s` bytes, the rest zeros. -/
 def growWb (wb : Nat → List w8) (size : Nat) : Nat → List w8 :=
   fun s => if 4096 * (s + 1) ≤ size then wb s
-    else (wb s).take (size - 4096 * s) ++ List.replicate (4096 - (size - 4096 * s)) (W8 0)
+    else (wb s).take (size - 4096 * s) ++ List.replicate (4096 - (size - 4096 * s)) (0 : w8)
 
 /-- The writer side after the file changed to `m'` (the same mappings), with the slots' bytes
 `wb'`; its `W` slots `wSlots` of the new bound. -/
