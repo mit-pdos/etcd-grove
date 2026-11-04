@@ -28,7 +28,7 @@ section code
 variable [GooseExts] [GoGlobalContext]
 
 /-- **`node.spill` after its children's loop** (see the module doc). -/
-def spillTail (np txp resp : Loc) : Expr :=
+abbrev spillTail (np txp resp : Loc) : Expr :=
     (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil nodes.ty))) (Val UntypedNil))
       (App (App (Val exceptionSeq) (Lam BAnon
       (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uintptr))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Val #txp)))))))
@@ -171,7 +171,7 @@ def spillTail (np txp resp : Loc) : Expr :=
 
 /-- **One piece's iteration of the pieces' loop** (`for _, node := range nodes`'s body, a closure
 of `$key` and `$value`), the cell of `node` being `nodep`. -/
-def pieceFn (txp resp nodep : Loc) : val :=
+abbrev pieceFn (txp resp nodep : Loc) : val :=
     LamV "$key"
       (Lam "$value"
       (App (App (Val exceptionSeq) (Lam BAnon
@@ -280,7 +280,7 @@ def pieceFn (txp resp nodep : Loc) : val :=
 
 /-- **The inline free of a piece's page** (`if node.pgid > 0 { Free(…); node.pgid = 0 }`, the
 fork's inlined `node.free()`). -/
-def pieceFree (txp nodep : Loc) : Expr :=
+abbrev pieceFree (txp nodep : Loc) : Expr :=
     (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"pgid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Val #nodep)))) (Val #(W64 0)))))
       (App (App (Val exceptionSeq) (Lam BAnon
       (Let "$r0" (Val #(W64 0))
