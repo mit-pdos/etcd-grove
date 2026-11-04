@@ -1398,6 +1398,69 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
   U8). Removable once someone proves them: `Commit/AssembleGaps`' gaps 1, 4, 5 (now facts:
   `wrFacts`, `metaCopyOK`), `Spill/BktLoopPureStart.spill_startFacts` (from `spillStartOK`).
 
+## Shared-statement fixes, 44.1's `Tx.allocate`, 37.9, coordinator's additions (maintainer 10, 2026-11-04)
+
+- **44.1, `Tx.allocate` over the flagged writer side (`04de465202`, `4f750f5d78`).** `Inv/WdbFlag`:
+  **`wdbLost' fr`** (`wdbLost` with `wdbOK' fr` and `∃ F, fbTok … (some v, some (txid+1), false,
+  false) F`), `wdbLost_wdbLost'`, `wdbLost'_wdbLost`; the device **`WDb.noFl`** (`flpg := none`:
+  `wdbOK'_noFl`, `wdbOK'_of_noFl`; a pure `wdbOK` lemma that does not read the freelist page's clause
+  applies to `wdbOK' fr` through it); `wdbOK'_flClause`, `flClause_congr` (C, fl, wb kept),
+  `flClause_alloc`; `fbTok_ws` (reads only the txid and publish flag), `fbTok_alloc`.
+  **New spec `Tx.allocate_f.spec`** (`Spec/…/Tx__allocate_f.lean`: `∀ fr` first, `wdbW' fr`,
+  `wdbLost' fr`), proved (`Proof/…/Tx__allocate_f.lean`, `Mmap/TxAlloc`); **`Tx.allocate.spec`
+  unchanged**, derived at `fr = false` (`Tx.allocate.spec_of_f`): its callers (spill) are untouched.
+  Flagged through the chain (`∀ fr` first): `DB.allocate.spec`, `DB.mmap.spec`,
+  `DB.mmapUnlocked.spec`; lemmas `wdbOK'_alloc` (AllocBase), `wdbOK'_lost`, `wdbLost'_intro`
+  (RemapLost, take the token), `wdbOK'_remap`, `wdbRemap_remap'`, `remap_W_file'`,
+  `wdbW'_remap_intro`, `remap_post'` (RemapEnd), `wdbOK'_mem_W`, `wCells_gather'` (RemapBase),
+  `wdbOK'_size_lt/_page` (RemapGaps), `remap_gather {fr}`, `wdbW'_file_acc`, `fbTok_wLive` (Alloc).
+  **For U10i (`Tx__commitFreelist`)**: take `hAlloc : Tx.allocate_f.spec`; the spec gets `∀ fr`
+  and `wdbW' fr` in pre and success post, `wdbLost' fr` in the second frame entailment
+  (`F ∗ wtxLost … ∗ wdbLost' fr K tx X'.v w' ⊢ |==> wtxEnd …`); call `hAlloc fr …`. Open:
+  `wtxEnd` holds `⌜wdbOK w⌝` and no token, so with `fr = true` neither frame entailment can be
+  proved (no `wdbOK` after the free); `wtxEnd` (and `Tx.rollback.spec`'s `rbOK`) needs the flag
+  and the token too (`store_rollback` takes it). Not done (a shared-statement change for the
+  coordinator to decide).
+  **`DB.grow`'s proof** (U4's `sorry`, `DB__grow.lean`): not started (a unit's work: Truncate,
+  Sync, `wBytes` past the old end).
+- **Coordinator's addition (1)** (`4f750f5d78`): `X'.t.bs = X.t.bs` after a remap is false
+  (`dereference` copies the nodes, `WX.rebase` marks view sources stale). What holds, new module
+  `Mmap/RemapRec`: `derefRel_rebase_tt` (`(Xd.rebase b).t.t = X.t.t`), `derefRel_rebase_bs` (every
+  bucket record's `BRec.fixed` = `(bv, ib, nm, bm)` kept, and which buckets have one),
+  `derefRel_rebase_root` (the root's record's `isSome` and `bm`). Not wired into
+  `Tx.allocate_f.spec`'s error post: it already gives `∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b`.
+- **Coordinator's addition (2)** (`9660c66cea`): `Bucket.rebalance.spec`'s post ends `… ∧ X'.t.mv =
+  X.t.mv ∧ (X'.t.bs !! X.rl).map BRec.bm = (X.t.bs !! X.rl).map BRec.bm` (from `rblRel`).
+  **Broken, active**: `Tx__Commit_err.lean:316` (`%Hrb`: the old last conjunct `X'.t.mv = X.t.mv`
+  is now `.1` of the last pair).
+- **37.9's threading (`2024dee090`)**: `errPtrTyped` moved to new `Mmap/ErrPtr`
+  (`errPtrTyped_of_ptr` from `IsPointerError`, `errPtrTyped_ptrOk`, `errPtrTyped_errno`); the error
+  posts of `DB.fileSize`, `DB.mmapSize`, `DB.munmap`, `mmapF` are `⌜err ≠ nil ∧ errPtrTyped err⌝ ∗
+  fmtErrorOk err`; RemapBody's four stand-in uses gone. `fmtErrorOk_errPtrTyped` (RemapGaps, a
+  `sorry`) stays for `Open/PageSize.lean:419` (`os.File.Stat`'s error; needs Stat's error post to
+  say `IsPointerError`, as OpenFile's). **Broken, active**: `Open/MmapOwn.lean:111,145,194` (U11g:
+  `absurd rfl hne` → `hne.1`, `he` → `he.1`; the pair's `.2` is the `errPtrTyped`).
+- **U10h's link (item 3): blocked.** `/tmp/m10/FreepagesLink.lean` (outside the repository: it
+  does not build) composes `Tx.recursivelyCheckPageKeyOrder_ok.wp_linked`,
+  `Tx.recursivelyCheckBucket_root.wp_linked`, `DB.freepages.wp_linked` from the proved pieces. It
+  waits for `Commit/CheckSplit.lean:47-52` (U10i), broken since batch 41: **finding**: `rdTxK`'s
+  (`Inv/Ctx:134`) and `rdTx`'s (`Inv/Tx:156`) spare branch is `ghostVar K.B.spr (1 : Qp).half (some
+  k)` at every fraction `q`, so a spare reader cannot be split (`rdTxK_halves`) and
+  `boltTxDef_fractional` (`sorry`) is false for it. Proposed fix: `ghostVar K.B.spr q.half (some
+  k)` in both (identical at `q = 1`; `ghostVar` halves split), then CheckSplit's `Hp2` splits it.
+- **Not started**: 37.3 (`vwAuth`), item 5 (`Write/MatOK` ×2, `Rebalance/RblXSMat` ×1: the root
+  bucket's page keys ≤ `MaxKeySize`).
+
+### Maintainer 10's hand-off (2026-11-04): what is left, in order
+
+1. Decide/apply the `rdTx`/`rdTxK` spare-branch fix (above), then build `Commit/CheckSplit` (U10i)
+   and move `/tmp/m10/FreepagesLink.lean` in as `Commit/FreepagesLink.lean`.
+2. The flagged `wtxEnd` (with `wdbOK' fr` and the `fbTok`), for `commitFreelist`'s and `Commit`'s
+   rollbacks after the free; `rbOK`/`Tx.rollback.spec` accordingly.
+3. 37.3 (`vwAuth`), item 5's three `sorry`s, `DB.grow`'s proof.
+- Open `sorry`s: none added by maintainer 10; `fmtErrorOk_errPtrTyped` has one user left
+  (`Open/PageSize`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
