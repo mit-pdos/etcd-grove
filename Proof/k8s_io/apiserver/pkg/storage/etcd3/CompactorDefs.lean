@@ -117,21 +117,24 @@ def compactorLockInv (c : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γ
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"compactRevision" c ↦ r ∗
     monoNatAuthOwn γc.lb 1 (sint.Z r).toNat ∗ recRevOk γk recorded r)
 
-/-- The compactor's namespace (its loop's wait group). -/
-def compactorN : Namespace := nroot .@ "k8sCompactor"
-
 /-- **The compactor's stop machinery**: the `stop` channel, a broadcast channel only closed; the
 right to close it and to wait for the loop goroutine (the wait group's adder, its one goroutine
 added), held by `stopOnce` until `Stop` runs (`sync.Once`'s `P`; its `Q` is `True`: `Stop` returns
-nothing, the loop's thread token stays with the wait group). -/
+nothing). The wait group is `sync.join`'s (its counter bounded by its `Add`s, one in the compactor's
+life), not `sync.tokJoin`'s: that one's invariant needs `threadBound GF ≤ 2 ^ 31`, which
+`NewCompactor.spec` does not take (K4, 2026-11-04). -/
 def compactorStopOk [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) : IProp GF :=
   iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stop" c ↦□ sc ∗
     ownBroadcastChan sc γs iprop(True) .Unknown ∗
     sync.isOnce (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" c)
       iprop(ownBroadcastChan sc γs iprop(True) .Pending ∗
-        sync.tokJoin.ownAdder compactorN iprop(False)
-          (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c) 1 iprop(True))
+        sync.join.ownAdder (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" c)
+          (W32 1) iprop(True))
       iprop(True))
+
+instance compactorStopOk_persistent [sync.Assumptions] (c : Loc) (sc : GoChan) (γs : ChanNames) :
+    Persistent (compactorStopOk (GF := GF) c sc γs) := by
+  unfold compactorStopOk; infer_instance
 
 /-- **A compactor** (persistent; see the file header): its client `cl`, its interval (nonzero), a
 `RealClock`, no `onClose`, the mutex over its revision, and its stop machinery (the `stop`

@@ -51,7 +51,7 @@ theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := b
     wp_apply wp_broadcast_chan_close $$ [$HP] as -
     · itrivial
     (try wp_auto)
-    wp_apply sync.tokJoin.WaitGroup.wp_Wait $$ [$Hadd] as -
+    wp_apply sync.join.WaitGroup.wp_Wait $$ [$Hadd] as -
     (try wp_auto)
     iapply HΦ'; itrivial
   (try wp_auto)
