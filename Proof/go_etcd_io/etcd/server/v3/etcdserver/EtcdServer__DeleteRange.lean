@@ -222,14 +222,15 @@ theorem EtcdServer.DeleteRange.wp_proof
         · iright; iexact Hdep
       · exact absurd rfl Hne
   · -- auth on
-    have hRR := EtcdServer.raftRequest.spec_M hRR true
+    have hRR := hRR s E ρ
+    rw [hon] at hRR
     ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp
     have HnzW : irrNoZeroEnd (irrDeleteRange op) := by
       refine ⟨?_, ?_, ?_⟩
       · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
       · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
       · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-    wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
+    wp_apply hRR ctx1 _ «$a1_ptr» (irrDeleteRange op)
         (deleteQhOn ρ.kv op γc Q) F rfl (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred

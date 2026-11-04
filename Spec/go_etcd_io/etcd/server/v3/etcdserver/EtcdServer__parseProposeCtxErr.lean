@@ -32,8 +32,7 @@ error at itself is `true`, `errors.IsCtxErr`; 2026-10-12, unit 3a). It read-lock
 `s.leadTimeMu`: the caller's reader slot.
 
 **In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
-the mode `E.authOn`; the instances at a mode, `specM`, and the mode-off form, `specOff`, are
-corollaries in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26): the server as a proposer sees
+the mode `E.authOn`). The mode views (the auth plan's E3b, 2026-10-26): the server as a proposer sees
 it in the auth mode `on` (`isServerReqM`; the function reads none of the mode's rows). At
 `on = false` it is `spec` (by definition). -/
 abbrev EtcdServer.parseProposeCtxErr.spec : Prop :=

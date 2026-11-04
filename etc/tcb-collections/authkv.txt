@@ -2,7 +2,8 @@
 # Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Results.lean: `authkv_Main`,
 # `authkv_Permitted` and the pure `authkv_granted_iff`, `authkv_badToken`; the checks,
 # `authkv_reqCtx` and `authkv_bad_unbound` (E2f); `authkv_startServer` (E3zb: the server's trust
-# boundary, through `server_new_auth_on` and `server_Start_on`), `authkv_setup_auth_served`. The
+# boundary, through `server_new_auth_on` and
+# `server_Start` at `.on γa`), `authkv_setup_auth_served`. The
 # one `sorry`, `authSrvTP_on` (R-D1, 2026-11-04): the abandoned auth store's clause with auth on
 # (`authAbandonM`), until R-D2.
 #

@@ -36,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem StartPeriodicServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG))
-    (wp_Start : EtcdServer.Start.specOff (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartPeriodicServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client period lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
     hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hper Hcret Hck Haf Hbuq Hdbo

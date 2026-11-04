@@ -32,7 +32,6 @@ public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGa
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.Listen
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LinkedOff
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -144,19 +143,19 @@ theorem wp_Serve :
 
 theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start_off
+  EtcdGrove.etcdstart.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.etcdstart.StartMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start_off
+  EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
 
 theorem wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.etcdstart.StartPeriodicServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.StartPeriodicServer.wp_proof wp_newServerMode EtcdServer.wp_Start_off
+  EtcdGrove.etcdstart.StartPeriodicServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
 theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.etcdstart.StartServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.StartServer.wp_proof wp_newServer EtcdServer.wp_Start_off
+  EtcdGrove.etcdstart.StartServer.wp_proof wp_newServer EtcdServer.wp_Start
 
 theorem wp_Writer :
     EtcdGrove.etcdstart.Writer.spec (GF := GF) (hG := hG) :=

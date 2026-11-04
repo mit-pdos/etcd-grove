@@ -222,8 +222,9 @@ theorem EtcdServer.Put.wp_proof
         · iright; iexact Hdep
       · exact absurd rfl Hne
   · -- auth on
-    have hRR := EtcdServer.raftRequest.spec_M hRR true
-    wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
+    have hRR := hRR s E ρ
+    rw [hon] at hRR
+    wp_apply hRR ctx2 _ «$a1_ptr» (irrPut op)
         (putQhOn ρ.kv op γc Q) F rfl (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred

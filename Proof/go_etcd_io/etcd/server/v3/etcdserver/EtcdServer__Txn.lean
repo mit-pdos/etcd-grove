@@ -398,7 +398,7 @@ set_option hygiene false in
 local macro "txn_tailOnR" : tactic => `(tactic| (
   wp_apply time.wp_Now as %start -
   (try wp_auto)
-  wp_apply (hDS s E ρ γr ctx2 _ _ _
+  wp_apply (hDS ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
@@ -1061,10 +1061,12 @@ theorem EtcdServer.Txn.wp_proofOnR
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG))
-    (hDS : EtcdServer.doSerialize.specM (GF := GF) (hG := hG) true)
+    (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG))
             (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.specOnR (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r t Qr ot te F n γa hM
+  have hDS := hDS s E ρ γr
+  rw [show E.authOn = true by rw [apply.AEnv.authOn_eq, hM]; rfl] at hDS
   wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hro2, #HF, Hnp⟩
   have Hgets : txn.txnReadonly t = true → txn.txnGetsOk t := fun _ => Hro2.2
   wp_auto
@@ -1336,7 +1338,7 @@ theorem EtcdServer.Txn.wp_proofOnR
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 8000000 in
 /-- **A writing transaction in the auth mode `on`** (the auth plan's E3d): `wp_proof`'s writing
-branch over `raftRequest.specM true` and `txnPermitOn`. -/
+branch over `raftRequest.spec` with auth on and `txnPermitOn`. -/
 theorem EtcdServer.Txn.wp_proofOn
     (hRO : txn.IsTxnReadonly.spec (GF := GF) (hG := hG))
     (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG))
@@ -1355,10 +1357,13 @@ theorem EtcdServer.Txn.wp_proofOn
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hET : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
-    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r t Q ot te F lg
   wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %HroD, #HF, Hnp⟩
+  ihave %hon := isServerReqM_authOn true s E ρ $$ Hsrv
+  have hRR := hRR s E ρ
+  rw [hon] at hRR
   obtain ⟨Hro, Hdpt⟩ := HroD
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -1526,7 +1531,7 @@ theorem EtcdServer.Txn.wp_proofOn
     (try wp_auto)
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
+    wp_apply hRR ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
         F rfl (apply.irrDepthOk_irrTxn Hdpt)
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred

@@ -35,7 +35,7 @@ abbrev EtcdServer.AppliedIndex.specM (on : Bool) : Prop :=
 /-- **`s.AppliedIndex()`** (the auth component's stage 2, 2026-11-04: one statement in both auth
 modes): `s.getAppliedIndex()`, an index the applied index has reached, from the applied index's
 invariant in the mode `on` (a model row, `srvAppliedInvM`). Until stage 2, `spec` was this at
-`on = false` (now `specOff`, `ModeSpecs.lean`). -/
+`on = false` (stage 2's corollary `specOff` was deleted in stage 3: no caller used it). -/
 abbrev EtcdServer.AppliedIndex.spec : Prop :=
   ∀ on : Bool, EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on
 
