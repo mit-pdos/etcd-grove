@@ -167,7 +167,8 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
     (hpend : fl.pending = ∅)
     (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C)
     (hcur : ∀ g, C.flpg = some g →
-      flCurOK fl C (extentBytes (fun s => bytesAt xs (4096 * s) 4096) g)) :
+      flCurOK fl C (extentBytes (fun s => bytesAt xs (4096 * s) 4096) g))
+    (hfd : 0 ≤ fd.toInt) :
     wdbOK { openW C b L m (fun s => bytesAt xs (4096 * s) 4096) f fd with fl := fl, fli := fli } := by
   have hps : pendSlots fl = [] := by
     unfold pendSlots FLPg.pendingIds; rw [hpend]; simp
@@ -180,7 +181,7 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
   unfold wdbOK
   simp only [openW, mapLen]
   refine ⟨?_, ?_, by omega, ?_, fun x hx => (hfree x hx).2, hcur, by omega, by omega, ?_, ?_, ?_,
-    fun x hx => (hfree x hx).1, by omega, ?_, ?_⟩
+    fun x hx => (hfree x hx).1, by omega, ?_, ?_, ?_, ?_⟩
   · intro b' l h; cases h; exact hmaps
   · intro h; cases h
   · intro s
@@ -197,6 +198,11 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
     unfold bytesAt
     simp only [List.length_take, List.length_drop]
     omega
+  · intro s _ _
+    unfold bytesAt
+    simp only [List.length_take, List.length_drop]
+    omega
+  · exact hfd
 
 end facts
 

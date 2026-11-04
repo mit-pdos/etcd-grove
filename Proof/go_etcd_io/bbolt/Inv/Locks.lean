@@ -252,7 +252,13 @@ def wdbOK (w : WDb) : Prop :=
   -- `AllocSize` truncates to whole pages)
   (∀ b l, w.ms = some (b, l) → w.m.size ≤ l ∨ w.m.size % 4096 = 0) ∧
   -- batch 37 (U5d): a `W` slot inside the file holds a page's bytes (its page-cache bytes `wb`)
-  (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)
+  (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096) ∧
+  -- maintainer 13 (U4e's gap 2): the file's partial last page's bytes cover the file's part of
+  -- it (`DB.grow` makes it a whole page: `wBytes`' `take` then leaves no byte to nobody)
+  (∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) → w.m.size - 4096 * s ≤ (w.wb s).length) ∧
+  -- maintainer 13 (U4e's gap 3): the file's descriptor is not negative (`OpenFile` gives it;
+  -- `File.Truncate`'s premise)
+  0 ≤ w.fd.toInt
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,

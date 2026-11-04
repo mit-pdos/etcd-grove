@@ -56,7 +56,8 @@ theorem flCurOK_flCurOKr (fl : FLPg) (C : CommitSt) (wtx : w64) (pg : List w8)
 writer's txid. -/
 def flClause : Bool → WDb → Prop
   | false, w => ∀ f, w.C.flpg = some f → flCurOK w.fl w.C (extentBytes w.wb f)
-  | true, w => ∀ f, w.C.flpg = some f → flCurOKr w.fl w.C w.wtxid (extentBytes w.wb f)
+  | true, w => ∀ f, w.C.flpg = some f →
+      16 ≤ (w.wb f).length ∧ flCurOKr w.fl w.C w.wtxid (extentBytes w.wb f)
 
 /-- **The writer side's facts, flagged** (`wdbOK` but its synced-freelist-page clause,
 `flClause fr`). -/
@@ -76,7 +77,9 @@ def wdbOK' (fr : Bool) (w : WDb) : Prop :=
   (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
   w.m.size < 2 ^ 63 ∧
   (∀ b l, w.ms = some (b, l) → w.m.size ≤ l ∨ w.m.size % 4096 = 0) ∧
-  (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)
+  (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096) ∧
+  (∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) → w.m.size - 4096 * s ≤ (w.wb s).length) ∧
+  0 ≤ w.fd.toInt
 
 /-- `wdbOK' false` is `wdbOK` (by definition). -/
 theorem wdbOK'_false (w : WDb) : wdbOK' false w ↔ wdbOK w := Iff.rfl
@@ -85,9 +88,10 @@ theorem wdbOK'_false (w : WDb) : wdbOK' false w ↔ wdbOK w := Iff.rfl
 theorem wdbOK_wdbOK' (fr : Bool) (w : WDb) (h : wdbOK w) : wdbOK' fr w := by
   cases fr
   · exact h
-  · obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := h
+  · have h16 := wb_header w h
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := h
     exact ⟨a1, a2, a3, a4, a5,
-      fun f hf => flCurOK_flCurOKr _ _ _ _ (a6 f hf), a7⟩
+      fun f hf => ⟨h16 f hf, flCurOK_flCurOKr _ _ _ _ (a6 f hf)⟩, a7⟩
 
 /-- **The writer side with no synced freelist page** (a device: every clause of `wdbOK'` but
 `flClause` holds of `w.noFl` as of `w`, and `flClause false` holds of it vacuously, so a lemma
@@ -136,8 +140,9 @@ theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (h : flCla
       fun s a b => ⟨(c9 s a b).1, fun hm => (c9 s a b).2 (hsub _ hm)⟩,
       fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
   · intro f hf
+    refine ⟨(h f hf).1, ?_⟩
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := h f hf f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := (h f hf).2 f' hf'
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ⟨(c9 s a b).1, ?_⟩,
       fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
     rcases (c9 s a b).2 with hn | ⟨hnf, hp⟩

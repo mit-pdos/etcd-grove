@@ -101,7 +101,7 @@ abbrev DB.loadFreelist.spec_open : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : GoString)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List (w8 × Bool)),
-  lfOK N db C b L m xs →
+  lfOK N db C b L m xs → 0 ≤ fd.toInt →
   {{ lfPre (GF := GF) db sp f fd p b L m xs ∗
       db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
@@ -253,7 +253,7 @@ theorem DB.loadFreelist.wp_proof_open
     (hFC : internal.freelist.Interface.FreeCount.spec (GF := GF) (hG := hG))
     (hFP : DB.freepages.spec (GF := GF) (hG := hG)) :
     DB.loadFreelist.spec_open (GF := GF) (hG := hG) := by
-  intro _ _ N db sp f fd p C b L m xs hok
+  intro _ _ N db sp f fd p C b L m xs hok hfd
   wp_start as ⟨Hpre, Honce⟩
   iunfold lfPre at Hpre
   icases Hpre with ⟨#Hpkg, Hpre⟩
@@ -384,7 +384,7 @@ theorem DB.loadFreelist.wp_proof_open
       have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) := by
         unfold lfW openWb
         refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-          (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_
+          (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
         · intro x hx; exact freeIdsOf_facts C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
         · intro g' hg'; rw [hfp] at hg'; cases hg'
       ihave Hw : wdbCore B db p (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) $$ [Hw]
@@ -505,7 +505,7 @@ theorem DB.loadFreelist.wp_proof_open
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by
       unfold lfW openWb
       refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-        (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_
+        (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
       · intro x hx; rw [hpg] at hx; exact flIds_facts _ C g hfp hflf x hx
       · intro g' hg'; rw [hfp] at hg'; cases hg'
         rw [extentBytes_filePage, ← hpg]

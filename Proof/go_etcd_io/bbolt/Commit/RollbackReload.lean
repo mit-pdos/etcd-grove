@@ -185,7 +185,7 @@ theorem ext_in_W (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
   intro s hs
   rw [List.mem_range'_1] at hs
   have hov := extent_overflow w f hok hf
-  have c15 := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  have c15 := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   obtain ⟨-, -, c3, c4, -, c6, -, c8, c9, -, -, -⟩ := hok
   obtain ⟨a1, a2, -, -, -, -, -, -, a9, -⟩ := c6 f hf f hf
   rw [hov] at a2 a9

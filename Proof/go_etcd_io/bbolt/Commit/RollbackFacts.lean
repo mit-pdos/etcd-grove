@@ -88,7 +88,7 @@ theorem wdbOK_rolledBack' (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Li
     (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s ∈ S, (bs s).length = 4096) :
     wdbOK { w with fl := fl', W := w.W ++ S, wb := mergeWb S bs w.wb } := by
   have hwb := wb_header w hok
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15⟩ := hok
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17⟩ := hok
   have hfree : fl'.free = w.fl.free := by rw [hfl']; exact rollback_free _ _
   have hpend' : ∀ s, s ∈ pendSlots fl' → s ∈ pendSlots w.fl := by
     intro s hs; rw [hfl'] at hs; exact pendSlots_rollback_sub _ _ s hs
@@ -100,7 +100,7 @@ theorem wdbOK_rolledBack' (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Li
     rw [mem_slotsOf] at h1 h2
     have ht : s ∉ treeSlots w.C := fun h => h2 (.inl h)
     exact ⟨ht, h1.resolve_left ht, fun h => h2 (.inr h)⟩
-  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_⟩
+  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_, ?_, c17⟩
   · -- the `W` slots
     intro s
     simp only [List.mem_append]
@@ -165,6 +165,12 @@ theorem wdbOK_rolledBack' (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Li
     · simp only [hS', ↓reduceIte]; exact hbs s hS'
     · simp only [hS', ↓reduceIte]
       exact c15 s (hs.resolve_right hS') hle
+  · -- maintainer 13: the partial last page's bytes (a joined slot's are a page)
+    intro s h1 h2
+    simp only [mergeWb] at h1 h2 ⊢
+    by_cases hS' : s ∈ S
+    · simp only [hS', ↓reduceIte]; rw [hbs s hS']; omega
+    · simp only [hS', ↓reduceIte]; exact c16 s h1 h2
 
 omit sem in
 /-- **`wdb_rollback` without a mapping** (`Txn/WRoll`'s, more general). -/

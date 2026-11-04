@@ -67,8 +67,9 @@ theorem flClause_wb (fr : Bool) (w : WDb) (wb' : Nat → List w8) (h : flClause 
     exact h f hf
   · simp only [flClause, WDb.wtxid] at h ⊢
     intro f hf
-    have hlt := (h f hf f hf).2.1
-    rw [extentBytes_congr_lt w.wb wb' f _ hlt (h16 f hf) hag]
+    have hlt := ((h f hf).2 f hf).2.1
+    have hf' : wb' f = w.wb f := hag f (by omega)
+    rw [extentBytes_congr_lt w.wb wb' f _ hlt (h16 f hf) hag, hf']
     exact h f hf
 
 /-- **The writer side's facts after the file grew** to `m'` (the same mappings, at least the
@@ -80,15 +81,17 @@ theorem wdbOK'_grown (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Na
     (hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → wb' s = w.wb s)
     (hlen : ∀ s, 4096 * (s + 1) ≤ m'.size → w.m.size < 4096 * (s + 1) → (wb' s).length = 4096)
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63)
-    (h14 : m'.size ≤ L ∨ m'.size % 4096 = 0) :
+    (h14 : m'.size ≤ L ∨ m'.size % 4096 = 0)
+    (hpart' : ∀ s, 4096 * s < m'.size → m'.size < 4096 * (s + 1) →
+      m'.size - 4096 * s ≤ (wb' s).length) :
     wdbOK' fr (w.grown m' wb') := by
   have hk3 := hok.2.2.1
   have hag' : ∀ s, s < w.C.hwm → wb' s = w.wb s := fun s hs => hag s (by omega)
   have hc := flClause_congr fr { w with wb := wb' } (w.grown m' wb') rfl rfl rfl
     (flClause_wb fr w wb' (wdbOK'_flClause fr w hok) h16 hag')
   have hmW := wdbOK'_mem_W fr w hok
-  obtain ⟨hk1, _, _, _, hk5, -, hk7, hk8, hk9, _, hk11, hk12, _, _, hk15⟩ := hok
-  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, h13, ?_, ?_⟩
+  obtain ⟨hk1, _, _, _, hk5, -, hk7, hk8, hk9, _, hk11, hk12, _, _, hk15, _, hk17⟩ := hok
+  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, h13, ?_, ?_, hpart', hk17⟩
   · intro b' l' h
     simp only [WDb.grown, hmaps] at h ⊢
     exact hk1 b' l' h
@@ -121,8 +124,9 @@ theorem wdbOK'_setM (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
     (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     wdbOK' fr { w with m := m' } := by
   have hc := flClause_congr fr w { w with m := m' } rfl rfl rfl (wdbOK'_flClause fr w hok)
-  obtain ⟨hk1, hk2, hk3, hk4, hk5, -, hk7, hk8, hk9, hk10, hk11, hk12, hk13, hk14, hk15⟩ := hok
-  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, ?_, ?_, ?_⟩ <;>
+  obtain ⟨hk1, hk2, hk3, hk4, hk5, -, hk7, hk8, hk9, hk10, hk11, hk12, hk13, hk14, hk15, hk16,
+    hk17⟩ := hok
+  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, ?_, ?_, ?_, ?_, hk17⟩ <;>
     simp only [hsz, hmaps] <;> assumption
 
 omit [GooseExts] in
@@ -136,39 +140,41 @@ theorem growWb_length (wb : Nat → List w8) (size s : Nat) (hs : size < 4096 * 
   · have := hp h; omega
   · omega
 
-/-! ## Gaps in `wdbOK'` (shared statements; `sorry`s until the maintainer decides) -/
+/-! ## Facts of `wdbOK'` for `DB.grow` (U4e's three gaps, closed by maintainer 13) -/
 
-/-- **Gap 1: the synced freelist page's bytes hold a header** under the flag too. At `fr = false`
-it is `Txn/WJoin.wb_header`; at `fr = true` the page may be pending for the writer (`flCurOKr`'s
-relaxed slot clause, `Commit` after the old freelist page's free), so it is no `W` slot and
-`wdbOK'`'s page-length clause says nothing of its bytes: `extentBytes` of a short `wb f` reads its
-header across slots, and the extent is not known to end below the high-water mark. Proposed fix:
-`flClause true` (or `wdbOK'`) carries `16 ≤ (w.wb f).length` (true when the flag is set:
-`wdbOK_wdbOK'` from `wb_header`, and the free does not change `wb`). -/
+/-- **The synced freelist page's bytes hold a header** (at `fr = false` `Txn/WJoin.wb_header`; at
+`fr = true` `flClause true` carries it). -/
 theorem wdbOK'_flHdr (fr : Bool) (w : WDb) (hok : wdbOK' fr w) :
     ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length := by
   cases fr
   · exact wb_header w hok
-  · sorry
+  · exact fun f hf => (wdbOK'_flClause true w hok f hf).1
 
-/-- **Gap 2: the file's partial last page belongs to the writer, whole** (`DB.grow` makes it a
-whole `W` page, zeros past the old end). `wdbOK'` misses two facts: its slot's bytes `wb s` may be
-shorter than the file's part of it (the page-length clause covers only whole pages: then
-`wBytes`' `take` leaves `[4096·s + |wb s|, size)` to nobody), and the slot is not a `W` slot when
-it is also the mapping's partial last slot (`L = maxMapSize`, `size` past `0xFFFFFFFFF000`: `W` is
-the slots below `max L size / 4096`). Proposed fix: `wdbOK`'s page-length clause over every `W`
-slot the file reaches, `4096 * s < w.m.size → (w.wb s).length = 4096`, and `W`'s bound
-`max (mapLen w.ms) w.m.size` rounded up to a page (or `Open` refusing such a file). -/
-theorem wdbOK'_partSlot (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (h8 : 8192 ≤ w.m.size) :
+/-- **The file's partial last page belongs to the writer, its bytes covering the file's part**
+(`DB.grow` makes it a whole `W` page). The mapping ends on a page (`hal`: `mapFields` gives
+`L % 4096 = 0 ∨ L = maxMapSize`, and no mapping reaches `maxMapSize`, `maxAddr = 2 ^ 47`:
+`Mmap/GrowWdb.wdbW'_mapAligned`), so a file not ending on a page lies inside the mapping. -/
+theorem wdbOK'_partSlot (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Nat)
+    (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size) :
     ∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) →
       s ∈ w.W ∧ w.m.size - 4096 * s ≤ (w.wb s).length := by
-  sorry
+  intro s h1 h2
+  obtain ⟨-, -, hk3, hk4, -, -, -, -, -, -, hk11, -, -, hk14, -, hk16, -⟩ := hok
+  refine ⟨(hk4 s).2 ⟨by omega, ?_, fun ht => ?_, fun hp => ?_⟩, hk16 s h1 h2⟩
+  · have hL : w.m.size ≤ L := by
+      rcases hk14 b L hms with h | h
+      · exact h
+      · omega
+    have : mapLen w.ms = L := by simp [hms, mapLen]
+    have := Nat.le_max_left (mapLen w.ms) w.m.size
+    omega
+  · have := hk11 s (.inl ht); omega
+  · have := hk11 s (.inr hp); omega
 
-/-- **Gap 3: the file's descriptor is not negative** (`File.Truncate`'s premise: the model panics
-on a closed file's `-1`). `OpenFile` gives it to `Open`, but no shared statement keeps it
-(`WDb.fd`). Proposed fix: `wdbOK` ends `… ∧ 0 ≤ w.fd.toInt`. -/
+/-- **The file's descriptor is not negative** (`File.Truncate`'s premise). -/
 theorem wdbOK'_fd (fr : Bool) (w : WDb) (hok : wdbOK' fr w) : 0 ≤ w.fd.toInt := by
-  sorry
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h⟩ := hok
+  exact h
 
 end pure
 

@@ -27,8 +27,9 @@ theorem wdbOK'_remap [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : 
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = GMap.singleton b L')
     (hfile : w.m.size ≤ L') : wdbOK' fr (w.remap b L' m') := by
   have hc := flClause_congr fr w (w.remap b L' m') rfl rfl rfl (wdbOK'_flClause fr w hok)
-  obtain ⟨_, _, hk3, hk4, hk5, -, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15⟩ := hok
-  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_⟩
+  obtain ⟨_, _, hk3, hk4, hk5, -, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15, hk16, hk17⟩ := hok
+  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_,
+    fun s h1 h2 => by simp only [WDb.remap, hsz] at h1 h2 ⊢; exact hk16 s h1 h2, hk17⟩
   · intro b' l' h
     simp only [WDb.remap, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h

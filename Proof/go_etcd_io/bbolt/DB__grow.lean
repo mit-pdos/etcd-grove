@@ -155,11 +155,12 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have : sint.Z (W64 0x1000000) = 0x1000000 := by word
         omega
       simp only [hA', ↓reduceIte]
-      have hal : mapLen w.ms % 4096 = 0 := by omega
+      have hal : mapLen w.ms % 4096 = 0 := hL.2
       have := hk10 hA
       refine ⟨by word, ?_, ?_, fun _ => ?_, ?_⟩ <;>
         (have e : (W64 (mapLen w.ms : Int)).toNat = mapLen w.ms := by word) <;> omega
-    · have hA' : ¬ ((mapLen w.ms : Nat) : Int) ≤ sint.Z (W64 0x1000000) := by
+    · clear hL
+      have hA' : ¬ ((mapLen w.ms : Nat) : Int) ≤ sint.Z (W64 0x1000000) := by
         have : sint.Z (W64 0x1000000) = 0x1000000 := by word
         omega
       simp only [hA', ↓reduceIte]
@@ -232,7 +233,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         osBytes K.p w.m.size (DFrac.own 1) (List.replicate (S.toNat - w.m.size) ((0 : w8), false)) -∗
         ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
       intro m' h1 h2
-      exact grow_finish fr K tx v w hok v.base (mapLen w.ms) hms hfs8 m' (by omega) h2
+      exact grow_finish fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8 m' (by omega) h2
         (by omega) (fun h => by have := hS10 h; omega) (by omega) S.toNat h1
     icases Hsy with (⟨%he2, Hosm, -⟩ | ⟨%he2, Hosm, -⟩)
     · subst he2
@@ -329,13 +330,13 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       [Htr Hclose Hfile Hfo Hfd Hdsz Hlow Hpart Hwb]
     · icases Htr with (Htr | ⟨Hosm, Htail⟩)
       · icases hGrown $$ Htr with ⟨Hosm, Hz, Htail⟩
-        have hfin := grow_finish (GF := GF) fr K tx v w hok v.base (mapLen w.ms) hms hfs8
+        have hfin := grow_finish (GF := GF) fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8
           (w.m.grown S.toNat) hSge rfl hSal hS10 hS63 S.toNat rfl
         iapply hfin $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
       · ihave Htail : (∃ vf, cellsR (GF := GF) v.base (min w.m.size (mapLen w.ms))
             (mapLen w.ms - min w.m.size (mapLen w.ms)) vf) $$ [Htail]
         · rw [hmaps]; iapply (mcellsAny_single_eq v.base (mapLen w.ms) w.m.size).1; iexact Htail
-        iapply grow_finish_same fr K tx v w hok v.base (mapLen w.ms) hms hfs8 (ftMeta w.m S.toNat)
+        iapply grow_finish_same fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8 (ftMeta w.m S.toNat)
           rfl rfl $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb
     icases Hfin with ⟨%w', Hw', %hg⟩
     iexists w'

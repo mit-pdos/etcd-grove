@@ -134,7 +134,7 @@ slot (`flCurOK`: no tree slot, no free or pending id, below the high-water mark)
 theorem wb_header (w : WDb) (hok : wdbOK w) :
     ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length := by
   intro f hf
-  have hlen := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  have hlen := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   obtain ⟨-, -, c3, c4, -, c6, -⟩ := hok
   obtain ⟨h2, hlt, -, -, -, -, -, -, h9, -⟩ := c6 f hf f hf
   obtain ⟨hcov, hall⟩ := h9 f (Nat.le_refl _) (by omega)

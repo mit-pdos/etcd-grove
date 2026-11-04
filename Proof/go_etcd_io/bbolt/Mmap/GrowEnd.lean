@@ -51,7 +51,8 @@ theorem wdbGrown_grown (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
   omega
 
 /-- A slot of the grown `W` inside the old file is an old `W` slot. -/
-theorem grown_W_sub (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (h8 : 8192 ≤ w.m.size) (k : Nat) :
+theorem grown_W_sub (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Nat)
+    (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size) (k : Nat) :
     ∀ s ∈ wSlots k w.C w.fl, 4096 * s < w.m.size → s ∈ w.W := by
   intro s hs hlt
   by_cases hin : 4096 * (s + 1) ≤ w.m.size
@@ -60,7 +61,7 @@ theorem grown_W_sub (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (h8 : 8192 ≤ w.m
     have := Nat.le_max_right (mapLen w.ms) w.m.size
     have : s < w.m.size / 4096 := by omega
     omega
-  · exact (wdbOK'_partSlot fr w hok h8 s hlt (by omega)).1
+  · exact (wdbOK'_partSlot fr w hok b L hms hal h8 s hlt (by omega)).1
 
 end pure
 
@@ -80,8 +81,8 @@ def growCloser (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :
 /-- **The writer side after the file grew to `m'`** (whole pages, at most the mapping if that is
 at most `AllocSize`): the cells back, the new zeros joined to the `W` slots (`growWb`). -/
 theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
-    (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (h8 : 8192 ≤ w.m.size) (m' : OsMeta)
-    (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
+    (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
+    (m' : OsMeta) (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) (S : Nat) (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
@@ -100,7 +101,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   iintro Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
   have hk3 := hok.2.2.1
   have hk10 := hok.2.2.2.2.2.2.2.2.2.1 b L hms
-  have hpart := wdbOK'_partSlot fr w hok h8
+  have hpart := wdbOK'_partSlot fr w hok b L hms hal h8
   let k := max (mapLen w.ms) m'.size / 4096
   have hk : L / 4096 ≤ k := by
     simp only [k, hms, mapLen]; exact Nat.div_le_div_right (Nat.le_max_left _ _)
@@ -110,7 +111,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   ihave Hwc : wCells (GF := GF) w.ms (wSlots k w.C w.fl) $$ [Hwc]
   · rw [hms]; iexact Hwc
   ihave Hwb := wBytes_restrict K.p w.W (wSlots k w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
-    (grown_W_sub fr w hok h8 k) $$ Hwb
+    (grown_W_sub fr w hok b L hms hal h8 k) $$ Hwb
   ihave Hwb := wBytes_grow K.p (wSlots k w.C w.fl) w.wb w.m.size m'.size (wSlots_nodup _ _ _) hS
     hsz (fun s hs h1 h2 => (hpart s h1 h2).2) $$ [Hwb Hz]
   · iframe
@@ -119,7 +120,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   have hok' := wdbOK'_grown fr w hok b L hms m' (growWb w.wb w.m.size) hsz hmaps
     (wdbOK'_flHdr fr w hok) hag
     (fun s h1 h2 => growWb_length w.wb w.m.size s h2 fun h3 => (hpart s h3 h2).2)
-    h10 h13 (.inr hS)
+    h10 h13 (.inr hS) (fun s h1 h2 => by omega)
   iexists ({ w with m := m', W := wSlots k w.C w.fl, wb := growWb w.wb w.m.size } : WDb)
   isplitl
   · iapply Hclose $$ %m' %(wSlots k w.C w.fl) %(growWb w.wb w.m.size) [] [Hfile Hfo Hfd Hosm Hdsz
@@ -131,8 +132,8 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
 /-- **The writer side after `File.Truncate` failed leaving the size** (the `OsMeta` `m'`, the same
 size and mappings): the cells back. -/
 theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
-    (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (h8 : 8192 ≤ w.m.size) (m' : OsMeta)
-    (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
+    (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
+    (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
     osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
@@ -156,12 +157,13 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
   ihave Hwc : wCells (GF := GF) w.ms (wSlots k w.C w.fl) $$ [Hwc]
   · rw [hms]; iexact Hwc
   ihave Hwb := wBytes_restrict K.p w.W (wSlots k w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
-    (grown_W_sub fr w hok h8 k) $$ Hwb
+    (grown_W_sub fr w hok b L hms hal h8 k) $$ Hwb
   have hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → w.wb s = w.wb s := fun _ _ => rfl
   have hok' := wdbOK'_grown fr w hok b L hms m' w.wb (by omega) hmaps
     (wdbOK'_flHdr fr w hok) hag (fun s h1 h2 => by omega)
     (fun h => by rw [hsz]; exact hk10 h) (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.1)
     (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b L hms)
+    (fun s h1 h2 => by rw [hsz] at h1 h2 ⊢; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s h1 h2)
   iexists ({ w with m := m', W := wSlots k w.C w.fl, wb := w.wb } : WDb)
   isplitl
   · iapply Hclose $$ %m' %(wSlots k w.C w.fl) %w.wb [] [Hfile Hfo Hfd Hosm Hdsz Hwc Hwb]

@@ -32,8 +32,9 @@ theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : 
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     wdbOK' fr (w.lost m' j) := by
   have hc := flClause_congr fr w (w.lost m' j) rfl rfl rfl (wdbOK'_flClause fr w hok)
-  obtain ⟨_, _, hk3, hk4, hk5, hk6, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15⟩ := hok
-  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_⟩
+  obtain ⟨_, _, hk3, hk4, hk5, hk6, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15, hk16, hk17⟩ := hok
+  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_,
+    fun s h1 h2 => by simp only [WDb.lost, hsz] at h1 h2 ⊢; exact hk16 s h1 h2, hk17⟩
   · intro b l h; simp [WDb.lost] at h
   · simp only [WDb.lost]; rw [hsz]; exact hk3
   · intro s

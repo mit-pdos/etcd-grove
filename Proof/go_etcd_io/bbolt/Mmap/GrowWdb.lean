@@ -36,7 +36,7 @@ theorem extent_lt_hwm (fr : Bool) (w : WDb) (hok : wdbOK' fr w) :
   rw [← hov]
   cases fr
   · exact (hc f hf f hf).2.1
-  · exact (hc f hf f hf).2.1
+  · exact ((hc f hf).2 f hf).2.1
 
 /-- `fbRel` after the slots' bytes changed only from the high-water mark on (and the file's
 `OsMeta`, `W`). -/
@@ -73,21 +73,42 @@ omit [GooseSemantics] hos in
 theorem mapFields_some_len (db : Loc) (dq : DFrac) (ms : MapSt) (b : Loc) (l : Nat)
     (h : ms = some (b, l)) :
     mapFields (GF := GF) db dq ms ⊢
-      ⌜l ≤ 0xFFFFFFFFFFFF ∧ (l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF)⌝ ∗ mapFields (GF := GF) db dq ms := by
+      ⌜l ≤ 0xFFFFFFFFFFFF ∧ (l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF) ∧ 0 < b.addr⌝ ∗
+        mapFields (GF := GF) db dq ms := by
   subst h
   simp only [mapFields]
   iintro ⟨H1, H2, H3, H4, %h⟩
   isplitr
-  · ipureintro; exact ⟨h.1, h.2.2⟩
+  · ipureintro; exact ⟨h.1, h.2.2, h.2.1⟩
   iframe
   ipureintro; exact h
+
+omit [GooseSemantics] hos in
+/-- **A mapping the writer holds ends on a page** (maintainer 13, U4e's gap 2): `mapFields`
+allows `maxMapSize` (`0xFFFFFFFFFFFF`, not a multiple of 4096), but then `wCells`' partial last
+slot's cells would lie past `maxAddr = 2 ^ 47`, where no cell is. -/
+theorem wCells_aligned (ms : MapSt) (b : Loc) (L : Nat) (W : List Nat) (hms : ms = some (b, L))
+    (hb : 0 < b.addr) (hL : L % 4096 = 0 ∨ L = 0xFFFFFFFFFFFF) :
+    wCells (GF := GF) ms W ⊢ ⌜L % 4096 = 0⌝ ∗ wCells (GF := GF) ms W := by
+  subst hms
+  rcases hL with hL | rfl
+  · iintro H; iframe; ipureintro; exact hL
+  · unfold wCells
+    iintro ⟨-, %vf, Hp⟩
+    unfold cellsR
+    rw [show (0xFFFFFFFFFFFF % 4096 : Nat) = 4094 + 1 from rfl, List.range'_succ]
+    icases Hp with ⟨Hc, -⟩
+    icases heapPointsto_lt_maxAddr _ _ _ $$ Hc with %h
+    exfalso
+    simp only [Loc.add, maxAddr] at h
+    omega
 
 /-- **The writer side's file, out and back** with a new `OsMeta`, `W` slots and slots' bytes
 (kept below the high-water mark), under the facts `wdbOK'`. -/
 theorem wdbW'_grow_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
     wdbW' (GF := GF) fr K tx v w ⊢
       ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ ∗
-      ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF ∧ (mapLen w.ms % 4096 = 0 ∨ mapLen w.ms = 0xFFFFFFFFFFFF)⌝ ∗
+      ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF ∧ mapLen w.ms % 4096 = 0⌝ ∗
       growRes K w w.m w.W w.wb ∗
       (∀ (m' : OsMeta) (W' : List Nat) (wb' : Nat → List w8),
         ⌜wdbOK' fr { w with m := m', W := W', wb := wb' } ∧
@@ -97,10 +118,12 @@ theorem wdbW'_grow_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   iintro ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmfw,
     Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok, %Hrel⟩
   icases mapFields_some_len K.db _ _ _ _ Hwok.2.1 $$ Hmfw with ⟨%hL, Hmfw⟩
+  icases wCells_aligned w.ms v.base (mapLen w.ms) w.W Hwok.2.1 hL.2.2 hL.2.1 $$ Hwc
+    with ⟨%hal, Hwc⟩
   isplitr
   · ipureintro; exact Hwok
   isplitr
-  · ipureintro; exact hL
+  · ipureintro; exact ⟨hL.1, hal⟩
   unfold growRes
   isplitl [Hfile Hfo Hfd Hosm Hdsz Hwc Hwb]
   · iframe

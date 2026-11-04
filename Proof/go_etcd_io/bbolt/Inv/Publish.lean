@@ -48,9 +48,9 @@ theorem wdbOK_publish (w : WDb) (C' : CommitSt) (S : List Nat) (hok : wdbOK w)
     (hsize : C'.hwm * 4096 ≤ w.m.size) (hmap : ∀ b l, w.ms = some (b, l) → C'.hwm * 4096 ≤ l)
     (htb : ∀ s ∈ treeSlots C', s < C'.hwm) :
     wdbOK (w.publish C' S) := by
-  obtain ⟨h1, h2, _h3, h4, h5, _h6, _h7, _h8, _h9, h10, h11, h12, h13, h14, h15⟩ := hok
+  obtain ⟨h1, h2, _h3, h4, h5, _h6, _h7, _h8, _h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := hok
   simp only [wdbOK, WDb.publish]
-  refine ⟨h1, h2, hsize, ?_, ?_, hflc, htx, hhwm64, hmap, h10, ?_, ?_, h13, h14, ?_⟩
+  refine ⟨h1, h2, hsize, ?_, ?_, hflc, htx, hhwm64, hmap, h10, ?_, ?_, h13, h14, ?_, h16, h17⟩
   · intro s
     rw [List.mem_filter, h4 s, decide_eq_true_iff]
     constructor

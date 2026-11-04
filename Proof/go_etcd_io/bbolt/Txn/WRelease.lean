@@ -52,7 +52,7 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
   generalize hfl' : w.fl.releasePending ro = fl' at hS
   obtain ⟨r1, r2, r3⟩ := releasePending_sub w.fl ro hro hwf.2.2.2.2
   rw [hfl'] at r1 r2 r3
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15⟩ := hok
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17⟩ := hok
   have hpend' : ∀ s, s ∈ pendSlots fl' → s ∈ pendSlots w.fl := by
     intro s hs
     obtain ⟨t, pd', x, hp, hx, rfl⟩ := (pendSlots_mem_iff _ _).1 hs
@@ -81,7 +81,7 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
       cases this
   have hcpOf : ∀ t pd x, w.fl.pending !! t = some pd → x ∈ pd.ids → committedPending w.fl w.C x :=
     fun t pd x hp hx => ⟨t, pd, hp, hx, hcomm t pd hp⟩
-  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_⟩
+  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_, ?_, c17⟩
   · -- the `W` slots
     intro s
     simp only [WDb.released, List.mem_append]
@@ -154,6 +154,12 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     · simp only [hS', ↓reduceIte]; exact hbs s hS'
     · simp only [hS', ↓reduceIte]
       exact c15 s (hs.resolve_right hS') hle
+  · -- maintainer 13: the partial last page's bytes (a joined slot's are a page)
+    intro s h1 h2
+    simp only [WDb.released, mergeWb] at h1 h2 ⊢
+    by_cases hS' : s ∈ S
+    · simp only [hS', ↓reduceIte]; rw [hbs s hS']; omega
+    · simp only [hS', ↓reduceIte]; exact c16 s h1 h2
 
 omit sem in
 /-- **The writer side after `ReleasePendingPages`** (`beginRWTx`): from the idle store `σ`

@@ -111,7 +111,7 @@ theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
   have hT : (W64 ((w.C.txid + 1 : Nat) : Int)).toNat = w.C.txid + 1 := toNat_W64_of_lt _ hc7
   refine wdbOK'_of_noFl false _ h1 ?_
   intro f hf
-  have hr := (wdbOK'_flClause true w hok) f hf
+  have hr := ((wdbOK'_flClause true w hok) f hf).2
   -- the extent's bytes are kept
   have hSm : ∀ s ∈ S, s ∈ pendSlots w.fl := by
     intro s hs
