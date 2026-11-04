@@ -31720,3 +31720,22 @@ image needs it to be the cluster's membership at the backend's index. What chang
 - Three trust-boundary axioms, approved and reviewed (`notes/axiom-review/members-decode.md`):
   `membersOf_decode` (buckets the apply thread wrote decode to their members; the draft without
   `utf8Valid` was refuted by a Go test), `memberEnc_id_learner` and `memberKey_inj`.
+
+## The context the client's watch takes: `watchCtx` (2026-11-04 · W1 of Q1 (b), `notes/k8s-compactor-plan.md`, the user's approval of D1 (a) and of the two axioms' change · branch `watchctx`)
+
+**Was:** `watcher.Watch.spec` and `newWatcherGRPCStream.spec` took `context.isContext ctx cd`, a
+context in Perennial's model, as did the substream record (`wsIs`, `InvWatch`) and the two
+trust-boundary axioms the watch's creation calls (`context.WithCancelValCtx`, `streamKeyFromCtx`).
+k8s's compactor watches under `wait.ContextForChannel(stop)`, which is none (its `Done()` is a plain
+channel; no `*cancelCtx` ancestor).
+
+**Now:** they take `EtcdGrove.context.watchCtx ctx cd` (`Proof/context/WatchCtx.lean`): `isContext`'s
+`Done()` triple and its `Err()` triples (both forms), what the watch reads of its caller's context
+(W0's survey: `Done()` in four `select`s, `Err()` in `waitCancelSubstreams` and `closeSubstream`; the gRPC stream
+runs under its own `isContext`, so `run` and `openWatchClient` are untouched). `watchCtx_of_isContext`
+projects it from `isContext`: every caller is unchanged up to that law. The two axioms' premise is
+weaker (a trusted change, approved): neither body reads `inctx` but through `Value` (the outgoing
+metadata, `outgoingOf`), and `valCtx`'s `Done()` is etcd's own channel, so Go's `propagateCancel`
+runs the same branch for any `inctx` (the axioms' files). The alternative, widening Perennial's
+`isContext` to contexts without a `*cancelCtx` ancestor (D1 (b)), stays the general fix; not needed
+here.

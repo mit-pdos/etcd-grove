@@ -5,6 +5,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -36,7 +37,7 @@ abbrev watcher.newWatcherGRPCStream.spec : Prop :=
   ∀ (V : WEnv GF) (w : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ context.isContext inctx cs }}
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ EtcdGrove.context.watchCtx inctx cs }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #(GoInterface.ok inctx)))
   {{ (wgs : Loc), RET #wgs; ∃ (G : WgsPrm GF) (callSl : GoSlice),
       ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ watcherF w go!"callOpts" ↦□ callSl ∗ isWGS V G callSl ∗

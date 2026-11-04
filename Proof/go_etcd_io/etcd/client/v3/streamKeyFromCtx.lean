@@ -1,7 +1,11 @@
 /-
 The trust boundary: `clientv3.streamKeyFromCtx(ctx)` (`client/v3/watch.go`; the watch slice's unit
 W-C) returns the stream key of the context's outgoing metadata (`streamKeyOf`, with its laws in
-`StreamKey.lean`; G2, 2026-10-30, at a context, `isContext`: a nil one panics). Its body calls grpc's `metadata.FromOutgoingContext` (the package
+`StreamKey.lean`; G2, 2026-10-30, at a context: a nil one panics). Since 2026-11-04 (W1 of Q1 (b),
+`notes/k8s-compactor-plan.md`, the user's approval) at any context the watch takes (`watchCtx`), not
+only a model one (`isContext`): the body reads only `ctx.Value` of grpc's outgoing-metadata key
+(`nil` for a context without metadata, e.g. k8s's `channelContext`, which `outgoingOf`'s `none`
+denotes), so its result is the same. Its body calls grpc's `metadata.FromOutgoingContext` (the package
 `google.golang.org/grpc/metadata` is translated names-only) and `fmt.Sprintf("%+v", ...)` of a map
 (Perennial does not model `fmt`'s formatting of a map), so it is assumed.
 -/
