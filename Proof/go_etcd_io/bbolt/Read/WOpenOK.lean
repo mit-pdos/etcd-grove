@@ -280,6 +280,63 @@ theorem lPath_posI (els : List elemRef) (pids : List w64) (hp : lPath X bl els p
     rw [hp1] at hpn; cases hpn
     exact posI_step X bl B hB hb _ (ih _ (List.getElem?_eq_getElem (by omega))) ws hL _ w hw
 
+/-- Every entry of a leaf of a searchable bucket is live. -/
+theorem leaf_live (p : w64) (hI : posI X B p) (ws : List WEntry)
+    (hL : ltree X bl p = some (true, ws)) (w : WEntry) (hw : w ∈ ws) :
+    w.ks ≠ Src.stale ∧ w.vs ≠ Src.stale := by
+  have hc := bktC X bl B hB hb
+  rcases hI with ⟨l, rn, hres, hrn⟩ | ⟨h0, hrn, rfl⟩ | ⟨hi, ht, hnm, -, -⟩
+  · rw [ltree_node X bl B p l rn hB hres hrn] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨-, rfl⟩ := hL
+    exact (hc.2.2.2.2.2.2.2.1 l rn hrn).2.2.2.2.2.1 w hw
+  · have hres : resolve B (W64 0) = none := by simp [resolve, h0, hrn]
+    have hwp : wpageAt X.v B (W64 0) = some (B.bv.page', B.ipg) := by simp [wpageAt, h0]
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨-, rfl⟩ := hL
+    unfold pageWs at hw
+    obtain ⟨i, -, rfl⟩ := List.mem_map.1 hw
+    unfold pageW; split <;> simp
+  · have hres : resolve B p = none := by
+      rw [resolve_tree B p hi]
+      have := hnm p.toNat (by obtain ⟨pg, hpg, -⟩ := treeWF_page ht; exact treeHas.root _ pg hpg)
+      rwa [LR.w64_toNat_eq] at this
+    obtain ⟨-, pg, hpg, hwp, -⟩ := posOK_tree_page X B p hi ht hnm
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨-, rfl⟩ := hL
+    unfold pageWs at hw
+    obtain ⟨i, -, rfl⟩ := List.mem_map.1 hw
+    unfold pageW; split <;> simp
+
+/-- A live source stays live as `seek` returns it (`leafSrc`). -/
+theorem leafSrc_live (s : Src) (hs : s ≠ Src.stale) : leafSrc X bl s ≠ Src.stale := by
+  have hc := bktC X bl B hB hb
+  unfold leafSrc; rw [hB]; simp only
+  split
+  · rename_i h
+    rcases (hc.1 h.1 h.2).2.1 with ⟨e, -⟩ | ⟨e, -⟩ <;> rw [e] <;> intro h' <;> cases h'
+  · exact hs
+
+/-- The leaf at the end of a logical stack. -/
+theorem lPath_leaf (els : List elemRef) (pids : List w64) (hp : lPath X bl els pids) :
+    ∃ (p : w64) (ws : List WEntry), (∃ j : Nat, pids[j]? = some p) ∧ ltree X bl p = some (true, ws) ∧ lLeaf X bl pids = ws := by
+  obtain ⟨hne, hlen, -, hstep⟩ := hp
+  have hpos : 0 < pids.length := by
+    rw [hlen]; cases els with
+    | nil => exact absurd rfl hne
+    | cons _ _ => simp
+  have hj : pids.length - 1 < els.length := by omega
+  obtain ⟨-, lf, ws, hL, -, hlast⟩ := hstep (pids.length - 1) els[pids.length - 1]
+    pids[pids.length - 1] (List.getElem?_eq_getElem hj) (List.getElem?_eq_getElem (by omega))
+  have hlf := hlast (by omega)
+  subst hlf
+  refine ⟨_, ws, ⟨_, List.getElem?_eq_getElem (by omega)⟩, hL, ?_⟩
+  unfold lLeaf
+  rw [List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]
+  simp only [hL]
+
 end posi
 
 section found

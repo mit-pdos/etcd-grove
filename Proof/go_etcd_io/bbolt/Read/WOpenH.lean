@@ -156,12 +156,15 @@ theorem wtxHeap_addBkt (tx : Loc) (X : WX) (c : Loc) (C : BRec) (h : GoString ×
   rw [this]
 
 /-- **The bucket cache of `bl` updated and a fresh bucket `c` opened** (`bktOpened`'s heap
-change): the parent's cache map out of `wtxW`, and back with `name ↦ c` inserted and the new
-bucket added, live, registered as the handle `(name, g)`. -/
+change): the parent's `buckets` field and cache map out of `wtxW`, with the view's cells (to read
+the name), and back with `name ↦ c` inserted and the new bucket added, live, registered as the
+handle `(name, g)`. -/
 theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
     (hB : X.t.bs !! bl = some B) (hlB : bl ∈ X.liveB) :
-    wtxW (GF := GF) K tx r m X ⊢ B.bv.buckets' ↦$ B.bm ∗
+    wtxW (GF := GF) K tx r m X ⊢ bl.[Bucket, go!"buckets"] ↦ B.bv.buckets' ∗
+      B.bv.buckets' ↦$ B.bm ∗ viewCells wq X.v ∗
       ∀ (name : GoString) (c : Loc) (C : BRec) (g : Nat),
+        bl.[Bucket, go!"buckets"] ↦ B.bv.buckets' -∗ viewCells wq X.v -∗
         B.bv.buckets' ↦$ (B.bm.insert name c) -∗ objOwn X.v c (DFrac.own 1) true (.bkt C) -∗
         (∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ c.[Bucket, go!"FillPercent"] ↦ f) -∗
         ⌜X.t.bobjs !! c = none ∧ X.handles !! c = none ∧ C.bv.tx' = tx ∧ C.ns = ∅⌝ -∗
@@ -173,8 +176,8 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   icases wtxHeap_bkt_acc tx (DFrac.own 1) X bl B hB hlB $$ Hh with ⟨Hb, Hback⟩
   isimp only [objOwn] at Hb
   icases Hb with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
-  iframe H9
-  iintro %name %c %C %g H9 Hc ⟨%f, %Hnan, Hfp⟩ %Hfr
+  iframe H3 H9 Hcells
+  iintro %name %c %C %g H3 Hcells H9 Hc ⟨%f, %Hnan, Hfp⟩ %Hfr
   obtain ⟨hbo, hhd, htx, hns⟩ := Hfr
   ihave Hh := Hback $$ %({ B with bm := B.bm.insert name c }) %htxB [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
   · isimp only [objOwn]; iframe
