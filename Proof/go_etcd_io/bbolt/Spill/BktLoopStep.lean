@@ -15,6 +15,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
+public import Proof.go_etcd_io.bbolt.Spill.BktValKey
 
 @[expose] public section
 
@@ -194,12 +195,55 @@ theorem rinv_inline (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} 
         (upd ks k (.val (inlineVal C1.ib rn1.ws) false)) := by
   sorry
 
+theorem isBktFlag_of_mod' (f : Nat) (h : f % 2 = 1) : isBktFlag (W32 (f : Int)) := by
+  unfold isBktFlag
+  intro e
+  have := congrArg BitVec.toNat e
+  simp [BitVec.toNat_and] at this
+  omega
+
 /-- **The child's entry in the root bucket** (what the search finds). -/
-theorem rinv_entry (hpre : spillPre X0 w0.fl) (hB0 : X0.t.bs !! X0.rl = some B0)
+theorem rinv_entry (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
+    (hB0 : X0.t.bs !! X0.rl = some B0)
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     (hc : B0.bm !! k = some c) :
     ∃ we ∈ X.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags := by
-  sorry
+  have hok := hpre.1
+  have hrt : rtOK X0 X0.rl := hpre.2.2.2.1 X0.rl (by rw [hB0]; simp)
+  have h0 : B0.ib.root' ≠ W64 0 := hok.1.2.1.2.2.2.2 B0 hB0
+  -- the child's entry at the start
+  obtain ⟨we, hwe, hk, hf⟩ : ∃ we ∈ X0.allEnts X0.rl, we.key = k ∧ isBktFlag we.flags := by
+    obtain ⟨C, v, -, hin, -⟩ := (hok.2.1 X0.rl B0 hB0).2 k c hc
+    rcases hin with ⟨l, r, we, hr, hl, hw, hk, hf, -⟩ | ⟨c0, p, pg, i, hpr, hown, hpg, hfl, hi, hk, hf, -⟩
+    · exact ⟨we, mem_allEnts_node hok hreach hrt hB0 h0 hr hl hw, hk, hf⟩
+    · refine ⟨pageW pg i, mem_allEnts_page hok hreach hrt hB0 ?_ hpr hown hpg hfl hi, ?_, ?_⟩
+      · intro p' pg' hp'
+        have := hfv.2.2.1 p' pg' hp'
+        omega
+      · unfold pageW; rw [if_pos hfl]; exact hk
+      · unfold pageW; rw [if_pos hfl]
+        exact isBktFlag_of_mod' _ (by unfold bucketLeafFlag at hf; omega)
+  -- its root entry now
+  have hm0 : (k, we.value) ∈ rootEnts X0 := by
+    unfold rootEnts
+    unfold WX.allEnts at hwe
+    obtain ⟨ws, hws, hw⟩ := List.mem_flatten.1 hwe
+    refine List.mem_flatMap.2 ⟨ws, hws, List.mem_filterMap.2 ⟨we, hw, ?_⟩⟩
+    rw [if_pos (decide_eq_true hf)]; rw [hk]
+  have hm : ∃ v', (k, v') ∈ rootEnts X := by
+    rw [hI.ents]
+    exact ⟨_, List.mem_map.2 ⟨_, hm0, rfl⟩⟩
+  obtain ⟨v', hm⟩ := hm
+  unfold rootEnts at hm
+  obtain ⟨ws, hws, hw⟩ := List.mem_flatMap.1 hm
+  obtain ⟨we', hw', he⟩ := List.mem_filterMap.1 hw
+  by_cases hb : isBktFlag we'.flags
+  · rw [if_pos (decide_eq_true hb)] at he
+    cases he
+    refine ⟨we', ?_, rfl, hb⟩
+    rw [← hI.rl]
+    exact List.mem_flatten.2 ⟨ws, hws, hw'⟩
+  · rw [if_neg (by simpa using hb)] at he; cases he
 
 /-- **The root bucket's search can materialize its path** (`Cursor.node`'s `matReady`). -/
 theorem rinv_ready (hpre : spillPre X0 w0.fl) (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks)
