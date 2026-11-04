@@ -11,6 +11,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRestoreM
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestorePreM
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 
 @[expose] public section
 
@@ -132,7 +134,9 @@ theorem applySnapshot_walk
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (M2's item 15, stage B2) the contract of a compacting backend
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -421,16 +425,59 @@ theorem applySnapshot_walk
   icases ownToks_add_1 2 _ γB.wb $$ Hnwb with ⟨Hnwb, Hwb2⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
+  -- (the lease-expiry plan's S1) the range deleter's owner's half, for `Recover` to replace
+  ihave ⟨%rd0, Hro, -⟩ := lease.rdAt_elim _ _ $$ Hrdat
+  have hbe : backend.bktEnts (((backend.rbData d.P D).lookup go!"lease").getD ∅) =
+      ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+    rw [hlease]
+    exact List.eq_nil_of_length_eq_zero ((mvcc.bktEnts_length ∅).trans GMap.map_size_empty)
   wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
-      (fun _ => True) (backend.rbData d.P D) _ Ll _ trivial (by rw [hP']; exact hlpw)
-    $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB]
-    as ⟨HnLe, HlOwn, HlRv, HnOh, HnRB⟩
+      (fun _ => True) (backend.rbData d.P D) _ rd0 Ll _ false [] trivial (by rw [hP']; exact hlpw)
+      hbe (fun h => by cases h)
+    $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro]
+    as ⟨HnLe, HlOwn, HlRv, Hro, HnOh, HnRB, -⟩
   · -- (2026-11-02, the backend-auth-split stage) at every bucket (`rbOwn` is `rbPart ⊤`): the
     -- lessor, first on the new backend, gives its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at HnRB
-    rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB
-    ipureintro; exact hlease
+    rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro
+    imodintro
+    simp only [List.map_nil]
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  ipersist s
+  ihave HnRB : backend.rbOwnIn d'.γB (fun _ => True)
+      ((backend.rbData d.P D).insert go!"lease" ∅) $$ [HnRB]
+  · iExactEq HnRB
+    exact congrArg (fun v => backend.rbOwnIn (GF := GF) d'.γB (fun _ => True)
+      ((backend.rbData d.P D).insert go!"lease" v)) hlease
+  -- the new range deleter, `s.kv.Write(traceutil.TODO())`: every watchable store over `E.s` is
+  -- `s.kv`'s (`mvcc.isWatchableStore_agree`), and `Write`'s spec takes any names
+  ihave Hrdat : lease.rdAt E.γ.leases E.s $$ [Hro]
+  · iapply lease.rdAt_intro
+    iframe Hro
+    iintro !> %ws' %γ' #Hws'
+    ihave %Hwseq := mvcc.isWatchableStore_agree ws' ws E.s γ' γw0 $$ [$Hws' $Hwsl]
+    subst Hwseq
+    iunfold mvcc.rdIs
+    isplitr
+    · ipureintro; intro h; injection h with _ _ h3; cases h3
+    iintro !> %L %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hww, %Hlen, Hh, Hpre, #Hfw⟩ HΦ'
+    ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+    · iPkgInit
+    ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
+    (try wp_auto)
+    wp_apply (hWrite ws' E.s γ' tr L Pw Pre Q fw true)
+      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
+    · iframe #
+      ipureintro; exact ⟨Hlen, Htrnn⟩
+    (try wp_auto)
+    iapply HΦ'
+    iframe HQ Hh'
+    iexists crev
+    iexact Htw
   (try wp_auto)
   -- `s.kv.Restore(newbe)`: the store over the image's log at the new backend
   wp_apply hInfo $$ []
@@ -734,7 +781,7 @@ theorem applySnapshot_walk
   ihave %Hmsll := ownSlice_len _ _ _ $$ Hmsl
   simp only [List.length_map] at Hmsll
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
-      "s" ∷ s_ptr ↦ s ∗
+      "#s" ∷ s_ptr ↦□ s ∗
       "Htlive" ∷ trLive γn t c L ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
@@ -745,13 +792,13 @@ theorem applySnapshot_walk
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
   iapply wp_fupd
-  wp_join (iprop(∃ (L : List w64), "s" ∷ s_ptr ↦ s ∗
+  wp_join (iprop(∃ (L : List w64), "#s" ∷ s_ptr ↦□ s ∗
       "Hmsl" ∷ msl ↦* List.map Prod.fst mps ∗
       "Hmso" ∷ ([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.fst p.snd) ∗
       "Htlive" ∷ trLive γn t c L ∗
       "%Hcov" ∷ ⌜∀ f, (netRh γn).member f → f ≠ idm → f ∈ L⌝))
     at (App (App (App (Val doFor) _) _) _) with [Hmsl Hmso IH2]
-    as ⟨%L, s, Hmsl, Hmso, Htlive, %Hcov⟩
+    as ⟨%L, #s, Hmsl, Hmso, Htlive, %Hcov⟩
   · wp_for IH2
     wp_if_destruct
     · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -790,6 +837,7 @@ theorem applySnapshot_walk
         iframe
         iexists n + W64 1, _, L
         iframe
+        iframe s
         ipureintro
         refine ⟨⟨by word, by word, by omega⟩, ?_⟩
         rw [Hn1]
@@ -816,6 +864,7 @@ theorem applySnapshot_walk
         iframe
         iexists n + W64 1, _, L ++ [px.2]
         iframe
+        iframe s
         ipureintro
         refine ⟨⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩, ?_⟩
         rw [Hn1]
@@ -824,6 +873,7 @@ theorem applySnapshot_walk
     · wp_join_done
       iexists L
       iframe
+      iframe s
       ipureintro
       exact membersCov_done γn dir hdir ps hps mps Hmps idm L (sint.Z n).toNat
         (by have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1; omega) Hcov

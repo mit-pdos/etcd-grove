@@ -634,3 +634,33 @@ The rest has a route with the existing lemmas:
 2. The coordinator's decision. `Recover`'s pre takes `□ [∗list] id ∈ L', leaseGranted γl id`;
    recovered leases are not exempted from the guard. The walk meets it at `L' = []`. A granting
    cluster's server meets it for any id, since its guard is pure in the mode.
+
+## Step 3 (S1): `Recover` translated and proved (2026-11-04)
+
+Done, under the approved trust swap (`- axiom lease.lessor.Recover.wp_proof`, `+ axiom
+schema.MustUnsafeGetAllLeases.wp_proof`).
+- `schema.UnsafeCreateLeaseBucket` translated (`schema.toml`) and proved, premise-style like
+  `UnsafeCreateMetaBucket`. `schema.MustUnsafeGetAllLeases.spec`: the decided contract over
+  `batchLocked`, records `lease.leaseRecEnc` (key and `leaseEnc` value) in key order (`bktEnts`).
+  `lease.leaseRecs_nodup`: the records' ids are distinct.
+- `lessor.initAndRecover.spec`/proof (`LessorRecover.lean`: `recMap`, `recTTLs`, `recLease`): the
+  map holds one fresh `*Lease` per record, TTL raised to `mt`, with a receipt `⧖ |recs|`. The
+  notifier is re-initialized (`notifierAt` already admits stale items). The checkpoint heap gets a
+  new contents. The part is idle after `Unlock`, then `ForceCommit`.
+- The ghost step (`LessorRecoverLemmas.lean`). `recover_one`/`recover_all`: each lease registered
+  with the empty set (`setsOk_register`), its locks and pools made. `closers_swap`: the closers' map
+  replaced (the old elements, both halves, deleted). `lessor_live_set`: the live set is the ids,
+  with their `leaseGranted`. `recover_hist`: the snapshot `(recMap, ∅, recTTLs)` appended
+  (`recover_step_ok`), `histMono` kept when every live id is recovered. `closers_recover` composes
+  them.
+- `lessor.Recover.spec` (the new text): pre adds `lessorCfg`, `lessorModeIs γl mono` (was
+  `lessorRevocable`), `rdOwn γl rd0`, `□ [∗list] id ∈ ids, leaseGranted γl id`, the bucket's
+  records (was: empty), and `mono = true → L ⊆ ids`. Post: `leaseOwn γl ids ∅`,
+  `leaseRevokers γl ids`, `rdOwn γl rd`, `rbOwnIn S (r.insert "lease" (r "lease"))`, and the
+  snapshot's index with `minLeaseTTL ↦□ mt`.
+- The walk (`SnapApplyWalk.lean`) passes `mono = false`, `recs = []` (from `hlease`), the `rdOwn` of
+  its `lease.rdAt`, and rebuilds `rdAt` with the new closure's `rdIs` (`s.kv.Write`: the store's
+  agreement law and `watchableStore.Write`'s spec, two new hypotheses of the walk and of
+  `applySnapshot`'s proofs, linked). The receiver's cell `s_ptr` is made persistent for the
+  closure; the members loop's invariant holds it persistently.
+- Not done here: S2-S4 (the monotone restore, the image's lease bucket, `srvGrantOpen`).

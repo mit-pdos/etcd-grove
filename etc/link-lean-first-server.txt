@@ -382,6 +382,7 @@ backend__Snapshot: @
 # (J8b) the snapshot walk's backend close and watchable store restore, from backend's and mvcc's Links
 backend__Close: @
 watchableStore__Restore: @
+watchableStore__Write: @
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Get: traceutil_TODO
 traceutil_Trace__Step:
@@ -453,7 +454,7 @@ MemoryStorage__Compact: @
 EtcdServer__compactRaftLog: EtcdServer__Logger MemoryStorage__Compact errors_Is zap_Logger__Info zap_Uint64 zap_Logger__Debug
 # (J8b, 2026-11-01) `applySnapshot`'s spec is both cases (`specEmpty ∧ specSnapM`, since 2026-11-03), proved from
 # `wp_proof_snapM`'s callees (the snapshot walk's and the auth store's `Recover`), which the empty case's `IsEmptySnap` leads
-EtcdServer__applySnapshot: IsEmptySnap EtcdServer__Logger zap_Logger__Info zap_Uint64 SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm storage_OpenSnapshotBackend storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket consistentIndex__SetBackend lease_lessor__Recover watchableStore__Restore backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeCreateBucket batchTxBuffered__UnsafeDelete EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook consistentIndex__ConsistentIndex storage_storage__Release schema_NewAlarmBackend AlarmStore__Recover schema_NewAuthBackend schema_NewMembershipBackend membership_RaftCluster__SetBackend backend__Close membership_RaftCluster__Recover rafthttp_Transport__RemoveAllPeers rafthttp_Transport__AddPeer EtcdServer__MemberID EtcdServer__NewUberApplier lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Revoke EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot AlarmStore__Get backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete auth_authStore__Recover
+EtcdServer__applySnapshot: IsEmptySnap EtcdServer__Logger zap_Logger__Info zap_Uint64 SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm storage_OpenSnapshotBackend storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket consistentIndex__SetBackend lease_lessor__Recover watchableStore__Restore backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeCreateBucket batchTxBuffered__UnsafeDelete EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook consistentIndex__ConsistentIndex storage_storage__Release schema_NewAlarmBackend AlarmStore__Recover schema_NewAuthBackend schema_NewMembershipBackend membership_RaftCluster__SetBackend backend__Close membership_RaftCluster__Recover rafthttp_Transport__RemoveAllPeers rafthttp_Transport__AddPeer EtcdServer__MemberID EtcdServer__NewUberApplier lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Revoke EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot AlarmStore__Get backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete auth_authStore__Recover watchableStore__Write traceutil_TODO
 EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
@@ -680,9 +681,16 @@ v3compactor_Revision__Stop:
 v3compactor_Revision__Pause:
 v3compactor_Revision__Resume:
 v3alarm_NewAlarmStore:
-# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
-# `SetBackend`, axioms true of the Go code (their specs' docstrings).
-lease_lessor__Recover:
+# (D22 receiver epochs, S8c, 2026-10-24) the cluster's `SetBackend`, an axiom true of the Go code
+# (its spec's docstring). (The lease-expiry plan's S1, 2026-11-04) `applySnapshot`'s lessor
+# `Recover`, an axiom until then, proved from its body over `initAndRecover`; the trust boundary:
+# schema's `MustUnsafeGetAllLeases` (`UnsafeForEach` over the batch transaction and
+# `proto.Unmarshal`, a contract over the locked transaction's state); `UnsafeCreateLeaseBucket`
+# proved from its body (premise-style, over the caller's `UnsafeCreateBucket`).
+schema_MustUnsafeGetAllLeases:
+schema_UnsafeCreateLeaseBucket:
+lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket schema_UnsafeCreateLeaseBucket schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket schema_MustUnsafeGetAllLeases batchTxBuffered__Unlock lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_ lease_LeaseExpiredNotifier__Init backend__ForceCommit
+lease_lessor__Recover: lease_lessor__initAndRecover
 membership_RaftCluster__SetBackend:
 # (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
 # the Go code over an image good for the cluster (its spec's docstring).

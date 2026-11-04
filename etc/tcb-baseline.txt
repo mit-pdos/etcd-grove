@@ -556,7 +556,6 @@ axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.Renew.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
@@ -664,6 +663,7 @@ axiom resourceversion.isWellFormed.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.GroupResource.String_ptr.wp_proof
 axiom schema.GroupVersionResource.Empty_ptr.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
