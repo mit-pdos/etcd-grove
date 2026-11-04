@@ -2,9 +2,9 @@
 **The API's instance of the store's slots** (stage 1, 2026-11-03/04; `notes/decisions.md`, "slots in
 place"; `notes/mvcc-api-invariants.md` §1, §2, round 16). Lean-first (no Rocq counterpart).
 
-Today's internals carry the API's slots in place (`InvStore`: `StoreNames.api`, `slotX`, `slotY`,
-`slotF`, `slotFr`, `slotFl`): at `γ.api = none` (today's stores, `isStore`) they are trivial; here,
-at `γ.api = some a`, they are the API's ghost state (`Api/Ghost.lean`), and the writer's frozen
+The internals carry the API's slots in place (`InvStore`: `StoreNames.api`, `slotX`, `slotY`,
+`slotF`, `slotFr`, `slotFl`; strict M1, 2026-11-04: the API's ghost state at `γ.api`, no trivial
+case), here unfolded at `γ.api = a` (`Api/Ghost.lean`), and the writer's frozen
 state (round 16's F2, for `mvccImage_snapshot.law`) is entered and left by the whole backend share
 token's holder (`writerInv_freeze`, `writerInv_thaw`). Formerly `Api/InvStoreX.lean`, a parallel
 copy of the invariants with explicit slot parameters (retired: the slots now live in today's
@@ -33,29 +33,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-theorem slotX_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) (q : Qp) (L : Log)
+theorem slotX_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (q : Qp) (L : Log)
     (c : Int) : slotX (GF := GF) γ q L c ⊣⊢ api.revMuAbs a q L c := by
   unfold slotX; simp only [h]; exact .rfl
 
-theorem slotY_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) (L : Log) :
+theorem slotY_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (L : Log) :
     slotY (GF := GF) γ L ⊣⊢ api.writerAbs a (pndW γ) L := by
   unfold slotY; simp only [h]; exact .rfl
 
-theorem slotF_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) :
+theorem slotF_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) :
     slotF (GF := GF) γ ⊣⊢ api.shareTok a 1 := by
   unfold slotF; simp only [h]; exact .rfl
 
-theorem slotFr_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) :
+theorem slotFr_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) :
     slotFr (GF := GF) γ ⊣⊢ api.shareTok a 1 := by
   unfold slotFr; simp only [h]; exact .rfl
 
-theorem slotFl_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) (q : Qp) (b : Bool) :
+theorem slotFl_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (q : Qp) (b : Bool) :
     slotFl (GF := GF) γ q b ⊣⊢ ghostVar a.frz q b := by
   unfold slotFl; simp only [h]; exact .rfl
 
 /-- **The API's writer excludes the frozen state**: a share of the token and the frozen state's
 deposit (the whole token) are too much (`writerInv_checkoutG`'s `G`). -/
-theorem slotF_share_excl {γ : StoreNames} {a : api.AbsNames} (h : γ.api = some a) (q : Qp) :
+theorem slotF_share_excl {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (q : Qp) :
     slotF (GF := GF) γ ∗ api.shareTok a q ⊢ False := by
   iintro ⟨HF, HG⟩
   icases (slotF_some h).1 $$ HF with HF
@@ -80,7 +80,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 it, raises the frozen flag (keeping half of it) and takes out what is there, the writer's state or
 the open writer's key (`writerTaken`), at the current names; not while restoring (the restorer's
 deposit is the whole token too), nor frozen already. -/
-theorem writerInv_freeze (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.api = some a)
+theorem writerInv_freeze (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.api = a)
     (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ api.shareTok a 1 -∗ curAt γ dq o ={⊤}=∗
       writerTaken s γ ∗ ghostVar a.frz (1 : Qp).half true ∗ curAt γ dq o := by
@@ -118,7 +118,7 @@ theorem writerInv_freeze (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.
 
 /-- **Thawing the writer**: the frozen state's holder (its half of the flag up) puts back what it
 took, lowers the flag and gets the whole share token back. -/
-theorem writerInv_thaw (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.api = some a)
+theorem writerInv_thaw (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.api = a)
     (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ writerTaken s γ -∗ ghostVar a.frz (1 : Qp).half true -∗
       curAt γ dq o ={⊤}=∗ api.shareTok a 1 ∗ curAt γ dq o := by

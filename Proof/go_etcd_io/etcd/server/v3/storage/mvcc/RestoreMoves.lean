@@ -118,7 +118,7 @@ history's authority. Returned: `currentRev` and `compactMainRev` whole (the latt
 store never compacted; M2's item 15: at the compaction revision `c`), the restoring flag whole and
 down, `s.revMu`'s and the writer's eighths of the current objects and names, and `restoreHeld`. -/
 theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log) (c : Int)
-    (hLL : L <+: L') (hc : -1 ≤ c) (hapi : γ.api = none) :
+    (hLL : L <+: L') (hc : -1 ≤ c) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ revMuInv s γ 1 -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) false -∗ curAt γ (DFrac.own (1 : Qp).half) o -∗
       ghostVar γ.wr 1 () -∗ idxCert γ.idx L -∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) -∗
@@ -164,7 +164,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   · iunfold wDep at Hd
     ihave %Hv := ghostVar_valid_2 γ.wr () 1 () _ $$ Hwr Hd
     exact absurd Hv.1 (Qp_one_add_not_le _)
-  · iexfalso; iapply slotF_none hapi $$ HF
+  · exact sorry -- M1-REPLACE: KV.Restore.contract (the takeover excludes the frozen state by the restorer's whole share token)
   iunfold writerL at HL
   icases HL with ⟨%ilog, %ntw, HL⟩
   iNamed HL
@@ -226,7 +226,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   · inext; iunfold writerInvBody; iright; iframe Hwr Hfz
     isplitl [HhistI]
     · iexists _; iexact HhistI
-    iapply slotFr_none hapi
+    exact sorry -- M1-REPLACE: KV.Restore.contract (the restorer's deposit: its whole share token)
   imodintro
   iframe Hcm Hrst Hcur Hcur2 Hc HcrevB
   isplitl [Hcr]
@@ -306,7 +306,7 @@ bucket view (`restoreViewOut`), its certificate (its changes below the receipts'
 rebuild's receipts give) and the revision budget's tokens of `L'` made. -/
 theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : PhysNames) (R : Log)
     (c cp : Int) (qw : Qp) (rt : Nat) (hR : restoreLogOk R) (hcp : -1 ≤ cp ∧ cp ≤ c)
-    (hcl : c < ([[], []] ++ R).length) (hrt : 2 ≤ rt) (hapi : γ.api = none) :
+    (hcl : c < ([[], []] ++ R).length) (hrt : 2 ≤ rt) :
     ⊢ £ 1 -∗ £ 1 -∗ writerInv (GF := GF) s γ -∗ ghostVar γ.wsd qw () -∗ readerPool (GF := GF) γ -∗
       curAt γ (DFrac.own (1 : Qp).half) o -∗ writerFrag γ -∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗
@@ -467,7 +467,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       isplitl []
       · ipureintro
         exact ⟨by omega, hcl⟩
-      iapply slotX_none hapi
+      exact sorry -- M1-REPLACE: KV.Restore.contract (the switch's slot step: the view moved to the restored state)
     · iunfold revMuTok
       iframe Hr1
       isplitl [Hn2]
@@ -496,7 +496,7 @@ backend's registration pending (`writerReg`: the right to register, the batch lo
 the new key, half the new view log, half the new bucket's view, the certificate, the compaction's
 fresh record). `s.mu`'s deposit ghost back. -/
 theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNames) (L' : Log)
-    (hwf : IdxWf L' []) (hne : L' ≠ []) (hapi : γ.api = none) :
+    (hwf : IdxWf L' []) (hne : L' ≠ []) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
@@ -520,7 +520,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     obtain ⟨rfl, rfl⟩ := Hv
     icases HP with (⟨-, (⟨HL, -⟩ | ⟨Hk, -, -⟩)⟩ | ⟨Hfz, -⟩)
     rotate_left 2
-    · iexfalso; iapply slotFl_none_true hapi $$ Hfz
+    · exact sorry -- M1-REPLACE: KV.Restore.contract (the finish excludes the frozen state)
     · iunfold writerL at HL
       icases HL with ⟨%l, %n, HL⟩
       iNamedSuffix HL "2"
@@ -555,7 +555,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     · simp only [StoreNames.withPhys_wv]; iexact HwvR
     ipureintro; exact hne
   ihave HY : slotY (GF := GF) (γ.withPhys p') L' $$ []
-  · rw [slotY_withPhys]; iapply slotY_none hapi
+  · exact sorry -- M1-REPLACE: KV.Restore.contract (the writer's slot at the restored log)
   imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hfl HY] with -
   · inext
     iunfold writerInvBody

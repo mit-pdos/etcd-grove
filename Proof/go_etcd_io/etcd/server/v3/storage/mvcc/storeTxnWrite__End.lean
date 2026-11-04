@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End
 
 @[expose] public section
@@ -68,7 +69,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the view's quarters: `writerRes`'s and the writer's pin's (M2's item 37)
     icases (mvcc.bucketViewL_halves γ (1 : Qp).half _).1 $$ Hbv with ⟨Hbv, HbvP⟩
     ihave HY : mvcc.slotY γ ilog $$ []
-    · iapply mvcc.slotY_none HapiS
+    · iapply mvcc.slotY_make_M1
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd HY]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -77,7 +78,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
-    imod mvcc.writerInv_checkin s γ HapiS ilog _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
+    imod mvcc.writerInv_checkinG s γ iprop(emp) (mvcc.slotF_excl_M1 γ) ilog _ o $$ Hlc2 HwiS [] Hpin HL HwvW
+      with ⟨Hwk, Hwr, -, HwvW, Hpin⟩
+    · iempintro
     ihave HW : mvcc.writerRes s γ $$ [Hwk HwvW Hbv Hcres]
     · iunfold mvcc.writerRes
       iexists ilog
@@ -182,7 +185,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     imod ghostVar_update (ilog ++ [pend]) γ.wv ilog $$ Hwv with Hwv
     icases ghostVar_halves γ.wv (ilog ++ [pend]) $$ Hwv with ⟨Hwv, HwvW⟩
     ihave HY : mvcc.slotY γ (ilog ++ [pend]) $$ []
-    · iapply mvcc.slotY_none HapiS
+    · iapply mvcc.slotY_make_M1
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd HY]
     · iunfold mvcc.writerL
       iexists (ilog ++ [pend]), n
@@ -192,7 +195,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       ipureintro
       exact ⟨by simp; omega, by simp⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
-    imod mvcc.writerInv_checkin s γ HapiS (ilog ++ [pend]) _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
+    imod mvcc.writerInv_checkinG s γ iprop(emp) (mvcc.slotF_excl_M1 γ) (ilog ++ [pend]) _ o $$ Hlc2 HwiS [] Hpin HL HwvW
+      with ⟨Hwk, Hwr, -, HwvW, Hpin⟩
+    · iempintro
     ihave #HUnlock' := HUnlock $$ %m
       %(iprop(mvcc.bucketViewL γ (1 : Qp).half (ilog ++ [pend]) ∗
         mvcc.bucketViewL γ (1 : Qp).half.half (ilog ++ [pend])))
@@ -221,7 +226,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
-      ihave HXL := mvcc.slotX_change HapiS (ilog ++ [pend]) cL $$ HXL
+      ihave HXL := mvcc.slotX_step_M1 (ilog ++ [pend]) cL $$ HXL
       wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HXL HrstR]
         as HrevMu
       · inext

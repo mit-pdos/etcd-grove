@@ -214,11 +214,11 @@ structure StoreNames where
   read-only, `crevPermIs`): a predicate fixed when the store is created (`True` for a caller that
   does not care); `withPhys` keeps it, so a restore's names agree with `NewStore`'s -/
   cperm : GName := 0
-  /-- (the mvcc API, stage 1, 2026-11-03: the slots in place, `notes/decisions.md`, "slots in
-  place") the API's ghost names (`api.AbsNames`: the client's view, the pending revision, the
-  compaction authority, the share token, the frozen flag), or `none`: today's store, whose slots
-  are trivial (`slotX`, `slotY`, `slotF`, `slotFr`, `slotFl`); logical, `withPhys` keeps it -/
-  api : Option api.AbsNames := none
+  /-- (the mvcc API, stage 1, 2026-11-03; strict M1, 2026-11-04, `notes/decisions.md`, "strict
+  M1, no scaffold") the API's ghost names (`api.AbsNames`: the client's view, the pending revision,
+  the compaction authority, the share token, the frozen flag), which the slots (`slotX`, `slotY`,
+  `slotF`, `slotFr`, `slotFl`) hold; logical, `withPhys` keeps it -/
+  api : api.AbsNames := ⟨0, 0, 0, 0, 0⟩
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -450,58 +450,49 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-! ### The API's slots (stage 1, 2026-11-03: the slots in place)
+/-! ### The API's slots (stage 1; strict M1, 2026-11-04)
 
 The locks' resources hold every fraction of the ghost state they tie together, so the API's ghost
-state (`Api/Ghost.lean`) can only be tied to the committed log inside them: `s.revMu`'s body holds
+state (`Api/Ghost.lean`) is tied to the committed log inside them: `s.revMu`'s body holds
 `slotX γ q log c`, the writer's state `slotY γ ilog`, the writer's invariant a frozen state
-(`slotFl`, `slotF`) and the restorer's deposit (`slotFr`). All of them read the store's names'
-`api` field: at `none` (today's stores: `isStore` says so) they are trivial (`emp`, the frozen
-state impossible); at `some a` the API's (`isStoreA`). -/
+(`slotFl`, `slotF`) and the restorer's deposit (`slotFr`), all at the store's names' `api`. -/
 
 /-- **`s.revMu`'s slot**: the API's quarter of `q` of the view and of the compaction authority. -/
-def slotX (γ : StoreNames) (q : Qp) (L : Log) (c : Int) : IProp GF :=
-  match γ.api with
-  | none => iprop(emp)
-  | some a => api.revMuAbs a q L c
+def slotX (γ : StoreNames) (q : Qp) (L : Log) (c : Int) : IProp GF := api.revMuAbs γ.api q L c
 
 /-- The writer's part of the pending revision (§1): a quarter for a watchable store (another
 quarter is `watchStoreBody`'s), half for a plain one. -/
 def pndW (γ : StoreNames) : Qp := if γ.watchQ then (1 : Qp).half.half else (1 : Qp).half
 
+/-- The pending revision's other parts, by the store's kind (`pndW`'s complement). -/
+theorem pndW_compl (wq : Bool) :
+    ∃ pr : Qp, (if wq then (1 : Qp).half.half else (1 : Qp).half) + pr = 1 := by
+  apply Qp_split_1
+  cases wq
+  · simp only [Bool.false_eq_true, ↓reduceIte]; exact Qp_div_2_lt 1
+  · simp only [↓reduceIte]
+    have h1 := Qp_div_2_lt (1 : Qp).half
+    have h2 := Qp_div_2_lt (1 : Qp)
+    simp only [Qp.lt_iff] at *; grind
+
 /-- **The writer's state's slot**: the API's writer quarter of the view and its part of the
 pending revision at `none`. -/
-def slotY (γ : StoreNames) (L : Log) : IProp GF :=
-  match γ.api with
-  | none => iprop(emp)
-  | some a => api.writerAbs a (pndW γ) L
+def slotY (γ : StoreNames) (L : Log) : IProp GF := api.writerAbs γ.api (pndW γ) L
 
-/-- **The frozen state's deposit**: the whole backend share token (none for today's store: the
-frozen state is impossible). -/
-def slotF (γ : StoreNames) : IProp GF :=
-  match γ.api with
-  | none => iprop(False)
-  | some a => api.shareTok a 1
+/-- **The frozen state's deposit**: the whole backend share token. -/
+def slotF (γ : StoreNames) : IProp GF := api.shareTok γ.api 1
 
-/-- **The restorer's deposit**: the whole backend share token (nothing for today's store). -/
-def slotFr (γ : StoreNames) : IProp GF :=
-  match γ.api with
-  | none => iprop(emp)
-  | some a => api.shareTok a 1
+/-- **The restorer's deposit**: the whole backend share token. -/
+def slotFr (γ : StoreNames) : IProp GF := api.shareTok γ.api 1
 
-/-- **The frozen flag's part `q` at `b`** (today's store: down, nothing owned). -/
-def slotFl (γ : StoreNames) (q : Qp) (b : Bool) : IProp GF :=
-  match γ.api with
-  | none => iprop(⌜b = false⌝)
-  | some a => ghostVar a.frz q b
+/-- **The frozen flag's part `q` at `b`.** -/
+def slotFl (γ : StoreNames) (q : Qp) (b : Bool) : IProp GF := ghostVar γ.api.frz q b
 
 instance slotX_fractional (γ : StoreNames) (L : Log) (c : Int) :
     Fractional (fun q => slotX (GF := GF) γ q L c) where
   fractional q1 q2 := by
     unfold slotX
-    cases γ.api with
-    | none => exact emp_sep.symm
-    | some a => exact (api.revMuAbs_fractional a L c).fractional q1 q2
+    exact (api.revMuAbs_fractional γ.api L c).fractional q1 q2
 
 theorem slotX_withPhys (γ : StoreNames) (p : PhysNames) :
     slotX (GF := GF) (γ.withPhys p) = slotX γ := rfl
@@ -513,34 +504,6 @@ theorem slotFr_withPhys (γ : StoreNames) (p : PhysNames) :
     slotFr (GF := GF) (γ.withPhys p) = slotFr γ := rfl
 theorem slotFl_withPhys (γ : StoreNames) (p : PhysNames) :
     slotFl (GF := GF) (γ.withPhys p) = slotFl γ := rfl
-
-/-- Today's store's slots are trivial. -/
-theorem slotX_none {γ : StoreNames} (h : γ.api = none) (q : Qp) (L : Log) (c : Int) :
-    ⊢ slotX (GF := GF) γ q L c := by
-  unfold slotX; rw [h]; iempintro
-/-- Today's store's lock slot moves with the lock's log and compaction revision. -/
-theorem slotX_change {γ : StoreNames} (h : γ.api = none) {q : Qp} {L : Log} {c : Int} (L' : Log)
-    (c' : Int) : slotX (GF := GF) γ q L c ⊢ slotX γ q L' c' := by
-  unfold slotX; simp only [h]; exact .rfl
-/-- Today's store's writer slot moves with the writer's log. -/
-theorem slotY_change {γ : StoreNames} (h : γ.api = none) {L : Log} (L' : Log) :
-    slotY (GF := GF) γ L ⊢ slotY γ L' := by
-  unfold slotY; simp only [h]; exact .rfl
-theorem slotY_none {γ : StoreNames} (h : γ.api = none) (L : Log) :
-    ⊢ slotY (GF := GF) γ L := by
-  unfold slotY; rw [h]; iempintro
-theorem slotFr_none {γ : StoreNames} (h : γ.api = none) :
-    ⊢ slotFr (GF := GF) γ := by
-  unfold slotFr; rw [h]; iempintro
-theorem slotFl_none {γ : StoreNames} (h : γ.api = none) (q : Qp) :
-    ⊢ slotFl (GF := GF) γ q false := by
-  unfold slotFl; simp only [h]; ipureintro; trivial
-theorem slotF_none {γ : StoreNames} (h : γ.api = none) :
-    slotF (GF := GF) γ ⊢ False := by
-  unfold slotF; simp only [h]; exact .rfl
-theorem slotFl_none_true {γ : StoreNames} (h : γ.api = none) (q : Qp) :
-    slotFl (GF := GF) γ q true ⊢ False := by
-  unfold slotFl; simp only [h]; iintro %H; exact absurd H (by decide)
 
 /-- **The store's current objects and physical names are `o` and `γ`'s**, at the fraction `dq`
 (D22 receiver epochs, S5b: until then `objsPin`, a discarded pin of the objects): a part of the
@@ -4787,8 +4750,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hwi" ∷ writerInv s γ ∗
     "#Hpool" ∷ readerPool γ ∗
     "#Hc0" ∷ idxCert γ.idx [[], []] ∗
-    "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝ ∗
-    "%Hapi" ∷ ⌜γ.api = none⌝)
+    "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝)
 
 /-- **A store reads only its logical names** (D22 receiver epochs, S5b). -/
 theorem isStore_withPhys (s : Loc) (γ : StoreNames) (p : PhysNames) :
@@ -6198,19 +6160,6 @@ theorem writerInv_checkoutG (s : Loc) (γ : StoreNames) (G : IProp GF)
     iapply hFG
     iframe HF HG
 
-/-- `writerInv_checkoutG` for today's store (`γ.api = none`: no frozen state). -/
-theorem writerInv_checkout (s : Loc) (γ : StoreNames) (hapi : γ.api = none) (dq : DFrac)
-    (o : StoreObjs) :
-    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
-      writerL s γ ∗ storeRegd s γ ∗
-      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketViewL γ (1 : Qp).half.half L ∗
-        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
-  iintro Hlc #Hi Hpin HW Hd
-  imod writerInv_checkoutG s γ iprop(emp) (by iintro ⟨HF, -⟩; iapply slotF_none hapi $$ HF) dq o
-    $$ Hlc Hi [] Hpin HW Hd with ⟨HL, Hrg, -, HR, Hpin⟩
-  · iempintro
-  imodintro; iframe HL Hrg HR Hpin
-
 /-- **A writer checks the writer's state back in** (one later credit), at its pin, getting the
 batch lock's key and its part of `s.mu`'s deposit ghost back: the state is out (a second state's
 half of the view's log ghost, with the writer's and the batch lock's, would be three halves); the
@@ -6257,18 +6206,6 @@ theorem writerInv_checkinG (s : Loc) (γ : StoreNames) (G : IProp GF) (hFG : slo
   · iexfalso
     iapply hFG
     iframe HF HG
-
-/-- `writerInv_checkinG` for today's store. -/
-theorem writerInv_checkin (s : Loc) (γ : StoreNames) (hapi : γ.api = none) (L : Log) (dq : DFrac)
-    (o : StoreObjs) :
-    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ writerL s γ -∗
-      ghostVar γ.wv (1 : Qp).half L ={⊤}=∗
-      writerKey γ ∗ wDep γ ∗ ghostVar γ.wv (1 : Qp).half L ∗ curAt γ dq o := by
-  iintro Hlc #Hi Hpin HL Hv
-  imod writerInv_checkinG s γ iprop(emp) (by iintro ⟨HF, -⟩; iapply slotF_none hapi $$ HF) L dq o
-    $$ Hlc Hi [] Hpin HL Hv with ⟨Hk, Hd, -, Hv, Hpin⟩
-  · iempintro
-  imodintro; iframe Hk Hd Hv Hpin
 
 /-- **A transaction checks a slot out of the readers' pool** (one later credit), with an idle
 reader's ticket and its deposit (it holds `s.mu` shared), at a part of the current objects and

@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
 
@@ -124,8 +125,9 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- the writer's state, checked out of the writer's invariant (D22 receiver epochs, S2): the
   -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited; the store
   -- registered in its backend (S6: now, if a restore left it pending)
-  imod mvcc.writerInv_checkout s γ Hapi _ ow $$ Hlc2 Hwi Hpinw HW Hwr
-    with ⟨HL, #Hreg, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
+  imod mvcc.writerInv_checkoutG s γ iprop(emp) (mvcc.slotF_excl_M1 γ) _ ow $$ Hlc2 Hwi [] Hpinw HW Hwr
+    with ⟨HL, #Hreg, -, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
+  · iempintro
   iunfold mvcc.writerL at HL
   icases HL with ⟨%ilog, %ntok, HL⟩
   iNamed HL

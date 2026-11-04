@@ -4,6 +4,7 @@ The hypotheses are the callees' specs, in the order of `etc/link-lean-first-mvcc
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
@@ -155,7 +156,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         simp only [List.append_assoc, List.cons_append, List.nil_append]
         iframe Hq Hpost HRq Hwq
       (try wp_auto)
-      ihave HX := mvcc.slotX_change Hapi log c' $$ HX
+      ihave HX := mvcc.slotX_step_M1 log c' $$ HX
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HX HrstR]
       · iframe #
         inext
@@ -357,7 +358,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       inext
       iintro ⟨HRTok, -⟩
       (try wp_auto)
-      ihave HX := mvcc.slotX_change Hapi log (sint.Z rev) $$ HX
+      ihave HX := mvcc.slotX_step_M1 log (sint.Z rev) $$ HX
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HX HrstR]
       · iframe #
         inext

@@ -208,6 +208,39 @@ compaction revision, and its part `pw` of the pending revision, at `none` (while
 def writerAbs (a : AbsNames) (pw : Qp) (L : Log) : IProp GF :=
   iprop(∃ c : Int, absPart a (1 : Qp).half.half L c ∗ pndPart a pw none)
 
+/-- **A new store's API ghost state, split as §1 gives** (strict M1, 2026-11-04: `NewStore`): the
+lock's slot (`revMuAbs` at the whole lock), the writer's (`writerAbs` at its part `pw` of the
+pending revision), the frozen flag down; and the client's parts (half the view, the pending
+revision's rest `pr`, half the compaction authority and its lower bound, the whole share token)
+and the compaction right's quarter of the authority. -/
+theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) :
+    ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗ writerAbs a pw L ∗ ghostVar a.frz 1 false ∗
+      absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
+      crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 := by
+  iintro
+  imod absNames_alloc (GF := GF) L c none with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf⟩
+  have ha1 := (absPart_fractional (GF := GF) a L c).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at ha1
+  icases ha1.1 $$ Ha with ⟨Ha1, Ha2⟩
+  have ha2 := (absPart_fractional (GF := GF) a L c).fractional (1 : Qp).half.half (1 : Qp).half.half
+  rw [Qp.half_add_half] at ha2
+  icases ha2.1 $$ Ha2 with ⟨Ha3, Ha4⟩
+  have hc1 := (crevAuth_fractional (GF := GF) a c).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hc1
+  icases hc1.1 $$ Hc with ⟨Hc1, Hc2⟩
+  have hc2 := (crevAuth_fractional (GF := GF) a c).fractional (1 : Qp).half.half (1 : Qp).half.half
+  rw [Qp.half_add_half] at hc2
+  icases hc2.1 $$ Hc2 with ⟨Hc3, Hc4⟩
+  have hp' := (pndPart_fractional (GF := GF) a none).fractional pw pr
+  rw [hp] at hp'
+  icases hp'.1 $$ Hp with ⟨Hpw, Hpr⟩
+  imodintro
+  iexists a
+  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb
+  isplitl [Ha3 Hc3]
+  · iunfold revMuAbs; iframe Ha3 Hc3
+  · iunfold writerAbs; iexists c; iframe Ha4 Hpw
+
 end ghost
 
 end api

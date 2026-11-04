@@ -223,6 +223,10 @@ theorem mvcc.NewStore.wp_proof
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   -- (C3's store law) the compaction permit, fixed
   imod mvcc.crevPermIs_alloc Perm with ⟨%γcp, #Hcp⟩
+  -- (the mvcc API, strict M1) the API's ghost names at the start: the lock's and the writer's slots
+  -- and the frozen flag kept; the client's parts dropped (today's spec returns none of them)
+  obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
+  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr) with ⟨%γa, HXa, HYa, HFla, -⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi⟩ :
       ∃ γ : mvcc.StoreNames,
@@ -230,9 +234,9 @@ theorem mvcc.NewStore.wp_proof
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = none :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = γa :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, none⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, γa⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave #HcpIs : mvcc.crevPermIs γ Perm $$ []
@@ -459,8 +463,8 @@ theorem mvcc.NewStore.wp_proof
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave HY : mvcc.slotY γ [[], []] $$ []
-  · iapply mvcc.slotY_none hγapi
+  ihave HY : mvcc.slotY γ [[], []] $$ [HYa]
+  · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]; iexact HYa
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
@@ -472,11 +476,11 @@ theorem mvcc.NewStore.wp_proof
     exact ⟨by simp, by simp⟩
   -- (S6) the writer's state with the store registered
   imod (inv_alloc mvcc.writerN ⊤ (mvcc.writerInvBody «$r0_ptr» γ))
-    $$ [HL HcurWi] with #Hwi
+    $$ [HL HcurWi HFla] with #Hwi
   · inext; iunfold mvcc.writerInvBody; ileft
     iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft
-    isplitr
-    · iapply mvcc.slotFl_none hγapi
+    isplitl [HFla]
+    · unfold mvcc.slotFl; rw [hγapi]; iexact HFla
     ileft; iframe HL
     iexact HrgI
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
@@ -526,7 +530,7 @@ theorem mvcc.NewStore.wp_proof
     · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
   icases Hsplit with ⟨Hil, HlogQ⟩
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
-    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR HcurRev] revMu with Hrevs
+    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR HcurRev HXa] revMu with Hrevs
   · inext
     iapply (mvcc.revMuInv_close «$r0_ptr» γ γ)
     isplitr [HrstR HcurRev]
@@ -547,7 +551,7 @@ theorem mvcc.NewStore.wp_proof
     · ipureintro; simp
     isplitl []
     · ipureintro; simp
-    iapply mvcc.slotX_none hγapi
+    unfold mvcc.slotX; rw [hγapi]; iexact HXa
   icases sync.ownRWMutex_slots_guard _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the four fields `store.Restore` writes (D22 receiver epochs, S3): half to `s.mu`, the rest to
   -- `restore` (lent), then a quarter each to the right to close and the watchable store's share
@@ -619,7 +623,7 @@ theorem mvcc.NewStore.wp_proof
     iexists (lease.lessorIface lp), lg', cfg2, hp
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0, hγapi⟩
+    ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
   ihave Hok' : (ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) : IProp GF) $$ [Hok]
   · rw [hγok]; iexact Hok
   ihave Hro : (∃ rd : GoFunc, lease.rdOwn γl rd) $$ [Hro]

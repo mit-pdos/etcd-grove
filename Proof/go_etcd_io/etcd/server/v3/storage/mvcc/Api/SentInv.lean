@@ -1,6 +1,12 @@
 /-
-**Probe: `wsRecvOk` from what each response records at its send** (2026-11-04, before any ghost
-work for `wsRecv_ok.law`). `notes/mvcc-api-invariants.md` §2 (`wsRecv`) says the consumer's view
+**`wsRecvOk` from what each response records at its send** (the pure core of the stream's
+channel invariant, stage 1 of the mvcc API proof; formerly probe M1,
+`notes/mvcc-api-probes/WsRecvOkProbe.lean`, 2026-11-04, moved here unchanged but for the
+namespace: `notes/mvcc-api-risk.md`). The channel invariant keeps `SentInv` (its sent list's
+facts), and `wsRecv_ok.law` is `wsRecvOk_of_sent` at the received prefix (`SentInv.take`).
+Lean-first (no Rocq counterpart).
+
+The probe's account, as written then: `notes/mvcc-api-invariants.md` §2 (`wsRecv`) says the consumer's view
 holds, for each received response, pure facts and persistent ghost elements only. This file asks
 whether the frozen pure guarantee `wsRecvOk` follows from such facts, with every other premise
 one an invariant keeps under monotone ghost state (the notified log and the compaction revision
@@ -48,7 +54,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace mvcc
 namespace api
-namespace probe
+namespace sent
 
 open go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -532,7 +538,7 @@ theorem SentInv.step {σ σ' S D F} (h : SentInv σ S D F) (hl : σ.notifiedLog 
     (hc : σ.crev ≤ σ'.crev) : SentInv σ' S D F :=
   { h with lbs := lbsOk_mono hl hc h.lbs }
 
-end probe
+end sent
 end api
 end mvcc
 end EtcdGrove
