@@ -57,7 +57,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-instance srcOwn_persistent (v : View) (s : GoSlice) (src : Src) (bs : List w8) :
+instance srcOwn_persistent_r (v : View) (s : GoSlice) (src : Src) (bs : List w8) :
     Persistent (srcOwn (GF := GF) v s src bs) := by
   cases src <;> unfold srcOwn <;> infer_instance
 
@@ -124,6 +124,107 @@ theorem rd_src (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : Vi
     unfold srcOwn
     ipureintro
     exact ⟨inViewLoc_page v pid pg' hpg off n hn, by rw [hl]; exact hn32, by rw [hl], by rw [hl]⟩
+
+/-- **The reader's view's cells**, out of `rdTxK` and back. -/
+theorem rdTxK_cells_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
+    rdTxK (GF := GF) K tx src q T v ⊢ ∃ qc, viewCells qc v ∗
+      (viewCells qc v -∗ rdTxK K tx src q T v) := by
+  unfold rdTxK rtxFrac
+  iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, %Hf⟩, Hpool⟩
+  iexists _
+  iframe Hcells
+  iintro Hcells
+  iexists r, c, mv, k
+  iframe; iframe #
+  isplitr
+  · ipureintro; exact Hc
+  ipureintro; exact Hf
+
+/-- The reader's view's base is a mapped address. -/
+theorem rdTxK_base_pos (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
+    rdTxK (GF := GF) K tx src q T v ⊢ ⌜0 < v.base.addr⌝ := by
+  unfold rdTxK rtxFrac
+  iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells,
+      ⟨%l, Hg, Hmf, %Hl⟩, #Hvo, %Hf⟩, Hpool⟩
+  iapply mapFields_base_nonnull
+  iexact Hmf
+
+omit hos [GooseSemantics] go_gctx sem package_sem in
+/-- The view's cells split by fraction. -/
+theorem viewCells_split_r (q1 q2 : Qp) (v : View) :
+    viewCells (GF := GF) (q1 + q2) v ⊣⊢ viewCells q1 v ∗ viewCells q2 v := by
+  unfold viewCells
+  rw [← BigSepM.bigSepM_sep_eq]
+  constructor
+  · apply BigSepM.bigSepM_mono_of_forall
+    intro k x
+    exact ((bytesPointsto_dfractional (GF := GF) _ x).dfractional (DFrac.own q1) (DFrac.own q2)).1
+  · apply BigSepM.bigSepM_mono_of_forall
+    intro k x
+    exact ((bytesPointsto_dfractional (GF := GF) _ x).dfractional (DFrac.own q1) (DFrac.own q2)).2
+
+/-- **A live slice's bytes, read** (persistent bytes, or bytes of the view through its cells),
+and back. -/
+theorem viewCells_src_acc (qc : Qp) (v : View) (hb : 0 < v.base.addr) (s : GoSlice) (sr : Src)
+    (bs : List w8) (hs : sr ≠ Src.stale) :
+    srcOwn (GF := GF) v s sr bs ∗ viewCells qc v ⊢ ∃ dq : DFrac, s ↦*{dq} bs ∗
+      (s ↦*{dq} bs -∗ viewCells qc v) := by
+  cases sr with
+  | stale => exact absurd rfl hs
+  | own d =>
+    unfold srcOwn
+    iintro ⟨#Hs, Hv⟩
+    iexists DFrac.discard
+    iframe Hs
+    iintro _
+    iexact Hv
+  | view =>
+    unfold srcOwn
+    iintro ⟨%Hin, Hv⟩
+    obtain ⟨hl, hlen, hsl, hsc⟩ := Hin
+    have hpos : 0 < s.ptr.addr := by
+      obtain ⟨id, pg, off, -, -, -, hp⟩ := hl
+      rw [hp]; simp [Loc.add]; omega
+    have hs' : s = slice.mk s.ptr (W64 (bs.length : Int)) (W64 (bs.length : Int)) := by
+      cases s; simp only at hsl hsc ⊢; rw [hsl, hsc]
+    have Ho := Read.bytesPointsto_ownSlice (GF := GF) s.ptr (DFrac.own 1) bs hpos (by omega)
+    icases viewCells_loc_acc qc v s.ptr bs hl $$ Hv with ⟨%dq, Hb, Hback⟩
+    have Ho := Read.bytesPointsto_ownSlice (GF := GF) s.ptr dq bs hpos (by omega)
+    rw [← hs'] at Ho
+    iexists dq
+    icases Ho.1 $$ Hb with Hb
+    iframe Hb
+    iintro Hb
+    iapply Hback
+    iapply Ho.2
+    iexact Hb
+
+/-- **Two live slices' bytes, read together** out of `rdTxK`, and back. -/
+theorem rdTxK_src2_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (s1 s2 : GoSlice) (r1 r2 : Src) (b1 b2 : List w8) (h1 : r1 ≠ Src.stale)
+    (h2 : r2 ≠ Src.stale) :
+    rdTxK (GF := GF) K tx src q T v ∗ srcOwn v s1 r1 b1 ∗ srcOwn v s2 r2 b2 ⊢
+      ∃ d1 d2 : DFrac, s1 ↦*{d1} b1 ∗ s2 ↦*{d2} b2 ∗
+        (s1 ↦*{d1} b1 -∗ s2 ↦*{d2} b2 -∗ rdTxK K tx src q T v) := by
+  iintro ⟨Hk, #H1, #H2⟩
+  ihave %Hb := rdTxK_base_pos K tx src q T v $$ Hk
+  icases rdTxK_cells_acc K tx src q T v $$ Hk with ⟨%qc, Hc, Hk⟩
+  rw [← Qp.half_add_half qc]
+  icases (viewCells_split_r qc.half qc.half v).1 $$ Hc with ⟨Hc1, Hc2⟩
+  icases viewCells_src_acc qc.half v Hb s1 r1 b1 h1 $$ [Hc1] with ⟨%d1, Hs1, Hb1⟩
+  · iframe; iframe #
+  icases viewCells_src_acc qc.half v Hb s2 r2 b2 h2 $$ [Hc2] with ⟨%d2, Hs2, Hb2⟩
+  · iframe; iframe #
+  iexists d1, d2
+  iframe Hs1 Hs2
+  iintro Hs1 Hs2
+  ihave Hc1 := Hb1 $$ Hs1
+  ihave Hc2 := Hb2 $$ Hs2
+  iapply Hk
+  iapply (viewCells_split_r qc.half qc.half v).2
+  iframe
 
 end src
 

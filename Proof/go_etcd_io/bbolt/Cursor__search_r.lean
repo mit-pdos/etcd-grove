@@ -18,6 +18,7 @@ public import Perennial.Spec.bytes.Compare
 public import Proof.go_etcd_io.bbolt.Read.SearchEv
 public import Proof.go_etcd_io.bbolt.Read.Search
 public import Proof.go_etcd_io.bbolt.Read.TreeFacts
+public import Proof.go_etcd_io.bbolt.Read.Route
 
 @[expose] public section
 
@@ -31,25 +32,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 
 section facts
 variable [GooseExts]
-
-/-- The page at a well-formed position: a leaf, or a branch whose children are well-formed
-positions. -/
-theorem rTree_page (v : View) (bv : List w8) (pp : Loc) (pid : Nat) (ht : rTree v bv pid) :
-    ∃ l pg, rPageAt v bv pp pid = some (l, pg) ∧ 16 ≤ pg.length ∧
-      ((pageFlags pg = leafPageFlag ∧ leafWF pg pg.length) ∨
-       (pageFlags pg = branchPageFlag ∧ inBucketRoot bv ≠ 0 ∧ v.pages !! pid = some pg ∧
-        ∃ hwm, branchWF pg pg.length hwm ∧
-          ∀ i < pageCount pg, rTree v bv (branchPgid pg i))) := by
-  rcases ht with ⟨hi, rfl, hfl, hwf⟩ | ⟨hi, hwm, hw⟩
-  · refine ⟨pp, inlinePage bv, by simp [rPageAt, hi], ?_, Or.inl ⟨hfl, hwf⟩⟩
-    have := hwf.2.1; unfold elemOff at this; omega
-  · cases hw with
-    | page _ pg h2 hlt hpg hid hlen hpt =>
-      refine ⟨pageLoc v pid, pg, by simp [rPageAt, hi, hpg], by rw [hlen]; omega, ?_⟩
-      cases hpt with
-      | leaf _ _ hf hl _ => exact Or.inl ⟨hf, hl⟩
-      | branch _ _ hf hb hch =>
-        exact Or.inr ⟨hf, hi, hpg, hwm, hb, fun i hi' => Or.inr ⟨hi, hwm, hch i hi'⟩⟩
 
 /-- The search predicate of `searchPage`: branch key `i` is not below `kb`. -/
 def spPred (pg : List w8) (kb : List w8) (i : Int) : Bool :=

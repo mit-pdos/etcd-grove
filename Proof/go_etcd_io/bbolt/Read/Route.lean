@@ -44,6 +44,25 @@ theorem keyIn_child (lo hi : Option (List w8)) (ks : Nat → List w8) (cnt j : N
 
 variable [GooseExts]
 
+/-- The page at a well-formed position: a leaf, or a branch whose children are well-formed
+positions. -/
+theorem rTree_page (v : View) (bv : List w8) (pp : Loc) (pid : Nat) (ht : rTree v bv pid) :
+    ∃ l pg, rPageAt v bv pp pid = some (l, pg) ∧ 16 ≤ pg.length ∧
+      ((pageFlags pg = leafPageFlag ∧ leafWF pg pg.length) ∨
+       (pageFlags pg = branchPageFlag ∧ inBucketRoot bv ≠ 0 ∧ v.pages !! pid = some pg ∧
+        ∃ hwm, branchWF pg pg.length hwm ∧
+          ∀ i < pageCount pg, rTree v bv (branchPgid pg i))) := by
+  rcases ht with ⟨hi, rfl, hfl, hwf⟩ | ⟨hi, hwm, hw⟩
+  · refine ⟨pp, inlinePage bv, by simp [rPageAt, hi], ?_, Or.inl ⟨hfl, hwf⟩⟩
+    have := hwf.2.1; unfold elemOff at this; omega
+  · cases hw with
+    | page _ pg h2 hlt hpg hid hlen hpt =>
+      refine ⟨pageLoc v pid, pg, by simp [rPageAt, hi, hpg], by rw [hlen]; omega, ?_⟩
+      cases hpt with
+      | leaf _ _ hf hl _ => exact Or.inl ⟨hf, hl⟩
+      | branch _ _ hf hb hch =>
+        exact Or.inr ⟨hf, hi, hpg, hwm, hb, fun i hi' => Or.inr ⟨hi, hwm, hch i hi'⟩⟩
+
 /-- The keys of a tree's leaves are within the tree's bounds. -/
 theorem leavesF_keyIn (P : Pages) : ∀ (n id : Nat) (lo hi : Option (List w8)),
     treeKeys P id lo hi → ∀ pg ∈ leavesF n P id, ∀ i < pageCount pg, keyIn lo hi (leafKey pg i)
@@ -195,6 +214,62 @@ theorem rRoute_inline (v : View) (bv : List w8) (pp : Loc) (k : List w8)
       obtain ⟨_, rfl⟩ := hpa
       rw [hfl] at hfl'; simp [branchPageFlag, leafPageFlag] at hfl'
   · exact absurd hi hi'
+
+/-- A leaf's search index is at most its element count (below `2 ^ 16`). -/
+theorem pageSeekIdx_le (pg : List w8) (k : List w8) :
+    pageSeekIdx pg k ≤ pageCount pg ∧ pageCount pg < 2 ^ 16 := by
+  refine ⟨?_, by unfold pageCount; exact BitVec.isLt _⟩
+  unfold pageSeekIdx
+  exact Nat.le_trans (List.takeWhile_sublist _).length_le (by simp)
+
+/-- **A route ends at a leaf element** of a well-formed page (a page reference, at the key's
+search index). -/
+theorem rRoute_last (v : View) (bv : List w8) (pp : Loc) (k : List w8) :
+    ∀ (path : List elemRef) (pid : Nat), rTree v bv pid → rRoute v bv pp k pid path →
+      ∃ els e pid' pg, path = els ++ [e] ∧ rPageAt v bv pp pid' = some (e.page', pg) ∧
+        e.node' = null ∧ pageFlags pg = leafPageFlag ∧ leafWF pg pg.length ∧ 16 ≤ pg.length ∧
+        e.index' = W64 (pageSeekIdx pg k : Int)
+  | [], _, _, hr => absurd hr (by simp [rRoute])
+  | [e], pid, ht, ⟨pg, hpa, hnode, hfl, hidx⟩ => by
+    obtain ⟨l, pg', hpa', h16, hpg⟩ := rTree_page v bv pp pid ht
+    rw [hpa] at hpa'; cases hpa'
+    rcases hpg with ⟨_, hwf⟩ | ⟨hb, _⟩
+    · exact ⟨[], e, pid, pg, by simp, hpa, hnode, hfl, hwf, h16, hidx⟩
+    · rw [hfl] at hb; simp [branchPageFlag, leafPageFlag] at hb
+  | e :: e' :: es, pid, ht, ⟨pg, hpa, hnode, hfl, hbr, hrt⟩ => by
+    obtain ⟨l, pg', hpa', h16, hpg⟩ := rTree_page v bv pp pid ht
+    rw [hpa] at hpa'; cases hpa'
+    rcases hpg with ⟨hl, _⟩ | ⟨_, _, _, _, _, hch⟩
+    · rw [hfl] at hl; simp [branchPageFlag, leafPageFlag] at hl
+    · obtain ⟨els, e2, pid2, pg2, he, h2⟩ :=
+        rRoute_last v bv pp k (e' :: es) _ (hch _ hbr.1) hrt
+      exact ⟨e :: els, e2, pid2, pg2, by rw [he]; rfl, h2⟩
+
+/-- The page a reader bucket's position names is determined by its location. -/
+theorem rPageAt_det (v : View) (bv : List w8) (pp : Loc) (pid pid' : Nat) (l : Loc)
+    (pg pg' : List w8) (h : rPageAt v bv pp pid = some (l, pg))
+    (h' : rPageAt v bv pp pid' = some (l, pg')) : pg = pg' := by
+  unfold rPageAt at h h'
+  by_cases hi : inBucketRoot bv = 0
+  · rw [if_pos hi] at h h'
+    by_cases h0 : pid = 0
+    · by_cases h0' : pid' = 0
+      · rw [if_pos h0] at h; rw [if_pos h0'] at h'
+        simp only [Option.some.injEq, Prod.mk.injEq] at h h'
+        rw [← h.2, ← h'.2]
+      · rw [if_neg h0'] at h'; cases h'
+    · rw [if_neg h0] at h; cases h
+  · rw [if_neg hi] at h h'
+    obtain ⟨p1, hp1, he1⟩ := Option.map_eq_some_iff.mp h
+    obtain ⟨p2, hp2, he2⟩ := Option.map_eq_some_iff.mp h'
+    simp only [Prod.mk.injEq] at he1 he2
+    have hl : pageLoc v pid = pageLoc v pid' := by rw [he1.1, he2.1]
+    have hid : pid = pid' := by
+      have := congrArg Loc.addr hl
+      unfold pageLoc at this; simp [Loc.add] at this; omega
+    subst hid
+    rw [hp1] at hp2; cases hp2
+    rw [← he1.2, ← he2.2]
 
 end route
 
