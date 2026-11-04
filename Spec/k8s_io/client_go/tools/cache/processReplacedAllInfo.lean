@@ -36,15 +36,17 @@ exclusive writer at `σ`, a relist of the objects `objs` (meeting `OK`) at versi
 the cache's key function `kf` and by `kf'` alike (`KF`): the store becomes
 `σ.replace (keyedItems KF objs) rv` (one atomic `Replace`), then the handler gets a deletion for
 each store key the relist lacks (`delKeys`, in some order), then an update or add for each listed
-object, in order (`replacedEvs`). -/
+object, in order (`replacedEvs`), each with its facts `EF`, which the caller gives (`evsOk`). -/
 abbrev processReplacedAllInfo.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (SW : St → IProp GF) (Rw : St → St → Prop) (σ : St) (H : List Ev → IProp GF)
+    (EF : Ev → IProp GF)
     (evs : List Ev) (rv : GoString) (isl : GoSlice) (objs : List GoInterface) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗ SW σ ∗
-      ⌜Rw σ σ ∧ Rw σ (σ.replace (keyedItems KF objs) rv)⌝ ∗ handlerOk OK h H ∗ H evs ∗
+      ⌜Rw σ σ ∧ Rw σ (σ.replace (keyedItems KF objs) rv)⌝ ∗ handlerOk OK EF h H ∗ H evs ∗
+      evsOk EF KF b σ (.replaced objs rv) ∗
       isl ↦* objs ∗ □ ([∗list] x ∈ objs, OK x) ∗
       keyOk (fun x => iprop(⌜x ∈ objs⌝)) kf KF ∗ keyOk (fun x => iprop(⌜x ∈ objs⌝)) kf' KF }}
     (App (App (App (App (App (App (Val (@! processReplacedAllInfo)) (Val #lg)) (Val #h))

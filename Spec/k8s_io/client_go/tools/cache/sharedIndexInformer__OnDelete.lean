@@ -24,14 +24,14 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`s.OnDelete(o)`** with the informer's view `infH` of the events `evs` it handled: the delete
-is the `evs.length`-th event, sent to every listener. In an execution of fewer than `2^63` Go
+is the `evs.length`-th event, sent to every listener with its facts (`EF`). In an execution of fewer than `2^63` Go
 steps. -/
 abbrev sharedIndexInformer.OnDelete.spec : Prop :=
-  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (o : GoInterface),
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (EF : Ev → IProp GF) (evs : List Ev) (o : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗
-      infH p γp γe evs }}
+      infH p γp γe EF evs ∗ □ EF (Ev.delete o) }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"OnDelete")) (Val #o))
-  {{ RET #(); infH p γp γe (evs ++ [Ev.delete o]) }}
+  {{ RET #(); infH p γp γe EF (evs ++ [Ev.delete o]) }}
 
 end spec
 

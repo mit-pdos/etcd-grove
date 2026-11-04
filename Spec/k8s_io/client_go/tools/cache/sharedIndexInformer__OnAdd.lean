@@ -24,15 +24,15 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`s.OnAdd(o, b)`** with the informer's view `infH` of the events `evs` it handled: the add
-is the `evs.length`-th event, sent to every listener. In an execution of fewer than `2^63` Go
+is the `evs.length`-th event, sent to every listener with its facts (`EF`). In an execution of fewer than `2^63` Go
 steps (`distribute`'s). -/
 abbrev sharedIndexInformer.OnAdd.spec : Prop :=
-  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (o : GoInterface) (b : Bool),
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (EF : Ev → IProp GF) (evs : List Ev) (o : GoInterface) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗
-      infH p γp γe evs }}
+      infH p γp γe EF evs ∗ □ EF (Ev.add o b) }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"OnAdd")) (Val #o))
       (Val #b))
-  {{ RET #(); infH p γp γe (evs ++ [Ev.add o b]) }}
+  {{ RET #(); infH p γp γe EF (evs ++ [Ev.add o b]) }}
 
 end spec
 

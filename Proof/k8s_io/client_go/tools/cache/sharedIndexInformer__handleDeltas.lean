@@ -27,9 +27,9 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.handleDeltas.wp_proof
     (wp_pD : processDeltas.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.handleDeltas.spec (GF := GF) (hG := hG) := by
-  intro s lg ca ts γ OK Fam kf kf' KF rvOf SW Rw H BL d v sl b P Q
-  wp_start as ⟨#Hidx, #Hkf, #Hca, Hr, #Hsw, %HRw, #Hmu, #Hh, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc, HP,
-    Hstep⟩
+  intro s lg ca ts γ OK Fam kf kf' KF rvOf SW Rw H BL d v sl b EF P0 P Q
+  wp_start as ⟨#Hidx, #Hkf, #Hca, Hr, #Hsw, %HRw, #Hmu, #Hh, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc, HP0,
+    Hpeek, Hstep⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -39,10 +39,11 @@ theorem sharedIndexInformer.handleDeltas.wp_proof
     (blockDeltasRes SW H BL)) $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold blockDeltasRes at HR
   icases HR with ⟨%σ, %evs, HSW, HH, HBL⟩
+  imod Hpeek $$ %σ HSW HP0 with ⟨HSW, HP, #Hev⟩
   (try wp_auto)
   simp only [siiObj]
-  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf (fun σ => iprop(SW σ ∗ P)) Rw σ H evs d v sl b)
-    $$ [$Hpkg $Hca $Hr $Hsw $HSW $HP $Hh $HH $Hfd $Hsl $Hkey $Hkey' $Hacc]
+  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf (fun σ => iprop(SW σ ∗ P)) Rw σ H EF evs d v sl b)
+    $$ [$Hpkg $Hca $Hr $Hsw $HSW $HP $Hh $HH $Hev $Hfd $Hsl $Hkey $Hkey' $Hacc]
     as ⟨%σ', %evs', %Hst, ⟨HSW, HP⟩, HH, Hsl, Hr⟩
   · ipureintro; exact ⟨HRw σ, Hkind⟩
   ihave HQ := Hstep $$ %σ %evs %σ' %evs' HP HSW HBL %Hst

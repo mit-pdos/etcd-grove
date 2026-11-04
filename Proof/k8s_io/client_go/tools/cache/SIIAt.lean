@@ -81,10 +81,11 @@ def siiAt (s : Loc) (γa : ApiNames)
     sync.isMutex (s.[sharedIndexInformer, go!"startedLock"]) (siiLocked s I))
 
 /-- **The informer's listeners' contract on their `i`-th event** (the processor's `QP`, one for
-all listeners): the informer's `i`-th event (`notifQ`), with its facts (`evFacts`). (Its delivery
-from the informer's handling of a delta, `handleDeltas`, is the next step: the run's report.) -/
+all listeners): the informer's `i`-th event (`notifQ`), with its facts (`evFacts`): the informer's
+view `infH p γp γe (evFacts γa r γi)` sends it (`notifQE`), its `OnAdd`/`OnUpdate`/`OnDelete` being
+handed each event's facts by the store writer (`handlerOk`, `evsOk`). -/
 def infEvQ (γa : ApiNames) (r : Res) (γi : InfNames) (γe : GName) (i : Nat) (e : Ev) : IProp GF :=
-  iprop(notifQ γe i e ∗ □ evFacts γa r γi e)
+  notifQE γe (evFacts γa r γi) i e
 
 open Iris.ProofMode in
 /-- **A listener's contract weakens with its events' contract.** -/
@@ -118,7 +119,7 @@ theorem handlerSpec_lhOk (γa : ApiNames) (r : Res) (γi : InfNames) (γe : GNam
   unfold handlerSpec
   apply lhOk_mono
   intro i e
-  unfold infEvQ
+  unfold infEvQ notifQE
   iintro ⟨-, #He⟩
   iexact He
 

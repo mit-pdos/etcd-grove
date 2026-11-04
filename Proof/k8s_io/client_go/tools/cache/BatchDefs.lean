@@ -351,6 +351,24 @@ def batchTyOk : Prop :=
 
 end tyOk
 
+section facts
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The facts of a batch's events** (persistent): `EF` of each of `batchEvs`, from the store's
+items `σ.items` before the batch. -/
+def batchEvsOk (EF : Ev → IProp GF) (KF : GoInterface → GoString) (b : Bool) (σ : St)
+    (ds : List FD) : IProp GF :=
+  iprop(□ [∗list] e ∈ batchEvs KF b σ.items ds, EF e)
+
+instance batchEvsOk_persistent (EF : Ev → IProp GF) (KF : GoInterface → GoString) (b : Bool)
+    (σ : St) (ds : List FD) : Persistent (batchEvsOk EF KF b σ ds) := by
+  unfold batchEvsOk; infer_instance
+
+end facts
+
 end cache
 end EtcdGrove
 end Perennial

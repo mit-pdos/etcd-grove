@@ -31,17 +31,19 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **The informer is a handler** (`handlerOk`) for the objects `OK` (with `meta.Accessor`
-returning on them, `accRet`), its delivered events `infH p γp γe`: each event it is handed is
-distributed to every listener, in order. In an execution of fewer than `2^63` Go steps. -/
+returning on them, `accRet`) and the events' facts `EF`, its delivered events `infH p γp γe EF`:
+each event it is handed is distributed to every listener, in order, with its facts. In an
+execution of fewer than `2^63` Go steps. -/
 theorem sharedIndexInformer_handlerOk
     (wp_OnAdd : sharedIndexInformer.OnAdd.spec (GF := GF) (hG := hG))
     (wp_OnUpdate : sharedIndexInformer.OnUpdate.spec (GF := GF) (hG := hG))
     (wp_OnDelete : sharedIndexInformer.OnDelete.spec (GF := GF) (hG := hG))
     (Hbound : receiptBound GF ≤ 2 ^ 63)
-    (s p : Loc) (γp : ProcNames) (γe : GName) (OK : GoInterface → IProp GF) :
+    (s p : Loc) (γp : ProcNames) (γe : GName) (OK : GoInterface → IProp GF)
+    (EF : Ev → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗ accRet OK ⊢
-      handlerOk OK (interface.mkOk (go.GoType.PointerType sharedIndexInformer.ty) #s)
-        (infH p γp γe) := by
+      handlerOk OK EF (interface.mkOk (go.GoType.PointerType sharedIndexInformer.ty) #s)
+        (infH p γp γe EF) := by
   haveI : ReceiptBoundLe GF (2 ^ 63) := ⟨Hbound⟩
   iintro ⟨#Hpkg, #Hs, #Hacc⟩
   unfold handlerOk
@@ -52,21 +54,21 @@ theorem sharedIndexInformer_handlerOk
   · imodintro
     iintro %evs %o %b %Φ
     imodintro
-    iintro ⟨HH, -⟩ HΦ
-    iapply (wp_OnAdd s p γp γe evs o b) $$ [$Hpkg $Hs $HH] HΦ
+    iintro ⟨HH, -, #HE⟩ HΦ
+    iapply (wp_OnAdd s p γp γe EF evs o b) $$ [$Hpkg $Hs $HH $HE] HΦ
   isplitr
   · imodintro
     iintro %evs %old %new %Φ
     imodintro
-    iintro ⟨HH, #Hold, #Hnew⟩ HΦ
-    iapply (wp_OnUpdate s p γp γe evs OK old new) $$ [$Hpkg $Hs $Hacc $Hold HH] HΦ
+    iintro ⟨HH, #Hold, #Hnew, #HE⟩ HΦ
+    iapply (wp_OnUpdate s p γp γe EF evs OK old new) $$ [$Hpkg $Hs $Hacc $Hold HH $HE] HΦ
     iframe
     iunfold okNil; iright; iexact Hnew
   · imodintro
     iintro %evs %o %Φ
     imodintro
-    iintro ⟨HH, -⟩ HΦ
-    iapply (wp_OnDelete s p γp γe evs o) $$ [$Hpkg $Hs $HH] HΦ
+    iintro ⟨HH, -, #HE⟩ HΦ
+    iapply (wp_OnDelete s p γp γe EF evs o) $$ [$Hpkg $Hs $HH $HE] HΦ
 
 end proof
 

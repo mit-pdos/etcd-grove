@@ -42,17 +42,19 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`processDeltasInBatch(lg, h, ca, deltas, b, kf')`**, the store `ca` held by its exclusive
 writer at `σ`, for a batch `ds` of object deltas (the Go deltas `vs` in `deltas`) of the kinds the
 atomic FIFO queues, their objects keyed by the cache's `kf` and by `kf'` alike (`KF`), with
-versions `rvOf`: no error; the store's next state and the handler's events are `batchStep`'s. -/
+versions `rvOf`: no error; the store's next state and the handler's events are `batchStep`'s, each
+event handed to the handler with its facts `EF`, which the caller gives (`batchEvsOk`). -/
 abbrev processDeltasInBatch.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF) (Rw : St → St → Prop)
-    (σ : St) (H : List Ev → IProp GF) (evs : List Ev) (ds : List FD) (vs : List Delta)
+    (σ : St) (H : List Ev → IProp GF) (EF : Ev → IProp GF) (evs : List Ev) (ds : List FD) (vs : List Delta)
     (sl : GoSlice) (b : Bool),
   batchTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗ SW σ ∗
-      ⌜Rw σ σ ∧ Rw σ (batchStore KF rvOf σ ds)⌝ ∗ handlerOk OK h H ∗ H evs ∗
+      ⌜Rw σ σ ∧ Rw σ (batchStore KF rvOf σ ds)⌝ ∗ handlerOk OK EF h H ∗ H evs ∗
+      batchEvsOk EF KF b σ ds ∗
       ([∗list] d;v ∈ ds;vs, fdAt OK d v) ∗ sl ↦* vs ∗ ⌜∀ d ∈ ds, d.isObjOk⌝ ∗
       keyOk (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) kf KF ∗
       keyOk (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) kf' KF ∗

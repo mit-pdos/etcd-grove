@@ -31,13 +31,15 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 which the client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept; it sees the
 writer's `SW` of the new state). The store's writer is the
 lock's `SW` with the caller's `P` (so that the caller's resources can decide which steps the writer
-may take, `storeWriter`'s `Rw`). -/
+may take, `storeWriter`'s `Rw`). The events' facts `EF`: once it holds the lock, at the store's
+state `σ`, the client's view shift turns its `P0` into `P` and gives the facts of the batch's
+events at `σ` (`batchEvsOk`). -/
 abbrev sharedIndexInformer.handleBatchDeltas.spec : Prop :=
   ∀ (s : Loc) (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF) (Rw : St → St → Prop)
     (H : List Ev → IProp GF) (BL : St → List Ev → IProp GF) (ds : List FD) (vs : List Delta)
-    (sl : GoSlice) (b : Bool) (P Q : IProp GF),
+    (sl : GoSlice) (b : Bool) (EF : Ev → IProp GF) (P0 P Q : IProp GF),
   batchTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       s.[sharedIndexInformer, go!"indexer"] ↦□
@@ -46,11 +48,12 @@ abbrev sharedIndexInformer.handleBatchDeltas.spec : Prop :=
       isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ (fun σ => iprop(SW σ ∗ P)) Rw ∗
       ⌜∀ σ, Rw σ σ ∧ Rw σ (batchStore KF rvOf σ ds)⌝ ∗
       sync.isMutex (s.[sharedIndexInformer, go!"blockDeltas"]) (blockDeltasRes SW H BL) ∗
-      handlerOk OK (siiObj s) H ∗
+      handlerOk OK EF (siiObj s) H ∗
       ([∗list] d;v ∈ ds;vs, fdAt OK d v) ∗ sl ↦* vs ∗ ⌜∀ d ∈ ds, d.isObjOk⌝ ∗
       keyOk (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) kf KF ∗
       keyOk (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) kf' KF ∗
-      rvAcc (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) rvOf ∗ P ∗
+      rvAcc (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) rvOf ∗ P0 ∗
+      (∀ σ : St, SW σ -∗ P0 ={⊤}=∗ SW σ ∗ P ∗ batchEvsOk EF KF b σ ds) ∗
       (∀ (σ : St) (evs : List Ev) (σ' : St) (evs' : List Ev),
         P -∗ SW σ' -∗ BL σ evs -∗ ⌜batchStep KF rvOf b σ ds σ' evs'⌝ ={⊤}=∗ SW σ' ∗ BL σ' (evs ++ evs') ∗ Q) }}
     (App (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"handleBatchDeltas"))

@@ -25,16 +25,17 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`s.OnUpdate(old, new)`** with the informer's view `infH` of the events `evs` it handled, the
 objects `nil` or meeting `OK` (`meta.Accessor` returning on them, `accRet`): the update is the
-`evs.length`-th event, sent to every listener (all are syncing, `ProcDefs.lean`). In an execution
+`evs.length`-th event, sent to every listener with its facts (`EF`; all are syncing, `ProcDefs.lean`). In an execution
 of fewer than `2^63` Go steps. -/
 abbrev sharedIndexInformer.OnUpdate.spec : Prop :=
-  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (OK : GoInterface → IProp GF)
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (EF : Ev → IProp GF) (evs : List Ev) (OK : GoInterface → IProp GF)
     (old new : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗
-      accRet OK ∗ okNil OK old ∗ okNil OK new ∗ infH p γp γe evs }}
+      accRet OK ∗ okNil OK old ∗ okNil OK new ∗ infH p γp γe EF evs ∗
+      □ EF (Ev.update old new) }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"OnUpdate"))
       (Val #old)) (Val #new))
-  {{ RET #(); infH p γp γe (evs ++ [Ev.update old new]) }}
+  {{ RET #(); infH p γp γe EF (evs ++ [Ev.update old new]) }}
 
 end spec
 

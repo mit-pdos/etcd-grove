@@ -28,8 +28,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.OnUpdate.wp_proof
     (wp_dist : sharedProcessor.distribute.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.OnUpdate.spec (GF := GF) (hG := hG) := by
-  intro _ s p γp γe evs OK old new
-  wp_start as ⟨#Hs, #Hacc, #Hold, #Hnew, HH⟩
+  intro _ s p γp γe EF evs OK old new
+  wp_start as ⟨#Hs, #Hacc, #Hold, #Hnew, HH, #HEF⟩
   iunfold isSII at Hs
   icases Hs with ⟨#Hp, ⟨%d, #Hd, #Hmd⟩, #Hproc⟩
   iunfold mdOk at Hmd
@@ -104,13 +104,14 @@ theorem sharedIndexInformer.OnUpdate.wp_proof
   wp_auto
   imod (monoListAuthOwn_update_app (l := evs.map notifOf) [notifOf (Ev.update old new)]) $$ Hauth
     with ⟨Hauth, #Hlb⟩
-  ihave #HQ : notifQ γe evs.length (Ev.update old new) $$ []
-  · iunfold notifQ
+  ihave #HQ : notifQE γe EF evs.length (Ev.update old new) $$ []
+  · unfold notifQE notifQ
+    iframe #
     iapply (monoListIdxOwn_get (l := evs.map notifOf ++ [notifOf (Ev.update old new)]) evs.length
       (notifOf (Ev.update old new)) (by simp)) $$ Hlb
   rw [show interface.mkOk updateNotification.ty #(updateNotification.mk old new) =
     notifOf (Ev.update old new) from rfl]
-  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.update old new) isSync)
+  wp_apply (wp_dist p γp (notifQE γe EF) evs (Ev.update old new) isSync)
     $$ [$Hpkg $Hproc $Hrd $Hsend $HQ] as ⟨Hrd, Hsend⟩
   iapply HΦ
   iunfold infH

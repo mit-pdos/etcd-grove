@@ -128,13 +128,14 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 the events it handled: each distributed to every listener), from the linked `OnAdd`, `OnUpdate`,
 `OnDelete`. -/
 theorem sharedIndexInformer_handlerOk (Hbound : receiptBound GF ≤ 2 ^ 63) (s p : Loc)
-    (γp : cache.ProcNames) (γe : GName) (OK : GoInterface → IProp GF) :
+    (γp : cache.ProcNames) (γe : GName) (OK : GoInterface → IProp GF) (EF : cache.Ev → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ cache.isSII s p ∗
       cache.accRet OK ⊢
-      cache.handlerOk OK (interface.mkOk (go.GoType.PointerType
-        k8s_io.client_go.tools.cache.sharedIndexInformer.ty) #s) (cache.infH p γp γe) :=
+      cache.handlerOk OK EF (interface.mkOk (go.GoType.PointerType
+        k8s_io.client_go.tools.cache.sharedIndexInformer.ty) #s) (cache.infH p γp γe EF) :=
   cache.sharedIndexInformer_handlerOk cache.sharedIndexInformer.wp_OnAdd
     cache.sharedIndexInformer.wp_OnUpdate cache.sharedIndexInformer.wp_OnDelete Hbound s p γp γe OK
+    EF
 
 end handler
 

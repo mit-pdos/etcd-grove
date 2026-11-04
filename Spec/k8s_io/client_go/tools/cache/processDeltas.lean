@@ -29,16 +29,18 @@ at `σ`, for one queued delta `d` (the Go delta `v`, `fdAt`) of a kind the atomi
 objects keyed by the cache's key function `kf` and by `kf'` alike (`KF`) with versions `rvOf`: no
 error; the store's next state and the handler's events are `stepFD`'s (each store write one
 atomic operation, before the events: the store reflects a change before any handler hears of
-it). -/
+it). Each event is handed to the handler with its facts `EF`, which the caller gives for every
+event the delta may produce at `σ` (`evsOk`). -/
 abbrev processDeltas.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF) (Rw : St → St → Prop)
-    (σ : St) (H : List Ev → IProp GF) (evs : List Ev) (d : FD) (v : Delta) (sl : GoSlice)
+    (σ : St) (H : List Ev → IProp GF) (EF : Ev → IProp GF) (evs : List Ev) (d : FD) (v : Delta) (sl : GoSlice)
     (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗ SW σ ∗
-      ⌜Rw σ σ ∧ Rw σ (storeStepFD KF rvOf σ d)⌝ ∗ handlerOk OK h H ∗ H evs ∗
+      ⌜Rw σ σ ∧ Rw σ (storeStepFD KF rvOf σ d)⌝ ∗ handlerOk OK EF h H ∗ H evs ∗
+      evsOk EF KF b σ d ∗
       fdAt OK d v ∗ sl ↦* [v] ∗ ⌜d.kindOk⌝ ∗
       keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf KF ∗ keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf' KF ∗
       rvAcc (fun x => iprop(⌜x ∈ d.objs⌝)) rvOf }}

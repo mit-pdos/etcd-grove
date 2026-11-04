@@ -37,8 +37,8 @@ theorem processDeltas.wp_proof
     (wp_Delete : cache.Delete.spec (GF := GF) (hG := hG))
     (wp_Bookmark : cache.Bookmark.spec (GF := GF) (hG := hG)) :
     processDeltas.spec (GF := GF) (hG := hG) := by
-  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H evs d v sl b
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc⟩
+  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H EF evs d v sl b
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, #Hev, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc⟩
   (try wp_auto)
   iunfold handlerOk at Hh
   icases Hh with ⟨%hi, %hh, #HonAdd, #HonUpd, #HonDel⟩
@@ -100,6 +100,8 @@ theorem processDeltas.wp_proof
           ihave #HonUpd1 := HonUpd $$ %evs %(objAt σ.items (KF o)) %o
           wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
           iapply HonUpd1 $$ [$HH $Hold $HOKo]
+          · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+            simp [stepEv, putEv, hin]
           inext
           iintro HH
           (try wp_auto)
@@ -124,6 +126,8 @@ theorem processDeltas.wp_proof
           ihave #HonAdd1 := HonAdd $$ %evs %o %b
           wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
           iapply HonAdd1 $$ [$HH $HOKo]
+          · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+            simp [stepEv, putEv, hin]
           inext
           iintro HH
           (try wp_auto)
@@ -160,6 +164,8 @@ theorem processDeltas.wp_proof
           ihave #HonUpd1 := HonUpd $$ %evs %(objAt σ.items (KF o)) %o
           wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
           iapply HonUpd1 $$ [$HH $Hold $HOKo]
+          · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+            simp [stepEv, putEv, hin]
           inext
           iintro HH
           (try wp_auto)
@@ -184,6 +190,8 @@ theorem processDeltas.wp_proof
           ihave #HonAdd1 := HonAdd $$ %evs %o %b
           wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
           iapply HonAdd1 $$ [$HH $HOKo]
+          · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+            simp [stepEv, putEv, hin]
           inext
           iintro HH
           (try wp_auto)
@@ -209,7 +217,10 @@ theorem processDeltas.wp_proof
         ihave #HonDel1 := HonDel $$ %evs %o
         wp_bind (App (Val #(methods hi.ty go!"OnDelete" hi.v)) _)
         iapply HonDel1 $$ [$HH]
-        · iunfold delOk; ileft; iexact HOKo
+        · isplitr
+          · iunfold delOk; ileft; iexact HOKo
+          · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+            simp [stepEv]
         inext
         iintro HH
         (try wp_auto)
@@ -228,8 +239,8 @@ theorem processDeltas.wp_proof
       rw [decide_eq_true (by simp)]
       (try wp_auto)
       simp only [FD.objs]
-      wp_apply (wp_pRAI lg (GoInterface.ok hi) ca ts γ OK Fam kf kf' KF SW Rw σ H evs rv isl objs b)
-        $$ [$Hpkg $Hca $Hr $Hsw $HSW $HH $Hisl $Hoks $Hkey $Hkey']
+      wp_apply (wp_pRAI lg (GoInterface.ok hi) ca ts γ OK Fam kf kf' KF SW Rw σ H EF evs rv isl objs b)
+        $$ [$Hpkg $Hca $Hr $Hsw $HSW $HH $Hev $Hisl $Hoks $Hkey $Hkey']
         as ⟨%dks, %Hdks, HSW, HH, Hisl, Hr⟩
       · isplitr
         · ipureintro; exact ⟨HRw.1, by simpa [storeStepFD] using HRw.2⟩

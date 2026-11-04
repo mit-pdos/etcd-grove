@@ -112,12 +112,12 @@ theorem fdAt_objs (OK : GoInterface → IProp GF) :
     · iexact Ho
     · iexact Hr
 
-/-- **A callback's contract**: it delivers the event `e`. -/
-def cbOk (H : List Ev → IProp GF) (f : GoFunc) (e : Ev) : IProp GF :=
-  iprop(∀ evs : List Ev, {{ H evs }} (App (Val #f) (Val #())) {{ RET #(); H (evs ++ [e]) }})
+/-- **A callback's contract**: given the event's facts, it delivers the event `e`. -/
+def cbOk (H : List Ev → IProp GF) (EF : Ev → IProp GF) (f : GoFunc) (e : Ev) : IProp GF :=
+  iprop(∀ evs : List Ev, {{ H evs ∗ □ EF e }} (App (Val #f) (Val #())) {{ RET #(); H (evs ++ [e]) }})
 
-instance cbOk_persistent (H : List Ev → IProp GF) (f : GoFunc) (e : Ev) :
-    Persistent (cbOk H f e) := by
+instance cbOk_persistent (H : List Ev → IProp GF) (EF : Ev → IProp GF) (f : GoFunc) (e : Ev) :
+    Persistent (cbOk H EF f e) := by
   unfold cbOk; infer_instance
 
 theorem processDeltasInBatch.wp_proof
@@ -125,10 +125,10 @@ theorem processDeltasInBatch.wp_proof
     (wp_Txn : cache.Transaction.spec (GF := GF) (hG := hG))
     (wp_Join : errors.Join.spec (GF := GF) (hG := hG)) :
     processDeltasInBatch.spec (GF := GF) (hG := hG) := by
-  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H evs ds vs sl b hty
+  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H EF evs ds vs sl b hty
   have hty' := hty
   obtain ⟨-, hcs, -⟩ := hty'
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, Hds, Hsl, %Hobj, #Hkey, #Hkey', #Hacc⟩
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, #Hev, Hds, Hsl, %Hobj, #Hkey, #Hkey', #Hacc⟩
   have Hobj' : ∀ d ∈ ds, ∃ t o, d = .obj t o := fun d hd => (Hobj d hd).1
   ihave ⟨%Hvs, #Hoks⟩ := fdAt_objs OK ds vs Hobj' $$ Hds
   subst Hvs
@@ -160,7 +160,7 @@ theorem processDeltasInBatch.wp_proof
       "Htcap" ∷ ownSliceCap Transaction tsl (DFrac.own 1) ∗
       "callbacks" ∷ callbacks_ptr ↦ csl ∗ "Hcsl" ∷ csl ↦* fs ∗
       "Hccap" ∷ ownSliceCap GoFunc csl (DFrac.own 1) ∗
-      "#Hcbs" ∷ □ ([∗list] f;e ∈ fs;batchEvs KF b σ.items (ds.take (sint.nat n)), cbOk H f e) ∗
+      "#Hcbs" ∷ □ ([∗list] f;e ∈ fs;batchEvs KF b σ.items (ds.take (sint.nat n)), cbOk H EF f e) ∗
       "Hm" ∷ m ↦$ M ∗
       "%HM" ∷ ⌜∀ k, objAt ((ds.take (sint.nat n)).foldl (fdItems KF) σ.items) k =
         (M !! k).getD (objAt σ.items k)⌝ ∗
@@ -240,16 +240,16 @@ theorem processDeltasInBatch.wp_proof
       iframe
       isplitr
       · imodintro
-        iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+        iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
         isplitl
         · iexact Hcbs
         iunfold cbOk
-        iintro %evs' %Φ' !> HH' HΦ'
+        iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
         wp_pures
         (try wp_auto)
         ihave #HD := HonDel $$ %evs' %o
         wp_bind (App (Val #(methods hi.ty go!"OnDelete" hi.v)) _)
-        iapply HD $$ [$HH']
+        iapply HD $$ [$HH' $HE']
         · iunfold delOk; ileft; iexact HOKo
         inext
         iintro HH'
@@ -316,16 +316,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HA := HonAdd $$ %evs' %o %b
               wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
-              iapply HA $$ [$HH' $HOKo]
+              iapply HA $$ [$HH' $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -369,16 +369,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HU := HonUpd $$ %evs' %(GoInterface.ok oi) %o
               wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
-              iapply HU $$ [$HH' $Hold $HOKo]
+              iapply HU $$ [$HH' $Hold $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -437,16 +437,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HA := HonAdd $$ %evs' %o %b
               wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
-              iapply HA $$ [$HH' $HOKo]
+              iapply HA $$ [$HH' $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -490,16 +490,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HU := HonUpd $$ %evs' %(GoInterface.ok oi) %o
               wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
-              iapply HU $$ [$HH' $Hold $HOKo]
+              iapply HU $$ [$HH' $Hold $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -564,16 +564,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HA := HonAdd $$ %evs' %o %b
               wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
-              iapply HA $$ [$HH' $HOKo]
+              iapply HA $$ [$HH' $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -617,16 +617,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HU := HonUpd $$ %evs' %(GoInterface.ok oi) %o
               wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
-              iapply HU $$ [$HH' $Hold $HOKo]
+              iapply HU $$ [$HH' $Hold $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -685,16 +685,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HA := HonAdd $$ %evs' %o %b
               wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
-              iapply HA $$ [$HH' $HOKo]
+              iapply HA $$ [$HH' $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -738,16 +738,16 @@ theorem processDeltasInBatch.wp_proof
             iframe
             isplitr
             · imodintro
-              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H f e)).2
+              iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ f e => cbOk H EF f e)).2
               isplitl
               · iexact Hcbs
               iunfold cbOk
-              iintro %evs' %Φ' !> HH' HΦ'
+              iintro %evs' %Φ' !> ⟨HH', #HE'⟩ HΦ'
               wp_pures
               (try wp_auto)
               ihave #HU := HonUpd $$ %evs' %(GoInterface.ok oi) %o
               wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
-              iapply HU $$ [$HH' $Hold $HOKo]
+              iapply HU $$ [$HH' $Hold $HOKo $HE']
               inext
               iintro HH'
               (try wp_auto)
@@ -805,15 +805,17 @@ theorem processDeltasInBatch.wp_proof
       obtain ⟨f, Hf⟩ : ∃ f, fs[sint.nat j]? = some f := ⟨_, List.getElem?_eq_getElem Hlt⟩
       obtain ⟨e, He⟩ : ∃ e, (batchEvs KF b σ.items ds)[sint.nat j]? = some e :=
         ⟨_, List.getElem?_eq_getElem (by rw [← Hfl]; exact Hlt)⟩
-      ihave #Hcb := BigSepL2.bigSepL2_lookup (Φ := fun _ f e => cbOk H f e) Hf He $$ Hcbs
+      ihave #Hcb := BigSepL2.bigSepL2_lookup (Φ := fun _ f e => cbOk H EF f e) Hf He $$ Hcbs
       simp only [show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z csl.len from ⟨Hj.1, Hif⟩, and_self, ↓reduceIte]
       wp_apply wp_load_slice_index csl (sint.Z j) fs (DFrac.own 1) f Hj.1 $$ [Hcsl] as Hcsl
       · iframe; ipureintro; rw [show (sint.Z j).toNat = sint.nat j by word]; exact Hf
       (try wp_auto)
       iunfold cbOk at Hcb
       ihave #Hcb1 := Hcb $$ %(evs ++ (batchEvs KF b σ.items ds).take (sint.nat j))
+      iunfold batchEvsOk at Hev
+      ihave #HE := BigSepL.bigSepL_lookup (Φ := fun _ e => iprop(EF e)) He $$ Hev
       wp_bind (App (Val #f) (Val #()))
-      iapply Hcb1 $$ [$HH]
+      iapply Hcb1 $$ [$HH $HE]
       inext
       iintro HH
       (try wp_auto)

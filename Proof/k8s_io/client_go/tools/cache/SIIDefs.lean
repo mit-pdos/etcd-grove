@@ -4,12 +4,13 @@ The shared informer as its own event handler (`shared_informer.go`'s `sharedInde
 and the discharge of `handleDeltas`' premise `handlerOk`, are stated with. Lean-first; phase 4 of
 `notes/k8s-daemonset-plan.md` (the processor and listeners).
 
-* `infH p γp γe evs`: the informer's view of the events it has handled, `evs`: the processor's
+* `infH p γp γe EF evs`: the informer's view of the events it has handled, `evs`: the processor's
   sender (`procSend`: every listener has been sent their notifications), a reader slot of the
   listeners' lock, and the authoritative event history `γe` (a mono list of the notifications),
   whose `i`-th element is the persistent contract of every listener's `i`-th notification
-  (`notifQ γe`: "it is the informer's `i`-th event"). So a listener's handler sees exactly the
-  informer's events, in order.
+  (`notifQE γe EF`: "it is the informer's `i`-th event", with the event's facts `EF`, which the
+  informer is handed with it, `handlerOk`). So a listener's handler sees exactly the informer's
+  events, in order, each with its facts.
 * `isSII s p` (persistent): the informer's processor `p` (its lock and condition variable) and
   its mutation detector, whose `AddObject` returns (`mdOk`: the dummy detector's, or the real one's
   when `KUBE_CACHE_MUTATION_DETECTOR` is set, which copies the object; the package variable
@@ -47,9 +48,18 @@ instance notifQ_persistent (γe : GName) (i : Nat) (e : Ev) :
     Persistent (notifQ (GF := GF) γe i e) := by
   unfold notifQ; infer_instance
 
-/-- **The informer's view of the events it handled** (`handlerOk`'s `H`). -/
-def infH (p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) : IProp GF :=
-  iprop(procSend γp (notifQ γe) evs ∗ procReader p γp ∗
+/-- **A listener's `i`-th notification's contract, with the event's facts** `EF`. -/
+def notifQE (γe : GName) (EF : Ev → IProp GF) (i : Nat) (e : Ev) : IProp GF :=
+  iprop(notifQ γe i e ∗ □ EF e)
+
+instance notifQE_persistent (γe : GName) (EF : Ev → IProp GF) (i : Nat) (e : Ev) :
+    Persistent (notifQE (GF := GF) γe EF i e) := by
+  unfold notifQE; infer_instance
+
+/-- **The informer's view of the events it handled** (`handlerOk`'s `H`), its events' facts `EF`
+passed on to the listeners. -/
+def infH (p : Loc) (γp : ProcNames) (γe : GName) (EF : Ev → IProp GF) (evs : List Ev) : IProp GF :=
+  iprop(procSend γp (notifQE γe EF) evs ∗ procReader p γp ∗
     monoListAuthOwn γe 1 (evs.map notifOf))
 
 /-- The mutation detector's `AddObject` returns. -/

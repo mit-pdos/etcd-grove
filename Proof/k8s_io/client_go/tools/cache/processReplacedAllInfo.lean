@@ -35,8 +35,8 @@ theorem processReplacedAllInfo.wp_proof
     (wp_Get : cache.Get.spec (GF := GF) (hG := hG))
     (wp_Replace : cache.Replace.spec (GF := GF) (hG := hG)) :
     processReplacedAllInfo.spec (GF := GF) (hG := hG) := by
-  intro lg h ca ts γ OK Fam kf kf' KF SW Rw σ H evs rv isl objs b
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, Hisl, #Hoks, #Hkey, #Hkey'⟩
+  intro lg h ca ts γ OK Fam kf kf' KF SW Rw σ H EF evs rv isl objs b
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, #Hev, Hisl, #Hoks, #Hkey, #Hkey'⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hisl
   (try wp_auto)
   wp_apply (wp_slice_make3 (V := replacement) (W64 0) isl.len (by word)) as %rsl0 ⟨Hrsl0, Hrcap0, -⟩
@@ -205,8 +205,14 @@ theorem processReplacedAllInfo.wp_proof
     ihave #HonDel1 := HonDel $$ %(evs ++ (dvs.take (sint.nat n)).map
       (fun d => Ev.delete (tombstone d.Key' d.Obj'))) %(tombstone d.Key' d.Obj')
     wp_bind (App (Val #(methods hi.ty go!"OnDelete" hi.v)) _)
+    have hmem : tombstone d.Key' d.Obj' ∈ dks.map (fun k => tombstone k (objAt σ.items k)) := by
+      rw [← Hdvs]; exact List.mem_map.2 ⟨d, List.mem_of_getElem? Hd, rfl⟩
+    obtain ⟨k, hk, hkeq⟩ := List.mem_map.1 hmem
     iapply HonDel1 $$ [$HH]
-    · iunfold delOk; iright; iexists d.Key', d.Obj'; iframe #; ipureintro; rfl
+    · isplitr
+      · iunfold delOk; iright; iexists d.Key', d.Obj'; iframe #; ipureintro; rfl
+      · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+        exact Or.inl ⟨k, ((Hdks.2 k).1 hk).1, ((Hdks.2 k).1 hk).2, by rw [hkeq]⟩
     inext
     iintro HH
     (try wp_auto)
@@ -269,6 +275,8 @@ theorem processReplacedAllInfo.wp_proof
           (objs.take (sint.nat m)).map (fun x => putEvR σ.items (KF x) x b)) %o %b
         wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
         iapply HonAdd1 $$ [$HH $Hnew]
+        · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+          exact Or.inr ⟨o, List.mem_of_getElem? Ho, hev.symm⟩
         inext
         iintro HH
         (try wp_auto)
@@ -288,6 +296,8 @@ theorem processReplacedAllInfo.wp_proof
           (objs.take (sint.nat m)).map (fun x => putEvR σ.items (KF x) x b)) %(GoInterface.ok io) %o
         wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
         iapply HonUpd1 $$ [$HH $Hold $Hnew]
+        · iunfold evsOk at Hev; imodintro; iapply Hev; ipureintro
+          exact Or.inr ⟨o, List.mem_of_getElem? Ho, hev.symm⟩
         inext
         iintro HH
         (try wp_auto)

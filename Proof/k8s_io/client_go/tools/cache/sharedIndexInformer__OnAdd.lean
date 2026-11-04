@@ -28,8 +28,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.OnAdd.wp_proof
     (wp_dist : sharedProcessor.distribute.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.OnAdd.spec (GF := GF) (hG := hG) := by
-  intro _ s p γp γe evs o b
-  wp_start as ⟨#Hs, HH⟩
+  intro _ s p γp γe EF evs o b
+  wp_start as ⟨#Hs, HH, #HEF⟩
   iunfold isSII at Hs
   icases Hs with ⟨#Hp, ⟨%d, #Hd, #Hmd⟩, #Hproc⟩
   iunfold mdOk at Hmd
@@ -48,13 +48,14 @@ theorem sharedIndexInformer.OnAdd.wp_proof
   -- the event recorded in the history: every listener's contract for its next notification
   imod (monoListAuthOwn_update_app (l := evs.map notifOf) [notifOf (Ev.add o b)]) $$ Hauth
     with ⟨Hauth, #Hlb⟩
-  ihave #HQ : notifQ γe evs.length (Ev.add o b) $$ []
-  · iunfold notifQ
+  ihave #HQ : notifQE γe EF evs.length (Ev.add o b) $$ []
+  · unfold notifQE notifQ
+    iframe #
     iapply (monoListIdxOwn_get (l := evs.map notifOf ++ [notifOf (Ev.add o b)]) evs.length
       (notifOf (Ev.add o b)) (by simp)) $$ Hlb
   rw [show interface.mkOk addNotification.ty #(addNotification.mk o b) = notifOf (Ev.add o b)
     from rfl]
-  wp_apply (wp_dist p γp (notifQ γe) evs (Ev.add o b) false)
+  wp_apply (wp_dist p γp (notifQE γe EF) evs (Ev.add o b) false)
     $$ [$Hpkg $Hproc $Hrd $Hsend $HQ] as ⟨Hrd, Hsend⟩
   iapply HΦ
   iunfold infH

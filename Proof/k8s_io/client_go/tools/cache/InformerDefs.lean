@@ -9,9 +9,12 @@ The informer's processing of a delta (`controller.go`'s `processDeltas`, the sha
   only writer), with an accessor that hands out the store's state for one of its logically atomic
   operations and takes the new state back. Readers (the listers) linearize through the client's
   invariant, not through `SW`.
-* `handlerOk OK h H`: the handler `h` (a `ResourceEventHandler`) takes each event from `H evs` to
-  `H (evs ++ [e])` (`H`: the client's view of the events delivered so far; for the shared informer,
-  the processor's distribution, `shared_informer.go`).
+* `handlerOk OK EF h H`: the handler `h` (a `ResourceEventHandler`) takes each event `e`, with its
+  facts `EF e` (persistent), from `H evs` to `H (evs ++ [e])` (`H`: the client's view of the events
+  delivered so far; for the shared informer, the processor's distribution, `shared_informer.go`).
+* `stepEv KF b σ d e`: the events processing `d` at the store's state `σ` may produce (`stepFD`'s,
+  `stepFD_stepEv`): what a client's facts premise covers (`EF` of each, `evsOk`), so the facts can
+  be stated before the events' order is known (a relist's deletions are in map order).
 * `stepFD`: what processing one queued delta does: the store's next state and the handler's events
   (`ReplacedAll`'s deletions in some order: `ListKeys`' map order).
 -/
@@ -110,6 +113,37 @@ def FD.objs : FD → List GoInterface
   | .replaced objs _ => objs
   | .bookmark _ => []
 
+/-- **The events processing the delta `d` at the store's state `σ` may produce**: an object
+delta's one event; a relist's deletion (tombstone) of each store key it lacks, and an update or add
+of each listed object; none for a bookmark. -/
+def stepEv (KF : GoInterface → GoString) (b : Bool) (σ : St) : FD → Ev → Prop
+  | .obj t o, e => e = if t = go!"Deleted" then .delete o else putEv σ.items (KF o) o b
+  | .replaced objs _, e =>
+      (∃ k, k ∈ σ.items ∧ k ∉ objs.map KF ∧ e = .delete (tombstone k (objAt σ.items k))) ∨
+      ∃ x ∈ objs, e = putEvR σ.items (KF x) x b
+  | .bookmark _, _ => False
+
+/-- **`stepFD`'s events are `stepEv`'s.** -/
+theorem stepFD_stepEv (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString)
+    (b : Bool) (σ σ' : St) (d : FD) (evs : List Ev) (h : stepFD KF rvOf b σ d σ' evs) :
+    ∀ e ∈ evs, stepEv KF b σ d e := by
+  intro e he
+  cases d with
+  | obj t o =>
+    rcases h with ⟨ht, -, rfl⟩ | ⟨ht, -, rfl⟩
+    · simp only [List.mem_singleton] at he; subst he; simp [stepEv, ht]
+    · simp only [List.mem_singleton] at he; subst he; simp [stepEv, ht]
+  | replaced objs rv =>
+    obtain ⟨-, dks, -, hdks, rfl⟩ := h
+    rcases List.mem_append.1 he with he | he
+    · obtain ⟨k, hk, rfl⟩ := List.mem_map.1 he
+      exact Or.inl ⟨k, ((hdks k).1 hk).1, ((hdks k).1 hk).2, rfl⟩
+    · obtain ⟨x, hx, rfl⟩ := List.mem_map.1 he
+      exact Or.inr ⟨x, hx, rfl⟩
+  | bookmark rv =>
+    obtain ⟨-, rfl⟩ := h
+    simp at he
+
 /-- The delta types the atomic FIFO queues for an object (`RealFIFO.Add`/`Update`/`Delete`). -/
 def FD.kindOk : FD → Prop
   | .obj t _ => t = go!"Added" ∨ t = go!"Updated" ∨ t = go!"Deleted"
@@ -173,24 +207,36 @@ instance delOk_persistent (OK : GoInterface → IProp GF) (o : GoInterface) :
     Persistent (delOk OK o) := by
   unfold delOk; infer_instance
 
-/-- **The handler's contract** (persistent): each method call takes the delivered events `H evs`
-to `H (evs ++ [e])`. -/
-def handlerOk (OK : GoInterface → IProp GF) (h : GoInterface) (H : List Ev → IProp GF) :
-    IProp GF :=
+/-- **The handler's contract** (persistent): each method call, with its event's facts `EF e`,
+takes the delivered events `H evs` to `H (evs ++ [e])`. -/
+def handlerOk (OK : GoInterface → IProp GF) (EF : Ev → IProp GF) (h : GoInterface)
+    (H : List Ev → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜h = interface.ok i⌝ ∗
-    □ (∀ (evs : List Ev) (o : GoInterface) (b : Bool), {{ H evs ∗ □ OK o }}
+    □ (∀ (evs : List Ev) (o : GoInterface) (b : Bool),
+        {{ H evs ∗ □ OK o ∗ □ EF (Ev.add o b) }}
         (App (App (Val #(methods i.ty go!"OnAdd" i.v)) (Val #o)) (Val #b))
         {{ RET #(); H (evs ++ [Ev.add o b]) }}) ∗
-    □ (∀ (evs : List Ev) (old new : GoInterface), {{ H evs ∗ okNil OK old ∗ □ OK new }}
+    □ (∀ (evs : List Ev) (old new : GoInterface),
+        {{ H evs ∗ okNil OK old ∗ □ OK new ∗ □ EF (Ev.update old new) }}
         (App (App (Val #(methods i.ty go!"OnUpdate" i.v)) (Val #old)) (Val #new))
         {{ RET #(); H (evs ++ [Ev.update old new]) }}) ∗
-    □ (∀ (evs : List Ev) (o : GoInterface), {{ H evs ∗ delOk OK o }}
+    □ (∀ (evs : List Ev) (o : GoInterface), {{ H evs ∗ delOk OK o ∗ □ EF (Ev.delete o) }}
         (App (Val #(methods i.ty go!"OnDelete" i.v)) (Val #o))
         {{ RET #(); H (evs ++ [Ev.delete o]) }}))
 
-instance handlerOk_persistent (OK : GoInterface → IProp GF) (h : GoInterface)
-    (H : List Ev → IProp GF) : Persistent (handlerOk OK h H) := by
+instance handlerOk_persistent (OK : GoInterface → IProp GF) (EF : Ev → IProp GF) (h : GoInterface)
+    (H : List Ev → IProp GF) : Persistent (handlerOk OK EF h H) := by
   unfold handlerOk; infer_instance
+
+/-- **The facts of the events processing `d` at `σ` may produce** (persistent): `EF` of each
+(`stepEv`). -/
+def evsOk (EF : Ev → IProp GF) (KF : GoInterface → GoString) (b : Bool) (σ : St) (d : FD) :
+    IProp GF :=
+  iprop(□ ∀ e : Ev, ⌜stepEv KF b σ d e⌝ -∗ EF e)
+
+instance evsOk_persistent (EF : Ev → IProp GF) (KF : GoInterface → GoString) (b : Bool) (σ : St)
+    (d : FD) : Persistent (evsOk EF KF b σ d) := by
+  unfold evsOk; infer_instance
 
 end defs
 
