@@ -59,19 +59,21 @@ def commitAU (K : BC) (N' : Namespace) (Db Dn : Data) (Q : IProp GF) : IProp GF 
 /-- **After the commit point**: published at `C'` with the update fired (`j = 4096`), or unchanged
 with the update and the new slots back (`j = 0`). -/
 def cpPost (K : BC) (N' : Namespace) (C C' : CommitSt) (fl : FLPg) (b : Loc) (l : Nat)
-    (v : View) (wl : Bool) (S : List Nat) (bs : Nat → List w8) (Dn : Data) (Q : IProp GF)
-    (j : Nat) : IProp GF :=
+    (v : View) (wl : Bool) (S : List Nat) (bs : Nat → List w8) (Fb : GMap Nat (List w8))
+    (Dn : Data) (Q : IProp GF) (j : Nat) : IProp GF :=
   iprop((⌜j = 4096⌝ ∗ cpRes K C' fl b l v (C.txid + 1) true wl Dn ∗ receipt 1 ∗ Q) ∨
     (⌜j = 0⌝ ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
-      slotsOwn (some (b, l)) K.p S bs ∗ commitAU K N' (treeData C) Dn Q))
+      slotsOwn (some (b, l)) K.p S bs ∗
+      fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗
+      commitAU K N' (treeData C) Dn Q))
 
 omit package_sem in
 /-- **`writeMeta`'s commit step for a commit** (see the file header). The premises are
 `store_publish`'s for `C' = C.publish (metaBuf mv) (metaSummed mv) pages` (spill's and
 `commitFreelist`'s posts), the meta's validity, and the new data `Dn = treeData C'`. -/
 theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat)
-    (v : View) (wl : Bool) (S : List Nat) (bs : Nat → List w8) (mv : Meta) (pages : Pages)
-    (Dn : Data) (Q : IProp GF)
+    (v : View) (wl : Bool) (S : List Nat) (bs : Nat → List w8) (Fb : GMap Nat (List w8))
+    (mv : Meta) (pages : Pages) (Dn : Data) (Q : IProp GF)
     (htx : mv.txid'.toNat = C.txid + 1) (hval : metaValid (metaSummed mv))
     (hps : (metaSummed mv).pageSize'.toNat = 4096)
     (hDn : treeData (C.publish (metaBuf mv) (metaSummed mv) pages) = Dn)
@@ -90,16 +92,18 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     (hSb : ∀ s ∈ S, (bs s).length = 4096 ∧ W64 (s : Int) ∉ fl.free ∧
       (∀ b' l', (some (b, l) : MapSt) = some (b', l') → s < l' / 4096) ∧ 2 ≤ s) :
     K.core (GF := GF) ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
-      slotsOwn (some (b, l)) K.p S bs ∗ commitAU K N' (treeData C) Dn Q ⊢
+      slotsOwn (some (b, l)) K.p S bs ∗
+      fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗
+      commitAU K N' (treeData C) Dn Q ⊢
     commitStep K (mv.txid'.toNat % 2) b (metaBuf mv)
-      (cpPost K N' C (C.publish (metaBuf mv) (metaSummed mv) pages) fl b l v wl S bs Dn Q) := by
+      (cpPost K N' C (C.publish (metaBuf mv) (metaSummed mv) pages) fl b l v wl S bs Fb Dn Q) := by
   have hs2 : mv.txid'.toNat % 2 < 2 := Nat.mod_lt _ (by omega)
   have hsl : ∀ i, (C.publish (metaBuf mv) (metaSummed mv) pages).slot i =
       if i % 2 = mv.txid'.toNat % 2 then metaBuf mv else C.slot i := by
     intro i; rw [publish_slot, metaSummed_txid]
   have hother : (mv.txid'.toNat % 2 + 1) % 2 ≠ mv.txid'.toNat % 2 := by omega
   have hself : mv.txid'.toNat % 2 % 2 = mv.txid'.toNat % 2 := Nat.mod_mod _ _
-  iintro ⟨#Hcore, Hres, HS, Hau⟩
+  iintro ⟨#Hcore, Hres, HS, Hfb, Hau⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -178,8 +182,8 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     have htx' : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = C.txid + 1 := by
       simp only [CommitSt.publish, metaSummed_txid]; exact htx
     imod store_publish K.B K.N K.p ⊤ CoPset.subseteq_top C _ fl (some (b, l)) v (C.txid + 1) wl S bs
-      htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp)
-      $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
+      Fb htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp)
+      $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout Hfb] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
     · iframe; iframe #
       iapply (ghostVar_split_half K.B.cur (1 : Qp).half C).1 $$ Hcur
     unfold commitAU
