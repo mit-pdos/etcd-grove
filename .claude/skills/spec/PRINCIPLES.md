@@ -36,7 +36,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   unproved: every value the body reads from an argument (a context's `Value(key)`, a field) needs a
   premise. (The compactor's `compactableOk` passed five reviews checked against
   `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
-  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
+  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.) A premise inherited from a callee
+  (a context, a client) is checked against the value the caller's Go code actually passes, not the
+  kind the callee's chain was written for: Kubernetes' `Compact.spec` took the client's `ctxOk`
+  (an `isContext` or a quiet context), approved, while its one caller passes
+  `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
+  Perennial's model", 2026-11-04).
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an
