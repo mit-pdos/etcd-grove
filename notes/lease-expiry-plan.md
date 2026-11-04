@@ -591,3 +591,33 @@ row, not in apply's `leasesLive`: `srvApplyKV`/`srvApplyKVOn` end `∗ lease.rdA
 (so `applyBuilt*`, `applyBuiltNA*` and NewServer's post hold it), and `snapWalkPost` returns it after
 `leaseRevokers`; `applySnapshot_walk`'s pre gains `lease.lessorCfg lp` (from the caller's `#Hlcfg`).
 Part X lends `rdAt` as `revokeRes` from the row. No statement weaker; no trust change.
+
+## Step 3 (S1, `Recover`): stopped before writing (2026-11-04)
+
+Two points the approved design does not settle:
+1. **The form of `schema.MustUnsafeGetAllLeases`'s axiom.** `MustUnsafePutLease` is premise-style:
+   it takes the triple of `tx.UnsafePut` and is proved against it. The same form here would take a
+   triple of `tx.UnsafeForEach(Lease, visitor)`. Nothing proves that triple: there is no spec of
+   `batchTx.UnsafeForEach` or of bbolt's `Bucket.ForEach`, so discharging it in `initAndRecover`
+   needs a new axiom or a backend proof well outside this stage. Options:
+   - (a) A contract over the batch lock's state, as `batchTxBuffered.UnsafeRange.spec` and
+     `MustReadMembersFromBackend` are. The pre is `isBackend`, `bF "batchTx" b ↦□ t`,
+     `batchLocked γ P b st`, `schema.Lease ↦□ bk` and `isBucket bk leaseBI`, with the bucket
+     `bktOf st.S "lease"` holding only `leaseEnc id t r` under `leaseKey id`. The post is
+     `batchLocked γ P b st` and a slice of fresh `*leasepb.Lease`, one for each record in key
+     order. Its docstring covers `batchTx.UnsafeForEach` (bolt's cursor over the writer's tx), so
+     it trusts a little more than the put does.
+   - (b) Premise-style plus a new axiom for `batchTx.UnsafeForEach`. That is outside the approved
+     trust change.
+2. **The grant guard of recovered leases.** `lessorAuth` keeps `□ [∗list] id ∈ L, leaseGranted γl
+   id` for the live set, and `NewLessor`'s `expiredC` payload depends on it. A post with
+   `leaseOwn γl L' ∅` therefore needs `□ [∗list] id ∈ L', leaseGranted γl id` in `Recover`'s pre.
+   The walk's `L' = []` makes it vacuous. The alternative, dropping the guard for recovered
+   leases, would weaken `lessorExpiredC`.
+
+The rest has a route with the existing lemmas:
+- The backend: `bt_lockOut`/`bt_create`/`bt_unlockO`, `batchLocked_rbPart`, `rbPart_split`, and
+  `commitReq_true` for `ForceCommit`.
+- The leases: `closers_grant`'s steps (`init_RWMutex`, pools), or one new append lemma
+  `closers_recover`. That lemma keeps `histMono` when every old live id is in `L'`.
+- The heap: `heap.Init_.spec`, as in `LeaseExpiredNotifier.Init`.
