@@ -31422,3 +31422,19 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 `NewServer` drops the token until R2b-3d threads it to `Cleanup` (`srvCleanupOwn`).
 
 **`authStore.Close`** is translated (`auth.toml`) and proved over `tpAdmin`, as `AuthDisable` is.
+
+## The stop's pieces kept from construction: `srvStopKeep`, and `bootOk`'s backend file (2026-11-04 · R2b-3d stage 1, the user's approval of `bootOk`'s change · branch `r2b3`)
+
+**Before:** `NewServer` dropped what only the stop needs (the raft loop's stop claim, the storage
+registry's authority, the lessor's stop right), `wal.bootOk_start` dropped the WAL's directory
+(`walDirOf w = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'`, `walOpened`'s), and nothing
+said the boot backend's file is at `<DataDir>/member/snap/db`. **Now:** `srvStopKeep s γrn wdir`
+(defined, `InvRestart.lean`, R2b-2's opaque draft until now) holds the first four, and
+`NewServer.spec`'s post gives it as its last conjunct (a stronger post, no new premise; the last
+place so that clients' patterns are unchanged); `NodeStartSpec`'s post keeps the stop claim. The
+examples' drafts state `memberBuiltS` (`memberBuilt`'s rows with `srvStopKeep` at the same raft names
+and configuration: repeated, not added to `memberBuilt`, whose clients unpack it positionally).
+`bootOk` gains `bFile d.γB (backendPathOf cfg.DataDir')` (**trusted**: `bootstrapContract` is a premise
+of the examples' results; the user's approval; true because `bootstrapBackend` calls `OpenBackend`,
+whose post gives it), and `srvSnapRes` carries the current backend's `bFile` (the snapshot path's
+from `OpenSnapshotBackend`), for the image's `fileHolds (backendPathOf dd) D` (`bFile_agree`).

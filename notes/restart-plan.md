@@ -1259,3 +1259,34 @@ the apply thread's in mode `on`, `NewAuthStore`'s otherwise) are R2b-3d's to thr
    (the stop request's `srvBootApplied`), `confAt`, `v3ConfState D`, the registry's authority,
    `srvFiles` (`walFiles` from the raft image; `fileHolds` at `backendPathOf dd` by `bFile_agree`
    with the backend's `bFile`, which `NewServer` must keep), `pathOwn`.
+
+### R2b-3d: the plan (2026-11-04)
+
+`run.specStop`'s proof: the loop's stop case returns; the deferred shutdown runs; `done` closes with
+`srvDiskImage` escrowed. At the loop's exit the invariant holds `rnApplyTok γn A`, the scheduler's
+queue and the last job's saved `Post` `Q` with `□ (Q ∗ R -∗ applyResC … A ∗ nodeRunning ½)`:
+`sched.Stop` gives `▷ Q`, so the apply thread's resources at `A` come back whole.
+
+The image's clauses against their sources (gaps marked):
+- `nodeVacant`, `raftState S`, `StorageHolds S σ`, `σ.b ≤ |pre ++ A| ≤ σ.commit`:
+  `raftNode.stop.specStop`'s post (with `rnStopClaim`, `rnApplyTok γn A`, the WAL's apply half).
+- `bootLen ≤ i`: the stop request's `srvBootApplied` (the bag's predicate).
+- `srvRLogLb ρ.rd.raft A`, `uint.Z i = ai0 + |A|`: `applyResC … A`.
+- **Gap 1, the WAL's directory.** `rnWalClosed` gives `walFiles (walDirOf w)`; `srvFiles` wants
+  `config.walDirOf dd ""`. `bootstrap`'s `walOpened` knows `walDirOf w = config.walDirOf cfg.DataDir'
+  cfg.DedicatedWALDir'` (`WalApi.lean`); to thread, persistent, to `isRaftNode` (the WAL's
+  directory) and the scope's `DedicatedWALDir = ""` to the stop right.
+- **Gap 2, `imageAt` of `D`.** From `Cleanup`'s `bStopView` (the stopped lock's `W ∗ Pk` and
+  halves at `D`) and the apply thread's final state, as the snapshot path's observation does
+  (`snapObs_window`, `mergedObs`): the server's own `W`, `Pk` in place of `isStopChansE`.
+- **Gap 3, the configuration.** `confStateIs (v3ConfState D) m` with `v3ConfState` opaque
+  (R2c's draft, "R2d's to define") is unprovable: define it (`buildConfStateFromV3store`, the
+  members bucket's voters and learners) and prove the members bucket of an image at `i` gives the
+  membership at `i` (the cluster's apply writes the bucket from the conf changes the log commits).
+- Registry authority, `pathOwn (backendPathOf dd)`, `fileHolds (backendPathOf dd) D` (by
+  `bFile_agree`): `srvShutdownPre`, `srvSnapRes`, the backend's `bFile` (`NewServer` and the
+  snapshot path must keep it).
+
+Stages: (1) gap 1; (2) `Cleanup`'s preconditions from `applyResC` and `NewServer`'s kept pieces
+(`srvCleanupOwn` defined, `srvStopKeep`); (3) gap 2, the image's backend part; (4) gap 3; (5) the
+shutdown's WP and `run.specStop` (then `spec` replaced, R2b-2 review F4).

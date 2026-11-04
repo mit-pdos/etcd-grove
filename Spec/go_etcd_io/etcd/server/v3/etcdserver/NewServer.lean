@@ -111,6 +111,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 
 @[expose] public section
@@ -350,7 +351,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
           -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
           -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
-          lease.lessorRdPool E.γ.leases }}
+          lease.lessorRdPool E.γ.leases ∗
+          -- (2026-11-04, the restart plan's R2b-3d) what the stop needs of the construction: the
+          -- raft loop's stop claim, the storage registry's authority, the lessor's stop right, the
+          -- WAL's directory (`srvStopKeep`)
+          srvStopKeep srv γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/

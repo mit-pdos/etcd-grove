@@ -387,7 +387,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- are not used yet: R2b-1's stage 4)
   -- (R2b-1 stage 3c) the WAL's durability allocated over the fresh records (`wal.bootOk_start`)
   imod wal.bootOk_start _ _ _ _ $$ Hwal with
-    ⟨%νw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwalo, %HwalR, Hwmeta, Hwpurge⟩
+    ⟨%νw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwalo, %HwalR, Hwmeta, Hwpurge, %HwDir⟩
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
     Hmsmeta
@@ -450,7 +450,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     Hrvs HwalR (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
     (by simp [srvErM, HρRaft]))
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
-    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta⟩
+    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta, Hrsc⟩
   · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdur
     simp only [srvErM]
     iframe #
@@ -1596,7 +1596,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · ipureintro; exact Hγw.2.2.1
     isplitr
     · iexact HSCE
-    iexact Hcl
+    iframe Hcl
+    -- (R2b-3d) the backend's file at the backend path (`bootOk`'s)
+    iexact Hbfile
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
   · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2
@@ -1741,6 +1743,26 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hγw.2.1]; iexact Hlinv
   ihave #HlPool' : lease.lessorRdPool (GF := GF) γw.st.leases $$ []
   · rw [Hγw.2.1]; iexact HlPool
+  -- (2026-11-04, R2b-3d) what the stop needs of the construction (`srvStopKeep`): the raft loop's
+  -- stop claim, the registry's authority, the lessor's stop right, the WAL's directory
+  ihave HStopK : srvStopKeep (GF := GF) s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir')
+      $$ [Hrsc Hrauth Hlstop]
+  · iunfold srvStopKeep
+    iframe Hrsc
+    isplitl [Hrauth]
+    · rw [show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
+      iexists _
+      iexact Hrauth
+    isplitl [Hlstop]
+    · iexists lp
+      iframe lessor Hlstop
+    ihave #HfixS := Hfix
+    iunfold rnFixed at HfixS
+    iNamed HfixS
+    iexists rvr.raftNodeConfig'.storage'
+    iframe storageC
+    ipureintro
+    rw [Hrnwal]; exact HwDir
   imodintro
   wp_auto
   iapply HΦ
@@ -1754,7 +1776,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool'
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr

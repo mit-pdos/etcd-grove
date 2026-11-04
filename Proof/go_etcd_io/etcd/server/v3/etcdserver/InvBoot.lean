@@ -450,6 +450,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
     "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
+    -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
+    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir') ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))

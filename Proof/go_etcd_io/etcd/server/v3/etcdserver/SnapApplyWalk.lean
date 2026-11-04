@@ -891,6 +891,9 @@ theorem applySnapshot_walk
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d'.P d'.be $$ [HnPl]
   · rw [hγ', hP']; iexact HnPl
   rw [← hWf]
+  -- (R2b-3d) the new backend's file at the backend path (`OpenSnapshotBackend`'s)
+  ihave #HnFile' : backend.bFile (GF := GF) d'.γB (config.backendPathOf cfg.DataDir') $$ []
+  · rw [hγ']; iexact HnFile
   -- (R2b-3c part 2) the new backend with its stop channels
   ihave #HnSCE : backend.isStopChansE (GF := GF) γB d'.P d'.be $$ []
   · rw [hP']; iapply backend.isStopChansE_intro; iframe HnB HnSC

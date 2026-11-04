@@ -115,8 +115,8 @@ abbrev BuildServer.specStop : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltS s ρ E₀ lg γn id N false ∗
+          srvDataDir s (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -149,7 +149,9 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
+          -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
+          ∃ (γrn : RNNames) (wd : GoString), srvStopKeep s γrn wd) }}
 
 end spec
 
