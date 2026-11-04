@@ -1813,3 +1813,23 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   `Options.String.wp_proof` (stronger premise: weaker axiom), the backend's package-initialization
   axiom over `boltOpenOptionsOk` (`backend/Init.lean`: the options' `ok` now says their logger is
   nil or a location; `boltOpenOptions`' logger is nil).
+
+- **D-H** (2026-11-04, maintainer 12, item 1; decided by the coordinator, for the user's review).
+  **The receipts' bound reaches `Commit`.** `Open.spec` already takes `[ReceiptBoundLe GF (2 ^ 62)]`
+  (since the API's step 2: "fewer than `2 ^ 62` receipts, so that the commits' txids stay below
+  `2 ^ 63`"), so the frozen triple does not change; what was missing is the internal record of
+  it: `isBoltCoreP`'s pure facts begin `(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62)`, and
+  `Inv/Bolt.receipt_txid_lt` (`⧗ (c - t0)` with both bounds gives `c + 1 < 2 ^ 63`),
+  `isBoltCoreP_txid_lt`, `Inv/WdbFlag.wdbW'_txid_lt`/`wdbW_txid_lt` give `Commit` the writer's next
+  txid below `2 ^ 63`. No public statement changes; `Open`'s proof must carry the instance into
+  the core (`Open/Core.open_core_fl`).
+- **D-I** (2026-11-04, maintainer 12, item 5; decided by the coordinator, as earlier `fileHolds`
+  clauses, for the user's review). **`fileHolds`' file is smaller than `2 ^ 62` bytes**
+  (`Inv/FileHolds.fileHoldsDef`'s pure facts; `Api.lean`'s docstring). True of every file bbolt
+  writes (its mapping is at most `maxMapSize = 2 ^ 48` on 64-bit, and `grow` truncates at most to
+  the mapping's size plus `AllocSize`); `Open` reads the size as an `int64` and computes the
+  mapping's size from it (`mmapSize`'s doubling, `metasZero`), which `C.hwm * 4096 ≤ size` (a lower
+  bound only) did not bound. Frozen statement whose meaning changes: `fileHolds` (a stronger
+  predicate: `Open`'s premise stronger, `Close`'s post, which gives `fileHolds` back, must prove it:
+  the writer side's `m.size < 2 ^ 63` is to be strengthened to `2 ^ 62` there, or derived from the
+  mapping's bound). `fileHolds_new` (size 0) unchanged.
