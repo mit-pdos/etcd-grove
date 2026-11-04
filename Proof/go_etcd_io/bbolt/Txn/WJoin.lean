@@ -7,6 +7,7 @@ and the file).
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Cells
+public import Proof.go_etcd_io.bbolt.Txn.FLFacts
 
 @[expose] public section
 
@@ -125,6 +126,28 @@ theorem extentBytes_congr (fl : FLPg) (C : CommitSt) (wb wb' : Nat → List w8) 
   rw [List.mem_range'] at hs
   obtain ⟨i, hi, rfl⟩ := hs
   exact hag _ (by omega) (ha9 _ (by omega) (by omega)).2
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- **The synced freelist page's bytes hold a header**, from a `wdbOK` clause it lacks (U5d's
+finding, `hlen`: a `W` slot inside the file holds a page's bytes), as `wdb_release`'s and
+`wdb_rollback`'s `hwb`: the page is a `W` slot (`flCurOK`: no tree slot, no free or pending id,
+below the high-water mark). -/
+theorem wb_header (w : WDb) (hok : wdbOK w)
+    (hlen : ∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096) :
+    ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length := by
+  intro f hf
+  obtain ⟨-, -, c3, c4, -, c6, -⟩ := hok
+  obtain ⟨h2, hlt, -, -, -, -, -, -, h9, -⟩ := c6 f hf f hf
+  obtain ⟨hcov, hall⟩ := h9 f (Nat.le_refl _) (by omega)
+  have hW : f ∈ w.W := by
+    refine (c4 f).2 ⟨h2, ?_, fun ht => hcov ((mem_pagesSlots_iff _ _).1 ht), fun hp => ?_⟩
+    · have := Nat.le_max_right (mapLen w.ms) w.m.size; omega
+    · obtain ⟨t, pd, x, hpd, hx, hxs⟩ := (pendSlots_mem_iff _ _).1 hp
+      apply hall
+      have : W64 (f : Int) = x := by rw [← hxs, W64_toNat_self]
+      rw [this]
+      exact List.mem_append_right _ ((pendingIds_mem_iff _ _).2 ⟨t, pd, hpd, hx⟩)
+  rw [hlen f hW (by omega)]; omega
 
 end wjoin
 
