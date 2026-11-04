@@ -166,7 +166,7 @@ theorem spillTail_gen
       r'.nilCh.ins.length = r'.nilCh.ws.length ∧ (insLens r'.ins r'.ws → insBnd r'.nilCh.ins) ∧
       (r'.nilCh.nv.parent' ≠ null → ∃ rp, (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live))
-    (H1 : insLens r'.ins r'.ws → ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
+    (H1 : insLens r'.ins r'.ws → objsDisj X'.t → ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
       (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) →
       I xs pl 0 X2 w' st0)
     (H2 : ∀ xs pl i Xi wi sti x, I xs pl i Xi wi sti → xs[i]? = some x →
@@ -196,6 +196,7 @@ theorem spillTail_gen
   unfold spillIH
   iintro #IH Hw Hdb Hnp Htxp Hres
   icases wtxW_lens K tx r m X' bl n r' hn' hlv' hwl $$ Hw with ⟨Hw, %Hlens⟩
+  icases wtxW_heapOK K tx r m X' $$ Hw with ⟨Hw, %Hok0⟩
   icases wtxW_nilCh K tx r m X' bl n r' hn' hlv' $$ Hw with ⟨Hch, Hwb⟩
   wp_pures
   wp_load
@@ -208,7 +209,7 @@ theorem spillTail_gen
   iapply (splitStep_wp hSplit K tx r m _ bl n r'.nilCh np txp hS1 hS2 hS3 hS4 hS8 hS5 (hS6 Hlens) hS7)
   iframe
   iintro %s %xs %wss %pl %rp' %X2 %Hsr Hw Hs Hnp Htxp
-  have HI0 := H1 Hlens X2 xs wss pl rp' Hsr.1 Hsr.2
+  have HI0 := H1 Hlens Hok0.2.1 X2 xs wss pl rp' Hsr.1 Hsr.2
   have hv2 : X2.v = X'.v := by
     have := Hsr.1.same.2.2.2
     rw [this]; unfold WX.nilCh WX.killL; rw [WX.setNode_v]

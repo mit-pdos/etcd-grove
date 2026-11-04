@@ -177,6 +177,13 @@ theorem bk_slotFacts {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h 
       (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) :=
   ⟨freeNoCov_of_wdbOK hok, hpre.2.2.2.2.1⟩
 
+/-- **The nested bucket's parent pointers** `spPre` takes (U9w3; a named `sorry`: `bkPre` does
+not carry `parOK X bl`; U9x3 to add it, from `nodeClean`'s last clause at the commit's start,
+kept by the other buckets' spills' frames). -/
+theorem bk_parOK {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h : Nat}
+    {F D : List Nat} {N : List Loc} (hpre : bkPre X w bl B O h F D N) : parOK X bl := by
+  sorry
+
 omit package_sem in
 /-- `wdbW`'s `wdbOK`. -/
 theorem wdbW_okB (K : BC) (tx : Loc) (v : View) (w : WDb) :
@@ -264,7 +271,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
       cases hx with
       | self => exact absurd rfl hne
       | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf, Hvc,
-      (bk_slotFacts Hpre0 Hok).1, (bk_slotFacts Hpre0 Hok).2⟩⟩
+      (bk_slotFacts Hpre0 Hok).1, (bk_slotFacts Hpre0 Hok).2, bk_parOK Hpre0⟩⟩
   wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
     as %err Hpost
   · iframe
@@ -274,7 +281,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   · subst he
     try wp_auto
     obtain ⟨Hstep, Hc⟩ := Hdone
-    rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, rt, rr, S, h', Hrt, Hrtl,
+    rcases Hc with ⟨Hsp1, -, -⟩ | ⟨-, T, D', Hfr, -, Hsi', HD1, HD2, -, -, rt, rr, S, h', Hrt, Hrtl,
       Hrsp, Hrpar, ⟨B1, HB1, Hroot⟩, HsT, HD', HEls⟩
     · rw [uTree_top_unspilled Hu Hrn0] at Hsp1; cases Hsp1
     obtain ⟨B2, HB2, Hsim, -⟩ := Hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.1 B HB

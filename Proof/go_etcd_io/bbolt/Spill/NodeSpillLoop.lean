@@ -62,6 +62,8 @@ structure spLoop (X : WX) (w : WDb) (bl n : Loc) (r : NRec) (O : List Nat)
   /-- (U9m) `n`'s children are its children at the start or nodes the loop made (its children's
   pieces): what `spEnd`'s last clause needs. -/
   chs : ∀ c ∈ r'.cs, c ∈ r.cs ∨ c ∈ T
+  /-- (U9w3) The bucket's parent pointers (`spG_nilCh`'s premises after the loop). -/
+  par : parOK X' bl
 
 /-! ## Lists -/
 
@@ -85,7 +87,7 @@ theorem spLoop_init {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
     (hb : uBr X bl (spP X) X.t.mv.pgid'.toNat n r lo hi h es)
     (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D)))
-    (hfr : spFree X w.fl w.wtxid (ownF r.nv.pgid' ++ es.flatMap UE.F)) :
+    (hfr : spFree X w.fl w.wtxid (ownF r.nv.pgid' ++ es.flatMap UE.F)) (hpar : parOK X bl) :
     spLoop X w bl n r O lo hi h (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D)
       (n :: es.flatMap UE.N) (es.flatMap UE.E) X w r es 0 [] [] where
   br := hb
@@ -108,6 +110,7 @@ theorem spLoop_init {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
   cap := rfl
   live := hb.un.1
   chs := fun _ hc => Or.inl hc
+  par := hpar
 
 /-! ## A spilled child -/
 
@@ -209,7 +212,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
         rw [hl.step.1]; rw [hl.step.2.1] at hy; exact hfc0 y (applySteps_free_sub _ _ _ _ hy),
       fun s hs => by
         rw [hl.step.1] at hs
-        exact Nat.lt_of_lt_of_le (hts0 s hs) hl.frame.2.2.2.2.2.2.2.2.1⟩
+        exact Nat.lt_of_lt_of_le (hts0 s hs) hl.frame.2.2.2.2.2.2.2.2.1, hl.par⟩
       rw [htx]
       refine hl.free id (List.mem_append_right _ (List.mem_flatMap.2 ⟨_, mem_of_get hj, hid⟩))
 

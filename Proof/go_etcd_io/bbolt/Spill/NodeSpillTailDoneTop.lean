@@ -94,7 +94,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     (hDn : ∀ s ∈ pcSlots (spP Xf) ps, s ∈ D ∨ newSlot (st0 ++ stl) X.t.mv.pgid'.toNat s)
     (hPd : ∀ x, spP Xf !! x ≠ spP X !! x → x ∉ D)
     (hroot : ∀ p, ps[0]? = some p →
-      sTree (spP Xf) Xf.t.mv.pgid'.toNat p.id.toNat lo hi h p.S) :
+      sTree (spP Xf) Xf.t.mv.pgid'.toNat p.id.toNat lo hi h p.S) (hpo : parOK Xf bl) :
     spDone X Xf w wf bl n rn O lo hi h D N E .top (st0 ++ stl) := by
   -- one piece: `n`
   have hx1 : xs.length = 1 := by
@@ -130,7 +130,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
   have hlen0 : xs.length ≠ 0 := by rw [hx1]; exact Nat.one_ne_zero
   refine ⟨tail_step hpre hend hsr hL.step, Or.inr ⟨hsp,
     T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++ (xs.drop 1).map (·.1),
-    pcSlots (spP Xf) ps, ?_, fun l hl => ?_, ?_, hDk, hDn, hPd, ?_⟩⟩
+    pcSlots (spP Xf) ps, ?_, fun l hl => ?_, ?_, hDk, hDn, hPd, hpo, ?_⟩⟩
   · refine spFrame_drop_null (derefPre_null hpre.2.1.2.2.1) (derefPre_null hG.2.2.1) ?_
     have := tail_frame hpre hsp hend hsr hL.frame hd
     rw [← List.append_assoc] at this; exact this

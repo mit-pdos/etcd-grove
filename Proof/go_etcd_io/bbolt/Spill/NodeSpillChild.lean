@@ -52,6 +52,10 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
       (childHi hi (wKey r'.ws) r'.ws.length j) h Dc Nc Ec (.child n r' j lo hi) st') :
     ∃ r'' es' T', spLoop X w bl n r O lo hi h D0 N0 E0 X'' w'' r'' es' (i + 1) (st ++ st') T' := by
   have htx : w'.wtxid = w.wtxid := wtxid_of_C hl.step.1
+  have hpo : parOK X'' bl := by
+    rcases hdone.2 with ⟨h1, -, -⟩ | ⟨-, -, -, -, -, -, -, -, -, h2, -⟩
+    · rw [hsp] at h1; cases h1
+    · exact h2
   have hfree' : spFree X' w'.fl w'.wtxid (ownF r'.nv.pgid' ++ es.flatMap UE.F) := by
     rw [htx]; exact hl.free
   obtain ⟨r'', ps, hr'', hcs'', hpg'', hlive'', hbr, hsl, hfr, hstep, hpar, hhd, hps, hE,
@@ -229,7 +233,8 @@ theorem spLoop_child {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
       key := hpar.2.2.2.2.1.trans hl.key
       cap := hpar.2.2.2.2.2.1.trans hl.cap
       live := hlive''
-      chs := hchs }⟩
+      chs := hchs
+      par := hpo }⟩
 
 /-- **The loop's next child** `c` (the `i`-th of `n`'s children): its spill's pre, and from its
 success the invariant at `i + 1` (a spilled child, `spLoop_spilled`; an unspilled one, an

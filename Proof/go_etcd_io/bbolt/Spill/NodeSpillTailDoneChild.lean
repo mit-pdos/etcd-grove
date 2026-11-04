@@ -59,7 +59,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
     (hPd : ∀ x, spP Xf !! x ≠ spP X !! x → x ∉ D)
     (hpar : ∀ rpf, Xf.node bl pl = some rpf → rpf.cs = rp0.cs ∧
       rpf.nv = { rp0.nv with inodes' := rpf.nv.inodes' } ∧ rpf.key = rp0.key ∧
-      (rpf.nv.key' = slice.nil ↔ rp0.nv.key' = slice.nil)) :
+      (rpf.nv.key' = slice.nil ↔ rp0.nv.key' = slice.nil)) (hpo : parOK Xf bl) :
     spDone X Xf w wf bl n rn O lo hi h D N E (.child pl rp j plo phi) (st0 ++ stl) := by
   obtain ⟨hn', -, hun', hnv, -, -, hfr0, hT0⟩ := spEnd_rec hpre hsp hend
   have hctx : spCtx X bl n rn lo hi N (.child pl rp j plo phi) := by
@@ -95,7 +95,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
   obtain ⟨hcs, hnvf, hkey, hknil⟩ := hpar rpf hrpf
   refine ⟨tail_step hpre hend hsr hL.step, Or.inr ⟨hsp,
     T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++ (xs.drop 1).map (·.1) ++ [pl],
-    pcSlots (spP Xf) ps, tail_frame hpre hsp hend hsr hL.frame hd, ?_, ?_, hDk, hDn, hPd, ?_⟩⟩
+    pcSlots (spP Xf) ps, tail_frame hpre hsp hend hsr hL.frame hd, ?_, ?_, hDk, hDn, hPd, hpo, ?_⟩⟩
   · intro l hl
     rcases List.mem_append.1 hl with hl | hl
     · rcases tail_T hpre hsp hend hsr l hl with h1 | h1

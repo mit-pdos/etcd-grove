@@ -131,7 +131,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
       fun F _ h => h, id⟩, Or.inl ⟨Hsp, rfl, rfl⟩⟩
   · -- the unspilled case: the sort, the children's loop, the rest (`spillTail_wp`), from the
     -- permuted state `Xp` (`n`'s children sorted) and back (`spPost_unperm`)
-    obtain ⟨Hut, Hctx, Hsl, Hfr, Hvc, Hfc, Hts⟩ := Hu
+    obtain ⟨Hut, Hctx, Hsl, Hfr, Hvc, Hfc, Hts, Hpar0⟩ := Hu
     have Hun : uNode X bl n rn lo hi := uTree_uNode Hut Hn
     have Hsp0 : rn.nv.spilled' = false := Hun.2.2.1
     have Hlive : n ∈ X.live := Hun.1
@@ -176,7 +176,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
       iexact Hkey
     ihave Hw := Hclose $$ %{ rn with cs := l } %hpar Hno Hbo HQ
     -- the permuted state
-    have hpre' := spPre_perm hd HB Hrn Hperm Hut Hctx HG Hsl Hfr Hvc Hfc Hts
+    have hpre' := spPre_perm hd HB Hrn Hperm Hut Hctx HG Hsl Hfr Hvc Hfc Hts Hpar0
     have hXv : (X.setNode bl n { rn with cs := l }).v = X.v := by rw [setNode_perm_eq HB]
     have hlvp : n ∈ (X.setNode bl n { rn with cs := l }).live := by
       rw [WX.setNode_live]; exact Hlive
@@ -218,7 +218,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
         cases e : rn.nv.isLeaf'
         · rfl
         · exact absurd e hleaf
-      obtain ⟨h', es, hh, hl0⟩ := spLoop_start hd HB Hrn Hperm Hut hleaf' HG Hsl Hfr
+      obtain ⟨h', es, hh, hl0⟩ := spLoop_start hd HB Hrn Hperm Hut hleaf' HG Hsl Hfr Hpar0
       have H := fun Φ' => spill_loop_wp (GF := GF) K tx r m _ w bl n { rn with cs := l } O lo hi h'
         D N E es n_ptr i_ptr «$res0_ptr» GoInterface.nil Φ' hl0 Hfc
         (by rw [setNode_perm_eq HB]; exact Hts)

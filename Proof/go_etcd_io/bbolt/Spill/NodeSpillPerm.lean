@@ -11,6 +11,7 @@ unchanged (`setNode_perm_nil`).
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillLoop
+public import Proof.go_etcd_io.bbolt.Spill.ParOKBase
 public import Proof.go_etcd_io.bbolt.Rebalance.Objs
 public import Proof.go_etcd_io.bbolt.Rebalance.RblKeys
 
@@ -364,7 +365,8 @@ theorem spLoop_start (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
     {F D : List Nat} {N : List Loc} {E : List El}
     (hu : uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E)
     (hleaf : rn.nv.isLeaf' = false) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
-    (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ D)) (hfr : spFree X w.fl w.wtxid F) :
+    (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ D)) (hfr : spFree X w.fl w.wtxid F)
+    (hpar : parOK X bl) :
     ∃ h' es, h = h' + 1 ∧
       spLoop (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O lo hi h' D N E
         (X.setNode bl n { rn with cs := l }) w { rn with cs := l } es 0 [] [] := by
@@ -379,7 +381,7 @@ theorem spLoop_start (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
     rw [hmv]; exact hb'
   have H := spLoop_init (w := w) (O := O) hb'' (spG_perm hB hr hp hG)
     (by rw [hmv, hv]; exact hsl)
-    (by rw [setNode_perm_eq hB]; exact hfr)
+    (by rw [setNode_perm_eq hB]; exact hfr) (parOK_perm hpar hrn hp)
   rw [hv] at H
   exact H
 
@@ -402,10 +404,10 @@ theorem spDone_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
   have hstep' := spStep_trans hst hstep
   rw [List.nil_append] at hstep'
   refine ⟨hstep', ?_⟩
-  rcases hcase with ⟨hsp, -, -⟩ | ⟨hsp, T, D', hfrm, hT, hsl, hDk, hDn, hPd, hm⟩
+  rcases hcase with ⟨hsp, -, -⟩ | ⟨hsp, T, D', hfrm, hT, hsl, hDk, hDn, hPd, hpo, hm⟩
   · simp only at hsp; rw [hsp0] at hsp; cases hsp
   · refine Or.inr ⟨hsp, T, D', ?_, ?_, hsl, hDk, fun s hs => by rw [hmv] at hDn; exact hDn s hs,
-      fun x hx => hPd x (by rw [hP]; exact hx), ?_⟩
+      fun x hx => hPd x (by rw [hP]; exact hx), hpo, ?_⟩
     · exact spFrame_mono (spFrame_trans hfr hfrm) (fun y hy => by
         rcases List.mem_append.1 hy with hy | hy
         · rw [List.mem_singleton] at hy; subst hy; exact List.mem_append_left _ hn
