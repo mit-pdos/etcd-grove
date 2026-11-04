@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailWp
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
 public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
@@ -169,15 +170,16 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     · rw [decide_eq_true Hinl]
       try wp_auto
       obtain ⟨Hnn0, Hleaf0, Hinl0⟩ := Hinl
-      obtain ⟨rn, Hrnx, Hrns, -, -, -⟩ := rinv_inlPre HI Htodo Hc HC Hnn0
+      obtain ⟨rn, Hrnx, Hrns, Hlrn, Hwlrn, -⟩ := rinv_inlPre HI Htodo Hc HC Hnn0
       obtain ⟨rn', Hrns', Hnv, Hins, -⟩ := Hrn0 Hnn0
       rw [Hrns] at Hrns'; cases Hrns'
       subst Hnv Hins
+      icases wtxW_lens K tx r m X1 c C.bv.rootNode' rn Hrnx Hlrn Hwlrn $$ Hw with ⟨Hw, %Hlens⟩
       wp_apply hFree K tx r m X1 w1 c C HC HcL (rinv_freePre HI Htodo Hc HC Hrnx Hleaf0)
         $$ [Hw Hdb] as ⟨%X2, %w2, Hw, Hdb, %Hfr⟩
       · iframe
       obtain ⟨C1, rn1, st', HC1, Hroot1, Hrn1, Hl1, HcL1, Hv12, Hleaf1, Hwl1, Hlen1, Hfit1, Hsz1,
-        Hsz31, HI2⟩ := rinv_inline HI Htodo Hc HC Hrnx Hleaf0 Hinl0 Hfr
+        Hsz31, HI2⟩ := rinv_inline HI Htodo Hc HC Hrnx Hleaf0 Hinl0 Hlens Hfr
       rw [← Hv12]
       try wp_auto
       icases wtxW_bkt_root_acc K tx r m X2 c C1 C.bv.rootNode' rn1 HC1 HcL1 Hrn1 Hl1 $$ Hw

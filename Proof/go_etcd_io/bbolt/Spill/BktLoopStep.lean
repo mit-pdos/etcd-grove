@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureRPut
+public import Proof.go_etcd_io.bbolt.Spill.BktInlineVal
 
 @[expose] public section
 
@@ -39,11 +40,6 @@ namespace Spill
 
 section step
 variable [GooseExts]
-
-/-- The inline value `b.write()` makes of a bucket (header `ib`) whose root leaf holds `ws`. -/
-def inlineVal (ib : InBucket) (ws : List WEntry) : List w8 :=
-  encode ib ++ encode (hdrWritten ⟨W64 0, W16 0, W16 0, W32 0⟩ true (wsMs ws).length) ++
-    pageBody true (wsMs ws)
 
 variable {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString} {Lroot : List Nat}
   {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
@@ -177,11 +173,14 @@ theorem rinv_freePre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString}
   rinv_freePre' hI hks hc hC hrn hleaf
 
 /-- **After `child.free()`, for `child.write()`**: the child's record and root leaf after the free,
-`write`'s premises, and the inline value staged. -/
+`write`'s premises, and the inline value staged (a `sorry`; the value's facts are
+`BktInlineVal.inlineVal_ok`, U9x3's hand-off has the plan for the rest). (U9x3) The inodes'
+lengths (`insLens`, `NodeSpillTailWp.wtxW_lens` at the caller) give `write`'s size relation. -/
 theorem rinv_inline (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {C : BRec} {rn : NRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c)
     (hC : X.t.bs !! c = some C) (hrn : X.node c C.bv.rootNode' = some rn)
-    (hleaf : rn.nv.isLeaf' = true) (hinl : inlineIns rn.ins) {X' : WX} {w' : WDb}
+    (hleaf : rn.nv.isLeaf' = true) (hinl : inlineIns rn.ins) (hlens : insLens rn.ins rn.ws)
+    {X' : WX} {w' : WDb}
     (hfree : (C.ib.root' = W64 0 ∧ X' = X ∧ w' = w) ∨
       (C.ib.root' ≠ W64 0 ∧ bktFreed X X' c ∧
         w' = w.withFl (w.fl.freeAll w.wtxid (X.extents c)))) :
