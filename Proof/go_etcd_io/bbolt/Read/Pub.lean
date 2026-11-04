@@ -79,6 +79,78 @@ instance rBkt_discard_persistent_pub (v : View) (tx b : Loc) (bv : List w8) :
 
 end pub
 
+section pubKey
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- **A key and a live slice's bytes, read together** out of `rdTxK` (the key caller-owned or
+the view's), and back (`bytes.Equal(key, k)` after a search). -/
+theorem rd_keyR_src_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (key : GoSlice) (kr : KeyR) (kb : List w8) (s : GoSlice) (sr : Src) (bs : List w8)
+    (hs : sr ≠ Src.stale) :
+    rdTxK (GF := GF) K tx src q T v ∗ keyR v key kr kb ∗ srcOwn v s sr bs ⊢
+      ∃ d1 d2 : DFrac, key ↦*{d1} kb ∗ s ↦*{d2} bs ∗
+        (key ↦*{d1} kb -∗ s ↦*{d2} bs -∗ rdTxK K tx src q T v ∗ keyR v key kr kb) := by
+  cases kr with
+  | view =>
+    simp only [keyR]
+    iintro ⟨Hk, %Hin, #Hs⟩
+    icases rdTxK_src2_acc K tx src q T v key s Src.view sr kb bs (by intro h; cases h) hs
+      $$ [Hk Hs] with ⟨%d1, %d2, H1, H2, Hb⟩
+    · iframe; iframe #; unfold srcOwn; ipureintro; exact Hin
+    iexists d1, d2
+    iframe
+    iintro H1 H2
+    ihave Hk := Hb $$ H1 H2
+    iframe; ipureintro; exact Hin
+  | heap dk =>
+    simp only [keyR]
+    iintro ⟨Hk, Hkey, #Hs⟩
+    ihave %Hbase := rdTxK_base_pos K tx src q T v $$ Hk
+    icases rdTxK_cells_acc K tx src q T v $$ Hk with ⟨%qc, Hc, Hkb⟩
+    icases viewCells_src_acc qc v Hbase s sr bs hs $$ [Hc] with ⟨%d2, H2, Hcb⟩
+    · iframe; iframe #
+    iexists dk, d2
+    iframe
+    iintro Hkey H2
+    ihave Hc := Hcb $$ H2
+    ihave Hk := Hkb $$ Hc
+    iframe
+
+/-- **A key's bytes** out of `rdTxK` and back (`bytes.Equal(key, nil)`). -/
+theorem rd_keyR_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)
+    (key : GoSlice) (kr : KeyR) (kb : List w8) :
+    rdTxK (GF := GF) K tx src q T v ∗ keyR v key kr kb ⊢
+      ∃ d1 : DFrac, key ↦*{d1} kb ∗ (key ↦*{d1} kb -∗ rdTxK K tx src q T v ∗ keyR v key kr kb) := by
+  cases kr with
+  | view =>
+    simp only [keyR]
+    iintro ⟨Hk, %Hin⟩
+    ihave %Hbase := rdTxK_base_pos K tx src q T v $$ Hk
+    icases rdTxK_cells_acc K tx src q T v $$ Hk with ⟨%qc, Hc, Hkb⟩
+    icases viewCells_src_acc qc v Hbase key Src.view kb (by intro h; cases h) $$ [Hc]
+      with ⟨%d1, H1, Hcb⟩
+    · iframe; unfold srcOwn; ipureintro; exact Hin
+    iexists d1
+    iframe
+    iintro H1
+    ihave Hc := Hcb $$ H1
+    ihave Hk := Hkb $$ Hc
+    iframe; ipureintro; exact Hin
+  | heap dk =>
+    simp only [keyR]
+    iintro ⟨Hk, Hkey⟩
+    iexists dk
+    iframe
+    iintro Hkey
+    iframe
+
+end pubKey
+
 end bbolt
 end EtcdGrove
 end Perennial
