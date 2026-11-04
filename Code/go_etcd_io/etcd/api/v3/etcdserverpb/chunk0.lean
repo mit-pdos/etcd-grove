@@ -2469,6 +2469,31 @@ noncomputable def LeaseGrantResponse.GetHeader.impl [GooseExts] [GoGlobalContext
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ResponseHeader.ty)))) (Var "$res0"))))))
 
+/-- go: rpc.pb.go:2593:30 -/
+noncomputable def LeaseRevokeRequest.GetID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseRevokeRequest.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType LeaseRevokeRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseRevokeRequest.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType LeaseRevokeRequest.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef LeaseRevokeRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseRevokeRequest.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
+
 /-- go: rpc.pb.go:2872:34 -/
 noncomputable def LeaseKeepAliveResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"

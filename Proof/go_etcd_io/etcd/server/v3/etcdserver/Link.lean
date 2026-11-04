@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChang
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRenew
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRevoke
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -129,6 +130,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__waitAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__waitLeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest__GetTTL
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest__GetID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
@@ -837,6 +839,10 @@ theorem lease.lessor.wp_Renew :
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
   errors.Is.wp_proof
+
+theorem LeaseRevokeRequest.wp_GetID :
+    LeaseRevokeRequest.GetID.spec (GF := GF) (hG := hG) :=
+  LeaseRevokeRequest.GetID.wp_proof
 
 theorem types.ID.wp_String :
     types.ID.String.spec (GF := GF) (hG := hG) :=
@@ -1872,6 +1878,10 @@ theorem EtcdServer.wp_isLeader :
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is context.wp_ErrDone errors.wp_IsCtxErr
+
+theorem EtcdServer.wp_LeaseRevoke :
+    EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LeaseRevoke.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseRevokeRequest.wp_GetID traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
 
 theorem EtcdServer.wp_checkLeaseTimeToLive :
     EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=

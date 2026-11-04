@@ -934,3 +934,41 @@ same way and was carried separately (the lease-grant plan's 2.6: `grantAnswer E`
   predicates, but `dispatchAnswer` is E-free everywhere today (every KV answer).
 - (c) X6's spec without the header (post: an error, or `resp ≠ null` with the revocation applied),
   discharging only a weaker contract than `lessorRevokeOk`: not the plan's.
+
+**Decided (the user, 2026-11-04): (a).** The revoke header mirrors the lease-grant plan's 2.6: a
+`revokeAnswer E` carrying `grantHdr E log'`, in the revoke posts' `revokeResAfter`, then
+`revokeArM`, then a `revokeAnsM` conjunct in `appliedOkM`, carried through `Apply`,
+`applyEntryNormal`'s result and the wait. Then X6.
+
+**Done under (a) (2026-11-04).**
+- *The apply layer.* `revokeOutcomeIs`'s applied arm drops the header (its ownership moved);
+  `apply.revokeRespIs E r` (not `null`, the header `grantHdr E log`) and `apply.revokeAnswer E rq resp
+  err` (`grantAnswer`'s mirror; `revokeAnswer_err`); `revokeResAfter E rq T rs resp err o` carries
+  it. The backend's `LeaseRevoke` keeps `newHeader`'s facts on the live arm (the header at
+  `revokeLog log id`, certified by `kvWriter_cert`); the not-found arm and the auth and corrupt
+  rejections answer with their error. `dispatch.spec` gives `revokeAnsR E rq ar` (`grantRes`'s
+  mirror; `revokeAnsR_not_revoke`, `revokeAnsR_null`), `Apply.spec`/`specRec` `revokeAnsRA`.
+  (`revokeRes` was taken: `revokePre`'s resources.)
+- *The server.* `revokeArM` in `resultIsW`, `resultIsWOn`, `resPostM` (`_of_res`, `_not_revoke`,
+  their `W` forms; `adminKindOk_nonRevoke`); `revokeAnsM` in `appliedOkM` (`revokeAnsM_of_ar` in
+  `raftRequest`). `applyEntryNormal`'s sites carry it as the grant's.
+- *A gap of C2a fixed:* `rqSmall` had no revocation clause, so `rqShape` of a revocation required
+  `putOk` at every log (unprovable); its `.leaseRevoke` clause is `putOk log` (`rqSmall_of_small`
+  unchanged).
+- *X6.* `LeaseRevokeRequest.GetID` translated (`etcdserverpb.toml`), specified and proved;
+  `EtcdServer.LeaseRevoke.spec` (`srvRevokesLeases E ρ`: `ρ.rd.kv.lm = .revocable ∧ E.authOn =
+  false`; the request `leaseRevokeReqRO r id`: not `null`, `ID ↦□ id`; post: an error with
+  `applyErrIs`, or the response `leaseRevokedResp`: its header at a reached revision, the ids owned)
+  proved over `requireAuthInfo`, the span, `raftRequest` (`reqPropOk`'s revocation form) and the
+  type assertion; linked (`EtcdServer.wp_LeaseRevoke`).
+
+**Stopped: the mode-gated `lessorRevokeOk` discharge needs `r ≠ null` from the trusted request.**
+Go's `LeaseRevoke` with a nil `r` proposes an empty request, whose answer is not a
+`*LeaseRevokeResponse`: the type assertion panics, so the spec needs `r ≠ null`. `lessorRevokeOk`'s
+pre gives `v3rpc.leaseRevokeReqIs r id`, which is `pbLeaseRevokeRequest.recv` (trusted, in
+`client/v3/InvLease.lean`; `Results.lean` equates them by `rfl`) and lacks it. The grant had the same
+gap, closed by amendment (H) (`⌜r ≠ null⌝` first in `pbLeaseGrantRequest.recv`, true of Go: the
+generated handler decodes into its own fresh allocation). Proposed, the same for the revocation:
+`⌜r ≠ null⌝` first in `pbLeaseRevokeRequest.recv` and `v3rpc.leaseRevokeReqIs`. Then
+`lessorRevokeOk_of_server` follows `lessorGrantOkLive_of_server` (`leaseHdrAns` from
+`leaseRevokedResp`).
