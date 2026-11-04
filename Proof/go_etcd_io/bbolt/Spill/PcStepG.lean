@@ -105,7 +105,7 @@ theorem spG_alloc {X X' : WX} {fl fl' : FLPg} {txid : w64} {count : Nat} {p : Lo
   have hpm := allocRes_pm h
   have hdr := allocRes_derefPre' X X' fl fl' txid count p id h hd hG.2.2.1 hG.2.2.2.1
     hG.2.2.2.2.1
-  obtain ⟨a1, -, -, -, -, a6, a7, a8, a9⟩ := hG
+  obtain ⟨a1, -, -, -, -, a6, a7, a8, a9, a10, a11⟩ := hG
   -- the mark, and the new id's facts
   have hmk : X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat ∧ X'.t.mv.pgid'.toNat < 2 ^ 62 ∧
       (∀ y ∈ fl'.free, y ∈ fl.free) ∧
@@ -139,7 +139,7 @@ theorem spG_alloc {X X' : WX} {fl fl' : FLPg} {txid : w64} {count : Nat} {p : Lo
     · rw [GMap.lookup_insert_ne _ _ he] at hk
       obtain ⟨b1, b2, b3⟩ := a8 k hk
       exact ⟨by omega, fun hm => b2 (hfsub k hm), by rw [hv]; exact b3⟩
-  · intro y pg hy
+  · refine ⟨fun y pg hy => ?_, by omega, fun y hy => a11 y (hfsub y hy)⟩
     rw [hv] at hy
     have := a9 y pg hy; omega
 
