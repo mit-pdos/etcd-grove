@@ -31353,6 +31353,10 @@ standard axioms only (`Proof/.../goose/prophkv/Results.lean`).
 
 ## R-D1: the one-shot Close (2026-11-04 · the user's split of R-D and their approval of `authAbandonM` · branch `oneshot-close`)
 
+*Superseded in part (2026-11-04, "R-D2: the auth store's currency in an invariant"): the split's
+interim, `authStoreKit_on`'s premise `hAbandon` and the `sorry` `authSrvTP_on` passed it, is gone;
+`authAbandonM` is proved for auth on.*
+
 **What `#Hclose` was.** `bootOk` and `bootOkR` (`InvBoot.lean`, `InvRestart.lean`) carried
 `"#Hclose" ∷ □ {{ True }} b.Close() {{ RET #(); True }}`: a persistent triple for
 `bootstrappedServer.Close`, which `NewServer`'s deferred cleanup runs on its error paths after
@@ -31514,3 +31518,51 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 - **A named hypothesis:** `clock.RealClock.After`, `?` in the link, as in client-go's.
 - **Translated instead of assumed:** the feature constant `ListFromCacheSnapshot` (`features.toml`).
   So `NewCompactor` needs no "not a panic" axiom, unlike `AllowUnsafeMalformedObjectDeletion`'s.
+
+## R-D2: the auth store's currency in an invariant (2026-11-04 · option (d) of R-D, approved by the user with `authAbandonM` · branch `rd2-auth-currency`)
+
+Supersedes R-D1's interim (the `hAbandon` premise of `authStoreKit_on` and its `sorry` in
+`authSrvTP_on`).
+
+**Why the premise was not provable.** With auth on, `beMu`'s resource (`beP`) held the current
+backend's currency (`authCur γc 1`) for good: every reader of the store (`authRd`, inside `beRd`)
+shares the `RWMutex`, and a holder of all the readers' guards still cannot open `beMu`'s resource
+without locking. So abandoning the store (R-D1's path 2) could not recover the currency the
+realization's share (`authOpenQ`) needs.
+
+**The change.** The currency moves out of `beP` into a proved invariant of the store,
+`auth.curInv` (`InvAuth.lean`, namespace `authCur`), keyed by tickets:
+- `AuthNames` gains one name, `rdt`, a token counter (Perennial's `TokSet`); its authority is
+  minted at 0 by `authHist_alloc` and comes into `newAuthStore_on` through `authStoreInit`, so the
+  text of `auth_store_new_on`/`auth_store_boot_on` is unchanged.
+- `newAuthStore_on` takes the reader count `N ≤ actualMaxReaders`, adds `2N` tokens and discards the
+  authority (`authRdTotal γa N`, persistent, with the invariant), and returns exactly `N` readers;
+  `beRd` is `beMu`'s guard and the reader's ticket (`rdTicketM`: two tokens with auth on, `True`
+  otherwise).
+- The invariant holds the authority's count `K`, the `n` deposited tokens with a piece of the
+  backend's name each (`rdDep`), a quarter of the name, and either (live) the currency less
+  `curEps K` per reader in, or (abandoned) the apply thread's half of the name, every token, and
+  `n = 0`.
+- A reader in `lockedReadTx` (`beCurM_lend`) deposits one token and half its `beP` piece of the
+  name, takes `curEps K` of the currency, lends it to the transaction's `RLock`, and takes its
+  deposit back with the currency. The token it keeps is its receipt: the invariant cannot be
+  abandoned while it is out. The name piece is the section witness (no separate `sec` name): it
+  agrees on `γc`, and `Recover`, under the write lock with all of `beP`'s piece, finds no deposit
+  and the currency whole (`recover_swap`, now a fancy update through the invariant).
+- `auth.authRd_abandon`: `authRdTotal γa N`, the `N` readers, the apply thread's half of the name
+  and the publication token give the whole currency and close the invariant as abandoned; it proves
+  `authAbandonM` with auth on in `authStoreKit_on`, which loses `hAbandon`.
+
+**What did not move.** The statements of `authAbandonM`, `authStoreKit`, `recoverIn`/`recoverOut`,
+`lockedReadTx.spec` and every exported result; the kit rows (`authKitIn`/`authKitOut`/`authOpenM`,
+which stage 3 of the auth component moves). `authReadTxOk_rd`'s clauses are now over the lent
+currency (`authCurM`) instead of `beCurM`; `beCurM` with auth on is a quarter of `beP`'s piece of the
+name with the invariant.
+
+**Deviations from the candidate's §4.1.** No `sec` witness (the half of the reader's name piece does
+its job); a ticket is two tokens, not one (one deposited, one kept as the receipt); the authority is
+discarded at `2N` and the invariant quantifies its count; the invariant is in `beCurM` (persistent),
+not in `authInv`, whose text is unchanged; `authRd_abandon` takes `authRdTotal`, not `authInv`.
+
+**Checks.** No trusted change, no new axiom; the trust base loses `sorry authSrvTP_on` (787 axioms,
+6 `sorry`s; `etc/tcb-baseline.txt`, the `server` and `authkv` collections).

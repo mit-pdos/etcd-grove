@@ -18,3 +18,7 @@ stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
 # for `NewServer`'s error path, whose `b.Close()` takes the whole open token.
 stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(ReaderRetire|InvWatchSync)\.lean$
 stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close\.lean$
+# The auth store's readers, by their owner, auth (R-D2, 2026-11-04): the currency's invariant
+# (`curInv`) counts the readers' deposited tickets, and `authRd_abandon` takes every reader the
+# constructor made (`authRdTotal`'s count) to abandon the store, for `NewServer`'s error path.
+stock ^Proof/go_etcd_io/etcd/server/v3/auth/InvAuth\.lean$
