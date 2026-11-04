@@ -95,19 +95,66 @@ theorem upd_upd {β : Type} (f : GoString → β) (k : GoString) (b b' : β) :
     upd (upd f k b) k b' = upd f k b' := by
   funext k'; unfold upd; by_cases e : k' = k <;> simp [e]
 
+theorem flatMap_perm_split {β : Type} {keys : List GoString} {Dc : GoString → List β}
+    {k : GoString} (hnd : keys.Nodup) (hk : k ∈ keys) :
+    (keys.flatMap Dc).Perm ((keys.filter fun k' => decide (k' ≠ k)).flatMap Dc ++ Dc k) := by
+  induction keys with
+  | nil => cases hk
+  | cons a t ih =>
+    rw [List.nodup_cons] at hnd
+    rw [List.flatMap_cons]
+    by_cases e : a = k
+    · subst e
+      have hf : t.filter (fun k' => decide (k' ≠ a)) = t :=
+        List.filter_eq_self.2 (fun x hx => by simp only [decide_eq_true_eq]; intro h; subst h; exact hnd.1 hx)
+      rw [List.filter_cons_of_neg (by simp), hf]
+      exact List.perm_append_comm
+    · have hk' : k ∈ t := by
+        rcases List.mem_cons.1 hk with h | h
+        · exact absurd h.symm e
+        · exact h
+      rw [List.filter_cons_of_pos (by simpa using e), List.flatMap_cons, List.append_assoc]
+      exact List.Perm.append_left _ (ih hnd.2 hk')
+
 /-- **`child.spill()`'s pre.** -/
 theorem rinv_bkPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
     {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
     (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) :
     ∃ h F N, bkPre X w c C (othersO Lroot keys Dc k) h F (Dc k) N := by
-  sorry
+  obtain ⟨C', hC', hcl, hbm, -, -, -, hents, -, htree⟩ := rinv_todo hI hks hc
+  rw [hC] at hC'; cases hC'
+  have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
+  have hG : spG X w.wtxid (mapLen w.ms) w.fl := by rw [hwx]; exact hI.G
+  by_cases hn : C.bv.rootNode' = null
+  · exact ⟨0, [], [], hC, hcl, hbm, hG, Or.inl hn⟩
+  obtain ⟨rn, h, F, N, E, hrn, hpar, hu, hfr, hE, hpl⟩ := htree hn
+  refine ⟨h, F, N, hC, hcl, hbm, hG, Or.inr ⟨rn, E, hrn, hpar, hu, ?_, ?_, ?_, hpl⟩⟩
+  · apply slotInv_perm _ hI.slots
+    unfold othersO
+    rw [List.append_assoc]
+    exact List.Perm.append_left _ (flatMap_perm_split hnd hk)
+  · rw [hwx]; exact hfr
+  · rw [hE, hents]
 
 /-- **No root node: nothing changes** (`continue`). -/
 theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}
     {C : BRec} (hks : ks k = .todo) (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C)
     (hnull : C.bv.rootNode' = null) :
     RInv X0 w0 B0 keys Lroot X w st Dc (upd ks k .nilc) := by
-  sorry
+  obtain ⟨C', hC', -, -, -, -, -, -, hnil, -⟩ := rinv_todo hI hks hc
+  rw [hC] at hC'; cases hC'
+  refine { hI with kids := ?_, ents := ?_ }
+  · intro k' c' hc'
+    unfold upd
+    by_cases e : k' = k
+    · subst e; rw [if_pos rfl]; rw [hc] at hc'; cases hc'; exact hnil hnull
+    · rw [if_neg e]; exact hI.kids k' c' hc'
+  · rw [hI.ents]
+    congr 1; funext e
+    unfold upd
+    by_cases h : e.1 = k
+    · rw [if_pos h, h, hks]; rfl
+    · rw [if_neg h]
 
 /-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
 theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
