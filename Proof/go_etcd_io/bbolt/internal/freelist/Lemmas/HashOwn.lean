@@ -60,6 +60,26 @@ theorem hashImpl_own_close (h : Loc) (free : List w64) (cnt : w64) (sp bwm : GMa
   iframe
   ipureintro; exact hok
 
+/-- The `hashMap` at `h` holds the free ids `free` (the old proof's form; `_s` its `shared`,
+unused). -/
+def ownHashPart (h : Loc) (_s : Loc) (free : List w64) : IProp GF :=
+  iprop(∃ (cnt : w64) (sp bwm : GMap w64 w64) (sets : GMap w64 (GMap w64 Unit)),
+    "Hraw" ∷ hmRaw h cnt sp bwm sets ∗ "%Hok" ∷ ⌜hashOK cnt sp bwm sets free⌝)
+
+theorem ownHashPart_iff (h s : Loc) (free : List w64) :
+    ownHashPart (GF := GF) h s free ⊣⊢ (hashImpl (GF := GF) h).own free := by
+  constructor
+  · iintro H
+    iunfold ownHashPart at H
+    icases H with ⟨%cnt, %sp, %bwm, %sets, Hraw, %Hok⟩
+    iapply hashImpl_own_close h free cnt sp bwm sets Hok $$ Hraw
+  · iintro H
+    icases hashImpl_own_open h free $$ H with ⟨%cnt, %sp, %bwm, %sets, Hraw, %Hok⟩
+    iunfold ownHashPart
+    iexists cnt, sp, bwm, sets
+    iframe
+    ipureintro; exact Hok
+
 end preds
 
 end bbolt
