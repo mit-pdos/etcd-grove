@@ -290,6 +290,18 @@ theorem pcTree {P P' : Pages} {hwm hwm' : Nat} {id : w64} {leaf : Bool} {ws ws0 
       rw [if_neg (by rw [hfl]; decide),
         (wPage_branch (id := id) (ovf := ovf) (tail := tail) hn0' hb32).2.2.2, ← hmk, msKey_of hn0']
 
+/-- **A piece's page id is at least `2`** (a free id's or the mark's). -/
+theorem pcStep_id2 {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
+    {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
+    (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl) :
+    2 ≤ id.toNat := by
+  obtain ⟨X1, w1, X2, p, ra', rp, s, ins, stf, sta, hfr, -, hAl, -⟩ := hs
+  have hG := hG1 X1 w1 stf hfr
+  have hc0 : 0 < count := hAl.1
+  rcases (allocRes_basic hAl).2.2.2.2 with ⟨hcan, -, -⟩ | ⟨hid, -, -, -⟩
+  · exact hG.2.2.2.2.2.2.2.2.2.2 id (hcan.2 id (by unfold inRun; omega))
+  · rw [hid]; exact hG.2.2.2.2.2.2.2.2.2.1
+
 end ptree
 
 end Spill

@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.bbolt.Spill.PcStepFrame
 public import Proof.go_etcd_io.bbolt.Spill.PcStepPar
 public import Proof.go_etcd_io.bbolt.Spill.PcStepKeys
 public import Proof.go_etcd_io.bbolt.Spill.PcStepBufs
+public import Proof.go_etcd_io.bbolt.Spill.PcStepTree
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; exact hil)⟩
   obtain ⟨Sb, Eb, hDi, hEi, hSb⟩ := hents i ws hws
   let pn : Piece := ⟨x.1, id, wssKey wss i, nodePages id.toNat ws.length Sb⟩
-  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, hbody, -, hparp, hins31⟩ := hpp
+  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, hwl, hbody, -, hparp, hins31⟩ := hpp
   obtain ⟨rk, hrk, -, hsim⟩ := hL.todo i x ws (Nat.le_refl _) hx hws
   rw [hrl] at hrk; cases hrk
   obtain ⟨-, -, hxbl, hxlf, -, hxpg, hxpl, hxch, -⟩ := hsr.prec i x ws hx hws
@@ -326,12 +327,100 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         rw [hk0] at hp; simp at hp; subst hp
         have : k = i := by omega
         subst this; rw [hx] at hx'; cases hx'; rw [hws] at hws'; cases hws'
+        -- the new piece's tree (`pcTree`)
+        have hwd0 : ra.ws.map wDat = ws.map wDat := hsa.2.2.1.trans (hsim.2.2.1.trans (by
+          unfold splitRec; split <;> rfl))
+        have hrlws : rl.ws.map wDat = ws.map wDat := hsim.2.2.1.trans (by
+          unfold splitRec; split <;> rfl)
+        have hleaf : ra.nv.isLeaf' = r'.nv.isLeaf' := by
+          rw [hsa.1]; show rl.nv.isLeaf' = _; rw [hnv]; exact hxlf
+        have hpgN : spP X3 !! id.toNat =
+            some (pcPage id r'.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))) := by
+          rw [← hleaf]; exact hPid
+        have hmsr : wsMs rl.ws = wsMs ws := wsMs_congr' hrlws
+        have hlws : rl.ws.length = ws.length := length_of_dat hrlws
+        have hXm : X'.t.mv.pgid'.toNat ≤ X3.t.mv.pgid'.toNat := by
+          have h2 : X2.t.mv = X'.t.mv := by
+            rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
+          have h3 := hL.frame.2.2.2.2.2.2.2.2.1
+          rw [h2] at h3; omega
+        have hDnd : (Ds.getD k []).Nodup := (List.nodup_append.1 (List.nodup_append.1
+          (List.nodup_append.1 (List.nodup_append.1 hnd).2.1).1).2.1).1
+        have hn16 : ws.length < 2 ^ 16 := by rw [← hlws]; omega
+        have hbody' : 16 + (pageBody true (wsMs ws)).length ≤ pcCount (insSize rl.ins) * 4096 := by
+          rw [← hmsr]; exact hbody
+        have hbmax : 16 + (pageBody true (wsMs ws)).length ≤ maxAllocSize := by
+          have e : insSize rl.ins = 16 + (pageBody true (wsMs rl.ws)).length := by
+            rw [body_ws, insSize_ws rl.ins rl.ws hlr hil0]
+          rw [← hmsr]; unfold maxAllocSize; omega
+        have hfrN : ∀ m < ws.length, ∀ y ∈ pgSlots (spP X') (Sb m),
+            y < id.toNat ∨ id.toNat + pcCount (insSize rl.ins) ≤ y := by
+          intro m hm y hy
+          have hyD : y ∈ Ds.getD k [] := by
+            rw [hDi]; exact List.mem_flatMap.2 ⟨m, List.mem_range.2 hm, hy⟩
+          exact hfresh y (hown y (Or.inl hyD))
+        obtain ⟨hsw, hk0w, hinw, hinP⟩ := pcPiece_keys hpre hsp hend hsr hws
+        obtain ⟨-, hh0, hh1⟩ := spEnd_shape hpre hsp hend
+        have hid2 := pcStep_id2 hs hG1
+        have hhgt : (if r'.nv.isLeaf' = true then 0 else h - 1 + 1) = h := by
+          cases hlf : r'.nv.isLeaf'
+          · have := (hh1 hlf).2; simp only [Bool.false_eq_true, ite_false]; omega
+          · simp only [ite_true]; exact (hh0 hlf).symm
+        have hbrN : r'.nv.isLeaf' = false → 2 ≤ ws.length ∧ ∀ m e, ws[m]? = some e →
+            fTree (spP X') X'.t.mv.pgid'.toNat e.pgid.toNat e.key
+              (childHi (pcHi hi wss k) (wKey ws) ws.length m) (h - 1) (Sb m) (Eb m) := by
+          intro hl
+          refine ⟨?_, fun m e he => (hSb m e he).2 hl⟩
+          by_cases hx2 : 2 ≤ xs.length
+          · rw [(hsr.plen k x ws hx hws).1]
+            exact (hfit x (List.mem_of_getElem? hx)).2 hx2
+          · have hx1 : xs.length = 1 := by have := hsr.ne; cases xs with
+              | nil => exact absurd rfl this
+              | cons _ _ => simp at hx2 ⊢; omega
+            have hwl1 : wss.length = 1 := by rw [hsr.len]; exact hx1
+            obtain ⟨a, ha⟩ := List.length_eq_one_iff.1 hwl1
+            have hfl := hsr.ws
+            have hk0 : k = 0 := by
+              have := (List.getElem?_eq_some_iff.1 hws).1; omega
+            subst hk0
+            rw [ha] at hfl hws
+            simp only [List.getElem?_cons_zero, Option.some.injEq] at hws
+            simp only [List.flatten_cons, List.flatten_nil, List.append_nil] at hfl
+            rw [← hws, hfl]; exact (hh1 hl).1
         have hft_new : pl ≠ null → fTree (spP X3) X3.t.mv.pgid'.toNat id.toNat (wssKey wss k)
             (childHi hi (wssKey wss) xs.length k) h (nodePages id.toNat ws.length Sb)
-            (Es.getD k []) := sorry
+            (Es.getD k []) := by
+          intro hpl
+          have hne' : 0 < ws.length := by rw [← hlws]; exact hne (by rw [hrpl]; exact hpl)
+          have hk : wKey ws 0 = wssKey wss k := by unfold wssKey; rw [hws]; rfl
+          have hhiE : pcHi hi wss k = childHi hi (wssKey wss) xs.length k := by
+            unfold pcHi; rw [hsr.len]
+          have hinP' : ∀ e ∈ ws, keyIn (some (wKey ws 0)) (childHi hi (wssKey wss) xs.length k)
+              e.key := by
+            have := hinP; rw [hsr.len] at this; exact this
+          obtain ⟨Hs, He, Hf⟩ := pcTree (lo := some (wKey ws 0))
+            (hi := childHi hi (wssKey wss) xs.length k) (hc := h - 1) (Eb := Eb) hpgN hwd0 hid2
+            hext3 hc0 hcnt hbody' hbmax hn16 hsw hk0w hinP' hXm hSbag (by rw [← hDi]; exact hDnd)
+            hfrN (fun hl m e he => (hSb m e he).1 hl) (by rw [← hhiE]; exact hbrN)
+          refine ⟨by rw [← hk, ← hhgt]; exact Hs, by rw [← hk]; exact Hf hne', by rw [He, hEi]⟩
         have hst_new : pl = null → sTree (spP X3) X3.t.mv.pgid'.toNat id.toNat lo hi h
             (nodePages id.toNat ws.length Sb) ∧
-            treeEls (spP X3) id.toNat = Es.getD k [] := sorry
+            treeEls (spP X3) id.toNat = Es.getD k [] := by
+          intro hpl
+          have hx1 : xs.length = 1 := by
+            rcases hsr.par with ⟨-, h1, -⟩ | ⟨-, -, hpn', -⟩ | ⟨hpn', hpe, -⟩
+            · exact h1
+            · exact absurd hpl hpn'
+            · exact absurd (by rw [← hpe]; exact hpl) hpn'
+          have hhiE : pcHi hi wss k = hi := by
+            have hk0 : k = 0 := by
+              have := (List.getElem?_eq_some_iff.1 hws).1; rw [hsr.len] at this; omega
+            unfold pcHi childHi; rw [if_neg (by rw [hsr.len]; omega)]
+          obtain ⟨Hs, He, -⟩ := pcTree (lo := lo) (hi := hi) (hc := h - 1) (Eb := Eb) hpgN hwd0
+            hid2 hext3 hc0 hcnt hbody' hbmax hn16 hsw hk0w hinw hXm hSbag
+            (by rw [← hDi]; exact hDnd) hfrN (fun hl m e he => (hSb m e he).1 hl)
+            (by rw [← hhiE]; exact hbrN)
+          exact ⟨by rw [← hhgt]; exact Hs, by rw [He, hEi]⟩
         have hcs0 : ra.cs = [] := by
           rw [hsa.2.2.2.2.1, hsim.2.2.2.2.1]; unfold splitRec; split <;> rfl
         have hwd : ra.ws.map wDat = ws.map wDat := hsa.2.2.1.trans (hsim.2.2.1.trans (by
