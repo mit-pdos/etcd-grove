@@ -172,42 +172,42 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩
   unfold go_etcd_io.bbolt.errors.bboltErrorsVars
   isplitr
-  · iexists _; iexact HErrDatabaseNotOpen
+  · iexists _; iframe HErrDatabaseNotOpen; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrInvalid
+  · iexists _; iframe HErrInvalid; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrInvalidMapping
+  · iexists _; iframe HErrInvalidMapping; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrVersionMismatch
+  · iexists _; iframe HErrVersionMismatch; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrChecksum
+  · iexists _; iframe HErrChecksum; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrTimeout
+  · iexists _; iframe HErrTimeout; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrTxNotWritable
+  · iexists _; iframe HErrTxNotWritable; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrTxClosed
+  · iexists _; iframe HErrTxClosed; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrDatabaseReadOnly
+  · iexists _; iframe HErrDatabaseReadOnly; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrFreePagesNotLoaded
+  · iexists _; iframe HErrFreePagesNotLoaded; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrBucketExists
+  · iexists _; iframe HErrBucketExists; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrBucketNameRequired
+  · iexists _; iframe HErrBucketNameRequired; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrKeyRequired
+  · iexists _; iframe HErrKeyRequired; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrKeyTooLarge
+  · iexists _; iframe HErrKeyTooLarge; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrValueTooLarge
+  · iexists _; iframe HErrValueTooLarge; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrMaxSizeReached
+  · iexists _; iframe HErrMaxSizeReached; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrIncompatibleValue
+  · iexists _; iframe HErrIncompatibleValue; ipureintro; simp [interface.mkOk]
   isplitr
-  · iexists _; iexact HErrSameBuckets
-  iexists _; iexact HErrDifferentDB
+  · iexists _; iframe HErrSameBuckets; ipureintro; simp [interface.mkOk]
+  iexists _; iframe HErrDifferentDB; ipureintro; simp [interface.mkOk]
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

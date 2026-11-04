@@ -62,28 +62,34 @@ end encoding.hex
 
 namespace go_etcd_io.bbolt.errors
 
-/-- The other variables of bbolt's `errors` hold fixed values (bbolt's root package's initializer
-loads them into its deprecated aliases, `errors.go`). -/
-abbrev bboltErrorsVars : IProp GF :=
-  iprop((∃ e : GoInterface, globalAddr ErrDatabaseNotOpen ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrInvalid ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrInvalidMapping ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrVersionMismatch ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrChecksum ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrTimeout ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrTxNotWritable ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrTxClosed ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrDatabaseReadOnly ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrFreePagesNotLoaded ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrBucketExists ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrBucketNameRequired ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrKeyRequired ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrKeyTooLarge ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrValueTooLarge ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrMaxSizeReached ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrIncompatibleValue ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrSameBuckets ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr ErrDifferentDB ↦□ e))
+/-- The other variables of bbolt's `errors` hold fixed values, none `nil` (each an `errors.New`
+error; bbolt's root package's initializer loads them into its deprecated aliases, `errors.go`, and
+`Meta.Validate`'s spec needs `ErrInvalid`, `ErrVersionMismatch` and `ErrChecksum` non-`nil`). -/
+def bboltErrorsVars : IProp GF :=
+  iprop((∃ e : GoInterface, globalAddr ErrDatabaseNotOpen ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrInvalid ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrInvalidMapping ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrVersionMismatch ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrChecksum ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrTimeout ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrTxNotWritable ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrTxClosed ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrDatabaseReadOnly ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrFreePagesNotLoaded ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrBucketExists ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrBucketNameRequired ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrKeyRequired ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrKeyTooLarge ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrValueTooLarge ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrMaxSizeReached ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrIncompatibleValue ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrSameBuckets ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝) ∗
+    (∃ e : GoInterface, globalAddr ErrDifferentDB ↦□ e ∗ ⌜e ≠ GoInterface.nil⌝))
+
+/-- (A `def` with its own instance: the instance search through the nineteen conjuncts exceeds its
+size limit inside `bboltErrorsInit`.) -/
+instance bboltErrorsVars_persistent : Persistent (bboltErrorsVars (GF := GF)) := by
+  unfold bboltErrorsVars; infer_instance
 
 /-- bbolt's `errors` package facts: `ErrBucketNotFound` (`errors.New("bucket not found")`, which
 `DeleteBucket` returns and the backend compares with `errors.Is`) is a fixed `errors.New` error: a
