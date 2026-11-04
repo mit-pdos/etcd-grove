@@ -43,8 +43,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`tx.commitFreelist()`** (see the file header): `allocate`'s premises (for `flCount w.fl`
 pages; the freelist's ids fewer than `2^48`), the caller's frame `F` with the two rollback
-entailments (ghost updates: the caller's agreed state follows the re-based records). On success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the
-high-water mark bumped when taken from it), with the freelist page `flPageBytes w1.fl id` in its
+entailments (ghost updates: the caller's agreed state follows the re-based records). On
+success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the high-water mark
+bumped when taken from it), with the freelist page `flPageBytes w1.fl id` in its
 buffer and `tx.meta.freelist = id`; `F` back. On an error: rolled back, done. -/
 abbrev Tx.commitFreelist.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
