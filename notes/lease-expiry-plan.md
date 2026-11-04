@@ -896,3 +896,41 @@ mode-gated discharge of `lessorRevokeOk`.
 **Decided (the user, 2026-11-04): (a).** `kvInv`'s conjunct `γk.log0 ≠ []` becomes `γk.log0 ≠ [] ∧
 mvcc.LogNoLease γk.log0`. Then: the proposal side, the server's revocation case, the lease-freeness
 lemma, X6.
+
+## Plumbing: Part X-b, X7 done (2026-11-04); X6 stopped at the revoke answer's header
+
+**Done (X7, the server's revocation case and the proposal side).**
+- `revokePropOk lm rq := lm = .revocable ∧ revokeKindOk rq` in `plainEntryM` and in `reqPropOk`'s
+  third disjunct (`grantPropOk ∨ revokePropOk`, result trivial, no client update);
+  `kv_prop_au_grant` covers both (a revocation's entry is plain in the modes, claims nothing).
+- Lease-freeness: `KVModelRestore`'s restorable lemmas generalized over `lm` (puts carry lease `0`,
+  a grant keeps the log, a revocation of a lease-free log commits nothing); `kv_applied_step` gives
+  `mvcc.LogNoLease x.log` from `kvInv`'s `LogNoLease γk.log0`; `kvTableOf_ne0` (`0 ∉` the table).
+- `kv_certPre_G`/`batchStep_plainMG` take the lease-freeness and `0 ∉ lt.ids`, so the revocation's
+  `revokeLog` is the model's entry log (`leaseDels`/`revokeChanges` both `[]`).
+- `srvGrantable` carries `lessorModeIs (decide (E.lm = .mono))` (NewServer proves it from
+  `bootCfg_lm`); `revokeOwn_take`: `rdAt ∗ srvGrantIf E ⊢ revokeOwn E rq ∗ (revokeOwn E rq -∗ rdAt)`
+  at `plainOrCmpG E.lm rq`.
+- `srvRest_applyPGR`: the rest after a revocation (`revokeRestA`/`revokeIdsA` over the grant's;
+  `restRevoke` commutes with `restLeasesWith`; the live set's `T.filter`). `applyEntryNormal`'s
+  auth-off sites supply `revokeOwn` from the applier row's `rdAt`, take it back, and use it;
+  the auth-on sites still admit no revocation (`plainCover`).
+
+**Stopped: X6's discharge needs the revoke response's header facts, which the answer drops.**
+`lessorRevokeOk`'s post `leaseRevokeAns` needs, on success, `leaseHdrAns`: the header pointer
+read-only, its id fields owned, its revision read-only, not `0`, reached (`etcdReached`, from a
+certified log as `srvRevLb`). The apply layer's revoke answer is `dispatchAnswer`'s
+`revokeOutcomeIs`: at `.applied`, only `∃ h, Header ↦ h ∗ ⌜h ≠ null⌝`, `applyErrIs`,
+`revokeErrIs`; it takes no `E`, so it cannot hold the header's certificates (`idxCert E.γ.idx`,
+`certOk E.γ`). The backend's proof has them (`newHeader.spec` gives `hdrFields`, the revision at
+`log.length - 1`, `certOk`; `kvOwn` gives `idxCert`) and drops them. The grant's answer went the
+same way and was carried separately (the lease-grant plan's 2.6: `grantAnswer E` in `grantRes`,
+`grantArM` on the result, `grantAnsM` in `appliedOkM`). Options:
+- (a) a revoke twin of 2.6: `revokeAnswer E rq resp err` (the header as `grantHdr E log'`) in the
+  revoke posts' `revokeResAfter`, `revokeArM`, `revokeAnsM` in `appliedOkM`, through `Apply`,
+  `applyEntryNormal`'s result and the wait. Strengthens the apply package's revoke posts and
+  `appliedOkM` (the server's request-side vocabulary). Recommended: it is the established pattern.
+- (b) `revokeOutcomeIs`/`dispatchAnswer` take `E` and hold `grantHdr` directly: fewer new
+  predicates, but `dispatchAnswer` is E-free everywhere today (every KV answer).
+- (c) X6's spec without the header (post: an error, or `resp ≠ null` with the revocation applied),
+  discharging only a weaker contract than `lessorRevokeOk`: not the plan's.

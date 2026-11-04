@@ -594,16 +594,25 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
 the user's (C)): in a cluster that grants leases, the invariant owns the KV state's ghost variable
 whole (`kvStQ`), so it steps it to the model of the log with the entry (no client's update); the
 entry is plain in the modes (`plainEntryM`'s grant disjunct), of a good shape, claims nothing
-(`cmpEntryOk`: no compaction). The result is `True`. -/
+(`cmpEntryOk`: no compaction). The result is `True`. (The lease-expiry stage's X7, 2026-11-04:)
+likewise a revocation in the revocable mode (`plainEntryM`'s revocation disjunct). -/
 theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq) (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E)
-    (hform : grantPropOk γk.lm rq ∧ rqShape γk.lm rq) :
+    (hform : (grantPropOk γk.lm rq ∨ revokePropOk γk.lm rq) ∧ rqShape γk.lm rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
   have Hdisj := kvN_raftN
-  have hlg : γk.lg = true := KVNames.lg_true_of_lm hform.1.1
+  have hlm : γk.lm ≠ .none := by
+    rcases hform.1 with hg | hr
+    · exact hg.1
+    · rw [hr.1]; decide
+  have hlg : γk.lg = true := KVNames.lg_true_of_lm hlm
+  have hkk : apply.dispatchKind rq = .leaseGrant ∨ apply.dispatchKind rq = .leaseRevoke := by
+    rcases hform.1 with hg | hr
+    · exact Or.inl hg.2.1
+    · exact Or.inr hr.2.1
   iintro #Hinv #Hcl #Hreg
   imodintro
   unfold srvPropAu1
@@ -635,14 +644,15 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       intro _ _ rq' h hkd
       rw [hed, hdec] at h
       cases h
-      rw [hform.1.2.1] at hkd
-      cases hkd
+      rcases hkk with hkk | hkk <;> rw [hkk] at hkd <;> cases hkd
     -- plain in the modes: a grant in a granting cluster
     have hplain : plainEntryM γk.cmp γk.lm e := by
       intro _ _ rq' h
       rw [hed, hdec] at h
       cases h
-      exact Or.inr (Or.inr hform.1)
+      rcases hform.1 with hg | hr
+      · exact Or.inr (Or.inr (Or.inl hg))
+      · exact Or.inr (Or.inr (Or.inr hr))
     have hsh : entryShape γk.lm e :=
       ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2⟩, fun h => absurd het h⟩
     ihave #Hecl : entryClaim γk.ids e $$ []
@@ -655,7 +665,7 @@ theorem kv_prop_au_grant (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       ipureintro; exact ⟨hdec, hid⟩
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
       (entryPutsOk_of_data e d rq hed hdec hk)
-      (attrEntryOk_of _ e d rq hed hdec (attrIdOk_of_kind _ rq (by rw [hform.1.2.1]; decide))) $$ Hw Hecl
+      (attrEntryOk_of _ e d rq hed hdec (attrIdOk_of_kind _ rq (by rcases hkk with hkk | hkk <;> rw [hkk] <;> decide))) $$ Hw Hecl
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]

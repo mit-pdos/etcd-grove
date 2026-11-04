@@ -951,14 +951,16 @@ revision at least the cluster's retention behind a reached one (`kvRevLbZ`, C3's
 its result trivial. (The lease-grant stage's §2.7, 2026-11-03, the user's (C):) or, in a cluster
 that grants leases, a grant (`grantPropOk`), its result trivial and no client's update: the KV
 invariant owns the KV state whole there. At `γk.lg = false` the grant form is refuted
-(`grantPropOk_false`). -/
+(`grantPropOk_false`). (The lease-expiry stage's X7, 2026-11-04:) or, in the revocable mode, a
+revocation (`revokePropOk`), alike. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
     (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)) ∨
-    ⌜grantPropOk γk.lm rq ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧ Qr = fun _ => iprop(True)⌝)
+    ⌜(grantPropOk γk.lm rq ∨ revokePropOk γk.lm rq) ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
+      Qr = fun _ => iprop(True)⌝)
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
@@ -974,7 +976,10 @@ theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMode
   iintro (H | ⟨%hc, -⟩ | %hg)
   · iexact H
   · rw [h] at hc; exact absurd hc.1 (by decide)
-  · exact absurd (by simpa [KVNames.lg_eq] using hl) hg.1.1
+  · have hn : γk.lm = .none := by simpa [KVNames.lg_eq] using hl
+    rcases hg.1 with hg | hr
+    · exact absurd hn hg.1
+    · rw [hn] at hr; exact absurd hr.1 (by decide)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 

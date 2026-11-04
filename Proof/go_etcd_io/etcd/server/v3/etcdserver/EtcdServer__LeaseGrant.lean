@@ -195,7 +195,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
       isplitl
       · iunfold reqPropOk
         iright; iright
-        ipureintro; exact ⟨⟨KVNames.lm_of_lg_true hlg, Hgk⟩, Hshape, HnzW, rfl⟩
+        ipureintro; exact ⟨Or.inl ⟨KVNames.lm_of_lg_true hlg, Hgk⟩, Hshape, HnzW, rfl⟩
       ipureintro; rfl
     iexists _; iexact Header
   (try wp_auto)
