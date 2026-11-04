@@ -9,7 +9,8 @@ applied to the interface value. No program reaches that expression and it has no
 and `ok i` giving `#(methods i.ty "M" i.v)` (the dynamic type's method), and `methods` of an
 interface type has no `MethodUnfold`. So the frozen specs can neither be proved nor applied by
 their callers. U2 proves each spec with the expression replaced by `ifaceCall fli m` (what a
-caller's `wp_auto` leaves after loading the interface value), and the rest unchanged.
+caller's `wp_auto` leaves after loading the interface value), and the rest unchanged; since the
+2026-11-04 fix the frozen specs are those.
 -/
 module
 
@@ -25,13 +26,7 @@ namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- `fli.m`, a method value of the freelist interface value `fli`: the dynamic type's method
-(`nil` panics). -/
-abbrev ifaceCall [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (fli : GoInterface)
-    (m : GoString) : Expr :=
-  match fli with
-  | GoInterface.nil => Panic "nil interface"
-  | GoInterface.ok i => Val #(methods i.ty m i.v)
+-- `ifaceCall` is in `Inv/Freelist.lean` (shared: the interface specs are stated over it).
 
 theorem ifaceCall_impl [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
     {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]

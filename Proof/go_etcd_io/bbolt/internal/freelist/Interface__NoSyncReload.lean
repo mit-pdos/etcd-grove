@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__NoSyncReload.lean` (U2, `notes/bbolt-proof-plan.md`): `wp_proof'`, of `spec'`, the spec over the call a caller reaches (`ifaceCall`, `Lemmas/IfaceCall.lean`: the frozen spec's expression is unreachable) with the premises it lacks; `wp_proof` stays `sorry` until the frozen spec is restated.
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__NoSyncReload.lean` (U2, `notes/bbolt-proof-plan.md`),
+over `ifaceCall` (`Inv/Freelist.lean`; dispatch: `Lemmas/IfaceCall.lean`).
 -/
 module
 
@@ -27,23 +28,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The spec over the call a caller reaches, with three more premises than the frozen spec,
-which is false without them: the ids are pages (at least 2) and not too many with the pending
-ones (else the result is not `FLPg.WF`, which `flPgOwn` requires), and some id is left or no id
-was free (`hashMap.Init` of no ids returns before `reindex`, keeping the old cache: the old free
-ids would stay cached). -/
-abbrev Interface.NoSyncReload.spec' : Prop :=
-  ∀ (fli : GoInterface) (fl : FLPg) (s : GoSlice) (ids : List w64) (dq : DFrac),
-  PgidsIncr ids → (∀ x ∈ ids, 2 ≤ x.toNat) → ids.length + fl.pendingIds.length < 2 ^ 63 →
-  ((fl.noSyncReload ids).free ≠ [] ∨ fl.free = []) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
-      s ↦*{dq} ids }}
-    (App (ifaceCall fli go!"NoSyncReload") (Val #s))
-  {{ RET #(); flPgOwn fli (fl.noSyncReload ids) ∗ s ↦*{dq} ids }}
-
-theorem Interface.NoSyncReload.wp_proof'
+theorem Interface.NoSyncReload.wp_proof
     (hI : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.InitSpec) :
-    Interface.NoSyncReload.spec' (GF := GF) (hG := hG) := by
+    Interface.NoSyncReload.spec (GF := GF) (hG := hG) := by
   intro fli fl sl ids dq Hinc Hge Hlen Hemp
   wp_start_folded as ⟨Hfl, Hs⟩
   icases flPgOwn_open _ _ $$ Hfl with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
@@ -79,9 +66,6 @@ theorem Interface.NoSyncReload.wp_proof'
       simp
     rw [show fl.noSyncReload ids = fl.reload ids from rfl]
     iexact Hsh)
-
-theorem Interface.NoSyncReload.wp_proof : Interface.NoSyncReload.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

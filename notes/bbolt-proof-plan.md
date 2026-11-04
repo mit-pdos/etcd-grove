@@ -278,6 +278,47 @@ No frozen public statement changed.
    an allocated page (past the old mapping or not) is in `tx.pages`, and `Tx.page` of a page of
    `tx.pages` (`pm !! id = some p`) needs no bound; only a view page (`pm !! id = none`) does.
 
+## Shared-statement fixes (U2's findings, 2026-11-04; decided by the coordinator)
+
+No frozen public statement changed.
+
+1. **The 14 `Interface__*` specs** (`Spec/go_etcd_io/bbolt/internal/freelist/`) are U2's corrected
+   ones: stated over `ifaceCall fli m` (moved from U2's `Lemmas/IfaceCall.lean` to
+   `Inv/Freelist.lean`), what Go's `fl.M(args)` steps to (`methods Interface.ty m` has no
+   semantics). Each proof file's `wp_proof'` is its `wp_proof` (callee specs as hypotheses); the
+   `sorry`'d duplicates are gone. All 14 are proved.
+2. **`NoSyncReload`**: `PgidsIncr ids`, ids `≥ 2`, `ids.length + fl.pendingIds.length < 2^63`,
+   `(fl.noSyncReload ids).free ≠ [] ∨ fl.free = []`.
+3. **`Reload`**: `(flIds pg).Nodup`, ids `≥ 2`, `(flIds pg).length + fl.pendingIds.length < 2^63`,
+   `flIds pg ≠ [] ∨ fl.free = []`. The callers can supply 2 and 3 from what is maintained:
+   `Reload(p)` (rollback, a synced freelist page): `wdbOK`'s `flCurOK` (`Nodup`, `≥ 2`, ids
+   `< 2^62` or committed-pending, `fl.free ⊆ flIds pg`, so a non-empty `fl.free` gives a non-empty
+   page); `NoSyncReload(freepages())` (rollback without a synced page): `freeIdsOf C` is sorted,
+   `≥ 2`, below `hwm`, and contains every free id (`flBelow`, `wdbOK`'s B2); the length bound in
+   both from `storeOK`'s `hwm ≤ 2^62` and `flBelow`'s pending ids `< 2^62` (distinct ids in
+   `[2, 2^62)` number fewer than `2^62`). U10 needs the counting lemma (distinct ids in a range)
+   and, for `NoSyncReload`, `fl.free ⊆ freeIdsOf C` (from `flBelow` and the free ids not being
+   tree slots); `Open`'s `loadFreelist` uses `Init`, unaffected.
+4. **`releaseRangeOne`** (`Model/FL`) keeps a touched entry's other pairs in the code's
+   swap-removal order (`srLoop`, `srLoop_perm`, `mem_srLoop`, moved from U2's
+   `Lemmas/ReleaseGo.lean`); `FLPg.releaseRange`/`releasePending` keep their names, and U2's
+   `releaseRangeGo`/`releasePendingGo` equal them (`rfl`). U3's proofs adapted (only where they
+   read the kept pairs): `Model/Mvcc`'s `mvccView_releaseRange` (a pair kept is one allocated
+   outside the range, `mem_srLoop`), `Model/Store`'s private `rrOne_perm` (the ids, up to order)
+   and `relOK_releaseRange` (the same membership). `storeOK_release` unchanged.
+5. **`FLPg.rollback`** is the code's: nothing without a pending entry for `txid`, else the new
+   `FLPg.rollbackEntry` (the old body). U2's `rollbackGo` equals it (`rfl`). `Model/Store`: the
+   old proof is the private `storeOK_rollbackE` over the new `StoreSt.rollbackE`, and
+   `storeOK_rollback` (same statement) splits on the pending entry; the private
+   `rollback_allocs`/`rollback_pending`/`mvccView_rollback`/`pendSlots_rollback`/
+   `pendingIds_rollback_perm` are over `rollbackEntry`. `Inv/Store`'s `store_rollback` unchanged.
+6. **`flPgOwn`'s pending entries are non-nil**: its map of entries holds `⌜p ≠ null⌝ ∗ ownPending
+   p pd` (every entry the code stores is a fresh allocation); U2's `ownPending_nonnull` (false as
+   stated, the one `sorry` of U2's proofs) is deleted, `pds_to_pend`/`pend_to_pds` reworked.
+
+U3's untracked work copies (`Proof/go_etcd_io/bbolt/Store/Wip*.lean`) repeat the old proofs of
+items 4 and 5 and need the same edits.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

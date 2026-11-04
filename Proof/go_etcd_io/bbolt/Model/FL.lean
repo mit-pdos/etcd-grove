@@ -108,13 +108,102 @@ def FLPg.release (fl : FLPg) (txid : w64) : FLPg :=
   { fl with free := sortPgids (fl.free ++ rel.toList.flatMap fun kv => kv.2.ids),
             pending := fl.pending.filter fun t _ => decide (txid.toNat < t.toNat) }
 
+/-- A pair's allocating transaction is in `[b, e]` (`releaseRange`'s inner test). -/
+def inRR (b e : w64) (x : w64 × w64) : Bool := decide (b.toNat ≤ x.2.toNat ∧ x.2.toNat ≤ e.toNat)
+
+/-- `releaseRange`'s inner loop from index `j` on the pairs `Q`: the pairs left. -/
+def srLoop (b e : w64) (j : Nat) (Q : List (w64 × w64)) : List (w64 × w64) :=
+  if h : j < Q.length then
+    if inRR b e Q[j] then
+      srLoop b e j ((Q.set j (Q[Q.length - 1]'(by omega))).take (Q.length - 1))
+    else srLoop b e (j + 1) Q
+  else Q
+termination_by Q.length - j + Q.length
+decreasing_by
+  · simp only [List.length_take, List.length_set]; omega
+  · omega
+
+theorem srLoop_rm {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : j < Q.length)
+    (hin : inRR b e Q[j] = true) :
+    srLoop b e j Q =
+      srLoop b e j ((Q.set j (Q[Q.length - 1]'(by omega))).take (Q.length - 1)) := by
+  rw [srLoop]; simp only [h, dite_true, hin, ite_true]
+
+theorem srLoop_skip {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : j < Q.length)
+    (hin : inRR b e Q[j] = false) : srLoop b e j Q = srLoop b e (j + 1) Q := by
+  rw [srLoop]; simp only [h, dite_true, hin, Bool.false_eq_true, ite_false]
+
+theorem srLoop_end {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : ¬ j < Q.length) :
+    srLoop b e j Q = Q := by
+  rw [srLoop]; simp only [h, dite_false]
+
+/-- `l[j] = l[last]; l = l[:last]` and `l[j]`: `l`, up to order. -/
+theorem swap_take_perm {α : Type} (l : List α) (j : Nat) (hj : j < l.length) :
+    ((l.set j (l[l.length - 1]'(by omega))).take (l.length - 1) ++ [l[j]]).Perm l := by
+  obtain ⟨A, x, B, rfl, hA⟩ : ∃ A x B, l = A ++ x :: B ∧ A.length = j :=
+    ⟨l.take j, l[j], l.drop (j + 1), by simp, by simp; omega⟩
+  subst hA
+  rcases List.eq_nil_or_concat B with rfl | ⟨B', y, rfl⟩
+  · simp [List.set_append_right, List.take_left']
+  · simp only [List.concat_eq_append]
+    have hlast : (A ++ x :: (B' ++ [y]))[(A ++ x :: (B' ++ [y])).length - 1]'(by simp) = y := by
+      simp [List.getElem_append_right]
+    have hj : (A ++ x :: (B' ++ [y]))[A.length]'(by simp) = x := by simp
+    rw [hlast, hj, List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.set_cons_zero]
+    rw [show (A ++ x :: (B' ++ [y])).length - 1 = (A ++ y :: B').length by simp,
+      show A ++ y :: (B' ++ [y]) = (A ++ y :: B') ++ [y] by simp, List.take_left]
+    rw [List.append_assoc]
+    refine List.Perm.append_left A ?_
+    exact (List.perm_append_singleton x (y :: B')).trans
+      (List.Perm.cons x (List.perm_append_singleton y B').symm)
+
+/-- The loop keeps the pairs allocated outside `[b, e]`, up to order. -/
+theorem srLoop_perm (b e : w64) : ∀ (n j : Nat) (Q : List (w64 × w64)),
+    Q.length - j + Q.length ≤ n → (∀ x ∈ Q.take j, inRR b e x = false) →
+    (srLoop b e j Q).Perm (Q.filter fun x => !inRR b e x)
+  | 0, j, Q, hn, h => by
+    have : Q = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst this; rw [srLoop_end (by simp)]; exact List.Perm.refl _
+  | n + 1, j, Q, hn, h => by
+    by_cases hj : j < Q.length
+    · by_cases hin : inRR b e Q[j] = true
+      · rw [srLoop_rm hj hin]
+        have hsw := swap_take_perm Q j hj
+        refine (srLoop_perm b e n j _ (by simp only [List.length_take, List.length_set]; omega)
+          ?_).trans ?_
+        · intro x hx
+          rw [List.take_take, Nat.min_eq_left (by omega), List.take_set_of_le (Nat.le_refl _)] at hx
+          exact h x hx
+        · have := hsw.filter (fun x => !inRR b e x)
+          rw [List.filter_append] at this
+          simp only [List.filter_cons, List.filter_nil, hin, Bool.not_true, Bool.false_eq_true,
+            ite_false, List.append_nil] at this
+          exact this
+      · have hin' : inRR b e Q[j] = false := by simpa using hin
+        rw [srLoop_skip hj hin']
+        refine srLoop_perm b e n (j + 1) Q (by omega) ?_
+        intro x hx
+        rw [List.take_add_one, List.getElem?_eq_getElem hj] at hx
+        rcases List.mem_append.1 hx with hx | hx
+        · exact h x hx
+        · simp only [Option.toList_some, List.mem_singleton] at hx; subst hx; exact hin'
+    · rw [srLoop_end hj]
+      rw [List.take_of_length_le (by omega)] at h
+      rw [List.filter_eq_self.2 (fun x hx => by rw [h x hx]; rfl)]
+
+/-- A pair is kept by the loop iff it is allocated outside `[b, e]`. -/
+theorem mem_srLoop (b e : w64) (Q : List (w64 × w64)) (x : w64 × w64) :
+    x ∈ srLoop b e 0 Q ↔ x ∈ Q.filter (fun x => !inRR b e x) :=
+  (srLoop_perm b e _ 0 Q (Nat.le_refl _) (by simp)).mem_iff
+
 /-- `releaseRange(begin, end)` on one pending entry: the pages allocated in `[begin, end]` are
-taken out (and returned). -/
+taken out (and returned), the others kept in the code's order (U2 fix: Go removes a pair by
+moving the last one into its place, `srLoop`; the kept pairs are the others up to order,
+`srLoop_perm`). -/
 def releaseRangeOne (b e : w64) (p : Pending) : List w64 × Pending :=
   let both := p.ids.zip p.alloctx
-  let inR := fun (x : w64 × w64) => decide (b.toNat ≤ x.2.toNat ∧ x.2.toNat ≤ e.toNat)
-  ((both.filter inR).map Prod.fst,
-    ⟨(both.filter (fun x => !inR x)).map Prod.fst, (both.filter (fun x => !inR x)).map Prod.snd, b⟩)
+  let K := srLoop b e 0 both
+  ((both.filter (inRR b e)).map Prod.fst, ⟨K.map Prod.fst, K.map Prod.snd, b⟩)
 
 /-- `releaseRange(begin, end)`: the pages pending for a transaction in `[begin, end]` that were
 allocated in `[begin, end]` are free (an entry already released from `begin` is skipped; an
@@ -141,14 +230,20 @@ def FLPg.releasePending (fl : FLPg) (ro : List w64) : FLPg :=
     (acc.1.releaseRange acc.2 (t - 1), t + 1)) (fl, minid)
   fl.releaseRange minid (W64 (-1))
 
-/-- `Rollback(txid)`: `txid`'s pending pages are not pending any more (those allocated by
-another transaction get their `allocs` back), and `txid`'s allocations are forgotten. -/
-def FLPg.rollback (fl : FLPg) (txid : w64) : FLPg :=
+/-- `Rollback(txid)` of `txid`'s pending entry: its pages are not pending any more (those
+allocated by another transaction get their `allocs` back), and `txid`'s allocations are
+forgotten. -/
+def FLPg.rollbackEntry (fl : FLPg) (txid : w64) : FLPg :=
   let pd := (fl.pending !! txid).getD ⟨[], [], 0⟩
   let back := (pd.ids.zip pd.alloctx).filter fun x => decide (x.2 ≠ 0 ∧ x.2 ≠ txid)
   let allocs := back.foldl (fun m x => m.insert x.1 x.2) fl.allocs
   { fl with pending := fl.pending.delete txid,
             allocs := allocs.filter fun _ t => decide (t ≠ txid) }
+
+/-- `Rollback(txid)` as the code does it (U2 fix): nothing without a pending entry for `txid`
+(Go returns at once, `allocs` untouched), else `rollbackEntry`. -/
+def FLPg.rollback (fl : FLPg) (txid : w64) : FLPg :=
+  if fl.pending !! txid = none then fl else fl.rollbackEntry txid
 
 /-- `Reload(p)`/`NoSyncReload(ids)`: the free ids are `ids` but the pending ones. -/
 def FLPg.reload (fl : FLPg) (ids : List w64) : FLPg :=

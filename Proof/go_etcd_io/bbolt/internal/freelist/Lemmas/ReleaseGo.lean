@@ -9,8 +9,9 @@ so the remaining pairs come out in another order, and `ownPending`'s exact slice
 post false (e.g. pairs `[a, b, c]`, `a` released: the code leaves `[c, b]`, the model `[b, c]`).
 `srLoop` is the code's loop; `releaseRangeOneGo`, `FLPg.releaseRangeGo`, `FLPg.releasePendingGo`
 are the model's definitions with it in place of the `filter` (the freed ids are the model's: they
-are sorted into the free ids). `releaseRangeOneGo_perm` relates the two: the same freed ids and
-the same kept pairs up to order.
+are sorted into the free ids). Fixed 2026-11-04: `Model/FL`'s `releaseRangeOne` is now the
+code's (`srLoop`, moved there), so these are the model's (`releaseRangeOneGo_eq`,
+`FLPg.releaseRangeGo_eq`, `FLPg.releasePendingGo_eq`, by `rfl`).
 -/
 module
 
@@ -24,106 +25,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-/-- A pair's allocating transaction is in `[b, e]` (`releaseRange`'s inner test). -/
-def inRR (b e : w64) (x : w64 × w64) : Bool := decide (b.toNat ≤ x.2.toNat ∧ x.2.toNat ≤ e.toNat)
-
-/-- `releaseRange`'s inner loop from index `j` on the pairs `Q`: the pairs left. -/
-def srLoop (b e : w64) (j : Nat) (Q : List (w64 × w64)) : List (w64 × w64) :=
-  if h : j < Q.length then
-    if inRR b e Q[j] then
-      srLoop b e j ((Q.set j (Q[Q.length - 1]'(by omega))).take (Q.length - 1))
-    else srLoop b e (j + 1) Q
-  else Q
-termination_by Q.length - j + Q.length
-decreasing_by
-  · simp only [List.length_take, List.length_set]; omega
-  · omega
-
-theorem srLoop_rm {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : j < Q.length)
-    (hin : inRR b e Q[j] = true) :
-    srLoop b e j Q =
-      srLoop b e j ((Q.set j (Q[Q.length - 1]'(by omega))).take (Q.length - 1)) := by
-  rw [srLoop]; simp only [h, dite_true, hin, ite_true]
-
-theorem srLoop_skip {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : j < Q.length)
-    (hin : inRR b e Q[j] = false) : srLoop b e j Q = srLoop b e (j + 1) Q := by
-  rw [srLoop]; simp only [h, dite_true, hin, Bool.false_eq_true, ite_false]
-
-theorem srLoop_end {b e : w64} {j : Nat} {Q : List (w64 × w64)} (h : ¬ j < Q.length) :
-    srLoop b e j Q = Q := by
-  rw [srLoop]; simp only [h, dite_false]
-
-/-- `l[j] = l[last]; l = l[:last]` and `l[j]`: `l`, up to order. -/
-theorem swap_take_perm {α : Type} (l : List α) (j : Nat) (hj : j < l.length) :
-    ((l.set j (l[l.length - 1]'(by omega))).take (l.length - 1) ++ [l[j]]).Perm l := by
-  obtain ⟨A, x, B, rfl, hA⟩ : ∃ A x B, l = A ++ x :: B ∧ A.length = j :=
-    ⟨l.take j, l[j], l.drop (j + 1), by simp, by simp; omega⟩
-  subst hA
-  rcases List.eq_nil_or_concat B with rfl | ⟨B', y, rfl⟩
-  · simp [List.set_append_right, List.take_left']
-  · simp only [List.concat_eq_append]
-    have hlast : (A ++ x :: (B' ++ [y]))[(A ++ x :: (B' ++ [y])).length - 1]'(by simp) = y := by
-      simp [List.getElem_append_right]
-    have hj : (A ++ x :: (B' ++ [y]))[A.length]'(by simp) = x := by simp
-    rw [hlast, hj, List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.set_cons_zero]
-    rw [show (A ++ x :: (B' ++ [y])).length - 1 = (A ++ y :: B').length by simp,
-      show A ++ y :: (B' ++ [y]) = (A ++ y :: B') ++ [y] by simp, List.take_left]
-    rw [List.append_assoc]
-    refine List.Perm.append_left A ?_
-    exact (List.perm_append_singleton x (y :: B')).trans
-      (List.Perm.cons x (List.perm_append_singleton y B').symm)
-
-/-- The loop keeps the pairs allocated outside `[b, e]`, up to order. -/
-theorem srLoop_perm (b e : w64) : ∀ (n j : Nat) (Q : List (w64 × w64)),
-    Q.length - j + Q.length ≤ n → (∀ x ∈ Q.take j, inRR b e x = false) →
-    (srLoop b e j Q).Perm (Q.filter fun x => !inRR b e x)
-  | 0, j, Q, hn, h => by
-    have : Q = [] := List.eq_nil_of_length_eq_zero (by omega)
-    subst this; rw [srLoop_end (by simp)]; exact List.Perm.refl _
-  | n + 1, j, Q, hn, h => by
-    by_cases hj : j < Q.length
-    · by_cases hin : inRR b e Q[j] = true
-      · rw [srLoop_rm hj hin]
-        have hsw := swap_take_perm Q j hj
-        refine (srLoop_perm b e n j _ (by simp only [List.length_take, List.length_set]; omega)
-          ?_).trans ?_
-        · intro x hx
-          rw [List.take_take, Nat.min_eq_left (by omega), List.take_set_of_le (Nat.le_refl _)] at hx
-          exact h x hx
-        · have := hsw.filter (fun x => !inRR b e x)
-          rw [List.filter_append] at this
-          simp only [List.filter_cons, List.filter_nil, hin, Bool.not_true, Bool.false_eq_true,
-            ite_false, List.append_nil] at this
-          exact this
-      · have hin' : inRR b e Q[j] = false := by simpa using hin
-        rw [srLoop_skip hj hin']
-        refine srLoop_perm b e n (j + 1) Q (by omega) ?_
-        intro x hx
-        rw [List.take_add_one, List.getElem?_eq_getElem hj] at hx
-        rcases List.mem_append.1 hx with hx | hx
-        · exact h x hx
-        · simp only [Option.toList_some, List.mem_singleton] at hx; subst hx; exact hin'
-    · rw [srLoop_end hj]
-      rw [List.take_of_length_le (by omega)] at h
-      rw [List.filter_eq_self.2 (fun x hx => by rw [h x hx]; rfl)]
-
 /-- `releaseRangeOne` with the code's order of the kept pairs. -/
 def releaseRangeOneGo (b e : w64) (p : Pending) : List w64 × Pending :=
   let both := p.ids.zip p.alloctx
   let K := srLoop b e 0 both
   ((both.filter (inRR b e)).map Prod.fst, ⟨K.map Prod.fst, K.map Prod.snd, b⟩)
 
-/-- The code's `releaseRangeOne` and the model's: the same freed ids, the kept pairs up to
-order, the same `lastReleaseBegin`. -/
-theorem releaseRangeOneGo_perm (b e : w64) (p : Pending) :
-    (releaseRangeOneGo b e p).1 = (releaseRangeOne b e p).1 ∧
-    ((releaseRangeOneGo b e p).2.ids.zip (releaseRangeOneGo b e p).2.alloctx).Perm
-      ((releaseRangeOne b e p).2.ids.zip (releaseRangeOne b e p).2.alloctx) ∧
-    (releaseRangeOneGo b e p).2.lastReleaseBegin = (releaseRangeOne b e p).2.lastReleaseBegin := by
-  refine ⟨rfl, ?_, rfl⟩
-  simp only [releaseRangeOneGo, releaseRangeOne, List.zip_map', inRR]
-  have := srLoop_perm b e _ 0 (p.ids.zip p.alloctx) (Nat.le_refl _) (by simp)
-  simpa [inRR, List.zip_map'] using this
+/-- The code's `releaseRangeOne` is the model's (since the 2026-11-04 fix of `Model/FL`). -/
+theorem releaseRangeOneGo_eq (b e : w64) (p : Pending) :
+    releaseRangeOneGo b e p = releaseRangeOne b e p := rfl
 
 /-- `FLPg.releaseRange` with the code's order of the kept pairs (`releaseRangeOneGo`). -/
 def FLPg.releaseRangeGo (fl : FLPg) (b e : w64) : FLPg :=
@@ -146,6 +56,12 @@ def FLPg.releasePendingGo (fl : FLPg) (ro : List w64) : FLPg :=
   let (fl, minid) := ro.foldl (fun (acc : FLPg × w64) t =>
     (acc.1.releaseRangeGo acc.2 (t - 1), t + 1)) (fl, minid)
   fl.releaseRangeGo minid (W64 (-1))
+
+theorem FLPg.releaseRangeGo_eq (fl : FLPg) (b e : w64) : fl.releaseRangeGo b e = fl.releaseRange b e :=
+  rfl
+
+theorem FLPg.releasePendingGo_eq (fl : FLPg) (ro : List w64) :
+    fl.releasePendingGo ro = fl.releasePending ro := rfl
 
 /-! ## The state after the code's `releaseRange` -/
 

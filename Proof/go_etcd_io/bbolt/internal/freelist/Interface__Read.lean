@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__Read.lean` (U2, `notes/bbolt-proof-plan.md`): `wp_proof'`, of `spec'`, the spec over the call a caller reaches (`ifaceCall`, `Lemmas/IfaceCall.lean`: the frozen spec's expression is unreachable); `wp_proof` stays `sorry` until the frozen spec is restated.
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__Read.lean` (U2, `notes/bbolt-proof-plan.md`),
+over `ifaceCall` (`Inv/Freelist.lean`; dispatch: `Lemmas/IfaceCall.lean`).
 -/
 module
 
@@ -27,25 +28,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The spec over the call a caller reaches; otherwise the frozen spec's. -/
-abbrev Interface.Read.spec' : Prop :=
-  ∀ (fli : GoInterface) (p : Loc) (pg : List w8) (dq : DFrac),
-  pageFlags pg = freelistPageFlag →
-  16 + 8 * (flCountIdx pg).2 + 8 * (flCountIdx pg).1 ≤ pg.length →
-  (flCountIdx pg).1 < 2 ^ 63 → (flIds pg).Nodup → (∀ x ∈ flIds pg, 2 ≤ x.toNat) →
-  0 < p.addr → p.addr + pg.length ≤ maxAddr →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
-      flPgOwn fli FLPg.empty ∗ bytesPointsto p dq pg }}
-    (App (ifaceCall fli go!"Read") (Val #p))
-  {{ RET #(); flPgOwn fli (FLPg.ofInit (flIds pg)) ∗ bytesPointsto p dq pg }}
-
-theorem Interface.Read.wp_proof'
+theorem Interface.Read.wp_proof
     (hI : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.InitSpec)
     (hIs : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.IsFreelistPage.spec
       (GF := GF) (hG := hG))
     (hIds : _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.FreelistPageIds.spec
       (GF := GF) (hG := hG)) :
-    Interface.Read.spec' (GF := GF) (hG := hG) := by
+    Interface.Read.spec (GF := GF) (hG := hG) := by
   intro fli p pg dq Hfl Hsz Hcnt Hnd Hge Hp Hmax
   wp_start_folded as ⟨Hfl', Hpg⟩
   icases flPgOwn_open _ _ $$ Hfl' with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
@@ -88,9 +77,6 @@ theorem Interface.Read.wp_proof'
     iapply ownShW_wf _ _ _ Hwf
     iExactEq Hsh
     rfl)
-
-theorem Interface.Read.wp_proof : Interface.Read.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

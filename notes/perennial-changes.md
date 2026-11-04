@@ -17,6 +17,41 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `delete` on a named map type has no semantics (2026-11-04, bbolt's freelist, U2)
+
+- **Limitation.** `MapSemantics.delete_map` unfolds `go.delete` only at a literal map type
+  (`[go.MapType key_type elem_type]`), while `len_map` takes any type whose underlying type is a
+  map (`[t ↓u go.MapType ..]`). Goose emits `delete [pidSet.ty]` for `delete(f.freemaps[size],
+  start)` (`pidSet` is `map[common.Pgid]struct{}`), which therefore has no WP.
+- **Needed by.** bbolt's hashmap freelist (`hashMap.delSpan`; `shared.Allocate`, `mergeSpans`).
+- **Here.** `PidSetDeleteUnfold` (`Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/HashDelete.lean`):
+  the literal map type's rule at `pidSet`, taken as a hypothesis by the proofs that need it (an
+  assumption on the semantics, to be discharged by the Perennial change).
+- **Proposal.** Generalize `delete_map` as `len_map` was: any type whose underlying type is a map.
+- **Status.** Not started.
+
+### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
+
+- **Limitation.** With `l ↦ v` for a whole struct `v`, `wp_load`/`wp_store` of one field
+  (`l.[S, "f"]`) do not find the field's points-to: the struct points-to must be split by hand
+  (`iStructNamed`) first and recombined after (`typedPointsto_combine`).
+- **Needed by.** U1's accessor proofs (`Proof/go_etcd_io/bbolt/internal/common/`), and every
+  proof that loads one field of a struct it owns whole (U8's `node.childAt`).
+- **Here.** Split and recombine by hand.
+- **Proposal.** An `IntoField`-style search in `wp_load`/`wp_store` that opens a whole-struct
+  points-to at the field and closes it again.
+- **Status.** Not started.
+
+### General lemmas to move to Perennial (2026-11-04, bbolt)
+
+- **U1's `Proof/go_etcd_io/bbolt/internal/common/Lemmas/Bytes.lean`**: byte points-to bounds,
+  byte slices over a byte points-to, persistence; copied from Perennial's
+  `unsafememory/Pages.lean`, an example's module that cannot be imported.
+- **U2's `Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/SliceLen.lean`**: an owned slice of
+  `w64`s has fewer than `2^44` elements (its bytes lie below `maxAddr`).
+- **Proposal.** Move both into Perennial's `Golang/Theory` (with the `Pages.lean` copies'
+  origin), then drop the local copies. **Status.** Not started.
+
 ### Heap: allocation returns a meta token (2026-11-03, bbolt's invariant design)
 
 - **Limitation.** GooseLang's allocation specs give the points-to of a fresh location but no

@@ -29,12 +29,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `f.EstimatedWritePageSize()`: the bytes `Write` needs: a header, and 8 bytes per free or
-pending id, plus one for the count when there are `0xFFFF` or more. -/
+pending id, plus one for the count when there are `0xFFFF` or more.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
 abbrev Interface.EstimatedWritePageSize.spec : Prop :=
   ∀ (fli : GoInterface) (fl : FLPg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl }}
-    (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!!
-      go!"EstimatedWritePageSize")) (Val #()))
+    (App (ifaceCall fli go!"EstimatedWritePageSize") (Val #()))
   {{ RET #(W64 ((16 + 8 * (fl.allIds.length +
         (if 0xFFFF ≤ fl.allIds.length then 1 else 0)) : Nat) : Int)); flPgOwn fli fl }}
 

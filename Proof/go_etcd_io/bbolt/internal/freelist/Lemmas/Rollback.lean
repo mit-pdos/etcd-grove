@@ -22,7 +22,10 @@ namespace bbolt
 
 /-- `Rollback(txid)` as the code does it: nothing without a pending entry for `txid`. -/
 def FLPg.rollbackGo (fl : FLPg) (txid : w64) : FLPg :=
-  if fl.pending !! txid = none then fl else fl.rollback txid
+  if fl.pending !! txid = none then fl else fl.rollbackEntry txid
+
+theorem FLPg.rollbackGo_eq (fl : FLPg) (txid : w64) : fl.rollbackGo txid = fl.rollback txid :=
+  rfl
 
 /-- A pending entry's (id, allocating transaction) pairs. -/
 def Pending.pairs (pd : Pending) : List (w64 × w64) := pd.ids.zip pd.alloctx
@@ -51,7 +54,7 @@ theorem rollbackGo_some {fl : FLPg} {txid : w64} {pd : Pending} (h : fl.pending 
     fl.rollbackGo txid = { fl with
       pending := fl.pending.delete txid,
       allocs := (pd.pairs.foldl rbStep fl.allocs).filter fun _ t => decide (t ≠ txid) } := by
-  unfold FLPg.rollbackGo FLPg.rollback
+  unfold FLPg.rollbackGo FLPg.rollbackEntry
   rw [if_neg (by simp [h])]
   simp only [h, Option.getD_some]
   rw [foldl_rbStep txid pd.pairs (fun x hx e => hn (e ▸ (List.of_mem_zip hx).2))]

@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean` (U2, `notes/bbolt-proof-plan.md`): `wp_proof'`, of `spec'` (the call a caller reaches; the code's model `FLPg.releasePendingGo`); `wp_proof` stays `sorry` until the frozen spec is restated.
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean` (U2, `notes/bbolt-proof-plan.md`),
+over `ifaceCall` (`Inv/Freelist.lean`; dispatch: `Lemmas/IfaceCall.lean`).
 -/
 module
 
@@ -27,20 +28,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The spec over the call a caller reaches (`ifaceCall`), and over the code's model
-`FLPg.releasePendingGo` (`Lemmas/ReleaseGo.lean`: the frozen spec's `FLPg.releasePending`
-keeps a touched pending entry's pairs in another order than the code's swap-removal). -/
-abbrev Interface.ReleasePendingPages.spec' : Prop :=
-  ∀ (fli : GoInterface) (fl : FLPg) (ro : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
-      flRoOwn fli ro }}
-    (App (ifaceCall fli go!"ReleasePendingPages") (Val #()))
-  {{ RET #(); flPgOwn fli (fl.releasePendingGo ro) ∗ flRoOwn fli (sortPgids ro) }}
-
-theorem Interface.ReleasePendingPages.wp_proof'
+theorem Interface.ReleasePendingPages.wp_proof
     (hMS : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.MergeSpansSpec) :
-    Interface.ReleasePendingPages.spec' (GF := GF) (hG := hG) := by
+    Interface.ReleasePendingPages.spec (GF := GF) (hG := hG) := by
   intro fli fl ro
+  rw [← FLPg.releasePendingGo_eq]
   wp_start_folded as ⟨Hfl, Hro⟩
   icases flPgOwn_open _ _ $$ Hfl with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
   obtain ⟨HI, Hfli⟩ := HIf
@@ -83,9 +75,6 @@ theorem Interface.ReleasePendingPages.wp_proof'
       iexists a, s, sl'
       iframe
       first | iapply flImplAt_array $$ Hhdl | iapply flImplAt_hash $$ Hhdl)
-
-theorem Interface.ReleasePendingPages.wp_proof : Interface.ReleasePendingPages.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

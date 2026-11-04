@@ -31,14 +31,15 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 /-- `f.Free(txid, p)` through the freelist interface (the writer side's part `flPgOwn`): the page
 `p` (its header at any fraction) and its overflow pages are pending for `txid`
 (`FLPg.freePages`). It panics on page 0 or 1, a page already free or pending, or (`Verify`) a
-page `txid` allocated: excluded by `FLPg.canFree`. -/
+page `txid` allocated: excluded by `FLPg.canFree`.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
 abbrev Interface.Free.spec : Prop :=
   ∀ (fli : GoInterface) (fl : FLPg) (txid : w64) (p : Loc) (hdr : Page) (dq : DFrac),
   fl.canFree txid hdr.id' (1 + hdr.overflow'.toNat) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
       flPgOwn fli fl ∗ p ↦{dq} hdr }}
-    (App (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!! go!"Free"))
-      (Val #txid)) (Val #p))
+    (App (App (ifaceCall fli go!"Free") (Val #txid)) (Val #p))
   {{ RET #(); flPgOwn fli (fl.freePages txid hdr.id' (1 + hdr.overflow'.toNat)) ∗ p ↦{dq} hdr }}
 
 end spec

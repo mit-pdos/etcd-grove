@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__EstimatedWritePageSize.lean`: not yet (U2, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__EstimatedWritePageSize.lean` (U2, `notes/bbolt-proof-plan.md`),
+over `ifaceCall` (`Inv/Freelist.lean`; dispatch: `Lemmas/IfaceCall.lean`).
 -/
 module
 
@@ -27,17 +28,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The spec, over the call a caller's code reaches (`ifaceCall`, `Lemmas/IfaceCall.lean`). -/
-abbrev Interface.EstimatedWritePageSize.spec' : Prop :=
-  ∀ (fli : GoInterface) (fl : FLPg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl }}
-    (App (ifaceCall fli go!"EstimatedWritePageSize") (Val #()))
-  {{ RET #(W64 ((16 + 8 * (fl.allIds.length +
-        (if 0xFFFF ≤ fl.allIds.length then 1 else 0)) : Nat) : Int)); flPgOwn fli fl }}
-
-theorem Interface.EstimatedWritePageSize.wp_proof'
+theorem Interface.EstimatedWritePageSize.wp_proof
     (hFC : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.FreeCountSpec) :
-    Interface.EstimatedWritePageSize.spec' (GF := GF) (hG := hG) := by
+    Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG) := by
   intro fli fl
   wp_start_folded as Hfl
   icases flPgOwn_open _ _ $$ Hfl with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
@@ -56,9 +49,6 @@ theorem Interface.EstimatedWritePageSize.wp_proof'
     isplitl [Hown]
     · isimp only [arrayImpl, hashImpl]; iexact Hown
     iexact Hsh)
-
-theorem Interface.EstimatedWritePageSize.wp_proof : Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

@@ -28,12 +28,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `f.AddReadonlyTXID(tid)`: `tid` appended to the readers' txids. -/
+/-- `f.AddReadonlyTXID(tid)`: `tid` appended to the readers' txids.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
 abbrev Interface.AddReadonlyTXID.spec : Prop :=
   ∀ (fli : GoInterface) (ro : List w64) (tid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flRoOwn fli ro }}
-    (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!! go!"AddReadonlyTXID"))
-      (Val #tid))
+    (App (ifaceCall fli go!"AddReadonlyTXID") (Val #tid))
   {{ RET #(); flRoOwn fli (ro ++ [tid]) }}
 
 end spec

@@ -198,6 +198,11 @@ def StoreSt.rollback (σ : StoreSt) (txid : w64) : StoreSt :=
   { σ with fl := σ.fl.rollback txid }
 proj_simps StoreSt.rollback
 
+/-- The rollback of the writer's pending entry (`FLPg.rollbackEntry`), when it has one. -/
+def StoreSt.rollbackE (σ : StoreSt) (txid : w64) : StoreSt :=
+  { σ with fl := σ.fl.rollbackEntry txid }
+proj_simps StoreSt.rollbackE
+
 /-- `Reload`/`NoSyncReload`: the free ids rebuilt (only `W` slots become free). -/
 def StoreSt.reload (σ : StoreSt) (ids : List w64) : StoreSt := { σ with fl := σ.fl.reload ids }
 proj_simps StoreSt.reload
@@ -393,10 +398,10 @@ private theorem foldl_insert_lookup (L : List (w64 × w64)) :
       · rename_i he; cases h'; exact Or.inl ⟨x, List.mem_cons_self, he, rfl⟩
       · exact Or.inr h'
 
-private theorem rollback_allocs (fl : FLPg) (T k a : w64) (h : (fl.rollback T).allocs !! k = some a) :
+private theorem rollback_allocs (fl : FLPg) (T k a : w64) (h : (fl.rollbackEntry T).allocs !! k = some a) :
     a ≠ T ∧ (fl.allocs !! k = some a ∨ ∃ (pd : Pending) (i : Nat), fl.pending !! T = some pd ∧
       pd.ids[i]? = some k ∧ pd.alloctx[i]? = some a) := by
-  simp only [FLPg.rollback, GMap.lookup_filter, Option.filter_eq_some_iff,
+  simp only [FLPg.rollbackEntry, GMap.lookup_filter, Option.filter_eq_some_iff,
     decide_eq_true_eq] at h
   obtain ⟨h, hne⟩ := h
   refine ⟨hne, ?_⟩
@@ -417,12 +422,12 @@ where
     exact ⟨i, hi.1, hi.2⟩
 
 private theorem rollback_pending (fl : FLPg) (T t : w64) (pd : Pending)
-    (h : (fl.rollback T).pending !! t = some pd) : t ≠ T ∧ fl.pending !! t = some pd := by
-  simp only [FLPg.rollback] at h
+    (h : (fl.rollbackEntry T).pending !! t = some pd) : t ≠ T ∧ fl.pending !! t = some pd := by
+  simp only [FLPg.rollbackEntry] at h
   exact ((GMap.lookup_delete_Some _ _ _ _).1 h).imp (fun h => fun e => h e.symm) id
 
 private theorem mvccView_rollback (fl : FLPg) (v : View) (T : w64) (h : mvccView fl v) :
-    mvccView (fl.rollback T) v := by
+    mvccView (fl.rollbackEntry T) v := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨fun id pg hp a ha => ?_, fun s hs => ?_⟩
   · rcases (rollback_allocs fl T _ a ha).2 with ha | ⟨pd, i, hpd, hi1, hi2⟩
@@ -432,20 +437,20 @@ private theorem mvccView_rollback (fl : FLPg) (v : View) (T : w64) (h : mvccView
   · obtain ⟨a, b, c⟩ := h2 s hs
     exact ⟨a, b, fun t pd i hp hi => c t pd i (rollback_pending fl T t pd hp).2 hi⟩
 
-private theorem pendSlots_rollback (fl : FLPg) (T : w64) (s : Nat) (h : s ∈ pendSlots (fl.rollback T)) :
+private theorem pendSlots_rollback (fl : FLPg) (T : w64) (s : Nat) (h : s ∈ pendSlots (fl.rollbackEntry T)) :
     s ∈ pendSlots fl := by
   obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 h
   exact (mem_pendSlots _ _).2 ⟨t, pd, x, (rollback_pending fl T t pd hp).2, hx, rfl⟩
 
 private theorem pendingIds_rollback_perm (fl : FLPg) (T : w64) :
-    ∃ L, fl.pendingIds.Perm (L ++ (fl.rollback T).pendingIds) := by
+    ∃ L, fl.pendingIds.Perm (L ++ (fl.rollbackEntry T).pendingIds) := by
   unfold FLPg.pendingIds
   rcases hq : fl.pending !! T with _ | q
   · refine ⟨[], ?_⟩
-    simp only [FLPg.rollback, GMap.delete_notin _ _ hq, List.nil_append]; exact List.Perm.refl _
+    simp only [FLPg.rollbackEntry, GMap.delete_notin _ _ hq, List.nil_append]; exact List.Perm.refl _
   · refine ⟨q.ids, ?_⟩
     have h0 := GMap.mapToList_delete fl.pending T q hq
-    simp only [FLPg.rollback]
+    simp only [FLPg.rollbackEntry]
     exact (h0.flatMap_right _).trans (by simp only [List.flatMap_cons]; exact List.Perm.refl _)
 
 private theorem cover_lt_hwm (C : CommitSt) (h2 : treeOK C) (s : Nat) (hs : coversSlot C.pages s) :
@@ -604,11 +609,12 @@ private theorem mem_zip_idx3 {l1 l2 : List w64} {x : w64 × w64} (h : x ∈ l1.z
 
 private theorem rrOne_perm (b e : w64) (pd : Pending) (hl : pd.ids.length = pd.alloctx.length) :
     pd.ids.Perm ((releaseRangeOne b e pd).1 ++ (releaseRangeOne b e pd).2.ids) := by
-  have e : pd.ids = (pd.ids.zip pd.alloctx).map Prod.fst := (List.map_fst_zip (by omega)).symm
-  refine (List.Perm.of_eq e).trans ?_
+  have he : pd.ids = (pd.ids.zip pd.alloctx).map Prod.fst := (List.map_fst_zip (by omega)).symm
+  refine (List.Perm.of_eq he).trans ?_
   simp only [releaseRangeOne]
   rw [← List.map_append]
-  exact ((List.filter_append_perm _ _).map _).symm
+  refine (((List.Perm.append_left _ (srLoop_perm b e _ 0 _ (Nat.le_refl _) (by simp))).trans
+    (List.filter_append_perm (inRR b e) _)).map _).symm
 
 private theorem relOK_releaseRange (fl : FLPg) (b e : w64)
     (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
@@ -629,7 +635,7 @@ private theorem relOK_releaseRange (fl : FLPg) (b e : w64)
     · exact Or.inl hx
     · rw [GMap.mem_toList, GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
       obtain ⟨hkv, hsel⟩ := hkv
-      simp only [releaseRangeOne, List.mem_map, List.mem_filter] at hx
+      simp only [releaseRangeOne, inRR, List.mem_map, List.mem_filter] at hx
       obtain ⟨⟨x', a⟩, ⟨hxz, hin⟩, rfl⟩ := hx
       obtain ⟨i, hi1, hi2⟩ := mem_zip_idx3 hxz
       refine Or.inr ⟨t, pd, i, hkv, hi1, ?_⟩
@@ -652,7 +658,7 @@ private theorem relOK_releaseRange (fl : FLPg) (b e : w64)
       simp only [releaseRangeOne, List.getElem?_map, Option.map_eq_some_iff] at hi ⊢
       obtain ⟨⟨x', a⟩, hxa, rfl⟩ := hi
       have hmem := List.mem_of_getElem? hxa
-      rw [List.mem_filter] at hmem
+      rw [mem_srLoop, List.mem_filter] at hmem
       obtain ⟨j, hj1, hj2⟩ := mem_zip_idx3 hmem.1
       refine ⟨pd0, j, rfl, hj1, ?_⟩
       rw [getD_of_getElem?' hj2]
@@ -1684,9 +1690,8 @@ theorem storeOK_publish (σ : StoreSt) (w : Nat) (C' : CommitSt) (bs : Nat → L
           W64_toNat_of_lt' s hs64⟩)
   · have := h19 x a hx; simp only [StoreSt.publish]; omega
 
-/-- `freelist.Rollback(w)` by the live writer before its publish. -/
-theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx = some w)
-    (hpub : σ.pub = false) : storeOK (σ.rollback (W64 (w : Int))) := by
+private theorem storeOK_rollbackE (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx = some w)
+    (hpub : σ.pub = false) : storeOK (σ.rollbackE (W64 (w : Int))) := by
   have htlt := treeSlot_lt64 σ h
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
     h20, h21⟩ := h
@@ -1694,12 +1699,12 @@ theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx 
   have hww : w = σ.C.txid + 1 := by have := h5 w hw; simp [hpub] at this; omega
   have hT : (W64 (w : Int)).toNat = w := W64_toNat_of_lt' w (by omega)
   generalize W64 (w : Int) = T at hT ⊢
-  have hsub : ∀ s, s ∈ storeSlots (σ.rollback T) → s ∈ storeSlots σ := by
+  have hsub : ∀ s, s ∈ storeSlots (σ.rollbackE T) → s ∈ storeSlots σ := by
     intro s hs
-    simp only [storeSlots, mem_list_dedup, List.mem_append, StoreSt.rollback] at hs ⊢
+    simp only [storeSlots, mem_list_dedup, List.mem_append, StoreSt.rollbackE] at hs ⊢
     exact hs.imp id (pendSlots_rollback σ.fl T s)
   -- a slot of the store that leaves it is pending only for the writer
-  have honly : ∀ s, s ∈ pendSlots σ.fl → s ∉ pendSlots (σ.fl.rollback T) →
+  have honly : ∀ s, s ∈ pendSlots σ.fl → s ∉ pendSlots (σ.fl.rollbackEntry T) →
       pendingOnlyFromWriter σ.fl σ.wtx s := by
     intro s hs hs' t pd hp hx
     have hs64 : s < 2 ^ 64 := by
@@ -1709,22 +1714,22 @@ theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx 
     · subst ht; rw [hw, hT]
     · exfalso; apply hs'
       refine (mem_pendSlots _ _).2 ⟨t, pd, _, ?_, hx, W64_toNat_of_lt' s hs64⟩
-      simp only [FLPg.rollback]; exact (GMap.lookup_delete_Some _ _ _ _).2 ⟨fun e => ht e.symm, hp⟩
+      simp only [FLPg.rollbackEntry]; exact (GMap.lookup_delete_Some _ _ _ _).2 ⟨fun e => ht e.symm, hp⟩
   have hin : ∀ v : View, viewInStore σ v → (∀ s, coversSlot v.pages s → s ∉ treeSlots σ.C →
       s ∈ pendSlots σ.fl → pendingOnlyFromWriter σ.fl σ.wtx s → False) →
-      viewInStore (σ.rollback T) v := by
+      viewInStore (σ.rollbackE T) v := by
     intro v hv hno s hs
     have := hv s hs
-    simp only [storeSlots, mem_list_dedup, List.mem_append, StoreSt.rollback] at this ⊢
+    simp only [storeSlots, mem_list_dedup, List.mem_append, StoreSt.rollbackE] at this ⊢
     rcases this with h' | h'
     · exact Or.inl h'
-    · by_cases hp : s ∈ pendSlots (σ.fl.rollback T)
+    · by_cases hp : s ∈ pendSlots (σ.fl.rollbackEntry T)
       · exact Or.inr hp
       · by_cases ht : s ∈ treeSlots σ.C
         · exact Or.inl ht
         · exact (hno s hs ht h' (honly s h' hp)).elim
   obtain ⟨L, hL⟩ := pendingIds_rollback_perm σ.fl T
-  have hperm : σ.fl.allIds.Perm (L ++ (σ.fl.rollback T).allIds) := by
+  have hperm : σ.fl.allIds.Perm (L ++ (σ.fl.rollbackEntry T).allIds) := by
     simp only [FLPg.allIds]
     refine (hL.append_left _).trans ?_
     rw [← List.append_assoc, ← List.append_assoc]
@@ -1740,7 +1745,7 @@ theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx 
     fun b l hb s hs => h13 b l hb s (hsub s hs), h14, h15, h16, fun s hs => ?_,
     fun b => mvccView_rollback _ _ T (h18 b), fun x a hx => ?_, fun _ s hs _ hpo => ?_, h21⟩
   · have := hperm.length_eq; simp only [List.length_append] at this
-    simp only [StoreSt.rollback]; omega
+    simp only [StoreSt.rollbackE]; omega
   · obtain ⟨a, b, c, d, e, f⟩ := h7 k r hr
     exact ⟨a, mvccView_rollback _ _ T b, hin _ c (fun s hs ht hp ho =>
       h20 hpub s hp ht ho k r hr hs), d, e, f⟩
@@ -1760,8 +1765,21 @@ theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx 
     obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 hs
     obtain ⟨hne, -⟩ := rollback_pending _ _ _ _ hp
     have := hpo t pd hp (by rw [W64_toNat_eq]; exact hx)
-    simp only [StoreSt.rollback, hw, Option.some.injEq] at this
+    simp only [StoreSt.rollbackE, hw, Option.some.injEq] at this
     exact hne (BitVec.eq_of_toNat_eq (by rw [hT]; exact this.symm))
+
+
+/-- `freelist.Rollback(w)` by the live writer before its publish (no change without a pending
+entry, `FLPg.rollback`). -/
+theorem storeOK_rollback (σ : StoreSt) (w : Nat) (h : storeOK σ) (hw : σ.wtx = some w)
+    (hpub : σ.pub = false) : storeOK (σ.rollback (W64 (w : Int))) := by
+  by_cases hn : σ.fl.pending !! W64 (w : Int) = none
+  · have e : σ.rollback (W64 (w : Int)) = σ := by
+      unfold StoreSt.rollback FLPg.rollback; rw [if_pos hn]
+    rw [e]; exact h
+  · have e : σ.rollback (W64 (w : Int)) = σ.rollbackE (W64 (w : Int)) := by
+      unfold StoreSt.rollback StoreSt.rollbackE FLPg.rollback; rw [if_neg hn]
+    rw [e]; exact storeOK_rollbackE σ w h hw hpub
 
 /-- `Reload`/`NoSyncReload` of ids that are `W` slots below the high-water mark. -/
 theorem storeOK_reload (σ : StoreSt) (ids : List w64) (h : storeOK σ)

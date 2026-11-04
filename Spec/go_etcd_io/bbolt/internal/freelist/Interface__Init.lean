@@ -29,13 +29,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `f.Init(ids)` of a fresh freelist, with increasing ids from 2 on (the hash map panics on
-unsorted ones): the free ids are `ids` (`FLPg.ofInit`); the array keeps the slice. -/
+unsorted ones): the free ids are `ids` (`FLPg.ofInit`); the array keeps the slice.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
 abbrev Interface.Init.spec : Prop :=
   ∀ (fli : GoInterface) (s : GoSlice) (ids : List w64),
   PgidsIncr ids → (∀ x ∈ ids, 2 ≤ x.toNat) → ids.length < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
       flPgOwn fli FLPg.empty ∗ s ↦* ids ∗ ownSliceCap w64 s (DFrac.own 1) }}
-    (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!! go!"Init")) (Val #s))
+    (App (ifaceCall fli go!"Init") (Val #s))
   {{ RET #(); flPgOwn fli (FLPg.ofInit ids) }}
 
 end spec

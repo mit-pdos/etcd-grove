@@ -30,13 +30,16 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `f.ReleasePendingPages()` (under `metalock`, which holds the read-only part `flRoOwn`): the
 pages pending for transactions no reader can see are free (`FLPg.releasePending` with the
-readers' txids `ro`, which it sorts in place). -/
+readers' txids `ro`, which it sorts in place).
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics).
+`FLPg.releasePending` keeps a touched entry's other pairs in the code's swap-removal order
+(U2 fix, `Model/FL`'s `srLoop`). -/
 abbrev Interface.ReleasePendingPages.spec : Prop :=
   ∀ (fli : GoInterface) (fl : FLPg) (ro : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
       flRoOwn fli ro }}
-    (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!!
-      go!"ReleasePendingPages")) (Val #()))
+    (App (ifaceCall fli go!"ReleasePendingPages") (Val #()))
   {{ RET #(); flPgOwn fli (fl.releasePending ro) ∗ flRoOwn fli (sortPgids ro) }}
 
 end spec

@@ -69,7 +69,8 @@ def flRoOwn (fli : GoInterface) (ro : List w64) : IProp GF :=
     structFieldRef shared go!"readonlyTXIDs" s ↦ sl ∗ sl ↦* ro ∗
     ownSliceCap w64 sl (DFrac.own 1))
 
-/-- A `*txPending` at `p` holding `pd`. -/
+/-- A `*txPending` at `p` holding `pd` (`flPgOwn` adds that `p` is not nil: every entry the
+code stores is a fresh allocation). -/
 def ownPending (p : Loc) (pd : Pending) : IProp GF :=
   iprop(∃ (ids atx : GoSlice),
     structFieldRef txPending go!"ids" p ↦ ids ∗ ids ↦* pd.ids ∗
@@ -104,11 +105,20 @@ def flPgOwn (fli : GoInterface) (fl : FLPg) : IProp GF :=
     structFieldRef shared go!"allocs" s ↦ al ∗ al ↦$ fl.allocs ∗
     structFieldRef shared go!"cache" s ↦ ca ∗ ca ↦$ c ∗
     structFieldRef shared go!"pending" s ↦ pe ∗ pe ↦$ pp ∗
-    ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ownPending p pd) ∗
+    ([∗map] _t ↦ p;pd ∈ pp;fl.pending, ⌜p ≠ null⌝ ∗ ownPending p pd) ∗
     flImplOwn fli a fl.free ∗
     ⌜(∀ id, (c !! id).isSome ↔ id ∈ fl.allIds) ∧ fl.WF⌝)
 
 end preds
+
+/-- `fli.m`, a method value of the freelist interface value `fli` (U2): the dynamic type's
+method (`nil` panics). What Go's `fl.M(args)` steps to once `MethodResolve Interface.ty "M" fl`
+has loaded the interface value; the freelist's interface specs are stated over it. -/
+abbrev ifaceCall [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (fli : GoInterface)
+    (m : GoString) : Expr :=
+  match fli with
+  | GoInterface.nil => Panic "nil interface"
+  | GoInterface.ok i => Val #(methods i.ty m i.v)
 
 end bbolt
 end EtcdGrove

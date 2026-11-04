@@ -28,12 +28,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `f.PendingCount()`: the number of pending ids. -/
+/-- `f.PendingCount()`: the number of pending ids.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
 abbrev Interface.PendingCount.spec : Prop :=
   ∀ (fli : GoInterface) (fl : FLPg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl }}
-    (App (Val (fli @!! go_etcd_io.bbolt.internal.freelist.Interface.ty @!! go!"PendingCount"))
-      (Val #()))
+    (App (ifaceCall fli go!"PendingCount") (Val #()))
   {{ RET #(W64 (fl.pendingIds.length : Int)); flPgOwn fli fl }}
 
 end spec

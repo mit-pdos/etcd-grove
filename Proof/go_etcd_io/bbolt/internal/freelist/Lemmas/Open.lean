@@ -40,34 +40,22 @@ theorem mkOk_array_ne_hash (a b : Loc) :
   intro h; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
   exact array_ne_hash h.1
 
-/-- **The one `sorry` of U2's freelist proofs** (a defect of `Inv/Freelist.lean`, reported):
-`ownPending` does not say its entry's pointer is not `nil`, which `Free` needs (on a `nil`
-entry it would allocate a new one, dropping the old entry's pages). Every entry the code stores
-is a fresh allocation, so the fact holds of every reachable state; the fix is a `⌜p ≠ null⌝` in
-`ownPending`, then this is `fun _ h => h.1`-style. -/
-theorem ownPending_nonnull (p : Loc) (pd : Pending) :
-    ownPending (GF := GF) p pd ⊢ ⌜p ≠ null⌝ := by
-  sorry
-
 theorem pds_to_pend (pp : GMap w64 Loc) (m : GMap w64 Pending) :
-    ([∗map] _t ↦ p;pd ∈ pp;m, ownPending (GF := GF) p pd) ⊢
+    ([∗map] _t ↦ p;pd ∈ pp;m, iprop(⌜p ≠ null⌝ ∗ ownPending (GF := GF) p pd)) ⊢
       [∗map] _t ↦ p;pd ∈ pp;m, ownPend p pd :=
   BigSepM2.bigSepM2_mono_of_forall _ _ _ _ (by
     intro _ p pd
     iintro H
-    icases ownPending_nonnull p pd $$ H with %Hn
     iunfold ownPend
-    iframe
-    ipureintro; exact Hn)
+    iexact H)
 
 theorem pend_to_pds (pp : GMap w64 Loc) (m : GMap w64 Pending) :
     ([∗map] _t ↦ p;pd ∈ pp;m, ownPend (GF := GF) p pd) ⊢
-      [∗map] _t ↦ p;pd ∈ pp;m, ownPending p pd :=
+      [∗map] _t ↦ p;pd ∈ pp;m, iprop(⌜p ≠ null⌝ ∗ ownPending p pd) :=
   BigSepM2.bigSepM2_mono_of_forall _ _ _ _ (by
     intro _ p pd
     iintro H
     iunfold ownPend at H
-    icases H with ⟨-, H⟩
     iexact H)
 
 /-- `flPgOwn`, opened. -/

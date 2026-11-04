@@ -193,7 +193,7 @@ theorem mvccView_releaseRange (fl : FLPg) (v : View) (b e : w64) (h : mvccView f
     · exact hfree hm
     · rw [GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
       obtain ⟨hkv, hsel⟩ := hkv
-      simp only [releaseRangeOne, List.mem_map, List.mem_filter] at hx
+      simp only [releaseRangeOne, inRR, List.mem_map, List.mem_filter] at hx
       obtain ⟨⟨x, a⟩, ⟨hxz, hin⟩, rfl⟩ := hx
       obtain ⟨i, hi1, hi2⟩ := mem_zip_idx hxz
       have := hpend t pd i hkv hi1
@@ -216,7 +216,7 @@ theorem mvccView_releaseRange (fl : FLPg) (v : View) (b e : w64) (h : mvccView f
       simp only [releaseRangeOne, List.getElem?_map, Option.map_eq_some_iff] at hi ⊢
       obtain ⟨⟨x, a⟩, hxa, rfl⟩ := hi
       have hmem := List.mem_of_getElem? hxa
-      rw [List.mem_filter] at hmem
+      rw [mem_srLoop, List.mem_filter] at hmem
       obtain ⟨j, hj1, hj2⟩ := mem_zip_idx hmem.1
       have := hpend t pd0 j hp hj1
       rw [getD_of_getElem? hj2] at this

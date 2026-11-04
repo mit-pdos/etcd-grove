@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__Init.lean` (U2, `notes/bbolt-proof-plan.md`): `wp_proof'`, of `spec'`, the spec over the call a caller reaches (`ifaceCall`, `Lemmas/IfaceCall.lean`: the frozen spec's expression is unreachable); `wp_proof` stays `sorry` until the frozen spec is restated.
+The proof of `Spec/go_etcd_io/bbolt/internal/freelist/Interface__Init.lean` (U2, `notes/bbolt-proof-plan.md`),
+over `ifaceCall` (`Inv/Freelist.lean`; dispatch: `Lemmas/IfaceCall.lean`).
 -/
 module
 
@@ -26,17 +27,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-abbrev Interface.Init.spec' : Prop :=
-  ∀ (fli : GoInterface) (s : GoSlice) (ids : List w64),
-  PgidsIncr ids → (∀ x ∈ ids, 2 ≤ x.toNat) → ids.length < 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
-      flPgOwn fli FLPg.empty ∗ s ↦* ids ∗ ownSliceCap w64 s (DFrac.own 1) }}
-    (App (ifaceCall fli go!"Init") (Val #s))
-  {{ RET #(); flPgOwn fli (FLPg.ofInit ids) }}
-
-theorem Interface.Init.wp_proof'
+theorem Interface.Init.wp_proof
     (hI : ∀ (I : FLImpl (GF := GF)) a, I.IsImpl a → I.InitSpec) :
-    Interface.Init.spec' (GF := GF) (hG := hG) := by
+    Interface.Init.spec (GF := GF) (hG := hG) := by
   intro fli sl ids Hinc Hge Hlen
   wp_start_folded as ⟨Hfl, Hs, Hcap⟩
   icases flPgOwn_open _ _ $$ Hfl with ⟨%I, %a, %s, %HIf, #Hhdl, Hown, Hsh⟩
@@ -65,9 +58,6 @@ theorem Interface.Init.wp_proof'
   isplitl []
   · iexact Hhdl
   iapply ownShW_wf _ _ _ hwf $$ Hsh
-
-theorem Interface.Init.wp_proof : Interface.Init.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 
