@@ -26,6 +26,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.RblXMg
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
 public import Proof.go_etcd_io.bbolt.Rebalance.RblColMat
 public import Proof.go_etcd_io.bbolt.Inv.MatReady
+public import Proof.go_etcd_io.bbolt.Rebalance.RblMgSel
 
 @[expose] public section
 
@@ -94,6 +95,30 @@ theorem node_minKeys_wp (n : Loc) (b : Bool) (dq : DFrac) :
   wp_start as Hl
   wp_auto
   cases b <;> (try wp_auto) <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iapply HΦ <;> iframe
+
+/-- The merge's siblings selected (`nextSibling`/`prevSibling`, `X2` after a materialization):
+`ll`, `lr` the parent `pl`'s children at its entries `k`, `k + 1`, one of them `n`. -/
+def mgSel (X X2 : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (rn : NRec) (pl ll lr : Loc)
+    (k : Nat) : Prop :=
+  ∃ (B2 : BRec) (rp2 rl rr : NRec) (wl wr : WEntry), X2.t.bs !! bl = some B2 ∧
+    B2.ns !! pl = some rp2 ∧ rp2.nv.isLeaf' = false ∧ rp2.ws[k]? = some wl ∧
+    rp2.ws[k + 1]? = some wr ∧ B2.nm !! wl.pgid = some ll ∧ B2.nm !! wr.pgid = some lr ∧
+    B2.ns !! ll = some rl ∧ B2.ns !! lr = some rr ∧ (n = ll ∨ n = lr) ∧
+    B2.ns !! n = some (rblClear rn) ∧
+    rblX X2 fl bl (some n) ∧ rblRel (X.setBkt bl (rblStart B n rn)) fl X2 fl X.t.mv.txid' ∧
+    (∀ bl', bl' ≠ bl → X2.t.bs !! bl' = (X.setBkt bl (rblStart B n rn)).t.bs !! bl') ∧
+    (∀ y ry', B2.ns !! y = some ry' → ry'.nv.unbalanced' = true →
+      ∃ ry, (rblStart B n rn).ns !! y = some ry ∧ ry.nv.unbalanced' = true ∧
+        ry'.nv.pgid' = ry.nv.pgid')
+
+omit hos in
+/-- A field of `n`, one of the merge's two nodes `ll`, `lr` (`n.bucket`, `n.parent`). -/
+theorem pair_field_acc (n ll lr : Loc) (hn : n = ll ∨ n = lr) (f : GoString) (x : Loc) :
+    ((ll.[node, f] ↦ x) ∗ (lr.[node, f] ↦ x) : IProp GF) ⊢
+      n.[node, f] ↦ x ∗ (n.[node, f] ↦ x -∗ ll.[node, f] ↦ x ∗ lr.[node, f] ↦ x) := by
+  rcases hn with rfl | rfl
+  · iintro ⟨H1, H2⟩; iframe H1; iintro H; iframe
+  · iintro ⟨H1, H2⟩; iframe H2; iintro H; iframe
 
 set_option maxHeartbeats 3000000 in
 theorem rebal_loeb
@@ -1059,6 +1084,217 @@ theorem rebal_loeb
       have hp2 : 2 ≤ rp.ws.length := by
         have := ((hk1.2.2 _ rp hrp1).2.2.1 hrpbr).1
         exact this (fun h => hpln (Option.some.inj h).symm)
+      have hpp : rp.nv.parent' ≠ rn.nv.parent' := Hok1.2.2.2.1 bl _ _ rp hb1 hrp1
+      have hplive : rn.nv.parent' ∈ X.live := (hI1.2.1 bl _ hb1).2.2.2.2 _ rp hrp1
+      have hks : rn.ksrc ≠ Src.stale := (hn1.2.2.2.2.2.2.2.2.2.2.1.resolve_left hkey).2
+      have hidx := wsIdx_at rp.ws i wi hncp.2.2.2.1 hwi
+      rw [hwk] at hidx
+      simp only [rblClear] at hidx
+      ihave %Hbase := wtxW_base_pos K tx r m _ $$ Hw
+      -- `n.parent.numChildren()`, the assertion, `n.parent.childIndex(n)`
+      icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
+      unfold wtxCore
+      icases Hc with ⟨-, -, -, -, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩
+      have hLs : [n, rn.nv.parent'].Nodup := by simp [Ne.symm hpln]
+      have hfLs : ∀ l ∈ [n, rn.nv.parent'],
+          (rblStart B n rn).ns !! l = some ((fun l => if l = n then rblClear rn else rp) l) := by
+        intro l hl
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
+        rcases hl with rfl | rfl
+        · simp only [ite_true]; exact hr1
+        · simp only [if_neg hpln]; exact hrp1
+      icases wtxHeap_setBkt_acc tx (DFrac.own 1) _ bl _ [n, rn.nv.parent']
+        (fun l => if l = n then rblClear rn else rp) hb1 hLs hfLs $$ Hh
+        with ⟨⟨Hno, Hpo, -⟩, Hbo, Htf, Hrf, Hback⟩
+      isimp only [ite_true, if_neg hpln] at Hno Hpo
+      have hnl1 : n ∈ (X.setBkt bl (rblStart B n rn)).live := hnl
+      have hpl1 : rn.nv.parent' ∈ (X.setBkt bl (rblStart B n rn)).live := hplive
+      rw [decide_eq_true hnl1, decide_eq_true hpl1]
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+      rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+      icases Hkey with #Hkey
+      icases (objOwn_live_node _ _ _ _ _).1 $$ Hpo
+        with ⟨Hp, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
+      ihave %Hpsl := ownSlice_len _ _ _ $$ Hpins
+      ihave %Hpwl := BigSepL2.bigSepL2_length $$ Hpws
+      icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn2⟩
+      iStructNamed Hn
+      wp_auto
+      wp_apply hNum rn.nv.parent' rp.nv (DFrac.own 1) $$ [Hp] as Hp
+      · iframe
+      ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
+      · iPkgInit
+      try wp_auto
+      rw [decide_eq_true (show sint.Z (W64 1) < sint.Z rp.nv.inodes'.len by
+        have : rp.ins.length = rp.ws.length := Hpwl
+        have h1 := Hpsl.1; have h2 := Hpsl.2; word)]
+      wp_apply hAssert
+      try wp_auto
+      ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
+        $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn2
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave Hpo : objOwn (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' (DFrac.own 1) true
+          (.node bl rp) $$ [Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
+      · iapply (objOwn_live_node _ _ _ _ _).2
+        isimp only [true_and] at Hpkey
+        simp only [eq_self_iff_true, true_and]
+        iframe
+      wp_apply hIdx (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' bl rp (DFrac.own 1) wq n
+        (rblClear rn).nv (DFrac.own 1) (rblClear rn).ksrc (rblClear rn).key hncp.2.2.2.1
+        hncp.2.2.2.2.2.1 hks Hbase $$ [Hpo Hcells Hn Hkey] as ⟨Hpo, Hcells, Hn⟩
+      · iframe; iframe #
+      -- the heap closed again (nothing changed)
+      ihave Hh := Hback $$ %(rblStart B n rn) %(fun l => if l = n then rblClear rn else rp) []
+        [Hn Hins Hcap Hws Hch Hchcap Hpo] [Hbo] [Htf] [Hrf]
+      · ipureintro
+        refine ⟨hfLs, fun _ _ => rfl, rfl, ?_⟩
+        intro l hl
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
+        rcases hl with rfl | rfl
+        · simp only [ite_true]; exact Hok1.2.2.2.1 bl _ l _ hb1 hr1
+        · simp only [if_neg hpln]; exact hpp
+      · iapply BigSepL.bigSepL_cons.2
+        isplitl [Hn Hins Hcap Hws Hch Hchcap]
+        · simp only [↓reduceIte]
+          rw [decide_eq_true hnl1]
+          iapply (objOwn_live_node _ _ _ _ _).2
+          first
+            | rw [if_pos (show true = true ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨rfl, hkey⟩)]
+            | rw [if_pos (show True ∧ (rblClear rn).nv.key' ≠ slice.nil from ⟨trivial, hkey⟩)]
+          iframe; iframe #
+        iapply BigSepL.bigSepL_cons.2
+        isplitl [Hpo]
+        · simp only [if_neg hpln]
+          rw [decide_eq_true hpl1]
+          simp only [WX.setBkt_v]
+          iexact Hpo
+        iapply BigSepL.bigSepL_nil.2; iempintro
+      · iexact Hbo
+      · iexact Htf
+      · iexact Hrf
+      have hXX : (X.setBkt bl (rblStart B n rn)).setBkt bl (rblStart B n rn) =
+          X.setBkt bl (rblStart B n rn) := by
+        simp only [WX.setBkt, GMap.insert_insert]
+      rw [hXX]
+      ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
+        [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
+      · iapply (wtxW_split K tx r m _).2; unfold wtxCore
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc]
+        iframe; iframe #; ipureintro; exact Hr
+      rw [hidx]
+      have hnlc : ∀ lc, ((X.setBkt bl (rblStart B n rn)).t.objs !! lc).isNone →
+          (X.setBkt bl (rblStart B n rn)).nloc !! lc = none := by
+        intro lc h
+        cases hx : (X.setBkt bl (rblStart B n rn)).nloc !! lc with
+        | none => rfl
+        | some y =>
+          have := Hok1.2.2.2.2.1 lc y hx
+          rw [Option.isNone_iff_eq_none] at h; rw [h] at this; cases this
+      have hil : i < rp.ws.length := (List.getElem?_eq_some_iff.1 hwi).1
+      have hnmn : (rblStart B n rn).nm !! wi.pgid = some n := by
+        rw [hwp]; exact hn1.2.2.2.2.2.2.2.1
+      have hpkd := ((hk1.2.2 _ rp hrp1).2.2.1 hrpbr).2.2
+      -- the sibling: `n.nextSibling()` or `n.prevSibling()`
+      wp_join iprop(∃ (X2 : WX) (ll lr : Loc) (k : Nat), n_ptr ↦ n ∗ leftNode_ptr ↦ ll ∗
+          rightNode_ptr ↦ lr ∗ wtxW K tx r m X2 ∗
+          ⌜mgSel X X2 w.fl bl B n rn rn.nv.parent' ll lr k⌝)
+        with [n leftNode rightNode Hw] as ⟨%X2, %ll, %lr, %k, n, leftNode, rightNode, Hw, %Hsel⟩
+      · -- the first child: the next sibling
+        have hi0 : i = 0 := by
+          have h : W64 (i : Int) = W64 0 := Hif
+          have h1 := Hpsl.1; have h2 := Hpsl.2
+          have : rp.ins.length = rp.ws.length := Hpwl
+          word
+        subst hi0
+        obtain ⟨w1, hw1⟩ : ∃ w1, rp.ws[1]? = some w1 :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        ihave %Hready : ⌜(rblStart B n rn).nm !! w1.pgid = none →
+            matReady (X.setBkt bl (rblStart B n rn)) (rblStart B n rn) w1.pgid⌝ $$ [Hw]
+        · by_cases hnone : (rblStart B n rn).nm !! w1.pgid = none
+          · obtain ⟨kind1, pkd⟩ := hpkd
+            obtain ⟨pg1, hpg1, -⟩ := (pkd 1 w1 hw1).2 hnone
+            ihave %Hmr := wtxW_matReady K tx r m _ (rblStart B n rn) w1.pgid pg1
+              (rbl_root_ne _ _ _ _ bl _ _ rp hI1 hb1 hrp1 hrpbr) hI1.2.2.2.2.2.2.1 hpg1
+              (by show X.t.pm !! _ = none; rw [hI.1.2.1]; rfl) $$ Hw
+            ipureintro; exact fun _ => Hmr
+          · ipureintro; exact fun h => absurd h hnone
+        try wp_auto
+        icases wtxW_nm_acc K tx r m _ bl _ hb1 _ _ rfl rfl $$ Hw with ⟨Hnm, Hw⟩
+        ihave %Hnodes := ownMap_not_nil _ _ _ $$ Hnm
+        ihave Hw := Hw $$ Hnm
+        have hidx1 : wsIdx rp.ws (rblClear rn).key + 1 = 1 := by
+          show wsIdx rp.ws rn.key + 1 = 1; rw [hidx]
+        wp_apply hNext K tx r m _ bl _ n (rblClear rn) hb1 hr1 hnc.1 hnl hbll Hnodes
+          (fun _ => ⟨hkey, hks, rp, hrp1, hrpbr, hncp.1, hplive, hncp.2.2.2.1, hncp.2.2.2.2.2.1,
+            fun w h => by
+              rw [hidx1, hw1] at h; cases h
+              exact ⟨fun l hl => (hc1.2.2.2.2.1 _ l hl).1, Hready⟩⟩)
+          (fun h => hc1.2.2.2.2.2.1 h) $$ [Hw] as %s ⟨%X2, Hw, %Hnx⟩
+        · iexact Hw
+        try wp_auto
+        rcases Hnx with ⟨-, -, hnull | ⟨rq, hrq, hlen1⟩⟩ | ⟨rq, w', hrq, hw', hmat⟩
+        · exact absurd hnull hpn
+        · rw [hrp1] at hrq; cases hrq; rw [hidx1] at hlen1; omega
+        rw [hrp1] at hrq; cases hrq
+        rw [hidx1, hw1] at hw'; cases hw'
+        obtain ⟨B2, rp2, rs, hb2, hrp2, hnm2, hrs2, hI2, hR2, hoth2, hnv2, hws2, -, -, -, -, hold2,
+          hnmext, hU2⟩ := rblX_sibMat _ X2 w.fl bl (some n) _ _ rp 1 w1 s hI1 hb1 hrp1 hrpbr hw1 hmat
+            (hnlc s)
+        try wp_join_done
+        iexists X2, n, s, 0
+        iframe
+        ipureintro
+        exact ⟨B2, rp2, rblClear rn, rs, wi, w1, hb2, hrp2, by rw [hnv2]; exact hrpbr,
+          by rw [hws2]; exact hwi, by rw [hws2]; exact hw1, hnmext _ _ hnmn, hnm2,
+          hold2 n _ (Ne.symm hpln) hr1, hrs2, Or.inl rfl, hold2 n _ (Ne.symm hpln) hr1, hI2, hR2, hoth2,
+          hU2⟩
+      · -- a later child: the previous sibling
+        have hi0 : i ≠ 0 := by intro h; apply Hif; rw [h]; rfl
+        obtain ⟨w0, hw0⟩ : ∃ w0, rp.ws[i - 1]? = some w0 :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        ihave %Hready : ⌜(rblStart B n rn).nm !! w0.pgid = none →
+            matReady (X.setBkt bl (rblStart B n rn)) (rblStart B n rn) w0.pgid⌝ $$ [Hw]
+        · by_cases hnone : (rblStart B n rn).nm !! w0.pgid = none
+          · obtain ⟨kind1, pkd⟩ := hpkd
+            obtain ⟨pg1, hpg1, -⟩ := (pkd (i - 1) w0 hw0).2 hnone
+            ihave %Hmr := wtxW_matReady K tx r m _ (rblStart B n rn) w0.pgid pg1
+              (rbl_root_ne _ _ _ _ bl _ _ rp hI1 hb1 hrp1 hrpbr) hI1.2.2.2.2.2.2.1 hpg1
+              (by show X.t.pm !! _ = none; rw [hI.1.2.1]; rfl) $$ Hw
+            ipureintro; exact fun _ => Hmr
+          · ipureintro; exact fun h => absurd h hnone
+        icases wtxW_nm_acc K tx r m _ bl _ hb1 _ _ rfl rfl $$ Hw with ⟨Hnm, Hw⟩
+        ihave %Hnodes := ownMap_not_nil _ _ _ $$ Hnm
+        ihave Hw := Hw $$ Hnm
+        have hidx1 : wsIdx rp.ws (rblClear rn).key = i := hidx
+        wp_apply hPrev K tx r m _ bl _ n (rblClear rn) hb1 hr1 hnc.1 hnl hbll Hnodes
+          (fun _ => ⟨hkey, hks, rp, hrp1, hrpbr, hncp.1, hplive, hncp.2.2.2.1, hncp.2.2.2.2.2.1,
+            fun w _ h => by
+              rw [hidx1, hw0] at h; cases h
+              exact ⟨fun l hl => (hc1.2.2.2.2.1 _ l hl).1, Hready⟩⟩)
+          (fun h => hc1.2.2.2.2.2.1 h) $$ [Hw] as %s ⟨%X2, Hw, %Hnx⟩
+        · iexact Hw
+        try wp_auto
+        rcases Hnx with ⟨-, -, hnull | ⟨rq, hrq, h0⟩⟩ | ⟨rq, w', hrq, -, hw', hmat⟩
+        · exact absurd hnull hpn
+        · rw [hrp1] at hrq; cases hrq; rw [hidx1] at h0; exact absurd h0 hi0
+        rw [hrp1] at hrq; cases hrq
+        rw [hidx1, hw0] at hw'; cases hw'
+        obtain ⟨B2, rp2, rs, hb2, hrp2, hnm2, hrs2, hI2, hR2, hoth2, hnv2, hws2, -, -, -, -, hold2,
+          hnmext, hU2⟩ := rblX_sibMat _ X2 w.fl bl (some n) _ _ rp (i - 1) w0 s hI1 hb1 hrp1 hrpbr hw0
+            hmat (hnlc s)
+        have hi1 : i - 1 + 1 = i := by omega
+        try wp_join_done
+        iexists X2, s, n, i - 1
+        iframe
+        ipureintro
+        exact ⟨B2, rp2, rs, rblClear rn, w0, wi, hb2, hrp2, by rw [hnv2]; exact hrpbr,
+          by rw [hws2]; exact hw0, by rw [hws2, hi1]; exact hwi, hnm2, hnmext _ _ hnmn, hrs2,
+          hold2 n _ (Ne.symm hpln) hr1, Or.inr rfl, hold2 n _ (Ne.symm hpln) hr1, hI2, hR2, hoth2,
+          hU2⟩
+      obtain ⟨B2, rp2, rl, rr, wl, wr, hb2, hrp2, hbr2, hwl, hwr, hll, hlr, hrl, hrr, hn, hrn2, hI2,
+        hR2, hoth2, hU2⟩ := Hsel
       trace_state
       sorry
 
