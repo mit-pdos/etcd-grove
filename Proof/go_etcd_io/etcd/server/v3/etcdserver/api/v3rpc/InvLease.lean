@@ -82,9 +82,10 @@ instance leaseGrantReqIs_persistent (r : Loc) (m : w64 × w64) :
   unfold leaseGrantReqIs; infer_instance
 
 /-- **The decoded `*pb.LeaseRevokeRequest` `r`** of `ID` `id` (read-only;
-`pbLeaseRevokeRequest.recv`). -/
+`pbLeaseRevokeRequest.recv`). Not `null` (the lease-expiry plan's X6, as amendment (H) for the
+grant: the generated handler decodes into its own fresh allocation). -/
 def leaseRevokeReqIs (r : Loc) (id : w64) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseRevokeRequest go!"ID" r ↦□ id)
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.LeaseRevokeRequest go!"ID" r ↦□ id)
 
 instance leaseRevokeReqIs_persistent (r : Loc) (id : w64) :
     Persistent (leaseRevokeReqIs (GF := GF) r id) := by
@@ -152,7 +153,9 @@ instance lessorGrantOkG_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
     (G : w64 → IProp GF) : Persistent (lessorGrantOkG s E S G) := by
   unfold lessorGrantOkG; infer_instance
 
-/-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). -/
+/-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). Discharged only mode-gated, in
+a cluster that revokes leases (`lessorRevokeOk_of_server`, the lease-expiry plan's X6): the ungated
+form stays an undischarged premise of the client results. -/
 def lessorRevokeOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseRevokeReqIs r id }}

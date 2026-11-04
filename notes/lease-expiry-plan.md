@@ -972,3 +972,15 @@ generated handler decodes into its own fresh allocation). Proposed, the same for
 `⌜r ≠ null⌝` first in `pbLeaseRevokeRequest.recv` and `v3rpc.leaseRevokeReqIs`. Then
 `lessorRevokeOk_of_server` follows `lessorGrantOkLive_of_server` (`leaseHdrAns` from
 `leaseRevokedResp`).
+
+**Approved trusted-definition change (the user, 2026-11-04), amendment (H) for the revocation.**
+`pbLeaseRevokeRequest.recv` (`client/v3/InvLease.lean`, trusted) gains `⌜r ≠ null⌝` first, and with it
+`v3rpc.leaseRevokeReqIs`: true of Go, the generated handler decodes into its own fresh allocation
+(`new(LeaseRevokeRequest)`). No axiom changes (the trust base stays 785 axioms, 6 sorries).
+
+**Done: the mode-gated discharge.** `v3rpc.lessorRevokeOk_of_server` (`ServerLeaseRevoke.lean`,
+`lessorGrantOkLive_of_server` mirrored): in a cluster that revokes leases (`srvRevokesLeases`), from
+`EtcdServer.LeaseRevoke.spec`, `lessorRevokeOk s E S` (`leaseHdrAns` from `leaseRevokedResp`, the
+error by `srvErrIs_of_applyErrIs`); linked as `v3rpc.lessorRevokeOk_server` (`v3rpc/Results.lean`).
+The ungated `lessorRevokeOk` (any lease mode) stays an undischarged premise of the client results
+(said in its docstring). Part X-b is complete; Part E not started.

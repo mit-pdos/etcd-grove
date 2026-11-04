@@ -55,6 +55,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRevoke
 
 @[expose] public section
 
@@ -1766,6 +1767,18 @@ theorem lessorGrantOkLive_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkG s E S (grantLiveG E) :=
   lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h
+
+/-- **The revoke contract, discharged mode-gated** (`lessorRevokeOk_of_server` at the linked
+`EtcdServer.LeaseRevoke`; the lease-expiry plan's X6, 2026-11-04), in a cluster that revokes leases
+(the revocable lease mode, auth off). The ungated `lessorRevokeOk` stays an undischarged premise of
+the client results. -/
+theorem lessorRevokeOk_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (h : srvRevokesLeases E ρ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorRevokeOk s E S :=
+  lessorRevokeOk_of_server EtcdServer.wp_LeaseRevoke s E ρ S h
 
 /-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
 `srvHeaderFacts` premise needs no source of its own). -/
