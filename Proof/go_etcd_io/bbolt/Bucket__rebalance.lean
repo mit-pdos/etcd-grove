@@ -377,14 +377,15 @@ theorem bReach_of_bktReach (X : WX) (c : Loc) (h : bktReach X c) : bReach X X.rl
   | root => exact .self _
   | child bl c B n hb hn _ ih => exact bReach_snoc X X.rl bl c B n ih hb hn
 
-/-- The writer's root bucket is the transaction's `root` field. -/
+/-- The writer's heap facts (its root bucket the transaction's `root` field, its objects
+disjoint). -/
 theorem wtxW_rl (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
-    wtxW (GF := GF) K tx r m X ⊢ ⌜X.rl = txRoot (GF := GF) tx⌝ ∗ wtxW K tx r m X := by
+    wtxW (GF := GF) K tx r m X ⊢ ⌜heapOK (GF := GF) tx X⌝ ∗ wtxW K tx r m X := by
   unfold wtxW wtxCore
   iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
   isplitr
-  · ipureintro; exact Hok.1
+  · ipureintro; exact Hok
   · iframe
     ipureintro; exact Hr
 
@@ -416,14 +417,16 @@ theorem Bucket.rebalance.wp_proof
     Bucket.rebalance.spec (GF := GF) (hG := hG) := by
   have hb := Bucket.rebalance.wp_proof' (node.rebalance.wp_proof hSize hNum hIdx hNext hPrev hDel
     hRm hFree hNode hInc hAssert hPg)
-  intro K tx r m X w hok _hld hlr hfl
-  -- Not in the frozen spec's pre (reported): a covered slot is covered once, and every node of a
-  -- bucket is live.
-  have hcov : covU X := by sorry
-  have hns : nsLive X := by sorry
-  have hI := rblX_init X w.fl X.rl hok hlr hfl hcov hns
+  intro K tx r m X w hok _hld hlr hflU
+  -- batch 20: `flViewU` carries `covU`, the page extents and the pending entries' alignment;
+  -- `wOK` the live nodes.
+  obtain ⟨hfl, hcov, hext, hlen⟩ := hflU
+  have hns : nsLive X := wOK_nsLive X hok
+  have hrh : ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome := by sorry
   wp_start_folded as ⟨Hw, Hdb⟩
-  icases wtxW_rl K tx r m X $$ Hw with ⟨%Hrl, Hw⟩
+  icases wtxW_rl K tx r m X $$ Hw with ⟨%Hhok, Hw⟩
+  have Hrl := Hhok.1
+  have hI := rblX_init X w.fl X.rl hok hlr hfl hcov hns hext hlen Hhok.2.1 hrh
   icases wdbW_view K tx X.v w $$ Hdb with ⟨%Hv, Hdb⟩
   have e : (tx.[Tx, go!"root"] : Loc) = X.rl := by rw [Hrl]; rfl
   rw [e]
@@ -437,7 +440,7 @@ theorem Bucket.rebalance.wp_proof
     have hs := hR.2.2.2.2.2.2.2.2.1 bl
     rw [hb'] at hs
     obtain ⟨B0, hb0⟩ := Option.isSome_iff_exists.1 hs.symm
-    have hlive : bl ∈ X.live := hok.2.2.2.2.2.1.2.2 bl B0 hb0
+    have hlive : bl ∈ X.live := hok.2.2.2.2.2.1.2.2.1 bl B0 hb0
     exact hreach bl (bReach_of_bktReach X bl (hlr.1 bl B0 hb0 hlive)) B hb' l r hr
   obtain ⟨h1, h2, h3⟩ := rebalOK_of_rbl X X' w.fl fl' X.rl X.t.mv.txid' hI' hR hbal
   have htxw : X.t.mv.txid' = w.wtxid := by
@@ -448,11 +451,12 @@ theorem Bucket.rebalance.wp_proof
     rw [toNat_W64_of_lt _ (by have := X.t.mv.txid'.isLt; omega)]
     omega
   rw [htxw] at h1
+  obtain ⟨-, -, -, -, -, -, -, -, -, hcU, hE, hA, -, -⟩ := hI'
   iapply HΦ
   iexists X', fl'
   iframe
   ipureintro
-  exact ⟨h1, h2, h3⟩
+  exact ⟨h1, h2, h3, hcU, hE, hA⟩
 
 end proof
 
