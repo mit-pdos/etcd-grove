@@ -137,6 +137,80 @@ theorem treeHas_leafBnd (P : Pages) (hwm : Nat) {root id : Nat} (h : treeHas P r
         rw [hfl] at hb; exact absurd hb leaf_ne_branch)
     h
 
+/-- A leaf page's inline nested buckets' pages are within the bound (`inlineBnd`, batch 22). -/
+def leafInl (pg : List w8) : Prop :=
+  pageFlags pg = leafPageFlag → ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag →
+    inBucketRoot (leafValue pg i) = 0 → inlineBnd (inlinePage (leafValue pg i))
+
+theorem treeHas_leafInl (P : Pages) (hwm : Nat) {root id : Nat} (h : treeHas P root id) :
+    treeWF P hwm root → (rootShape P root ∨ nestBnd P root) →
+      ∀ pg, P !! id = some pg → leafInl pg :=
+  treeHas.rec (pages := P)
+    (motive_1 := fun root id _ => treeWF P hwm root → (rootShape P root ∨ nestBnd P root) →
+      ∀ pg, P !! id = some pg → leafInl pg)
+    (motive_2 := fun pg id _ => ∀ len, pageTreeWF P hwm pg len → (topPg P pg ∨ nestPg P pg) →
+      ∀ pg', P !! id = some pg' → leafInl pg')
+    (motive_3 := fun v id _ => bucketWF P hwm v → bvBnd P v →
+      ∀ pg', P !! id = some pg' → leafInl pg')
+    (fun root pg hpg _ hs pg' hpg' => by
+      rw [hpg] at hpg'; cases hpg'
+      intro hl i hi hb h0 j hj
+      rcases hs with hs | hs
+      · exact ((hs root pg (ownHas.root _ pg hpg) hpg hl i hi).2.2 _ (Or.inl ⟨h0, rfl⟩) j hj).2.2
+      · have := (hs root pg (ownHas.root _ pg hpg) hpg hl i hi).1
+        rw [hb] at this; unfold bucketLeafFlag at this; omega)
+    (fun root pg id hpg _ ih hw hs => by
+      cases hw with
+      | page _ pg' _ _ hpg' _ _ hpt =>
+        rw [hpg] at hpg'; cases hpg'
+        refine ih _ hpt ?_
+        rcases hs with hs | hs
+        · exact Or.inl (topPg_of P root pg hs hpg)
+        · exact Or.inr (nestPg_of P root pg hs hpg))
+    (fun pg i id hfl hi _ ih len hpt hs => by
+      cases hpt with
+      | leaf _ _ hfl' _ _ => rw [hfl] at hfl'; exact absurd hfl'.symm leaf_ne_branch
+      | branch _ _ _ _ hch =>
+        refine ih (hch i hi) ?_
+        rcases hs with hs | hs
+        · exact Or.inl (hs.2 hfl i hi)
+        · exact Or.inr (hs.2 hfl i hi))
+    (fun pg i id hfl hi hbf _ ih len hpt hs => by
+      cases hpt with
+      | leaf _ _ _ _ hb =>
+        refine ih (hb i hi hbf) ?_
+        rcases hs with hs | hs
+        · exact (hs.1 hfl i hi).2
+        · have := (hs.1 hfl i hi).1; rw [hbf] at this; unfold bucketLeafFlag at this; omega
+      | branch _ _ hfl' _ _ => rw [hfl] at hfl'; exact absurd hfl' leaf_ne_branch)
+    (fun v id hr _ ih hb hbv => by
+      cases hb with
+      | file _ _ _ ht =>
+        refine ih ht (Or.inr ?_)
+        intro id' pg ho hp hl j hj
+        exact hbv pg (Or.inr ⟨hr, id', ho, hp, hl⟩) j hj
+      | inline _ _ hr' _ _ => exact absurd hr' hr)
+    (fun v id hr _ ih hb hbv => by
+      cases hb with
+      | file _ _ hr' _ => exact absurd hr hr'
+      | inline _ _ _ hfl hpt =>
+        refine ih _ hpt (Or.inr ⟨fun _ j hj => hbv _ (Or.inl ⟨hr, rfl⟩) j hj, fun hb => ?_⟩)
+        rw [hfl] at hb; exact absurd hb leaf_ne_branch)
+    h
+
+/-- **Every leaf page of a well-formed view bounds its inline nested buckets' pages** (the root's
+leaves: `rootShape`'s bucket values; below a top-level bucket there is no nested bucket). -/
+theorem viewWF_leafInl (v : View) (hv : viewWF v) (id : Nat) (pg : List w8)
+    (hpg : v.pages !! id = some pg) : leafInl pg := by
+  obtain ⟨C, hok, hvC⟩ := hv
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  rw [hpv] at hpg
+  have hin : treePages C.pages C.root !! id = some pg := by rw [hok.2.1]; exact hpg
+  unfold treePages at hin
+  rw [GMap.mapLookup_filter_Some] at hin
+  have hhas : treeHas C.pages C.root id := by simpa using hin.2
+  exact treeHas_leafInl C.pages C.hwm hhas hok.1.1 (Or.inl hok.2.2.2.2.1) pg hpg
+
 /-- **Every leaf page of a well-formed view has its plain entries within `bboltEntryMax`**
 (`treeOK`'s `rootShape`: the root's leaves hold buckets only, their leaves plain entries within
 the bound; every page of the view is the tree's). -/
@@ -419,7 +493,8 @@ theorem matR_nodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length := by
 
 /-- **Materializing a bucket's root page keeps it clean.** -/
 theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.nil ↔ r.ws = [])
-    (hx3 : ∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own DFrac.discard) :
+    (hx3 : ∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)
+    (hni : leafInl pg) :
     bktClean W hwm bl (matRBkt B B.ib.root' l r) := by
   have hfree := matR_free W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
   have hposR := matR_pos W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
@@ -491,7 +566,7 @@ theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.n
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          exact ⟨hbw j hjc hbk', fun h0 => (hgood.1 hfl j hjc).2 hbk' h0⟩
+          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hni hfl j hjc hbk' h0⟩⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -885,7 +960,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
   have hv : viewWF X.v := hok.2.2.2.2.2.2.2
   have hstrict := mat_strict X.v hv
   obtain ⟨B, pa, pg, r, ns', bv', hB, hwp, hnm, hl0, hlo, hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := h
   have hlo' : X.t.objs !! l = none := by simpa using hlo
   have hc := wOK_bktClean X hok bl B hB
   have hr : matNew bl parent pg r :=
@@ -896,13 +971,13 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
   have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
     rw [hX']; exact GMap.lookup_insert _ _ _
   have hns'l : ns' !! l = some r := by
-    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, rfl⟩ <;>
+    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, -, rfl⟩ <;>
       exact GMap.lookup_insert _ _ _
   have hsrc' := hsrc _ r hB' hns'l
   obtain ⟨B1, hB1, hp⟩ := hpos
   rw [hB] at hB1; cases hB1
   subst hX'
-  rcases hcase with ⟨hpn, hbv, hns⟩ | ⟨hpn, hbv, rp, rp', hrp, hbr, hc1, hc2, hc3, hc4, hc5, hc6, hns⟩
+  rcases hcase with ⟨hpn, hbv, hns⟩ | ⟨hpn, hbv, rp, rp', hrp, hbr, hc1, hc2, hc3, hc4, hc5, hcap, hc6, hns⟩
   · -- the root case
     subst hpn hbv hns
     rcases hp with ⟨-, hrn0, rfl⟩ | ⟨i, rp, w, hrp, -⟩
@@ -918,7 +993,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
         (B.ib.root' = W64 0 → pageFlags pg = leafPageFlag ∧
           ∀ j < pageCount pg, leafFlags pg j % 2 = 0) ∧ leafBnd pg := by
       by_cases hin : B.ib.root' = W64 0
-      · obtain ⟨-, -, hg⟩ := hc.1 hin hrn0
+      · obtain ⟨-, -, hg, -⟩ := hc.1 hin hrn0
         have hpgB : pg = B.ipg := by
           unfold wpageAt at hwp
           simp only [hin, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at hwp
@@ -951,7 +1026,11 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
     have hns' := matR_ns B B.ib.root' l r hns0
     refine wOK_matX X bl l B.ib.root' B (matRBkt B B.ib.root' l r) r hok hB hlo'
       (matR_clean X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' hrins hrkn
-        hsrc')
+        hsrc' (by
+          by_cases hin : B.ib.root' = W64 0
+          · intro _ i hi hb _
+            have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
+          · exact viewWF_leafInl X.v hv _ pg (hfile hin)))
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' htk)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
@@ -1040,9 +1119,9 @@ theorem bktLocalOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NR
     (hnsN : ∀ y ry', B'.ns !! y = some ry' → y = l ∨ ∃ ry, B.ns !! y = some ry ∧
       ry'.nv.isLeaf' = ry.nv.isLeaf' ∧ ry'.ws = ry.ws)
     (hleaf : nodePgLeaf r) : bktLocalOK (matX X bl l pgid B') bl := by
-  obtain ⟨hlive, B0, hB0, -, -, hpl, hnl⟩ := hb
+  obtain ⟨hlive, B0, hB0, -, -, hpl, hnl, hvw⟩ := hb
   rw [hB] at hB0; cases hB0
-  refine ⟨mem_ins_of_mem () hlive, B', by rw [matX_bs, if_pos rfl], hc', hk', ?_, ?_⟩
+  refine ⟨mem_ins_of_mem () hlive, B', by rw [matX_bs, if_pos rfl], hc', hk', ?_, ?_, hvw⟩
   · intro c C hC y ry hy
     rw [GMap.lookup_singleton_Some] at hC
     obtain ⟨rfl, rfl⟩ := hC
@@ -1070,7 +1149,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
     bktLocalOK X' bl := by
   have hstrict := mat_strict X.v hv
   obtain ⟨B, pa, pg, r, ns', bv', hB, hwp, hnm, hl0, hlo, hrb, hrpar, hrid, hrleaf, hru, hrs, hrcs,
-    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hcase, hX'⟩ := h
+    hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := h
   have hlo' : X.t.objs !! l = none := by simpa using hlo
   have hb' := hb
   obtain ⟨-, B0, hB0, hc, ⟨bnd, hkb⟩, -, -⟩ := hb'
@@ -1083,7 +1162,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
   have hB' : X'.t.bs !! bl = some { B with nm := B.nm.insert pgid l, ns := ns', bv := bv' } := by
     rw [hX']; exact GMap.lookup_insert _ _ _
   have hns'l : ns' !! l = some r := by
-    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, rfl⟩ <;>
+    rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, -, rfl⟩ <;>
       exact GMap.lookup_insert _ _ _
   have hsrc' := hsrc _ r hB' hns'l
   have hleafr : nodePgLeaf r := by
@@ -1095,7 +1174,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
   obtain ⟨B1, hB1, hp⟩ := hpos
   rw [hB] at hB1; cases hB1
   subst hX'
-  rcases hcase with ⟨hpn, hbv, hns⟩ | ⟨hpn, hbv, rp, rp', hrp, hbr, hc1, hc2, hc3, hc4, hc5, hc6, hns⟩
+  rcases hcase with ⟨hpn, hbv, hns⟩ | ⟨hpn, hbv, rp, rp', hrp, hbr, hc1, hc2, hc3, hc4, hc5, hcap', hc6, hns⟩
   · subst hpn hbv hns
     rcases hp with ⟨-, hrn0, rfl⟩ | ⟨i, rp, w, hrp, -⟩
     rotate_left
@@ -1108,7 +1187,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
         (B.ib.root' = W64 0 → pageFlags pg = leafPageFlag ∧
           ∀ j < pageCount pg, leafFlags pg j % 2 = 0) := by
       by_cases hin : B.ib.root' = W64 0
-      · obtain ⟨-, -, hg⟩ := hc.1 hin hrn0
+      · obtain ⟨-, -, hg, -⟩ := hc.1 hin hrn0
         have hpgB : pg = B.ipg := by
           unfold wpageAt at hwp
           simp only [hin, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at hwp
@@ -1137,7 +1216,11 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
     have hns' := matR_ns B B.ib.root' l r hns0
     refine bktLocalOK_matX X bl l B.ib.root' B (matRBkt B B.ib.root' l r) r hb hB
       (matR_clean X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' hrins hrkn
-        hsrc')
+        hsrc' (by
+          by_cases hin : B.ib.root' = W64 0
+          · intro _ i hi hb _
+            have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
+          · exact viewWF_leafInl X.v hv _ pg (hfile hin)))
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' (hkb.1 hrn0))
       (by rw [hns', if_pos rfl]) ?_ hleafr
     intro y ry' hy
