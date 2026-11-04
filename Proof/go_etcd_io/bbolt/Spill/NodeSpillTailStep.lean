@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.bbolt.Spill.PcStepSlots
 public import Proof.go_etcd_io.bbolt.Spill.PcStepFrame
 public import Proof.go_etcd_io.bbolt.Spill.PcStepPar
 public import Proof.go_etcd_io.bbolt.Spill.PcStepKeys
+public import Proof.go_etcd_io.bbolt.Spill.PcStepBufs
 
 @[expose] public section
 
@@ -60,6 +61,14 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   obtain ⟨rl', hrl', -, -, hpp⟩ := pcInv_pre' hpre hsp xs pl i Xi wi st x hI hx
   rw [hrl] at hrl'; cases hrl'
   replace hpp := hpp hlr
+  have hdb := pcInv_db hI
+  -- the writer's facts of `spPre` (for the buffers' clause of the step)
+  have hwf : X.v.pages = w.C.pages ∧ (∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat) ∧
+      (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) := by
+    obtain ⟨-, -, hc⟩ := hpre
+    rcases hc with ⟨hs', -⟩ | ⟨-, -, -, -, hvC, hfc, htl⟩
+    · rw [hs'] at hsp; cases hsp
+    · exact ⟨by rw [hvC]; rfl, hfc, htl⟩
   obtain ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps, stl, hend, hlens, hsr, hfit, rfl,
     hEs, hents, hD, hcs, hL⟩ := hI
   have hil : i < xs.length := (List.getElem?_eq_some_iff.1 hx).1
@@ -67,7 +76,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; exact hil)⟩
   obtain ⟨Sb, Eb, hDi, hEi, hSb⟩ := hents i ws hws
   let pn : Piece := ⟨x.1, id, wssKey wss i, nodePages id.toNat ws.length Sb⟩
-  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, -, -, hparp, hins31⟩ := hpp
+  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, hbody, -, hparp, hins31⟩ := hpp
   obtain ⟨rk, hrk, -, hsim⟩ := hL.todo i x ws (Nat.le_refl _) hx hws
   rw [hrl] at hrk; cases hrk
   obtain ⟨-, -, hxbl, hxlf, -, hxpg, hxpl, hxch, -⟩ := hsr.prec i x ws hx hws
@@ -217,6 +226,20 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         rw [era] at hwd
         simp only [List.map_cons, List.cons.injEq] at hwd
         simp [wKey, wDat_key hwd.1]
+  have hmk : X.t.mv.pgid'.toNat ≤ Xi.t.mv.pgid'.toNat := by
+    have h1 : X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat := by
+      rcases hend with ⟨-, rfl, -⟩ | ⟨-, h', es, i', -, hl, -⟩
+      · exact Nat.le_refl _
+      · exact hl.frame.2.2.2.2.2.2.2.2.1
+    have h2 : X2.t.mv = X'.t.mv := by
+      rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
+    have h3 := hL.frame.2.2.2.2.2.2.2.2.1
+    rw [h2] at h3; omega
+  have hvi : Xi.v.pages = wi.C.pages := by rw [hdb.2.2, hdb.1]; exact hwf.1
+  have hfci : ∀ y ∈ wi.fl.free, ¬ coversSlot wi.C.pages y.toNat := fun y hy => by
+    rw [hdb.1]; rw [hdb.2.1] at hy; exact hwf.2.1 y (applySteps_free_sub _ _ _ _ hy)
+  have htli : ∀ s ∈ treeSlots wi.C, s < Xi.t.mv.pgid'.toNat := fun s hs' => by
+    rw [hdb.1] at hs'; have := hwf.2.2 s hs'; omega
   refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
     hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
   rotate_left
@@ -239,7 +262,8 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         subst this; rw [hx] at hx'; cases hx'; rfl
     Elen := hL.Elen
     Dlen := hL.Dlen
-    step := spStep_trans hL.step (pcStepX_step hs hrl hG3 hL.slot (by
+    step := spStep_trans hL.step (pcStepX_step (hpl := hpl1) (hG1 := hG1) (hcnt := hcnt)
+      (hbody := hbody) (hv := hvi) (hfc := hfci) (htl := htli) hs hrl hG3 hL.slot (by
       intro hpg
       have hpg' : rl.nv.pgid' = x.2.1.pgid' := by rw [hnv]
       rw [hpg', hxpg] at hpg ⊢
@@ -434,15 +458,6 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hL.slot.2.1 s (List.mem_append_right _ (by
       rw [hold]; exact List.mem_append_left _ (List.mem_append_left _ hs')))).2.1
   have hpend := pcStep_pend hs hb62
-  have hmk : X.t.mv.pgid'.toNat ≤ Xi.t.mv.pgid'.toNat := by
-    have h1 : X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat := by
-      rcases hend with ⟨-, rfl, -⟩ | ⟨-, h', es, i', -, hl, -⟩
-      · exact Nat.le_refl _
-      · exact hl.frame.2.2.2.2.2.2.2.2.1
-    have h2 : X2.t.mv = X'.t.mv := by
-      rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
-    have h3 := hL.frame.2.2.2.2.2.2.2.2.1
-    rw [h2] at h3; omega
   refine ⟨fun s hs' => ?_, fun s hs' => ?_, fun x hx => ?_⟩
   · rcases hD1 s hs' with h | h
     · rw [hold] at h; rw [hnew]
