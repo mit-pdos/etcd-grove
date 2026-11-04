@@ -498,7 +498,7 @@ theorem EtcdServer.applyConfChange.wp_proof
   obtain ⟨hv3, Hccp⟩ := Hdyn γn rfl
   subst hv3
   obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
-      membership.ccContextOf m.context = some (m.nodeId, false) := Hok
+      membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
   clear Hdyn Hdv Hloc
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
     #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hv3, Hpre⟩

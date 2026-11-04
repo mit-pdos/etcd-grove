@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
 
 @[expose] public section
 
@@ -452,11 +453,19 @@ bytes): the member's `ID` and `IsPromote` when the bytes unmarshal, `none` when 
 each peer's context) unmarshals to its `ID` with `IsPromote` false. -/
 opaque membership.ccContextOf : List w8 → Option (w64 × Bool)
 
+/-- **The member a conf change's context unmarshals to** (`json.Unmarshal` into a
+`membership.ConfigChangeContext`'s embedded `Member`; opaque, as `ccContextOf`, a function of the
+bytes; moved here from `InvRest`, 2026-11-04, for `ccApplyOk`): what `applyConfChange`'s `AddMember` saves. -/
+opaque membership.ccMemberOf : List w8 → apply.MemberM
+
 /-- **A conf change the server's `applyConfChange` takes** (audit phase B3, 2026-10-18): an
 `AddNode` (type `0`) of a member of raft's configuration `cfg`, whose context unmarshals to that
-member, not a promotion. -/
+member, not a promotion; (2026-11-04, the restart plan's R2b-3d gap 3, the user's choice) the member
+it saves a voter (`ccMemberOf`'s `IsLearner` false: etcd's `--initial-cluster` members are), which a
+restart's `buildConfStateFromV3store` reads back. -/
 def ccApplyOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
-  m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false)
+  m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false) ∧
+    (membership.ccMemberOf m.context).isLearner = false
 
 /-- **A conf change `applyConfChange` takes** (D43 M5d/M5e; 2026-10-30, the repair, D3: static
 membership after boot, so `ccApplyOk` only; until then, in a dynamic cluster, also a `RemoveNode` of
