@@ -62,6 +62,39 @@ namespace k8s_io.kubernetes
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
+/-- **`ExpKeyFunc`'s closure** (`controller_utils.go:149`), the function literal its initializer
+stores (`initialize'`, copied from the translation `Code/k8s_io/kubernetes/pkg/controller.lean`:
+the package's fact, `controllerInit`, is that `ExpKeyFunc` holds it, read-only for good). -/
+def _root_.Perennial.EtcdGrove.dsctl.expKeyFn [GooseExts] [GoGlobalContext] : GoFunc :=
+  func.mk BAnon "obj"
+  (App (Val exceptionDo)
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "obj"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Val #(go!"")) (Let "$a0" (Val #(go!"could not find key for obj %#v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControlleeExpectations.ty)))) (Pair (Var "e") (Var "$r0")))))))))))))))
+
+
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -236,9 +269,16 @@ instance k8s_io_kubernetes_pkg_util_taints_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.kubernetes.pkg.util.taints :=
   build_get_is_pkg_init_wf
 
+/-- **`pkg/controller`'s package fact** (the DaemonSet run's track B, 2026-11-04): `ExpKeyFunc` holds
+the closure its initializer stores (`EtcdGrove.dsctl.expKeyFn`), read-only for good (nothing writes
+the variable: `NewControllerExpectations` reads it). -/
+def controllerInit : IProp GF :=
+  iprop(globalAddr k8s_io.kubernetes.pkg.controller.ExpKeyFunc ↦□
+    (_root_.Perennial.EtcdGrove.dsctl.expKeyFn : GoFunc))
+
 instance k8s_io_kubernetes_pkg_controller_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init controllerInit
 instance k8s_io_kubernetes_pkg_controller_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller :=
   build_get_is_pkg_init_wf

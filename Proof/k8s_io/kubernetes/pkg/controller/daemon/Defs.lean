@@ -38,6 +38,7 @@ public import Proof.k8s_io.client_go.listers.Defs
 public import Proof.k8s_io.client_go.util.workqueue.DelayingDefs
 public import Proof.k8s_io.client_go.tools.cache.CacheDefs
 public import Proof.k8s_io.client_go.tools.cache.InformerInv
+public import Proof.k8s_io.client_go.tools.cache.InformerApi
 public import Proof.k8s_io.client_go.tools.cache.Keys
 public import Proof.k8s_io.client_go.util.consistency.Defs
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Model
@@ -71,12 +72,8 @@ structure InfLoc where
   γi : InfNames
   res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource
 
-/-- The reader pools' ghost names (`dscPools`). -/
+/-- The controller's own reader pools' ghost names (`dscPools`; the informers' pools are theirs). -/
 structure DscPools where
-  ds : GName
-  cr : GName
-  pod : GName
-  node : GName
   exp : GName
   cons : GName
 
@@ -230,17 +227,18 @@ instance backoffOk_persistent (b : Loc) : Persistent (backoffOk (GF := GF) b) :=
 /-- The reader pools' namespaces. -/
 def dscPoolN : Namespace := nroot.@"dscReaderPool"
 
+/-- An informer's handles as track A's informer API names them (`InfH`). -/
+def InfLoc.h (I : InfLoc) : InfH := ⟨I.ca, I.ts, I.kf, I.γf, I.γt, I.γi⟩
+
 /-- **The controller's reader pools** (persistent): a thread borrows one slot of a store's lock
-with its `threadTok` (`threadPool.borrow`) and gives it back after the read. -/
+with its `threadTok` (`threadPool.borrow`) and gives it back after the read. The four informers'
+pools are theirs (`infReaders`, under the adequacy theorem's thread bound, which the controller
+records: `NewDaemonSetsController` takes it); the expectations' and the consistency store's are
+the controller's own. -/
 def dscPools (c : DscComp) (F : DscFams GF) : IProp GF :=
-  iprop(threadPool.isThreadPool (dscPoolN.@"ds") c.pools.ds
-      (tsReader c.dsI.ts c.dsI.γt (infObj c.dsI.γi .daemonSets) F.ds) ∗
-    threadPool.isThreadPool (dscPoolN.@"cr") c.pools.cr
-      (tsReader c.crI.ts c.crI.γt (infObj c.crI.γi .revisions) F.cr) ∗
-    threadPool.isThreadPool (dscPoolN.@"pod") c.pools.pod
-      (tsReader c.podI.ts c.podI.γt (infObj c.podI.γi .pods) F.pod) ∗
-    threadPool.isThreadPool (dscPoolN.@"node") c.pools.node
-      (tsReader c.nodeI.ts c.nodeI.γt (infObj c.nodeI.γi .nodes) F.node) ∗
+  iprop(⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+    infReaders c.dsI.h .daemonSets F.ds ∗ infReaders c.crI.h .revisions F.cr ∗
+    infReaders c.podI.h .pods F.pod ∗ infReaders c.nodeI.h .nodes F.node ∗
     threadPool.isThreadPool (dscPoolN.@"exp") c.pools.exp (expReader c.γe) ∗
     threadPool.isThreadPool (dscPoolN.@"cons") c.pools.cons (consReader c.cons c.γc))
 

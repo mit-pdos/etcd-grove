@@ -566,7 +566,8 @@ run): the slice literals' steps (`wp_slice_literal` over the operator constants)
 _DS_INIT_PENDING = ['sorry']
 
 SPECIAL['k8s_io.kubernetes.pkg.controller'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables (`controller_utils.go`: the
+    doc='''Its fact (`controllerInit`, `Proof/k8s_io/kubernetes/Base.lean`, 2026-11-04, track B):
+`ExpKeyFunc` holds the closure `expKeyFn`, read-only for good. Its initializer allocates its variables (`controller_utils.go`: the
 key functions `KeyFunc`, `ExpKeyFunc`, `UIDSetKeyFunc`, the `wait.Backoff` literals
 `UpdateTaintBackoff`, `UpdateLabelBackoff`, the map literal `podPhaseToOrdinal`), initializes its
 imports and runs their translated initializers. **Pending** (`sorry`, Stage 3 of the DaemonSet run):

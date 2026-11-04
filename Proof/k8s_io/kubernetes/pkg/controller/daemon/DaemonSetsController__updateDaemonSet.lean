@@ -66,7 +66,7 @@ theorem DaemonSetsController.updateDaemonSet.wp_proof
   icases Henv2 with ⟨#Hpkgd, #Hdsc, #Hapi, #Hs1⟩
   iNamed Hdsc
   iunfold dscPools at Hpools
-  icases Hpools with ⟨#Hpds, #Hpcr, #Hppod, #Hpnode, #Hpexp, #Hpcons⟩
+  icases Hpools with ⟨%Htb, #Hpds, #Hpcr, #Hppod, #Hpnode, #Hpexp, #Hpcons⟩
   wp_apply (lc := 1) (wp_FromContext ctx) as %lg _
   · ipureintro; exact Hctx
   iapply fupd_wp

@@ -208,38 +208,19 @@ theorem exp_lin (γe : ExpNames) (f : St → St) (hf : ∀ σ, expNN σ → expN
 
 end defs
 
-/-- **`ExpKeyFunc`'s closure** (`controller_utils.go:149`), the function literal its initializer
-stores (`initialize'`, copied from the translation `Code/k8s_io/kubernetes/pkg/controller.lean`:
-the package's `isPkgInit` is `True`, so the variable's value is not available to the proofs; a
-proof of the package's initialization would give `globalAddr ExpKeyFunc ↦□ expKeyFn`). -/
-def expKeyFn [GooseExts] [GoGlobalContext] : GoFunc :=
-  func.mk BAnon "obj"
-  (App (Val exceptionDo)
-  (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "obj"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Val #(go!"")) (Let "$a0" (Val #(go!"could not find key for obj %#v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType ControlleeExpectations.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ControlleeExpectations.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ControlleeExpectations.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ControlleeExpectations.ty)))) (Pair (Var "e") (Var "$r0")))))))))))))))
+section pkgfact
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The package's fact**: `ExpKeyFunc` holds `expKeyFn`, read-only for good. -/
+theorem controller_expKeyFunc :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ⊢
+      globalAddr ExpKeyFunc ↦□ expKeyFn := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller
+
+end pkgfact
 
 end dsctl
 end EtcdGrove

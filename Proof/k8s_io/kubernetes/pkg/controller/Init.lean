@@ -2,7 +2,8 @@
 Package initialization of `k8s_io.kubernetes.pkg.controller`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variables (`controller_utils.go`: the
+Its fact (`controllerInit`, `Proof/k8s_io/kubernetes/Base.lean`, 2026-11-04, track B):
+`ExpKeyFunc` holds the closure `expKeyFn`, read-only for good. Its initializer allocates its variables (`controller_utils.go`: the
 key functions `KeyFunc`, `ExpKeyFunc`, `UIDSetKeyFunc`, the `wait.Backoff` literals
 `UpdateTaintBackoff`, `UpdateLabelBackoff`, the map literal `podPhaseToOrdinal`), initializes its
 imports and runs their translated initializers. **Pending** (`sorry`, Stage 3 of the DaemonSet run):
