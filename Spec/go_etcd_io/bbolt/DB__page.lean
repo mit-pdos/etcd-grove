@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 panics on a nil mapping or an index past `maxMapSize`: excluded by the premises). -/
 abbrev DB.page.spec : Prop :=
   ∀ (db data : Loc) (id : w64) (dq : DFrac),
-  data ≠ null → id.toNat * 4096 < 0xFFFFFFFFFFFF →
+  0 < data.addr → id.toNat * 4096 < 0xFFFFFFFFFFFF →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ db.[DB, go!"data"] ↦{dq} data ∗
       db.[DB, go!"pageSize"] ↦□ W64 4096 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"page")) (Val #id))

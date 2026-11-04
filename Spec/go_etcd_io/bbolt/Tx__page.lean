@@ -33,7 +33,7 @@ abbrev Tx.page.spec : Prop :=
   ∀ (tx db : Loc) (pmv : GoMap) (pm : GMap w64 Loc) (data : Loc) (id : w64) (p : Loc)
     (pg : List w8) (dqt dqm dqd dq : DFrac),
   (pm !! id = some p ∨
-    (pm !! id = none ∧ data ≠ null ∧ id.toNat * 4096 < 0xFFFFFFFFFFFF ∧
+    (pm !! id = none ∧ 0 < data.addr ∧ id.toNat * 4096 < 0xFFFFFFFFFFFF ∧
       p = data +ₗ ((id.toNat * 4096 : Nat) : Int))) →
   16 ≤ pg.length → pageId pg = id.toNat →
   (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag ∨ pageFlags pg = metaPageFlag ∨

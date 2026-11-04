@@ -400,6 +400,25 @@ items 4 and 5 and need the same edits.
    come from `viewWF`'s `treeStrict` (the page's keys, bounds and header id), the registry and
    live facts from the step.
 
+## Shared-statement fixes, batch 9 (U4's findings, 2026-11-04; decided by the coordinator)
+
+1. **Mapped addresses are positive**: `DB.page`'s and `Tx.page`'s premise `data ≠ null` is
+   `0 < data.addr` (`arrayIndexRef_byte` needs it); `mapFields`' mapped case carries
+   `⌜len ≤ 0xFFFFFFFFFFFF ∧ 0 < base.addr⌝` (`DB.mmap` proves it from `unix.Mmap`'s cells, U4);
+   `Read/Base`'s `mapFields_base_nonnull` now gives `0 < b.addr` (its callers, `Tx.page_r`,
+   `pageNode_w`, `node.free`, pass it to `Tx.page` unchanged). U4's `wp_proof'`s are the
+   `wp_proof`s (`Tx.page.wp_proof` takes `Page.FastCheck`'s spec).
+2. **`wtxHeap_rebase` was false** (a live bucket with `pst = .view`, `isrc = .own dq`: re-based it
+   is `(stale, own)`, whose `pageOwn` needs bytes nobody has). Fixed by **`BRec.unview` making a
+   view-backed page's source stale** (`isrc := .stale` when `pst = .view`): a page in the old
+   mapping has no bytes after the remap whatever its source, and nothing new to maintain (the
+   alternative, a `pageSrcOK` fact in `wtxHeap`/`wOK` and `Tx.allocate`'s premises, would be kept
+   by every bucket operation). U4's `wtxHeap_rebase'` is the shared `wtxHeap_rebase`
+   (`Mmap/Rebase.lean`, without `pageSrcOK`); `Inv/WtxHeap`'s `sorry` is gone.
+3. **`wBytes` covers the partial last slot** of the file (`4096 · s < size < 4096 · (s + 1)`: its
+   first `size - 4096 · s` bytes, `(wb s).take …`): a file truncated to `growSize + AllocSize`
+   need not end on a page, so `DB.grow` can meet `wdbGrown`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

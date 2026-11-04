@@ -44,8 +44,8 @@ theorem DB.page.wp_proof' (db data : Loc) (id : w64) (dq : DFrac)
   wp_auto
   iapply HΦ; iframe
 
-theorem DB.page.wp_proof : DB.page.spec (GF := GF) (hG := hG) := by
-  sorry
+omit hos in
+theorem DB.page.wp_proof : DB.page.spec (GF := GF) (hG := hG) := DB.page.wp_proof'
 
 end proof
 

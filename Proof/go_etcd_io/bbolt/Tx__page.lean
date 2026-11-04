@@ -131,8 +131,8 @@ theorem Tx.page.wp_proof' (hFast : internal.common.Page.FastCheck.spec (GF := GF
       try wp_auto
       iapply HΦ; iframe
 
-theorem Tx.page.wp_proof : Tx.page.spec (GF := GF) (hG := hG) := by
-  sorry
+theorem Tx.page.wp_proof (hFast : internal.common.Page.FastCheck.spec (GF := GF) (hG := hG)) :
+    Tx.page.spec (GF := GF) (hG := hG) := Tx.page.wp_proof' hFast
 
 end proof
 

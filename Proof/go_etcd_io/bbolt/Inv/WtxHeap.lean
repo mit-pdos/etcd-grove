@@ -137,9 +137,11 @@ def Src.unview : Src → Src
   | .view => .stale
   | s => s
 
-/-- A bucket after a remap: its view-backed page stale (N2). -/
+/-- A bucket after a remap: its view-backed page stale (N2), and its source too (batch 9: a page
+in the old mapping has no bytes after it, whatever its source). -/
 def BRec.unview (B : BRec) : BRec :=
-  { B with isrc := B.isrc.unview, pst := if B.pst = .view then .stale else B.pst,
+  { B with isrc := if B.pst = .view then .stale else B.isrc.unview,
+           pst := if B.pst = .view then .stale else B.pst,
            ns := B.ns.fmap fun r => { r with ws := r.ws.map fun w =>
              { w with ks := w.ks.unview, vs := w.vs.unview }, ksrc := r.ksrc.unview } }
 
@@ -269,11 +271,7 @@ def WX.addNode (X : WX) (bl l : Loc) (B : BRec) (r : NRec) : WX :=
 
 -- `wtxHeap_node_insert`: U7's `Write/Heap.lean` (proved; batch 8).
 
-/-- **The remap** (U4): after `dereference` (the coverage contract), the heap is the re-based
-`X`'s; nothing of it reads the old mapping. -/
-theorem wtxHeap_rebase (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X) :
-    wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq (X.rebase b) := by
-  sorry
+-- `wtxHeap_rebase` (the remap): U4's `Mmap/Rebase.lean` (proved; batch 9).
 
 end heap
 

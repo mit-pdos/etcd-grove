@@ -2,13 +2,9 @@
 The writer's heap across a remap (U4, `notes/bbolt-proof-plan.md`): `wtxHeap` of `X` gives
 `wtxHeap` of `X.rebase b` once `dereference` has run (`derefOK`).
 
-`Inv/WtxHeap`'s `wtxHeap_rebase` (U0a's statement) is false: a live bucket whose `page` field is
-view-backed (`pst = .view`) with an owned inline page source (`isrc = .own dq`) owns only the
-fact `inViewLoc` (`pageOwn`'s `.view` case); its rebased record (`pst = .stale`, `isrc = .own dq`)
-owns the page's bytes (`pageOwn`'s second case), which nothing gives. `bktOpened` never builds
-such a record (a view-backed page has a view source, `WOps`), but no statement keeps it.
-`wtxHeap_rebase'` adds it as a premise (`pageSrcOK`); U4 reports the fix (the premise, or
-`BRec.unview` making the source of a view-backed page stale).
+`wtxHeap_rebase` (the shared lemma since batch 9). U4 found U0a's statement false: a live bucket
+whose page is view-backed with an owned inline source would need, re-based, bytes nobody has;
+fixed by `BRec.unview` making such a page's source stale (`Inv/WtxHeap`). `pageSrcOK` is unused.
 -/
 module
 
@@ -121,13 +117,12 @@ theorem srcOwn_keep (v v' : View) (s : GoSlice) (src : Src) (bs : List w8) (h : 
   | own dq => exact .rfl
   | stale => exact .rfl
 
-theorem pageOwn_rebase (v v' : View) (B : BRec) (h : B.pst = .view → B.isrc = .view) :
+theorem pageOwn_rebase (v v' : View) (B : BRec) :
     pageOwn (GF := GF) v B ⊢ pageOwn v' B.unview := by
   unfold pageOwn BRec.unview
   cases hp : B.pst with
   | view =>
-    have hi := h hp
-    simp only [hi, Src.unview, ↓reduceIte]
+    simp only [↓reduceIte]
     iintro -
     iempintro
   | none => simp only [reduceCtorEq, ↓reduceIte]; cases B.isrc <;> exact .rfl
@@ -182,8 +177,7 @@ theorem nrec_unview_of (r : NRec) (hw : ∀ w ∈ r.ws, w.ks ≠ .view ∧ w.vs 
 view-backed page has a view source. -/
 theorem objOwn_rebase (v v' : View) (l : Loc) (dq : DFrac) (live : Bool) (o : WObj)
     (hn : live = true → ∀ bl r, o = .node bl r →
-      (∀ w ∈ r.ws, w.ks ≠ .view ∧ w.vs ≠ .view) ∧ r.ksrc ≠ .view)
-    (hb : live = true → ∀ B, o = .bkt B → B.pst = .view → B.isrc = .view) :
+      (∀ w ∈ r.ws, w.ks ≠ .view ∧ w.vs ≠ .view) ∧ r.ksrc ≠ .view) :
     objOwn (GF := GF) v l dq live o ⊢ objOwn v' l dq live o.unview := by
   cases o with
   | bkt B =>
@@ -199,7 +193,7 @@ theorem objOwn_rebase (v v' : View) (l : Loc) (dq : DFrac) (live : Bool) (o : WO
     | false => simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hp
     | true =>
       simp only [↓reduceIte]
-      iapply pageOwn_rebase v v' B (hb rfl B rfl)
+      iapply pageOwn_rebase v v' B
       iexact Hp
   | node bl r =>
     cases live with
@@ -225,9 +219,9 @@ theorem objOwn_rebase (v v' : View) (l : Loc) (dq : DFrac) (live : Bool) (o : WO
       exact sep_mono .rfl (sep_mono .rfl (sep_mono .rfl (sep_mono hL
         (sep_mono .rfl (sep_mono .rfl hK)))))
 
-/-- **The writer's heap across a remap** (`Inv/WtxHeap`'s `wtxHeap_rebase` with `pageSrcOK`). -/
-theorem wtxHeap_rebase' (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X)
-    (hpg : pageSrcOK X) :
+/-- **The remap** (the shared `wtxHeap_rebase`, batch 9): after `dereference` (the coverage
+contract), the heap is the re-based `X`'s; nothing of it reads the old mapping. -/
+theorem wtxHeap_rebase (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : derefOK X) :
     wtxHeap (GF := GF) tx dq X ⊢ wtxHeap tx dq (X.rebase b) := by
   unfold wtxHeap
   iintro ⟨%Hok, Hf, Hr, Hobjs⟩
@@ -241,8 +235,7 @@ theorem wtxHeap_rebase' (tx : Loc) (dq : DFrac) (X : WX) (b : Loc) (hcov : deref
   iapply (fmap_bigSepM _ _ _).2
   iapply BigSepM.bigSepM_mono (fun {l o} hlo => objOwn_rebase X.v (X.rebase b).v l dq
     (decide (l ∈ X.live)) o (fun hl bl r e => by
-      have := hcov l o hlo (of_decide_eq_true hl); rw [e] at this; exact this)
-    (fun hl B e => hpg l B (e ▸ hlo) (of_decide_eq_true hl)))
+      have := hcov l o hlo (of_decide_eq_true hl); rw [e] at this; exact this))
   iexact Hobjs
 
 end rebase

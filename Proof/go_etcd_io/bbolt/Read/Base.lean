@@ -36,9 +36,10 @@ instance reg_persistent (tx : Loc) (B : BNs) (r : TxReg) :
 instance viewOf_persistent (r : TxReg) (v : View) : Persistent (viewOf (GF := GF) r v) := by
   unfold viewOf; infer_instance
 
-/-- The mapping's base is not null (`mapFields`' mapped case; `DB.page` indexes `db.data`). -/
+/-- The mapping's base is a mapped address, `0 < b.addr` (`mapFields`' mapped case; `DB.page`
+indexes `db.data`). -/
 theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
-    mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜b ≠ null⌝ := by
+    mapFields (GF := GF) db dq (some (b, l)) ⊢ ⌜0 < b.addr⌝ := by
   simp only [mapFields]
   iintro ⟨-, -, -, -, %H⟩
   ipureintro; exact H.2
