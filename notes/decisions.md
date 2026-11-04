@@ -31248,3 +31248,45 @@ a `bool` prophecy of `GetAny`'s random choice (`prophFirst.ResolveBool(r%2 == 0)
 values are `bool`s or `uint64`s, so the choice rather than the returned string); `GetAny`'s spec
 is the plain logically atomic one, and `goose_prophkv_safe` follows from `goose_adequacy` with the
 standard axioms only (`Proof/.../goose/prophkv/Results.lean`).
+
+## A context outside Perennial's model: `ctxOk`'s third case, `ctxErrs` (2026-11-04 · K4 of `notes/k8s-compactor-plan.md`, the user's choice of the third disjunct · branch `ctxok-errok`)
+
+**Was:** every client spec, and the trust boundary's contracts that take a caller's context
+(`grpcInvokerOk`; the client's `withVersion`, `waitRetryBackoff`), took `ctxOk ci cd`: an
+`isContext` (Perennial's model of `context`) or a quiet context (`ctxQuiet`, `Err()` always `nil`).
+
+**The gap:** Kubernetes' compactor loop runs its rounds under `wait.ContextForChannel(stopCh)`, a
+`channelContext` whose `Done()` is `stopCh` and whose `Err()` is `nil` until `stopCh` is closed,
+then `context.Canceled`. It is neither case. It is not quiet. And it is no `isContext`, whose
+`"#HParentCC"` says `parentCancelCtx` finds a `*cancelCtx`, while `channelContext.Value` returns
+`nil`. So `Compact.spec`'s `ctxOk` premise, approved with K2, had no producer at its one caller.
+
+**Now** (the user's choice among: a third case; replacing `ctxQuiet` by the weaker case; stopping
+at `Compact` with `runCompactLoop` unproved). `ctxOk := isContext ∨ ctxQuiet ∨ ctxErrs`
+(`InvGrpc.lean`), where `ctxErrs` is Go's `Err` contract with the client facts of its errors: `nil`,
+or once the context is done (`ContextClosed`) a non-nil error; a non-nil error means it is done and
+is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`). It says nothing
+of `Done()`.
+- **The trust boundary's contracts stay true.** grpc-go turns a done context into a status error
+  (`status.FromContextError`), and `waitRetryBackoff` does too (`contextErrToGRPCErr`). The contracts
+  never relied on `Done()` knowledge, which the quiet case does not give either.
+- **Why the client-error form, not `isCtxErr` (`Canceled`'s or `DeadlineExceeded`'s value), which
+  the option proposed.** `getToken` needs `ctxErrClient` of its context. With `isCtxErr` it would
+  need the context-error facts as classes threaded through every client result. `ctxErrs` is
+  `ctxErrClient`'s body (`ctxErrClient_eq_errs`, `rfl`). For a `channelContext`, both state the same
+  Go behavior.
+- **The consumers.** The interceptor's new case is its `isContext` case, through `ctxErrs`'s Err
+  triple. `getToken` uses `ctxErrClient_eq_errs`. `todo_ctx`, `background_ctx` and `quiet_ctx`
+  pick the second case.
+
+**The producer** (`Proof/go_etcd_io/etcd/client/v3/ChanCtx.lean`, `chanCtx_ok`). A
+`channelContext` over a broadcast channel meets `ctxOk ∗ ctxErrClient` at the descriptor
+`chanCd γi`, whose closed flag is the channel's internal done flag. It needs no premise beyond
+`wait`'s init: `Canceled`'s client facts come from `context`'s package fact (an `*errorString`
+holding `"context canceled"`) and Perennial's `wp_isCtxErr_Error`.
+- **Why the internal names.** `ownBroadcastChan` hides them, so a receive that finds the channel
+  closed gives a done flag under names unrelated to the caller's. `BroadcastInternal.lean` states
+  the non-blocking receive and `select` at fixed internal names `γi`, a local restatement of
+  Perennial's proof.
+- **The code is translated, not axiomatized.** `ContextForChannel` and `channelContext`'s
+  `Done`/`Err`/`Deadline`/`Value` are in `wait.toml`'s list, with specs and proofs under `wait/`.
