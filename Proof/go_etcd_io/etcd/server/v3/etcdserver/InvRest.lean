@@ -618,9 +618,12 @@ instance roLens_persistent (RO X : apply.RestM → IProp GF) : Persistent (roLen
 one its lessor may grant (`leaseGranted`). What `srvRest`'s leased arm carries to `applyEntryNormal`
 (`grantPermRq`). True of a server whose cluster grants leases (its guard holds of every id). (The
 lease-expiry plan's X2, 2026-11-04: until then also the lessor monotone, `lessorModeIs … true`,
-false in the revocable mode; the mode is now `lease.srvInv`'s.) -/
+false in the revocable mode.) (X7, 2026-11-04) And the lessor's mode at the environment's lease mode
+(`lessorModeIs … (decide (E.lm = .mono))`, `srvSnapRO`'s): revocable at `E.lm = .revocable`, what
+`applyEntryNormal` hands a revocation (`revokeOwn`). -/
 def srvGrantable (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ (∀ id : w64, lease.leaseGranted E.γ.leases id))
+  iprop(□ (∀ id : w64, lease.leaseGranted E.γ.leases id) ∗
+    lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)))
 
 instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
   unfold srvGrantable; infer_instance
@@ -730,6 +733,7 @@ theorem srvGrantIf_perm [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
   · unfold srvGrantIf; rw [h hk]; simp only [↓reduceIte]
     iintro #HG
     iunfold srvGrantable at HG
+    icases HG with ⟨#HG, -⟩
     iunfold apply.grantPermRq
     iintro !> %_ %g %_
     iapply HG

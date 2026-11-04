@@ -165,10 +165,46 @@ theorem chainLog_growsOk (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log
   | .auth _ c => by simp only [chainLog]; exact chainLog_growsOk rq lt log hp hl c
   | .quota c => by simp only [chainLog]; exact chainLog_growsOk rq lt log hp hl c
 
+/-- **A grant's or a revocation's effect on a log is restorable** (the lease-expiry plan's X7): a
+grant leaves the log, a revocation commits only deletions. -/
+theorem backendLog_growsOk_lease (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log)
+    (hk : apply.dispatchKind rq = .leaseGrant ∨ apply.dispatchKind rq = .leaseRevoke) :
+    growsOk log (backendLog lt rq log) := by
+  unfold backendLog
+  rcases hk with hk | hk <;> rw [hk]
+  · exact growsOk_refl _
+  · dsimp only
+    split
+    · split
+      · apply growsOk_commitLog
+        intro c hc k v l h
+        subst h
+        unfold revokeChanges at hc
+        obtain ⟨_, _, h⟩ := List.mem_map.1 hc
+        cases h
+      · exact growsOk_refl _
+    · exact growsOk_refl _
+
+theorem chainLog_growsOk_lease (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log)
+    (hk : apply.dispatchKind rq = .leaseGrant ∨ apply.dispatchKind rq = .leaseRevoke) :
+    ∀ c : apply.Chain, growsOk log (chainLog c rq lt log)
+  | .backend => backendLog_growsOk_lease lt rq log hk
+  | .corrupt c => by
+    simp only [chainLog]; split
+    · exact growsOk_refl _
+    · exact chainLog_growsOk_lease rq lt log hk c
+  | .capped c => by
+    simp only [chainLog]; split
+    · exact growsOk_refl _
+    · exact chainLog_growsOk_lease rq lt log hk c
+  | .auth _ c => by simp only [chainLog]; exact chainLog_growsOk_lease rq lt log hk c
+  | .quota c => by simp only [chainLog]; exact chainLog_growsOk_lease rq lt log hk c
+
 /-- **A plain entry's effect on a lease-free log is restorable** (M2's apply side: plain in the
 mode, a compaction changing nothing). -/
 theorem kvEntry_growsOk (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
-    (m : EntryModel) {cmp : Bool} (hm : plainEntryM cmp .none m) (hl : mvcc.LogNoLease log) :
+    (m : EntryModel) {cmp : Bool} {lm : lease.Mode} (hm : plainEntryM cmp lm m)
+    (hl : mvcc.LogNoLease log) :
     growsOk log (kvEntry c₀ ch lt log m) := by
   unfold kvEntry
   split
@@ -182,24 +218,26 @@ theorem kvEntry_growsOk (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log :
         split
         · exact growsOk_refl _
         · split
-          · rcases plainEntryM_lg_false cmp m hm ht hd rq hdec with hp | ⟨-, hc⟩
+          · rcases hm ht hd rq hdec with hp | ⟨-, hc⟩ | hg | hr
             · exact chainLog_growsOk rq lt log hp.1 hl ch
             · rw [chainLog_nonwrite rq lt log (compactPropOk_nonwrite rq hc) ch]
               exact growsOk_refl _
+            · exact chainLog_growsOk_lease rq lt log (Or.inl hg.2.1) ch
+            · exact chainLog_growsOk_lease rq lt log (Or.inr hr.2.1) ch
           · exact growsOk_refl _
       · exact growsOk_refl _
   · exact growsOk_refl _
 
 /-- **The model of a plain log, from a lease-free start, is restorable** (at any lease table):
 lease-free, and the revisions after the start each have a change. -/
-theorem kvRaftSt_restorable (c₀ : w64) (ch : apply.Chain) {cmp : Bool} :
-    ∀ (s₀ : mvcc.Log × LeaseTable) (A : List EntryModel), plainLogM cmp .none A → mvcc.LogNoLease s₀.1 →
+theorem kvRaftSt_restorable (c₀ : w64) (ch : apply.Chain) {cmp : Bool} {lm : lease.Mode} :
+    ∀ (s₀ : mvcc.Log × LeaseTable) (A : List EntryModel), plainLogM cmp lm A → mvcc.LogNoLease s₀.1 →
       mvcc.LogNoLease (kvRaftSt c₀ ch s₀ A).1 ∧
         ∀ cs ∈ (kvRaftSt c₀ ch s₀ A).1.drop s₀.1.length, cs ≠ []
   | s₀, [], _, hl => ⟨hl, by simp [kvRaftSt_nil]⟩
   | s₀, m :: A, hA, hl => by
-    have hm : plainEntryM cmp .none m := hA m (by simp)
-    have hA' : plainLogM cmp .none A := fun m' h => hA m' (by simp [h])
+    have hm : plainEntryM cmp lm m := hA m (by simp)
+    have hA' : plainLogM cmp lm A := fun m' h => hA m' (by simp [h])
     have hk : kvRaftSt c₀ ch s₀ (m :: A) = kvRaftSt c₀ ch (kvEntrySt c₀ ch s₀ m) A := rfl
     rw [hk]
     have hfst : (kvEntrySt c₀ ch s₀ m).1 = kvEntry c₀ ch s₀.2 s₀.1 m := rfl
@@ -231,7 +269,7 @@ theorem kvRaftSt_restorable (c₀ : w64) (ch : apply.Chain) {cmp : Bool} :
 /-- **The KV model of a plain log, from a lease-free start, is restorable**: lease-free, and the
 revisions after the start each have a change. -/
 theorem kvRaftOf_restorable (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel)
-    {cmp : Bool} (hA : plainLogM cmp .none A) (hl : mvcc.LogNoLease log₀) :
+    {cmp : Bool} {lm : lease.Mode} (hA : plainLogM cmp lm A) (hl : mvcc.LogNoLease log₀) :
     mvcc.LogNoLease (kvRaftOf c₀ ch log₀ A) ∧
       ∀ cs ∈ (kvRaftOf c₀ ch log₀ A).drop log₀.length, cs ≠ [] :=
   kvRaftSt_restorable c₀ ch (log₀, []) A hA hl

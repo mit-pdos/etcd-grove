@@ -78,7 +78,7 @@ local macro "cc_kv_applied" : tactic => `(tactic| (
     ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
       hcc0.symm Hpe.2.1
       (crevOf_batchStep γr.kv _ m xj xj Hpe.1
-        (by unfold batchStep; rw [if_neg (by rw [h1]; decide)]) Hpe.2.1 Hpe.2.2.2) $$ Hka
+        (by unfold batchStep; rw [if_neg (by rw [h1]; decide)]) Hpe.2.1 Hpe.2.2.2.1) $$ Hka
     imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
       $$ Hainv Hao Hlog HkL with Hpre
     wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩

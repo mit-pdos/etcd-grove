@@ -170,13 +170,23 @@ def grantPropOk (lm : lease.Mode) (rq : apply.IRRModel) : Prop := lm ≠ .none �
 
 theorem grantPropOk_false (rq : apply.IRRModel) : ¬ grantPropOk .none rq := fun h => h.1 rfl
 
+/-- **A revocation admitted in a cluster that revokes leases** (the lease-expiry plan's X7,
+2026-11-04): the mode `revocable` and the request a revocation the apply thread admits
+(`apply.revokeKindOk`). In any other mode, `False`. -/
+def revokePropOk (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
+  lm = .revocable ∧ apply.revokeKindOk rq
+
+theorem revokePropOk_none (rq : apply.IRRModel) : ¬ revokePropOk .none rq := fun h => by
+  cases h.1
+
 /-- **A plain entry in the cluster's compaction mode `cmp`** (M2's apply side, item 5): a plain
 request, or, in compaction mode, a compaction in M2's scope; (the lease-grant stage, B1/B2 commit 3,
-2026-11-02) or, in a cluster that grants leases (`lg`), a grant (`grantPropOk`). At `lg = false` it
-means what it meant (`plainEntryM_lg_false`). -/
+2026-11-02) or, in a cluster that grants leases (`lg`), a grant (`grantPropOk`); (the lease-expiry
+plan's X7) or, in the revocable mode, a revocation (`revokePropOk`). At `lg = false` it means what it
+meant (`plainEntryM_lg_false`). -/
 def plainEntryM (cmp : Bool) (lm : lease.Mode) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lm rq
+    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lm rq ∨ revokePropOk lm rq
 
 /-- **A plain log in the modes `cmp`, `lg`**: every entry plain in the modes. -/
 def plainLogM (cmp : Bool) (lm : lease.Mode) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp lm m
@@ -186,13 +196,14 @@ theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp 
     m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
       plainReq rq ∨ (cmp = true ∧ compactPropOk rq) := by
   intro ht hd rq hrq
-  rcases h ht hd rq hrq with h | h | h
+  rcases h ht hd rq hrq with h | h | h | h
   · exact Or.inl h
   · exact Or.inr h
   · exact absurd h (grantPropOk_false rq)
+  · exact absurd h (revokePropOk_none rq)
 
 theorem plainEntryM_false (m : EntryModel) : plainEntryM false .none m ↔ plainEntry m := by
-  unfold plainEntryM plainEntry grantPropOk
+  unfold plainEntryM plainEntry grantPropOk revokePropOk
   simp
 
 /-- **Off, a plain log** (the law callers with the mode off need, `kv_log_plain_off`). -/
@@ -1227,10 +1238,11 @@ theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lm : lease.Mode)
       split
       · rename_i rq hrq
         apply apply.dispatchCrev_nonCmp
-        rcases h ht hd rq hrq with hp | ⟨hc, -⟩ | hg
+        rcases h ht hd rq hrq with hp | ⟨hc, -⟩ | hg | hr
         · exact plainReq_nonCmp rq hp
         · cases hc
         · rw [hg.2.1]; intro hk; cases hk
+        · rw [hr.2.1]; intro hk; cases hk
       · rfl
   · rfl
 
@@ -1290,6 +1302,67 @@ theorem kvCrevEntry_cases (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : Entr
   · rw [if_neg ht]; left; rfl
 
 end crev
+
+/-! ### No table holds the id `0` (the lease-expiry plan's X7: a revocation's KV identity) -/
+
+section ne0
+
+theorem backendTable_ne0 (rq : apply.IRRModel) (lt : LeaseTable) (h : W64 0 ∉ lt.ids) :
+    W64 0 ∉ (backendTable rq lt).ids := by
+  unfold backendTable
+  split
+  · split
+    · split
+      · rename_i hok
+        simp only [LeaseTable.ids, List.map_append, List.mem_append, List.map_cons, List.map_nil,
+          List.mem_singleton, not_or]
+        exact ⟨h, fun e => hok.1 e.symm⟩
+      · exact h
+    · exact h
+  · split
+    · split
+      · intro hm; apply h
+        unfold LeaseTable.ids at hm ⊢
+        obtain ⟨p, hp, he⟩ := List.mem_map.1 hm
+        exact List.mem_map.2 ⟨p, (List.mem_filter.1 hp).1, he⟩
+      · exact h
+    · exact h
+  · exact h
+
+theorem chainTable_ne0 (rq : apply.IRRModel) (lt : LeaseTable) (h : W64 0 ∉ lt.ids) :
+    ∀ c : apply.Chain, W64 0 ∉ (chainTable c rq lt).ids
+  | .backend => backendTable_ne0 rq lt h
+  | .corrupt c => by
+    simp only [chainTable]; split
+    · exact h
+    · exact chainTable_ne0 rq lt h c
+  | .capped c => by
+    simp only [chainTable]; split
+    · exact h
+    · exact chainTable_ne0 rq lt h c
+  | .auth _ c => by simp only [chainTable]; exact chainTable_ne0 rq lt h c
+  | .quota c => by simp only [chainTable]; exact chainTable_ne0 rq lt h c
+
+theorem kvTable_ne0 (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (h : W64 0 ∉ lt.ids) : W64 0 ∉ (kvTable c₀ ch lt m).ids := by
+  unfold kvTable dispatchTable
+  split
+  · split
+    · exact h
+    · split
+      · split
+        · exact h
+        · exact chainTable_ne0 _ lt h ch
+      · exact h
+  · exact h
+
+/-- **No table of the model holds `0`** (a grant needs `id ≠ 0`, `leaseGrantOk`). -/
+theorem kvTableOf_ne0 (c₀ : w64) (ch : apply.Chain) :
+    ∀ (lt : LeaseTable) (A : List EntryModel), W64 0 ∉ lt.ids → W64 0 ∉ (kvTableOf c₀ ch lt A).ids
+  | lt, [], h => h
+  | lt, m :: A, h => kvTableOf_ne0 c₀ ch (kvTable c₀ ch lt m) A (kvTable_ne0 c₀ ch lt m h)
+
+end ne0
 
 end EtcdGrove
 end Perennial

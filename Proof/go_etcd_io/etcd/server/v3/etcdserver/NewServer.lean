@@ -2071,13 +2071,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             · rw [Hlgon rfl] at hlg; cases hlg
           simp only [hlg, ↓reduceIte]
           rw [Hγw.2.1]
-          iintro !> %lid
-          iunfold lease.leaseGranted
-          iexists _
-          iframe Hlgd
-          iintro !>
-          iunfold srvGrantGuard
-          ipureintro; exact ⟨rfl, hon⟩
+          isplitl []
+          · iintro !> %lid
+            iunfold lease.leaseGranted
+            iexists _
+            iframe Hlgd
+            iintro !>
+            iunfold srvGrantGuard
+            ipureintro; exact ⟨rfl, hon⟩
+          rw [show (decide (ρ.rd.kv.lm = .mono)) = decide (m = .mono) by
+            rw [lease.bootCfg_lm Hlbc]]
+          iexact Hlmode
         · simp only [hlg, Bool.false_eq_true, ↓reduceIte]; itrivial
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
