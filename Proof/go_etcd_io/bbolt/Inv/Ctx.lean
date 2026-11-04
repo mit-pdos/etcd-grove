@@ -390,14 +390,14 @@ private theorem QpMul_one_left_c (q : Qp) : QpMul 1 q = q :=
 open Iris.ProofMode in
 /-- **A whole write transaction is its working state** (U5 proves; U7, U8, U9, U10 open their
 `boltTx` with it): `wtxW` in mode `true`, its agreed state's half, the full database, the
-committed data's quarter, and `wtxFrac`'s facts. -/
+committed data's quarter, and `wtxFrac`'s facts (batch 43/44: with `wrFacts`). -/
 theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : T.rw = true) :
     boltTxDef (GF := GF) B N tx 1 T ⊣⊢
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗
         ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X ∗
         ghostVar B.st (1 : Qp).half.half T.base ∗
-        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X⌝ := by
+        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
   unfold boltTxDef
   simp only [hrw, ↓reduceIte]
   constructor
@@ -407,7 +407,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
-    obtain ⟨h1, -, h3, h4, h5, h6⟩ := Hfacts
+    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, h9⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
@@ -423,9 +423,9 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       iframe Hpk Hc Hreg Hh Hf Hbk Hnl Hvc Hvo Hex
       iframe Hdb
       isplitr
-      · ipureintro; exact ⟨hdb, hrw', h6⟩
+      · ipureintro; exact ⟨hdb, hrw', h6, h7, h8⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
-    ipureintro; exact ⟨h1, h3, h4, h5⟩
+    ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
   · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
     obtain ⟨rfl, rfl, hT⟩ := HK
     unfold wtxW wtxCore statsTok
@@ -444,7 +444,8 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     isplitl [Hmf]
     · iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro
-    exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2, Hr.2.2⟩
+    exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
+      Hr.2.2.2.2, Hfacts.2.2.2.2⟩
 
 /-- **A reader is a reader with its view** (U6 proves; the read path's internal reader specs are
 over `rdTxK`). -/

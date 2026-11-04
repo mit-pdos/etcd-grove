@@ -70,12 +70,22 @@ def reg (tx : Loc) (B : BNs) (r : TxReg) : IProp GF := iprop(tx ↪[B.txs]□ r)
 its publish, its view lent. -/
 def wLive (v : View) (C : CommitSt) : WSt := (some v, some (C.txid + 1), false, true)
 
+/-- **The writer's meta copy is the committed meta's** (batch 44.4, U10g's `wMetaOK`): magic,
+version and page size (`writeMeta`'s `metaValid`, `commitStep_commit`'s page size), the high-water
+mark and the synced freelist page the committed state's (`beginRWTx` copies the current meta and
+bumps the txid; nothing before `Commit`'s spill writes `tx.meta`). -/
+def metaCopyOK (mv : Meta) (C : CommitSt) : Prop :=
+  mv.magic'.toNat = boltMagic ∧ mv.version'.toNat = boltVersion ∧ mv.pageSize'.toNat = 4096 ∧
+    mv.pgid'.toNat = C.hwm ∧ metaFlpg mv = C.flpg
+
 /-- **A transaction's exclusive part** (design §3.7): half of its agreed state, half of its
 `done` flag, and
 - a writer's: `rwlock` locked, the writer side's half of the closed flag (`rwR`'s idle branch
   holds it), its database side (`wdbLive` with `wdbOK`, the store's writer state live on its base
   view `X.v`, unpublished: `wLive`; mapped at the view's base, the view the committed state
-  `w.C`'s, batch 34), its page tokens, the records agreeing with the freelist (`flViewU`);
+  `w.C`'s, batch 34), its page tokens, the records agreeing with the freelist (`flViewU`), and
+  (batches 43.1, 44.4) the meta copy the committed meta's (`metaCopyOK`) and the committed tree
+  well-formed (`treeOK`);
 - a reader's: `mmaplock` read-locked, the pool loan (for `loan`), its `statlock` token, its
   registry entry in the store. -/
 def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
@@ -86,7 +96,7 @@ def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
         ∃ (w : WDb) (extra : GMap Nat Unit),
           wdbLive B r.db p sp t0 tx (wLive X.v w.C) w ∗ txShape r.n.pg X extra ∗
           ⌜wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C ∧
-            flViewU X w.fl⌝)
+            flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C⌝)
     | .rd v _ k => iprop(sync.ownRWMutexRLocked r.db.[DB, go!"mmaplock"] (Pm B r.db) ∗
         (if r.src = .loan then threadPool.ownThreadLoan B.pool else emp) ∗
         sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))

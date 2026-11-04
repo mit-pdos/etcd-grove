@@ -38,18 +38,31 @@ def spillBufs (X' : WX) (C : CommitSt) (fl' : FLPg) : Prop :=
     id.toNat + (1 + pageOverflow pg) ≤ X'.t.mv.pgid'.toNat ∧
     ∀ j < 1 + pageOverflow pg, id.toNat + j ∉ treeSlots C ∧ id.toNat + j ∉ pendSlots fl'
 
+/-- **What the spill's start needs of the committed state and the root bucket** (batch 43 of
+`notes/bbolt-proof-plan.md`, U9t's `StartFacts`; `Commit` gives it from `txExcl`'s writer facts,
+`metaCopyOK` and `treeOK`, and `wtxFrac`'s `gensOK`/`wrFacts`, kept by `rebalance`): the committed
+tree well-formed, its high-water mark at most the transaction's, and the root bucket's cached
+children not the root and distinct. -/
+def spillStartOK (X : WX) (w : WDb) : Prop :=
+  treeOK w.C ∧ w.C.hwm ≤ X.t.mv.pgid'.toNat ∧
+  ∀ B0, X.t.bs !! X.rl = some B0 → (∀ k c, B0.bm !! k = some c → c ≠ X.rl) ∧
+    ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
+
 /-- **`tx.root.spill()`** (design §4.2, spill's post): from records satisfying `spillPre`, on
 success the spilled tree (`spillOK`: `treeOK`, the writer's data, dropped base pages pending,
 new pages allocated and written in `tx.pages`), possibly after remaps (the view re-based),
 and `allocate`'s premises for `commitFreelist`'s (`derefPre`, `liveFresh`, `liveReach`; batch 12;
 the high-water mark's pages inside the mapping, batch 29); the records agree with the freelist
 (`flViewU`, batch 30: `Commit` holds it through `txExcl`; the frees need it), before and after;
-the dirty pages `tx.write` takes (`spillBufs`, batch 39). On an
+the dirty pages `tx.write` takes (`spillBufs`, batch 39); (batch 44.7) the transaction's fields,
+its root bucket and its meta copy but the high-water mark kept. Its start takes `spillStartOK`
+(batch 43). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
 abbrev Bucket.spill.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
   spillPre X w.fl → liveReach X → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → flViewU X w.fl →
+  spillStartOK X w →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"spill")) (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -57,7 +70,8 @@ abbrev Bucket.spill.spec : Prop :=
         ⌜spillOK X X' w.C w.fl w'.fl w.wtxid ∧ w'.C = w.C ∧
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
           X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl ∧
-          spillBufs X' w.C w'.fl⌝) ∨
+          spillBufs X' w.C w'.fl ∧
+          X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages⌝ ∗

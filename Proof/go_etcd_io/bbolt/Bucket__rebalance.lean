@@ -460,7 +460,7 @@ theorem Bucket.rebalance.wp_proof
   iexists X', fl'
   iframe
   ipureintro
-  exact ⟨h1, h2, h3, hcU, hE, hA⟩
+  exact ⟨h1, h2, ⟨h3, hcU, hE, hA⟩, hR.2.2.2.2.1, hR.2.2.2.2.2.1⟩
 
 end proof
 

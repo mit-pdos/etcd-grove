@@ -349,7 +349,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     ipureintro
     refine ⟨Hwok', by simp only [WDb.released, wx0, View.ofC, mapLen]; rw [hms],
       by simp only [WDb.released, wx0, View.ofC], ?_⟩
-    exact flViewU_wx0 w.C b _ _ _ _ _ _ htree hi hnp hmv hwf hbl hhwm
+    exact ⟨flViewU_wx0 w.C b _ _ _ _ _ _ htree hi hnp hmv hwf hbl hhwm, metaCopyOK_init w.C hok,
+      htree⟩
   ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
   · iunfold readerHandles; simp only [↓reduceIte]; iempintro
   imod txs_register K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top «$r0_ptr»
@@ -400,7 +401,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · unfold viewOf; iexact Hvw
   ipureintro
   refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
-    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn⟩
+    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, wrFacts_wx0 _ _ _ _ _ _ rfl⟩
   trivial
 
 end proof

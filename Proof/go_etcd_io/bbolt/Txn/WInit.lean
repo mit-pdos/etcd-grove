@@ -761,6 +761,29 @@ theorem pending_next_none (fl : FLPg) (C : CommitSt) (h : flBelow fl C none) :
     · rw [toNat_W64_of_lt _ h.2.2.2.1] at hle; omega
     · cases hw
 
+/-- **`beginRWTx`'s meta copy is the committed meta's** (`txExcl`'s `metaCopyOK`, batch 44.4):
+`initMeta` only bumps the txid. -/
+theorem metaCopyOK_init (C : CommitSt) (hok : C.metaOk) :
+    metaCopyOK (initMeta true (metaOf (C.slot C.txid))) C := by
+  obtain ⟨-, -, hps, -, -, hval, ⟨-, -, hpg, hfl⟩, -⟩ := hok
+  have hps' := hps _ hval
+  generalize metaOf (C.slot C.txid) = m at hval hps' hpg hfl ⊢
+  unfold initMeta metaCopyOK
+  rw [if_pos rfl]
+  exact ⟨hval.1, hval.2.1, hps', hpg, hfl⟩
+
+/-- **The initial records' carried facts** (`wtxFrac`'s `wrFacts`, batches 43.3, 44.2, 44.5): only
+the root bucket, reached, no node, no cached child; the commit handlers nil. -/
+theorem wrFacts_wx0 (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket)
+    (v : View) (hch : t.commitHandlers' = slice.nil) : wrFacts (wx0 rl t mv bv ib v) := by
+  refine ⟨⟨fun bl B hB _ => ?_, fun bl B l r hB hr _ => ?_⟩, hch, fun B hB k c hc => ?_⟩
+  · obtain ⟨rfl, -⟩ := wx0_bs_some rl t mv bv ib v bl B hB
+    exact bktReach.root
+  · obtain ⟨-, rfl⟩ := wx0_bs_some rl t mv bv ib v bl B hB
+    exact absurd hr (by simp [brec0])
+  · obtain ⟨-, rfl⟩ := wx0_bs_some rl t mv bv ib v _ B hB
+    exact absurd hc (by simp [brec0])
+
 end winit
 
 end bbolt

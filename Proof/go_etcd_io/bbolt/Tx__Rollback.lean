@@ -59,14 +59,15 @@ theorem Tx.Rollback.wp_reader [HasExt osFsExt]
 /-- **What a writer's `Rollback` needs of its exclusive part** (U5c's finding; batch 34 gave
 `txExcl`'s writer branch the missing parts, `txExclWGap_holds`): with the agreed state's half, the
 whole agreed state, the `done` half, `rwlock`'s token, the writer side's half of the closed flag,
-and the writer side as `Commit` sees it (`wdbW`), with its page tokens and `flViewU`. -/
+and the writer side as `Commit` sees it (`wdbW`), with its page tokens, `flViewU` and (batches 43.1,
+44.4) `metaCopyOK` and `treeOK`. -/
 def TxExclWGap : Prop :=
   ∀ [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (c : TxViewC), r.db = K.db →
     txExcl (GF := GF) K.B K.p K.sp K.t0 tx r ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ⊢
       ghostVar r.n.v 1 (c, TxX.wr X) ∗ ghostVar r.n.done (1 : Qp).half false ∗
       sync.ownMutex K.db.[DB, go!"rwlock"] ∗ ghostVar K.B.cls (1 : Qp).half false ∗
       ∃ (w : WDb) (extra : GMap Nat Unit), wdbW K tx X.v w ∗ txShape r.n.pg X extra ∗
-        ⌜flViewU X w.fl⌝
+        ⌜flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C⌝
 
 private instance BC_full_persistent_rb [HasExt osFsExt] (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance

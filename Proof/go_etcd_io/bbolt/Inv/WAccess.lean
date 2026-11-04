@@ -100,6 +100,31 @@ theorem wtxW_flpage_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (id 
   · ipureintro; exact Hc
   ipureintro; exact Hh
 
+/-- The mapping fields bound the mapping's length by `maxMapSize`. -/
+theorem mapFields_mapLen_le (db : Loc) (dq : DFrac) (ms : MapSt) :
+    mapFields (GF := GF) db dq ms ⊢ ⌜mapLen ms ≤ 0xFFFFFFFFFFFF⌝ := by
+  cases ms with
+  | none => iintro -; ipureintro; simp [mapLen]
+  | some bl =>
+    obtain ⟨b, l⟩ := bl
+    unfold mapFields
+    iintro ⟨-, -, -, -, %h⟩
+    ipureintro; exact h.1
+
+/-- **The writer's mapping is at most `maxMapSize` long** (batch 43.2: with `Bucket.spill`'s
+`X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms`, the spill's mark is below `2 ^ 62`). -/
+theorem wdbW_mapLen_le (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF⌝ := by
+  unfold wdbW wdbLive wdbCoreG
+  iintro ⟨⟨⟨-, -, -, -, -, -, -, -, -, -, -, -, Hmf, -⟩, -⟩, -⟩
+  iapply mapFields_mapLen_le; iexact Hmf
+
+/-- **The spill's mark is below `2 ^ 62`** (batch 43.2, `StartFacts.mark62`), from its premise
+`X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms` and `wdbW_mapLen_le`. -/
+theorem mark62_of_mapLen (pgid : Nat) (ms : MapSt) (hml : pgid * 4096 ≤ mapLen ms)
+    (hl : mapLen ms ≤ 0xFFFFFFFFFFFF) : pgid < 2 ^ 62 := by
+  omega
+
 end access
 
 end bbolt

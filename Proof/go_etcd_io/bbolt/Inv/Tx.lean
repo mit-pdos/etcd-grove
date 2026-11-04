@@ -118,11 +118,20 @@ theorem gensOK_bktLoc_inj (T : TxView) (X : WX) (h : gensOK T X) (n n' : GoStrin
   simp only [Option.some.injEq, Prod.mk.injEq] at h2
   exact h2.1.symm
 
+/-- **The writer's records' carried facts** (batches 43.3, 44.2, 44.5 of `notes/bbolt-proof-plan.md`,
+U10g's findings; the last conjunct of `wtxFrac`'s facts): every live object reached from the root
+bucket (`liveReach`: `rebalance`'s and `spill`'s premise; the operations only add reached objects),
+no commit handler (`beginRWTx`'s zero value; `OnCommit` is outside the verified API: `Commit` runs
+the list after the close), and no cached child of the root bucket is the root itself. -/
+def wrFacts (X : WX) : Prop :=
+  liveReach X ∧ X.t.t.commitHandlers' = slice.nil ∧
+  ∀ B, X.t.bs !! X.rl = some B → ∀ k c, B.bm !! k = some c → c ≠ X.rl
+
 /-- **A writer's part at fraction `q`** (design §3.10, F3): its heap at `q`, its handles'
 `FillPercent`s at `q`, its base view's cells at `q · wq`, the library's quarter of the committed
 data at `q`, its handle and node registries' auths at `q`, its fields' share, `mmaplock`'s
 mapping fields at `q · ¼` (the base view's pages inside the mapping, as a reader's), and its
-facts. -/
+facts (batch 43/44: ending with `wrFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
@@ -132,7 +141,7 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
-      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null⌝)
+      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ wrFacts X⌝)
 
 /-- **A read transaction over the core** (A2, round 4 N5): `boltTx`'s reader part with
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/
