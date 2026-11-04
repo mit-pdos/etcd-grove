@@ -63,6 +63,22 @@ theorem rblX_wtxid (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (w : WDb)
 
 end pure
 
+section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+open Iris.BI Iris.ProofMode in
+/-- The database's page size (`db.pageSize`, persistent in the core). -/
+theorem rbl_pageSize (K : BC) : K.core (GF := GF) ⊢ K.db.[DB, go!"pageSize"] ↦□ W64 4096 := by
+  unfold BC.core isBoltCoreP dbFixed
+  iintro ⟨-, -, -, -, -, ⟨H, -⟩, -⟩
+  iexact H
+
+end heap
+
 end bbolt
 end EtcdGrove
 end Perennial
