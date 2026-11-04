@@ -55,6 +55,20 @@ abbrev Tx.allocate.spec' : Prop :=
          (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
            ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
 
+omit [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
+/-- **`DB.allocate`'s success as `Tx.allocate`'s** (`allocRes`, the page added to the cache). -/
+theorem txAlloc_res (X Xr : WX) (w w' : WDb) (n : Nat) (p : Loc) (id hwm : w64) (hn : 0 < n)
+    (hp : p ≠ null) (h : dbAllocRes X Xr w w' w.wtxid n id hwm) :
+    allocRes X (Xr.addPage id p n hwm) w.fl w'.fl w.wtxid n p id ∧ w'.C = w.C ∧
+      hwm.toNat * 4096 ≤ mapLen w'.ms ∧ (w' = w.withFl w'.fl ∨ wdbRemap w w') := by
+  obtain ⟨hC, hb, hcase⟩ := h
+  rcases hcase with ⟨rfl, hcan, rfl, rfl⟩ | ⟨rfl, hlt, rfl, hr⟩
+  · exact ⟨⟨hn, hp, Xr, .inl rfl, .inl ⟨hcan, rfl, rfl⟩⟩, hC, hb, .inl rfl⟩
+  · rcases hr with ⟨rfl, rfl⟩ | ⟨Xd, b, hd, rfl, hrm⟩
+    · exact ⟨⟨hn, hp, Xr, .inl rfl, .inr ⟨rfl, rfl, hlt, rfl⟩⟩, hC, hb, .inl rfl⟩
+    · exact ⟨⟨hn, hp, Xd.rebase b, .inr ⟨Xd, b, hd, rfl⟩, .inr ⟨rfl, hrm.2.1, hlt, rfl⟩⟩, hC, hb,
+        .inr hrm⟩
+
 omit hos in
 /-- A `Txid` is formatted as its integer (a named `uint64` without methods). -/
 theorem txid_argWf (v : w64) : _root_.Perennial.fmt.ArgWf (interface.mk Txid.ty #v) := by
@@ -102,6 +116,65 @@ theorem wtxW_read_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
   isplitr
   · ipureintro; exact Hr.1
   iintro Hdbf Hmeta Hmv
+  iframe; iframe #
+  ipureintro; exact ⟨Hr, Hok⟩
+
+omit hos package_sem in
+/-- **The page cache's buffers with a new page** `id` at `p` (an old buffer at `id`, if any,
+dropped). -/
+theorem bufs_insert (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (id : w64) (p : Loc)
+    (bs : List w8) :
+    ([∗map] k ↦ pl ∈ pm, ∃ b, ⌜bufs !! k = some b⌝ ∗ bytesPointsto (GF := GF) pl (DFrac.own 1) b) ∗
+      bytesPointsto (GF := GF) p (DFrac.own 1) bs ⊢
+    [∗map] k ↦ pl ∈ pm.insert id p,
+      ∃ b, ⌜(bufs.insert id bs) !! k = some b⌝ ∗ bytesPointsto (GF := GF) pl (DFrac.own 1) b := by
+  refine Entails.trans ?_ (BigSepM.bigSepM_insert_delete (M := GMap w64)).2
+  iintro ⟨Hm, Hp⟩
+  isplitl [Hp]
+  · iexists bs
+    iframe
+    ipureintro; exact GMap.lookup_insert _ _ _
+  ihave Hm : [∗map] k ↦ pl ∈ GMap.delete id pm, ∃ b, ⌜bufs !! k = some b⌝ ∗
+      bytesPointsto (GF := GF) pl (DFrac.own 1) b $$ [Hm]
+  · cases hl : pm !! id with
+    | none => rw [GMap.delete_notin _ _ hl]; iexact Hm
+    | some x =>
+      icases (BigSepM.bigSepM_delete (M := GMap w64) hl).1 $$ Hm with ⟨-, Hm⟩
+      iexact Hm
+  iapply BigSepM.bigSepM_mono ?_ $$ Hm
+  intro k v hk
+  have hne : id ≠ k := by
+    intro h; subst h
+    have h0 : Std.get? (GMap.delete id pm) id = none := GMap.lookup_delete pm id
+    rw [h0] at hk; cases hk
+  iintro ⟨%b, %hb, H⟩
+  iexists b
+  iframe
+  ipureintro
+  rw [GMap.lookup_insert_ne _ _ hne]; exact hb
+
+omit package_sem in
+/-- **The page cache and the statistics' resources out of `wtxW`** (`tx.pages[id] = p` and the
+statistics' increments): `tx.db`'s share, the statistics' token, the `pages` field, its map and
+buffers; back with a new map and buffers. -/
+theorem wtxW_pages_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (Y : WX) :
+    wtxW (GF := GF) K tx r m Y ⊢ ⌜r.db = K.db⌝ ∗ reg tx K.B r ∗
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ statsTok r m 1 ∗
+      tx.[Tx, go!"pages"] ↦ Y.t.t.pages' ∗ Y.t.t.pages' ↦$ Y.t.pm ∗
+      ([∗map] id ↦ pl ∈ Y.t.pm, ∃ bs, ⌜Y.t.bufs !! id = some bs⌝ ∗ bytesPointsto pl (DFrac.own 1) bs) ∗
+      (∀ (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)),
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db -∗ statsTok r m 1 -∗
+        tx.[Tx, go!"pages"] ↦ Y.t.t.pages' -∗ Y.t.t.pages' ↦$ pm -∗
+        ([∗map] id ↦ pl ∈ pm, ∃ bs, ⌜bufs !! id = some bs⌝ ∗ bytesPointsto pl (DFrac.own 1) bs) -∗
+        wtxW K tx r m { Y with t := { Y.t with pm := pm, bufs := bufs } }) := by
+  unfold wtxW wtxCore wtxHeap txFields
+  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, ⟨%Hok, ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩,
+    Hroot, Hobjs⟩, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
+  iframe Hdbf Hst Hpages Hpm Hbufs
+  isplitr
+  · ipureintro; exact Hr.1
+  iframe #
+  iintro %pm %bufs Hdbf Hst Hpages Hpm Hbufs
   iframe; iframe #
   ipureintro; exact ⟨Hr, Hok⟩
 
@@ -167,7 +240,49 @@ theorem Tx.allocate.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   icases Hres with (⟨%he, %Xr, %w', %id, %hwm, Hw, Hdb, Hp, %hres⟩ | ⟨%hne, #HeOk, Hcase⟩)
   · subst he
     wp_auto
-    sorry
+    icases wtxW_pages_acc K tx r m (Xr.withHwm hwm) $$ Hw with ⟨%Hrdb', #Hreg, Htdb, Hst, Hpages, Hpm,
+      Hbufs, Hwb⟩
+    unfold allocBuf
+    icases (bytesPointsto_app _ _ _ _).1 $$ Hp with ⟨Hh, Hz⟩
+    ihave %Hpp := bytesPointsto_pos _ _ _
+      (List.ne_nil_of_length_pos (by rw [ByteEncoding.encode_length]; decide)) $$ Hh
+    icases (typedPointsto_bytes (V := Page) _ _ _ Hpp).2 $$ Hh with Hh
+    try wp_auto
+    wp_apply hId $$ [Hh] as Hh
+    · iframe
+    try wp_auto
+    simp only [WX.withHwm]
+    wp_apply (wp_mapInsert Pgid.ty Xr.t.t.pages' Xr.t.pm id p) $$ [Hpm] as Hpm
+    · iexact Hpm
+    try wp_auto
+    wp_apply hCount K tx r m 1 _ $$ [Hst] as %n1 Hst
+    · iframe; iframe #
+    try wp_auto
+    rw [Hrdb']
+    wp_auto
+    wp_apply hPAlloc K tx r m 1 _ $$ [Hst] as %n2 Hst
+    · iframe; iframe #
+    try wp_auto
+    ihave Hbufs := bufs_insert Xr.t.pm Xr.t.bufs id p _ $$ [Hbufs Hh Hz]
+    · iframe Hbufs
+      iapply (bytesPointsto_app _ _ _ _).2
+      isplitl [Hh]
+      · iapply (typedPointsto_bytes (V := Page) _ _ _ Hpp).1 $$ Hh
+      · rw [ByteEncoding.encode_length]; iexact Hz
+    ihave Hw := Hwb $$ %(Xr.t.pm.insert id p) %(Xr.t.bufs.insert id (allocBuf id (sint.nat count)))
+      Htdb Hst Hpages Hpm [Hbufs]
+    · unfold allocBuf; iexact Hbufs
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists Xr.addPage id p (sint.nat count) hwm, w', id
+    rw [WX.addPage_eq]
+    simp only [WX.withHwm]
+    iframe Hw
+    iframe Hdb
+    ipureintro
+    exact txAlloc_res X Xr w w' (sint.nat count) p id hwm (by have : sint.nat count = (sint.Z count).toNat := rfl; omega) hres.1 hres.2
   -- the error: logged, returned
   cases err with
   | nil => exact absurd rfl hne
