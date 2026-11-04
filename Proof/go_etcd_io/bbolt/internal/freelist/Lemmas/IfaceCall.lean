@@ -23,6 +23,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Iris Iris.BI Iris.ProofMode
+
 /-- `fli.m`, a method value of the freelist interface value `fli`: the dynamic type's method
 (`nil` panics). -/
 abbrev ifaceCall [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (fli : GoInterface)
@@ -30,6 +32,32 @@ abbrev ifaceCall [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (fli : GoI
   match fli with
   | GoInterface.nil => Panic "nil interface"
   | GoInterface.ok i => Val #(methods i.ty m i.v)
+
+theorem ifaceCall_array [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]
+    [go_etcd_io.bbolt.internal.freelist.Assumptions] (a : Loc) (m : GoString) :
+    ifaceCall (FLImpl.iface (arrayImpl (GF := GF) a)) m =
+      Val #(methods (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty) m #a) :=
+  rfl
+
+theorem ifaceCall_hash [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]
+    [go_etcd_io.bbolt.internal.freelist.Assumptions] (a : Loc) (m : GoString) :
+    ifaceCall (FLImpl.iface (hashImpl (GF := GF) a)) m =
+      Val #(methods (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.hashMap.ty) m #a) :=
+  rfl
+
+/-- Step a call `ifaceCall I.iface m` of an implementation (`arrayImpl a`/`hashImpl a`) into the
+promoted `shared` method: unfold the implementation's method, load its `shared` pointer (its
+`hdl`, `Hhdl`), and resolve `(*shared).m`. -/
+macro "iface_dispatch" : tactic => `(tactic| (
+  first | rw [ifaceCall_array] | rw [ifaceCall_hash]
+  wp_method_call
+  wp_pure
+  wp_pure
+  wp_pure
+  wp_load
+  wp_pure))
 
 end bbolt
 end EtcdGrove
