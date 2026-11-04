@@ -30,7 +30,7 @@ def ownSlot (P : Pages) (r s : Nat) : Prop :=
 /-- `r` is a root of a tree of the `treeOK` pages `P` (the root bucket's, or a nested bucket's
 stored in pages): well-formed, its keys a B+tree's. -/
 def ownRootOK (P : Pages) (r : Nat) : Prop :=
-  ∃ C : CommitSt, treeOK C ∧ C.pages = P ∧ treeWF P C.hwm r ∧ treeKeys P r none none
+  ∃ C : CommitSt, treeOK C ∧ C.pages = P ∧ (∃ hwm, treeWF P hwm r) ∧ treeKeys P r none none
 
 /-- `pageWalkF` at a page (`Read/Walk`'s `pageWalkF_succ`). -/
 theorem pageWalkF_succ' (P : Pages) (n : Nat) (ids : List Nat) (id : Nat) (pg : List w8)
@@ -72,12 +72,12 @@ theorem walk_entry (P : Pages) (r : Nat) (h : ownRootOK P r) (k id : Nat) (ids :
     (hk : (pageWalk P r)[k]? = some (id, ids)) :
     ∃ pg, P !! id = some pg ∧ ownHas P r id ∧ pageId pg = id ∧ 16 ≤ pg.length ∧
       (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) := by
-  obtain ⟨C, -, -, hwf, -⟩ := h
+  obtain ⟨C, -, -, ⟨hwm, hwf⟩, -⟩ := h
   have hm := List.mem_of_getElem? hk
-  obtain ⟨hw, ho⟩ := walkF_mem P C.hwm _ [r] r (by simp) hwf _ hm
+  obtain ⟨hw, ho⟩ := walkF_mem P hwm _ [r] r (by simp) hwf _ hm
   obtain ⟨pg, hpg⟩ : ∃ pg, P !! id = some pg := by
     cases hw with | page _ pg _ _ hpg _ _ _ => exact ⟨pg, hpg⟩
-  obtain ⟨-, -, hid, hlen, hfl⟩ := Read.treeWF_page P C.hwm id hw pg hpg
+  obtain ⟨-, -, hid, hlen, hfl⟩ := Read.treeWF_page P hwm id hw pg hpg
   refine ⟨pg, hpg, ho, hid, ?_, hfl⟩
   have := Nat.le_mul_of_pos_left 4096 (show 0 < 1 + pageOverflow pg by omega)
   omega
@@ -208,18 +208,18 @@ theorem walkF_nodup (P : Pages) (hwm : Nat) (hu : viewUnique P) : ∀ (n : Nat) 
 /-- **A root's walk visits each page once.** -/
 theorem walk_nodup (P : Pages) (r : Nat) (h : ownRootOK P r) :
     ((pageWalk P r).map Prod.fst).Nodup := by
-  obtain ⟨C, hok, hCP, hwf, -⟩ := h
+  obtain ⟨C, hok, hCP, ⟨hwm, hwf⟩, -⟩ := h
   have hu : viewUnique P := by rw [← hCP]; exact hok.1.2.1.2
-  exact walkF_nodup P C.hwm hu _ [r] r (by simp) hwf
+  exact walkF_nodup P hwm hu _ [r] r (by simp) hwf
 
 /-- **A root's walk visits all its own pages.** -/
 theorem walk_cover (P : Pages) (r : Nat) (h : ownRootOK P r) (id : Nat) (ho : ownHas P r id) :
     ∃ (k : Nat) (ids : List Nat), (pageWalk P r)[k]? = some (id, ids) := by
-  obtain ⟨C, hok, hCP, hwf, -⟩ := h
+  obtain ⟨C, hok, hCP, ⟨hwm, hwf⟩, -⟩ := h
   obtain ⟨pht, hht⟩ := hok.1.2.2.2
   rw [hCP] at hht
   have hm := walkF_cover P pht hht ho (P.size + 1) [r] (by simp)
-    (pht_lt_size' P C.hwm pht hht r hwf)
+    (pht_lt_size' P hwm pht hht r hwf)
   obtain ⟨e, he, rfl⟩ := List.mem_map.mp hm
   obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp he
   exact ⟨k, e.2, by rw [show pageWalk P r = pageWalkF P (P.size + 1) [r] from rfl, hk]⟩

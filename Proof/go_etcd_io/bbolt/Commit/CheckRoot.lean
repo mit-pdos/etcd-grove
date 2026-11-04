@@ -138,7 +138,7 @@ theorem Tx.recursivelyCheckBucket_root.wp_proof
   have hvw := Hvw.2
   have hrok := root_ownRootOK v hvw
   obtain ⟨pgr, hpgr⟩ : ∃ pg, v.pages !! v.root = some pg := by
-    obtain ⟨C, -, -, hwf, -⟩ := hrok
+    obtain ⟨C, -, -, ⟨hwm, hwf⟩, -⟩ := hrok
     cases hwf with | page _ pg _ _ hpg _ _ _ => exact ⟨pg, hpg⟩
   icases rdTxK_meta_pgid_acc K tx src q T v $$ Hk with ⟨%mp, %mv, Hmf, Hmv, %Hmeta, Hmb⟩
   have h64 : v.root < 2 ^ 64 := by
@@ -156,7 +156,7 @@ theorem Tx.recursivelyCheckBucket_root.wp_proof
   rw [show (decode (List.take 8 (bytesAt (rootVal v) 0 16)) : w64) = (inBucketOf (rootVal v)).root'
     from rfl]
   have hr2 : 2 ≤ v.root := by
-    obtain ⟨C, -, -, hwf, -⟩ := hrok
+    obtain ⟨C, -, -, ⟨hwm, hwf⟩, -⟩ := hrok
     cases hwf with | page _ _ h2 _ _ _ _ _ => exact h2
   have hrt : (inBucketOf (rootVal v)).root'.toNat = v.root := hrr
   have hr0 : (inBucketOf (rootVal v)).root' ≠ W64 0 := by

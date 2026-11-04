@@ -42,12 +42,32 @@ theorem root_ownRootOK (v : View) (h : viewWF v) : ownRootOK v.pages v.root := b
   have hpv : v.pages = C.pages := by rw [← hvC]; rfl
   have hrv : v.root = C.root := by rw [← hvC]; rfl
   rw [hpv, hrv]
-  exact ⟨C, hok, rfl, hok.1.1, hok.1.2.2.1⟩
+  exact ⟨C, hok, rfl, ⟨C.hwm, hok.1.1⟩, hok.1.2.2.1⟩
 
 /-- A top-level bucket is an entry of the root's tree. -/
 theorem top_entries (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) : ∃ n, (n, cv) ∈ treeEntries v.pages v.root := by
-  sorry
+  obtain ⟨pg, i, hpg, hi, hk, -, hv⟩ := he
+  have hr : inBucketRoot (rootVal v) = v.root := by
+    obtain ⟨C, hok, hvC⟩ := h
+    have hrv : v.root = C.root := by rw [← hvC]; rfl
+    rw [inBucketRoot_rootVal, hrv]
+    cases hok.1.1 with
+    | page _ pg _ _ hpg hid _ _ =>
+      have : C.root < 2 ^ 64 := by rw [← hid]; unfold pageId; exact BitVec.isLt _
+      omega
+  have hr0 : inBucketRoot (rootVal v) ≠ 0 := by
+    obtain ⟨C, hok, hvC⟩ := h
+    have hrv : v.root = C.root := by rw [← hvC]; rfl
+    rw [hr, hrv]
+    cases hok.1.1 with | page _ _ h2 _ _ _ _ _ => omega
+  unfold bktLeaves at hpg
+  rw [if_neg hr0, hr] at hpg
+  refine ⟨kb, ?_⟩
+  unfold treeEntries
+  refine List.mem_flatMap.mpr ⟨pg, hpg, ?_⟩
+  unfold leafEnts
+  exact List.mem_map.mpr ⟨i, List.mem_range.mpr hi, by rw [hk, hv]⟩
 
 /-- A name of the root bucket names one top-level bucket. -/
 theorem top_entry_unique (v : View) (h : viewWF v) (kb cv cv' : List w8)
@@ -57,8 +77,8 @@ theorem top_entry_unique (v : View) (h : viewWF v) (kb cv cv' : List w8)
 
 /-- A top-level bucket's value holds its header. -/
 theorem top_len (v : View) (h : viewWF v) (kb cv : List w8)
-    (he : bktEntry v.pages (rootVal v) kb cv) : 16 ≤ cv.length := by
-  sorry
+    (he : bktEntry v.pages (rootVal v) kb cv) : 16 ≤ cv.length :=
+  (rBktOK_of v h cv (.inr (top_entries v h kb cv he))).1
 
 /-- A top-level bucket has no nested bucket. -/
 theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
@@ -69,7 +89,13 @@ theorem top_names_nil (v : View) (h : viewWF v) (kb cv : List w8)
 theorem top_ownRootOK (v : View) (h : viewWF v) (kb cv : List w8)
     (he : bktEntry v.pages (rootVal v) kb cv) (hf : inBucketRoot cv ≠ 0) :
     ownRootOK v.pages (inBucketRoot cv) := by
-  sorry
+  obtain ⟨-, ht, hk⟩ := rBktOK_of v h cv (.inr (top_entries v h kb cv he))
+  obtain ⟨C, hok, hvC⟩ := h
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  refine ⟨C, hok, hpv.symm, ?_, hk hf⟩
+  rcases ht with ⟨h0, _⟩ | ⟨_, hwm, hw⟩
+  · exact absurd h0 hf
+  · exact ⟨hwm, hw⟩
 
 /-- The root's own pages are not in a top-level bucket's tree. -/
 theorem top_disj_root (v : View) (h : viewWF v) (kb cv : List w8)

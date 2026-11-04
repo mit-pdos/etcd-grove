@@ -73,13 +73,13 @@ theorem Tx.checkInvariantProperties_ok.wp_proof
   ipersist freed
   ipersist ch
   have hroot' := hroot
-  obtain ⟨C, hok, hCP, hwf, hkeys⟩ := hroot'
+  obtain ⟨C, hok, hCP, ⟨hwm, hwf⟩, hkeys⟩ := hroot'
   rw [recv_eq_func_mk]
   wp_apply (wp_fep K tx src q T v r _
     (fun i => iprop(fm ↦$ (∅ : GMap w64 Bool) ∗ ∃ M' : GMap w64 Loc, rm ↦$ M' ∗
       ⌜∀ x : w64, (M' !! x).isSome = true ↔
         ((M !! x).isSome = true ∨ walkSlot v.pages r.toNat i x.toNat)⌝))
-    ⟨C.hwm, hwf⟩) $$ [Hk Hrm Hfm] as ⟨Hk, Hfm, %M', Hrm, %HM'⟩
+    ⟨hwm, hwf⟩) $$ [Hk Hrm Hfm] as ⟨Hk, Hfm, %M', Hrm, %HM'⟩
   · iframe
     isplitr
     · ipureintro
@@ -143,7 +143,7 @@ theorem Tx.checkInvariantProperties_ok.wp_proof
           exact .inr ⟨h1, h2⟩
         · exact .inl (.inr ⟨j, by omega, id', ids', pg', hj', hpg', h1, h2⟩)
   try wp_auto
-  wp_apply wp_ko K tx src q T v r _ ch C.hwm hwf
+  wp_apply wp_ko K tx src q T v r _ ch hwm hwf
     (by exact hkeys) $$ [Hk] as Hk
   · iframe
   try wp_auto
