@@ -155,7 +155,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
         simp only [List.append_assoc, List.cons_append, List.nil_append]
         iframe Hq Hpost HRq Hwq
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
+      ihave HX := mvcc.slotX_change Hapi log c' $$ HX
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HX HrstR]
       · iframe #
         inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
@@ -356,7 +357,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       inext
       iintro ⟨HRTok, -⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
+      ihave HX := mvcc.slotX_change Hapi log (sint.Z rev) $$ HX
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HX HrstR]
       · iframe #
         inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody

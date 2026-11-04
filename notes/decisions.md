@@ -30371,6 +30371,10 @@ laws in parallel, then the clients (M1: all at once).
 
 ## mvcc's API proof: parallel internals, today's untouched (2026-11-03 · the coordinator · branch `mvcc-api`)
 
+*Superseded (2026-11-04) by "mvcc's API proof: the slots in place" below: a second tree of the
+invariants turned out to need every lock-opening proof redone (a lock's invariant is fixed at its
+creation), so the slots went into today's definitions instead.*
+
 **The question.** Carrying the API's new ghost state (`notes/mvcc-api-invariants.md` §1) through
 today's proofs cannot keep today's statements for the steps that change the store's state: each
 must update the client's half, which today's specs do not give their callers. **Decision:** (c)
@@ -30380,4 +30384,26 @@ whose statements change, the rest reused by import; today's specs and proofs sta
 green; the M1 switch deletes them and moves every client at once. **Not chosen:** (a) a legacy
 holder of the client's halves inside `isStore` (work thrown away at M1), (b) changing the internals
 in place with every client at once (the whole build red until the end).
+
+## mvcc's API proof: the slots in place (2026-11-04 · the coordinator · branch `mvcc-api`)
+
+Supersedes "parallel internals, today's untouched". **What it got wrong.** A lock's invariant is
+fixed when the lock is created, and today's bodies hold every fraction of the ghost state they tie
+together, so the API's ghost state can only live inside the lock bodies; a parallel tree
+(`Api/InvStoreX.lean`, `InvWatchX.lean`, explicit slot parameters) would have needed every proof
+that opens `s.revMu`, the writer's invariant, the watchable store's `s.mu` or a stream's `ws.mu`
+redone over the copies, about 25 proofs. **Decision.** Today's definitions are generic in a slot
+keyed on the store's names: `StoreNames.api : Option api.AbsNames` (default `none`), and
+`slotX γ q log c` in `revMuBody`/`revMuBodyL`, `slotY γ ilog` in `writerL`, and in `writerInvBody`
+the frozen flag `slotFl`, the frozen state's deposit `slotF` and the restorer's `slotFr`: trivial at
+`none` (`emp`, `False`, `emp`, `⌜b = false⌝`), the API's ghost state at `some a`
+(`api.revMuAbs`, `api.writerAbs`, `api.shareTok a 1`, `ghostVar a.frz`). `isStore` says
+`γ.api = none`, so today's specs keep their statements and their proofs carry the slot untouched,
+moving it only where the log or the compaction revision moves (`slotX_change`, `slotY_change`,
+from `γ.api = none`); the writer's checkout/checkin take a resource `G` excluding the frozen
+deposit (`writerInv_checkoutG`, today's names at `G := emp`). The API's side (`Api/Instance.lean`:
+the `slot*_some` equations, `writerInv_freeze`/`_thaw`) works at `γ.api = some a`; the API's
+store predicate (`isStoreA`) and the generic proofs of the slot-changing steps come next, with
+their slot steps as hypotheses. **Not chosen:** explicit slot parameters on every definition (a
+diff through `isStore`'s 97 files).
 

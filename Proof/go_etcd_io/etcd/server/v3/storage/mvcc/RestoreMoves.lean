@@ -118,7 +118,7 @@ history's authority. Returned: `currentRev` and `compactMainRev` whole (the latt
 store never compacted; M2's item 15: at the compaction revision `c`), the restoring flag whole and
 down, `s.revMu`'s and the writer's eighths of the current objects and names, and `restoreHeld`. -/
 theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log) (c : Int)
-    (hLL : L <+: L') (hc : -1 ≤ c) :
+    (hLL : L <+: L') (hc : -1 ≤ c) (hapi : γ.api = none) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ revMuInv s γ 1 -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) false -∗ curAt γ (DFrac.own (1 : Qp).half) o -∗
       ghostVar γ.wr 1 () -∗ idxCert γ.idx L -∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) -∗
@@ -159,11 +159,12 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   · iframe Hcur Hc
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
-  icases HP with (⟨HL, -⟩ | ⟨-, Hd, -⟩)
+  icases HP with (⟨Hfz, (⟨HL, -⟩ | ⟨-, Hd, -⟩)⟩ | ⟨-, HF⟩)
   rotate_left 1
   · iunfold wDep at Hd
     ihave %Hv := ghostVar_valid_2 γ.wr () 1 () _ $$ Hwr Hd
     exact absurd Hv.1 (Qp_one_add_not_le _)
+  · iexfalso; iapply slotF_none hapi $$ HF
   iunfold writerL at HL
   icases HL with ⟨%ilog, %ntw, HL⟩
   iNamed HL
@@ -221,8 +222,11 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hh
   icases hh.1 $$ Hhist with ⟨Hhist, HhistI⟩
-  imod Hclose $$ [Hwr HhistI] with -
-  · inext; iunfold writerInvBody; iright; iframe Hwr; iexists _; iexact HhistI
+  imod Hclose $$ [Hwr HhistI Hfz] with -
+  · inext; iunfold writerInvBody; iright; iframe Hwr Hfz
+    isplitl [HhistI]
+    · iexists _; iexact HhistI
+    iapply slotFr_none hapi
   imodintro
   iframe Hcm Hrst Hcur Hcur2 Hc HcrevB
   isplitl [Hcr]
@@ -302,7 +306,7 @@ bucket view (`restoreViewOut`), its certificate (its changes below the receipts'
 rebuild's receipts give) and the revision budget's tokens of `L'` made. -/
 theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : PhysNames) (R : Log)
     (c cp : Int) (qw : Qp) (rt : Nat) (hR : restoreLogOk R) (hcp : -1 ≤ cp ∧ cp ≤ c)
-    (hcl : c < ([[], []] ++ R).length) (hrt : 2 ≤ rt) :
+    (hcl : c < ([[], []] ++ R).length) (hrt : 2 ≤ rt) (hapi : γ.api = none) :
     ⊢ £ 1 -∗ £ 1 -∗ writerInv (GF := GF) s γ -∗ ghostVar γ.wsd qw () -∗ readerPool (GF := GF) γ -∗
       curAt γ (DFrac.own (1 : Qp).half) o -∗ writerFrag γ -∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗
@@ -460,8 +464,10 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       · ipureintro; omega
       isplitl [Hlt]
       · iunfold revLag; iunfold lagTok at Hlt; iframe Hlt; ipureintro; exact hcp
-      ipureintro
-      exact ⟨by omega, hcl⟩
+      isplitl []
+      · ipureintro
+        exact ⟨by omega, hcl⟩
+      iapply slotX_none hapi
     · iunfold revMuTok
       iframe Hr1
       isplitl [Hn2]
@@ -490,7 +496,7 @@ backend's registration pending (`writerReg`: the right to register, the batch lo
 the new key, half the new view log, half the new bucket's view, the certificate, the compaction's
 fresh record). `s.mu`'s deposit ghost back. -/
 theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNames) (L' : Log)
-    (hwf : IdxWf L' []) (hne : L' ≠ []) :
+    (hwf : IdxWf L' []) (hne : L' ≠ []) (hapi : γ.api = none) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
@@ -507,12 +513,14 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     (by exact CoPset.subseteq_top) $$ Hwi with ⟨HP, Hclose⟩
   imod (lc_fupd_elim_later (P := writerInvBody (GF := GF) s γ)) $$ Hlc HP with HP
   iunfold writerInvBody at HP
-  icases HP with (⟨%p, %o, Hc2, HP⟩ | ⟨Hwr, %h, Hh⟩)
+  icases HP with (⟨%p, %o, Hc2, HP⟩ | ⟨Hwr, ⟨%h, Hh⟩, -, Hfl⟩)
   · -- a writer's state, or a writer's deposit, at the new names: excluded
     ihave %Hv := curAt_withPhys_agree γ p p' _ _ o o' $$ [Hc2 Hc]
     · iframe Hc2 Hc
     obtain ⟨rfl, rfl⟩ := Hv
-    icases HP with (⟨HL, -⟩ | ⟨Hk, -, -⟩)
+    icases HP with (⟨-, (⟨HL, -⟩ | ⟨Hk, -, -⟩)⟩ | ⟨Hfz, -⟩)
+    rotate_left 2
+    · iexfalso; iapply slotFl_none_true hapi $$ Hfz
     · iunfold writerL at HL
       icases HL with ⟨%l, %n, HL⟩
       iNamedSuffix HL "2"
@@ -546,20 +554,24 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     isplitl [HwvR]
     · simp only [StoreNames.withPhys_wv]; iexact HwvR
     ipureintro; exact hne
-  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd] with -
+  ihave HY : slotY (GF := GF) (γ.withPhys p') L' $$ []
+  · rw [slotY_withPhys]; iapply slotY_none hapi
+  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hfl HY] with -
   · inext
     iunfold writerInvBody
     ileft
     iexists p', o'
     iframe Hc
     ileft
-    isplitl [Htoks Hhist Hlw Hclog Hwv Hcur Hlrd]
+    iframe Hfl
+    ileft
+    isplitl [Htoks Hhist Hlw Hclog Hwv Hcur Hlrd HY]
     · iunfold writerL
       iexists L', ntok
       simp only [named]
       withPhys_simp
       simp only [StoreNames.withPhys_wv]
-      iframe Htoks Hclog Hwv Hcur Hlrd
+      iframe Htoks Hclog Hwv Hcur Hlrd HY
       iframe #
       isplitr
       · ipureintro; exact Hbudget

@@ -1,8 +1,7 @@
 /-
 **The API proof's store ghost state** (stage 1, 2026-11-03; `notes/mvcc-api-invariants.md` §1 and
-§2, round 16). Lean-first (no Rocq counterpart). A module of the API's parallel internals
-(`Proof/.../mvcc/Api/`, `notes/decisions.md`, "parallel internals"): today's internals are
-untouched.
+§2, round 16). Lean-first (no Rocq counterpart). Imported by `InvStore` (2026-11-03, in-place slots: `StoreNames.api`, the slot
+functions `slotX`/`slotY`/...; `notes/decisions.md`, "slots in place"), so it imports only the model.
 
 * `γ.abs`: the client's view of the committed history and the compaction revision (`σ.log`,
   `σ.crev`), a ghost variable: ½ the client (`mvccState`), ¼ `s.revMu`'s resource, ¼ the writer's
@@ -19,7 +18,7 @@ untouched.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
@@ -42,6 +41,10 @@ structure AbsNames where
   crevLb : GName
   tok : GName
   frz : GName
+
+instance absNames_countable : Pos.Countable AbsNames :=
+  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
 def crevN (c : Int) : Nat := (c + 1).toNat
@@ -175,6 +178,35 @@ theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) :
   iexists ⟨ga, gp, gc, gt, gf⟩
   unfold absPart pndPart crevAuth crevAtLeast shareTok
   iframe
+
+/-- **`s.revMu`'s part of the API's ghost state** at fraction `q` (§1): a quarter of `q` of the
+view at the lock's log and compaction revision, and of the compaction revision's authority. -/
+def revMuAbs (a : AbsNames) (q : Qp) (L : Log) (c : Int) : IProp GF :=
+  iprop(absPart a q.half.half L c ∗ crevAuth a q.half.half c)
+
+instance revMuAbs_fractional (a : AbsNames) (L : Log) (c : Int) :
+    Fractional (fun q => revMuAbs (GF := GF) a q L c) where
+  fractional q1 q2 := by
+    have ha := (absPart_fractional (GF := GF) a L c).fractional q1.half.half q2.half.half
+    have hc := (crevAuth_fractional (GF := GF) a c).fractional q1.half.half q2.half.half
+    unfold revMuAbs
+    rw [Qp_half_add, Qp_half_add]
+    constructor
+    · iintro ⟨Ha, Hc⟩
+      icases ha.1 $$ Ha with ⟨Ha1, Ha2⟩
+      icases hc.1 $$ Hc with ⟨Hc1, Hc2⟩
+      isplitl [Ha1 Hc1]
+      · iframe Ha1 Hc1
+      · iframe Ha2 Hc2
+    · iintro ⟨⟨Ha1, Hc1⟩, ⟨Ha2, Hc2⟩⟩
+      isplitl [Ha1 Ha2]
+      · iapply ha.2; iframe Ha1 Ha2
+      · iapply hc.2; iframe Hc1 Hc2
+
+/-- **The writer's part of the API's ghost state** at its log (§1): a quarter of the view, at some
+compaction revision, and its part `pw` of the pending revision, at `none` (while checked in). -/
+def writerAbs (a : AbsNames) (pw : Qp) (L : Log) : IProp GF :=
+  iprop(∃ c : Int, absPart a (1 : Qp).half.half L c ∗ pndPart a pw none)
 
 end ghost
 

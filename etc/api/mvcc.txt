@@ -24,6 +24,7 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 
 ## The API's vocabulary, still in the internals (to move to a vocabulary module)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Ghost
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore

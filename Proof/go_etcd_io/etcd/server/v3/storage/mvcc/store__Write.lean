@@ -124,7 +124,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- the writer's state, checked out of the writer's invariant (D22 receiver epochs, S2): the
   -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited; the store
   -- registered in its backend (S6: now, if a restore left it pending)
-  imod mvcc.writerInv_checkout s γ _ ow $$ Hlc2 Hwi Hpinw HW Hwr
+  imod mvcc.writerInv_checkout s γ Hapi _ ow $$ Hlc2 Hwi Hpinw HW Hwr
     with ⟨HL, #Hreg, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
   iunfold mvcc.writerL at HL
   icases HL with ⟨%ilog, %ntok, HL⟩

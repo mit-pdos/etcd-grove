@@ -67,7 +67,9 @@ mutex invariant, and the proofs whose statements change: `storeTxnWrite.End`,
 `store.updateCompactRev`, `store.Restore`, `watchableStore.watch`, `NewStore`), carrying §1's ghost
 state, the share token and the frozen writer state; unchanged modules reused by import; today's
 specs and proofs untouched and green until the M1 switch deletes them and moves every client at
-once.
+once. *Superseded 2026-11-04 (the coordinator; `notes/decisions.md`, "the slots in place"):
+today's definitions carry the slots in place, keyed on `StoreNames.api` (trivial at `none`, which
+`isStore` asserts; the API's at `some a`); no parallel tree.*
 
 ## 2. The predicates
 
@@ -251,6 +253,9 @@ during it. Then the proofs, mvcc first.
 
 ## Hand-off: the parallel internals' invariants (2026-11-03, stage 1)
 
+*Superseded 2026-11-04 by the next section: `Api/InvStoreX.lean` and `InvWatchX.lean` are retired;
+the per-proof ghost updates below still describe what each slot step does.*
+
 **Built** (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/`, no `sorry`, no axiom; today's
 modules untouched):
 - `Ghost.lean`: `AbsNames` (`abs`, `pnd`, `crevLb`, `tok`, and `frz`, the writer's frozen flag);
@@ -328,3 +333,36 @@ named conjuncts). Most proofs carry the slot untouched: they can be proved for *
 
 **Not done here**: `ι.rcv` (the consumer's view, re-split in the channel invariant, §1) and the
 read-only proofs' ports.
+
+## Hand-off: the slots in place (2026-11-04, stage 1)
+
+**Done** (today's statements unchanged; `γ.api = none` from `isStore`):
+- `InvStore`: `StoreNames.api`; `slotX`/`slotY`/`slotF`/`slotFr`/`slotFl` (`_withPhys`, `_none`,
+  `slotX_change`, `slotY_change`, `slotX_fractional`); the slots in `revMuBody`, `revMuBodyL`
+  (`"HX"`), `writerL` (`"HY"`), `writerInvBody` (frozen state, restorer's deposit, flag); `isStore`'s
+  `"%Hapi"`; `writerInv_checkoutG`/`_checkinG` (a resource `G` with `slotF γ ∗ G ⊢ False`), today's
+  `writerInv_checkout`/`_checkin` taking `γ.api = none`. `pndW` moved here; `revMuAbs`/`writerAbs`
+  to `Api/Ghost.lean` (which now imports only `InvIndex`).
+- The lock-openers carry the slot: `store.Read`, `store.Write`, `storeTxnWrite.End`,
+  `store.updateCompactRev`, `NewStore`, `RestoreMoves` (`restore_takeover`/`_switch`/`_finish` take
+  `γ.api = none`), `store.Restore`, `watchableStore.{watch, syncWatchers, moveVictims}`; the other
+  mvcc proofs needed no change.
+- `Api/Instance.lean`: `slot*_some`, `slotF_share_excl`, `writerTaken`, `writerInv_freeze`/`_thaw`.
+
+**Left** (in order):
+1. The watchable store's and the stream's slots (`watchStoreInv`'s `Z`, `watchStreamInv`'s), keyed
+   the same way (on `γ.api` and on the stream's names); `ι.rcv`.
+2. `isStoreA s γ a` (today's `isStore` body with `⌜γ.api = some a⌝`: generalize `isStore` to the
+   `api` fact as a parameter, `isStore` its `none` instance), `isWatchableStoreA`, `isWatchStreamA`.
+3. The generic versions of the slot-changing steps, with the slot step as a hypothesis: today's
+   proofs use `γ.api = none` only at `slotX_change`/`slotY_change`/`slotF_none`/`slotFr_none`/
+   `slotFl_none(_true)`; each such use is where the generic proof takes the step. Shapes:
+   - End's bump: `slotX γ q L c ∗ slotY γ L ∗ Cl ={E}=∗ slotX γ q L' c ∗ slotY γ L' ∗ Cl'` (`Cl` the
+     client's half, from the update);
+   - Compact: `slotX γ q L c ∗ Cl ={E}=∗ slotX γ q L c' ∗ Cl'`;
+   - Restore's switch: `slotX γ 1 L' c` from `slotFr γ`'s holder's parts and `Cl`;
+   - checkout/checkin: `G := api.shareTok a q` (`slotF_share_excl`).
+   Note: `store.Write` drops the writer's `HY` (affine; `End` rebuilds a trivial one at `none`):
+   the API's transaction must carry it from `Write` to `End`.
+4. `ApiImpl.lean`'s definitions, pools, the backend law, §4.10's statements.
+
