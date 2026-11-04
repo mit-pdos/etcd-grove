@@ -282,8 +282,87 @@ theorem Tx.write.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     obtain ⟨Hwlt, Hysd, Hom2s, Hom2m⟩ := Hw
     obtain ⟨cs, Hcs⟩ : ∃ cs : Nat, cs = min (c.2.2.length - w) 2147483646 := ⟨_, rfl⟩
     have Hcs0 : 0 < cs := by omega
-    trace_state
-    all_goals sorry
+    have hcin' : 4096 * c.1.toNat + c.2.2.length ≤ min om.size l := by
+      have := Nat.div_mul_le_self (min om.size l) 4096
+      omega
+    have hnw : c.2.2.length - w < 2 ^ 62 := by
+      have : min om.size l ≤ om.size := Nat.min_le_left _ _
+      omega
+    wp_if_destruct
+    focus
+      have : 2147483646 < c.2.2.length - w := by
+        have h := Hif; rw [show uint.Z (W64 2147483646) = 2147483646 from rfl] at h
+        have : uint.Z (W64 ((c.2.2.length - w : Nat) : Int)) = ((c.2.2.length - w : Nat) : Int) := by
+          word
+        omega
+      try wp_auto
+      rw [show (W64 2147483646 : w64) = W64 ((cs : Nat) : Int) by rw [Hcs]; congr 1; omega]
+    rotate_left
+    focus
+      have : ¬ 2147483646 < c.2.2.length - w := by
+        intro h; apply Hif
+        rw [show uint.Z (W64 2147483646) = 2147483646 from rfl]
+        have : uint.Z (W64 ((c.2.2.length - w : Nat) : Int)) = ((c.2.2.length - w : Nat) : Int) := by
+          word
+        omega
+      try wp_auto
+      rw [show c.2.2.length - w = cs by omega]
+      ihave rem : (rem_ptr ↦ W64 ((c.2.2.length - w : Nat) : Int) : IProp GF) $$ [rem]
+      · rw [show c.2.2.length - w = cs by omega]; iexact rem
+      ihave Hro : oAny (GF := GF) K.p (4096 * c.1.toNat + w) (c.2.2.length - w) $$ [Hro]
+      · rw [show c.2.2.length - w = cs by omega]; iexact Hro
+      ihave Hrc : cAny (GF := GF) b (4096 * c.1.toNat + w) (c.2.2.length - w) $$ [Hrc]
+      · rw [show c.2.2.length - w = cs by omega]; iexact Hrc
+    all_goals
+      have hsw : sint.Z (W64 ((w : Nat) : Int)) = (w : Int) := by word
+      have hscs : sint.Z (W64 ((cs : Nat) : Int)) = (cs : Int) := by word
+      wp_apply hUBS c.2.1 (W64 ((w : Nat) : Int)) (W64 0) (W64 ((cs : Nat) : Int))
+        (by simp only [Loc.add, hsw]; omega) (by simp only [Loc.add, hsw, hscs]; omega)
+        (by decide) (by rw [hscs]; simp)
+      have Hsle : slice.mk (c.2.1 +ₗ sint.Z (W64 ((w : Nat) : Int)) +ₗ sint.Z (W64 0))
+          (W64 ((cs : Nat) : Int) - W64 0) (W64 ((cs : Nat) : Int) - W64 0) =
+          slice.mk (c.2.1 +ₗ ((w : Nat) : Int)) (W64 ((cs : Nat) : Int)) (W64 ((cs : Nat) : Int)) := by
+        have hs0 : (W64 ((cs : Nat) : Int) - W64 0 : w64) = W64 ((cs : Nat) : Int) := by word
+        rw [hsw, show sint.Z (W64 0) = 0 from rfl, loc_add_0, hs0]
+      rw [Hsle]
+      try wp_auto
+      -- the chunk, its file bytes and its cells
+      icases chunk_acc c.2.1 c.2.2 w cs (by omega) Hcs0 (by omega) $$ Hpb with ⟨Hck, Hpbb⟩
+      have eo := oAny_app (GF := GF) K.p (4096 * c.1.toNat + w) cs (c.2.2.length - w - cs)
+      have ec := cAny_app (GF := GF) b (4096 * c.1.toNat + w) cs (c.2.2.length - w - cs)
+      rw [show cs + (c.2.2.length - w - cs) = c.2.2.length - w by omega] at eo ec
+      icases eo.1 $$ Hro with ⟨Hro1, Hro2⟩
+      icases ec.1 $$ Hrc with ⟨Hrc1, Hrc2⟩
+      iunfold oAny at Hro1
+      icases Hro1 with ⟨%xs, Hxs, %Hxl⟩
+      have hcl : (bytesAt c.2.2 w cs).length = cs := by
+        unfold bytesAt; simp only [List.length_take, List.length_drop]; omega
+      have htn : (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat = 4096 * c.1.toNat + w := by
+        have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
+        word
+      have hmin2 : min (4096 * c.1.toNat + w) om2.size = 4096 * c.1.toNat + w := by omega
+      ihave Hc : mcellsAny om2.maps (min (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat om2.size)
+          ((W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat + (bytesAt c.2.2 w cs).length) $$ [Hrc1]
+      · rw [Hom2m, hmaps, htn, hmin2, hcl]
+        iapply (mcells_single b l _ cs (by omega)).2
+        iexact Hrc1
+      have h0 : 0 ≤ (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toInt := by
+        have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
+        rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+      wp_apply hWriteAt f fd K.p (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p, true, true⟩ 1 om2 xs rfl h0
+        (by rw [hcl]; omega) (by rw [hcl, htn]; omega) (by rw [hcl, htn]; omega) (fun _ => rfl)
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %ys, %hh, %Hjj, Hm, Hys, Hc, Herr⟩
+      · iframe #
+        rw [htn, hmin2, ← fileOwn_eq]
+        iframe
+      obtain ⟨hjjle, hysp, -, -, hres⟩ := Hjj
+      rw [htn] at hysp ⊢
+      have hsize : pwSize om2.size (4096 * c.1.toNat + w) jj = om2.size :=
+        pwSize_inside _ _ _ cs (by rw [hcl] at hjjle; exact hjjle) (by omega)
+      rw [hsize, hmin2, hcl]
+      trace_state
+      all_goals sorry
   · trace_state
     all_goals sorry
 
