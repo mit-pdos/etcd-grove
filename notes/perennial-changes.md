@@ -1054,8 +1054,8 @@ elaborate:
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
 - **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
-  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
-  names-only.
+  reached by the pin `edcadb1e5` (2026-10-27). (2026-10-31) `store.GetList` translated with it
+  (`notes/k8s-etcd3-plan.md`, stage 7a).
 
 ### The type set of an interface with an embedded interface
 
@@ -1553,3 +1553,48 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `iStructNamed` and put it back with `typedPointsto_combine` (`op_split`/`op_join` in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
+
+### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
+
+- **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's
+  `Get`, whose read update fires at several states; `notes/k8s-etcd3-plan.md`, phase 7) had to
+  instrument the Go code (the etcd fork's `goose-lean-getproph`, `Apply`'s `ResolveU64`s), with
+  an informal argument that `primitive.NewProph`/`ResolveU64` are no-ops.
+- **Done (Perennial branch `proph-erasure`, pushed, not landed).** `withProph e`
+  (`Perennial/GooseLang/ProphInstrument.lean`) runs the program `e` unchanged under a prophecy of
+  its result; `goose_adequacy_withProph` gives `goose_adequacy`'s conclusions about the real
+  executions of `e` from a WP of `withProph e`, same bounds, proved (standard axioms only), no
+  change to the semantics (`etc/trusted-delta.py`: the new modules are tier 2). `wp_withProph`
+  (`Golang/Theory/WithProph.lean`) hands the proof of `e` the prophesied list. End-to-end example
+  `goose/testdata/examples/prophkv` (`GetAny` reads twice and returns one answer chosen afterwards;
+  its logically atomic spec takes a prediction; `prog_safe` is about the program without the
+  prophecy).
+- **Per-call instrumentation, done (same branch, 2026-11-03).** `goose_adequacy_funcProph`
+  (`Perennial/GooseLang/FuncInstrument.lean`, proved, standard axioms only): a WP in a Go model
+  patched so that one function `f` (two arguments, no type arguments) resolves to its body under a
+  prophecy of its result (`prophFnV impl`) gives `goose_adequacy`'s conclusions about the real
+  executions in the real model. Proof: a simulation in the bounded language whose instrumented
+  threads are the real ones with the wrapper's frames inserted around running calls of `f`. It
+  needs `f`'s resolution `GoInstruction (FuncResolve f [])` to be only applied to its arguments
+  (`ok`), so that the two models' different closures never reach a Go instruction: `ok` is checked
+  on the program and is an invariant given the same of the model's instruction results
+  (`GoodModel`), the extensions (`GoodExts`), prophecy-id values (`IntoValOk.proph`) and the
+  initial heap; these are premises of the closed theorem (true of any model of Go, which has no
+  instruction producing a reference to `f` and no prophecies, but not derivable from
+  `go.Semantics`). `patchSem` (`Perennial/Golang/Theory/FuncProph.lean`) proves the patched model
+  satisfies `go.Semantics`: a `transfer` tactic carries the ~480 fields over definitionally; only
+  `go_func_resolve_step` and a few `FuncUnfold` facts of named functions (`reservedFuncs`) need
+  proofs. In `prophkv`, `wp_GetAny` is now a plain logically atomic spec (no prediction), and
+  `prog_safe` takes `ModelOk` and `heapOk` premises.
+- **Dropped (2026-11-03, the user's choice).** This approach (prophecies added in Lean, with an
+  instrumentation theorem) is no longer followed: proofs that need a prophecy get it from a
+  prophecy patch of the Go code (`etc/proph-patches/`, `notes/decisions.md`, "Prophecies as patches
+  of the Go code"). The Perennial branch `proph-erasure` is kept, not landed, for reference only;
+  do not build on it. (A WP-free erasure theorem would need either the premises below or a new
+  `go.Semantics` fact, Go instructions commute with erasure; not pursued.)
+- **Remaining limitations.** `f` must take exactly two arguments (the wrapper's shape and the
+  call-position count are fixed); one instrumented function per model (patching composes, not
+  done); `ModelOk` assumes the program's own function bodies are `ok` rather than checking them
+  (they are checked only through `prog`'s own code); generated instances that take the package's
+  `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
+  `AssumptionsP` (`Main.lean`'s shim).
