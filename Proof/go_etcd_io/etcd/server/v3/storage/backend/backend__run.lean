@@ -148,15 +148,20 @@ theorem backend.backend.run.wp_proof
     iintro ⟨#Hsq, -⟩
     wp_auto
     imod (stop_get γ sc γsc) $$ [$Hinv $Hsq $Hrt] with Hhalf
-    wp_apply (hCS γ P W Pk b t) $$ [$Hhalf $Hq] as #Hbs
+    wp_apply (hCS γ P W Pk b t) $$ [$Hhalf $Hq] as ⟨#Hbs, Hout⟩
     · iframe #
     wp_for_post
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
     · ileft; iexists tch, γt; iexact Htm
+    -- (2026-11-04, R2b-3c) the stop's escrow, with bbolt's database, announced by `donec`
+    imod inv_alloc (bN.@"dbesc") ⊤ iprop(bDBOut γ ∨ ghostVar γ.cls (1 : Qp).half ()) $$ [Hout]
+      with #Hesc
+    · inext; ileft; iexact Hout
     wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))
-      dc γdc iprop(True)) $$ [$Hdcp] as -
+      dc γdc (bDoneEsc γ)) $$ [$Hdcp] as -
     · imodintro
-      itrivial
+      iunfold bDoneEsc
+      iexact Hesc
     iapply HΦ
     itrivial
   · iapply BigAndL.bigAndL_nil.2

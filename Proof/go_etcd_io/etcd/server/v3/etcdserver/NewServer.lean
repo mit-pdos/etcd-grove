@@ -1010,9 +1010,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Hwtl Hwstop
     iunfold rnFixed at Hfix
     iNamed Hfix
-    iexists rvr.raftNodeConfig'.storage', id, _
+    iexists rvr.raftNodeConfig'.storage', _
     iframe storageC
     rw [Hrnwal]
+    -- (R2b-3b) the metadata names the member, the wrapper's id
+    have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
+    rw [hidr]
     iframe Hwmeta Hwpurge
   ipersist memberID
   ipersist beHooks

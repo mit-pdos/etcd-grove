@@ -64,7 +64,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     · itrivial
     iapply commitReq_true
   try simp only [↓reduceIte]
-  icases Hpost with ⟨Hown, Hpend, #Hbs⟩
+  icases Hpost with ⟨Hown, Hpend, #Hbs, Hout⟩
   wp_method_call
   wp_call
   wp_auto
@@ -73,7 +73,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     iright
     iframe
   iapply HΦ
-  iexact Hbs
+  iframe Hbs Hout
 
 end proof
 

@@ -668,12 +668,13 @@ theorem applySnapshot_walk
     wp_apply hInfo $$ []
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply hClose d.γB d.P (mvcc.lateWD d) Pko d.be $$ [HoO1] as %cerr %Hcerr
+    wp_apply hClose d.γB d.P (mvcc.lateWD d) Pko d.be $$ [HoO1] as %cerr Hcerr
     · iframe #; iframe HoO1
-    have hcerr : cerr = GoInterface.nil := by
-      rcases Hcerr with h | h
-      · exact h
-      · exact absurd hsop.2.2.2 h
+    -- (R2b-3c) the old backend's file, given back by `Close`, dropped (the snapshot's replaces it)
+    icases Hcerr with (⟨%h, -⟩ | %h)
+    rotate_left
+    · exact absurd hsop.2.2.2 h
+    have hcerr : cerr = GoInterface.nil := h
     subst hcerr
     (try wp_auto)
     wp_apply hInfo $$ []
