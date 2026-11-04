@@ -65,6 +65,22 @@ def ViewOfRdAgree : Prop :=
 theorem viewOfRdAgree_holds : ViewOfRdAgree (GF := GF) := by
   sorry
 
+/-- **A reader's new handle registered** (U6g): what `Tx.Bucket`'s reader post needs of the handle
+`b` it opened (`boltBktDef`'s `handleFrag r b n 0`). **Not derivable today** (U6g's finding):
+`handleFrag`'s reader branch is a persistent fragment `b ↪[r.n.rbk]□ (n, h)` of the registry whose
+authority `txsInv` holds, and inserting one needs `b` fresh in the registry, which nothing gives
+(the registry's keys own nothing of their buckets; `Bucket.Bucket_r` hands the child's fields out
+persistent). Proposed fix (shared, `Inv/Tx`): a reader's `handleFrag` is `⌜g = 0⌝` (the registry
+dropped), and `boltCurDef`'s reader branch carries the handle's bucket (`rBkt`, `bktEntry`), as
+`boltBktDef`'s does; then this is `⌜0 = 0⌝`. -/
+def RdHandleMint : Prop :=
+  ∀ (B : BNs) (N : Namespace) (db tx b : Loc) (r : TxReg) (n : GoString), r.rw = false →
+    isBoltDef (GF := GF) B N db ∗ reg tx B r ⊢ handleFrag r b n 0
+
+/-- **OPEN** (`RdHandleMint`'s docstring: needs the shared `handleFrag` fix). -/
+theorem rdHandleMint_holds : RdHandleMint (GF := GF) := by
+  sorry
+
 instance bytesPointsto_discard_persistent_pub (l : Loc) (bs : List w8) :
     Persistent (bytesPointsto (GF := GF) l DFrac.discard bs) :=
   (bytesPointsto_dfractional (GF := GF) l bs).dfractional_persistent

@@ -162,6 +162,65 @@ theorem rd_get_lookup (P : Pages) (bv : List w8) (hS : esSorted (bktEntries P bv
       have hsi := pageSeekIdx_of_key pg' _ hwf i hi k hix.1
       exact hf ⟨by rw [hsi]; exact hi, by rw [hsi]; exact hix.1⟩
 
+open TreeEnts in
+/-- **A name no nested bucket of the root has is no bucket of the view's data** (`Tx.Bucket`'s
+miss). -/
+theorem rd_root_lookup_none (v : View) (hv : viewWF v) (n : GoString)
+    (hn : n ∉ bktNames v.pages (rootVal v)) : v.data !! n = none := by
+  have hlv := bktLeaves_rootVal v hv
+  rcases h : v.data !! n with _ | x
+  · rfl
+  · exfalso
+    unfold View.data at h
+    obtain ⟨e, he, hee⟩ := List.mem_map.1 (ofList_mem _ _ _ h)
+    simp only [Prod.mk.injEq] at hee
+    obtain ⟨rfl, -⟩ := hee
+    apply hn
+    obtain ⟨C, hok, hvC⟩ := hv
+    have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+    have hrv : v.root = C.root := by rw [← hvC]; rfl
+    unfold treeEntries at he
+    obtain ⟨pg, hpg, hx⟩ := List.mem_flatMap.1 he
+    unfold leafEnts at hx
+    obtain ⟨i, hi, hei⟩ := List.mem_map.1 hx
+    rw [List.mem_range] at hi
+    unfold bktNames
+    refine List.mem_flatMap.2 ⟨pg, by rw [hlv]; exact hpg, ?_⟩
+    refine List.mem_map.2 ⟨i, List.mem_filter.2 ⟨List.mem_range.2 hi, ?_⟩, by rw [← hei]⟩
+    rw [hpv, hrv] at hpg
+    unfold treeLeaves at hpg
+    obtain ⟨id', hid, hown, hfl, -⟩ := leavesF_leaf C.pages _ _ _ _ hok.1.2.2.1 pg hpg
+    simp only [decide_eq_true_eq]
+    exact (hok.2.2.2.2.1 id' pg hown hid hfl i hi).1
+
+open Ents TreeEnts in
+/-- **A nested bucket of the root is a bucket of the view's data** (`Tx.Bucket`'s hit). -/
+theorem rd_root_lookup_some (v : View) (hv : viewWF v) (n : GoString) (cv : List w8)
+    (hbe : bktEntry v.pages (rootVal v) n cv) : v.data !! n ≠ none := by
+  have hlv := bktLeaves_rootVal v hv
+  have hmem : (n, cv) ∈ treeEntries v.pages v.root := by
+    obtain ⟨pg, i, hpg, hi, hk, -, hval⟩ := hbe
+    rw [hlv] at hpg
+    unfold treeEntries
+    refine List.mem_flatMap.2 ⟨pg, hpg, ?_⟩
+    unfold leafEnts
+    exact List.mem_map.2 ⟨i, List.mem_range.2 hi, by rw [hk, hval]⟩
+  obtain ⟨C, hok, hvC⟩ := hv
+  have hpv : v.pages = C.pages := by rw [← hvC]; rfl
+  have hrv : v.root = C.root := by rw [← hvC]; rfl
+  have hsorted : esSorted (treeEntries C.pages C.root) :=
+    leavesF_sorted C hok _ _ _ _ hok.1.2.2.1
+  rw [← hpv, ← hrv] at hsorted
+  have hnd : ((treeEntries v.pages v.root).map fun e => (e.1, bktOfPage v.pages e.2)).Pairwise
+      (fun a b => a.1 ≠ b.1) := by
+    rw [List.pairwise_map]
+    exact hsorted.imp (fun hab heq => by rw [heq] at hab; exact go.goStringLt_irrefl _ hab)
+  intro h
+  unfold View.data at h
+  have := (ofList_lookup_iff _ hnd n (bktOfPage v.pages cv)).2
+    (List.mem_map.2 ⟨(n, cv), hmem, rfl⟩)
+  rw [h] at this; cases this
+
 end getFacts
 
 end bbolt
