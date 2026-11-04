@@ -26,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillChild
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillHeap
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesCode
 
 @[expose] public section
 
@@ -83,16 +84,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **`node.spill.spec'` as an Iris proposition** (the recursion's hypothesis; the same body as
-`node__spill.lean`'s `spillW`). -/
-def spillIH : IProp GF :=
-  iprop(∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
-    (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
-    (E : List El) (cs : SpCase),
-    ⌜spPre X w bl n rn O lo hi h F D N E cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w) -∗
-      ▷ (∀ err, spPost K tx r m X w bl n rn O lo hi h D N E cs err -∗ Φ #err) -∗
-      WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #())) {{ Φ }})
 
 /-- **The children's loop's end** (see the module doc): every child spilled (the loop's
 invariant past the children), or a child's error (`spPost`'s error facts from `(X0, w0)`, the
