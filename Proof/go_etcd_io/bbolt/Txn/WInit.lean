@@ -476,19 +476,20 @@ theorem covU_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
   have hbkt : ∀ n s, coverW (wx0 rl t mv bv ib (View.ofC b C)) s (.bkt n) →
       ∃ L pg i, ownHas C.pages C.root L ∧ C.pages !! L = some pg ∧
         pageFlags pg = leafPageFlag ∧ i < pageCount pg ∧ leafFlags pg i % 2 = bucketLeafFlag ∧
-        n = leafKey pg i ∧ bucketHas C.pages (leafValue pg i) s := by
+        n = leafKey pg i ∧ bucketCovers C.pages (leafValue pg i) s := by
     intro n s hc
     obtain ⟨v, hv, -, hb⟩ := hc
     obtain ⟨L, pg, i, h1, h2, h3, h4, h5, h6, rfl⟩ :=
       rootEnts_wx0_mem C b rl t mv bv ib htree hi n v hv
     exact ⟨L, pg, i, h1, h2, h3, h4, h5, h6, hb⟩
-  -- an own page covering a page `s` of a nested bucket is `s`
-  have hsame : ∀ (pid : w64) pg s pgs, C.pages !! pid.toNat = some pg → C.pages !! s = some pgs →
-      pid.toNat ≤ s → s < pid.toNat + (1 + pageOverflow pg) → s = pid.toNat := by
-    intro pid pg s pgs hp hs h1 h2
-    by_cases hne : s = pid.toNat
+  -- two pages covering one slot are one page
+  have hsame : ∀ (a : Nat) pga c pgc s, C.pages !! a = some pga → C.pages !! c = some pgc →
+      a ≤ s → s < a + (1 + pageOverflow pga) → c ≤ s → s < c + (1 + pageOverflow pgc) →
+      c = a := by
+    intro a pga c pgc s ha hc h1 h2 h3 h4
+    by_cases hne : c = a
     · exact hne
-    · rcases hdis _ _ _ _ hp hs (Ne.symm hne) with h | h <;> omega
+    · rcases hdis _ _ _ _ ha hc (Ne.symm hne) with h | h <;> omega
   intro s c1 c2 h1 h2
   cases c1 with
   | pos bl1 p1 =>
@@ -502,22 +503,23 @@ theorem covU_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
         · rcases hdis _ _ _ _ hp1 hp2 hne with h | h <;> omega
       rw [BitVec.eq_of_toNat_eq this]
     | bkt n2 =>
-      obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, -, hd⟩ := hbkt _ _ h2
-      obtain ⟨pgs, hs⟩ := bucketHas_page0 hd
-      have := hsame p1 pg1 s pgs hp1 hs a1 b1
+      obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, -, d, pgs, hd, hs, a2, b2⟩ := hbkt _ _ h2
+      have := hsame p1.toNat pg1 d pgs s hp1 hs a1 b1 a2 b2
       subst this
       exact (own_not_bucket C.pages hu ho1 hL hpg hl hi' hbf hd).elim
   | bkt n1 =>
-    obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, hn1, hd⟩ := hbkt _ _ h1
+    obtain ⟨L, pg, i, hL, hpg, hl, hi', hbf, hn1, d, pgs, hd, hs, a1, b1⟩ := hbkt _ _ h1
     cases c2 with
     | pos bl2 p2 =>
       obtain ⟨rfl, pg2, hp2, ho2, a2, b2⟩ := hpos _ _ _ h2
-      obtain ⟨pgs, hs⟩ := bucketHas_page0 hd
-      have := hsame p2 pg2 s pgs hp2 hs a2 b2
+      have := hsame p2.toNat pg2 d pgs s hp2 hs a2 b2 a1 b1
       subst this
       exact (own_not_bucket C.pages hu ho2 hL hpg hl hi' hbf hd).elim
     | bkt n2 =>
-      obtain ⟨L', pg', i', hL', hpg', hl', hi'', hbf', hn2, hd'⟩ := hbkt _ _ h2
+      obtain ⟨L', pg', i', hL', hpg', hl', hi'', hbf', hn2, d', pgs', hd', hs', a2, b2⟩ :=
+        hbkt _ _ h2
+      have := hsame d pgs d' pgs' s hs hs' a1 b1 a2 b2
+      subst this
       obtain ⟨rfl, rfl⟩ := bucket_unique C.pages hu hL hL' hpg hl hi' hbf hpg' hl' hi'' hbf' hd hd'
       rw [hpg] at hpg'; cases hpg'
       rw [hn1, hn2]
@@ -554,9 +556,7 @@ theorem flViewU_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
   obtain ⟨h1, h2, h3, h4, h5⟩ :=
     flViewU_parts_wx0 C b rl t mv bv ib fl htree hmv hwf hbl hhwm
   refine ⟨⟨?_, h1, h2, h3⟩, ?_, h4, h5⟩
-  · -- FALSE as `lCovers` is stated (an overflow slot of a page of an unopened nested bucket is
-    -- covered by the view but by no `lCovers` case: `bucketHas X.v.pages v s` takes `s` as a
-    -- page id); see the report.
+  · -- (batch 34: `lCovers`' bucket case now covers the overflow slots, `bucketCovers`; open)
     sorry
   · exact covU_wx0 C b rl t mv bv ib htree hi
 

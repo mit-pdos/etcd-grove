@@ -370,11 +370,16 @@ def ldepthsF (L : LTree) (bl : Loc) : Nat → Nat → w64 → List Nat
 def leafDepthOK (X : WX) (bl : Loc) : Prop :=
   ∃ d, ∀ x ∈ ldepthsF (ltree X) bl X.fuel 0 (X.rootPid bl), x = d
 
-/-- Slot `s` is in the extent of a position of an opened bucket's logical tree, or of the base
-tree of a bucket entry of the root that is not opened. -/
+/-- Slot `s` is in the extent of a page of the tree of the bucket value `v` in `P` (batch 34: the
+page's overflow slots included; `bucketHas P v s` alone is only the pages' first slots). -/
+def bucketCovers (P : Pages) (v : List w8) (s : Nat) : Prop :=
+  ∃ id pg, bucketHas P v id ∧ P !! id = some pg ∧ id ≤ s ∧ s < id + (1 + pageOverflow pg)
+
+/-- Slot `s` is in the extent of a position of an opened bucket's logical tree, or of a page of the
+base tree of a bucket entry of the root that is not opened (`bucketCovers`, overflow included). -/
 def lCovers (X : WX) (s : Nat) : Prop :=
   (∃ bl e, X.t.bs !! bl ≠ none ∧ e ∈ X.extents bl ∧ e.1.toNat ≤ s ∧ s < e.1.toNat + e.2) ∨
-  (∃ n v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketHas X.v.pages v s)
+  (∃ n v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketCovers X.v.pages v s)
 
 /-- **`rebalance`'s post, which is `spill`'s pre** (design §4.2), from `X` (writer side `fl`)
 to `X'` (`fl'`), for the writer's txid `txid`:
@@ -426,7 +431,7 @@ inductive CovW where
 def coverW (X : WX) (s : Nat) : CovW → Prop
   | .pos bl pid => X.t.bs !! bl ≠ none ∧ pid ∈ X.positions bl ∧
       ∃ e, X.posExtent bl pid = some e ∧ e.1.toNat ≤ s ∧ s < e.1.toNat + e.2
-  | .bkt n => ∃ v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketHas X.v.pages v s
+  | .bkt n => ∃ v, (n, v) ∈ rootEnts X ∧ bktLoc X n = none ∧ bucketCovers X.v.pages v s
 
 /-- **A covered slot is covered once** (no page is shared by two positions, or by a position and
 an unopened bucket: what keeps `flView` when a removed node's page becomes pending). -/
