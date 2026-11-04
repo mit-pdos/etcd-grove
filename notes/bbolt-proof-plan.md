@@ -894,6 +894,52 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   listed under batch 30 item 6, plus `Cursor__seek_w.txt`, `Bucket__Bucket_w.txt`,
   `Bucket__ForEachBucket_w.txt`.
 
+## Shared-statement fixes, batches 34-35 (maintainer 5, 2026-11-04; decided by the coordinator)
+
+- **34.1 `wtxEnd`** (`Inv/Ctx`) holds the writer side's half of the closed flag
+  (`ghostVar K.B.cls ½ false`, after `rwlock`'s token: `rwR`'s idle branch takes it back) and its
+  pure part is `wdbOK w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome` (`close` branches on
+  `writable` and writes `tx.root` whole). **`Tx.close_w.spec`**'s premise on `ws` adds `wl = true →
+  v = X.v` (`store_wclose` takes the lent view's cells, `wtxW`'s at `X.v`): the coordinator's
+  `ws.1 = some X.v` weakened to the lent case, since after a failed remap (`wl = false`) the parked
+  view need not be the re-based `X.v`. `Proof/Tx__close_w`'s `wp_proof` is U5c's (callee specs as
+  hypotheses), `spec'` gone; `Tx__Rollback` adapted.
+- **34.2 `txExcl`'s writer branch** (`Inv/Txs`) := `ownMutex rwlock ∗ cls ½ false ∗ ∃ w extra,
+  wdbLive … (wLive X.v w.C) w ∗ txShape r.n.pg X extra ∗ ⌜wdbOK w ∧ w.ms = some (X.v.base, mapLen
+  w.ms) ∧ X.v = View.ofC X.v.base w.C ∧ flViewU X w.fl⌝` (`wdbW`'s facts inline: `txExcl` takes
+  `B p sp t0`, not a `BC`). `wLive` moved from `Inv/Ctx` to `Inv/Txs`. `Tx__Rollback`'s
+  `txExclWGap_holds` is proved, so `Tx.Rollback.wp_proof` rests on no gap. `DB__beginRWTx` adapted
+  (`rwR`'s `cls` half into `txExcl`; `wdb_release`'s `wdbOK`).
+- **34.3 `store_release`**'s post ends `⌜∀ s ∈ S, (bs s).length = 4096⌝` (the released slots were
+  store slots: `storeOK`'s slot clause). `Txn/WRelease.store_release_len` is `store_release`.
+- **34.4 `lCovers`/`coverW .bkt`** (`Model/WOps`) cover overflow slots: the new `bucketCovers P v s
+  := ∃ id pg, bucketHas P v id ∧ P !! id = some pg ∧ id ≤ s ∧ s < id + (1 + pageOverflow pg)` in
+  place of `bucketHas X.v.pages v s` (same destructuring shape: the last component is now
+  `bucketCovers`). Adapted: `Txn/WInit.covU_wx0` (two pages covering a slot are one, `pagesDisjoint`).
+  `Rebalance/RblX*` and `Write/FlView` build unchanged. `Txn/WInit.flViewU_wx0`'s cover `sorry`
+  (U5c's "false as stated") is now open, not false (owner U5d).
+- **34.6 `wtxHeap_fractional`** (`Inv/WtxHeap`) proved: U5c's `Txn/Frac` instances moved in as
+  private instances; `Txn/Frac` deleted (nothing imported it). `notes/perennial-changes.md`: `ownMap`
+  has no `DFractional` instance.
+- **35.1 `Bucket.free.spec`** is U7e's `spec'`: tree case premises `∀ pid ∈ X.positions bl,
+  X.t.pm !! pid = none` (no `resolve` guard), `canFreeAll`, `rtOK X bl` and `X.t.mv.txid' =
+  w.wtxid`. `rtOK` stays in U8's pure `Rebalance/RTreeX`, which the spec imports. No caller yet:
+  `DeleteBucket` gets `rtOK` from `rtOK_init` (`wOK`, `viewWF`), `X.t.mv.txid' = w.wtxid` from
+  `txClean`'s txid clause, `wdbW`'s view and `wdbOK`'s no-wrap (as batch 29 for spill), `pm = ∅`
+  from `txClean`; `Bucket.spill`'s inlineable children: `rtOK` from rebalance's post (`rebalOK`
+  gives `wOKR`, not `wOK`: `rtOK_init` takes `wOK`, so spill needs a `wOKR` form, owner U9),
+  `pm` lookups are `none` only before spill allocates (a child freed after an earlier sibling's
+  spill allocated a buffer: check, owner U9). U7f proves `wp_proof'` (one `sorry`, the callback);
+  `Proof/Bucket__free`'s old `wp_proof` stub (now over the same statement) goes then.
+- **35.2 `posShape X`** (`Model/Wtx`): every view leaf page under a bucket's page position
+  (`posRoot B c`, `ownHas X.v.pages c p`) has `leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl`;
+  the fourth component of `txClean`'s second clause (`⟨hpm, hbuf, hsh, hps⟩`). Kept by
+  dereferencing (`Spill/DerefWOK.posShape_step`, proved via `posRoot_bktStep`). `sorry`s with owners:
+  `Txn/WInit` (initial records, from `rootShape`: U5d), `Rebalance/RblX.rebalOK_of_rbl` (U8d, beside
+  batch 30's two), `Write/MatOK.wOK_matX` (materialization: U7f; its two `hshape` `sorry`s in
+  `wOK_nodeAdded'` then follow from `hps`). Still to prove by their owners: `Bucket.Bucket_w`'s
+  open (U6e), spill (U9), `CreateBucket`/`DeleteBucket` (U7).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
@@ -905,7 +951,6 @@ units', per the U0b table):
 | `fileHoldsDef_timeless`, `fileHoldsDef_new`, `fileHolds_decode` | `Inv/FileHolds` | U11 |
 | `boltTxDef_fractional`, `boltTxDef_fill`, `txBytesDef_acc` | `Inv/Tx` | U5 (U12 for the laws' users) |
 | `boltCurDef_timeless` (a case) | `Inv/Tx` | U12 |
-| `wtxHeap_fractional` | `Inv/WtxHeap` | U5 |
 | `flView_canFree`, `flView_nodeFree` | `Model/WOps` | U8b |
 | `treeData_spill` | `Model/LTree` | U9c |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
