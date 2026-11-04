@@ -17,7 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section image
 variable [GooseExts]
@@ -76,7 +76,9 @@ def fileHoldsDef (path : GoString) (D : Data) : IProp GF :=
 
 instance fileHoldsDef_timeless (path : GoString) (D : Data) :
     Timeless (fileHoldsDef (GF := GF) path D) := by
-  sorry
+  have : ∀ off dq xs, Timeless (osBytes (GF := GF) path off dq xs) := fun _ _ _ => by
+    unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+  unfold fileHoldsDef; infer_instance
 
 theorem fileHoldsDef_new (path : GoString) (mo : Option OsMeta) :
     osMeta (GF := GF) path (DFrac.own 1) mo ∗
@@ -84,7 +86,17 @@ theorem fileHoldsDef_new (path : GoString) (mo : Option OsMeta) :
        | none => iprop(emp)
        | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))
     ⊢ fileHoldsDef path ∅ := by
-  sorry
+  unfold fileHoldsDef
+  cases mo with
+  | none =>
+    iintro ⟨H, -⟩
+    ileft; iframe H; ipureintro; rfl
+  | some m =>
+    iintro ⟨H, %hm, Hb⟩
+    iright; iexists m, []
+    iframe H Hb
+    ipureintro
+    exact ⟨hm.2, by simp [hm.1], Or.inl ⟨hm.1, rfl⟩⟩
 
 /-- **Decoding for `Open`**: a fresh file, or the initial committed state `C` of a well-formed
 one (with its bytes). -/
@@ -97,7 +109,17 @@ theorem fileHolds_decode (path : GoString) (D : Data) :
          ∃ C, ⌜fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧
            flFileOK (xs.map Prod.fst) C ∧ C.hwm * 4096 ≤ m.size ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
            treeData C = D⌝)) := by
-  sorry
+  unfold fileHoldsDef
+  iintro (H | ⟨%m, %xs, Hm, Hb, %h⟩)
+  · ileft; iexact H
+  · iright; iexists m, xs
+    iframe Hm Hb
+    obtain ⟨h1, h2, h3⟩ := h
+    isplitr
+    · ipureintro; exact ⟨h1, h2⟩
+    rcases h3 with h3 | ⟨C, hC⟩
+    · ileft; ipureintro; exact h3
+    · iright; iexists C; ipureintro; exact hC
 
 end holds
 
