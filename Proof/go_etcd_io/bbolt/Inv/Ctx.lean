@@ -198,20 +198,71 @@ def wdbGrown (w w' : WDb) : Prop :=
 
 /-! ## Lemma statements -/
 
+private instance reg_persistent' (tx : Loc) (B : BNs) (r : TxReg) :
+    Persistent (reg (GF := GF) tx B r) := by
+  unfold reg; infer_instance
+
+private theorem isBoltCoreP_pkgInit (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+    (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
+  unfold isBoltCoreP
+  iintro ⟨-, -, -, H, -⟩
+  iexact H
+
+private theorem bytesPointsto_sub_acc (l : Loc) (dq : DFrac) (pg bs : List w8) (off : Nat)
+    (hlen : off + bs.length ≤ pg.length) (hbs : bytesAt pg off bs.length = bs) :
+    bytesPointsto (GF := GF) l dq pg ⊢ bytesPointsto (l +ₗ (off : Int)) dq bs ∗
+      (bytesPointsto (l +ₗ (off : Int)) dq bs -∗ bytesPointsto l dq pg) := by
+  have e : pg = pg.take off ++ (bs ++ (pg.drop off).drop bs.length) := by
+    unfold bytesAt at hbs
+    conv => lhs; rw [← List.take_append_drop off pg]
+    conv => lhs; arg 2; rw [← List.take_append_drop bs.length (pg.drop off), hbs]
+  have hk : (pg.take off).length = off := by simp; omega
+  have Hs := (bytesPointsto_app (GF := GF) l dq (pg.take off) (bs ++ (pg.drop off).drop bs.length))
+  have Hs2 := (bytesPointsto_app (GF := GF) (l +ₗ ((pg.take off).length : Int)) dq bs
+    ((pg.drop off).drop bs.length))
+  rw [← e, hk] at Hs
+  rw [hk] at Hs2
+  iintro Hp
+  icases Hs.1 $$ Hp with ⟨H1, Hp⟩
+  icases Hs2.1 $$ Hp with ⟨H2, H3⟩
+  iframe H2
+  iintro H2
+  iapply Hs.2
+  iframe H1
+  iapply Hs2.2
+  iframe
+
+
 /-- **A page of the view, read** (U6 proves; every reader of a page uses it): its bytes at
 the view's cells' fraction, and back. -/
 theorem viewCells_page_acc (q : Qp) (v : View) (id : Nat) (pg : List w8)
     (h : v.pages !! id = some pg) :
     viewCells (GF := GF) q v ⊢ bytesPointsto (pageLoc v id) (DFrac.own q) pg ∗
       (bytesPointsto (pageLoc v id) (DFrac.own q) pg -∗ viewCells q v) := by
-  sorry
+  unfold viewCells pageLoc
+  exact (BigSepM.bigSepM_lookup_acc h).1
 
 /-- **Bytes of the view at a location, read** (U6): any bytes `inViewLoc` places in a page of the
 view (an inline page, a key), at some fraction, and back. -/
 theorem viewCells_loc_acc (q : Qp) (v : View) (l : Loc) (bs : List w8) (h : inViewLoc v l bs) :
     viewCells (GF := GF) q v ⊢ ∃ dq : DFrac, bytesPointsto l dq bs ∗
       (bytesPointsto l dq bs -∗ viewCells q v) := by
-  sorry
+  obtain ⟨id, pg, off, hpg, hlen, hbs, rfl⟩ := h
+  have Ha := bytesPointsto_sub_acc (GF := GF) (v.base +ₗ ((id * 4096 : Nat) : Int)) (DFrac.own q)
+    pg bs off hlen hbs
+  rw [loc_add_assoc,
+    show (((id * 4096 : Nat) : Int) + (off : Int)) = ((id * 4096 + off : Nat) : Int) by omega] at Ha
+  iintro Hv
+  unfold viewCells
+  icases (BigSepM.bigSepM_lookup_acc hpg).1 $$ Hv with ⟨Hp, Hback⟩
+  icases Ha $$ Hp with ⟨H2, Hpb⟩
+  iexists DFrac.own q
+  iframe H2
+  iintro H2
+  iapply Hback
+  iapply Hpb
+  iexact H2
 
 /-- **Slices of the view, read together** (U6; `node.write`'s and `bytes.Compare`'s callers):
 every slice of the list at one fraction, and back. -/
@@ -254,7 +305,27 @@ over `rdTxK`). -/
 theorem rdTx_rdTxK (B : BNs) (N : Namespace) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) :
     rdTx (GF := GF) B N tx src q T ⊣⊢
       ∃ (K : BC) (v : View), ⌜K.B = B ∧ K.N = N⌝ ∗ rdTxK K tx src q T v := by
-  sorry
+  constructor
+  · unfold rdTx
+    iintro ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hcore, Hv, Hex, Hrt, Hpool⟩
+    iexists ⟨B, N, db, p, sp, t0⟩, v
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    unfold rdTxK BC.core
+    iexists r, c, mv, k
+    obtain ⟨h1, h2, h3, h4⟩ := Hc
+    isplitr
+    · ipureintro; exact ⟨h1, h2, h3, h4⟩
+    ihave #Hpk := isBoltCoreP_pkgInit B N db p sp t0 $$ Hcore
+    simp only
+    iframe; iframe #
+  · unfold rdTx rdTxK BC.core
+    iintro ⟨%K, %v, %HK, %r, %c, %mv, %k, %Hc, #Hreg, -, #Hcore, Hv, Hex, Hrt, Hpool⟩
+    obtain ⟨rfl, rfl⟩ := HK
+    iexists K.db, K.p, K.sp, K.t0, r, c, v, mv, k
+    isplitr
+    · ipureintro; exact Hc
+    iframe; iframe #
 
 /-- **A reader's root bucket** (U6): `tx.root` at the reader's fraction, as `rBkt` of the view's
 root, and back. -/
@@ -266,7 +337,9 @@ theorem rdTxK_root (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v 
 /-- A reader's view: `T` is its snapshot, of a `treeOK` committed state (U6). -/
 theorem rdTxK_view (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     rdTxK (GF := GF) K tx src q T v ⊢ ⌜T = TxView.ro v.data ∧ viewWF v⌝ := by
-  sorry
+  unfold rdTxK rtxFrac
+  iintro ⟨%r, %c, %mv, %k, -, -, -, -, -, -, ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, %Hf, -⟩, -⟩
+  ipureintro; exact ⟨Hf.1, Hf.2.1⟩
 
 end ctx
 
