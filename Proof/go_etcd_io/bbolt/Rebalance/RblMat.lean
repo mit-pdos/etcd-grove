@@ -16,6 +16,7 @@ module
 public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Model.WOps
 public import Proof.go_etcd_io.bbolt.Read.TreeFacts
+public import Proof.go_etcd_io.bbolt.Write.Bound
 
 @[expose] public section
 
@@ -413,7 +414,7 @@ theorem mat_pos : ∀ x j c', pagePosAt (matBkt B w.pgid nl l rp' r) x j c' →
 
 /-- Materializing the page position `w.pgid` (entry `i` of the branch node `nl`, a page with
 entries) keeps a bucket clean. -/
-theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) :
+theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) (hinl : Write.leafInl pg) :
     bktClean W hwm bl (matBkt B w.pgid nl l rp' r) := by
   obtain ⟨hroot, hrn, hnl, hlnl, hpgc, hcid, hwfc, hpt, hpos⟩ :=
     mat_basic W hwm bl B hv hc nl rp i w hrp hbr hw hnone l hfresh hl pg hpg r rp' hr hp'
@@ -511,9 +512,7 @@ theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) :
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          -- batch 22: an inline nested bucket's page within `bboltEntryMax` (from the view's
-          -- `rootShape`, owner U8b)
-          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, sorry⟩⟩
+          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hinl hfl j hjc hbk' h0⟩⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -1088,7 +1087,7 @@ theorem rbl_nodeAdded (X X' : WX) (hwm : Nat) (bl l : Loc) (pgid : w64) (parent 
   refine ⟨_, hB', hv', ?_, ?_, rfl, rfl, rfl, by rw [mat_nm, if_pos rfl], ⟨r, hrl, hrpar⟩, ?_, ?_⟩
   · rw [hv']
     exact ⟨mat_clean X.v hwm bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg hpg
-        r rp' hr hp' hxr hcnt,
+        r rp' hr hp' hxr hcnt (Write.viewWF_leafInl X.v hv _ pg hpg),
       ⟨_, rblKeys_addChild X.v hwm bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg
         hpg r rp' hr hp' hxr bnd dfc hk⟩,
       rblAcyc_addChild X.v hwm bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl pg hpg

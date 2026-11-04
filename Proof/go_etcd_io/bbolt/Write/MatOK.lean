@@ -890,7 +890,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       r rp' hr hp'
     refine wOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hok hB hlo'
       (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
-        hp' hx hcnt)
+        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg))
       (bktKeys_of_rbl X.v _ _ (rblKeys_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw
         hnone l hfresh hl0 pg hpg r rp' hr hp' hx bnd none (rblKeysB_of X.v B bnd hkb hbf hl0'))
         (rblAcyc_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
@@ -1066,7 +1066,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
       r rp' hr hp'
     refine bktLocalOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hb hB
       (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
-        hp' hx hcnt)
+        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg))
       ⟨_, bktKeys_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
         r rp' hr hp' hx bnd hkb⟩
       (by rw [mat_ns, if_pos rfl]) ?_ hleafr
