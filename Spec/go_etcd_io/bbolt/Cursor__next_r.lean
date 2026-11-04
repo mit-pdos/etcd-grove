@@ -30,7 +30,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 and flags, or past the bucket's entries with nil, nil, `0`. -/
 def rCurKV (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (s : Nat) (k vl : GoSlice)
     (fl : w32) : IProp GF :=
-  iprop((∃ pg idx, ⌜rPosAt v bv pp els s (s + 1) ∧ (rEnts v bv)[s]? = some (pg, idx)⌝ ∗
+  iprop((∃ pg idx, ⌜rPosAt v bv pp els s (s + 1) ∧ rLanded v bv pp els ∧
+        (rEnts v bv)[s]? = some (pg, idx)⌝ ∗
       rKV v pg idx k vl fl) ∨
     ⌜s = (rEnts v bv).length ∧ k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0⌝)
 

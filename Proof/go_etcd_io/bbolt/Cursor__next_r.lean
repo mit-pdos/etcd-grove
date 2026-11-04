@@ -228,7 +228,8 @@ theorem Cursor.next_r.wp_proof
           iexists pgL, idx
           rw [hix, Int.toNat_natCast]
           iframe
-          ipureintro; exact ⟨hpos2, hent⟩
+          ipureintro
+          exact ⟨hpos2, ⟨e, pidL, pgL, idx, by simp, hlf, Or.inr hil, hlwf, h16L⟩, hent⟩
         · ipureintro; intro _; right; exact (List.getElem?_eq_some_iff.mp hent).1
     · rw [decide_eq_false hlt]
       wp_auto
