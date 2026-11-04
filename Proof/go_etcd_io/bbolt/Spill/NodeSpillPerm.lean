@@ -309,6 +309,22 @@ theorem uBr_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !! 
     · refine Or.inr (spilledN_frame hfr hs ?_)
       rw [List.mem_singleton]; rintro rfl; exact hnsp hs
 
+/-- A chain of parents is one in a bucket with the same parents. -/
+theorem onChain_of_parents {B B' : BRec}
+    (hpar : ∀ a, (B'.ns !! a).map (·.nv.parent') = (B.ns !! a).map (·.nv.parent'))
+    {a rt x : Loc} (h : onChain B' a rt x) : onChain B a rt x := by
+  induction h with
+  | self a rt => exact .self a rt
+  | up a rt x r hra hne _ ih =>
+    have e := hpar a
+    rw [hra] at e
+    cases e' : B.ns !! a with
+    | none => rw [e'] at e; cases e
+    | some r0 =>
+      rw [e'] at e
+      have : r.nv.parent' = r0.nv.parent' := Option.some.inj e
+      exact .up a rt x r0 e' hne (this ▸ ih)
+
 /-- **`n`'s context is kept** (`n` one of its tree's nodes `N`). -/
 theorem spCtx_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp : rn.cs.Perm l)
     {lo hi : Option (List w8)} {N : List Loc} {cs : SpCase} (hn : n ∈ N)
@@ -316,19 +332,29 @@ theorem spCtx_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp :
     spCtx (X.setNode bl n { rn with cs := l }) bl n { rn with cs := l } lo hi N cs := by
   cases cs with
   | child pl rp j plo phi =>
-    obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩ := h
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14⟩ := h
     have hpl : pl ≠ n := fun e => a3 (e ▸ hn)
     refine ⟨a1, a2, a3, by rw [node_perm_ne hB hpl]; exact a4, ?_, a6, a7, a8, a9, a10, a11, a12,
-      fun c hc => a13 c (hp.mem_iff.2 hc)⟩
+      fun c hc => a13 c (hp.mem_iff.2 hc), a14⟩
     rw [setNode_perm_eq hB]; exact a5
   | top =>
-    obtain ⟨a1, B0, hB0, hrt⟩ := h
+    obtain ⟨a1, B0, hB0, hrt, hch⟩ := h
     rw [hB] at hB0; cases hB0
     refine ⟨a1, _, by rw [setNode_perm_eq hB]; exact GMap.lookup_insert _ _ _, ?_⟩
     have hs : bktP B { B with ns := B.ns.insert n { rn with cs := l } } := by
       have := bs_perm hB hr hp bl
       rw [hB, GMap.lookup_insert] at this; exact this
-    exact nodeRootIn_perm hs hrt
+    refine ⟨nodeRootIn_perm hs hrt, fun x hx hxn => ?_⟩
+    -- the chain: the parents as before, the nodes other than `n` unchanged
+    have hpar : ∀ a, (({ B with ns := B.ns.insert n { rn with cs := l } } : BRec).ns !! a).map
+        (·.nv.parent') = (B.ns !! a).map (·.nv.parent') := by
+      intro a
+      by_cases e : n = a
+      · subst e; rw [GMap.lookup_insert, hr]; rfl
+      · rw [GMap.lookup_insert_ne _ _ e]
+    obtain ⟨hxl, rc, hrc, hrest⟩ := hch x (onChain_of_parents hpar hx) hxn
+    refine ⟨?_, rc, by rw [node_perm_ne hB hxn]; exact hrc, hrest⟩
+    rw [setNode_perm_eq hB]; exact hxl
 
 /-- **The children's loop's start** after the sort: from `n`'s unspilled tree (a branch) at the
 start, its slots and freeable pages, the invariant at `0` from the permuted state. -/
@@ -362,7 +388,7 @@ theorem spDone_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
     (hp : rn.cs.Perm l) {w : WDb} (hG : spG X w.wtxid (mapLen w.ms) w.fl) {Xf : WX} {wf : WDb}
     {O : List Nat} {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc}
     {E : List El} {cs : SpCase} {st : List FLStep} (hn : n ∈ N) (hsp0 : rn.nv.spilled' = false)
-    (hdone : spDone (X.setNode bl n { rn with cs := l }) Xf w wf bl n { rn with cs := l } O lo hi
+    (hnc : n ∉ rn.cs) (hdone : spDone (X.setNode bl n { rn with cs := l }) Xf w wf bl n { rn with cs := l } O lo hi
       h D N E cs st) :
     spDone X Xf w wf bl n rn O lo hi h D N E cs st := by
   have hst := spStep_perm hB hr hp O hG
@@ -387,7 +413,9 @@ theorem spDone_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
       rcases hT y hy with h1 | h1 | ⟨h1, h2⟩
       · exact Or.inl (hnone y h1)
       · exact Or.inr (Or.inl h1)
-      · exact Or.inr (Or.inr ⟨h1, hp.mem_iff.2 h2⟩)
+      · have hyn : y ≠ n := fun e => hnc (e ▸ hp.mem_iff.2 h2.1)
+        exact Or.inr (Or.inr ⟨h1, hp.mem_iff.2 h2.1, fun r hr0 =>
+          h2.2 r (by rw [node_perm_ne hB hyn]; exact hr0)⟩)
     · cases cs with
       | child pl rp j plo phi =>
         obtain ⟨ps, rp', h1, h2, h3, h4, h5, h6, h7, h8⟩ := hm

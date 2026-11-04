@@ -241,7 +241,8 @@ theorem spPost_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
     (hp : rn.cs.Perm l) {w : WDb} (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (K : BC) (tx : Loc) (r : TxReg) (m : Bool)
     {O : List Nat} {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc}
-    {E : List El} {cs : SpCase} (hn : n ∈ N) (hsp0 : rn.nv.spilled' = false) (err : GoInterface) :
+    {E : List El} {cs : SpCase} (hn : n ∈ N) (hsp0 : rn.nv.spilled' = false) (hnc : n ∉ rn.cs)
+    (err : GoInterface) :
     spPost (GF := GF) K tx r m (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O
       lo hi h D N E cs err ⊢ spPost K tx r m X w bl n rn O lo hi h D N E cs err := by
   have hv : (X.setNode bl n { rn with cs := l }).v = X.v := by rw [setNode_perm_eq hB]
@@ -253,7 +254,7 @@ theorem spPost_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.n
     iexists X', w', st
     iframe
     ipureintro
-    exact spDone_unperm hd hB hr hp hG hn hsp0 Hd
+    exact spDone_unperm hd hB hr hp hG hn hsp0 hnc Hd
   · iright
     isplitr
     · ipureintro; exact He

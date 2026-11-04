@@ -29,10 +29,10 @@ variable [GooseExts] [GoGlobalContext]
 
 /-- At the loop's end, piece `k` exists for each split piece `k`. -/
 theorem pcLoop_get {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
-    {hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hlen : wss.length = xs.length) {k : Nat} {p : Piece} (hp : ps[k]? = some p) :
     ∃ x ws, xs[k]? = some x ∧ wss[k]? = some ws ∧ p.l = x.1 := by
   have hk : k < xs.length := by rw [← hL.len]; exact (List.getElem?_eq_some_iff.1 hp).1
@@ -41,10 +41,10 @@ theorem pcLoop_get {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : Li
 
 /-- The pieces' nodes are the split's. -/
 theorem pcLoop_ls {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
-    {hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl) :
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl) :
     ps.map Piece.l = xs.map (·.1) := by
   apply List.ext_getElem (by simp [hL.len])
   intro k h1 h2
@@ -55,28 +55,28 @@ theorem pcLoop_ls {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : Lis
 
 /-- The first piece is `n`. -/
 theorem pcLoop_head {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
-    {hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep} {n : Loc}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hhd : (xs.head?.map (·.1)) = some n) : (ps.head?.map Piece.l) = some n := by
   rw [← List.head?_map, pcLoop_ls hL, List.head?_map, hhd]
 
 /-- The pieces after the first are the split's fresh nodes. -/
 theorem pcLoop_drop {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
-    {hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl) :
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl) :
     (ps.drop 1).map Piece.l = (xs.drop 1).map (·.1) := by
   rw [List.map_drop, pcLoop_ls hL, List.map_drop]
 
 /-- The pieces' leaf elements are `Es`'s, in order. -/
 theorem pcLoop_els {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
-    {hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hlen : wss.length = xs.length) :
     ps.flatMap (fun x => treeEls (spP Xf) x.id.toNat) = Es.flatten := by
   have hE : ps.map (fun x => treeEls (spP Xf) x.id.toNat) = Es := by
@@ -87,7 +87,11 @@ theorem pcLoop_els {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : Li
     obtain ⟨x, ws, hx, hw, -⟩ := pcLoop_get hL hlen (List.getElem?_eq_getElem hk)
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hf⟩ :=
       hL.done k x _ ws hx (List.getElem?_eq_getElem hk) hw
-    rw [hf.2.2, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2, Option.getD_some]
+    have hel : treeEls (spP Xf) ps[k].id.toNat = Es.getD k [] := by
+      by_cases hpl : pl = null
+      · exact (hf.2 hpl).2
+      · exact (hf.1 hpl).2.2
+    rw [hel, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2, Option.getD_some]
   rw [List.flatMap_def, hE]
 
 /-- **The pieces at the loop's end are `piecesOK`** (under a parent): from `done`, the pieces'
@@ -95,9 +99,9 @@ entries (`n`'s, within `[lo, hi)`, keys not empty and within `bboltEntryMax`) an
 empty. -/
 theorem pcLoop_piecesOK {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {xs : List (Loc × node × List Inode)}
-    {wss : List (List WEntry)} {pl : Loc} {bs : List WEntry} {j : Nat} {Es : List (List El)}
+    {wss : List (List WEntry)} {pl : Loc} {rp0 : NRec} {bs : List WEntry} {j : Nat} {Es : List (List El)}
     {Ds : List (List Nat)} {ps : List Piece} {Xf : WX} {wf : WDb} {stl : List FLStep}
-    (hL : pcLoop X' r' X2 w2 bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hlen : wss.length = xs.length) (hxs : xs ≠ []) (hnd : (xs.map (·.1)).Nodup)
     (hent : ∀ ws ∈ wss, ∀ e ∈ ws, keyIn lo hi e.key ∧ 0 < e.key.length ∧
       e.key.length + e.value.length ≤ bboltEntryMax)
@@ -130,7 +134,7 @@ theorem pcLoop_piecesOK {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O
   · have hb : childHi hi (pcKey ps) ps.length k = childHi hi (wssKey wss) xs.length k := by
       rw [hL.len]; exact childHi_congr (fun hm => hpk _ (by rw [hL.len]; exact hm))
     rw [hb]
-    obtain ⟨hs, hpg', he⟩ := hf
+    obtain ⟨hs, hpg', he⟩ := hf.1 hpl
     exact ⟨hs, hpg', rfl⟩
 
 /-- **The parent's entries at the loop's end** (`parentSpilled`'s first clause): the base's with

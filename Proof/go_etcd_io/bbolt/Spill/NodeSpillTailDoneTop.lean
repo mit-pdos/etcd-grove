@@ -42,7 +42,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss null rp0)
     (hEs : Es.flatten = E)
-    (hL : pcLoop X' r' X2 w' bl O hi h xs wss null bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w' bl O lo hi h xs wss null rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hDk : ∀ s ∈ D, s ∈ pcSlots (spP Xf) ps ∨ s ∈ pendSlots wf.fl)
     (hDn : ∀ s ∈ pcSlots (spP Xf) ps, s ∈ D ∨ newSlot (st0 ++ stl) X.t.mv.pgid'.toNat s)
     (hPd : ∀ x, spP Xf !! x ≠ spP X !! x → x ∉ D)
@@ -89,17 +89,20 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     rw [← List.append_assoc] at this; exact this
   · rcases tail_T hpre hsp hend hsr l hl with h1 | h1
     · exact Or.inl h1
-    · exact Or.inr (Or.inr h1)
+    · -- (U9w hand-off) `n`'s old children not in `N` (spilled at the start) are kept modulo
+      -- sources: untouched by the children's loop, the kill (liveness only), the split and the
+      -- pieces' loop (their frames)
+      exact Or.inr (Or.inr ⟨h1.1, h1.2, fun r hr => sorry⟩)
   · have hs := hL.slot
     have hD0 : Ds.drop xs.length = [] := List.drop_eq_nil_of_le (Nat.le_of_eq hL.Dlen)
-    simp only [hlen0, ↓reduceIte, hD0, List.flatten_nil, List.nil_append] at hs
+    simp only [pcOwn, hlen0, ↓reduceIte, hD0, List.flatten_nil, List.nil_append] at hs
     exact hs
   · obtain ⟨B', hB', hrB⟩ := node_bs_of hrk
     refine ⟨n, rk, p0.S, h, hrk, hlv, hspl, hpar, ⟨B', hB', nodeRootIn.top n rk hrB hpar⟩, ?_,
       ?_, ?_⟩
     · rw [hpg]; exact hroot p0 hp0
     · rw [hps]; simp [pcSlots]
-    · rw [hpg, hf.2.2, ← hEs, hEs1]; simp
+    · rw [hpg, (hf.2 rfl).2, ← hEs, hEs1]; simp
 
 end lemmas
 

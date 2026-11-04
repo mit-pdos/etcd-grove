@@ -213,7 +213,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
       wp_pures
       wp_load
       iapply HΦ
-      iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 err) $$ Hpost
+      iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 (uTree_not_own_child Hut Hn Hsp0) err) $$ Hpost
     · have hleaf' : rn.nv.isLeaf' = false := by
         cases e : rn.nv.isLeaf'
         · rfl
@@ -249,7 +249,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
         wp_pures
         wp_load
         iapply HΦ
-        iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 err) $$ Hpost
+        iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 (uTree_not_own_child Hut Hn Hsp0) err) $$ Hpost
       · subst hv
         wp_pures
         wp_load

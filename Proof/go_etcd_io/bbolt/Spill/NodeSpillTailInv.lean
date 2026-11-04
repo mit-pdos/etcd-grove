@@ -70,10 +70,16 @@ def pcEnts (P : Pages) (hwm : Nat) (leaf : Bool) (hi : Option (List w8)) (hc : N
         (leaf = false → fTree P hwm e.pgid.toNat e.key
           (childHi (pcHi hi wss k) (wKey ws) ws.length m) hc (Sb m) (Eb m))
 
+/-- **The slots the pieces' loop owns** at iteration `i`: `n`'s page until it is freed, the
+rest's child slots, the done pieces' trees. -/
+def pcOwn (X' : WX) (r' : NRec) (Ds : List (List Nat)) (i : Nat) (ps : List Piece) (Xi : WX) :
+    List Nat :=
+  (if i = 0 then ownSl X'.v r'.nv.pgid' else []) ++ (Ds.drop i).flatten ++ pcSlots (spP Xi) ps
+
 /-- **The pieces' loop's state** (see the module doc) after the split, from `(X2, w2)`. -/
 structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List Nat)
-    (hi : Option (List w8)) (h0 : Nat) (xs : List (Loc × node × List Inode))
-    (wss : List (List WEntry)) (pl : Loc) (bs : List WEntry) (j : Nat)
+    (lo hi : Option (List w8)) (h0 : Nat) (xs : List (Loc × node × List Inode))
+    (wss : List (List WEntry)) (pl : Loc) (rp0 : NRec) (bs : List WEntry) (j : Nat)
     (Es : List (List El)) (Ds : List (List Nat)) (i : Nat) (ps : List Piece) (Xi : WX)
     (wi : WDb) (stl : List FLStep) : Prop where
   len : ps.length = i
@@ -95,15 +101,20 @@ structure pcLoop (X' : WX) (r' : NRec) (X2 : WX) (w2 : WDb) (bl : Loc) (O : List
     Xi.node bl x.1 = some rk ∧ x.1 ∈ Xi.live ∧ rk.nv.bucket' = bl ∧ rk.nv.spilled' = true ∧
     rk.cs = [] ∧ rk.nv.children' = slice.nil ∧ rk.nv.parent' = pl ∧ rk.nv.pgid' = p.id ∧ rk.ws.map wDat = ws.map wDat ∧
     p.k = wssKey wss k ∧ (pl ≠ null → rk.key = p.k ∧ rk.nv.key' ≠ slice.nil) ∧
-    fTree (spP Xi) Xi.t.mv.pgid'.toNat p.id.toNat p.k (childHi hi (wssKey wss) xs.length k) h0
-      p.S (Es.getD k [])
-  slot : slotInv wi.fl Xi.t.mv.pgid'.toNat
-    (O ++ ((if i = 0 then ownSl X'.v r'.nv.pgid' else []) ++ (Ds.drop i).flatten ++
-      pcSlots (spP Xi) ps))
+    (pl ≠ null → fTree (spP Xi) Xi.t.mv.pgid'.toNat p.id.toNat p.k
+      (childHi hi (wssKey wss) xs.length k) h0 p.S (Es.getD k [])) ∧
+    -- (U9z) the only piece of an unsplit top node: an `sTree` from `lo` (its root may be an
+    -- empty leaf)
+    (pl = null → sTree (spP Xi) Xi.t.mv.pgid'.toNat p.id.toNat lo hi h0 p.S ∧
+      treeEls (spP Xi) p.id.toNat = Es.getD k [])
+  slot : slotInv wi.fl Xi.t.mv.pgid'.toNat (O ++ pcOwn X' r' Ds i ps Xi)
   agree : ∀ x : Nat, spP Xi !! x ≠ spP X' !! x → ∃ p ∈ ps, x = p.id.toNat
   par : pl ≠ null → ∃ rpi, Xi.node bl pl = some rpi ∧ pl ∈ Xi.live ∧ pl ∉ xs.map (·.1) ∧
     rpi.capOwn = true ∧ wsSorted rpi.ws ∧ rpi.ws.map wDat = parWs bs j i ps ∧
-    rpi.ins.length = rpi.ws.length
+    rpi.ins.length = rpi.ws.length ∧
+    -- (U9z) the parent's record but its inodes and entries: the split's
+    rpi.cs = rp0.cs ∧ rpi.nv = { rp0.nv with inodes' := rpi.nv.inodes' } ∧ rpi.key = rp0.key ∧
+    (rpi.nv.key' = slice.nil ↔ rp0.nv.key' = slice.nil)
 
 /-- **The pieces' loop's invariant** (see the module doc): `n`'s spill from `(X, w)` (as
 `node.spill.spec'`), at iteration `i` over the pieces `xs` under `pl`, at `(Xi, wi)` after the
@@ -120,11 +131,15 @@ def pcInv (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
     (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) ∧
     st = st0 ++ stl ∧ Es.flatten = E ∧
     pcEnts (spP X') X'.t.mv.pgid'.toNat r'.nv.isLeaf' hi (h - 1) wss Es Ds ∧
-    (∀ s ∈ D, s ∈ ownSl X'.v r'.nv.pgid' ++ Ds.flatten ∨ s ∈ pendSlots w'.fl) ∧
+    -- (U9z) the slots' bookkeeping, as `spLoop`'s: the tree's slots owned (`pcOwn`) or pending,
+    -- those owned the tree's or new, the page map changed outside the tree's slots
+    ((∀ s ∈ D, s ∈ pcOwn X' r' Ds i ps Xi ∨ s ∈ pendSlots wi.fl) ∧
+     (∀ s ∈ pcOwn X' r' Ds i ps Xi, s ∈ D ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
+     (∀ x, spP Xi !! x ≠ spP X !! x → x ∉ D)) ∧
     (match cs with
      | .child pl' rp j' _ _ => pl = pl' ∧ j = j' ∧ bs.map wDat = rp.ws.map wDat
      | .top => bs = [] ∧ j = 0) ∧
-    pcLoop X' r' X2 w' bl O hi h xs wss pl bs j Es Ds i ps Xi wi stl
+    pcLoop X' r' X2 w' bl O lo hi h xs wss pl rp0 bs j Es Ds i ps Xi wi stl
 
 end inv
 
@@ -273,7 +288,7 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     cases cs with
     | top => exact absurd hctx.1 hpn
     | child pl rp j plo phi =>
-      obtain ⟨hpl, -, hplN, hrp, hunp, -, -, -, -, -, -, -, hcsN⟩ := hctx
+      obtain ⟨hpl, -, hplN, hrp, hunp, -, -, -, -, -, -, -, hcsN, -⟩ := hctx
       rw [hpl]
       have hplT : pl ∉ N ++ T := by
         intro hm

@@ -52,7 +52,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0)
     (hEs : Es.flatten = E) (hbs : bs.map wDat = rp.ws.map wDat)
-    (hL : pcLoop X' r' X2 w' bl O hi h xs wss pl bs j Es Ds xs.length ps Xf wf stl)
+    (hL : pcLoop X' r' X2 w' bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hne : ∀ ws ∈ wss, 0 < ws.length)
     (hDk : ∀ s ∈ D, s ∈ pcSlots (spP Xf) ps ∨ s ∈ pendSlots wf.fl)
     (hDn : ∀ s ∈ pcSlots (spP Xf) ps, s ∈ D ∨ newSlot (st0 ++ stl) X.t.mv.pgid'.toNat s)
@@ -100,11 +100,11 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
     rcases List.mem_append.1 hl with hl | hl
     · rcases tail_T hpre hsp hend hsr l hl with h1 | h1
       · exact Or.inl h1
-      · exact Or.inr (Or.inr h1)
+      · exact absurd h1.1 (fun h => by cases h)
     · exact Or.inr (Or.inl ⟨pl, rp, j, plo, phi, rfl, List.mem_singleton.1 hl⟩)
   · have hs := hL.slot
     have hD0 : Ds.drop xs.length = [] := List.drop_eq_nil_of_le (Nat.le_of_eq hL.Dlen)
-    simp only [hlen0, ↓reduceIte, hD0, List.flatten_nil, List.nil_append] at hs
+    simp only [pcOwn, hlen0, ↓reduceIte, hD0, List.flatten_nil, List.nil_append] at hs
     exact hs
   · refine ⟨ps, rpf, ?_, pcLoop_head hL hsr.head, ?_, rfl, ?_, hrpf, ?_, hplv⟩
     · exact pcLoop_piecesOK hL hsr.len hsr.ne hsr.nd (tail_ents hun' hsr.ws) hne hpl
@@ -114,7 +114,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
       obtain ⟨y, hy, he⟩ := List.mem_map.1 hm
       rw [← he]; exact tail_fresh hpre hsp hend (hsr.fresh y hy)
     · rw [pcLoop_els hL hsr.len, hEs]
-    · refine ⟨by rw [hws, parWs_full hlen0 hbs], ?_, ?_, ?_, ?_, ?_, hins⟩
+    · refine ⟨by rw [hws, parWs_full hlen0 hbs], ?_, ?_, ?_, ?_, ?_, hins.1⟩
       · rw [hcs, hpar0, pcLoop_drop hL]; simp only [hsimX.2.2.2.2.1]
       · rw [hnvf, hpar0, hsimX.1]
       · rw [hknil, hpar0]; exact hsimX.2.1

@@ -199,7 +199,7 @@ theorem spLoop_childPre {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat
       have hpg0 : r'.nv.pgid' ≠ W64 0 := fun h0 =>
         absurd (hb.pg0 h0 _ (mem_of_get hj)) (by simp)
       exact ⟨hpar, hnn, hnN, hb.node, hb.un, hb.leaf, hpg0, hcm,
-        ⟨_, List.getElem?_eq_getElem hjl, hpg.symm, hkey.symm⟩, rfl, rfl, hknil, hne.2⟩
+        ⟨_, List.getElem?_eq_getElem hjl, hpg.symm, hkey.symm⟩, rfl, rfl, hknil, hne.2, hne.1⟩
     · exact slotInv_child hj hl.slot
     · intro id hid
       rw [htx]

@@ -180,7 +180,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       by rw [hv]; exact hpgv, h16, hid, hfl, ?_⟩
     -- `canFree`: the page's slots owned (no free or pending id), not allocated by the writer
     have hsl := hL.slot
-    simp only [List.drop_zero] at hsl
+    simp only [pcOwn, List.drop_zero] at hsl
     have hown : ∀ s, r'.nv.pgid'.toNat ≤ s → s < r'.nv.pgid'.toNat + (1 + pageOverflow pg) →
         W64 (s : Int) ∉ wi.fl.allIds := by
       intro s h1 h2
@@ -203,7 +203,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       have := hGi.2.2.2.2.2.2.1
       omega
   · -- not empty (with a parent)
-    intro _
+    intro hpn0
     rw [hlen]
     by_cases h2 : 2 ≤ xs.length
     · exact hpl2 h2
@@ -221,10 +221,20 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         simp only [List.getElem?_cons_zero, Option.some.injEq] at hws
         simp only [List.flatten_cons, List.flatten_nil, List.append_nil] at e
         rw [← hws, e]; rfl
-      rcases hend with ⟨-, -, -, -, -, -⟩ | ⟨-, h', es, i', -, hl, -⟩
-      · -- an unsplit leaf child: `spCtx`'s child case does not say it is not empty (U9w
-        -- report; the parent's `uEnt.child` has it)
-        sorry
+      rcases hend with ⟨-, -, -, hr, -, -⟩ | ⟨-, h', es, i', -, hl, -⟩
+      · -- an unsplit leaf with a parent: a child, not empty (`spCtx`)
+        have hpl0 : pl ≠ null := by rw [hnv.2.2.1, hpar] at hpn0; exact hpn0
+        have hrp : rn.nv.parent' ≠ null := by
+          rcases hsr.par with ⟨-, -, e⟩ | ⟨-, h2', -⟩ | ⟨e, -⟩
+          · exact absurd e hpl0
+          · exact absurd h2' h2
+          · rw [← hr]; exact e
+        obtain ⟨-, -, hc⟩ := hpre
+        rcases hc with ⟨hs, -⟩ | ⟨-, hctx, -⟩
+        · rw [hsp] at hs; cases hs
+        cases cs with
+        | top => exact absurd hctx.1 hrp
+        | child pl' rp j' plo phi => rw [hwf, hr]; exact hctx.2.2.2.2.2.2.2.2.2.2.2.2.2
       · rw [hwf]; have := hl.br.two; omega
   · rw [hinsl, hlen, hpl1]
   · -- `pageFits`
@@ -240,6 +250,7 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       · exact ⟨rfl, rfl⟩
       · exact ⟨setNode_mv _ _ _ _, rfl⟩
     have hsl := hL.slot
+    unfold pcOwn at hsl
     refine ⟨allocRes_id_lt_free ha (fun y hy => by
       rw [hX1.1]; rw [hX1.2] at hy; exact hsl.2.2.2 y (List.mem_append_left _ hy)), ?_⟩
     intro hlf e he

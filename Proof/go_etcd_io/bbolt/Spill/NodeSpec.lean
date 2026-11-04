@@ -78,18 +78,27 @@ inductive SpCase where
   | child (pl : Loc) (rp : NRec) (j : Nat) (plo phi : Option (List w8))
   | top
 
+/-- **`x` is on the chain of parents from `a` up to `rt`** (in `B`; `rt` included). -/
+inductive onChain (B : BRec) : Loc → Loc → Loc → Prop
+  | self (a rt : Loc) : onChain B a rt a
+  | up (a rt x : Loc) (r : NRec) : B.ns !! a = some r → a ≠ rt → onChain B r.nv.parent' rt x →
+      onChain B a rt x
+
 /-- **Where the node `n` (record `rn`) of bucket `bl` sits** for its spill, its bounds `[lo, hi)`:
 a child of `pl` (record `rp`, with a page, a live unspilled branch within `[plo, phi)`), entry `j`
 of it, its children nodes of its tree (U9j: no earlier spill's pieces, so that their kill is
-framed); or a top node (no parent), the root of its bucket's root node's chain. -/
+framed), not empty (U9w: `node.spill` reads a piece's first inode under a parent); or a top
+node (no parent), the root of its bucket's root node's chain, the chain's other nodes spilled
+(U9z). -/
 def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List Loc) :
     SpCase → Prop
   | .child pl rp j plo phi => rn.nv.parent' = pl ∧ pl ≠ null ∧ pl ∉ N ∧ X.node bl pl = some rp ∧
       uNode X bl pl rp plo phi ∧ rp.nv.isLeaf' = false ∧ rp.nv.pgid' ≠ W64 0 ∧ n ∈ rp.cs ∧
       (∃ w, rp.ws[j]? = some w ∧ w.pgid = rn.nv.pgid' ∧ w.key = rn.key) ∧
       lo = childLo plo (wKey rp.ws) j ∧ hi = childHi phi (wKey rp.ws) rp.ws.length j ∧
-      rn.nv.key' ≠ slice.nil ∧ ∀ c ∈ rn.cs, c ∈ N
-  | .top => rn.nv.parent' = null ∧ ∃ B, X.t.bs !! bl = some B ∧ nodeRootIn B B.bv.rootNode' n
+      rn.nv.key' ≠ slice.nil ∧ (∀ c ∈ rn.cs, c ∈ N) ∧ 0 < rn.ws.length
+  | .top => rn.nv.parent' = null ∧ ∃ B, X.t.bs !! bl = some B ∧ nodeRootIn B B.bv.rootNode' n ∧
+      ∀ x, onChain B B.bv.rootNode' n x → x ≠ n → spilledN X bl x
 
 end pieces
 
@@ -133,7 +142,8 @@ def spDone (X X' : WX) (w w' : WDb) (bl n : Loc) (rn : NRec) (O : List Nat)
   ((rn.nv.spilled' = true ∧ X' = X ∧ w' = w) ∨
    (rn.nv.spilled' = false ∧ ∃ T D', spFrame X X' bl (N ++ T) ∧
     (∀ l ∈ T, X.t.objs !! l = none ∨ (∃ pl rp j plo phi, cs = .child pl rp j plo phi ∧ l = pl) ∨
-      (cs = .top ∧ l ∈ rn.cs)) ∧
+      (cs = .top ∧ l ∈ rn.cs ∧ ∀ r, X.node bl l = some r → ∃ r', X'.node bl l = some r' ∧
+        nodeSim r r')) ∧
     slotInv w'.fl X'.t.mv.pgid'.toNat (O ++ D') ∧
     (∀ s ∈ D, s ∈ D' ∨ s ∈ pendSlots w'.fl) ∧
     (∀ s ∈ D', s ∈ D ∨ newSlot st X.t.mv.pgid'.toNat s) ∧

@@ -170,7 +170,7 @@ theorem tail_T {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       | child pl rp j plo phi =>
         rcases hpre.2.2 with ⟨hs, -⟩ | ⟨-, hctx, -⟩
         · rw [hsp] at hs; cases hs
-        · exact absurd (hctx.2.2.2.2.2.2.2.2.2.2.2.2 l hl) hlN
+        · exact absurd (hctx.2.2.2.2.2.2.2.2.2.2.2.2.1 l hl) hlN
     · exact Or.inl hl
   · exact Or.inl (tail_fresh hpre hsp hend (hsr.fresh x hx))
 

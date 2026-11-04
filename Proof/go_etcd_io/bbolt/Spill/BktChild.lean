@@ -236,7 +236,10 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   ihave Hw := Hclose $$ %X [] Hh Hv Hst
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
   have Hsp : spPre X w bl B.bv.rootNode' rn O none none h F D N E .top :=
-    ⟨Hrn0, HG, Or.inr ⟨Hu, ⟨Hpar, B, HB, nodeRootIn.top _ rn Hrn1 Hpar⟩, Hsi, Hsf⟩⟩
+    ⟨Hrn0, HG, Or.inr ⟨Hu, ⟨Hpar, B, HB, nodeRootIn.top _ rn Hrn1 Hpar, fun x hx hne => by
+      cases hx with
+      | self => exact absurd rfl hne
+      | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf⟩⟩
   wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
     as %err Hpost
   · iframe
