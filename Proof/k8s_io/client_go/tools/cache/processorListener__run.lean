@@ -38,7 +38,7 @@ theorem processorListener.run.wp_proof
     (wp_HandleCrash : utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG)) :
     processorListener.run.spec (GF := GF) (hG := hG) := by
   intro l γ Q h H runFin
-  wp_start as ⟨#Hl, #Hh', #Hhok, #Hrf, Hcons, HH, Hbc⟩
+  wp_start as ⟨#Hl, #Hh', #Hhok, #Hrf, Hcons, HH, Hbc, Htt⟩
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache.synctrack $$ []
   · iPkgInit
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -53,8 +53,9 @@ theorem processorListener.run.wp_proof
   ihave HI : (∃ evs : List Ev,
       "Hcons" ∷ spscConsumer (V := GoInterface) γ.next (evs.map notifOf) ∗ "HH" ∷ H evs ∗
       "sleepAfterCrash" ∷ sleepAfterCrash_ptr ↦ false ∗
-      "Hbc" ∷ ownBroadcastChan runFin γ.runFin iprop(True) .Pending ∗ "p" ∷ p_ptr ↦ l : IProp GF)
-    $$ [Hcons HH sleepAfterCrash Hbc p]
+      "Hbc" ∷ ownBroadcastChan runFin γ.runFin iprop(True) .Pending ∗ "p" ∷ p_ptr ↦ l ∗
+      "Htt" ∷ threadTok : IProp GF)
+    $$ [Hcons HH sleepAfterCrash Hbc p Htt]
   · iexists []; iframe
   wp_for HI
   wp_apply (wp_spsc_receive (t := go.InterfaceType []) γ.next nextCh _ _ (evs.map notifOf))
@@ -65,7 +66,7 @@ theorem processorListener.run.wp_proof
     wp_for_post
     wp_apply (wp_broadcast_chan_close runFin γ.runFin iprop(True)) $$ [$Hbc] as -
     · imodintro; itrivial
-    iapply HΦ; itrivial
+    iapply HΦ; iexact Htt
   simp only [↓reduceIte]
   icases Hv with ⟨HP, Hcons⟩
   iunfold notifP at HP
@@ -134,9 +135,9 @@ theorem processorListener.run.wp_proof
     wp_auto
     ihave #H1 := HOnAdd $$ %evs %o %b
     wp_bind (App (App (Val #(methods hi.ty go!"OnAdd" hi.v)) _) _)
-    iapply H1 $$ [$HH $HQ]
+    iapply H1 $$ [$HH $Htt $HQ]
     inext
-    iintro HH
+    iintro ⟨HH, Htt⟩
     (try wp_auto)
     wp_bind (If _ _ _)
     iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ p_ptr ↦ l))) $$ [Htok p]
@@ -162,9 +163,9 @@ theorem processorListener.run.wp_proof
     wp_auto
     ihave #H1 := HOnUpdate $$ %evs %a %b
     wp_bind (App (App (Val #(methods hi.ty go!"OnUpdate" hi.v)) _) _)
-    iapply H1 $$ [$HH $HQ]
+    iapply H1 $$ [$HH $Htt $HQ]
     inext
-    iintro HH
+    iintro ⟨HH, Htt⟩
     (try wp_auto)
     wp_apply Hdf
     (try wp_auto)
@@ -178,9 +179,9 @@ theorem processorListener.run.wp_proof
     wp_auto
     ihave #H1 := HOnDelete $$ %evs %o
     wp_bind (App (Val #(methods hi.ty go!"OnDelete" hi.v)) _)
-    iapply H1 $$ [$HH $HQ]
+    iapply H1 $$ [$HH $Htt $HQ]
     inext
-    iintro HH
+    iintro ⟨HH, Htt⟩
     (try wp_auto)
     wp_apply Hdf
     (try wp_auto)

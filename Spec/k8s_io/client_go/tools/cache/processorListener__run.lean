@@ -29,7 +29,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 notification received, in order (the `i`-th's event, with its `Q i`, at `H` of the first `i`
 events), finishing the tracker after an initial-list add (with the start token the notification
 carries: `Finished`'s panic unreachable); it returns once `nextCh` is closed, closing
-`runFinished`. -/
+`runFinished`. The goroutine's thread token is lent to each handler call (`lhOk`) and given
+back. -/
 abbrev processorListener.run.spec : Prop :=
   ∀ (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp GF) (h : GoInterface) (H : List Ev → IProp GF)
     (runFin : Loc),
@@ -37,9 +38,9 @@ abbrev processorListener.run.spec : Prop :=
       structFieldRef processorListener go!"handler" l ↦□ h ∗ lhOk h H Q ∗
       structFieldRef processorListener go!"runFinished" l ↦□ runFin ∗
       spscConsumer (V := GoInterface) γ.next [] ∗ H [] ∗
-      ownBroadcastChan runFin γ.runFin iprop(True) .Pending }}
+      ownBroadcastChan runFin γ.runFin iprop(True) .Pending ∗ threadTok }}
     (App (Val (l @!! go.GoType.PointerType processorListener.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

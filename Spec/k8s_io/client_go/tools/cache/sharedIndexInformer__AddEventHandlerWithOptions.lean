@@ -3,8 +3,10 @@
 under `startedLock`, an error once stopped; else a listener for the handler, added to the
 processor (before the start: it receives every event from the first; after: under
 `blockDeltas`, the store's items as initial adds first, then every later event). The handler's
-contract (`handlerSpec`): each call with its event's facts, on the registering code's resource
-`H`. No resync period (`handlerOptsOk`; scope). Lean-first; the DaemonSet run's track A.
+contract (`handlerSpec`: each call with its event's facts, on the registering code's resource
+`H`) is deferred (decision R7): the registration turns the not-started fraction `q` into
+`handlerPending`, which the contract activates (`handlerPending_activate`) before the start. No
+resync period (`handlerOptsOk`; scope). Lean-first; the DaemonSet run's track A.
 
 **Specified before the informer's start only** (decision R6; the controller registers its handlers
 before `Start`): it borrows a fraction of the not-started token (`infNotStarted`), so the informer
@@ -39,9 +41,10 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 abbrev sharedIndexInformer.AddEventHandlerWithOptions.spec : Prop :=
   ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF),
   ∀ (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ handlerSpec γa r I.γi h H ∗ handlerOptsOk opts ∗ H [] }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ handlerOptsOk opts ∗ H [] }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"AddEventHandlerWithOptions")) (Val #h)) (Val #opts))
-  {{ (reg : GoInterface), RET (PairV #reg #(interface.nil : GoInterface)); infNotStarted I.γi q }}
+  {{ (reg : GoInterface), RET (PairV #reg #(interface.nil : GoInterface));
+      handlerPending γa r I.γi q h H }}
 
 end spec
 

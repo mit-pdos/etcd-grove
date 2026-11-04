@@ -19,7 +19,8 @@ which `run` gives back to `Finished`). So the handler receives exactly the event
 * `isListener l γ Q` (persistent): the listener's read-only fields and its channels' and tracker's
   invariants.
 * `lhOk h H Q`: the handler `h` takes each event `e` at position `evs.length` with `Q` from `H evs`
-  to `H (evs ++ [e])`.
+  to `H (evs ++ [e])`, on the listener's goroutine, whose thread token it borrows (`threadTok`, given
+  back: a handler can borrow reader slots of a thread pool with it, `notes/bounds-plan.md`).
 -/
 module
 
@@ -125,18 +126,18 @@ instance isListener_persistent (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp
   unfold isListener; infer_instance
 
 /-- **A listener's handler contract**: `h` takes each event `e` at position `evs.length`, with its
-`Q`, from `H evs` to `H (evs ++ [e])`. -/
+`Q`, from `H evs` to `H (evs ++ [e])`, borrowing the listener goroutine's thread token. -/
 def lhOk (h : GoInterface) (H : List Ev → IProp GF) (Q : Nat → Ev → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜h = interface.ok i⌝ ∗
-    □ (∀ (evs : List Ev) (o : GoInterface) (b : Bool), {{ H evs ∗ Q evs.length (Ev.add o b) }}
+    □ (∀ (evs : List Ev) (o : GoInterface) (b : Bool), {{ H evs ∗ threadTok ∗ Q evs.length (Ev.add o b) }}
         (App (App (Val #(methods i.ty go!"OnAdd" i.v)) (Val #o)) (Val #b))
-        {{ RET #(); H (evs ++ [Ev.add o b]) }}) ∗
-    □ (∀ (evs : List Ev) (old new : GoInterface), {{ H evs ∗ Q evs.length (Ev.update old new) }}
+        {{ RET #(); H (evs ++ [Ev.add o b]) ∗ threadTok }}) ∗
+    □ (∀ (evs : List Ev) (old new : GoInterface), {{ H evs ∗ threadTok ∗ Q evs.length (Ev.update old new) }}
         (App (App (Val #(methods i.ty go!"OnUpdate" i.v)) (Val #old)) (Val #new))
-        {{ RET #(); H (evs ++ [Ev.update old new]) }}) ∗
-    □ (∀ (evs : List Ev) (o : GoInterface), {{ H evs ∗ Q evs.length (Ev.delete o) }}
+        {{ RET #(); H (evs ++ [Ev.update old new]) ∗ threadTok }}) ∗
+    □ (∀ (evs : List Ev) (o : GoInterface), {{ H evs ∗ threadTok ∗ Q evs.length (Ev.delete o) }}
         (App (Val #(methods i.ty go!"OnDelete" i.v)) (Val #o))
-        {{ RET #(); H (evs ++ [Ev.delete o]) }}))
+        {{ RET #(); H (evs ++ [Ev.delete o]) ∗ threadTok }}))
 
 instance lhOk_persistent (h : GoInterface) (H : List Ev → IProp GF) (Q : Nat → Ev → IProp GF) :
     Persistent (lhOk h H Q) := by

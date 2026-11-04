@@ -24,7 +24,8 @@ reflector's `RefInf`) are what its proofs will rest on.
 * **The handler contract** `handlerSpec γa r γi h H`: the handler `h` (a `ResourceEventHandler`)
   takes each event `e` it is called with, with the event's facts `evFacts γa r γi e`, from the
   registering code's resource `H evs` (the events delivered so far, on the listener's goroutine) to
-  `H (evs ++ [e])` (`lhOk`, the listener's contract, at `Q _ e := evFacts …`). The facts
+  `H (evs ++ [e])`, borrowing the listener goroutine's thread token (`lhOk`, the listener's
+  contract, at `Q _ e := evFacts …`). The facts
   (`evFacts`), all persistent:
   - `OnAdd(x, _)`: `x` registered with `o`, which is at its key in the log's table at some version
     of a past state (`inLog`);
@@ -50,7 +51,12 @@ reflector's `RefInf`) are what its proofs will rest on.
   around the factory's): `infView`, `infReaders`, and the contracts of the methods the controller calls on it
   (`GetStore`, `GetIndexer`, `HasSynced` called and as a method value, `AddEventHandlerWithOptions`,
   `AddIndexers`). The last two are specified **before the informer's start only** (decision R6, the
-  controller's use): each borrows a fraction of the not-started token. In Go both also work after
+  controller's use): each borrows a fraction of the not-started token. **The handler contract is
+  deferred** (decision R7): `AddEventHandlerWithOptions` takes no contract; it turns the fraction
+  into `handlerPending γa r γi q h H`, which gives the fraction back only once activated with the
+  handler's contract (`handlerPending_activate`), so a handler's contract may be proved after its
+  registration (its closures may read what is stored later) but before the start
+  (`handlerCell_started`). In Go both also work after
   the start (a handler registered late gets the store's items as initial adds; `AddIndexers`
   re-indexes the store, refused only once the informer has stopped): the restriction is the spec's.
 * `infRunOk x γi` (persistent): `x.RunWithContext(ctx)` runs the informer, given the whole callers'
@@ -295,6 +301,67 @@ instance handlerSpec_persistent (γa : ApiNames) (r : Res) (γi : InfNames) (h :
     (H : List Ev → IProp GF) : Persistent (handlerSpec γa r γi h H) := by
   unfold handlerSpec; infer_instance
 
+/-- The handlers' contract cells' namespace. -/
+def lsnN : Namespace := nroot.@"informer.handler"
+
+/-- **A registered handler's contract cell** `γc`: pending (its flag `false`, holding the
+not-started fraction `q` its registration took), or active (flag `true`, the handler's contract). -/
+def handlerCell (γa : ApiNames) (r : Res) (γi : InfNames) (γc : GName) (q : Qp) (h : GoInterface)
+    (H : List Ev → IProp GF) : IProp GF :=
+  iprop((ghostVar γc (1 : Qp).half false ∗ infNotStarted γi q) ∨
+    (ghostVar γc (1 : Qp).half true ∗ handlerSpec γa r γi h H))
+
+/-- **A handler registered, its contract pending** (`AddEventHandlerWithOptions`' result): its
+cell, and the cell's other flag half. It holds the fraction `q` of the not-started token, which only
+its activation (`handlerPending_activate`, with the contract) gives back: so every handler
+registered is active before the informer starts (`RunWithContext` needs the whole token,
+`handlerCell_started`). -/
+def handlerPending (γa : ApiNames) (r : Res) (γi : InfNames) (q : Qp) (h : GoInterface)
+    (H : List Ev → IProp GF) : IProp GF :=
+  iprop(∃ γc : GName, inv lsnN (handlerCell γa r γi γc q h H) ∗ ghostVar γc (1 : Qp).half false)
+
+open Iris.ProofMode in
+/-- **A pending handler activated** with its contract: the not-started fraction back. -/
+theorem handlerPending_activate (γa : ApiNames) (r : Res) (γi : InfNames) (q : Qp)
+    (h : GoInterface) (H : List Ev → IProp GF) :
+    handlerPending γa r γi q h H ∗ handlerSpec γa r γi h H ⊢ |={⊤}=> infNotStarted γi q := by
+  unfold handlerPending
+  iintro ⟨⟨%γc, #Hinv, Hc⟩, #Hspec⟩
+  iinv Hinv with Hcell Hclose
+  iunfold handlerCell at Hcell
+  icases Hcell with (⟨>Hc', >Hns⟩ | ⟨>Hc', -⟩)
+  · imod (ghostVar_update_halves true γc false false) $$ Hc Hc' with ⟨-, Hc'⟩
+    imod Hclose $$ [Hc'] with -
+    · inext; iunfold handlerCell; iright; iframe; iexact Hspec
+    imodintro
+    iexact Hns
+  · icombine Hc Hc' gives % ⟨_, hb⟩
+    cases hb
+
+open Iris.ProofMode in
+/-- **At the start every registered handler is active**: with the start lock's half and the whole
+callers' half of the not-started token, a handler's cell holds its contract. -/
+theorem handlerCell_started (γa : ApiNames) (r : Res) (γi : InfNames) (γc : GName) (q : Qp)
+    (h : GoInterface) (H : List Ev → IProp GF) (b : Bool) :
+    inv lsnN (handlerCell γa r γi γc q h H) ∗ nsLock γi.ns b ∗ infNotStarted γi 1 ⊢
+      |={⊤}=> nsLock γi.ns b ∗ infNotStarted γi 1 ∗ ▷ handlerSpec γa r γi h H := by
+  iintro ⟨#Hinv, Hl, Hn⟩
+  iinv Hinv with Hcell Hclose
+  iunfold handlerCell at Hcell
+  icases Hcell with (⟨>Hc, >Hq⟩ | ⟨Hc, #Hspec⟩)
+  · unfold nsLock infNotStarted notStartedAt
+    icombine Hl Hn gives % ⟨_, hb⟩
+    subst hb
+    ihave Hw := (ghostVar_split_half γi.ns 1 false).2 $$ [Hl Hn]
+    · iframe
+    icombine Hw Hq gives % ⟨hq, -⟩
+    exact absurd hq (Qp_one_add_not_le _)
+  · imod Hclose $$ [Hc] with -
+    · inext; iunfold handlerCell; iright; iframe; iexact Hspec
+    imodintro
+    iframe
+    iexact Hspec
+
 /-- **An `InformerSynced` function** (persistent): `f()` returns, `true` with the first list in the
 store (`syncedFacts`). -/
 def syncedFn (f : GoFunc) (γi : InfNames) : IProp GF :=
@@ -346,11 +413,12 @@ def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Na
     -- `HasSynced`, called or as a method value
     syncedFn (methods i.ty go!"HasSynced" i.v) I.γi ∗
     -- `AddEventHandlerWithOptions(h, opts)`, before the start: the handler registered (its
-    -- listener gets `H []`, and every event from the first), no error
+    -- listener gets `H []`, and every event from the first), no error; its contract pending
+    -- (`handlerPending`, holding the fraction `q` until activated with the contract)
     □ (∀ (q : Qp) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF)
         (Φ : val → IProp GF),
-        infNotStarted I.γi q -∗ handlerSpec γa r I.γi h H -∗ handlerOptsOk opts -∗ H [] -∗
-        ▷ (∀ (reg : GoInterface), infNotStarted I.γi q -∗
+        infNotStarted I.γi q -∗ handlerOptsOk opts -∗ H [] -∗
+        ▷ (∀ (reg : GoInterface), handlerPending γa r I.γi q h H -∗
             Φ (PairV #reg #(interface.nil : GoInterface))) -∗
         WP (App (App (Val #(methods i.ty go!"AddEventHandlerWithOptions" i.v)) (Val #h))
           (Val #opts)) {{ Φ }}) ∗

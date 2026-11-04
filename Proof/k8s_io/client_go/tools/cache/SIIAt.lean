@@ -97,18 +97,18 @@ theorem lhOk_mono (h : GoInterface) (H : List Ev → IProp GF) (Q Q' : Nat → E
   isplitr
   · ipureintro; exact hi
   isplitr
-  · iintro !> %evs %o %b %Φ !> ⟨HH, HQ⟩ HΦ
+  · iintro !> %evs %o %b %Φ !> ⟨HH, Htt, HQ⟩ HΦ
     ihave HQ' := (hQ _ _) $$ HQ
-    iapply HA $$ [HH HQ'] HΦ
+    iapply HA $$ [HH Htt HQ'] HΦ
     iframe
   isplitr
-  · iintro !> %evs %old %new %Φ !> ⟨HH, HQ⟩ HΦ
+  · iintro !> %evs %old %new %Φ !> ⟨HH, Htt, HQ⟩ HΦ
     ihave HQ' := (hQ _ _) $$ HQ
-    iapply HU $$ [HH HQ'] HΦ
+    iapply HU $$ [HH Htt HQ'] HΦ
     iframe
-  · iintro !> %evs %o %Φ !> ⟨HH, HQ⟩ HΦ
+  · iintro !> %evs %o %Φ !> ⟨HH, Htt, HQ⟩ HΦ
     ihave HQ' := (hQ _ _) $$ HQ
-    iapply HD $$ [HH HQ'] HΦ
+    iapply HD $$ [HH Htt HQ'] HΦ
     iframe
 
 open Iris.ProofMode in
