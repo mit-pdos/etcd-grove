@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/node__numChildren.lean`: not yet (U8, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/node__numChildren.lean`: U8 (`notes/bbolt-proof-plan.md`).
 -/
 module
 
@@ -24,7 +24,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem node.numChildren.wp_proof : node.numChildren.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro nl nv dq
+  wp_start as Hn
+  icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+  iStructNamed Hn
+  wp_auto
+  iapply HΦ
+  iapply typedPointsto_combine _ _ _ Hnn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
 
 end proof
 
