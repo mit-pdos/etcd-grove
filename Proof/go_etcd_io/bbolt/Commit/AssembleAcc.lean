@@ -72,6 +72,31 @@ theorem cm_db_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
   iframe; iframe #
   ipureintro; exact ⟨rfl, Hr.2⟩
 
+/-- **The heap's facts** (`heapOK`: the root bucket is `tx.root`, ...), kept. -/
+theorem cm_heapOK (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ ⌜heapOK (GF := GF) tx X⌝ ∗ wtxW K tx r m X := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  isplitr
+  · ipureintro; exact Hok
+  · iframe
+    ipureintro; exact Hr
+
+omit hos in
+/-- **The meta's root-bucket header** out of a meta's points-to, and back with any header. -/
+theorem cm_meta_root (mp : Loc) (mv : Meta) (hmp : mp ≠ null) :
+    (mp ↦ mv : IProp GF) ⊢ (structFieldRef Meta go!"root" mp) ↦ mv.root' ∗
+      (∀ ib : InBucket, (structFieldRef Meta go!"root" mp) ↦ ib -∗
+        mp ↦ ({ mv with root' := ib } : Meta)) := by
+  iintro Hmv
+  iStructNamed Hmv
+  iframe root
+  iintro %ib Hroot
+  iapply typedPointsto_combine _ _ _ hmp
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
+
 end acc
 
 end bbolt
