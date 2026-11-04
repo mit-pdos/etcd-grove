@@ -9,6 +9,8 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitPcPre
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailStepState
+public import Proof.go_etcd_io.bbolt.Spill.PcStepSlots
+public import Proof.go_etcd_io.bbolt.Spill.PcStepFrame
 
 @[expose] public section
 
@@ -63,10 +65,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; exact hil)⟩
   obtain ⟨Sb, Eb, hDi, hEi, hSb⟩ := hents i ws hws
   let pn : Piece := ⟨x.1, id, wssKey wss i, nodePages id.toNat ws.length Sb⟩
-  refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
-    hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
-  rotate_left
-  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, -, -, hparp⟩ := hpp
+  obtain ⟨hlv, hbl, -, hG1, hne, hil0, -, hpf, -, -, -, hparp, hins31⟩ := hpp
   obtain ⟨rk, hrk, -, hsim⟩ := hL.todo i x ws (Nat.le_refl _) hx hws
   rw [hrl] at hrk; cases hrk
   obtain ⟨-, -, hxbl, hxlf, -, hxpg, hxpl, hxch, -⟩ := hsr.prec i x ws hx hws
@@ -82,7 +81,8 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (fun y hy => hL.slot.2.2.2 y (List.mem_append_left _ hy))
   have hG3 := pcStepX_spG hs hrl hlv hne (fun h => ⟨hpl1 h, (hparp h).elim fun _ hh => hh.2.1⟩) hd hG1
     (fun y hy => hL.slot.2.2.2 y hy) hfv hL.vb
-  have hfr3 := pcStepX_frame hs hrl hd hG1
+  have hfr3 := pcStepX_frame' hs hrl hd hpl1 hG1
+    (fun y hy => hL.slot.2.2.2 y (List.mem_append_left _ hy))
   obtain ⟨hPid, hPne⟩ := spP_bufs_insert hbuf3 hpg3
   have hfresh := pcStepX_fresh hs hL.slot
   have hplen := hL.len
@@ -163,6 +163,45 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     apply Classical.byContradiction; intro hne
     obtain ⟨p, hp, he⟩ := hL.agree y hne
     exact hDiPS y hyD (List.mem_flatMap.2 ⟨p, hp, he ▸ hpid p hp⟩)
+  have hv' : Xi.v.pages = X'.v.pages := by
+    rw [hL.step.2.2.1, hsr.same.2.2.2, nilCh_v]
+  have hA : (if i = 0 then ownSl X'.v r'.nv.pgid' else []) = ownSl Xi.v rl.nv.pgid' := by
+    have hpg' : rl.nv.pgid' = x.2.1.pgid' := by rw [hnv]
+    rw [hpg', hxpg]
+    by_cases hi0 : i = 0
+    · simp only [hi0, ite_true]; rw [ownSl_congr hv']; rfl
+    · simp only [hi0, ite_false]; unfold ownSl; simp
+  have hcnt : pcCount (insSize rl.ins) - 1 < 2 ^ 32 := by
+    have e : insSize rl.ins = 16 + (pageBody true (wsMs rl.ws)).length := by
+      rw [body_ws, insSize_ws rl.ins rl.ws hlr hil0]
+    have := hpf.2.1
+    unfold pcCount; omega
+  have hPS : pcSlots (spP X3) ps = pcSlots (spP Xi) ps := by
+    unfold pcSlots
+    refine flatMap_congr' fun p hp => pgSlots_congr fun y hy => hPne y (hneid y (Or.inr
+      (List.mem_flatMap.2 ⟨p, hp, mem_pgSlots_self hy⟩)))
+  have hpn : pgSlots (spP X3) pn.S =
+      List.range' id.toNat (pcCount (insSize rl.ins)) ++ Ds.getD i [] := by
+    show pgSlots (spP X3) (id.toNat :: (List.range ws.length).flatMap Sb) = _
+    unfold pgSlots
+    rw [List.flatMap_cons, hPid]
+    simp only []
+    unfold pcPage
+    rw [wPage_overflow]
+    have : (W32 ((pcCount (insSize rl.ins) - 1 : Nat) : Int)).toNat =
+        pcCount (insSize rl.ins) - 1 := by word
+    rw [this, show 1 + (pcCount (insSize rl.ins) - 1) = pcCount (insSize rl.ins) by omega,
+      hDi, List.flatMap_assoc]
+    congr 1
+    refine flatMap_congr' fun m hm => ?_
+    exact (pgSlots_congr (fun y hy => hSbag m (List.mem_range.1 hm) y hy))
+  have hfin : pcSlots (spP X3) (ps ++ [pn]) =
+      pcSlots (spP Xi) ps ++ (List.range' id.toNat (pcCount (insSize rl.ins)) ++
+        Ds.getD i []) := by
+    rw [← hpn, ← hPS]; unfold pcSlots; simp
+  refine ⟨X', w', r', st0, T, X2, wss, rp0, bs, j, Es, Ds, ps ++ [pn], stl ++ st', hend, hlens,
+    hsr, hfit, by rw [List.append_assoc], hEs, hents, ?_, hcs, ?_⟩
+  rotate_left
   exact {
     len := by rw [List.length_append, hplen]; rfl
     start := fun h => absurd h (Nat.succ_ne_zero _)
@@ -286,46 +325,10 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
             by simp only []; rw [hra]; exact hrpl, rfl, hwd, rfl, fun h' => absurd h' hpn,
             hft_new, hst_new⟩
     slot := by
-      have hv' : Xi.v.pages = X'.v.pages := by
-        rw [hL.step.2.2.1, hsr.same.2.2.2, nilCh_v]
-      have hA : (if i = 0 then ownSl X'.v r'.nv.pgid' else []) = ownSl Xi.v rl.nv.pgid' := by
-        have hpg' : rl.nv.pgid' = x.2.1.pgid' := by rw [hnv]
-        rw [hpg', hxpg]
-        by_cases hi0 : i = 0
-        · simp only [hi0, ite_true]; rw [ownSl_congr hv']; rfl
-        · simp only [hi0, ite_false]; unfold ownSl; simp
       have hsl0 : slotInv wi.fl Xi.t.mv.pgid'.toNat (O ++ (ownSl Xi.v rl.nv.pgid' ++
           (Ds.getD i [] ++ (Ds.drop (i + 1)).flatten ++ pcSlots (spP Xi) ps))) := by
         have := hL.slot; unfold pcOwn at this; rw [hDs, hA] at this; simpa only [List.append_assoc] using this
       have h5 := pcStepX_slot hs hG1 hsl0
-      have hcnt : pcCount (insSize rl.ins) - 1 < 2 ^ 32 := by
-        have e : insSize rl.ins = 16 + (pageBody true (wsMs rl.ws)).length := by
-          rw [body_ws, insSize_ws rl.ins rl.ws hlr hil0]
-        have := hpf.2.1
-        unfold pcCount; omega
-      have hPS : pcSlots (spP X3) ps = pcSlots (spP Xi) ps := by
-        unfold pcSlots
-        refine flatMap_congr' fun p hp => pgSlots_congr fun y hy => hPne y (hneid y (Or.inr
-          (List.mem_flatMap.2 ⟨p, hp, mem_pgSlots_self hy⟩)))
-      have hpn : pgSlots (spP X3) pn.S =
-          List.range' id.toNat (pcCount (insSize rl.ins)) ++ Ds.getD i [] := by
-        show pgSlots (spP X3) (id.toNat :: (List.range ws.length).flatMap Sb) = _
-        unfold pgSlots
-        rw [List.flatMap_cons, hPid]
-        simp only []
-        unfold pcPage
-        rw [wPage_overflow]
-        have : (W32 ((pcCount (insSize rl.ins) - 1 : Nat) : Int)).toNat =
-            pcCount (insSize rl.ins) - 1 := by word
-        rw [this, show 1 + (pcCount (insSize rl.ins) - 1) = pcCount (insSize rl.ins) by omega,
-          hDi, List.flatMap_assoc]
-        congr 1
-        refine flatMap_congr' fun m hm => ?_
-        exact (pgSlots_congr (fun y hy => hSbag m (List.mem_range.1 hm) y hy))
-      have hfin : pcSlots (spP X3) (ps ++ [pn]) =
-          pcSlots (spP Xi) ps ++ (List.range' id.toNat (pcCount (insSize rl.ins)) ++
-            Ds.getD i []) := by
-        rw [← hpn, ← hPS]; unfold pcSlots; simp
       unfold pcOwn
       rw [hfin]
       refine slotInv_perm ?_ h5
@@ -359,7 +362,63 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       · -- DEFECT (pcLoop.par): the parent's key slice may change source (nodeSim), so its
         -- struct is `rp0`'s only modulo `key'` too
         sorry }
-  sorry
+  -- the slots' bookkeeping
+  obtain ⟨hD1, hD2, hD3⟩ := hD
+  have hc0' : 0 < pcCount (insSize rl.ins) := hc0
+  have hold : pcOwn X' r' Ds i ps Xi = ownSl Xi.v rl.nv.pgid' ++
+      (Ds.getD i [] ++ (Ds.drop (i + 1)).flatten) ++ pcSlots (spP Xi) ps := by
+    unfold pcOwn; rw [hDs, hA]
+  have hnew : pcOwn X' r' Ds (i + 1) (ps ++ [pn]) X3 = (Ds.drop (i + 1)).flatten ++
+      (pcSlots (spP Xi) ps ++ (List.range' id.toNat (pcCount (insSize rl.ins)) ++
+        Ds.getD i [])) := by
+    unfold pcOwn; rw [if_neg (Nat.succ_ne_zero _), hfin]; simp
+  have hb62 : ∀ s ∈ ownSl Xi.v rl.nv.pgid', s < 2 ^ 62 := fun s hs' =>
+    (hL.slot.2.1 s (List.mem_append_right _ (by
+      rw [hold]; exact List.mem_append_left _ (List.mem_append_left _ hs')))).2.1
+  have hpend := pcStep_pend hs hb62
+  have hmk : X.t.mv.pgid'.toNat ≤ Xi.t.mv.pgid'.toNat := by
+    have h1 : X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat := by
+      rcases hend with ⟨-, rfl, -⟩ | ⟨-, h', es, i', -, hl, -⟩
+      · exact Nat.le_refl _
+      · exact hl.frame.2.2.2.2.2.2.2.2.1
+    have h2 : X2.t.mv = X'.t.mv := by
+      rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
+    have h3 := hL.frame.2.2.2.2.2.2.2.2.1
+    rw [h2] at h3; omega
+  refine ⟨fun s hs' => ?_, fun s hs' => ?_, fun x hx => ?_⟩
+  · rcases hD1 s hs' with h | h
+    · rw [hold] at h; rw [hnew]
+      simp only [List.mem_append] at h ⊢
+      rcases h with (h | h | h) | h
+      · exact Or.inr (hpend s (Or.inr h))
+      · exact Or.inl (Or.inr (Or.inr (Or.inr h)))
+      · exact Or.inl (Or.inl h)
+      · exact Or.inl (Or.inr (Or.inl h))
+    · exact Or.inr (hpend s (Or.inl h))
+  · rw [hnew] at hs'
+    simp only [List.mem_append] at hs'
+    have hold' : s ∈ pcOwn X' r' Ds i ps Xi →
+        s ∈ D ∨ newSlot (st0 ++ stl ++ st') X.t.mv.pgid'.toNat s := by
+      intro h
+      rcases hD2 s h with h | h
+      · exact Or.inl h
+      · exact Or.inr (newSlot_mono h (fun y hy => List.mem_append_left _ hy) (Nat.le_refl _))
+    rcases hs' with h | h | h | h
+    · exact hold' (by rw [hold]; simp [h])
+    · exact hold' (by rw [hold]; simp [h])
+    · exact Or.inr (newSlot_mono (pcStep_newSlot hs s h)
+        (fun y hy => List.mem_append_right _ hy) hmk)
+    · exact hold' (by
+        rw [hold]
+        exact List.mem_append_left _ (List.mem_append_right _ (List.mem_append_left _ h)))
+  · by_cases hx3 : spP X3 !! x = spP Xi !! x
+    · exact hD3 x (by rw [← hx3]; exact hx)
+    · have hxe : x = id.toNat := Classical.byContradiction fun hne => hx3 (hPne x hne)
+      subst hxe
+      intro hm
+      rcases hD1 _ hm with h | h
+      · rcases hfresh _ (List.mem_append_right _ h) with h1 | h1 <;> omega
+      · exact pcStep_id_pend hs hL.slot h
 
 end step
 

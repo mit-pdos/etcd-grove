@@ -38,14 +38,6 @@ theorem sTree_root_mem {P : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h 
   obtain ⟨pg, hpg⟩ := treeWF_page_some hs.wf
   exact (hs.has id).1 (treeHas.root id pg hpg)
 
-/-- **The frame of a piece's step**: the piece and its parent touched. -/
-theorem pcStepX_frame {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count : Nat}
-    {st : List FLStep} {id : w64} (hs : pcStep Xi wi bl l rl count X3 w2 st id)
-    (hn : Xi.node bl l = some rl) (hd : objsDisj Xi.t)
-    (hG1 : ∀ X1 w1 st, pcFreed Xi wi bl l rl X1 w1 st → spG X1 wi.wtxid (mapLen w1.ms) w1.fl) :
-    spFrame Xi X3 bl [l, rl.nv.parent'] := by
-  sorry
-
 /-- **A piece's free** keeps all but the piece's record and the freelist's pending part. -/
 theorem pcFreed_basic {X X1 : WX} {w w1 : WDb} {bl l : Loc} {r : NRec} {st : List FLStep}
     (h : pcFreed X w bl l r X1 w1 st) :
