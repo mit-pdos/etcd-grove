@@ -1,6 +1,8 @@
 /-
-`Verify`'s proof (`internal/common/verify.go`): a stub (`getEnvVerify`'s `os.Getenv` needs a
-spec; `notes/bbolt-proof-plan.md`, batch 7).
+`Verify`'s proof (`internal/common/verify.go`): a stub. `getEnvVerify` is
+`strings.ToLower(os.Getenv(ENV_VERIFY))`: `os.Getenv` has a spec (`Spec/os/Getenv.lean`, a
+trust-boundary axiom, any `hlc` since 2026-11-04), but `strings.ToLower` is names-only in Perennial
+and has none (`notes/bbolt-proof-plan.md`, batch 7).
 -/
 module
 
