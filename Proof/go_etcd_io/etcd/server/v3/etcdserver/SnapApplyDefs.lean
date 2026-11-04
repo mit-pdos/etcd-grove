@@ -169,7 +169,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
-    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk)
+    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk E.s E.γ)
 
 /-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
 part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
