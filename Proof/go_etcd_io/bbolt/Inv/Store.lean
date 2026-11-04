@@ -490,8 +490,51 @@ private theorem lent_wbegin (σ : StoreSt) (v : View) (hwv : σ.wv = none) (s : 
   · simp [hc, (mem_pagesSlots _ _).2 hc]
   · simp [hc, show s ∉ pagesSlots v.pages from fun h => hc ((mem_pagesSlots _ _).1 h)]
 
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
-include hE
+
+open Classical in
+private theorem lent_none (σ : StoreSt) (hR : σ.R = ∅) (hwl : σ.wlent = false) (s : Nat) :
+    lent σ s = none := by
+  unfold lent
+  rw [hR, GMap.mapFold_empty]
+  split <;> simp_all
+
+private theorem cells_unlent (S : List Nat) (A : Nat → Qp → IProp GF) (L : Nat → Option Qp)
+    (hL : ∀ s ∈ S, L s = none) :
+    ([∗list] s ∈ S, ∃ e, ⌜fracSum e (L s) (1 : Qp).half⌝ ∗ A s e) ⊣⊢
+      [∗list] s ∈ S, A s (1 : Qp).half := by
+  constructor
+  · refine bigSepL_mono_mem fun s hs => ?_
+    iintro ⟨%e, %he, H⟩
+    rw [hL s hs] at he; simp only [fracSum] at he; subst he; iexact H
+  · refine bigSepL_mono_mem fun s hs => ?_
+    iintro H
+    iexists (1 : Qp).half
+    isplitr
+    · ipureintro; rw [hL s hs]; rfl
+    · iexact H
+
+private theorem R_empty_of_tok (B : BNs) (R : GMap Nat RdInfo) :
+    ([∗map] k ↦ r ∈ R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ∗
+      ghostVar (GF := GF) B.mtok 1 () ⊢
+    (([∗map] k ↦ r ∈ R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ∗
+      ghostVar (GF := GF) B.mtok 1 ()) ∗ ⌜R = ∅⌝ := by
+  refine sep_keep_pure ?_
+  refine (deposits_le_aux (fun k' (r' : RdInfo) => iprop(k' ↪[B.fltx] (W64 (r'.v.txid : Int))))
+    B.mtok sync.rfrac R 1).trans (pure_mono fun h => ?_)
+  have hpos := sync.rfrac.2
+  simp only [Qp.val_one] at h
+  have : (R.size : Rat) * sync.rfrac.val = 0 := by
+    have : (0 : Rat) ≤ (R.size : Rat) * sync.rfrac.val :=
+      Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (Rat.le_of_lt hpos)
+    grind
+  have hsz : R.size = 0 := by
+    rcases Nat.eq_zero_or_pos R.size with h0 | h0
+    · exact h0
+    · exfalso
+      have : (0 : Rat) < (R.size : Rat) * sync.rfrac.val :=
+        Rat.mul_pos (by exact_mod_cast h0) hpos
+      grind
+  exact GMap.map_size_empty_inv R hsz
 
 end helpers
 
@@ -966,7 +1009,66 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
       ([∗list] s ∈ slotsOf C fl,
         bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l)) C := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hmapq, Htok, Hwv, Hout⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl hws
+  have hms' : σ.ms = some (b, l) := hms.symm
+  icases R_empty_of_tok B σ.R $$ [Hdep Htok] with ⟨⟨Hdep, Htok⟩, %hR⟩
+  · iframe
+  have hok' := storeOK_gather σ Hok hR hwl
+  -- the cells: nothing lent
+  rw [storeCells_some σ b l hms']
+  ihave Hcells := (cells_unlent (storeSlots σ) (slotPt b σ.bytes) (lent σ)
+    (fun s _ => lent_none σ hR hwl s)).1 $$ Hcells
+  -- the meta cells: home
+  unfold metaLend
+  icases Hml with (⟨Hm, Hout', Hln⟩ | ⟨Hout', -, -⟩ | ⟨-, -, Htok'⟩)
+  rotate_left
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
+  · icombine Htok Htok' gives % ⟨hq, _⟩
+    exfalso
+    have := sync.rfrac.half.2
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at hq
+    grind
+  -- the bytes witness: the mapping's half out
+  unfold bytesWit
+  rw [hms']
+  icases Hbw with ⟨Hb1, Hb2, %hW⟩
+  -- the mapping's state: none
+  icases ((ghostVar_fractional (GF := GF) B.map (some (b, l) : MapSt)).fractional _ _).2
+    $$ [Hmap Hmapq] with Hm34
+  · iframe
+  imod ghostVar_update_2 (none : MapSt) B.map _ _ _ _ (by
+      rw [Qp.ext_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind) $$ Hm34 Hmap'
+    with ⟨Hm34, Hmap'⟩
+  icases ((ghostVar_fractional (GF := GF) B.map (none : MapSt)).fractional _ _).1 $$ Hm34
+    with ⟨Hmap, Hmapq⟩
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hos Hb1 Hout' Hln] with _
+  · inext
+    iexists σ.gather, W
+    have e1 : storeCells (GF := GF) σ.gather = iprop(emp) := by
+      unfold storeCells; simp [StoreSt.gather]
+    rw [e1]
+    simp only [StoreSt.gather]
+    iframe
+    isplitr
+    · isplitr
+      · iempintro
+      · ipureintro; exact hW
+    isplitl [Hout' Hln]
+    · ileft; iframe; unfold metaCellsQ; iempintro
+    · ipureintro; exact hok'
+  imodintro
+  iexists σ.bytes, W
+  iframe
+  ipureintro; exact hW
 
 /-- `mmap` (a remap): the new mapping's store cells in, holding the page cache's bytes (the
 caller read them with OsFs's `osCell_agree`), and the meta lend quarter. -/
@@ -984,7 +1086,83 @@ theorem store_carve (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
       ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (some (b, l) : MapSt) ∗ ghostVar B.mtok 1 () ∗
       ghostVar B.wv (1 : Qp).half ws := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hmapq, Htok, Hwv, Hbyt, Hcl, Hmc⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W', Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC hfl
+  have hms' : σ.ms = none := hms.symm
+  obtain ⟨hR, hwl⟩ := Hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hms'
+  have hok' := storeOK_carve σ b l Hok hms' hl
+  unfold bytesWit
+  rw [hms']
+  icases Hbw with ⟨Hb1, -, %hW'⟩
+  icombine Hbyt Hb1 gives % ⟨_, hWW⟩
+  subst hWW
+  have hbs : ∀ s ∈ storeSlots σ, bs s = σ.bytes s := by
+    intro s hs
+    have h1 := hW s hs
+    rw [hW' s hs] at h1
+    exact (Option.some.inj h1).symm
+  -- the mapping's state
+  icases ((ghostVar_fractional (GF := GF) B.map (none : MapSt)).fractional _ _).2
+    $$ [Hmap Hmapq] with Hm34
+  · iframe
+  imod ghostVar_update_2 (some (b, l) : MapSt) B.map _ _ _ _ (by
+      rw [Qp.ext_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind) $$ Hm34 Hmap'
+    with ⟨Hm34, Hmap'⟩
+  icases ((ghostVar_fractional (GF := GF) B.map (some (b, l) : MapSt)).fractional _ _).1 $$ Hm34
+    with ⟨Hmap, Hmapq⟩
+  -- the cells, unlent
+  have hlent : ∀ s ∈ storeSlots (σ.carve b l), lent (σ.carve b l) s = none :=
+    fun s _ => lent_none (σ.carve b l) hR hwl s
+  ihave Hcells' : storeCells (GF := GF) (σ.carve b l) $$ [Hcl]
+  · rw [storeCells_some (σ.carve b l) b l rfl]
+    have e1 : storeSlots (σ.carve b l) = storeSlots σ := rfl
+    have e2 : (σ.carve b l).bytes = σ.bytes := rfl
+    rw [e1, e2]
+    iapply (cells_unlent (storeSlots σ) (slotPt b σ.bytes) (lent (σ.carve b l))
+      (fun s hs => hlent s hs)).2
+    have hconv : ([∗list] s ∈ storeSlots σ,
+        bytesPointsto (GF := GF) (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) ⊢
+        [∗list] s ∈ storeSlots σ, slotPt b σ.bytes s (1 : Qp).half :=
+      bigSepL_mono_mem fun s hs => by simp only [slotPt]; rw [hbs s hs]
+    iapply hconv
+    rw [show slotsOf σ.C σ.fl = storeSlots σ from rfl]
+    iexact Hcl
+  -- the meta cells: back home
+  unfold metaLend
+  icases Hml with (⟨-, Hout', Hln⟩ | Hml2 | ⟨-, -, Htok'⟩)
+  · imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hout' Hln Hmc] with _
+    · inext
+      iexists σ.carve b l, W
+      simp only [StoreSt.carve]
+      iframe
+      isplitr
+      · ipureintro; exact hW'
+      isplitl [Hout' Hln Hmc]
+      · ileft; iframe
+      · ipureintro; exact hok'
+    imodintro; iframe
+  · iclear Hmc
+    imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos Hb1 Hbyt Hml2] with _
+    · inext
+      iexists σ.carve b l, W
+      simp only [StoreSt.carve]
+      iframe
+      isplitr
+      · ipureintro; exact hW'
+      ipureintro; exact hok'
+    imodintro; iframe
+  · icombine Htok Htok' gives % ⟨hq, _⟩
+    exfalso
+    have := sync.rfrac.half.2
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at hq
+    grind
 
 /-- `beginTx`'s `t.init` under `metalock` and `Pm rfrac`: the reader deposits `mlk` and
 `mtok (rfrac/2)` and borrows the meta cells' quarter. -/
