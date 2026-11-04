@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesOne
 public import Proof.go_etcd_io.bbolt.Spill.DerefCopy
+public import Proof.go_etcd_io.bbolt.Inv.MatReady
 
 @[expose] public section
 
@@ -212,6 +213,33 @@ theorem wtxW_inl_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (c : Lo
       rw [if_neg hcr]
       iframe; iframe #
     · dsimp only; iframe
+
+omit hos in
+/-- A pure consequence, keeping the hypothesis. -/
+theorem keep_pure {Q : IProp GF} {P : Prop} (h : Q ⊢ ⌜P⌝) : Q ⊢ Q ∗ ⌜P⌝ := by
+  refine (BI.and_intro h .rfl).trans ?_
+  refine persistent_and_affinely_sep_left_mp.trans ?_
+  iintro ⟨%HP, HQ⟩
+  iframe
+  ipureintro; exact HP
+
+/-- **Every unresolved position of a path of view pages can be materialized** (`Cursor.node`'s
+premise), `wtxW` kept. -/
+theorem wtxW_matReady_all (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (B : BRec)
+    (pids : List w64) (hroot : B.ib.root' ≠ W64 0) (hv : viewWF X.v)
+    (hp : ∀ pid ∈ pids, resolve B pid = none →
+      ∃ pg, X.v.pages !! pid.toNat = some pg ∧ X.t.pm !! pid = none) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗
+      ⌜∀ pid ∈ pids, resolve B pid = none → matReady X B pid⌝ := by
+  apply keep_pure
+  refine (BI.forall_intro fun pid => ?_).trans BI.pure_forall.2
+  by_cases hm : pid ∈ pids ∧ resolve B pid = none
+  · obtain ⟨pg, hpg, hpm⟩ := hp pid hm.1 hm.2
+    exact (wtxW_matReady K tx r m X B pid pg hroot hv hpg hpm).trans
+      (BI.pure_mono fun h _ _ => h)
+  · iintro -
+    ipureintro
+    intro h1 h2; exact absurd ⟨h1, h2⟩ hm
 
 end heap
 
