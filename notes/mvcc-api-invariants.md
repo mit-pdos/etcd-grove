@@ -377,3 +377,46 @@ scaffold": no `none` case; the slots become the API's ghost state outright, `isS
    the API's transaction must carry it from `Write` to `End`.
 4. `ApiImpl.lean`'s definitions, pools, the backend law, §4.10's statements.
 
+## Hand-off: strict M1 (2026-11-04, stage 1)
+
+**Done** (the mvcc library builds: `mvcc.Link`, `Results`, `Api`, `Api/Instance`, `Api/SentInv`;
+beyond it the build is red, as strict M1 allows: e.g. `etcdserver/RestorePre.lean` unfolds
+`watchStoreInv`):
+- **No scaffold.** `StoreNames.api : api.AbsNames`; the slots (`slotX`, `slotY`, `slotF`, `slotFr`,
+  `slotFl`) are the API's ghost state outright; `isStore` has no `api = none`; today's
+  `writerInv_checkout`/`_checkin` wrappers gone (`…G` forms only). `NewStore` allocates the API's
+  ghost state (`api.absNames_alloc_store`: the lock's and the writer's slots and the frozen flag
+  kept, the client's parts dropped, today's spec returning none of them; `pndW_compl`).
+- **The watchable store's slot**: `relAuth γ q Lmu` (the released length's authority and
+  `wsSlot`, a quarter of `q` of the pending revision agreeing with the notified log, `pndOk`) in
+  `watchStoreInv`; fractional (`InvWatchFrac`: `wsSlot_fractional`, `relAuth_fractional`);
+  `relAuth_of_eq` restated; carried by every watchable-store proof.
+- **The writer's slot carried from `Write` to `End`** (`storeTxnWriteIs`/`Core`'s `"HY"`).
+- **`Api/SentInv.lean`**: probe M1's pure core (`SentInv`, `wsRecvOk_of_sent`, the steps), moved
+  from `notes/mvcc-api-probes/WsRecvOkProbe.lean`.
+- **Placeholders** (`sorry -- M1-REPLACE: <contract>`, 10): `M1Placeholders.lean`'s five lemmas,
+  each false in general, used at 10 sites (`slotX_step_M1`: End's bump, `updateCompactRev` ×2;
+  `slotY_step_M1`: End's bump; `slotF_excl_M1`: `Write`'s checkout, End's checkins ×2;
+  `wsSlot_make_M1`: `newWatchableStore`; `wsSlot_step_M1`: the watchable End's notify, its
+  `Restore`), and five local ones in `RestoreMoves` (the takeover's, switch's and finish's slot
+  steps and frozen-state exclusions). Each goes when its proof is rewritten against the API's
+  contract at stage 2; nothing new may use them.
+
+**Left** (in order):
+1. **The stream's slot** (§1's `ι.sst`, `ι.reg`, `ι.dead`, `ι.rcv`): `WsStreamNames.api :
+   StreamAbsNames` and a conjunct of `watchStreamInv` (the retired first cut, `cc74c18040`'s
+   `Api/InvWatchX.lean`: `StreamAbsNames`, `WInfoC`/`RegC`/`wrC`, `sstPart`, `winfoIs` over
+   `savedFilters`, `streamAbs` tying only the closed flag). Its real ties are the watch chain's
+   design (stage 2's M1, `notes/mvcc-api-risk.md`): the registry against the stream's id map
+   (`idsInv`, `chanIdAssigned`) and each watcher's `watcherFixed`/`covFact`; the stamp the exact
+   sent count, which today's channel invariant already records (`chanRegAt w n` with
+   `n ≤ sent.length` minted at the registration, `regsOk`); `-1` responses covering the
+   registrations so far (`respCompl`, `rsnW`: the cancelled set `ι.dead` is `rsnFor`'s ids); the
+   channel invariant keeping `Api/SentInv.lean`'s `SentInv` of its sent list (`sentAuth`'s
+   `respCov` facts are the per-response `SentFact.holds`); `ι.rcv` the consumer's `γc.recv`
+   re-split (⅔ the client's `wsRecv`, ⅓ the channel invariant).
+2. `ApiImpl.lean`'s sealed definitions of the opaque predicates (`mvccState` = the client's parts:
+   `absPart ½`, `pndPart` its part, `crevAuth ½`, `crevAtLeast`; `mvccBackend γ q` = `shareTok q`
+   with the writer's fragment, ...), `persistent.law`'s facts as instances, `wsChanNames ι`.
+3. Pools and the backend law (§4.7, §4.9); §4.10's internal statements.
+
