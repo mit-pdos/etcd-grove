@@ -5,6 +5,7 @@
 module
 
 public import Spec.go_etcd_io.bbolt.internal.common.UnsafeIndex
+public import Perennial.Golang.Theory.Plain
 
 @[expose] public section
 
@@ -16,7 +17,7 @@ namespace bbolt
 namespace internal
 namespace common
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt.internal.common
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,7 +27,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
 theorem UnsafeIndex.wp_proof : UnsafeIndex.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro base off elemsz n H1 H2
+  wp_start
+  wp_auto
+  wp_func_call
+  wp_call
+  wp_apply wp_pointer_plus _ _ _ ⟨H1, H2⟩
+  iapply HΦ
+  itrivial
 
 end proof
 

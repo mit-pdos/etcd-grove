@@ -16,7 +16,7 @@ namespace bbolt
 namespace internal
 namespace common
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt.internal.common
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,7 +26,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
 theorem Meta.RootBucket.wp_proof : Meta.RootBucket.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro l
+  wp_start
+  wp_auto
+  iapply HΦ; itrivial
 
 end proof
 

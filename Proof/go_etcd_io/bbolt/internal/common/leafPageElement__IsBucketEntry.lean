@@ -16,7 +16,7 @@ namespace bbolt
 namespace internal
 namespace common
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt.internal.common
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,7 +26,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
 theorem leafPageElement.IsBucketEntry.wp_proof : leafPageElement.IsBucketEntry.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro l v dq
+  wp_start as Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+  iStructNamed Hl
+  wp_auto
+  rw [← decide_not]
+  iapply HΦ
+  iapply typedPointsto_combine _ _ _ Hnn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe
 
 end proof
 
