@@ -14,6 +14,7 @@ mapping (`derefRel` and a re-base). On success `F` comes back.
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__allocate
+public import Proof.go_etcd_io.bbolt.Inv.WAccess
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Write
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__EstimatedWritePageSize
@@ -48,12 +49,6 @@ def flPageBytes (fl : FLPg) (id : w64) (count : Nat) : List w8 :=
   encode (⟨id, W16 (freelistPageFlag : Int), W16 ((if n < 0xFFFF then n else 0xFFFF : Nat) : Int),
       W32 ((count - 1 : Nat) : Int)⟩ : Page) ++
     (body ++ List.replicate (count * 4096 - 16 - body.length) (W8 0))
-
-/-- `X` with the freelist page `bs` in the buffer of page `id` and `tx.meta.freelist = id`. -/
-def WX.setFlPage (X : WX) (id : w64) (bs : List w8) : WX :=
-  { X with t := { X.t with
-      bufs := X.t.bufs.insert id bs,
-      mv := { X.t.mv with freelist' := id } } }
 
 end pure
 
@@ -90,40 +85,6 @@ abbrev Tx.commitFreelist.spec : Prop :=
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ txDoneDef tx) }}
 
 end spec
-
-section access
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **Access (for the maintainer; `sorry`)**: the writer side's freelist, `db.freelist`'s field
-and its `flPgOwn`, out of `wdbW` and back unchanged (`EstimatedWritePageSize` and `Write` keep
-the freelist). -/
-theorem wdbW_fl_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW (GF := GF) K tx v w ⊢ ∃ dq : DFrac, K.db.[DB, go!"freelist"] ↦{dq} w.fli ∗
-      flPgOwn w.fli w.fl ∗
-      (K.db.[DB, go!"freelist"] ↦{dq} w.fli -∗ flPgOwn w.fli w.fl -∗
-        wdbW K tx v w) := by
-  sorry
-
-/-- **Access (for the maintainer; `sorry`)**: an allocated page's buffer and the meta copy out
-of the writer's heap, `tx.db` and `tx.meta`'s fields with them; back with the buffer's new bytes
-(same length) and `tx.meta.freelist = id`, as `WX.setFlPage`. -/
-theorem wtxW_flpage_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (id : w64) (p : Loc)
-    (bs : List w8) (hp : X.t.pm !! id = some p) (hb : X.t.bufs !! id = some bs) :
-    wtxW (GF := GF) K tx r m X ⊢ ∃ (mp : Loc) (dq : DFrac),
-      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db ∗ tx.[Tx, go!"meta"] ↦{dq} mp ∗
-      mp ↦ X.t.mv ∗ bytesPointsto p (DFrac.own 1) bs ∗
-      (∀ bs' : List w8, ⌜bs'.length = bs.length⌝ -∗
-        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db -∗ tx.[Tx, go!"meta"] ↦{dq} mp -∗
-        mp ↦ ({ X.t.mv with freelist' := id } : Meta) -∗ bytesPointsto p (DFrac.own 1) bs' -∗
-        wtxW K tx r m (X.setFlPage id bs')) := by
-  sorry
-
-end access
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
