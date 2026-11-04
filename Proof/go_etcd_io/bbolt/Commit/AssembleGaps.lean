@@ -5,7 +5,7 @@ shared statement, not in `Commit`'s proof.
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Inv.ShapeOps
+public import Proof.go_etcd_io.bbolt.Inv.Shape
 public import Proof.go_etcd_io.bbolt.Model.WOps
 public import Proof.go_etcd_io.bbolt.Tx__commitFreelist
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
@@ -48,14 +48,14 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **Gap 2** (U8, 37.14's "rebalance/spill" corollary of `txShape_sub`): the page tokens across
+/-- **Gap 2** (U8, 37.14's "rebalance/spill" corollary of `Inv/ShapeOps.txShape_sub`): the page tokens across
 `rebalance` (the records' tokens a sub-multiset of the old: a freed page's dropped). -/
 theorem txShape_rebalOK (γ : GName) (X X' : WX) (fl fl' : FLPg) (txid : w64)
     (extra : GMap Nat Unit) (h : rebalOK X X' fl fl' txid) :
     txShape (GF := GF) γ X extra ⊢ txShape γ X' extra := by
   sorry
 
-/-- **Gap 3** (U9, 37.14's "rebalance/spill" corollary of `txShape_sub`): the page tokens across
+/-- **Gap 3** (U9, 37.14's "rebalance/spill" corollary of `Inv/ShapeOps.txShape_sub`): the page tokens across
 `spill` (new pages are no view pages; the view's pages unchanged, `spillOK`). -/
 theorem txShape_spillOK (γ : GName) (X X' : WX) (C : CommitSt) (fl fl' : FLPg) (txid : w64)
     (extra : GMap Nat Unit) (h : spillOK X X' C fl fl' txid) :
@@ -76,13 +76,12 @@ theorem wtx_handlers_nil (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢ ⌜X.t.t.commitHandlers' = slice.nil⌝ := by
   sorry
 
-omit hos sem in
+omit [GooseSemantics] go_gctx hos sem in
 /-- The page tokens do not see the transaction's meta copy or dirty pages (`bs`, `v` unchanged). -/
 theorem txShape_congr (γ : GName) (X X' : WX) (extra : GMap Nat Unit) (hv : X'.v = X.v)
     (hb : X'.t.bs = X.t.bs) :
-    txShape (GF := GF) γ X extra ⊢ txShape γ X' extra :=
-  txShape_sub γ X X' extra (by rw [hv]) fun _ => by
-    unfold txTokL; rw [hv, hb]
+    txShape (GF := GF) γ X extra ⊢ txShape γ X' extra := by
+  unfold txShape; rw [hv, hb]
 
 end res
 
