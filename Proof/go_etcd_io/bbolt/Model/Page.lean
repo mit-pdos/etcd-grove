@@ -231,8 +231,8 @@ theorem dataBytes_length_le (ms : List InodeM) (i : Nat) :
   simp only [dataBytes, List.flatMap_append, List.length_append]
   omega
 
-/-- The data of inode `i` in the data area. -/
 omit [GooseExts] in
+/-- The data of inode `i` in the data area. -/
 theorem dataBytes_drop_take (ms : List InodeM) (i : Nat) (h : i < ms.length) :
     ((dataBytes ms).drop (dataBytes (ms.take i)).length).take ms[i].kv.length = ms[i].kv := by
   have e : dataBytes ms = dataBytes (ms.take i) ++ ms[i].kv ++ dataBytes (ms.drop (i + 1)) := by
@@ -248,8 +248,8 @@ theorem take_drop_append_left {α : Type} (A B : List α) (k n : Nat) (h : k + n
     ((A ++ B).drop k).take n = (A.drop k).take n := by
   rw [List.drop_append_of_le_length (by omega), List.take_append_of_le_length (by simp; omega)]
 
-/-- Element `i` of the elements of a page. -/
 omit [GooseExts] in
+/-- Element `i` of the elements of a page. -/
 theorem elems_take_drop {V : Type} [ByteEncoding V 16] (es : List V) (B : List w8) (i : Nat)
     (h : i < es.length) : ((es.flatMap encode ++ B).drop (16 * i)).take 16 = encode es[i] := by
   rw [take_drop_append_left _ _ _ _ (by rw [flatMap_encode_length']; omega), Nat.mul_comm,
