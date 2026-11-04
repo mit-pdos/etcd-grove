@@ -196,10 +196,9 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
   · iunfold rnLoopTok
     iexists hsZero
     iunfold rnLoopTokP
-    iexists [], [[]], RaftState.init
+    iexists [], [[]], RaftState.init, W64 0
     isplitl [Hdrv HrS Hcfg]
     · iunfold rnDrv
-      iexists W64 0
       have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
           NodeDriverState.init (memStorIface γ.ms) γ.key := by
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
@@ -211,6 +210,8 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
       ipureintro
       simp only [RNNames.srv, hpre, List.append_nil]
       exact hcfg
+    isplitr
+    · ipureintro; intro h; cases h
     isplitl [Hwv Hwok]
     · iunfold rnWalView
       have h0 : (⟨RaftState.init, hsZero, none, srvLE γ.srv []⟩ : WalView) = walView0 := by

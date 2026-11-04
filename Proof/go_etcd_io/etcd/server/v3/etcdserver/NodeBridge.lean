@@ -509,9 +509,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     iexact Hch
   isplitr
   · -- `Advance`, after a `Ready` without a snapshot
-    iintro !> %d %ce %es %p %S %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
+    iintro !> %d %ce %es %p %S %r %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
     iunfold rnBusyN at Hbusy
-    icases Hbusy with ⟨%r, Hbusy, HrS⟩
+    icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
     iunfold srvCfgView at Hcv
@@ -532,7 +532,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       iframe Hrun
       isplitl [Hdrv Hcfg HrS]
       · iunfold rnDrv
-        iexists r
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
         iframe HrS
@@ -548,9 +547,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   isplitr
   · -- `Advance` after a snapshot `Ready`: the view at the snapshot is the voters' (D3:
     -- `srv_confAt_simple` at the snapshot's committed log, `confAt_agree`)
-    iintro !> %d %A' %es %p %l %S %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
+    iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
-    icases Hbusy with ⟨⟨%r, Hdrv, HrS⟩, Hcv, %Hsn⟩
+    icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
     iunfold rnCfgAt at Hcv
     iunfold srvCfgView at Hcv
@@ -607,7 +606,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       iframe Hrun
       isplitl [Hdrv Hcfg HrS]
       · iunfold rnDrv
-        iexists r
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
         iframe HrS

@@ -31023,3 +31023,18 @@ approved ones changed):
   advance channel's content), and `run_snap_jobOn` takes `C.rn = γn`, as lean's `run_job_snap`.
 - `snapRecv_imageOn` takes `E.lg = false` (`srvRest_false`), as lean's `snapRecv_image`; the caller
   gets it from `srvRest_revocable`.
+
+## *Enter* at the WAL `Save`, not at the receive (2026-11-03 · the user's choice, R2b-3; supersedes R2b-1's "at the receive")
+
+**Before:** the server fired raft's *enter* (`readyEnter`) at the receive of a `Ready`
+(`rn_ready_recv`), the user's choice in R2b-1 over the draft's "at the `Save`", on my claim that the
+raft loop stops only at idle points, where the WAL's records hold the node's durable state. **What
+that got wrong:** the loop also returns on `r.stopped` between the receive and the `Save`, at the
+read state's send (`raft.go:218`) and at the hand-off to the apply thread (`raft.go:241`). There the
+node had entered the batch (`raftState S'`) while the records hold the state before it, so the stop's
+image (`raftState S ∗ StorageHolds S σ`) is false. **Now:** the receive keeps *enter* as raft's wand;
+the loop fires it right after the `Save` returns (a graceful stop needs no more; firing it inside the
+`Save`'s update, for crash recovery, stays open: review M1's later credit). Before the `Save` the loop
+uses only what the receive gives without *enter* (the committed log, `deliveredLogLb`, the hard
+state's committed fact; R2b-1 stage 1), and a leader's early `Send` uses raft's `readyLeaderMsgs`,
+for which the loop keeps `islead` tied to the driver's role (`islead` true only at role leader).
