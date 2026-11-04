@@ -574,7 +574,68 @@ theorem rebal_loeb
           rw [Hj1]
           iframe
           ipureintro; exact ⟨by word, by word⟩
-      · sorry
+      · have Hge : ¬ sint.Z j < sint.Z rc.nv.inodes'.len := by simpa using Hif
+        ihave %Hlsl := ownSlice_len _ _ _ $$ Hlins
+        have Hjlen : sint.nat j = rc.ws.length := by rw [← Hlwl, Hlsl.1]; word
+        rw [Hjlen]
+        try wp_auto
+        -- `delete(n.bucket.nodes, child.pgid)`
+        wp_apply (wp_mapDelete (K := w64) (V := Loc) B2.bv.nodes' B2.nm rc.nv.pgid'
+          internal.common.Pgid.ty (go.GoType.PointerType node.ty)) $$ [Hnm] as Hnm
+        · iexact Hnm
+        try wp_auto
+        -- close the heap: the root holds the child's entries, the child only its struct
+        obtain ⟨hcl1, hcl2, hcl3⟩ := colBktL_close B2 n lc rn2 rc hrn2 hrc hlcn Hnn Hlnn hpn2 hchar hkn
+        have hlv : ∀ k, k ≠ lc → (k ∈ GMap.delete lc X2.live ↔ k ∈ X2.live) := fun k hk => by
+          rw [GMap.mem_iff, GMap.mem_iff, GMap.lookup_delete_ne _ (Ne.symm hk)]
+        have hlv0 : decide (lc ∈ GMap.delete lc X2.live) = false := by
+          rw [decide_eq_false_iff_not, GMap.mem_iff, GMap.lookup_delete]; simp
+        have hnlv : decide (n ∈ GMap.delete lc X2.live) = true :=
+          decide_eq_true ((hlv n (Ne.symm hlcn)).2 (hlive2 n _ hrn2))
+        ihave Hks := (BigSepL.bigSepL_mono (Ψ := fun _ x => objOwn X2.v x (DFrac.own 1)
+            (decide (x ∈ GMap.delete lc X2.live)) (.node bl (colF B2 n lc rn2 rc x)))
+          (fun {k x} hx => by
+            obtain ⟨h1, h2⟩ := hkn x (List.mem_of_getElem? hx)
+            simp only [colF, if_neg h1, if_neg h2, hlv x h2]
+            exact .rfl)) $$ Hks
+        ihave Hh := Hback $$ %(colBktL B2 n lc rn2 rc) %(colF B2 n lc rn2 rc)
+          %(GMap.delete lc X2.live) [] [isLeaf inodes children Hlins Hlcap Hlws Hlch Hlchcap Hkey
+            Hks bucket unbalanced spilled key pgid parent bucketC isLeafC unbalancedC spilledC keyC
+            pgidC parentC childrenC inodesC]
+          [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
+        · ipureintro
+          refine ⟨hcl1, hcl2, rfl, hcl3, fun k hk => hlv k (fun h => hk (by simp [h]))⟩
+        · iapply (BigSepL.bigSepL_append).2
+          isplitr [Hks]
+          · iapply BigSepL.bigSepL_cons.2
+            isplitl [isLeaf inodes children Hlins Hlcap Hlws Hlch Hlchcap Hkey bucket unbalanced
+              spilled key pgid parent]
+            · simp only [colF, ite_true]
+              rw [hnlv]
+              iapply (objOwn_live_node _ _ _ _ _).2
+              isimp only [true_and] at Hkey
+              simp only [colRoot, eq_self_iff_true, true_and]
+              isplitl [isLeaf inodes children bucket unbalanced spilled key pgid parent]
+              · iapply typedPointsto_combine _ _ _ Hnn4
+                simp only [TypedPointsto.typedPointstoDef]
+                rw [hbkt2]
+                iframe
+              iframe
+            iapply BigSepL.bigSepL_cons.2
+            isplitl [bucketC isLeafC unbalancedC spilledC keyC pgidC parentC childrenC inodesC]
+            · simp only [colF, if_neg hlcn, ite_true]
+              rw [hlv0]
+              unfold objOwn
+              iapply typedPointsto_combine _ _ _ Hlnn
+              simp only [TypedPointsto.typedPointstoDef, colRe]
+              iframe
+            iapply BigSepL.bigSepL_nil.2; iempintro
+          · iexact Hks
+        · iapply (objOwn_bkt_unf _ _ _ _ _).2
+          iframe
+        · iframe
+        · iframe
+        sorry
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
         $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
