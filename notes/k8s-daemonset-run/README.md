@@ -117,3 +117,13 @@ freeze: R7 below; track B's glue proofs; review rounds (round 1 on the sync path
 - Finding (track C): `nonissues/k8s-daemonset-updatedaemonset-swapped-args.md`.
 - `etc/bounds-check.py --check` fails on three new mentions (`Main`, `run`: adequacy-facing, as
   k8setcd3's; `NewDaemonSetsController`: track B's pools, being moved onto the informers'): Stage 6.
+- R8 (2026-11-04, review 1's H1): the ambiguous-create scope restriction is a **premise**, not a
+  `sorry` inside a spec's proof: `isDsc` carries `⌜cfg.AmbiguousWrites' = false⌝` (taken by
+  `NewDaemonSetsController`), so every controller spec is true of the code; the one false obligation
+  of the run is then `run`'s, where the driver's `serverConfig()` sets the flag, named after
+  `issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`. Supersedes design.md's "The ambiguous
+  create" (a `sorry` on `syncNodes`' branch would leave a false spec under every caller).
+- Review round 1 (sync path, `review-1-sync.md`): H2-H4 fixed by track B as proposed; M1/M4
+  (boundary specs of `NewAggregate`, `DeletePod`'s error, `klog.FromContext`, `HasStatusCause`) go
+  to Stage 4; M2 (`fmt.Errorf` with `%#v` of a struct pointer) a local boundary spec and a
+  `notes/perennial-changes.md` entry; M3 the library's vocabulary moved out of `daemon/`.
