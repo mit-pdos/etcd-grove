@@ -98,6 +98,34 @@ theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List
     rw [hlen]
     iexists _; iexact H
 
+/-- The bytes of the extent from `f` read from `wb'`, which agrees with `wb` wherever an id of
+`fl` is not, are `wb`'s, when `flCurOK` holds of them and `f`'s bytes hold a page header. -/
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+theorem extentBytes_congr (fl : FLPg) (C : CommitSt) (wb wb' : Nat → List w8) (f : Nat)
+    (hf : C.flpg = some f) (h : flCurOK fl C (extentBytes wb f)) (h16 : 16 ≤ (wb f).length)
+    (hhwm : C.hwm < 2 ^ 64)
+    (hag : ∀ s : Nat, s < 2 ^ 64 → W64 (s : Int) ∉ fl.allIds → wb' s = wb s) :
+    extentBytes wb' f = extentBytes wb f := by
+  have ha9 := (h f hf).2.2.2.2.2.2.2.2.1
+  have hlt : f + (1 + pageOverflow (extentBytes wb f)) ≤ C.hwm := (h f hf).2.1
+  have hov : pageOverflow (extentBytes wb f) = pageOverflow (wb f) := by
+    unfold pageOverflow pageHdr bytesAt
+    congr 3
+    unfold extentBytes
+    rw [show 1 + pageOverflow (wb f) = (pageOverflow (wb f)) + 1 by omega, List.range'_succ,
+      List.flatMap_cons, List.drop_zero, List.drop_zero,
+      List.take_append_of_le_length h16]
+  rw [hov] at ha9 hlt
+  have hf' : wb' f = wb f := hag f (by omega) (ha9 f (Nat.le_refl _) (by omega)).2
+  unfold extentBytes
+  rw [hf']
+  simp only [List.flatMap]
+  congr 1
+  refine List.map_congr_left fun s hs => ?_
+  rw [List.mem_range'] at hs
+  obtain ⟨i, hi, rfl⟩ := hs
+  exact hag _ (by omega) (ha9 _ (by omega) (by omega)).2
+
 end wjoin
 
 end bbolt

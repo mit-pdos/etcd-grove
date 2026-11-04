@@ -83,6 +83,33 @@ theorem pendSlots_rollback_sub (fl : FLPg) (T : w64) (s : Nat)
   obtain ⟨t, pd, x, hp, hx, rfl⟩ := (mem_pendSlots _ _).1 h
   exact (mem_pendSlots _ _).2 ⟨t, pd, x, rollback_pending_sub fl T t pd hp, hx, rfl⟩
 
+/-- `W64` of an id's value is the id. -/
+theorem W64_toNat_self (x : w64) : W64 (x.toNat : Int) = x :=
+  BitVec.eq_of_toNat_eq (toNat_W64_of_lt x.toNat x.isLt)
+
+/-- **`flCurOK` carries over to a freelist `fl'`** whose ids are among `fl`'s, whose free ids
+were free or committed-pending, whose committed-pending ids were, and which keeps each of `fl`'s
+committed-pending ids committed-pending or frees it as an id that could be free. -/
+theorem flCurOK_mono (fl fl' : FLPg) (C : CommitSt) (pg : List w8)
+    (hall : ∀ x, x ∈ fl'.allIds → x ∈ fl.allIds)
+    (hfree : ∀ x ∈ fl'.free, x ∈ fl.free ∨ committedPending fl C x)
+    (hcp : ∀ x, committedPending fl' C x → committedPending fl C x)
+    (hback : ∀ x, committedPending fl C x → committedPending fl' C x ∨
+      (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat))
+    (h : flCurOK fl C pg) : flCurOK fl' C pg := by
+  intro f hf
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩ := h f hf
+  refine ⟨a1, a2, a3, a4, a5, a6, a7, a8,
+    fun s h1 h2 => ⟨(a9 s h1 h2).1, fun hm => (a9 s h1 h2).2 (hall _ hm)⟩, fun x hx => ?_,
+    fun x hx => a11 x (hcp x hx), fun x hx => ?_⟩
+  · rcases hfree x hx with h | h
+    · exact a10 x h
+    · exact a11 x h
+  · rcases a12 x hx with h | h
+    · exact hback x h
+    · exact Or.inr h
+
+
 end flfacts
 
 end bbolt
