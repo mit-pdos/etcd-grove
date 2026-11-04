@@ -7,6 +7,7 @@ bytes cut for the reads `loadFreelist` makes before the core phase (the metas' q
 module
 
 public import Proof.go_etcd_io.bbolt.Open.CoreFacts
+public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Model
 
 @[expose] public section
 
@@ -103,6 +104,46 @@ theorem flIds_facts (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = some 
   obtain ⟨-, -, -, -, -, hids, hown, -⟩ := hfl g hg
   have hx' : x ∈ flIds (filePage ys g) := (mem_sortPgids_lf _ x).1 hx
   exact ⟨(hids x hx').2, not_coversSlot_treeSlots C _ (hown x hx').2⟩
+
+/-- Distinct ids below `n` are at most `n`. -/
+theorem nodup_below_length (ids : List w64) (n : Nat) (hnd : ids.Nodup)
+    (hlt : ∀ x ∈ ids, x.toNat < n) : ids.length ≤ n := by
+  have hnd' : (ids.map BitVec.toNat).Nodup :=
+    List.Pairwise.map BitVec.toNat (fun a b hab h => hab (BitVec.eq_of_toNat_eq h)) hnd
+  have hsub : ids.map BitVec.toNat ⊆ List.range n := by
+    intro a ha
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.1 ha
+    exact List.mem_range.2 (hlt x hx)
+  have := (List.subperm_of_subset hnd' hsub).length_le
+  simpa using this
+
+/-- **The store's invariant with the loaded freelist** `FLPg.ofInit ids` (`Open/Core.open_core_fl`):
+ids distinct, from 2, below the mark, off the tree. -/
+theorem storeOK_open_fl (ys : List w8) (C : CommitSt) (b : Loc) (L : Nat) (ids : List w64)
+    (himg : fileImage ys C) (hmeta : C.metaOk) (htree : treeOK C)
+    (hhwm : C.hwm * 4096 ≤ ys.length) (hL : ys.length ≤ L) (hsz : ys.length < 2 ^ 63)
+    (htx : C.txid < 2 ^ 62) (hnd : ids.Nodup) (h2 : ∀ x ∈ ids, 2 ≤ x.toNat)
+    (hlt : ∀ x ∈ ids, x.toNat < C.hwm) (hcov : ∀ x ∈ ids, ¬ coversSlot C.pages x.toNat) :
+    storeOK { openSigma b L C (fun s => bytesAt ys (4096 * s) 4096) with
+      fl := FLPg.ofInit ids } := by
+  have h0 := storeOK_open ys C b L himg hmeta htree hhwm hL hsz htx
+  have hmem : ∀ x, x ∈ (FLPg.ofInit ids).free ↔ x ∈ ids := fun x => mem_sortPgids_lf ids x
+  have hall : (FLPg.ofInit ids).allIds = sortPgids ids := by
+    unfold FLPg.allIds; rw [ofInit_pendingIds, List.append_nil]; rfl
+  have hlen := nodup_below_length ids C.hwm hnd hlt
+  refine storeOK_setFl _ (FLPg.ofInit ids) h0 rfl rfl rfl ⟨⟨?_, ?_, ?_, ?_, ?_⟩, rfl, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl⟩
+  · rw [hall]; exact (sortPgids_perm ids).nodup_iff.2 hnd
+  · intro x hx; rw [hall] at hx; exact h2 x ((sortPgids_perm ids).mem_iff.1 hx)
+  · exact sortPgids_incr hnd
+  · rw [hall, (sortPgids_perm ids).length_eq]; omega
+  · intro t p hp; rw [ofInit_pending] at hp; cases hp
+  · intro x hx; exact hlt x ((hmem x).1 hx)
+  · intro t pd x hp; rw [ofInit_pending] at hp; cases hp
+  · intro t pd hp; rw [ofInit_pending] at hp; cases hp
+  · simp only [openSigma]; omega
+  · intro x hx; have := hlt x ((hmem x).1 hx); omega
+  · intro x hx; rw [ofInit_pendingIds] at hx; cases hx
+  · intro x hx; exact hcov x ((hmem x).1 hx)
 
 end facts
 
