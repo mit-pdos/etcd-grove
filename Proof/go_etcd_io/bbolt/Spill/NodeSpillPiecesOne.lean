@@ -372,9 +372,32 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         ↓reduceIte]
     · iexact Hw
     · rw [hv3]; iexact Hdb
-  · -- a parent: the put
+  · -- a parent: the put. Not yet (U9l hand-off). Steps, from `Hw : wtxW` of
+    -- `X2w = (X2.setNode bl l (pcRec ra id false)).setBuf id (pcPage …)`, `pl = ra.nv.parent'`:
+    -- 1. `pl`'s record in `X2w`: `hpar` gives `rp` at `X`; `X1` is `X` or a `setNode` of `l`
+    --    (`WX.setNode_node_ne`, `pl ≠ l`); `allocRes_node Hal'` gives `rpa` at `X2`, `nodeSim`;
+    --    `X2w` keeps it (`setNode_node_ne`; `setBuf` keeps `bs`). Sortedness through `nodeSim`
+    --    (`wsSorted` reads `wKey` only: `ws.map wDat` equal); `wsLive rpa.ws` and the keys'
+    --    lengths from `liveFresh X2`/`derefPre X2` (`allocRes_derefPre'`, as `hlf2`).
+    -- 2. `wtxW_open`, then `wtxHeap_setBkt_acc tx 1 X2w bl B [l, pl] f` (both live): `l`'s and
+    --    `pl`'s objects, the bucket's (its `tx` field: the `Htxf` dance of `node__free`), the
+    --    transaction's fields (`tx.meta`, `meta' ↦ mv`, at full fraction: `node.put` takes `dqb`).
+    -- 3. `l`'s object unfolded (`objOwn_live_node`, `iStructNamed`); `key := node.key`; the nil
+    --    test (`decide (ra.nv.key' = slice.nil)`); `inodes[0].Key()` by `ownSlice_elem_acc` and
+    --    `hKey` (as `Spill/SplitIndex`); the old key's source is the key's `srcOwn` (`Hkey`) or the
+    --    first inode's (the persistent `wOwn` list's head: `wOwn_true'`).
+    -- 4. `hPut X2.v pl bl rpa tx mp mv dqb wq oldKey k0 slice.nil okb (w0.key) [] oks w0.ks
+    --    (Src.own DFrac.discard) id (W32 0)` (the nil value's `srcOwn`: `ownSlice_nil` made
+    --    persistent); its post's `s`, `ins` are `pcPar`'s.
+    -- 5. `node.key = node.inodes[0].Key()` (`hKey` again, the field's store); `Assert` with
+    --    `0 < len`: a `srcOwn` gives the slice's length (`ownSlice_len` for `↦*□`, `inViewAt`'s
+    --    for the view).
+    -- 6. back: `l`'s object for `pcRec ra id true` (its key's `srcOwn` the first entry's),
+    --    `pl`'s for `pcPar rpa ra id s ins`, the wand with `B' = {B with ns := (B.ns.insert l _)
+    --    .insert pl _}`; `IncSpill` (reopen `wtxW` for `statsTok`, as the parentless case); the
+    --    post's `X3 = pcFin X2 bl l ra pl rpa s ins id count true` needs `setBuf`/`setNode`
+    --    commuting and a `setNode` of `l` overwriting one (`setNode_eq` unfolds both).
     rw [decide_eq_false hp]
-    trace_state
     sorry
 
 end proof
