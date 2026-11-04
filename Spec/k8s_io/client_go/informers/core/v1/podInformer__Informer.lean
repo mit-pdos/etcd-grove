@@ -1,7 +1,9 @@
 /-
 `(*podInformer).Informer()`: `f.TypedInformer()`, the factory's shared informer of `.pods` (made on
 the first call, `defaultInformer`) in a typed wrapper: `isInformer` of it, its names the
-factory's for good (`facInf`), its store indexed by namespace. Lean-first; the DaemonSet run's
+factory's for good (`facInf`), so the factory's not-started token of the resource (the
+callers' halves, `facNotStarted`, from the factory's constructor) is the informer's
+(`facNotStarted_inf`), and its store indexed by namespace. Lean-first; the DaemonSet run's
 track A.
 -/
 module

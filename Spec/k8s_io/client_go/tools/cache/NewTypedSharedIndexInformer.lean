@@ -34,8 +34,8 @@ abbrev NewTypedSharedIndexInformer.spec : Prop :=
     (App (Val #(functions NewTypedSharedIndexInformer [T])) (Val #x))
   {{ (w : Loc), RET #(interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w);
       isInformer (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w) γa r I Fam ∗
-      □ (infRunOk x -∗
-        infRunOk (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w)) }}
+      □ (infRunOk x I.γi -∗
+        infRunOk (interface.mkOk (go.GoType.PointerType (typedSharedIndexInformer.ty T)) #w) I.γi) }}
 
 end spec
 

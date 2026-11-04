@@ -3,12 +3,13 @@
 else the store's `AddIndexers`: on success each index registered for good (`infIdx`). Lean-first;
 the DaemonSet run's track A.
 
-**To be restricted to before the informer's start** (the coordinator's decision, 2026-11-04; the
-controller adds its indexers before `Start`): after the start the call succeeds too (the store
-re-indexes its items), but the informer invariant's copy of the store state held by the processing
-goroutine (`γi.sw`) records `fnIds`, so a proof after the start would need that copy to ignore it.
-The restriction needs a not-started token, whose design changes the factory's `Start` (it must
-consume the tokens of the informers it starts): pending, the run's report.
+**Specified before the informer's start only** (decision R6; the controller adds its indexers
+before `Start`): it borrows a fraction of the not-started token (`infNotStarted`), so the informer
+has not stopped and an error comes only from the store (a name already registered). After the start
+the call succeeds in Go too (the store re-indexes its items; only a stopped informer refuses): the
+restriction is the spec's, chosen because the informer invariant's copy of the store state held by
+the processing goroutine (`γi.sw`) records `fnIds`, so a proof after the start would need that copy
+to ignore it.
 -/
 module
 
@@ -37,10 +38,11 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 /-- **`s.AddIndexers(m)`**: see the file header. -/
 abbrev sharedIndexInformer.AddIndexers.spec : Prop :=
   ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc) (nids : GMap GoString Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ ∗ nm ↦${dn} nfv ∗
+  ∀ (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ ∗ nm ↦${dn} nfv ∗
       fnsOk (infObj I.γi r) nfv (GMap.fmap Fam nids) }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"AddIndexers")) (Val #nm))
-  {{ (err : GoInterface), RET #err; nm ↦${dn} nfv ∗
+  {{ (err : GoInterface), RET #err; infNotStarted I.γi q ∗ nm ↦${dn} nfv ∗
       (⌜err ≠ interface.nil⌝ ∨ (⌜err = interface.nil⌝ ∗ [∗map] n ↦ j ∈ nids, infIdx I n j)) }}
 
 end spec

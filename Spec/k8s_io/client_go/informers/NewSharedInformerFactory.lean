@@ -3,8 +3,9 @@
 model API server's clientset, default resync `0` (the driver's; a positive resync is out of scope:
 the handlers' resyncs are not covered). The caller gives read access to the server's state
 (`apiReader`), its writers' good keys (`keysOk`) and the family of index relations of each
-resource's store, the namespace index first (`Fams r 0 = nsIdxFn`). Lean-first; the DaemonSet
-run's track A.
+resource's store, the namespace index first (`Fams r 0 = nsIdxFn`). It gets the callers' halves of
+the not-started tokens of the factory's informers, one per resource (`facNotStarted`, decision R6),
+which `Start` takes back. Lean-first; the DaemonSet run's track A.
 -/
 module
 
@@ -38,7 +39,8 @@ abbrev NewSharedInformerFactory.spec : Prop :=
       clientsetAt c γa cfg false ∗ apiReader γa ∗ keysOk γa ∗ ⌜∀ r, Fams r 0 = nsIdxFn⌝ }}
     (App (App (Val (@! k8s_io.client_go.informers.NewSharedInformerFactory)) (Val #(clientVal c)))
       (Val #(W64 0 : time.Duration)))
-  {{ (f : Loc) (γF : FacNames), RET #(facVal f); isFactory f γF γa cfg Fams }}
+  {{ (f : Loc) (γF : FacNames), RET #(facVal f); isFactory f γF γa cfg Fams ∗
+      [∗list] r ∈ resAll, facNotStarted γF r 1 }}
 
 end spec
 

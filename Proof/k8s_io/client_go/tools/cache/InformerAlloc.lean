@@ -11,7 +11,8 @@ two ghost variables (`fifoSt`: `γf.st`, `γf.sy`), so they can be allocated bef
   state of the server whose keys are good: the invariant, for every FIFO names over the
   preallocated `st`/`sy`, and the halves its goroutines will own (the reflector's last version,
   the processing goroutine's popped deltas and store view, the FIFO's lock halves), with the
-  store's indices registered for good (`γi.ix`);
+  store's indices registered for good (`γi.ix`), the not-started token's name `γns` the caller's
+  (`γi.ns`);
 * `infInv_readIdxAU`: a store read through the invariant (as `infInv_readLbAU`) also sees the
   registered indices in the store's `fnIds`.
 -/
@@ -61,10 +62,10 @@ theorem infInv_congr (γa : ApiNames) (r : Res) (γf γf' : FifoNames) (γt : Ts
 
 /-- **The invariant at the informer's construction**: see the file header. -/
 theorem infInv_alloc (γa : ApiNames) (r : Res) (γt : TsNames) (σ0 : apimodel.St)
-    (fnIds : GMap GoString Nat) (E : CoPset)
+    (fnIds : GMap GoString Nat) (γns : GName) (E : CoPset)
     (hgood : ∀ c ∈ (σ0.tbl r).log, keyGood c.obj.key) :
     ⊢ pastSt γa σ0 -∗ storeSt γt ⟨∅, [], fnIds⟩ ={E}=∗
-      ∃ (γi : InfNames) (st sy : GName),
+      ∃ (γi : InfNames) (st sy : GName), ⌜γi.ns = γns⌝ ∗
         (□ ∀ γf : FifoNames, ⌜γf.st = st ∧ γf.sy = sy⌝ -∗ infInv γa r γf γt γi) ∗
         fifoPre st sy ∗ reflLast γi none ∗
         ghostVar γi.pop (1 : Qp).half (([] : List cache.FD), false) ∗
@@ -93,7 +94,7 @@ theorem infInv_alloc (γa : ApiNames) (r : Res) (γt : TsNames) (σ0 : apimodel.
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hsy
   ihave Hix := (show (ghostMapAuth γix 1 (fnIds ∪ ∅) : IProp GF) ⊢ ghostMapAuth γix 1 fnIds by
     rw [GMap.map_union_empty]) $$ Hix
-  let γi : InfNames := ⟨γreg, γlast, γpop, γsw, γrvlb, γfirst, γix⟩
+  let γi : InfNames := ⟨γreg, γlast, γpop, γsw, γrvlb, γfirst, γix, γns⟩
   imod (inv_alloc infN E (infRes γa r (fifoNamesOf γst γsy) γt γi)) $$
     [Hreg Hst Hsw1 Hlast1 Hpop1 Hlb Hfirst Hix Hfst1 Hsy1] with #Hinv
   · inext
@@ -124,6 +125,8 @@ theorem infInv_alloc (γa : ApiNames) (r : Res) (γt : TsNames) (σ0 : apimodel.
   imodintro
   iexists γi, γst, γsy
   iframe #
+  isplitr
+  · ipureintro; rfl
   isplitr
   · iintro !> %γf %hγf
     rw [infInv_congr γa r γf (fifoNamesOf γst γsy) γt γi hγf.1 hγf.2]

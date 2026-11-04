@@ -12,7 +12,8 @@ the lock's resource.
   reflector's last version (none), the processing goroutine's popped deltas (none) and store view,
   the FIFO's lock halves (`fifoPre`: `I.γf.st`/`sy`, allocated before the FIFO, at the initial
   queue), as `infInv_alloc` (`InformerAlloc.lean`) gives them.
-* `siiLocked s I`: `startedLock`'s resource: `started`, `stopped`, `controller`, and `siiPre I`
+* `siiLocked s I`: `startedLock`'s resource: `started`, `stopped` (only once started),
+  `controller`, the not-started token's start-lock half at `started` (`nsLock`), and `siiPre I`
   until the start.
 * `siiAt s γa cfg r I Fam` (persistent): the informer's fixed fields (its store `storeVal I`, its
   list-watch, of the model server's resource `r` (`lwOk`), its key function, its `synced`
@@ -60,6 +61,7 @@ def siiLocked (s : Loc) (I : InfH) : IProp GF :=
     s.[sharedIndexInformer, go!"started"] ↦ started ∗
     s.[sharedIndexInformer, go!"stopped"] ↦ stopped ∗
     s.[sharedIndexInformer, go!"controller"] ↦ c ∗
+    ⌜stopped = true → started = true⌝ ∗ nsLock I.γi.ns started ∗
     (if started then iprop(True) else siiPre I))
 
 /-- **The informer `s`** (persistent): see the file header. -/

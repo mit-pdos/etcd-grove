@@ -1,7 +1,9 @@
 /-
 `(*sharedInformerFactory).StartWithContext(ctx)`: under the lock, unless shutting down, each
 informer not yet started runs `informer.RunWithContext(ctx)` on a goroutine of the factory's
-wait group (`infRunOk`, which the factory's lock holds for each informer). Lean-first; the
+wait group (`infRunOk`, which the factory's lock holds for each informer), with the callers' halves
+of every resource's not-started token (`facNotStarted`, as the factory's constructor gave them;
+decision R6), which it takes. Lean-first; the
 DaemonSet run's track A.
 -/
 module
@@ -33,7 +35,8 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 abbrev sharedInformerFactory.StartWithContext.spec : Prop :=
   ∀ (f : Loc) (γF : FacNames) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (Fams : Res → Nat → Fn GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
     (γch : ChanNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗ isFactory f γF γa cfg Fams ∗ context.isContext ctx cs ∗ stableCtx ctx ch γch }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.informers ∗ isFactory f γF γa cfg Fams ∗ context.isContext ctx cs ∗ stableCtx ctx ch γch ∗
+      [∗list] r ∈ resAll, facNotStarted γF r 1 }}
     (App (Val (f @!! go.GoType.PointerType k8s_io.client_go.informers.sharedInformerFactory.ty @!! go!"StartWithContext"))
       (Val #(GoInterface.ok ctx)))
   {{ RET #(); True }}

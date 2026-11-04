@@ -1,6 +1,8 @@
 /-
 `informers.NewSharedInformerFactoryWithOptions(client, 0, options...)` with no option: the factory
-(all namespaces, empty maps, no informer yet). Lean-first; the DaemonSet run's track A.
+(all namespaces, empty maps, no informer yet), and the callers' halves of its informers'
+not-started tokens (`facNotStarted`, one per resource, decision R6). Lean-first; the DaemonSet run's
+track A.
 -/
 module
 
@@ -37,7 +39,8 @@ abbrev NewSharedInformerFactoryWithOptions.spec : Prop :=
     (App (App (App (Val (@! k8s_io.client_go.informers.NewSharedInformerFactoryWithOptions))
       (Val #(clientVal c))) (Val #(W64 0 : time.Duration))) (Val #opts))
   {{ (f : Loc) (γF : FacNames), RET #(facVal f);
-      opts ↦*{dq} ([] : List k8s_io.client_go.informers.SharedInformerOption) ∗ isFactory f γF γa cfg Fams }}
+      opts ↦*{dq} ([] : List k8s_io.client_go.informers.SharedInformerOption) ∗ isFactory f γF γa cfg Fams ∗
+      [∗list] r ∈ resAll, facNotStarted γF r 1 }}
 
 end spec
 

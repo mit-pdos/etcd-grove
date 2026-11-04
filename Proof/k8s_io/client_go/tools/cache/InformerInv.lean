@@ -9,7 +9,8 @@ one informer of one resource (all namespaces). Lean-first.
   invariant's and the reflector's), the deltas popped and not yet applied (`pop`, halves: the
   invariant's and the processing goroutine's, with their Go deltas), the store's state as its writer
   knows it (`sw`), the store's index registry (`ix`, authoritative over the store's `fnIds`), a lower bound of the store's version (`rvlb`, a mono counter: the contract's
-  monotonicity, persistent), and the first list's version (`first`, persistent once set).
+  monotonicity, persistent), the first list's version (`first`, persistent once set), and the
+  not-started token (`ns`, outside the invariant: the start lock's, `SIIAt.lean`).
 * `infObj γi r x`: the FIFO's and the store's object contract `OK`: `x` registered with a model
   object `o` of resource `r`, owned read-only (`objAt x DFrac.discard o`).
 * `infInv`: there is a past state `σp` of the server and an abstract state `s` such that
@@ -48,6 +49,11 @@ structure InfNames where
   /-- the store's index registry (index name to the id of its relation): the store's `fnIds`,
   authoritative here, its elements persistent once registered (`InformerApi.infIdx`) -/
   ix : GName
+  /-- the not-started token (a `Bool` ghost variable, `false` until the start): halves, the start
+  lock's (`SIIAt.siiLocked`, kept equal to the `started` field) and the callers'
+  (`InformerApi.infNotStarted`, split among them). Chosen by the informer's creator (the factory
+  preallocates one per resource, `informers.FacNames.ns`). -/
+  ns : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

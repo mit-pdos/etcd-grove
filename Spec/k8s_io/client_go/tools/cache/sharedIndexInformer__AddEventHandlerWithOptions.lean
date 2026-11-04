@@ -5,6 +5,11 @@ processor (before the start: it receives every event from the first; after: unde
 `blockDeltas`, the store's items as initial adds first, then every later event). The handler's
 contract (`handlerSpec`): each call with its event's facts, on the registering code's resource
 `H`. No resync period (`handlerOptsOk`; scope). Lean-first; the DaemonSet run's track A.
+
+**Specified before the informer's start only** (decision R6; the controller registers its handlers
+before `Start`): it borrows a fraction of the not-started token (`infNotStarted`), so the informer
+has neither started nor stopped and there is no error. After the start the call succeeds in Go too
+(until the informer stops); the restriction is the spec's.
 -/
 module
 
@@ -33,10 +38,10 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 /-- **`s.AddEventHandlerWithOptions(h, opts)`**: see the file header. -/
 abbrev sharedIndexInformer.AddEventHandlerWithOptions.spec : Prop :=
   ∀ (s : Loc) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res) (I : InfH) (Fam : Nat → Fn GF) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ handlerSpec γa r I.γi h H ∗ handlerOptsOk opts ∗ H [] }}
+  ∀ (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ siiAt s γa cfg r I Fam ∗ infNotStarted I.γi q ∗ handlerSpec γa r I.γi h H ∗ handlerOptsOk opts ∗ H [] }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"AddEventHandlerWithOptions")) (Val #h)) (Val #opts))
-  {{ (reg err : GoInterface), RET (PairV #reg #err);
-      ⌜err = interface.nil⌝ ∨ (⌜err ≠ interface.nil⌝ ∗ H []) }}
+  {{ (reg : GoInterface), RET (PairV #reg #(interface.nil : GoInterface)); infNotStarted I.γi q }}
 
 end spec
 

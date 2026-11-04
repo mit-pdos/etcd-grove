@@ -38,17 +38,23 @@ reflector's `RefInf`) are what its proofs will rest on.
   `infFirst`, and the store's version at least `v` from then on, `infRvLb`).
 * `infReaders I r Fam` (persistent): the store's reader slots in a thread pool (under the thread
   bound), borrowed with a thread token: what a reading thread (a worker, a handler) uses.
+* **The not-started token** (the run's decision R6): a `Bool` ghost variable `γi.ns`, `false` until
+  the informer starts. Its halves: the start lock's (`nsLock γ started`, in `SIIAt.siiLocked`, kept
+  equal to the `started` field) and the callers' (`notStartedAt γ q`, fraction `q` of it, split
+  among them; `infNotStarted γi q` for the informer's). A fraction says the informer has not
+  started (`nsLock_agree`); the whole callers' half lets the start flip it (`nsLock_start`). The
+  informer's creator chooses the name (`nsAlloc`): the factory preallocates one per resource and
+  hands the callers' halves out at its construction (`informers.facNotStarted`).
 * `isInformer x γa r I Fam` (persistent): **the informer as an interface value** (a
   `SharedIndexInformer`, whatever wrapper `x` is: `Informer()` returns a `*typedSharedIndexInformer`
   around the factory's): `infView`, `infReaders`, and the contracts of the methods the controller calls on it
   (`GetStore`, `GetIndexer`, `HasSynced` called and as a method value, `AddEventHandlerWithOptions`,
-  `AddIndexers`).
-* `infRunOk x` (persistent): `x.RunWithContext(ctx)` runs the informer (the factory's `Start`
-  holds it, not the clients).
-
-To be restricted (the coordinator's decision, 2026-11-04): `AddEventHandlerWithOptions` and
-`AddIndexers` to before the informer's start (the controller's use); the not-started token this
-needs is pending (the run's report).
+  `AddIndexers`). The last two are specified **before the informer's start only** (decision R6, the
+  controller's use): each borrows a fraction of the not-started token. In Go both also work after
+  the start (a handler registered late gets the store's items as initial adds; `AddIndexers`
+  re-indexes the store, refused only once the informer has stopped): the restriction is the spec's.
+* `infRunOk x γi` (persistent): `x.RunWithContext(ctx)` runs the informer, given the whole callers'
+  half of the not-started token (the factory's `Start` calls it).
 
 Scope (marked): handlers without a resync period (`HandlerOptions.ResyncPeriod` `nil`, and the
 factory's default resync `0`): a resyncing handler's synthetic updates are not covered.
@@ -112,21 +118,85 @@ def InfH.code [GooseExts] (I : InfH) :
   ((I.ca, I.ts, I.kf),
    ([I.γf.st, I.γf.tok, I.γf.sy, I.γf.ex, I.γt.st, I.γt.ph], chanCode I.γf.ch),
    (I.γt.idx, I.γt.im),
-   [I.γi.reg, I.γi.last, I.γi.pop, I.γi.sw, I.γi.rvlb, I.γi.first, I.γi.ix])
+   [I.γi.reg, I.γi.last, I.γi.pop, I.γi.sw, I.γi.rvlb, I.γi.first, I.γi.ix, I.γi.ns])
 
 theorem InfH.code_inj [GooseExts] {I I' : InfH} (h : I.code = I'.code) : I = I' := by
   obtain ⟨ca, ts, kf, ⟨fst, ftok, fsy, fex, fch⟩, ⟨tst, tph, tidx, tim⟩,
-    ⟨r1, r2, r3, r4, r5, r6, r7⟩⟩ := I
+    ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩⟩ := I
   obtain ⟨ca', ts', kf', ⟨fst', ftok', fsy', fex', fch'⟩, ⟨tst', tph', tidx', tim'⟩,
-    ⟨r1', r2', r3', r4', r5', r6', r7'⟩⟩ := I'
+    ⟨r1', r2', r3', r4', r5', r6', r7', r8'⟩⟩ := I'
   simp only [InfH.code, Prod.mk.injEq, List.cons.injEq, and_true] at h
   obtain ⟨⟨rfl, rfl, rfl⟩, ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, hch⟩, ⟨rfl, rfl⟩,
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩⟩ := h
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩⟩ := h
   rw [chanCode_inj hch]
 
 instance InfH.countable [GooseExts] : Pos.Countable InfH :=
   .ofInjective (fun I => Pos.Countable.encode I.code)
     (by intro a b h; rw [Pos.encode_eq_iff] at h; exact InfH.code_inj h)
+
+/-! ### The not-started token -/
+
+section token
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The not-started token's start-lock half**, at `b` (the `started` field). -/
+def nsLock (γ : GName) (b : Bool) : IProp GF := ghostVar γ (1 : Qp).half b
+
+instance nsLock_timeless (γ : GName) (b : Bool) : Timeless (nsLock (GF := GF) γ b) := by
+  unfold nsLock; infer_instance
+
+/-- **Fraction `q` of the not-started token's callers' half**: the informer has not started. -/
+def notStartedAt (γ : GName) (q : Qp) : IProp GF := ghostVar γ q.half false
+
+instance notStartedAt_timeless (γ : GName) (q : Qp) : Timeless (notStartedAt (GF := GF) γ q) := by
+  unfold notStartedAt; infer_instance
+
+instance notStartedAt_fractional (γ : GName) : Fractional (notStartedAt (GF := GF) γ) := by
+  unfold notStartedAt; exact ghostVar_half_fractional γ false
+
+/-- **The informer has not started** (fraction `q` of the callers' half of its token). -/
+def infNotStarted (γi : InfNames) (q : Qp) : IProp GF := notStartedAt γi.ns q
+
+instance infNotStarted_timeless (γi : InfNames) (q : Qp) :
+    Timeless (infNotStarted (GF := GF) γi q) := by
+  unfold infNotStarted; infer_instance
+
+instance infNotStarted_fractional (γi : InfNames) : Fractional (infNotStarted (GF := GF) γi) := by
+  unfold infNotStarted; exact notStartedAt_fractional γi.ns
+
+open Iris.ProofMode in
+/-- **A not-started token, allocated**: the start lock's half and the whole callers' half. -/
+theorem nsAlloc : ⊢ |==> ∃ γ : GName, nsLock (GF := GF) γ false ∗ notStartedAt γ 1 := by
+  imod (ghostVar_alloc (GF := GF) false) with ⟨%γ, H⟩
+  ihave ⟨H1, H2⟩ := (ghostVar_split_half γ 1 false).1 $$ H
+  imodintro
+  iexists γ
+  unfold nsLock notStartedAt
+  iframe
+
+open Iris.ProofMode in
+/-- **The callers' fraction says the informer has not started.** -/
+theorem nsLock_agree (γ : GName) (b : Bool) (q : Qp) :
+    nsLock (GF := GF) γ b ∗ notStartedAt γ q ⊢ ⌜b = false⌝ := by
+  unfold nsLock notStartedAt
+  iintro ⟨H1, H2⟩
+  iapply (ghostVar_agree γ b (1 : Qp).half false q.half) $$ H1 H2
+
+open Iris.ProofMode in
+/-- **The start**: with the whole callers' half, the start lock's half flips to `true` (the
+callers' half is used up). -/
+theorem nsLock_start (γ : GName) (b : Bool) :
+    nsLock (GF := GF) γ b ∗ notStartedAt γ 1 ⊢ |==> nsLock γ true := by
+  unfold nsLock notStartedAt
+  iintro ⟨H1, H2⟩
+  imod (ghostVar_update_halves true γ b false) $$ H1 H2 with ⟨H1, -⟩
+  imodintro
+  iexact H1
+
+end token
 
 /-! ### The events' facts -/
 
@@ -275,22 +345,22 @@ def isInformer (x : GoInterface) (γa : ApiNames) (r : Res) (I : InfH) (Fam : Na
         WP (App (Val #(methods i.ty go!"GetIndexer" i.v)) (Val #())) {{ Φ }}) ∗
     -- `HasSynced`, called or as a method value
     syncedFn (methods i.ty go!"HasSynced" i.v) I.γi ∗
-    -- `AddEventHandlerWithOptions(h, opts)`: the handler registered (its listener gets `H []`);
-    -- an error only once the informer has stopped, `H []` given back
-    □ (∀ (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF)
+    -- `AddEventHandlerWithOptions(h, opts)`, before the start: the handler registered (its
+    -- listener gets `H []`, and every event from the first), no error
+    □ (∀ (q : Qp) (h : GoInterface) (opts : HandlerOptions) (H : List Ev → IProp GF)
         (Φ : val → IProp GF),
-        handlerSpec γa r I.γi h H -∗ handlerOptsOk opts -∗ H [] -∗
-        ▷ (∀ (reg err : GoInterface),
-            (⌜err = interface.nil⌝ ∨ (⌜err ≠ interface.nil⌝ ∗ H [])) -∗ Φ (PairV #reg #err)) -∗
+        infNotStarted I.γi q -∗ handlerSpec γa r I.γi h H -∗ handlerOptsOk opts -∗ H [] -∗
+        ▷ (∀ (reg : GoInterface), infNotStarted I.γi q -∗
+            Φ (PairV #reg #(interface.nil : GoInterface))) -∗
         WP (App (App (Val #(methods i.ty go!"AddEventHandlerWithOptions" i.v)) (Val #h))
           (Val #opts)) {{ Φ }}) ∗
-    -- `AddIndexers(m)`: the indexers `nfv` (relations `Fam (nids n)`): on success each registered
-    -- for good; an error (a name already registered, or the informer stopped) changes nothing
-    □ (∀ (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc) (nids : GMap GoString Nat)
-        (Φ : val → IProp GF),
-        ⌜GMap.size nfv ≤ 2 ^ 62⌝ -∗ nm ↦${dn} nfv -∗
+    -- `AddIndexers(m)`, before the start: the indexers `nfv` (relations `Fam (nids n)`): on
+    -- success each registered for good; an error (a name already registered) changes nothing
+    □ (∀ (q : Qp) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc)
+        (nids : GMap GoString Nat) (Φ : val → IProp GF),
+        infNotStarted I.γi q -∗ ⌜GMap.size nfv ≤ 2 ^ 62⌝ -∗ nm ↦${dn} nfv -∗
         fnsOk (infObj I.γi r) nfv (GMap.fmap Fam nids) -∗
-        ▷ (∀ (err : GoInterface), nm ↦${dn} nfv -∗
+        ▷ (∀ (err : GoInterface), infNotStarted I.γi q -∗ nm ↦${dn} nfv -∗
             (⌜err ≠ interface.nil⌝ ∨
               (⌜err = interface.nil⌝ ∗ [∗map] n ↦ j ∈ nids, infIdx I n j)) -∗ Φ #err) -∗
         WP (App (Val #(methods i.ty go!"AddIndexers" i.v)) (Val #nm)) {{ Φ }}))
@@ -325,17 +395,19 @@ variable [sem : go.Semantics]
 variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-- **The informer runs** (persistent; the factory's `Start` runs it on a goroutine of its own):
-`x.RunWithContext(ctx)` under a context whose `Done()` is one channel, returning (once the context
-is done). Not a client's concern: the factory holds it (`informers.facLocked`). -/
-def infRunOk (x : GoInterface) : IProp GF :=
+`x.RunWithContext(ctx)`, with the whole callers' half of the not-started token (used up), under a
+context whose `Done()` is one channel, returning (once the context is done). The factory holds it
+(`informers.facLocked`). -/
+def infRunOk (x : GoInterface) (γi : InfNames) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜x = interface.ok i⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan)
         (γch : ChanNames) (Φ : val → IProp GF),
-        context.isContext ctx cs -∗ stableCtx ctx ch γch -∗ ▷ Φ #() -∗
+        context.isContext ctx cs -∗ stableCtx ctx ch γch -∗ infNotStarted γi 1 -∗ ▷ Φ #() -∗
         WP (App (Val #(methods i.ty go!"RunWithContext" i.v)) (Val #(GoInterface.ok ctx)))
           {{ Φ }}))
 
-instance infRunOk_persistent (x : GoInterface) : Persistent (infRunOk (GF := GF) x) := by
+instance infRunOk_persistent (x : GoInterface) (γi : InfNames) :
+    Persistent (infRunOk (GF := GF) x γi) := by
   unfold infRunOk; infer_instance
 
 end run

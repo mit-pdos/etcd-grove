@@ -16,7 +16,15 @@ Lean-first; the DaemonSet run's track A (`notes/k8s-daemonset-run/design.md`).
   `reflect.Type` keys, which need a stronger `reflect.TypeOf` boundary spec, see the run's report.)
 * `facInf γF r I` (persistent): the factory's informer of resource `r` has names `I`, for good
   (`facInf_agree`): every `Informer()` and `Lister()` of the resource's typed informer is over the
-  same informer.
+  same informer; its not-started token is the factory's of `r` (`I.γi.ns = γF.ns r`).
+* **The not-started tokens** (decision R6): the factory preallocates one per resource (`γF.ns r`,
+  `informer.nsAlloc`), before the informer of `r` exists. `facNotStarted γF r q` is fraction `q` of
+  the callers' half, which the factory's constructor hands out (`[∗list] r ∈ resAll,
+  facNotStarted γF r 1`); once `Informer()` has given `facInf γF r I`, it is the informer's
+  (`facNotStarted_inf`: `infNotStarted I.γi q`), which `AddEventHandlerWithOptions`/`AddIndexers`
+  borrow, and `Start`/`StartWithContext` take every resource's whole callers' half back (to run the
+  informers it starts, `infRunOk`). The start-lock half waits in the factory's lock until
+  `InformerFor` makes the informer, whose constructor takes it (`newInfFnOk`).
 * `facRefAt T l f` (persistent): a struct `*T` at `l` holding the factory `f` with namespace `""`
   and no tweak (the groups `apps.group`/`core.group`, the versions `v1.version`, the typed
   informers `daemonSetInformer`, ...; the node informer has no namespace, `facRefAtNoNs`):
@@ -42,9 +50,16 @@ namespace informers
 
 open Iris Iris.BI apimodel cache informer
 
-/-- The factory's ghost names: its registry of informers (resource to names). -/
+/-- The factory's ghost names: its registry of informers (resource to names), and the
+not-started token of each resource's informer (preallocated, see the file header). -/
 structure FacNames where
   infs : GName
+  ns : Res → GName
+
+/-- The resources (the factory's informers' possible kinds). -/
+def resAll : List Res := [.pods, .nodes, .daemonSets, .revisions]
+
+theorem mem_resAll (r : Res) : r ∈ resAll := by cases r <;> simp [resAll]
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -69,7 +84,8 @@ def nsIdxFn : Fn GF :=
   fun x vs => iprop(∃ o : Obj, □ apimodel.objAt x DFrac.discard o ∗ ⌜vs = [o.meta.Namespace']⌝)
 
 /-- **The factory's informer of resource `r` has names `I`** (persistent). -/
-def facInf (γF : FacNames) (r : Res) (I : InfH) : IProp GF := r ↪[γF.infs]□ I
+def facInf (γF : FacNames) (r : Res) (I : InfH) : IProp GF :=
+  iprop(r ↪[γF.infs]□ I ∗ ⌜I.γi.ns = γF.ns r⌝)
 
 instance facInf_persistent (γF : FacNames) (r : Res) (I : InfH) :
     Persistent (facInf (GF := GF) γF r I) := by
@@ -80,8 +96,29 @@ open Iris.ProofMode in
 theorem facInf_agree (γF : FacNames) (r : Res) (I I' : InfH) :
     facInf (GF := GF) γF r I ∗ facInf γF r I' ⊢ ⌜I = I'⌝ := by
   unfold facInf
-  iintro ⟨H1, H2⟩
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
   iapply (ghostMapElem_agree r γF.infs DFrac.discard DFrac.discard I I') $$ H1 H2
+
+/-- **Resource `r`'s informer has not started** (fraction `q` of the callers' half of the factory's
+token of `r`; see the file header). -/
+def facNotStarted (γF : FacNames) (r : Res) (q : Qp) : IProp GF := notStartedAt (γF.ns r) q
+
+instance facNotStarted_fractional (γF : FacNames) (r : Res) :
+    Fractional (facNotStarted (GF := GF) γF r) := by
+  unfold facNotStarted; exact notStartedAt_fractional _
+
+instance facNotStarted_timeless (γF : FacNames) (r : Res) (q : Qp) :
+    Timeless (facNotStarted (GF := GF) γF r q) := by
+  unfold facNotStarted; infer_instance
+
+open Iris.ProofMode in
+/-- **The factory's token of `r` is its informer's.** -/
+theorem facNotStarted_inf (γF : FacNames) (r : Res) (I : InfH) (q : Qp) :
+    facInf (GF := GF) γF r I ⊢ (facNotStarted γF r q ∗-∗ infNotStarted I.γi q) := by
+  unfold facInf facNotStarted infNotStarted
+  iintro ⟨-, %h⟩
+  rw [h]
+  iapply wandIff_refl
 
 /-- The factory's read-only fields (internal). -/
 def facFixed (f c : Loc) : IProp GF :=
@@ -99,15 +136,17 @@ def facFixed (f c : Loc) : IProp GF :=
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"informerName"] ↦□ (null : Loc))
 
 /-- **The factory's lock's resource** (internal, see the file header): the informers made, each an
-informer of its resource over the factory's family. -/
+informer of its resource over the factory's family, over the factory's not-started token of its
+resource; for each resource not made, its token's start-lock half. -/
 def facLocked (f : Loc) (γF : FacNames) (γa : ApiNames) (Fams : Res → Nat → Fn GF) : IProp GF :=
   iprop(∃ (mi ms : GoMap) (sd : Bool) (G : GMap Res InfH),
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"informers"] ↦ mi ∗
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"startedInformers"] ↦ ms ∗
     f.[k8s_io.client_go.informers.sharedInformerFactory, go!"shuttingDown"] ↦ sd ∗
     ghostMapAuth γF.infs 1 G ∗
-    [∗map] r ↦ I ∈ G, ∃ x : GoInterface, isInformer x γa r I (Fams r) ∗ infRunOk x ∗
-      infIdx I go!"namespace" 0)
+    ([∗map] r ↦ I ∈ G, ∃ x : GoInterface, ⌜I.γi.ns = γF.ns r⌝ ∗ isInformer x γa r I (Fams r) ∗
+      infRunOk x I.γi ∗ infIdx I go!"namespace" 0) ∗
+    [∗list] r ∈ resAll, ⌜(G !! r).isSome⌝ ∨ nsLock (γF.ns r) false)
 
 /-- **The factory** (persistent): see the file header. -/
 def isFactory (f : Loc) (γF : FacNames) (γa : ApiNames)
@@ -182,21 +221,25 @@ instance facInfOut_persistent (γF : FacNames) (γa : ApiNames) (r : Res)
   unfold facInfOut; infer_instance
 
 /-- **A new informer of `r`** (an `InformerFor`'s `newFunc` result, before the factory registers
-it): the informer as `x`, runnable, its store indexed by namespace. -/
-def newInfOut (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (x : GoInterface) : IProp GF :=
-  iprop(∃ I : InfH, isInformer x γa r I Fam ∗ infRunOk x ∗ infIdx I go!"namespace" 0)
+it): the informer as `x`, its not-started token `γns`, runnable, its store indexed by namespace. -/
+def newInfOut (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (γns : GName) (x : GoInterface) :
+    IProp GF :=
+  iprop(∃ I : InfH, ⌜I.γi.ns = γns⌝ ∗ isInformer x γa r I Fam ∗ infRunOk x I.γi ∗
+    infIdx I go!"namespace" 0)
 
-instance newInfOut_persistent (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (x : GoInterface) :
-    Persistent (newInfOut γa r Fam x) := by
+instance newInfOut_persistent (γa : ApiNames) (r : Res) (Fam : Nat → Fn GF) (γns : GName)
+    (x : GoInterface) : Persistent (newInfOut γa r Fam γns x) := by
   unfold newInfOut; infer_instance
 
 /-- **`InformerFor`'s `newFunc` contract**: called with a clientset of the server and resync `0`,
-it returns a new informer of `r` (persistent). -/
+and the start-lock half of a not-started token `γns`, it returns a new informer of `r` over that
+token (persistent). -/
 def newInfFnOk (nf : GoFunc) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (r : Res)
     (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(□ ∀ (c : Loc) (Φ : val → IProp GF), clientsetAt c γa cfg false -∗
-    ▷ (∀ x : GoInterface, newInfOut γa r Fam x -∗ Φ #x) -∗
+  iprop(□ ∀ (c : Loc) (γns : GName) (Φ : val → IProp GF), clientsetAt c γa cfg false -∗
+    nsLock γns false -∗
+    ▷ (∀ x : GoInterface, newInfOut γa r Fam γns x -∗ Φ #x) -∗
     WP (App (App (Val #nf) (Val #(clientVal c))) (Val #(W64 0 : time.Duration))) {{ Φ }})
 
 instance newInfFnOk_persistent (nf : GoFunc) (γa : ApiNames)
