@@ -17,7 +17,7 @@ tracks the heap through the step and ends there):
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Rebalance.RblX
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSDefs
 public import Proof.go_etcd_io.bbolt.Rebalance.RblRm
 public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
@@ -36,15 +36,6 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section steps
 variable [GooseExts]
-
-/-- `X` with bucket `bl`'s record `B'` (without the node `n`) and `n` dead (its record `rn`). -/
-def WX.kill (X : WX) (bl : Loc) (B' : BRec) (n : Loc) (rn : NRec) : WX :=
-  { X with t := { X.t with bs := X.t.bs.insert bl B', dead := X.t.dead.insert n (.node bl rn) },
-           live := X.live.delete n }
-
-/-- Every node of every bucket is live (before `Commit`, no node of a bucket is dead). -/
-def nsLive (X : WX) : Prop :=
-  ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → l ∈ X.live
 
 /-- **At `Commit`, the invariant** (no deficient node). -/
 theorem rblX_init (X : WX) (fl : FLPg) (dbl : Loc) (hok : wOK X) (hr : liveReach X)
