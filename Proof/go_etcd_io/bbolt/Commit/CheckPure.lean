@@ -51,6 +51,22 @@ theorem walk_cover (P : Pages) (r : Nat) (h : ownRootOK P r) (id : Nat) (ho : ow
     ∃ (k : Nat) (ids : List Nat), (pageWalk P r)[k]? = some (id, ids) := by
   sorry
 
+/-- Slot `x` is covered by one of the first `i` pages of the walk of `r`. -/
+def walkSlot (P : Pages) (r i x : Nat) : Prop :=
+  ∃ j < i, ∃ id ids pg, (pageWalk P r)[j]? = some (id, ids) ∧ P !! id = some pg ∧ id ≤ x ∧
+    x ≤ id + pageOverflow pg
+
+/-- **The `i`-th page of the walk shares no slot with the earlier ones.** -/
+theorem walkSlot_disj (P : Pages) (r : Nat) (h : ownRootOK P r) (i id : Nat) (ids : List Nat)
+    (pg : List w8) (hi : (pageWalk P r)[i]? = some (id, ids)) (hpg : P !! id = some pg) (x : Nat)
+    (hx : walkSlot P r i x) : ¬ (id ≤ x ∧ x ≤ id + pageOverflow pg) := by
+  sorry
+
+/-- **The walk's pages' slots are the own pages' slots.** -/
+theorem walkSlot_all (P : Pages) (r : Nat) (h : ownRootOK P r) (x : Nat) :
+    walkSlot P r (pageWalk P r).length x ↔ ownSlot P r x := by
+  sorry
+
 end pure
 
 end bbolt
