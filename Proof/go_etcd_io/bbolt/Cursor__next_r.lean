@@ -53,11 +53,12 @@ theorem Cursor.next_r.wp_proof
       "Hk" ∷ rdTxK K tx src q T v ∗ "Hb" ∷ rBktP v tx b dq bv ibp pp ∗
       "Hcc" ∷ c ↦ Cursor.mk b stk1 ∗ "Hs" ∷ stk1 ↦* els1 ∗
       "Hcap" ∷ ownSliceCap elemRef stk1 (DFrac.own 1) ∗
-      "%Hp" ∷ ⌜rPosAt v bv pp els1 i1 s⌝ : IProp GF) $$ [Hk Hb Hc Hs Hcap]
+      "%Hp" ∷ ⌜rPosAt v bv pp els1 i1 s⌝ ∗
+      "%Hoff" ∷ ⌜rOffEnt v bv pp els → rOffEnt v bv pp els1⌝ : IProp GF) $$ [Hk Hb Hc Hs Hcap]
   · iexists stk, els, i
     simp only [named]
     iframe
-    ipureintro; exact hpos
+    ipureintro; exact ⟨hpos, id⟩
   wp_for IH
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave IH2 : (∃ (kk : Nat), "i" ∷ i_ptr ↦ W64 ((kk : Int) - 1) ∗ "Hs" ∷ stk1 ↦* els1 ∗
@@ -204,6 +205,7 @@ theorem Cursor.next_r.wp_proof
         simp only [named]
         iframe
         ipureintro
+        refine ⟨?_, fun _ => ⟨e, pidL, pgL, idx, by simp, hlf, by omega, hlwf, h16L⟩⟩
         rw [hc0] at hsl; simp at hsl; rw [hsl] at hpos2; exact hpos2
       · have hne0 : W64 (uint.Z hd2.count') ≠ W64 0 := by
           rw [hcz2]; intro h; apply hc0; have := congrArg BitVec.toNat h; simp at this; omega
@@ -218,14 +220,16 @@ theorem Cursor.next_r.wp_proof
         wp_for_post
         iapply HΦ
         iexists stk2, els2.dropLast ++ [e]
+        have hent := rPosAt_ent' _ _ _ hpos2 (by omega) e pidL pgL idx (by simp) hlf
         iframe
-        unfold rCurKV
-        ileft
-        iexists pgL, idx
-        rw [hix, Int.toNat_natCast]
-        iframe
-        ipureintro
-        exact ⟨hpos2, rPosAt_ent' _ _ _ hpos2 (by omega) e pidL pgL idx (by simp) hlf⟩
+        isplitl
+        · unfold rCurKV
+          ileft
+          iexists pgL, idx
+          rw [hix, Int.toNat_natCast]
+          iframe
+          ipureintro; exact ⟨hpos2, hent⟩
+        · ipureintro; intro _; right; exact (List.getElem?_eq_some_iff.mp hent).1
     · rw [decide_eq_false hlt]
       wp_auto
       ihave Hs := Hsback $$ He
@@ -256,10 +260,12 @@ theorem Cursor.next_r.wp_proof
     iapply HΦ
     iexists stk1, els1
     iframe
-    unfold rCurKV
-    iright
-    ipureintro
-    exact ⟨rUpInv_none els1 i1 s Hp Hu.2, rfl, rfl, rfl⟩
+    isplitl
+    · unfold rCurKV
+      iright
+      ipureintro
+      exact ⟨rUpInv_none els1 i1 s Hp Hu.2, rfl, rfl, rfl⟩
+    · ipureintro; intro h; exact Or.inl (Hoff h)
 
 end proof
 

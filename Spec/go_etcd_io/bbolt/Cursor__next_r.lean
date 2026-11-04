@@ -35,7 +35,7 @@ def rCurKV (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (s : Nat) (
     ⌜s = (rEnts v bv).length ∧ k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0⌝)
 
 /-- `c.next()` of a reader's cursor in bucket `b` (value `bv`) whose stack is at entry `i`,
-`next` going to `s`. -/
+`next` going to `s` (from a stack past its leaf's entries, it stays so if past the last entry). -/
 abbrev Cursor.next_r.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List elemRef) (i s : Nat),
@@ -47,7 +47,8 @@ abbrev Cursor.next_r.spec : Prop :=
   {{ (k vl : GoSlice) (fl : w32), RET (PairV (PairV #k #vl) #fl);
       ∃ (stk' : GoSlice) (els' : List elemRef), rdTxK K tx src q T v ∗
       rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk' ∗ stk' ↦* els' ∗
-      ownSliceCap elemRef stk' (DFrac.own 1) ∗ rCurKV v bv pp els' s k vl fl }}
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ rCurKV v bv pp els' s k vl fl ∗
+      ⌜rOffEnt v bv pp els → rOffEnt v bv pp els' ∨ s < (rEnts v bv).length⌝ }}
 
 end spec
 

@@ -107,6 +107,11 @@ def rLanded (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Prop :=
   ∃ e pidL pg idx, els.getLast? = some e ∧ rLfAt v bv pp pidL e pg idx ∧
     (idx = 0 ∨ idx < pageCount pg) ∧ leafWF pg pg.length ∧ 16 ≤ pg.length
 
+/-- A stack whose top is past its (well-formed) leaf's entries (`keyValue` returns nil). -/
+def rOffEnt (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Prop :=
+  ∃ e pidL pg idx, els.getLast? = some e ∧ rLfAt v bv pp pidL e pg idx ∧ pageCount pg ≤ idx ∧
+    leafWF pg pg.length ∧ 16 ≤ pg.length
+
 /-! ### Basic facts -/
 
 theorem pageCount_lt (pg : List w8) : pageCount pg < 2 ^ 16 := by
