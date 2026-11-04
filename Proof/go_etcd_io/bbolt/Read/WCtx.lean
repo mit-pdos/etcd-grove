@@ -178,6 +178,13 @@ theorem wtxW_nodes_nonnull (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (
   iframe
   ipureintro; exact Hn
 
+/-- `wtxW` holds bbolt's package initialization. -/
+theorem wtxW_pkgInit (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨#Hpkg, Hrest⟩, Hc, Hm⟩
+  iframe; iframe #
+
 end wctx
 
 end bbolt
