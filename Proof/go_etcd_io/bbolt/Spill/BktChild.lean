@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktSpec
 public import Proof.go_etcd_io.bbolt.Spill.DerefHeap
 public import Proof.go_etcd_io.bbolt.Spill.UTreeFrame
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopFreeNC
 public import Proof.go_etcd_io.bbolt.Rebalance.HeapRbl
 public import Proof.go_etcd_io.bbolt.Read.BktOK
 public import Spec.go_etcd_io.bbolt.node__root
@@ -168,15 +169,25 @@ theorem spG_bkRooted {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} {bl rt : Loc} 
       exact ⟨rt, hrootN, hdesc _ _ hd⟩
     · rw [hne e]; rw [hne e] at hr'; exact r2 bl' B0 l r hB0 hr' hl'
 
-/-- **The writer database's slot facts** `spPre` takes (coordinator: U9x3 proves them from
-`wdbW`; a `sorry` here until then): the free ids cover no tree slot of `w.C`, the tree's slots
-are below the mark. -/
+/-- **The writer database's slot facts** `spPre` takes (U9x3): the free ids cover no tree slot of
+`w.C` (`wdbOK`, `freeNoCov_of_wdbOK`), the tree's slots are below the mark (`bkPre`'s clause). -/
 theorem bk_slotFacts {X : WX} {w : WDb} {bl : Loc} {B : BRec} {O : List Nat} {h : Nat}
-    {F D : List Nat} {N : List Loc} (hpre : bkPre X w bl B O h F D N)
-    (hv : X.v = View.ofC X.v.base w.C) :
+    {F D : List Nat} {N : List Loc} (hpre : bkPre X w bl B O h F D N) (hok : wdbOK w) :
     (∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat) ∧
-      (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) := by
-  sorry
+      (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) :=
+  ⟨freeNoCov_of_wdbOK hok, hpre.2.2.2.2.1⟩
+
+omit package_sem in
+/-- `wdbW`'s `wdbOK`. -/
+theorem wdbW_okB (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ wdbW K tx v w ∗ ⌜wdbOK w⌝ := by
+  unfold wdbW
+  iintro ⟨H, %Hp⟩
+  isplitl [H]
+  · isplitl [H]
+    · iexact H
+    · ipureintro; exact Hp
+  · ipureintro; exact Hp.1
 
 theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     (hRoot : node.root.spec (GF := GF) (hG := hG))
@@ -186,7 +197,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   intro K tx r m X w bl B O h F D N Hpre
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
   have Hpre0 := Hpre
-  obtain ⟨HB, Hlive, Hbm0, HG, Hcase⟩ := Hpre
+  obtain ⟨HB, Hlive, Hbm0, HG, -, Hcase⟩ := Hpre
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
   icases wtxHeap_bkt_peek tx _ X bl B HB Hlive $$ Hh with ⟨Ho, Hhb⟩
   unfold objOwn
@@ -247,12 +258,13 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
   ihave Hw := Hclose $$ %X [] Hh Hv Hst
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
   icases wdbW_ofC K tx X.v w $$ Hdb with ⟨Hdb, %Hvc⟩
+  icases wdbW_okB K tx X.v w $$ Hdb with ⟨Hdb, %Hok⟩
   have Hsp : spPre X w bl B.bv.rootNode' rn O none none h F D N E .top :=
     ⟨Hrn0, HG, Or.inr ⟨Hu, ⟨Hpar, B, HB, nodeRootIn.top _ rn Hrn1 Hpar, fun x hx hne => by
       cases hx with
       | self => exact absurd rfl hne
       | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf, Hvc,
-      (bk_slotFacts Hpre0 Hvc).1, (bk_slotFacts Hpre0 Hvc).2⟩⟩
+      (bk_slotFacts Hpre0 Hok).1, (bk_slotFacts Hpre0 Hok).2⟩⟩
   wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
     as %err Hpost
   · iframe

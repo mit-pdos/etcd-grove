@@ -176,7 +176,7 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
   rw [hC] at hC0; cases hC0
   have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
   have hcX0 : c ≠ X0.rl := by rw [← hI.rl]; exact hcne
-  obtain ⟨f1, -, -, f4, -, -, -, -, f9, -, -, f12, f13, -, -, -, f17⟩ := hfr
+  obtain ⟨f1, -, -, f4, -, -, f7, -, f9, -, -, f12, f13, -, -, -, f17⟩ := hfr
   subst hX'
   -- the other buckets
   have hkept : ∀ bl, bl ≠ c → bktKept X (X1.setBkt c (bkRooted B1 rt rr.nv.pgid')) bl := by
@@ -316,7 +316,15 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
       rw [hk0]; exact hI.entKeys we0 hwe0
     inj := hI.inj
     cok := hI.cok
-    bufs := hbufs }
+    bufs := hbufs
+    rootPos := by
+      intro B hB
+      rw [hBr'] at hB; cases hB
+      exact rootUnder_sim (hI.rootPos Br hBr) hsr hnsr
+    shape0 := hI.shape0
+    hwm0 := hI.hwm0
+    freeNC := hI.freeNC
+    tt := (f7 : X1.t.t = X.t.t).trans hI.tt }
 
 end spilled
 

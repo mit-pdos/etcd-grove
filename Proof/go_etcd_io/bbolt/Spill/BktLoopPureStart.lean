@@ -6,13 +6,14 @@
 
 `rinv_start'` is proved from the facts `StartFacts` beside the spill's pre, the
 consequences of `Bucket.spill.spec`'s pure premises and `spillStartOK` (`spill_startFacts`; the
-root's keys `rootKeys_start`, a `sorry`).
+root's keys `rootKeys_start`).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.BktStart
 public import Proof.go_etcd_io.bbolt.Spill.BktSlots
+public import Proof.go_etcd_io.bbolt.Spill.BktRootKeys
 
 @[expose] public section
 
@@ -43,14 +44,12 @@ structure StartFacts (X : WX) (w : WDb) (B0 : BRec) : Prop where
   inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
   rootKeys : ∀ we ∈ X.allEnts X.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize
 
-/-- **The root bucket's entries' keys are not empty** (a `sorry`): `entriesBounded`'s `.1` for an
-entry of a node, `posShape`'s `.2.1.1` (batch 43.4) for an entry of a view page at one of the root
-bucket's positions; what is missing is the link from a block of the root's walk read from a page
-(`ltree`'s `none` case) to `posShape`'s `posRoot B c ∧ ownHas X.v.pages c p` (the converse of
-`BktSlotCov.pos_ownHas`). -/
+/-- **The root bucket's entries' keys are not empty and at most `MaxKeySize`** (U9x3,
+`BktRootKeys.rootKeys_wOKR`: `entriesBounded` for a node's entries, `posShape` for a page's under
+one of the root bucket's positions). -/
 theorem rootKeys_start {X : WX} {fl : FLPg} (hpre : spillPre X fl) :
-    ∀ we ∈ X.allEnts X.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize := by
-  sorry
+    ∀ we ∈ X.allEnts X.rl, 0 < we.key.length ∧ we.key.length ≤ maxKeySize :=
+  rootKeys_wOKR hpre.1
 
 /-- **The start's facts** (batch 43): `spillStartOK` (`Bucket.spill.spec`'s premise) gives the
 committed tree, its mark, the root's children's; the mapping's bound (`wdbW_mapLen_le`) the
@@ -299,7 +298,14 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     entKeys := hS.rootKeys
     inj := hS.inj
     cok := hS.cok
-    bufs := fun id pg h => by rw [htc.2.1.2.1, GMap.lookup_empty] at h; cases h }
+    bufs := fun id pg h => by rw [htc.2.1.2.1, GMap.lookup_empty] at h; cases h
+    rootPos := fun B hB => by rw [hB0] at hB; cases hB; exact rootUnder_refl _ _
+    shape0 := fun c p pg h1 h2 h3 h4 i hi =>
+      have hs := htc.2.1.2.2.2.1 X.rl B0 hB0 c p pg h1 h2 h3 h4 i hi
+      ⟨hs.2.1.1, hs.2.1.2, hs.2.2 rfl⟩
+    hwm0 := hS.hwm
+    freeNC := freeNoCov_of_wdbOK hw.1
+    tt := rfl }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/

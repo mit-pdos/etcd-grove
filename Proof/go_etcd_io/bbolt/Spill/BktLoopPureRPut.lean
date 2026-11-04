@@ -9,7 +9,7 @@ key), which keeps the root bucket searchable (`bktLocalOK_putOpened`), its finit
 `childSt_kept`), and replaces the child's value in the root entries (`rootEnts_putAt`).
 
 The root bucket's nodes' shape (`rootLoc`'s node clause) for the nodes `Cursor.node` reads from
-view pages is `rootPage_shape` (a `sorry`: see its docstring).
+view pages is `rootPage_shape` (U9x3: from `RInv.rootPos` and `RInv.shape0`).
 -/
 module
 
@@ -50,14 +50,53 @@ def rootNodesOK (B : BRec) : Prop :=
 variable {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString} {Lroot : List Nat}
   {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
 
-/-- **The shape of a root bucket's view page `Cursor.node` reads** (a `sorry`). Every page the
-root loop's search materializes is a page of the root bucket's base tree (the committed state's
-root tree: `X.v = View.ofC _ w0.C`, the root bucket's root the committed root), and the committed
-tree is strict (`treeOK`: `treeStrict`'s branches of at least two elements and no empty child
-page, `rootShape`'s root leaf entries non-empty and within `bboltEntryMax`). `RInv` relates neither
-the view to `w0.C` nor the root bucket's positions to the committed root's pages; the facts belong
-with `StartFacts` (batch 43) as an `RInv` field about `X0` alone (the view's pages never change in
-the loop, `RInv.pages`). -/
+theorem setNode_tt (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.t = X.t.t := by
+  unfold WX.setNode; split <;> rfl
+
+/-- **Materializations keep the transaction's struct.** -/
+theorem matGrow_tt {X Y : WX} {bl : Loc} (h : matGrow X Y bl) : Y.t.t = X.t.t := by
+  induction h with
+  | refl => rfl
+  | step X Y Z bl l pgid parent hadd _ _ ih =>
+    obtain ⟨B, pa, pg, r, ns', bv', hB, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+      -, hX'⟩ := hadd
+    subst hX'; exact ih
+
+/-- **Materializations keep `rootUnder`** (`rootUnder_nodeAdded` at each step). -/
+theorem rootUnder_matGrow {X Y : WX} {bl : Loc} {B0 : BRec} {P : Pages} (h : matGrow X Y bl) :
+    bktLocalOK X bl → (∀ B, X.t.bs !! bl = some B → B.ib.root' ≠ W64 0) → X.v.pages = P →
+    (∀ B, X.t.bs !! bl = some B → rootUnder P B0 B) →
+    ∀ B, Y.t.bs !! bl = some B → rootUnder P B0 B := by
+  induction h with
+  | refl => intro _ _ _ hU; exact hU
+  | step X Y Z bl l pgid parent hadd hpos hm ih =>
+    intro hbl h0 hP hU
+    obtain ⟨hblY, hvY, -, hibY, -⟩ :=
+      matGrow_keep (matGrow.step X Y Y bl l pgid parent hadd hpos (matGrow.refl Y bl)) hbl h0
+    have hUY : ∀ B, Y.t.bs !! bl = some B → rootUnder Y.v.pages B0 B := by
+      refine rootUnder_nodeAdded (hwm := X.t.mv.pgid'.toNat) hadd hpos ?_
+      intro B hB
+      obtain ⟨-, B', hB', hcl, -⟩ := hbl
+      rw [hB] at hB'; cases hB'
+      exact ⟨hcl, h0 B hB, by rw [hP]; exact hU B hB⟩
+    apply ih hblY
+    · intro B hB
+      obtain ⟨Bx, hBx⟩ := Option.isSome_iff_exists.1 (show (X.t.bs !! bl).isSome by
+        obtain ⟨-, B, hB, -⟩ := hbl; rw [hB]; rfl)
+      obtain ⟨B', hB', hib⟩ := hibY Bx hBx
+      rw [hB] at hB'; cases hB'
+      rw [hib]; exact h0 Bx hBx
+    · rw [hvY]; exact hP
+    · intro B hB; have := hUY B hB; rw [hvY, hP] at this; exact this
+
+theorem pageW_value_branch (pg : List w8) (j : Nat) (hl : pageFlags pg ≠ leafPageFlag) :
+    (pageW pg j).value = [] := by
+  unfold pageW; rw [if_neg hl]
+
+/-- **The shape of a root bucket's view page `Cursor.node` reads.** The page is under a position
+of the root bucket at the start (`RInv.rootPos`, `rootUnder_matGrow`), so its leaf entries are
+bounded (`RInv.shape0`) and its branch keys too (exact branch keys, `treeKeys_keyLe`); a branch
+page has two entries and a child page one (`bktKeys`' `treeKeys`). -/
 theorem rootPage_shape (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {Y Y' : WX} {l : Loc}
     {pgid : w64} {parent : Loc} (hY : matGrow X Y X0.rl)
     (hadd : nodeAdded Y Y' X0.rl l pgid parent) (hpos : matPos Y X0.rl pgid parent) :
@@ -65,7 +104,60 @@ theorem rootPage_shape (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {Y Y' : WX} 
       (parent ≠ null → 0 < pageCount pg) ∧ (pageFlags pg ≠ leafPageFlag → 2 ≤ pageCount pg) ∧
       ∀ i < pageCount pg, 0 < (pageW pg i).key.length ∧
         (pageW pg i).key.length + (pageW pg i).value.length ≤ bboltEntryMax := by
-  sorry
+  have h0 : ∀ B, X.t.bs !! X0.rl = some B → B.ib.root' ≠ W64 0 := by
+    intro B hB; rw [hI.rootIb B hB]; exact hI.rootPg
+  obtain ⟨hlocY, hvY, -, hibY, -⟩ := matGrow_keep hY hI.rootOK.1 h0
+  have hUY := rootUnder_matGrow hY hI.rootOK.1 h0 hI.pages hI.rootPos
+  intro B pa pg hB hwp
+  have h0B : B.ib.root' ≠ W64 0 := by
+    obtain ⟨Bx, hBx, -⟩ := hI.root
+    obtain ⟨B', hB', hib⟩ := hibY Bx hBx
+    rw [hB] at hB'; cases hB'
+    rw [hib]; exact h0 Bx hBx
+  obtain ⟨-, B', hB', hcl, ⟨bnd, hbk⟩, -, -, hvw⟩ := hlocY
+  rw [hB] at hB'; cases hB'
+  have hpp := matPos_posRoot hpos hB h0B
+  have hpg := wpageAt_page h0B hwp
+  obtain ⟨c0, hc0, hto⟩ := hUY B hB _ hpp
+  have hPY : Y.v.pages = X0.v.pages := by rw [hvY, hI.pages]
+  have hpg0 : X0.v.pages !! pgid.toNat = some pg := by rw [← hPY]; exact hpg
+  have hown := ownTo_ownHas hto hpg0
+  obtain ⟨lo, hi', htk, hcnt⟩ : ∃ lo hi, treeKeys Y.v.pages pgid.toNat lo hi ∧
+      (parent ≠ null → 0 < pageCount pg) := by
+    obtain ⟨B1, hB1, hp⟩ := hpos
+    rw [hB] at hB1; cases hB1
+    rcases hp with ⟨hpar, hrn, rfl⟩ | ⟨i, r, w, hr, hlf, hw, hwp', hnm⟩
+    · exact ⟨none, none, hbk.1 hrn h0B, fun h => absurd hpar h⟩
+    · obtain ⟨-, -, -, hk3, -, -⟩ := hbk.2.2 parent r hr
+      obtain ⟨-, kind, hkd⟩ := hk3 hlf
+      obtain ⟨pg', hpg', hc, -, -, htk⟩ := (hkd i w hw).2 (by rw [hwp']; exact hnm)
+      rw [hwp', hpg] at hpg'; cases hpg'
+      exact ⟨_, _, by rw [← hwp']; exact htk, fun _ => hc⟩
+  have hpt : pageTreeWF Y.v.pages Y.t.mv.pgid'.toNat pg pg.length := by
+    rcases posRoot_treeWF hcl hpp with ⟨_, pg', _, _, hpg', _, _, hpt⟩
+    rw [hpg] at hpg'; cases hpg'; exact hpt
+  have hkpos := Write.pageKeys_pos _ _ pg hpt ((mat_strict Y.v hvw).1 _ pg hpg)
+  have hL : ∀ q qpg, ownHas X0.v.pages c0 q → X0.v.pages !! q = some qpg →
+      pageFlags qpg = leafPageFlag → ∀ i < pageCount qpg, leafKsize qpg i ≤ maxKeySize :=
+    fun q qpg h1 h2 h3 i hi => (hI.shape0 c0 q qpg hc0 h1 h2 h3 i hi).2.2
+  refine ⟨hcnt, fun hnl => ?_, fun i hi => ⟨by rw [mat_pageW_key]; exact hkpos i hi, ?_⟩⟩
+  · cases htk with
+    | leaf _ pg' _ _ hp' hf _ _ => rw [hpg] at hp'; cases hp'; exact absurd hf hnl
+    | branch _ pg' _ _ _ hp' _ h2 _ _ _ => rw [hpg] at hp'; cases hp'; exact h2
+  · by_cases hfl : pageFlags pg = leafPageFlag
+    · obtain ⟨-, -, f3, f4⟩ := mat_pageW_leaf pg i hfl
+      have hs := hI.shape0 c0 _ pg hc0 hown hpg0 hfl i hi
+      rw [f3, f4]
+      unfold leafKey leafValue
+      have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i) (leafKsize pg i)
+      have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i + leafKsize pg i)
+        (leafVsize pg i)
+      omega
+    · rw [pageW_value_branch pg i hfl, mat_pageW_key]
+      have htk0 : treeKeys X0.v.pages pgid.toNat lo hi' := by rw [← hPY]; exact htk
+      have := treeKeys_keyLe htk0 hown hL pg hpg0 i hi
+      simp only [List.length_nil, Nat.add_zero]
+      unfold maxKeySize at this; unfold bboltEntryMax; omega
 
 theorem pageWsAs_mem {pg : List w8} {src : Src} {w : WEntry} (hw : w ∈ pageWsAs pg src) :
     ∃ i < pageCount pg, w.key = (pageW pg i).key ∧ w.value = (pageW pg i).value := by
@@ -414,7 +506,16 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     inj := hI.inj
     cok := hI.cok
     bufs := by
-      have := hI.bufs; unfold bufsOK at this ⊢; rw [x_bufs, x_mv]; exact this }
+      have := hI.bufs; unfold bufsOK at this ⊢; rw [x_bufs, x_mv]; exact this
+    rootPos := by
+      intro B' hB'
+      rw [x_root] at hB'; cases hB'
+      refine rootUnder_setLeaf ?_ (by rw [r_lf]; exact hleaf)
+      exact rootUnder_matGrow hm hloc h0 hI.pages hI.rootPos B1 hB1
+    shape0 := hI.shape0
+    hwm0 := hI.hwm0
+    freeNC := hI.freeNC
+    tt := by rw [hX', setNode_tt, matGrow_tt hm]; exact hI.tt }
 
 end rput
 

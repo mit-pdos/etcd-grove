@@ -52,10 +52,12 @@ def bkRooted (B : BRec) (rt : Loc) (pgid : w64) : BRec :=
 child bucket, the spill's global state; its root node nil, or (`node.spill.spec'`'s top case
 at it) the top of an unspilled tree within `(-∞, ∞)` of height `h`, owning `F`, `D`, `N`, its
 slots owned with `O`, its pages freeable, its leaf elements `E` plain (`plainEls`) and, as
-key/value pairs, the bucket's entries (`lbktEnts`). -/
+key/value pairs, the bucket's entries (`lbktEnts`); (coordinator, U9x3, for `spPre`'s slot facts)
+the committed tree's slots below the mark (the root loop's `rinv_treeLt`). -/
 def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D : List Nat)
     (N : List Loc) : Prop :=
   X.t.bs !! bl = some B ∧ bl ∈ X.liveB ∧ B.bm = ∅ ∧ spG X w.wtxid (mapLen w.ms) w.fl ∧
+  (∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat) ∧
   (B.bv.rootNode' = null ∨
    ∃ rn E, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
      uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N E ∧

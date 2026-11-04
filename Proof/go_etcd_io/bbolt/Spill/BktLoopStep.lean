@@ -97,9 +97,9 @@ theorem rinv_bkPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodu
   have hwx : w.wtxid = w0.wtxid := wtxid_of_C hI.C
   have hG : spG X w.wtxid (mapLen w.ms) w.fl := by rw [hwx]; exact hI.G
   by_cases hn : C.bv.rootNode' = null
-  · exact ⟨0, [], [], hC, hcl, hbm, hG, Or.inl hn⟩
+  · exact ⟨0, [], [], hC, hcl, hbm, hG, rinv_treeLt hI, Or.inl hn⟩
   obtain ⟨rn, h, F, N, E, hrn, hpar, hu, hfr, hE, hpl⟩ := htree hn
-  refine ⟨h, F, N, hC, hcl, hbm, hG, Or.inr ⟨rn, E, hrn, hpar, hu, ?_, ?_, ?_, hpl⟩⟩
+  refine ⟨h, F, N, hC, hcl, hbm, hG, rinv_treeLt hI, Or.inr ⟨rn, E, hrn, hpar, hu, ?_, ?_, ?_, hpl⟩⟩
   · apply slotInv_perm _ hI.slots
     unfold othersO
     rw [List.append_assoc]

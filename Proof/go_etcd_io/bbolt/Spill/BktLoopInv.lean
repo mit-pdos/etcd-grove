@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.bbolt.Spill.BktVal
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
 public import Proof.go_etcd_io.bbolt.Spill.StepComp
 public import Proof.go_etcd_io.bbolt.Model.RTree
+public import Proof.go_etcd_io.bbolt.Spill.BktRootPos
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopFreeNC
 
 @[expose] public section
 
@@ -129,6 +131,22 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   cok : treeOK w0.C
   /-- The buffers are dirty pages of fresh slots (`spillBufs`). -/
   bufs : bufsOK X w0.C w.fl
+  /-- (U9x3) The root bucket's page positions are under its positions at the start (`rootUnder`:
+  for `rootPage_shape`, with `shape0`). -/
+  rootPos : ∀ B, X.t.bs !! X0.rl = some B → rootUnder X0.v.pages B0 B
+  /-- (U9x3) The view leaf pages' shape under the root bucket's positions at the start (`wOKR`'s
+  `posShape`). -/
+  shape0 : ∀ c p pg, posRoot B0 c → ownHas X0.v.pages c p → X0.v.pages !! p = some pg →
+    pageFlags pg = leafPageFlag → ∀ i < pageCount pg, 0 < leafKsize pg i ∧
+      leafKsize pg i + leafVsize pg i ≤ bboltEntryMax ∧ leafKsize pg i ≤ maxKeySize
+  /-- (U9x3) The committed mark at most the start's (`StartFacts.hwm`): the committed tree's
+  slots below the mark (`treeSlots_lt`, `spPre`'s clause). -/
+  hwm0 : w0.C.hwm ≤ X0.t.mv.pgid'.toNat
+  /-- (U9x3) The start's free ids cover no committed page (`wdbOK`; `freeNoCov_steps` for `w.fl`,
+  `spPre`'s clause). -/
+  freeNC : ∀ y ∈ w0.fl.free, ¬ coversSlot w0.C.pages y.toNat
+  /-- (U9x3) The transaction's struct unchanged (`Bucket.spill.spec`'s post). -/
+  tt : X.t.t = X0.t.t
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
@@ -167,6 +185,20 @@ theorem flatMap_perm_split {β : Type} {keys : List GoString} {Dc : GoString →
         · exact h
       rw [List.filter_cons_of_pos (by simpa using e), List.flatMap_cons, List.append_assoc]
       exact List.Perm.append_left _ (ih hnd.2 hk')
+
+/-- **The free ids cover no committed page** (`spPre`'s clause, from `RInv.freeNC`). -/
+theorem rinv_freeNC {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) :
+    ∀ y ∈ w.fl.free, ¬ coversSlot w.C.pages y.toNat := by
+  rw [hI.fl, hI.C]; exact freeNoCov_steps hI.freeNC _ _
+
+/-- **The committed tree's slots lie below the mark** (`spPre`'s clause). -/
+theorem rinv_treeLt {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}
+    {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
+    (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) :
+    ∀ s ∈ treeSlots w.C, s < X.t.mv.pgid'.toNat := by
+  rw [hI.C]; exact treeSlots_lt hI.cok (Nat.le_trans hI.hwm0 hI.mark)
 
 /-! ## The loop's end (statements; proofs to come; the start is `Spill/BktLoopPureStart`) -/
 
