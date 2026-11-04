@@ -28,15 +28,20 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.freepages()` on the spare reader pair (as `DB.beginTx_s`): a read transaction checks the
 committed tree `C` (`recursivelyCheckBucket` in a forked goroutine; it reports nothing on a
 `treeOK` tree, else `freepages` panics) and is rolled back; returns the ids in `[2, hwm)` no tree
-page covers, increasing (`freeIdsOf`). -/
+page covers, increasing (`freeIdsOf`), as a fresh slice (Go builds it by `append`: its capacity is
+the caller's, which `Interface.Init` takes), with the facts `NoSyncReload` and `Init` need: the ids
+increasing, at least 2, fewer than `2 ^ 63`. The premise `C.hwm ≤ 2 ^ 62` is `storeOK`'s (rollback;
+`Open`: `C.hwm * 4096 ≤ size < 2 ^ 63`); the loop's `append`s need the length bound. -/
 abbrev DB.freepages.spec : Prop :=
   ∀ (K : BC) (C : CommitSt) (b : Loc) (l : Nat),
-  C.metaOk → treeOK C →
+  C.metaOk → treeOK C → C.hwm ≤ 2 ^ 62 →
   {{ K.core (GF := GF) ∗ rdPair K.B K.db K.sp ∗ ghostVar K.B.cur (1 : Qp).half.half C ∗
       ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"freepages")) (Val #()))
-  {{ (s : GoSlice), RET #s; s ↦* freeIdsOf C ∗ rdPair K.B K.db K.sp ∗
+  {{ (s : GoSlice), RET #s; s ↦* freeIdsOf C ∗ ownSliceCap w64 s (DFrac.own 1) ∗
+      ⌜PgidsIncr (freeIdsOf C) ∧ (∀ x ∈ freeIdsOf C, 2 ≤ x.toNat) ∧
+        (freeIdsOf C).length < 2 ^ 63⌝ ∗ rdPair K.B K.db K.sp ∗
       ghostVar K.B.cur (1 : Qp).half.half C ∗ ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true }}
 
