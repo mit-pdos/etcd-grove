@@ -92,10 +92,12 @@ def fills (H : GMap Loc (GoString × Nat)) (dq : DFrac) : IProp GF :=
   iprop([∗map] b ↦ _x ∈ H, ∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{dq} f)
 
 /-- **The writer's heap's facts** (`wtxHeap_heapOK` reads them): the root bucket's location, its
-objects disjoint (`objsDisj`), and every bucket's `tx` field the transaction (U8 fixes). -/
+objects disjoint (`objsDisj`), every bucket's `tx` field the transaction, and no node its own
+parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes). -/
 def heapOK (tx : Loc) (X : WX) : Prop :=
   X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t ∧
-  (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx)
+  (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx) ∧
+  (∀ bl B n r, X.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n)
 
 /-- **The writer's heap** at `dq` (design §3.13). -/
 def wtxHeap (tx : Loc) (dq : DFrac) (X : WX) : IProp GF :=

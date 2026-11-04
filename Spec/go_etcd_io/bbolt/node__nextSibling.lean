@@ -34,7 +34,8 @@ abbrev node.nextSibling.spec : Prop :=
   X.t.bs !! bl = some B → B.ns !! n = some rn → rn.nv.bucket' = bl → n ∈ X.live →
   bl ∈ X.live → B.bv.nodes' ≠ null →
   (rn.nv.parent' ≠ null → rn.nv.key' ≠ slice.nil ∧ rn.ksrc ≠ Src.stale ∧
-    ∃ rp, B.ns !! rn.nv.parent' = some rp ∧ rp.nv.isLeaf' = false ∧ rn.nv.parent' ∈ X.live ∧
+    ∃ rp, B.ns !! rn.nv.parent' = some rp ∧ rp.nv.isLeaf' = false ∧ rp.nv.bucket' = bl ∧
+      rn.nv.parent' ∈ X.live ∧
       wsSorted rp.ws ∧ wsLive rp.ws ∧
       ∀ w, rp.ws[wsIdx rp.ws rn.key + 1]? = some w →
         (∀ l, B.nm !! w.pgid = some l → l ≠ null) ∧ (B.nm !! w.pgid = none → matReady X B w.pgid)) →

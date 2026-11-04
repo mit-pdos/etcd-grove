@@ -234,6 +234,16 @@ No frozen public statement changed.
    B.bv.tx' = tx`, read by `wtxHeap_heapOK` (`node.free`, `node.rebalance`, `Bucket.node` read
    `n.bucket.tx`).
 
+3. **The siblings' parent**: `node.nextSibling`/`prevSibling` take `rp.nv.bucket' = bl` of the
+   parent's record (`n.parent.childAt` calls `n.parent.bucket.node`). `n.parent = n` is excluded
+   in the heap: `heapOK`'s `∀ bl B n r, … B.ns !! n = some r → r.nv.parent' ≠ n` (kept: a node's
+   parent is set to an existing node, `nodeAdded`, or by `rebalance`'s moves to another node).
+4. **`node.free`'s pre** (with `pgid ≠ 0`): `X.t.mv.txid' = w.wtxid` (`Free` takes
+   `tx.meta.Txid()`), and the page's `16 ≤ pg.length`, `pageId pg = pgid.toNat`, leaf or branch
+   flags (`tx.page`'s `FastCheck`); the bucket's `tx` field from `heapOK` (item 2). Still open
+   for its prover: `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF` (from `wtxW`'s `mapFields` bound and a
+   view page inside the mapping, which `wtxW` does not hold yet: as `rtxFrac`, it could).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
