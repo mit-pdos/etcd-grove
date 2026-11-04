@@ -127,3 +127,8 @@ freeze: R7 below; track B's glue proofs; review rounds (round 1 on the sync path
   (boundary specs of `NewAggregate`, `DeletePod`'s error, `klog.FromContext`, `HasStatusCause`) go
   to Stage 4; M2 (`fmt.Errorf` with `%#v` of a struct pointer) a local boundary spec and a
   `notes/perennial-changes.md` entry; M3 the library's vocabulary moved out of `daemon/`.
+- Review round 1 (API and driver, `review-1-api.md`): R8's premise also on the constructor and
+  `run` (`Main`'s call the one false step); the informer carries one feature-gates fact from its
+  creation and a store-version contract (H2, H3); delete facts say the object was the object of a
+  logged change (H4); index relations keyed by name (M1); `%+v` of a map a local boundary spec (M3);
+  `namesUnclaimed` premise for the metrics (M4). A2 (informers) and C (lifecycle, driver).
