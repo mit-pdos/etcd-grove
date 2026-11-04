@@ -168,6 +168,24 @@ theorem spG_setNode (hn : X.node bl l = some r) (hq : nodeQ r r')
     obtain ⟨rt, hrt, hd⟩ := a5.2 bl0 B1 l0 r1 hB1 hr1 hl
     exact ⟨rt, by rw [(bktQ_fields hs).1]; exact nodeRootIn_Q hs hrt, descIn_Q hs hd⟩
 
+/-- **The spill's global state across a change of the buffers** keeping which ids have one
+(`WX.setBuf` of an allocated id). -/
+theorem spG_bufs {X X' : WX} (hX : X' = { X with t := { X.t with bufs := X'.t.bufs } })
+    (hb : ∀ id, (X'.t.bufs !! id).isSome ↔ (X.t.bufs !! id).isSome)
+    {txid : w64} {ml : Nat} {fl : FLPg} (h : spG X txid ml fl) : spG X' txid ml fl := by
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := h
+  have hbr : ∀ d, bktReach X d → bktReach X' d := by
+    intro d hd
+    induction hd with
+    | root => rw [hX]; exact .root
+    | child bl1 c B1 k hB1 hk _ ih => exact .child bl1 c B1 k (by rw [hX]; exact hB1) hk ih
+  have hbr' : ∀ d, bktReach X d →
+      bktReach { X with t := { X.t with bufs := X'.t.bufs } } d := by rw [← hX]; exact hbr
+  rw [hX]
+  refine ⟨a1, a2, a3, a4, ⟨fun bl B hB hl => hbr' bl (a5.1 bl B hB hl), a5.2⟩, ?_, a7, ?_⟩
+  · intro id; rw [a6 id]; exact (hb id).symm
+  · intro id hid; exact a8 id ((hb id).1 hid)
+
 end setnode
 
 end Spill
