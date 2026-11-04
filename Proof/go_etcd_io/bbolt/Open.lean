@@ -299,6 +299,7 @@ theorem Open.wp_proof
       wp_auto
       cases e with
       | ok ei =>
+        ihave #Hek' := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Hek
         wp_auto
         wp_apply wp_slice_literal
         isplitr
@@ -311,7 +312,6 @@ theorem Open.wp_proof
           errorf_mem' fmtVerbs_failed rfl $$ Hlgok [Hsl] [] [] as Hsl -
         · iexact Hsl
         · log_args_ok
-        wp_auto
         iapply HΨ $$ Herr
       | nil =>
         wp_auto
@@ -325,7 +325,6 @@ theorem Open.wp_proof
           infof_mem fmtVerbs_success rfl $$ Hlgok [Hsl] [] [] as Hsl -
         · iexact Hsl
         · log_args_ok
-        wp_auto
         iapply HΨ $$ Herr
   sorry
 
