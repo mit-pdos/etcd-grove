@@ -267,6 +267,17 @@ No frozen public statement changed.
 8. **`fills_fractional`** (`Inv/WtxHeap`) is proved (each handle's `FillPercent` points-to
    splits, and two halves agree on the value).
 
+9. **The writer's view inside its mapping** (follow-up to item 4): `wtxW`'s and `wtxFrac`'s
+   mapping part is `∃ l, mapFields r.db … (some (X.v.base, l)) ∗ ⌜∀ id pg, X.v.pages !! id =
+   some pg → (id+1)·4096 ≤ l⌝`, as the reader's `rtxFrac`; with `mapFields`' `l ≤ maxMapSize`,
+   `pageIdx_lt_maxMap` (`Inv/Tx`) gives `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF` for a view page
+   (`node.free`, `Bucket.node`'s reads, `pageNode_w`). Established at `beginRWTx` (U5) from
+   `storeOK` (the writer's view is in the store, `StoreSt.wOK`'s `viewInStore`, store slots
+   `< l/4096`); kept by a remap (U4: `DB.mmap`'s new mapping covers every store slot,
+   `store_carve`'s `hl`, and the view's pages are kept, re-based); allocation does not touch it:
+   an allocated page (past the old mapping or not) is in `tx.pages`, and `Tx.page` of a page of
+   `tx.pages` (`pm !! id = some p`) needs no bound; only a view page (`pm !! id = none`) does.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

@@ -94,6 +94,12 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
     viewOf r v ∗
     ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null⌝)
 
+/-- **A page of a view inside a mapping is within `db.page`'s range**: with `mapFields`' bound
+(`l ≤ maxMapSize`), `Tx.page`'s premise `id·4096 < 0xFFFFFFFFFFFF`. -/
+theorem pageIdx_lt_maxMap (id l : Nat) (h : (id + 1) * 4096 ≤ l) (hl : l ≤ 0xFFFFFFFFFFFF) :
+    id * 4096 < 0xFFFFFFFFFFFF := by
+  omega
+
 /-- The writer's handles' generations (the `buckets` caches): every handle's generation is at
 most its name's, and the opened bucket of a name is its current handle. -/
 def gensOK (T : TxView) (X : WX) : Prop :=
@@ -103,14 +109,15 @@ def gensOK (T : TxView) (X : WX) : Prop :=
 /-- **A writer's part at fraction `q`** (design §3.10, F3): its heap at `q`, its handles'
 `FillPercent`s at `q`, its base view's cells at `q · wq`, the library's quarter of the committed
 data at `q`, its handle and node registries' auths at `q`, its fields' share, `mmaplock`'s
-mapping fields at `q · ¼`, and its facts. -/
+mapping fields at `q · ¼` (the base view's pages inside the mapping, as a reader's), and its
+facts. -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
     ghostMapAuth r.n.bk q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
-      (some (X.v.base, l) : MapSt)) ∗
+      (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X⌝)
 

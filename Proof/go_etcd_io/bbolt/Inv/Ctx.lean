@@ -68,10 +68,13 @@ def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
 operations through `Commit`'s rebalance and spill. It is `wtxFrac` at `1` without its facts
 (which `rebalance` and `spill` break and re-establish) and without the committed data's quarter,
 plus the core and the statistics' token: `wtxCore`, the base view's cells at `wq`, and the
-mapping fields' writer quarter, mapped at the view's base. -/
+mapping fields' writer quarter, mapped at the view's base, every page of the view inside the
+mapping (so that `Tx.page` of a view page meets `id·4096 < 0xFFFFFFFFFFFF`, with `mapFields`'
+length bound: `pageIdx_lt_maxMap`; a page of `tx.pages` needs no bound). -/
 def wtxW (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(wtxCore K tx r m X ∗ viewCells wq X.v ∗
-    ∃ l : Nat, mapFields r.db (DFrac.own (1 : Qp).half.half) (some (X.v.base, l) : MapSt))
+    ∃ l : Nat, mapFields r.db (DFrac.own (1 : Qp).half.half) (some (X.v.base, l) : MapSt) ∗
+      ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝)
 
 /-- **The writer's state after a failed remap** (the mapping lost, design §4.2): `wtxCore`, no
 view cells, the mapping fields' quarter unmapped. -/
