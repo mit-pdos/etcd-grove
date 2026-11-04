@@ -199,7 +199,7 @@ No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
    moved to the facts. `rdTxK_root` is proved (framing). `rBkt`, `locOwn`, `rootVal` moved from
    `Inv/Ctx` to `Inv/Tx` (same statements; `Inv/Ctx` re-exports them). `Tx.init` (U5) splits
    the struct points-to of `tx.root` into its fields (its header a persistent copy: `rBkt`'s
-   left disjunct, `ib.root' = W64 v.root`; its `page` nil: `rootVal v`'s root is not `0`).
+   left disjunct, `ib.root' = W64 v.root`; its `page` nil when `v.root ≠ 0`).
 3. **`Tx.page_r` was not derivable from `rdTxK`** (the mapping was an existential `ms` in
    `PmNoTok`, with no bound for `Tx.page`'s `id·4096 < 0xFFFFFFFFFFFF`). `rtxFrac` now holds
    `PmNoTok`'s parts at the view's mapping, `∃ l, ghostVar B.map … (some (v.base, l)) ∗
@@ -211,6 +211,13 @@ No frozen public statement (`Spec/go_etcd_io/bbolt/`'s public triples) changed.
    facts so that `mapFields` stays `DFractional` (`Pm_fractional` unchanged). Fractions for
    `Tx.page` (one `dqt` for `tx.pages` and `tx.db`): `dqt = DFrac.own (QpMul q ½)`, from
    `tx.pages`' `q` (two halves) and `tx.db`'s `txDbQ q = QpMul q ½ + QpMul q ¼`.
+
+4. **`boltBktDef`'s reader branch carries the bucket** (U0b item 2): with `r.rw = false`,
+   `∃ v bv, viewOf r v ∗ rBkt v tx b DFrac.discard bv ∗ ⌜bktEntry v.pages (rootVal v) n bv⌝`
+   (what `Bucket.Bucket_r` gives for a top-level bucket `n` of the reader's view; `viewOf`
+   agrees with `rdTxK`'s view), so that the public reader `Get`/`Cursor` triples reach the
+   bucket's fields. Still persistent (`boltBktDef_persistent`, a `sorry`). `Inv/Tx` imports
+   `Model/WOps` (for `bktEntry`).
 
 ## The modules (as built by U0a)
 

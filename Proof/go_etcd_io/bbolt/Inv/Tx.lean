@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Bolt
 public import Proof.go_etcd_io.bbolt.Model.Cursor
+public import Proof.go_etcd_io.bbolt.Model.WOps
 
 @[expose] public section
 
@@ -142,9 +143,14 @@ def txDBDef (tx db : Loc) : IProp GF :=
 /-- `tx` was committed or rolled back: its statistics, frozen. -/
 def txDoneDef (tx : Loc) : IProp GF := iprop(∃ s : TxStats, tx.[Tx, go!"stats"] ↦□ s)
 
-/-- `b` is `tx`'s handle of bucket `n` at generation `g` (persistent). -/
+/-- `b` is `tx`'s handle of bucket `n` at generation `g` (persistent); a reader's handle also
+holds its bucket's fields, persistently (`rBkt … DFrac.discard`, what `Bucket.Bucket_r` gives for
+a top-level bucket `n` of the reader's view), so that the public reader triples reach them. -/
 def boltBktDef (B : BNs) (tx b : Loc) (n : GoString) (g : Nat) : IProp GF :=
-  iprop(∃ r : TxReg, reg tx B r ∗ b.[Bucket, go!"tx"] ↦□ tx ∗ handleFrag r b n g)
+  iprop(∃ r : TxReg, reg tx B r ∗ b.[Bucket, go!"tx"] ↦□ tx ∗ handleFrag r b n g ∗
+    (if r.rw then iprop(emp)
+     else iprop(∃ (v : View) (bv : List w8), viewOf r v ∗ rBkt v tx b DFrac.discard bv ∗
+       ⌜bktEntry v.pages (rootVal v) n bv⌝)))
 
 /-- The slice `s` holds `b` while `tx` is live: persistent heap bytes, or bytes of the
 transaction's view. -/
