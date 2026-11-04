@@ -4,7 +4,7 @@
 `applyAll.specSnap` (`ApplyAllSnap.lean`), its `on` case `wp_proofSnap`'s twin: the image's facts
 in the mode (`snapRecv_imageOn`), the KV's ghost state's jump (`snapRecv_kv_jumpOn`), the applied
 index's with the auth state published (`srvApplyKVOn_appliedPub`, `applied_jumpM`), and the merge
-branch as `applyAll.wp_proofOn`'s (`merged_imageOn`). Lean-first. `run`'s auth-on snapshot case uses
+branch as `applyAll.wp_proofBatch`'s on (`merged_imageOn`, through `merged_imageC`). Lean-first. `run`'s auth-on snapshot case uses
 it.
 -/
 module
@@ -48,21 +48,6 @@ theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyK
   ipureintro
   unfold srvAuthAtLog
   rw [← He]
-
-/-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
-(`authSnapKitM`) and the image's committed log. -/
-theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
-    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ∗
-      srvRLogLb γr.raft A' ⊢ snapAuthResM E.authMode s ast E.RD γr A' := by
-  rw [hM]
-  simp only [authSnapKitM, snapAuthResM]
-  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩, #Hl⟩
-  iframe Hl
-  iunfold srvAuthSnapOk
-  iexists ast, R
-  iframe Ha Hi Hs
-  ipureintro; exact Hrd
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in

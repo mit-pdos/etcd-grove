@@ -56,7 +56,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 set_option maxHeartbeats 1000000 in
 theorem startMember.wp_proof
     (wp_NewMember : etcdstart.NewMember.spec (GF := GF) (hG := hG))
-    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
+    (wp_Start : EtcdServer.Start.specOff (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))

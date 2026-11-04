@@ -31175,6 +31175,107 @@ The other changes are proof-only:
 - `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
 - raft's `Base` imports `io/fs`'s package-init instance.
 
+## The auth component: one slot for the server's auth, stage 1 (2026-11-04 · the user's "go with your recommendations, start stage 1" and the Freeze of candidate 3 · branch `auth-comp`)
+
+Supersedes nothing yet. Stage 2 supersedes "The auth-mode merge" (`M`/`on : Bool`-indexed rows and
+twin `wp_proofOn` theorems) where it rewrites them.
+
+**What.** The server's proofs reach auth through one slot, `AuthC := off | on γa` (`AuthComp.lean`),
+with auth off its trivial instance. Today the server indexes 72 definitions by `on : Bool` and 103
+by `AuthMode`, and keeps about 14 twin theorems (`wp_proofOff`/`wp_proofOn`). The design is in
+three layers:
+- **B, the slot.** Sealed predicates and their laws. This is stage 1, done.
+- **C, the rows.** One definition per row, over the slot (stage 2).
+- **A, one KV model** (stage 3, optional).
+
+**Decisions** (the sketch's Q1–Q4, the user's "go with your recommendations"):
+- B and C come first. A is only worth it if auth on is ever extended to compaction or leases.
+- With auth off, the auth buckets stay in the rest resource (`acBkts .off` is empty), so the
+  trusted boot text does not change.
+- `.any` leaves the server (`AuthC`).
+- The verdict classes stay over `AuthMode`, applied at `C.mode`.
+
+**Divergence map** (an agent's point-by-point map of the twins, checked by two spec-reviewer rounds):
+- Most of the divergence is in resources: the auth row, token rights, publication, the merged
+  snapshot's lend, `Recover`'s facts, the reader's bound, the lessor premise, and the receipt.
+  The slot's laws cover these. The rest is in layer C's mode-indexed containers and per-mode KV
+  lemmas.
+- **Except `applyEntryNormal`'s whole entry step**: the model step at the top, the replayed
+  branch with its admin case below `c₀`, and the live branch. These differ in the KV model and in
+  the applier's contract (`apply.Apply` with the compaction and lease certificates, against
+  `uberKVC` at `latestResC`). No auth-resource law makes them one proof.
+- So stage 2 states the entry step as one law over `C`, `srvEntryStep C`, whose proof keeps its
+  two cases. The on case opens the slot through `acRes_on`/`acInv_on` (`⊣⊢` today's definitions).
+  This is a marked departure from the slot rule, until layer A.
+
+**Stage 1's choices:**
+- `AEnv` is unchanged. The laws that read the environment take `hC : E.authMode = C.mode`, which
+  stage 2's `AEnv.auth : AuthC` makes definitional.
+- `acTok` takes no environment, so `srvTokRights_congr` has no counterpart. The token rights are
+  kept apart from the row, because `apply`'s loop threads them at `ciEff γ st'.k`.
+- The pure pieces (`acBkts`, `acImg`, `acOpenQ`, `acModesOk`, `acReceiptOk`, `restSetC`) are
+  public, because layer C's image lemmas read them.
+- The bridges (`kvAuthM_eq`, `srvTokRights_eq`, …) exist for stage 2's rewriting, and stage 2
+  deletes them.
+
+**Stage 1's departures from the frozen text:**
+- `acTok` is not `Timeless`: `auth.freshBelow` has no `Timeless` instance. No twin needs it.
+- One extra bridge, `authPubAt_eq`.
+
+**Stage 2's acceptance:**
+- No definition outside `AuthComp` matches on `AuthC`, `AuthMode` or `on : Bool`, except the
+  entries of an allow file:
+  - the containers that differ in the KV model (`logShapeM`/`entryOkM`, `kvAppliedM`, `kvInvM`,
+    `kvCertInvM`, `kvModelM`, `kvStM`, `kvLogAtM`, `snapRestImgM`, `srvImageM`, `kvRunAtOn`),
+    until stage 3;
+  - the two-case bodies of `srvEntryStep` and of `NewServer`'s construction.
+- `srvSnapRO` carries `acSnapKit C` in place of its two auth conjuncts.
+- The row after `Recover` is `kvAuthM_snap` over `acRes`.
+- The trust base and every collection are unchanged, and the interfaces regenerated.
+- `AuthComp`'s imports move down: in stage 1 it imports the heavy modules where today's lemmas
+  live, `ApplyAllSnapOn` and `RunOn`. Stage 2 moves those lemmas under it.
+
+## The auth component, stage 2: the rows over the slot and the five linked twins merged (2026-11-04 · the Freeze of candidate 6, "freeze it, go ahead with stage 2" · branch `auth-comp`)
+
+Supersedes stage 1's "Stage 2's acceptance" above: the Freeze scoped stage 2 to what the five linked
+twins' proofs need, and replaced the acceptance's "no definition matches on a mode" by a ratchet.
+Supersedes "The auth-mode merge" for `run`, `start`, `Start`, `applyAll`'s batch and
+`AppliedIndex`: their twin proofs are gone.
+
+**What** (candidate 6, D1–D5; the spec example `auth-component.md` keeps the reviews' history):
+- **The rows** (`AuthCompRows.lean`): new `…C` rows for the resource rows and their containers
+  (`isServerC`, `srvAtomicsC`, `srvKVInvsC`, `srvApplyKVC`, `applyBuiltC`, `isServerBuiltC`,
+  `applyStartC`, `isServerRunC`, and in 2c `applyResC`, `run`'s loop invariant), each with a bridge
+  `XM C.isOn ⊣⊢ XC C` (under `hC : E.authMode = C.mode` where the row reads the environment).
+  Model and flag rows keep `on : Bool` and are used at `C.isOn`: a classification of all 72 bodies
+  showed the KV model, not the auth resource, is what most of them read.
+- **The specs** (D1: `AEnv` keeps `authMode`): `run`, `start`, `Start`, `applyAll.specBatch` and
+  `AppliedIndex` are one statement over `(C : AuthC)`, with `E.authMode = C.mode` (and
+  `acReceiptOk C`) in the precondition. The old texts are `ModeSpecs.lean`'s corollaries
+  `X.spec_off`/`X.spec_on` (D3: kept, with the M rows, until stage 3); off-only callers link
+  `EtcdServer.wp_Start_off` (`LinkedOff.lean`). `specStop` is restated over `isServerRunC` (D5).
+  `Txn` and `Serve` stay pairs (D4).
+- **The proofs** (2c): one proof over the slot each for `run` (with its job body `run_job_body`),
+  `start`, `Start` and `applyAll`'s batch. The divergence points became laws over `C`:
+  `acRes_read`, `srvAuthBoundM_of_read`, `readBound_of_read`, `readCompose_C`,
+  `isServerBuiltC_mid`, `srvApplyKVC_coreA`/`_idxCert`, `merged_imageC` (the merged snapshot's
+  image, `merged_image` off and `merged_imageOn` on), `isServerC_lg`, `kvRunM_split`. The callees'
+  batch specs, over `E.authOn`, are used at `E.authOn = C.isOn`.
+- **The gate** (D2): `etc/mode-check.py` counts, in the server, `client/v3` and the examples, a
+  `match`/`if` on a mode in a definition outside `AuthComp.lean`, a twin declaration outside
+  `ModeSpecs.lean`, and a literal mode argument to an `(on : Bool)` row. Every finding is classified
+  in `etc/mode-allow.txt` (model, flag, corollary, pair, bridge, unmoved); the counts are a baseline
+  (`etc/mode-baseline.txt`) that only goes down. In `etc/gates.sh` and CI.
+
+**Departures from the frozen text:**
+- `run`'s snapshot-payload job keeps its two proofs (`run_job_snap`, `run_snap_jobOn`) behind one
+  lemma over the slot, `run_job_snapC`, through `applyResC_off`/`applyResC_on`: they differ in
+  more than vocabulary (off has the lease-granting cluster's case, `srvGrantOpen_snap`; on threads
+  the token rights to the snapshot's consistent index). `run` itself is one proof.
+- The read loop's callers (`stop`, `ReadServer`) use the merged `AppliedIndex.spec` at a literal
+  mode; there is no `wp_AppliedIndex_off`.
+- The four merged results' `#print axioms` are the same sets off and on.
+
 ## Kubernetes' compactor tested against Go: the example, the client-only starter, the gate's trust boundary (2026-11-04 · K3 of `notes/k8s-compactor-plan.md`, the user's approval of the plan and of U3 · branch `k8s-compactor-ex`)
 
 **The starter.** `StartCompactingServer.spec`'s premise `0 < sint.Z retention` becomes
