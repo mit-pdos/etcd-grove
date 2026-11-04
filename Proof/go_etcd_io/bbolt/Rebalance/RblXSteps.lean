@@ -23,7 +23,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSSim
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSFree
-public import Proof.go_etcd_io.bbolt.Rebalance.RblXSRm
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSCol
 
 @[expose] public section
 
@@ -137,8 +137,8 @@ theorem rblX_col (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (rn : NRec
     (∀ y ry', (colBkt B n lc rc.nv.pgid' (colRoot rn rc sI)).ns !! y = some ry' →
         ry'.nv.unbalanced' = true → y = n ∧ rn.nv.unbalanced' = true ∨
         (y ≠ lc ∧ ∃ ry, B.ns !! y = some ry ∧ ry.nv.unbalanced' = true ∧
-          ry'.nv.pgid' = ry.nv.pgid')) := by
-  sorry
+          ry'.nv.pgid' = ry.nv.pgid')) :=
+  rblX_col' X fl bl B n rn w0 lc rc sI pg hI hb hrn hbr hpn hws hlc hrc hpg
 
 end steps
 
