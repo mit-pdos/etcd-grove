@@ -7,6 +7,9 @@ module
 
 public import Proof.go_etcd_io.bbolt.Read.WOpenH
 public import Proof.go_etcd_io.bbolt.Read.WOpenOK
+public import Proof.go_etcd_io.bbolt.Read.LeafOfT
+public import Proof.go_etcd_io.bbolt.Inv.MatReady
+public import Proof.go_etcd_io.bbolt.Write.Fuel
 
 @[expose] public section
 
@@ -114,6 +117,97 @@ theorem objs_setBkt' (X : WX) (bl : Loc) (B B' : BRec) (hd : objsDisj X.t)
     intro c C hC
     obtain ⟨C0, hC0, hns⟩ := setBkt_ns' X bl B B' hb c C hC
     rw [hns]; exact hno c C0 hC0
+
+/-! ### The opened bucket's data: a tree of the view's pages -/
+
+/-- The logical tree of a bucket with no node: its view pages. -/
+def viewL (v : View) (c : Loc) : LTree := fun k p =>
+  if k = c then (v.pages !! p.toNat).map fun pg => (decide (pageFlags pg = leafPageFlag), pageWs pg)
+  else none
+
+theorem lleaves_congr' (L L' : LTree) (bl : Loc) (h : ∀ q, L bl q = L' bl q) :
+    ∀ n p, lleaves L bl n p = lleaves L' bl n p := by
+  intro n
+  induction n with
+  | zero => intro p; rfl
+  | succ n ih => intro p; simp only [lleaves, h p, ih]
+
+theorem lleaves_viewL (v : View) (c : Loc) :
+    ∀ n (pid : w64), lleaves (viewL v c) c n pid = (leavesF n v.pages pid.toNat).map pageWs
+  | 0, _ => rfl
+  | n + 1, pid => by
+    simp only [lleaves, leavesF]
+    simp only [viewL, ↓reduceIte]
+    cases hp : v.pages !! pid.toNat with
+    | none => rfl
+    | some pg =>
+      simp only [Option.map_some]
+      by_cases hl : pageFlags pg = leafPageFlag
+      · simp [hl]
+      · simp only [hl, decide_false, ite_false]
+        rw [List.map_flatMap]
+        unfold pageWs
+        rw [List.flatMap_map]
+        apply Write.flatMap_congr'
+        intro i _
+        have hpw : (pageW pg i).pgid = W64 (branchPgid pg i : Int) := by
+          unfold pageW; rw [if_neg hl]
+        rw [hpw, lleaves_viewL v c n, LR.branchPgid_toNat]; rfl
+
+/-- **A bucket of view pages walks its tree's leaves** with any fuel past the pages'. -/
+theorem lleaves_viewL_fuel (v : View) (hv : viewWF v) (c : Loc) (pid : w64) (k : Nat) :
+    lleaves (viewL v c) c (v.pages.size + 1 + k) pid =
+      (treeLeaves v.pages pid.toNat).map pageWs := by
+  unfold treeLeaves
+  rw [← lleaves_viewL]
+  apply Write.lleaves_fuel_stable (viewL v c) c (Write.treeMeasure v.pages) ?_ (v.pages.size + 1) k pid
+  · have := Write.treeMeasure_le v.pages pid; omega
+  · intro p ws hL w hw
+    simp only [viewL, ↓reduceIte] at hL
+    cases hp : v.pages !! p.toNat with
+    | none => rw [hp] at hL; cases hL
+    | some pg =>
+      rw [hp] at hL
+      simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq, decide_eq_false_iff_not] at hL
+      obtain ⟨hnl, rfl⟩ := hL
+      unfold pageWs at hw
+      obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw
+      rw [List.mem_range] at hi
+      have hpw : (pageW pg i).pgid = W64 (branchPgid pg i : Int) := by
+        unfold pageW; rw [if_neg hnl]
+      rw [hpw]
+      have hb : pageFlags pg = branchPageFlag := by
+        rcases (viewWF_page_ready v hv _ pg hp).2.2.1 with e | e
+        · exact absurd e hnl
+        · exact e
+      exact Write.treeMeasure_child v hv p pg hp hb i hi
+
+/-- The leaves `leavesF` reaches are leaf pages of the tree below `id`. -/
+theorem leavesF_own (P : Pages)
+    (hk : ∀ id pg, P !! id = some pg → pageFlags pg = leafPageFlag ∨ pageFlags pg = branchPageFlag) :
+    ∀ n id pg, pg ∈ leavesF n P id →
+    ∃ p, ownHas P id p ∧ P !! p = some pg ∧ pageFlags pg = leafPageFlag
+  | 0, _, _, h => by simp [leavesF] at h
+  | n + 1, id, pg, h => by
+    simp only [leavesF] at h
+    cases hp : P !! id with
+    | none => rw [hp] at h; simp at h
+    | some pg0 =>
+      rw [hp] at h
+      simp only at h
+      by_cases hl : pageFlags pg0 = leafPageFlag
+      · rw [if_pos hl, List.mem_singleton] at h
+        subst h
+        exact ⟨id, ownHas.root _ _ hp, hp, hl⟩
+      · rw [if_neg hl] at h
+        obtain ⟨i, hi, hm⟩ := List.mem_flatMap.1 h
+        rw [List.mem_range] at hi
+        obtain ⟨p, ho, hpp, hlf⟩ := leavesF_own P hk n _ pg hm
+        have hb : pageFlags pg0 = branchPageFlag := by
+          rcases hk id pg0 hp with e | e
+          · exact absurd e hl
+          · exact e
+        exact ⟨p, ownHas.child id pg0 i p hp hb hi ho, hpp, hlf⟩
 
 /-! ### The opened state -/
 
