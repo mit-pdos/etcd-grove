@@ -42,7 +42,11 @@ open Iris
 - `dbl`: `ghostVar Loc`, discarded: the database's location;
 - `cls`: `ghostVar Bool`, closed (½ `rwR`, ½ `metaR`);
 - `t0`: `ghostVar Nat`, discarded: the opened file's txid (the receipts' base);
-- `pool`: the reader pool's name (round 4, N5). -/
+- `pool`: the reader pool's name (round 4, N5);
+- `mln`: `ghostVar Unit`, the meta cells' loan token (`metaLend`: home, or with the writer, while
+  `pagesInv` holds it; the reader borrowing the meta cells holds it, U3 finding 10);
+- `byt`: `ghostVar (GMap Nat (List w8))`, the store slots' bytes (½ `pagesInv`, the other ½ in
+  `pagesInv` while mapped, handed out by `store_gather` and back by `store_carve`, U3 finding 11). -/
 structure BNs where
   st : GName
   bq : GName
@@ -60,6 +64,8 @@ structure BNs where
   cls : GName
   t0 : GName
   pool : GName
+  mln : GName
+  byt : GName
   deriving Inhabited
 
 /-- The names of a `BoltName`'s list `gs` (`γ.gs`), by position. -/
@@ -67,12 +73,13 @@ def bnsOf (gs : List GName) : BNs :=
   ⟨gs.getD 0 default, gs.getD 1 default, gs.getD 2 default, gs.getD 3 default,
    gs.getD 4 default, gs.getD 5 default, gs.getD 6 default, gs.getD 7 default,
    gs.getD 8 default, gs.getD 9 default, gs.getD 10 default, gs.getD 11 default,
-   gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default⟩
+   gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default,
+   gs.getD 16 default, gs.getD 17 default⟩
 
 /-- The list of names `Open` returns (`⟨mkGs B, N⟩` is the database's `BoltName`). -/
 def mkGs (B : BNs) : List GName :=
   [B.st, B.bq, B.cur, B.fl, B.rds, B.fltx, B.mtok, B.map, B.out, B.mlk, B.wv, B.txs, B.dbl,
-    B.cls, B.t0, B.pool]
+    B.cls, B.t0, B.pool, B.mln, B.byt]
 
 theorem bnsOf_mkGs (B : BNs) : bnsOf (mkGs B) = B := rfl
 

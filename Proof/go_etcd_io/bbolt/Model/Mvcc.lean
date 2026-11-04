@@ -230,19 +230,101 @@ theorem mvccView_releaseRange (fl : FLPg) (v : View) (b e : w64) (h : mvccView f
       cases hkv
       exact hpend t _ i hp hi
 
+omit [GooseExts] in
+private theorem runIds_toNat (id : w64) (n j : Nat) (hj : j < n) (hn : id.toNat + n < 2 ^ 64) :
+    (id + W64 (j : Int)).toNat = id.toNat + j := by
+  simp only [W64, BitVec.toNat_add, BitVec.toNat_ofInt]; omega
+
+omit [GooseExts] in
+private theorem mem_runIds (id : w64) (n : Nat) (x : w64) :
+    x ∈ runIds id n ↔ ∃ j < n, x = id + W64 (j : Int) := by
+  simp only [runIds, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+  · rintro ⟨j, hj, rfl⟩; exact ⟨j, hj, rfl⟩
+
 /-- A writer's `Free` keeps the MVCC rule of every older view: a freed page of the view becomes
-pending for a newer transaction, allocated at or before the view. Used by U3 (`store_free`). -/
+pending for a newer transaction, allocated at or before the view. Used by U3 (`store_free`).
+(U3 finding 8: the view's slots below `2 ^ 64`, the freelist well-formed.) -/
 theorem mvccView_free (fl : FLPg) (v : View) (txid id : w64) (n : Nat) (h : mvccView fl v)
     (ht : v.txid < txid.toNat) (hfree : fl.canFree txid id n)
     (hpg : (∃ pg, v.pages !! id.toNat = some pg ∧ 1 + pageOverflow pg = n) ∨
-      ∀ j < n, ¬ coversSlot v.pages (id.toNat + j)) :
+      ∀ j < n, ¬ coversSlot v.pages (id.toNat + j))
+    (hlt : ∀ s, coversSlot v.pages s → s < 2 ^ 64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
     mvccView (fl.freePages txid id n) v := by
-  sorry
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun id' pg hp a ha => ?_, fun s hs => ?_⟩
+  · simp only [FLPg.freePages, GMap.lookup_delete_iff] at ha
+    split at ha
+    · cases ha
+    · exact h1 id' pg hp a ha
+  obtain ⟨hs2, hsf, hsp⟩ := h2 s hs
+  refine ⟨hs2, hsf, fun t pd i hp hi => ?_⟩
+  simp only [FLPg.freePages, GMap.lookup_insert_eq_iff] at hp
+  split at hp
+  · rename_i htx
+    subst htx
+    cases hp
+    -- the old entry, or the run
+    have hlen : ((fl.pending !! txid).getD ⟨[], [], 0⟩).ids.length =
+        ((fl.pending !! txid).getD ⟨[], [], 0⟩).alloctx.length := by
+      rcases hq : fl.pending !! txid with _ | q
+      · rfl
+      · exact hwf txid q hq
+    generalize hP : (fl.pending !! txid).getD ⟨[], [], 0⟩ = P at hlen hi ⊢
+    simp only at hi ⊢
+    by_cases hil : i < P.ids.length
+    · rw [List.getElem?_append_left hil] at hi
+      have hold : ∃ q, fl.pending !! txid = some q ∧ q = P := by
+        rcases hq : fl.pending !! txid with _ | q
+        · rw [hq] at hP; simp only [Option.getD_none] at hP; subst hP; simp at hil
+        · rw [hq] at hP; exact ⟨q, rfl, hP⟩
+      obtain ⟨q, hq, rfl⟩ := hold
+      have := hsp txid q i hq hi
+      rwa [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
+        ← List.getD_eq_getElem?_getD]
+    · rw [List.getElem?_append_right (by omega)] at hi
+      have hj := List.mem_of_getElem? hi
+      rw [mem_runIds] at hj
+      obtain ⟨j, hjn, hj⟩ := hj
+      have hix : i - P.ids.length < n := by
+        have := (List.getElem?_eq_some_iff.1 hi).1
+        simp only [runIds, List.length_map, List.length_range] at this; exact this
+      rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega),
+        List.getElem?_replicate, if_pos (by omega : i - P.alloctx.length < n), Option.getD_some]
+      refine ⟨?_, ht⟩
+      rcases hpg with ⟨pg, hpgv, -⟩ | hnc
+      · rcases ha : fl.allocs !! id with _ | a
+        · simp
+        · have := h1 id.toNat pg hpgv a (by rw [show (W64 (id.toNat : Int)) = id by
+            simp only [W64, BitVec.ofInt_natCast, BitVec.ofNat_toNat, BitVec.setWidth_eq]]; exact ha)
+          simpa using this
+      · exfalso
+        have hs64 := hlt s hs
+        have h1' : (W64 (s : Int)).toNat = s := by simp only [W64, BitVec.toNat_ofInt]; omega
+        have h2' := runIds_toNat id n j hjn (by have := hfree.2.1; omega)
+        rw [← hj, h1'] at h2'
+        exact hnc j hjn (h2' ▸ hs)
+  · exact hsp t pd i hp hi
 
-/-- `Allocate` takes free ids, which no view sees. Used by U3 (`store_alloc`). -/
+/-- `Allocate` takes free ids, which no view sees. Used by U3 (`store_alloc`). (U3 finding 7: at
+least one id.) -/
 theorem mvccView_alloc (fl : FLPg) (v : View) (txid r : w64) (n : Nat) (h : mvccView fl v)
-    (ha : fl.canAlloc r n) : mvccView (fl.alloc txid r n) v := by
-  sorry
+    (ha : fl.canAlloc r n) (hn : 0 < n) : mvccView (fl.alloc txid r n) v := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun id pg hp a hal => ?_, fun s hs => ?_⟩
+  · simp only [FLPg.alloc, GMap.lookup_insert_eq_iff] at hal
+    split at hal
+    · rename_i hr
+      exfalso
+      have hcov : coversSlot v.pages id := ⟨id, pg, hp, Nat.le_refl _, by omega⟩
+      exact (h2 id hcov).2.1 (hr ▸ ha.2 r ⟨Nat.le_refl _, by omega⟩)
+    · exact h1 id pg hp a hal
+  · obtain ⟨a, b, c⟩ := h2 s hs
+    refine ⟨a, fun hm => b ?_, c⟩
+    simp only [FLPg.alloc, List.mem_filter] at hm
+    exact hm.1
 
 end mvcc
 

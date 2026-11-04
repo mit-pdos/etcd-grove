@@ -88,7 +88,8 @@ def flRoOpt (fli : GoInterface) (F : GMap Nat w64) : IProp GF :=
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
 closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
 bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
-reader part, and, while open, the committed state's well-formedness. -/
+reader part, and, while open, the committed state's well-formedness; the txids are at least 1
+(U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
 def metaR (B : BNs) (db : Loc) (p : GoString) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
     ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
@@ -98,7 +99,7 @@ def metaR (B : BNs) (db : Loc) (p : GoString) : IProp GF :=
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
     ghostVar B.mlk 1 () ∗ ghostMapAuth B.fltx 1 F ∗ flRoOpt fli F ∗
-    ⌜cl = false → C.metaOk ∧ treeOK C⌝)
+    ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat⌝)
 
 /-! ## `mmaplock` and `statlock` -/
 

@@ -57,22 +57,35 @@ def storeCells (σ : StoreSt) : IProp GF :=
       ∃ e : Qp, ⌜fracSum e (lent σ s) (1 : Qp).half⌝ ∗
         bytesPointsto (base +ₗ ((4096 * s : Nat) : Int)) (DFrac.own e) (σ.bytes s))
 
-/-- **The meta cells' lend quarter**: home; out with the writer (during the meta write); or lent
-to the one reader holding `metalock`, which deposits `mlk` and `mtok (rfrac/2)`. -/
+/-- **The meta cells' lend quarter**: home (with the loan token `mln`); out with the writer
+(during the meta write, which deposits `mlk`, with `mln`); or lent to the one reader holding
+`metalock`, which deposits `mlk` and `mtok (rfrac/2)` and holds `mln` (U3 finding 10, as
+minibolt's loan tokens). -/
 def metaLend (B : BNs) (σ : StoreSt) : IProp GF :=
-  iprop((metaCellsQ (1 : Qp).half.half σ.ms σ.C ∗ ghostVar B.out (1 : Qp).half false) ∨
-    ghostVar B.out (1 : Qp).half true ∨
+  iprop((metaCellsQ (1 : Qp).half.half σ.ms σ.C ∗ ghostVar B.out (1 : Qp).half false ∗
+      ghostVar B.mln 1 ()) ∨
+    (ghostVar B.out (1 : Qp).half true ∗ ghostVar B.mlk 1 () ∗ ghostVar B.mln 1 ()) ∨
     (ghostVar B.out (1 : Qp).half false ∗ ghostVar B.mlk 1 () ∗
       ghostVar B.mtok sync.rfrac.half ()))
 
+/-- **The store slots' bytes, as a ghost witness** `W` (U3 finding 11): half here, the other half
+here too while mapped (`store_gather` hands it out with the cells, `store_carve` takes both
+back, so that the new mapping's cells are known to hold the store's bytes). -/
+def bytesWit (B : BNs) (σ : StoreSt) (W : GMap Nat (List w8)) : IProp GF :=
+  iprop(ghostVar B.byt (1 : Qp).half W ∗
+    (match σ.ms with
+     | some _ => ghostVar B.byt (1 : Qp).half W
+     | none => iprop(emp)) ∗
+    ⌜∀ s ∈ storeSlots σ, W !! s = some (σ.bytes s)⌝)
+
 /-- **The page store's invariant** (design §3.6). -/
 def pagesInv (B : BNs) (p : GoString) : IProp GF :=
-  iprop(∃ σ : StoreSt,
+  iprop(∃ (σ : StoreSt) (W : GMap Nat (List w8)),
     ghostVar B.cur (1 : Qp).half.half σ.C ∗ ghostVar B.fl (1 : Qp).half σ.fl ∗
     ghostVar B.map (1 : Qp).half.half σ.ms ∗ ghostVar B.wv (1 : Qp).half σ.wst ∗
     ghostMapAuth B.rds 1 σ.R ∗
     ([∗map] k ↦ r ∈ σ.R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ∗
-    storeCells σ ∗ ([∗list] s ∈ storeSlots σ, osSlot p s (σ.bytes s)) ∗
+    storeCells σ ∗ ([∗list] s ∈ storeSlots σ, osSlot p s (σ.bytes s)) ∗ bytesWit B σ W ∗
     metaLend B σ ∗ ⌜storeOK σ⌝)
 
 /-! ## Lemma statements (U3), fancy updates at `pagesN N` -/
@@ -83,6 +96,8 @@ private theorem pagesInv_timeless (B : BNs) (p : GoString) : Timeless (pagesInv 
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
     intro σ; unfold metaLend metaCellsQ; split <;> infer_instance
+  have h4 : ∀ σ W, Timeless (bytesWit (GF := GF) B σ W) := by
+    intro σ W; unfold bytesWit; split <;> infer_instance
   have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
     intro s bs
     have : ∀ off dq xs, Timeless (osBytes (GF := GF) p off dq xs) := fun _ _ _ => by
@@ -477,7 +492,7 @@ theorem store_deregister (k : Nat) (r : RdInfo) :
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   ihave %hk := ghost_map_lookup $$ Hrds Hk
   have hk' : σ.R !! k = some r := hk
   have hrok := Hok.2.2.2.2.2.2.1 k r hk'
@@ -500,12 +515,13 @@ theorem store_deregister (k : Nat) (r : RdInfo) :
     (fun s _ => lent_deregister σ k r hk' s)
     $$ [Hcells Hv]
   · iframe
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
-    iexists σ.deregister k
+    iexists σ.deregister k, W
     rw [storeCells_some (σ.deregister k) b l hms]
     have e2 : metaLend (GF := GF) B (σ.deregister k) = metaLend B σ := rfl
-    rw [e2]
+    have e3 : bytesWit (GF := GF) B (σ.deregister k) W = bytesWit B σ W := rfl
+    rw [e2, e3]
     iframe
     ipureintro
     exact storeOK_deregister σ k Hok
@@ -531,7 +547,7 @@ theorem store_wreturn (v : View) (w : Option Nat) (pb : Bool) :
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   icombine Hwv Hwv' gives % ⟨_, hws⟩
   simp only [StoreSt.wst, Prod.mk.injEq] at hws
   obtain ⟨hwv, hwtx, hpb, hwl⟩ := hws
@@ -556,12 +572,13 @@ theorem store_wreturn (v : View) (w : Option Nat) (pb : Bool) :
       · simp [hc, show s ∉ pagesSlots v.pages from fun h => hc ((mem_pagesSlots _ _).1 h)])
     $$ [Hcells Hv]
   · iframe
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
-    iexists σ.wreturn
+    iexists σ.wreturn, W
     rw [storeCells_some σ.wreturn b l hms]
     have e2 : metaLend (GF := GF) B σ.wreturn = metaLend B σ := rfl
-    rw [e2]
+    have e3 : bytesWit (GF := GF) B σ.wreturn W = bytesWit B σ W := rfl
+    rw [e2, e3]
     have ew : σ.wreturn.wst = ((some v, w, pb, false) : WSt) := by
       simp only [StoreSt.wst, StoreSt.wreturn, ← hwv, ← hwtx, ← hpb]
     rw [ew]
@@ -582,7 +599,7 @@ theorem store_wborrow (v : View) (w : Option Nat) (pb : Bool) (b : Loc) (l : Nat
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   icombine Hwv Hwv' gives % ⟨_, hws⟩
   icombine Hmap Hmap' gives % ⟨_, hms⟩
   simp only [StoreSt.wst, Prod.mk.injEq] at hws
@@ -606,12 +623,13 @@ theorem store_wborrow (v : View) (w : Option Nat) (pb : Bool) (b : Loc) (l : Nat
     (fun s _ x hx => lent_lt_half2 (σ.wborrow b) Hsz s x hx)
     $$ Hcells with ⟨Hcells, Hv⟩
   ihave Hv := (viewCells_slots wq { v with base := b } σ.bytes hwok.2.2.2.2.1 hTl).2 $$ Hv
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
-    iexists σ.wborrow b
+    iexists σ.wborrow b, W
     rw [storeCells_some (σ.wborrow b) b l hms']
     have e2 : metaLend (GF := GF) B (σ.wborrow b) = metaLend B σ := rfl
-    rw [e2]
+    have e3 : bytesWit (GF := GF) B (σ.wborrow b) W = bytesWit B σ W := rfl
+    rw [e2, e3]
     have ew : (σ.wborrow b).wst = ((some { v with base := b }, w, pb, true) : WSt) := by
       simp only [StoreSt.wst, StoreSt.wborrow, ← hwv, ← hwtx, ← hpb, Option.map_some]
     rw [ew]
@@ -639,7 +657,9 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half ws ∗
       ((⌜∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
-        (⌜C.flpg = some id.toNat⌝ ∗ slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
+        (⌜C.flpg = some id.toNat ∧ ms ≠ none ∧ ∀ j < n, (pg (id.toNat + j)).length = 4096 ∧
+          ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096⌝ ∗
+          slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half (fl.freePages (W64 (w : Int)) id n) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws := by
@@ -648,7 +668,7 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
 /-- `Allocate` by the live writer: the ids leave the free list (their slots are `W` slots
 already). -/
 theorem store_alloc (fl : FLPg) (ws : WSt) (w : Nat) (r : w64) (n : Nat)
-    (hw : ws.2.1 = some w) (ha : fl.canAlloc r n) :
+    (hw : ws.2.1 = some w) (ha : fl.canAlloc r n) (hn : 0 < n) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.wv (1 : Qp).half ws ⊢
     |={E}=> ghostVar B.fl (1 : Qp).half (fl.alloc (W64 (w : Int)) r n) ∗
@@ -658,7 +678,8 @@ theorem store_alloc (fl : FLPg) (ws : WSt) (w : Nat) (r : w64) (n : Nat)
 /-- `ReleasePendingPages` with no live writer, under `metalock` (`metaR`'s `F`, whose values are
 `readonlyTXIDs` `ro`): the released slots move `store → W`, with their cells and bytes. -/
 theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
-    (ro : List w64) (hro : ro.Perm (F.toList.map Prod.snd)) :
+    (ro : List w64) (hro : ro.Perm (F.toList.map Prod.snd))
+    (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ⊢
@@ -680,7 +701,9 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
     (hbytes : ∀ id pg, C'.pages !! id = some pg → C.pages !! id = some pg ∨
       ((∀ j < 1 + pageOverflow pg, id + j ∈ S) ∧
         pg = (List.range' id (1 + pageOverflow pg)).flatMap bs))
-    (hfl : flBelow fl C' (some w)) :
+    (hfl : flBelow fl C' (some w)) (hnp : ∀ s ∈ treeSlots C', s ∉ pendSlots fl)
+    (hSb : ∀ s ∈ S, (bs s).length = 4096 ∧ W64 (s : Int) ∉ fl.free ∧
+      ∀ b l, ms = some (b, l) → s < l / 4096) (hms : ms ≠ none) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.map (1 : Qp).half ms ∗
@@ -715,17 +738,18 @@ theorem store_reload (C : CommitSt) (fl : FLPg) (ids : List w64)
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl', Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   icombine Hfl Hfl' gives % ⟨_, hfl⟩
   subst hC hfl
   imod ghostVar_update_halves (σ.fl.reload ids) B.fl σ.fl σ.fl $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv Hrds Hdep Hcells Hos Hml] with _
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
-    iexists (σ.reload ids)
+    iexists (σ.reload ids), W
     have e1 : storeCells (GF := GF) (σ.reload ids) = storeCells σ := rfl
     have e2 : metaLend (GF := GF) B (σ.reload ids) = metaLend B σ := rfl
-    rw [e1, e2]
+    have e3 : bytesWit (GF := GF) B (σ.reload ids) W = bytesWit B σ W := rfl
+    rw [e1, e2, e3]
     iframe
     ipureintro
     exact storeOK_reload σ ids Hok hids hnd
@@ -738,11 +762,12 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (some (b, l) : MapSt) ∗ ghostVar B.mtok 1 () ∗
-      ghostVar B.wv (1 : Qp).half ws ⊢
-    |={E}=> ∃ bs : Nat → List w8,
+      ghostVar B.wv (1 : Qp).half ws ∗ ghostVar B.out (1 : Qp).half false ⊢
+    |={E}=> ∃ (bs : Nat → List w8) (W : GMap Nat (List w8)),
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗ ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗
-      ghostVar B.mtok 1 () ∗ ghostVar B.wv (1 : Qp).half ws ∗
+      ghostVar B.mtok 1 () ∗ ghostVar B.wv (1 : Qp).half ws ∗ ghostVar B.out (1 : Qp).half false ∗
+      ghostVar B.byt (1 : Qp).half W ∗ ⌜∀ s ∈ slotsOf C fl, W !! s = some (bs s)⌝ ∗
       ([∗list] s ∈ slotsOf C fl,
         bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l)) C := by
@@ -751,11 +776,12 @@ theorem store_gather (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
 /-- `mmap` (a remap): the new mapping's store cells in, holding the page cache's bytes (the
 caller read them with OsFs's `osCell_agree`), and the meta lend quarter. -/
 theorem store_carve (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (ws : WSt)
-    (bs : Nat → List w8) (hl : ∀ s ∈ slotsOf C fl, s < l / 4096) :
+    (bs : Nat → List w8) (W : GMap Nat (List w8)) (hl : ∀ s ∈ slotsOf C fl, s < l / 4096)
+    (hW : ∀ s ∈ slotsOf C fl, W !! s = some (bs s)) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half (none : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗ ghostVar B.mtok 1 () ∗
-      ghostVar B.wv (1 : Qp).half ws ∗
+      ghostVar B.wv (1 : Qp).half ws ∗ ghostVar B.byt (1 : Qp).half W ∗
       ([∗list] s ∈ slotsOf C fl,
         bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) ∗
       metaCellsQ (1 : Qp).half.half (some (b, l)) C ⊢
@@ -771,40 +797,42 @@ theorem meta_borrow (C : CommitSt) (ms : MapSt) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.mlk 1 () ∗
       ghostVar B.mtok sync.rfrac.half () ∗ ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.map sync.rfrac.half.half ms ⊢
-    |={E}=> metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.cur (1 : Qp).half C ∗
-      ghostVar B.map sync.rfrac.half.half ms := by
+    |={E}=> metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.mln 1 () ∗
+      ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.map sync.rfrac.half.half ms := by
   sorry
 
 /-- The reader gives the meta cells' quarter back and gets its deposits. -/
 theorem meta_return (C : CommitSt) (ms : MapSt) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ metaCellsQ (1 : Qp).half.half ms C ∗
-      ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.map sync.rfrac.half.half ms ⊢
+      ghostVar B.mln 1 () ∗ ghostVar B.cur (1 : Qp).half C ∗
+      ghostVar B.map sync.rfrac.half.half ms ⊢
     |={E}=> ghostVar B.mlk 1 () ∗ ghostVar B.mtok sync.rfrac.half () ∗
       ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.map sync.rfrac.half.half ms := by
   sorry
 
 /-- `writeMeta`, holding `metalock` (`mlk`): the writer takes the meta cells' quarter
-(`out := true`). -/
+(`out := true`), depositing `mlk` until it puts them back. -/
 theorem meta_take (C : CommitSt) (ms : MapSt) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.out (1 : Qp).half false ∗
       ghostVar B.mlk 1 () ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.map (1 : Qp).half ms ⊢
     |={E}=> metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.out (1 : Qp).half true ∗
-      ghostVar B.mlk 1 () ∗ ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.map (1 : Qp).half ms := by
+      ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.map (1 : Qp).half ms := by
   iintro ⟨#Hinv, Hout, Hmlk, Hcur, Hmap⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   icombine Hmap Hmap' gives % ⟨_, hms⟩
   subst hC hms
   unfold metaLend
-  icases Hml with (⟨Hm, Hout'⟩ | Hout' | ⟨Hout', Hmlk', -⟩)
+  icases Hml with (⟨Hm, Hout', Hln⟩ | ⟨Hout', -, -⟩ | ⟨Hout', Hmlk', -⟩)
   · imod ghostVar_update_halves true B.out false false $$ Hout Hout' with ⟨Hout, Hout'⟩
-    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hout'] with _
-    · inext; iexists σ; iframe
+    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hout' Hmlk Hln] with _
+    · inext; iexists σ, W; iframe
+      isplitl [Hout' Hmlk Hln]
+      · iright; ileft; iframe
       ipureintro; exact Hok
     imodintro; iframe
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
@@ -814,28 +842,29 @@ theorem meta_take (C : CommitSt) (ms : MapSt) :
     grind
 
 /-- The writer puts the meta cells' quarter back, holding the current committed state's metas
-(after `store_publish`, or unchanged). -/
+(after `store_publish`, or unchanged), and gets `mlk` back. -/
 theorem meta_put (C : CommitSt) (ms : MapSt) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.out (1 : Qp).half true ∗
       metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.map (1 : Qp).half ms ⊢
-    |={E}=> ghostVar B.out (1 : Qp).half false ∗ ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.map (1 : Qp).half ms := by
+    |={E}=> ghostVar B.out (1 : Qp).half false ∗ ghostVar B.mlk 1 () ∗
+      ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.map (1 : Qp).half ms := by
   iintro ⟨#Hinv, Hout, Hm, Hcur, Hmap⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   icombine Hmap Hmap' gives % ⟨_, hms⟩
   subst hC hms
   unfold metaLend
-  icases Hml with (⟨-, Hout'⟩ | Hout' | ⟨Hout', -, -⟩)
+  icases Hml with (⟨-, Hout', -⟩ | ⟨Hout', Hmlk, Hln⟩ | ⟨Hout', -, -⟩)
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
   · imod ghostVar_update_halves false B.out true true $$ Hout Hout' with ⟨Hout, Hout'⟩
-    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hout' Hm] with _
-    · inext; iexists σ; iframe
-      isplitl; · ileft; iframe
+    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hout' Hm Hln] with _
+    · inext; iexists σ, W; iframe
+      isplitl [Hout' Hm Hln]
+      · ileft; iframe
       ipureintro; exact Hok
     imodintro; iframe
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb

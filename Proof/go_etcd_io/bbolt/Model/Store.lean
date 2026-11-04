@@ -127,7 +127,15 @@ def storeOK (σ : StoreSt) : Prop :=
   (∀ b l, σ.ms = some (b, l) → ∀ s ∈ storeSlots σ, s < l / 4096) ∧
   (σ.ms = none → σ.R = ∅ ∧ σ.wlent = false) ∧ (σ.wv = none → σ.wlent = false) ∧
   (σ.wtx = none → σ.wv = none) ∧
-  (∀ s, s ∈ treeSlots σ.C → s ∉ pendSlots σ.fl ∨ pendingOnlyFromWriter σ.fl σ.wtx s)
+  (∀ s, s ∈ treeSlots σ.C → s ∉ pendSlots σ.fl ∨ pendingOnlyFromWriter σ.fl σ.wtx s) ∧
+  -- U3 finding 1: the current tree keeps the MVCC rule (a new view of it is safe)
+  (∀ b, mvccView σ.fl (View.ofC b σ.C)) ∧
+  -- U3 finding 2: every recorded allocation is by a committed transaction or the next one
+  (∀ x a, σ.fl.allocs !! x = some a → a.toNat ≤ σ.C.txid + 1) ∧
+  -- U3 finding 5: before the publish, a slot pending only for the writer and not in the tree
+  -- (the old synced freelist page) is covered by no reader
+  (σ.pub = false → ∀ s ∈ pendSlots σ.fl, s ∉ treeSlots σ.C →
+    pendingOnlyFromWriter σ.fl σ.wtx s → ∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s)
 
 /-! ## Transitions (one per `Inv/Store.lean` lemma) -/
 
@@ -234,6 +242,19 @@ private theorem storeSlot_lt (σ : StoreSt) (h : storeOK σ) (s : Nat) (hs : s �
   · simp only [pendSlots, List.mem_map] at hs
     obtain ⟨x, -, rfl⟩ := hs
     exact x.isLt
+
+private theorem mem_pagesSlots (P : Pages) (s : Nat) : s ∈ pagesSlots P ↔ coversSlot P s := by
+  simp only [pagesSlots, List.mem_flatMap, List.mem_range', coversSlot]
+  constructor
+  · rintro ⟨⟨id, pg⟩, hip, j, hj, rfl⟩
+    exact ⟨id, pg, (GMap.mem_toList _ _ _).1 hip, by omega, by simp only at hj; omega⟩
+  · rintro ⟨id, pg, hp, h1, h2⟩
+    exact ⟨(id, pg), (GMap.mem_toList _ _ _).2 hp, s - id, by simp only; omega, by omega⟩
+
+private theorem tree_in_store (σ : StoreSt) (s : Nat) (h : coversSlot σ.C.pages s) :
+    s ∈ storeSlots σ := by
+  simp only [storeSlots, mem_list_dedup, List.mem_append]
+  exact Or.inl ((mem_pagesSlots _ _).2 h)
 
 omit [GooseExts] in
 private theorem mem_sortPgids (l : List w64) (x : w64) : x ∈ sortPgids l ↔ x ∈ l :=
@@ -371,12 +392,15 @@ theorem storeOK_register (σ : StoreSt) (k : Nat) (r : RdInfo) (b : Loc) (l : Na
 
 theorem storeOK_deregister (σ : StoreSt) (k : Nat) (h : storeOK σ) :
     storeOK (σ.deregister k) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
   refine ⟨h1, h2, h3, h4, h5, h6, fun k' r hr => h7 k' r ?_, h8, h9,
-    fun k' r hr => h10 k' r ?_, h11, h12, h13, fun hms => ⟨?_, (h14 hms).2⟩, h15, h16, h17⟩
+    fun k' r hr => h10 k' r ?_, h11, h12, h13, fun hms => ⟨?_, (h14 hms).2⟩, h15, h16, h17, h18,
+    h19, fun hp s hs ht hpo k' r hr => h20 hp s hs ht hpo k' r ?_⟩
   · exact ((GMap.lookup_delete_Some _ _ _ _).1 hr).2
   · exact ((GMap.lookup_delete_Some _ _ _ _).1 hr).2
   · simp only [StoreSt.deregister, (h14 hms).1]; exact GMap.delete_empty k
+  · exact ((GMap.lookup_delete_Some _ _ _ _).1 hr).2
 
 theorem storeOK_wbegin (σ : StoreSt) (v : View) (b : Loc) (l : Nat) (h : storeOK σ)
     (hms : σ.ms = some (b, l)) (hw : σ.wtx = none) (hwv : σ.wv = none)
@@ -392,7 +416,7 @@ theorem storeOK_wreturn (σ : StoreSt) (h : storeOK σ) : storeOK σ.wreturn := 
 
 /-- Re-borrowing the parked view at a remap, on the new mapping's base. -/
 theorem storeOK_wborrow (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ)
-    (hwl : σ.wlent = false) (hms : σ.ms = some (b, l)) :
+    (hwl : σ.wlent = false) (hms : σ.ms = some (b, l)) (hwv : σ.wv ≠ none) :
     storeOK (σ.wborrow b) := by
   sorry
 
@@ -407,15 +431,17 @@ old synced freelist page (whose bytes `pg` then enter the store). -/
 theorem storeOK_free (σ : StoreSt) (w : Nat) (id : w64) (n : Nat) (pg : Nat → List w8)
     (h : storeOK σ) (hw : σ.wtx = some w) (hpub : σ.pub = false)
     (hcan : σ.fl.canFree (W64 (w : Int)) id n)
-    (hpage : (∃ p, σ.C.pages !! id.toNat = some p ∧ 1 + pageOverflow p = n) ∨
+    (hpage : ((∃ p, σ.C.pages !! id.toNat = some p ∧ 1 + pageOverflow p = n) ∧
+        ∀ j < n, pg (id.toNat + j) = σ.bytes (id.toNat + j)) ∨
       (σ.C.flpg = some id.toNat ∧ ∀ j < n, ¬ coversSlot σ.C.pages (id.toNat + j) ∧
-        (pg (id.toNat + j)).length = 4096)) :
+        (pg (id.toNat + j)).length = 4096 ∧
+        ∀ b l, σ.ms = some (b, l) → id.toNat + j < l / 4096)) :
     storeOK (σ.free (W64 (w : Int)) id n pg) := by
   sorry
 
 /-- `Allocate` by the live writer of free ids. -/
 theorem storeOK_alloc (σ : StoreSt) (w : Nat) (r : w64) (n : Nat) (h : storeOK σ)
-    (hw : σ.wtx = some w) (ha : σ.fl.canAlloc r n) :
+    (hw : σ.wtx = some w) (ha : σ.fl.canAlloc r n) (hn : 0 < n) :
     storeOK (σ.alloc (W64 (w : Int)) r n) := by
   sorry
 
@@ -423,7 +449,7 @@ theorem storeOK_alloc (σ : StoreSt) (w : Nat) (r : w64) (n : Nat) (h : storeOK 
 (`metaR`'s `F`, design §3.6). -/
 theorem storeOK_release (σ : StoreSt) (ro : List w64) (h : storeOK σ) (hw : σ.wtx = none)
     (hwv : σ.wlent = false) (hro : ∀ k r, σ.R !! k = some r → W64 (r.v.txid : Int) ∈ ro)
-    (hro' : ∀ t ∈ ro, t.toNat ≤ σ.C.txid) :
+    (hro' : ∀ t ∈ ro, t.toNat ≤ σ.C.txid) (hro1 : ∀ t ∈ ro, 1 ≤ t.toNat) :
     storeOK (σ.release ro) := by
   sorry
 
@@ -435,9 +461,12 @@ theorem storeOK_publish (σ : StoreSt) (w : Nat) (C' : CommitSt) (bs : Nat → L
     (hmeta : C'.metaOk) (htree : treeOK C')
     (hdrop : ∀ s ∈ treeSlots σ.C, s ∉ treeSlots C' → s ∈ pendSlots σ.fl)
     (hnew : ∀ s ∈ treeSlots C', s ∉ treeSlots σ.C → s ∉ pendSlots σ.fl ∧
-      (∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s) ∧ (bs s).length = 4096)
-    (hbytes : pagesFromBytes (fun s => if s ∈ treeSlots σ.C ∨ s ∈ pendSlots σ.fl then σ.bytes s
-      else bs s) C'.pages)
+      (∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s) ∧ (bs s).length = 4096 ∧
+      W64 (s : Int) ∉ σ.fl.free ∧ ∀ b l, σ.ms = some (b, l) → s < l / 4096)
+    (hnp : ∀ s ∈ treeSlots C', s ∉ pendSlots σ.fl)
+    (hbytes : ∀ id pg, C'.pages !! id = some pg → σ.C.pages !! id = some pg ∨
+      ((∀ j < 1 + pageOverflow pg, id + j ∉ storeSlots σ) ∧
+        pg = (List.range' id (1 + pageOverflow pg)).flatMap bs))
     (hfl : flBelow σ.fl C' (some w)) :
     storeOK (σ.publish C' bs) := by
   sorry
@@ -453,7 +482,8 @@ theorem storeOK_reload (σ : StoreSt) (ids : List w64) (h : storeOK σ)
       (x.toNat ∉ storeSlots σ ∨ x ∈ σ.fl.pendingIds))
     (hnd : ids.Nodup) : storeOK (σ.reload ids) := by
   have hlt := storeSlot_lt σ h
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
   have hfree : ∀ x, x ∈ (σ.fl.reload ids).free ↔ x ∈ ids ∧ x ∉ σ.fl.pendingIds := by
     intro x
     simp only [FLPg.reload, mem_sortPgids, List.mem_filter, decide_eq_true_eq]
@@ -471,7 +501,8 @@ theorem storeOK_reload (σ : StoreSt) (ids : List w64) (h : storeOK σ)
   obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6⟩ := h3
   refine ⟨h1, h2, ⟨fun x hx => (hids x ((hfree x).1 hx).1).2.1, hb2, hb3, hb4,
       fun x hx => (hids x ((hfree x).1 hx).1).2.2.1, hb6⟩, ?_, h5, h6,
-    fun k r hr => ?_, fun v hv => ?_, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩
+    fun k r hr => ?_, fun v hv => ?_, h9, h10, h11, h12, h13, h14, h15, h16, h17,
+    fun b => hmv _ (h18 b) (fun s hs => tree_in_store σ s hs), h19, h20⟩
   · obtain ⟨w1, w2, w3, w4, w5⟩ := h4
     have hpnd : σ.fl.pendingIds.Nodup := (List.nodup_append.1 w1).2.1
     have hF : (sortPgids (ids.filter fun x => decide (x ∉ σ.fl.pendingIds))).Nodup :=
@@ -530,10 +561,12 @@ theorem storeOK_carve (σ : StoreSt) (b : Loc) (l : Nat) (h : storeOK σ) (hms :
 /-- `Open`'s loaded freelist: no reader, no writer, nothing pending. -/
 theorem storeOK_setFl (σ : StoreSt) (fl : FLPg) (h : storeOK σ) (hR : σ.R = ∅)
     (hw : σ.wtx = none) (hwv : σ.wv = none) (hfl : fl.WF ∧ fl.pending = ∅ ∧
-      flBelow fl σ.C none ∧ ∀ x ∈ fl.free, ¬ coversSlot σ.C.pages x.toNat) :
+      flBelow fl σ.C none ∧ (∀ x ∈ fl.free, ¬ coversSlot σ.C.pages x.toNat) ∧ fl.allocs = ∅) :
     storeOK (σ.setFl fl) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
-  obtain ⟨hwf, hpe, hbl, -⟩ := hfl
+  have hlt := storeSlot_lt σ h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+    h20⟩ := h
+  obtain ⟨hwf, hpe, hbl, hcov, hal⟩ := hfl
   have hsub : ∀ s, s ∈ storeSlots (σ.setFl fl) → s ∈ storeSlots σ := by
     intro s hs
     simp only [storeSlots, StoreSt.setFl, mem_list_dedup, List.mem_append,
@@ -545,8 +578,15 @@ theorem storeOK_setFl (σ : StoreSt) (fl : FLPg) (h : storeOK σ) (hR : σ.R = �
     fun k r hr => by simp [StoreSt.setFl, hR] at hr,
     fun v hv => by simp [StoreSt.setFl, hwv] at hv,
     fun s hs => h12 s (hsub s hs), fun b l hb s hs => h13 b l hb s (hsub s hs), h14, h15, h16,
-    fun s _ => Or.inl (by simp [StoreSt.setFl, pendSlots_empty fl hpe])⟩
-  simpa [StoreSt.setFl, hw] using hbl
+    fun s _ => Or.inl (by simp [StoreSt.setFl, pendSlots_empty fl hpe]), fun b => ?_,
+    fun x a hx => by simp [StoreSt.setFl, hal] at hx,
+    fun _ s hs => by simp [StoreSt.setFl, pendSlots_empty fl hpe] at hs⟩
+  · simpa [StoreSt.setFl, hw] using hbl
+  · refine ⟨fun id pg _ a ha => by simp [StoreSt.setFl, hal] at ha, fun s hs => ⟨(h18 b).2 s hs |>.1,
+      fun hx => ?_, fun t pd i ht => by simp [StoreSt.setFl, hpe] at ht⟩⟩
+    have := hcov _ hx
+    rw [W64_toNat_of_lt s (hlt s (tree_in_store σ s hs))] at this
+    exact this hs
 
 end store
 
