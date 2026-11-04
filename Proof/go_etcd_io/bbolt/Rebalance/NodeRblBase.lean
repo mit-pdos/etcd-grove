@@ -80,13 +80,6 @@ theorem rbl_root_ne (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (bl : Lo
   have := (hI.2.1 bl B hb).1.1.2.2.2.2.2.2.1 h0 n r hr
   rw [hbr] at this; cases this
 
-/-- **A node's page size fits an `int`** (`node.size`'s premise). A `sorry`: nothing in `rblX`
-bounds a node's number of entries or their sizes (see the U8b report). -/
-theorem rblX_insSize (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (bl : Loc) (B : BRec)
-    (n : Loc) (r : NRec) (hI : rblX X fl dbl dfc) (hb : X.t.bs !! bl = some B)
-    (hr : B.ns !! n = some r) : insSize r.ins < 2 ^ 63 := by
-  sorry
-
 /-- The writer's txid (`tx.meta.txid`) is the database side's `wtxid`. -/
 theorem rblX_wtxid (X : WX) (fl : FLPg) (dbl : Loc) (dfc : Option Loc) (w : WDb)
     (hI : rblX X fl dbl dfc) (hv : X.v = View.ofC X.v.base w.C) : X.t.mv.txid' = w.wtxid := by

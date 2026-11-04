@@ -20,7 +20,8 @@ public import Spec.go_etcd_io.bbolt.TxStats__IncRebalance
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Pgid
 public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblBase
-public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblSteps
+public import Proof.go_etcd_io.bbolt.Inv.WtxBase
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSMat
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXMg
 
 @[expose] public section
@@ -366,8 +367,6 @@ theorem rebal_loeb
       · iapply (Write.wOwn_live _ _ _).2; iframe; ipureintro; exact Hfp
       icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn3⟩
       iStructNamed Hn
-      wp_auto
-      trace_state
       sorry
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
@@ -429,9 +428,11 @@ theorem rebal_loeb
       have hpp : rp.nv.parent' ≠ rn.nv.parent' := Hok1.2.2.2.1 bl _ _ rp hb1 hrp1
       have hplive : rn.nv.parent' ∈ X.live := (hI1.2.1 bl _ hb1).2.2.2.2 _ rp hrp1
       have hfound := wsDelAt_at rp.ws i wi hncp.2.2.2.1 hwi
-      rw [hwk] at hfound
-      simp only [rblClear] at hfound
+      have hidx := wsIdx_at rp.ws i wi hncp.2.2.2.1 hwi
+      rw [hwk] at hfound hidx
+      simp only [rblClear] at hfound hidx
       have hks : rn.ksrc ≠ Src.stale := (hn1.2.2.2.2.2.2.2.2.2.2.1.resolve_left hkey).2
+      ihave %Hbase := wtxW_base_pos K tx r m _ $$ Hw
       -- open the node, its parent and the bucket
       icases (wtxW_split K tx r m _).1 $$ Hw with ⟨Hc, Hcells, Hmap⟩
       unfold wtxCore
@@ -461,18 +462,18 @@ theorem rebal_loeb
       wp_auto
       -- `n.parent.del(n.key)`
       wp_apply hDel (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' bl rp wq rn.nv.key'
-        rn.key rn.ksrc hncp.2.1 hncp.2.2.2.1 hncp.2.2.2.2.2.1 hks $$ [Hpo Hcells Hkey]
+        rn.key rn.ksrc hncp.2.1 hncp.2.2.2.1 hncp.2.2.2.2.2.1 hks Hbase $$ [Hpo Hcells Hkey]
         as ⟨Hd, Hcells⟩
       · iframe; simp only [rblClear]; iframe #
-      icases Hd with (⟨%Hnf, -⟩ | ⟨-, %sI, %insP, Hpo⟩)
+      icases Hd with (⟨%Hnf, -⟩ | ⟨-, %sI, Hpo⟩)
       · exact absurd hfound.1 Hnf
-      rw [hfound.2]
+      rw [hfound.2, hidx]
       icases (objOwn_live_node _ _ _ _ _).1 $$ Hpo
         with ⟨Hp, Hpins, Hpcap, Hpws, Hpch, Hpchcap, Hpkey⟩
       ihave %Hpwl := BigSepL2.bigSepL2_length $$ Hpws
       try wp_auto
       -- `n.parent.removeChild(n)`
-      wp_apply hRm rn.nv.parent' (rp.withEntsU sI insP (rp.ws.eraseIdx i) true).nv rp.cs n $$ [Hp Hpch Hpchcap] as ⟨%sC, Hp, Hpch, Hpchcap⟩
+      wp_apply hRm rn.nv.parent' (rp.withEntsU sI (rp.ins.eraseIdx i) (rp.ws.eraseIdx i) true).nv rp.cs n $$ [Hp Hpch Hpchcap] as ⟨%sC, Hp, Hpch, Hpchcap⟩
       · simp only [NRec.withEntsU]; iframe
       rw [hnc.1]
       try wp_auto
@@ -484,7 +485,7 @@ theorem rebal_loeb
       · iexact Hnm
       try wp_auto
       -- the heap on `X2`: the parent without the entry and the child, the cache without `n`
-      let rp' : NRec := { rmParent rp i n sI sC with ins := insP }
+      let rp' : NRec := rmParent rp i n sI sC
       let B2 : BRec := { rblStart B n rn with
         nm := GMap.delete (rblClear rn).nv.pgid' (rblStart B n rn).nm,
         ns := (rblStart B n rn).ns.insert rn.nv.parent' rp' }
@@ -623,12 +624,8 @@ theorem rebal_loeb
           (X.setBkt bl (rblStart B n rn)).kill bl B4 n r1' := by
         unfold WX.setNode; rw [hb2]; simp only [WX.kill, WX.setBkt, GMap.insert_insert]
       rw [hK]
-      have hil : i < rp.ws.length := (List.getElem?_eq_some_iff.1 hwi).1
-      have hins : insP.length + 1 = rp.ins.length := by
-        have h1 : insP.length = (rp.ws.eraseIdx i).length := Hpwl
-        rw [h1, List.length_eraseIdx_of_lt hil, hncp.2.2.1]; omega
-      obtain ⟨hI4, hR4, -, -⟩ := rblX_rm_ins (X.setBkt bl (rblStart B n rn)) w.fl bl _ n (rblClear rn)
-        rn.nv.parent' rp i wi sI sC pgc insP hI1 hb1 hr1 hleaf hemp rfl hpn hrp1 hwi hwp hpgc hins
+obtain ⟨hI4, hR4, -, -⟩ := rblX_rm (X.setBkt bl (rblStart B n rn)) w.fl bl _ n (rblClear rn)
+        rn.nv.parent' rp i wi sI sC pgc hI1 hb1 hr1 hleaf hemp rfl hpn hrp1 hwi hwp hpgc
       have hfl : w.fl.freePages (X.setBkt bl (rblStart B n rn)).t.mv.txid' (rblClear rn).nv.pgid'
           (1 + pageOverflow pgc) =
           (w.withFl (w.fl.freePages w.wtxid (rblClear rn).nv.pgid' (1 + pageOverflow pgc))).fl := by
