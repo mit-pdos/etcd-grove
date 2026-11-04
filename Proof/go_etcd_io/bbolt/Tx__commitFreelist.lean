@@ -43,18 +43,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`tx.commitFreelist()`** (see the file header): `allocate`'s premises (for `flCount w.fl`
 pages; the freelist's ids fewer than `2^48`), the caller's frame `F` with the two rollback
-entailments. On success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the
+entailments (ghost updates: the caller's agreed state follows the re-based records). On success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the
 high-water mark bumped when taken from it), with the freelist page `flPageBytes w1.fl id` in its
 buffer and `tx.meta.freelist = id`; `F` back. On an error: rolled back, done. -/
 abbrev Tx.commitFreelist.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
   X.t.mv.txid' = w.wtxid → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms →
   derefPre X → liveFresh X → liveReach X → w.fl.allIds.length < 2 ^ 48 →
-  (F ∗ wtxW K tx r false X ∗ wdbW K tx X.v w ⊢ wtxEnd K tx r X (wLive X.v w.C) w) →
+  (F ∗ wtxW K tx r false X ∗ wdbW K tx X.v w ⊢ |==> wtxEnd K tx r X (wLive X.v w.C) w) →
   (∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) → w'.C = w.C →
     w'.fl = w.fl →
     F ∗ wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
-      wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
+      |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
   {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW K tx X.v w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"commitFreelist")) (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -189,8 +189,9 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
     | ok ei =>
     try wp_auto
     icases Hfail with (⟨Hw, Hd⟩ | ⟨%X', %w', Hw, Hd, %Hrel⟩)
-    · ihave Hend : wtxEnd K tx r X (wLive X.v w.C) w $$ [HF Hw Hd]
+    · ihave Hend : |==> wtxEnd K tx r X (wLive X.v w.C) w $$ [HF Hw Hd]
       · iapply hrb1; iframe
+      imod Hend
       have hrbok : rbOK X (wLive X.v w.C) w := by
         refine ⟨X.v, w.C.txid + 1, false, true, rfl, ?_,
           ⟨fun _ => by rw [Hwd.2.1]; simp, fun _ => rfl⟩, fun _ => rfl, fun h => absurd h (by simp)⟩
@@ -209,9 +210,10 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
           ⌜wdbOK w' ∧ w'.ms = none⌝ by
             unfold wdbLost; iintro ⟨-, %h⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwl⟩
       obtain ⟨⟨Xd, b0, hder, hX'⟩, hC, hfl⟩ := Hrel
-      ihave Hend : wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
+      ihave Hend : |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
         $$ [HF Hw Hd]
       · iapply hrb2 X' w' ⟨Xd, b0, hder, hX'⟩ hC hfl; iframe
+      imod Hend
       have hrbok : rbOK X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
         refine ⟨X'.v, w'.C.txid + 1, false, false, rfl, ?_, ?_, ?_, ?_⟩
         rotate_left
