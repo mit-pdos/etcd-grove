@@ -31025,6 +31025,136 @@ approved ones changed):
 - `snapRecv_imageOn` takes `E.lg = false` (`srvRest_false`), as lean's `snapRecv_image`; the caller
   gets it from `srvRest_revocable`.
 
+## The compactor's slot: `v3compactor.bootCfg`, and compaction with the compactor off (2026-11-04 · the user's approval of K1's Draft 2, `notes/k8s-compactor-plan.md` · branch `compactor-slot`)
+
+**Was:** `NewServer.specG on cmp` stated the auto-compactor inline:
+- `if cmp then` revision mode at a positive retention of at least `cret`, or periodic mode at
+  10ns or more with `cret = 0`, `∧ on = false`;
+- `else AutoCompactionRetention = 0`.
+
+`newServerMode.spec` had a copy of it over its Go arguments. Compaction mode (the KV admits
+compaction requests) and the compactor being on were the same thing.
+
+**Now:**
+- One sealed slot, `v3compactor.bootCfg mode ret cmp cret`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/BootCfg.lean`,
+  `etc/import-all.txt`): `ret = 0 ∨ (cmp = true ∧ (revision … ∨ periodic …))`.
+- Introduction laws: `bootCfg_off` (from `ret = 0`, either mode), `bootCfg_revision` and
+  `bootCfg_periodic`.
+- One elimination law, `bootCfg_build`. Where `NewServer` builds a compactor (`ret ≠ 0`), it gives
+  the KV in compaction mode, `v3compactor.New`'s premise and the mode's permit
+  (`compactableOk_server_mode`'s). The proof carries the permit in `wp_join`'s compactor disjunct,
+  so the slot is read once.
+- The hub names it once, and the auth coupling is its own premise, `(cmp = true → on = false)`. It
+  is a KV-auth coupling, not the compactor's: the auth-on KV invariant needs `cmp = false` with or
+  without a compactor.
+
+**What it admits that the old premise did not:** `cmp = true` with the retention 0 (any `cret`), at
+auth off. This is Kubernetes' deployment: etcd's compactor off, the apiservers compacting through
+the client (`kv.Compact` takes `kvRevLbZ γ (rev + γ.cret)`; a larger `cret` only burdens clients).
+The spec-reviewer checked this against the proofs:
+- `compactorOk` admits nil, and `compactorRun`'s nil disjunct needs no auth fact;
+- `cret` is read only by the admission rule, `Compact`'s lower bound and the compactor's
+  `CompactEnv` laws, which are unused without a compactor;
+- Go nil-guards every use of `s.compactor`.
+
+**Choices:**
+- The slot reads the two fields (`newServerMode` has them as Go arguments, not a configuration).
+- It takes the KV names' `cmp`/`cret` as parameters until the KV's names split (then the record).
+- The fixed-mode starters' texts are unchanged; their proofs use the introduction laws.
+- One landing for the slot and the new case: the hub's text is the same either way. This departs
+  from the plan's K1, which had the client-only case at `cret = 0` with a law of its own.
+- No starter exposes the new case yet; one gets a mode parameter when the compactor example needs
+  it (K3).
+
+## *Enter* at the WAL `Save`, not at the receive (2026-11-03 · the user's choice, R2b-3; supersedes R2b-1's "at the receive")
+
+**Before:** the server fired raft's *enter* (`readyEnter`) at the receive of a `Ready`
+(`rn_ready_recv`), the user's choice in R2b-1 over the draft's "at the `Save`", on my claim that the
+raft loop stops only at idle points, where the WAL's records hold the node's durable state. **What
+that got wrong:** the loop also returns on `r.stopped` between the receive and the `Save`, at the
+read state's send (`raft.go:218`) and at the hand-off to the apply thread (`raft.go:241`). There the
+node had entered the batch (`raftState S'`) while the records hold the state before it, so the stop's
+image (`raftState S ∗ StorageHolds S σ`) is false. **Now:** the receive keeps *enter* as raft's wand;
+the loop fires it right after the `Save` returns (a graceful stop needs no more; firing it inside the
+`Save`'s update, for crash recovery, stays open: review M1's later credit). Before the `Save` the loop
+uses only what the receive gives without *enter* (the committed log, `deliveredLogLb`, the hard
+state's committed fact; R2b-1 stage 1), and a leader's early `Send` uses raft's `readyLeaderMsgs`,
+for which the loop keeps `islead` tied to the driver's role (`islead` true only at role leader).
+
+## The raft loop's stop escrow and a synchronous `applyc` (2026-11-03 · R2b-3b)
+
+**The escrow** is announced by `done`'s close (`rnDoneEsc`), allocated by `onStop` with the image,
+in the pattern of the server's `srvDoneInv` (R2b-2): the image or the claim. It is at the WAL's
+location, not the wrapper's, since `done`'s predicate is fixed in `newRaftNode` before the struct
+exists. **Why `applyc` became `isSspsc`** (review M2): the image's order is at the log the loop
+handed, the stop's post at the apply side's `A`; equating them needs every sent payload received,
+which Go's unbuffered channel gives and `isSpsc` (which admits a value in flight) does not.
+Perennial's `SyncSpsc` idiom records each side's pending operation, so the two tokens together
+exclude a value in flight; its statements are otherwise `Spsc`'s, so the switch was a rename.
+
+## bbolt's `Close` gives the file back (2026-11-04 · the user's approval, R2b-3c)
+
+**Before:** `bbolt.Open_kv` consumed `fileHolds path D` and `bbolt.DB.Close_kv` gave only an error,
+so a stopped member's bbolt file was owned by no one, and the restart image's `srvFiles` (R2c) had
+no source. **Now** (the trust boundary changes, approved as drafted): `Open_kv`'s success also
+gives `dbFile db path` (a new persistent axiom predicate: the open database is the file at `path`),
+and `DB.Close_kv` takes `dbFile db path ∗ ownDB db γ D` and gives `fileHolds path D` on success.
+True of bbolt: `ownDB` at `D` excludes an open write transaction; every commit wrote its pages and
+meta page before returning; `Close` writes nothing; in one process an unsynced write reads back
+(graceful stops only, the restart plan's Q4). The proved `backend.Close` carries the file to its
+caller with an observation of the committed data in the pattern of `backend.Snapshot`'s.
+**Rejected:** an axiom at the backend's level (would make the proved `backend.Close` assumed).
+
+## Kubernetes' compactor: the specs, written before the proofs (2026-11-04 · the user's approval of K2's Draft 2 and U1-U4, `notes/k8s-compactor-plan.md` · branch `k8s-compactor-specs`)
+
+**The specs** (`Spec/k8s_io/apiserver/pkg/storage/etcd3/{Compact,NewCompactor,compactor__*}.lean`,
+the shapes in `Proof/k8s_io/apiserver/pkg/storage/etcd3/CompactorDefs.lean`), spec-first: no proofs
+yet (K4), nothing linked.
+
+**A contract from the caller.** The compactor takes `casOk`, the caller's per-member atomic update of
+the round's transaction (`casTxn ev rev`). Its result gives:
+- `Seen` (the key was written);
+- `recorded rev` on success;
+- on failure, the key present holding a recorded, reached revision.
+
+The key's protocol involves every writer, and the workload's invariant owns the client's KV state, so
+the compactor cannot own it. That is the design etcd's own compactor has (`compactableOk`); the
+caller-predicate departure from TaDa is the one `c3-store-law.md` records. The alternative, splitting
+the client's KV invariant by key, was rejected as far larger (U4).
+
+**The trust base (U2).** A new axiom, `strconv.FormatInt.wp_proof` (`fmtInt`). `strconv.ParseInt.spec`
+is strengthened in place: on `fmtInt m 10` at base 10 and bit size 64 it returns `(m, nil)`. One
+function keeps one axiom; client-go's `cache` collection rests on it, unchanged in shape.
+
+**The feature gate (U3).** `NewCompactor` takes `gateOff` (`ListFromCacheSnapshot` answers `false`),
+whose only producer will be a trusted spec of the example's own `Set` call. The init axiom stays.
+This is a scope restriction: the default has been on since 1.34, and the watch loop (Q1 (b)) retires
+it.
+
+**U1 is pending.** `txn.Commit.spec`'s reply should give `kvRevLb` as `kv.Put.spec`'s does. This
+follows `a64a9feef7`'s chain (the server's registration, the KV service's `Txn`, the client); it is
+its own branch, before K4's `Compact` proof.
+
+**One revision of Draft 2, found while writing.** `Stop` returns nothing. Draft 2 had it give back
+the loop's thread token through an exclusive `stopTok`, but `sync.Once` passes out only a persistent
+result (`isOnce`'s `Q`), so the token stays with the wait group. `stopTok` is dropped.
+
+## The Perennial pin `4c8617a9e`: `os.opaqueInitsOk` lists only the untranslated initializers (2026-11-04 · the user's approval of the trusted change · branch `pin-4c8617a9e`)
+
+The pin moves from `c3c7ea790` to `4c8617a9e`, which brings:
+- Perennial's ticker fix (`432c32f28`). `NewTicker`, `Ticker.Stop` and `Ticker.Reset` lose their trusted models and become axioms, and `isTicker` holds `newTimerMade`; the old model let a copied ticker's `Reset` return, where Go has a fatal error (`notes/perennial-changes.md`).
+- `context`'s `Err` contract (`isCtxErr`).
+- Monotone package initialization.
+- The translated `os` initializers.
+
+**The trusted change.** Perennial now translates 15 of `os`'s package-variable initializers: `dirBufPool`, the `io/fs`-derived errors, `ErrProcessDone`, `lstat`, the `_` assertions, and others. The axiom `os.opaqueInitsOk` (`Proof/go_etcd_io/raft/v3/Init.lean` and its `RaftWitness` copy) now lists only the 9 that are still untranslated, down from 24. `os.wp_initialize'` runs the translated ones over Perennial's proved specs and takes `[os.Assumptions]`. The old statement named constants that no longer exist, so the change was forced. It assumes strictly less: the trust base keeps the same axioms (781), each now claiming fewer initializers.
+
+The other changes are proof-only:
+- `isCtxErr` is cleared at `Err()`'s uses; `WithCancel` gets it from `isCtxErr_of_Canceled`.
+- `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
+- raft's `Base` imports `io/fs`'s package-init instance.
+
 ## R-D1: the one-shot Close (2026-11-04 · the user's split of R-D and their approval of `authAbandonM` · branch `oneshot-close`)
 
 **What `#Hclose` was.** `bootOk` and `bootOkR` (`InvBoot.lean`, `InvRestart.lean`) carried

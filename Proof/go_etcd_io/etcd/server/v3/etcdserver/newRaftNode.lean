@@ -88,24 +88,30 @@ theorem newRaftNode.wp_proof
   -- bag of messages, `stopped`'s empty bag, `done`'s broadcast, `applyc`'s SPSC channel over
   -- `cum` at `[[]]`
   imod mono_list_own_alloc [([] : List EntryModel)] with ⟨%cum, Hcum, #Hlb⟩
+  -- (2026-11-03, R2b-3b) the claim on the stop's escrow
+  imod token_alloc with ⟨%sc, Hsc⟩
   ihave #Hcum0 := monoListIdxOwn_get (γ := cum) 0 ([] : List EntryModel) (by simp) $$ Hlb
   imod start_bag (V := ReadState) (srvReadStateOk E.γr.raft E.RQ) _ rsc γrs (by simp)
     $$ Hrsc Hrso with #Hrsb
-  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩) _
+  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
       storage.walOpen (storage.walOf cv.storage') (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
-  imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
+  imod start_sspsc (V := toApply) apc
+    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩)
+    (fun _ => iprop(False)) γap $$ Hapc Hapo with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
+  -- (2026-11-03, R2b-3b) the claim on the stop's escrow, which `done`'s close announces
+  imod alloc_broadcast_chan (E := ⊤)
+    (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+      (storage.walOf cv.storage')) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
-  ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd iprop(True) .Unknown $$ []
+  ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd
+      (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+        (storage.walOf cv.storage')) .Unknown $$ []
   · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
-  imod start_spsc (V := toApply) apc
-    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩)
-    (fun _ => iprop(False)) γap $$ Hapc [Hapo] with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
-  · ileft; iexact Hapo
   -- the struct `r`
   (try wp_auto)
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hr0nn⟩
@@ -119,8 +125,10 @@ theorem newRaftNode.wp_proof
   · ipureintro; exact Hhb
   ihave #Htki := isRNTicker_of_time wp_TStop E HT tk tch γt $$ Htk
   (try wp_auto)
+  ihave Hsc : rnStopClaim (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ $$ [Hsc]
+  · iunfold rnStopClaim; iexact Hsc
   iapply HΦ
-  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩
+  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
@@ -131,7 +139,7 @@ theorem newRaftNode.wp_proof
   · iapply typedPointsto_combine _ _ _ Hr0nn
     simp only [TypedPointsto.typedPointstoDef, named]
     iframe
-  iframe «$v1» Hprod Hcons Hcum Hcum0 Hdc
+  iframe «$v1» Hprod Hcons Hcum Hcum0 Hdc Hsc
   isplitr
   · ipureintro; simp
   iunfold rnParts
@@ -141,14 +149,14 @@ theorem newRaftNode.wp_proof
   · ipureintro; exact Hlg
   isplitr
   · iunfold isRNMsgSnapC; iexists γms
-    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩ =
-        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ := by
+    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ =
+        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ := by
       unfold rnSnapMsg; rfl
     rw [hsm]; iexact Hmsb
   isplitr
   · iunfold isRNApplyc
-    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal⟩
-      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl]
+    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

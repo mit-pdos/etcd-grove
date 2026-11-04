@@ -69,7 +69,7 @@ theorem leasingKV.acquire.wp_proof
   · iexact Hrd
   wp_for HI
   ihave #HErrU := HErr $$ %Broadcast.Unknown
-  wp_apply HErrU as %err0 Herr0
+  wp_apply HErrU as %err0 Herr0 -
   cases err0 with
   | ok e =>
     try wp_auto
@@ -79,7 +79,7 @@ theorem leasingKV.acquire.wp_proof
     rw [ite_eq_right (by simp)]
     icases Herr0 with ⟨#HPD, #Hclosed⟩
     ihave #HErrD := HErr $$ %Broadcast.Done
-    wp_apply HErrD $$ [$Hclosed] as %err2 %Herr2
+    wp_apply HErrD $$ [$Hclosed] as %err2 %Herr2 -
     iapply HΦ
     iframe
     ileft

@@ -77,7 +77,7 @@ theorem StartPeriodicServer.wp_proof
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
-      (by simp only [↓reduceIte]; exact Or.inr ⟨trivial, Hper, Hcret⟩) Hck Haf Hbuq
+      (v3compactor.bootCfg_periodic _ _ Hper Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

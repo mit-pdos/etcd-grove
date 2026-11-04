@@ -372,14 +372,16 @@ theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk
   iunfold backend.isBackend at Hb
   iunfold backend.hooksAt at Hh
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, %Hlg0, #Hh', #Hbe, #Htm, -,
-    #Hmu, #Hrmu, #Htmu, #Hcmu, #Hci, #Hmet, #Hdbmu, #Hdb, %Hwf⟩
+    #Hmu, #Hrmu, #Htmu, #Hcmu, #Hci, #Hmet, #Hdbmu, #Hdb, %Hwf, #Hdbf⟩
   icombine Hh Hh' gives %Heq
   subst Heq
   iunfold backend.isBackendNH
   imodintro
   iexists t, rt, tm, db, lg
   iframe #
-  ipureintro; exact ⟨Hlg0, Hwf⟩
+  isplitr
+  · ipureintro; exact Hlg0
+  ipureintro; exact Hwf
 
 /-- `srvBeSnapOk` is monotone in its observation. -/
 theorem srvBeSnapOk_mono (b : GoInterface) (RS RS' : IProp GF) (Q Q' : backend.Data → Prop)

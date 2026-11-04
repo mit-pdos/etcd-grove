@@ -7,6 +7,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/(Link|Results)\.lean$
 axiom NewLoggableTxnRequest.wp_proof
+axiom backend.dbFile
 axiom backend.isDB
 axiom backend.optsAt
 axiom backend.ownDB

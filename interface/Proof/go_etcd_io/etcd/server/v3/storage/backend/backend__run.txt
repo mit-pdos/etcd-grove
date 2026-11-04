@@ -17,7 +17,7 @@ theorem backend.backend.run.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_org
                 typedPointsto
                     (backend.bF go!"batchInterval" b)
                     d DFrac.discard ∗
-                  ownBroadcastChan dc γdc iprop(True) Broadcast.Pending ∗
+                  ownBroadcastChan dc γdc (backend.bDoneEsc γ) Broadcast.Pending ∗
                     backend.runTok γ ∗
                       dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗ ghostVar γ.used (Qp.half 1) u -∗
           ▷ (True -∗ Φ (intoVal ())) -∗

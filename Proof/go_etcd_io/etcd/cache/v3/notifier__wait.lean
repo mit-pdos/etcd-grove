@@ -81,7 +81,7 @@ theorem notifier.wait.wp_proof : notifier.wait.spec (GF := GF) (hG := hG) := by
     iintro ⟨#HP, #Hc⟩
     wp_auto
     ihave #HErrD := HErr $$ %Broadcast.Done
-    wp_apply HErrD $$ [] as %err %herr
+    wp_apply HErrD $$ [] as %err %herr -
     · iexact Hc
     iapply HΦ
     iframe

@@ -73,6 +73,12 @@ every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then pro
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*Invariants written in full* (2026-11-04, the user's): each new or changed invariant's body, not only
+its name, with its ownership (who allocates it, who opens it, which ghost state it holds and who holds
+the other halves) and the laws its clients use. Nothing before Probe checks an invariant's strength
+(Test does not see resources, glue only threads invariants), so a name with a `sorry` body defers the
+costliest kind of miss to Prove: raft-unified's redesigns after its freeze clustered in its newest
+contract, and lease-grant's exact-image problem surfaced one site at a time in Draft's plumbing.
 *Design before plumbing* (lease-grant, 2026-11-02, the user's): when a change runs through shared
 definitions with many sites (a new parameter threaded through `rqOk`, `dispatchAnswer`: hundreds of
 sites, each a full server rebuild), Draft first writes the design as text in the plan -- each changed
@@ -103,6 +109,13 @@ mirror the code) in two tiers:
   unfolded statement's length, binders, premises); **coupling** (other packages' predicates it
   depends on: each is a place where a change elsewhere forces this spec to change, step 1's main
   cause of churn).
+
+*Invariants are reviewed too* (2026-11-04, the user's): each new or changed invariant (an `Inv*`
+definition, often behind a predicate or a sealed slot, so not itself a "spec that crosses a package
+boundary") is ranked in the same two tiers, judged by the `spec` skill's principles on invariants
+(`PRINCIPLES.md`: TaDa, not HoCAP, the client keeping its own invariant; a bound reasoned about where
+it is owned; a new mode redefining the shared predicates in place; laws, not unfolds; a hub naming it
+through a sealed slot), and against the Go code it mirrors.
 
 *Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
 repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
@@ -191,7 +204,10 @@ so later reviews in the repository start from it.
 
 **Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
-sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
+sufficiency, the ghost design, logical atomicity. *The hard proof is chosen by its invariant* (2026-11-04, the
+user's): the step that must preserve a new or changed invariant in its riskiest case (the concurrent
+update, the reconfiguration, the restore, the crash), not merely the body with the most branches; it
+is the only check of the invariant's strength before the freeze. Then freeze the specs: a change after the
 freeze needs a `notes/decisions.md` entry with its cause. Do an easy proof too, not only the riskiest one (the user, 2026-10-27): an easy
 proof is cheap and may already find problems the review missed (a resource it cannot build, a premise
 it cannot meet); measured against the hard one, it says whether the hard proof found anything more,
@@ -836,6 +852,15 @@ directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`,
 `_mem`, `_len`), a coupling the transport owns with raft's peers as its parameter, and no `cfg`
 (the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
 triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
+
+**The compactor's slot** (2026-11-04, K1 of `notes/k8s-compactor-plan.md`, the user's approval;
+`notes/decisions.md`, "The compactor's slot"): `v3compactor.bootCfg mode ret cmp cret`
+(`etcdserver/api/v3compactor/BootCfg.lean`). It reads the configuration's two compactor fields and
+the KV names' compaction mode and retention (a coupling the compactor owns, as parameters until the
+KV's names split). Its introduction laws are `_off`, `_revision` and `_periodic`, and its one narrow
+elimination is `_build`. It is a `→` premise of `NewServer.specG` and `newServerMode.spec`, beside
+the inline auth coupling `cmp = true → on = false`. Its body admits compaction with the compactor
+off (Kubernetes' deployment) without a change to the hub's text beyond the conversion itself.
 
 **`bootCfg`'s arguments** (amended 2026-11-03, the user's approval; prompted by `rafthttp.bootCfg`).
 The table first read `<sub>.bootCfg cfg`, "the subsystem's conditions on the configuration". That

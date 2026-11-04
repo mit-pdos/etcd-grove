@@ -59,7 +59,7 @@ theorem Cache.getWatchLoop.wp_proof
   wp_for HI
   -- `ctx.Err()`
   ihave #HErrU := HErr $$ %Broadcast.Unknown
-  wp_apply HErrU as %err -
+  wp_apply HErrU as %err - -
   cases err with
   | ok e =>
     wp_auto

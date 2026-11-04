@@ -14,7 +14,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof [go_etcd_io.bbolt.Assumpt
             backend.isBackend γ P W Pk b ∗
               typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
                 dghostVar γ.opn (DFrac.own (Qp.half 1)) false ∗ dghostVar γ.opn (DFrac.own (Qp.half 1).half) false -∗
-          ▷ (backend.bStopped γ -∗ Φ (intoVal ())) -∗
+          ▷ (backend.bStopped γ ∗ backend.bDBOut γ -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType

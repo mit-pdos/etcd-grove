@@ -54,16 +54,25 @@ the clients' half of the open token, until `run` takes the half (leaving its tok
 def stopInv (γ : BNames) (sc : GoChan) (γsc : ChanNames) : IProp GF :=
   iprop(inv (bN.@"stop")
     iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
-     (ghostVar γ.cls 1 () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ))))
+     (ghostVar γ.cls (1 : Qp).half () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ))))
 
 instance stopInv_persistent (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     Persistent (stopInv (GF := GF) γ sc γsc) := by
   unfold stopInv; infer_instance
 
+/-- (2026-11-04, R2b-3c) **What closing `donec` announces: the stop's escrow** (persistent; until then
+`True`): bbolt's database as the stopped batch transaction left it (`bDBOut`), or `Close`'s half of
+the close right once it took the database. `run` allocates it as it closes `donec`. -/
+def bDoneEsc (γ : BNames) : IProp GF :=
+  inv (bN.@"dbesc") iprop(bDBOut γ ∨ ghostVar γ.cls (1 : Qp).half ())
+
+instance bDoneEsc_persistent (γ : BNames) : Persistent (bDoneEsc (GF := GF) γ) := by
+  unfold bDoneEsc; infer_instance
+
 /-- The stop channels of the backend `b`, with their ghost names. -/
 def isStopChansAt (γ : BNames) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) : IProp GF :=
   iprop(bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
-    ownBroadcastChan sc γsc (stopQ γ) .Unknown ∗ ownBroadcastChan dc γdc iprop(True) .Unknown ∗
+    ownBroadcastChan sc γsc (stopQ γ) .Unknown ∗ ownBroadcastChan dc γdc (bDoneEsc γ) .Unknown ∗
     stopInv γ sc γsc)
 
 instance isStopChansAt_persistent (γ : BNames) (b : Loc) (sc dc : GoChan) (γsc γdc : ChanNames) :
@@ -81,7 +90,9 @@ instance isStopChans_persistent (γ : BNames) (b : Loc) :
 /-- `Close`'s step: the right to close `stopc`, for the clients' whole open token. -/
 theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     stopInv (GF := GF) γ sc γsc ∗ bOpen γ 1 ⊢
-      |={⊤}=> ▷ ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ stopQ γ := by
+      |={⊤}=> ▷ ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ stopQ γ ∗
+        -- (2026-11-04, R2b-3c) half the close right, `Close`'s claim on `donec`'s escrow
+        ghostVar γ.cls (1 : Qp).half () := by
   iintro ⟨#Hinv, Ho⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
@@ -90,6 +101,10 @@ theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
   icases Hi with (⟨Hpend, >Hsdn⟩ | ⟨>Hcls', -⟩)
   · imod dghostVar_update true γ.sdn false $$ Hsdn with Hsdn
     imod dghostVar_persist γ.sdn 1 true $$ Hsdn with #Hsdn
+    ihave ⟨Hcls, Hclaim⟩ : iprop(ghostVar γ.cls (1 : Qp).half () ∗ ghostVar γ.cls (1 : Qp).half ())
+      $$ [Hcls]
+    · iapply ghostVar_split γ.cls () (1 : Qp).half (1 : Qp).half
+      rw [Qp.half_add_half]; iexact Hcls
     imod Hclose $$ [Hcls Ho] with -
     · inext
       iright
@@ -97,7 +112,7 @@ theorem stop_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
       ileft
       iexact Ho
     imodintro
-    iframe Hpend
+    iframe Hpend Hclaim
     unfold stopQ
     iexact Hsdn
   · icombine Hcls Hcls' gives % ⟨Hv, -⟩
@@ -129,6 +144,35 @@ theorem stop_get (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
     exfalso
     revert Hv
     grind
+
+/-- (2026-11-04, R2b-3c) **`Close` takes bbolt's database out of `donec`'s escrow**, with its half
+of the close right (`stop_take`'s): the other alternative would make three halves, the stop
+invariant keeping one once `stopc` closed (`stopQ`). -/
+theorem bDoneEsc_take (γ : BNames) (sc : GoChan) (γsc : ChanNames) :
+    ⊢ bDoneEsc (GF := GF) γ -∗ stopInv γ sc γsc -∗ stopQ γ -∗ ghostVar γ.cls (1 : Qp).half () -∗
+      £ 1 -∗ £ 1 ={⊤}=∗ bDBOut γ := by
+  iintro #Hesc #Hinv #Hq Hclaim Hlc1 Hlc2
+  iunfold bDoneEsc at Hesc
+  iinv Hesc with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑(bN.@"dbesc")) $$ Hlc1 Hi with Hi
+  icases Hi with (Hout | Hcl2)
+  rotate_left
+  · unfold stopInv
+    iinv Hinv with Hs Hsclose
+    imod lc_fupd_elim_later (E := (⊤ \ ↑(bN.@"dbesc")) \ ↑(bN.@"stop")) $$ Hlc2 Hs with Hs
+    icases Hs with (⟨-, Hsdn⟩ | ⟨Hcl3, -⟩)
+    · iexfalso
+      unfold stopQ
+      icombine Hsdn Hq gives %Hc
+      exact absurd Hc.2 (by decide)
+    · iexfalso
+      icombine Hclaim Hcl2 as H12
+      icombine H12 Hcl3 gives % ⟨Hv, -⟩
+      exfalso; revert Hv; grind
+  imod Hclose $$ [Hclaim] with -
+  · inext; iright; iexact Hclaim
+  imodintro
+  iexact Hout
 
 end preds
 
