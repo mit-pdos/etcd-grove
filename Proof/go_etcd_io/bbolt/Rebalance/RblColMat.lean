@@ -247,6 +247,59 @@ theorem rbl_col_post (X X2 : WX) (fl fl' : FLPg) (bl : Loc) (B B2 Bc : BRec) (n 
   · rename_i hyn
     exact ⟨hyn, ry1, hy1, hu1, hp2.trans hp1⟩
 
+/-- The bucket after the collapse's field moves, the child `lc` still a node (its parent nil),
+before its page is freed and it goes dead (`colBkt` then, by `WX.kill`). -/
+def colBktL (B : BRec) (nl lc : Loc) (rn rc : NRec) : BRec :=
+  { colBkt B nl lc rc.nv.pgid' (colRoot rn rc rc.nv.inodes') with
+    ns := (colBkt B nl lc rc.nv.pgid' (colRoot rn rc rc.nv.inodes')).ns.insert lc (colRe rc null) }
+
+/-- The records of the root, the child and the child's children after the collapse's loop. -/
+def colF (B : BRec) (nl lc : Loc) (rn rc : NRec) (l : Loc) : NRec :=
+  if l = nl then colRoot rn rc rc.nv.inodes' else if l = lc then colRe rc null else
+    colKid B rc.ws nl rc rc.ws.length l
+
+/-- **Closing the heap after the collapse's loop** (`wtxHeap_setBkt_live_acc`'s premises). -/
+theorem colBktL_close (B : BRec) (nl lc : Loc) (rn rc : NRec)
+    (hrn : B.ns !! nl = some rn) (hrc : B.ns !! lc = some rc) (hlcn : lc ≠ nl)
+    (hnn : nl ≠ null) (hlnn : lc ≠ null) (hpn : rn.nv.parent' = null)
+    (hchar : ∀ c, c ∈ kidsOf B rc.ws ↔ ∃ rk, B.ns !! c = some rk ∧ rk.nv.parent' = lc)
+    (hkn : ∀ c ∈ kidsOf B rc.ws, c ≠ nl ∧ c ≠ lc) :
+    (∀ l ∈ [nl, lc] ++ kidsOf B rc.ws,
+      (colBktL B nl lc rn rc).ns !! l = some (colF B nl lc rn rc l)) ∧
+    (∀ l, l ∉ [nl, lc] ++ kidsOf B rc.ws → (colBktL B nl lc rn rc).ns !! l = B.ns !! l) ∧
+    (∀ l ∈ [nl, lc] ++ kidsOf B rc.ws, (colF B nl lc rn rc l).nv.parent' ≠ l) := by
+  have hns : ∀ l, (colBktL B nl lc rn rc).ns !! l = if l = lc then some (colRe rc null) else
+      (colBkt B nl lc rc.nv.pgid' (colRoot rn rc rc.nv.inodes')).ns !! l := by
+    intro l
+    show ((colBkt B nl lc rc.nv.pgid' (colRoot rn rc rc.nv.inodes')).ns.insert lc _) !! l = _
+    split
+    · rename_i h; subst h; exact GMap.lookup_insert _ _ _
+    · exact GMap.lookup_insert_ne _ _ (Ne.symm ‹_›)
+  refine ⟨fun l hl => ?_, fun l hl => ?_, fun l hl => ?_⟩
+  · simp only [List.cons_append, List.nil_append, List.mem_cons] at hl
+    rcases hl with rfl | rfl | hl
+    · rw [hns, if_neg (Ne.symm hlcn), col_ns, if_pos rfl]; unfold colF; rw [if_pos rfl]
+    · rw [hns, if_pos rfl]; unfold colF; rw [if_neg hlcn, if_pos rfl]
+    · obtain ⟨h1, h2⟩ := hkn l hl
+      obtain ⟨rk, hrk, hpk⟩ := (hchar l).1 hl
+      rw [hns, if_neg h2, col_ns, if_neg h1, if_neg h2, hrk]
+      unfold colF; rw [if_neg h1, if_neg h2, colKid_all _ _ _ _ _ hl, hrk]
+      simp only [Option.map_some, hpk, ite_true, Option.getD_some]; rfl
+  · simp only [List.cons_append, List.nil_append, List.mem_cons, not_or] at hl
+    obtain ⟨h1, h2, h3⟩ := hl
+    rw [hns, if_neg h2, col_ns, if_neg h1, if_neg h2]
+    cases hy : B.ns !! l with
+    | none => rfl
+    | some ry =>
+      simp only [Option.map_some, Option.some.injEq]
+      rw [if_neg (fun hp => h3 ((hchar l).2 ⟨ry, hy, hp⟩))]
+  · simp only [List.cons_append, List.nil_append, List.mem_cons] at hl
+    rcases hl with rfl | rfl | hl
+    · unfold colF; rw [if_pos rfl]; show rn.nv.parent' ≠ _; rw [hpn]; exact Ne.symm hnn
+    · unfold colF; rw [if_neg hlcn, if_pos rfl]; exact Ne.symm hlnn
+    · obtain ⟨h1, h2⟩ := hkn l hl
+      unfold colF; rw [if_neg h1, if_neg h2, colKid_all _ _ _ _ _ hl]; exact Ne.symm h1
+
 end colmat
 
 end bbolt
