@@ -853,6 +853,15 @@ directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`,
 (the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
 triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
 
+**The compactor's slot** (2026-11-04, K1 of `notes/k8s-compactor-plan.md`, the user's approval;
+`notes/decisions.md`, "The compactor's slot"): `v3compactor.bootCfg mode ret cmp cret`
+(`etcdserver/api/v3compactor/BootCfg.lean`). It reads the configuration's two compactor fields and
+the KV names' compaction mode and retention (a coupling the compactor owns, as parameters until the
+KV's names split). Its introduction laws are `_off`, `_revision` and `_periodic`, and its one narrow
+elimination is `_build`. It is a `→` premise of `NewServer.specG` and `newServerMode.spec`, beside
+the inline auth coupling `cmp = true → on = false`. Its body admits compaction with the compactor
+off (Kubernetes' deployment) without a change to the hub's text beyond the conversion itself.
+
 **`bootCfg`'s arguments** (amended 2026-11-03, the user's approval; prompted by `rafthttp.bootCfg`).
 The table first read `<sub>.bootCfg cfg`, "the subsystem's conditions on the configuration". That
 mixed up what the slot is with what it reads. `<sub>.bootCfg` is the subsystem's pure boot premise,

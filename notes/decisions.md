@@ -31024,6 +31024,48 @@ approved ones changed):
 - `snapRecv_imageOn` takes `E.lg = false` (`srvRest_false`), as lean's `snapRecv_image`; the caller
   gets it from `srvRest_revocable`.
 
+## The compactor's slot: `v3compactor.bootCfg`, and compaction with the compactor off (2026-11-04 · the user's approval of K1's Draft 2, `notes/k8s-compactor-plan.md` · branch `compactor-slot`)
+
+**Was:** `NewServer.specG on cmp` stated the auto-compactor inline:
+- `if cmp then` revision mode at a positive retention of at least `cret`, or periodic mode at
+  10ns or more with `cret = 0`, `∧ on = false`;
+- `else AutoCompactionRetention = 0`.
+
+`newServerMode.spec` had a copy of it over its Go arguments. Compaction mode (the KV admits
+compaction requests) and the compactor being on were the same thing.
+
+**Now:**
+- One sealed slot, `v3compactor.bootCfg mode ret cmp cret`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/BootCfg.lean`,
+  `etc/import-all.txt`): `ret = 0 ∨ (cmp = true ∧ (revision … ∨ periodic …))`.
+- Introduction laws: `bootCfg_off` (from `ret = 0`, either mode), `bootCfg_revision` and
+  `bootCfg_periodic`.
+- One elimination law, `bootCfg_build`. Where `NewServer` builds a compactor (`ret ≠ 0`), it gives
+  the KV in compaction mode, `v3compactor.New`'s premise and the mode's permit
+  (`compactableOk_server_mode`'s). The proof carries the permit in `wp_join`'s compactor disjunct,
+  so the slot is read once.
+- The hub names it once, and the auth coupling is its own premise, `(cmp = true → on = false)`. It
+  is a KV-auth coupling, not the compactor's: the auth-on KV invariant needs `cmp = false` with or
+  without a compactor.
+
+**What it admits that the old premise did not:** `cmp = true` with the retention 0 (any `cret`), at
+auth off. This is Kubernetes' deployment: etcd's compactor off, the apiservers compacting through
+the client (`kv.Compact` takes `kvRevLbZ γ (rev + γ.cret)`; a larger `cret` only burdens clients).
+The spec-reviewer checked this against the proofs:
+- `compactorOk` admits nil, and `compactorRun`'s nil disjunct needs no auth fact;
+- `cret` is read only by the admission rule, `Compact`'s lower bound and the compactor's
+  `CompactEnv` laws, which are unused without a compactor;
+- Go nil-guards every use of `s.compactor`.
+
+**Choices:**
+- The slot reads the two fields (`newServerMode` has them as Go arguments, not a configuration).
+- It takes the KV names' `cmp`/`cret` as parameters until the KV's names split (then the record).
+- The fixed-mode starters' texts are unchanged; their proofs use the introduction laws.
+- One landing for the slot and the new case: the hub's text is the same either way. This departs
+  from the plan's K1, which had the client-only case at `cret = 0` with a law of its own.
+- No starter exposes the new case yet; one gets a mode parameter when the compactor example needs
+  it (K3).
+
 ## *Enter* at the WAL `Save`, not at the receive (2026-11-03 · the user's choice, R2b-3; supersedes R2b-1's "at the receive")
 
 **Before:** the server fired raft's *enter* (`readyEnter`) at the receive of a `Ready`
