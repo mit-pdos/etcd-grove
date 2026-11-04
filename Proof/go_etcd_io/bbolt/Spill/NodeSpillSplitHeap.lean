@@ -224,7 +224,7 @@ theorem wtxHeap_splitX (tx : Loc) (X : WX) (bl : Loc) (B : BRec) (Ls : List Loc)
     rw [← e0]
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hg, -⟩ :=
       splitX_frame (psOld := psOld) (psNew := []) hb (psOld.map (·.1))
-        (fun p hp => List.mem_map.2 ⟨p, by simpa using hp, rfl⟩)
+        (fun p hp => List.mem_map.2 ⟨p, by simpa using hp, rfl⟩) (fun p hp => by cases hp)
     exact hg
   isplitl []
   · ipureintro

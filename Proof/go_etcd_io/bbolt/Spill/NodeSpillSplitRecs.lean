@@ -142,7 +142,7 @@ theorem splitRel_one (hb : X1.t.bs !! bl = some B) (hlv : n ∈ X1.live)
     ([(n, rN.nv, rN.ins)].map (·.1) ++ [rN.nv.parent'])
     (fun p hp => by
       simp only [List.append_nil] at hp
-      rcases hT p hp with h | h <;> simp [h])
+      rcases hT p hp with h | h <;> simp [h]) (fun p hp => by cases hp)
   have hrp : ∃ rp', (rN.nv.parent' = null ∧ [(n, rN.nv, rN.ins)].length = 1 ∧ rN.nv.parent' = null) ∨
       (rN.nv.parent' = null ∧ 2 ≤ [(n, rN.nv, rN.ins)].length ∧ rN.nv.parent' ≠ null ∧
         X1.t.objs !! rN.nv.parent' = none ∧
@@ -265,6 +265,16 @@ theorem pieceRecs_drop_fst (rN : NRec) (xs : List (Loc × node × List Inode)) :
       (xs.drop 1).map (·.1) := by
   rw [List.map_drop, pieceRecs_fst rN false xs _ true (by simp [cutWs_length]), List.map_drop]
 
+theorem fresh_of_drop {X1 : WX} {rN : NRec} {xs : List (Loc × node × List Inode)}
+    (hfresh : ∀ x ∈ xs.drop 1, X1.t.objs !! x.1 = none) :
+    ∀ p ∈ (pieceRecs rN false xs (cutWs (xs.map (·.2.2)) rN.ws) true).drop 1,
+      X1.t.objs !! p.1 = none := by
+  intro p hp
+  have hm : p.1 ∈ (xs.drop 1).map (·.1) := by
+    rw [← pieceRecs_drop_fst rN xs]; exact List.mem_map.2 ⟨p, hp, rfl⟩
+  obtain ⟨x, hx, e⟩ := List.mem_map.1 hm
+  rw [← e]; exact hfresh x hx
+
 /-- A piece after the first is in `xs.drop 1`. -/
 theorem mem_drop_one_of {α : Type} {xs : List α} {i : Nat} {x : α} (hx : xs[i]? = some x)
     (hi : i ≠ 0) : x ∈ xs.drop 1 := by
@@ -304,12 +314,12 @@ theorem splitRel_top {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Inode
   have hnode : ∀ p ∈ recs ++ [par],
       (splitX X1 bl B (recs.take 1) (recs.drop 1 ++ [par])).node bl p.1 = some p.2 := by
     intro p hp; rw [← happ] at hp; exact splitX_node hndA' p hp
-  have hfr := splitX_frame (psOld := recs.take 1) (psNew := recs.drop 1 ++ [par]) hb
+  have hfr := fun hnew => splitX_frame (psOld := recs.take 1) (psNew := recs.drop 1 ++ [par]) hb
     (xs.map (·.1) ++ [pl]) (fun p hp => by
       rw [happ, List.mem_append] at hp
       rcases hp with hp | hp
       · exact List.mem_append_left _ (hfst ▸ List.mem_map.2 ⟨p, hp, rfl⟩)
-      · simp at hp; subst hp; simp [par])
+      · simp at hp; subst hp; simp [par]) hnew
   obtain ⟨x0, rest, hd, hx0n⟩ := hx0
   have hlv2 : ∀ (i : Nat) (x : Loc × node × List Inode), xs[i]? = some x →
       x.1 ∈ (splitX X1 bl B (recs.take 1) (recs.drop 1 ++ [par])).live := by
@@ -324,7 +334,11 @@ theorem splitRel_top {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Inode
   obtain ⟨hl, hws, hpl', hpr⟩ := splitRel_pieces hsh h2 hflat hil hbl hsp hch
     (fun p hp => hnode p (List.mem_append_left _ hp)) hlv2
   refine ⟨?_, hndA', ?_, fun hfresh hplf => ⟨by rw [hd]; simp, by rw [hd]; simp [hx0n], hnd, hl, hws, hflat,
-    hpl', hpr, hfresh, Or.inr (Or.inl ⟨h0, h2, hpl, hplf, ?_, hnode par (by simp), ?_⟩), hfr,
+    hpl', hpr, hfresh, Or.inr (Or.inl ⟨h0, h2, hpl, hplf, ?_, hnode par (by simp), ?_⟩),
+    hfr (fun p hp => by
+      rcases List.mem_append.1 hp with hp | hp
+      · exact fresh_of_drop hfresh p hp
+      · simp at hp; subst hp; exact hplf),
     rfl, rfl, rfl, rfl⟩⟩
   · rw [List.map_take, hfst, hd]; simp [hx0n]
   · intro p hp
@@ -380,12 +394,12 @@ theorem splitRel_child {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Ino
   have hnode : ∀ p ∈ recs ++ [par],
       (splitX X1 bl B (recs.take 1 ++ [par]) (recs.drop 1)).node bl p.1 = some p.2 := by
     intro p hp; exact splitX_node hndA' p ((hmem p).2 hp)
-  have hfr := splitX_frame (psOld := recs.take 1 ++ [par]) (psNew := recs.drop 1) hb
+  have hfr := fun hnew => splitX_frame (psOld := recs.take 1 ++ [par]) (psNew := recs.drop 1) hb
     (xs.map (·.1) ++ [pl]) (fun p hp => by
       rw [hmem, List.mem_append] at hp
       rcases hp with hp | hp
       · exact List.mem_append_left _ (hfst ▸ List.mem_map.2 ⟨p, hp, rfl⟩)
-      · simp at hp; subst hp; simp [par])
+      · simp at hp; subst hp; simp [par]) hnew
   have hdrop : (recs.drop 1).map (·.1) = (xs.drop 1).map (·.1) := by
     rw [List.map_drop, hfst, List.map_drop]
   have hlv2 : ∀ (i : Nat) (x : Loc × node × List Inode), xs[i]? = some x →
@@ -399,7 +413,8 @@ theorem splitRel_child {ps : Nat} {pl : Loc} {xs : List (Loc × node × List Ino
   obtain ⟨hl, hws, hpl', hpr⟩ := splitRel_pieces hsh h2 hflat hil hbl hsp hch
     (fun p hp => hnode p (List.mem_append_left _ hp)) hlv2
   refine ⟨?_, hndA', ?_, fun hfresh => ⟨by rw [hd]; simp, by rw [hd]; simp [hx0n], hnd, hl, hws, hflat,
-    hpl', hpr, hfresh, Or.inr (Or.inr ⟨h0, hplp, rp, ?_, ?_, hnode par (by simp), ?_⟩), hfr,
+    hpl', hpr, hfresh, Or.inr (Or.inr ⟨h0, hplp, rp, ?_, ?_, hnode par (by simp), ?_⟩),
+    hfr (fun p hp => fresh_of_drop hfresh p hp),
     rfl, rfl, rfl, rfl⟩⟩
   · rw [List.map_append, List.map_take, hfst, hd]; simp [hx0n, par]
   · intro p hp

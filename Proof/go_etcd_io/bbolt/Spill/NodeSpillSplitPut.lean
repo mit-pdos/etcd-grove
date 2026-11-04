@@ -119,7 +119,7 @@ theorem splitX_live (l : Loc) :
 
 /-- **The frame of the put**: the touched nodes `T` include the put ones. -/
 theorem splitX_frame (hb : X.t.bs !! bl = some B) (T : List Loc)
-    (hT : ∀ p ∈ psOld ++ psNew, p.1 ∈ T) :
+    (hT : ∀ p ∈ psOld ++ psNew, p.1 ∈ T) (hnew : ∀ p ∈ psNew, X.t.objs !! p.1 = none) :
     spFrame X (splitX X bl B psOld psNew) bl T := by
   have hout : ∀ l, l ∉ T → nsIns B.ns (psOld ++ psNew) !! l = B.ns !! l := by
     intro l hl
@@ -139,14 +139,25 @@ theorem splitX_frame (hb : X.t.bs !! bl = some B) (T : List Loc)
     refine ⟨_, splitX_bs _ _ _ _ _, ⟨rfl, rfl, rfl, rfl, rfl⟩, fun l hl => ?_⟩
     simp only
     rw [hout l hl]; exact optRel_nodeSim_refl _
-  · intro l hl _
-    rw [splitX_live]
-    constructor
-    · rintro (h | h)
-      · exact h
-      · obtain ⟨p, hp, rfl⟩ := List.mem_map.1 h
-        exact absurd (hT p (List.mem_append_right _ hp)) hl
-    · exact Or.inl
+  · first
+    | (intro l hl _
+       rw [splitX_live]
+       constructor
+       · rintro (h | h)
+         · exact h
+         · obtain ⟨p, hp, rfl⟩ := List.mem_map.1 h
+           exact absurd (hT p (List.mem_append_right _ hp)) hl
+       · exact Or.inl)
+    | (intro l bl' B0 hB0 hs hTl
+       rw [splitX_live]
+       constructor
+       · rintro (h | h)
+         · exact h
+         · exfalso
+           obtain ⟨p, hp, rfl⟩ := List.mem_map.1 h
+           have := Write.objs_isSome_node X.t bl' B0 p.1 hB0 hs
+           rw [hnew p hp] at this; cases this
+       · exact Or.inl)
   · intro l hl
     by_cases hk : ∃ c C rk, X.t.bs !! c = some C ∧ C.ns !! l = some rk
     · obtain ⟨c, C, rk, hC, hrk⟩ := hk
@@ -173,7 +184,9 @@ theorem splitX_frame (hb : X.t.bs !! bl = some B) (T : List Loc)
         rw [objs_other _ l hno']
         rw [objs_other _ l hno] at hl
         exact hl
-  · intro bl' B0 B' l r r' hB0 hB' hr hr' hTl hv
+  · intro bl' B0 B' l r r' hB0 hB' hr hr' hTl
+    try intro _
+    intro hv
     by_cases hc : bl' = bl
     · subst hc
       rw [hb] at hB0; cases hB0
