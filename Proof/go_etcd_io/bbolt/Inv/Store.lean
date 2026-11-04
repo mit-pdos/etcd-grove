@@ -465,6 +465,12 @@ private theorem lent_deregister (σ : StoreSt) (k : Nat) (r : RdInfo) (hk : σ.R
   · have : s ∉ pagesSlots r.v.pages := fun h => hc ((mem_pagesSlots _ _).1 h)
     simp only [hc, ite_false, this]
 
+private theorem lent_wclose (σ : StoreSt) (hwl : σ.wlent = false) : lent σ.wclose = lent σ := by
+  funext s
+  unfold lent
+  simp only [StoreSt.wclose]
+  split <;> simp_all
+
 end helpers
 
 section lemmas
@@ -646,7 +652,63 @@ theorem store_wclose (v : View) (w : Nat) (pb wl : Bool) (fl : FLPg)
       ghostVar B.wv (1 : Qp).half ((some v, some w, pb, wl) : WSt) ∗
       (if wl then viewCells wq v else iprop(emp)) ∗ ghostVar B.fl (1 : Qp).half fl ⊢
     |={E}=> ghostVar B.wv (1 : Qp).half wIdle ∗ ghostVar B.fl (1 : Qp).half fl := by
-  sorry
+  iintro ⟨#Hinv, Hwv, Hv, Hfl⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  subst hfl
+  simp only [StoreSt.wst, Prod.mk.injEq] at hws
+  obtain ⟨hwv, hwtx, hpb, hwl⟩ := hws
+  have hok' := storeOK_wclose σ Hok (by
+    rcases hp with hp | hp
+    · exact Or.inl (hpb ▸ hp)
+    · exact Or.inr fun w' hw' => by rw [← hwtx] at hw'; cases hw'; exact hp)
+  imod ghostVar_update_halves wIdle B.wv _ _ $$ Hwv Hwv' with ⟨Hwv, Hwv'⟩
+  -- the cells: the view's returned when lent
+  ihave Hcells : storeCells (GF := GF) σ.wclose $$ [Hcells Hv]
+  · cases wl
+    · simp only [Bool.false_eq_true, ite_false]
+      have e : storeCells (GF := GF) σ.wclose = storeCells σ := by
+        unfold storeCells; rw [lent_wclose (σ := σ) (hwl := hwl.symm)]; rfl
+      rw [e]; iclear Hv; iexact Hcells
+    · simp only [ite_true]
+      obtain ⟨b, l, hms⟩ : ∃ b l, σ.ms = some (b, l) := by
+        rcases hm : σ.ms with _ | ⟨b, l⟩
+        · have := (Hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hm).2; rw [← hwl] at this; cases this
+        · exact ⟨b, l, rfl⟩
+      have hwok := Hok.2.2.2.2.2.2.2.1 v hwv.symm
+      have hbase : v.base = b := hwok.2.2.2.2.2.2 hwl.symm b l hms
+      obtain ⟨hTn, hTs, hTl⟩ := view_slots σ Hok v hwok.2.2.1 hwok.2.2.2.1
+      ihave Hv := (viewCells_slots wq v σ.bytes hwok.2.2.2.2.1 hTl).1 $$ Hv
+      rw [hbase]
+      rw [storeCells_some σ b l hms, storeCells_some σ.wclose b l hms]
+      have e1 : storeSlots σ.wclose = storeSlots σ := rfl
+      have e2 : σ.wclose.bytes = σ.bytes := rfl
+      rw [e1, e2]
+      iapply cells_return (storeSlots σ) (pagesSlots v.pages) (nodup_list_dedup _) hTn hTs
+        (slotPt b σ.bytes) (slotPt_add b σ.bytes) (lent σ) (lent σ.wclose) wq (1 : Qp).half
+        (fun s _ => by
+          unfold lent; rw [← hwv, ← hwl]
+          simp only [StoreSt.wclose]
+          by_cases hc : coversSlot v.pages s
+          · simp [hc, (mem_pagesSlots _ _).2 hc]
+          · simp [hc, show s ∉ pagesSlots v.pages from fun h => hc ((mem_pagesSlots _ _).1 h)])
+      iframe
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.wclose, W
+    have e2 : metaLend (GF := GF) B σ.wclose = metaLend B σ := rfl
+    have e3 : bytesWit (GF := GF) B σ.wclose W = bytesWit B σ W := rfl
+    rw [e2, e3]
+    have ew : σ.wclose.wst = wIdle := rfl
+    rw [ew]
+    iframe
+    ipureintro
+    exact hok'
+  imodintro; iframe
 
 /-- `Free(w, p)` of `n` slots from `id` by the live writer before its publish: a page of the
 current tree, or the old synced freelist page, whose slots then move `W → store` (F4.5). -/
@@ -674,7 +736,26 @@ theorem store_alloc (fl : FLPg) (ws : WSt) (w : Nat) (r : w64) (n : Nat)
       ghostVar B.wv (1 : Qp).half ws ⊢
     |={E}=> ghostVar B.fl (1 : Qp).half (fl.alloc (W64 (w : Int)) r n) ∗
       ghostVar B.wv (1 : Qp).half ws := by
-  sorry
+  iintro ⟨#Hinv, Hfl, Hwv⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hfl hws
+  imod ghostVar_update_halves (σ.fl.alloc (W64 (w : Int)) r n) B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
+  · inext
+    iexists σ.alloc (W64 (w : Int)) r n, W
+    have e1 : storeCells (GF := GF) (σ.alloc (W64 (w : Int)) r n) = storeCells σ := rfl
+    have e2 : metaLend (GF := GF) B (σ.alloc (W64 (w : Int)) r n) = metaLend B σ := rfl
+    have e3 : bytesWit (GF := GF) B (σ.alloc (W64 (w : Int)) r n) W = bytesWit B σ W := rfl
+    rw [e1, e2, e3]
+    iframe
+    ipureintro
+    exact storeOK_alloc σ w r n Hok hw ha hn
+  imodintro; iframe
 
 /-- `ReleasePendingPages` with no live writer, under `metalock` (`metaR`'s `F`, whose values are
 `readonlyTXIDs` `ro`): the released slots move `store → W`, with their cells and bytes. -/
@@ -800,7 +881,27 @@ theorem meta_borrow (C : CommitSt) (ms : MapSt) :
       ghostVar B.map sync.rfrac.half.half ms ⊢
     |={E}=> metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.mln 1 () ∗
       ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.map sync.rfrac.half.half ms := by
-  sorry
+  iintro ⟨#Hinv, Hmlk, Htok, Hcur, Hmap⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC hms
+  unfold metaLend
+  icases Hml with (⟨Hm, Hout', Hln⟩ | ⟨-, Hmlk', -⟩ | ⟨-, Hmlk', -⟩)
+  · imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hout' Hmlk Htok] with _
+    · inext; iexists σ, W; iframe
+      isplitl [Hout' Hmlk Htok]
+      · iright; iright; iframe
+      ipureintro; exact Hok
+    imodintro; iframe
+  all_goals
+    icombine Hmlk Hmlk' gives % ⟨hq, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at hq
+    grind
 
 /-- The reader gives the meta cells' quarter back and gets its deposits. -/
 theorem meta_return (C : CommitSt) (ms : MapSt) :
@@ -809,7 +910,28 @@ theorem meta_return (C : CommitSt) (ms : MapSt) :
       ghostVar B.map sync.rfrac.half.half ms ⊢
     |={E}=> ghostVar B.mlk 1 () ∗ ghostVar B.mtok sync.rfrac.half () ∗
       ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.map sync.rfrac.half.half ms := by
-  sorry
+  iintro ⟨#Hinv, Hm, Hln, Hcur, Hmap⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC hms
+  unfold metaLend
+  icases Hml with (⟨-, -, Hln'⟩ | ⟨-, -, Hln'⟩ | ⟨Hout', Hmlk, Htok⟩)
+  rotate_left 2
+  · imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hout' Hm Hln] with _
+    · inext; iexists σ, W; iframe
+      isplitl [Hout' Hm Hln]
+      · ileft; iframe
+      ipureintro; exact Hok
+    imodintro; iframe
+  all_goals
+    icombine Hln Hln' gives % ⟨hq, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at hq
+    grind
 
 /-- `writeMeta`, holding `metalock` (`mlk`): the writer takes the meta cells' quarter
 (`out := true`), depositing `mlk` until it puts them back. -/
