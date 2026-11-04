@@ -58,21 +58,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 
-/-- **The files of a stopped member's data directory hold `σ` and `D`** (opaque, exclusive; a
-trust-boundary token, DRAFT R2c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its newest
+/-- **The files of a stopped member's data directory hold `σ` and `D`** (made of the two closes'
+trust-boundary tokens; DRAFT R2c, defined in R2b-3c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its newest
 valid snapshot record: of the highest index at or below the last hard state's commit,
 `wal.ValidSnapshotEntries`, `newestSnapshotEntry`, `bootstrap.go:437-462`; 2026-11-03, the final
 whole-`bootOk` review: until then "its last snapshot record", which Go does not read when the apply
 loop's snapshot record follows a newer received one, and which did not exclude `recoverSnapshot`'s
 panic, `bootstrap.go:482`) as the records `σ` -- the snapshot record at `σ.b`, the hard state `σ.hs`, the
 entries `σ.ents` -- and the bbolt file at `<dd>/member/snap/db` holds `D`; the WAL's metadata names the member `id`
-(R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). Exclusivity per directory
+(R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). (2026-11-04, R2b-3c part 2b:
+defined, as `WalApi.lean`'s plan (3) says: the closed WAL's files in the configuration's WAL
+directory with no dedicated one, `walFiles`, and the bbolt file, `fileHolds`, the two closes'
+outputs.) Exclusivity per directory
 (two tokens of one directory) is not stated: an open question for R2b, which makes it. Made by the stop's
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
 Q4). -/
-opaque srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF
+def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
+  iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ) ∗
+    backend.fileHolds (config.backendPathOf dd) D)
 
 /-- **`buildConfStateFromV3store`** (opaque, DRAFT R2c, R2d's to define): the conf state etcd
 builds from the backend's `members` bucket of `D` (voters the non-learners, learners the learners,
