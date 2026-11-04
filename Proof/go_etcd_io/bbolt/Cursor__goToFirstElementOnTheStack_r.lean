@@ -170,7 +170,10 @@ theorem Cursor.goToFirstElementOnTheStack_r.wp_proof
     iframe
     ipureintro
     rw [← ht1]
-    exact ⟨rHdF_leaf pre1 m1 pid1 o1 t1 e1 pg' hp1 hm1 hlf, e1, pid1, pg', t1, by simp, hlf, hl0⟩
+    rcases hpg with ⟨-, hlwf⟩ | ⟨hb, -⟩
+    · exact ⟨rHdF_leaf pre1 m1 pid1 o1 t1 e1 pg' hp1 hm1 hlf, e1, pid1, pg', t1, by simp, hlf, hl0,
+        hlwf, h16⟩
+    · rw [hlf.2.2.1] at hb; simp [branchPageFlag, leafPageFlag] at hb
 
 end proof
 

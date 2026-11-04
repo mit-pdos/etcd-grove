@@ -102,10 +102,10 @@ def rHdF (v : View) (bv : List w8) (pp : Loc) (m pid : Nat) (e : elemRef) (t : N
   (∃ pg j, rBrAt v bv pp pid e pg j ∧ t = entsBefore v.pages (m - 1) pg j) ∨
   (∃ pg, rLfAt v bv pp pid e pg t ∧ (t = 0 ∨ t < pageCount pg))
 
-/-- A stack landed on a leaf: its top at index `0` or on an entry. -/
+/-- A stack landed on a (well-formed) leaf: its top at index `0` or on an entry. -/
 def rLanded (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Prop :=
   ∃ e pidL pg idx, els.getLast? = some e ∧ rLfAt v bv pp pidL e pg idx ∧
-    (idx = 0 ∨ idx < pageCount pg)
+    (idx = 0 ∨ idx < pageCount pg) ∧ leafWF pg pg.length ∧ 16 ≤ pg.length
 
 /-! ### Basic facts -/
 
@@ -667,6 +667,20 @@ theorem rPosAt_ent (els : List elemRef) (i s : Nat) (h : rPosAt v bv pp els i s)
   obtain ⟨e, pidL, pg, idx, h1, h2, h3, h4⟩ := rPosF_ent _ _ _ _ _ h hlt
   rw [rLeaves_root] at h4
   exact ⟨e, pidL, pg, idx, h1, h2, h3, h4⟩
+
+/-- The entry at a stack's position, by its top leaf. -/
+theorem rPosAt_ent' (els : List elemRef) (i s : Nat) (h : rPosAt v bv pp els i s) (hlt : i < s)
+    (e : elemRef) (pidL : Nat) (pg : List w8) (idx : Nat) (hl : els.getLast? = some e)
+    (hlf : rLfAt v bv pp pidL e pg idx) : (rEnts v bv)[i]? = some (pg, idx) := by
+  obtain ⟨e2, pid2, pg2, idx2, hl2, hlf2, -, hget⟩ := rPosAt_ent els i s h hlt
+  rw [hl] at hl2; cases hl2
+  have hpg := rPageAt_det v bv pp pid2 pidL _ pg2 pg hlf2.1 hlf.1
+  subst hpg
+  have hii : idx2 = idx := by
+    have h1 := hlf2.2.2.2.2; have h2 := hlf.2.2.2.2; rw [h1] at h2
+    have := hlf2.2.2.2.1; have := hlf.2.2.2.1; have := pageCount_lt pg2
+    have := congrArg BitVec.toNat h2; simp at this; omega
+  rw [← hii]; exact hget
 
 end pos
 
