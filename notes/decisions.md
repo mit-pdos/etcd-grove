@@ -31038,3 +31038,14 @@ the loop fires it right after the `Save` returns (a graceful stop needs no more;
 uses only what the receive gives without *enter* (the committed log, `deliveredLogLb`, the hard
 state's committed fact; R2b-1 stage 1), and a leader's early `Send` uses raft's `readyLeaderMsgs`,
 for which the loop keeps `islead` tied to the driver's role (`islead` true only at role leader).
+
+## The raft loop's stop escrow and a synchronous `applyc` (2026-11-03 · R2b-3b)
+
+**The escrow** is announced by `done`'s close (`rnDoneEsc`), allocated by `onStop` with the image,
+in the pattern of the server's `srvDoneInv` (R2b-2): the image or the claim. It is at the WAL's
+location, not the wrapper's, since `done`'s predicate is fixed in `newRaftNode` before the struct
+exists. **Why `applyc` became `isSspsc`** (review M2): the image's order is at the log the loop
+handed, the stop's post at the apply side's `A`; equating them needs every sent payload received,
+which Go's unbuffered channel gives and `isSpsc` (which admits a value in flight) does not.
+Perennial's `SyncSpsc` idiom records each side's pending operation, so the two tokens together
+exclude a value in flight; its statements are otherwise `Spsc`'s, so the switch was a rename.

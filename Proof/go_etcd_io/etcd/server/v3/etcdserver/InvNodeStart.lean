@@ -186,7 +186,8 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Htki" ∷ isRNTicker E rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
     "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
-    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown)
+    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done
+      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Unknown)
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by
@@ -204,11 +205,14 @@ def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) : IPro
     "%Hrv" ∷ ⌜rv.lg' = cv.lg' ∧ rv.raftNodeConfig' = cv⌝ ∗
     "Hmu" ∷ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
     "#Hparts" ∷ rnParts E γ rv ∗
-    "Hprod" ∷ spscProducer γ.ap ([] : List toApply) ∗
-    "Hcons" ∷ spscConsumer γ.ap ([] : List toApply) ∗
+    "Hprod" ∷ sspscProducer γ.ap ([] : List toApply) ∗
+    "Hcons" ∷ sspscConsumer γ.ap ([] : List toApply) ∗
     "Hcum" ∷ monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
     "Hcum0" ∷ monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
-    "Hdtok" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Pending)
+    "Hdtok" ∷ ownBroadcastChan rv.done' γ.done
+      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
+    -- (2026-11-03, R2b-3b) the claim on the stop's escrow
+    "Hsc" ∷ rnStopClaim γ)
 
 end defs
 

@@ -1189,3 +1189,18 @@ driver predicates name the role; `Advance` keeps it; the loop's token (`rnLoopTo
 `islead` to it. `raftNode.start`'s two branches fire *enter* after the `Save`; at the stop exits
 before it the loop holds `raftState` at the state the records hold. No spec outside the wrapper
 moved.
+
+### R2b-3b: the raft loop's stop escrow (2026-11-03, done)
+
+- `applyc` is synchronous (Perennial's `isSspsc`, a drop-in for `isSpsc`): the producer's and the
+  consumer's tokens together give sent = received (`sspsc_sync`), which settles review M2.
+- `RNNames.sc`, the claim (`rnStopClaim γ := token γ.sc`), allocated by `newRaftNode` (in
+  `rnBuilt`; `NewServer` drops it until R2b-3d threads it to `run`'s shutdown, `srvStopKeep`).
+- `done` announces the escrow `rnDoneEsc γ w := inv rnStopN (rnStopImage γ w ∨ token γ.sc)` at the
+  WAL `w` (until then `True`). `onStop` (its spec now takes the durable state, the loop's view at it,
+  `applyc`'s producer token and `cum` at its count) allocates it with the image: `nodeVacant` (the
+  wrapper's `Stop` clause now gives it, raft's `node.Stop`), `raftState S`, `Close`'s files
+  (`rnWalClosedW`: `walFiles` at the member `γ.id`, which `rnWalTokL`'s metadata now names), the
+  order of the records' base and commit around the handed log.
+- `raftNode.stop.specStop` proved (`wp_proofStop`, over `rn_esc_take`: the claim takes the image,
+  the apply side's token at `A` makes the handed log `A`). `spec` stays (its callers don't stop).

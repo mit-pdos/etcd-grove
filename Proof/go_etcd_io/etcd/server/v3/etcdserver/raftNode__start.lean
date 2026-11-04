@@ -144,8 +144,8 @@ theorem raftNode.start.wp_proof
         -- (2026-10-31) the loop's half of the WAL's open token; (2026-11-03, R2b-1 stage 6) the
         -- stop's claim, the metadata and the purge's right, for `onStop`'s `Close`
         "Hwt" ∷ rnWalTok r (1 : Qp).half ∗
-        "Hwl" ∷ (token γ.wal.stop ∗ ∃ (st : GoInterface) (id cid : w64), rnStorageAddr r ↦□ st ∗
-          walMetaIs (storage.walOf st) id cid ∗ walPurgeRight (walDirOf (storage.walOf st))))
+        "Hwl" ∷ (token γ.wal.stop ∗ ∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗
+          walMetaIs (storage.walOf st) γ.id cid ∗ walPurgeRight (walDirOf (storage.walOf st))))
         $$ [islead raftTerm Htok HR HS Hwt Hwl]
     · iexists L, false, _, p0
       iframe
@@ -418,12 +418,14 @@ theorem raftNode.start.wp_proof
           wp_for_post
           ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
           ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
           · icases Hwl with ⟨Hws, Hwm⟩
             iframe Hws Hwap Hwm
-            iexists _
-            iframe Hwv
-            ipureintro; rfl
+            iunfold rnPendEnter at Hpend
+            icases Hpend with ⟨HrS, -⟩
+            ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+            iexists S, p, L', sent
+            iframe HrS Hwv Hprod Hidx
           itrivial
         subst Hv
         wp_auto_lc 3
@@ -528,11 +530,11 @@ theorem raftNode.start.wp_proof
           ihave #Hsp := Hapci
           iunfold isRNApplyc at Hsp
           ihave #Hapci' := Hsp
-          iunfold isSpsc at Hapci'
+          iunfold isSspsc at Hapci'
           icases Hapci' with ⟨#Hapch, -⟩
           isplitr
           · iexact Hapch
-          iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
+          iapply sspsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
             [$Hprod Hnrcv]
           · iunfold rnApP
             iright
@@ -950,12 +952,13 @@ theorem raftNode.start.wp_proof
           wp_for_post
           ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
           ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
           · icases Hwl with ⟨Hws, Hwm⟩
             iframe Hws Hwap Hwm
-            iexists _
-            iframe Hwv
-            ipureintro; rfl
+            iunfold rnPendEnter at Hpend
+            icases Hpend with ⟨HrS, -⟩
+            iexists S, p, L', sent
+            iframe HrS Hwv Hprod Hcn
           itrivial
         iapply BigAndL.bigAndL_nil.2
         itrivial
@@ -1149,12 +1152,14 @@ theorem raftNode.start.wp_proof
         wp_for_post
         ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
         ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
         · icases Hwl with ⟨Hws, Hwm⟩
           iframe Hws Hwap Hwm
-          iexists _
-          iframe Hwv
-          ipureintro; rfl
+          iunfold rnPendEnter at Hpend
+          icases Hpend with ⟨HrS, -⟩
+          ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+          iexists S, p, L', sent
+          iframe HrS Hwv Hprod Hidx
         itrivial
       subst Hv
       wp_auto_lc 3
@@ -1256,11 +1261,11 @@ theorem raftNode.start.wp_proof
         ihave #Hsp := Hapci
         iunfold isRNApplyc at Hsp
         ihave #Hapci' := Hsp
-        iunfold isSpsc at Hapci'
+        iunfold isSspsc at Hapci'
         icases Hapci' with ⟨#Hapch, -⟩
         isplitr
         · iexact Hapch
-        iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
+        iapply sspsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
           [$Hprod Hnrcv Hgive]
         · iunfold rnApP
           ileft
@@ -1586,12 +1591,15 @@ theorem raftNode.start.wp_proof
               wp_for_post
               ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
               ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
               · icases Hwl with ⟨Hws, Hwm⟩
                 iframe Hws Hwap Hwm
-                iexists _
-                iframe Hwv
-                ipureintro; rfl
+                iunfold rnBusyN at Hbusy
+                icases Hbusy with ⟨-, HrS⟩
+                iexists S', p', L' ++ ce, _
+                iframe HrS Hwv Hprod
+                simp only [List.length_append, List.length_singleton]
+                iexact Hcn1
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
@@ -1710,12 +1718,15 @@ theorem raftNode.start.wp_proof
               wp_for_post
               ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
               ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
               · icases Hwl with ⟨Hws, Hwm⟩
                 iframe Hws Hwap Hwm
-                iexists _
-                iframe Hwv
-                ipureintro; rfl
+                iunfold rnBusyN at Hbusy
+                icases Hbusy with ⟨-, HrS⟩
+                iexists S', p', L' ++ ce, _
+                iframe HrS Hwv Hprod
+                simp only [List.length_append, List.length_singleton]
+                iexact Hcn1
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
@@ -1735,12 +1746,13 @@ theorem raftNode.start.wp_proof
         wp_for_post
         ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
         ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
         · icases Hwl with ⟨Hws, Hwm⟩
           iframe Hws Hwap Hwm
-          iexists _
-          iframe Hwv
-          ipureintro; rfl
+          iunfold rnPendEnter at Hpend
+          icases Hpend with ⟨HrS, -⟩
+          iexists S, p, L', sent
+          iframe HrS Hwv Hprod Hcn
         itrivial
       iapply BigAndL.bigAndL_nil.2
       itrivial
@@ -1760,15 +1772,17 @@ theorem raftNode.start.wp_proof
       wp_auto
       wp_for_post
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, %S, %ro, -, -, Hwv, Hrun, -⟩
+      icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, -, Hwv, Hrun, Hprod, Hauth, %Hcums, -, -⟩
       ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
       ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-      wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv]
+      wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hdrv Hprod Hauth]
       · icases Hwl with ⟨Hws, Hwm⟩
         iframe Hws Hwap Hwm
-        iexists _
-        iframe Hwv
-        ipureintro; rfl
+        iunfold rnDrv at Hdrv
+        icases Hdrv with ⟨-, HrS, -⟩
+        ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+        iexists S, p, L', sent
+        iframe HrS Hwv Hprod Hidx
       itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial

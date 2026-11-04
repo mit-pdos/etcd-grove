@@ -134,7 +134,8 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
-      ownBroadcastChan rv.done' γ.done iprop(True) .Pending ⊢
+      ownBroadcastChan rv.done' γ.done (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage'))
+        .Pending ⊢
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
@@ -167,8 +168,9 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
     iexact Hmsi
   · iframe NodeC transportC
     iunfold rnDoneTok
-    iexists rv.done'
+    iexists rv.done', rv.raftNodeConfig'.storage'
     iframe doneR Hdtok
+    iexact storageC
 
 /-- **The loop's and the apply side's tokens at the start** (`rnLoopTok γ []`, `rnApplyTok γ
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
@@ -184,7 +186,7 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
           (NodeDriverState.init (memStorIface γ.ms) γ.key) ∗
         raftState γ.node.cl γ.id RaftState.init ∗
         nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-      spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
+      sspscProducer γ.ap ([] : List toApply) ∗ sspscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
       -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL at the start (`wal.bootOk_start`)
@@ -598,8 +600,11 @@ theorem raftNode_of_StartNode
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    -- (2026-10-31) `stopped`'s bag at the storage's WAL
-    iExactEq Hstci
+    -- (2026-10-31) `stopped`'s bag at the storage's WAL; (R2b-3b) `done`'s escrow at it
+    isplitr
+    · iExactEq Hstci
+      first | rfl | simp [Hrvcfg]
+    iExactEq Hdnci
     first | rfl | simp [Hrvcfg]
   imodintro
   iframe Hrn Hdone Htrf Hprop

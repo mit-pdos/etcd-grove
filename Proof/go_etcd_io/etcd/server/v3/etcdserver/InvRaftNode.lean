@@ -26,7 +26,7 @@ node contract is to be discharged from raft's specs.
   2026-10-18, D19b stage 5: the receipt bound past the bootstrap log, from which every `Ready`'s
   entries fit `Append`'s index bound and the committed index fits) and the read states' bridge
   (`rnReadStateBridge`, `srvReadStateOk_of_raft`).
-- **`applyc`** is an SPSC channel (`isSpsc`) of `toApply`s; the `k`th payload carries the
+- **`applyc`** is an SPSC channel (`isSspsc`) of `toApply`s; the `k`th payload carries the
   mono-list `cum`'s elements `k` and `k + 1` (the log forwarded before and after it), so the
   consumer, at `cum[|received|] = A` (`rnApplyTok γ A`), learns that the batch extends `A`. The
   loop (`rnLoopTok γ L`) owns the producer half and `cum`'s authority, whose last element is
@@ -101,6 +101,8 @@ structure RNNames [GooseExts] where
   key : GName
   -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (the slot convention's field group)
   wal : WalNames
+  -- (2026-11-03, R2b-3b) the claim on the loop's stop escrow (`rnStopClaim`, `rnDoneEsc`)
+  sc : GName
 
 /-- The `MemoryStorage` registry's name: the cluster's (2026-10-27; until then a field). -/
 abbrev RNNames.reg [GooseExts] (γ : RNNames) : GName := γ.node.reg
@@ -722,7 +724,8 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
     □ ({{ True }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ nodeRunning γ.nl γ.node.cl srvClusterN 1 }}
         (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #()))
-      {{ RET #(); nodeStopped γ.nl γ.node.cl srvClusterN }}) ∗
+      -- (2026-11-03, R2b-3b) and the id vacant (raft's `node.Stop`)
+      {{ RET #(); nodeStopped γ.nl γ.node.cl srvClusterN ∗ nodeVacant γ.node.cl γ.id }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
         (id n : w64) (Qr : List EntryModel → IProp GF),
       {{ context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast E.γr n ∗
@@ -1381,8 +1384,9 @@ claim (`ν.stop`) and what `Close` takes besides the records (the member's metad
 right), from `bootstrap` (`wal.bootOk_start`), kept until `onStop`. -/
 def rnWalTokL (γ : RNNames) (r : Loc) : IProp GF :=
   iprop(rnWalTok r (1 : Qp).half ∗ token γ.wal.stop ∗
-    ∃ (st : GoInterface) (id cid : w64), rnStorageAddr r ↦□ st ∗
-      walMetaIs (storage.walOf st) id cid ∗ walPurgeRight (walDirOf (storage.walOf st)))
+    -- (2026-11-03, R2b-3b) the metadata naming the member `γ.id` (the stop image's `walFiles`)
+    ∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗
+      walMetaIs (storage.walOf st) γ.id cid ∗ walPurgeRight (walDirOf (storage.walOf st)))
 
 /-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
 raft may send, borrowing `E.S` (2026-10-24); `Stop` returns, taking `E.ST` (D43 M5c). -/
@@ -1736,7 +1740,7 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
 closes it, and the apply side's receive needs that it is not closed). -/
 def isRNApplyc (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  isSpsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(False))
+  isSspsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(False))
 
 instance isRNApplyc_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
     Persistent (isRNApplyc E γ c) := by
@@ -1757,7 +1761,7 @@ def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) (b : Bool) 
     -- for a leader's early `Send` (`readyLeaderMsgs`)
     ⌜b = true → r = StateLeader⌝ ∗
     -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL's durability, at the driver's state
-    rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
+    rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ sspscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
     ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
     ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝ ∗
@@ -1772,7 +1776,7 @@ def rnLoopTok (γ : RNNames) (L : List EntryModel) : IProp GF :=
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/
 def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
-  iprop(∃ rcv : List toApply, spscConsumer γ.ap rcv ∗ monoListIdxOwn γ.cum rcv.length A)
+  iprop(∃ rcv : List toApply, sspscConsumer γ.ap rcv ∗ monoListIdxOwn γ.cum rcv.length A)
 
 /-- `msgSnapC`: a channel of messages raft may send, each a `MsgSnap` (D19p, 2026-10-18: so that
 a server whose raft sends none knows the channel never delivers); (D22 S-l sender, 2026-10-22)
@@ -1790,6 +1794,48 @@ def isRNReadStateC (E : RNEnv GF) (c : Loc) : IProp GF := isReadStateC c E.γr.r
 
 instance isRNReadStateC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNReadStateC E c) := by
   unfold isRNReadStateC; infer_instance
+
+/-! ## The stop's escrow (2026-11-03, R2b-3b) -/
+
+/-- The namespace of the raft loop's stop escrow. -/
+def rnStopN : Namespace := nroot.@"rnStop"
+
+/-- **The WAL `w`, closed, its files holding the records `σ`** (R2b-3b; until then an opaque draft):
+`Close`'s files (`walFiles`) in the WAL's directory, its metadata naming the member `γ.id`. What
+the stop image's `srvFiles` is made of (R2b-3c). -/
+def rnWalClosedW (γ : RNNames) (w : Loc) (σ : StorContents) : IProp GF :=
+  iprop(∃ cid : w64, walFiles (walDirOf w) γ.id cid σ)
+
+/-- **The wrapper `r`'s WAL, closed, its records `σ`** (`raftNode.stop.specStop`'s): `rnWalClosedW` at
+the WAL of `r`'s storage. -/
+def rnWalClosed (γ : RNNames) (r : Loc) (σ : StorContents) : IProp GF :=
+  iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ rnWalClosedW γ (storage.walOf st) σ)
+
+/-- **What the stopped loop leaves** (R2b-3b), at the WAL `w`: the node's id vacant (`node.Stop`'s),
+its durable state `S`, the WAL closed with records `σ` holding it, between whose base and commit the
+log `L` handed to the apply thread ends; `applyc`'s producer token at the count `sent` of payloads,
+`cum` at it `L` (the stop's caller, the apply side, with its consumer token, learns that it
+received every payload, `sspsc_sync`, so that its log is `L`: review M2). -/
+def rnStopImage (γ : RNNames) (w : Loc) : IProp GF :=
+  iprop(nodeVacant γ.node.cl γ.id ∗
+    ∃ (S : RaftState) (σ : StorContents) (sent : List toApply) (L : List EntryModel),
+      raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
+      sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
+      ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ L).length ∧ (γ.pre ++ L).length ≤ σ.commit⌝)
+
+/-- **`done`'s close announces the stop's escrow** (persistent, R2b-3b; until then `True`): the stop
+image, or the claim (`rnStopClaim`) once its holder took the image. `onStop` allocates it with the
+image as it closes `done`. -/
+def rnDoneEsc (γ : RNNames) (w : Loc) : IProp GF :=
+  inv rnStopN iprop(rnStopImage γ w ∨ token γ.sc)
+
+instance rnDoneEsc_persistent (γ : RNNames) (w : Loc) : Persistent (rnDoneEsc (GF := GF) γ w) := by
+  unfold rnDoneEsc; infer_instance
+
+/-- **The claim on the raft loop's stop escrow** (R2b-3b; until then an opaque draft): `newRaftNode`
+allocates it, and `raftNode.stop`'s stop variant (`specStop`) takes it, to take the image out of
+`done`'s escrow. -/
+def rnStopClaim (γ : RNNames) : IProp GF := token γ.sc
 
 /-! ## The wrapper -/
 
@@ -1821,7 +1867,9 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ (storage.walOf st) stc ∗
-    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
+    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗
+    -- (2026-11-03, R2b-3b) its close announces the stop's escrow (until then `True`)
+    "#Hdnci" ∷ ownBroadcastChan dnc γ.done (rnDoneEsc γ (storage.walOf st)) .Unknown)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     Persistent (isRaftNode E γ r) where
@@ -1839,22 +1887,43 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
 
 /-- The right to close `done` (the loop's: its deferred `onStop`). -/
 def rnDoneTok (γ : RNNames) (r : Loc) : IProp GF :=
-  iprop(∃ dnc : GoChan, rnDoneAddr r ↦□ dnc ∗ ownBroadcastChan dnc γ.done iprop(True) .Pending)
+  iprop(∃ (dnc : GoChan) (st : GoInterface), rnDoneAddr r ↦□ dnc ∗ rnStorageAddr r ↦□ st ∗
+    ownBroadcastChan dnc γ.done (rnDoneEsc γ (storage.walOf st)) .Pending)
 
-/-- (DRAFT, R2b-1, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **The claim on the raft
-loop's stop escrow** (opaque until R2b-1): the loop's `onStop` closes `done` with what it held, the
-node's durable state and the WAL's closed records, escrowed for this claim, which `raftNode.stop`'s
-stop variant takes (as `srvStopRight`'s claim on the server's `done`). Until then `done`'s
-predicate is `True` and `raftNode.stop` gives nothing back. -/
-opaque rnStopClaim (γ : RNNames) : IProp GF
 
-/-- (DRAFT, R2b-1, 2026-11-02) **The raft wrapper `r`'s WAL, closed, its records `σ`** (opaque
-until R2b-1, which keeps the WAL's records in a ghost token beside its open token, `walOpen`,
-updated by the trust-boundary contract `isRNWal`'s `Save` and `SaveSnap`, and has `Close` give
-it): `ReadAll` from the WAL's newest valid snapshot record (the highest index at or below the
-last hard state's commit, as `bootstrap` opens it; 2026-11-03: until then "last") reads back the snapshot record at `σ.b`, the
-hard state `σ.hs` and the entries `σ.ents`. R2b-3's closes' axioms make `srvFiles` from it. -/
-opaque rnWalClosed (r : Loc) (σ : StorContents) : IProp GF
+/-- (2026-11-03, R2b-3b; review M2) **The stop's caller takes the image out of `done`'s escrow**: with
+the claim and the apply side's token at the log `A` it was handed, the image the loop left, its
+handed log `A` (the producer's and the consumer's tokens agree, `applyc` being synchronous,
+`sspsc_sync`: every payload sent was received). -/
+theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryModel) :
+    ⊢ isRNApplyc E γ c -∗ rnDoneEsc γ w -∗ rnStopClaim γ -∗ rnApplyTok γ A -∗ £ 1 -∗ £ 1 ={⊤}=∗
+      nodeVacant γ.node.cl γ.id ∗ ∃ (S : RaftState) (σ : StorContents),
+        raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ := by
+  iintro #Hapc #Hesc Hsc Happ Hlc1 Hlc2
+  iunfold rnStopClaim at Hsc
+  iunfold rnDoneEsc at Hesc
+  iinv Hesc with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑rnStopN) $$ Hlc1 Hi with Hi
+  icases Hi with (Himg | Htok)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Hsc Htok
+  imod Hclose $$ [Hsc] with -
+  · inext; iright; iexact Hsc
+  iunfold rnStopImage at Himg
+  icases Himg with ⟨Hvac, %S, %σ, %sent, %L, HrS, Hcl, Hprod, #Hidx, %Hord⟩
+  iunfold rnApplyTok at Happ
+  icases Happ with ⟨%rcv, Hcons, #HidxA⟩
+  iunfold isRNApplyc at Hapc
+  imod sspsc_sync γ.ap c (rnApP E γ) _ sent rcv $$ Hapc Hlc2 Hprod Hcons with ⟨%Heq, -, -⟩
+  subst Heq
+  ihave %HLA := mono_list_idx_agree γ.cum sent.length L A $$ Hidx HidxA
+  subst HLA
+  imodintro
+  iframe Hvac
+  iexists S, σ
+  iframe HrS Hcl
+  ipureintro; exact Hord
 
 end defs
 
