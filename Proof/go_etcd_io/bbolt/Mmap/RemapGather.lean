@@ -60,35 +60,37 @@ theorem mapFields_join (db : Loc) (ms : MapSt) :
   exact sep_assoc.symm.trans ((sep_congr h1.symm .rfl).trans h2.symm)
 
 omit hos in
-/-- Two shares of the mapping fields of mappings agree. -/
+/-- Two shares of the mapping fields of mappings agree (kept). -/
 theorem mapFields_agree (db : Loc) (dq1 dq2 : DFrac) (b1 b2 : Loc) (l1 l2 : Nat) :
     mapFields (GF := GF) db dq1 (some (b1, l1)) ∗ mapFields (GF := GF) db dq2 (some (b2, l2)) ⊢
-      ⌜b1 = b2 ∧ l1 = l2⌝ := by
+      ⌜b1 = b2 ∧ l1 = l2⌝ ∗ mapFields (GF := GF) db dq1 (some (b1, l1)) ∗
+        mapFields (GF := GF) db dq2 (some (b2, l2)) := by
   simp only [mapFields]
-  iintro ⟨⟨H1, -, -, -, %h1⟩, ⟨H2, -, -, -, %h2⟩⟩
-  ihave %he := typedPointsto_agree_wand _ _ _ _ _ $$ H1 H2
-  ipureintro
+  iintro ⟨⟨H1, H1b, H1c, H1d, %h1⟩, ⟨H2, H2b, H2c, H2d, %h2⟩⟩
+  icombine H1 H2 gives %he
   have hp := congrArg GoSlice.ptr he
   have hl := congrArg GoSlice.len he
   simp only at hp hl
-  refine ⟨hp, ?_⟩
   have : ((W64 (l1 : Int)).toNat) = ((W64 (l2 : Int)).toNat) := by rw [hl]
   have e1 : (W64 (l1 : Int)).toNat = l1 := by word
   have e2 : (W64 (l2 : Int)).toNat = l2 := by word
-  omega
+  isplitr
+  · ipureintro; exact ⟨hp, by omega⟩
+  iframe
+  ipureintro; exact ⟨h1, h2⟩
 
 /-- **The remap's gather** (with `Pm 1`'s `map` quarter and `mtok`, the writer side's `map` half,
 its view `v` lent and its meta quarter): the old mapping's cells, the view home, the store's slots
 out (`store_gather`'s witness and facts). -/
 theorem remap_gather (B : BNs) (N : Namespace) (p : GoString) (v : View) (w : WDb) (b0 : Loc)
     (L : Nat) (hok : wdbOK w) (hms : w.ms = some (b0, L)) (hL : 8192 ≤ L) :
-    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ viewCells wq v ∗
-      ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
-      ghostVar B.map (1 : Qp).half (some (b0, L) : MapSt) ∗
-      ghostVar B.map (1 : Qp).half.half (some (b0, L) : MapSt) ∗ ghostVar B.mtok 1 () ∗
-      ghostVar B.wv (1 : Qp).half (wLive v w.C) ∗ ghostVar B.out (1 : Qp).half false ∗
-      metaCellsQ (GF := GF) (1 : Qp).half.half (some (b0, L)) w.C ∗
-      wCells (GF := GF) (some (b0, L)) w.W ⊢
+    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ viewCells wq v -∗
+      ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
+      ghostVar B.map (1 : Qp).half (some (b0, L) : MapSt) -∗
+      ghostVar B.map (1 : Qp).half.half (some (b0, L) : MapSt) -∗ ghostVar B.mtok 1 () -∗
+      ghostVar B.wv (1 : Qp).half (wLive v w.C) -∗ ghostVar B.out (1 : Qp).half false -∗
+      metaCellsQ (GF := GF) (1 : Qp).half.half (some (b0, L)) w.C -∗
+      wCells (GF := GF) (some (b0, L)) w.W -∗
     |={⊤}=> (∃ vf, cellsR (GF := GF) b0 0 L vf) ∗ ∃ (bs : Nat → List w8) (W : GMap Nat (List w8)),
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
@@ -98,7 +100,7 @@ theorem remap_gather (B : BNs) (N : Namespace) (p : GoString) (v : View) (w : WD
       ⌜(∀ s ∈ slotsOf w.C w.fl, W !! s = some (bs s)) ∧ w.C.metaOk ∧
         ∀ s ∈ slotsOf w.C w.fl, 2 ≤ s ∧ s < L / 4096⌝ := by
   simp only [wLive]
-  iintro ⟨#Hinv, Hv, Hcur, Hfl, Hmap, Hmapq, Htok, Hwv, Hout, Hmc, Hwc⟩
+  iintro #Hinv Hv Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc
   imod store_wreturn B N p ⊤ CoPset.subseteq_top v (some (w.C.txid + 1)) false $$ [Hinv Hwv Hv]
     with Hwv
   · iframe; iframe #
