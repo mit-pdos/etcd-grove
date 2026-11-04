@@ -65,9 +65,12 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`GA` of its id, under the guard), which the lock keeps for every lease of the map
   (`lessorAuth`). The loop's `revokeExpiredLeases` sends on `expiredC` only a non-empty slice
   (`if len(ls) != 0`, `lessor.go:652`) of leases `findExpiredLeases` took from `leaseMap` under the
-  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so some lease
+  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so every lease
   of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
-  predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
+  predicate (`lessorExpiredC lp GA`). (The lease-expiry plan's X3, 2026-11-04; until then `∃ id,
+  GA id`) The slice is the loop's own, never written after the send (`ls ↦*□ ps`, `ps ≠ []`), its
+  elements the map's non-null `*Lease`s, each `ID` set by `NewLease` and never written again
+  (`lsF "ID" p ↦□ id`), each with `GA id` (`expiredLeases GA`). The map starts empty (the fresh `Lease`
   bucket; `Recover`, not called, would reload it).
 * The backend's contract (`lessorBackend lp Pk f T Ln R Rb`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the

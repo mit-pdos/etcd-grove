@@ -1131,7 +1131,7 @@ lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
 theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
       lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
-      lessorOk (lease.lessorIface lp) :=
+      lessorOk lg on (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
     lease.lessor.wp_ExpiredLeasesC lp γl lg on
 

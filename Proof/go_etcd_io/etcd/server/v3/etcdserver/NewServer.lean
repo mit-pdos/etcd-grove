@@ -594,7 +594,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `lease.NewLessor`
   rw [Hbe0]
   -- the grant guard `srvGrantGuard` at the cluster's lease mode and the auth mode (D19n; the
-  -- lease-grant plan's D1, until then `False`, D45): the lessor's `expiredC` never delivers
+  -- lease-grant plan's D1, until then `False`, D45): the lessor's `expiredC` delivers only in a
+  -- granting cluster with auth off (the lease-expiry plan's X1)
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
@@ -1363,8 +1364,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
   -- the lessor
-  ihave #Hlok : lessorOk (lease.lessorIface lp) $$ []
-  · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg on
+  -- (the lease-expiry plan's X4) at the environment's grant flag and auth mode (`M.isOn = on`)
+  ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
+  · icases HM with %HM'
+    rw [HM'.1]
+    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg on
     iframe Hlexp Hlcfg Hlinv Hlspkg
   ihave %Hwq0 : ⌜γw.st.watchQ = true⌝ $$ []
   · ihave #Hws' := Hws
@@ -2066,7 +2070,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨lease.bootCfg_noExpiry (hlg ▸ Hlbc), rfl, hon⟩
+            ipureintro; exact ⟨rfl, hon⟩
           · iexact Hlmode
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]

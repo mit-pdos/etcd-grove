@@ -1289,9 +1289,11 @@ theorem EtcdServer.run.wp_proof
     iunfold named
     iintro !> ⟨H, -⟩
     iexact H
-  -- `leases := <-expiredLeaseC`: nothing is sent on it (D19n, D19q: the workload's grant guard
-  -- holds of no lease, `lessorOk`'s `noGrant`, so no lease is granted and none expires);
-  -- `revokeExpiredLeases` is never reached
+  -- `leases := <-expiredLeaseC` (the lease-expiry plan's X1, 2026-11-04; until then dead in every
+  -- mode): a slice of expired leases under the server's grant guard (`lessorOk`), so the cluster
+  -- grants leases and auth is off; by the lease mode (`lease.runCfg`): `none` grants none (dead),
+  -- `mono` lets none expire (dead: `leasesNoExpiry`), `revocable` revokes them
+  -- (`revokeExpiredLeases`, through the open premise `srvRevokeOpen`)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -1302,8 +1304,39 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Helc
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
-    iintro %ls Hf
-    iexfalso; iexact Hf
+    iintro %ls ⟨%Hnx, #Hls⟩
+    ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hls
+    ihave %Hlgt := isServerC_lg C s γ ci TM E ρ γr $$ Hsrv
+    have hCoff : C.isOn = false := by
+      have h2 := Hg.2
+      rw [hM, AuthC.mode_isOn] at h2
+      exact h2
+    obtain ⟨mo, Hmo⟩ := Hslg
+    cases mo with
+    | none =>
+      have h1 : γr.kv.lg = false := by simpa using lease.runCfg_lg Hmo
+      have h2 := Hlgt.2 hCoff
+      iexfalso; ipureintro
+      rw [h1, Hg.1] at h2
+      exact Bool.false_ne_true h2
+    | mono =>
+      iexfalso; ipureintro
+      exact Hnx (lease.runCfg_noExpiry Hmo)
+    | revocable =>
+      have hrev := srvRevokeOpen_spec (lease.runCfg_revoke Hmo)
+      ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
+      · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
+      ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+      · iPkgInit
+      (try wp_auto)
+      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v iprop(False) ls $$ []
+      · iframe #
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists A, Ps, pl, Q, R
+      iframe
+      iframe #
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2

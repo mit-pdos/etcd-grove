@@ -53,15 +53,16 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The lease subsystem's boot premise** (sealed), at the KV names' grant flag `lg`, the lease mode
 `m` and the auth mode `on`: `lg` is whether `m` grants; with auth on, no lease granted (the
 auth/lease coupling, the lease-grant stage's 2.13, owned by lease with auth's mode as its
-parameter); in the monotone mode, no lease expires during the run and the open cases of a granting
-cluster (`srvGrantOpen`); the revocable mode not admitted (`False`: the placeholder until the expiry
-stage's Part X admits it); and the lessor's checkpointer's effects (`ckptEffectsOk`, `NewLessor`'s
-premise). At `m = none` (`lg = false`) and `m = mono` (`lg = true`) exactly the premises
-`NewServer.specG` stated inline until 2026-11-04. -/
+parameter); in the monotone mode, no lease expires during the run; in a granting mode the open
+cases of a granting cluster (`srvGrantOpen`, until the plan's S4); in the revocable mode the open
+case of `run`'s expiry arm (`srvRevokeOpen`; the expiry stage's Part X-a, 2026-11-04: until then
+`m = revocable → False`, and `srvGrantOpen` only at `mono`); and the lessor's checkpointer's
+effects (`ckptEffectsOk`, `NewLessor`'s premise). At `m = none` (`lg = false`) and `m = mono`
+(`lg = true`) exactly the premises `NewServer.specG` stated inline until 2026-11-04. -/
 @[no_expose] def lease.bootCfg (lg : Bool) (m : lease.Mode) (on : Bool) : Prop :=
-  lg = decide (m ≠ .none) ∧ (on = true → m = .none) ∧
-    (m = .mono → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) ∧
-    (m = .revocable → False) ∧ ckptEffectsOk
+  lg = decide (m ≠ .none) ∧ (on = true → m = .none) ∧ (m = .mono → lease.leasesNoExpiry) ∧
+    (m ≠ .none → srvGrantOpen (GF := GF)) ∧
+    (m = .revocable → srvRevokeOpen (GF := GF) (hG := hG)) ∧ ckptEffectsOk
 
 /-- `lease.bootCfg` for a cluster that grants no lease (every non-granting example), in either auth
 mode. -/
@@ -69,7 +70,8 @@ theorem lease.bootCfg_none (lg on : Bool) (hlg : lg = false) (hck : ckptEffectsO
     lease.bootCfg (GF := GF) lg .none on := by
   unfold lease.bootCfg
   subst hlg
-  refine ⟨by decide, fun _ => rfl, ?_, ?_, hck⟩ <;> intro h <;> cases h
+  refine ⟨by decide, fun _ => rfl, ?_, ?_, ?_, hck⟩ <;> intro h <;>
+    first | cases h | exact absurd rfl h
 
 /-- `lease.bootCfg` for a cluster that grants monotone leases (`examples/etcd/leasegrant`): auth
 off, no lease expiring during the run, the open cases. -/
@@ -78,7 +80,16 @@ theorem lease.bootCfg_mono (lg on : Bool) (hlg : lg = true) (hon : on = false)
     lease.bootCfg (GF := GF) lg .mono on := by
   unfold lease.bootCfg
   subst hlg hon
-  refine ⟨by decide, ?_, fun _ => ⟨hne, hopen⟩, ?_, hck⟩ <;> intro h <;> cases h
+  refine ⟨by decide, ?_, fun _ => hne, fun _ => hopen, ?_, hck⟩ <;> intro h <;> cases h
+
+/-- `lease.bootCfg` for a cluster that grants revocable leases (the expiry stage's Part X-a): auth
+off, the open cases of a granting cluster and of `run`'s expiry arm. -/
+theorem lease.bootCfg_revocable (lg on : Bool) (hlg : lg = true) (hon : on = false)
+    (hopen : srvGrantOpen (GF := GF)) (hrev : srvRevokeOpen (GF := GF) (hG := hG))
+    (hck : ckptEffectsOk) : lease.bootCfg (GF := GF) lg .revocable on := by
+  unfold lease.bootCfg
+  subst hlg hon
+  refine ⟨by decide, ?_, ?_, fun _ => hopen, fun _ => hrev, hck⟩ <;> intro h <;> cases h
 
 /-- **The grant flag is the mode's**: `lg` is whether the mode grants leases. -/
 theorem lease.bootCfg_lg {lg : Bool} {m : lease.Mode} {on : Bool}
@@ -94,27 +105,15 @@ theorem lease.bootCfg_auth {lg : Bool} {m : lease.Mode} {on : Bool}
 
 /-- **What `NewLessor` takes from `lease.bootCfg`**: the checkpointer's effects. -/
 theorem lease.bootCfg_ckpt {lg : Bool} {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) lg m on) : ckptEffectsOk := h.2.2.2.2
+    (h : lease.bootCfg (GF := GF) lg m on) : ckptEffectsOk := h.2.2.2.2.2
 
 /-- **What `run`'s snapshot job takes from `lease.bootCfg`** in a granting cluster: the open cases
 (`srvGrantOpen`, `isServerRun`'s `%Hslg`). -/
 theorem lease.bootCfg_open {m : lease.Mode} {on : Bool}
     (h : lease.bootCfg (GF := GF) true m on) : srvGrantOpen (GF := GF) := by
-  obtain ⟨hlg, -, hmono, hrev, -⟩ := h
-  cases m with
-  | none => exact absurd hlg (by decide)
-  | mono => exact (hmono rfl).2
-  | revocable => exact (hrev rfl).elim
-
-/-- **What the server's grant guard takes from `lease.bootCfg`** in a granting cluster: no lease
-expires during the run (`leasesNoExpiry`, `isServerRun`'s `%Hslg`). -/
-theorem lease.bootCfg_noExpiry {m : lease.Mode} {on : Bool}
-    (h : lease.bootCfg (GF := GF) true m on) : lease.leasesNoExpiry := by
-  obtain ⟨hlg, -, hmono, hrev, -⟩ := h
-  cases m with
-  | none => exact absurd hlg (by decide)
-  | mono => exact (hmono rfl).1
-  | revocable => exact (hrev rfl).elim
+  obtain ⟨hlg, -, -, hopen, -, -⟩ := h
+  refine hopen ?_
+  intro hm; rw [hm] at hlg; exact absurd hlg (by decide)
 
 /-- **The running server's lease premise from the boot slot** (`NewServer`'s construction premise
 for `start` and `run`, `srvBuilt`'s `%Hslg`): `lease.runCfg` at the same flag and mode. -/
@@ -122,8 +121,8 @@ theorem lease.bootCfg_run {lg : Bool} {m : lease.Mode} {on : Bool}
     (h : lease.bootCfg (GF := GF) lg m on) : lease.runCfg (GF := GF) lg m := by
   unfold lease.bootCfg at h
   unfold lease.runCfg
-  obtain ⟨hlg, -, hmono, hrev, -⟩ := h
-  exact ⟨hlg, hmono, hrev⟩
+  obtain ⟨hlg, -, hmono, hopen, hrev, -⟩ := h
+  exact ⟨hlg, hmono, hopen, hrev⟩
 
 /-- **The boot slot from the running server's lease premise** (`etcdstart`'s `newServerMode`, from
 `memberBoot`'s `lease.runCfg`): with the auth/lease coupling at the auth mode `on` and the lessor's
@@ -133,8 +132,8 @@ theorem lease.bootCfg_of_run {lg : Bool} {m : lease.Mode} {on : Bool}
     lease.bootCfg (GF := GF) lg m on := by
   unfold lease.runCfg at h
   unfold lease.bootCfg
-  obtain ⟨hlg, hmono, hrev⟩ := h
-  exact ⟨hlg, hon, hmono, hrev, hck⟩
+  obtain ⟨hlg, hmono, hopen, hrev⟩ := h
+  exact ⟨hlg, hon, hmono, hopen, hrev, hck⟩
 
 -- `m` is not read yet (Part X)
 set_option linter.unusedVariables false in

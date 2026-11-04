@@ -480,23 +480,24 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
 granted, and the lessor's `expiredC` carries only such leases. (The lease-grant plan's D1,
 2026-11-02; until then `False`, D45.) It holds in a cluster whose requests may grant leases
-(`lg`, the KV names' `KVNames.lg`), with auth off (`on = false`: the auth layer's checks of a
-leased put assume the lessor finds no lease, `lookupNil`), under the deployment premise
-`lease.leasesNoExpiry`: so `run`'s receive from `expiredC`, whose every slice refutes that premise,
-is dead whatever the cluster, and with `lg = false` or auth on it is `False` as before.
+(`lg`, the KV names' `KVNames.lg`, which is whether the lease mode grants: `lease.runCfg_lg`), with
+auth off (`on = false`: the auth layer's checks of a leased put assume the lessor finds no lease,
+`lookupNil`); with `lg = false` or auth on it is `False` as before, so `run`'s receive from
+`expiredC` is dead there. (The lease-expiry plan's X1, 2026-11-04: until then also under the
+deployment premise `lease.leasesNoExpiry`, which made the receive dead whatever the cluster; now
+the monotone mode's receive is dead by `lease.runCfg_noExpiry` and the revocable mode's revokes.)
+It takes the grant flag `lg`, not the mode: the guard is the lessor's, whose callers (`NewServer`,
+the server's field predicates through `E.lg`) have the flag, and the mode is `lg`'s refinement
+only where the expiry arm needs it (`run`, from `lease.runCfg`).
 **Auth off is required** (the plan's question 2, settled 2026-11-02): with auth on, the auth layer's
 `srvLessorNil` (every lease the lessor looks up is absent) is what its leased-put and transaction
 checks rest on, and a granted lease would refute it; the lease-granting example is auth off. -/
 def srvGrantGuard (lg on : Bool) : w64 → IProp GF :=
-  fun _ => iprop(⌜lease.leasesNoExpiry ∧ lg = true ∧ on = false⌝)
+  fun _ => iprop(⌜lg = true ∧ on = false⌝)
 
-omit package_sem in
-/-- A slice of the server's `expiredC` refutes its grant guard (`run`'s dead receive). -/
-theorem srvGrantGuard_expired (lg on : Bool) :
-    (⌜¬ lease.leasesNoExpiry⌝ ∗ ∃ id : w64, srvGrantGuard (GF := GF) lg on id) ⊢ False := by
-  unfold srvGrantGuard
-  iintro ⟨%Hn, %id, %Hg⟩
-  exact absurd Hg.1 Hn
+instance srvGrantGuard_persistent (lg on : Bool) (id : w64) :
+    Persistent (srvGrantGuard (GF := GF) lg on id) := by
+  unfold srvGrantGuard; infer_instance
 
 omit package_sem in
 /-- With `lg = false` or auth on the guard is `False`. -/
@@ -506,26 +507,40 @@ theorem srvGrantGuard_false (lg on : Bool) (h : lg = false ∨ on = true) (id : 
   iintro %Hg
   rcases h with h | h <;> simp_all
 
+omit package_sem in
+/-- (the lease-expiry plan's X1) **An expired slice meets the guard**: the cluster grants leases and
+auth is off (the slice is non-empty). -/
+theorem srvGrantGuard_expired (lg on : Bool) (ls : GoSlice) :
+    lease.expiredLeases (srvGrantGuard (GF := GF) lg on) ls ⊢ ⌜lg = true ∧ on = false⌝ := by
+  unfold lease.expiredLeases srvGrantGuard
+  iintro ⟨%ps, %Hne, -, Hps⟩
+  obtain ⟨p, ps', rfl⟩ := List.exists_cons_of_ne_nil Hne
+  icases BigSepL.bigSepL_cons.1 $$ Hps with ⟨⟨-, %id, -, %Hg⟩, -⟩
+  ipureintro; exact Hg
+
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
-`ExpiredLeasesC` returns a channel on which nothing is sent (a bag of `False`; review M1,
-2026-11-02). Why nothing: the lessor's `expiredC` carries a lease of its grant guard
-(`lease.lessorExpiredC` at `srvGrantGuard lg on`, D19n, the lease-grant plan's D1) in a slice that
-refutes `lease.leasesNoExpiry`, and the guard implies that premise (`srvGrantGuard_expired`;
-`lessorOk_of_lessorInv` turns the payload into `False`). Until D19n a bag with no logical content,
-which `run` passed to the names-only `revokeExpiredLeases`. A trust-boundary contract (the lessor
-is names-only), derived of the real lessor (`lessorOk_of_lessorInv`). -/
-def lessorOk (l : GoInterface) : IProp GF :=
+`ExpiredLeasesC` returns a channel of slices of expired leases under the server's grant guard
+`srvGrantGuard lg on` (`lease.expiredLeases`; the lease-expiry plan's X4, 2026-11-04: until then a
+bag of `False`, review M1, 2026-11-02, the guard implying `lease.leasesNoExpiry`, which the slices
+refute), each refuting `lease.leasesNoExpiry`. The lessor's `expiredC` at the server's guard
+(`lease.lessorExpiredC`, D19n, the lease-grant plan's D1) is that (`lessorOk_of_lessorInv`). Until
+D19n a bag with no logical content, which `run` passed to the names-only `revokeExpiredLeases`. A
+trust-boundary contract (the lessor is names-only), derived of the real lessor
+(`lessorOk_of_lessorInv`). The server's field predicates hold it at the environment's grant flag
+and auth mode (`E.lg`, `E.authMode.isOn`). -/
+def lessorOk (lg on : Bool) (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
       {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
       {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-        isChanBag γc c (V := GoSlice) (fun _ => iprop(False)) }}))
+        isChanBag γc c (V := GoSlice) (fun ls => iprop(⌜¬ lease.leasesNoExpiry⌝ ∗
+          lease.expiredLeases (srvGrantGuard lg on) ls)) }}))
 
-instance lessorOk_persistent (l : GoInterface) :
-    Persistent (lessorOk (GF := GF) l) := by
+instance lessorOk_persistent (lg on : Bool) (l : GoInterface) :
+    Persistent (lessorOk (GF := GF) lg on l) := by
   unfold lessorOk; infer_instance
 
 /-- **The apply thread's right to `s.forceDiskSnapshot`** (D14i, 2026-10-17): what the applier's
@@ -614,7 +629,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
