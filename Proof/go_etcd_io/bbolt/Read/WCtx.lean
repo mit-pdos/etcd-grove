@@ -155,6 +155,29 @@ theorem cells_page_key_acc (q : Qp) (v : View) (hb : 0 < v.base.addr) (pa : Loc)
   iapply (viewCells_halves q v).2
   iframe
 
+/-- **Every view page is within `db.page`'s range** (`Tx.page`'s premise), from `wtxW`'s mapping. -/
+theorem wtxW_page_maxMap (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢
+      ⌜∀ id pg, X.v.pages !! id = some pg → id * 4096 < 0xFFFFFFFFFFFF⌝ := by
+  unfold wtxW
+  iintro ⟨-, -, ⟨%l, Hmf, %Hl⟩⟩
+  isimp only [mapFields] at Hmf
+  icases Hmf with ⟨-, -, -, -, %Hlen⟩
+  ipureintro
+  intro id pg h
+  exact pageIdx_lt_maxMap id l (Hl id pg h) Hlen.1
+
+/-- A writer bucket's node cache is not nil. -/
+theorem wtxW_nodes_nonnull (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc)
+    (B : BRec) (hb : X.t.bs !! bl = some B) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗ ⌜B.bv.nodes' ≠ null⌝ := by
+  iintro Hw
+  icases wtxW_nm_acc K tx r m X bl B hb B.bv.nodes' B.nm rfl rfl $$ Hw with ⟨Hm, Hback⟩
+  ihave %Hn := ownMap_not_nil _ _ _ $$ Hm
+  ihave Hw := Hback $$ Hm
+  iframe
+  ipureintro; exact Hn
+
 end wctx
 
 end bbolt
