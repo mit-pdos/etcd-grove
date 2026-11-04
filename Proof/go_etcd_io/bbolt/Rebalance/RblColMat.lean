@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSteps
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSMat
+public import Proof.go_etcd_io.bbolt.Rebalance.RblMg1
 
 @[expose] public section
 
@@ -68,6 +69,140 @@ theorem rblX_colMat (X1 X2 : WX) (fl : FLPg) (bl : Loc) (B1 : BRec) (n : Loc) (r
     rw [GMap.lookup_insert_ne _ _ hlcn]; exact GMap.lookup_insert _ _ _
   · intro bl' hne
     rw [hX']; exact GMap.lookup_insert_ne _ _ (Ne.symm hne)
+
+/-- A node record with its parent `p`. -/
+def colRe (r : NRec) (p : Loc) : NRec := { r with nv := { r.nv with parent' := p } }
+
+/-- The collapse's reparenting loop after `j` entries of the child's `ws`: the nodes found so far
+(`kidsOf B (ws.take j)`) have the parent `nl` (`dflt` stands for a location with no record). -/
+def colKid (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (j : Nat) (k : Loc) : NRec :=
+  if k ∈ kidsOf B (ws.take j) then colRe ((B.ns !! k).getD dflt) nl else (B.ns !! k).getD dflt
+
+theorem colKid_zero (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (k : Loc) :
+    colKid B ws nl dflt 0 k = (B.ns !! k).getD dflt := by
+  unfold colKid; rw [if_neg]; simp [kidsOf]
+
+theorem colKid_all (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (k : Loc)
+    (hk : k ∈ kidsOf B ws) : colKid B ws nl dflt ws.length k = colRe ((B.ns !! k).getD dflt) nl := by
+  unfold colKid; rw [List.take_length, if_pos hk]
+
+theorem kidsOf_take_succ (B : BRec) (ws : List WEntry) (j : Nat) (w : WEntry)
+    (hw : ws[j]? = some w) (k : Loc) :
+    k ∈ kidsOf B (ws.take (j + 1)) ↔ k ∈ kidsOf B (ws.take j) ∨ B.nm !! w.pgid = some k := by
+  unfold kidsOf
+  rw [List.take_succ, hw, List.filterMap_append, List.mem_append]
+  simp only [Option.toList_some, List.filterMap_cons, List.filterMap_nil]
+  cases h : B.nm !! w.pgid with
+  | none => simp
+  | some x => simp [eq_comm]
+
+/-- An entry naming no node leaves the loop's records. -/
+theorem colKid_none (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (j : Nat) (w : WEntry)
+    (hw : ws[j]? = some w) (hn : B.nm !! w.pgid = none) (k : Loc) :
+    colKid B ws nl dflt (j + 1) k = colKid B ws nl dflt j k := by
+  unfold colKid
+  have := kidsOf_take_succ B ws j w hw k
+  rw [hn] at this; simp only [reduceCtorEq, _root_.or_false] at this
+  by_cases h : k ∈ kidsOf B (ws.take j)
+  · rw [if_pos (this.2 h), if_pos h]
+  · rw [if_neg (fun h' => h (this.1 h')), if_neg h]
+
+/-- An entry naming the node `k0`: `k0` reparented, the others unchanged. -/
+theorem colKid_some (B : BRec) (ws : List WEntry) (nl : Loc) (dflt : NRec) (j : Nat) (w : WEntry)
+    (hw : ws[j]? = some w) (k0 : Loc) (hn : B.nm !! w.pgid = some k0) :
+    colKid B ws nl dflt (j + 1) k0 = colRe (colKid B ws nl dflt j k0) nl ∧
+    ∀ k, k ≠ k0 → colKid B ws nl dflt (j + 1) k = colKid B ws nl dflt j k := by
+  have hs := kidsOf_take_succ B ws j w hw
+  refine ⟨?_, fun k hk => ?_⟩
+  · unfold colKid
+    rw [if_pos ((hs k0).2 (Or.inr hn))]
+    split <;> rfl
+  · unfold colKid
+    have h1 := hs k
+    rw [hn] at h1
+    have h2 : B.nm !! w.pgid = some k ↔ False := by
+      rw [hn]; simp only [Option.some.injEq, iff_false]; exact fun h => hk h.symm
+    by_cases h : k ∈ kidsOf B (ws.take j)
+    · rw [if_pos (h1.2 (Or.inl h)), if_pos h]
+    · rw [if_neg (fun h' => by rcases h1.1 h' with h3 | h3; exact h h3; exact hk (Option.some.inj h3).symm),
+        if_neg h]
+
+/-- **The collapsed child's children** (`kidsOf` of its entries): the nodes whose parent is the
+child, without repetition, apart from the root and the child. -/
+theorem col_kids (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (nl : Loc)
+    (rn : NRec) (w0 : WEntry) (lc : Loc) (rc : NRec)
+    (hI : rblX X fl bl dfc) (hb : X.t.bs !! bl = some B) (hrn : B.ns !! nl = some rn)
+    (hbr : rn.nv.isLeaf' = false) (hpn : rn.nv.parent' = null) (hws : rn.ws = [w0])
+    (hlc : B.nm !! w0.pgid = some lc) (hrc : B.ns !! lc = some rc) :
+    (∀ c, c ∈ kidsOf B rc.ws ↔ ∃ rk, B.ns !! c = some rk ∧ rk.nv.parent' = lc) ∧
+      ([nl, lc] ++ kidsOf B rc.ws).Nodup := by
+  have hB := (hI.2.1 bl B hb).1
+  rw [if_pos rfl] at hB
+  obtain ⟨hc, ⟨bnd, hk⟩, ha, -⟩ := hB
+  have hV : viewWF X.v := hI.2.2.2.2.2.2.1
+  obtain ⟨hp1, hlcn, -, -, -, h0, -⟩ :=
+    col_basic X.v _ bl B nl rn w0 lc rc hc ha hrn hbr hpn hws hlc hrc
+  have hp00 : X.v.pages !! 0 = none := by
+    cases h : X.v.pages !! 0 with
+    | none => rfl
+    | some pg0 => have := (Read.viewWF_page X.v hV 0 pg0 h).1; omega
+  have hleaf0 : rc.nv.isLeaf' = true → ∀ w ∈ rc.ws, B.nm !! w.pgid = none := by
+    intro hl w hw
+    have h0' := ((hk.2.2 lc rc hrc).2.2.2.2 hl w hw).1
+    rw [h0']
+    cases hn0 : B.nm !! W64 0 with
+    | none => rfl
+    | some l0 =>
+      obtain ⟨-, r0, hr0, hpg0⟩ := hc.2.2.2.2.1 _ _ hn0
+      have hwf := (hc.2.2.2.2.2.2.2.1 l0 r0 hr0).2.2.2.2.2.2.2.2.2.1 h0
+      rw [hpg0] at hwf
+      cases hwf with
+      | page _ pg _ _ hpg _ _ _ => rw [show (W64 0).toNat = 0 from rfl, hp00] at hpg; cases hpg
+  have hlcnull : lc ≠ null := (hc.2.2.2.2.1 _ _ hlc).1
+  have hnr := hc.2.2.2.2.2.2.2.1 lc rc hrc
+  have hchar : ∀ c, c ∈ kidsOf B rc.ws ↔ ∃ rk, B.ns !! c = some rk ∧ rk.nv.parent' = lc := by
+    intro c
+    refine ⟨fun hcm => ?_, fun ⟨rk, hrk, hpk⟩ => ?_⟩
+    · obtain ⟨x, hx, hxc⟩ := List.mem_filterMap.1 hcm
+      rcases (Bool.eq_false_or_eq_true rc.nv.isLeaf').symm with hb' | hb'
+      · obtain ⟨-, -, hkk⟩ := ncol_br hnr hb'
+        exact (hkk x hx).2.1 c hxc
+      · rw [hleaf0 hb' x hx] at hxc; cases hxc
+    · have hcn := hc.2.2.2.2.2.2.2.1 c rk hrk
+      obtain ⟨rq, hrq, -, -, x, hx, hxp⟩ := ncol_par hcn (by rw [hpk]; exact hlcnull)
+      rw [hpk, hrc] at hrq; cases hrq
+      exact List.mem_filterMap.2 ⟨x, hx, by rw [hxp]; exact ncol_nm hcn⟩
+  have hnd : (kidsOf B rc.ws).Nodup := by
+    rcases (Bool.eq_false_or_eq_true rc.nv.isLeaf').symm with hb' | hb'
+    · obtain ⟨-, hnd, -⟩ := ncol_br hnr hb'
+      unfold kidsOf
+      have key : ∀ (l : List WEntry), (l.map WEntry.pgid).Nodup →
+          (l.filterMap fun w => B.nm !! w.pgid).Nodup := by
+        intro l
+        induction l with
+        | nil => intro _; exact List.nodup_nil
+        | cons x xs ih =>
+          intro hn
+          rw [List.map_cons, List.nodup_cons] at hn
+          rw [List.filterMap_cons]
+          cases hx : B.nm !! x.pgid with
+          | none => exact ih hn.2
+          | some b =>
+            refine List.nodup_cons.2 ⟨fun hb'' => ?_, ih hn.2⟩
+            obtain ⟨y, hy, hyb⟩ := List.mem_filterMap.1 hb''
+            have := col_nm_inj X.v _ bl B hc _ _ _ hx hyb
+            exact hn.1 (List.mem_map.2 ⟨y, hy, this.symm⟩)
+      exact key _ hnd
+    · have : kidsOf B rc.ws = [] := by
+        unfold kidsOf; rw [List.filterMap_eq_nil_iff]; exact hleaf0 hb'
+      rw [this]; exact List.nodup_nil
+  refine ⟨hchar, ?_⟩
+  simp only [List.cons_append, List.nil_append, List.nodup_cons, List.mem_cons, not_or]
+  refine ⟨⟨Ne.symm hlcn, fun h => ?_⟩, fun h => ?_, hnd⟩
+  · obtain ⟨rk, hrk, hpk⟩ := (hchar nl).1 h
+    rw [hrn] at hrk; cases hrk; rw [hpn] at hpk; exact hlcnull hpk.symm
+  · obtain ⟨rk, hrk, hpk⟩ := (hchar lc).1 h
+    rw [hrc] at hrk; cases hrk; rw [hp1] at hpk; exact hlcn hpk.symm
 
 end colmat
 
