@@ -21,9 +21,10 @@ have to special-case the others.
   any, for `d`'s UID with well-formed versions (`recOk`); every pod of `d` on a claimed node is the
   claim's (`claimsOk`); a written claim's pod covered by the record (`wroteOk`);
 * claims only for stored DaemonSets;
-* a record only for a stored DaemonSet, added at a version at most `Ld`, a version the DaemonSet
-  informer has reached (`recDs`): so a sync whose DaemonSet cache (at a version at least `Ld`)
-  does not show its DaemonSet finds no record to lose in its `Clear` (`clear_notfound_noop`).
+* a record only for a stored DaemonSet with a change logged at a version at most `Ld`, a version
+  the DaemonSet informer has reached (`recDs`, `dsSeenBy`): so a sync whose DaemonSet cache (at a
+  version at least `Ld`) does not show its DaemonSet finds no record to lose in its `Clear`
+  (`clear_notfound_noop`).
 
 **The claims** `C : (owner, node) ↦ none | some (written, pod key, version)`: a node a ready sync
 of the owner found free (no pod of the DaemonSet in a pod cache covering the API state's pods of
@@ -110,6 +111,21 @@ structure ownerOk (σ : St) (M : GMap Owner consistency.Rec) (Lr : Nat × Bool) 
 /-- The owner's bound and ready flag (`(0, false)` for an owner never synced). -/
 def lbOf (Lm : GMap Owner (Nat × Bool)) (o : Owner) : Nat × Bool := (Lm !! o).getD (0, false)
 
+/-- **Owner `o`'s DaemonSet has a change logged at a version at most `Ld`** (a DaemonSet cache at a
+version at least `Ld` shows it: DaemonSets are never deleted). -/
+def dsSeenBy (σ : St) (o : Owner) (Ld : Nat) : Prop :=
+  ∃ c ∈ σ.dss.log, c.obj.key = o ∧ c.rv.toNat ≤ Ld
+
+theorem dsSeenBy_mono {σ : St} {o : Owner} {Ld Ld' : Nat} (h : dsSeenBy σ o Ld) (hle : Ld ≤ Ld') :
+    dsSeenBy σ o Ld' := by
+  obtain ⟨c, hc, hk, hl⟩ := h
+  exact ⟨c, hc, hk, Nat.le_trans hl hle⟩
+
+theorem dsSeenBy_log {σ σ' : St} {o : Owner} {Ld : Nat} (h : dsSeenBy σ o Ld)
+    (hl : ∀ c ∈ σ.dss.log, c ∈ σ'.dss.log) : dsSeenBy σ' o Ld := by
+  obtain ⟨c, hc, hk, hle⟩ := h
+  exact ⟨c, hl c hc, hk, hle⟩
+
 /-- **The pure invariant.** -/
 structure s1Ok (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
     (C : Claims) (Ld : Nat) : Prop where
@@ -117,8 +133,7 @@ structure s1Ok (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat 
   scene : sceneOk σ
   owners : ∀ o d, dsAtOwner σ o = some d → ownerOk σ M (lbOf Lm o) C o d.ObjectMeta'.UID'
   claimDs : ∀ o n v, C !! (o, n) = some v → (dsAtOwner σ o).isSome
-  recDs : ∀ o r, M !! o = some r → (dsAtOwner σ o).isSome ∧
-    ∃ c, addedRv σ.dss.log o = some c ∧ c ≤ Ld
+  recDs : ∀ o r, M !! o = some r → (dsAtOwner σ o).isSome ∧ dsSeenBy σ o Ld
 
 /-- A pod of the DaemonSet targets one node. -/
 theorem dsPodOn_node_unique {K Op u n n' : GoString} {o : Obj} (h1 : dsPodOn K Op u n' o)
@@ -278,8 +293,8 @@ theorem raiseLd_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner
     s1Ok σ M Lm C Ld' := by
   refine ⟨h.s1, h.scene, h.owners, h.claimDs, ?_⟩
   intro o r hr
-  obtain ⟨h1, c, hc, hcl⟩ := h.recDs o r hr
-  exact ⟨h1, c, hc, Nat.le_trans hcl hle⟩
+  obtain ⟨h1, h2⟩ := h.recDs o r hr
+  exact ⟨h1, dsSeenBy_mono h2 hle⟩
 
 /-- **`EnsureReady(o)` succeeding** with no claim of `o` (the owner's sync holds its token whole):
 the record goes; the owner's bound rises to `L'`, a version the pods' store has reached that is at
@@ -395,11 +410,11 @@ theorem unclaim_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner
     · exact h.claimDs o' n' v hC'
 
 /-- **A `WroteAt` of the owner's sync** for its DaemonSet's UID (the DaemonSet's status: any group
-resource and version), the DaemonSet added at a version at most `Ld`. -/
+resource and version), the DaemonSet seen by version `Ld` (`dsSeenBy`). -/
 theorem wroteAt_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (Nat × Bool))
     (C : Claims) (Ld : Nat) (o : Owner) (d : kd.apps.DaemonSet) (gr : GR) (rv : GoString)
     (h : s1Ok σ M Lm C Ld) (hd : dsAtOwner σ o = some d)
-    (hLd : ∃ c, addedRv σ.dss.log o = some c ∧ c ≤ Ld) :
+    (hLd : dsSeenBy σ o Ld) :
     s1Ok σ (wroteAtM M o d.ObjectMeta'.UID' gr rv) Lm C Ld := by
   refine ⟨h.s1, h.scene, ?_, h.claimDs, ?_⟩
   · intro o' d' hd'
@@ -418,7 +433,7 @@ theorem wrote_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (
     (C : Claims) (Ld : Nat) (o : Owner) (d : kd.apps.DaemonSet) (n : GoString) (k : Key) (c : w64)
     (h : s1Ok σ M Lm C Ld) (hd : dsAtOwner σ o = some d)
     (hC : C !! (o, n) = some (some (false, k, c.toNat))) (hc : 1 ≤ c.toNat)
-    (hLd : ∃ c', addedRv σ.dss.log o = some c' ∧ c' ≤ Ld) :
+    (hLd : dsSeenBy σ o Ld) :
     s1Ok σ (wroteAtM M o d.ObjectMeta'.UID' podGR (rvStr c)) Lm
       (<[(o, n) := some (true, k, c.toNat)]> C) Ld := by
   have h1 := wroteAt_step σ M Lm C Ld o d podGR (rvStr c) h hd hLd
@@ -558,18 +573,18 @@ theorem clear_noop (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owner (
         · exact hne d hdo (hruid ▸ h2)
   · rfl
 
-/-- **`Clear(o, uid)` changes nothing** when the owner's DaemonSet, if stored, was added after
+/-- **`Clear(o, uid)` changes nothing** when every logged change of the owner's DaemonSet is after
 `Ld` (`syncDaemonSet`'s `Clear` on `NotFound`: its DaemonSet cache, at a version at least `Ld`,
-does not show it; a record would be of a DaemonSet added at most `Ld`, `recDs`). -/
+does not show it; a record would be of a DaemonSet seen by `Ld`, `recDs`). -/
 theorem clear_notfound_noop (σ : St) (M : GMap Owner consistency.Rec)
     (Lm : GMap Owner (Nat × Bool)) (C : Claims) (Ld : Nat) (o : Owner) (uid : GoString)
-    (h : s1Ok σ M Lm C Ld) (hnf : ∀ c, addedRv σ.dss.log o = some c → Ld < c) :
+    (h : s1Ok σ M Lm C Ld) (hnf : ∀ c ∈ σ.dss.log, c.obj.key = o → Ld < c.rv.toNat) :
     clearM M o uid = M := by
   unfold clearM
   split
   · rename_i r hr
-    obtain ⟨-, c, hc, hcl⟩ := h.recDs o r hr
-    exact absurd hcl (Nat.not_le.mpr (hnf c hc))
+    obtain ⟨-, c, hc, hk, hcl⟩ := h.recDs o r hr
+    exact absurd hcl (Nat.not_le.mpr (hnf c hc hk))
   · rfl
 
 end pure

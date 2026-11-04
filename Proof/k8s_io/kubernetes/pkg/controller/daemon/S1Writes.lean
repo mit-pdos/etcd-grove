@@ -72,6 +72,23 @@ theorem stored_logged (σ : St) (r : Res) (hwf : σ.wf) (k : Key) (o : Obj)
   · simp at h1
   · exact h2
 
+/-- **A table entry is a logged change at or below the table's version.** -/
+theorem tableAt_logged (l : List Change) (v : Nat) (k : Key) (o : Obj)
+    (h : informer.tableAt l v !! k = some o) :
+    ∃ c ∈ l, c.obj = o ∧ c.obj.key = k ∧ c.rv.toNat ≤ v := by
+  unfold informer.tableAt replay at h
+  rcases foldl_apply_lookup _ ∅ k o h with h1 | ⟨c, hc, h2, h3⟩
+  · simp at h1
+  · obtain ⟨hc, hv⟩ := List.mem_filter.mp hc
+    exact ⟨c, hc, h2, h3, of_decide_eq_true hv⟩
+
+/-- **A DaemonSet a past state's table showed at version `v` is seen by `v`** (`dsArg`'s view to
+`wroteAt_step`'s premise: the current log extends the past one). -/
+theorem dsSeenBy_of_table (σp σ : St) (hpre : σp.dss.log <+: σ.dss.log) (v : Nat) (o : Owner)
+    (x : Obj) (h : informer.tableAt σp.dss.log v !! o = some x) : dsSeenBy σ o v := by
+  obtain ⟨c, hc, -, hk, hv⟩ := tableAt_logged _ v o x h
+  exact ⟨c, hpre.subset hc, hk, hv⟩
+
 /-- **A pod made for `d` is controlled by `d`'s UID only.** -/
 theorem podOf_ctlBy {d : kd.apps.DaemonSet} {p : kd.core.Pod} {u : GoString} (hp : podOf d p)
     (hc : ctlBy u p) : u = d.ObjectMeta'.UID' := by
@@ -511,7 +528,7 @@ theorem podCreate_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Own
       rw [hd]; rfl
     · exact h.claimDs o' n' v hC'
   · intro o' r hr
-    rw [hdo, hdss]; exact h.recDs o' r hr
+    rw [hdo]; unfold dsSeenBy; rw [hdss]; exact h.recDs o' r hr
 
 /-- The created pod's version is the next version. -/
 theorem podCreate_rv (σ : St) (ns : GoString) (dp : kd.core.Pod)
@@ -572,7 +589,7 @@ theorem podRemove_step (σ σ' : St) (M : GMap Owner consistency.Rec) (Lm : GMap
       obtain ⟨w, c, hv, hc⟩ := ho.claims n v hC k' p (hst _ _ hk) hon
       exact ⟨w, c, hv, by rw [hadd]; exact hc⟩
   · intro o' n v hC; rw [hdo]; exact h.claimDs o' n v hC
-  · intro o' r hr; rw [hdo, hdss]; exact h.recDs o' r hr
+  · intro o' r hr; rw [hdo]; unfold dsSeenBy; rw [hdss]; exact h.recDs o' r hr
 
 /-- **The controller's pod delete** (`DeletePod`, of a stored pod not being deleted, any grace
 period option): the pod is unbound with no finalizers (`sceneOk`), so removed at once. -/
@@ -635,8 +652,6 @@ theorem dsReplace_step (σ σ' : St) (M : GMap Owner consistency.Rec) (Lm : GMap
     intro o; rw [hdo]; split
     · rename_i e; subst e; rw [hs]; rfl
     · rfl
-  have hadd : ∀ o, addedRv σ'.dss.log o = addedRv σ.dss.log o := by
-    intro o; rw [hlog]; exact addedRv_snoc_other _ _ o (by rw [hty]; decide)
   refine ⟨fun u => S1_pods σ σ' u hpods (h.s1 u), ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
   · intro c hc
     rw [hlog] at hc
@@ -680,8 +695,9 @@ theorem dsReplace_step (σ σ' : St) (M : GMap Owner consistency.Rec) (Lm : GMap
     exact ownerOk_pods σ σ' M _ C o _ hpods (h.owners o d0 hd0)
   · intro o n v hC; rw [hsome]; exact h.claimDs o n v hC
   · intro o r hr
-    obtain ⟨h1, c, hc, hcl⟩ := h.recDs o r hr
-    exact ⟨by rw [hsome]; exact h1, c, by rw [hadd]; exact hc, hcl⟩
+    obtain ⟨h1, h2⟩ := h.recDs o r hr
+    exact ⟨by rw [hsome]; exact h1,
+      dsSeenBy_log h2 (fun c hc => by rw [hlog]; exact List.mem_append_left _ hc)⟩
 
 /-- A DaemonSet with another's status, at version `rv` (`UpdateStatus`'s write). -/
 def dsWithStatus (s q : kd.apps.DaemonSet) (rv : GoString) : kd.apps.DaemonSet :=
@@ -779,8 +795,6 @@ theorem dsCreate_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owne
     have := huidF c hc
     rw [hco] at this
     exact this
-  have hadd : ∀ o, K ≠ o → addedRv σ'.dss.log o = addedRv σ.dss.log o := by
-    intro o e; rw [hlog, addedRv_snoc_added _ _ o rfl]; simp only; rw [← hK, if_neg e]
   refine ⟨fun u => S1_pods σ σ' u hpods (h.s1 u), ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
   · intro c hc
     rw [hlog] at hc
@@ -852,11 +866,12 @@ theorem dsCreate_step (σ : St) (M : GMap Owner consistency.Rec) (Lm : GMap Owne
     | none => rw [hd] at this; cases this
     | some d0 => rw [hold o d0 hd]; rfl
   · intro o r hr
-    obtain ⟨h1, c, hc, hcl⟩ := h.recDs o r hr
+    obtain ⟨h1, h2⟩ := h.recDs o r hr
     cases hd : dsAtOwner σ o with
     | none => rw [hd] at h1; cases h1
     | some d0 =>
-      exact ⟨by rw [hold o d0 hd]; rfl, c, by rw [hadd o (hnK o d0 hd)]; exact hc, hcl⟩
+      exact ⟨by rw [hold o d0 hd]; rfl,
+        dsSeenBy_log h2 (fun c hc => by rw [hlog]; exact List.mem_append_left _ hc)⟩
 
 end pure
 
