@@ -63,11 +63,11 @@ theorem Cursor.goToFirstElementOnTheStack_r.wp_proof
   wp_auto
   obtain ⟨l, pg, hpa, h16, hpg⟩ := rTree_page v bv pp pid1 htr1
   have hnode : e1.node' = null := by
-    rcases hhd1 with ⟨_, _, hbr, _⟩ | ⟨_, hlf⟩
+    rcases hhd1 with ⟨_, _, hbr, _⟩ | ⟨_, hlf, _⟩
     · exact hbr.2.2.1
     · exact hlf.2.1
   have hl : l = e1.page' := by
-    rcases hhd1 with ⟨pg', _, hbr, _⟩ | ⟨pg', hlf⟩
+    rcases hhd1 with ⟨pg', _, hbr, _⟩ | ⟨pg', hlf, _⟩
     · have := hbr.2.1; rw [hpa] at this; exact congrArg Prod.fst (Option.some.inj this)
     · have := hlf.1; rw [hpa] at this; exact congrArg Prod.fst (Option.some.inj this)
   subst hl
@@ -85,7 +85,7 @@ theorem Cursor.goToFirstElementOnTheStack_r.wp_proof
   · iexact Hh
   ihave Hkb := Hhb $$ Hh
   icases Hkb with ⟨Hk, Hb⟩
-  rcases hhd1 with ⟨pg', j, hbr, htj⟩ | ⟨pg', hlf⟩
+  rcases hhd1 with ⟨pg', j, hbr, htj⟩ | ⟨pg', hlf, hl0⟩
   · -- a branch: push its child `j`
     have hpg := rPageAt_same hbr.2.1 hpa
     subst hpg
@@ -170,7 +170,7 @@ theorem Cursor.goToFirstElementOnTheStack_r.wp_proof
     iframe
     ipureintro
     rw [← ht1]
-    exact rHdF_leaf pre1 m1 pid1 o1 t1 e1 pg' hp1 hm1 hlf
+    exact ⟨rHdF_leaf pre1 m1 pid1 o1 t1 e1 pg' hp1 hm1 hlf, e1, pid1, pg', t1, by simp, hlf, hl0⟩
 
 end proof
 

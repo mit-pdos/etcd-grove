@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `c.goToFirstElementOnTheStack()` of a reader's cursor in bucket `b` (value `bv`): the stack
 `pre ++ [e]`, `pre` a prefix from the root down to position `pid` (fuel `m`, `o` entries before
-it), `e` at `pid` landing on entry `t` below it; it ends at entry `o + t` of the bucket. -/
+it), `e` at `pid` landing on entry `t` below it; it ends at entry `o + t` of the bucket, landed
+on a leaf. -/
 abbrev Cursor.goToFirstElementOnTheStack_r.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (pre : List elemRef) (e : elemRef)
@@ -42,7 +43,7 @@ abbrev Cursor.goToFirstElementOnTheStack_r.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"goToFirstElementOnTheStack")) (Val #()))
   {{ RET #(); ∃ (stk' : GoSlice) (els : List elemRef) (s : Nat), rdTxK K tx src q T v ∗
       rBktP v tx b dq bv ibp pp ∗ c ↦ Cursor.mk b stk' ∗ stk' ↦* els ∗
-      ownSliceCap elemRef stk' (DFrac.own 1) ∗ ⌜rPosAt v bv pp els (o + t) s⌝ }}
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ ⌜rPosAt v bv pp els (o + t) s ∧ rLanded v bv pp els⌝ }}
 
 end spec
 

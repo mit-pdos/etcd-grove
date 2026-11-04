@@ -97,10 +97,15 @@ def rPosAt (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (i s : Nat)
 
 /-- The top element of a stack about to descend (`goToFirstElementOnTheStack`) at position `pid`
 (fuel `m`), its descent to land at entry `t` below it: a branch at index `j` (the entries before
-child `j`), or a leaf at index `t`. -/
+child `j`), or a leaf at index `t` (its first or one of its entries). -/
 def rHdF (v : View) (bv : List w8) (pp : Loc) (m pid : Nat) (e : elemRef) (t : Nat) : Prop :=
   (∃ pg j, rBrAt v bv pp pid e pg j ∧ t = entsBefore v.pages (m - 1) pg j) ∨
-  (∃ pg, rLfAt v bv pp pid e pg t)
+  (∃ pg, rLfAt v bv pp pid e pg t ∧ (t = 0 ∨ t < pageCount pg))
+
+/-- A stack landed on a leaf: its top at index `0` or on an entry. -/
+def rLanded (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Prop :=
+  ∃ e pidL pg idx, els.getLast? = some e ∧ rLfAt v bv pp pidL e pg idx ∧
+    (idx = 0 ∨ idx < pageCount pg)
 
 /-! ### Basic facts -/
 
@@ -337,7 +342,7 @@ theorem rHdF_down (A : List elemRef) (pid m pid' o t : Nat) (e e' : elemRef) (pg
     refine ⟨pgc, 0, ⟨hbr.1, hpa, hn, hfl, hc0 hfl, by rw [hi0]; rfl⟩, ?_⟩
     rw [entsBefore_zero]
   · right
-    exact ⟨pgc, hpa, hn, hfl, Nat.zero_le _, by rw [hi0]; rfl⟩
+    exact ⟨pgc, ⟨hpa, hn, hfl, Nat.zero_le _, by rw [hi0]; rfl⟩, Or.inl rfl⟩
 
 /-- **The descent's end**: a leaf on top of a prefix is a stack at the prefix's entries and the
 leaf's index. -/
@@ -544,7 +549,7 @@ theorem rUpInv_found (els : List elemRef) (i s k : Nat) (hpos : rPosAt v bv pp e
     have hix : sint.Z els[k].index' = (i' : Int) := by rw [hlf.2.2.2.2]; word
     have hic : i' < pageCount pg2 := by omega
     rw [if_pos hic] at hs2
-    refine ⟨i' + 1, hp, by omega, hpa', Or.inr ⟨pg2, ⟨hpa', hlf.2.1, hlf.2.2.1, by omega, ?_⟩⟩, ?_⟩
+    refine ⟨i' + 1, hp, by omega, hpa', Or.inr ⟨pg2, ⟨hpa', hlf.2.1, hlf.2.2.1, by omega, ?_⟩, Or.inr (by omega)⟩, ?_⟩
     · show els[k].index' + W64 1 = W64 ((i' + 1 : Nat) : Int)
       rw [hlf.2.2.2.2]; push_cast; word
     · omega
@@ -572,6 +577,37 @@ theorem rUpInv_found (els : List elemRef) (i s k : Nat) (hpos : rPosAt v bv pp e
       have h5 : s2 = s3 := by
         have := rPosF_det _ _ _ _ _ _ _ hr2 hr3; exact this
       rw [hs, hs2, h5, hs4, entsBefore_succ]
+/-- **Where `next` goes from a stack**, by its top leaf: one further on an entry. -/
+theorem rPosF_last (n : Nat) : ∀ (pid : Nat) (B : List elemRef) (i s : Nat),
+    rPosF v bv pp n pid B i s →
+    ∀ (e : elemRef) (pidL : Nat) (pg : List w8) (idx : Nat), B.getLast? = some e →
+      rLfAt v bv pp pidL e pg idx → s = (if idx < pageCount pg then i + 1 else i) := by
+  induction n with
+  | zero => intro pid B i s h; exact absurd h (by simp [rPosF])
+  | succ n ih =>
+    intro pid B i s h e pidL pg idx hl hlf
+    match B, h with
+    | [e0], ⟨pg0, hlf0, hs⟩ =>
+      simp only [List.getLast?_singleton, Option.some.injEq] at hl
+      subst hl
+      have hpg := rPageAt_det v bv pp pid pidL _ pg0 pg hlf0.1 hlf.1
+      subst hpg
+      have hii : i = idx := by
+        have h1 := hlf0.2.2.2.2; have h2 := hlf.2.2.2.2; rw [h1] at h2
+        have := hlf0.2.2.2.1; have := hlf.2.2.2.1; have := pageCount_lt pg0
+        have := congrArg BitVec.toNat h2; simp at this; omega
+      subst hii; exact hs
+    | e0 :: e' :: es, ⟨pg0, j, i', s', _, hr, hi, hs⟩ =>
+      rw [List.getLast?_cons_cons] at hl
+      have := ih _ _ _ _ hr e pidL pg idx hl hlf
+      rw [hs, hi, this]
+      split <;> omega
+
+theorem rPosAt_last (els : List elemRef) (i s : Nat) (h : rPosAt v bv pp els i s) (e : elemRef)
+    (pidL : Nat) (pg : List w8) (idx : Nat) (hl : els.getLast? = some e)
+    (hlf : rLfAt v bv pp pidL e pg idx) : s = (if idx < pageCount pg then i + 1 else i) :=
+  rPosF_last _ _ _ _ _ h e pidL pg idx hl hlf
+
 /-! ### Names -/
 
 theorem bktNames_rEnts (v : View) (bv : List w8) :
