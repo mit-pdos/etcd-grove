@@ -377,6 +377,59 @@ def spillPre (X : WX) (fl : FLPg) : Prop :=
   (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) ∧
   ∀ s, coversSlot X.v.pages s → lCovers X s ∨ s ∈ pendSlots fl
 
+/-! ## The records and the writer's freelist (batch 10) -/
+
+/-- **The writer's records agree with its freelist** (batch 10, U8b; the writer's exclusive part
+holds it, `txExcl`): every base slot is covered by the logical tree iff it is not pending; the
+freelist is the base view's (`mvccView`: its slots not free, its pending ones allocated before it);
+its ids distinct and below `2^62`. (The base view's well-formedness, `viewWF X.v`, is `wOK`'s
+and `wOKR`'s.) -/
+def flView (X : WX) (fl : FLPg) : Prop :=
+  (∀ s, coversSlot X.v.pages s → (lCovers X s ↔ s ∉ pendSlots fl)) ∧ mvccView fl X.v ∧
+  fl.allIds.Nodup ∧ ∀ id ∈ fl.allIds, id.toNat < 2 ^ 62
+
+/-- `spillPre`'s coverage clause, from `flView` (its forward half). -/
+theorem flView_cover (X : WX) (fl : FLPg) (h : flView X fl) :
+    ∀ s, coversSlot X.v.pages s → lCovers X s ∨ s ∈ pendSlots fl := by
+  intro s hs
+  by_cases hp : s ∈ pendSlots fl
+  · exact Or.inr hp
+  · exact Or.inl ((h.1 s hs).2 hp)
+
+/-- **`node.free`'s `canFree`, from `flView`** (U8b): a live node read from a base page (covered by
+the logical tree, so not pending; a view slot, so not free; allocated before the view, so not by
+the writer; the ids distinct below `2^62`, so fewer than `2^62`). -/
+theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hok : wOK X)
+    (bl n : Loc) (B : BRec) (r : NRec) (pg : List w8) (hB : X.t.bs !! bl = some B)
+    (hr : B.ns !! n = some r) (hl : n ∈ X.live) (hp0 : r.nv.pgid' ≠ W64 0)
+    (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg) (htx : X.v.txid < txid.toNat) :
+    fl.canFree txid r.nv.pgid' (1 + pageOverflow pg) := by
+  sorry
+
+/-- **`flView` through a leaf's new entries** (U7: `Put`, `Delete`; the logical tree's positions
+and the root bucket's entries unchanged). -/
+theorem flView_withWs (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv : flView X fl)
+    (hleaf : ∀ B r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.isLeaf' = true)
+    (hroot : bl ≠ X.rl) : flView (X.withWs bl l ws') fl := by
+  sorry
+
+/-- **`flView` through a materialization** (U7: the logical tree by data unchanged). -/
+theorem flView_nodeAdded (X X' : WX) (fl : FLPg) (bl l : Loc) (pgid : w64) (parent : Loc)
+    (hv : flView X fl) (hok : wOK X) (h : nodeAdded X X' bl l pgid parent)
+    (hpos : matPos X bl pgid parent) : flView X' fl := by
+  sorry
+
+/-- **`flView` through `node.free`** (U8b: the node's page leaves the logical tree's cover and
+becomes pending for the writer). -/
+theorem flView_nodeFree (X : WX) (fl : FLPg) (txid : w64) (bl n : Loc) (B : BRec) (r : NRec)
+    (pg : List w8) (hv : flView X fl) (hok : wOK X) (hB : X.t.bs !! bl = some B)
+    (hr : B.ns !! n = some r) (hp0 : r.nv.pgid' ≠ W64 0)
+    (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg)
+    (hcan : fl.canFree txid r.nv.pgid' (1 + pageOverflow pg)) (htx : X.v.txid < txid.toNat) :
+    flView (X.setNode bl n { r with nv := { r.nv with pgid' := W64 0 } })
+      (fl.freePages txid r.nv.pgid' (1 + pageOverflow pg)) := by
+  sorry
+
 /-! ## Reachability and dereference (the coverage contract) -/
 
 /-- The buckets the code reaches from the root bucket through the `buckets` caches. -/

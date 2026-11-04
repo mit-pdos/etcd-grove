@@ -419,6 +419,22 @@ items 4 and 5 and need the same edits.
    first `size - 4096 · s` bytes, `(wb s).take …`): a file truncated to `growSize + AllocSize`
    need not end on a page, so `DB.grow` can meet `wdbGrown`.
 
+## Shared-statement fixes, batch 10 (U8b's finding, 2026-11-04; decided by the coordinator)
+
+**The records agree with the writer's freelist**: `flView X fl` (`Model/WOps`): (a) every base
+slot is covered by the logical tree iff not pending, `∀ s, coversSlot X.v.pages s → (lCovers X s ↔
+s ∉ pendSlots fl)`; (b) `mvccView fl X.v`; (d) `fl.allIds.Nodup ∧ ∀ id ∈ fl.allIds, id.toNat <
+2^62`; (c) `viewWF X.v` is `wOK`'s/`wOKR`'s (batch 8), not repeated. It lives where `X` and `w`
+meet: **`txExcl`'s writer branch** holds `⌜ws.1 = some X.v ∧ flView X w.fl⌝` (`Inv/Txs`, which now
+imports `Model/WOps`); `Bucket.rebalance` takes `flView X w.fl` and gives `flView X' fl'`.
+`flView_cover` (proved) is `spillPre`'s coverage clause. Stubs (`sorry`), with owners:
+`flView_canFree` (U8b: `node.free`'s `canFree` for a live node's base page), `flView_withWs` (U7:
+`Put`/`Delete` on a leaf of a non-root bucket), `flView_nodeAdded` (U7), `flView_nodeFree` (U8b:
+`node.free`'s step; `Bucket.free`'s frees by it, for `DeleteBucket`). Also to prove where they
+arise: U5 at `beginRWTx` (no pending entry for the new txid, every base slot covered: the store's
+`storeOK`), U7 for `CreateBucket`/`DeleteBucket` (root-bucket entries), U9b/U10 through spill and
+`Commit` (`spillOK`, the new committed state's view).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
