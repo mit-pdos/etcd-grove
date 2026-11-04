@@ -208,6 +208,50 @@ theorem derefStep_wtxData {X X' : WX} (h : derefStep X X') : wtxData X' = wtxDat
   apply wtxData_rebalance X X' (derefStep_rootEnts h) (derefStep_bktLoc h)
     (fun n bl _ => derefStep_lbktEnts h bl) (by rw [h.1])
 
+theorem optRel_isSome {α β : Type} {R : α → β → Prop} {o1 : Option α} {o2 : Option β}
+    (h : optRel R o1 o2) : o2.isSome = o1.isSome := by
+  cases o1 <;> cases o2 <;> simp_all [optRel]
+
+theorem objsDisj_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) : objsDisj X'.t := by
+  have hbs := derefStep_bs h
+  intro bl B' hB' n hn
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+  have hn' : (B.ns !! n).isSome := by rw [← optRel_isSome (hs.2 n)]; exact hn
+  obtain ⟨hnb, hno⟩ := hd bl B hB n hn'
+  refine ⟨?_, ?_⟩
+  · have := hbs n; rw [hnb] at this; exact optRel_none_l this
+  · intro bl2 B2' hB2' hne
+    obtain ⟨B2, hB2, hs2⟩ := optRel_some_r (hB2' ▸ hbs bl2)
+    have := hs2.2 n; rw [hno bl2 B2 hB2 hne] at this; exact optRel_none_l this
+
+/-- The objects' locations are kept by a step. -/
+theorem objs_isSome_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (n : Loc) :
+    (X'.t.objs !! n).isSome = (X.t.objs !! n).isSome := by
+  have hd' := objsDisj_step h hd
+  have hbs := derefStep_bs h
+  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (n = bl ∨ (B.ns !! n).isSome)
+  · obtain ⟨bl, B, hB, hnb | hn⟩ := hex
+    · subst hnb
+      obtain ⟨B', hB', -⟩ := optRel_some_l (hB ▸ hbs n)
+      rw [objs_bkt X.t n B hd hB, objs_bkt X'.t n B' hd' hB']; rfl
+    · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hn
+      obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ hbs bl)
+      obtain ⟨r', hr', -⟩ := optRel_some_l (hr ▸ hs.2 n)
+      rw [objs_node X.t bl B n r hd hB hr, objs_node X'.t bl B' n r' hd' hB' hr']; rfl
+  · have hoth : ∀ bl B, X.t.bs !! bl = some B → n ≠ bl ∧ B.ns !! n = none := by
+      intro bl B hB
+      refine ⟨fun e => hex ⟨bl, B, hB, Or.inl e⟩, ?_⟩
+      cases e : B.ns !! n with
+      | none => rfl
+      | some r => exact absurd ⟨bl, B, hB, Or.inr (by simp [e])⟩ hex
+    have hoth' : ∀ bl B', X'.t.bs !! bl = some B' → n ≠ bl ∧ B'.ns !! n = none := by
+      intro bl B' hB'
+      obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+      obtain ⟨h1, h2⟩ := hoth bl B hB
+      refine ⟨h1, ?_⟩
+      have := hs.2 n; rw [h2] at this; exact optRel_none_l this
+    rw [objs_other X.t n hoth, objs_other X'.t n hoth', h.2.2.2.2.2.2.2.2.2.1]
+
 /-- **The coverage contract from the buckets' coverage**: if every reachable bucket's nodes
 below its root node's root hold no view slice, no live node does. -/
 theorem derefOK_of_cov (X : WX) (hd : objsDisj X.t) (hpre : derefPre X) (hreach : liveReach X)

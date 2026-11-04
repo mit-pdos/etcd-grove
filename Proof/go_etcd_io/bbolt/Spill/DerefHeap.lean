@@ -5,7 +5,7 @@ and registry), and the heap's facts kept by a `derefStep`.
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Spill.DerefModel
+public import Proof.go_etcd_io.bbolt.Spill.DerefRel
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
@@ -62,21 +62,9 @@ theorem wtxW_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 /-- The heap's facts are kept by a `derefStep` (no object moves, no bucket or parent changes). -/
 theorem heapOK_step (tx : Loc) (X X' : WX) (h : derefStep X X') (hok : heapOK (GF := GF) tx X) :
     heapOK (GF := GF) tx X' := by
-  obtain ⟨-, -, -, -, hrl, -, -, -, -, -, hbs⟩ := h
-  obtain ⟨h1, h2, h3, h4⟩ := hok
-  refine ⟨by rw [hrl]; exact h1, ?_, ?_, ?_⟩
-  · intro bl B' hB' n hn
-    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
-    have hn' : (B.ns !! n).isSome := by
-      have := hs.2 n
-      revert this hn
-      cases B.ns !! n <;> cases B'.ns !! n <;> simp [optRel]
-    obtain ⟨hnb, hno⟩ := h2 bl B hB n hn'
-    refine ⟨?_, ?_⟩
-    · have := hbs n; rw [hnb] at this; exact optRel_none_l this
-    · intro bl2 B2' hB2' hne
-      obtain ⟨B2, hB2, hs2⟩ := optRel_some_r (hB2' ▸ hbs bl2)
-      have := hs2.2 n; rw [hno bl2 B2 hB2 hne] at this; exact optRel_none_l this
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hok
+  have hbs := derefStep_bs h
+  refine ⟨by rw [h.2.2.2.2.1]; exact h1, objsDisj_step h h2, ?_, ?_, ?_⟩
   · intro bl B' hB'
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
     rw [(bktStep_fields hs).1]; exact h3 bl B hB
@@ -84,6 +72,9 @@ theorem heapOK_step (tx : Loc) (X X' : WX) (h : derefStep X X') (hok : heapOK (G
     obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
     obtain ⟨r, hr, hrs⟩ := optRel_some_r (hr' ▸ hs.2 n)
     rw [(nodeStep_nv hrs).1]; exact h4 bl B n r hB hr
+  · intro n y hn
+    rw [h.2.2.2.1] at hn
+    rw [objs_isSome_step h h2]; exact h5 n y hn
 
 end heap
 
