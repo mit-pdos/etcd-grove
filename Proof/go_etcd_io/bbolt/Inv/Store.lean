@@ -77,6 +77,20 @@ def pagesInv (B : BNs) (p : GoString) : IProp GF :=
 
 /-! ## Lemma statements (U3), fancy updates at `pagesN N` -/
 
+omit go_gctx sem in
+private theorem pagesInv_timeless (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+  have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
+    intro σ; unfold storeCells; split <;> infer_instance
+  have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
+    intro σ; unfold metaLend metaCellsQ; split <;> infer_instance
+  have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
+    intro s bs
+    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p off dq xs) := fun _ _ _ => by
+      unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+    unfold osSlot; infer_instance
+  unfold pagesInv
+  infer_instance
+
 section lemmas
 variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
@@ -282,7 +296,26 @@ theorem meta_take (C : CommitSt) (ms : MapSt) :
     |={E}=> metaCellsQ (1 : Qp).half.half ms C ∗ ghostVar B.out (1 : Qp).half true ∗
       ghostVar B.mlk 1 () ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.map (1 : Qp).half ms := by
-  sorry
+  iintro ⟨#Hinv, Hout, Hmlk, Hcur, Hmap⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC hms
+  unfold metaLend
+  icases Hml with (⟨Hm, Hout'⟩ | Hout' | ⟨Hout', Hmlk', -⟩)
+  · imod ghostVar_update_halves true B.out false false $$ Hout Hout' with ⟨Hout, Hout'⟩
+    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hout'] with _
+    · inext; iexists σ; iframe
+      ipureintro; exact Hok
+    imodintro; iframe
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
+  · icombine Hmlk Hmlk' gives % ⟨hq, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at hq
+    grind
 
 /-- The writer puts the meta cells' quarter back, holding the current committed state's metas
 (after `store_publish`, or unchanged). -/
@@ -292,7 +325,24 @@ theorem meta_put (C : CommitSt) (ms : MapSt) :
       ghostVar B.map (1 : Qp).half ms ⊢
     |={E}=> ghostVar B.out (1 : Qp).half false ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.map (1 : Qp).half ms := by
-  sorry
+  iintro ⟨#Hinv, Hout, Hm, Hcur, Hmap⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hmap Hmap' gives % ⟨_, hms⟩
+  subst hC hms
+  unfold metaLend
+  icases Hml with (⟨-, Hout'⟩ | Hout' | ⟨Hout', -, -⟩)
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
+  · imod ghostVar_update_halves false B.out true true $$ Hout Hout' with ⟨Hout, Hout'⟩
+    imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hout' Hm] with _
+    · inext; iexists σ; iframe
+      isplitl; · ileft; iframe
+      ipureintro; exact Hok
+    imodintro; iframe
+  · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
 
 end lemmas
 
